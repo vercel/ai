@@ -161,8 +161,13 @@ export function createMCPEventWebhook({
       }
 
       // Servers can POST before a subscribe or refresh response is persisted.
-      // Ask them to retry until the ID and renewed expiration have been saved.
-      if (subscription.status !== 'active' || subscription.id == null)
+      // Events and gaps must retry until the ID and renewed expiration are saved.
+      // A verified termination for a known ID can end a pending renewal too:
+      // access may have been revoked, so renewal can no longer succeed.
+      if (
+        subscription.id == null ||
+        (subscription.status !== 'active' && control?.type !== 'terminated')
+      )
         return new Response(null, { status: 503 });
       const subscriptionInfo: MCPEventSubscriptionInfo = {
         id: subscription.id,

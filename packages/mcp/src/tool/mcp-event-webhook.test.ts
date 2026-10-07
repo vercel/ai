@@ -374,7 +374,10 @@ describe('MCP event webhook receiver', () => {
   it.each(controls)(
     'returns 503 for $type controls while subscription activation is pending',
     async control => {
-      await store.update(subscription.key, { status: 'pending' });
+      await store.update(subscription.key, {
+        status: 'pending',
+        id: undefined,
+      });
       expect((await webhook(signedRequest(subscription, control))).status).toBe(
         503,
       );
@@ -384,6 +387,76 @@ describe('MCP event webhook receiver', () => {
         status: 'pending',
         cursor: subscription.cursor,
         truncated: false,
+      });
+    },
+  );
+
+  it('returns 503 for gap controls while renewal is pending', async () => {
+    await store.update(subscription.key, { status: 'pending' });
+    expect(
+      (await webhook(signedRequest(subscription, controls[0]))).status,
+    ).toBe(503);
+    expect(onGap).not.toHaveBeenCalled();
+    expect(onTerminated).not.toHaveBeenCalled();
+    expect(await store.get(subscription.key)).toMatchObject({
+      id: subscription.id,
+      status: 'pending',
+      cursor: subscription.cursor,
+      truncated: false,
+    });
+  });
+
+  it.each(['callback', 'storage'])(
+    'returns 503 and preserves a pending renewal when termination %s fails',
+    async failure => {
+      await store.update(subscription.key, { status: 'pending' });
+      const remove = store.delete.bind(store);
+      if (failure === 'callback') {
+        onTerminated.mockRejectedValueOnce(new Error('Queue unavailable'));
+      } else {
+        store.delete = async () => {
+          throw new Error('Database unavailable');
+        };
+      }
+      expect(
+        (await webhook(signedRequest(subscription, controls[1]))).status,
+      ).toBe(503);
+      expect(await store.get(subscription.key)).toEqual({
+        ...subscription,
+        status: 'pending',
+      });
+      expect(onError).toHaveBeenCalledOnce();
+      expect(onEvent).not.toHaveBeenCalled();
+      expect(onGap).not.toHaveBeenCalled();
+
+      store.delete = remove;
+      expect(
+        (await webhook(signedRequest(subscription, controls[1]))).status,
+      ).toBe(204);
+      expect(await store.get(subscription.key)).toBeUndefined();
+    },
+  );
+
+  it.each(['unsigned', 'wrong signature', 'wrong subscription', 'malformed'])(
+    'rejects %s termination while renewal is pending',
+    async invalid => {
+      await store.update(subscription.key, { status: 'pending' });
+      const request = signedRequest(
+        subscription,
+        invalid === 'malformed' ? { type: 'terminated' } : controls[1],
+      );
+      if (invalid === 'unsigned') request.headers.delete('webhook-signature');
+      if (invalid === 'wrong signature')
+        request.headers.set('webhook-signature', 'v1,invalid');
+      if (invalid === 'wrong subscription')
+        request.headers.set('X-MCP-Subscription-Id', 'sub_other');
+      expect((await webhook(request)).status).toBe(
+        invalid === 'malformed' ? 400 : 401,
+      );
+      expect(onTerminated).not.toHaveBeenCalled();
+      expect(await store.get(subscription.key)).toEqual({
+        ...subscription,
+        status: 'pending',
       });
     },
   );

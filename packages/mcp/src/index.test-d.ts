@@ -24,10 +24,12 @@ it('exposes events on the existing client and types webhook callbacks', async ()
     delivery: { mode: 'webhook', url: 'https://app.example/events' },
   });
   expectTypeOf(result).toEqualTypeOf<Experimental_SubscribeEventResult>();
+  expectTypeOf(result.cursor).toEqualTypeOf<string | null>();
   const recovered = await client.experimental_events.refresh({
     key: 'pending_1',
   });
   expectTypeOf(recovered).toEqualTypeOf<Experimental_SubscribeEventResult>();
+  expectTypeOf(recovered.cursor).toEqualTypeOf<string | null>();
   await client.experimental_events.unsubscribe({ key: 'pending_1' });
   // @ts-expect-error Select a subscription by either ID or key, never both.
   await client.experimental_events.refresh({ id: 'sub_1', key: 'pending_1' });

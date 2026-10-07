@@ -25,7 +25,10 @@ export type ListEventsResult = z.infer<typeof ListEventsResultSchema>;
 export const SubscribeEventResultSchema = ResultSchema.extend({
   id: z.string().min(1),
   refreshBefore: z.iso.datetime({ offset: true }).nullable(),
-  cursor: z.string().nullable(),
+  cursor: z
+    .string()
+    .nullish()
+    .transform(cursor => cursor ?? null),
   truncated: z.boolean(),
 });
 export type SubscribeEventResult = z.infer<typeof SubscribeEventResultSchema>;

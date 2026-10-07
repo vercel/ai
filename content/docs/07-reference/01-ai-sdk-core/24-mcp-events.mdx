@@ -239,7 +239,7 @@ await client.experimental_events.unsubscribe({ key: pending.key });
       name: 'cursor',
       type: 'string | null',
       description:
-        'Server-provided replay cursor. Null means no replay cursor is available.',
+        'Server-provided replay cursor. If the server omits it, the SDK returns null. Null means no replay cursor is available.',
     },
     {
       name: 'truncated',
@@ -265,6 +265,10 @@ The subscription is marked pending before renewal. Event deliveries return `503`
 until the response saves the new expiration and restores active status. If renewal
 fails, the record stays pending because the server may have renewed it already;
 you can retry refresh or unsubscribe using the saved ID or key.
+
+Verified termination messages for a subscription with a saved ID are handled even
+while renewal is pending. For example, if access was revoked, `onTerminated` can
+still run and the saved subscription is removed after successful handling.
 
 ```ts
 const renewed = await client.experimental_events.refresh({
@@ -533,7 +537,9 @@ subscription ID and `messageId`.
 
 Both return `204` after successful handling. State updates also occur when
 the corresponding callback is omitted. Callback or storage failures return `503`
-for retry. Pending subscriptions return `503` until activation or renewal is persisted.
+for retry. Events and gaps return `503` until activation or renewal is persisted.
+Termination is also accepted during pending renewal when the subscription ID is
+already saved; subscriptions without a saved ID still return `503`.
 Controls are processed even if the saved expiration has passed. They are never
 sent to `onEvent` or `validatePayload`. The helper does not run or notify an agent
 automatically.

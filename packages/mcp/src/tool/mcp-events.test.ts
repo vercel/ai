@@ -20,6 +20,7 @@ class EventTransport implements MCPTransport {
   listResult: Record<string, unknown> = { events: [eventDefinition] };
   beforeSubscribe?: (request: JSONRPCRequest) => Promise<void>;
   subscribeError?: { code: number; message: string };
+  subscribeCursor: string | null | undefined = 'cursor_1';
 
   async start() {}
   async close() {
@@ -59,7 +60,9 @@ class EventTransport implements MCPTransport {
             message.params?.ttlMs === null
               ? null
               : new Date(Date.now() + 60_000).toISOString(),
-          cursor: 'cursor_1',
+          ...(this.subscribeCursor === undefined
+            ? {}
+            : { cursor: this.subscribeCursor }),
           truncated: false,
         };
         break;
@@ -104,6 +107,35 @@ describe('MCP client events', () => {
       url: 'https://app.example/events?tenant=one',
     },
   };
+
+  it.each([undefined, null, 'cursor_from_server'])(
+    'normalizes subscribe and refresh response cursor %j without leaving pending state',
+    async cursor => {
+      const { client, transport, store } = await setup();
+      transport.subscribeCursor = cursor;
+      const result =
+        await client.experimental_events.subscribe(subscribeOptions);
+      expect(result.cursor).toBe(cursor ?? null);
+      const stored = (await store.getById(result.id))!;
+      expect(stored).toMatchObject({
+        cursor: cursor ?? null,
+        status: 'active',
+      });
+
+      await store.update(stored.key, { cursor: 'cursor_from_delivery' });
+      const renewed = await client.experimental_events.refresh({
+        id: result.id,
+      });
+      expect(transport.requests.at(-1)?.params?.cursor).toBe(
+        'cursor_from_delivery',
+      );
+      expect(renewed.cursor).toBe(cursor ?? null);
+      expect(await store.get(stored.key)).toMatchObject({
+        cursor: cursor ?? null,
+        status: 'active',
+      });
+    },
+  );
 
   it('sends filter arguments without validating inputSchema by default', async () => {
     const transport = new EventTransport();
@@ -379,6 +411,44 @@ describe('MCP client events', () => {
       }
     },
   );
+
+  it('handles verified termination after renewal fails because access was revoked', async () => {
+    const { client, transport, store } = await setup();
+    const result = await client.experimental_events.subscribe(subscribeOptions);
+    const stored = (await store.getById(result.id))!;
+    const error = { code: -32012, message: 'Forbidden' };
+    transport.subscribeError = error;
+    await expect(
+      client.experimental_events.refresh({ id: result.id }),
+    ).rejects.toMatchObject(error);
+    expect(await store.get(stored.key)).toMatchObject({
+      id: result.id,
+      status: 'pending',
+    });
+
+    const onEvent = vi.fn(async () => {});
+    const onTerminated = vi.fn(async () => {});
+    const webhook = createMCPEventWebhook({ store, onEvent, onTerminated });
+    const termination = { type: 'terminated', error };
+    const response = await webhook(
+      signedRequest(stored, termination, { id: 'msg_terminated_1' }),
+    );
+    expect(response.status).toBe(204);
+    expect(onTerminated).toHaveBeenCalledOnce();
+    expect(onTerminated).toHaveBeenCalledWith({
+      subscription: {
+        id: result.id,
+        name: stored.name,
+        arguments: stored.arguments,
+        delivery: { mode: 'webhook', url: stored.delivery.url },
+        refreshBefore: stored.refreshBefore,
+      },
+      messageId: 'msg_terminated_1',
+      termination,
+    });
+    expect(onEvent).not.toHaveBeenCalled();
+    expect(await store.get(stored.key)).toBeUndefined();
+  });
 
   it('rejects unsupported servers without sending event requests', async () => {
     const transport = new EventTransport();
