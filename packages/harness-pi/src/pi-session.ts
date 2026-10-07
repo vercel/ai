@@ -65,6 +65,7 @@ import {
 import {
   createPiTranslatorState,
   finishPiApprovalStep,
+  toHarnessUsage,
   translatePiEvent,
   type PiTranslatorState,
 } from './pi-translate';
@@ -1204,6 +1205,15 @@ export async function createPiSession(
       throw new Error('Pi session has been stopped.');
     }
 
+    const nextModel =
+      turnOpts.model == null ? undefined : resolveModel(turnOpts.model);
+    if (turnOpts.model != null && nextModel == null) {
+      throw new HarnessCapabilityUnsupportedError({
+        message: `Harness 'pi' has no model '${turnOpts.model}' in its catalog.`,
+        harnessId: HARNESS_ID,
+      });
+    }
+
     const skillWriteResult = await writeSkills({
       sandbox: toolSafeSandboxSession,
       homePath: sandboxHomeDir,
@@ -1248,8 +1258,6 @@ export async function createPiSession(
         const didAppendDeliveredHostToolResults =
           appendDeliveredHostToolResults();
 
-        const nextModel =
-          turnOpts.model == null ? undefined : resolveModel(turnOpts.model);
         if (nextModel != null) activeResolvedModel = nextModel;
 
         const signature = JSON.stringify(userTools.map(t => t.name).sort());
@@ -1342,6 +1350,7 @@ export async function createPiSession(
           }
         });
 
+        const tokensBefore = session.getSessionStats().tokens;
         try {
           await session.prompt(turnOpts.text);
 
@@ -1361,28 +1370,21 @@ export async function createPiSession(
             return;
           }
 
-          const stats = session.getSessionStats();
+          const tokensAfter = session.getSessionStats().tokens;
           const finishReason = {
             unified: 'stop' as const,
             raw: undefined,
           };
-          const usage = {
-            inputTokens: {
-              total: stats.tokens.input,
-              noCache: undefined,
-              cacheRead: stats.tokens.cacheRead,
-              cacheWrite: stats.tokens.cacheWrite,
-            },
-            outputTokens: {
-              total: stats.tokens.output,
-              text: undefined,
-              reasoning: undefined,
-            },
-          };
           currentEmit?.({
             type: 'finish',
             finishReason,
-            totalUsage: usage,
+            totalUsage: toHarnessUsage({
+              input: tokensAfter.input - tokensBefore.input,
+              output: tokensAfter.output - tokensBefore.output,
+              cacheRead: tokensAfter.cacheRead - tokensBefore.cacheRead,
+              cacheWrite: tokensAfter.cacheWrite - tokensBefore.cacheWrite,
+              reasoning: translatorState?.turnReasoningTokens,
+            }),
           });
         } catch (err) {
           // A `doSuspendTurn` aborts the in-flight turn on purpose — settle silently
