@@ -69,7 +69,7 @@ importers:
   examples/ai-e2e-next:
     dependencies:
       '@ai-sdk/amazon-bedrock':
-        specifier: 4.0.192
+        specifier: 4.0.193
         version: link:../../packages/amazon-bedrock
       '@ai-sdk/anthropic':
         specifier: 3.0.128
@@ -96,7 +96,7 @@ importers:
         specifier: 3.0.72
         version: link:../../packages/groq
       '@ai-sdk/mcp':
-        specifier: 1.0.91
+        specifier: 1.0.92
         version: link:../../packages/mcp
       '@ai-sdk/mistral':
         specifier: 3.0.70

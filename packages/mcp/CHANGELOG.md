@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 1.0.92
+
+### Patch Changes
+
+- ff05827: fix(mcp): authorization server paths beginning with repeated slashes should not bypass authorization server validation
+
 ## 1.0.91
 
 ### Patch Changes
