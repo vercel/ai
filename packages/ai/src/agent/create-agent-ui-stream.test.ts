@@ -10,6 +10,7 @@ import { createAgentUIStream } from './create-agent-ui-stream';
 import { ToolLoopAgent } from './tool-loop-agent';
 import { createAgentUIStreamResponse } from './create-agent-ui-stream-response';
 import type { UIMessage } from '../ui/ui-messages';
+import type { UIMessageStreamOnStepEndCallback } from '../ui-message-stream/ui-message-stream-on-step-end-callback';
 
 const currentTool = tool({
   inputSchema: z.object({ current: z.string() }),
@@ -58,6 +59,11 @@ describe('createAgentUIStream', () => {
     async isContinuation => {
       const events: string[] = [];
       const onStepFinish = vi.fn();
+      const onUIMessageStepEnd = vi.fn<
+        UIMessageStreamOnStepEndCallback<UIMessage>
+      >(() => {
+        events.push('ui');
+      });
       const originalMessage: UIMessage = isContinuation
         ? {
             id: 'assistant-1',
@@ -82,29 +88,33 @@ describe('createAgentUIStream', () => {
           events.push('generation');
         },
         onStepFinish,
-        onUIMessageStepEnd: ({
-          responseMessage,
-          messages,
-          isContinuation: continuation,
-        }) => {
-          events.push('ui');
-          expect(continuation).toBe(isContinuation);
-          expect(responseMessage.id).toBe(
-            isContinuation ? 'assistant-1' : 'assistant-new',
-          );
-          expect(messages).toHaveLength(isContinuation ? 1 : 2);
-          expect(responseMessage.parts).toEqual([
-            ...(isContinuation ? [{ type: 'text', text: 'Previous' }] : []),
-            { type: 'step-start' },
-            { type: 'text', text: 'response', state: 'done' },
-          ]);
-        },
+        onUIMessageStepEnd,
         onEnd: () => {
           events.push('end');
         },
       });
       await convertReadableStreamToArray(stream);
-      expect(events).toEqual(['agent', 'generation', 'ui', 'end']);
+
+      // Generation and UI callbacks can run in either order as the chunk
+      // flows through the stream, but all must run before the stream ends.
+      expect(events.slice(0, -1).sort()).toEqual(['agent', 'generation', 'ui']);
+      expect(events.at(-1)).toBe('end');
+      expect(onUIMessageStepEnd).toHaveBeenCalledTimes(1);
+      const {
+        responseMessage,
+        messages,
+        isContinuation: continuation,
+      } = onUIMessageStepEnd.mock.calls[0][0];
+      expect(continuation).toBe(isContinuation);
+      expect(responseMessage.id).toBe(
+        isContinuation ? 'assistant-1' : 'assistant-new',
+      );
+      expect(messages).toHaveLength(isContinuation ? 1 : 2);
+      expect(responseMessage.parts).toEqual([
+        ...(isContinuation ? [{ type: 'text', text: 'Previous' }] : []),
+        { type: 'step-start' },
+        { type: 'text', text: 'response', state: 'done' },
+      ]);
       expect(onStepFinish).not.toHaveBeenCalled();
       expect(originalMessage.parts).toHaveLength(1);
     },
