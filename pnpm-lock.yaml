@@ -18231,9 +18231,9 @@ packages:
   image-q@4.0.0:
     resolution: {integrity: sha512-PfJGVgIfKQJuq3s0tTDOKtztksibuUEbJQIYT3by6wctQo+Rdlh7ef4evJ5NCdxY4CfMbvFkocEwbl4BF8RlJw==}
 
-  image-size@2.0.2:
-    resolution: {integrity: sha512-IRqXKlaXwgSMAMtpNzZa1ZAe8m+Sa1770Dhk8VkSsP9LS+iHD62Zd8FQKs8fbPiagBE7BzoFX23cxFnwshpV6w==}
-    engines: {node: '>=16.x'}
+  image-size@2.0.4:
+    resolution: {integrity: sha512-QRUkFFsRV/6fuESxb9Vkq+a0LkSrgKXuc2NEqfikiXxxN/G3tjWt5EVUlMaImRBZRZK/jRBEbYvpPYZL8t08Zw==}
+    engines: {node: '>=18'}
     hasBin: true
 
   image-type@5.2.0:
@@ -41951,7 +41951,7 @@ snapshots:
       github-slugger: 2.0.0
       hast-util-to-estree: 3.1.3(supports-color@10.2.2)
       hast-util-to-jsx-runtime: 2.3.6(supports-color@10.2.2)
-      image-size: 2.0.2
+      image-size: 2.0.4
       negotiator: 1.0.0
       npm-to-yarn: 3.0.1
       path-to-regexp: 8.4.2
@@ -41981,7 +41981,7 @@ snapshots:
       github-slugger: 2.0.0
       hast-util-to-estree: 3.1.3(supports-color@10.2.2)
       hast-util-to-jsx-runtime: 2.3.6(supports-color@10.2.2)
-      image-size: 2.0.2
+      image-size: 2.0.4
       negotiator: 1.0.0
       npm-to-yarn: 3.0.1
       path-to-regexp: 8.4.2
@@ -42856,7 +42856,7 @@ snapshots:
     dependencies:
       '@types/node': 16.9.1
 
-  image-size@2.0.2: {}
+  image-size@2.0.4: {}
 
   image-type@5.2.0:
     dependencies:
