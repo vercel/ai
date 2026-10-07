@@ -36,6 +36,43 @@ describe('createEmitStreamEvent', () => {
     ]);
   });
 
+  it.each([
+    {
+      status: 'rejected',
+      resetsAt: 1_791_331_200,
+      rateLimitType: 'five_hour',
+    },
+    { status: 'rejected' },
+    { status: 'allowed_warning' },
+    { status: 'allowed' },
+  ])('forwards rate-limit metadata unchanged: %j', rateLimitInfo => {
+    const emitted: Record<string, unknown>[] = [];
+    const terminalErrors: Array<string | undefined> = [];
+    const message = {
+      type: 'rate_limit_event',
+      rate_limit_info: rateLimitInfo,
+      uuid: '00000000-0000-4000-8000-000000000001',
+      session_id: 'test-session',
+      additional_metadata: { preserve: true },
+    };
+    const emitStreamEvent = createEmitStreamEvent({
+      state: createClaudeStreamEventState(),
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: error => terminalErrors.push(error),
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+
+    emitStreamEvent(message);
+
+    expect(emitted).toEqual([
+      { type: 'stream-start' },
+      { type: 'raw', rawValue: message },
+    ]);
+    expect(terminalErrors).toEqual([]);
+  });
+
   it('forwards a usage-bearing raw message_stop for each response', () => {
     const state = createClaudeStreamEventState();
     const emitted: Record<string, unknown>[] = [];
