@@ -1,5 +1,20 @@
 # @ai-sdk/azure
 
+## 4.0.93
+
+### Patch Changes
+
+- 0af2f7c: chore: upgrade to TypeScript 6
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [99bdcd2]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/openai@4.0.85
+  - @ai-sdk/provider@4.0.23
+  - @ai-sdk/deepseek@3.0.60
+
 ## 4.0.92
 
 ### Patch Changes

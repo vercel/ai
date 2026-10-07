@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/mcp",
-  "version": "2.0.67",
+  "version": "2.0.68",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -54,7 +54,7 @@
     "@vercel/ai-tsconfig": "workspace:*",
     "tsdown": "^0.23.0",
     "typescript": "6.0.3",
-    "vitest": "^4.1.6",
+    "vitest": "^4.1.11",
     "zod": "3.25.76"
   },
   "peerDependencies": {
