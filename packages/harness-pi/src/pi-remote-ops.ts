@@ -118,6 +118,43 @@ function deniedRootPrune(
   return [`\\( ${tests.join(' -o ')} \\) -prune -o`];
 }
 
+export async function resolvePiSandboxPathOrParent(input: {
+  sandbox: Experimental_SandboxSession;
+  remotePath: string;
+  inputPath: string;
+  env?: Record<string, string>;
+}): Promise<string> {
+  const result = await input.sandbox.run({
+    command: [
+      `target=${shellQuote(input.remotePath)}`,
+      `if [ -e "$target" ] || [ -L "$target" ]; then ${realpathShellLines('target').join('; ')}; ${framePathShell('"$resolved"')}; exit 0; fi`,
+      'dir=${target%/*}',
+      'base=${target##*/}',
+      '[ -n "$dir" ] || dir=/',
+      `missing="$base"`,
+      'while [ ! -e "$dir" ] && [ ! -L "$dir" ]; do parent=${dir%/*}; [ -n "$parent" ] || parent=/; if [ "$parent" = "$dir" ]; then echo "__PI_REALPATH_NOT_FOUND__"; exit 2; fi; missing=${dir##*/}/$missing; dir=$parent; done',
+      ...realpathShellLines('dir'),
+      framePathShell('"$resolved/$missing"'),
+    ].join('; '),
+    ...(input.env ? { env: input.env } : {}),
+  });
+
+  const output = `${result.stdout}${result.stderr}`;
+  if (
+    output.includes('__PI_REALPATH_NOT_FOUND__') ||
+    output.includes('__PI_REALPATH_FAILED__') ||
+    result.exitCode !== 0
+  ) {
+    throw new Error(`Unable to resolve path: ${input.inputPath}`);
+  }
+
+  const resolvedPath = parseFramedPath(result.stdout);
+  if (!resolvedPath) {
+    throw new Error(`Unable to resolve path: ${input.inputPath}`);
+  }
+  return resolvedPath;
+}
+
 export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
   const runShell = async (
     command: string,
@@ -187,36 +224,15 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
   const resolveWritableSandboxPath = async (
     remotePath: string,
     inputPath: string,
-  ): Promise<string> => {
-    const result = await runShell(
-      [
-        `target=${shellQuote(remotePath)}`,
-        `if [ -e "$target" ] || [ -L "$target" ]; then ${realpathShellLines('target').join('; ')}; ${framePathShell('"$resolved"')}; exit 0; fi`,
-        'dir=${target%/*}',
-        'base=${target##*/}',
-        '[ -n "$dir" ] || dir=/',
-        `missing="$base"`,
-        'while [ ! -e "$dir" ] && [ ! -L "$dir" ]; do parent=${dir%/*}; [ -n "$parent" ] || parent=/; if [ "$parent" = "$dir" ]; then echo "__PI_REALPATH_NOT_FOUND__"; exit 2; fi; missing=${dir##*/}/$missing; dir=$parent; done',
-        ...realpathShellLines('dir'),
-        framePathShell('"$resolved/$missing"'),
-      ].join('; '),
+  ): Promise<string> =>
+    options.paths.assertSandboxPath(
+      await resolvePiSandboxPathOrParent({
+        sandbox: options.sandbox,
+        remotePath,
+        inputPath,
+        ...(options.env ? { env: options.env } : {}),
+      }),
     );
-
-    const output = result.output.toString('utf8');
-    if (
-      output.includes('__PI_REALPATH_NOT_FOUND__') ||
-      output.includes('__PI_REALPATH_FAILED__') ||
-      result.exitCode !== 0
-    ) {
-      throw new Error(`Unable to resolve path: ${inputPath}`);
-    }
-
-    const resolvedPath = parseFramedPath(result.stdout);
-    if (!resolvedPath) {
-      throw new Error(`Unable to resolve path: ${inputPath}`);
-    }
-    return options.paths.assertSandboxPath(resolvedPath);
-  };
 
   const readBuffer = async (inputPath: string): Promise<Buffer> => {
     const remotePath = options.paths.toReadableSandboxPath(inputPath);

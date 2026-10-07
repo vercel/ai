@@ -89,8 +89,8 @@ export type PiHarnessSettings = {
    * Absolute sandbox paths that widen or narrow what Pi's native file tools
    * can reach. `readableRoots` lets `read`, `ls`, `find`, and `grep` reach
    * outside the session workspace. `deniedRoots` are refused by every native
-   * file tool and take precedence, including through symlinks. The `bash` tool
-   * is not restricted.
+   * file tool and take precedence, including through symlinks. Denied roots
+   * are resolved when the session starts. The `bash` tool is not restricted.
    */
   readonly fileToolPathPolicy?: PiFileToolPathPolicy;
 };

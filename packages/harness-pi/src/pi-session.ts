@@ -49,7 +49,11 @@ import { resolvePiSubscriptionAgentDir } from './pi-subscription';
 import { getPiTerminalError, parseNativeEvent } from './pi-events';
 import { createPiModelResolver } from './pi-model-resolver';
 import { createPiPathMapper } from './pi-paths';
-import { createPiRemoteOps, type PiRemoteOps } from './pi-remote-ops';
+import {
+  createPiRemoteOps,
+  resolvePiSandboxPathOrParent,
+  type PiRemoteOps,
+} from './pi-remote-ops';
 import {
   formatPiReadToolOutput,
   truncatePiToolOutputHead,
@@ -429,6 +433,17 @@ export async function createPiSession(
   const toolSafeSandboxSession = getRestrictedSandboxSession(
     input.sandboxSession,
   );
+  const fileToolPathPolicy = input.settings.fileToolPathPolicy;
+  const canonicalDeniedRoots: string[] = [];
+  for (const deniedRoot of fileToolPathPolicy?.deniedRoots ?? []) {
+    canonicalDeniedRoots.push(
+      await resolvePiSandboxPathOrParent({
+        sandbox: toolSafeSandboxSession,
+        remotePath: path.posix.normalize(deniedRoot),
+        inputPath: deniedRoot,
+      }),
+    );
+  }
 
   // Pi runs in this host process but must behave as though it lives in the
   // sandbox workspace: its working directory is the real `sessionWorkDir`
@@ -513,7 +528,6 @@ export async function createPiSession(
     workspaceVfs.mount(hostWorkDir, sessionWorkDir);
   }
 
-  const fileToolPathPolicy = input.settings.fileToolPathPolicy;
   const paths = createPiPathMapper({
     hostWorkDir,
     sandboxWorkDir: sessionWorkDir,
@@ -523,7 +537,14 @@ export async function createPiSession(
         sandboxDir,
       })),
     ],
-    deniedRoots: fileToolPathPolicy?.deniedRoots,
+    deniedRoots: fileToolPathPolicy?.deniedRoots
+      ? [
+          ...new Set([
+            ...fileToolPathPolicy.deniedRoots,
+            ...canonicalDeniedRoots,
+          ]),
+        ]
+      : undefined,
     ...(fileToolPathPolicy ? { homeDir: sandboxHomeDir } : {}),
   });
 

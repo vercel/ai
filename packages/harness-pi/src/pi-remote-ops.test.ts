@@ -17,7 +17,10 @@ import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
 import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
 import { describe, expect, it, vi } from 'vitest';
 import { createPiPathMapper } from './pi-paths';
-import { createPiRemoteOps } from './pi-remote-ops';
+import {
+  createPiRemoteOps,
+  resolvePiSandboxPathOrParent,
+} from './pi-remote-ops';
 
 type RunCalls = Array<{
   command: string;
@@ -1171,6 +1174,89 @@ async function makePathPolicyFixture() {
 }
 
 describe('createPiRemoteOps with denied roots', () => {
+  it('refuses a symlinked denied root through its canonical workspace path', async () => {
+    const root = realpathSync.native(
+      await mkdtemp(path.join(tmpdir(), 'pi-denied-link-')),
+    );
+    const workspace = path.join(root, 'workspace');
+    const home = path.join(root, 'home');
+    const target = path.join(workspace, 'private');
+    const alias = path.join(home, 'blocked');
+    const readCalls: string[] = [];
+    const writeCalls: WriteCalls = [];
+
+    try {
+      await mkdir(target, { recursive: true });
+      await mkdir(home);
+      await writeFile(path.join(target, 'notes.txt'), 'needle private\n');
+      await writeFile(path.join(workspace, 'public.txt'), 'needle public\n');
+      await writeFile(
+        path.join(workspace, 'private-copy.txt'),
+        'needle copy\n',
+      );
+      await symlink(target, alias);
+
+      const sandbox = createNativeFileSandbox({ readCalls, writeCalls });
+      const canonicalRoot = await resolvePiSandboxPathOrParent({
+        sandbox,
+        remotePath: alias,
+        inputPath: alias,
+      });
+      expect(canonicalRoot).toBe(target);
+
+      const ops = createPiRemoteOps({
+        sandbox,
+        paths: createPiPathMapper({
+          hostWorkDir: path.join(root, 'host-mirror'),
+          sandboxWorkDir: workspace,
+          readableRoots: [{ sandboxDir: home }],
+          deniedRoots: [alias, canonicalRoot],
+        }),
+      });
+
+      await expect(ops.readBuffer('private/notes.txt')).rejects.toThrow(
+        /inside a denied root/,
+      );
+      await expect(
+        ops.readBuffer(path.join(alias, 'notes.txt')),
+      ).rejects.toThrow(/inside a denied root/);
+      await expect(ops.access('private/notes.txt')).rejects.toThrow(
+        /inside a denied root/,
+      );
+      await expect(ops.listDirectory('private')).rejects.toThrow(
+        /inside a denied root/,
+      );
+      await expect(ops.findFiles('*.txt', 'private')).rejects.toThrow(
+        /inside a denied root/,
+      );
+      await expect(
+        ops.grepFiles('needle', { path: 'private', literal: true }),
+      ).rejects.toThrow(/inside a denied root/);
+      await expect(
+        ops.writeFile('private/new.txt', 'new private\n'),
+      ).rejects.toThrow(/inside a denied root/);
+      await expect(
+        ops.editFile('private/notes.txt', 'private', 'changed'),
+      ).rejects.toThrow(/inside a denied root/);
+      expect(readCalls).toEqual([]);
+      expect(writeCalls).toEqual([]);
+
+      await expect(ops.findFiles('*.txt', '.')).resolves.toEqual([
+        'private-copy.txt',
+        'public.txt',
+      ]);
+      const output = await ops.grepFiles('needle', { literal: true });
+      expect(output).toContain('public.txt:1:needle public');
+      expect(output).toContain('private-copy.txt:1:needle copy');
+      expect(output).not.toContain('needle private');
+      await expect(ops.readBuffer('private-copy.txt')).resolves.toEqual(
+        Buffer.from('needle copy\n'),
+      );
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it('refuses to read a path inside a denied root', async () => {
     const fixture = await makePathPolicyFixture();
     try {
@@ -1312,6 +1398,98 @@ describe('createPiRemoteOps with denied roots', () => {
     } finally {
       await session.destroy();
     }
+  });
+
+  it('resolves denied symlinks and excludes their targets in just-bash', async () => {
+    const session = await createJustBashSandbox({
+      cwd: sandboxWorkDir,
+    }).createSession();
+    const sandbox = session.restricted();
+    const target = `${sandboxWorkDir}/private`;
+    const alias = `${sandboxWorkDir}/blocked`;
+
+    try {
+      const setup = await sandbox.run({
+        command: [
+          `mkdir -p ${target}`,
+          `printf 'needle private\\n' > ${target}/notes.txt`,
+          `printf 'needle public\\n' > ${sandboxWorkDir}/public.txt`,
+          `ln -s private ${alias}`,
+        ].join(' && '),
+      });
+      expect(setup.exitCode).toBe(0);
+
+      const canonicalRoot = await resolvePiSandboxPathOrParent({
+        sandbox,
+        remotePath: alias,
+        inputPath: alias,
+      });
+      expect(canonicalRoot).toBe(target);
+
+      const ops = createPiRemoteOps({
+        sandbox,
+        paths: createPiPathMapper({
+          hostWorkDir,
+          sandboxWorkDir,
+          deniedRoots: [alias, canonicalRoot],
+        }),
+      });
+
+      await expect(ops.readBuffer('private/notes.txt')).rejects.toThrow(
+        /inside a denied root/,
+      );
+      await expect(ops.findFiles('*.txt', '.')).resolves.toEqual([
+        'public.txt',
+      ]);
+      const output = await ops.grepFiles('needle', { literal: true });
+      expect(output).toContain('public.txt:1:needle public');
+      expect(output).not.toContain('needle private');
+    } finally {
+      await session.destroy();
+    }
+  });
+
+  it('resolves a missing denied directory beneath a symlinked parent', async () => {
+    const session = await createJustBashSandbox({
+      cwd: sandboxWorkDir,
+    }).createSession();
+    const sandbox = session.restricted();
+
+    try {
+      const setup = await sandbox.run({
+        command: [
+          `mkdir -p ${sandboxWorkDir}/actual`,
+          `ln -s actual ${sandboxWorkDir}/link`,
+        ].join(' && '),
+      });
+      expect(setup.exitCode).toBe(0);
+
+      const alias = `${sandboxWorkDir}/link/future/private`;
+      await expect(
+        resolvePiSandboxPathOrParent({
+          sandbox,
+          remotePath: alias,
+          inputPath: alias,
+        }),
+      ).resolves.toBe(`${sandboxWorkDir}/actual/future/private`);
+    } finally {
+      await session.destroy();
+    }
+  });
+
+  it('refuses malformed canonical denied paths from the sandbox', async () => {
+    const alias = `${sandboxWorkDir}/blocked`;
+    const { sandbox } = makeMockSandbox({
+      realpathBytes: () => Uint8Array.of(0xff),
+    });
+
+    await expect(
+      resolvePiSandboxPathOrParent({
+        sandbox,
+        remotePath: alias,
+        inputPath: alias,
+      }),
+    ).rejects.toThrow(`Unable to resolve path: ${alias}`);
   });
 
   it('keeps the stock find and grep commands without a policy', async () => {

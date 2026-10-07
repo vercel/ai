@@ -772,6 +772,112 @@ describe('createPiSession', () => {
     }
   });
 
+  it('refuses the canonical target of a symlinked denied root', async () => {
+    const alias = '/sandbox/home/blocked';
+    const target = '/sandbox/work/private';
+    const sandboxSession = createSandboxSession();
+    const run = vi.mocked(sandboxSession.run);
+    const runWithoutRealpath = run.getMockImplementation()!;
+    run.mockImplementation(async input => {
+      const remotePath = input.command.match(/^target='([^']+)'/)?.[1];
+      const marker = input.command.match(/realpath_marker='([^']+)'/)?.[1];
+      if (remotePath == null || marker == null) {
+        return runWithoutRealpath(input);
+      }
+      return {
+        stdout: `${Buffer.from(remotePath === alias ? target : remotePath).toString('base64')}${marker}`,
+        stderr: '',
+        exitCode: 0,
+      };
+    });
+    vi.mocked(sandboxSession.readBinaryFile).mockImplementation(
+      async ({ path: filePath }) =>
+        filePath === `${target}/notes.txt`
+          ? new TextEncoder().encode('private notes')
+          : filePath === '/sandbox/work/public.txt'
+            ? new TextEncoder().encode('public notes')
+            : null,
+    );
+
+    let reads: PromiseSettledResult<string>[] = [];
+    piMock.session = createFakePiSession({
+      promptImplementation: async () => {
+        reads = await Promise.allSettled([
+          executeReadTool(`${target}/notes.txt`),
+          executeReadTool(`${alias}/notes.txt`),
+          executeReadTool('/sandbox/work/public.txt'),
+        ]);
+      },
+    }).session;
+
+    const session = await createPi({
+      fileToolPathPolicy: {
+        readableRoots: ['/sandbox/home'],
+        deniedRoots: [alias],
+      },
+    }).doStart({
+      sessionId: 'session-symlinked-denied-root',
+      sandboxSession,
+      sessionWorkDir: '/sandbox/work',
+    });
+
+    try {
+      const control = await session.doPromptTurn({
+        skills: [],
+        prompt: 'test prompt',
+        tools: [],
+        emit: vi.fn(),
+      });
+      await control.done;
+
+      expect(reads).toEqual([
+        {
+          status: 'rejected',
+          reason: expect.objectContaining({
+            message: expect.stringContaining('inside a denied root'),
+          }),
+        },
+        {
+          status: 'rejected',
+          reason: expect.objectContaining({
+            message: expect.stringContaining('inside a denied root'),
+          }),
+        },
+        {
+          status: 'fulfilled',
+          value: expect.stringContaining('public notes'),
+        },
+      ]);
+      expect(sandboxSession.readBinaryFile).not.toHaveBeenCalledWith({
+        path: `${target}/notes.txt`,
+      });
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('fails startup if a denied root cannot be resolved in the sandbox', async () => {
+    const alias = '/sandbox/home/blocked';
+    const sandboxSession = createSandboxSession();
+    const run = vi.mocked(sandboxSession.run);
+    run.mockImplementation(async ({ command }) => ({
+      stdout: command.startsWith(`target='${alias}'`)
+        ? '__PI_REALPATH_FAILED__\n'
+        : '',
+      stderr: '',
+      exitCode: command.startsWith(`target='${alias}'`) ? 3 : 0,
+    }));
+
+    await expect(
+      createPi({ fileToolPathPolicy: { deniedRoots: [alias] } }).doStart({
+        sessionId: 'session-unresolved-denied-root',
+        sandboxSession,
+        sessionWorkDir: '/sandbox/work',
+      }),
+    ).rejects.toThrow(`Unable to resolve path: ${alias}`);
+    expect(piMock.createAgentSession).not.toHaveBeenCalled();
+  });
+
   it('keeps native reads inside the workspace without fileToolPathPolicy', async () => {
     const sandboxSession = createSandboxSession();
     let reads: PromiseSettledResult<string>[] = [];
