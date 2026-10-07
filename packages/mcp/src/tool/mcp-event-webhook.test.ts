@@ -19,11 +19,13 @@ describe('MCP event webhook receiver', () => {
     cursor: 'cursor_2',
   };
   const onEvent = vi.fn(async () => {});
+  const onControl = vi.fn(async () => {});
   const onError = vi.fn();
   let webhook: ReturnType<typeof createMCPEventWebhook>;
 
   beforeEach(async () => {
     onEvent.mockReset();
+    onControl.mockReset();
     onError.mockReset();
     store = new MemoryEventStore();
     subscription = {
@@ -46,6 +48,7 @@ describe('MCP event webhook receiver', () => {
     webhook = createMCPEventWebhook({
       store,
       onEvent,
+      onControl,
       onError,
       async validatePayload({ definition, data }) {
         expect(definition.name).toBe(eventDefinition.name);
@@ -206,17 +209,169 @@ describe('MCP event webhook receiver', () => {
     });
   });
 
-  it.each(['gap', 'terminated', 'unknown'])(
-    'does not send %s control envelopes to onEvent',
-    async type => {
+  const controls = [
+    { type: 'gap', cursor: 'cursor_fresh' },
+    {
+      type: 'terminated',
+      error: {
+        code: -32012,
+        message: 'Forbidden',
+        data: { reason: 'Access revoked' },
+      },
+    },
+  ];
+
+  it.each(controls)(
+    'handles signed $type controls separately from events',
+    async control => {
+      const messageId = `msg_${control.type}_1`;
       expect(
-        (
-          await webhook(
-            signedRequest(subscription, { type, cursor: 'cursor_3' }),
-          )
-        ).status,
-      ).toBe(400);
+        (await webhook(signedRequest(subscription, control, { id: messageId })))
+          .status,
+      ).toBe(204);
       expect(onEvent).not.toHaveBeenCalled();
+      expect(onControl).toHaveBeenCalledWith({
+        subscription: {
+          id: subscription.id,
+          name: subscription.name,
+          arguments: subscription.arguments,
+          delivery: { mode: 'webhook', url: subscription.delivery.url },
+          refreshBefore: subscription.refreshBefore,
+        },
+        messageId,
+        control:
+          control.type === 'gap' ? { ...control, truncated: true } : control,
+      });
+      if (control.type === 'gap') {
+        expect(await store.get(subscription.key)).toMatchObject({
+          cursor: control.cursor,
+          truncated: true,
+          status: 'active',
+        });
+        expect((await webhook(signedRequest(subscription, event))).status).toBe(
+          204,
+        );
+      } else {
+        expect(await store.get(subscription.key)).toBeUndefined();
+      }
+    },
+  );
+
+  it.each(controls)(
+    'returns 503 and preserves state when $type control handling fails',
+    async control => {
+      onControl.mockRejectedValueOnce(new Error('Queue unavailable'));
+      expect((await webhook(signedRequest(subscription, control))).status).toBe(
+        503,
+      );
+      expect(await store.get(subscription.key)).toEqual(subscription);
+      expect(onError).toHaveBeenCalledOnce();
+      expect(onEvent).not.toHaveBeenCalled();
+      expect((await webhook(signedRequest(subscription, control))).status).toBe(
+        204,
+      );
+    },
+  );
+
+  it.each(controls)(
+    'returns 503 if saving $type control state fails',
+    async control => {
+      const update = store.update.bind(store);
+      const remove = store.delete.bind(store);
+      const fail = async () => {
+        throw new Error('Database unavailable');
+      };
+      store.update = fail;
+      store.delete = fail;
+      expect((await webhook(signedRequest(subscription, control))).status).toBe(
+        503,
+      );
+      expect(await store.get(subscription.key)).toEqual(subscription);
+      expect(onError).toHaveBeenCalledOnce();
+      store.update = update;
+      store.delete = remove;
+      expect((await webhook(signedRequest(subscription, control))).status).toBe(
+        204,
+      );
+    },
+  );
+
+  it.each(controls)(
+    'updates $type control state when no control callback is configured',
+    async control => {
+      const handler = createMCPEventWebhook({ store, onEvent });
+      expect((await handler(signedRequest(subscription, control))).status).toBe(
+        204,
+      );
+      expect(onEvent).not.toHaveBeenCalled();
+      if (control.type === 'gap') {
+        expect(await store.get(subscription.key)).toMatchObject({
+          cursor: control.cursor,
+          truncated: true,
+        });
+      } else {
+        expect(await store.get(subscription.key)).toBeUndefined();
+      }
+    },
+  );
+
+  it.each(controls)(
+    'handles $type controls even when the local expiration has passed',
+    async control => {
+      await store.update(subscription.key, {
+        refreshBefore: new Date(Date.now() - 1000).toISOString(),
+      });
+      expect((await webhook(signedRequest(subscription, control))).status).toBe(
+        204,
+      );
+      expect(onControl).toHaveBeenCalledOnce();
+      expect(onEvent).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(controls)(
+    'returns 503 for $type controls while subscription activation is pending',
+    async control => {
+      await store.update(subscription.key, { status: 'pending' });
+      expect((await webhook(signedRequest(subscription, control))).status).toBe(
+        503,
+      );
+      expect(onControl).not.toHaveBeenCalled();
+      expect(await store.get(subscription.key)).toMatchObject({
+        status: 'pending',
+        cursor: subscription.cursor,
+        truncated: false,
+      });
+    },
+  );
+
+  it.each(controls)(
+    'rejects unsigned $type controls without notifying or changing state',
+    async control => {
+      const request = signedRequest(subscription, control);
+      request.headers.delete('webhook-signature');
+      expect((await webhook(request)).status).toBe(401);
+      expect(onControl).not.toHaveBeenCalled();
+      expect(onEvent).not.toHaveBeenCalled();
+      expect(await store.get(subscription.key)).toEqual(subscription);
+    },
+  );
+
+  it.each([
+    { type: 'unknown', cursor: 'cursor_3' },
+    { type: 'gap' },
+    { type: 'gap', cursor: 42 },
+    { type: 'terminated' },
+    { type: 'terminated', error: { code: 'invalid', message: 'Forbidden' } },
+  ])(
+    'rejects invalid control envelopes without notifying or changing state: %j',
+    async control => {
+      expect((await webhook(signedRequest(subscription, control))).status).toBe(
+        400,
+      );
+      expect(onEvent).not.toHaveBeenCalled();
+      expect(onControl).not.toHaveBeenCalled();
+      expect(await store.get(subscription.key)).toEqual(subscription);
     },
   );
 

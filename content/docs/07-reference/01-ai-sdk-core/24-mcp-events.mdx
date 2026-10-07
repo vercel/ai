@@ -424,6 +424,18 @@ export const POST = experimental_createMCPEventWebhook({
   async onEvent({ subscription, event }) {
     console.log(subscription.id, event.name, event.data);
   },
+  async onControl({ subscription, control }) {
+    if (control.type === 'gap') {
+      console.log(
+        'Replay gap:',
+        subscription.id,
+        control.cursor,
+        control.truncated,
+      );
+    } else {
+      console.log('Subscription terminated:', subscription.id, control.error);
+    }
+  },
   onError(error) {
     console.error(error);
   },
@@ -451,6 +463,13 @@ The argument has type
       type: '({ subscription, event }) => Promise<void>',
       description:
         'Required application handler for verified events. Resolve after successful processing or durable acceptance. Throw to return 503 and allow retry.',
+    },
+    {
+      name: 'onControl',
+      type: '({ subscription, messageId, control }) => Promise<void>',
+      description:
+        'Optional handler for signed gap and termination controls. Resolve after durable acceptance. Throw to return 503 without changing saved state. Controls are never sent to onEvent or validatePayload.',
+      isOptional: true,
     },
     {
       name: 'validatePayload',
@@ -493,6 +512,23 @@ The argument has type
 See [subscription metadata](/docs/reference/ai-sdk-core/mcp-events#subscription-metadata)
 and [event fields](/docs/reference/ai-sdk-core/mcp-events#event) for their full types.
 
+`onControl` receives the same safe `subscription` metadata, a `messageId` from
+the signed `webhook-id` header, and a `control` of type
+`Experimental_MCPEventControl`. Deduplicate retries by subscription ID and
+`messageId`.
+
+- A `gap` control contains the fresh `cursor` and `truncated: true`, added by the
+  helper. After the callback resolves, these fields are saved to the subscription;
+  the subscription remains active.
+- A `terminated` control contains `error: { code, message, data? }`. After the
+  callback resolves, the subscription record is deleted because it no longer
+  exists on the server.
+
+Both return `204` after successful handling. State updates also occur when
+`onControl` is omitted. Callback or storage failures return `503` for retry.
+Pending subscriptions return `503` until activation or renewal is persisted.
+Controls are processed even if the saved expiration has passed.
+
 ### Returns
 
 ```ts
@@ -522,6 +558,7 @@ import type {
   Experimental_SubscribeEventOptions,
   Experimental_SubscribeEventResult,
   Experimental_MCPEvent,
+  Experimental_MCPEventControl,
   Experimental_MCPEventSubscription,
   Experimental_MCPEventSubscriptionInfo,
   Experimental_MCPEventStore,
@@ -532,6 +569,22 @@ import type {
 The shapes below use `JSONObject` from `@ai-sdk/provider` for JSON-compatible
 filter objects. Request settings are written inline because `RequestOptions`
 is not exported from `@ai-sdk/mcp`.
+
+### Webhook Controls
+
+`Experimental_MCPEventControl` describes the `onControl` payload:
+
+```ts
+type Experimental_MCPEventControl =
+  | { type: 'gap'; cursor: string; truncated: true }
+  | {
+      type: 'terminated';
+      error: { code: number; message: string; data?: unknown };
+    };
+```
+
+Unknown extension fields are preserved. Verification challenges are echoed
+automatically and do not invoke `onControl`.
 
 ### Client Methods
 

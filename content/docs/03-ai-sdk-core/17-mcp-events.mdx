@@ -76,6 +76,18 @@ export const POST = experimental_createMCPEventWebhook({
   async onEvent({ subscription, event }) {
     console.log(subscription.id, event.name, event.data);
   },
+  async onControl({ subscription, control }) {
+    if (control.type === 'gap') {
+      console.log(
+        'Replay gap:',
+        subscription.id,
+        control.cursor,
+        control.truncated,
+      );
+    } else {
+      console.log('Subscription terminated:', subscription.id, control.error);
+    }
+  },
 });
 ```
 
@@ -83,6 +95,12 @@ The helper verifies signatures and echoes challenges automatically. It invokes
 `onEvent` without exposing the secret, then returns `204` after successful
 processing. Processing failures return `503` so the server can retry. In your
 app, resolve `onEvent` only after processing or durably accepting the event.
+
+Signed `gap` and `terminated` messages go to the optional `onControl` callback.
+After it succeeds, a gap saves the fresh cursor and `truncated: true`; termination
+removes the saved subscription. These state updates also occur without `onControl`.
+Control callback or storage failures return `503` for retry. Deduplicate controls
+by subscription ID and the callback's `messageId` (the signed `webhook-id`).
 
 **Then subscribe using the same store.**
 

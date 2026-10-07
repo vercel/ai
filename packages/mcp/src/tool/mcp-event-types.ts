@@ -39,6 +39,23 @@ export const MCPEventSchema = z.looseObject({
 });
 export type MCPEvent = z.infer<typeof MCPEventSchema>;
 
+export const MCPEventControlSchema = z
+  .discriminatedUnion('type', [
+    z.looseObject({ type: z.literal('gap'), cursor: z.string() }),
+    z.looseObject({
+      type: z.literal('terminated'),
+      error: z.looseObject({
+        code: z.number().int(),
+        message: z.string(),
+        data: z.unknown().nullish(),
+      }),
+    }),
+  ])
+  .transform(control =>
+    control.type === 'gap' ? { ...control, truncated: true as const } : control,
+  );
+export type MCPEventControl = z.infer<typeof MCPEventControlSchema>;
+
 /** Persisted privately by the application, including the signing secret. */
 export type MCPEventSubscription = {
   key: string;

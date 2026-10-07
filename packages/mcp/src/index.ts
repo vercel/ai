@@ -52,6 +52,7 @@ export {
 } from './tool/mcp-event-webhook';
 export type {
   MCPEvent as Experimental_MCPEvent,
+  MCPEventControl as Experimental_MCPEventControl,
   MCPEventDefinition as Experimental_MCPEventDefinition,
   MCPEventStore as Experimental_MCPEventStore,
   MCPEventSubscription as Experimental_MCPEventSubscription,

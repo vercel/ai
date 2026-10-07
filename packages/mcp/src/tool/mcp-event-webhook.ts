@@ -4,7 +4,9 @@ import { MCP_EVENT_CALLBACK_KEY } from './mcp-events';
 import { verifyMCPEventSignature } from './mcp-event-signature';
 import {
   MCPEventSchema,
+  MCPEventControlSchema,
   type MCPEvent,
+  type MCPEventControl,
   type MCPEventDefinition,
   type MCPEventStore,
   type MCPEventSubscriptionInfo,
@@ -36,6 +38,15 @@ export type MCPEventWebhookOptions = {
     subscription: MCPEventSubscriptionInfo;
     event: MCPEvent;
   }) => Promise<void>;
+  /**
+   * Handles signed gap and termination controls separately from events. Resolve
+   * after durable acceptance.
+   */
+  onControl?: (args: {
+    subscription: MCPEventSubscriptionInfo;
+    messageId: string;
+    control: MCPEventControl;
+  }) => Promise<void>;
   onError?: (error: unknown) => void;
 };
 
@@ -48,6 +59,7 @@ export function createMCPEventWebhook({
   store,
   validatePayload,
   onEvent,
+  onControl,
   onError,
 }: MCPEventWebhookOptions): (request: Request) => Promise<Response> {
   return async request => {
@@ -120,20 +132,45 @@ export function createMCPEventWebhook({
       if (!parsed.success) return new Response(null, { status: 400 });
       const value = parsed.value;
 
+      let control: MCPEventControl | undefined;
       if (value != null && typeof value === 'object' && 'type' in value) {
-        const verification = VerificationSchema.safeParse(value);
-        if (!verification.success) {
-          // Poll/push and gap/terminated control notifications are outside this
-          // initial webhook subset. Never treat a control body as agent input.
-          return new Response(null, { status: 400 });
+        if (value.type === 'verification') {
+          const verification = VerificationSchema.safeParse(value);
+          if (!verification.success) return new Response(null, { status: 400 });
+          return Response.json({ challenge: verification.data.challenge });
         }
-        return Response.json({ challenge: verification.data.challenge });
+        const parsedControl = MCPEventControlSchema.safeParse(value);
+        if (!parsedControl.success) return new Response(null, { status: 400 });
+        control = parsedControl.data;
       }
 
       // Servers can POST before a subscribe or refresh response is persisted.
       // Ask them to retry until the ID and renewed expiration have been saved.
       if (subscription.status !== 'active' || subscription.id == null)
         return new Response(null, { status: 503 });
+      const subscriptionInfo: MCPEventSubscriptionInfo = {
+        id: subscription.id,
+        name: subscription.name,
+        arguments: subscription.arguments,
+        delivery: { mode: 'webhook', url: subscription.delivery.url },
+        refreshBefore: subscription.refreshBefore ?? null,
+      };
+      if (control) {
+        await onControl?.({
+          subscription: subscriptionInfo,
+          messageId: request.headers.get('webhook-id')!,
+          control,
+        });
+        if (control.type === 'gap') {
+          await store.update(subscription.key, {
+            cursor: control.cursor,
+            truncated: true,
+          });
+        } else {
+          await store.delete(subscription.key);
+        }
+        return new Response(null, { status: 204 });
+      }
       if (
         subscription.refreshBefore != null &&
         Date.parse(subscription.refreshBefore) <= Date.now()
@@ -159,13 +196,7 @@ export function createMCPEventWebhook({
       }
 
       await onEvent({
-        subscription: {
-          id: subscription.id,
-          name: subscription.name,
-          arguments: subscription.arguments,
-          delivery: { mode: 'webhook', url: subscription.delivery.url },
-          refreshBefore: subscription.refreshBefore ?? null,
-        },
+        subscription: subscriptionInfo,
         event: event.data,
       });
       if (event.data.cursor !== undefined) {

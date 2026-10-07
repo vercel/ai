@@ -4,6 +4,7 @@ import {
   createMCPClient,
   experimental_createMCPEventWebhook,
   type Experimental_MCPEvent,
+  type Experimental_MCPEventControl,
   type Experimental_MCPEventStore,
   type Experimental_MCPEvents,
   type Experimental_SubscribeEventResult,
@@ -36,6 +37,18 @@ it('exposes events on the existing client and types webhook callbacks', async ()
       expectTypeOf(event).toEqualTypeOf<Experimental_MCPEvent>();
       expectTypeOf(subscription.id).toEqualTypeOf<string>();
       // @ts-expect-error Signing secrets must not be exposed to event handlers.
+      subscription.delivery.secret;
+    },
+    async onControl({ control, subscription, messageId }) {
+      expectTypeOf(control).toEqualTypeOf<Experimental_MCPEventControl>();
+      expectTypeOf(messageId).toEqualTypeOf<string>();
+      if (control.type === 'gap') {
+        expectTypeOf(control.cursor).toEqualTypeOf<string>();
+        expectTypeOf(control.truncated).toEqualTypeOf<true>();
+      } else {
+        expectTypeOf(control.error.code).toEqualTypeOf<number>();
+      }
+      // @ts-expect-error Signing secrets must not be exposed to control handlers.
       subscription.delivery.secret;
     },
   });

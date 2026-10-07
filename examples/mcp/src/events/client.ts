@@ -12,6 +12,18 @@ async function main() {
     async onEvent({ event }) {
       console.log('Received comment:', event.data);
     },
+    async onControl({ subscription, control }) {
+      if (control.type === 'gap') {
+        console.log(
+          'Replay gap:',
+          subscription.id,
+          control.cursor,
+          control.truncated,
+        );
+      } else {
+        console.log('Subscription terminated:', subscription.id, control.error);
+      }
+    },
   });
 
   // Start receiving before subscribing: the server verifies this URL immediately.
