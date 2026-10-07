@@ -446,7 +446,7 @@ describe('createSigV4FetchFunction', () => {
     });
 
     expect(lastSignerOptions.headers).toEqual([
-      ['user-agent', 'ai-sdk-amazon-bedrock/0.0.0-test testenv'],
+      ['user-agent', 'ai-sdk/amazon-bedrock/0.0.0-test runtime/testenv'],
       ['x-ascii', 'plain'],
     ]);
     const calledInit = dummyFetch.mock.calls[0][1] as RequestInit;
