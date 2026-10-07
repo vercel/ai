@@ -1,0 +1,45 @@
+import { jsonSchema, type Tool } from '../../../dist';
+import type { NeverOptional } from '../never-optional';
+
+type Assert<T extends true> = T;
+type Extends<T, U> = [T] extends [U] ? true : false;
+
+const noOutput: Tool<unknown, never> = {
+  inputSchema: jsonSchema({ type: 'object' }),
+};
+
+export const genericTool: Tool = noOutput;
+
+type Properties = { required: string; optional?: number };
+
+export type GenericIncludesKnown = Assert<
+  Extends<Partial<Properties>, NeverOptional<any, Properties>>
+>;
+export type GenericIncludesNoOutput = Assert<
+  Extends<NeverOptional<never, Properties>, NeverOptional<any, Properties>>
+>;
+export type GenericAllowsUndefinedDefaults = Assert<
+  Extends<
+    { required: string; optional: undefined },
+    NeverOptional<any, Properties>
+  >
+>;
+export type ToolRequiresInputSchema = Assert<
+  Extends<{}, Tool> extends false ? true : false
+>;
+export type KnownOutputRequiresExecutionOrSchema = Assert<
+  Extends<
+    { inputSchema: ReturnType<typeof jsonSchema> },
+    Tool<unknown, string>
+  > extends false ? true : false
+>;
+export type KnownRejectsUndefined = Assert<
+  Extends<{ required: undefined }, NeverOptional<string, Properties>> extends false
+    ? true
+    : false
+>;
+export type NeverRejectsValue = Assert<
+  Extends<{ required: string }, NeverOptional<never, Properties>> extends false
+    ? true
+    : false
+>;

@@ -20,9 +20,13 @@ describe('NeverOptional', () => {
     >().toEqualTypeOf<Properties>();
   });
 
-  it('makes the properties optional when the condition type is any', () => {
-    expectTypeOf<NeverOptional<any, Properties>>().toEqualTypeOf<
-      Partial<Properties>
+  it('includes known and never properties when the condition type is any', () => {
+    expectTypeOf<NeverOptional<any, Properties>>().toEqualTypeOf<{
+      [K in keyof Properties]?: Properties[K] | undefined;
+    }>();
+
+    expectTypeOf<NeverOptional<never, Properties>>().toMatchTypeOf<
+      NeverOptional<any, Properties>
     >();
 
     expectTypeOf<NeverOptional<any, Properties>>().toMatchTypeOf<{
