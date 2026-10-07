@@ -860,6 +860,39 @@ describe('Anthropic batch', () => {
     });
   });
 
+  it.each([16, 4096])(
+    'applies the factory maxLineBytes setting of %s',
+    async maxLineBytes => {
+      server.urls[urls.batch].response = {
+        type: 'json-value',
+        body: batchResponse(),
+      };
+      server.urls[urls.results].response = {
+        type: 'stream-chunks',
+        chunks: [
+          JSON.stringify({
+            custom_id: 'france',
+            result: { type: 'succeeded', message: messageResultBody('Paris') },
+          }) + '\n',
+        ],
+      };
+      const batch = createAnthropic({
+        apiKey: 'test-api-key',
+        batchResultDownloads: { maxLineBytes },
+      }).experimental_batch();
+      const stream = await batch.doGetBatchResults({ batchId: 'msgbatch_123' });
+      const results = convertReadableStreamToArray(stream);
+      if (maxLineBytes === 16) {
+        await expect(results).rejects.toMatchObject({
+          name: 'AI_DownloadError',
+          url: urls.results,
+        });
+      } else {
+        await expect(results).resolves.toHaveLength(1);
+      }
+    },
+  );
+
   it('incrementally maps all Anthropic JSONL result variants', async () => {
     server.urls[urls.batch].response = {
       type: 'json-value',

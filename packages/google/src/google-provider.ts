@@ -178,6 +178,12 @@ export interface GoogleProvider extends ProviderV4 {
 }
 
 export interface GoogleProviderSettings {
+  /** Settings for downloading JSON Lines batch results. */
+  batchResultDownloads?: {
+    /** Maximum UTF-8 bytes per row, excluding LF. Defaults to 64 MiB. */
+    maxLineBytes?: number;
+  };
+
   /**
    * Use a different URL prefix for API calls, e.g. to use proxy servers.
    * The default prefix is `https://generativelanguage.googleapis.com/v1beta`.
@@ -312,6 +318,7 @@ export function createGoogle(
   const createBatch = () =>
     new GoogleBatch({
       provider: `${providerName.replace(/\.generative-ai$/, '')}.batch`,
+      maxLineBytes: options.batchResultDownloads?.maxLineBytes,
       config: languageModelConfig,
       // Batch prompt conversion happens before the model is available to the
       // provider. Only advertise URL support shared by every batch model.

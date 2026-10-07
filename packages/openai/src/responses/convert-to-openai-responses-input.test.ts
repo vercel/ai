@@ -1540,6 +1540,59 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
 
+    it('should emit one item reference for text parts from the same stored message', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'First. ',
+                providerOptions: {
+                  openai: { itemId: 'msg_123' },
+                },
+              },
+              {
+                type: 'text',
+                text: 'Second.',
+                providerOptions: {
+                  openai: { itemId: 'msg_123' },
+                },
+              },
+            ],
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Continue' }],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          role: 'user',
+          content: [{ type: 'input_text', text: 'Hello' }],
+        },
+        {
+          type: 'item_reference',
+          id: 'msg_123',
+        },
+        {
+          role: 'user',
+          content: [{ type: 'input_text', text: 'Continue' }],
+        },
+      ]);
+    });
+
     it('should convert multiple tool call parts in a single message', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,

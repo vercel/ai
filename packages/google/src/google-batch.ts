@@ -185,16 +185,19 @@ export class GoogleBatch implements BatchV4<GoogleBatchModelIds> {
   readonly supportedUrls: Record<string, RegExp[]>;
   private readonly batchConfig: GoogleLanguageModelConfig;
   private readonly batchGenerateId: () => string;
+  private readonly maxLineBytes?: number;
 
   constructor(options: {
     provider: string;
     config: GoogleLanguageModelConfig;
     supportedUrls: Record<string, RegExp[]>;
+    maxLineBytes?: number;
   }) {
     this.provider = options.provider;
     this.batchConfig = options.config;
     this.supportedUrls = options.supportedUrls;
     this.batchGenerateId = options.config.generateId ?? generateId;
+    this.maxLineBytes = options.maxLineBytes;
   }
 
   async doStartBatch(
@@ -511,6 +514,7 @@ export class GoogleBatch implements BatchV4<GoogleBatchModelIds> {
       failedResponseHandler: googleFailedResponseHandler,
       successfulResponseHandler: createJsonLinesResponseHandler(
         googleBatchResultLineSchema,
+        { maxLineBytes: this.maxLineBytes },
       ),
       abortSignal: options.abortSignal,
       fetch: this.batchConfig.fetch,

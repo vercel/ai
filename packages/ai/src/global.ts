@@ -18,7 +18,8 @@ declare global {
   /**
    * The warning logger to use for the AI SDK.
    *
-   * If not set, the default logger is the console.warn function.
+   * If not set, warnings use process.emitWarning when available, otherwise
+   * console.warn. Deprecations are emitted once per code by the default logger.
    *
    * If set to false, no warnings are logged.
    */

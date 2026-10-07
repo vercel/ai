@@ -299,6 +299,51 @@ describe('createPiSession', () => {
     }
   });
 
+  it('defaults model requests to the cacheRetention setting', async () => {
+    const streamFunction = vi.fn();
+    const piSession = Object.assign(createFakePiSession().session, {
+      agent: { streamFunction },
+    });
+    piMock.session = piSession;
+
+    const session = await createPi({ cacheRetention: 'long' }).doStart({
+      sessionId: 'session-cache-retention',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+    });
+
+    try {
+      const control = await session.doPromptTurn({
+        skills: [],
+        prompt: 'Hello.',
+        tools: [],
+        emit: vi.fn(),
+      });
+      await control.done;
+
+      const model = { id: 'claude-sonnet-4-5' };
+      const context = { messages: [] };
+      piSession.agent.streamFunction(model as never, context as never, {
+        maxTokens: 1024,
+      });
+
+      expect(streamFunction).toHaveBeenCalledWith(model, context, {
+        maxTokens: 1024,
+        cacheRetention: 'long',
+      });
+
+      piSession.agent.streamFunction(model as never, context as never, {
+        cacheRetention: 'none',
+      });
+
+      expect(streamFunction).toHaveBeenLastCalledWith(model, context, {
+        cacheRetention: 'none',
+      });
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
   it('preserves caller order and passes a fresh mutable factory array', async () => {
     const callOrder: string[] = [];
     const firstFactory: ExtensionFactory = () => {

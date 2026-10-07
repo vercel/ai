@@ -13,6 +13,7 @@ import type { PiAuthenticationMode, PiCredentialStore } from './pi-auth';
 import { piResumeStateSchema } from './pi-resume-state';
 import {
   createPiSession,
+  type PiCacheRetention,
   type PiMcpSettings,
   type PiThinkingLevel,
 } from './pi-session';
@@ -54,6 +55,12 @@ export type PiHarnessSettings = {
    * `thinkingLevel` option on `createAgentSession`.
    */
   readonly thinkingLevel?: PiThinkingLevel;
+  /**
+   * Default prompt cache retention for model requests. For Anthropic models,
+   * `long` uses the 1-hour cache instead of the 5-minute default. When omitted,
+   * Pi's default (`short`) applies.
+   */
+  readonly cacheRetention?: PiCacheRetention;
   /**
    * Directory holding Pi's global agent config (auth.json, models.json,
    * settings.json). When omitted, native subscription auth is discovered from
@@ -187,6 +194,9 @@ export function createPi(
             : {}),
           ...(settings.thinkingLevel
             ? { thinkingLevel: settings.thinkingLevel }
+            : {}),
+          ...(settings.cacheRetention
+            ? { cacheRetention: settings.cacheRetention }
             : {}),
           ...(settings.mcpServers ? { mcpServers: settings.mcpServers } : {}),
           ...(settings.mcpSettings

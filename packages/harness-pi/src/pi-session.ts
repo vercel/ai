@@ -253,12 +253,15 @@ export interface PiMcpSettings {
   readonly outputGuard?: boolean;
 }
 
+export type PiCacheRetention = 'none' | 'short' | 'long';
+
 export interface PiSessionSettings {
   readonly auth?: PiAuthenticationMode;
   readonly credentials?: PiCredentialStore;
   readonly reattachInProcess?: boolean;
   readonly headers?: Readonly<Record<string, string>>;
   readonly thinkingLevel?: PiThinkingLevel;
+  readonly cacheRetention?: PiCacheRetention;
   readonly mcpServers?: Record<string, unknown>;
   readonly mcpSettings?: PiMcpSettings;
   readonly providers?: Readonly<Record<string, ProviderConfig>>;
@@ -304,6 +307,7 @@ function hasCompatibleReattachSettings(
     parked.settings.credentials === current.settings.credentials &&
     parked.settings.headers === current.settings.headers &&
     parked.settings.thinkingLevel === current.settings.thinkingLevel &&
+    parked.settings.cacheRetention === current.settings.cacheRetention &&
     parked.settings.mcpServers === current.settings.mcpServers &&
     parked.settings.mcpSettings === current.settings.mcpSettings &&
     parked.settings.providers === current.settings.providers &&
@@ -1160,6 +1164,15 @@ export async function createPiSession(
       ...(activeResolvedModel ? { model: activeResolvedModel } : {}),
     });
     piSession = session;
+    const cacheRetention = input.settings.cacheRetention;
+    if (cacheRetention) {
+      const streamFunction = session.agent.streamFunction;
+      session.agent.streamFunction = (model, context, options) =>
+        streamFunction(model, context, {
+          ...options,
+          cacheRetention: options?.cacheRetention ?? cacheRetention,
+        });
+    }
     if (hasMcpServers) {
       await piSession.bindExtensions({ mode: 'print' });
     }

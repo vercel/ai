@@ -231,6 +231,7 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
             medium: 'medium',
             high: 'high',
             xhigh: 'high',
+            max: 'high',
           },
           warnings,
         });

@@ -4,6 +4,7 @@ export {
   AISDKError,
   APICallError,
   EmptyResponseBodyError,
+  Experimental_DecisionRefusalError,
   Experimental_DecisionUnsupportedQuestionTypeError,
   InvalidPromptError,
   InvalidResponseDataError,
