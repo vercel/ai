@@ -3,6 +3,7 @@ import {
   extractWWWAuthenticateParams,
   extractResourceMetadataUrl,
   type OAuthClientProvider,
+  type OAuthAuthorizationServerInformation,
   type AuthResult,
   discoverOAuthProtectedResourceMetadata,
   buildDiscoveryUrls,
@@ -534,6 +535,44 @@ describe('discoverOAuthProtectedResourceMetadata', () => {
 });
 
 describe('buildDiscoveryUrls', () => {
+  it.each([
+    ['', '/.well-known/openid-configuration'],
+    ['/tenant1', '/tenant1/.well-known/openid-configuration'],
+    ['/tenant1/', '/tenant1/.well-known/openid-configuration'],
+    ['//evil.example', '//evil.example/.well-known/openid-configuration'],
+    ['//evil.example/', '//evil.example/.well-known/openid-configuration'],
+    [
+      '///evil.example/tenant',
+      '///evil.example/tenant/.well-known/openid-configuration',
+    ],
+    [
+      '//user@evil.example:8443',
+      '//user@evil.example:8443/.well-known/openid-configuration',
+    ],
+    [
+      '/%2F%2Fevil.example',
+      '/%2F%2Fevil.example/.well-known/openid-configuration',
+    ],
+    ['/\\evil.example', '//evil.example/.well-known/openid-configuration'],
+    ['//', '//.well-known/openid-configuration'],
+  ])(
+    'preserves the authorization server origin for path %j',
+    (path, expectedPath) => {
+      const issuer = `https://auth.example.com:8443${path}`;
+
+      for (const input of [issuer, new URL(issuer)]) {
+        const urls = buildDiscoveryUrls(input);
+
+        expect(
+          urls.every(
+            ({ url }) => url.origin === 'https://auth.example.com:8443',
+          ),
+        ).toBe(true);
+        expect(urls.at(-1)?.url.pathname).toBe(expectedPath);
+      }
+    },
+  );
+
   it('generates correct URLs for server without path', () => {
     const urls = buildDiscoveryUrls('https://auth.example.com');
 
@@ -606,6 +645,39 @@ describe('discoverAuthorizationServerMetadata', () => {
     response_types_supported: ['code'],
     code_challenge_methods_supported: ['S256'],
   };
+
+  it('fetches path-appended OIDC metadata on the original origin for a double-slash issuer path', async () => {
+    const issuer = 'https://auth.example.com//evil.example';
+    const metadata = { ...validOpenIdMetadata, issuer };
+    mockFetch.mockImplementation(input => {
+      const url = String(input);
+      if (
+        url ===
+        'https://auth.example.com//evil.example/.well-known/openid-configuration'
+      ) {
+        return Promise.resolve(Response.json(metadata));
+      }
+      if (new URL(url).origin === 'https://evil.example') {
+        return Promise.resolve(
+          Response.json({
+            ...metadata,
+            token_endpoint: 'https://evil.example/steal-token',
+          }),
+        );
+      }
+      return Promise.resolve(new Response(null, { status: 404 }));
+    });
+
+    await expect(discoverAuthorizationServerMetadata(issuer)).resolves.toEqual(
+      metadata,
+    );
+    expect(mockFetch.mock.calls.map(([url]) => String(url))).toEqual([
+      'https://auth.example.com/.well-known/oauth-authorization-server//evil.example',
+      'https://auth.example.com/.well-known/oauth-authorization-server',
+      'https://auth.example.com/.well-known/openid-configuration//evil.example',
+      'https://auth.example.com//evil.example/.well-known/openid-configuration',
+    ]);
+  });
 
   it('rejects private authorization server discovery targets', async () => {
     await expect(
@@ -1793,6 +1865,148 @@ describe('registerClient', () => {
 });
 
 describe('auth function', () => {
+  it.each([false, true])(
+    'keeps discovery and code exchange on approved endpoints with a scheme-relative issuer path (confidential client: %s)',
+    async confidential => {
+      const serverUrl = 'https://api.example.com/mcp-server';
+      const issuer = 'https://auth.example.com//evil.example';
+      const tokenEndpoint = 'https://auth.example.com/token';
+      let pin: OAuthAuthorizationServerInformation | undefined;
+      let verifier = '';
+      const metadata = {
+        issuer,
+        authorization_endpoint: 'https://auth.example.com/authorize',
+        token_endpoint: tokenEndpoint,
+        token_endpoint_auth_methods_supported: [
+          confidential ? 'client_secret_post' : 'none',
+        ],
+        response_types_supported: ['code'],
+        code_challenge_methods_supported: ['S256'],
+        jwks_uri: 'https://auth.example.com/jwks',
+        subject_types_supported: ['public'],
+        id_token_signing_alg_values_supported: ['RS256'],
+      };
+
+      // Supply usable attacker metadata if discovery ever escapes the approved
+      // origin, so this regression test catches credential disclosure as well.
+      mockFetch.mockImplementation((input, init) => {
+        const url = String(input);
+        if (
+          url ===
+          'https://api.example.com/.well-known/oauth-protected-resource/mcp-server'
+        ) {
+          return Promise.resolve(
+            Response.json({
+              resource: serverUrl,
+              authorization_servers: [issuer],
+            }),
+          );
+        }
+        if (
+          url ===
+          'https://auth.example.com//evil.example/.well-known/openid-configuration'
+        ) {
+          return Promise.resolve(Response.json(metadata));
+        }
+        if (url === 'https://evil.example/.well-known/openid-configuration') {
+          return Promise.resolve(
+            Response.json({
+              ...metadata,
+              token_endpoint: 'https://evil.example/steal-token',
+            }),
+          );
+        }
+        if (
+          (url === tokenEndpoint ||
+            url === 'https://evil.example/steal-token') &&
+          init?.method === 'POST'
+        ) {
+          return Promise.resolve(
+            Response.json({ access_token: 'access123', token_type: 'Bearer' }),
+          );
+        }
+        return Promise.resolve(new Response(null, { status: 404 }));
+      });
+
+      const validateAuthorizationServerURL = vi.fn(
+        (_serverUrl: string | URL, authorizationServerUrl: string | URL) => {
+          if (
+            new URL(authorizationServerUrl).origin !==
+            'https://auth.example.com'
+          ) {
+            throw new Error('Unexpected authorization server origin');
+          }
+        },
+      );
+      const redirectToAuthorization = vi.fn();
+      const provider: OAuthClientProvider = {
+        redirectUrl: 'https://client.example.com/callback',
+        clientMetadata: {
+          redirect_uris: ['https://client.example.com/callback'],
+        },
+        clientInformation: () => ({
+          client_id: 'test-client',
+          ...(confidential ? { client_secret: 'test-secret' } : {}),
+        }),
+        tokens: () => undefined,
+        saveTokens: vi.fn(),
+        saveCodeVerifier: value => {
+          verifier = value;
+        },
+        codeVerifier: () => verifier,
+        redirectToAuthorization,
+        authorizationServerInformation: () => pin,
+        saveAuthorizationServerInformation: value => {
+          pin = value;
+        },
+        validateAuthorizationServerURL,
+      };
+
+      expect(await auth(provider, { serverUrl, fetchFn: mockFetch })).toBe(
+        'REDIRECT',
+      );
+      expect(
+        await auth(provider, {
+          serverUrl,
+          fetchFn: mockFetch,
+          authorizationCode: 'test-code',
+        }),
+      ).toBe('AUTHORIZED');
+
+      expect(validateAuthorizationServerURL.mock.calls).toEqual([
+        [serverUrl, issuer],
+        [serverUrl, issuer],
+      ]);
+      expect(redirectToAuthorization.mock.calls[0][0].origin).toBe(
+        'https://auth.example.com',
+      );
+      expect(pin).toEqual({
+        authorizationServerUrl: issuer,
+        tokenEndpoint,
+      });
+      expect(
+        mockFetch.mock.calls.some(
+          ([url]) => new URL(String(url)).origin === 'https://evil.example',
+        ),
+      ).toBe(false);
+      const tokenRequests = mockFetch.mock.calls.filter(
+        ([, init]) => init?.method === 'POST',
+      );
+      expect(tokenRequests).toHaveLength(1);
+      expect(String(tokenRequests[0][0])).toBe(tokenEndpoint);
+      const params = new URLSearchParams(
+        tokenRequests[0][1]?.body as URLSearchParams,
+      );
+      expect(params.get('code')).toBe('test-code');
+      expect(params.get('code_verifier')).toBe('test_verifier');
+      expect(params.get('client_id')).toBe('test-client');
+      expect(params.get('client_secret')).toBe(
+        confidential ? 'test-secret' : null,
+      );
+      expect(tokenRequests[0][1]?.redirect).toBe('error');
+    },
+  );
+
   const mockProvider: OAuthClientProvider = {
     get redirectUrl() {
       return 'http://localhost:3000/callback';
