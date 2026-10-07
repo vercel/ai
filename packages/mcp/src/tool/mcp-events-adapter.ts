@@ -63,12 +63,6 @@ export interface MCPEventsAdapter {
   }): Promise<ManagedSubscription>;
 }
 
-export type ManagedMCPEventsConfig = {
-  adapter: MCPEventsAdapter;
-  store?: never;
-  validateArguments?: never;
-};
-
 /** Catalog discovery uses MCP; all subscription operations use the adapter. */
 export interface ManagedMCPEvents extends MCPEventsAdapter {
   list: MCPEvents['list'];

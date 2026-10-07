@@ -228,10 +228,16 @@ direct-mode option; managed validation belongs to the backend. The unreleased
 `events` configuration spelling is replaced by `experimental_events`.
 
 `createMCPClient` infers `Experimental_ManagedMCPClient` with
-`Experimental_ManagedMCPEvents` when an adapter is configured. Explicit configuration
-types are `Experimental_ManagedMCPClientConfig` and
-`Experimental_ManagedMCPEventsConfig`. Direct clients keep `MCPClient` and
+`Experimental_ManagedMCPEvents` when an adapter is configured. Both modes use
+`MCPClientConfig`, whose `experimental_events` property accepts the
+`Experimental_MCPEventsConfig` union. Direct clients keep `MCPClient` and
 `Experimental_MCPEvents`. The input and result types of each mode remain distinct.
+
+Use `satisfies MCPClientConfig` when saving a configuration to retain inference of
+the selected mode. A configuration whose mode is only known at runtime returns a
+union of the two client types; it does not promise direct-only methods such as
+`refresh()`. Omit `experimental_events` entirely for catalog discovery without a
+store or adapter.
 
 The remaining subscribe, refresh and unsubscribe sections describe direct mode.
 

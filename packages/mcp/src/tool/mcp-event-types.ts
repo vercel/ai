@@ -1,4 +1,5 @@
 import type { JSONObject } from '@ai-sdk/provider';
+import type { MCPEventsAdapter } from './mcp-events-adapter';
 import { z } from 'zod/v4';
 import { ResultSchema, type RequestOptions } from './types';
 
@@ -97,18 +98,24 @@ export interface MCPEventStore {
   delete(key: string): Promise<void>;
 }
 
-export type MCPEventsConfig = {
-  store: MCPEventStore;
-  adapter?: never;
-  /**
-   * Optionally validate subscription arguments using an application schema or
-   * the server's inputSchema. Throw to reject before persisting or subscribing.
-   */
-  validateArguments?: (args: {
-    definition: MCPEventDefinition;
-    arguments: JSONObject;
-  }) => void | PromiseLike<void>;
-};
+export type MCPEventsConfig =
+  | {
+      store: MCPEventStore;
+      adapter?: never;
+      /**
+       * Optionally validate subscription arguments using an application schema or
+       * the server's inputSchema. Throw to reject before persisting or subscribing.
+       */
+      validateArguments?: (args: {
+        definition: MCPEventDefinition;
+        arguments: JSONObject;
+      }) => void | PromiseLike<void>;
+    }
+  | {
+      adapter: MCPEventsAdapter;
+      store?: never;
+      validateArguments?: never;
+    };
 
 export type SubscribeEventOptions = {
   name: string;

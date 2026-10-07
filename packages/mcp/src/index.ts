@@ -46,16 +46,12 @@ export {
   AuthorizationServerMismatchError,
 } from './error/oauth-error';
 export { MCPClientError } from './error/mcp-client-error';
-export type {
-  ManagedMCPClient as Experimental_ManagedMCPClient,
-  ManagedMCPClientConfig as Experimental_ManagedMCPClientConfig,
-} from './tool/mcp-client';
+export type { ManagedMCPClient as Experimental_ManagedMCPClient } from './tool/mcp-client';
 export type {
   MCPEventsAdapter as Experimental_MCPEventsAdapter,
   ManagedSubscribeInput as Experimental_ManagedSubscribeInput,
   ManagedSubscription as Experimental_ManagedSubscription,
   ManagedMCPEvents as Experimental_ManagedMCPEvents,
-  ManagedMCPEventsConfig as Experimental_ManagedMCPEventsConfig,
 } from './tool/mcp-events-adapter';
 export {
   createMCPEventWebhook as experimental_createMCPEventWebhook,

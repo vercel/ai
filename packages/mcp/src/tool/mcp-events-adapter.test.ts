@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   createMCPClient,
   type ManagedMCPClient,
-  type ManagedMCPClientConfig,
+  type MCPClientConfig,
 } from './mcp-client';
 import type {
   MCPEventsAdapter,
@@ -220,7 +220,7 @@ describe('managed MCP events', () => {
         createMCPClient({
           transport,
           experimental_events: { adapter, ...direct },
-        } as unknown as ManagedMCPClientConfig),
+        } as unknown as MCPClientConfig),
       ).rejects.toThrow('either an adapter or a store');
       expect(start).not.toHaveBeenCalled();
     },

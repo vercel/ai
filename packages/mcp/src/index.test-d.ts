@@ -1,4 +1,5 @@
 import { expectTypeOf, it } from 'vitest';
+import type { JSONObject } from '@ai-sdk/provider';
 import {
   MCPClientError,
   createMCPClient,
@@ -10,9 +11,8 @@ import {
   type Experimental_SubscribeEventResult,
   type Experimental_MCPEventsAdapter,
   type Experimental_ManagedMCPClient,
-  type Experimental_ManagedMCPClientConfig,
   type Experimental_ManagedMCPEvents,
-  type Experimental_ManagedMCPEventsConfig,
+  type Experimental_MCPEventsConfig,
   type Experimental_ManagedSubscribeInput,
   type Experimental_ManagedSubscription,
   type MCPClient,
@@ -102,10 +102,10 @@ it('infers managed event operations and rejects mixing direct and managed APIs',
   const config = {
     transport,
     experimental_events: { adapter },
-  } satisfies Experimental_ManagedMCPClientConfig;
+  } satisfies MCPClientConfig;
   expectTypeOf(
     config.experimental_events,
-  ).toMatchTypeOf<Experimental_ManagedMCPEventsConfig>();
+  ).toMatchTypeOf<Experimental_MCPEventsConfig>();
   const client = await createMCPClient(config);
   expectTypeOf(client).toEqualTypeOf<Experimental_ManagedMCPClient>();
   expectTypeOf(
@@ -172,8 +172,52 @@ it('infers managed event operations and rejects mixing direct and managed APIs',
 });
 
 it('accepts configuration whose event mode is only known at runtime', async () => {
-  const config = {} as MCPClientConfig | Experimental_ManagedMCPClientConfig;
+  const config = {} as MCPClientConfig;
   expectTypeOf(await createMCPClient(config)).toEqualTypeOf<
     MCPClient | Experimental_ManagedMCPClient
   >();
+});
+
+it('uses one event configuration union for direct and managed clients', async () => {
+  const adapter = {} as Experimental_MCPEventsAdapter;
+  const store = {} as Experimental_MCPEventStore;
+  const transport = { type: 'http' as const, url: 'https://example.com/mcp' };
+  const managed = { adapter } satisfies Experimental_MCPEventsConfig;
+  const direct = {
+    store,
+    validateArguments: ({ definition, arguments: args }) => {
+      expectTypeOf(definition.name).toEqualTypeOf<string>();
+      expectTypeOf(args).toEqualTypeOf<JSONObject>();
+    },
+  } satisfies Experimental_MCPEventsConfig;
+  expectTypeOf(
+    await createMCPClient({ transport, experimental_events: managed }),
+  ).toEqualTypeOf<Experimental_ManagedMCPClient>();
+  expectTypeOf(
+    await createMCPClient({ transport, experimental_events: direct }),
+  ).toEqualTypeOf<MCPClient>();
+  const discovery = await createMCPClient({ transport });
+  expectTypeOf(discovery).toEqualTypeOf<MCPClient>();
+  await discovery.experimental_events.list();
+
+  // @ts-expect-error An explicit configuration must select a store or adapter.
+  const empty: Experimental_MCPEventsConfig = {};
+  // @ts-expect-error Direct and managed configuration remain exclusive.
+  const mixed: Experimental_MCPEventsConfig = { adapter, store };
+  // @ts-expect-error Argument validation belongs to the managed backend.
+  const validation: Experimental_MCPEventsConfig = {
+    adapter,
+    validateArguments: () => {},
+  };
+  void [empty, mixed, validation];
+
+  const events = {} as Experimental_MCPEventsConfig;
+  const config: MCPClientConfig = { transport, experimental_events: events };
+  const client = await createMCPClient(config);
+  expectTypeOf(client).toEqualTypeOf<
+    MCPClient | Experimental_ManagedMCPClient
+  >();
+  await client.experimental_events.list();
+  // @ts-expect-error A runtime-selected mode is not known to support direct refresh.
+  client.experimental_events.refresh({ id: 'sub_1' });
 });

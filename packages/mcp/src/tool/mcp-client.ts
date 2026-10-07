@@ -17,7 +17,7 @@ import { createMCPEvents } from './mcp-events';
 import {
   createManagedMCPEvents,
   type ManagedMCPEvents,
-  type ManagedMCPEventsConfig,
+  type MCPEventsAdapter,
 } from './mcp-events-adapter';
 import type { MCPEvents, MCPEventsConfig } from './mcp-event-types';
 import { MCPClientError } from '../error/mcp-client-error';
@@ -242,7 +242,7 @@ function mcpToModelOutput({
 }
 
 export interface MCPClientConfig {
-  /** Experimental webhook event support; storage must be private and durable. */
+  /** Experimental events: choose a private durable store or a managed adapter. */
   experimental_events?: MCPEventsConfig;
   /** Transport configuration for connecting to the MCP server */
   transport: MCPTransportConfig | MCPTransport;
@@ -295,27 +295,24 @@ export interface MCPClientConfig {
   capabilities?: ClientCapabilities;
 }
 
-export type ManagedMCPClientConfig = Omit<
-  MCPClientConfig,
-  'experimental_events'
-> & {
-  experimental_events: ManagedMCPEventsConfig;
-};
-
 export type ManagedMCPClient = Omit<MCPClient, 'experimental_events'> & {
   readonly experimental_events: ManagedMCPEvents;
 };
 
 export function createMCPClient(
-  config: ManagedMCPClientConfig,
+  config: MCPClientConfig & {
+    experimental_events: { adapter: MCPEventsAdapter };
+  },
 ): Promise<ManagedMCPClient>;
-export function createMCPClient(config: MCPClientConfig): Promise<MCPClient>;
 export function createMCPClient(
-  config: MCPClientConfig | ManagedMCPClientConfig,
+  config: MCPClientConfig & {
+    experimental_events?: { adapter?: never };
+  },
+): Promise<MCPClient>;
+export function createMCPClient(
+  config: MCPClientConfig,
 ): Promise<MCPClient | ManagedMCPClient>;
-export async function createMCPClient(
-  config: MCPClientConfig | ManagedMCPClientConfig,
-): Promise<
+export async function createMCPClient(config: MCPClientConfig): Promise<
   Omit<MCPClient, 'experimental_events'> & {
     readonly experimental_events: MCPEvents | ManagedMCPEvents;
   }
@@ -479,7 +476,7 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
     initialInitializeResult,
     initializationOptions,
     protocolVersionDiscovery = true,
-  }: MCPClientConfig | ManagedMCPClientConfig) {
+  }: MCPClientConfig) {
     if (
       events?.adapter !== undefined &&
       (events.store !== undefined || events.validateArguments !== undefined)
