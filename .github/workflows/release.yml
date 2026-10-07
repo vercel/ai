@@ -97,6 +97,7 @@ jobs:
         with:
           name: release-notification
           path: .release-notification
+          include-hidden-files: true
           retention-days: 1
 
       - name: Attach SLSA provenance to GitHub Releases
