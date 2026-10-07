@@ -1,0 +1,41 @@
+{
+  "id": "resp_synthetic",
+  "object": "response",
+  "created_at": 1,
+  "status": "completed",
+  "error": null,
+  "incomplete_details": null,
+  "model": "gpt-5-mini",
+  "output": [
+    {
+      "id": "msg_synthetic",
+      "type": "message",
+      "role": "assistant",
+      "status": "completed",
+      "content": [
+        {
+          "type": "output_text",
+          "text": "First. ",
+          "annotations": []
+        },
+        {
+          "type": "output_text",
+          "text": "Second.",
+          "annotations": []
+        }
+      ]
+    }
+  ],
+  "store": true,
+  "usage": {
+    "input_tokens": 1,
+    "output_tokens": 2,
+    "total_tokens": 3,
+    "input_tokens_details": {
+      "cached_tokens": 0
+    },
+    "output_tokens_details": {
+      "reasoning_tokens": 0
+    }
+  }
+}
