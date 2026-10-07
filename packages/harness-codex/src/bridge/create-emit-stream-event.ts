@@ -38,6 +38,7 @@ export type CodexEvent = {
     | 'turn.completed'
     | 'turn.failed'
     | 'error'
+    | 'usage.updated'
     | 'item.started'
     | 'item.updated'
     | 'item.completed';
@@ -71,6 +72,7 @@ function getMcpToolName(item: CodexItem): string {
 
 export function createEmitStreamEvent({
   send,
+  turnId,
   stepTracker,
   setTurnUsage,
   setThreadId,
@@ -78,6 +80,8 @@ export function createEmitStreamEvent({
   emitError,
 }: {
   send: Emit;
+  /** Identifies the prompt turn in `codex-token-usage` parts. */
+  turnId?: string;
   stepTracker: CodexStepTracker;
   setTurnUsage: (usage: Record<string, unknown>) => void;
   setThreadId: (threadId: string) => void;
@@ -96,6 +100,28 @@ export function createEmitStreamEvent({
       setThreadId(event.thread_id);
       // Announce to the host so it can include the id in resume state.
       send({ type: 'bridge-thread', threadId: event.thread_id });
+    }
+    if (event.type === 'usage.updated') {
+      if (event.usage) {
+        const usage = mapUsage(event.usage);
+        setTurnUsage(usage);
+        // Forward the running turn total as it changes. Step usage only reaches
+        // the host when a step closes, which can be a long time away (e.g. while
+        // sub-agents work), so consumers that must not lose usage on abort or
+        // failure read this instead. It is a cumulative snapshot: it replaces
+        // the previous value and must never be summed.
+        send({
+          type: 'raw',
+          rawValue: {
+            type: 'codex-token-usage',
+            scope: 'turn',
+            cumulative: true,
+            ...(turnId == null ? {} : { turnId }),
+            usage,
+          },
+        });
+      }
+      return;
     }
     if (event.type === 'turn.completed') {
       if (event.usage) setTurnUsage(mapUsage(event.usage));
@@ -356,6 +382,9 @@ function mapUsage(usage: Record<string, number>): Record<string, unknown> {
   const input = usage.input_tokens ?? 0;
   const cacheRead = usage.cached_input_tokens ?? 0;
   const cacheWrite = usage.cache_write_input_tokens ?? 0;
+  const output = usage.output_tokens ?? 0;
+  // Codex counts reasoning tokens inside `output_tokens`.
+  const reasoning = Math.min(output, usage.reasoning_output_tokens ?? 0);
   return {
     inputTokens: {
       total: input,
@@ -364,8 +393,9 @@ function mapUsage(usage: Record<string, number>): Record<string, unknown> {
       cacheWrite,
     },
     outputTokens: {
-      total: usage.output_tokens ?? 0,
-      text: usage.output_tokens ?? 0,
+      total: output,
+      text: output - reasoning,
+      reasoning,
     },
   };
 }

@@ -224,6 +224,54 @@ The adapter exposes these Codex built-ins through `agent.tools`:
 Codex file changes may also appear as dynamic `fileChange` tool parts because
 some Codex file mutations do not originate from a visible model-callable tool.
 
+## Token Usage
+
+Codex reports usage per thread. A sub-agent runs as its own thread, so the
+usage of the thread that spawned it does not include it. The adapter adds up
+the active thread and every thread it started (at any depth) and ignores other
+threads. `result.totalUsage` and the usage on `finish-step` parts therefore
+cover sub-agents too.
+
+Codex reports usage after a model call finishes, and a step only closes when a
+tool call completes. The usage on a `finish-step` is the usage consumed since
+the previous step boundary, so an individual step can carry part of the
+previous call's usage; the sum over a completed turn is the turn's usage.
+
+A turn that is aborted, fails, or is cut off while sub-agents work never
+produces `result.totalUsage`. To keep the usage consumed up to that point, read
+the `raw` part the adapter emits whenever the running total of the turn
+changes:
+
+```ts
+const usageByTurn = new Map<string, unknown>();
+
+for await (const part of result.fullStream) {
+  const raw = part.type === 'raw' ? (part.rawValue as { type?: string }) : null;
+  if (raw?.type === 'codex-token-usage') {
+    const { turnId, usage } = raw as { turnId: string; usage: unknown };
+    // Cumulative total of that turn: replace the previous value for this
+    // `turnId` (keep the larger one if parts can arrive out of order), never add.
+    usageByTurn.set(turnId, usage);
+  }
+}
+```
+
+The `rawValue` has the shape
+`{ type: 'codex-token-usage', scope: 'turn', cumulative: true, turnId, usage }`,
+where `usage` is a `LanguageModelUsage`-shaped object and `turnId` identifies
+the prompt turn that produced it. Keep the latest `usage` per `turnId` and add
+those up across turns: an event of a turn that was aborted can still reach the
+host while the next turn is already running, so a `raw` part does not
+necessarily belong to the turn you are reading. Persist what you receive:
+usage Codex only reports after the host stopped listening is not delivered for
+that turn.
+
+Usage reported while no turn is attached (between turns, or after an abort) is
+held and billed to the next turn on the same session. It is lost if the
+sandbox or the Codex process goes away first. When a thread's history cannot be
+told apart from new usage (for example a thread resumed in a new process), the
+history is not billed, so usage can be under- but not over-counted.
+
 ## Known Limitations
 
 Codex does not currently support built-in tool approval requests. Use

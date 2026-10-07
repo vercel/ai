@@ -106,6 +106,7 @@ describe('createEmitStreamEvent', () => {
               "total": 5,
             },
             "outputTokens": {
+              "reasoning": 0,
               "text": 3,
               "total": 3,
             },

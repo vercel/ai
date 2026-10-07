@@ -619,6 +619,137 @@ describe('runPrompt telemetry lifecycle', () => {
   });
 });
 
+describe('runPrompt raw parts', () => {
+  test('passes raw parts through without opening a step or adding to one', async () => {
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        { type: 'stream-start' },
+        { type: 'text-start', id: 't1' },
+        { type: 'text-delta', id: 't1', delta: 'one' },
+        { type: 'text-end', id: 't1' },
+        finishEvents[0]!,
+        // Arrives between two steps; must not open a phantom step.
+        { type: 'raw', rawValue: { marker: 'between-steps' } },
+        { type: 'text-start', id: 't2' },
+        { type: 'text-delta', id: 't2', delta: 'two' },
+        { type: 'text-end', id: 't2' },
+        finishEvents[0]!,
+        finishEvents[1]!,
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: {} as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+    });
+
+    const types: string[] = [];
+    for await (const part of result.fullStream) types.push(part.type);
+    await done;
+
+    const raw = types.indexOf('raw');
+    expect(raw).toBeGreaterThan(-1);
+    // The part before `raw` closes the first step; the next step opens after it.
+    expect(types[raw - 1]).toBe('finish-step');
+    expect(types[raw + 1]).toBe('start-step');
+    expect(await result.steps).toHaveLength(2);
+  });
+});
+
+describe('runPrompt raw parts at a stop boundary', () => {
+  test('forwards a raw part that arrives right after the step a stop condition ends on', async () => {
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        { type: 'stream-start' },
+        finishEvents[0]!,
+        // The next part is evaluated against the stop condition; sideband data
+        // must neither trigger that check nor be swallowed by it.
+        { type: 'raw', rawValue: { marker: 'usage-after-step' } },
+        { type: 'text-delta', id: 't', delta: 'ignored' },
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: {} as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      stopConditions: [({ steps }) => steps.length === 1],
+    });
+
+    const raws: unknown[] = [];
+    for await (const part of result.fullStream) {
+      if (part.type === 'raw') raws.push(part.rawValue);
+    }
+    await done;
+
+    expect(raws).toEqual([{ marker: 'usage-after-step' }]);
+  });
+});
+
+describe('runPrompt stop-condition telemetry', () => {
+  test('reports the usage of every step as the turn total when a stop condition ends the turn', async () => {
+    const stepUsage = (input: number, output: number) => ({
+      inputTokens: {
+        total: input,
+        noCache: input,
+        cacheRead: 0,
+        cacheWrite: 0,
+      },
+      outputTokens: { total: output, text: output, reasoning: 0 },
+    });
+    const finishStep = (
+      input: number,
+      output: number,
+    ): HarnessV1StreamPart => ({
+      type: 'finish-step',
+      finishReason: { unified: 'stop', raw: 'end_turn' },
+      usage: stepUsage(input, output),
+    });
+    const endEvents: Array<{ totalUsage: { inputTokens?: number } }> = [];
+    const integration = {
+      async onEnd(event: { totalUsage: { inputTokens?: number } }) {
+        endEvents.push(event);
+      },
+    } as Telemetry;
+
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        { type: 'stream-start' },
+        finishStep(10, 1),
+        finishStep(25, 4),
+        // Evaluated when the next part arrives; this step must not count.
+        { type: 'text-delta', id: 'text-1', delta: 'ignored' },
+        finishStep(7, 2),
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: {} as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      stopConditions: [({ steps }) => steps.length === 2],
+      telemetry: { integrations: [integration] },
+    });
+    for await (const _part of result.fullStream) {
+      // drain
+    }
+    await done;
+
+    expect(endEvents).toHaveLength(1);
+    expect(endEvents[0]!.totalUsage.inputTokens).toBe(35);
+  });
+});
+
 describe('runPrompt step accounting', () => {
   test('preserves adapter warnings on the step and aggregate result', async () => {
     const warnings: HarnessV1CallWarning[] = [

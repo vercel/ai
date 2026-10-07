@@ -9,7 +9,18 @@ type AppServerOptions = {
   threadId: string | undefined;
   codexModel: string | undefined;
   codexConfig: Record<string, unknown>;
-  emitStreamEvent(event: { type: 'thread.started'; thread_id: string }): void;
+  emitStreamEvent(event: {
+    type: 'thread.started' | 'usage.updated';
+    thread_id?: string;
+    usage?: Record<string, number>;
+  }): void;
+  stepTracker: {
+    finishTurn(): void;
+    observeEvent(input: {
+      event: { type: string; item?: { type: string } };
+      itemId: string | undefined;
+    }): void;
+  };
 };
 
 const CODEX_ENV_KEYS = [
@@ -45,6 +56,9 @@ const state = vi.hoisted(() => ({
     },
   ] as Array<Record<string, unknown>>,
   appServerOptions: [] as AppServerOptions[],
+  emitted: [] as Array<{ type: string }>,
+  abortController: new AbortController(),
+  onRunTurn: undefined as ((options: AppServerOptions) => void) | undefined,
   appServerError: undefined as Error | undefined,
   appServerClosed: 0,
   runSecondTurn: false,
@@ -87,10 +101,10 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
       tools: state.startTools,
     };
     const turn = {
-      emit: () => {},
+      emit: (message: { type: string }) => state.emitted.push(message),
       emitError: (error: unknown) => state.emittedErrors.push(error),
       requestToolResult: async () => ({ output: {} }),
-      abortSignal: new AbortController().signal,
+      abortSignal: state.abortController.signal,
       experimental_userMessages: {
         pendingCount: 0,
         close: () => {},
@@ -110,11 +124,15 @@ vi.mock('./codex-app-server-driver', () => ({
   createCodexAppServerRuntime: () => ({
     runTurn: async (options: AppServerOptions) => {
       state.appServerOptions.push(options);
-      if (state.appServerError != null) throw state.appServerError;
+      if (state.onRunTurn == null && state.appServerError != null) {
+        throw state.appServerError;
+      }
       options.emitStreamEvent({
         type: 'thread.started',
         thread_id: 'app-server-thread',
       });
+      state.onRunTurn?.(options);
+      if (state.appServerError != null) throw state.appServerError;
     },
     close: async () => {
       state.appServerClosed++;
@@ -141,6 +159,9 @@ describe('Codex bridge config', () => {
       },
     ];
     state.appServerOptions = [];
+    state.emitted = [];
+    state.abortController = new AbortController();
+    state.onRunTurn = undefined;
     state.appServerError = undefined;
     state.appServerClosed = 0;
     state.runSecondTurn = false;
@@ -185,6 +206,78 @@ describe('Codex bridge config', () => {
 
     expect(state.appServerOptions).toHaveLength(1);
     expect(state.appServerOptions[0]?.start.tools).toEqual([]);
+  });
+
+  test('drops what an aborted turn still produces so it cannot leak into the next turn', async () => {
+    const usage = (input: number) => ({
+      input_tokens: input,
+      output_tokens: 1,
+    });
+    state.onRunTurn = options => {
+      options.emitStreamEvent({ type: 'usage.updated', usage: usage(5) });
+      state.abortController.abort();
+      // Codex reports the interrupt after the host has already moved on.
+      options.emitStreamEvent({ type: 'usage.updated', usage: usage(50) });
+      options.stepTracker.finishTurn();
+    };
+
+    await import('./index');
+
+    const types = state.emitted.map(message => message.type);
+    expect(types).toContain('raw'); // the one reported before the abort
+    expect(types.filter(type => type === 'raw')).toHaveLength(1);
+    expect(types).not.toContain('finish-step');
+    expect(types).not.toContain('finish');
+  });
+
+  test('tags usage parts with an id that is stable within a turn and unique per turn', async () => {
+    state.runSecondTurn = true;
+    state.onRunTurn = options => {
+      options.emitStreamEvent({
+        type: 'usage.updated',
+        usage: { input_tokens: 5, output_tokens: 1 },
+      });
+      options.emitStreamEvent({
+        type: 'usage.updated',
+        usage: { input_tokens: 9, output_tokens: 2 },
+      });
+    };
+
+    await import('./index');
+
+    const ids = state.emitted
+      .filter(message => message.type === 'raw')
+      .map(
+        message =>
+          (message as unknown as { rawValue: { turnId: string } }).rawValue
+            .turnId,
+      );
+    expect(ids).toHaveLength(4);
+    expect(new Set(ids.slice(0, 2)).size).toBe(1);
+    expect(new Set(ids.slice(2)).size).toBe(1);
+    expect(ids[0]).not.toBe(ids[2]);
+  });
+
+  test('flushes the open step with its usage before reporting a failed turn', async () => {
+    state.appServerError = new Error('codex failed');
+    state.onRunTurn = options => {
+      options.stepTracker.observeEvent({
+        event: { type: 'item.completed', item: { type: 'agent_message' } },
+        itemId: 'message-1',
+      });
+      options.emitStreamEvent({
+        type: 'usage.updated',
+        usage: { input_tokens: 100, output_tokens: 10 },
+      });
+    };
+
+    await import('./index');
+
+    const steps = state.emitted.filter(
+      message => message.type === 'finish-step',
+    );
+    expect(steps).toHaveLength(1);
+    expect(state.emittedErrors).toHaveLength(1);
   });
 
   test('reuses one runtime for turns and closes on stop and destroy', async () => {
