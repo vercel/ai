@@ -454,6 +454,14 @@ export async function createPiSession(
     sessionId: input.sessionId,
   });
   const permissionMode = input.permissionMode ?? 'allow-all';
+  const activeBuiltinNames = resolveActivePiBuiltinNames(
+    input.builtinToolFiltering,
+  );
+  const activeNativeToCommon = Object.fromEntries(
+    Object.entries(NATIVE_TO_COMMON).filter(([native]) =>
+      activeBuiltinNames.some(name => name === native),
+    ),
+  );
   const sandboxSkillRootDir = path.posix.join(
     sandboxHomeDir,
     '.agents',
@@ -1083,9 +1091,7 @@ export async function createPiSession(
     customTools: ToolDefinition[];
     builtinNames: string[];
   } {
-    const builtinNames = resolveActivePiBuiltinNames(
-      input.builtinToolFiltering,
-    );
+    const builtinNames = activeBuiltinNames;
     const customTools: ToolDefinition[] = [
       ...builtinNames.map(native =>
         buildBuiltinToolDefinition({
@@ -1196,7 +1202,7 @@ export async function createPiSession(
     translatorState = createPiTranslatorState({
       builtinToolNames: builtinNames,
       hostToolNames: userTools.map(tool => tool.name),
-      nativeToCommon: NATIVE_TO_COMMON,
+      nativeToCommon: activeNativeToCommon,
     });
 
     unsubscribe = piSession.subscribe(rawEvent => {
@@ -1326,9 +1332,9 @@ export async function createPiSession(
         // Fresh translator state for the new turn — keep the tool sets the
         // session was built with.
         translatorState = createPiTranslatorState({
-          builtinToolNames: [...PI_NATIVE_BUILTIN_NAMES],
+          builtinToolNames: activeBuiltinNames,
           hostToolNames: userTools.map(tool => tool.name),
-          nativeToCommon: NATIVE_TO_COMMON,
+          nativeToCommon: activeNativeToCommon,
         });
 
         currentEmit?.({
