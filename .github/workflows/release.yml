@@ -95,13 +95,3 @@ jobs:
           path: .release-notification
           include-hidden-files: true
           retention-days: 1
-
-      - name: Attach SLSA provenance to GitHub Releases
-        if: steps.changesets.outputs.published == 'true'
-        run: |
-          cd .github/scripts/upload-provenance
-          npm install --no-save
-          node index.mjs
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PUBLISHED_PACKAGES: ${{ steps.changesets.outputs.publishedPackages }}
