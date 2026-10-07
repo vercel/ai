@@ -8,7 +8,6 @@ run(async () => {
     model: openai.decisionModel('gpt-6-luna'),
     state: [
       { type: 'text', text: 'Inspect the animal in this picture.' },
-      { type: 'json', value: { expectedAnimal: 'cat' } },
       {
         type: 'file',
         mediaType: 'image/png',
@@ -17,6 +16,7 @@ run(async () => {
     ],
     questions: {
       cat: { type: 'boolean', instructions: 'Does the image show a cat?' },
+      dog: { type: 'boolean', instructions: 'Does the image show a dog?' },
     },
   });
   console.log('Answers:', result.answers);
