@@ -46,6 +46,29 @@ const { text } = await generateText({
 });
 ```
 
+### Asynchronous video jobs
+
+For providers that expose the OpenAI-compatible `/videos` endpoints, the provider includes `videos.create()` and `videos.retrieve()`. The returned job ID and provider response fields are preserved so callers can resume polling or inspect terminal errors.
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const provider = createOpenAICompatible({
+  name: 'example',
+  baseURL: 'https://api.example.com/v1',
+  apiKey: process.env.MY_API_KEY,
+});
+
+const video = await provider.videos.create({
+  model: 'my-video-model',
+  prompt: 'A city at sunset',
+});
+
+const result = await provider.videos.retrieve(video.id);
+```
+
+This supports compatible third-party endpoints and does not imply availability of OpenAI's discontinued native Videos API. See the [API deprecations](https://developers.openai.com/api/docs/deprecations).
+
 ### Customizing headers
 
 You can further customize headers if desired. For example, here is an alternate implementation to pass along api key authentication:
