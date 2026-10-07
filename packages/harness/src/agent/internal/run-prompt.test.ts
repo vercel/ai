@@ -619,6 +619,63 @@ describe('runPrompt telemetry lifecycle', () => {
   });
 });
 
+describe('runPrompt stop-condition telemetry', () => {
+  test('reports the usage of every step as the turn total when a stop condition ends the turn', async () => {
+    const stepUsage = (input: number, output: number) => ({
+      inputTokens: {
+        total: input,
+        noCache: input,
+        cacheRead: 0,
+        cacheWrite: 0,
+      },
+      outputTokens: { total: output, text: output, reasoning: 0 },
+    });
+    const finishStep = (
+      input: number,
+      output: number,
+    ): HarnessV1StreamPart => ({
+      type: 'finish-step',
+      finishReason: { unified: 'stop', raw: 'end_turn' },
+      usage: stepUsage(input, output),
+    });
+    const endEvents: Array<{ totalUsage: { inputTokens?: number } }> = [];
+    const integration = {
+      async onEnd(event: { totalUsage: { inputTokens?: number } }) {
+        endEvents.push(event);
+      },
+    } as Telemetry;
+
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        { type: 'stream-start' },
+        finishStep(10, 1),
+        finishStep(25, 4),
+        // Evaluated when the next part arrives; this step must not count.
+        { type: 'text-delta', id: 'text-1', delta: 'ignored' },
+        finishStep(7, 2),
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: {} as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      stopConditions: [({ steps }) => steps.length === 2],
+      telemetry: { integrations: [integration] },
+    });
+    for await (const _part of result.fullStream) {
+      // drain
+    }
+    await done;
+
+    expect(endEvents).toHaveLength(1);
+    expect(endEvents[0]!.totalUsage.inputTokens).toBe(35);
+  });
+});
+
 describe('runPrompt step accounting', () => {
   test('preserves adapter warnings on the step and aggregate result', async () => {
     const warnings: HarnessV1CallWarning[] = [
