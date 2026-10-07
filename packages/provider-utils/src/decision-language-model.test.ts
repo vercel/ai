@@ -118,7 +118,8 @@ it('uses a portable flat schema with required fields and internal option codes',
       q1: { id: 'severity', ...questions.severity },
     },
   });
-  expect(message.content[1]).toEqual({
+  expect(message.content[1]).toEqual({ type: 'text', text: 'Shared state:' });
+  expect(message.content[2]).toEqual({
     type: 'text',
     text: JSON.stringify(options.state[0].value),
   });
@@ -407,6 +408,7 @@ it('sends images as files and preserves state part order in the prompt', async (
   if (message.role !== 'user') throw new Error('Expected user message');
   expect(message.content).toEqual([
     { type: 'text', text: expect.stringContaining('"questions"') },
+    { type: 'text', text: 'Shared state:' },
     { type: 'text', text: 'Inspect.' },
     image,
     { type: 'text', text: '[1,null]' },

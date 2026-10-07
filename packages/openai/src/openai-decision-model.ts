@@ -151,6 +151,7 @@ export class DecisionOpenAIModel implements DecisionModelV4 {
                   functionality: `OpenAI decision file input: ${part.mediaType} (${part.data.type})`,
                 });
               }
+              // Direct doDecide calls can bypass Core's media type detection.
               const mediaType = isFullMediaType(part.mediaType)
                 ? part.mediaType
                 : detectMediaType({

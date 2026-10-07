@@ -29,7 +29,7 @@ const options = {
 };
 const expectedRequest = {
   ...nativeRequest,
-  state: JSON.stringify(nativeRequest.state),
+  state: nativeRequest.state,
 };
 const url = 'https://api.typesafe.ai/v1/systemone';
 const provider = createTypeSafeAi({ apiKey: 'test-api-key' });
@@ -353,3 +353,13 @@ it('rejects file evidence before sending a text-only decision request', async ()
   ).rejects.toMatchObject({ name: 'AI_UnsupportedFunctionalityError' });
   expect(server.calls).toHaveLength(0);
 });
+
+it.each([{ nested: { amount: 49 }, history: ['refund'] }, [1, null]])(
+  'preserves a single JSON state part as native JSON: %j',
+  async value => {
+    await model.doDecide({ ...options, state: [{ type: 'json', value }] });
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      state: value,
+    });
+  },
+);

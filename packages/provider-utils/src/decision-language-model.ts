@@ -159,6 +159,7 @@ export class DecisionLanguageModel implements DecisionModelV4 {
           role: 'user',
           content: [
             { type: 'text', text: JSON.stringify({ questions: rubrics }) },
+            { type: 'text', text: 'Shared state:' },
             ...state.map(part =>
               part.type === 'json'
                 ? { type: 'text' as const, text: JSON.stringify(part.value) }
