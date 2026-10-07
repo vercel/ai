@@ -4,7 +4,6 @@ import type {
   LanguageModelV4TextPart,
 } from '../../language-model/v4/language-model-v4-prompt';
 
-/** Ordered state parts after normalization by AI SDK Core. */
 export type DecisionModelV4State = readonly DecisionModelV4StatePart[];
 
 export type DecisionModelV4StatePart =
