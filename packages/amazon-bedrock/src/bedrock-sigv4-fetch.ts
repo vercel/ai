@@ -69,7 +69,9 @@ export function createSigV4FetchFunction(
     const signer = new AwsV4Signer({
       url,
       method: 'POST',
-      headers: Object.entries(headersWithUserAgent),
+      headers: Object.entries(headersWithUserAgent).filter(([, value]) =>
+        isAscii(value),
+      ),
       body,
       region: credentials.region,
       accessKeyId: credentials.accessKeyId,
@@ -102,6 +104,10 @@ function prepareBodyString(body: BodyInit | undefined): string {
   } else {
     return JSON.stringify(body);
   }
+}
+
+function isAscii(value: string): boolean {
+  return !/[\u0080-\uffff]/.test(value);
 }
 
 /**

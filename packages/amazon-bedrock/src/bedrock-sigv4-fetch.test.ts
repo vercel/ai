@@ -379,6 +379,81 @@ describe('createSigV4FetchFunction', () => {
     // The underlying fetch should not be called
     expect(dummyFetch).not.toHaveBeenCalled();
   });
+<<<<<<< HEAD
+=======
+
+  it('should use default service name "bedrock" when no service parameter is provided', async () => {
+    const dummyResponse = new Response('Signed', { status: 200 });
+    const dummyFetch = vi.fn().mockResolvedValue(dummyResponse);
+    lastSignerOptions = null;
+
+    const fetchFn = createSigV4FetchFunction(
+      () => ({
+        region: 'us-west-2',
+        accessKeyId: 'test-access-key',
+        secretAccessKey: 'test-secret',
+      }),
+      dummyFetch,
+    );
+
+    await fetchFn('http://example.com', {
+      method: 'POST',
+      body: '{"test": "data"}',
+    });
+
+    expect(lastSignerOptions).not.toBeNull();
+    expect(lastSignerOptions.service).toBe('bedrock');
+  });
+
+  it('should use custom service name when service parameter is provided', async () => {
+    const dummyResponse = new Response('Signed', { status: 200 });
+    const dummyFetch = vi.fn().mockResolvedValue(dummyResponse);
+    lastSignerOptions = null;
+
+    const fetchFn = createSigV4FetchFunction(
+      () => ({
+        region: 'us-west-2',
+        accessKeyId: 'test-access-key',
+        secretAccessKey: 'test-secret',
+      }),
+      dummyFetch,
+      'bedrock-mantle',
+    );
+
+    await fetchFn('http://example.com', {
+      method: 'POST',
+      body: '{"test": "data"}',
+    });
+
+    expect(lastSignerOptions).not.toBeNull();
+    expect(lastSignerOptions.service).toBe('bedrock-mantle');
+  });
+
+  it('should send non-ASCII header values without signing them', async () => {
+    const dummyFetch = vi
+      .fn()
+      .mockResolvedValue(new Response('Signed', { status: 200 }));
+    const fetchFn = createFetchFunction(dummyFetch);
+
+    await fetchFn('http://example.com', {
+      method: 'POST',
+      body: '{"test": "data"}',
+      headers: {
+        'x-ascii': 'plain',
+        'x-title': 'Example · App',
+      },
+    });
+
+    expect(lastSignerOptions.headers).toEqual([
+      ['user-agent', 'ai-sdk/amazon-bedrock/0.0.0-test runtime/testenv'],
+      ['x-ascii', 'plain'],
+    ]);
+    const calledInit = dummyFetch.mock.calls[0][1] as RequestInit;
+    const headers = calledInit.headers as Record<string, string>;
+    expect(headers['x-ascii']).toEqual('plain');
+    expect(headers['x-title']).toEqual('Example · App');
+  });
+>>>>>>> e592459935 (Backport: fix(amazon-bedrock,anthropic-aws): skip SigV4 signing for non-ASCII header values (#22267))
 });
 
 describe('createApiKeyFetchFunction', () => {
