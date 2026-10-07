@@ -219,6 +219,39 @@ describe('createPiSession', () => {
     }
   });
 
+  it('fails the turn when the requested model is not in the Pi catalog', async () => {
+    const { session: fakePiSession, prompt } = createFakePiSession();
+    piMock.session = fakePiSession;
+    const session = await createPiSession({
+      sessionId: 'session-unknown-model',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+      settings: {},
+      clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+      isResume: false,
+    });
+
+    try {
+      await expect(
+        session.doPromptTurn({
+          skills: [],
+          tools: [],
+          prompt: 'Hello.',
+          model: 'openai/not-a-real-model',
+          emit: vi.fn(),
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_HarnessCapabilityUnsupportedError',
+        harnessId: 'pi',
+        message:
+          "Harness 'pi' has no model 'openai/not-a-real-model' in its catalog.",
+      });
+      expect(prompt).not.toHaveBeenCalled();
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
   it('loads a caller-supplied inline extension factory through createPi', async () => {
     const factory = vi.fn((piApi: ExtensionAPI) => {
       expect(piApi).toBe(piMock.extensionApi);
