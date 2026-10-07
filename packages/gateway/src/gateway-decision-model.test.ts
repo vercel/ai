@@ -323,6 +323,18 @@ describe('GatewayDecisionModel', () => {
       expect(answers).toStrictEqual(dummyAnswers);
     });
 
+    it('should extract refusal answers', async () => {
+      const refusedAnswers = { ...dummyAnswers, tone: { type: 'refusal' } };
+      prepareJsonResponse({ answers: refusedAnswers });
+
+      const { answers } = await createTestModel().doDecide({
+        state: testState,
+        questions: testQuestions,
+      });
+
+      expect(answers).toStrictEqual(refusedAnswers);
+    });
+
     it('should extract rounding', async () => {
       prepareJsonResponse({
         rounding: { probabilityDecimals: 2, scoreDecimals: 2 },

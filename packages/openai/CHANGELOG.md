@@ -1,5 +1,20 @@
 # @ai-sdk/openai
 
+## 4.0.87
+
+### Patch Changes
+
+- bccc1b7: fix(openai): avoid duplicate references for stored messages with multiple text parts
+
+## 4.0.86
+
+### Patch Changes
+
+- d3bcad9: feat(provider): report decision refusals as refusal answers
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/provider-utils@5.0.56
+
 ## 4.0.85
 
 ### Patch Changes

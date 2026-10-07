@@ -59,7 +59,8 @@ The public core types are `Experimental_DecisionModel`,
 
 Unsupported types throw `Experimental_DecisionUnsupportedQuestionTypeError`
 before provider I/O. Invalid inputs throw `InvalidArgumentError`; malformed
-answers throw `InvalidResponseDataError`. Invalid answers are not retried.
+answers throw `InvalidResponseDataError`. Questions the model refuses throw
+`Experimental_DecisionRefusalError`. Invalid answers and refusals are not retried.
 Neither partial results nor missing probability synthesis are supported.
 
 ## Model resolution

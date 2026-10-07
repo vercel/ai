@@ -1,5 +1,14 @@
 # @ai-sdk/mistral
 
+## 4.0.59
+
+### Patch Changes
+
+- 9ab4373: fix(mistral): enable reasoning effort for Mistral Large 4 models
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/provider-utils@5.0.56
+
 ## 4.0.58
 
 ### Patch Changes

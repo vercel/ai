@@ -1,5 +1,21 @@
 # @ai-sdk/harness-opencode
 
+## 1.0.144
+
+### Patch Changes
+
+- 214d52c: fix(harness): update from vulnerable `proxy-addr` 2.0.7 dependency
+  - @ai-sdk/harness@1.0.142
+
+## 1.0.143
+
+### Patch Changes
+
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/harness@1.0.141
+  - @ai-sdk/provider-utils@5.0.56
+
 ## 1.0.142
 
 ### Patch Changes

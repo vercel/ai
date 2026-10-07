@@ -12,8 +12,12 @@ Creates a lightweight Model Context Protocol (MCP) client that connects to an MC
 - **Prompts**: Methods to list available prompts and retrieve prompt messages
 - **Completions**: Methods to request autocompletion suggestions for prompt arguments and resource template variables
 - **Elicitation**: Support for handling server requests for additional input during tool execution
+- **Experimental events**: Discover events and manage webhook subscriptions with `client.experimental_events`
 
-It currently does not support accepting notifications from an MCP server.
+It currently does not support in-band notifications from an MCP server. For
+experimental webhook delivery, see the [MCP Events guide](/docs/ai-sdk-core/mcp-events),
+[event methods reference](/docs/reference/ai-sdk-core/mcp-events), and
+[webhook handler reference](/docs/reference/ai-sdk-core/mcp-events#webhook-handler).
 
 ## Import
 
@@ -36,6 +40,41 @@ It currently does not support accepting notifications from an MCP server.
         {
           type: 'MCPClientConfig',
           parameters: [
+            {
+              name: 'experimental_events',
+              type: 'Experimental_MCPEventsConfig',
+              isOptional: true,
+              description:
+                'Experimental event subscriptions. Configure either a private durable store for direct webhooks or a managed adapter. See [MCP Events](/docs/reference/ai-sdk-core/mcp-events#managed-subscriptions).',
+              properties: [
+                {
+                  type: 'Experimental_MCPEventsConfig',
+                  parameters: [
+                    {
+                      name: 'store',
+                      type: 'Experimental_MCPEventStore',
+                      isOptional: true,
+                      description:
+                        'Required in direct mode. Persists subscription identities, callback URLs, signing secrets, cursors, and expirations. Shared with the webhook receiver. Cannot be combined with adapter.',
+                    },
+                    {
+                      name: 'adapter',
+                      type: 'Experimental_MCPEventsAdapter',
+                      isOptional: true,
+                      description:
+                        'Delegates subscription management to a backend. Cannot be combined with store or validateArguments. No local event store or refresh loop is required.',
+                    },
+                    {
+                      name: 'validateArguments',
+                      type: '({ definition, arguments }) => void | PromiseLike<void>',
+                      isOptional: true,
+                      description:
+                        'Optional application validation for event filters. Throw to reject a subscription before persisting its secret or sending events/subscribe.',
+                    },
+                  ],
+                },
+              ],
+            },
             {
               name: 'transport',
               type: 'MCPTransportConfig | MCPTransport',
@@ -228,6 +267,12 @@ Returns a Promise that resolves to an `MCPClient` with the following properties 
 
 <PropertiesTable
   content={[
+    {
+      name: 'experimental_events',
+      type: 'Experimental_MCPEvents | Experimental_ManagedMCPEvents',
+      description:
+        'Event catalog discovery and mode-specific subscription methods. Managed mode adds getSubscription and listSubscriptions; direct mode has refresh. See the [MCP Events reference](/docs/reference/ai-sdk-core/mcp-events).',
+    },
     {
       name: 'initializeResult',
       type: 'InitializeResult',

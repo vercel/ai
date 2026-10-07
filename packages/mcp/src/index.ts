@@ -46,6 +46,30 @@ export {
   AuthorizationServerMismatchError,
 } from './error/oauth-error';
 export { MCPClientError } from './error/mcp-client-error';
+export type { ManagedMCPClient as Experimental_ManagedMCPClient } from './tool/mcp-client';
+export type {
+  MCPEventsAdapter as Experimental_MCPEventsAdapter,
+  ManagedSubscribeInput as Experimental_ManagedSubscribeInput,
+  ManagedSubscription as Experimental_ManagedSubscription,
+  ManagedMCPEvents as Experimental_ManagedMCPEvents,
+} from './tool/mcp-events-adapter';
+export {
+  createMCPEventWebhook as experimental_createMCPEventWebhook,
+  type MCPEventWebhookOptions as Experimental_MCPEventWebhookOptions,
+} from './tool/mcp-event-webhook';
+export type {
+  MCPEvent as Experimental_MCPEvent,
+  MCPEventControl as Experimental_MCPEventControl,
+  MCPEventDefinition as Experimental_MCPEventDefinition,
+  MCPEventStore as Experimental_MCPEventStore,
+  MCPEventSubscription as Experimental_MCPEventSubscription,
+  MCPEventSubscriptionInfo as Experimental_MCPEventSubscriptionInfo,
+  MCPEvents as Experimental_MCPEvents,
+  MCPEventsConfig as Experimental_MCPEventsConfig,
+  ListEventsResult as Experimental_ListEventsResult,
+  SubscribeEventOptions as Experimental_SubscribeEventOptions,
+  SubscribeEventResult as Experimental_SubscribeEventResult,
+} from './tool/mcp-event-types';
 export type {
   OAuthAuthorizationServerInformation,
   OAuthClientProvider,

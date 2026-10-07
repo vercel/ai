@@ -155,6 +155,9 @@ const gatewayDecisionAnswerSchema = z.discriminatedUnion('type', [
     type: z.literal('boolean'),
     probability: z.number(),
   }),
+  z.object({
+    type: z.literal('refusal'),
+  }),
 ]);
 
 const gatewayDecisionWarningSchema = z.discriminatedUnion('type', [

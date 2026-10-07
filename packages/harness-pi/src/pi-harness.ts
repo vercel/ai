@@ -11,7 +11,12 @@ import type {
 import { z } from 'zod/v4';
 import type { PiAuthenticationMode, PiCredentialStore } from './pi-auth';
 import { piResumeStateSchema } from './pi-resume-state';
-import { createPiSession, type PiThinkingLevel } from './pi-session';
+import {
+  createPiSession,
+  type PiCacheRetention,
+  type PiMcpSettings,
+  type PiThinkingLevel,
+} from './pi-session';
 import { VERSION } from './version';
 
 /**
@@ -51,6 +56,12 @@ export type PiHarnessSettings = {
    */
   readonly thinkingLevel?: PiThinkingLevel;
   /**
+   * Default prompt cache retention for model requests. For Anthropic models,
+   * `long` uses the 1-hour cache instead of the 5-minute default. When omitted,
+   * Pi's default (`short`) applies.
+   */
+  readonly cacheRetention?: PiCacheRetention;
+  /**
    * Directory holding Pi's global agent config (auth.json, models.json,
    * settings.json). When omitted, native subscription auth is discovered from
    * Pi's default agent directory while model and general settings remain
@@ -62,6 +73,11 @@ export type PiHarnessSettings = {
    * underlying runtime's native MCP server configuration format.
    */
   readonly mcpServers?: Record<string, unknown>;
+  /**
+   * Settings for the MCP adapter that serves `mcpServers`, applied over this
+   * package's defaults.
+   */
+  readonly mcpSettings?: PiMcpSettings;
   /**
    * Trusted inline Pi extensions loaded for each harness session.
    *
@@ -179,7 +195,13 @@ export function createPi(
           ...(settings.thinkingLevel
             ? { thinkingLevel: settings.thinkingLevel }
             : {}),
+          ...(settings.cacheRetention
+            ? { cacheRetention: settings.cacheRetention }
+            : {}),
           ...(settings.mcpServers ? { mcpServers: settings.mcpServers } : {}),
+          ...(settings.mcpSettings
+            ? { mcpSettings: settings.mcpSettings }
+            : {}),
           ...(settings.providers ? { providers: settings.providers } : {}),
           ...(settings.extensionFactories
             ? { extensionFactories: settings.extensionFactories }

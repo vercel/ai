@@ -1,5 +1,24 @@
 # ai
 
+## 7.0.131
+
+### Patch Changes
+
+- Updated dependencies [866e884]
+- Updated dependencies [04fdf5e]
+  - @ai-sdk/gateway@4.0.107
+
+## 7.0.130
+
+### Patch Changes
+
+- 6f6b9c0: fix(ai): reject pending result promises and cancel the pending stream when the abort signal fires
+- d3bcad9: feat(provider): report decision refusals as refusal answers
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/gateway@4.0.106
+  - @ai-sdk/provider-utils@5.0.56
+
 ## 7.0.129
 
 ### Patch Changes

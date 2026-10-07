@@ -235,13 +235,13 @@ export class DecisionOpenAIModel implements DecisionModelV4 {
     const answers = Object.fromEntries(
       response.answers.map((answer): [string, DecisionModelV4Answer] => {
         if (answer.type === 'refusal') {
-          throw new InvalidResponseDataError({
-            data: rawValue,
-            message:
-              answer.name === null
-                ? 'OpenAI Decisions refused an unnamed question.'
-                : `OpenAI Decisions refused question ${JSON.stringify(answer.name)}.`,
-          });
+          if (answer.name === null) {
+            throw new InvalidResponseDataError({
+              data: rawValue,
+              message: 'OpenAI Decisions refused an unnamed question.',
+            });
+          }
+          return [answer.name, { type: 'refusal' }];
         }
         if (answer.type === 'predicate') {
           return [

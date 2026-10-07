@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 4.0.24
+
+### Patch Changes
+
+- d3bcad9: feat(provider): report decision refusals as refusal answers
+
 ## 4.0.23
 
 ### Patch Changes

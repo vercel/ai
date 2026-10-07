@@ -80,7 +80,7 @@ export const anthropic = customProvider({
   languageModels: {
     opus: gateway('anthropic/claude-opus-5.5'),
     sonnet: gateway('anthropic/claude-sonnet-5.5'),
-    haiku: gateway('anthropic/claude-haiku-4.5'),
+    haiku: gateway('anthropic/claude-haiku-5.5'),
   },
   fallbackProvider: gateway,
 });
@@ -390,7 +390,7 @@ export const registry = createProviderRegistry(
     // setup model name aliases
     anthropic: customProvider({
       languageModels: {
-        fast: anthropic('claude-haiku-4-5'),
+        fast: anthropic('claude-haiku-5-5'),
 
         // simple model
         writing: anthropic('claude-sonnet-4-5'),
