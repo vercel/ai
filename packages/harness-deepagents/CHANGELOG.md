@@ -1,5 +1,31 @@
 # @ai-sdk/harness-deepagents
 
+## 1.0.142
+
+### Patch Changes
+
+- 214d52c: fix(harness): update from vulnerable `proxy-addr` 2.0.7 dependency
+  - @ai-sdk/harness@1.0.142
+
+## 1.0.141
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.141
+- @ai-sdk/provider-utils@5.0.56
+
+## 1.0.140
+
+### Patch Changes
+
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+- Updated dependencies [4c6979c]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/harness@1.0.140
+
 ## 1.0.139
 
 ### Patch Changes

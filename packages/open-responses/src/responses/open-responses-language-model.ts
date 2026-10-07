@@ -349,6 +349,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
                 medium: 'medium',
                 high: 'high',
                 xhigh: 'xhigh',
+                max: 'max',
               },
               warnings,
             })
