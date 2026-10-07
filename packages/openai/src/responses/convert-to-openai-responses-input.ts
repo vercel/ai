@@ -102,10 +102,12 @@ async function convertFunctionToolResultOutput({
 
   switch (output.type) {
     case 'text':
-    case 'error-text':
       return convertScalarOutput(
         hasOutputSchema ? JSON.stringify(output.value) : output.value,
       );
+    case 'error-text':
+    case 'error-json':
+      return convertScalarOutput(JSON.stringify({ error: output.value }));
     case 'execution-denied': {
       const reason = output.reason ?? 'Tool call execution denied.';
       return convertScalarOutput(
@@ -113,7 +115,6 @@ async function convertFunctionToolResultOutput({
       );
     }
     case 'json':
-    case 'error-json':
       return convertScalarOutput(JSON.stringify(output.value));
     case 'content':
       return output.value
@@ -1538,8 +1539,13 @@ export async function convertToOpenAIResponsesInput({
             let outputValue: OpenAIResponsesCustomToolCallOutput['output'];
             switch (output.type) {
               case 'text':
-              case 'error-text':
                 outputValue = convertScalarOutput(output.value);
+                break;
+              case 'error-text':
+              case 'error-json':
+                outputValue = convertScalarOutput(
+                  JSON.stringify({ error: output.value }),
+                );
                 break;
               case 'execution-denied':
                 outputValue = convertScalarOutput(
@@ -1547,7 +1553,6 @@ export async function convertToOpenAIResponsesInput({
                 );
                 break;
               case 'json':
-              case 'error-json':
                 outputValue = convertScalarOutput(JSON.stringify(output.value));
                 break;
               case 'content':

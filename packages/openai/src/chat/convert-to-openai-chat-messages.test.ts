@@ -1,3 +1,4 @@
+import type { LanguageModelV4ToolResultOutput } from '@ai-sdk/provider';
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
 import { describe, it, expect } from 'vitest';
 
@@ -985,6 +986,40 @@ describe('tool calls', () => {
         },
       ]
     `);
+  });
+
+  it.each([
+    {
+      output: { type: 'error-text', value: 'E42' },
+      expected: '{"error":"E42"}',
+    },
+    {
+      output: { type: 'error-json', value: { code: 'E42' } },
+      expected: '{"error":{"code":"E42"}}',
+    },
+  ] satisfies Array<{
+    output: LanguageModelV4ToolResultOutput;
+    expected: string;
+  }>)('should wrap tool errors $output', ({ output, expected }) => {
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'error-tool',
+              toolName: 'deploy',
+              output,
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.messages).toEqual([
+      { role: 'tool', tool_call_id: 'error-tool', content: expected },
+    ]);
   });
 
   it('should handle different tool output types', () => {

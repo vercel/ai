@@ -689,25 +689,29 @@ export function convertToGoogleMessages(
               );
             }
           } else {
+            const isError =
+              output.type === 'error-text' ||
+              output.type === 'error-json' ||
+              output.type === 'execution-denied';
             parts.push({
               functionResponse: {
                 ...(includeFunctionCallIds && part.toolCallId != null
                   ? { id: part.toolCallId }
                   : {}),
                 name: part.toolName,
-                response:
-                  output.type === 'error-text'
+                response: {
+                  name: part.toolName,
+                  ...(isError
                     ? {
-                        name: part.toolName,
-                        error: output.value,
-                      }
-                    : {
-                        name: part.toolName,
-                        content:
+                        error:
                           output.type === 'execution-denied'
                             ? (output.reason ?? 'Tool call execution denied.')
                             : serializeFunctionResponseContent(output.value),
-                      },
+                      }
+                    : {
+                        content: serializeFunctionResponseContent(output.value),
+                      }),
+                },
               },
             });
           }

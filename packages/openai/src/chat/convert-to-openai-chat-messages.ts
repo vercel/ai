@@ -325,6 +325,7 @@ export function convertToOpenAIChatMessages({
               contentValue = output.value;
               break;
             case 'error-text':
+            case 'error-json':
               contentValue = JSON.stringify({ error: output.value });
               break;
             case 'execution-denied':
@@ -332,7 +333,6 @@ export function convertToOpenAIChatMessages({
               break;
             case 'content':
             case 'json':
-            case 'error-json':
               contentValue = JSON.stringify(output.value);
               break;
           }

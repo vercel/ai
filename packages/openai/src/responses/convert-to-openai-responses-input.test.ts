@@ -2892,6 +2892,77 @@ describe('convertToOpenAIResponsesInput', () => {
   });
 
   describe('tool messages', () => {
+    describe.each([false, true])('custom tool: %s', isCustomTool => {
+      it.each([
+        {
+          output: { type: 'error-text', value: 'E42' },
+          expected: '{"error":"E42"}',
+        },
+        {
+          output: { type: 'error-json', value: { code: 'E42' } },
+          expected: '{"error":{"code":"E42"}}',
+        },
+      ] satisfies Array<{
+        output: LanguageModelV4ToolResultOutput;
+        expected: string;
+      }>)('should wrap tool errors $output', async ({ output, expected }) => {
+        for (const hasOutputSchema of [false, true]) {
+          for (const hasBreakpoint of [false, true]) {
+            const promptCacheBreakpoint = { mode: 'explicit' } as const;
+            const result = await convertToOpenAIResponsesInput({
+              toolNameMapping: testToolNameMapping,
+              prompt: [
+                {
+                  role: 'tool',
+                  content: [
+                    {
+                      type: 'tool-result',
+                      toolCallId: 'call_error',
+                      toolName: 'deploy',
+                      output,
+                      ...(hasBreakpoint && {
+                        providerOptions: {
+                          openai: { promptCacheBreakpoint },
+                        },
+                      }),
+                    },
+                  ],
+                },
+              ],
+              systemMessageMode: 'system',
+              providerOptionsName: 'openai',
+              store: true,
+              customProviderToolNames: isCustomTool
+                ? new Set(['deploy'])
+                : undefined,
+              outputSchemaToolNames: hasOutputSchema
+                ? new Set(['deploy'])
+                : undefined,
+            });
+
+            expect(result.input).toEqual([
+              {
+                type: isCustomTool
+                  ? 'custom_tool_call_output'
+                  : 'function_call_output',
+                call_id: 'call_error',
+                output: hasBreakpoint
+                  ? [
+                      {
+                        type: 'input_text',
+                        text: expected,
+                        prompt_cache_breakpoint: promptCacheBreakpoint,
+                      },
+                    ]
+                  : expected,
+              },
+            ]);
+            expect(result.warnings).toEqual([]);
+          }
+        }
+      });
+    });
+
     it('should preserve prompt cache breakpoints on scalar tool results', async () => {
       const promptCacheBreakpoint = { mode: 'explicit' } as const;
       const providerOptions = {
@@ -2911,11 +2982,11 @@ describe('convertToOpenAIResponsesInput', () => {
         },
         {
           output: { type: 'error-text', value: 'tool error' },
-          expectedText: 'tool error',
+          expectedText: '{"error":"tool error"}',
         },
         {
           output: { type: 'error-json', value: { error: 'boom' } },
-          expectedText: '{"error":"boom"}',
+          expectedText: '{"error":{"error":"boom"}}',
         },
         {
           output: {
@@ -3112,7 +3183,7 @@ describe('convertToOpenAIResponsesInput', () => {
         {
           type: 'function_call_output',
           call_id: 'call_error',
-          output: '"Error: boom"',
+          output: '{"error":"Error: boom"}',
         },
         {
           type: 'function_call_output',
@@ -3122,7 +3193,7 @@ describe('convertToOpenAIResponsesInput', () => {
         {
           type: 'function_call_output',
           call_id: 'call_without_schema',
-          output: 'Error: unchanged',
+          output: '{"error":"Error: unchanged"}',
         },
         {
           type: 'function_call_output',
@@ -6027,11 +6098,11 @@ describe('convertToOpenAIResponsesInput', () => {
         },
         {
           output: { type: 'error-text', value: 'tool error' },
-          expectedText: 'tool error',
+          expectedText: '{"error":"tool error"}',
         },
         {
           output: { type: 'error-json', value: { error: 'boom' } },
-          expectedText: '{"error":"boom"}',
+          expectedText: '{"error":{"error":"boom"}}',
         },
         {
           output: {
