@@ -1,5 +1,11 @@
 # @ai-sdk/perplexity
 
+## 2.1.3
+
+### Patch Changes
+
+- 63cdef9: Add the `X-Pplx-Integration` attribution header to Perplexity API requests.
+
 ## 2.1.2
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.102
+
+### Patch Changes
+
+- 95c921d: feat(google): add the 'gemini-nano-banana-2.1' model ID
+
 ## 2.0.101
 
 ### Patch Changes
