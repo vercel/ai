@@ -37,7 +37,7 @@
   "dependencies": {
     "@ai-sdk/openai": "workspace:*",
     "@modelcontextprotocol/node": "^2.0.0",
-    "@modelcontextprotocol/sdk": "^1.31.0",
+    "@modelcontextprotocol/sdk": "^1.32.0",
     "@modelcontextprotocol/server": "^2.0.0",
     "ai": "workspace:*",
     "dotenv": "16.4.5",

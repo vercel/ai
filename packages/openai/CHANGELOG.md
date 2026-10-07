@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 4.0.87
+
+### Patch Changes
+
+- bccc1b7: fix(openai): avoid duplicate references for stored messages with multiple text parts
+
 ## 4.0.86
 
 ### Patch Changes
