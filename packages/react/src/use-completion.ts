@@ -107,8 +107,8 @@ export function useCompletion<BODY extends object = object>({
   const completion = data!;
 
   // Abort controller to cancel the current API call.
-  const [abortController, setAbortController] =
-    useState<AbortController | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const requestIdRef = useRef(0);
 
   const extraMetadataRef = useRef({
     credentials,
@@ -125,8 +125,10 @@ export function useCompletion<BODY extends object = object>({
   }, [credentials, headers, body]);
 
   const triggerRequest = useCallback(
-    async (prompt: string, options?: CompletionRequestOptions<BODY>) =>
-      callCompletionApi({
+    async (prompt: string, options?: CompletionRequestOptions<BODY>) => {
+      const requestId = ++requestIdRef.current;
+
+      return callCompletionApi({
         api,
         prompt,
         credentials: extraMetadataRef.current.credentials,
@@ -141,22 +143,26 @@ export function useCompletion<BODY extends object = object>({
         streamProtocol,
         fetch,
         // throttle streamed ui updates:
-        setCompletion: throttle(
-          (completion: string) => mutate(completion, false),
-          throttleWaitMs,
-        ),
+        setCompletion: throttle((completion: string) => {
+          if (requestIdRef.current === requestId) {
+            mutate(completion, false);
+          }
+        }, throttleWaitMs),
         setLoading: mutateLoading,
         setError,
-        setAbortController,
+        setAbortController: controller => {
+          abortControllerRef.current = controller;
+        },
+        getAbortController: () => abortControllerRef.current,
         onFinish,
         onError,
-      }),
+      });
+    },
     [
       mutate,
       mutateLoading,
       api,
       extraMetadataRef,
-      setAbortController,
       onFinish,
       onError,
       setError,
@@ -167,11 +173,8 @@ export function useCompletion<BODY extends object = object>({
   );
 
   const stop = useCallback(() => {
-    if (abortController) {
-      abortController.abort();
-      setAbortController(null);
-    }
-  }, [abortController]);
+    abortControllerRef.current?.abort();
+  }, []);
 
   const setCompletion = useCallback(
     (completion: string) => {

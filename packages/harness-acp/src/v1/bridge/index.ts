@@ -37,6 +37,7 @@ import {
   type HostToolRelay,
   type HostToolRelayTurn,
 } from './host-tool-relay';
+import { createHostToolRelayAuthorization } from './host-tool-relay-authorization';
 import { createHostToolMcpServerDefinition } from './host-tool-mcp-definition';
 import {
   promptAndRefreshInitialHostToolCatalog,
@@ -236,9 +237,14 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   void cancellationFailure.catch(() => {});
   let cancellationRequested = false;
   let cancellationFailureError: Error | undefined;
+  const hostToolAuthorization = createHostToolRelayAuthorization({
+    serverName: HOST_TOOL_MCP_SERVER_NAME,
+    toolNames: (start.tools ?? []).map(tool => tool.name),
+  });
   const cancel = async () => {
     if (cancellationRequested) return;
     cancellationRequested = true;
+    hostToolAuthorization.close();
     activePermissionController?.cancelAll();
     try {
       if (connection == null) {
@@ -296,9 +302,12 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     hasPermissionModeMapping: start.permissionModeMapping != null,
     emitToolCall: emitStreamEvent.permissionToolCall,
     claimHostToolPermission: emitStreamEvent.claimHostToolPermission,
+    onHostToolPermissionAllowed: hostToolAuthorization.observeAllowedPermission,
   });
   activePermissionController = permissionController;
   const relayTurn: HostToolRelayTurn = {
+    waitForToolCallAuthorization:
+      hostToolAuthorization.waitForToolCallAuthorization,
     emitToolCall: emitStreamEvent.hostToolCall,
     emitToolResult: emitStreamEvent.hostToolResult,
     requestToolResult: toolCallId => turn.requestToolResult(toolCallId),
@@ -366,6 +375,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         const captured = streamCapture?.takeForUpdate({
           update: message.update,
         });
+        hostToolAuthorization.observeUpdate({ update: message.update });
         for (const rawValue of captured?.precedingRawValues ?? []) {
           emitStreamEvent.raw({ rawValue });
         }
@@ -381,6 +391,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       if (emitStreamEvent.message({ message })) return;
     }
   } finally {
+    hostToolAuthorization.close();
     if (activeQuestionRequest?.turn === turn) {
       activeQuestionRequest = undefined;
     }

@@ -1,5 +1,301 @@
 # ai
 
+## 7.0.130
+
+### Patch Changes
+
+- 6f6b9c0: fix(ai): reject pending result promises and cancel the pending stream when the abort signal fires
+- d3bcad9: feat(provider): report decision refusals as refusal answers
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/gateway@4.0.106
+  - @ai-sdk/provider-utils@5.0.56
+
+## 7.0.129
+
+### Patch Changes
+
+- e37d213: feat(ai): emit deprecation warnings with stable codes and deduplicate them
+- 73d8343: fix(ai): preserve V2 provider-reported total tokens in raw usage
+- 268225c: feat(provider): add a portable `max` reasoning level with native provider mappings, compatibility coercions, and budget-based fallback support.
+
+  Compatibility notes:
+
+  - **TypeScript source compatibility:** Adding `max` widens `LanguageModelV4CallOptions['reasoning']` and the derived `ReasoningLevel` type. Third-party providers and consumers with exhaustive switches or `Record<ReasoningLevel, ...>` mappings must handle `max` before upgrading. Ordinary calls using existing reasoning levels remain accepted.
+  - **Amazon Bedrock:** Existing Nova 2 calls using portable `reasoning: 'xhigh'` now send `maxReasoningEffort: 'high'` instead of the unsupported `'max'`, and return a compatibility warning. Anthropic and OpenAI Bedrock effort mappings retain their existing `xhigh` behavior. Partial Bedrock reasoning configurations continue to preserve explicit values and derive missing fields; explicit effort/budget overrides and disabled thinking no longer emit warnings for portable mappings that are not sent.
+  - **Fireworks:** Existing portable `minimal` and `xhigh` calls keep their request mappings to `low` and `high`, respectively, and now return compatibility warnings in generation and streaming results. Portable `max` maps to `high` with the same warning behavior.
+
+  **Release classification:** This remains a patch changeset under the repository's explicit release policy, which uses patch releases for both fixes and features. The TypeScript source-compatibility caveat for exhaustive consumers is disclosed above. Maintainers can override this classification with a `major` label if they decide to align the provider-spec addition with a future AI SDK major release.
+
+- d83366e: fix(ai): publish the latest error after repeated failed stream resume attempts
+- 34905a2: fix(ai): preserve provider options from approval-only tool messages
+- 16ab882: fix(ai): recognize WebKit network errors
+- f810ea3: fix(ai): prevent unavailable tools from exposing persisted output to models
+- 19a127b: fix(ai): avoid duplicate slashes in chat reconnect URLs
+- 0af2f7c: chore: upgrade to TypeScript 6
+- 4c6979c: fix(harness): preserve adapter warnings in agent stream results and declare
+  their compatibility warning shapes
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [753f2e1]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+- Updated dependencies [ad64697]
+- Updated dependencies [0c82824]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/gateway@4.0.105
+  - @ai-sdk/provider@4.0.23
+
+## 7.0.128
+
+### Patch Changes
+
+- 0fe8c67: fix: preserve tool approval state when resuming streams
+- 2959d35: feat: rename `evaluate` to `decide`
+- 0ca1ab9: Add durable non-streaming `WorkflowAgent.generate()` with a shared tool loop, a 20-step default, typed output, and core generation result semantics. Reuse core result and content construction through internal exports while preserving existing Workflow streaming behavior. Transport-independent approval creation remains separate follow-up work.
+- d6b42fd: feat(ai): support custom reasoning delimiters in extractReasoningMiddleware
+- ed6e72d: fix(ai): return successful empty transcripts for silent audio
+- 2136151: Throw `InvalidResponseDataError` instead of a generic `Error` when a generated audio file's format cannot be determined from its media type, so callers can identify the failure with `AISDKError.isInstance`.
+- Updated dependencies [131532b]
+- Updated dependencies [2959d35]
+- Updated dependencies [59116e6]
+- Updated dependencies [6ac923a]
+  - @ai-sdk/gateway@4.0.104
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+
+## 7.0.127
+
+### Patch Changes
+
+- 158a718: feat(ai): select and rank eligible deferred tools via 'search()' callback in tool search
+- bb8d33e: fix(ai): cancel merged UI message streams when the consumer disconnects
+- 284dc11: fix(ai): accept unchanged tool approval inputs created in another JavaScript realm
+- ba8afe9: feat(ai): add a configurable maxResults for number of tools returned in tool search
+- Updated dependencies [d1bb9e8]
+  - @ai-sdk/gateway@4.0.103
+
+## 7.0.126
+
+### Patch Changes
+
+- 4f3d236: fix: clear tool approvals when `addToolOutput` runs
+
+## 7.0.125
+
+### Patch Changes
+
+- ff3dcef: feat(ai): add `convertDataPart` to agent UI stream helpers
+
+## 7.0.124
+
+### Patch Changes
+
+- 8c65988: feat(ai): add telemetry to speech generation and transcription, including
+  provider usage propagation and experimental streaming lifecycle callbacks
+- Updated dependencies [8c65988]
+- Updated dependencies [e25994e]
+- Updated dependencies [527a163]
+- Updated dependencies [e74afc5]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+  - @ai-sdk/gateway@4.0.102
+
+## 7.0.123
+
+### Patch Changes
+
+- 05cdac6: fix(ai): keep idle UI message streams open with optional SSE heartbeats
+- 4514fc1: fix(ai): prune all tool content when retaining zero trailing messages
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- 2a625cf: fix(ai): preserve partial reasoning tags when streamed text parts end
+- 50a26d5: fix(ai): ignore pending tool approvals superseded by user messages
+- Updated dependencies [040033b]
+- Updated dependencies [ede5b89]
+  - @ai-sdk/gateway@4.0.101
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
+## 7.0.122
+
+### Patch Changes
+
+- f3575f8: Clarify that provider-executed tool execution errors bypass the UI stream's `onError` callback to preserve provider error data and harness runtime messages. Stream errors and invalid tool calls still use the callback. Runtime behavior is unchanged.
+- 27ab8d4: Encode chat IDs in default stream reconnection URLs so slashes, query delimiters, and fragments stay within the ID. Reject standalone `.` and `..` IDs before fetching. Custom URLs returned by `prepareReconnectToStreamRequest` remain unchanged.
+- Updated dependencies [870f509]
+- Updated dependencies [a75f1fd]
+  - @ai-sdk/gateway@4.0.100
+
+## 7.0.121
+
+### Patch Changes
+
+- c5e90bb: fix(ai): preserve hydrated partial static tool input across stream resumptions
+- 868c475: Preserve prototype-named tools, providers, and provider metadata as own properties without changing lookup object prototypes. Prevent inherited names from resolving as registered providers or causing image metadata aggregation to fail.
+- 119536f: Preserve provider metadata on corresponding `smoothStream` chunks without carrying it into subsequent metadata-free deltas.
+- 9941f32: Prevent automatic chat resumption when completed tool output is followed by terminal text without a completed stream state, while preserving resumption after completed model text.
+- Updated dependencies [dbddb5b]
+- Updated dependencies [c2511c1]
+  - @ai-sdk/gateway@4.0.99
+  - @ai-sdk/provider-utils@5.0.51
+
+## 7.0.120
+
+### Patch Changes
+
+- b032d70: fix(ai): preserve tool metadata from tool output chunks
+- e21b98b: fix(ai): continue active UI message parts when resuming after a disconnect
+- Updated dependencies [e361d39]
+  - @ai-sdk/gateway@4.0.98
+
+## 7.0.119
+
+### Patch Changes
+
+- 33e94ba: fix(ai): cancel response streams when clients disconnect
+- 34d869e: fix(ai): prevent unhandled stream completion rejections in non-Node runtimes
+- def4df8: fix(ai): store static tool input errors in the current input field
+- 525efc5: feat(provider): advertise image model file and mask input support
+
+  Use confirmed model IDs for capability declarations so unrecognized model names
+  remain unknown. Include Together AI FLUX.2 Pro and Flex single-image editing, and
+  allow asynchronous capability lookups and middleware overrides to resolve to
+  unknown.
+
+  Advertise QuiverAI Arrow 2 and Arrow 2 Telos file-input support, and mark Together
+  AI Gemini image inputs unsupported by the current single-image request mapping.
+
+- Updated dependencies [e3605f6]
+- Updated dependencies [525efc5]
+  - @ai-sdk/provider-utils@5.0.50
+  - @ai-sdk/provider@4.0.19
+  - @ai-sdk/gateway@4.0.97
+
+## 7.0.118
+
+### Patch Changes
+
+- Updated dependencies [e6a7996]
+- Updated dependencies [e19f0fc]
+  - @ai-sdk/gateway@4.0.96
+
+## 7.0.117
+
+### Patch Changes
+
+- Updated dependencies [b67b1b7]
+  - @ai-sdk/gateway@4.0.95
+
+## 7.0.116
+
+### Patch Changes
+
+- af9597b: Compile packages for ES2022 runtime target
+- bc49f78: Preserve original opaque URI strings in tagged file URLs during prompt conversion. Match explicit supported URL MIME types exactly so unsupported subtypes are not forwarded to providers.
+- Updated dependencies [af9597b]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/provider-utils@5.0.49
+  - @ai-sdk/gateway@4.0.94
+
+## 7.0.115
+
+### Patch Changes
+
+- be877ff: Use the new `fetchUntrustedUrl` helper for SDK downloads, preserving the existing
+  user-agent header and URL validation while enforcing first-hop credential isolation.
+- Updated dependencies [80b9100]
+- Updated dependencies [d3cc6ae]
+- Updated dependencies [be877ff]
+  - @ai-sdk/gateway@4.0.93
+  - @ai-sdk/provider-utils@5.0.48
+
+## 7.0.114
+
+### Patch Changes
+
+- b5679a7: fix(ai): filter tracing-channel context with telemetry allowlists
+- ca31b89: Clarify in the prompt validation code that `allowSystemInMessages` permits all system messages, including instruction text.
+- Updated dependencies [124b6ef]
+  - @ai-sdk/gateway@4.0.92
+
+## 7.0.113
+
+### Patch Changes
+
+- dcdb011: fix(ai): route completed streamed tool input callbacks to repaired tools
+- 8f72832: fix(ai): preserve video models from legacy fallback providers
+- fe07867: Fix Google `embedMany` calls with more than 100 values by keeping per-value multimodal content aligned across automatic batches, including text-only entries. Validate content length before sending requests and validate each batch's provider options after middleware transforms them.
+- b74c0cb: fix(ai): resume tool approvals from earlier messages
+- a4b0940: fix(ai): execute manually approved tool inputs produced by schema transforms
+
+  Preserve approved inputs during revalidation and reject histories whose reconstructed schema output differs, including signed approvals with missing original input. Validate transformed UI tool inputs against the reconstructed output before returning them as static tool parts.
+
+- 2693319: Add Gemini 3.8 TTS support with structured speech metadata and per-turn speaker and style controls for prebuilt voices. Preserve native WAV responses without adding a second header, support explicit raw PCM, mu-law, and A-law output, and identify headerless audio formats correctly. Add the Gemini 3.8 speech model IDs to Google and Gateway types.
+
+  Share transcript and custom-voice inspection through the Google provider internal export, and reject empty speech transcripts before sending a request. Default newer and custom model IDs to structured speech while preserving the legacy format for Gemini 2.5 and 3.1.
+
+- c93ee90: fix(ai): preserve message history for direct transport stream callbacks
+- 771e74b: chore: enable dead code lint rules
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [2693319]
+- Updated dependencies [b73f2f9]
+- Updated dependencies [771e74b]
+  - @ai-sdk/provider-utils@5.0.47
+  - @ai-sdk/gateway@4.0.91
+
+## 7.0.112
+
+### Patch Changes
+
+- 9a98fd9: fix(ai): prune reasoning file parts when removing reasoning
+- a0553d6: feat(ai): report consumer cancellation in UI message stream end callbacks
+- ffb0e76: fix(provider): preserve opaque file URI strings for provider serialization
+- fde0d66: fix(ai): preserve parsed metadata and data values when validating UI messages
+- Updated dependencies [ed5a1d7]
+- Updated dependencies [ffb0e76]
+- Updated dependencies [618dc11]
+  - @ai-sdk/gateway@4.0.90
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/provider-utils@5.0.46
+
+## 7.0.111
+
+### Patch Changes
+
+- 31d24ce: feat: add telemetry support to `experimental_evaluate`
+- a65bfd9: fix(ai): securely download URL-backed language model file outputs so generated files expose actual base64 and byte content and UI streams contain valid data URLs. Propagate cancellation to batch file downloads.
+
+## 7.0.110
+
+### Patch Changes
+
+- Updated dependencies [49295bb]
+  - @ai-sdk/gateway@4.0.89
+
+## 7.0.109
+
+### Patch Changes
+
+- 0343bb1: fix(ai): keep replacement completion requests loading and cancellable when an earlier request settles
+- 2b105fa: fix(ai): preserve overlapping text blocks in reasoning extraction streams
+- 125f493: fix(harness): forward validated `toolsContext` to host-executed tools in alignment with `ToolLoopAgent`
+
+## 7.0.108
+
+### Patch Changes
+
+- 3f6852a: fix(ai): prevent direct execution of tools governed by tool callers
+- 6317504: fix(ai): stop pending tool-call repairs when generation is cancelled
+- 3cb2dcd: fix(ai): preserve file data when adapting v3 language models
+- ccf98e7: fix(ai): prevent `streamText` from executing tool calls that violate tool choice
+- Updated dependencies [20dd00a]
+- Updated dependencies [7cf7cee]
+- Updated dependencies [c42576a]
+- Updated dependencies [d85dcf5]
+- Updated dependencies [fd9b3f3]
+  - @ai-sdk/gateway@4.0.88
+
 ## 7.0.107
 
 ### Patch Changes

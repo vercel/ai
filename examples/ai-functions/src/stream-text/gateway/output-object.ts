@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: 'xai/grok-4.5',
+    model: 'spacexai/grok-4.7',
     output: Output.object({
       schema: z.object({
         characters: z.array(

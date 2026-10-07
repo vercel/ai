@@ -4,7 +4,7 @@ import { resolveACPProfileValue } from './profile-values';
 const gateway = {
   apiKey: 'gateway-key',
   baseUrl: 'https://gateway.example',
-  clientAppName: 'ai-sdk/harness-acp',
+  clientAppName: 'ai-sdk-harness-acp',
   clientAppVersion: '1.2.3',
 };
 
@@ -30,8 +30,8 @@ describe('resolveACPProfileValue', () => {
         baseUrl: 'https://gateway.example/v1',
         headers: {
           Authorization: 'Bearer gateway-key',
-          'x-client-app': 'ai-sdk/harness-acp/1.2.3',
-          'x-client-app-name': 'ai-sdk/harness-acp',
+          'x-client-app': 'ai-sdk-harness-acp/1.2.3',
+          'x-client-app-name': 'ai-sdk-harness-acp',
           'x-client-app-version': '1.2.3',
         },
       },

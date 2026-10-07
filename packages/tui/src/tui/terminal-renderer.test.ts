@@ -66,6 +66,45 @@ describe('TerminalRenderer', () => {
     expect(stripAnsi(output.text())).toContain('╭ User ');
   });
 
+  it.each([
+    {
+      name: 'an emoji with DEL',
+      inputText: 'hello 😀',
+      backspace: '\u007f',
+    },
+    {
+      name: 'an emoji with BS',
+      inputText: 'hello 😀',
+      backspace: '\b',
+    },
+    {
+      name: 'a combining character sequence',
+      inputText: 'hello e\u0301',
+      backspace: '\u007f',
+    },
+    {
+      name: 'a joined emoji sequence',
+      inputText: 'hello 👨‍👩‍👧‍👦',
+      backspace: '\u007f',
+    },
+  ])(
+    'removes the complete final grapheme for $name',
+    async ({ inputText, backspace }) => {
+      const input = createInput();
+      const renderer = new TerminalRenderer({
+        input,
+        output: createOutput(),
+      });
+      const promptPromise = renderer.readPrompt({ title: 'Test' });
+
+      input.emit('data', Buffer.from(inputText));
+      input.emit('data', Buffer.from(backspace));
+      input.emit('data', Buffer.from('\r'));
+
+      await expect(promptPromise).resolves.toBe('hello ');
+    },
+  );
+
   it('streams assistant text with output tokens per second by default', async () => {
     const input = createInput();
     const output = createOutput();

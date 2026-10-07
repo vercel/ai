@@ -229,7 +229,7 @@ describe('doEmbed', () => {
       'custom-request-header': 'request-header-value',
     });
     expect(server.calls[0].requestUserAgent).toContain(
-      'ai-sdk/alibaba/0.0.0-test',
+      'ai-sdk-alibaba/0.0.0-test',
     );
   });
 });

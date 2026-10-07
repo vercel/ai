@@ -139,7 +139,6 @@ function selectOAuthRecord(value: Record<string, unknown>):
       };
     }
   }
-  return undefined;
 }
 
 function normalizeExpiresAt(value: unknown): number | undefined {
@@ -150,5 +149,4 @@ function normalizeExpiresAt(value: unknown): number | undefined {
     const parsed = Date.parse(value);
     return Number.isFinite(parsed) ? parsed : undefined;
   }
-  return undefined;
 }

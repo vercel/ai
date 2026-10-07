@@ -265,7 +265,6 @@ async function readCodexAuthCredentialsStoreMode({
       return toCodexAuthCredentialsStoreMode(match[1]);
     }
   }
-  return undefined;
 }
 
 function toCodexAuthCredentialsStoreMode(
@@ -394,7 +393,6 @@ function createCodexKeyring({
   if (isWindows(platform)) {
     return createWindowsCodexKeyring();
   }
-  return undefined;
 }
 
 function shellQuoteForSecurity(value: string): string {

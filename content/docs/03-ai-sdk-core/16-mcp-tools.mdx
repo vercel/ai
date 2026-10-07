@@ -178,6 +178,36 @@ transports by providing an `authProvider`.
 
 </Note>
 
+### Shared OAuth Credential Storage
+
+When multiple MCP clients or replicas share OAuth credentials, a rotating refresh
+token can be used concurrently. One refresh may save new tokens while another
+receives `invalid_grant` for the old refresh token.
+
+The optional `OAuthClientProvider.invalidateCredentials` method receives a
+second argument identifying the tokens used by a failed refresh:
+
+```typescript
+invalidateCredentials(
+  scope: 'all' | 'client' | 'tokens' | 'verifier',
+  context?: { tokens: OAuthTokens },
+): void | Promise<void>;
+```
+
+For `scope === 'tokens'` with a context, delete the credential only if the stored
+access and refresh tokens still match `context.tokens`. The comparison and
+deletion must be atomic, using a conditional database operation or a transaction.
+If they no longer match, leave the newer tokens in storage. The SDK retries
+authorization and reads the stored tokens again.
+
+The SDK also provides this context when invalidating stored tokens that lack an
+authorization server pin. Other invalidations can omit the context.
+
+If an authorization-code exchange returns `invalid_grant`, the SDK propagates
+the error without invalidating stored credentials or retrying the rejected code.
+A rejected authorization code does not indicate that existing access or refresh
+tokens are invalid.
+
 ### OAuth Authorization Server Validation
 
 When using MCP OAuth in server-side applications, the MCP server can advertise
@@ -236,6 +266,37 @@ client infers `native` for loopback, localhost, and custom-scheme redirects,
 and `web` for remote HTTP(S) redirects. You can override this by setting
 `application_type` in the provider's `clientMetadata`.
 
+### Dynamic Client Credential Recovery
+
+To let the SDK replace invalid credentials created through dynamic client
+registration, implement `isClientInformationDynamicallyRegistered` on the
+OAuth client provider. Return `true` only when the current client information
+came from a dynamic registration response. Persist this provenance alongside
+the credentials when the provider is recreated between requests.
+
+```typescript
+const myOAuthClientProvider = {
+  // ...other OAuthClientProvider methods
+
+  async saveClientInformation(clientInformation) {
+    await saveClientRecord({
+      clientInformation,
+      dynamicallyRegistered: true,
+    });
+  },
+
+  async isClientInformationDynamicallyRegistered() {
+    return (await loadClientRecord())?.dynamicallyRegistered === true;
+  },
+};
+```
+
+When this method is omitted or returns `false`, client information is treated
+as pre-registered and is preserved after `invalid_client` and
+`unauthorized_client` errors. The SDK does not infer provenance from fields such
+as `redirect_uris`, because pre-registered clients can contain the same
+metadata as dynamically registered clients.
+
 ### Retrying Transient Tool Failures
 
 MCP tool calls can fail for transient transport reasons, such as rate limits,
@@ -257,6 +318,45 @@ transient HTTP and network failures only. JSON-RPC application errors, such as
 invalid tool arguments, are surfaced immediately without retrying. Successful
 MCP tool responses with `isError: true` are also returned to the model without
 retrying.
+
+`maxRetries` applies to `tools/call` requests, not to client initialization.
+The following example identifies potentially transient HTTP initialization
+failures using the exported `MCPClientError` type guard:
+
+```typescript
+import { createMCPClient, MCPClientError } from '@ai-sdk/mcp';
+
+try {
+  await createMCPClient({
+    transport: {
+      type: 'http',
+      url: 'https://your-server.com/mcp',
+    },
+  });
+} catch (error) {
+  if (
+    !MCPClientError.isInstance(error) ||
+    error.code != null ||
+    error.statusCode == null ||
+    !(
+      error.statusCode === 408 ||
+      error.statusCode === 409 ||
+      error.statusCode === 429 ||
+      error.statusCode >= 500
+    )
+  ) {
+    throw error;
+  }
+
+  // Retry according to your application's backoff policy.
+}
+```
+
+This example only considers HTTP statuses. A missing `statusCode` does not
+establish that a failure is transient: configuration errors, protocol errors,
+and cancelled requests can also lack an HTTP status. Network and timeout
+retries require a separate application policy. OAuth errors such as
+`UnauthorizedError` and `MCPClientOAuthError` are rethrown by this example.
 
 <Note type="warning">
   Only enable retries for MCP tools where retrying is safe. Retrying

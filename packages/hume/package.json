@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/hume",
-  "version": "3.0.45",
+  "version": "3.0.56",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -21,9 +21,9 @@
     "doc": "./docs"
   },
   "scripts": {
-    "build": "tsup --tsconfig tsconfig.build.json",
-    "build:watch": "tsup --tsconfig tsconfig.build.json --watch",
-    "clean": "del-cli dist docs",
+    "build": "tsdown",
+    "build:watch": "tsdown --watch",
+    "clean": "del-cli docs",
     "prepack": "mkdir -p docs && cp ../../content/providers/01-ai-sdk-providers/150-hume.mdx ./docs/",
     "postpack": "del-cli docs",
     "type-check": "tsc --noEmit",
@@ -49,8 +49,8 @@
     "@ai-sdk/test-server": "workspace:*",
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
-    "tsup": "^8.5.1",
-    "typescript": "5.6.3",
+    "tsdown": "^0.23.0",
+    "typescript": "6.0.3",
     "zod": "3.25.76"
   },
   "peerDependencies": {

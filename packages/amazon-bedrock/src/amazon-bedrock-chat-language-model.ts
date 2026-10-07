@@ -174,6 +174,12 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
 
     const warnings: SharedV4Warning[] = [];
 
+    const {
+      supportsStructuredOutput: modelSupportsStructuredOutput,
+      rejectsSamplingParameters,
+      rejectsForcedToolUse,
+    } = getModelCapabilities(this.modelId);
+
     if (frequencyPenalty != null) {
       warnings.push({
         type: 'unsupported',
@@ -195,14 +201,54 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       });
     }
 
-    if (temperature != null && temperature > 1) {
+    if (rejectsSamplingParameters) {
+      if (temperature != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'temperature',
+          details: `temperature is not supported by ${this.modelId} and will be ignored`,
+        });
+        temperature = undefined;
+      }
+
+      if (topK != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'topK',
+          details: `topK is not supported by ${this.modelId} and will be ignored`,
+        });
+        topK = undefined;
+      }
+
+      if (topP != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'topP',
+          details: `topP is not supported by ${this.modelId} and will be ignored`,
+        });
+        topP = undefined;
+      }
+    }
+
+    const openAIModelId = /^(?:[^.]+\.)?(openai\..+)$/.exec(this.modelId)?.[1];
+    const isOpenAIModel = openAIModelId != null;
+    const isOpenAIGptOssModel =
+      openAIModelId?.startsWith('openai.gpt-oss-') ?? false;
+    const isNovaReasoningModel = isNova2ReasoningModel(this.modelId);
+    const shouldNormalizeTemperature = !isOpenAIModel || isOpenAIGptOssModel;
+
+    if (shouldNormalizeTemperature && temperature != null && temperature > 1) {
       warnings.push({
         type: 'unsupported',
         feature: 'temperature',
         details: `${temperature} exceeds bedrock maximum of 1.0. clamped to 1.0`,
       });
       temperature = 1;
-    } else if (temperature != null && temperature < 0) {
+    } else if (
+      shouldNormalizeTemperature &&
+      temperature != null &&
+      temperature < 0
+    ) {
       warnings.push({
         type: 'unsupported',
         feature: 'temperature',
@@ -228,25 +274,19 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       modelFamily: this.config.modelFamily,
       reasoningBudgetTokens: amazonBedrockOptions.reasoningConfig?.budgetTokens,
     });
-    const openAIModelId = /^(?:[^.]+\.)?(openai\..+)$/.exec(this.modelId)?.[1];
-    const isOpenAIModel = openAIModelId != null;
-    const isOpenAIGptOssModel =
-      openAIModelId?.startsWith('openai.gpt-oss-') ?? false;
 
     amazonBedrockOptions = resolveAmazonBedrockReasoningConfig({
       reasoning,
       amazonBedrockOptions,
       warnings,
       isAnthropicModel,
+      isOpenAIModel,
       modelId: this.modelId,
     });
 
     const isThinkingEnabled =
       amazonBedrockOptions.reasoningConfig?.type === 'enabled' ||
       amazonBedrockOptions.reasoningConfig?.type === 'adaptive';
-
-    const { supportsStructuredOutput: modelSupportsStructuredOutput } =
-      getModelCapabilities(this.modelId);
 
     const structuredOutputMode =
       amazonBedrockOptions.structuredOutputMode ??
@@ -297,13 +337,14 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
 
     const useJsonInstructionForStructuredOutput =
       !useNativeStructuredOutput &&
-      structuredOutputMode !== 'jsonTool' &&
       isAnthropicModel &&
-      !supportsStrictTools(this.modelId) &&
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
-      tools != null &&
-      tools.length > 0;
+      (rejectsForcedToolUse ||
+        (structuredOutputMode !== 'jsonTool' &&
+          !supportsStrictTools(this.modelId) &&
+          tools != null &&
+          tools.length > 0));
 
     const jsonResponseTool: LanguageModelV4FunctionTool | undefined =
       responseFormat?.type === 'json' &&
@@ -328,6 +369,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
         reasoningBudgetTokens:
           amazonBedrockOptions.reasoningConfig?.budgetTokens,
         disableParallelToolUse: anthropicOptions?.disableParallelToolUse,
+        rejectsForcedToolUse,
       });
 
     warnings.push(...toolWarnings);
@@ -454,6 +496,22 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       }
     }
 
+    if (
+      isNovaReasoningModel &&
+      thinkingType === 'enabled' &&
+      (maxReasoningEffort === 'high' ||
+        maxReasoningEffort === 'xhigh' ||
+        maxReasoningEffort === 'max') &&
+      inferenceConfig.maxTokens != null
+    ) {
+      delete inferenceConfig.maxTokens;
+      warnings.push({
+        type: 'unsupported',
+        feature: 'maxOutputTokens',
+        details: `maxOutputTokens is not supported by ${this.modelId} when high reasoning is enabled and will be ignored`,
+      });
+    }
+
     if (useNativeStructuredOutput) {
       amazonBedrockOptions.additionalModelRequestFields = {
         ...amazonBedrockOptions.additionalModelRequestFields,
@@ -492,6 +550,25 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
         feature: 'topK',
         details: 'topK is not supported when thinking is enabled',
       });
+    }
+
+    // OpenAI models reject stopSequences on the Converse API. Models other
+    // than gpt-oss also reject temperature and topP.
+    if (isOpenAIModel) {
+      const unsupportedFeatures = isOpenAIGptOssModel
+        ? (['stopSequences'] as const)
+        : (['temperature', 'topP', 'stopSequences'] as const);
+
+      for (const feature of unsupportedFeatures) {
+        if (inferenceConfig[feature] != null) {
+          delete inferenceConfig[feature];
+          warnings.push({
+            type: 'unsupported',
+            feature,
+            details: `${feature} is not supported by this OpenAI model on the Converse API`,
+          });
+        }
+      }
     }
 
     // Filter tool content from prompt when no tools are available
@@ -555,8 +632,11 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       additionalModelRequestFields: __,
       serviceTier: ___,
       structuredOutputMode: ____,
+      requestMetadata: _____,
       ...filteredAmazonBedrockOptions
     } = providerOptions?.amazonBedrock ?? providerOptions?.bedrock ?? {};
+
+    const resolvedRequestMetadata = amazonBedrockOptions.requestMetadata;
 
     const additionalModelResponseFieldPaths = isAnthropicModel
       ? ['/delta/stop_sequence']
@@ -578,6 +658,9 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
           serviceTier: {
             type: amazonBedrockOptions.serviceTier,
           },
+        }),
+        ...(resolvedRequestMetadata != null && {
+          requestMetadata: resolvedRequestMetadata,
         }),
         ...filteredAmazonBedrockOptions,
         ...(toolConfig.tools !== undefined && toolConfig.tools.length > 0
@@ -1541,26 +1624,60 @@ const amazonBedrockReasoningEffortMap: Partial<
   medium: 'medium',
   high: 'high',
   xhigh: 'max',
+  max: 'max',
 };
+
+const amazonNovaReasoningEffortMap: Partial<
+  Record<string, 'low' | 'medium' | 'high'>
+> = {
+  minimal: 'low',
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+  xhigh: 'high',
+  max: 'high',
+};
+
+function isNova2ReasoningModel(modelId: string): boolean {
+  return modelId.includes('amazon.nova-2-lite-v1:0');
+}
 
 function resolveAmazonBedrockReasoningConfig({
   reasoning,
   amazonBedrockOptions,
   warnings,
   isAnthropicModel,
+  isOpenAIModel,
   modelId,
 }: {
   reasoning: LanguageModelV4CallOptions['reasoning'];
   amazonBedrockOptions: AmazonBedrockLanguageModelChatOptions;
   warnings: SharedV4Warning[];
   isAnthropicModel: boolean;
+  isOpenAIModel: boolean;
   modelId: string;
 }): AmazonBedrockLanguageModelChatOptions {
+  const reasoningConfig = amazonBedrockOptions.reasoningConfig;
+
   if (!isCustomReasoning(reasoning)) {
     return amazonBedrockOptions;
   }
 
   const result = { ...amazonBedrockOptions };
+
+  // Preserve disabled thinking without deriving settings or warnings that will
+  // not be sent. Clone the configuration before removing effort and budget.
+  if (reasoningConfig?.type === 'disabled') {
+    result.reasoningConfig = { ...reasoningConfig };
+    delete result.reasoningConfig.maxReasoningEffort;
+    delete result.reasoningConfig.budgetTokens;
+    return result;
+  }
+
+  const hasPortableReasoning = reasoning !== 'none';
+  const isNovaReasoningModel = isNova2ReasoningModel(modelId);
+  const supportsPortableReasoning =
+    isOpenAIModel || isNovaReasoningModel || reasoningConfig != null;
 
   if (isAnthropicModel) {
     const capabilities = getModelCapabilities(modelId);
@@ -1568,52 +1685,61 @@ function resolveAmazonBedrockReasoningConfig({
     if (reasoning === 'none') {
       result.reasoningConfig = { type: 'disabled' };
     } else if (capabilities.supportsAdaptiveThinking) {
-      const effort = mapReasoningToProviderEffort({
-        reasoning,
-        effortMap: amazonBedrockReasoningEffortMap,
-        warnings,
-      });
+      const effort =
+        reasoningConfig?.maxReasoningEffort ??
+        mapReasoningToProviderEffort({
+          reasoning,
+          effortMap: amazonBedrockReasoningEffortMap,
+          warnings,
+        });
       result.reasoningConfig = {
-        type: 'adaptive',
+        ...reasoningConfig,
+        type: reasoningConfig?.type ?? 'adaptive',
         maxReasoningEffort: effort,
-        ...amazonBedrockOptions.reasoningConfig,
       };
     } else {
-      const budgetTokens = mapReasoningToProviderBudget({
-        reasoning,
-        maxOutputTokens: capabilities.maxOutputTokens,
-        maxReasoningBudget: capabilities.maxOutputTokens,
-        warnings,
-      });
+      const budgetTokens =
+        reasoningConfig?.budgetTokens ??
+        mapReasoningToProviderBudget({
+          reasoning,
+          maxOutputTokens: capabilities.maxOutputTokens,
+          maxReasoningBudget: capabilities.maxOutputTokens,
+          warnings,
+        });
       if (budgetTokens != null) {
         result.reasoningConfig = {
-          type: 'enabled',
+          ...reasoningConfig,
+          type: reasoningConfig?.type ?? 'enabled',
           budgetTokens,
-          ...amazonBedrockOptions.reasoningConfig,
         };
       }
     }
-  } else if (reasoning !== 'none') {
-    const effort = mapReasoningToProviderEffort({
-      reasoning,
-      effortMap: amazonBedrockReasoningEffortMap,
-      warnings,
-    });
-    result.reasoningConfig = {
-      maxReasoningEffort: effort,
-      ...amazonBedrockOptions.reasoningConfig,
-    };
-  }
-
-  /*
-   * Mirror anthropic-messages-language-model.ts: when the merged type ends up
-   * 'disabled' (user override combined with a non-none reasoning), strip
-   * derived effort/budget so downstream does not emit output_config.effort
-   * alongside disabled thinking.
-   */
-  if (result.reasoningConfig?.type === 'disabled') {
-    delete result.reasoningConfig.maxReasoningEffort;
-    delete result.reasoningConfig.budgetTokens;
+  } else if (hasPortableReasoning) {
+    if (supportsPortableReasoning) {
+      const effort =
+        reasoningConfig?.maxReasoningEffort ??
+        mapReasoningToProviderEffort({
+          reasoning,
+          effortMap: isNovaReasoningModel
+            ? amazonNovaReasoningEffortMap
+            : amazonBedrockReasoningEffortMap,
+          warnings,
+        });
+      result.reasoningConfig = {
+        ...reasoningConfig,
+        ...(isNovaReasoningModel && {
+          type: reasoningConfig?.type ?? 'enabled',
+        }),
+        maxReasoningEffort: effort,
+      };
+    } else {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'reasoning',
+        details:
+          'Portable reasoning is not supported for this model and will be ignored. If the model supports a provider-specific reasoning configuration, use providerOptions.amazonBedrock.reasoningConfig.',
+      });
+    }
   }
 
   return result;

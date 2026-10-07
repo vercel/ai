@@ -11,7 +11,6 @@ import {
   createTraceTreeReporter,
 } from '@ai-sdk/harness/agent';
 import { githubCopilot } from '@ai-sdk/harness-github-copilot';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import type { InferUITools, UIMessage } from 'ai';
 
 export const weatherApprovalGitHubCopilotHarnessAgent = new HarnessAgent({
@@ -23,10 +22,6 @@ export const weatherApprovalGitHubCopilotHarnessAgent = new HarnessAgent({
     get_weather: 'user-approval',
   },
   permissionMode: 'allow-edits',
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-  }),
   sandboxConfig: {
     onSession: async ({ session, sessionWorkDir, abortSignal }) => {
       await session.writeTextFile({

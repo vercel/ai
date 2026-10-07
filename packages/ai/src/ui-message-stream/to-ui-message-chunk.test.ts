@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import * as z from 'zod/v4';
 import type { GeneratedFile } from '../generate-text';
 import type { TextStreamPart } from '../generate-text/stream-text-result';
+import { setToolCallInputSchemaInput } from '../generate-text/tool-call';
 import type { ProviderMetadata } from '../types/provider-metadata';
 import { toUIMessageChunk } from './to-ui-message-chunk';
 
@@ -466,6 +467,31 @@ describe('toUIMessageChunk', () => {
       dynamic: true,
       errorText: 'handled: invalid input',
       title: 'Invalid Tool',
+    });
+  });
+
+  it('preserves schema input for transformed tool approval requests', () => {
+    const toolCall = setToolCallInputSchemaInput<Tools>(
+      {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'staticTool',
+        input: { value: 'trimmed' },
+      },
+      { value: ' trimmed ' },
+    );
+
+    expect(
+      toUIMessageChunk<Tools>({
+        type: 'tool-approval-request',
+        approvalId: 'approval-1',
+        toolCall,
+      }),
+    ).toEqual({
+      type: 'tool-approval-request',
+      approvalId: 'approval-1',
+      toolCallId: 'call-1',
+      inputSchemaInput: { value: ' trimmed ' },
     });
   });
 

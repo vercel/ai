@@ -53,6 +53,7 @@ import type {
 } from './language-model-events';
 import type { Output } from './output';
 import { parseToolCall } from './parse-tool-call';
+import { resolveGeneratedFileData } from './resolve-generated-file-data';
 import type {
   TextStreamFilePart,
   TextStreamPart,
@@ -373,6 +374,7 @@ export async function streamLanguageModelCall<
       messages: standardizedPrompt.messages,
       repairToolCall,
       refineToolInput,
+      abortSignal,
       callId: effectiveCallId,
       provider: resolvedModel.provider,
       modelId: resolvedModel.modelId,
@@ -400,6 +402,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   messages,
   repairToolCall,
   refineToolInput,
+  abortSignal,
   callId,
   provider,
   modelId,
@@ -414,6 +417,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   messages: ModelMessage[];
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
   refineToolInput: ToolInputRefinement<TOOLS> | undefined;
+  abortSignal: AbortSignal | undefined;
   callId: string;
   provider: string;
   modelId: string;
@@ -562,10 +566,10 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
         case 'file':
         case 'reasoning-file': {
           const file = new DefaultGeneratedFileWithType({
-            data:
-              chunk.data.type === 'data'
-                ? chunk.data.data
-                : chunk.data.url.toString(),
+            data: await resolveGeneratedFileData({
+              data: chunk.data,
+              abortSignal,
+            }),
             mediaType: chunk.mediaType,
           });
 
@@ -637,40 +641,47 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
             callbacks: onLanguageModelCallEnd,
           });
 
-          // Preserve the completed model call's usage, metadata, and
-          // performance even when response validation below surfaces a
-          // semantic error.
-          controller.enqueue({
-            type: 'model-call-end',
-            finishReason: chunk.finishReason.unified,
-            rawFinishReason: chunk.finishReason.raw,
-            usage,
-            providerMetadata: chunk.providerMetadata,
-            performance,
-          });
-
           const enforcedToolChoice =
             toolChoice.type === 'required' || toolChoice.type === 'tool'
               ? toolChoice
               : undefined;
 
-          if (
+          const toolChoiceViolationError =
             enforcedToolChoice != null &&
             ![...toolCallsByToolCallId.values()].some(
               toolCall =>
                 enforcedToolChoice.type === 'required' ||
                 toolCall.toolName === enforcedToolChoice.toolName,
             )
-          ) {
+              ? new ToolChoiceViolationError({
+                  toolChoice: enforcedToolChoice,
+                  finishReason: chunk.finishReason.unified,
+                  provider,
+                  modelId,
+                  content: rawModelCallContent,
+                })
+              : undefined;
+
+          // Preserve the completed model call's usage, metadata, and
+          // performance even when response validation below surfaces a
+          // semantic error. Prevent invalid tool calls from being executed
+          // when the model-call-end event reaches the tool executor.
+          controller.enqueue({
+            type: 'model-call-end',
+            finishReason:
+              toolChoiceViolationError == null
+                ? chunk.finishReason.unified
+                : 'error',
+            rawFinishReason: chunk.finishReason.raw,
+            usage,
+            providerMetadata: chunk.providerMetadata,
+            performance,
+          });
+
+          if (toolChoiceViolationError != null) {
             controller.enqueue({
               type: 'error',
-              error: new ToolChoiceViolationError({
-                toolChoice: enforcedToolChoice,
-                finishReason: chunk.finishReason.unified,
-                provider,
-                modelId,
-                content: rawModelCallContent,
-              }),
+              error: toolChoiceViolationError,
             });
             break;
           }
@@ -688,6 +699,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
               refineToolInput,
               instructions,
               messages,
+              abortSignal,
             });
 
             toolCallsByToolCallId.set(toolCall.toolCallId, toolCall);

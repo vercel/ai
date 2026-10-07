@@ -26,7 +26,7 @@ const anthropic = createAnthropic({
         id: 'msg_tool_order',
         type: 'message',
         role: 'assistant',
-        model: 'claude-3-5-haiku-20241022',
+        model: 'claude-haiku-4-5',
         content: [{ type: 'text', text: 'Tool order verified.' }],
         stop_reason: 'end_turn',
         stop_sequence: null,
@@ -58,7 +58,7 @@ const tools = {
 
 run(async () => {
   const { text } = await generateText({
-    model: anthropic('claude-3-5-haiku-20241022'),
+    model: anthropic('claude-haiku-4-5'),
     tools,
     toolOrder: ['middle'],
     prompt: 'Verify the order tools are sent to the provider.',

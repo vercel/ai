@@ -1,3 +1,6 @@
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const bridgeMock = vi.hoisted(() => ({
@@ -74,26 +77,30 @@ function createUserMessages() {
   };
 }
 
-function setBridgeArgv() {
+function setBridgeArgv(workdir = '/tmp/opencode-bridge-test') {
   process.argv.length = 0;
   process.argv.push(
     process.execPath,
     'opencode-bridge',
     '--workdir',
-    '/tmp/opencode-bridge-test',
+    workdir,
     '--bridge-state-dir',
-    '/tmp/opencode-bridge-test-state',
+    `${workdir}-state`,
     '--bootstrap-dir',
-    '/tmp/opencode-bridge-test-bootstrap',
+    `${workdir}-bootstrap`,
   );
 }
 
 describe('OpenCode bridge turn settlement', () => {
   const originalArgv = [...process.argv];
+  const tempDirectories: string[] = [];
 
   afterEach(() => {
     process.argv.length = 0;
     for (const arg of originalArgv) process.argv.push(arg);
+    for (const directory of tempDirectories.splice(0)) {
+      rmSync(directory, { recursive: true, force: true });
+    }
     vi.resetModules();
     bridgeMock.onStart = undefined;
     relayMock.authorizeToolCall.mockReset();
@@ -253,6 +260,194 @@ describe('OpenCode bridge turn settlement', () => {
         }),
       }),
     );
+  });
+
+  it('allows external directory access in allow-all mode', async () => {
+    bridgeMock.start = {
+      type: 'start',
+      operation: 'prompt',
+      prompt: 'Create /workspace/other/.state.',
+      permissionMode: 'allow-all',
+    };
+    bridgeMock.turn = {
+      emit: vi.fn(),
+      requestToolResult: vi.fn(),
+      requestToolApproval: vi.fn(),
+      experimental_userMessages: createUserMessages(),
+      abortSignal: new AbortController().signal,
+      firstTurn: true,
+      bridgeLog: vi.fn(),
+      emitWarning: vi.fn(),
+      emitError: vi.fn(),
+    };
+    sdkMock.client = {
+      mcp: { status: vi.fn(async () => ({ data: {} })) },
+      session: {
+        create: vi.fn(async () => ({ data: { id: 'session-1' } })),
+        get: vi.fn(async () => ({ data: {} })),
+        messages: vi.fn(async () => ({ data: [] })),
+        promptAsync: vi.fn(async () => ({ data: {} })),
+      },
+      event: {
+        subscribe: vi.fn(async () => ({
+          stream: {
+            async *[Symbol.asyncIterator]() {
+              yield {
+                type: 'permission.v2.asked',
+                properties: {
+                  id: 'external-request',
+                  sessionID: 'session-1',
+                  action: 'external_directory',
+                  resources: ['/workspace/other/.state'],
+                  source: { callID: 'bash-call' },
+                },
+              };
+              yield {
+                type: 'session.next.step.failed',
+                properties: {
+                  sessionID: 'session-1',
+                  error: 'end permission test turn',
+                },
+              };
+            },
+          },
+        })),
+      },
+      v2: {
+        session: {
+          context: vi.fn(async () => ({ data: [] })),
+          permission: { reply: permissionReplyMock },
+          switchModel: vi.fn(async () => ({ data: {} })),
+        },
+      },
+    };
+    setBridgeArgv();
+
+    await import('./index');
+
+    expect(permissionReplyMock).toHaveBeenCalledWith({
+      sessionID: 'session-1',
+      requestID: 'external-request',
+      reply: 'always',
+    });
+  });
+
+  it('uses canonical paths and accepts dot-prefixed children in restrictive modes', async () => {
+    const tempDirectory = mkdtempSync(
+      path.join(tmpdir(), 'opencode-permissions-'),
+    );
+    tempDirectories.push(tempDirectory);
+    const realWorkdir = path.join(tempDirectory, 'real-workdir');
+    const linkedWorkdir = path.join(tempDirectory, 'linked-workdir');
+    const externalDirectory = path.join(tempDirectory, 'external');
+    mkdirSync(realWorkdir);
+    mkdirSync(path.join(realWorkdir, '..cache'));
+    mkdirSync(externalDirectory);
+    symlinkSync(realWorkdir, linkedWorkdir, 'dir');
+    symlinkSync(externalDirectory, path.join(realWorkdir, 'escape'), 'dir');
+
+    bridgeMock.start = {
+      type: 'start',
+      operation: 'prompt',
+      prompt: 'Read workspace files.',
+      permissionMode: 'allow-reads',
+    };
+    bridgeMock.turn = {
+      emit: vi.fn(),
+      requestToolResult: vi.fn(),
+      requestToolApproval: vi.fn(),
+      experimental_userMessages: createUserMessages(),
+      abortSignal: new AbortController().signal,
+      firstTurn: true,
+      bridgeLog: vi.fn(),
+      emitWarning: vi.fn(),
+      emitError: vi.fn(),
+    };
+    sdkMock.client = {
+      mcp: { status: vi.fn(async () => ({ data: {} })) },
+      session: {
+        create: vi.fn(async () => ({ data: { id: 'session-1' } })),
+        get: vi.fn(async () => ({ data: {} })),
+        messages: vi.fn(async () => ({ data: [] })),
+        promptAsync: vi.fn(async () => ({ data: {} })),
+      },
+      event: {
+        subscribe: vi.fn(async () => ({
+          stream: {
+            async *[Symbol.asyncIterator]() {
+              yield {
+                type: 'permission.v2.asked',
+                properties: {
+                  id: 'canonical-workdir-request',
+                  sessionID: 'session-1',
+                  action: 'read',
+                  resources: [path.join(realWorkdir, 'inside.txt')],
+                  source: { callID: 'inside-read-call' },
+                },
+              };
+              yield {
+                type: 'permission.v2.asked',
+                properties: {
+                  id: 'dot-prefixed-directory-request',
+                  sessionID: 'session-1',
+                  action: 'read',
+                  resources: [
+                    path.join(linkedWorkdir, '..cache', 'inside.txt'),
+                  ],
+                  source: { callID: 'dot-prefixed-read-call' },
+                },
+              };
+              yield {
+                type: 'permission.v2.asked',
+                properties: {
+                  id: 'symlink-escape-request',
+                  sessionID: 'session-1',
+                  action: 'read',
+                  resources: [
+                    path.join(linkedWorkdir, 'escape', 'outside.txt'),
+                  ],
+                  source: { callID: 'outside-read-call' },
+                },
+              };
+              yield {
+                type: 'session.next.step.failed',
+                properties: {
+                  sessionID: 'session-1',
+                  error: 'end permission test turn',
+                },
+              };
+            },
+          },
+        })),
+      },
+      v2: {
+        session: {
+          context: vi.fn(async () => ({ data: [] })),
+          permission: { reply: permissionReplyMock },
+          switchModel: vi.fn(async () => ({ data: {} })),
+        },
+      },
+    };
+    setBridgeArgv(linkedWorkdir);
+
+    await import('./index');
+
+    expect(permissionReplyMock).toHaveBeenNthCalledWith(1, {
+      sessionID: 'session-1',
+      requestID: 'canonical-workdir-request',
+      reply: 'always',
+    });
+    expect(permissionReplyMock).toHaveBeenNthCalledWith(2, {
+      sessionID: 'session-1',
+      requestID: 'dot-prefixed-directory-request',
+      reply: 'always',
+    });
+    expect(permissionReplyMock).toHaveBeenNthCalledWith(3, {
+      sessionID: 'session-1',
+      requestID: 'symlink-escape-request',
+      reply: 'reject',
+      message: 'External directory access rejected.',
+    });
   });
 
   it('passes headers to a direct provider', async () => {
@@ -591,63 +786,126 @@ describe('OpenCode bridge turn settlement', () => {
     ).toBe(true);
   });
 
-  it('settles a host-aborted turn once the next event arrives', async () => {
-    // The shared bridge runtime serializes turns: a replacement `start`
-    // waits (bounded) for the aborted turn's `onStart` to settle. OpenCode
-    // observes its abort signal at the top of the event loop, so any event
-    // after the abort — a heartbeat is enough — must settle the turn; it
-    // must not keep waiting for the turn's own completion events.
-    const emitted: Array<Record<string, unknown>> = [];
-    const emitError = vi.fn();
-    const userMessages = createUserMessages();
+  it('aborts OpenCode before allowing the next turn to stream', async () => {
     const abort = new AbortController();
-    bridgeMock.start = {
-      type: 'start',
-      operation: 'prompt',
-      prompt: 'Start.',
-    };
-    bridgeMock.turn = {
-      emit: (event: Record<string, unknown>) => emitted.push(event),
+    const firstTurn = {
+      emit: vi.fn(),
       requestToolResult: vi.fn(),
       requestToolApproval: vi.fn(),
-      experimental_userMessages: userMessages,
+      experimental_userMessages: createUserMessages(),
       abortSignal: abort.signal,
       firstTurn: true,
       bridgeLog: vi.fn(),
       emitWarning: vi.fn(),
-      emitError,
+      emitError: vi.fn(),
     };
+    bridgeMock.start = {
+      type: 'start',
+      operation: 'prompt',
+      prompt: 'Write a long response.',
+    };
+    bridgeMock.turn = firstTurn;
+    const sessionAbort = vi.fn(async () => ({ data: true }));
+    let subscriptionCount = 0;
     sdkMock.client = {
       mcp: { status: vi.fn(async () => ({ data: {} })) },
       session: {
+        abort: sessionAbort,
         create: vi.fn(async () => ({ data: { id: 'session-1' } })),
         get: vi.fn(async () => ({ data: {} })),
         messages: vi.fn(async () => ({ data: [] })),
-        // The turn is in flight when the host aborts.
         promptAsync: vi.fn(async () => {
-          queueMicrotask(() => abort.abort());
+          if (subscriptionCount === 1) queueMicrotask(() => abort.abort());
           return { data: {} };
         }),
       },
       event: {
-        subscribe: vi.fn(async () => ({
-          stream: {
-            async *[Symbol.asyncIterator]() {
-              // No completion events — the model is mid-work. Deliver one
-              // heartbeat after the abort; nothing else, ever.
-              await new Promise<void>(resolve => {
-                if (abort.signal.aborted) return resolve();
-                abort.signal.addEventListener('abort', () => resolve(), {
-                  once: true,
-                });
-              });
-              yield {
-                type: 'session.updated',
-                properties: { sessionID: 'session-1' },
+        subscribe: vi.fn(
+          async (_input: unknown, options: { signal: AbortSignal }) => {
+            subscriptionCount++;
+            if (subscriptionCount === 1) {
+              return {
+                stream: {
+                  [Symbol.asyncIterator]() {
+                    return {
+                      next: async () => {
+                        await new Promise<void>(resolve => {
+                          if (options.signal.aborted) return resolve();
+                          options.signal.addEventListener(
+                            'abort',
+                            () => resolve(),
+                            {
+                              once: true,
+                            },
+                          );
+                        });
+                        return { done: true as const, value: undefined };
+                      },
+                    };
+                  },
+                },
               };
-            },
+            }
+            return {
+              stream: {
+                async *[Symbol.asyncIterator]() {
+                  yield {
+                    type: 'message.updated',
+                    properties: {
+                      info: {
+                        id: 'second-assistant',
+                        sessionID: 'session-1',
+                        role: 'assistant',
+                      },
+                    },
+                  };
+                  yield {
+                    type: 'message.part.delta',
+                    properties: {
+                      partID: 'second-text',
+                      messageID: 'second-assistant',
+                      field: 'text',
+                      delta: 'banana',
+                      sessionID: 'session-1',
+                    },
+                  };
+                  yield {
+                    type: 'message.part.updated',
+                    properties: {
+                      part: {
+                        id: 'second-step',
+                        messageID: 'second-assistant',
+                        sessionID: 'session-1',
+                        type: 'step-finish',
+                        reason: 'stop',
+                        tokens: {
+                          input: 1,
+                          output: 1,
+                          reasoning: 0,
+                          cache: { read: 0, write: 0 },
+                        },
+                      },
+                    },
+                  };
+                  yield {
+                    type: 'session.status',
+                    properties: {
+                      sessionID: 'session-1',
+                      status: { type: 'busy' },
+                    },
+                  };
+                  yield {
+                    type: 'session.status',
+                    properties: {
+                      sessionID: 'session-1',
+                      status: { type: 'idle' },
+                    },
+                  };
+                },
+              },
+            };
           },
-        })),
+        ),
       },
       v2: {
         session: {
@@ -658,14 +916,41 @@ describe('OpenCode bridge turn settlement', () => {
     };
     setBridgeArgv();
 
-    // Resolves only once `onStart` settles — the very promise the shared
-    // runtime's turn fence waits on before starting a replacement turn.
     await import('./index');
 
-    expect(emitError).toHaveBeenCalledWith(
-      expect.objectContaining({ message: 'OpenCode turn failed' }),
+    expect(sessionAbort).toHaveBeenCalledOnce();
+    expect(sessionAbort).toHaveBeenCalledWith({ sessionID: 'session-1' });
+    expect(firstTurn.emitError).not.toHaveBeenCalled();
+
+    const emitted: Array<Record<string, unknown>> = [];
+    const secondTurn = {
+      emit: (event: Record<string, unknown>) => emitted.push(event),
+      requestToolResult: vi.fn(),
+      requestToolApproval: vi.fn(),
+      experimental_userMessages: createUserMessages(),
+      abortSignal: new AbortController().signal,
+      firstTurn: false,
+      bridgeLog: vi.fn(),
+      emitWarning: vi.fn(),
+      emitError: vi.fn(),
+    };
+
+    await bridgeMock.onStart!(
+      {
+        type: 'start',
+        operation: 'prompt',
+        prompt: 'Reply with banana.',
+      },
+      secondTurn,
     );
-    expect(emitted.at(-1)).toMatchObject({ type: 'finish' });
+
+    expect(secondTurn.emitError).not.toHaveBeenCalled();
+    expect(
+      emitted
+        .filter(event => event.type === 'text-delta')
+        .map(event => event.delta)
+        .join(''),
+    ).toBe('banana');
   });
 
   it('authorizes host tools for task-linked subagents only', async () => {

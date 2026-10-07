@@ -10,8 +10,10 @@ const nextConfig: NextConfig = {
   env: {
     WS_NO_BUFFER_UTIL: '1',
   },
+  transpilePackages: ['pi-mcp-adapter'],
   serverExternalPackages: [
     '@cline/agents',
+    '@cline/core',
     '@earendil-works/pi-coding-agent',
     '@vercel/oidc',
   ],

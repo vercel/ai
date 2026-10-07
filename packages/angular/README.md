@@ -103,7 +103,7 @@ export class ChatComponent {
       { text: userInput },
       {
         body: {
-          selectedModel: 'openai/gpt-5.4',
+          selectedModel: 'openai/gpt-6-astra',
         },
       },
     );
@@ -111,7 +111,7 @@ export class ChatComponent {
 }
 ```
 
-`selectedModel` should be an AI Gateway model ID like `openai/gpt-5.4`.
+`selectedModel` should be an AI Gateway model ID like `openai/gpt-6-astra`.
 
 ### Constructor Options
 
@@ -487,7 +487,7 @@ structuredObject.stop();
 
 ## Server Implementation
 
-When you pass a string model ID (for example `openai/gpt-5.4`), the AI SDK uses
+When you pass a string model ID (for example `openai/gpt-6-astra`), the AI SDK uses
 AI Gateway as the default provider, so no provider import is required.
 
 ### Express.js Chat Endpoint
@@ -510,7 +510,7 @@ app.post('/api/chat', async (req, res) => {
   const { messages, selectedModel } = req.body;
 
   const result = streamText({
-    model: selectedModel || 'openai/gpt-5.4',
+    model: selectedModel || 'openai/gpt-6-astra',
     messages: convertToModelMessages(messages),
   });
 
@@ -528,7 +528,7 @@ app.post('/api/completion', async (req, res) => {
   const { prompt } = req.body;
 
   const result = streamText({
-    model: 'openai/gpt-5.4',
+    model: 'openai/gpt-6-astra',
     prompt,
   });
 
@@ -549,7 +549,7 @@ app.post('/api/analyze', async (req, res) => {
   const input = req.body;
 
   const result = streamObject({
-    model: 'openai/gpt-5.4',
+    model: 'openai/gpt-6-astra',
     schema: z.object({
       title: z.string(),
       summary: z.string(),

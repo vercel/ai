@@ -16,7 +16,7 @@ export default defineLazyEventHandler(async () => {
 
     // Ask OpenAI for a streaming chat completion given the prompt
     const result = streamText({
-      model: openai('gpt-4o'),
+      model: openai('gpt-6-astra'),
       prompt,
     });
 

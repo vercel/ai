@@ -227,7 +227,7 @@ const preloadedMessages: ModelMessage[] = [
 ];
 
 export const openaiCompactionAgent = new ToolLoopAgent({
-  model: openai.responses('gpt-5.6'),
+  model: openai.responses('gpt-6-astra'),
   providerOptions: {
     openai: {
       store: false,

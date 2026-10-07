@@ -160,7 +160,7 @@ const result = await generateText({
 
 The ACP provider handles tool execution through provider-defined tools. Tools are called and executed by the ACP agent, and results are reported back through the AI SDK's streaming interface.
 
-To stream tool calls, pass the provider tools to the AI SDK:
+To enable tool calls, pass the provider tools to the AI SDK:
 
 ```javascript
 const result = await generateText({

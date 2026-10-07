@@ -9,9 +9,8 @@ import type * as HarnessUtils from '@ai-sdk/harness/utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /*
- * The codex adapter sends session instructions separately from user text while
- * retaining first-prompt framing for host-tool relay guidance. We stub
- * `SandboxChannel` so `send()` records messages instead of opening a real
+ * The Codex adapter sends session instructions separately from user text. We
+ * stub `SandboxChannel` so `send()` records messages instead of opening a real
  * WebSocket, then drive the session without standing up the in-sandbox bridge.
  */
 const sentMessages: Array<Record<string, unknown>> = [];
@@ -27,6 +26,9 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
       openCalls.push(opts);
     }
     on(): () => void {
+      return () => {};
+    }
+    onReconnect(): () => void {
       return () => {};
     }
     onClose(): void {}
@@ -137,6 +139,10 @@ async function waitForStart({
   return lastStart();
 }
 
+async function waitForDeferredStarts(): Promise<void> {
+  await new Promise(resolve => setTimeout(resolve, 10));
+}
+
 describe('codex adapter — instructions transport', () => {
   beforeEach(() => {
     sentMessages.length = 0;
@@ -186,7 +192,7 @@ describe('codex adapter — instructions transport', () => {
     expect(lastStart.instructions).toBe('Use turbo build --concurrency=4.');
   });
 
-  it('prepends host tool usage guidance on the first user message only', async () => {
+  it('passes dynamic tools without changing user messages', async () => {
     const session = await startSession();
     const tools: ReadonlyArray<HarnessV1ToolSpec> = [
       {
@@ -207,20 +213,7 @@ describe('codex adapter — instructions transport', () => {
       emit: () => {},
     });
     const firstStart = await waitForStart({ count: 1 });
-    expect(firstStart.prompt).not.toContain('## Host tools');
-    expect(firstStart.prompt).toContain('<host-tool-instructions>');
-    expect(firstStart.prompt).toContain('</host-tool-instructions>');
-    expect(firstStart.prompt).not.toContain('/wd/codex-s1/harness-tool.mjs');
-    expect(firstStart.prompt).toContain(
-      "node /wd/.agent-runs/s1/codex/harness-tool.mjs <toolName> '<jsonInput>'",
-    );
-    expect(firstStart.prompt).toContain(
-      'run a separate CLI invocation for each needed tool call in the current turn before answering',
-    );
-    expect(firstStart.prompt).toContain('Do not reuse previous tool results');
-    expect(firstStart.prompt).toContain(
-      '<user-message>\nuse the weather tool\n</user-message>',
-    );
+    expect(firstStart.prompt).toBe('use the weather tool');
     expect(firstStart.tools).toEqual(tools);
 
     await session.doPromptTurn({
@@ -254,9 +247,101 @@ describe('codex adapter — instructions transport', () => {
     const start = await waitForStart({ count: 1 });
     expect(start.prompt).toBe('resumed turn');
     expect(start.instructions).toBe('Use turbo build --concurrency=4.');
+    expect(start.resumeThreadId).toBe('thread-abc');
   });
 
   it('starts a fresh native thread when resumed turn configuration changes', async () => {
+    const firstSession = await startSession({
+      resumeFrom: {
+        type: 'resume-session',
+        harnessId: 'codex',
+        specificationVersion: 'harness-v1',
+        data: {
+          threadId: 'thread-abc',
+        },
+      },
+    });
+
+    await firstSession.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'first turn',
+      instructions: 'Use the previous turn instructions.',
+      emit: () => {},
+    });
+    await waitForStart({ count: 1 });
+    const persistedState = await firstSession.doDetach();
+    const resumedSession = await startSession({ resumeFrom: persistedState });
+
+    await resumedSession.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'resumed turn',
+      instructions: 'Use the current turn instructions.',
+      emit: () => {},
+    });
+
+    const start = await waitForStart({ count: 2 });
+    expect(start.restartThread).toBe(true);
+    expect(start.resumeThreadId).toBeUndefined();
+  });
+
+  it('preserves the native thread when persisted tool keys are reordered', async () => {
+    const firstSession = await startSession({
+      resumeFrom: {
+        type: 'resume-session',
+        harnessId: 'codex',
+        specificationVersion: 'harness-v1',
+        data: { threadId: 'thread-abc' },
+      },
+    });
+    const toolsBefore: ReadonlyArray<HarnessV1ToolSpec> = [
+      {
+        name: 'get_weather',
+        description: 'Get weather',
+        inputSchema: {
+          type: 'object',
+          properties: { city: { type: 'string' } },
+          required: ['city'],
+        },
+      },
+    ];
+
+    await firstSession.doPromptTurn({
+      skills: [],
+      tools: toolsBefore,
+      prompt: 'first turn',
+      instructions: 'Use the weather tool.',
+      emit: () => {},
+    });
+    await waitForStart({ count: 1 });
+    const persistedState = await firstSession.doDetach();
+    const resumedSession = await startSession({ resumeFrom: persistedState });
+    const toolsAfter: ReadonlyArray<HarnessV1ToolSpec> = [
+      {
+        inputSchema: {
+          required: ['city'],
+          properties: { city: { type: 'string' } },
+          type: 'object',
+        },
+        description: 'Get weather',
+        name: 'get_weather',
+      },
+    ];
+
+    await resumedSession.doPromptTurn({
+      skills: [],
+      tools: toolsAfter,
+      prompt: 'resumed turn',
+      instructions: 'Use the weather tool.',
+      emit: () => {},
+    });
+
+    const start = await waitForStart({ count: 2 });
+    expect(start.restartThread).toBeUndefined();
+  });
+
+  it('preserves the native thread while replacing a legacy fingerprint', async () => {
     const session = await startSession({
       resumeFrom: {
         type: 'resume-session',
@@ -264,7 +349,7 @@ describe('codex adapter — instructions transport', () => {
         specificationVersion: 'harness-v1',
         data: {
           threadId: 'thread-abc',
-          turnConfigurationFingerprint: 'previous-configuration',
+          turnConfigurationFingerprint: 'legacy-fingerprint',
         },
       },
     });
@@ -278,8 +363,14 @@ describe('codex adapter — instructions transport', () => {
     });
 
     const start = await waitForStart({ count: 1 });
-    expect(start.restartThread).toBe(true);
-    expect(start.resumeThreadId).toBeUndefined();
+    expect(start.restartThread).toBeUndefined();
+    expect(start.resumeThreadId).toBe('thread-abc');
+    const persistedState = await session.doDetach();
+    expect(persistedState).toMatchObject({
+      data: {
+        turnConfigurationFingerprint: expect.stringMatching(/^v2:/),
+      },
+    });
   });
 
   it('forwards instructions when rerunning a suspended turn', async () => {
@@ -303,6 +394,71 @@ describe('codex adapter — instructions transport', () => {
     expect(start.prompt).toBe('Continue.');
     expect(start.instructions).toBe('Use turbo build --concurrency=4.');
     expect(start.resumeThreadId).toBe('thread-abc');
+  });
+
+  it('reruns a recovered suspended turn only once', async () => {
+    const session = await startSession({
+      continueFrom: {
+        type: 'continue-turn',
+        harnessId: 'codex',
+        specificationVersion: 'harness-v1',
+        data: { threadId: 'thread-abc' },
+      },
+    });
+
+    await session.doContinueTurn({
+      skills: [],
+      tools: [],
+      emit: () => {},
+    });
+    await waitForStart({ count: 1 });
+
+    await session.doContinueTurn({
+      skills: [],
+      tools: [],
+      emit: () => {},
+    });
+    await waitForDeferredStarts();
+
+    expect(sentMessages.filter(message => message.type === 'start')).toEqual([
+      expect.objectContaining({
+        prompt: 'Continue.',
+        resumeThreadId: 'thread-abc',
+      }),
+    ]);
+  });
+
+  it('does not rerun a recovered session after its first prompt starts', async () => {
+    const session = await startSession({
+      resumeFrom: {
+        type: 'resume-session',
+        harnessId: 'codex',
+        specificationVersion: 'harness-v1',
+        data: { threadId: 'thread-abc' },
+      },
+    });
+
+    await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Recovered prompt',
+      emit: () => {},
+    });
+    await waitForStart({ count: 1 });
+
+    await session.doContinueTurn({
+      skills: [],
+      tools: [],
+      emit: () => {},
+    });
+    await waitForDeferredStarts();
+
+    expect(sentMessages.filter(message => message.type === 'start')).toEqual([
+      expect.objectContaining({
+        prompt: 'Recovered prompt',
+        resumeThreadId: 'thread-abc',
+      }),
+    ]);
   });
 });
 
@@ -430,7 +586,7 @@ describe('codex adapter — skills', () => {
       write.path.endsWith('/bridge-meta.json'),
     );
     expect(bridgeMetaWrite).toEqual({
-      path: '/wd/.agent-runs/s1/bridge/bridge-meta.json',
+      path: '/home/vercel-sandbox/.ai-sdk-harness/.agent-runs/s1/bridge/bridge-meta.json',
       content: JSON.stringify({ type: 'codex', state: 'starting' }),
     });
     expect(skillWrites).toEqual(
