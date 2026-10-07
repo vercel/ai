@@ -1,20 +1,22 @@
-import type {
-  Arrayable,
-  Context,
-  Experimental_SandboxSession as SandboxSession,
-  Tool,
-  ToolSet,
+import {
+  DelayedPromise,
+  type Arrayable,
+  type Context,
+  type Experimental_SandboxSession as SandboxSession,
+  type Tool,
+  type ToolSet,
 } from '@ai-sdk/provider-utils';
-import type {
-  GenerateTextOnStepEndCallback,
-  GenerateTextOnStepFinishCallback,
-} from '../generate-text/generate-text-events';
+import {
+  DefaultStepResult,
+  type StepResult,
+} from '../generate-text/step-result';
 import type { Output } from '../generate-text/output';
 import type { StreamTextTransform } from '../generate-text/stream-text';
 import type { UIMessageStreamOptions } from '../generate-text/stream-text-result';
 import type { TimeoutConfiguration } from '../prompt/request-options';
 import type { InferUIMessageChunk } from '../ui-message-stream';
 import { toUIMessageStream } from '../ui-message-stream/to-ui-message-stream';
+import type { UIMessageStreamOnStepEndCallback } from '../ui-message-stream/ui-message-stream-on-step-end-callback';
 import { convertToModelMessages } from '../ui/convert-to-model-messages';
 import type {
   InferUIMessageTools,
@@ -28,6 +30,21 @@ import {
   type AsyncIterableStream,
 } from '../util/async-iterable-stream';
 import type { Agent } from './agent';
+import type { Callback } from '../util/callback';
+import { notify } from '../util/notify';
+
+/**
+ * Callback that receives the model step result and the accumulated UI message
+ * after the step has been processed by the UI stream.
+ */
+export type AgentUIStreamOnStepEndCallback<
+  TOOLS extends ToolSet,
+  RUNTIME_CONTEXT extends Context,
+  UI_MESSAGE extends UIMessage,
+> = Callback<
+  StepResult<TOOLS, RUNTIME_CONTEXT> &
+    Parameters<UIMessageStreamOnStepEndCallback<UI_MESSAGE>>[0]
+>;
 
 /**
  * Runs the agent and stream the output as a UI message stream.
@@ -40,7 +57,7 @@ import type { Agent } from './agent';
  * @param experimental_sandbox - The sandbox environment that is passed through to tool execution. Optional.
  * @param options - The options for the agent.
  * @param experimental_transform - The stream transformations. Optional.
- * @param onStepEnd - Callback that is called when each step ends. Optional.
+ * @param onStepEnd - Callback that receives the step result and accumulated UI message when each streamed step ends. Optional.
  * @param onStepFinish - Deprecated alias for `onStepEnd`. Optional.
  *
  * @returns The UI message stream.
@@ -83,9 +100,17 @@ export async function createAgentUIStream<
   experimental_sandbox?: SandboxSession;
   options?: CALL_OPTIONS;
   experimental_transform?: Arrayable<StreamTextTransform<TOOLS>>;
-  onStepEnd?: GenerateTextOnStepEndCallback<TOOLS>;
+  onStepEnd?: AgentUIStreamOnStepEndCallback<
+    TOOLS,
+    RUNTIME_CONTEXT,
+    UI_MESSAGE
+  >;
   /** @deprecated Use `onStepEnd` instead. */
-  onStepFinish?: GenerateTextOnStepFinishCallback<TOOLS>;
+  onStepFinish?: AgentUIStreamOnStepEndCallback<
+    TOOLS,
+    RUNTIME_CONTEXT,
+    UI_MESSAGE
+  >;
   // TODO `originalMessages` is part of this for bc, omit in v7
 } & UIMessageStreamOptions<UI_MESSAGE>): Promise<
   AsyncIterableStream<InferUIMessageChunk<UI_MESSAGE>>
@@ -107,6 +132,12 @@ export async function createAgentUIStream<
     convertDataPart,
   });
 
+  const resolvedOnStepEnd = onStepEnd ?? onStepFinish;
+  const stepResults: StepResult<TOOLS, RUNTIME_CONTEXT>[] = [];
+  let pendingStepResult:
+    | DelayedPromise<StepResult<TOOLS, RUNTIME_CONTEXT>>
+    | undefined;
+
   const result = await agent.stream({
     prompt: modelMessages,
     options: options as CALL_OPTIONS,
@@ -114,7 +145,17 @@ export async function createAgentUIStream<
     timeout,
     experimental_sandbox: sandbox,
     experimental_transform,
-    onStepEnd: onStepEnd ?? onStepFinish,
+    onStepEnd:
+      resolvedOnStepEnd == null
+        ? undefined
+        : stepResult => {
+            if (pendingStepResult != null) {
+              pendingStepResult.resolve(stepResult);
+              pendingStepResult = undefined;
+            } else {
+              stepResults.push(stepResult);
+            }
+          },
   });
 
   // TODO reading `originalMessages` is here for bc, always use `validatedMessages` in v7
@@ -127,6 +168,44 @@ export async function createAgentUIStream<
       originalMessages,
       stream: result.stream,
       tools: agent.tools,
+      onStepEnd:
+        resolvedOnStepEnd == null
+          ? undefined
+          : async uiEvent => {
+              // A finish-step chunk can reach the UI stream before the agent
+              // has notified its step callbacks. Never wait in the agent
+              // callback: doing so would block the stream that builds the UI message.
+              const stepResult =
+                stepResults.shift() ??
+                (await (pendingStepResult = new DelayedPromise<
+                  StepResult<TOOLS, RUNTIME_CONTEXT>
+                >()).promise);
+
+              // Use a separate step result to retain its getters without adding
+              // UI fields to the agent's own recorded steps and callback events.
+              const event = Object.assign(
+                new DefaultStepResult({
+                  callId: stepResult.callId,
+                  stepNumber: stepResult.stepNumber,
+                  provider: stepResult.model.provider,
+                  modelId: stepResult.model.modelId,
+                  runtimeContext: stepResult.runtimeContext,
+                  toolsContext: stepResult.toolsContext,
+                  content: stepResult.content,
+                  finishReason: stepResult.finishReason,
+                  rawFinishReason: stepResult.rawFinishReason,
+                  usage: stepResult.usage,
+                  performance: stepResult.performance,
+                  warnings: stepResult.warnings,
+                  request: stepResult.request,
+                  response: stepResult.response,
+                  providerMetadata: stepResult.providerMetadata,
+                }),
+                uiEvent,
+              );
+
+              await notify({ event, callbacks: resolvedOnStepEnd });
+            },
     }),
   );
 }

@@ -9,6 +9,7 @@ import { handleUIMessageStreamFinish } from './handle-ui-message-stream-finish';
 import type { InferUIMessageChunk } from './ui-message-chunks';
 import type { UIMessageStreamOutcome } from './ui-message-stream-outcome';
 import { toUIMessageChunk } from './to-ui-message-chunk';
+import type { UIMessageStreamOnStepEndCallback } from './ui-message-stream-on-step-end-callback';
 
 /**
  * Converts a stream of `TextStreamPart<TOOLS>` chunks (as emitted by
@@ -32,9 +33,12 @@ export function toUIMessageStream<
   generateMessageId,
   onEnd,
   onFinish,
+  onStepEnd,
 }: {
   stream: ReadableStream<TextStreamPart<TOOLS>>;
   tools?: TOOLS;
+  /** Receives the accumulated UI message after each finish-step chunk. */
+  onStepEnd?: UIMessageStreamOnStepEndCallback<UI_MESSAGE>;
 } & UIMessageStreamOptions<UI_MESSAGE>): ReadableStream<
   InferUIMessageChunk<UI_MESSAGE>
 > {
@@ -130,21 +134,31 @@ export function toUIMessageStream<
             responseMessageId,
           });
 
+          // start and finish events already include metadata in the converted
+          // chunk; for other part types emit a separate message-metadata chunk
+          const metadataChunk =
+            messageMetadataValue != null &&
+            part.type !== 'start' &&
+            part.type !== 'finish'
+              ? {
+                  type: 'message-metadata' as const,
+                  messageMetadata: messageMetadataValue,
+                }
+              : undefined;
+
+          // Apply step metadata before the callback snapshots the UI message.
+          const metadataBeforeStep =
+            onStepEnd != null && part.type === 'finish-step';
+          if (metadataChunk != null && metadataBeforeStep) {
+            controller.enqueue(metadataChunk);
+          }
+
           if (uiMessageChunk != null) {
             controller.enqueue(uiMessageChunk);
           }
 
-          // start and finish events already include metadata in the converted
-          // chunk; for other part types emit a separate message-metadata chunk
-          if (
-            messageMetadataValue != null &&
-            part.type !== 'start' &&
-            part.type !== 'finish'
-          ) {
-            controller.enqueue({
-              type: 'message-metadata',
-              messageMetadata: messageMetadataValue,
-            });
+          if (metadataChunk != null && !metadataBeforeStep) {
+            controller.enqueue(metadataChunk);
           }
 
           if (part.type === 'finish') {
@@ -167,6 +181,7 @@ export function toUIMessageStream<
     messageId: responseMessageId ?? generateMessageId?.(),
     originalMessages,
     onEnd: onEnd ?? onFinish,
+    onStepEnd,
     onError,
     getOutcome: () => outcome,
   });

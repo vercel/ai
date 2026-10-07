@@ -101,14 +101,14 @@ export async function POST(request: Request) {
     },
     {
       name: 'onStepEnd',
-      type: 'GenerateTextOnStepEndCallback',
+      type: 'AgentUIStreamOnStepEndCallback',
       isRequired: false,
       description:
-        'Callback invoked after each agent step (LLM/tool call) completes. Useful for tracking token usage or logging intermediate steps.',
+        'Callback invoked after each streamed step has been processed into UI message state. Receives the existing model step result (including text, usage, and tool calls), plus responseMessage (the accumulated assistant UI message), messages (the updated UI conversation), and isContinuation. Useful for persisting intermediate messages. Requires consuming the returned stream or response body.',
     },
     {
       name: 'onStepFinish',
-      type: 'GenerateTextOnStepFinishCallback',
+      type: 'AgentUIStreamOnStepEndCallback',
       isRequired: false,
       description:
         'Deprecated. Use `onStepEnd` instead. This alias is only used as a fallback when `onStepEnd` is not provided.',

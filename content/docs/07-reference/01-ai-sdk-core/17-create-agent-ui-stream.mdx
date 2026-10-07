@@ -103,14 +103,14 @@ export async function* streamAgent(
     },
     {
       name: 'onStepEnd',
-      type: 'GenerateTextOnStepEndCallback',
+      type: 'AgentUIStreamOnStepEndCallback',
       isRequired: false,
       description:
-        'Callback invoked after each agent step (LLM/tool call) completes. Useful for tracking token usage, per-step performance, or logging intermediate steps.',
+        'Callback invoked after each streamed step has been processed into UI message state. Receives the existing model step result (including text, usage, and tool calls), plus responseMessage (the accumulated assistant UI message), messages (the updated UI conversation), and isContinuation. Useful for persisting intermediate messages. Requires consuming the returned stream or response body.',
     },
     {
       name: 'onStepFinish',
-      type: 'GenerateTextOnStepFinishCallback',
+      type: 'AgentUIStreamOnStepEndCallback',
       isRequired: false,
       description:
         'Deprecated. Use `onStepEnd` instead. This alias is only used as a fallback when `onStepEnd` is not provided.',
@@ -152,6 +152,38 @@ for await (const chunk of stream) {
 
 // Call controller.abort() to cancel the agent operation early.
 ```
+
+## Persisting Messages After Each Step
+
+Use `onStepEnd` to save the accumulated UI message while retaining access to the
+model step's token usage, tool calls, and other details:
+
+```ts
+const stream = await createAgentUIStream({
+  agent,
+  uiMessages,
+  generateMessageId: () => crypto.randomUUID(),
+  onStepEnd: async ({ responseMessage, messages, isContinuation, usage }) => {
+    await saveMessage(responseMessage);
+    console.log({ messages, isContinuation, usage });
+  },
+});
+
+for await (const chunk of stream) {
+  // Send each chunk to the client.
+}
+```
+
+`responseMessage` includes all UI parts accumulated through the completed step,
+respecting options such as `sendReasoning` and `sendSources`. Each callback receives
+a separate response-message snapshot so later steps do not change earlier snapshots.
+When continuing the last assistant message, its ID is retained and `messages`
+contains the updated message in place of the original.
+
+The callback runs as the UI stream is consumed and is awaited before forwarding
+the step's finish marker. Callback errors remain non-fatal. For callbacks that must
+run during model generation independently of UI stream consumption, use the
+agent's constructor `onStepEnd` callback.
 
 ## How It Works
 
