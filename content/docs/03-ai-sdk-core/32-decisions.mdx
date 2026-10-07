@@ -82,7 +82,8 @@ from `ai`. A part has one of these shapes:
 - JSON: `{ type: 'json', value: JSONValue }`.
 
 Language-model decision adapters accept image files only. The underlying model
-must support the file data form. TypeSafe AI accepts text and JSON state only.
+must support the file data form. Gateway and TypeSafe AI accept text and JSON
+state only.
 
 Arrays passed directly as `state` contain parts. To send a JSON array, put it
 inside an object (`state: { records }`) or a JSON part

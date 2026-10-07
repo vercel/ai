@@ -8,7 +8,7 @@
 '@ai-sdk/otel': patch
 ---
 
-Add ordered text, file, and JSON parts to experimental decision state. Support image input in OpenAI Decisions and language model adapters, and encode file bytes for Gateway. Reject files in the text-only TypeSafe AI provider.
+Add ordered text, file, and JSON parts to experimental decision state. Support image input in OpenAI Decisions and language model adapters. Gateway retains its existing string and JSON request format and rejects files, as does TypeSafe AI.
 
 Arrays passed directly as state now contain decision state parts. Wrap JSON arrays in an object or a json part.
 
