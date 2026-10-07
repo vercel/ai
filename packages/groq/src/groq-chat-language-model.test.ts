@@ -165,6 +165,23 @@ describe('doGenerate', () => {
       );
     });
 
+    it('should coerce top-level reasoning max to high with a warning', async () => {
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'max',
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'high',
+      );
+      expect(result.warnings).toContainEqual({
+        type: 'compatibility',
+        feature: 'reasoning',
+        details:
+          'reasoning "max" is not directly supported by this model. mapped to effort "high".',
+      });
+    });
+
     it('should map top-level reasoning none to reasoning_effort for Qwen 3.6', async () => {
       const qwenModel = provider('qwen/qwen3.6-27b');
 

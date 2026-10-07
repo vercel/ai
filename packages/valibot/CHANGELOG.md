@@ -1,5 +1,45 @@
 # @ai-sdk/valibot
 
+## 3.0.56
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@5.0.56
+
+## 3.0.55
+
+### Patch Changes
+
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+  - @ai-sdk/provider-utils@5.0.55
+
+## 3.0.54
+
+### Patch Changes
+
+- Updated dependencies [2959d35]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider-utils@5.0.54
+
+## 3.0.53
+
+### Patch Changes
+
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider-utils@5.0.53
+
+## 3.0.52
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [ede5b89]
+  - @ai-sdk/provider-utils@5.0.52
+
 ## 3.0.51
 
 ### Patch Changes

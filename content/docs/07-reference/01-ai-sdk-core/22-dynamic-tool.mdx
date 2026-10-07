@@ -20,7 +20,7 @@ import { z } from 'zod';
 
 export const customTool = dynamicTool({
   description: 'Execute a custom user-defined function',
-  inputSchema: z.object({}),
+  inputSchema: z.object({ action: z.string(), parameters: z.unknown() }),
   // input is typed as 'unknown'
   execute: async input => {
     const { action, parameters } = input as any;

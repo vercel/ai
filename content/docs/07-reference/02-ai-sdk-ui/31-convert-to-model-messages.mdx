@@ -110,7 +110,7 @@ const screenshotTool = tool({
 
 const result = streamText({
   model: __MODEL__,
-  messages: convertToModelMessages(messages, {
+  messages: await convertToModelMessages(messages, {
     tools: {
       screenshot: screenshotTool,
     },
@@ -134,6 +134,7 @@ import {
   createUIMessageStreamResponse,
   streamText,
   toUIMessageStream,
+  type UIMessage,
 } from 'ai';
 
 type CustomUIMessage = UIMessage<
@@ -149,7 +150,7 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: __MODEL__,
-    messages: convertToModelMessages<CustomUIMessage>(messages, {
+    messages: await convertToModelMessages<CustomUIMessage>(messages, {
       convertDataPart: part => {
         // Convert URL attachments to text
         if (part.type === 'data-url') {
@@ -219,7 +220,7 @@ Only data parts for which you return a text or file model message part are inclu
 all other data parts are ignored.
 
 ```ts
-const result = convertToModelMessages<
+const result = await convertToModelMessages<
   UIMessage<
     unknown,
     {
@@ -237,7 +238,7 @@ const result = convertToModelMessages<
       };
     }
 
-    // data-code and data-node are ignored
+    // data-code and data-note are ignored
   },
 });
 ```

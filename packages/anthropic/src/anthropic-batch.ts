@@ -189,6 +189,7 @@ export class AnthropicBatch implements BatchV4<{
       provider: string;
       config: AnthropicLanguageModelConfig;
       supportedUrls: Record<string, RegExp[]>;
+      maxLineBytes?: number;
     },
   ) {
     this.provider = options.provider;
@@ -409,6 +410,7 @@ export class AnthropicBatch implements BatchV4<{
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createJsonLinesResponseHandler(
         anthropicBatchResultLineSchema,
+        { maxLineBytes: this.options.maxLineBytes },
       ),
       abortSignal: options.abortSignal,
       fetch: this.options.config.fetch,
@@ -1056,6 +1058,17 @@ function convertAnthropicBatchResponse(
         }
         break;
       case 'fallback':
+        content.push({
+          type: 'custom',
+          kind: 'anthropic.fallback',
+          providerMetadata: {
+            anthropic: {
+              type: 'fallback',
+              from: part.from,
+              to: part.to,
+            },
+          },
+        });
         break;
     }
   }

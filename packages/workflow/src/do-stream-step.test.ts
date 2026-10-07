@@ -106,6 +106,125 @@ describe('doStreamStep', () => {
     });
   });
 
+  it('preserves reasoning text and provider metadata as one content part', async () => {
+    const providerMetadata = {
+      anthropic: { signature: 'reasoning-signature' },
+      openai: { reasoningEncryptedContent: 'encrypted-reasoning' },
+    };
+    const model = new MockLanguageModelV4({
+      doStream: async () => ({
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start' as const, warnings: [] },
+          {
+            type: 'reasoning-start' as const,
+            id: 'reasoning-1',
+            providerMetadata,
+          },
+          {
+            type: 'reasoning-delta' as const,
+            id: 'reasoning-1',
+            delta: 'Inspect the configuration.',
+          },
+          { type: 'reasoning-end' as const, id: 'reasoning-1' },
+          {
+            type: 'finish' as const,
+            finishReason: { unified: 'stop' as const, raw: 'stop' },
+            usage: {
+              inputTokens: {
+                total: 1,
+                noCache: 1,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 1,
+                text: 0,
+                reasoning: 1,
+              },
+            },
+          },
+        ]),
+      }),
+    });
+
+    const result = await doStreamStep(prompt, model);
+
+    expect(result).toMatchObject({
+      raw: {
+        content: [{ type: 'reasoning', reasoningIndex: 0 }],
+        reasoning: [
+          {
+            text: 'Inspect the configuration.',
+            providerMetadata,
+          },
+        ],
+      },
+    });
+  });
+
+  it('preserves measured model call performance', async () => {
+    let timestamp = 0;
+    vi.spyOn(globalThis.performance, 'now').mockImplementation(
+      () => (timestamp += 100),
+    );
+    const model = new MockLanguageModelV4({
+      doStream: async () => ({
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start' as const, warnings: [] },
+          { type: 'text-start' as const, id: 'text-1' },
+          {
+            type: 'text-delta' as const,
+            id: 'text-1',
+            delta: 'Measured output',
+          },
+          { type: 'text-end' as const, id: 'text-1' },
+          {
+            type: 'finish' as const,
+            finishReason: { unified: 'stop' as const, raw: 'stop' },
+            usage: {
+              inputTokens: {
+                total: 10,
+                noCache: 10,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 20,
+                text: 20,
+                reasoning: undefined,
+              },
+            },
+          },
+        ]),
+      }),
+    });
+
+    const result = await doStreamStep(prompt, model);
+
+    if (result.aborted) {
+      throw new Error('Expected the model call to complete.');
+    }
+
+    expect(result.raw.performance).toMatchObject({
+      responseTimeMs: expect.any(Number),
+      effectiveOutputTokensPerSecond: expect.any(Number),
+      outputTokensPerSecond: expect.any(Number),
+      inputTokensPerSecond: expect.any(Number),
+      effectiveTotalTokensPerSecond: expect.any(Number),
+      timeToFirstOutputMs: expect.any(Number),
+    });
+    expect(result.raw.performance?.responseTimeMs).toBeGreaterThan(0);
+    expect(
+      result.raw.performance?.effectiveOutputTokensPerSecond,
+    ).toBeGreaterThan(0);
+    expect(result.raw.performance?.outputTokensPerSecond).toBeGreaterThan(0);
+    expect(result.raw.performance?.inputTokensPerSecond).toBeGreaterThan(0);
+    expect(
+      result.raw.performance?.effectiveTotalTokensPerSecond,
+    ).toBeGreaterThan(0);
+    expect(result.raw.performance?.timeToFirstOutputMs).toBeGreaterThan(0);
+  });
+
   it('preserves provider metadata on provider-executed tool results', async () => {
     const model = new MockLanguageModelV4({
       doStream: async () => ({

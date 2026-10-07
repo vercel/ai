@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/harness-deepagents",
-  "version": "1.0.132",
+  "version": "1.0.141",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -18,9 +18,9 @@
     "README.md"
   ],
   "scripts": {
-    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json && pnpm copy-bridge-assets",
-    "build:watch": "pnpm clean && tsup --watch",
-    "clean": "del-cli dist *.tsbuildinfo",
+    "build": "pnpm clean && tsdown && pnpm copy-bridge-assets",
+    "build:watch": "pnpm clean && tsdown --watch",
+    "clean": "del-cli *.tsbuildinfo",
     "copy-bridge-assets": "node -e \"import('node:fs/promises').then(async fs => { await fs.copyFile('src/bridge/package.json', 'dist/bridge/package.json'); await fs.copyFile('src/bridge/pnpm-lock.yaml', 'dist/bridge/pnpm-lock.yaml'); })\"",
     "type-check": "tsc --build",
     "test": "pnpm test:node",
@@ -54,8 +54,8 @@
     "deepagents": "1.13.5",
     "langchain": "^1.5.11",
     "langsmith": "^0.9.0",
-    "tsup": "^8.5.1",
-    "typescript": "5.8.3",
+    "tsdown": "^0.23.0",
+    "typescript": "6.0.3",
     "zod": "3.25.76"
   },
   "engines": {

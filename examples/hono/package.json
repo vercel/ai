@@ -7,7 +7,7 @@
     "@hono/node-server": "1.19.15",
     "ai": "workspace:*",
     "dotenv": "16.4.5",
-    "hono": "4.12.34"
+    "hono": "4.13.7"
   },
   "scripts": {
     "dev": "tsx watch src/server.ts",
@@ -18,6 +18,6 @@
   "devDependencies": {
     "@types/node": "22.19.19",
     "tsx": "4.23.12",
-    "typescript": "5.8.3"
+    "typescript": "6.0.3"
   }
 }

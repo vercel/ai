@@ -69,18 +69,19 @@ console.log(
 );
 ```
 
-| Value       | Behavior                                   |
-| ----------- | ------------------------------------------ |
-| `'none'`    | No reasoning (GPT-5.1 models only)         |
-| `'minimal'` | Bare-minimum reasoning                     |
-| `'low'`     | Fast, concise reasoning                    |
-| `'medium'`  | Balanced (default)                         |
-| `'high'`    | Thorough reasoning                         |
-| `'xhigh'`   | Maximum reasoning (GPT-5.1-Codex-Max only) |
+| Value       | Behavior                                 |
+| ----------- | ---------------------------------------- |
+| `'none'`    | No reasoning (GPT-5.1 models only)       |
+| `'minimal'` | Bare-minimum reasoning                   |
+| `'low'`     | Fast, concise reasoning                  |
+| `'medium'`  | Balanced (default)                       |
+| `'high'`    | Thorough reasoning                       |
+| `'xhigh'`   | Extra-high reasoning on supported models |
+| `'max'`     | Maximum reasoning on supported models    |
 
 <Note>
-  `'none'` and `'xhigh'` are only supported on specific models. Using them with
-  unsupported models will result in an error.
+  Supported effort levels vary by model. Using an effort with an unsupported
+  model will result in an error.
 </Note>
 
 ### Reasoning Summary
@@ -239,7 +240,7 @@ import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: anthropic('claude-opus-5-5'),
+  model: anthropic('claude-opus-4-6'),
   prompt: 'Write a short poem about the sea.',
   providerOptions: {
     anthropic: {

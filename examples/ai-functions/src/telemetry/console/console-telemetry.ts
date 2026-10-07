@@ -20,14 +20,20 @@ export const consoleTelemetry = {
   onEmbedEnd: logCallback('onEmbedEnd'),
   onRerankStart: logCallback('onRerankStart'),
   onRerankEnd: logCallback('onRerankEnd'),
-  experimental_onEvaluateStart: logCallback('experimental_onEvaluateStart'),
-  experimental_onEvaluationModelCallStart: logCallback(
-    'experimental_onEvaluationModelCallStart',
+  experimental_onDecideStart: logCallback('experimental_onDecideStart'),
+  experimental_onDecisionModelCallStart: logCallback(
+    'experimental_onDecisionModelCallStart',
   ),
-  experimental_onEvaluationModelCallEnd: logCallback(
-    'experimental_onEvaluationModelCallEnd',
+  experimental_onDecisionModelCallEnd: logCallback(
+    'experimental_onDecisionModelCallEnd',
   ),
-  experimental_onEvaluateEnd: logCallback('experimental_onEvaluateEnd'),
+  experimental_onDecideEnd: logCallback('experimental_onDecideEnd'),
+  experimental_onStreamTranscriptionStart: logCallback(
+    'experimental_onStreamTranscriptionStart',
+  ),
+  experimental_onStreamTranscriptionEnd: logCallback(
+    'experimental_onStreamTranscriptionEnd',
+  ),
   onEnd: logCallback('onEnd'),
   onError: logCallback('onError'),
   executeTool: async ({ callId, toolCallId, execute }) => {

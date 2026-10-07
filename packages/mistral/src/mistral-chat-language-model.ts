@@ -50,13 +50,15 @@ type MistralChatConfig = {
   generateId?: () => string;
 };
 
-// https://api.mistral.ai/v1/models (2026-09-10)
+// https://api.mistral.ai/v1/models (2026-10-06)
 const reasoningEffortModelIds = new Set<MistralChatModelId>([
   'glm-5-2',
   'labs-leanstral-1-5',
   'labs-leanstral-1-5-1',
   'magistral-medium-latest',
   'magistral-small-latest',
+  'mistral-large-4',
+  'mistral-large-4-0',
   'mistral-medium',
   'mistral-medium-2604',
   'mistral-medium-3',
@@ -153,6 +155,7 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
                   medium: 'high',
                   high: 'high',
                   xhigh: 'high',
+                  max: 'high',
                 },
                 warnings,
               })
@@ -168,9 +171,12 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
     const structuredOutputs = options.structuredOutputs ?? true;
     const strictJsonSchema = options.strictJsonSchema ?? false;
 
-    // For Mistral we need to need to instruct the model to return a JSON object.
+    // For Mistral we need to instruct the model when using JSON Object mode.
     // https://docs.mistral.ai/capabilities/structured-output/structured_output_overview/
-    if (responseFormat?.type === 'json' && !responseFormat?.schema) {
+    if (
+      responseFormat?.type === 'json' &&
+      (!structuredOutputs || responseFormat.schema == null)
+    ) {
       prompt = injectJsonInstructionIntoMessages({
         messages: prompt,
         schema: responseFormat.schema,

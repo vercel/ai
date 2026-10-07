@@ -1,4 +1,5 @@
 import {
+  InvalidArgumentError,
   NoSuchModelError,
   type FilesV4,
   type LanguageModelV4,
@@ -6,6 +7,7 @@ import {
   type SkillsV4,
 } from '@ai-sdk/provider';
 import {
+  isValidHostnamePart,
   loadOptionalSetting,
   loadSetting,
   withoutTrailingSlash,
@@ -207,14 +209,26 @@ export function createAnthropicAws(
         }
       }, options.fetch);
 
-  const getBaseURL = (): string =>
-    withoutTrailingSlash(options.baseURL) ??
-    `https://aws-external-anthropic.${loadSetting({
+  const getRegion = (): string => {
+    const region = loadSetting({
       settingValue: options.region,
       settingName: 'region',
       environmentVariableName: 'AWS_REGION',
       description: 'AWS region',
-    })}.api.aws/v1`;
+    });
+    if (!isValidHostnamePart(region)) {
+      throw new InvalidArgumentError({
+        argument: 'region',
+        message:
+          'Invalid AWS region. Expected a single DNS label (letters, digits, and hyphens). Use `baseURL` for custom endpoints.',
+      });
+    }
+    return region;
+  };
+
+  const getBaseURL = (): string =>
+    withoutTrailingSlash(options.baseURL) ??
+    `https://aws-external-anthropic.${getRegion()}.api.aws/v1`;
 
   const getHeaders = (): Record<string, string | undefined> => ({
     'anthropic-version': '2023-06-01',

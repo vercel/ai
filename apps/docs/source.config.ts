@@ -7,6 +7,10 @@ import {
 } from '@vercel/geistdocs/source-config';
 import { rehypeCodeDefaultOptions } from 'fumadocs-core/mdx-plugins';
 import { defineDocs } from 'fumadocs-mdx/config';
+import {
+  rehypeCodeTemplates,
+  remarkCodeTemplates,
+} from './lib/geistdocs/code-templates.mjs';
 
 const createDocsCollection = (dir: string) =>
   defineDocs({
@@ -34,6 +38,8 @@ export const cookbookV7 = createDocsCollection('content/v7/cookbook');
 
 export default defineGeistdocsSourceConfig({
   mdxOptions: {
+    remarkPlugins: [remarkCodeTemplates],
+    rehypePlugins: defaults => [rehypeCodeTemplates, ...defaults],
     rehypeCodeOptions: {
       // Themes are overridden by defineGeistdocsSourceConfig at runtime, but
       // required at the type level when passing rehypeCodeOptions.

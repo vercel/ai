@@ -39,10 +39,10 @@
     "@playwright/test": "^1.61.1",
     "del-cli": "^5.1.0",
     "husky": "^9.1.7",
-    "konsistent": "1.0.0-beta.9",
+    "konsistent": "1.0.0-beta.11",
     "konsistent-provider": "workspace:*",
     "lint-staged": "^15.5.1",
-    "next": "16.3.3",
+    "next": "16.3.6",
     "oxfmt": "^0.41.0",
     "oxlint": "^1.56.0",
     "playwright": "^1.61.1",
@@ -51,10 +51,10 @@
     "react-dom": "19.0.0-rc-cc1ec60d0d-20240607",
     "semver": "^7.8.5",
     "turbo": "2.9.14",
-    "typescript": "5.8.3",
+    "typescript": "6.0.3",
     "ultracite": "7.3.2",
     "update-ts-references": "^3.6.0",
-    "vitest": "4.1.6"
+    "vitest": "4.1.11"
   },
   "engines": {
     "node": "^22.13.0 || ^24.0.0 || ^26.0.0"

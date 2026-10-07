@@ -50,6 +50,7 @@ You can use the following optional settings to customize the Zhipu provider inst
 ## Example
 
 ```ts
+import { generateText } from 'ai';
 import { zhipu } from 'zhipu-ai-provider';
 
 const { text } = await generateText({
@@ -57,7 +58,7 @@ const { text } = await generateText({
   prompt: 'Why is the sky blue?',
 });
 
-console.log(result);
+console.log(text);
 ```
 
 ## Documentation

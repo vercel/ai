@@ -1,5 +1,104 @@
 # @ai-sdk/harness-github-copilot
 
+## 1.0.37
+
+### Patch Changes
+
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/harness@1.0.141
+  - @ai-sdk/provider-utils@5.0.56
+  - @ai-sdk/harness-acp@1.0.80
+
+## 1.0.36
+
+### Patch Changes
+
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+- Updated dependencies [4c6979c]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/provider@4.0.23
+  - @ai-sdk/harness@1.0.140
+  - @ai-sdk/harness-acp@1.0.79
+
+## 1.0.35
+
+### Patch Changes
+
+- Updated dependencies [2959d35]
+- Updated dependencies [e7da240]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+  - @ai-sdk/harness@1.0.139
+  - @ai-sdk/harness-acp@1.0.78
+
+## 1.0.34
+
+### Patch Changes
+
+- Updated dependencies [58030b5]
+  - @ai-sdk/harness-acp@1.0.77
+
+## 1.0.33
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.138
+- @ai-sdk/harness-acp@1.0.76
+
+## 1.0.32
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.137
+- @ai-sdk/harness-acp@1.0.75
+
+## 1.0.31
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.136
+- @ai-sdk/harness-acp@1.0.74
+
+## 1.0.30
+
+### Patch Changes
+
+- 8182916: chore(harness): minor code consistency cleanup without functional changes
+- Updated dependencies [8c65988]
+- Updated dependencies [8182916]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+  - @ai-sdk/harness@1.0.135
+  - @ai-sdk/harness-acp@1.0.73
+
+## 1.0.29
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [ede5b89]
+  - @ai-sdk/harness@1.0.134
+  - @ai-sdk/harness-acp@1.0.72
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
+## 1.0.28
+
+### Patch Changes
+
+- Updated dependencies [b2049fa]
+- Updated dependencies [11f0e71]
+- Updated dependencies [2b9195b]
+- Updated dependencies [446725d]
+  - @ai-sdk/harness-acp@1.0.71
+  - @ai-sdk/harness@1.0.133
+
 ## 1.0.27
 
 ### Patch Changes
