@@ -11,32 +11,47 @@ import { createPi } from './_create';
 run(async () => {
   let initializeRequests = 0;
   const mcpServer = createServer(async (req, res) => {
-    if (req.method !== 'POST') {
-      res.writeHead(405).end();
-      return;
+    try {
+      if (req.method !== 'POST') {
+        res.writeHead(405).end();
+        return;
+      }
+      let body = '';
+      for await (const chunk of req) body += chunk;
+      const message = JSON.parse(body);
+      if (message == null || typeof message !== 'object') {
+        res.writeHead(400).end();
+        return;
+      }
+      if (message.id == null) {
+        res.writeHead(202).end();
+        return;
+      }
+      if (message.method === 'initialize') initializeRequests++;
+      const result =
+        message.method === 'initialize'
+          ? {
+              protocolVersion: message.params.protocolVersion,
+              capabilities: { tools: {} },
+              serverInfo: { name: 'counter', version: '1.0.0' },
+            }
+          : message.method === 'tools/list'
+            ? { tools: [] }
+            : {};
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ jsonrpc: '2.0', id: message.id, result }));
+    } catch {
+      if (res.destroyed) return;
+      if (res.headersSent) {
+        res.destroy();
+      } else {
+        res.writeHead(400).end();
+      }
     }
-    let body = '';
-    for await (const chunk of req) body += chunk;
-    const message = JSON.parse(body);
-    if (message.id == null) {
-      res.writeHead(202).end();
-      return;
-    }
-    if (message.method === 'initialize') initializeRequests++;
-    const result =
-      message.method === 'initialize'
-        ? {
-            protocolVersion: message.params.protocolVersion,
-            capabilities: { tools: {} },
-            serverInfo: { name: 'counter', version: '1.0.0' },
-          }
-        : message.method === 'tools/list'
-          ? { tools: [] }
-          : {};
-    res.writeHead(200, { 'content-type': 'application/json' });
-    res.end(JSON.stringify({ jsonrpc: '2.0', id: message.id, result }));
   });
-  await new Promise<void>(resolve => mcpServer.listen(0, resolve));
+  await new Promise<void>(resolve =>
+    mcpServer.listen({ port: 0, host: '127.0.0.1' }, resolve),
+  );
   const { port } = mcpServer.address() as AddressInfo;
 
   const staleErrors: string[] = [];
@@ -81,6 +96,14 @@ run(async () => {
   });
   let session: HarnessAgentSession | undefined;
   try {
+    const malformedResponse = await fetch(`http://127.0.0.1:${port}/mcp`, {
+      method: 'POST',
+      body: '{',
+    });
+    if (malformedResponse.status !== 400) {
+      throw new Error('Malformed MCP requests must return HTTP 400.');
+    }
+
     session = await agent.createSession({ sandboxSession });
     const first = await agent.generate({
       session,
