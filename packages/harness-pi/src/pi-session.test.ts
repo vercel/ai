@@ -793,6 +793,43 @@ describe('createPiSession', () => {
     }
   });
 
+  it.each([
+    {
+      mcpSettings: { toolPrefix: 'none', outputGuard: false },
+      expected: { toolPrefix: 'none', outputGuard: false },
+    },
+    {
+      mcpSettings: { outputGuard: false },
+      expected: { toolPrefix: 'mcp', outputGuard: false },
+    },
+  ] as const)(
+    'passes mcpSettings $mcpSettings to the MCP adapter over the defaults',
+    async ({ mcpSettings, expected }) => {
+      const mcpServers = { memory: { command: 'memory-mcp', args: [] } };
+
+      const session = await createPi({ mcpServers, mcpSettings }).doStart({
+        sessionId: 'session-mcp-settings',
+        sandboxSession: createSandboxSession(),
+        sessionWorkDir: '/sandbox/work',
+      });
+
+      try {
+        expect(mcpAdapterMock.createMcpAdapter).toHaveBeenCalledWith({
+          config: {
+            mcpServers,
+            settings: {
+              directTools: true,
+              disableProxyTool: true,
+              ...expected,
+            },
+          },
+        });
+      } finally {
+        await session.doDestroy();
+      }
+    },
+  );
+
   it('rejects unsafe resume session filenames before sandbox restore', async () => {
     const sandboxSession = createSandboxSession();
 
@@ -1143,6 +1180,11 @@ describe('createPiSession', () => {
       resumeStateType: 'continue-turn' as const,
       initialAgentDir: '/request-1/agent',
       resumeAgentDir: '/request-2/agent',
+    },
+    {
+      name: 'mcpSettings changed',
+      settings: { mcpSettings: { outputGuard: false } },
+      resumeStateType: 'continue-turn' as const,
     },
   ])('cold-restores a parked session when $name', async input => {
     const toolStarted = createDeferred<void>();
