@@ -3,6 +3,7 @@ import {
   extractWWWAuthenticateParams,
   extractResourceMetadataUrl,
   type OAuthClientProvider,
+  type OAuthAuthorizationServerInformation,
   type AuthResult,
   discoverOAuthProtectedResourceMetadata,
   buildDiscoveryUrls,
@@ -12,12 +13,6 @@ import {
   refreshAuthorization,
   registerClient,
   auth,
-<<<<<<< HEAD
-=======
-  type OAuthClientProvider,
-  type OAuthAuthorizationServerInformation,
-  type AuthResult,
->>>>>>> d8e4b51358 (fix(mcp): authorization server paths beginning with repeated slashes should not bypass authorization server validation (#22248))
 } from './oauth';
 import type { AuthorizationServerMetadata } from './oauth-types';
 import {
@@ -1986,7 +1981,6 @@ describe('auth function', () => {
         'https://auth.example.com',
       );
       expect(pin).toEqual({
-        issuer,
         authorizationServerUrl: issuer,
         tokenEndpoint,
       });
