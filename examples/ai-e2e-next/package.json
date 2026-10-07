@@ -32,7 +32,7 @@
     "@ai-sdk/xai": "workspace:*",
     "@langfuse/otel": "^4.6.1",
     "@langfuse/tracing": "^5.3.0",
-    "@modelcontextprotocol/sdk": "^1.31.0",
+    "@modelcontextprotocol/sdk": "^1.32.0",
     "@opentelemetry/sdk-trace-node": "^2.7.1",
     "@radix-ui/react-collapsible": "^1.1.12",
     "@radix-ui/react-use-controllable-state": "^1.2.2",
