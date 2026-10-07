@@ -251,6 +251,12 @@ export interface GatewayTranscriptionFactory {
 }
 
 export interface GatewayProviderSettings {
+  /** Settings for downloading JSON Lines batch results. */
+  batchResultDownloads?: {
+    /** Maximum UTF-8 bytes per row, excluding LF. Defaults to 64 MiB. */
+    maxLineBytes?: number;
+  };
+
   /**
    * The base URL prefix for API calls. Defaults to `https://ai-gateway.vercel.sh/v4/ai`.
    */
@@ -457,6 +463,7 @@ export function createGateway(
   const createBatch = () =>
     new GatewayBatch({
       provider: 'gateway',
+      maxLineBytes: options.batchResultDownloads?.maxLineBytes,
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,

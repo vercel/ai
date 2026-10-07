@@ -24,10 +24,11 @@ class TestChatState<
   UI_MESSAGE extends UIMessage,
 > implements ChatState<UI_MESSAGE> {
   history: UI_MESSAGE[][] = [];
+  errorHistory: Array<Error | undefined> = [];
 
   status: ChatStatus = 'ready';
   messages: UI_MESSAGE[];
-  error: Error | undefined = undefined;
+  private currentError: Error | undefined = undefined;
 
   constructor(initialMessages: UI_MESSAGE[] = []) {
     this.messages = initialMessages;
@@ -54,6 +55,15 @@ class TestChatState<
   };
 
   snapshot = <T>(value: T): T => value;
+
+  get error() {
+    return this.currentError;
+  }
+
+  set error(error: Error | undefined) {
+    this.currentError = error;
+    this.errorHistory.push(error);
+  }
 }
 
 class TestChat extends AbstractChat<UIMessage> {
@@ -823,74 +833,89 @@ describe('Chat', () => {
     });
   });
 
-  it('should continue an active text part when resuming after a disconnect', async () => {
-    const chat = new TestChat({
-      id: '123',
-      generateId: mockId(),
-      transport: {
-        sendMessages: async () => {
-          const chunks: UIMessageChunk[] = [
-            { type: 'start', messageId: 'assistant-1' },
-            { type: 'start-step' },
-            { type: 'text-start', id: 'text-1' },
-            { type: 'text-delta', id: 'text-1', delta: 'Hello' },
-          ];
-          let index = 0;
+  it.each([
+    'network connection lost',
+    'Failed to fetch',
+    'network error',
+    'NetworkError when attempting to fetch resource.',
+    'fetch failed',
+    'Load failed',
+  ])(
+    'should continue an active text part after a disconnect with "%s"',
+    async errorMessage => {
+      const onFinish = vi.fn();
+      const chat = new TestChat({
+        id: '123',
+        generateId: mockId(),
+        onFinish,
+        transport: {
+          sendMessages: async () => {
+            const chunks: UIMessageChunk[] = [
+              { type: 'start', messageId: 'assistant-1' },
+              { type: 'start-step' },
+              { type: 'text-start', id: 'text-1' },
+              { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+            ];
+            let index = 0;
 
-          return new ReadableStream<UIMessageChunk>({
-            pull(controller) {
-              if (index < chunks.length) {
-                controller.enqueue(chunks[index++]);
-              } else {
-                controller.error(new TypeError('network connection lost'));
-              }
-            },
-          });
+            return new ReadableStream<UIMessageChunk>({
+              pull(controller) {
+                if (index < chunks.length) {
+                  controller.enqueue(chunks[index++]);
+                } else {
+                  controller.error(new TypeError(errorMessage));
+                }
+              },
+            });
+          },
+          reconnectToStream: async () =>
+            new ReadableStream<UIMessageChunk>({
+              start(controller) {
+                controller.enqueue({
+                  type: 'text-delta',
+                  id: 'text-1',
+                  delta: ' and loved well',
+                });
+                controller.enqueue({ type: 'text-end', id: 'text-1' });
+                controller.enqueue({ type: 'finish-step' });
+                controller.enqueue({ type: 'finish', finishReason: 'stop' });
+                controller.close();
+              },
+            }),
         },
-        reconnectToStream: async () =>
-          new ReadableStream<UIMessageChunk>({
-            start(controller) {
-              controller.enqueue({
-                type: 'text-delta',
-                id: 'text-1',
-                delta: ' and loved well',
-              });
-              controller.enqueue({ type: 'text-end', id: 'text-1' });
-              controller.enqueue({ type: 'finish-step' });
-              controller.enqueue({ type: 'finish', finishReason: 'stop' });
-              controller.close();
-            },
-          }),
-      },
-    });
+      });
 
-    await chat.sendMessage({ text: 'Continue the response.' });
+      await chat.sendMessage({ text: 'Continue the response.' });
 
-    expect(chat.status).toBe('error');
-    expect(chat.messages.at(-1)?.parts).toEqual([
-      { type: 'step-start' },
-      {
-        type: 'text',
-        text: 'Hello',
-        state: 'streaming',
-        providerMetadata: undefined,
-      },
-    ]);
+      expect(chat.status).toBe('error');
+      expect(onFinish).toHaveBeenCalledWith(
+        expect.objectContaining({ isDisconnect: true, isError: true }),
+      );
+      expect(chat.messages.at(-1)?.parts).toEqual([
+        { type: 'step-start' },
+        {
+          type: 'text',
+          text: 'Hello',
+          state: 'streaming',
+          providerMetadata: undefined,
+        },
+      ]);
 
-    chat.clearError();
-    await chat.resumeStream();
+      chat.clearError();
+      await chat.resumeStream();
 
-    expect(chat.status).toBe('ready');
-    expect(chat.messages.at(-1)?.parts).toEqual([
-      { type: 'step-start' },
-      {
-        type: 'text',
-        text: 'Hello and loved well',
-        state: 'done',
-        providerMetadata: undefined,
-      },
-    ]);
-  });
+      expect(chat.status).toBe('ready');
+      expect(chat.messages.at(-1)?.parts).toEqual([
+        { type: 'step-start' },
+        {
+          type: 'text',
+          text: 'Hello and loved well',
+          state: 'done',
+          providerMetadata: undefined,
+        },
+      ]);
+    },
+  );
 
   describe('send handle a stop and an aborted response stream', () => {
     let chat: TestChat;
@@ -1333,6 +1358,41 @@ describe('Chat', () => {
     expect(chat.messages).toHaveLength(1);
     expect((chat.messages[0].parts[1] as any).text).toBe('latest');
     expect(chat.status).toBe('ready');
+  });
+
+  it('should publish the latest error after repeated failed resume attempts', async () => {
+    const reconnectErrors = [
+      new Error('first reconnect failure'),
+      new Error('second reconnect failure'),
+    ];
+    const state = new TestChatState<UIMessage>();
+    const onError = vi.fn();
+    let reconnectCount = 0;
+
+    const chat = new TestChatWithState({
+      id: '123',
+      state,
+      transport: {
+        sendMessages: async () => {
+          throw new Error('not implemented');
+        },
+        reconnectToStream: async () => {
+          throw reconnectErrors[reconnectCount++];
+        },
+      },
+      onError,
+    });
+
+    await chat.resumeStream();
+    await chat.resumeStream();
+
+    expect(chat.status).toBe('error');
+    expect(chat.error).toBe(reconnectErrors[1]);
+    expect(state.errorHistory).toEqual(reconnectErrors);
+    expect(onError.mock.calls).toEqual([
+      [reconnectErrors[0]],
+      [reconnectErrors[1]],
+    ]);
   });
 
   it('should include the metadata of text message', async () => {

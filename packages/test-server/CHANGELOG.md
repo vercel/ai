@@ -1,5 +1,11 @@
 # @ai-sdk/test-server
 
+## 2.0.4
+
+### Patch Changes
+
+- 0af2f7c: chore: upgrade to TypeScript 6
+
 ## 2.0.3
 
 ### Patch Changes

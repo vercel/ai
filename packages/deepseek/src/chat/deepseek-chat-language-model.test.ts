@@ -676,6 +676,23 @@ describe('DeepSeekChatLanguageModel', () => {
         });
       });
 
+      it('should map top-level reasoning max directly to reasoning_effort max', async () => {
+        const result = await provider.chat('deepseek-reasoner').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'max',
+        });
+
+        expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+          'max',
+        );
+        expect(result.warnings).not.toContainEqual(
+          expect.objectContaining({
+            type: 'compatibility',
+            feature: 'reasoning',
+          }),
+        );
+      });
+
       it('should map top-level reasoning low to reasoning_effort low without a compatibility warning', async () => {
         const result = await provider.chat('deepseek-reasoner').doGenerate({
           prompt: TEST_PROMPT,

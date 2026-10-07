@@ -65,6 +65,7 @@ import {
 import {
   createPiTranslatorState,
   finishPiApprovalStep,
+  toHarnessUsage,
   translatePiEvent,
   type PiTranslatorState,
 } from './pi-translate';
@@ -94,6 +95,7 @@ type PiMcpAdapterModule = {
         directTools: boolean;
         toolPrefix: string;
         disableProxyTool: boolean;
+        outputGuard?: boolean;
       };
     };
   }): ExtensionFactory;
@@ -233,13 +235,36 @@ export type PiThinkingLevel =
   | 'xhigh'
   | 'max';
 
+export interface PiMcpSettings {
+  /**
+   * How MCP tool names are prefixed: `mcp` (`mcp__<server>_<tool>`), `server`
+   * (`<server>_<tool>`), `short` (the server name without an `mcp` suffix), or
+   * `none` (the bare tool name). Only `mcp`-prefixed tool calls are reported
+   * as provider-executed dynamic tools with parsed JSON results.
+   *
+   * @default 'mcp'
+   */
+  readonly toolPrefix?: 'server' | 'none' | 'short' | 'mcp';
+  /**
+   * Whether the MCP adapter truncates large tool results and writes the full
+   * text to a file in the host temp directory.
+   *
+   * @default true
+   */
+  readonly outputGuard?: boolean;
+}
+
+export type PiCacheRetention = 'none' | 'short' | 'long';
+
 export interface PiSessionSettings {
   readonly auth?: PiAuthenticationMode;
   readonly credentials?: PiCredentialStore;
   readonly reattachInProcess?: boolean;
   readonly headers?: Readonly<Record<string, string>>;
   readonly thinkingLevel?: PiThinkingLevel;
+  readonly cacheRetention?: PiCacheRetention;
   readonly mcpServers?: Record<string, unknown>;
+  readonly mcpSettings?: PiMcpSettings;
   readonly providers?: Readonly<Record<string, ProviderConfig>>;
   readonly extensionFactories?: ReadonlyArray<ExtensionFactory>;
 }
@@ -283,7 +308,9 @@ function hasCompatibleReattachSettings(
     parked.settings.credentials === current.settings.credentials &&
     parked.settings.headers === current.settings.headers &&
     parked.settings.thinkingLevel === current.settings.thinkingLevel &&
+    parked.settings.cacheRetention === current.settings.cacheRetention &&
     parked.settings.mcpServers === current.settings.mcpServers &&
+    parked.settings.mcpSettings === current.settings.mcpSettings &&
     parked.settings.providers === current.settings.providers &&
     parked.settings.extensionFactories === current.settings.extensionFactories
   );
@@ -559,6 +586,7 @@ export async function createPiSession(
             directTools: true,
             toolPrefix: 'mcp',
             disableProxyTool: true,
+            ...input.settings.mcpSettings,
           },
         },
       }),
@@ -1076,7 +1104,11 @@ export async function createPiSession(
     };
   }
 
-  async function disposePiSession(): Promise<void> {
+  async function disposePiSession({
+    reason,
+  }: {
+    reason: 'reload' | 'quit';
+  }): Promise<void> {
     unsubscribe?.();
     unsubscribe = undefined;
 
@@ -1085,7 +1117,9 @@ export async function createPiSession(
     if (!session) return;
 
     if (hasMcpServers) {
-      await session.reload().catch(() => {});
+      await session.extensionRunner
+        .emit({ type: 'session_shutdown', reason })
+        .catch(() => {});
     }
     session.dispose();
   }
@@ -1096,7 +1130,7 @@ export async function createPiSession(
   ): Promise<boolean> {
     let resourcesReloaded = false;
     if (piSession) {
-      await disposePiSession();
+      await disposePiSession({ reason: 'reload' });
       // Original adapter waits 25 ms here to let Pi's teardown microtasks
       // settle before the next createAgentSession. Port verbatim.
       // TODO(pi-0.77): verify the race still exists; original SDK had a
@@ -1137,6 +1171,15 @@ export async function createPiSession(
       ...(activeResolvedModel ? { model: activeResolvedModel } : {}),
     });
     piSession = session;
+    const cacheRetention = input.settings.cacheRetention;
+    if (cacheRetention) {
+      const streamFunction = session.agent.streamFunction;
+      session.agent.streamFunction = (model, context, options) =>
+        streamFunction(model, context, {
+          ...options,
+          cacheRetention: options?.cacheRetention ?? cacheRetention,
+        });
+    }
     if (hasMcpServers) {
       await piSession.bindExtensions({ mode: 'print' });
     }
@@ -1191,6 +1234,15 @@ export async function createPiSession(
       throw new Error('Pi session has been stopped.');
     }
 
+    const nextModel =
+      turnOpts.model == null ? undefined : resolveModel(turnOpts.model);
+    if (turnOpts.model != null && nextModel == null) {
+      throw new HarnessCapabilityUnsupportedError({
+        message: `Harness 'pi' has no model '${turnOpts.model}' in its catalog.`,
+        harnessId: HARNESS_ID,
+      });
+    }
+
     const skillWriteResult = await writeSkills({
       sandbox: toolSafeSandboxSession,
       homePath: sandboxHomeDir,
@@ -1235,8 +1287,6 @@ export async function createPiSession(
         const didAppendDeliveredHostToolResults =
           appendDeliveredHostToolResults();
 
-        const nextModel =
-          turnOpts.model == null ? undefined : resolveModel(turnOpts.model);
         if (nextModel != null) activeResolvedModel = nextModel;
 
         const signature = JSON.stringify(userTools.map(t => t.name).sort());
@@ -1329,6 +1379,7 @@ export async function createPiSession(
           }
         });
 
+        const tokensBefore = session.getSessionStats().tokens;
         try {
           await session.prompt(turnOpts.text);
 
@@ -1348,28 +1399,21 @@ export async function createPiSession(
             return;
           }
 
-          const stats = session.getSessionStats();
+          const tokensAfter = session.getSessionStats().tokens;
           const finishReason = {
             unified: 'stop' as const,
             raw: undefined,
           };
-          const usage = {
-            inputTokens: {
-              total: stats.tokens.input,
-              noCache: undefined,
-              cacheRead: stats.tokens.cacheRead,
-              cacheWrite: stats.tokens.cacheWrite,
-            },
-            outputTokens: {
-              total: stats.tokens.output,
-              text: undefined,
-              reasoning: undefined,
-            },
-          };
           currentEmit?.({
             type: 'finish',
             finishReason,
-            totalUsage: usage,
+            totalUsage: toHarnessUsage({
+              input: tokensAfter.input - tokensBefore.input,
+              output: tokensAfter.output - tokensBefore.output,
+              cacheRead: tokensAfter.cacheRead - tokensBefore.cacheRead,
+              cacheWrite: tokensAfter.cacheWrite - tokensBefore.cacheWrite,
+              reasoning: translatorState?.turnReasoningTokens,
+            }),
           });
         } catch (err) {
           // A `doSuspendTurn` aborts the in-flight turn on purpose — settle silently
@@ -1444,7 +1488,7 @@ export async function createPiSession(
       }
     }
 
-    await disposePiSession();
+    await disposePiSession({ reason: 'quit' });
     workspaceVfs.unmount();
     await rm(hostRoot, { recursive: true, force: true });
 
@@ -1573,7 +1617,7 @@ export async function createPiSession(
       settlePendingToolApprovals('Pi session stopped');
       await abortingTurn;
       await turnToDestroy?.done.catch(() => {});
-      await disposePiSession();
+      await disposePiSession({ reason: 'quit' });
       workspaceVfs.unmount();
       await rm(hostRoot, { recursive: true, force: true });
     },
@@ -1686,7 +1730,7 @@ export async function createPiSession(
 
       stopped = true;
       parkedPiSessions.delete(input.sessionId);
-      await disposePiSession();
+      await disposePiSession({ reason: 'quit' });
       workspaceVfs.unmount();
       await rm(hostRoot, { recursive: true, force: true });
 

@@ -528,6 +528,93 @@ describe('translatePiEvent', () => {
     ]);
   });
 
+  it("reports each step's usage from its assistant message", () => {
+    const state = createPiTranslatorState({ builtinToolNames: ['bash'] });
+    const toolStep = emit(
+      [
+        { type: 'turn_start' } as PiSessionEvent,
+        {
+          type: 'message_start',
+          message: { role: 'assistant', content: [] },
+        } as PiSessionEvent,
+        {
+          type: 'message_end',
+          message: {
+            role: 'assistant',
+            content: [{ type: 'toolCall', id: 'c-usage', name: 'bash' }],
+            usage: {
+              input: 4,
+              output: 137,
+              cacheRead: 0,
+              cacheWrite: 13343,
+              totalTokens: 13484,
+            },
+          },
+        } as PiSessionEvent,
+        {
+          type: 'tool_execution_start',
+          toolCallId: 'c-usage',
+          toolName: 'bash',
+          args: { command: 'pwd' },
+        } as PiSessionEvent,
+        {
+          type: 'tool_execution_end',
+          toolCallId: 'c-usage',
+          result: 'ok',
+        } as PiSessionEvent,
+      ],
+      state,
+    );
+    const textStep = emit(
+      [
+        {
+          type: 'message_start',
+          message: { role: 'assistant', content: [] },
+        } as PiSessionEvent,
+        {
+          type: 'message_end',
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'done' }],
+            usage: {
+              input: 2,
+              output: 137,
+              cacheRead: 13403,
+              cacheWrite: 0,
+              reasoning: 40,
+              totalTokens: 13542,
+            },
+          },
+        } as PiSessionEvent,
+        { type: 'turn_end' } as PiSessionEvent,
+      ],
+      state,
+    );
+
+    expect(toolStep.find(p => p.type === 'finish-step')).toMatchObject({
+      usage: {
+        inputTokens: {
+          total: 13347,
+          noCache: 4,
+          cacheRead: 0,
+          cacheWrite: 13343,
+        },
+        outputTokens: { total: 137, text: undefined, reasoning: undefined },
+      },
+    });
+    expect(textStep.find(p => p.type === 'finish-step')).toMatchObject({
+      usage: {
+        inputTokens: {
+          total: 13405,
+          noCache: 2,
+          cacheRead: 13403,
+          cacheWrite: 0,
+        },
+        outputTokens: { total: 137, text: 97, reasoning: 40 },
+      },
+    });
+  });
+
   it('emits finish-step after a built-in approval request pauses the step', () => {
     const state = createPiTranslatorState();
     emit(

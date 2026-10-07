@@ -52,14 +52,17 @@ type ResourceLoaderOptions = {
 };
 
 const piMock = vi.hoisted(() => {
-  const extensionHandlers = new Map<string, Array<() => unknown>>();
+  const extensionHandlers = new Map<
+    string,
+    Array<(event?: unknown) => unknown>
+  >();
   return {
     agentSessionExtensionResults: [] as FakeExtensionsResult[],
     createAgentSession: vi.fn(),
     customTools: [] as FakePiTool[],
     appendSystemPrompts: [] as string[][],
     extensionApi: {
-      on: vi.fn((eventType: string, handler: () => unknown) => {
+      on: vi.fn((eventType: string, handler: (event?: unknown) => unknown) => {
         const handlers = extensionHandlers.get(eventType) ?? [];
         handlers.push(handler);
         extensionHandlers.set(eventType, handlers);
@@ -219,6 +222,39 @@ describe('createPiSession', () => {
     }
   });
 
+  it('fails the turn when the requested model is not in the Pi catalog', async () => {
+    const { session: fakePiSession, prompt } = createFakePiSession();
+    piMock.session = fakePiSession;
+    const session = await createPiSession({
+      sessionId: 'session-unknown-model',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+      settings: {},
+      clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+      isResume: false,
+    });
+
+    try {
+      await expect(
+        session.doPromptTurn({
+          skills: [],
+          tools: [],
+          prompt: 'Hello.',
+          model: 'openai/not-a-real-model',
+          emit: vi.fn(),
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_HarnessCapabilityUnsupportedError',
+        harnessId: 'pi',
+        message:
+          "Harness 'pi' has no model 'openai/not-a-real-model' in its catalog.",
+      });
+      expect(prompt).not.toHaveBeenCalled();
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
   it('loads a caller-supplied inline extension factory through createPi', async () => {
     const factory = vi.fn((piApi: ExtensionAPI) => {
       expect(piApi).toBe(piMock.extensionApi);
@@ -299,6 +335,51 @@ describe('createPiSession', () => {
     }
   });
 
+  it('defaults model requests to the cacheRetention setting', async () => {
+    const streamFunction = vi.fn();
+    const piSession = Object.assign(createFakePiSession().session, {
+      agent: { streamFunction },
+    });
+    piMock.session = piSession;
+
+    const session = await createPi({ cacheRetention: 'long' }).doStart({
+      sessionId: 'session-cache-retention',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+    });
+
+    try {
+      const control = await session.doPromptTurn({
+        skills: [],
+        prompt: 'Hello.',
+        tools: [],
+        emit: vi.fn(),
+      });
+      await control.done;
+
+      const model = { id: 'claude-sonnet-4-5' };
+      const context = { messages: [] };
+      piSession.agent.streamFunction(model as never, context as never, {
+        maxTokens: 1024,
+      });
+
+      expect(streamFunction).toHaveBeenCalledWith(model, context, {
+        maxTokens: 1024,
+        cacheRetention: 'long',
+      });
+
+      piSession.agent.streamFunction(model as never, context as never, {
+        cacheRetention: 'none',
+      });
+
+      expect(streamFunction).toHaveBeenLastCalledWith(model, context, {
+        cacheRetention: 'none',
+      });
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
   it('preserves caller order and passes a fresh mutable factory array', async () => {
     const callOrder: string[] = [];
     const firstFactory: ExtensionFactory = () => {
@@ -372,6 +453,92 @@ describe('createPiSession', () => {
       expect(observedEvents).toEqual(['agent_start', 'agent_start']);
       expect(piMock.resourceLoaderReloadCount).toBe(3);
       expect(piMock.agentSessionExtensionResults).toHaveLength(1);
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it("reports each turn's own usage rather than the session's running total", async () => {
+    const sessionTokens = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
+    const turnUsages = [
+      { input: 4, output: 137, cacheRead: 0, cacheWrite: 13343, reasoning: 0 },
+      {
+        input: 2,
+        output: 45,
+        cacheRead: 13343,
+        cacheWrite: 168,
+        reasoning: 30,
+      },
+    ];
+    let turnIndex = 0;
+    piMock.session = createFakePiSession({
+      getSessionStats: () => ({ tokens: { ...sessionTokens } }),
+      promptImplementation: async (_text, emitEvent) => {
+        const usage = turnUsages[turnIndex++];
+        sessionTokens.input += usage.input;
+        sessionTokens.output += usage.output;
+        sessionTokens.cacheRead += usage.cacheRead;
+        sessionTokens.cacheWrite += usage.cacheWrite;
+        const message = {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'done' }],
+          usage,
+        };
+        emitEvent({ type: 'turn_start' });
+        emitEvent({ type: 'message_start', message });
+        emitEvent({ type: 'message_end', message });
+        emitEvent({ type: 'turn_end', message });
+      },
+    }).session;
+    const session = await createPiSession({
+      sessionId: 'session-turn-usage',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+      settings: {},
+      clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+      isResume: false,
+    });
+
+    try {
+      const finishes: unknown[] = [];
+      for (const prompt of ['first turn', 'second turn']) {
+        const emit = vi.fn();
+        const control = await session.doPromptTurn({
+          skills: [],
+          prompt,
+          tools: [],
+          emit,
+        });
+        await control.done;
+        finishes.push(
+          emit.mock.calls.map(([part]) => part).find(p => p.type === 'finish'),
+        );
+      }
+
+      expect(finishes).toEqual([
+        expect.objectContaining({
+          totalUsage: {
+            inputTokens: {
+              total: 13347,
+              noCache: 4,
+              cacheRead: 0,
+              cacheWrite: 13343,
+            },
+            outputTokens: { total: 137, text: 137, reasoning: 0 },
+          },
+        }),
+        expect.objectContaining({
+          totalUsage: {
+            inputTokens: {
+              total: 13513,
+              noCache: 2,
+              cacheRead: 13343,
+              cacheWrite: 168,
+            },
+            outputTokens: { total: 45, text: 15, reasoning: 30 },
+          },
+        }),
+      ]);
     } finally {
       await session.doDestroy();
     }
@@ -548,15 +715,14 @@ describe('createPiSession', () => {
   it('registers configured MCP servers as direct Pi extension tools', async () => {
     const bindExtensions = vi.fn(async () => {});
     const dispose = vi.fn();
-    const reload = vi.fn(async () => {});
     piMock.session = {
       bindExtensions,
       dispose,
+      extensionRunner: { emit: vi.fn(async () => {}) },
       getSessionStats: () => ({
         tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
       }),
       prompt: vi.fn(async () => {}),
-      reload,
       subscribe: vi.fn(() => () => {}),
     } as unknown as AgentSession;
 
@@ -601,8 +767,154 @@ describe('createPiSession', () => {
       expect.objectContaining({ noTools: 'builtin' }),
     );
     expect(bindExtensions).toHaveBeenCalledWith({ mode: 'print' });
-    expect(reload).toHaveBeenCalledTimes(1);
     expect(dispose).toHaveBeenCalledTimes(1);
+  });
+
+  it('shuts down MCP servers on dispose without reloading the Pi session', async () => {
+    const emit = vi.fn(async () => {});
+    const dispose = vi.fn();
+    const reload = vi.fn(async () => {});
+    piMock.session = {
+      bindExtensions: vi.fn(async () => {}),
+      dispose,
+      extensionRunner: { emit },
+      getSessionStats: () => ({
+        tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+      }),
+      prompt: vi.fn(async () => {}),
+      reload,
+      subscribe: vi.fn(() => () => {}),
+    } as unknown as AgentSession;
+
+    const session = await createPiSession({
+      sessionId: 'session-mcp-dispose',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+      settings: {
+        mcpServers: {
+          memory: { command: 'memory-mcp', args: [], lifecycle: 'eager' },
+        },
+      },
+      clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+      isResume: false,
+    });
+    const control = await session.doPromptTurn({
+      skills: [],
+      prompt: 'Use an MCP tool.',
+      tools: [],
+      emit: vi.fn(),
+    });
+    await control.done;
+    await session.doDestroy();
+
+    expect(reload).not.toHaveBeenCalled();
+    expect(emit).toHaveBeenCalledWith({
+      type: 'session_shutdown',
+      reason: 'quit',
+    });
+    expect(emit.mock.invocationCallOrder[0]).toBeLessThan(
+      dispose.mock.invocationCallOrder[0],
+    );
+  });
+
+  it('preserves extension shutdown reasons when MCP sessions rebuild', async () => {
+    const observedReasons: string[] = [];
+    const factory = vi.fn((piApi: ExtensionAPI) => {
+      piApi.on('session_shutdown', event => {
+        observedReasons.push(event.reason);
+      });
+    });
+    const createSessionMock = (handlerIndex: number) => {
+      const emit = vi.fn(
+        async (event: {
+          type: 'session_shutdown';
+          reason: 'reload' | 'quit';
+        }) => {
+          await piMock.extensionHandlers
+            .get('session_shutdown')
+            ?.[handlerIndex]?.(event);
+        },
+      );
+      const dispose = vi.fn();
+      const reload = vi.fn(async () => {});
+      return {
+        emit,
+        dispose,
+        reload,
+        session: {
+          bindExtensions: vi.fn(async () => {}),
+          dispose,
+          extensionRunner: { emit },
+          getSessionStats: () => ({
+            tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+          }),
+          prompt: vi.fn(async () => {}),
+          reload,
+          subscribe: vi.fn(() => () => {}),
+        } as unknown as AgentSession,
+      };
+    };
+    const first = createSessionMock(0);
+    const second = createSessionMock(1);
+    piMock.createAgentSession
+      .mockResolvedValueOnce({ session: first.session })
+      .mockResolvedValueOnce({ session: second.session });
+
+    const session = await createPi({
+      extensionFactories: [factory],
+      mcpServers: {
+        memory: { command: 'memory-mcp', args: [], lifecycle: 'eager' },
+      },
+    }).doStart({
+      sessionId: 'session-mcp-rebuild',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+    });
+
+    try {
+      const firstControl = await session.doPromptTurn({
+        skills: [],
+        prompt: 'First turn.',
+        tools: [],
+        emit: vi.fn(),
+      });
+      await firstControl.done;
+      const secondControl = await session.doPromptTurn({
+        skills: [],
+        prompt: 'Second turn.',
+        tools: [{ name: 'new-tool' }],
+        emit: vi.fn(),
+      });
+      await secondControl.done;
+
+      expect(observedReasons).toEqual(['reload']);
+      expect(first.emit).toHaveBeenCalledExactlyOnceWith({
+        type: 'session_shutdown',
+        reason: 'reload',
+      });
+      expect(first.emit.mock.invocationCallOrder[0]).toBeLessThan(
+        first.dispose.mock.invocationCallOrder[0],
+      );
+      expect(first.reload).not.toHaveBeenCalled();
+      expect(factory).toHaveBeenCalledTimes(2);
+      expect(mcpAdapterMock.mcpExtensionFactory).toHaveBeenCalledTimes(2);
+
+      await session.doDestroy();
+
+      expect(observedReasons).toEqual(['reload', 'quit']);
+      expect(second.emit).toHaveBeenCalledExactlyOnceWith({
+        type: 'session_shutdown',
+        reason: 'quit',
+      });
+      expect(second.emit.mock.invocationCallOrder[0]).toBeLessThan(
+        second.dispose.mock.invocationCallOrder[0],
+      );
+      expect(second.reload).not.toHaveBeenCalled();
+      expect(factory).toHaveBeenCalledTimes(2);
+      expect(mcpAdapterMock.mcpExtensionFactory).toHaveBeenCalledTimes(2);
+    } finally {
+      await session.doDestroy();
+    }
   });
 
   it('loads configured MCP servers alongside caller-supplied extension factories', async () => {
@@ -628,6 +940,43 @@ describe('createPiSession', () => {
       await session.doDestroy();
     }
   });
+
+  it.each([
+    {
+      mcpSettings: { toolPrefix: 'none', outputGuard: false },
+      expected: { toolPrefix: 'none', outputGuard: false },
+    },
+    {
+      mcpSettings: { outputGuard: false },
+      expected: { toolPrefix: 'mcp', outputGuard: false },
+    },
+  ] as const)(
+    'passes mcpSettings $mcpSettings to the MCP adapter over the defaults',
+    async ({ mcpSettings, expected }) => {
+      const mcpServers = { memory: { command: 'memory-mcp', args: [] } };
+
+      const session = await createPi({ mcpServers, mcpSettings }).doStart({
+        sessionId: 'session-mcp-settings',
+        sandboxSession: createSandboxSession(),
+        sessionWorkDir: '/sandbox/work',
+      });
+
+      try {
+        expect(mcpAdapterMock.createMcpAdapter).toHaveBeenCalledWith({
+          config: {
+            mcpServers,
+            settings: {
+              directTools: true,
+              disableProxyTool: true,
+              ...expected,
+            },
+          },
+        });
+      } finally {
+        await session.doDestroy();
+      }
+    },
+  );
 
   it('rejects unsafe resume session filenames before sandbox restore', async () => {
     const sandboxSession = createSandboxSession();
@@ -979,6 +1328,11 @@ describe('createPiSession', () => {
       resumeStateType: 'continue-turn' as const,
       initialAgentDir: '/request-1/agent',
       resumeAgentDir: '/request-2/agent',
+    },
+    {
+      name: 'mcpSettings changed',
+      settings: { mcpSettings: { outputGuard: false } },
+      resumeStateType: 'continue-turn' as const,
     },
   ])('cold-restores a parked session when $name', async input => {
     const toolStarted = createDeferred<void>();
@@ -1648,21 +2002,27 @@ function createDeferred<T>() {
 function createFakePiSession({
   promptEvents = [],
   promptImplementation,
+  getSessionStats = () => ({
+    tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+  }),
 }: {
   promptEvents?: unknown[];
-  promptImplementation?: (text: string) => Promise<void>;
+  promptImplementation?: (
+    text: string,
+    emitEvent: (event: unknown) => void,
+  ) => Promise<void>;
+  getSessionStats?: () => unknown;
 } = {}) {
   const subscribers = new Set<(event: unknown) => void>();
-  const prompt = vi.fn(
-    promptImplementation ??
-      (async (_text: string) => {
-        for (const event of promptEvents) {
-          for (const subscriber of subscribers) {
-            subscriber(event);
-          }
-        }
-      }),
-  );
+  const emitEvent = (event: unknown) => {
+    for (const subscriber of subscribers) {
+      subscriber(event);
+    }
+  };
+  const prompt = vi.fn(async (text: string) => {
+    if (promptImplementation) return promptImplementation(text, emitEvent);
+    for (const event of promptEvents) emitEvent(event);
+  });
   const abort = vi.fn(async () => {});
   const compact = vi.fn(async () => {});
   const dispose = vi.fn();
@@ -1670,9 +2030,7 @@ function createFakePiSession({
     abort,
     compact,
     dispose,
-    getSessionStats: () => ({
-      tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    }),
+    getSessionStats,
     prompt,
     steer: vi.fn(async () => {}),
     subscribe: vi.fn((subscriber: (event: unknown) => void) => {
