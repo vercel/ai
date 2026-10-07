@@ -35,4 +35,6 @@ export type GatewayVideoModelId =
   | 'spacexai/grok-imagine-video'
   | 'spacexai/grok-imagine-video-1.5'
   | 'spacexai/grok-imagine-video-1.5-lite'
+  | 'topaz/proteus'
+  | 'topaz/starlight-precise-2.6'
   | (string & {});
