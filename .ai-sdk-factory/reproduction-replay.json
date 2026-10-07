@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22219,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22219-claude-rate-limit-event.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22219-claude-rate-limit-event.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22219: rate_limit_event was dropped instead of forwarded as raw"
+  }
+}
