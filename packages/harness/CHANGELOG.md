@@ -1,5 +1,11 @@
 # @ai-sdk/harness
 
+## 1.0.142
+
+### Patch Changes
+
+- ai@7.0.131
+
 ## 1.0.141
 
 ### Patch Changes
