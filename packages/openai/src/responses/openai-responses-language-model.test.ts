@@ -293,6 +293,56 @@ describe('OpenAIResponsesLanguageModel', () => {
       ).rejects.toThrow('Responses API returned no output (content_filter)');
     });
 
+    it('should emit one item reference when replaying multiple text parts from one stored message', async () => {
+      prepareJsonFixtureResponse('openai-multiple-output-text-parts.1');
+      const model = createModel('gpt-5-mini');
+      const providerOptions = { openai: { store: true } };
+
+      const first = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions,
+      });
+
+      expect(first.content).toHaveLength(2);
+      const content = first.content.map(part => {
+        expect(part.type).toBe('text');
+        if (part.type !== 'text') {
+          throw new Error('Expected a text part');
+        }
+        expect(part.providerMetadata?.openai?.itemId).toBe('msg_synthetic');
+        return {
+          type: 'text' as const,
+          text: part.text,
+          providerOptions: part.providerMetadata,
+        };
+      });
+
+      await model.doGenerate({
+        prompt: [
+          ...TEST_PROMPT,
+          { role: 'assistant', content },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Continue' }],
+          },
+        ],
+        providerOptions,
+      });
+
+      const secondRequest = await server.calls[1].requestBodyJson;
+      expect(
+        secondRequest.input.filter(
+          (item: { type?: string; id?: string }) =>
+            item.type === 'item_reference' && item.id === 'msg_synthetic',
+        ),
+      ).toHaveLength(1);
+      expect(
+        secondRequest.input.filter(
+          (item: { role?: string }) => item.role === 'user',
+        ),
+      ).toHaveLength(2);
+    });
+
     describe('basic text response', () => {
       beforeEach(() => {
         server.urls['https://api.openai.com/v1/responses'].response = {
