@@ -39,6 +39,7 @@ export type {
   InferCompleteOutput as InferGenerateOutput,
   InferPartialOutput as InferStreamOutput,
 } from './output-utils';
+export type { ContinueCondition } from './continue-condition';
 export type { PrepareStepFunction, PrepareStepResult } from './prepare-step';
 export { pruneMessages } from './prune-messages';
 export type { ReasoningFileOutput, ReasoningOutput } from './reasoning-output';

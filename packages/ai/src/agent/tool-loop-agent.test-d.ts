@@ -10,6 +10,7 @@ import {
   type GenerateTextOnEndCallback,
   type Experimental_ToolCallers,
   type LanguageModelCallEndEvent,
+  type StepResult,
   type ToolApprovalConfiguration,
   type ToolInputRefinement,
 } from '../generate-text';
@@ -21,6 +22,29 @@ import { ToolLoopAgent } from './tool-loop-agent';
 import type { ToolLoopAgentSettings } from './tool-loop-agent-settings';
 
 describe('ToolLoopAgent', () => {
+  describe('continueWhen', () => {
+    it('should infer tool and runtime context step types', () => {
+      const tools = {
+        lookup: tool({
+          inputSchema: z.object({ query: z.string() }),
+          execute: async ({ query }) => query,
+        }),
+      };
+
+      new ToolLoopAgent<never, typeof tools, { tenantId: string }>({
+        model: new MockLanguageModelV4(),
+        tools,
+        runtimeContext: { tenantId: 'tenant-1' },
+        continueWhen: ({ steps }) => {
+          expectTypeOf(steps).toEqualTypeOf<
+            Array<StepResult<typeof tools, { tenantId: string }>>
+          >();
+          return false;
+        },
+      });
+    });
+  });
+
   describe('onFinish callback type compatibility', () => {
     it('should allow StreamTextOnFinishCallback where ToolLoopAgentOnFinishCallback is expected', () => {
       const streamTextCallback: GenerateTextOnEndCallback<

@@ -31,7 +31,7 @@ import type { ToolLoopAgentSettings } from './tool-loop-agent-settings';
  * and calls the LLM again in a new step with the tool results.
  *
  * The loop continues until:
- * - A finish reasoning other than tool-calls is returned, or
+ * - A finish reason other than tool-calls is returned and `continueWhen` does not request another step, or
  * - A tool that is invoked does not have an execute function, or
  * - A tool call needs approval via `toolApproval` or tool-level `needsApproval`, or
  * - A stop condition is met (default stop condition is isStepCount(20))
