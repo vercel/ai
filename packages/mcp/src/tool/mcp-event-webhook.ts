@@ -39,13 +39,28 @@ export type MCPEventWebhookOptions = {
     event: MCPEvent;
   }) => Promise<void>;
   /**
-   * Handles signed gap and termination controls separately from events. Resolve
-   * after durable acceptance.
+   * Handles a signed replay gap: some events are no longer available. Reconcile
+   * application state or notify the agent, then resolve after durable acceptance.
+   * The helper saves the fresh cursor and truncated flag; delivery continues.
+   * Throw to return 503 without changing saved state. Deduplicate by subscription
+   * ID + messageId.
    */
-  onControl?: (args: {
+  onGap?: (args: {
     subscription: MCPEventSubscriptionInfo;
     messageId: string;
-    control: MCPEventControl;
+    gap: Extract<MCPEventControl, { type: 'gap' }>;
+  }) => Promise<void>;
+  /**
+   * Handles signed termination: the server has ended the subscription. Inspect
+   * termination.error and notify the agent, then resolve after durable acceptance.
+   * The helper removes the saved subscription after this callback succeeds.
+   * Throw to return 503 without changing saved state. Deduplicate by subscription
+   * ID + messageId.
+   */
+  onTerminated?: (args: {
+    subscription: MCPEventSubscriptionInfo;
+    messageId: string;
+    termination: Extract<MCPEventControl, { type: 'terminated' }>;
   }) => Promise<void>;
   onError?: (error: unknown) => void;
 };
@@ -59,7 +74,8 @@ export function createMCPEventWebhook({
   store,
   validatePayload,
   onEvent,
-  onControl,
+  onGap,
+  onTerminated,
   onError,
 }: MCPEventWebhookOptions): (request: Request) => Promise<Response> {
   return async request => {
@@ -156,17 +172,23 @@ export function createMCPEventWebhook({
         refreshBefore: subscription.refreshBefore ?? null,
       };
       if (control) {
-        await onControl?.({
-          subscription: subscriptionInfo,
-          messageId: request.headers.get('webhook-id')!,
-          control,
-        });
+        const messageId = request.headers.get('webhook-id')!;
         if (control.type === 'gap') {
+          await onGap?.({
+            subscription: subscriptionInfo,
+            messageId,
+            gap: control,
+          });
           await store.update(subscription.key, {
             cursor: control.cursor,
             truncated: true,
           });
         } else {
+          await onTerminated?.({
+            subscription: subscriptionInfo,
+            messageId,
+            termination: control,
+          });
           await store.delete(subscription.key);
         }
         return new Response(null, { status: 204 });

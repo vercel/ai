@@ -12,17 +12,17 @@ async function main() {
     async onEvent({ event }) {
       console.log('Received comment:', event.data);
     },
-    async onControl({ subscription, control }) {
-      if (control.type === 'gap') {
-        console.log(
-          'Replay gap:',
-          subscription.id,
-          control.cursor,
-          control.truncated,
-        );
-      } else {
-        console.log('Subscription terminated:', subscription.id, control.error);
-      }
+    async onGap({ subscription, gap }) {
+      // Some events cannot be replayed; reconcile state or notify the agent.
+      console.log('Replay gap:', subscription.id, gap.cursor, gap.truncated);
+    },
+    async onTerminated({ subscription, termination }) {
+      // The server ended the subscription; notify the agent of the reason.
+      console.log(
+        'Subscription terminated:',
+        subscription.id,
+        termination.error,
+      );
     },
   });
 

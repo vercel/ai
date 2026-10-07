@@ -76,17 +76,13 @@ export const POST = experimental_createMCPEventWebhook({
   async onEvent({ subscription, event }) {
     console.log(subscription.id, event.name, event.data);
   },
-  async onControl({ subscription, control }) {
-    if (control.type === 'gap') {
-      console.log(
-        'Replay gap:',
-        subscription.id,
-        control.cursor,
-        control.truncated,
-      );
-    } else {
-      console.log('Subscription terminated:', subscription.id, control.error);
-    }
+  async onGap({ subscription, gap }) {
+    // Some events cannot be replayed; reconcile state or notify the agent.
+    console.log('Replay gap:', subscription.id, gap.cursor, gap.truncated);
+  },
+  async onTerminated({ subscription, termination }) {
+    // The server ended the subscription; notify the agent of the reason.
+    console.log('Subscription terminated:', subscription.id, termination.error);
   },
 });
 ```
@@ -96,11 +92,20 @@ The helper verifies signatures and echoes challenges automatically. It invokes
 processing. Processing failures return `503` so the server can retry. In your
 app, resolve `onEvent` only after processing or durably accepting the event.
 
-Signed `gap` and `terminated` messages go to the optional `onControl` callback.
-After it succeeds, a gap saves the fresh cursor and `truncated: true`; termination
-removes the saved subscription. These state updates also occur without `onControl`.
-Control callback or storage failures return `503` for retry. Deduplicate controls
-by subscription ID and the callback's `messageId` (the signed `webhook-id`).
+Two optional callbacks handle signed subscription lifecycle messages:
+
+- `onGap({ subscription, messageId, gap })`: some events are no longer available
+  for replay. Reconcile application state or notify the agent. After the callback
+  succeeds, the helper saves `gap.cursor` and `truncated: true`; the subscription
+  stays active and event delivery continues.
+- `onTerminated({ subscription, messageId, termination })`: the server has ended
+  the subscription. Inspect `termination.error` for the reason and notify the
+  agent. After the callback succeeds, the helper removes the saved subscription.
+
+State updates also occur when the corresponding callback is omitted. Callback or
+storage failures return `503` for retry. Resolve callbacks only after processing
+or durable acceptance, and deduplicate by subscription ID and `messageId` (the
+signed `webhook-id`). The helper does not run or notify an agent automatically.
 
 **Then subscribe using the same store.**
 

@@ -41,16 +41,28 @@ it('exposes events on the existing client and types webhook callbacks', async ()
       // @ts-expect-error Signing secrets must not be exposed to event handlers.
       subscription.delivery.secret;
     },
-    async onControl({ control, subscription, messageId }) {
-      expectTypeOf(control).toEqualTypeOf<Experimental_MCPEventControl>();
+    async onGap({ gap, subscription, messageId }) {
+      expectTypeOf(gap).toEqualTypeOf<
+        Extract<Experimental_MCPEventControl, { type: 'gap' }>
+      >();
       expectTypeOf(messageId).toEqualTypeOf<string>();
-      if (control.type === 'gap') {
-        expectTypeOf(control.cursor).toEqualTypeOf<string>();
-        expectTypeOf(control.truncated).toEqualTypeOf<true>();
-      } else {
-        expectTypeOf(control.error.code).toEqualTypeOf<number>();
-      }
-      // @ts-expect-error Signing secrets must not be exposed to control handlers.
+      expectTypeOf(gap.cursor).toEqualTypeOf<string>();
+      expectTypeOf(gap.truncated).toEqualTypeOf<true>();
+      // @ts-expect-error Gaps do not carry a termination error.
+      gap.error.code;
+      // @ts-expect-error Signing secrets must not be exposed to gap handlers.
+      subscription.delivery.secret;
+    },
+    async onTerminated({ termination, subscription, messageId }) {
+      expectTypeOf(termination).toEqualTypeOf<
+        Extract<Experimental_MCPEventControl, { type: 'terminated' }>
+      >();
+      expectTypeOf(messageId).toEqualTypeOf<string>();
+      expectTypeOf(termination.error.code).toEqualTypeOf<number>();
+      expectTypeOf(termination.error.message).toEqualTypeOf<string>();
+      // @ts-expect-error Terminations do not carry a replay cursor.
+      termination.cursor.toUpperCase();
+      // @ts-expect-error Signing secrets must not be exposed to termination handlers.
       subscription.delivery.secret;
     },
   });

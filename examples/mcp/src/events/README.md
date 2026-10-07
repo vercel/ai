@@ -85,6 +85,14 @@ For long-lived subscriptions, call `client.experimental_events.refresh`
 before `refreshBefore`. Real deliveries can be duplicated; production handlers
 should deduplicate by subscription ID and event ID.
 
+The webhook also accepts optional `onGap` and `onTerminated` callbacks, shown in
+`client.ts`. A gap means some events cannot be replayed: reconcile application
+state or notify the agent, then delivery continues with the fresh cursor.
+Termination means the server ended the subscription: inspect `termination.error`
+and notify the agent; the SDK removes the saved subscription. The demo server
+only emits events, so these lifecycle callbacks are not exercised by this run.
+Deduplicate lifecycle messages by subscription ID and `messageId`.
+
 ## API Reference
 
 - [Event discovery, subscribe, refresh, and unsubscribe](https://ai-sdk.dev/docs/reference/ai-sdk-core/mcp-events)

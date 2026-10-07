@@ -19,13 +19,15 @@ describe('MCP event webhook receiver', () => {
     cursor: 'cursor_2',
   };
   const onEvent = vi.fn(async () => {});
-  const onControl = vi.fn(async () => {});
+  const onGap = vi.fn(async () => {});
+  const onTerminated = vi.fn(async () => {});
   const onError = vi.fn();
   let webhook: ReturnType<typeof createMCPEventWebhook>;
 
   beforeEach(async () => {
     onEvent.mockReset();
-    onControl.mockReset();
+    onGap.mockReset();
+    onTerminated.mockReset();
     onError.mockReset();
     store = new MemoryEventStore();
     subscription = {
@@ -48,7 +50,8 @@ describe('MCP event webhook receiver', () => {
     webhook = createMCPEventWebhook({
       store,
       onEvent,
-      onControl,
+      onGap,
+      onTerminated,
       onError,
       async validatePayload({ definition, data }) {
         expect(definition.name).toBe(eventDefinition.name);
@@ -65,6 +68,8 @@ describe('MCP event webhook receiver', () => {
     );
     expect(response.status).toBe(204);
     expect(onEvent).toHaveBeenCalledOnce();
+    expect(onGap).not.toHaveBeenCalled();
+    expect(onTerminated).not.toHaveBeenCalled();
     expect(onEvent).toHaveBeenCalledWith({
       subscription: {
         id: subscription.id,
@@ -93,6 +98,8 @@ describe('MCP event webhook receiver', () => {
     );
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ challenge: 'single_use_nonce' });
+    expect(onGap).not.toHaveBeenCalled();
+    expect(onTerminated).not.toHaveBeenCalled();
     expect(onEvent).not.toHaveBeenCalled();
     expect(await store.get(subscription.key)).toMatchObject({
       status: 'pending',
@@ -230,7 +237,11 @@ describe('MCP event webhook receiver', () => {
           .status,
       ).toBe(204);
       expect(onEvent).not.toHaveBeenCalled();
-      expect(onControl).toHaveBeenCalledWith({
+      const callback = control.type === 'gap' ? onGap : onTerminated;
+      const otherCallback = control.type === 'gap' ? onTerminated : onGap;
+      expect(callback).toHaveBeenCalledOnce();
+      expect(otherCallback).not.toHaveBeenCalled();
+      expect(callback).toHaveBeenCalledWith({
         subscription: {
           id: subscription.id,
           name: subscription.name,
@@ -239,8 +250,9 @@ describe('MCP event webhook receiver', () => {
           refreshBefore: subscription.refreshBefore,
         },
         messageId,
-        control:
-          control.type === 'gap' ? { ...control, truncated: true } : control,
+        ...(control.type === 'gap'
+          ? { gap: { ...control, truncated: true } }
+          : { termination: control }),
       });
       if (control.type === 'gap') {
         expect(await store.get(subscription.key)).toMatchObject({
@@ -260,7 +272,8 @@ describe('MCP event webhook receiver', () => {
   it.each(controls)(
     'returns 503 and preserves state when $type control handling fails',
     async control => {
-      onControl.mockRejectedValueOnce(new Error('Queue unavailable'));
+      const callback = control.type === 'gap' ? onGap : onTerminated;
+      callback.mockRejectedValueOnce(new Error('Queue unavailable'));
       expect((await webhook(signedRequest(subscription, control))).status).toBe(
         503,
       );
@@ -297,7 +310,7 @@ describe('MCP event webhook receiver', () => {
   );
 
   it.each(controls)(
-    'updates $type control state when no control callback is configured',
+    'updates $type control state when no lifecycle callbacks are configured',
     async control => {
       const handler = createMCPEventWebhook({ store, onEvent });
       expect((await handler(signedRequest(subscription, control))).status).toBe(
@@ -315,6 +328,33 @@ describe('MCP event webhook receiver', () => {
     },
   );
 
+  it.each(['onGap', 'onTerminated'] as const)(
+    'allows configuring only %s and still handles both control types',
+    async callbackName => {
+      const callback = vi.fn(async () => {});
+      const handler = createMCPEventWebhook({
+        store,
+        onEvent,
+        [callbackName]: callback,
+      });
+      for (const control of controls) {
+        expect(
+          (await handler(signedRequest(subscription, control))).status,
+        ).toBe(204);
+      }
+      expect(callback).toHaveBeenCalledOnce();
+      expect(callback).toHaveBeenCalledWith(
+        expect.objectContaining(
+          callbackName === 'onGap'
+            ? { gap: { ...controls[0], truncated: true } }
+            : { termination: controls[1] },
+        ),
+      );
+      expect(await store.get(subscription.key)).toBeUndefined();
+      expect(onEvent).not.toHaveBeenCalled();
+    },
+  );
+
   it.each(controls)(
     'handles $type controls even when the local expiration has passed',
     async control => {
@@ -324,7 +364,9 @@ describe('MCP event webhook receiver', () => {
       expect((await webhook(signedRequest(subscription, control))).status).toBe(
         204,
       );
-      expect(onControl).toHaveBeenCalledOnce();
+      expect(
+        control.type === 'gap' ? onGap : onTerminated,
+      ).toHaveBeenCalledOnce();
       expect(onEvent).not.toHaveBeenCalled();
     },
   );
@@ -336,7 +378,8 @@ describe('MCP event webhook receiver', () => {
       expect((await webhook(signedRequest(subscription, control))).status).toBe(
         503,
       );
-      expect(onControl).not.toHaveBeenCalled();
+      expect(onGap).not.toHaveBeenCalled();
+      expect(onTerminated).not.toHaveBeenCalled();
       expect(await store.get(subscription.key)).toMatchObject({
         status: 'pending',
         cursor: subscription.cursor,
@@ -351,7 +394,8 @@ describe('MCP event webhook receiver', () => {
       const request = signedRequest(subscription, control);
       request.headers.delete('webhook-signature');
       expect((await webhook(request)).status).toBe(401);
-      expect(onControl).not.toHaveBeenCalled();
+      expect(onGap).not.toHaveBeenCalled();
+      expect(onTerminated).not.toHaveBeenCalled();
       expect(onEvent).not.toHaveBeenCalled();
       expect(await store.get(subscription.key)).toEqual(subscription);
     },
@@ -370,7 +414,8 @@ describe('MCP event webhook receiver', () => {
         400,
       );
       expect(onEvent).not.toHaveBeenCalled();
-      expect(onControl).not.toHaveBeenCalled();
+      expect(onGap).not.toHaveBeenCalled();
+      expect(onTerminated).not.toHaveBeenCalled();
       expect(await store.get(subscription.key)).toEqual(subscription);
     },
   );
