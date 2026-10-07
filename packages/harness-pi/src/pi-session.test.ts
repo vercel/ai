@@ -11,7 +11,6 @@ import {
 import type * as PiCodingAgentModule from '@earendil-works/pi-coding-agent';
 import type {
   HarnessV1NetworkSandboxSession,
-  HarnessV1SandboxProvider,
   HarnessV1Session,
   HarnessV1StreamPart,
   HarnessV1ToolSpec,
@@ -1969,13 +1968,13 @@ describe('createPiSession', () => {
     };
     const agent = new HarnessAgent({
       harness: createPi(),
-      sandbox: createSandboxProvider({ sandboxSession }),
       tools: { askUser },
       toolApproval: { askUser: 'user-approval' },
     });
     const session = await agent.createSession({
       sessionId: 'session-harness-agent-cross-process',
       continueFrom,
+      sandboxSession,
     });
 
     try {
@@ -2293,17 +2292,4 @@ function createSandboxSession(options?: {
     ),
   };
   return sandbox as unknown as HarnessV1NetworkSandboxSession;
-}
-
-function createSandboxProvider({
-  sandboxSession,
-}: {
-  sandboxSession: HarnessV1NetworkSandboxSession;
-}): HarnessV1SandboxProvider {
-  return {
-    specificationVersion: 'harness-sandbox-v1',
-    providerId: 'test-sandbox',
-    createSession: async () => sandboxSession,
-    resumeSession: async () => sandboxSession,
-  };
 }

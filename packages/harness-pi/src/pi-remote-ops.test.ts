@@ -13,7 +13,7 @@ import path from 'node:path';
 import { promisify } from 'node:util';
 import { shellQuote } from '@ai-sdk/harness/utils';
 import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
-import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
+import { createJustBashNetworkSandboxSession } from '@ai-sdk/sandbox-just-bash';
 import { describe, expect, it, vi } from 'vitest';
 import { createPiPathMapper } from './pi-paths';
 import { createPiRemoteOps } from './pi-remote-ops';
@@ -136,9 +136,9 @@ function makeOps(behaviors: Parameters<typeof makeMockSandbox>[0]) {
 
 describe('createPiRemoteOps with just-bash', () => {
   it('supports file operations with the seeded realpath command', async () => {
-    const session = await createJustBashSandbox({
+    const session = await createJustBashNetworkSandboxSession({
       cwd: sandboxWorkDir,
-    }).createSession();
+    });
     const sandbox = session.restricted();
 
     try {
@@ -172,9 +172,9 @@ describe('createPiRemoteOps with just-bash', () => {
   });
 
   it('resolves chained workspace symlinks for file operations', async () => {
-    const session = await createJustBashSandbox({
+    const session = await createJustBashNetworkSandboxSession({
       cwd: sandboxWorkDir,
-    }).createSession();
+    });
     const sandbox = session.restricted();
 
     try {
@@ -400,9 +400,9 @@ describe('createPiRemoteOps with just-bash', () => {
   });
 
   it('rejects intermediate workspace symlinks outside readable roots', async () => {
-    const session = await createJustBashSandbox({
+    const session = await createJustBashNetworkSandboxSession({
       cwd: sandboxWorkDir,
-    }).createSession();
+    });
     const sandbox = session.restricted();
 
     try {
@@ -454,9 +454,9 @@ describe('createPiRemoteOps with just-bash', () => {
 });
 
 async function makeJustBashOps() {
-  const sandboxSession = await createJustBashSandbox({
+  const sandboxSession = await createJustBashNetworkSandboxSession({
     cwd: sandboxWorkDir,
-  }).createSession();
+  });
   const sandbox = sandboxSession.restricted();
   const ops = createPiRemoteOps({
     sandbox,
