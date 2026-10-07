@@ -45,7 +45,7 @@
     "zod": "^3.25.76 || ^4.1.8"
   },
   "devDependencies": {
-    "@modelcontextprotocol/sdk": "1.32.0",
+    "@modelcontextprotocol/sdk": "1.32.1",
     "@opencode-ai/sdk": "1.18.31",
     "@types/node": "22.19.19",
     "@types/ws": "^8.5.13",
