@@ -322,8 +322,10 @@ export function convertToOpenAIChatMessages({
           let contentValue: string;
           switch (output.type) {
             case 'text':
-            case 'error-text':
               contentValue = output.value;
+              break;
+            case 'error-text':
+              contentValue = JSON.stringify({ error: output.value });
               break;
             case 'execution-denied':
               contentValue = output.reason ?? 'Tool call execution denied.';

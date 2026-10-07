@@ -695,13 +695,19 @@ export function convertToGoogleMessages(
                   ? { id: part.toolCallId }
                   : {}),
                 name: part.toolName,
-                response: {
-                  name: part.toolName,
-                  content:
-                    output.type === 'execution-denied'
-                      ? (output.reason ?? 'Tool call execution denied.')
-                      : serializeFunctionResponseContent(output.value),
-                },
+                response:
+                  output.type === 'error-text'
+                    ? {
+                        name: part.toolName,
+                        error: output.value,
+                      }
+                    : {
+                        name: part.toolName,
+                        content:
+                          output.type === 'execution-denied'
+                            ? (output.reason ?? 'Tool call execution denied.')
+                            : serializeFunctionResponseContent(output.value),
+                      },
               },
             });
           }
