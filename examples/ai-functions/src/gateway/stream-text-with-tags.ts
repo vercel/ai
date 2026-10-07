@@ -4,7 +4,7 @@ import { run } from '../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: 'anthropic/claude-haiku-4.5',
+    model: 'anthropic/claude-haiku-5.5',
     prompt: 'What are three interesting facts about honeybees?',
     providerOptions: {
       gateway: {

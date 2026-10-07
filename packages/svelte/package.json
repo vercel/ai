@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/svelte",
-  "version": "5.0.128",
+  "version": "5.0.131",
   "license": "Apache-2.0",
   "scripts": {
     "build": "pnpm prepack",
@@ -53,7 +53,7 @@
   "devDependencies": {
     "@ai-sdk/test-server": "workspace:*",
     "@sveltejs/package": "^2.5.7",
-    "@sveltejs/vite-plugin-svelte": "^5.1.1",
+    "@sveltejs/vite-plugin-svelte": "^6.2.4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/svelte": "^5.3.1",
     "@types/node": "22.19.19",
@@ -62,9 +62,9 @@
     "publint": "^0.3.21",
     "svelte": "^5.55.7",
     "svelte-check": "^4.4.8",
-    "typescript": "^5.9.3",
-    "vite": "^6.4.3",
-    "vitest": "^4.1.6",
+    "typescript": "6.0.3",
+    "vite": "^7.3.5",
+    "vitest": "^4.1.11",
     "zod": "3.25.76"
   },
   "homepage": "https://ai-sdk.dev/docs",

@@ -105,6 +105,7 @@ export async function buildModelStepResult(
   const {
     content: rawContent,
     reasoning: reasoningParts,
+    performance: modelCallPerformance,
     responseMetadata,
     warnings,
   } = raw;
@@ -303,16 +304,23 @@ export async function buildModelStepResult(
         },
         totalTokens: 0,
       } as LanguageModelUsage),
-    performance: {
-      effectiveOutputTokensPerSecond: 0,
-      outputTokensPerSecond: undefined,
-      inputTokensPerSecond: undefined,
-      effectiveTotalTokensPerSecond: 0,
-      stepTimeMs: 0,
-      responseTimeMs: 0,
-      toolExecutionMs: {},
-      timeToFirstOutputMs: undefined,
-    },
+    performance:
+      modelCallPerformance == null
+        ? {
+            effectiveOutputTokensPerSecond: 0,
+            outputTokensPerSecond: undefined,
+            inputTokensPerSecond: undefined,
+            effectiveTotalTokensPerSecond: 0,
+            stepTimeMs: 0,
+            responseTimeMs: 0,
+            toolExecutionMs: {},
+            timeToFirstOutputMs: undefined,
+          }
+        : {
+            ...modelCallPerformance,
+            stepTimeMs: modelCallPerformance.responseTimeMs,
+            toolExecutionMs: {},
+          },
     warnings,
     request: {
       body: '',

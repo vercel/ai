@@ -477,7 +477,6 @@ export function runPrompt<
         finishReason: input.finishReason,
         usage: input.usage,
         providerMetadata: input.providerMetadata,
-        warnings: [],
       });
       completedSteps.push(step);
       await lifecycle.stepEnd(step);
@@ -898,6 +897,7 @@ export function runPrompt<
         if (value.type === 'stream-start') {
           const modelId = value.modelId ?? input.model;
           if (modelId != null) result.setModelId(modelId);
+          result.addWarnings(value.warnings ?? []);
           await lifecycle.start(modelId);
         }
 

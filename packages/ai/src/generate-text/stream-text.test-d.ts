@@ -848,7 +848,7 @@ describe('streamText types', () => {
             frequencyPenalty: 0,
             stopSequences: ['stop'],
             seed: 0,
-            reasoning: 'high',
+            reasoning: 'max',
           }),
         });
       });

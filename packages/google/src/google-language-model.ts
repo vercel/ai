@@ -1445,6 +1445,7 @@ function resolveGemini3ThinkingConfig({
       medium: 'medium',
       high: 'high',
       xhigh: 'high',
+      max: 'high',
     },
     warnings,
   });
@@ -1646,6 +1647,18 @@ export const getGroundingMetadataSchema = () =>
               title: z.string().nullish(),
               text: z.string().nullish(),
               fileSearchStore: z.string().nullish(),
+              customMetadata: z
+                .array(
+                  z.object({
+                    key: z.string(),
+                    stringValue: z.string().nullish(),
+                    numericValue: z.number().nullish(),
+                    stringListValue: z
+                      .object({ values: z.array(z.string()).nullish() })
+                      .nullish(),
+                  }),
+                )
+                .nullish(),
             })
             .nullish(),
           maps: z
