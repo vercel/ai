@@ -1,5 +1,19 @@
 # ai
 
+## 6.0.302
+
+### Patch Changes
+
+- 5430af1: fix(ai): preserve V2 provider-reported total tokens in raw usage
+- f8d8324: fix(ai): publish the latest error after repeated failed stream resume attempts
+- 5df41a7: fix(ai): prevent unavailable tools, including tools named after Object.prototype properties, from exposing persisted output to models
+- 6a12ead: fix(ai): avoid duplicate slashes in chat reconnect URLs
+- Updated dependencies [bedd5bb]
+- Updated dependencies [6dd6693]
+- Updated dependencies [5607cb2]
+- Updated dependencies [fca8a28]
+  - @ai-sdk/gateway@3.0.211
+
 ## 6.0.301
 
 ### Patch Changes
