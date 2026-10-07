@@ -328,7 +328,7 @@ import { amazonBedrock } from '@ai-sdk/amazon-bedrock';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: amazonBedrock('us.anthropic.claude-haiku-4-5-20251001-v1:0'),
+  model: amazonBedrock('us.anthropic.claude-haiku-5-5'),
   messages: [
     {
       role: 'user',
@@ -1823,6 +1823,7 @@ on how to integrate reasoning into your chatbot.
 | `us.anthropic.claude-fable-5-1`                | <Check />   | <Check />         | <Check />  | <Check />    | <Check /> |
 | `us.anthropic.claude-sonnet-5-5`               | <Check />   | <Check />         | <Check />  | <Check />    | <Check /> |
 | `us.anthropic.claude-sonnet-5`                 | <Check />   | <Check />         | <Check />  | <Check />    | <Check /> |
+| `us.anthropic.claude-haiku-5-5`                | <Check />   | <Check />         | <Check />  | <Check />    | <Check /> |
 | `us.anthropic.claude-fable-5`                  | <Check />   | <Check />         | <Check />  | <Check />    | <Check /> |
 | `us.anthropic.claude-opus-4-8`                 | <Check />   | <Check />         | <Check />  | <Check />    | <Check /> |
 | `us.anthropic.claude-opus-4-7`                 | <Check />   | <Check />         | <Check />  | <Check />    | <Check /> |

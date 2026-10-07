@@ -247,7 +247,7 @@ import {
 // The receiver uses this token to look up the expected batch and signing
 // secret before trusting anything in the webhook body.
 const token = randomUUID();
-const model = 'anthropic/claude-haiku-4.5' as const;
+const model = 'anthropic/claude-haiku-5.5' as const;
 
 // Reserve the token before starting so an early delivery finds a retryable
 // pending record rather than an unknown callback.
@@ -1412,7 +1412,7 @@ import { gateway, streamText } from 'ai';
 
 // 1. Make requests with tags
 const result = streamText({
-  model: gateway('anthropic/claude-haiku-4.5'),
+  model: gateway('anthropic/claude-haiku-5.5'),
   prompt: 'Summarize this quarter's results',
   providerOptions: {
     gateway: {
