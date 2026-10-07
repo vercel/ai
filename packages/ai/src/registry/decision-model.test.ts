@@ -261,7 +261,7 @@ describe('decision model resolution', () => {
         'ai-decision-model-specification-version': '4',
       });
       expect(await server.calls[0].requestBodyJson).toEqual({
-        state,
+        state: [{ type: 'text', text: state }],
         questions,
         providerOptions: {},
       });

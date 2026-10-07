@@ -1,11 +1,14 @@
 import {
   InvalidResponseDataError,
+  UnsupportedFunctionalityError,
   type Experimental_DecisionModelV4 as DecisionModelV4,
   type Experimental_DecisionModelV4Answer as DecisionModelV4Answer,
-  type Experimental_DecisionModelV4Input as DecisionModelV4Input,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
+  convertUint8ArrayToBase64,
+  detectMediaType,
+  isFullMediaType,
   createJsonResponseHandler,
   postJsonToApi,
   parseProviderOptions,
@@ -72,10 +75,6 @@ const responseSchema = z.object({
   ),
 });
 
-function toText(input: DecisionModelV4Input): string {
-  return typeof input === 'string' ? input : JSON.stringify(input);
-}
-
 export class DecisionOpenAIModel implements DecisionModelV4 {
   readonly specificationVersion = 'v4';
   readonly supportedQuestionTypes = ['choice', 'score', 'boolean'] as const;
@@ -135,9 +134,49 @@ export class DecisionOpenAIModel implements DecisionModelV4 {
       body: {
         model: this.modelId,
         safety_identifier: openaiOptions?.safetyIdentifier,
-        input: toText(state),
+        input: [
+          {
+            role: 'user',
+            content: state.map(part => {
+              if (part.type === 'text')
+                return { type: 'input_text', text: part.text };
+              if (part.type === 'json')
+                return {
+                  type: 'input_text',
+                  text: JSON.stringify(part.value),
+                };
+              if (part.data.type !== 'data') {
+                throw new UnsupportedFunctionalityError({
+                  functionality: `OpenAI decision file input: ${part.mediaType} (${part.data.type})`,
+                });
+              }
+              const mediaType = isFullMediaType(part.mediaType)
+                ? part.mediaType
+                : detectMediaType({
+                    data: part.data.data,
+                    topLevelType: 'image',
+                  });
+              if (
+                ![
+                  'image/png',
+                  'image/jpeg',
+                  'image/webp',
+                  'image/gif',
+                ].includes(mediaType ?? '')
+              ) {
+                throw new UnsupportedFunctionalityError({
+                  functionality: `OpenAI decision image media type: ${part.mediaType}`,
+                });
+              }
+              return {
+                type: 'input_image',
+                image_url: `data:${mediaType};base64,${typeof part.data.data === 'string' ? part.data.data : convertUint8ArrayToBase64(part.data.data)}`,
+              };
+            }),
+          },
+        ],
         questions: Object.entries(questions).map(([name, question]) => {
-          const instructions = toText(question.instructions);
+          const instructions = question.instructions;
           switch (question.type) {
             case 'boolean':
               return {
@@ -147,10 +186,10 @@ export class DecisionOpenAIModel implements DecisionModelV4 {
                   instructions,
                   question.criteria?.true == null
                     ? undefined
-                    : `Criteria for true:\n${toText(question.criteria.true)}`,
+                    : `Criteria for true:\n${question.criteria.true}`,
                   question.criteria?.false == null
                     ? undefined
-                    : `Criteria for false:\n${toText(question.criteria.false)}`,
+                    : `Criteria for false:\n${question.criteria.false}`,
                 ]
                   .filter(part => part !== undefined)
                   .join('\n\n'),
@@ -163,9 +202,7 @@ export class DecisionOpenAIModel implements DecisionModelV4 {
                 choices: Object.entries(question.criteria).map(
                   ([value, description]) => ({
                     value,
-                    ...(description == null
-                      ? {}
-                      : { description: toText(description) }),
+                    ...(description == null ? {} : { description }),
                   }),
                 ),
               };
@@ -177,9 +214,7 @@ export class DecisionOpenAIModel implements DecisionModelV4 {
                 levels: question.criteria.map((description, index) => ({
                   // Score criteria have no separate labels; indices identify each level.
                   label: String(index),
-                  ...(description == null
-                    ? {}
-                    : { description: toText(description) }),
+                  ...(description == null ? {} : { description }),
                 })),
               };
           }

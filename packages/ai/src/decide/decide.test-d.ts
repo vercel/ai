@@ -1,4 +1,9 @@
-import { NoSuchModelError } from '@ai-sdk/provider';
+import {
+  NoSuchModelError,
+  type Experimental_DecisionModelV4CallOptions,
+  type Experimental_DecisionModelV4StatePart,
+  type Experimental_DecisionModelV4Question,
+} from '@ai-sdk/provider';
 import { expectTypeOf, it } from 'vitest';
 import { DecisionMockModelV4 } from '../test/decision-mock-model-v4';
 import {
@@ -7,7 +12,10 @@ import {
   type Experimental_EvaluationResult,
   customProvider,
   createProviderRegistry,
+  type Experimental_DecisionState as DecisionState,
+  type Experimental_DecisionStatePart as DecisionStatePart,
   type Experimental_DecisionQuestion as DecisionQuestion,
+  type Experimental_DecisionQuestionInput as DecisionQuestionInput,
   type Experimental_DecisionAnswer as DecisionAnswer,
 } from '../index';
 
@@ -58,7 +66,7 @@ it('accepts readonly reusable definitions', async () => {
   } as const satisfies Record<string, DecisionQuestion>;
   const result = await decide({
     model: new DecisionMockModelV4(),
-    state: ['hello'] as const,
+    state: [{ type: 'json', value: ['hello'] }] as const,
     questions,
   });
   expectTypeOf(result.answers.choice.choice).toEqualTypeOf<'a' | 'b'>();
@@ -113,4 +121,98 @@ it('preserves inference through deprecated API and provider aliases', async () =
 
 it('accepts legacy model error construction', () => {
   new NoSuchModelError({ modelId: 'legacy', modelType: 'evaluationModel' });
+});
+
+it('accepts public file conventions and keeps question JSON input separate', async () => {
+  const state = [
+    { type: 'text', text: 'Inspect.' },
+    { type: 'json', value: [1, true, null] },
+    { type: 'file', mediaType: 'image/png', data: new ArrayBuffer(4) },
+    {
+      type: 'file',
+      mediaType: 'image/png',
+      data: new URL('https://example.com/image.png'),
+    },
+    {
+      type: 'file',
+      mediaType: 'image/png',
+      data: { type: 'data', data: new Uint8Array(4) },
+    },
+  ] as const satisfies readonly DecisionStatePart[];
+  expectTypeOf(state).toExtend<DecisionState>();
+  await decide({
+    model: new DecisionMockModelV4(),
+    state,
+    questions: {
+      visible: {
+        type: 'boolean',
+        instructions: ['Is the product visible?'],
+        criteria: { true: ['visible'], false: ['hidden'] },
+      },
+    },
+  });
+  // @ts-expect-error JSON arrays require a json part or an object wrapper.
+  const legacyArray: DecisionState = ['hello'];
+  // @ts-expect-error File data needs a media type.
+  const missingMediaType: DecisionStatePart = {
+    type: 'file',
+    data: new Uint8Array(4),
+  };
+  void legacyArray;
+  void missingMediaType;
+});
+
+it('requires normalized parts at the provider boundary', () => {
+  expectTypeOf<
+    Experimental_DecisionModelV4CallOptions['state']
+  >().toEqualTypeOf<readonly Experimental_DecisionModelV4StatePart[]>();
+});
+
+it('preserves literal Choice inference with public JSON instructions and criteria', async () => {
+  const instructions = {
+    task: ['Select a department'],
+  } as const satisfies DecisionQuestionInput;
+  const reusableQuestions = {
+    department: {
+      type: 'choice',
+      instructions,
+      criteria: {
+        billing: { includes: ['charges'] },
+        support: ['technical help'],
+        other: null,
+      },
+    },
+    urgent: {
+      type: 'boolean',
+      instructions: ['Is this urgent?'],
+      criteria: { true: { severity: 'high' }, false: ['routine'] },
+    },
+  } as const satisfies Record<string, DecisionQuestion>;
+  const result = await decide({
+    model: new DecisionMockModelV4(),
+    state: 'message',
+    questions: reusableQuestions,
+  });
+  expectTypeOf(result.answers.department.choice).toEqualTypeOf<
+    'billing' | 'support' | 'other'
+  >();
+  expectTypeOf(result.answers.department.probabilities).toEqualTypeOf<
+    Record<'billing' | 'support' | 'other', number> | undefined
+  >();
+  expectTypeOf<
+    Experimental_DecisionModelV4Question['instructions']
+  >().toEqualTypeOf<string>();
+  expectTypeOf<
+    Extract<
+      Experimental_DecisionModelV4Question,
+      { type: 'choice' }
+    >['criteria']
+  >().toEqualTypeOf<Readonly<Record<string, string | null>>>();
+  expectTypeOf<
+    Extract<Experimental_DecisionModelV4Question, { type: 'score' }>['criteria']
+  >().toEqualTypeOf<readonly (string | null)[]>();
+  // @ts-expect-error Provider instructions must already be text.
+  const providerQuestion: Experimental_DecisionModelV4Question =
+    reusableQuestions.department;
+  void providerQuestion;
 });

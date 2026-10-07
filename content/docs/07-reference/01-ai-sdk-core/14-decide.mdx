@@ -17,7 +17,7 @@ state. See [Decisions](/docs/ai-sdk-core/decisions) for examples and semantics.
 | Parameter         | Type                                             | Description                                                                                                                               |
 | ----------------- | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | `model`           | `Experimental_DecisionModel`                     | Required experimental v4 model instance or a string ID resolved by Gateway or an explicitly configured decision-capable default provider. |
-| `state`           | `string \| object \| array`                      | Required JSON-compatible shared state.                                                                                                    |
+| `state`           | `Experimental_DecisionState`                     | Required string, JSON object, or ordered array of text, file, and JSON parts.                                                             |
 | `questions`       | `Record<string, Experimental_DecisionQuestion>`  | Required nonempty question map.                                                                                                           |
 | `maxRetries`      | `number`                                         | Nonnegative integer; defaults to 2.                                                                                                       |
 | `abortSignal`     | `AbortSignal`                                    | Cancels the decisions request.                                                                                                            |
@@ -48,8 +48,23 @@ Returns `Promise<Experimental_DecisionResult<QUESTIONS>>`:
 `specificationVersion: 'v4'`, `provider`, `modelId`, `supportedQuestionTypes`, and
 `doDecide(options)`. Decision models are isolated from stable `ProviderV4`.
 
+Core normalizes public state into `readonly Experimental_DecisionModelV4StatePart[]`
+before it calls the provider. A string becomes one `text` part, and a JSON object
+becomes one `json` part. Arrays keep their part order, and `[]` stays empty.
+File data is converted to the provider file shape. Model-call lifecycle events
+contain this normalized state; the outer lifecycle events contain the public input.
+
+Public question instructions and criteria descriptions accept strings, JSON objects,
+and JSON arrays. Core preserves strings and serializes JSON with `JSON.stringify`.
+`Experimental_DecisionModelV4Question` accepts string instructions and `string | null`
+criteria descriptions. Model-call events contain the normalized questions; outer
+lifecycle events contain the public questions. Choice option labels remain intact,
+so result types retain literal option inference.
+
 The public core types are `Experimental_DecisionModel`,
-`Experimental_DecisionQuestion`, `Experimental_DecisionAnswer`, and
+`Experimental_DecisionState`, `Experimental_DecisionStatePart`,
+`Experimental_DecisionQuestion`, `Experimental_DecisionQuestionInput`,
+`Experimental_DecisionAnswer`, and
 `Experimental_DecisionResult`. All decision-specific classes use the
 `Decision` prefix, with `Experimental_` aliases at package boundaries.
 

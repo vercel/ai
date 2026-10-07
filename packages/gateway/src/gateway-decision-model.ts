@@ -4,6 +4,7 @@ import type {
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
+  convertUint8ArrayToBase64,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   getErrorMessage,
@@ -77,7 +78,19 @@ export class GatewayDecisionModel implements DecisionModelV4 {
           await resolve(this.config.o11yHeaders),
         ),
         body: {
-          state,
+          state: state.map(part =>
+            part.type === 'file' &&
+            part.data.type === 'data' &&
+            part.data.data instanceof Uint8Array
+              ? {
+                  ...part,
+                  data: {
+                    ...part.data,
+                    data: convertUint8ArrayToBase64(part.data.data),
+                  },
+                }
+              : part,
+          ),
           questions,
           ...(validatedProviderOptions
             ? { providerOptions: validatedProviderOptions }

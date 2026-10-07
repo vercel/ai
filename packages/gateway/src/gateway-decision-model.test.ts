@@ -8,7 +8,9 @@ import {
   GatewayInternalServerError,
 } from './errors';
 
-const testState = 'The capital of France is Paris.';
+const testState = [
+  { type: 'text', text: 'The capital of France is Paris.' },
+] as const;
 
 const testQuestions = {
   correct: {
@@ -63,6 +65,35 @@ const createTestModel = (
   });
 
 describe('GatewayDecisionModel', () => {
+  it('serializes image bytes for Liquid without changing the caller state', async () => {
+    prepareJsonResponse({});
+    const state = [
+      { type: 'json' as const, value: { product: 'vase' } },
+      {
+        type: 'file' as const,
+        mediaType: 'image/png',
+        data: { type: 'data' as const, data: new Uint8Array([1, 2, 3]) },
+      },
+    ] as const;
+    const model = new GatewayDecisionModel('liquid/d1', {
+      provider: 'gateway',
+      baseURL: 'https://api.test.com',
+      o11yHeaders: {},
+    });
+    await model.doDecide({ state, questions: testQuestions });
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      state: [
+        state[0],
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: { type: 'data', data: 'AQID' },
+        },
+      ],
+    });
+    expect(state[1].data.data).toBeInstanceOf(Uint8Array);
+  });
+
   function prepareJsonResponse({
     answers = dummyAnswers,
     model,

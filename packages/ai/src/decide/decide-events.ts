@@ -3,7 +3,9 @@ import type {
   Experimental_DecisionModelV4Result as DecisionModelV4Result,
 } from '@ai-sdk/provider';
 import type { Context, ProviderOptions } from '@ai-sdk/provider-utils';
-import type { DecisionQuestion, DecisionResult } from './decision-result';
+import type { DecisionState } from './decision-state';
+import type { DecisionQuestion } from './decision-question';
+import type { DecisionResult } from './decision-result';
 
 /**
  * Event passed to the `onStart` callback for decision operations.
@@ -27,7 +29,7 @@ export type DecideStartEvent<RUNTIME_CONTEXT extends Context = Context> = {
   readonly modelId: string;
 
   /** The shared state used to make decisions. */
-  readonly state: DecisionModelV4CallOptions['state'];
+  readonly state: DecisionState;
 
   /** The questions to decide against the shared state. */
   readonly questions: Readonly<Record<string, DecisionQuestion>>;
@@ -100,7 +102,7 @@ export type DecisionModelCallStartEvent = {
   readonly state: DecisionModelV4CallOptions['state'];
 
   /** The questions to decide against the shared state. */
-  readonly questions: Readonly<Record<string, DecisionQuestion>>;
+  readonly questions: DecisionModelV4CallOptions['questions'];
 };
 
 /**
