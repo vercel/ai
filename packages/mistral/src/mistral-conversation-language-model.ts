@@ -38,9 +38,9 @@ import {
 } from './convert-mistral-usage';
 import { convertToMistralConversationInputs } from './convert-to-mistral-conversation-inputs';
 import {
-  mistralLanguageModelChatOptions,
-  type MistralChatModelId,
-} from './mistral-chat-language-model-options';
+  mistralLanguageModelConversationOptions,
+  type MistralConversationModelId,
+} from './mistral-conversation-language-model-options';
 import { mistralFailedResponseHandler } from './mistral-error';
 import {
   mistralProviderToolNames,
@@ -56,7 +56,7 @@ type MistralConversationConfig = {
 };
 
 // https://api.mistral.ai/v1/models (2026-10-06)
-const reasoningEffortModelIds = new Set<MistralChatModelId>([
+const reasoningEffortModelIds = new Set<MistralConversationModelId>([
   'glm-5-2',
   'labs-leanstral-1-5',
   'labs-leanstral-1-5-1',
@@ -81,7 +81,7 @@ const reasoningEffortModelIds = new Set<MistralChatModelId>([
 export class MistralConversationLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
 
-  readonly modelId: MistralChatModelId;
+  readonly modelId: MistralConversationModelId;
 
   private readonly config: MistralConversationConfig;
   private readonly generateId: () => string;
@@ -94,7 +94,7 @@ export class MistralConversationLanguageModel implements LanguageModelV4 {
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
-    modelId: MistralChatModelId;
+    modelId: MistralConversationModelId;
     config: MistralConversationConfig;
   }) {
     return new MistralConversationLanguageModel(
@@ -103,7 +103,10 @@ export class MistralConversationLanguageModel implements LanguageModelV4 {
     );
   }
 
-  constructor(modelId: MistralChatModelId, config: MistralConversationConfig) {
+  constructor(
+    modelId: MistralConversationModelId,
+    config: MistralConversationConfig,
+  ) {
     this.modelId = modelId;
     this.config = config;
     this.generateId = config.generateId ?? generateId;
@@ -139,7 +142,7 @@ export class MistralConversationLanguageModel implements LanguageModelV4 {
       (await parseProviderOptions({
         provider: 'mistral',
         providerOptions,
-        schema: mistralLanguageModelChatOptions,
+        schema: mistralLanguageModelConversationOptions,
       })) ?? {};
 
     if (topK != null) {
