@@ -1,4 +1,12 @@
-import type { SettingsManager } from '@earendil-works/pi-coding-agent';
+import type {
+  PackageSource,
+  SettingsManager,
+} from '@earendil-works/pi-coding-agent';
+
+function isLocalPackage(pkg: PackageSource): boolean {
+  const source = typeof pkg === 'string' ? pkg : pkg.source;
+  return !/^(npm|git|github|https?|ssh):/.test(source.trim());
+}
 
 export function createPiResourceSettings(
   settingsManager: SettingsManager,
@@ -9,7 +17,13 @@ export function createPiResourceSettings(
         property === 'getGlobalSettings' ||
         property === 'getProjectSettings'
       ) {
-        return () => ({ ...target[property](), packages: [] });
+        return () => {
+          const settings = target[property]();
+          return {
+            ...settings,
+            packages: settings.packages?.filter(isLocalPackage) ?? [],
+          };
+        };
       }
 
       const value = Reflect.get(target, property);

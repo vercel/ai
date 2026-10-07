@@ -1,5 +1,6 @@
 import {
   DefaultResourceLoader,
+  type PackageSource,
   SettingsManager,
 } from '@earendil-works/pi-coding-agent';
 import {
@@ -11,7 +12,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPiResourceSettings } from './pi-resource-settings';
 
 describe('createPiResourceSettings', () => {
@@ -145,4 +146,146 @@ describe('createPiResourceSettings', () => {
       );
     }
   });
+
+  it('keeps local package declarations and their filters while excluding remote sources', () => {
+    const localPackages: PackageSource[] = [
+      './relative-package',
+      '../parent-package',
+      'bare-package',
+      path.join(workDir, 'absolute-package'),
+      'file:///workspace/local-package',
+      '~/local-package',
+      {
+        source: './filtered-package',
+        autoload: false,
+        skills: ['+skills/allowed/SKILL.md'],
+        extensions: [],
+      },
+    ];
+    const remotePackages: PackageSource[] = [
+      'npm:remote-package',
+      { source: 'npm:filtered-package', skills: ['**'] },
+      'git:github.com/example/package',
+      { source: 'git:git@example.com:example/package.git', skills: ['**'] },
+      'github:example/package',
+      'https://example.com/package.git',
+      'http://example.com/package.git',
+      'ssh://git@example.com/package.git',
+      'git://example.com/package.git',
+      '  git:https://example.com/package.git  ',
+    ];
+    const settingsManager = SettingsManager.inMemory({
+      packages: [...localPackages, ...remotePackages],
+    });
+    const resourceSettings = createPiResourceSettings(settingsManager);
+
+    expect(resourceSettings.getGlobalSettings().packages).toEqual(
+      localPackages,
+    );
+    expect(settingsManager.getGlobalSettings().packages).toEqual([
+      ...localPackages,
+      ...remotePackages,
+    ]);
+  });
+
+  it.each([
+    { scope: 'global', filtered: false },
+    { scope: 'global', filtered: true },
+    { scope: 'project', filtered: false },
+    { scope: 'project', filtered: true },
+  ])(
+    'preserves local workspace package skills from $scope settings (filtered: $filtered) across reloads',
+    async ({ scope, filtered }) => {
+      const packageDir = path.join(workDir, 'workspace-package');
+      const skillDir = path.join(packageDir, 'skills', 'package-skill');
+      const excludedSkillDir = path.join(
+        packageDir,
+        'skills',
+        'excluded-skill',
+      );
+      mkdirSync(skillDir, { recursive: true });
+      mkdirSync(excludedSkillDir, { recursive: true });
+      writeFileSync(
+        path.join(packageDir, 'package.json'),
+        JSON.stringify({
+          pi: { extensions: ['./extension.js'], skills: ['./skills'] },
+        }),
+      );
+      writeFileSync(
+        path.join(packageDir, 'extension.js'),
+        'throw new Error("Filesystem package extensions must not execute");',
+      );
+      writeFileSync(
+        path.join(excludedSkillDir, 'SKILL.md'),
+        '---\nname: excluded-skill\ndescription: Excluded skill\n---\nSkill instructions.\n',
+      );
+      const source = path.relative(
+        scope === 'global' ? agentDir : path.join(workDir, '.pi'),
+        packageDir,
+      );
+      const localPackage: PackageSource = filtered
+        ? { source, skills: ['skills/package-skill/**'] }
+        : source;
+      const settingsPath =
+        scope === 'global' ? globalSettingsPath : projectSettingsPath;
+      const originalSettings = JSON.stringify({
+        packages: [
+          'npm:must-not-install',
+          'git:https://example.invalid/must-not-clone.git',
+          localPackage,
+        ],
+      });
+      writeFileSync(settingsPath, originalSettings);
+      const settingsManager = SettingsManager.create(workDir, agentDir);
+      const inlineExtension = vi.fn();
+      const resourceLoader = new DefaultResourceLoader({
+        cwd: workDir,
+        agentDir,
+        settingsManager: createPiResourceSettings(settingsManager),
+        extensionFactories: [inlineExtension],
+        noExtensions: true,
+        noThemes: true,
+        noPromptTemplates: true,
+      });
+
+      for (let reloadIndex = 0; reloadIndex < 2; reloadIndex++) {
+        const description = `Package skill reload ${reloadIndex}`;
+        writeFileSync(
+          path.join(skillDir, 'SKILL.md'),
+          `---\nname: package-skill\ndescription: ${description}\n---\nSkill instructions.\n`,
+        );
+
+        await resourceLoader.reload();
+
+        expect(resourceLoader.getSkills().skills).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              name: 'package-skill',
+              description,
+              filePath: path.join(skillDir, 'SKILL.md'),
+            }),
+          ]),
+        );
+        expect(
+          resourceLoader
+            .getSkills()
+            .skills.some(skill => skill.name === 'excluded-skill'),
+        ).toBe(!filtered);
+        expect(resourceLoader.getExtensions().errors).toEqual([]);
+        expect(resourceLoader.getExtensions().extensions).toHaveLength(1);
+        expect(inlineExtension).toHaveBeenCalledTimes(reloadIndex + 1);
+        expect(readFileSync(settingsPath, 'utf8')).toBe(originalSettings);
+        expect(
+          (scope === 'global'
+            ? settingsManager.getGlobalSettings()
+            : settingsManager.getProjectSettings()
+          ).packages,
+        ).toEqual([
+          'npm:must-not-install',
+          'git:https://example.invalid/must-not-clone.git',
+          localPackage,
+        ]);
+      }
+    },
+  );
 });
