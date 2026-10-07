@@ -42,6 +42,19 @@ describe('createPiPathMapper', () => {
     );
   });
 
+  it('accepts two-dot-prefixed names inside the workspace', () => {
+    const mapper = createPiPathMapper({ hostWorkDir, sandboxWorkDir });
+    expect(mapper.toSandboxPath('..notes/file.txt')).toBe(
+      `${sandboxWorkDir}/..notes/file.txt`,
+    );
+    expect(mapper.assertSandboxPath(`${sandboxWorkDir}/..notes/file.txt`)).toBe(
+      `${sandboxWorkDir}/..notes/file.txt`,
+    );
+    expect(() => mapper.assertSandboxPath('/sandbox/work/escape.txt')).toThrow(
+      /escapes the workspace/,
+    );
+  });
+
   it('allows configured read-only sandbox roots for readable paths', () => {
     const mapper = createPiPathMapper({
       hostWorkDir,
@@ -98,6 +111,28 @@ describe('createPiPathMapper', () => {
     expect(mapper.toSandboxPath('src/foo.ts')).toBe(
       `${sandboxWorkDir}/src/foo.ts`,
     );
+  });
+
+  it('denies two-dot-prefixed descendants and includes two-dot-prefixed denied roots in recursive exclusions', () => {
+    const mapper = createPiPathMapper({
+      hostWorkDir,
+      sandboxWorkDir,
+      deniedRoots: [`${sandboxWorkDir}/private`, `${sandboxWorkDir}/..private`],
+    });
+
+    expect(() =>
+      mapper.toReadableSandboxPath('private/..backup/token.txt'),
+    ).toThrow(/inside a denied root/);
+    expect(() =>
+      mapper.toReadableSandboxPath(`${sandboxWorkDir}/..private/token.txt`),
+    ).toThrow(/inside a denied root/);
+    expect(mapper.relativeDeniedRootsUnder(sandboxWorkDir)).toEqual([
+      'private',
+      '..private',
+    ]);
+    expect(
+      mapper.toReadableSandboxPath('private-copy/..backup/token.txt'),
+    ).toBe(`${sandboxWorkDir}/private-copy/..backup/token.txt`);
   });
 
   it('expands ~ against the configured home directory', () => {

@@ -45,7 +45,9 @@ function isInsidePath(parent: string, candidate: string): boolean {
   const relative = path.relative(parent, candidate);
   return (
     relative === '' ||
-    (!relative.startsWith('..') && !path.isAbsolute(relative))
+    (relative !== '..' &&
+      !relative.startsWith(`..${path.sep}`) &&
+      !path.isAbsolute(relative))
   );
 }
 
@@ -53,7 +55,9 @@ function isInsidePosixPath(parent: string, candidate: string): boolean {
   const relative = path.posix.relative(parent, candidate);
   return (
     relative === '' ||
-    (!relative.startsWith('..') && !path.posix.isAbsolute(relative))
+    (relative !== '..' &&
+      !relative.startsWith('../') &&
+      !path.posix.isAbsolute(relative))
   );
 }
 

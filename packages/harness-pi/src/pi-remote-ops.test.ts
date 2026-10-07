@@ -1131,12 +1131,20 @@ async function makePathPolicyFixture() {
   const workspace = path.join(root, 'workspace');
   const home = path.join(root, 'home');
   const denied = path.join(home, 'credentials');
+  const dotDenied = path.join(home, '..private');
   await mkdir(path.join(workspace, 'private'), { recursive: true });
+  await mkdir(path.join(workspace, 'private', '..backup'));
   await mkdir(path.join(home, 'docs'), { recursive: true });
   await mkdir(denied);
+  await mkdir(dotDenied);
   await writeFile(path.join(workspace, 'main.txt'), 'needle workspace\n');
+  await writeFile(
+    path.join(workspace, 'private', '..backup', 'token.txt'),
+    'needle backup\n',
+  );
   await writeFile(path.join(home, 'docs', 'notes.txt'), 'needle notes\n');
   await writeFile(path.join(denied, 'token.txt'), 'needle token\n');
+  await writeFile(path.join(dotDenied, 'token.txt'), 'needle dotted secret\n');
 
   const readCalls: string[] = [];
   const writeCalls: WriteCalls = [];
@@ -1146,7 +1154,7 @@ async function makePathPolicyFixture() {
       hostWorkDir: path.join(root, 'host-mirror'),
       sandboxWorkDir: workspace,
       readableRoots: [{ sandboxDir: home }],
-      deniedRoots: [denied, path.join(workspace, 'private')],
+      deniedRoots: [denied, dotDenied, path.join(workspace, 'private')],
     }),
   });
 
@@ -1154,6 +1162,7 @@ async function makePathPolicyFixture() {
     workspace,
     home,
     denied,
+    dotDenied,
     ops,
     readCalls,
     writeCalls,
@@ -1171,6 +1180,12 @@ describe('createPiRemoteOps with denied roots', () => {
       await expect(fixture.ops.listDirectory(fixture.denied)).rejects.toThrow(
         /inside a denied root/,
       );
+      await expect(
+        fixture.ops.readBuffer('private/..backup/token.txt'),
+      ).rejects.toThrow(/inside a denied root/);
+      await expect(
+        fixture.ops.readBuffer(path.join(fixture.dotDenied, 'token.txt')),
+      ).rejects.toThrow(/inside a denied root/);
       expect(fixture.readCalls).toEqual([]);
       await expect(
         fixture.ops.readBuffer(path.join(fixture.home, 'docs', 'notes.txt')),
@@ -1215,6 +1230,9 @@ describe('createPiRemoteOps with denied roots', () => {
       await expect(
         fixture.ops.writeFile('private/journal.txt', 'overwritten\n'),
       ).rejects.toThrow(/inside a denied root/);
+      await expect(
+        fixture.ops.writeFile('private/..backup/new.txt', 'overwritten\n'),
+      ).rejects.toThrow(/inside a denied root/);
       expect(fixture.writeCalls).toEqual([]);
     } finally {
       await fixture.cleanup();
@@ -1234,6 +1252,9 @@ describe('createPiRemoteOps with denied roots', () => {
       await expect(
         fixture.ops.findFiles('**/*.txt', fixture.home),
       ).resolves.toEqual(['docs/notes.txt']);
+      await expect(
+        fixture.ops.findFiles('..private/*.txt', fixture.home),
+      ).resolves.toEqual([]);
 
       const output = await fixture.ops.grepFiles('needle', {
         path: fixture.home,
@@ -1241,6 +1262,7 @@ describe('createPiRemoteOps with denied roots', () => {
       });
       expect(output).toContain('notes.txt:1:needle notes');
       expect(output).not.toContain('needle token');
+      expect(output).not.toContain('needle dotted secret');
 
       await expect(
         fixture.ops.grepFiles('needle', { literal: true }),
@@ -1259,9 +1281,10 @@ describe('createPiRemoteOps with denied roots', () => {
     try {
       const setup = await sandbox.run({
         command: [
-          `mkdir -p ${sandboxWorkDir}/docs ${sandboxWorkDir}/private`,
+          `mkdir -p ${sandboxWorkDir}/docs ${sandboxWorkDir}/private ${sandboxWorkDir}/..private`,
           `printf 'needle notes\\n' > ${sandboxWorkDir}/docs/notes.txt`,
           `printf 'needle token\\n' > ${sandboxWorkDir}/private/token.txt`,
+          `printf 'needle dotted secret\\n' > ${sandboxWorkDir}/..private/token.txt`,
         ].join(' && '),
       });
       expect(setup.exitCode).toBe(0);
@@ -1271,16 +1294,21 @@ describe('createPiRemoteOps with denied roots', () => {
         paths: createPiPathMapper({
           hostWorkDir,
           sandboxWorkDir,
-          deniedRoots: [`${sandboxWorkDir}/private`],
+          deniedRoots: [
+            `${sandboxWorkDir}/private`,
+            `${sandboxWorkDir}/..private`,
+          ],
         }),
       });
 
       await expect(ops.findFiles('**/*.txt', '.')).resolves.toEqual([
         'docs/notes.txt',
       ]);
+      await expect(ops.findFiles('..private/*.txt', '.')).resolves.toEqual([]);
       const output = await ops.grepFiles('needle', { literal: true });
       expect(output).toContain('docs/notes.txt:1:needle notes');
       expect(output).not.toContain('needle token');
+      expect(output).not.toContain('needle dotted secret');
     } finally {
       await session.destroy();
     }
