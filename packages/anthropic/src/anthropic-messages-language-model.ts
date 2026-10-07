@@ -340,6 +340,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       rejectsSamplingParameters,
       rejectsThinkingDisabledAboveHighEffort,
       rejectsThinkingDisabled,
+      rejectsBudgetThinking,
       rejectsForcedToolUse,
       supportsBetweenToolsThinking,
       isKnownModel,
@@ -488,9 +489,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         toolsetNames,
       });
 
-    // Some models always run adaptive thinking and reject `disabled` and
-    // budget-based `enabled` thinking with a 400. Drop the unsupported
-    // setting and keep the request adaptive so it still succeeds.
+    // Some models always run adaptive thinking and reject `disabled` thinking
+    // with a 400. Drop the unsupported setting and keep the request adaptive
+    // so it still succeeds.
     if (rejectsThinkingDisabled && anthropicOptions?.thinking != null) {
       const requestedThinking = anthropicOptions.thinking;
       const requestedType =
@@ -514,16 +515,28 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             `The thinking setting has been removed. Lower 'effort' to reduce thinking.`,
         });
         anthropicOptions.thinking = undefined;
-      } else if (requestedType === 'enabled') {
-        warnings.push({
-          type: 'unsupported',
-          feature: 'providerOptions.anthropic.thinking',
-          details:
-            `budget-based thinking is not supported by ${this.modelId}; it always uses adaptive thinking. ` +
-            `Using adaptive thinking instead. Use 'effort' to control how much the model thinks.`,
-        });
-        anthropicOptions.thinking = { type: 'adaptive' };
       }
+    }
+
+    // Models that only support adaptive thinking reject budget-based thinking
+    // with a 400. Use adaptive thinking instead and let `effort` control how
+    // much the model thinks.
+    if (
+      rejectsBudgetThinking &&
+      anthropicOptions?.thinking != null &&
+      'type' in anthropicOptions.thinking &&
+      anthropicOptions.thinking.type === 'enabled'
+    ) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'providerOptions.anthropic.thinking',
+        details: rejectsThinkingDisabled
+          ? `budget-based thinking is not supported by ${this.modelId}; it always uses adaptive thinking. ` +
+            `Using adaptive thinking instead. Use 'effort' to control how much the model thinks.`
+          : `budget-based thinking is not supported by ${this.modelId}. ` +
+            `Using adaptive thinking instead. Use 'effort' to control how much the model thinks.`,
+      });
+      anthropicOptions.thinking = { type: 'adaptive' };
     }
 
     const thinking = anthropicOptions?.thinking;
@@ -2971,6 +2984,11 @@ export function getModelCapabilities(modelId: string): {
    */
   rejectsThinkingDisabled: boolean;
   /**
+   * Budget-based thinking (`thinking.type` `enabled` with `budget_tokens`) is
+   * rejected with a 400. Only adaptive thinking is supported.
+   */
+  rejectsBudgetThinking: boolean;
+  /**
    * Forced tool use (`tool_choice` `any` or a named tool) is rejected with a 400.
    */
   rejectsForcedToolUse: boolean;
@@ -2988,6 +3006,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsSamplingParameters: true,
       rejectsThinkingDisabledAboveHighEffort: true,
       rejectsThinkingDisabled: true,
+      rejectsBudgetThinking: true,
       rejectsForcedToolUse: true,
       supportsBetweenToolsThinking: true,
       isKnownModel: true,
@@ -2999,7 +3018,21 @@ export function getModelCapabilities(modelId: string): {
       rejectsSamplingParameters: true,
       rejectsThinkingDisabledAboveHighEffort: true,
       rejectsThinkingDisabled: true,
+      rejectsBudgetThinking: true,
       rejectsForcedToolUse: true,
+      supportsBetweenToolsThinking: false,
+      isKnownModel: true,
+    };
+  } else if (modelId.includes('claude-haiku-5-5')) {
+    // Thinking can be turned off, but only up to `high` effort.
+    return {
+      maxOutputTokens: 128000,
+      supportsStructuredOutput: true,
+      rejectsSamplingParameters: true,
+      rejectsThinkingDisabledAboveHighEffort: true,
+      rejectsThinkingDisabled: false,
+      rejectsBudgetThinking: true,
+      rejectsForcedToolUse: false,
       supportsBetweenToolsThinking: false,
       isKnownModel: true,
     };
@@ -3010,6 +3043,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsSamplingParameters: true,
       rejectsThinkingDisabledAboveHighEffort: true,
       rejectsThinkingDisabled: false,
+      rejectsBudgetThinking: false,
       rejectsForcedToolUse: false,
       supportsBetweenToolsThinking: false,
       isKnownModel: true,
@@ -3021,6 +3055,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsSamplingParameters: true,
       rejectsThinkingDisabledAboveHighEffort: false,
       rejectsThinkingDisabled: true,
+      rejectsBudgetThinking: true,
       rejectsForcedToolUse: true,
       supportsBetweenToolsThinking: false,
       isKnownModel: true,
@@ -3032,6 +3067,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsSamplingParameters: true,
       rejectsThinkingDisabledAboveHighEffort: false,
       rejectsThinkingDisabled: true,
+      rejectsBudgetThinking: true,
       rejectsForcedToolUse: false,
       supportsBetweenToolsThinking: false,
       isKnownModel: true,
@@ -3047,6 +3083,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsSamplingParameters: true,
       rejectsThinkingDisabledAboveHighEffort: false,
       rejectsThinkingDisabled: false,
+      rejectsBudgetThinking: false,
       rejectsForcedToolUse: false,
       supportsBetweenToolsThinking: false,
       isKnownModel: true,
@@ -3061,6 +3098,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsSamplingParameters: false,
       rejectsThinkingDisabledAboveHighEffort: false,
       rejectsThinkingDisabled: false,
+      rejectsBudgetThinking: false,
       rejectsForcedToolUse: false,
       supportsBetweenToolsThinking: false,
       isKnownModel: true,
@@ -3076,6 +3114,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsSamplingParameters: false,
       rejectsThinkingDisabledAboveHighEffort: false,
       rejectsThinkingDisabled: false,
+      rejectsBudgetThinking: false,
       rejectsForcedToolUse: false,
       supportsBetweenToolsThinking: false,
       isKnownModel: true,
@@ -3087,6 +3126,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsSamplingParameters: false,
       rejectsThinkingDisabledAboveHighEffort: false,
       rejectsThinkingDisabled: false,
+      rejectsBudgetThinking: false,
       rejectsForcedToolUse: false,
       supportsBetweenToolsThinking: false,
       isKnownModel: true,
@@ -3098,6 +3138,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsSamplingParameters: false,
       rejectsThinkingDisabledAboveHighEffort: false,
       rejectsThinkingDisabled: false,
+      rejectsBudgetThinking: false,
       rejectsForcedToolUse: false,
       supportsBetweenToolsThinking: false,
       isKnownModel: true,
@@ -3109,6 +3150,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsSamplingParameters: false,
       rejectsThinkingDisabledAboveHighEffort: false,
       rejectsThinkingDisabled: false,
+      rejectsBudgetThinking: false,
       rejectsForcedToolUse: false,
       supportsBetweenToolsThinking: false,
       isKnownModel: true,
@@ -3120,6 +3162,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsSamplingParameters: false,
       rejectsThinkingDisabledAboveHighEffort: false,
       rejectsThinkingDisabled: false,
+      rejectsBudgetThinking: false,
       rejectsForcedToolUse: false,
       supportsBetweenToolsThinking: false,
       isKnownModel: true,
@@ -3133,6 +3176,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsSamplingParameters: false,
       rejectsThinkingDisabledAboveHighEffort: false,
       rejectsThinkingDisabled: false,
+      rejectsBudgetThinking: false,
       rejectsForcedToolUse: false,
       supportsBetweenToolsThinking: false,
       isKnownModel: false,
@@ -3147,6 +3191,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsSamplingParameters: true,
       rejectsThinkingDisabledAboveHighEffort: true,
       rejectsThinkingDisabled: false,
+      rejectsBudgetThinking: false,
       rejectsForcedToolUse: false,
       supportsBetweenToolsThinking: false,
       isKnownModel: false,
@@ -3160,6 +3205,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsSamplingParameters: false,
       rejectsThinkingDisabledAboveHighEffort: false,
       rejectsThinkingDisabled: false,
+      rejectsBudgetThinking: false,
       rejectsForcedToolUse: false,
       supportsBetweenToolsThinking: false,
       isKnownModel: false,

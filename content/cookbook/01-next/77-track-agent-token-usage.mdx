@@ -23,7 +23,7 @@ import { type InferAgentUIMessage, ToolLoopAgent, tool } from 'ai';
 import { z } from 'zod';
 
 export const agent = new ToolLoopAgent({
-  model: 'anthropic/claude-haiku-4.5',
+  model: 'anthropic/claude-haiku-5.5',
   tools: {
     greet: tool({
       description: 'Greets a person by their name.',
@@ -104,7 +104,7 @@ import {
 import { z } from 'zod';
 
 export const agent = new ToolLoopAgent({
-  model: 'anthropic/claude-haiku-4.5',
+  model: 'anthropic/claude-haiku-5.5',
   tools: {
     greet: tool({
       description: 'Greets a person by their name.',
@@ -195,7 +195,7 @@ import {
 import { z } from 'zod';
 
 export const agent = new ToolLoopAgent({
-  model: 'anthropic/claude-haiku-4.5',
+  model: 'anthropic/claude-haiku-5.5',
   callOptionsSchema: z.object({
     lastInputTokens: z.number(),
   }),
@@ -266,7 +266,7 @@ type TContext = {
 };
 
 export const agent = new ToolLoopAgent({
-  model: 'anthropic/claude-haiku-4.5',
+  model: 'anthropic/claude-haiku-5.5',
   callOptionsSchema: z.object({
     lastInputTokens: z.number(),
   }),
