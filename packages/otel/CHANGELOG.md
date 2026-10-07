@@ -1,5 +1,37 @@
 # @ai-sdk/otel
 
+## 1.0.131
+
+### Patch Changes
+
+- ai@7.0.131
+
+## 1.0.130
+
+### Patch Changes
+
+- Updated dependencies [6f6b9c0]
+- Updated dependencies [d3bcad9]
+  - ai@7.0.130
+  - @ai-sdk/provider@4.0.24
+
+## 1.0.129
+
+### Patch Changes
+
+- Updated dependencies [e37d213]
+- Updated dependencies [73d8343]
+- Updated dependencies [268225c]
+- Updated dependencies [d83366e]
+- Updated dependencies [34905a2]
+- Updated dependencies [16ab882]
+- Updated dependencies [f810ea3]
+- Updated dependencies [19a127b]
+- Updated dependencies [0af2f7c]
+- Updated dependencies [4c6979c]
+  - ai@7.0.129
+  - @ai-sdk/provider@4.0.23
+
 ## 1.0.128
 
 ### Patch Changes

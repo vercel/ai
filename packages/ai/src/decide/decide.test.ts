@@ -1,6 +1,7 @@
 import {
   APICallError,
   InvalidResponseDataError,
+  Experimental_DecisionRefusalError as DecisionRefusalError,
   Experimental_DecisionUnsupportedQuestionTypeError as DecisionUnsupportedQuestionTypeError,
   type Experimental_DecisionModelV4Result as DecisionModelV4Result,
 } from '@ai-sdk/provider';
@@ -160,6 +161,30 @@ it('rejects unsupported types before deciding any answer', async () => {
   ).rejects.toBeInstanceOf(DecisionUnsupportedQuestionTypeError);
   expect(doDecide).not.toHaveBeenCalled();
 });
+
+it.each([['topic'], ['severity'], ['refund'], ['topic', 'refund']])(
+  'rejects refused questions with a refusal error without retrying (%s)',
+  async (...refused) => {
+    const { model, doDecide } = setup({
+      answers: {
+        ...answers,
+        ...Object.fromEntries(refused.map(id => [id, { type: 'refusal' }])),
+      },
+      warnings: [],
+    });
+    const error = await decide({ model, state: '', questions }).catch(
+      (caught: unknown) => caught,
+    );
+
+    expect(DecisionRefusalError.isInstance(error)).toBe(true);
+    expect(error).toMatchObject({
+      questionIds: refused,
+      provider: model.provider,
+      modelId: model.modelId,
+    });
+    expect(doDecide).toHaveBeenCalledTimes(1);
+  },
+);
 
 it('rejects an unsupported model version', async () => {
   const { model, doDecide } = setup();

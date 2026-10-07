@@ -55,3 +55,9 @@ test('createPi accepts a file tool path policy with readonly roots', () => {
   createPi({ fileToolPathPolicy: { readableRoots, deniedRoots } });
   createPi({ fileToolPathPolicy: {} });
 });
+
+test('createPi accepts MCP adapter settings', () => {
+  createPi({ mcpSettings: { toolPrefix: 'none', outputGuard: false } });
+  // @ts-expect-error
+  createPi({ mcpSettings: { toolPrefix: 'bare' } });
+});

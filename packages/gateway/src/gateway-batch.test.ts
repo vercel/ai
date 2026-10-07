@@ -2,6 +2,7 @@ import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { GatewayBatch } from './gateway-batch';
+import { createGateway } from './gateway-provider';
 import type { GatewayConfig } from './gateway-config';
 import {
   GatewayInvalidRequestError,
@@ -627,6 +628,28 @@ describe('GatewayBatch', () => {
       id: 'req-3',
       status: 'cancelled',
     };
+
+    it.each([16, 4096])(
+      'applies the factory maxLineBytes setting of %s',
+      async maxLineBytes => {
+        prepareBatchResultsResponse([`${JSON.stringify(succeededItem)}\n`]);
+        const batch = createGateway({
+          apiKey: 'test-api-key',
+          baseURL: 'https://api.test.com',
+          batchResultDownloads: { maxLineBytes },
+        }).experimental_batch();
+        const stream = await batch.doGetBatchResults({ batchId: 'job_123' });
+        const results = convertReadableStreamToArray(stream);
+        if (maxLineBytes === 16) {
+          await expect(results).rejects.toMatchObject({
+            name: 'AI_DownloadError',
+            url: 'https://api.test.com/batch/results',
+          });
+        } else {
+          await expect(results).resolves.toHaveLength(1);
+        }
+      },
+    );
 
     it('should revive response.timestamp into a Date on succeeded items', async () => {
       prepareBatchResultsResponse([`${JSON.stringify(succeededItem)}\n`]);

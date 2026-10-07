@@ -22,6 +22,7 @@ import {
 import type {
   ModelCallFinish as StreamFinish,
   ModelCallOptions as DoStreamStepOptions,
+  ModelCallPerformance,
   ModelCallRawContentPart as DoStreamStepRawContentPart,
   ModelCallResult as DoStreamStepResult,
   ModelCallStreamPart,
@@ -212,6 +213,7 @@ export async function doStreamStep(
     | { id?: string; timestamp?: Date; modelId?: string }
     | undefined;
   let warnings: unknown[] | undefined;
+  let performance: ModelCallPerformance | undefined;
   let terminalError: unknown;
   let hasTerminalError = false;
   const ongoingToolCallToolNames = new Map<string, string>();
@@ -400,6 +402,7 @@ export async function doStreamStep(
               | Record<string, unknown>
               | undefined,
           };
+          performance = part.performance;
           break;
         case 'model-call-start':
           warnings = part.warnings;
@@ -456,6 +459,7 @@ export async function doStreamStep(
       content,
       reasoning: reasoningParts,
       responseMetadata,
+      performance,
       warnings,
     },
     providerExecutedToolResults,

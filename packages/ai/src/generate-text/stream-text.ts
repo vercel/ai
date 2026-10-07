@@ -1849,16 +1849,30 @@ class DefaultStreamTextResult<
 
     // resilient stream that handles abort signals and errors:
     const reader = stitchableStream.stream.getReader();
+    const cancelOnAbort = () => {
+      // Result promises must settle before any potentially stalled callback.
+      this.rejectResultPromises(abortSignal?.reason);
+      // Cancelling the reader releases a pending read immediately, even when
+      // the provider body or its cancellation promise does not settle.
+      void reader.cancel(abortSignal?.reason).catch(() => {});
+    };
+    const removeAbortListener = () =>
+      abortSignal?.removeEventListener('abort', cancelOnAbort);
     let stream = new ReadableStream<InternalTextStreamPart<TOOLS>>({
       async start(controller) {
         // send start event:
         controller.enqueue({ type: 'start' });
+        abortSignal?.addEventListener('abort', cancelOnAbort, { once: true });
+        if (abortSignal?.aborted) {
+          cancelOnAbort();
+        }
       },
 
       async pull(controller) {
         // abort handling:
         async function abort() {
           isAborted = true;
+          removeAbortListener();
 
           await notify({
             event: {
@@ -1885,18 +1899,20 @@ class DefaultStreamTextResult<
         try {
           const { done, value } = await reader.read();
 
-          if (done) {
-            controller.close();
-            return;
-          }
-
           if (abortSignal?.aborted) {
             await abort();
             return;
           }
 
+          if (done) {
+            removeAbortListener();
+            controller.close();
+            return;
+          }
+
           controller.enqueue(value);
         } catch (error) {
+          removeAbortListener();
           if (isAbortError(error) && abortSignal?.aborted) {
             await abort();
           } else {
@@ -1907,7 +1923,8 @@ class DefaultStreamTextResult<
       },
 
       cancel(reason) {
-        return stitchableStream.stream.cancel(reason);
+        removeAbortListener();
+        return reader.cancel(reason);
       },
     });
 

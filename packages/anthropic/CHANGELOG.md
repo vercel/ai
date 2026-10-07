@@ -1,5 +1,47 @@
 # @ai-sdk/anthropic
 
+## 4.0.75
+
+### Patch Changes
+
+- 866e884: feat(anthropic): add Claude Haiku 5.5 support
+
+  - add the `claude-haiku-5-5` model ID to `@ai-sdk/anthropic` and `@ai-sdk/google-vertex`, `anthropic.claude-haiku-5-5` and `us.anthropic.claude-haiku-5-5` to `@ai-sdk/amazon-bedrock`, and `anthropic/claude-haiku-5.5` to `@ai-sdk/gateway`
+  - recognize `claude-haiku-5-5` as a known model with a 128k max output token limit, adaptive thinking, and all five effort levels; thinking can be disabled up to `high` effort, and `xhigh` and `max` are lowered to `high` with a warning when thinking is disabled
+  - `claude-haiku-5-5` does not support thinking token budgets: `thinking: { type: 'enabled', budgetTokens }` is converted to adaptive thinking with a warning
+  - use the JSON tool fallback for structured output on Amazon Bedrock for `claude-haiku-5-5`
+
+## 4.0.74
+
+### Patch Changes
+
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/provider-utils@5.0.56
+
+## 4.0.73
+
+### Patch Changes
+
+- fc1e19e: fix: limit jsonl rows to 64mb during batch result downloads
+- 268225c: feat(provider): add a portable `max` reasoning level with native provider mappings, compatibility coercions, and budget-based fallback support.
+
+  Compatibility notes:
+
+  - **TypeScript source compatibility:** Adding `max` widens `LanguageModelV4CallOptions['reasoning']` and the derived `ReasoningLevel` type. Third-party providers and consumers with exhaustive switches or `Record<ReasoningLevel, ...>` mappings must handle `max` before upgrading. Ordinary calls using existing reasoning levels remain accepted.
+  - **Amazon Bedrock:** Existing Nova 2 calls using portable `reasoning: 'xhigh'` now send `maxReasoningEffort: 'high'` instead of the unsupported `'max'`, and return a compatibility warning. Anthropic and OpenAI Bedrock effort mappings retain their existing `xhigh` behavior. Partial Bedrock reasoning configurations continue to preserve explicit values and derive missing fields; explicit effort/budget overrides and disabled thinking no longer emit warnings for portable mappings that are not sent.
+  - **Fireworks:** Existing portable `minimal` and `xhigh` calls keep their request mappings to `low` and `high`, respectively, and now return compatibility warnings in generation and streaming results. Portable `max` maps to `high` with the same warning behavior.
+
+  **Release classification:** This remains a patch changeset under the repository's explicit release policy, which uses patch releases for both fixes and features. The TypeScript source-compatibility caveat for exhaustive consumers is disclosed above. Maintainers can override this classification with a `major` label if they decide to align the provider-spec addition with a future AI SDK major release.
+
+- 0af2f7c: chore: upgrade to TypeScript 6
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/provider@4.0.23
+
 ## 4.0.72
 
 ### Patch Changes

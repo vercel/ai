@@ -7,6 +7,7 @@ import {
 import {
   hasToolCall,
   isStepCount,
+  type CallWarning,
   type Telemetry,
   type TextStreamPart,
 } from 'ai';
@@ -14,6 +15,7 @@ import { describe, expect, test, vi } from 'vitest';
 import { z } from 'zod/v4';
 import type {
   HarnessV1,
+  HarnessV1CallWarning,
   HarnessV1PendingToolApproval,
   HarnessV1PendingToolResult,
   HarnessV1PromptControl,
@@ -617,7 +619,129 @@ describe('runPrompt telemetry lifecycle', () => {
   });
 });
 
+describe('runPrompt raw parts', () => {
+  test('passes raw parts through without opening a step or adding to one', async () => {
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        { type: 'stream-start' },
+        { type: 'text-start', id: 't1' },
+        { type: 'text-delta', id: 't1', delta: 'one' },
+        { type: 'text-end', id: 't1' },
+        finishEvents[0]!,
+        // Arrives between two steps; must not open a phantom step.
+        { type: 'raw', rawValue: { marker: 'between-steps' } },
+        { type: 'text-start', id: 't2' },
+        { type: 'text-delta', id: 't2', delta: 'two' },
+        { type: 'text-end', id: 't2' },
+        finishEvents[0]!,
+        finishEvents[1]!,
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: {} as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+    });
+
+    const types: string[] = [];
+    for await (const part of result.fullStream) types.push(part.type);
+    await done;
+
+    const raw = types.indexOf('raw');
+    expect(raw).toBeGreaterThan(-1);
+    // The part before `raw` closes the first step; the next step opens after it.
+    expect(types[raw - 1]).toBe('finish-step');
+    expect(types[raw + 1]).toBe('start-step');
+    expect(await result.steps).toHaveLength(2);
+  });
+});
+
+describe('runPrompt raw parts at a stop boundary', () => {
+  test('forwards a raw part that arrives right after the step a stop condition ends on', async () => {
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        { type: 'stream-start' },
+        finishEvents[0]!,
+        // The next part is evaluated against the stop condition; sideband data
+        // must neither trigger that check nor be swallowed by it.
+        { type: 'raw', rawValue: { marker: 'usage-after-step' } },
+        { type: 'text-delta', id: 't', delta: 'ignored' },
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: {} as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      stopConditions: [({ steps }) => steps.length === 1],
+    });
+
+    const raws: unknown[] = [];
+    for await (const part of result.fullStream) {
+      if (part.type === 'raw') raws.push(part.rawValue);
+    }
+    await done;
+
+    expect(raws).toEqual([{ marker: 'usage-after-step' }]);
+  });
+});
+
 describe('runPrompt step accounting', () => {
+  test('preserves adapter warnings on the step and aggregate result', async () => {
+    const warnings: HarnessV1CallWarning[] = [
+      {
+        type: 'unsupported-setting',
+        setting: 'temperature',
+        details: 'The adapter does not support temperature.',
+      },
+      {
+        type: 'unsupported-tool',
+        tool: 'web_search',
+        details: 'The adapter does not support web search.',
+      },
+      {
+        type: 'other',
+        message: 'The adapter used a fallback.',
+      },
+    ];
+    const expectedWarnings: CallWarning[] = warnings;
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        { type: 'stream-start', warnings },
+        { type: 'text-delta', id: 't1', delta: 'done' },
+        ...finishEvents,
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: {},
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(parts.find(part => part.type === 'start-step')).toMatchObject({
+      warnings: expectedWarnings,
+    });
+    await expect(result.steps).resolves.toMatchObject([
+      { warnings: expectedWarnings },
+    ]);
+    await expect(result.warnings).resolves.toEqual(expectedWarnings);
+  });
+
   test('records one step per finish-step without counting terminal finish', async () => {
     const { result, done } = runPrompt({
       harness,

@@ -902,6 +902,8 @@ describe('doGenerate', () => {
     });
 
     it.each([
+      'mistral-large-4',
+      'mistral-large-4-0',
       'mistral-medium-3-5',
       'mistral-medium-latest',
       'mistral-vibe-cli-fast',
@@ -963,6 +965,23 @@ describe('doGenerate', () => {
       });
     });
 
+    it('should send reasoning_effort high with a warning for reasoning max', async () => {
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'max',
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        reasoning_effort: 'high',
+      });
+      expect(result.warnings).toContainEqual({
+        type: 'compatibility',
+        feature: 'reasoning',
+        details:
+          'reasoning "max" is not directly supported by this model. mapped to effort "high".',
+      });
+    });
+
     it('should send reasoning_effort none for reasoning none', async () => {
       await model.doGenerate({
         prompt: TEST_PROMPT,
@@ -1000,6 +1019,8 @@ describe('doGenerate', () => {
     });
 
     it.each([
+      'mistral-large-4',
+      'mistral-large-4-0',
       'mistral-medium-3-5',
       'mistral-medium-latest',
       'mistral-vibe-cli-fast',
@@ -1018,6 +1039,24 @@ describe('doGenerate', () => {
         reasoning_effort: 'high',
       });
     });
+
+    it.each(['mistral-large-4', 'mistral-large-4-0'] as const)(
+      'should send provider reasoning_effort for %s',
+      async modelId => {
+        const reasoningModel = provider.chat(modelId);
+
+        await reasoningModel.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            mistral: { reasoningEffort: 'high' },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          reasoning_effort: 'high',
+        });
+      },
+    );
   });
 });
 

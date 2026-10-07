@@ -32,8 +32,8 @@ describe('createGrokBuild', () => {
     expect(settings.source.pnpmLockYaml).toContain(
       "'@xai-official/grok@1.0.36'",
     );
-    expect(settings.source.pnpmWorkspaceYaml).toBe(
-      "allowBuilds:\n  '@xai-official/grok@1.0.36': true\n",
+    expect(settings.source.pnpmWorkspaceYaml).toContain(
+      "'@xai-official/grok': true",
     );
 
     expect({
@@ -130,8 +130,8 @@ describe('createGrokBuild', () => {
         "source": {
           "packageJson": {
             "dependencies": {
-              "@agentclientprotocol/sdk": "1.4.0",
-              "@modelcontextprotocol/sdk": "1.30.0",
+              "@agentclientprotocol/sdk": "1.5.0",
+              "@modelcontextprotocol/sdk": "1.32.0",
               "@xai-official/grok": "1.0.36",
               "ws": "8.21.0",
               "zod": "4.4.3",

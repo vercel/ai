@@ -1,4 +1,5 @@
 import {
+  Experimental_DecisionRefusalError as DecisionRefusalError,
   Experimental_DecisionUnsupportedQuestionTypeError as DecisionUnsupportedQuestionTypeError,
   type Experimental_DecisionModelV4CallOptions as DecisionModelV4CallOptions,
 } from '@ai-sdk/provider';
@@ -152,6 +153,16 @@ export async function decide<
           answers: result.answers,
           rounding: result.rounding,
         });
+        const refusedQuestionIds = Object.keys(questions).filter(
+          id => result.answers[id]?.type === 'refusal',
+        );
+        if (refusedQuestionIds.length > 0) {
+          throw new DecisionRefusalError({
+            questionIds: refusedQuestionIds,
+            provider: model.provider,
+            modelId: model.modelId,
+          });
+        }
         await notify({
           event: { ...modelCallEvent, ...result },
           callbacks: [telemetryDispatcher.experimental_onDecisionModelCallEnd],
