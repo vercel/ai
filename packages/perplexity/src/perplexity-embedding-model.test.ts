@@ -176,10 +176,26 @@ describe('doEmbed', () => {
       'content-type': 'application/json',
       'custom-provider-header': 'provider-header-value',
       'custom-request-header': 'request-header-value',
+      'x-pplx-integration': 'vercel-ai-sdk',
     });
     expect(server.calls[0].requestUserAgent).toContain(
       `ai-sdk/perplexity/0.0.0-test`,
     );
+  });
+
+  it('should allow overriding the integration header', async () => {
+    prepareJsonResponse();
+
+    const provider = createPerplexity({
+      apiKey: 'test-api-key',
+      headers: { 'x-pplx-integration': 'custom' },
+    });
+
+    await provider.embedding('pplx-embed-v1-4b').doEmbed({
+      values: testValues,
+    });
+
+    expect(server.calls[0].requestHeaders['x-pplx-integration']).toBe('custom');
   });
 
   it('should throw when exceeding the max embeddings per call', async () => {
