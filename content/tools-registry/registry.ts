@@ -689,4 +689,41 @@ console.log(text);`,
     websiteUrl: 'https://pushary.com/human-in-the-loop',
     npmUrl: 'https://www.npmjs.com/package/@pushary/ai-sdk',
   },
+  {
+    slug: 'code402',
+    name: 'code402',
+    description:
+      'x402 pay-per-call verification tools for agent payment workflows: IBAN, LEI, VAT, GSTIN, IFSC, SWIFT/BIC, sanctions screening, and onboarding packs. Non-custodial — the agent wallet signs an EIP-3009 transfer directly to the seller named in the 402 challenge (USDC on Base), with a hard client-side spend cap enforced before signing.',
+    packageName: '@code-402/agent-tools',
+    tags: ['x402', 'payments', 'verification', 'compliance'],
+    installCommand: {
+      pnpm: 'pnpm add @code-402/agent-tools',
+      npm: 'npm install @code-402/agent-tools',
+      yarn: 'yarn add @code-402/agent-tools',
+      bun: 'bun add @code-402/agent-tools',
+    },
+    codeExample: `import { generateText } from 'ai';
+import { jsonSchema } from 'ai';
+import { createCode402Client, toVercelAITools } from '@code-402/agent-tools';
+import { privateKeyToAccount } from 'viem/accounts';
+
+const client = createCode402Client({
+  baseUrl: 'https://hcrb.in',
+  account: privateKeyToAccount(process.env.PAYER_PRIVATE_KEY as \`0x\${string}\`),
+  maxAmountMinor: '5000', // hard cap: 0.005 USDC per call, enforced before signing
+});
+
+const tools = await toVercelAITools(client, { jsonSchema });
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'Validate IBAN GB82 WEST 1234 5698 7654 32 before we pay this supplier.',
+  tools,
+});
+
+console.log(text);`,
+    docsUrl: 'https://www.npmjs.com/package/@code-402/agent-tools',
+    websiteUrl: 'https://hcrb.in',
+    npmUrl: 'https://www.npmjs.com/package/@code-402/agent-tools',
+  },
 ];
