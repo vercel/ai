@@ -877,7 +877,6 @@ describe('createPiSession', () => {
     ).rejects.toThrow(`Unable to resolve path: ${alias}`);
     expect(piMock.createAgentSession).not.toHaveBeenCalled();
   });
-
   it('keeps native reads inside the workspace without fileToolPathPolicy', async () => {
     const sandboxSession = createSandboxSession();
     let reads: PromiseSettledResult<string>[] = [];

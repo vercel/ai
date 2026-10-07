@@ -1256,7 +1256,6 @@ describe('createPiRemoteOps with denied roots', () => {
       await rm(root, { recursive: true, force: true });
     }
   });
-
   it('refuses to read a path inside a denied root', async () => {
     const fixture = await makePathPolicyFixture();
     try {
@@ -1491,7 +1490,6 @@ describe('createPiRemoteOps with denied roots', () => {
       }),
     ).rejects.toThrow(`Unable to resolve path: ${alias}`);
   });
-
   it('keeps the stock find and grep commands without a policy', async () => {
     const env = makeOps({ run: () => ({ stdout: '' }) });
     await env.ops.findFiles('*.ts', '.');

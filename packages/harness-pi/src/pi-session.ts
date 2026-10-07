@@ -265,6 +265,11 @@ export interface PiMcpSettings {
 
 export type PiCacheRetention = 'none' | 'short' | 'long';
 
+export interface PiFileToolPathPolicy {
+  readonly readableRoots?: ReadonlyArray<string>;
+  readonly deniedRoots?: ReadonlyArray<string>;
+}
+
 export interface PiSessionSettings {
   readonly auth?: PiAuthenticationMode;
   readonly credentials?: PiCredentialStore;
