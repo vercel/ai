@@ -19,11 +19,13 @@ vi.mock('@ai-sdk/provider-utils', async () => {
 });
 
 // Mock AwsV4Signer so that no real crypto calls are made.
+let lastSignerOptions: Record<string, unknown> | undefined;
 vi.mock('aws4fetch', () => {
   class MockAwsV4Signer {
     options: any;
     constructor(options: any) {
       this.options = options;
+      lastSignerOptions = options;
     }
     async sign() {
       // Return a fake Headers instance with predetermined signing headers.
@@ -378,6 +380,31 @@ describe('createSigV4FetchFunction', () => {
 
     // The underlying fetch should not be called
     expect(dummyFetch).not.toHaveBeenCalled();
+  });
+
+  it('should send non-ASCII header values without signing them', async () => {
+    const dummyFetch = vi
+      .fn()
+      .mockResolvedValue(new Response('Signed', { status: 200 }));
+    const fetchFn = createFetchFunction(dummyFetch);
+
+    await fetchFn('http://example.com', {
+      method: 'POST',
+      body: '{"test": "data"}',
+      headers: {
+        'x-ascii': 'plain',
+        'x-title': 'Example · App',
+      },
+    });
+
+    expect(lastSignerOptions?.headers).toEqual([
+      ['user-agent', 'ai-sdk/amazon-bedrock/0.0.0-test runtime/testenv'],
+      ['x-ascii', 'plain'],
+    ]);
+    const calledInit = dummyFetch.mock.calls[0][1] as RequestInit;
+    const headers = calledInit.headers as Record<string, string>;
+    expect(headers['x-ascii']).toEqual('plain');
+    expect(headers['x-title']).toEqual('Example · App');
   });
 });
 
