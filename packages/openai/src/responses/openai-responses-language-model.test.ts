@@ -3478,7 +3478,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               type: 'function_call_output',
               call_id: 'call_123',
-              output: '"Error: boom"',
+              output: '{"error":"Error: boom"}',
             },
           ],
           tools: [
