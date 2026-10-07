@@ -40,7 +40,7 @@ export function createMCPEvents({
 
   async function getSubscription(id: string): Promise<MCPEventSubscription> {
     const subscription = await getStore().getById(id);
-    if (!subscription || subscription.status !== 'active') {
+    if (!subscription) {
       throw new MCPClientError({
         message: `Unknown MCP event subscription: ${id}`,
       });
@@ -185,7 +185,11 @@ export function createMCPEvents({
     },
 
     async experimental_refresh({ id, options }) {
-      return subscribe(await getSubscription(id), options);
+      const subscription = await getSubscription(id);
+      // Deliveries must retry until the renewed expiration is persisted.
+      // Retain pending state on errors, as the server may have renewed already.
+      await getStore().update(subscription.key, { status: 'pending' });
+      return subscribe(subscription, options);
     },
 
     async experimental_unsubscribe({ id, options }) {

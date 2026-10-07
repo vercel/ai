@@ -130,8 +130,8 @@ export function createMCPEventWebhook({
         return Response.json({ challenge: verification.data.challenge });
       }
 
-      // Servers can POST before the subscribe response reaches the client.
-      // Ask them to retry until the server-derived ID has been persisted.
+      // Servers can POST before a subscribe or refresh response is persisted.
+      // Ask them to retry until the ID and renewed expiration have been saved.
       if (subscription.status !== 'active' || subscription.id == null)
         return new Response(null, { status: 503 });
       if (

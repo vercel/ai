@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as z4 from 'zod/v4';
 import { createMCPClient, type MCPClient } from './mcp-client';
 import { createMCPEventWebhook } from './mcp-event-webhook';
@@ -212,6 +212,91 @@ describe('MCP client events', () => {
     expect(transport.requests.at(-1)?.params).not.toHaveProperty('id');
     expect(await store.get(stored.key)).toBeUndefined();
   });
+
+  it.each(['request', 'persistence'])(
+    'returns 503 during renewal %s and accepts delivery after the new expiration is persisted',
+    async phase => {
+      const { client, transport, store } = await setup();
+      const result =
+        await client.events.experimental_subscribe(subscribeOptions);
+      const stored = (await store.getById(result.id))!;
+      await store.update(stored.key, {
+        refreshBefore: new Date(Date.now() - 1000).toISOString(),
+      });
+      const onEvent = vi.fn(async () => {});
+      const webhook = createMCPEventWebhook({ store, onEvent });
+      const event = {
+        eventId: 'evt_1',
+        name: stored.name,
+        timestamp: new Date().toISOString(),
+        data: { text: 'Delivered during renewal' },
+        cursor: 'cursor_2',
+      };
+      expect((await webhook(signedRequest(stored, event))).status).toBe(410);
+
+      const deliverDuringRenewal = async () => {
+        expect((await webhook(signedRequest(stored, event))).status).toBe(503);
+        expect(onEvent).not.toHaveBeenCalled();
+        expect(await store.get(stored.key)).toMatchObject({
+          status: 'pending',
+          cursor: stored.cursor,
+        });
+      };
+      if (phase === 'request') {
+        transport.beforeSubscribe = deliverDuringRenewal;
+      } else {
+        const update = store.update.bind(store);
+        store.update = async (key, patch) => {
+          if (patch.status === 'active') await deliverDuringRenewal();
+          await update(key, patch);
+        };
+      }
+
+      const renewed = await client.events.experimental_refresh({
+        id: result.id,
+      });
+      expect(await store.get(stored.key)).toMatchObject({
+        status: 'active',
+        refreshBefore: renewed.refreshBefore,
+        delivery: stored.delivery,
+      });
+      expect((await webhook(signedRequest(stored, event))).status).toBe(204);
+      expect(onEvent).toHaveBeenCalledOnce();
+      expect((await store.get(stored.key))?.cursor).toBe('cursor_2');
+    },
+  );
+
+  it.each(['refresh', 'unsubscribe'])(
+    'retains pending state after a failed renewal and allows %s by the saved ID',
+    async action => {
+      const { client, transport, store } = await setup();
+      const result =
+        await client.events.experimental_subscribe(subscribeOptions);
+      const stored = (await store.getById(result.id))!;
+      transport.subscribeError = {
+        code: -32015,
+        message: 'CallbackEndpointError',
+      };
+      await expect(
+        client.events.experimental_refresh({ id: result.id }),
+      ).rejects.toMatchObject({ code: -32015 });
+      expect(await store.getById(result.id)).toMatchObject({
+        status: 'pending',
+        refreshBefore: stored.refreshBefore,
+      });
+
+      transport.subscribeError = undefined;
+      if (action === 'refresh') {
+        await client.events.experimental_refresh({ id: result.id });
+        expect(await store.getById(result.id)).toMatchObject({
+          status: 'active',
+        });
+      } else {
+        await client.events.experimental_unsubscribe({ id: result.id });
+        expect(await store.get(stored.key)).toBeUndefined();
+      }
+    },
+  );
 
   it('rejects unsupported servers without sending event requests', async () => {
     const transport = new EventTransport();

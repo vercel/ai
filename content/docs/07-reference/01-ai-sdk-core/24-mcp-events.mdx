@@ -245,8 +245,13 @@ deadline, cursor, and active status before the method resolves.
 
 ### `client.events.experimental_refresh({ id, options })`
 
-Loads a saved active subscription and sends `events/subscribe` with its original
+Loads a saved subscription by ID and sends `events/subscribe` with its original
 name, arguments, callback URL, secret, requested lifetime, and latest saved cursor.
+
+The subscription is marked pending before renewal. Event deliveries return `503`
+until the response saves the new expiration and restores active status. If renewal
+fails, the record stays pending because the server may have renewed it already;
+you can retry refresh or unsubscribe using the saved ID.
 
 ```ts
 const renewed = await client.events.experimental_refresh({
@@ -262,7 +267,7 @@ console.log(renewed.refreshBefore);
     {
       name: 'id',
       type: 'string',
-      description: 'ID of an active subscription in the configured store.',
+      description: 'ID of a saved subscription in the configured store.',
     },
     {
       name: 'options',
@@ -300,7 +305,7 @@ await client.events.experimental_unsubscribe({ id: subscription.id });
     {
       name: 'id',
       type: 'string',
-      description: 'ID of an active subscription in the configured store.',
+      description: 'ID of a saved subscription in the configured store.',
     },
     {
       name: 'options',
@@ -350,7 +355,7 @@ The listing method takes `{ params, options }`; the other methods include
 
 The client rejects requests to servers without the `events` capability.
 Subscription lifecycle methods require `events.store`; refresh and unsubscribe
-also require a known active subscription. Subscribe rejects unknown event names,
+also require a known subscription ID. Subscribe rejects unknown event names,
 unsupported delivery modes, invalid callback URLs, signing secrets, or lifetime
 settings. These checks use `MCPClientError`, except URL parsing may throw `TypeError`.
 
