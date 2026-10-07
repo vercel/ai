@@ -751,4 +751,35 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'trustabl',
+    name: 'Trustabl',
+    description:
+      'Find and fix reliability and safety gaps in AI SDK apps — untyped tools, missing step bounds, unsafe provider shell and file tools, fetch calls with no timeout.',
+    packageName: '@trustabl/ai-sdk',
+    tags: ['security'],
+    installCommand: {
+      pnpm: 'pnpm add @trustabl/ai-sdk',
+      npm: 'npm install @trustabl/ai-sdk',
+      yarn: 'yarn add @trustabl/ai-sdk',
+      bun: 'bun add @trustabl/ai-sdk',
+    },
+    codeExample: `import { generateText, gateway, isStepCount } from 'ai';
+import { scanRepo } from '@trustabl/ai-sdk';
+
+const { text } = await generateText({
+  model: gateway('openai/gpt-5-mini'),
+  prompt:
+    'Scan https://github.com/google/adk-python and summarise the three worst issues.',
+  tools: {
+    scanRepo: scanRepo(),
+  },
+  stopWhen: isStepCount(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://github.com/trustabl/ai-sdk-tool#use-with-agent',
+    websiteUrl: 'https://trustabl.ai',
+    npmUrl: 'https://www.npmjs.com/package/@trustabl/ai-sdk',
+  },
 ];
