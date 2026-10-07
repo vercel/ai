@@ -17,6 +17,12 @@ export type DecisionStatePart =
   | FilePart
   | { type: 'json'; value: JSONValue };
 
+function isDecisionStateParts(
+  state: DecisionState,
+): state is readonly DecisionStatePart[] {
+  return Array.isArray(state);
+}
+
 export async function prepareDecisionState(
   state: DecisionState,
   abortSignal?: AbortSignal,
@@ -24,11 +30,18 @@ export async function prepareDecisionState(
   if (typeof state === 'string') {
     return [{ type: 'text', text: state }];
   }
-  if (!Array.isArray(state)) {
-    return [{ type: 'json', value: state as Readonly<JSONObject> }];
+  if (!isDecisionStateParts(state)) {
+    return [{ type: 'json', value: state }];
+  }
+  if (
+    state.every(
+      (part): part is Exclude<DecisionStatePart, FilePart> =>
+        part.type !== 'file',
+    )
+  ) {
+    return state;
   }
   const files = state.filter((part): part is FilePart => part.type === 'file');
-  if (files.length === 0) return state as DecisionModelV4State;
 
   const prompt = await convertToLanguageModelPrompt({
     prompt: {
