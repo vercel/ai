@@ -52,14 +52,17 @@ type ResourceLoaderOptions = {
 };
 
 const piMock = vi.hoisted(() => {
-  const extensionHandlers = new Map<string, Array<() => unknown>>();
+  const extensionHandlers = new Map<
+    string,
+    Array<(event?: unknown) => unknown>
+  >();
   return {
     agentSessionExtensionResults: [] as FakeExtensionsResult[],
     createAgentSession: vi.fn(),
     customTools: [] as FakePiTool[],
     appendSystemPrompts: [] as string[][],
     extensionApi: {
-      on: vi.fn((eventType: string, handler: () => unknown) => {
+      on: vi.fn((eventType: string, handler: (event?: unknown) => unknown) => {
         const handlers = extensionHandlers.get(eventType) ?? [];
         handlers.push(handler);
         extensionHandlers.set(eventType, handlers);
@@ -812,6 +815,106 @@ describe('createPiSession', () => {
     expect(emit.mock.invocationCallOrder[0]).toBeLessThan(
       dispose.mock.invocationCallOrder[0],
     );
+  });
+
+  it('preserves extension shutdown reasons when MCP sessions rebuild', async () => {
+    const observedReasons: string[] = [];
+    const factory = vi.fn((piApi: ExtensionAPI) => {
+      piApi.on('session_shutdown', event => {
+        observedReasons.push(event.reason);
+      });
+    });
+    const createSessionMock = (handlerIndex: number) => {
+      const emit = vi.fn(
+        async (event: {
+          type: 'session_shutdown';
+          reason: 'reload' | 'quit';
+        }) => {
+          await piMock.extensionHandlers
+            .get('session_shutdown')
+            ?.[handlerIndex]?.(event);
+        },
+      );
+      const dispose = vi.fn();
+      const reload = vi.fn(async () => {});
+      return {
+        emit,
+        dispose,
+        reload,
+        session: {
+          bindExtensions: vi.fn(async () => {}),
+          dispose,
+          extensionRunner: { emit },
+          getSessionStats: () => ({
+            tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+          }),
+          prompt: vi.fn(async () => {}),
+          reload,
+          subscribe: vi.fn(() => () => {}),
+        } as unknown as AgentSession,
+      };
+    };
+    const first = createSessionMock(0);
+    const second = createSessionMock(1);
+    piMock.createAgentSession
+      .mockResolvedValueOnce({ session: first.session })
+      .mockResolvedValueOnce({ session: second.session });
+
+    const session = await createPi({
+      extensionFactories: [factory],
+      mcpServers: {
+        memory: { command: 'memory-mcp', args: [], lifecycle: 'eager' },
+      },
+    }).doStart({
+      sessionId: 'session-mcp-rebuild',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+    });
+
+    try {
+      const firstControl = await session.doPromptTurn({
+        skills: [],
+        prompt: 'First turn.',
+        tools: [],
+        emit: vi.fn(),
+      });
+      await firstControl.done;
+      const secondControl = await session.doPromptTurn({
+        skills: [],
+        prompt: 'Second turn.',
+        tools: [{ name: 'new-tool' }],
+        emit: vi.fn(),
+      });
+      await secondControl.done;
+
+      expect(observedReasons).toEqual(['reload']);
+      expect(first.emit).toHaveBeenCalledExactlyOnceWith({
+        type: 'session_shutdown',
+        reason: 'reload',
+      });
+      expect(first.emit.mock.invocationCallOrder[0]).toBeLessThan(
+        first.dispose.mock.invocationCallOrder[0],
+      );
+      expect(first.reload).not.toHaveBeenCalled();
+      expect(factory).toHaveBeenCalledTimes(2);
+      expect(mcpAdapterMock.mcpExtensionFactory).toHaveBeenCalledTimes(2);
+
+      await session.doDestroy();
+
+      expect(observedReasons).toEqual(['reload', 'quit']);
+      expect(second.emit).toHaveBeenCalledExactlyOnceWith({
+        type: 'session_shutdown',
+        reason: 'quit',
+      });
+      expect(second.emit.mock.invocationCallOrder[0]).toBeLessThan(
+        second.dispose.mock.invocationCallOrder[0],
+      );
+      expect(second.reload).not.toHaveBeenCalled();
+      expect(factory).toHaveBeenCalledTimes(2);
+      expect(mcpAdapterMock.mcpExtensionFactory).toHaveBeenCalledTimes(2);
+    } finally {
+      await session.doDestroy();
+    }
   });
 
   it('loads configured MCP servers alongside caller-supplied extension factories', async () => {

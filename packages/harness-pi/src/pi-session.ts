@@ -1104,7 +1104,11 @@ export async function createPiSession(
     };
   }
 
-  async function disposePiSession(): Promise<void> {
+  async function disposePiSession({
+    reason,
+  }: {
+    reason: 'reload' | 'quit';
+  }): Promise<void> {
     unsubscribe?.();
     unsubscribe = undefined;
 
@@ -1114,7 +1118,7 @@ export async function createPiSession(
 
     if (hasMcpServers) {
       await session.extensionRunner
-        .emit({ type: 'session_shutdown', reason: 'quit' })
+        .emit({ type: 'session_shutdown', reason })
         .catch(() => {});
     }
     session.dispose();
@@ -1126,7 +1130,7 @@ export async function createPiSession(
   ): Promise<boolean> {
     let resourcesReloaded = false;
     if (piSession) {
-      await disposePiSession();
+      await disposePiSession({ reason: 'reload' });
       // Original adapter waits 25 ms here to let Pi's teardown microtasks
       // settle before the next createAgentSession. Port verbatim.
       // TODO(pi-0.77): verify the race still exists; original SDK had a
@@ -1484,7 +1488,7 @@ export async function createPiSession(
       }
     }
 
-    await disposePiSession();
+    await disposePiSession({ reason: 'quit' });
     workspaceVfs.unmount();
     await rm(hostRoot, { recursive: true, force: true });
 
@@ -1613,7 +1617,7 @@ export async function createPiSession(
       settlePendingToolApprovals('Pi session stopped');
       await abortingTurn;
       await turnToDestroy?.done.catch(() => {});
-      await disposePiSession();
+      await disposePiSession({ reason: 'quit' });
       workspaceVfs.unmount();
       await rm(hostRoot, { recursive: true, force: true });
     },
@@ -1726,7 +1730,7 @@ export async function createPiSession(
 
       stopped = true;
       parkedPiSessions.delete(input.sessionId);
-      await disposePiSession();
+      await disposePiSession({ reason: 'quit' });
       workspaceVfs.unmount();
       await rm(hostRoot, { recursive: true, force: true });
 
