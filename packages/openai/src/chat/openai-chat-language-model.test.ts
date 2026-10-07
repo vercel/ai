@@ -813,6 +813,28 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should warn that reasoningSummary is not supported by the chat API', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const model = provider.chat('o3');
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: { reasoningSummary: 'detailed' },
+      },
+    });
+
+    expect(result.warnings).toStrictEqual([
+      {
+        type: 'unsupported',
+        feature: 'reasoningSummary',
+        details:
+          'reasoningSummary is only supported by the Responses API, not the Chat Completions API',
+      },
+    ]);
+  });
+
   it('should pass tools and toolChoice', async () => {
     prepareJsonFixtureResponse('openai-text');
 

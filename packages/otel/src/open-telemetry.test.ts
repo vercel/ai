@@ -5,6 +5,7 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import {
   context,
+  SpanKind,
   SpanStatusCode,
   trace,
   type Attributes,
@@ -21,6 +22,7 @@ import { z } from 'zod/v4';
 import {
   embed,
   embedMany,
+  experimental_decide,
   experimental_evaluate,
   generateObject,
   generateText,
@@ -30,7 +32,7 @@ import {
   type Telemetry,
 } from 'ai';
 import {
-  Experimental_EvaluationMockModelV4,
+  Experimental_DecisionMockModelV4,
   MockEmbeddingModelV4,
   MockLanguageModelV4,
 } from 'ai/test';
@@ -1433,6 +1435,274 @@ describe('OpenTelemetry', () => {
       `);
     });
   });
+
+  describe.each([
+    { recordInputs: undefined, recordOutputs: undefined },
+    { recordInputs: false, recordOutputs: undefined },
+    { recordInputs: undefined, recordOutputs: false },
+    { recordInputs: false, recordOutputs: false },
+  ])(
+    'speech and transcription (recordInputs=$recordInputs, recordOutputs=$recordOutputs)',
+    ({ recordInputs, recordOutputs }) => {
+      it.each(['Hello', ''])(
+        'records speech input %j and output metadata',
+        text => {
+          integration.onStart!({
+            callId,
+            operationId: 'ai.generateSpeech',
+            provider: 'openai.speech',
+            modelId: 'gpt-4o-mini-tts',
+            text,
+            voice: 'alloy',
+            outputFormat: 'mp3',
+            instructions: undefined,
+            speed: undefined,
+            language: undefined,
+            maxRetries: 2,
+            headers: undefined,
+            providerOptions: {},
+            ...telemetryFields(),
+            recordInputs,
+            recordOutputs,
+          } as Parameters<NonNullable<Telemetry['onStart']>>[0]);
+          integration.onEnd!({
+            callId,
+            operationId: 'ai.generateSpeech',
+            provider: 'openai.speech',
+            modelId: 'gpt-4o-mini-tts',
+            text,
+            audio: {
+              byteLength: 1234,
+              mediaType: 'audio/mpeg',
+              format: 'mp3',
+            },
+            usage: { characters: 5 },
+            warnings: [],
+            providerMetadata: undefined,
+            response: {
+              timestamp: new Date(0),
+              modelId: 'gpt-4o-mini-tts',
+            },
+            ...telemetryFields(),
+            recordInputs,
+            recordOutputs,
+          } as Parameters<NonNullable<Telemetry['onEnd']>>[0]);
+
+          expect(tracer.startSpan).toHaveBeenCalledTimes(1);
+          expect(tracer.startSpan).toHaveBeenCalledWith(
+            expect.any(String),
+            expect.objectContaining({ kind: SpanKind.CLIENT }),
+          );
+          expect(serializeSpan(tracer.spans[0], tracer)).toMatchObject({
+            name: 'ai.generateSpeech gpt-4o-mini-tts',
+            ended: true,
+            initAttributes: {
+              'gen_ai.operation.name': 'ai.generateSpeech',
+              'gen_ai.provider.name': 'openai',
+              'gen_ai.request.model': 'gpt-4o-mini-tts',
+              'gen_ai.output.type': 'speech',
+              'gen_ai.request.stream': false,
+              ...(recordInputs === false ? {} : { 'ai.request.text': text }),
+            },
+            runtimeAttributes: {
+              ...(recordOutputs === false
+                ? {}
+                : {
+                    'ai.response.audio.size': 1234,
+                    'ai.response.audio.media_type': 'audio/mpeg',
+                    'ai.response.audio.format': 'mp3',
+                  }),
+              'gen_ai.usage.characters': 5,
+            },
+          });
+          const attributes = {
+            ...getStartSpanAttributes(tracer, 0),
+            ...tracer.spans[0].attributes,
+          };
+          expect(attributes['gen_ai.input.messages']).toBe(
+            recordInputs === false
+              ? undefined
+              : JSON.stringify([
+                  { role: 'user', parts: [{ type: 'text', content: text }] },
+                ]),
+          );
+          expect(attributes['gen_ai.output.messages']).toBeUndefined();
+          expect(attributes['ai.request.text']).toBe(
+            recordInputs === false ? undefined : text,
+          );
+          expect(attributes['ai.response.audio.size']).toBe(
+            recordOutputs === false ? undefined : 1234,
+          );
+        },
+      );
+
+      it.each(['Hello', ''])(
+        'records transcription audio metadata and transcript %j',
+        text => {
+          integration.onStart!({
+            callId,
+            operationId: 'ai.transcribe',
+            provider: 'openai.transcription',
+            modelId: 'gpt-4o-transcribe',
+            audio: { byteLength: 4321, mediaType: 'audio/mpeg' },
+            inputAudioFormat: undefined,
+            maxRetries: 2,
+            headers: undefined,
+            providerOptions: {},
+            ...telemetryFields(),
+            recordInputs,
+            recordOutputs,
+          } as Parameters<NonNullable<Telemetry['onStart']>>[0]);
+          integration.onEnd!({
+            callId,
+            operationId: 'ai.transcribe',
+            provider: 'openai.transcription',
+            modelId: 'gpt-4o-transcribe',
+            audio: { byteLength: 4321, mediaType: 'audio/mpeg' },
+            text,
+            segments: [],
+            language: 'en',
+            durationInSeconds: 1,
+            usage: { seconds: 1 },
+            warnings: [],
+            providerMetadata: undefined,
+            response: {
+              timestamp: new Date(0),
+              modelId: 'gpt-4o-transcribe',
+            },
+            ...telemetryFields(),
+            recordInputs,
+            recordOutputs,
+          } as Parameters<NonNullable<Telemetry['onEnd']>>[0]);
+
+          expect(tracer.startSpan).toHaveBeenCalledTimes(1);
+          expect(tracer.startSpan).toHaveBeenCalledWith(
+            expect.any(String),
+            expect.objectContaining({ kind: SpanKind.CLIENT }),
+          );
+          expect(serializeSpan(tracer.spans[0], tracer)).toMatchObject({
+            name: 'ai.transcribe gpt-4o-transcribe',
+            ended: true,
+            initAttributes: {
+              'gen_ai.output.type': 'text',
+              'gen_ai.request.stream': false,
+              ...(recordInputs === false
+                ? {}
+                : {
+                    'ai.request.audio.size': 4321,
+                    'ai.request.audio.media_type': 'audio/mpeg',
+                  }),
+            },
+            runtimeAttributes: {
+              ...(recordOutputs === false ? {} : { 'ai.response.text': text }),
+              'gen_ai.usage.seconds': 1,
+            },
+          });
+          const attributes = {
+            ...getStartSpanAttributes(tracer, 0),
+            ...tracer.spans[0].attributes,
+          };
+          expect(attributes['gen_ai.output.messages']).toBe(
+            recordOutputs === false
+              ? undefined
+              : JSON.stringify([
+                  {
+                    role: 'assistant',
+                    parts: [{ type: 'text', content: text }],
+                  },
+                ]),
+          );
+          expect(attributes['gen_ai.input.messages']).toBeUndefined();
+          expect(attributes['ai.response.text']).toBe(
+            recordOutputs === false ? undefined : text,
+          );
+        },
+      );
+
+      it.each(['Hello', ''])(
+        'records streaming transcript %j through isolated callbacks',
+        text => {
+          integration.experimental_onStreamTranscriptionStart!({
+            callId,
+            operationId: 'ai.streamTranscribe',
+            provider: 'openai.transcription',
+            modelId: 'gpt-realtime-whisper',
+            audio: { byteLength: undefined, mediaType: 'audio/pcm' },
+            inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+            maxRetries: undefined,
+            headers: undefined,
+            providerOptions: {},
+            ...telemetryFields(),
+            recordInputs,
+            recordOutputs,
+          });
+          integration.experimental_onStreamTranscriptionEnd!({
+            callId,
+            operationId: 'ai.streamTranscribe',
+            provider: 'openai.transcription',
+            modelId: 'gpt-realtime-whisper',
+            audio: { byteLength: 2048, mediaType: 'audio/pcm' },
+            text,
+            segments: [],
+            language: 'en',
+            durationInSeconds: 1,
+            usage: { inputTokens: 3 },
+            warnings: [],
+            providerMetadata: undefined,
+            response: {
+              timestamp: new Date(0),
+              modelId: 'gpt-realtime-whisper',
+            },
+            ...telemetryFields(),
+            recordInputs,
+            recordOutputs,
+          });
+
+          expect(tracer.startSpan).toHaveBeenCalledTimes(1);
+          expect(tracer.startSpan).toHaveBeenCalledWith(
+            expect.any(String),
+            expect.objectContaining({ kind: SpanKind.CLIENT }),
+          );
+          expect(serializeSpan(tracer.spans[0], tracer)).toMatchObject({
+            name: 'ai.streamTranscribe gpt-realtime-whisper',
+            ended: true,
+            initAttributes: {
+              'gen_ai.output.type': 'text',
+              'gen_ai.request.stream': true,
+              ...(recordInputs === false
+                ? {}
+                : { 'ai.request.audio.media_type': 'audio/pcm' }),
+            },
+            runtimeAttributes: {
+              ...(recordInputs === false
+                ? {}
+                : { 'ai.request.audio.size': 2048 }),
+              ...(recordOutputs === false ? {} : { 'ai.response.text': text }),
+              'gen_ai.usage.input_tokens': 3,
+            },
+          });
+          const attributes = {
+            ...getStartSpanAttributes(tracer, 0),
+            ...tracer.spans[0].attributes,
+          };
+          expect(attributes['gen_ai.output.messages']).toBe(
+            recordOutputs === false
+              ? undefined
+              : JSON.stringify([
+                  {
+                    role: 'assistant',
+                    parts: [{ type: 'text', content: text }],
+                  },
+                ]),
+          );
+          expect(attributes['gen_ai.input.messages']).toBeUndefined();
+          expect(attributes['ai.response.text']).toBe(
+            recordOutputs === false ? undefined : text,
+          );
+        },
+      );
+    },
+  );
 
   describe('enrichSpan', () => {
     it('adds custom attributes to created spans', () => {
@@ -2837,77 +3107,178 @@ describe('OpenTelemetry', () => {
   });
 });
 
-describe('OpenTelemetry integration with evaluate', () => {
-  it('creates operation and model-call spans', async () => {
-    const tracer = createMockTracer();
-    const questions = {
-      refund: { type: 'boolean', instructions: 'Refund?' },
-    } as const;
+describe('OpenTelemetry integration with decide', () => {
+  it.each(['deprecated', 'current'] as const)(
+    'honors %s subclass hooks with and without super calls',
+    async hooks => {
+      for (const callSuper of [false, true]) {
+        const calls: Array<[string, string]> = [];
+        const tracer = createMockTracer();
+        class DeprecatedHooksIntegration extends OpenTelemetry {
+          override experimental_onEvaluateStart(
+            event: Parameters<OpenTelemetry['experimental_onEvaluateStart']>[0],
+          ): void {
+            calls.push(['start', event.operationId]);
+            if (callSuper) super.experimental_onEvaluateStart(event);
+          }
+          override experimental_onEvaluationModelCallStart(
+            event: Parameters<
+              OpenTelemetry['experimental_onEvaluationModelCallStart']
+            >[0],
+          ): void {
+            calls.push(['model-start', event.operationId]);
+            if (callSuper) super.experimental_onEvaluationModelCallStart(event);
+          }
+          override experimental_onEvaluationModelCallEnd(
+            event: Parameters<
+              OpenTelemetry['experimental_onEvaluationModelCallEnd']
+            >[0],
+          ): void {
+            calls.push(['model-end', event.operationId]);
+            if (callSuper) super.experimental_onEvaluationModelCallEnd(event);
+          }
+          override experimental_onEvaluateEnd(
+            event: Parameters<OpenTelemetry['experimental_onEvaluateEnd']>[0],
+          ): void {
+            calls.push(['end', event.operationId]);
+            if (callSuper) super.experimental_onEvaluateEnd(event);
+          }
+        }
+        class CurrentHooksIntegration extends OpenTelemetry {
+          override experimental_onDecideStart(
+            event: Parameters<OpenTelemetry['experimental_onDecideStart']>[0],
+          ): void {
+            calls.push(['start', event.operationId]);
+            if (callSuper) super.experimental_onDecideStart(event);
+          }
+          override experimental_onDecisionModelCallStart(
+            event: Parameters<
+              OpenTelemetry['experimental_onDecisionModelCallStart']
+            >[0],
+          ): void {
+            calls.push(['model-start', event.operationId]);
+            if (callSuper) super.experimental_onDecisionModelCallStart(event);
+          }
+          override experimental_onDecisionModelCallEnd(
+            event: Parameters<
+              OpenTelemetry['experimental_onDecisionModelCallEnd']
+            >[0],
+          ): void {
+            calls.push(['model-end', event.operationId]);
+            if (callSuper) super.experimental_onDecisionModelCallEnd(event);
+          }
+          override experimental_onDecideEnd(
+            event: Parameters<OpenTelemetry['experimental_onDecideEnd']>[0],
+          ): void {
+            calls.push(['end', event.operationId]);
+            if (callSuper) super.experimental_onDecideEnd(event);
+          }
+        }
+        const Integration =
+          hooks === 'deprecated'
+            ? DeprecatedHooksIntegration
+            : CurrentHooksIntegration;
+        await experimental_decide({
+          model: new Experimental_DecisionMockModelV4({
+            doDecide: async () => ({
+              answers: { refund: { type: 'boolean', probability: 0.9 } },
+              warnings: [],
+            }),
+          }),
+          state: 'Please refund me',
+          questions: { refund: { type: 'boolean', instructions: 'Refund?' } },
+          telemetry: { integrations: new Integration({ tracer }) },
+        });
+        expect(calls).toEqual([
+          ['start', 'ai.decide'],
+          ['model-start', 'ai.decide.doDecide'],
+          ['model-end', 'ai.decide.doDecide'],
+          ['end', 'ai.decide'],
+        ]);
+        expect(tracer.spans).toHaveLength(callSuper ? 2 : 0);
+        for (const span of tracer.spans) {
+          expect(span.ended).toBe(true);
+          expect(span.end).toHaveBeenCalledOnce();
+        }
+      }
+    },
+  );
 
-    await experimental_evaluate({
-      model: new Experimental_EvaluationMockModelV4({
-        doEvaluate: async () => ({
-          answers: { refund: { type: 'boolean', probability: 0.9 } },
-          usage: { inputTokens: 12, outputTokens: 2 },
-          warnings: [],
-        }),
-      }),
-      state: { message: 'Please refund me' },
-      questions,
-      telemetry: {
-        integrations: new OpenTelemetry({
-          tracer,
-          experimental_evaluation: true,
-        }),
-      },
-    });
+  it.each(['current', 'deprecated'] as const)(
+    'creates decision spans through the %s API',
+    async api => {
+      const tracer = createMockTracer();
+      const questions = {
+        refund: { type: 'boolean', instructions: 'Refund?' },
+      } as const;
 
-    expect(tracer.spans).toHaveLength(2);
-    expect(tracer.spans.map(span => serializeSpan(span, tracer)))
-      .toMatchInlineSnapshot(`
+      await (api === 'current' ? experimental_decide : experimental_evaluate)({
+        model: new Experimental_DecisionMockModelV4({
+          doDecide: async () => ({
+            answers: { refund: { type: 'boolean', probability: 0.9 } },
+            usage: { inputTokens: 12, outputTokens: 2 },
+            warnings: [],
+          }),
+        }),
+        state: { message: 'Please refund me' },
+        questions,
+        telemetry: {
+          integrations: new OpenTelemetry({
+            tracer,
+            ...(api === 'current'
+              ? { experimental_decision: true }
+              : { experimental_evaluation: true }),
+          }),
+        },
+      });
+
+      expect(tracer.spans).toHaveLength(2);
+      expect(tracer.spans.map(span => serializeSpan(span, tracer)))
+        .toMatchInlineSnapshot(`
         [
           {
             "ended": true,
             "initAttributes": {
-              "ai.evaluation.questions": "{"refund":{"type":"boolean","instructions":"Refund?"}}",
-              "ai.evaluation.state": "{"message":"Please refund me"}",
-              "gen_ai.operation.name": "evaluate",
+              "ai.decision.questions": "{"refund":{"type":"boolean","instructions":"Refund?"}}",
+              "ai.decision.state": "{"message":"Please refund me"}",
+              "gen_ai.operation.name": "decide",
               "gen_ai.provider.name": "mock-provider",
               "gen_ai.request.model": "mock-model-id",
             },
-            "name": "evaluate mock-model-id",
+            "name": "decide mock-model-id",
             "runtimeAttributes": {
-              "ai.evaluation.answers": "{"refund":{"type":"boolean","probability":0.9}}",
+              "ai.decision.answers": "{"refund":{"type":"boolean","probability":0.9}}",
             },
           },
           {
             "ended": true,
             "initAttributes": {
-              "ai.evaluation.questions": "{"refund":{"type":"boolean","instructions":"Refund?"}}",
-              "ai.evaluation.state": "{"message":"Please refund me"}",
-              "gen_ai.operation.name": "evaluate",
+              "ai.decision.questions": "{"refund":{"type":"boolean","instructions":"Refund?"}}",
+              "ai.decision.state": "{"message":"Please refund me"}",
+              "gen_ai.operation.name": "decide",
               "gen_ai.provider.name": "mock-provider",
               "gen_ai.request.model": "mock-model-id",
             },
-            "name": "evaluate mock-model-id",
+            "name": "decide mock-model-id",
             "runtimeAttributes": {
-              "ai.evaluation.answers": "{"refund":{"type":"boolean","probability":0.9}}",
+              "ai.decision.answers": "{"refund":{"type":"boolean","probability":0.9}}",
               "gen_ai.usage.input_tokens": 12,
               "gen_ai.usage.output_tokens": 2,
             },
           },
         ]
       `);
-  });
+    },
+  );
 
-  it('ends both spans with error status when evaluation fails', async () => {
+  it('ends both spans with error status when decision fails', async () => {
     const tracer = createMockTracer();
-    const error = new Error('evaluation failed');
+    const error = new Error('decision failed');
 
     await expect(
-      experimental_evaluate({
-        model: new Experimental_EvaluationMockModelV4({
-          doEvaluate: async () => {
+      experimental_decide({
+        model: new Experimental_DecisionMockModelV4({
+          doDecide: async () => {
             throw error;
           },
         }),
@@ -2925,7 +3296,7 @@ describe('OpenTelemetry integration with evaluate', () => {
       expect(span.ended).toBe(true);
       expect(span.status).toEqual({
         code: SpanStatusCode.ERROR,
-        message: 'evaluation failed',
+        message: 'decision failed',
       });
       expect(span.exceptions).toHaveLength(1);
     }

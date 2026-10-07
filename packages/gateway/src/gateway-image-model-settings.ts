@@ -4,6 +4,7 @@ export type GatewayImageModelId =
   | 'bfl/flux-2-klein-9b'
   | 'bfl/flux-2-max'
   | 'bfl/flux-2-pro'
+  | 'bfl/flux-3-image'
   | 'bfl/flux-kontext-max'
   | 'bfl/flux-kontext-pro'
   | 'bfl/flux-pro-1.0-fill'
@@ -33,4 +34,5 @@ export type GatewayImageModelId =
   | 'recraft/recraft-v4.1-utility-pro'
   | 'spacexai/grok-imagine-image'
   | 'spacexai/grok-imagine-image-2.0'
+  | 'topaz/wonder-3.5'
   | (string & {});

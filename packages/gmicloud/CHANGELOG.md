@@ -1,5 +1,53 @@
 # @ai-sdk/gmicloud
 
+## 3.0.36
+
+### Patch Changes
+
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/openai-compatible@3.0.65
+  - @ai-sdk/provider-utils@5.0.56
+
+## 3.0.35
+
+### Patch Changes
+
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/provider@4.0.23
+  - @ai-sdk/openai-compatible@3.0.64
+
+## 3.0.34
+
+### Patch Changes
+
+- Updated dependencies [2959d35]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+  - @ai-sdk/openai-compatible@3.0.63
+
+## 3.0.33
+
+### Patch Changes
+
+- Updated dependencies [04be48f]
+  - @ai-sdk/openai-compatible@3.0.62
+
+## 3.0.32
+
+### Patch Changes
+
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+  - @ai-sdk/openai-compatible@3.0.61
+
 ## 3.0.31
 
 ### Patch Changes

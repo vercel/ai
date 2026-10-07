@@ -1,5 +1,96 @@
 # @ai-sdk/react
 
+## 4.0.133
+
+### Patch Changes
+
+- Updated dependencies [6f6b9c0]
+- Updated dependencies [d3bcad9]
+  - ai@7.0.130
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/mcp@2.0.69
+  - @ai-sdk/provider-utils@5.0.56
+
+## 4.0.132
+
+### Patch Changes
+
+- Updated dependencies [fc1e19e]
+- Updated dependencies [e37d213]
+- Updated dependencies [5094ebd]
+- Updated dependencies [73d8343]
+- Updated dependencies [268225c]
+- Updated dependencies [d83366e]
+- Updated dependencies [34905a2]
+- Updated dependencies [16ab882]
+- Updated dependencies [f810ea3]
+- Updated dependencies [19a127b]
+- Updated dependencies [0af2f7c]
+- Updated dependencies [4c6979c]
+  - @ai-sdk/provider-utils@5.0.55
+  - ai@7.0.129
+  - @ai-sdk/provider@4.0.23
+  - @ai-sdk/mcp@2.0.68
+
+## 4.0.131
+
+### Patch Changes
+
+- Updated dependencies [0fe8c67]
+- Updated dependencies [2959d35]
+- Updated dependencies [bba3927]
+- Updated dependencies [0ca1ab9]
+- Updated dependencies [d6b42fd]
+- Updated dependencies [ed6e72d]
+- Updated dependencies [9384b92]
+- Updated dependencies [59116e6]
+- Updated dependencies [2136151]
+- Updated dependencies [575383e]
+  - ai@7.0.128
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+  - @ai-sdk/mcp@2.0.67
+
+## 4.0.130
+
+### Patch Changes
+
+- 8f05086: fix(react): prevent streamed chat updates from starving navigation transitions
+- Updated dependencies [158a718]
+- Updated dependencies [bb8d33e]
+- Updated dependencies [3ff0f54]
+- Updated dependencies [284dc11]
+- Updated dependencies [ba8afe9]
+  - ai@7.0.127
+  - @ai-sdk/mcp@2.0.66
+
+## 4.0.129
+
+### Patch Changes
+
+- Updated dependencies [4f3d236]
+  - ai@7.0.126
+
+## 4.0.128
+
+### Patch Changes
+
+- Updated dependencies [ff3dcef]
+- Updated dependencies [4d0500e]
+  - ai@7.0.125
+  - @ai-sdk/mcp@2.0.65
+
+## 4.0.127
+
+### Patch Changes
+
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - ai@7.0.124
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+  - @ai-sdk/mcp@2.0.64
+
 ## 4.0.126
 
 ### Patch Changes

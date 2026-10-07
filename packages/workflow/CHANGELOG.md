@@ -1,5 +1,99 @@
 # @ai-sdk/workflow
 
+## 2.0.62
+
+### Patch Changes
+
+- Updated dependencies [6f6b9c0]
+- Updated dependencies [d3bcad9]
+  - ai@7.0.130
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/provider-utils@5.0.56
+
+## 2.0.61
+
+### Patch Changes
+
+- 758b092: fix(workflow): accept common tool JSON Schema dialects and annotations
+- cd41d05: fix(workflow): report measured performance for streamed agent steps
+- Updated dependencies [fc1e19e]
+- Updated dependencies [e37d213]
+- Updated dependencies [5094ebd]
+- Updated dependencies [73d8343]
+- Updated dependencies [268225c]
+- Updated dependencies [d83366e]
+- Updated dependencies [34905a2]
+- Updated dependencies [16ab882]
+- Updated dependencies [f810ea3]
+- Updated dependencies [19a127b]
+- Updated dependencies [0af2f7c]
+- Updated dependencies [4c6979c]
+  - @ai-sdk/provider-utils@5.0.55
+  - ai@7.0.129
+  - @ai-sdk/provider@4.0.23
+
+## 2.0.60
+
+### Patch Changes
+
+- d9e04cb: fix(workflow): reuse persisted tool denial results during approval resumption
+
+## 2.0.59
+
+### Patch Changes
+
+- a471b4c: Document and validate WorkflowAgent generation deadlines, retry boundaries, hook cancellation, and selected result serialization across workflow resumption.
+- 0ca1ab9: Add durable non-streaming `WorkflowAgent.generate()` with a shared tool loop, a 20-step default, typed output, and core generation result semantics. Reuse core result and content construction through internal exports while preserving existing Workflow streaming behavior. Transport-independent approval creation remains separate follow-up work.
+- 69ea843: fix(workflow): preserve length-limited assistant responses in conversation messages
+- 6accb1c: Refactor WorkflowAgent call preparation, model-call results, and execution finalization to prepare for non-streaming generation while preserving stream behavior.
+- 57dadb5: Create tool approval requests independently of streaming so WorkflowAgent.generate and stream without a writable can resume approved calls. Preserve provider approval requests and forward approval responses without locally executing provider tools.
+- c89c76c: fix(workflow): preserve provider metadata on assistant text messages
+- Updated dependencies [0fe8c67]
+- Updated dependencies [2959d35]
+- Updated dependencies [0ca1ab9]
+- Updated dependencies [d6b42fd]
+- Updated dependencies [ed6e72d]
+- Updated dependencies [59116e6]
+- Updated dependencies [2136151]
+  - ai@7.0.128
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+
+## 2.0.58
+
+### Patch Changes
+
+- Updated dependencies [158a718]
+- Updated dependencies [bb8d33e]
+- Updated dependencies [284dc11]
+- Updated dependencies [ba8afe9]
+  - ai@7.0.127
+
+## 2.0.57
+
+### Patch Changes
+
+- Updated dependencies [4f3d236]
+  - ai@7.0.126
+
+## 2.0.56
+
+### Patch Changes
+
+- 165455d: fix(workflow): apply stream transformations before writing agent model parts
+- Updated dependencies [ff3dcef]
+  - ai@7.0.125
+
+## 2.0.55
+
+### Patch Changes
+
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - ai@7.0.124
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+
 ## 2.0.54
 
 ### Patch Changes

@@ -1,5 +1,71 @@
 # @ai-sdk/google-vertex
 
+## 5.0.104
+
+### Patch Changes
+
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/anthropic@4.0.74
+  - @ai-sdk/google@4.0.90
+  - @ai-sdk/openai-compatible@3.0.65
+  - @ai-sdk/provider-utils@5.0.56
+
+## 5.0.103
+
+### Patch Changes
+
+- 753f2e1: feat(google): add the 'gemini-nano-banana-2.1' model ID
+- Updated dependencies [fc1e19e]
+- Updated dependencies [8c0e699]
+- Updated dependencies [5094ebd]
+- Updated dependencies [753f2e1]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/anthropic@4.0.73
+  - @ai-sdk/google@4.0.89
+  - @ai-sdk/provider@4.0.23
+  - @ai-sdk/openai-compatible@3.0.64
+
+## 5.0.102
+
+### Patch Changes
+
+- Updated dependencies [2959d35]
+- Updated dependencies [b5dfea1]
+- Updated dependencies [686cca9]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+  - @ai-sdk/anthropic@4.0.72
+  - @ai-sdk/google@4.0.88
+  - @ai-sdk/openai-compatible@3.0.63
+
+## 5.0.101
+
+### Patch Changes
+
+- Updated dependencies [04be48f]
+- Updated dependencies [c35458e]
+  - @ai-sdk/openai-compatible@3.0.62
+  - @ai-sdk/anthropic@4.0.71
+
+## 5.0.100
+
+### Patch Changes
+
+- 8c65988: feat(ai): add telemetry to speech generation and transcription, including
+  provider usage propagation and experimental streaming lifecycle callbacks
+- 527a163: fix: validate hostname parts using `isValidHostnamePart`
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+  - @ai-sdk/google@4.0.87
+  - @ai-sdk/anthropic@4.0.70
+  - @ai-sdk/openai-compatible@3.0.61
+
 ## 5.0.99
 
 ### Patch Changes

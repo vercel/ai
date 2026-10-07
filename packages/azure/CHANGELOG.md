@@ -1,5 +1,80 @@
 # @ai-sdk/azure
 
+## 4.0.94
+
+### Patch Changes
+
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/openai@4.0.86
+  - @ai-sdk/deepseek@3.0.61
+  - @ai-sdk/provider-utils@5.0.56
+
+## 4.0.93
+
+### Patch Changes
+
+- 0af2f7c: chore: upgrade to TypeScript 6
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [99bdcd2]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/openai@4.0.85
+  - @ai-sdk/provider@4.0.23
+  - @ai-sdk/deepseek@3.0.60
+
+## 4.0.92
+
+### Patch Changes
+
+- 35347c3: feat(azure): support MAI-Image models through the MAI image API
+
+## 4.0.91
+
+### Patch Changes
+
+- 9210b70: fix(azure): report the Azure Speech voice-reset 502 as a non-retryable 400. An unknown voice or unsupported style on MAI-Voice-2.1 makes Azure Speech reset the connection with an Envoy `protocol error` 502; since this is a client input error, the resulting `APICallError` now carries `statusCode: 400` so HTTP clients and gateways do not retry it as a server error.
+- Updated dependencies [2959d35]
+- Updated dependencies [5b8e63b]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+  - @ai-sdk/openai@4.0.84
+  - @ai-sdk/deepseek@3.0.59
+
+## 4.0.90
+
+### Patch Changes
+
+- 8952233: feat(azure): support MAI-Voice-2.1 and MAI-Voice-2.1-Flash speech generation, and MAI-Transcribe-2-Streaming streaming transcription through the MAI realtime API. Adds the `maiBaseURL` and `webSocket` settings and `providerOptions.azure.api: 'mai'`. Unknown MAI voices or styles now fail with a descriptive, non-retryable error.
+
+## 4.0.89
+
+### Patch Changes
+
+- d08102b: Add test coverage for `resourceName` validation edge cases: labels at the 63-character limit, underscores, non-ASCII characters, and invalid `AZURE_RESOURCE_NAME` values for non-language models.
+
+## 4.0.88
+
+### Patch Changes
+
+- 560ac0b: Route `mai-transcribe-1.5` to the Azure Speech API by default, like `mai-transcribe-2`. MAI-Transcribe-1.5 requests no longer send the `segment` timestamps default, which the model rejects.
+- 00f2a59: Add MAI-Voice-2-Flash and MAI-Voice-2 speech generation through `azure.speech()` using Azure Speech text to speech (SSML), with voice, output format, speed, and `style`/`styleDegree` provider options. `language` picks a default voice when no voice is set. Select the API with `providerOptions.azure.api` to override model-based routing, and add `azure.speechModel()` as an alias of `azure.speech()`.
+
+## 4.0.87
+
+### Patch Changes
+
+- 527a163: fix: validate hostname parts using `isValidHostnamePart`
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+  - @ai-sdk/openai@4.0.83
+  - @ai-sdk/deepseek@3.0.58
+
 ## 4.0.86
 
 ### Patch Changes

@@ -1,5 +1,4 @@
 import { spawn } from 'child_process';
-import { appendFileSync } from 'fs';
 import { run } from '../lib/run';
 
 const moduleName = process.argv[2];
@@ -47,7 +46,9 @@ run(async () => {
   const times: number[] = [];
   const iterations = 50;
 
-  console.log(`Running import benchmark 10 times for ${moduleName}...\n`);
+  console.log(
+    `Running import benchmark ${iterations} times for ${moduleName}...\n`,
+  );
 
   for (let i = 0; i < iterations; i++) {
     const time = await runInSeparateProcess();
@@ -71,23 +72,4 @@ run(async () => {
   console.log(`Min: ${min.toFixed(1)} ms`);
   console.log(`Max: ${max.toFixed(1)} ms`);
   console.log(`Range: ${(max - min).toFixed(1)} ms`);
-
-  // Write to GitHub Actions output if running in CI
-  if (process.env.GITHUB_OUTPUT) {
-    // remove "@ai-sdk/" prefix if present
-    const outputKey = moduleName.replace(/^@ai-sdk\//, '');
-    const outputValue = median.toFixed(1);
-
-    try {
-      appendFileSync(
-        process.env.GITHUB_OUTPUT,
-        `${outputKey}=${outputValue}\n`,
-      );
-      console.log(
-        `\n✅ Written to GitHub Actions output: ${outputKey}=${outputValue}`,
-      );
-    } catch (error) {
-      console.error('Failed to write to GitHub Actions output:', error);
-    }
-  }
 });
