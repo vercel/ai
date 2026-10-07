@@ -1,4 +1,5 @@
 import type {
+  Experimental_DecisionModelV4CallOptions as DecisionModelV4CallOptions,
   Experimental_DecisionModelV4Question as DecisionModelV4Question,
   JSONObject,
   JSONValue,
@@ -45,7 +46,7 @@ function prepareDescription(
 
 export function prepareDecisionQuestions(
   questions: Readonly<Record<string, DecisionQuestion>>,
-): Readonly<Record<string, DecisionModelV4Question>> {
+): DecisionModelV4CallOptions['questions'] {
   return Object.fromEntries(
     Object.entries(questions).map(
       ([id, question]): [string, DecisionModelV4Question] => {
