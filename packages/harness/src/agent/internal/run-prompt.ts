@@ -866,6 +866,14 @@ export function runPrompt<
         }
         if (value == null) continue;
 
+        // `raw` is out-of-band adapter data: it must not open a step (span),
+        // become part of one, or trigger a pending stop-condition check, so
+        // pass it straight through.
+        if (value.type === 'raw') {
+          result.enqueueRaw(value.rawValue);
+          continue;
+        }
+
         if (pendingStopBoundary != null) {
           if (value.type === 'finish') {
             releasePendingStopBoundary();
