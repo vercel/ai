@@ -17,6 +17,7 @@ createFeatureTestSuite({
     languageModels: [
       createChatModel('claude-sonnet-4-20250514'),
       createChatModel('claude-haiku-4-5-20251001'),
+      createChatModel('claude-haiku-5-5'),
     ],
   },
   timeout: 30000,

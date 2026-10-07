@@ -149,6 +149,11 @@ const opus55AnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   opus55AnthropicModelId,
 )}/converse`;
 
+const haiku55AnthropicModelId = 'us.anthropic.claude-haiku-5-5';
+const haiku55AnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  haiku55AnthropicModelId,
+)}/converse`;
+
 const sonnet5AnthropicModelId = 'us.anthropic.claude-sonnet-5';
 const sonnet5AnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   sonnet5AnthropicModelId,
@@ -178,6 +183,7 @@ const server = createTestServer({
   [opus5AnthropicGenerateUrl]: {},
   [opus55AnthropicGenerateUrl]: {},
   [sonnet5AnthropicGenerateUrl]: {},
+  [haiku55AnthropicGenerateUrl]: {},
 });
 
 describe('supportedUrls', () => {
@@ -334,6 +340,16 @@ const opusAnthropicModel = new BedrockChatLanguageModel(opusAnthropicModelId, {
 
 const opus5AnthropicModel = new BedrockChatLanguageModel(
   opus5AnthropicModelId,
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    fetch: fakeFetchWithAuth,
+    generateId: () => 'test-id',
+  },
+);
+
+const haiku55AnthropicModel = new BedrockChatLanguageModel(
+  haiku55AnthropicModelId,
   {
     baseUrl: () => baseUrl,
     headers: {},
@@ -5614,6 +5630,56 @@ describe('doGenerate', () => {
     };
 
     await opus5AnthropicModel.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Generate a name' }],
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+          },
+          required: ['name'],
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe('json');
+    expect(
+      requestBody.additionalModelRequestFields?.output_config,
+    ).toBeUndefined();
+  });
+
+  it('should use the json tool fallback for claude-haiku-5-5 (Bedrock rejects output_config.format)', async () => {
+    server.urls[haiku55AnthropicGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                toolUse: {
+                  toolUseId: 'json-tool-id',
+                  name: 'json',
+                  input: { name: 'Test' },
+                },
+              },
+            ],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+        stopReason: 'tool_use',
+      },
+    };
+
+    await haiku55AnthropicModel.doGenerate({
       prompt: [
         {
           role: 'user',

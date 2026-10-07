@@ -9,6 +9,7 @@ describe('getModelCapabilities', () => {
       rejectsSamplingParameters: true,
       rejectsThinkingDisabledAboveHighEffort: true,
       rejectsThinkingDisabled: false,
+      rejectsBudgetThinking: false,
       rejectsForcedToolUse: false,
       supportsBetweenToolsThinking: false,
       isKnownModel: false,
@@ -21,6 +22,7 @@ describe('getModelCapabilities', () => {
       rejectsSamplingParameters: true,
       rejectsThinkingDisabledAboveHighEffort: true,
       rejectsThinkingDisabled: false,
+      rejectsBudgetThinking: false,
       rejectsForcedToolUse: false,
       supportsBetweenToolsThinking: false,
       isKnownModel: false,
@@ -41,6 +43,7 @@ describe('getModelCapabilities', () => {
         rejectsSamplingParameters: false,
         rejectsThinkingDisabledAboveHighEffort: false,
         rejectsThinkingDisabled: false,
+        rejectsBudgetThinking: false,
         rejectsForcedToolUse: false,
         supportsBetweenToolsThinking: false,
         isKnownModel: false,
@@ -55,6 +58,7 @@ describe('getModelCapabilities', () => {
       rejectsSamplingParameters: false,
       rejectsThinkingDisabledAboveHighEffort: false,
       rejectsThinkingDisabled: false,
+      rejectsBudgetThinking: false,
       rejectsForcedToolUse: false,
       supportsBetweenToolsThinking: false,
       isKnownModel: true,
@@ -68,6 +72,7 @@ describe('getModelCapabilities', () => {
       rejectsSamplingParameters: true,
       rejectsThinkingDisabledAboveHighEffort: false,
       rejectsThinkingDisabled: true,
+      rejectsBudgetThinking: true,
       rejectsForcedToolUse: true,
       supportsBetweenToolsThinking: false,
       isKnownModel: true,
@@ -81,6 +86,7 @@ describe('getModelCapabilities', () => {
       rejectsSamplingParameters: true,
       rejectsThinkingDisabledAboveHighEffort: true,
       rejectsThinkingDisabled: true,
+      rejectsBudgetThinking: true,
       rejectsForcedToolUse: true,
       supportsBetweenToolsThinking: false,
       isKnownModel: true,
@@ -90,6 +96,7 @@ describe('getModelCapabilities', () => {
     );
     expect(getModelCapabilities('claude-fable-5')).toMatchObject({
       rejectsThinkingDisabled: true,
+      rejectsBudgetThinking: true,
       rejectsForcedToolUse: false,
       supportsBetweenToolsThinking: false,
     });
@@ -102,12 +109,14 @@ describe('getModelCapabilities', () => {
       rejectsSamplingParameters: true,
       rejectsThinkingDisabledAboveHighEffort: true,
       rejectsThinkingDisabled: true,
+      rejectsBudgetThinking: true,
       rejectsForcedToolUse: true,
       supportsBetweenToolsThinking: true,
       isKnownModel: true,
     });
     expect(getModelCapabilities('claude-sonnet-5')).toMatchObject({
       rejectsThinkingDisabled: false,
+      rejectsBudgetThinking: false,
       rejectsForcedToolUse: false,
       supportsBetweenToolsThinking: false,
     });
@@ -120,6 +129,7 @@ describe('getModelCapabilities', () => {
       rejectsSamplingParameters: false,
       rejectsThinkingDisabledAboveHighEffort: false,
       rejectsThinkingDisabled: false,
+      rejectsBudgetThinking: false,
       rejectsForcedToolUse: false,
       supportsBetweenToolsThinking: false,
       isKnownModel: false,

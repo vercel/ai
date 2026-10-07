@@ -10681,6 +10681,7 @@ describe('getModelCapabilities', () => {
       {
         "isKnownModel": true,
         "maxOutputTokens": 128000,
+        "rejectsBudgetThinking": false,
         "rejectsForcedToolUse": false,
         "rejectsSamplingParameters": true,
         "rejectsThinkingDisabled": false,
@@ -10696,6 +10697,7 @@ describe('getModelCapabilities', () => {
       {
         "isKnownModel": true,
         "maxOutputTokens": 128000,
+        "rejectsBudgetThinking": true,
         "rejectsForcedToolUse": false,
         "rejectsSamplingParameters": true,
         "rejectsThinkingDisabled": true,
@@ -10711,6 +10713,7 @@ describe('getModelCapabilities', () => {
       {
         "isKnownModel": true,
         "maxOutputTokens": 128000,
+        "rejectsBudgetThinking": false,
         "rejectsForcedToolUse": false,
         "rejectsSamplingParameters": true,
         "rejectsThinkingDisabled": false,
@@ -10726,6 +10729,7 @@ describe('getModelCapabilities', () => {
       {
         "isKnownModel": true,
         "maxOutputTokens": 128000,
+        "rejectsBudgetThinking": false,
         "rejectsForcedToolUse": false,
         "rejectsSamplingParameters": true,
         "rejectsThinkingDisabled": false,
@@ -10753,6 +10757,7 @@ describe('getModelCapabilities', () => {
       {
         "isKnownModel": true,
         "maxOutputTokens": 128000,
+        "rejectsBudgetThinking": false,
         "rejectsForcedToolUse": false,
         "rejectsSamplingParameters": true,
         "rejectsThinkingDisabled": false,
@@ -11163,6 +11168,7 @@ describe('claude-opus-5-5 specific behavior', () => {
       {
         "isKnownModel": true,
         "maxOutputTokens": 128000,
+        "rejectsBudgetThinking": true,
         "rejectsForcedToolUse": true,
         "rejectsSamplingParameters": true,
         "rejectsThinkingDisabled": true,
@@ -11442,6 +11448,7 @@ describe('claude-sonnet-5-5 specific behavior', () => {
       {
         "isKnownModel": true,
         "maxOutputTokens": 128000,
+        "rejectsBudgetThinking": true,
         "rejectsForcedToolUse": true,
         "rejectsSamplingParameters": true,
         "rejectsThinkingDisabled": true,
@@ -11648,6 +11655,163 @@ describe('claude-sonnet-5-5 specific behavior', () => {
     const requestBody = await server.calls[0].requestBodyJson;
     expect(requestBody.thinking).toEqual({ type: 'disabled' });
     expect(result.warnings).toEqual([]);
+  });
+});
+
+describe('claude-haiku-5-5 specific behavior', () => {
+  const server = createTestServer({
+    'https://api.anthropic.com/v1/messages': {},
+  });
+
+  function prepareJsonFixtureResponse(filename: string) {
+    server.urls['https://api.anthropic.com/v1/messages'].response = {
+      type: 'json-value',
+      body: JSON.parse(
+        fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
+      ),
+    };
+  }
+
+  it('should return known capabilities that allow disabling thinking up to high effort', () => {
+    expect(getModelCapabilities('claude-haiku-5-5')).toMatchInlineSnapshot(`
+      {
+        "isKnownModel": true,
+        "maxOutputTokens": 128000,
+        "rejectsBudgetThinking": true,
+        "rejectsForcedToolUse": false,
+        "rejectsSamplingParameters": true,
+        "rejectsThinkingDisabled": false,
+        "rejectsThinkingDisabledAboveHighEffort": true,
+        "supportsBetweenToolsThinking": false,
+        "supportsStructuredOutput": true,
+      }
+    `);
+  });
+
+  it('should not warn about an unknown model and use the 128k output limit', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-haiku-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.max_tokens).toBe(128000);
+    expect(requestBody.thinking).toBeUndefined();
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('should send disabled thinking at low effort', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-haiku-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        anthropic: {
+          thinking: { type: 'disabled' },
+          effort: 'low',
+        } satisfies AnthropicLanguageModelOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toEqual({ type: 'disabled' });
+    expect(requestBody.output_config).toEqual({ effort: 'low' });
+    expect(result.warnings).toEqual([]);
+  });
+
+  it.each(['xhigh', 'max'] as const)(
+    'should lower effort "%s" to "high" when thinking is disabled',
+    async effort => {
+      prepareJsonFixtureResponse('anthropic-text');
+
+      const result = await provider('claude-haiku-5-5').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            thinking: { type: 'disabled' },
+            effort,
+          } satisfies AnthropicLanguageModelOptions,
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.thinking).toEqual({ type: 'disabled' });
+      expect(requestBody.output_config).toEqual({ effort: 'high' });
+      expect(result.warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'providerOptions.anthropic.effort',
+          details: `effort '${effort}' is not supported by claude-haiku-5-5 when thinking is disabled. The effort has been lowered to 'high'.`,
+        },
+      ]);
+    },
+  );
+
+  it('should send adaptive thinking with xhigh effort', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-haiku-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        anthropic: {
+          thinking: { type: 'adaptive' },
+          effort: 'xhigh',
+        } satisfies AnthropicLanguageModelOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toEqual({ type: 'adaptive' });
+    expect(requestBody.output_config).toEqual({ effort: 'xhigh' });
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('should convert budget-based thinking to adaptive thinking', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-haiku-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        anthropic: {
+          thinking: { type: 'enabled', budgetTokens: 4000 },
+        } satisfies AnthropicLanguageModelOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toEqual({ type: 'adaptive' });
+    expect(result.warnings).toEqual([
+      {
+        type: 'unsupported',
+        feature: 'providerOptions.anthropic.thinking',
+        details:
+          "budget-based thinking is not supported by claude-haiku-5-5. Using adaptive thinking instead. Use 'effort' to control how much the model thinks.",
+      },
+    ]);
+  });
+
+  it('should use native structured outputs', async () => {
+    prepareJsonFixtureResponse('anthropic-json-output-format.1');
+
+    await provider('claude-haiku-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { name: { type: 'string' } },
+          required: ['name'],
+          additionalProperties: false,
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.output_config?.format).toMatchObject({
+      type: 'json_schema',
+    });
+    expect(requestBody.tools).toBeUndefined();
   });
 });
 
