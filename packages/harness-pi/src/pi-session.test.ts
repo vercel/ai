@@ -13,6 +13,7 @@ import type {
   HarnessV1NetworkSandboxSession,
   HarnessV1SandboxProvider,
   HarnessV1Session,
+  HarnessV1StreamPart,
   HarnessV1ToolSpec,
 } from '@ai-sdk/harness';
 import {
@@ -334,6 +335,108 @@ describe('createPiSession', () => {
       await session.doDestroy();
     }
   });
+
+  it.each([
+    { nativeName: 'read', filteredTool: 'read' },
+    { nativeName: 'find', filteredTool: 'glob' },
+  ])(
+    'classifies an extension replacing filtered $filteredTool on every turn',
+    async ({ nativeName, filteredTool }) => {
+      const { session: fakePiSession } = createFakePiSession({
+        promptEvents: [
+          { type: 'turn_start' },
+          {
+            type: 'message_update',
+            assistantMessageEvent: {
+              type: 'toolcall_start',
+              contentIndex: 0,
+              partial: {
+                content: [
+                  { type: 'toolCall', id: 'extension-call', name: nativeName },
+                ],
+              },
+            },
+          },
+          {
+            type: 'tool_execution_start',
+            toolCallId: 'extension-call',
+            toolName: nativeName,
+            args: { query: 'example' },
+          },
+          {
+            type: 'tool_execution_end',
+            toolCallId: 'extension-call',
+            toolName: nativeName,
+            result: { content: [{ type: 'text', text: 'extension result' }] },
+          },
+          {
+            type: 'turn_end',
+            message: { role: 'assistant', content: [], stopReason: 'stop' },
+          },
+        ],
+      });
+      piMock.session = fakePiSession;
+      const session = await createPi({
+        extensionFactories: [vi.fn()],
+      }).doStart({
+        sessionId: `session-filtered-extension-${nativeName}`,
+        sandboxSession: createSandboxSession(),
+        sessionWorkDir: '/sandbox/work',
+        builtinToolFiltering: { mode: 'deny', toolNames: [filteredTool] },
+      });
+
+      try {
+        for (const prompt of ['First turn.', 'Second turn.']) {
+          const emitted: HarnessV1StreamPart[] = [];
+          const control = await session.doPromptTurn({
+            skills: [],
+            prompt,
+            tools: [],
+            emit: part => emitted.push(part),
+          });
+          await control.done;
+
+          expect(
+            emitted.filter(part =>
+              ['tool-input-start', 'tool-call', 'tool-result'].includes(
+                part.type,
+              ),
+            ),
+          ).toEqual([
+            {
+              type: 'tool-input-start',
+              id: 'extension-call',
+              toolName: nativeName,
+              dynamic: true,
+              providerExecuted: true,
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'extension-call',
+              toolName: nativeName,
+              input: '{"query":"example"}',
+              dynamic: true,
+              providerExecuted: true,
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'extension-call',
+              toolName: nativeName,
+              result: 'extension result',
+              dynamic: true,
+            },
+          ]);
+        }
+
+        expect(piMock.customTools.map(tool => tool.name)).not.toContain(
+          nativeName,
+        );
+        expect(piMock.createAgentSession).toHaveBeenCalledOnce();
+      } finally {
+        await session.doDestroy();
+      }
+    },
+  );
 
   it('defaults model requests to the cacheRetention setting', async () => {
     const streamFunction = vi.fn();
