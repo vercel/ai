@@ -82,6 +82,12 @@ export interface AnthropicProvider extends ProviderV4 {
 }
 
 export interface AnthropicProviderSettings {
+  /** Settings for downloading JSON Lines batch results. */
+  batchResultDownloads?: {
+    /** Maximum UTF-8 bytes per row, excluding LF. Defaults to 64 MiB. */
+    maxLineBytes?: number;
+  };
+
   /**
    * Use a different URL prefix for API calls, e.g. to use proxy servers.
    * The default prefix is `https://api.anthropic.com/v1`.
@@ -187,6 +193,7 @@ export function createAnthropic(
   const createBatch = () =>
     new AnthropicBatch({
       provider: `${providerName.replace(/\.messages$/, '')}.batch`,
+      maxLineBytes: options.batchResultDownloads?.maxLineBytes,
       config: languageModelConfig,
       supportedUrls,
     });

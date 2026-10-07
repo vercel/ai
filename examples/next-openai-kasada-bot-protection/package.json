@@ -13,7 +13,7 @@
     "@ai-sdk/react": "workspace:*",
     "@vercel/functions": "^3.6.0",
     "ai": "workspace:*",
-    "next": "^16.3.3",
+    "next": "^16.3.6",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "sonner": "^1.7.4"

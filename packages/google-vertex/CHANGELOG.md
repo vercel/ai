@@ -1,5 +1,33 @@
 # @ai-sdk/google-vertex
 
+## 5.0.104
+
+### Patch Changes
+
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/anthropic@4.0.74
+  - @ai-sdk/google@4.0.90
+  - @ai-sdk/openai-compatible@3.0.65
+  - @ai-sdk/provider-utils@5.0.56
+
+## 5.0.103
+
+### Patch Changes
+
+- 753f2e1: feat(google): add the 'gemini-nano-banana-2.1' model ID
+- Updated dependencies [fc1e19e]
+- Updated dependencies [8c0e699]
+- Updated dependencies [5094ebd]
+- Updated dependencies [753f2e1]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/anthropic@4.0.73
+  - @ai-sdk/google@4.0.89
+  - @ai-sdk/provider@4.0.23
+  - @ai-sdk/openai-compatible@3.0.64
+
 ## 5.0.102
 
 ### Patch Changes
