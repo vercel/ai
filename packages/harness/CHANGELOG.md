@@ -1,5 +1,15 @@
 # @ai-sdk/harness
 
+## 1.0.143
+
+### Patch Changes
+
+- c4a5c8d: fix(harness): fix calculation for total turn token usage so that it is not just the last step usage
+- 50ac48b: fix(harness): fix `raw` chunk emission to not start a step
+- e8af189: fix(harness): ensure a dynamic tool with the same name as a currently inactive built-in tool can pass validation
+- Updated dependencies [3ebefff]
+  - ai@7.0.132
+
 ## 1.0.142
 
 ### Patch Changes

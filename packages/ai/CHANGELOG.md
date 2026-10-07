@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.132
+
+### Patch Changes
+
+- 3ebefff: feat(ai): introduce 'onUIMessageStepEnd' callback to persist messages
+
 ## 7.0.131
 
 ### Patch Changes

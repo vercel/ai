@@ -1,5 +1,13 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.110
+
+### Patch Changes
+
+- 5d42987: fix(amazon-bedrock,anthropic-aws): skip SigV4 signing for non-ASCII header values
+- Updated dependencies [32ff7ad]
+  - @ai-sdk/openai@4.0.88
+
 ## 5.0.109
 
 ### Patch Changes
