@@ -1,5 +1,12 @@
 # @ai-sdk/google
 
+## 3.0.131
+
+### Patch Changes
+
+- fed6d78: feat(google): preserve file search custom metadata in retrieved context grounding chunks
+- 6dd6693: feat(google): add the 'gemini-nano-banana-2.1' model ID
+
 ## 3.0.130
 
 ### Patch Changes
