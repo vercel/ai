@@ -3,6 +3,7 @@ import {
   InvalidResponseDataError,
   Experimental_DecisionUnsupportedQuestionTypeError as DecisionUnsupportedQuestionTypeError,
   type Experimental_DecisionModelV4Result as DecisionModelV4Result,
+  type Experimental_DecisionModelV4Question as DecisionQuestion,
 } from '@ai-sdk/provider';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { InvalidArgumentError } from '../error/invalid-argument-error';
@@ -10,7 +11,6 @@ import { UnsupportedModelVersionError } from '../error/unsupported-model-version
 import type { Telemetry } from '../telemetry/telemetry';
 import { DecisionMockModelV4 } from '../test/decision-mock-model-v4';
 import { experimental_decide as decide } from '../index';
-import type { DecisionQuestion } from './decision-question';
 
 const questions = {
   topic: {
@@ -28,15 +28,6 @@ const questions = {
     instructions: 'Refund?',
     criteria: { true: 'Money back', false: null },
   },
-} as const;
-
-const normalizedQuestions = {
-  topic: {
-    ...questions.topic,
-    criteria: { billing: null, support: '{"includes":["help"]}' },
-  },
-  severity: { ...questions.severity, instructions: '["Severity?"]' },
-  refund: { ...questions.refund, criteria: { true: 'Money back' } },
 } as const;
 
 const answers: DecisionModelV4Result['answers'] = {
@@ -96,7 +87,7 @@ it('decides answers to mixed questions in one call and preserves distributions a
   expect(doDecide).toHaveBeenCalledTimes(1);
   expect(doDecide).toHaveBeenCalledWith({
     state: [{ type: 'json', value: state }],
-    questions: normalizedQuestions,
+    questions,
     abortSignal,
     headers: { custom: 'value', 'user-agent': expect.stringContaining('ai/') },
     providerOptions: { test: { option: true } },
@@ -576,7 +567,7 @@ describe('telemetry', () => {
         callId: 'test-call-id',
         operationId: 'ai.decide.doDecide',
         state: [{ type: 'json', value: state }],
-        questions: normalizedQuestions,
+        questions,
       }),
     );
     expect(experimental_onDecisionModelCallEnd).toHaveBeenCalledWith(
@@ -813,7 +804,7 @@ it.each([
   },
 );
 
-it('normalizes question JSON for provider calls and model events while preserving public input', async () => {
+it('preserves structured questions for provider calls and all lifecycle events', async () => {
   const publicQuestions = {
     topic: {
       type: 'choice',
@@ -851,34 +842,6 @@ it('normalizes question JSON for provider calls and model events while preservin
       criteria: { true: null, false: 'No refund requested' },
     },
   } as const;
-  const expected = {
-    topic: {
-      type: 'choice',
-      instructions: 'Pick a "team".\nKeep this string.',
-      criteria: {
-        billing: '{"includes":["charges"]}',
-        support: '["help",{"urgent":true}]',
-        other: null,
-      },
-    },
-    severity: {
-      type: 'score',
-      instructions: '{"task":"Rate severity"}',
-      criteria: ['{"level":"low"}', '["medium","high"]', null],
-    },
-    refund: {
-      type: 'boolean',
-      instructions: '["Refund?",{"locale":"en"}]',
-      criteria: { true: '{"requested":true}', false: '["status only"]' },
-    },
-    noCriteria: publicQuestions.noCriteria,
-    emptyCriteria: publicQuestions.emptyCriteria,
-    nullCriteria: { ...publicQuestions.nullCriteria, criteria: {} },
-    falseCriteria: {
-      ...publicQuestions.falseCriteria,
-      criteria: { false: 'No refund requested' },
-    },
-  };
   const { model, doDecide } = setup({
     answers: {
       topic: { type: 'choice', choice: 'billing' },
@@ -909,12 +872,12 @@ it('normalizes question JSON for provider calls and model events while preservin
       },
     },
   });
-  expect(doDecide.mock.calls[0][0].questions).toEqual(expected);
+  expect(doDecide.mock.calls[0][0].questions).toBe(publicQuestions);
   expect(onModelStart).toHaveBeenCalledWith(
-    expect.objectContaining({ questions: expected }),
+    expect.objectContaining({ questions: publicQuestions }),
   );
   expect(onModelEnd).toHaveBeenCalledWith(
-    expect.objectContaining({ questions: expected }),
+    expect.objectContaining({ questions: publicQuestions }),
   );
   expect(onStart).toHaveBeenCalledWith(
     expect.objectContaining({ questions: publicQuestions }),

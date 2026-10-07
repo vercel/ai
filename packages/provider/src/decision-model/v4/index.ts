@@ -1,5 +1,8 @@
 import type { DecisionModelV4CallOptions } from './decision-model-v4-call-options';
-import type { DecisionModelV4Question } from './decision-model-v4-question';
+import type {
+  DecisionModelV4Input,
+  DecisionModelV4Question,
+} from './decision-model-v4-question';
 import type {
   DecisionModelV4Answer,
   DecisionModelV4Result,
@@ -8,7 +11,10 @@ import type { DecisionModelV4 } from './decision-model-v4';
 
 export type { DecisionModelV4 as Experimental_DecisionModelV4 } from './decision-model-v4';
 export type { DecisionModelV4CallOptions as Experimental_DecisionModelV4CallOptions } from './decision-model-v4-call-options';
-export type { DecisionModelV4Question as Experimental_DecisionModelV4Question } from './decision-model-v4-question';
+export type {
+  DecisionModelV4Input as Experimental_DecisionModelV4Input,
+  DecisionModelV4Question as Experimental_DecisionModelV4Question,
+} from './decision-model-v4-question';
 export type {
   DecisionModelV4Answer as Experimental_DecisionModelV4Answer,
   DecisionModelV4Result as Experimental_DecisionModelV4Result,
@@ -39,3 +45,6 @@ export type {
   DecisionModelV4State as Experimental_DecisionModelV4State,
   DecisionModelV4StatePart as Experimental_DecisionModelV4StatePart,
 } from './decision-model-v4-state';
+
+/** @deprecated Use `Experimental_DecisionModelV4Input` instead. */
+export type Experimental_EvaluationModelV4Input = DecisionModelV4Input;

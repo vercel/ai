@@ -151,19 +151,19 @@ it('serializes structured input and rubrics, omits null descriptions, and preser
     questions: {
       department: {
         type: 'choice',
-        instructions: '{"task":"route"}',
-        criteria: { technical: null, billing: '{"rubric":["charges"]}' },
+        instructions: { task: 'route' },
+        criteria: { technical: null, billing: { rubric: ['charges'] } },
       },
       severity: {
         type: 'score',
-        instructions: '["severity"]',
-        criteria: [null, '{"meaning":"high"}'],
+        instructions: ['severity'],
+        criteria: [null, { meaning: 'high' }],
       },
       refund: {
         type: 'boolean',
         instructions: 'Refund?',
         criteria: {
-          true: '{"meaning":"Explicit request for money back"}',
+          true: { meaning: 'Explicit request for money back' },
           false: 'The customer only asks about refund status.',
         },
       },
@@ -411,12 +411,13 @@ it('accepts partial usage and preserves zero token counts', async () => {
 it.each([
   { criteria: undefined, expected: 'Refund?' },
   { criteria: {}, expected: 'Refund?' },
+  { criteria: { true: null, false: null }, expected: 'Refund?' },
   {
     criteria: { true: 'Money back' },
     expected: 'Refund?\n\nCriteria for true:\nMoney back',
   },
   {
-    criteria: { false: '["Status request"]' },
+    criteria: { false: ['Status request'] },
     expected: 'Refund?\n\nCriteria for false:\n["Status request"]',
   },
 ] as const)(

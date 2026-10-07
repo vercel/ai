@@ -1,14 +1,13 @@
-import { Experimental_DecisionUnsupportedQuestionTypeError as DecisionUnsupportedQuestionTypeError } from '@ai-sdk/provider';
+import {
+  Experimental_DecisionUnsupportedQuestionTypeError as DecisionUnsupportedQuestionTypeError,
+  type Experimental_DecisionModelV4Question as DecisionQuestion,
+} from '@ai-sdk/provider';
 import {
   createIdGenerator,
   withUserAgentSuffix,
   type Context,
   type ProviderOptions,
 } from '@ai-sdk/provider-utils';
-import {
-  prepareDecisionQuestions,
-  type DecisionQuestion,
-} from './decision-question';
 import { prepareDecisionState, type DecisionState } from './decision-state';
 import { resolveDecisionModel } from '../model/resolve-model';
 import { logWarnings } from '../logger/log-warnings';
@@ -120,14 +119,13 @@ export async function decide<
 
       try {
         const preparedState = await prepareDecisionState(state, abortSignal);
-        const preparedQuestions = prepareDecisionQuestions(questions);
         const modelCallEvent = {
           callId,
           operationId: 'ai.decide.doDecide' as const,
           provider: model.provider,
           modelId: model.modelId,
           state: preparedState,
-          questions: preparedQuestions,
+          questions,
         };
         await notify({
           event: modelCallEvent,
@@ -139,7 +137,7 @@ export async function decide<
           abortSignal?.throwIfAborted();
           return await model.doDecide({
             state: preparedState,
-            questions: preparedQuestions,
+            questions,
             abortSignal,
             headers: withUserAgentSuffix(headers ?? {}, `ai/${VERSION}`),
             providerOptions,

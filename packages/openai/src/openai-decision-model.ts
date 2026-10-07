@@ -3,6 +3,7 @@ import {
   UnsupportedFunctionalityError,
   type Experimental_DecisionModelV4 as DecisionModelV4,
   type Experimental_DecisionModelV4Answer as DecisionModelV4Answer,
+  type Experimental_DecisionModelV4Input as DecisionModelV4Input,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -176,7 +177,7 @@ export class DecisionOpenAIModel implements DecisionModelV4 {
           },
         ],
         questions: Object.entries(questions).map(([name, question]) => {
-          const instructions = question.instructions;
+          const instructions = toText(question.instructions);
           switch (question.type) {
             case 'boolean':
               return {
@@ -186,10 +187,10 @@ export class DecisionOpenAIModel implements DecisionModelV4 {
                   instructions,
                   question.criteria?.true == null
                     ? undefined
-                    : `Criteria for true:\n${question.criteria.true}`,
+                    : `Criteria for true:\n${toText(question.criteria.true)}`,
                   question.criteria?.false == null
                     ? undefined
-                    : `Criteria for false:\n${question.criteria.false}`,
+                    : `Criteria for false:\n${toText(question.criteria.false)}`,
                 ]
                   .filter(part => part !== undefined)
                   .join('\n\n'),
@@ -202,7 +203,9 @@ export class DecisionOpenAIModel implements DecisionModelV4 {
                 choices: Object.entries(question.criteria).map(
                   ([value, description]) => ({
                     value,
-                    ...(description == null ? {} : { description }),
+                    ...(description == null
+                      ? {}
+                      : { description: toText(description) }),
                   }),
                 ),
               };
@@ -214,7 +217,9 @@ export class DecisionOpenAIModel implements DecisionModelV4 {
                 levels: question.criteria.map((description, index) => ({
                   // Score criteria have no separate labels; indices identify each level.
                   label: String(index),
-                  ...(description == null ? {} : { description }),
+                  ...(description == null
+                    ? {}
+                    : { description: toText(description) }),
                 })),
               };
           }
@@ -317,4 +322,8 @@ export class DecisionOpenAIModel implements DecisionModelV4 {
       },
     };
   }
+}
+
+function toText(input: DecisionModelV4Input): string {
+  return typeof input === 'string' ? input : JSON.stringify(input);
 }

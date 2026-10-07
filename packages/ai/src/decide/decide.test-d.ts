@@ -3,6 +3,7 @@ import {
   type Experimental_DecisionModelV4CallOptions,
   type Experimental_DecisionModelV4StatePart,
   type Experimental_DecisionModelV4Question,
+  type Experimental_DecisionModelV4Input as DecisionQuestionInput,
 } from '@ai-sdk/provider';
 import { expectTypeOf, it } from 'vitest';
 import { DecisionMockModelV4 } from '../test/decision-mock-model-v4';
@@ -15,7 +16,6 @@ import {
   type Experimental_DecisionState as DecisionState,
   type Experimental_DecisionStatePart as DecisionStatePart,
   type Experimental_DecisionQuestion as DecisionQuestion,
-  type Experimental_DecisionQuestionInput as DecisionQuestionInput,
   type Experimental_DecisionAnswer as DecisionAnswer,
 } from '../index';
 
@@ -199,35 +199,11 @@ it('preserves literal Choice inference with public JSON instructions and criteri
   expectTypeOf(result.answers.department.probabilities).toEqualTypeOf<
     Record<'billing' | 'support' | 'other', number> | undefined
   >();
+  expectTypeOf<DecisionQuestion>().toEqualTypeOf<Experimental_DecisionModelV4Question>();
   expectTypeOf<
     Experimental_DecisionModelV4Question['instructions']
-  >().toEqualTypeOf<string>();
-  expectTypeOf<
-    Extract<
-      Experimental_DecisionModelV4Question,
-      { type: 'choice' }
-    >['criteria']
-  >().toEqualTypeOf<Readonly<Record<string, string | null>>>();
-  expectTypeOf<
-    Extract<Experimental_DecisionModelV4Question, { type: 'score' }>['criteria']
-  >().toEqualTypeOf<readonly (string | null)[]>();
-  expectTypeOf<
-    Extract<
-      Experimental_DecisionModelV4Question,
-      { type: 'boolean' }
-    >['criteria']
-  >().toEqualTypeOf<
-    { readonly true?: string; readonly false?: string } | undefined
-  >();
-  // @ts-expect-error Provider Boolean descriptions use omission for absent descriptions.
-  const nullBooleanDescription: Experimental_DecisionModelV4Question = {
-    type: 'boolean',
-    instructions: 'Refund?',
-    criteria: { true: null },
-  };
-  void nullBooleanDescription;
-  // @ts-expect-error Provider instructions must already be text.
+  >().toEqualTypeOf<DecisionQuestionInput>();
   const providerQuestion: Experimental_DecisionModelV4Question =
     reusableQuestions.department;
-  void providerQuestion;
+  expectTypeOf(providerQuestion).toExtend<DecisionQuestion>();
 });

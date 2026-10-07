@@ -227,9 +227,9 @@ to retain its experimental `decisionModel` method.
 | `score`   | At least two ordered level descriptions   | Fractional `score` in `[0, levels.length - 1]`; optional `probabilities` |
 | `boolean` | Optional `true` and `false` descriptions  | Required `probability`, the model-estimated probability of true          |
 
-`Experimental_DecisionQuestion` and `Experimental_DecisionQuestionInput` are
-public types exported from `ai`. Instructions and descriptions can be strings,
-JSON objects, or JSON arrays. Descriptions can also be `null`.
+`Experimental_DecisionQuestion` is exported from `ai`. Instructions and
+descriptions can be strings, JSON objects, or JSON arrays. Descriptions can also
+be `null`.
 
 Functions, class instances, cycles, undefined values, and nonfinite numbers are
 not JSON-compatible.

@@ -1,6 +1,6 @@
 import type { Context } from '@ai-sdk/provider-utils';
 import { decide } from './decide';
-import type { DecisionQuestion } from './decision-question';
+import type { Experimental_DecisionModelV4Question as DecisionQuestion } from '@ai-sdk/provider';
 import type {
   DecideStartEvent,
   DecideEndEvent,
@@ -67,7 +67,4 @@ export type {
   DecisionStatePart as Experimental_DecisionStatePart,
 } from './decision-state';
 
-export type {
-  DecisionQuestion as Experimental_DecisionQuestion,
-  DecisionQuestionInput as Experimental_DecisionQuestionInput,
-} from './decision-question';
+export type { Experimental_DecisionModelV4Question as Experimental_DecisionQuestion } from '@ai-sdk/provider';

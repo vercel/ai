@@ -13,17 +13,17 @@ import { DecisionLanguageModel } from './decision-language-model';
 const questions = {
   category: {
     type: 'choice',
-    instructions: '{"task":["Pick the exact label"]}',
+    instructions: { task: ['Pick the exact label'] },
     criteria: {
-      'Needs Review': '{"meaning":"manual"}',
-      'Needs review': '["automatic"]',
+      'Needs Review': { meaning: 'manual' },
+      'Needs review': ['automatic'],
       other: null,
     },
   },
   severity: {
     type: 'score',
-    instructions: '["Rate the impact"]',
-    criteria: ['low', '{"meaning":"medium"}', null],
+    instructions: ['Rate the impact'],
+    criteria: ['low', { meaning: 'medium' }, null],
   },
 } as const;
 const options = {
@@ -110,8 +110,8 @@ it('uses a portable flat schema with required fields and internal option codes',
         type: 'choice',
         instructions: questions.category.instructions,
         criteria: {
-          c0: { label: 'Needs Review', description: '{"meaning":"manual"}' },
-          c1: { label: 'Needs review', description: '["automatic"]' },
+          c0: { label: 'Needs Review', description: { meaning: 'manual' } },
+          c1: { label: 'Needs review', description: ['automatic'] },
           c2: { label: 'other', description: null },
         },
       },
