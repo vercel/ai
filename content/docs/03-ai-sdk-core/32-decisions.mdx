@@ -248,6 +248,9 @@ substitute models automatically.
 
 Invalid inputs throw `InvalidArgumentError`. Missing answers, mismatched answer
 types, invalid options, scores, or probabilities throw `InvalidResponseDataError`.
+If the model refuses any question, the call throws
+`Experimental_DecisionRefusalError` with the refused question IDs, and is not
+retried.
 Transient provider failures use the normal retry policy (`maxRetries: 2` by
 default). Use `abortSignal` to cancel the decisions request, `headers` for request headers,
 and `providerOptions` for provider-specific settings.

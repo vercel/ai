@@ -203,6 +203,7 @@ export function validateDecisionAnswers({
 
   for (const [id, question] of Object.entries(questions)) {
     const answer = answers[id];
+    if (isRecord(answer) && answer.type === 'refusal') continue;
     if (!isRecord(answer) || answer.type !== question.type) {
       invalidAnswer(
         answers,

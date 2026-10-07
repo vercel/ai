@@ -473,22 +473,36 @@ it.each([123, null, 'x'.repeat(129)])(
   },
 );
 
-it.each(['department', 'severity', 'refund', null])(
-  'fails the whole decision with an explicit refusal error',
+it.each(['department', 'severity', 'refund'] as const)(
+  'returns a refusal answer for a refused %s question and keeps the others',
   async name => {
     const answers = fixture.answers.map((answer: { name: string }) =>
-      answer.name === (name ?? 'refund') ? { type: 'refusal', name } : answer,
+      answer.name === name ? { type: 'refusal', name } : answer,
     );
-    const body = { ...fixture, answers };
-    const { model, fetch } = setup(body);
-    await expect(model.doDecide(options)).rejects.toMatchObject({
-      name: 'AI_InvalidResponseDataError',
-      message:
-        name === null
-          ? 'OpenAI Decisions refused an unnamed question.'
-          : `OpenAI Decisions refused question "${name}".`,
-      data: body,
+    const { model: refusing, fetch } = setup({ ...fixture, answers });
+    const refused = await refusing.doDecide(options);
+    const complete = await setup().model.doDecide(options);
+
+    expect(refused.answers).toEqual({
+      ...complete.answers,
+      [name]: { type: 'refusal' },
     });
+    expect(refused.providerMetadata?.openai?.confidence).not.toHaveProperty(
+      name,
+    );
     expect(fetch).toHaveBeenCalledTimes(1);
   },
 );
+
+it('fails the decision when an unnamed question is refused', async () => {
+  const answers = fixture.answers.map((answer: { name: string }) =>
+    answer.name === 'refund' ? { type: 'refusal', name: null } : answer,
+  );
+  const body = { ...fixture, answers };
+  const { model } = setup(body);
+  await expect(model.doDecide(options)).rejects.toMatchObject({
+    name: 'AI_InvalidResponseDataError',
+    message: 'OpenAI Decisions refused an unnamed question.',
+    data: body,
+  });
+});
