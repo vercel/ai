@@ -531,6 +531,100 @@ describe('Mistral web search', () => {
     ]);
   });
 
+  describe.each(['doGenerate', 'doStream'] as const)(
+    '%s references',
+    method => {
+      it.each([
+        {
+          description: 'missing title',
+          chunk: {
+            type: 'tool_reference',
+            tool: 'web_search',
+            url: reference.url,
+          },
+          title: reference.url,
+        },
+        {
+          description: 'missing tool',
+          chunk: {
+            type: 'tool_reference',
+            title: reference.title,
+            url: reference.url,
+          },
+          title: reference.title,
+        },
+        {
+          description: 'missing title and tool',
+          chunk: { type: 'tool_reference', url: reference.url },
+          title: reference.url,
+        },
+        {
+          description: 'null title and tool',
+          chunk: {
+            type: 'tool_reference',
+            title: null,
+            tool: null,
+            url: reference.url,
+          },
+          title: reference.url,
+        },
+      ])(
+        'handles $description without losing the answer',
+        async ({ chunk, title }) => {
+          let content;
+          if (method === 'doGenerate') {
+            server.urls[URL].response = {
+              type: 'json-value',
+              body: {
+                conversation_id: 'conversation-1',
+                outputs: [
+                  {
+                    type: 'message.output',
+                    content: [chunk, { type: 'text', text: 'Answer' }],
+                  },
+                ],
+                usage,
+              },
+            };
+            const result = await model.doGenerate({ prompt, tools });
+            content = result.content;
+            expect(content).toContainEqual({ type: 'text', text: 'Answer' });
+            expect(result.finishReason.unified).toBe('stop');
+          } else {
+            prepareStream([
+              { type: 'message.output.delta', id: 'message-1', content: chunk },
+              {
+                type: 'message.output.delta',
+                id: 'message-1',
+                content: 'Answer',
+              },
+              { type: 'conversation.response.done', usage },
+            ]);
+            const result = await model.doStream({ prompt, tools });
+            content = await convertReadableStreamToArray(result.stream);
+            expect(content).toContainEqual({
+              type: 'text-delta',
+              id: 'message-1-0',
+              delta: 'Answer',
+            });
+            expect(content.at(-1)).toMatchObject({
+              type: 'finish',
+              finishReason: { unified: 'stop' },
+            });
+            expect(content.some(part => part.type === 'error')).toBe(false);
+          }
+          expect(content).toContainEqual({
+            type: 'source',
+            sourceType: 'url',
+            id: expect.any(String),
+            url: reference.url,
+            title,
+          });
+        },
+      );
+    },
+  );
+
   it('warns about unsupported Conversations options', async () => {
     const result = await model.doGenerate({
       prompt,

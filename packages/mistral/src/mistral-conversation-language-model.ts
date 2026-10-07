@@ -598,7 +598,7 @@ function createContentConverter({
               sourceType: 'url',
               id,
               url: chunk.url,
-              title: chunk.title,
+              title: chunk.title ?? chunk.url,
             },
           ];
       }
@@ -641,8 +641,8 @@ const mistralConversationContentSchema = z.discriminatedUnion('type', [
   }),
   z.object({
     type: z.literal('tool_reference'),
-    tool: z.string(),
-    title: z.string(),
+    tool: z.string().nullish(),
+    title: z.string().nullish(),
     url: z.string().nullish(),
   }),
 ]);
