@@ -16,7 +16,7 @@
     "@ai-sdk/openai": "workspace:*",
     "@angular/common": "^21.2.22",
     "@angular/compiler": "^21.2.22",
-    "@angular/core": "^21.2.22",
+    "@angular/core": "^21.2.23",
     "@angular/forms": "^21.2.22",
     "@angular/platform-browser": "^21.2.22",
     "@angular/platform-browser-dynamic": "^21.2.22",
