@@ -701,6 +701,224 @@ describe('createPiSession', () => {
     }
   });
 
+  it('applies fileToolPathPolicy to the native read tool', async () => {
+    const files = new Map([
+      ['/tmp/report.txt', 'report body'],
+      ['/sandbox/home/notes.txt', 'notes body'],
+      ['/sandbox/home/.credentials/token', 'secret body'],
+    ]);
+    const sandboxSession = createSandboxSession();
+    const run = vi.mocked(sandboxSession.run);
+    const runWithoutRealpath = run.getMockImplementation()!;
+    run.mockImplementation(async input => {
+      const target = input.command.match(/^target='([^']+)'/)?.[1];
+      const marker = input.command.match(/realpath_marker='([^']+)'/)?.[1];
+      if (target == null || marker == null) return runWithoutRealpath(input);
+      return {
+        stdout: `${Buffer.from(target).toString('base64')}${marker}`,
+        stderr: '',
+        exitCode: 0,
+      };
+    });
+    vi.mocked(sandboxSession.readBinaryFile).mockImplementation(
+      async ({ path: filePath }) => {
+        const content = files.get(filePath);
+        return content == null ? null : new TextEncoder().encode(content);
+      },
+    );
+    let reads: PromiseSettledResult<string>[] = [];
+    piMock.session = createFakePiSession({
+      promptImplementation: async () => {
+        reads = await Promise.allSettled([
+          executeReadTool('/tmp/report.txt'),
+          executeReadTool('~/notes.txt'),
+          executeReadTool('/sandbox/home/.credentials/token'),
+        ]);
+      },
+    }).session;
+
+    const session = await createPi({
+      fileToolPathPolicy: {
+        readableRoots: ['/sandbox/home', '/tmp'],
+        deniedRoots: ['/sandbox/home/.credentials'],
+      },
+    }).doStart({
+      sessionId: 'session-file-tool-path-policy',
+      sandboxSession,
+      sessionWorkDir: '/sandbox/work',
+    });
+
+    try {
+      const control = await session.doPromptTurn({
+        skills: [],
+        prompt: 'test prompt',
+        tools: [],
+        emit: vi.fn(),
+      });
+      await control.done;
+
+      expect(reads).toEqual([
+        { status: 'fulfilled', value: expect.stringContaining('report body') },
+        { status: 'fulfilled', value: expect.stringContaining('notes body') },
+        {
+          status: 'rejected',
+          reason: expect.objectContaining({
+            message: expect.stringContaining('inside a denied root'),
+          }),
+        },
+      ]);
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('refuses the canonical target of a symlinked denied root', async () => {
+    const alias = '/sandbox/home/blocked';
+    const target = '/sandbox/work/private';
+    const sandboxSession = createSandboxSession();
+    const run = vi.mocked(sandboxSession.run);
+    const runWithoutRealpath = run.getMockImplementation()!;
+    run.mockImplementation(async input => {
+      const remotePath = input.command.match(/^target='([^']+)'/)?.[1];
+      const marker = input.command.match(/realpath_marker='([^']+)'/)?.[1];
+      if (remotePath == null || marker == null) {
+        return runWithoutRealpath(input);
+      }
+      return {
+        stdout: `${Buffer.from(remotePath === alias ? target : remotePath).toString('base64')}${marker}`,
+        stderr: '',
+        exitCode: 0,
+      };
+    });
+    vi.mocked(sandboxSession.readBinaryFile).mockImplementation(
+      async ({ path: filePath }) =>
+        filePath === `${target}/notes.txt`
+          ? new TextEncoder().encode('private notes')
+          : filePath === '/sandbox/work/public.txt'
+            ? new TextEncoder().encode('public notes')
+            : null,
+    );
+
+    let reads: PromiseSettledResult<string>[] = [];
+    piMock.session = createFakePiSession({
+      promptImplementation: async () => {
+        reads = await Promise.allSettled([
+          executeReadTool(`${target}/notes.txt`),
+          executeReadTool(`${alias}/notes.txt`),
+          executeReadTool('/sandbox/work/public.txt'),
+        ]);
+      },
+    }).session;
+
+    const session = await createPi({
+      fileToolPathPolicy: {
+        readableRoots: ['/sandbox/home'],
+        deniedRoots: [alias],
+      },
+    }).doStart({
+      sessionId: 'session-symlinked-denied-root',
+      sandboxSession,
+      sessionWorkDir: '/sandbox/work',
+    });
+
+    try {
+      const control = await session.doPromptTurn({
+        skills: [],
+        prompt: 'test prompt',
+        tools: [],
+        emit: vi.fn(),
+      });
+      await control.done;
+
+      expect(reads).toEqual([
+        {
+          status: 'rejected',
+          reason: expect.objectContaining({
+            message: expect.stringContaining('inside a denied root'),
+          }),
+        },
+        {
+          status: 'rejected',
+          reason: expect.objectContaining({
+            message: expect.stringContaining('inside a denied root'),
+          }),
+        },
+        {
+          status: 'fulfilled',
+          value: expect.stringContaining('public notes'),
+        },
+      ]);
+      expect(sandboxSession.readBinaryFile).not.toHaveBeenCalledWith({
+        path: `${target}/notes.txt`,
+      });
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('fails startup if a denied root cannot be resolved in the sandbox', async () => {
+    const alias = '/sandbox/home/blocked';
+    const sandboxSession = createSandboxSession();
+    const run = vi.mocked(sandboxSession.run);
+    run.mockImplementation(async ({ command }) => ({
+      stdout: command.startsWith(`target='${alias}'`)
+        ? '__PI_REALPATH_FAILED__\n'
+        : '',
+      stderr: '',
+      exitCode: command.startsWith(`target='${alias}'`) ? 3 : 0,
+    }));
+
+    await expect(
+      createPi({ fileToolPathPolicy: { deniedRoots: [alias] } }).doStart({
+        sessionId: 'session-unresolved-denied-root',
+        sandboxSession,
+        sessionWorkDir: '/sandbox/work',
+      }),
+    ).rejects.toThrow(`Unable to resolve path: ${alias}`);
+    expect(piMock.createAgentSession).not.toHaveBeenCalled();
+  });
+  it('keeps native reads inside the workspace without fileToolPathPolicy', async () => {
+    const sandboxSession = createSandboxSession();
+    let reads: PromiseSettledResult<string>[] = [];
+    piMock.session = createFakePiSession({
+      promptImplementation: async () => {
+        reads = await Promise.allSettled([
+          executeReadTool('/tmp/report.txt'),
+          executeReadTool('/sandbox/home/notes.txt'),
+        ]);
+      },
+    }).session;
+
+    const session = await createPi().doStart({
+      sessionId: 'session-default-file-tool-paths',
+      sandboxSession,
+      sessionWorkDir: '/sandbox/work',
+    });
+
+    try {
+      const control = await session.doPromptTurn({
+        skills: [],
+        prompt: 'test prompt',
+        tools: [],
+        emit: vi.fn(),
+      });
+      await control.done;
+
+      const escapesWorkspace = {
+        status: 'rejected',
+        reason: expect.objectContaining({
+          message: expect.stringContaining('escapes the workspace'),
+        }),
+      };
+      expect(reads).toEqual([escapesWorkspace, escapesWorkspace]);
+      expect(sandboxSession.readBinaryFile).not.toHaveBeenCalledWith(
+        expect.objectContaining({ path: '/tmp/report.txt' }),
+      );
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
   it('steers the active Pi session', async () => {
     let finishPrompt!: () => void;
     const promptDone = new Promise<void>(resolve => {
@@ -2100,6 +2318,19 @@ function createDeferred<T>() {
     reject = rej;
   });
   return { promise, resolve, reject };
+}
+
+async function executeReadTool(file_path: string): Promise<string> {
+  const tool = piMock.customTools.find(tool => tool.name === 'read');
+  if (!tool) throw new Error('Expected read tool.');
+  const result = await tool.execute(
+    'tool-1',
+    { file_path },
+    undefined,
+    undefined,
+    undefined as never,
+  );
+  return JSON.stringify(result.content);
 }
 
 function createFakePiSession({

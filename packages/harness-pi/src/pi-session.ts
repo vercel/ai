@@ -49,7 +49,11 @@ import { resolvePiSubscriptionAgentDir } from './pi-subscription';
 import { getPiTerminalError, parseNativeEvent } from './pi-events';
 import { createPiModelResolver } from './pi-model-resolver';
 import { createPiPathMapper } from './pi-paths';
-import { createPiRemoteOps, type PiRemoteOps } from './pi-remote-ops';
+import {
+  createPiRemoteOps,
+  resolvePiSandboxPathOrParent,
+  type PiRemoteOps,
+} from './pi-remote-ops';
 import {
   formatPiReadToolOutput,
   truncatePiToolOutputHead,
@@ -235,6 +239,11 @@ export type PiThinkingLevel =
   | 'xhigh'
   | 'max';
 
+export interface PiFileToolPathPolicy {
+  readonly readableRoots?: ReadonlyArray<string>;
+  readonly deniedRoots?: ReadonlyArray<string>;
+}
+
 export interface PiMcpSettings {
   /**
    * How MCP tool names are prefixed: `mcp` (`mcp__<server>_<tool>`), `server`
@@ -256,6 +265,11 @@ export interface PiMcpSettings {
 
 export type PiCacheRetention = 'none' | 'short' | 'long';
 
+export interface PiFileToolPathPolicy {
+  readonly readableRoots?: ReadonlyArray<string>;
+  readonly deniedRoots?: ReadonlyArray<string>;
+}
+
 export interface PiSessionSettings {
   readonly auth?: PiAuthenticationMode;
   readonly credentials?: PiCredentialStore;
@@ -267,6 +281,7 @@ export interface PiSessionSettings {
   readonly mcpSettings?: PiMcpSettings;
   readonly providers?: Readonly<Record<string, ProviderConfig>>;
   readonly extensionFactories?: ReadonlyArray<ExtensionFactory>;
+  readonly fileToolPathPolicy?: PiFileToolPathPolicy;
 }
 
 export interface CreatePiSessionInput {
@@ -312,7 +327,9 @@ function hasCompatibleReattachSettings(
     parked.settings.mcpServers === current.settings.mcpServers &&
     parked.settings.mcpSettings === current.settings.mcpSettings &&
     parked.settings.providers === current.settings.providers &&
-    parked.settings.extensionFactories === current.settings.extensionFactories
+    parked.settings.extensionFactories ===
+      current.settings.extensionFactories &&
+    parked.settings.fileToolPathPolicy === current.settings.fileToolPathPolicy
   );
 }
 
@@ -421,6 +438,17 @@ export async function createPiSession(
   const toolSafeSandboxSession = getRestrictedSandboxSession(
     input.sandboxSession,
   );
+  const fileToolPathPolicy = input.settings.fileToolPathPolicy;
+  const canonicalDeniedRoots: string[] = [];
+  for (const deniedRoot of fileToolPathPolicy?.deniedRoots ?? []) {
+    canonicalDeniedRoots.push(
+      await resolvePiSandboxPathOrParent({
+        sandbox: toolSafeSandboxSession,
+        remotePath: path.posix.normalize(deniedRoot),
+        inputPath: deniedRoot,
+      }),
+    );
+  }
 
   // Pi runs in this host process but must behave as though it lives in the
   // sandbox workspace: its working directory is the real `sessionWorkDir`
@@ -508,7 +536,21 @@ export async function createPiSession(
   const paths = createPiPathMapper({
     hostWorkDir,
     sandboxWorkDir: sessionWorkDir,
-    readableRoots: [{ sandboxDir: sandboxSkillRootDir }],
+    readableRoots: [
+      { sandboxDir: sandboxSkillRootDir },
+      ...(fileToolPathPolicy?.readableRoots ?? []).map(sandboxDir => ({
+        sandboxDir,
+      })),
+    ],
+    deniedRoots: fileToolPathPolicy?.deniedRoots
+      ? [
+          ...new Set([
+            ...fileToolPathPolicy.deniedRoots,
+            ...canonicalDeniedRoots,
+          ]),
+        ]
+      : undefined,
+    ...(fileToolPathPolicy ? { homeDir: sandboxHomeDir } : {}),
   });
 
   // Pi auth + model registry are global to this Pi session. These live on the
