@@ -59,6 +59,23 @@ try {
 The client converts MCP tool definitions into AI SDK tools, so model calls can
 use them through the standard `tools` option.
 
+## Experimental webhook events
+
+Use `list`, `subscribe`, `refresh`, and `unsubscribe` through
+`client.experimental_events` on the same `createMCPClient` instance. Configure
+`events: { store }` with private durable storage shared with
+`experimental_createMCPEventWebhook`, which you mount at your callback URL.
+
+Subscription creation persists `delivery.url` and the generated signing secret
+before contacting the server, enabling signed callback verification during the
+subscribe request. The receiver verifies raw request bytes and checks event
+envelopes before invoking your handler. Optional callbacks let your application
+validate filters and event data. Agent execution and durable deduplication
+remain application concerns; closing the client does not unsubscribe.
+
+See the [MCP Events guide](https://ai-sdk.dev/docs/ai-sdk-core/mcp-events) and the
+[local server/client example](../../examples/mcp/src/events/README.md).
+
 ## Protocol versions
 
 The client supports legacy MCP protocol versions through the `initialize`
