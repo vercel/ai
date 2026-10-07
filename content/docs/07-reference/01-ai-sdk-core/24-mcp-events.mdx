@@ -18,13 +18,14 @@ import { eventStore } from './event-store';
 
 const client = await createMCPClient({
   transport: { type: 'http', url: 'https://service.example/mcp' },
-  events: { store: eventStore },
+  experimental_events: { store: eventStore },
 });
 ```
 
-`events` accepts [`Experimental_MCPEventsConfig`](/docs/reference/ai-sdk-core/mcp-events#client-configuration).
-The store is required for subscribe, refresh, and unsubscribe. Discovery works
-without configuring a store. Mount the
+`experimental_events` accepts [`Experimental_MCPEventsConfig`](/docs/reference/ai-sdk-core/mcp-events#client-configuration).
+In direct mode, the store is required for subscribe, refresh, and unsubscribe.
+Alternatively, configure a managed adapter as described below. Discovery works
+without configuring either mode. Mount the
 [webhook handler](/docs/reference/ai-sdk-core/mcp-events#webhook-handler) before subscribing.
 
 The methods below belong to `client.experimental_events`; they are not standalone imports.
@@ -95,6 +96,151 @@ The optional argument has these properties:
 See [`Experimental_MCPEventDefinition`](/docs/reference/ai-sdk-core/mcp-events#event-definition)
 for the definition fields. Pagination is explicit; this method does not fetch all pages.
 
+## Managed Subscriptions
+
+Configure `experimental_events: { adapter }` to delegate subscription lifecycle
+operations to a backend. The adapter implements `Experimental_MCPEventsAdapter`
+from `@ai-sdk/mcp`; it is bound to the authorized account and destination by your
+application or integration package.
+
+```ts
+import { createMCPClient } from '@ai-sdk/mcp';
+import { authenticatedTransport, eventsAdapter } from '@/lib/mcp';
+
+const client = await createMCPClient({
+  transport: authenticatedTransport,
+  experimental_events: { adapter: eventsAdapter },
+});
+
+try {
+  // Authenticated MCP discovery; this does not list saved subscriptions.
+  const catalog = await client.experimental_events.list();
+
+  const watch = await client.experimental_events.subscribe({
+    name: 'comment.created',
+    arguments: { document_id: 'doc_123' },
+    context: { bindingId: 'saved_intent_123' },
+    expiresAt: null,
+    idempotencyKey: 'saved_intent_123',
+  });
+
+  const state = await client.experimental_events.getSubscription({
+    id: watch.id,
+  });
+  const page = await client.experimental_events.listSubscriptions({
+    status: 'active',
+    limit: 20,
+  });
+  const stopped = await client.experimental_events.unsubscribe({
+    id: watch.id,
+  });
+} finally {
+  await client.close();
+}
+```
+
+`authenticatedTransport` and `eventsAdapter` are supplied by your application.
+Use the same authorized account for discovery and subscription management.
+Never derive account identity, destination or authorization from model arguments.
+
+### Adapter Contract
+
+```ts
+import type { JSONObject } from '@ai-sdk/provider';
+
+type ManagedSubscription = {
+  id: string;
+  name: string;
+  arguments: JSONObject;
+  status:
+    | 'pending'
+    | 'active'
+    | 'needs_auth'
+    | 'stopped'
+    | 'expired'
+    | 'failed';
+  expiresAt: string | null;
+  cleanupStatus?: 'pending' | 'complete' | 'exhausted';
+};
+
+type ManagedSubscribeInput = {
+  name: string;
+  arguments: JSONObject;
+  context?: JSONObject;
+  idempotencyKey: string;
+  options?: {
+    signal?: AbortSignal;
+    timeout?: number;
+    maxTotalTimeout?: number;
+  };
+} & (
+  | { ttlMs: number; expiresAt?: never }
+  | { expiresAt: string | null; ttlMs?: never }
+);
+```
+
+These types are exported as `Experimental_ManagedSubscription` and
+`Experimental_ManagedSubscribeInput`. Supply exactly one monitoring lifetime:
+a positive `ttlMs`, an ISO deadline in `expiresAt`, or `expiresAt: null` to
+monitor until stopped. The backend validates these values and enforces its limits.
+
+`Experimental_MCPEventsAdapter` has four operations:
+
+| Operation           | Input                                             | Result                             |
+| ------------------- | ------------------------------------------------- | ---------------------------------- |
+| `subscribe`         | `Experimental_ManagedSubscribeInput`              | `Experimental_ManagedSubscription` |
+| `getSubscription`   | `{ id, options? }`                                | `Experimental_ManagedSubscription` |
+| `listSubscriptions` | Optional `{ cursor?, limit?, status?, options? }` | `{ subscriptions, nextCursor? }`   |
+| `unsubscribe`       | `{ id, options? }`                                | `Experimental_ManagedSubscription` |
+
+All operations return promises. The client passes inputs, cancellation/timeout
+options, results and errors through without retries or remapping. The adapter
+must implement request-option handling and retain actionable backend errors,
+such as consent required, quota exceeded or temporary unavailability.
+
+Managed IDs identify backend records. `expiresAt` is the application's monitoring
+deadline, not the upstream MCP `refreshBefore` grant. A pending result means
+durable acceptance by the backend; upstream setup may still be running.
+Stopping can return `cleanupStatus: 'pending'` while remote cleanup continues.
+
+The backend owns callback URLs, secrets, upstream subscription calls, verification,
+renewal and cleanup. Managed `subscribe` does not implicitly discover the catalog,
+generate a secret, write a local store or call upstream `events/subscribe`.
+`getSubscription` and `listSubscriptions` are adapter methods, not MCP wire methods.
+The managed facade has no `refresh()`; the backend renews finite upstream leases
+even when the application watch has no deadline.
+
+Persist an application intent and reuse its idempotency key after an uncertain
+create result, within the backend's documented recovery window. A timeout or
+aborted request does not prove that a remote subscription was cancelled.
+Closing the MCP client does not unsubscribe managed watches.
+
+Managed delivery is separate from this client. Use the backend's delivery verifier
+and receiver contract; `experimental_createMCPEventWebhook` serves direct MCP
+webhooks. Applications still own authorized routing, durable receipt acceptance
+and idempotent work dispatch. The adapter does not invoke event callbacks.
+
+### Configuration and Types
+
+Choose either `experimental_events: { adapter }` or `experimental_events: { store }`.
+Mixing them is rejected in TypeScript and at runtime. `validateArguments` is a
+direct-mode option; managed validation belongs to the backend. The unreleased
+`events` configuration spelling is replaced by `experimental_events`.
+
+`createMCPClient` infers `Experimental_ManagedMCPClient` with
+`Experimental_ManagedMCPEvents` when an adapter is configured. Both modes use
+`MCPClientConfig`, whose `experimental_events` property accepts the
+`Experimental_MCPEventsConfig` union. Direct clients keep `MCPClient` and
+`Experimental_MCPEvents`. The input and result types of each mode remain distinct.
+
+Use `satisfies MCPClientConfig` when saving a configuration to retain inference of
+the selected mode. A configuration whose mode is only known at runtime returns a
+union of the two client types; it does not promise direct-only methods such as
+`refresh()`. Omit `experimental_events` entirely for catalog discovery without a
+store or adapter.
+
+The remaining subscribe, refresh and unsubscribe sections describe direct mode.
+
 ## Subscribing to Events
 
 ### `client.experimental_events.subscribe(options)`
@@ -131,7 +277,7 @@ console.log(subscription.id, subscription.refreshBefore);
       name: 'arguments',
       type: 'JSONObject',
       description:
-        'Event filters. Defaults to {}. The SDK does not automatically validate them against inputSchema; events.validateArguments can provide application validation.',
+        'Event filters. Defaults to {}. The SDK does not automatically validate them against inputSchema; experimental_events.validateArguments can provide application validation.',
       isOptional: true,
     },
     {
@@ -392,7 +538,7 @@ The listing method takes `{ params, options }`; the other methods include
 ## Errors
 
 The client rejects requests to servers without the `events` capability.
-Subscription lifecycle methods require `events.store`; refresh and unsubscribe
+Subscription lifecycle methods require `experimental_events.store`; refresh and unsubscribe
 also require a known subscription ID or storage key. Subscribe rejects unknown
 event names, unsupported delivery modes, invalid callback URLs, signing secrets,
 or lifetime settings. These checks use `MCPClientError`, except URL parsing may

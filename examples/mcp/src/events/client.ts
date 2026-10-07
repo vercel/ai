@@ -37,7 +37,7 @@ async function main() {
           Authorization: `Bearer ${process.env.MCP_EVENTS_TOKEN ?? 'local-events-demo'}`,
         },
       },
-      events: { store: eventStore },
+      experimental_events: { store: eventStore },
     });
 
     try {

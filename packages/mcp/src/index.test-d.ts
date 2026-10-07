@@ -1,4 +1,5 @@
 import { expectTypeOf, it } from 'vitest';
+import type { JSONObject } from '@ai-sdk/provider';
 import {
   MCPClientError,
   createMCPClient,
@@ -8,13 +9,21 @@ import {
   type Experimental_MCPEventStore,
   type Experimental_MCPEvents,
   type Experimental_SubscribeEventResult,
+  type Experimental_MCPEventsAdapter,
+  type Experimental_ManagedMCPClient,
+  type Experimental_ManagedMCPEvents,
+  type Experimental_MCPEventsConfig,
+  type Experimental_ManagedSubscribeInput,
+  type Experimental_ManagedSubscription,
+  type MCPClient,
+  type MCPClientConfig,
 } from './index';
 
 it('exposes events on the existing client and types webhook callbacks', async () => {
   const store = {} as Experimental_MCPEventStore;
   const client = await createMCPClient({
     transport: { type: 'http', url: 'https://example.com/mcp' },
-    events: { store },
+    experimental_events: { store },
   });
   expectTypeOf(
     client.experimental_events,
@@ -85,4 +94,130 @@ it('narrows unknown errors and exposes optional MCP error metadata', () => {
     expectTypeOf(error.url).toEqualTypeOf<string | undefined>();
     expectTypeOf(error.responseBody).toEqualTypeOf<string | undefined>();
   }
+});
+
+it('infers managed event operations and rejects mixing direct and managed APIs', async () => {
+  const adapter = {} as Experimental_MCPEventsAdapter;
+  const transport = { type: 'http' as const, url: 'https://example.com/mcp' };
+  const config = {
+    transport,
+    experimental_events: { adapter },
+  } satisfies MCPClientConfig;
+  expectTypeOf(
+    config.experimental_events,
+  ).toMatchTypeOf<Experimental_MCPEventsConfig>();
+  const client = await createMCPClient(config);
+  expectTypeOf(client).toEqualTypeOf<Experimental_ManagedMCPClient>();
+  expectTypeOf(
+    client.experimental_events,
+  ).toEqualTypeOf<Experimental_ManagedMCPEvents>();
+  const input: Experimental_ManagedSubscribeInput = {
+    name: 'comment.created',
+    arguments: {},
+    expiresAt: null,
+    idempotencyKey: 'intent_1',
+  };
+  const watch = await client.experimental_events.subscribe(input);
+  expectTypeOf(watch).toEqualTypeOf<Experimental_ManagedSubscription>();
+  expectTypeOf(watch.expiresAt).toEqualTypeOf<string | null>();
+  expectTypeOf(
+    await client.experimental_events.getSubscription({ id: watch.id }),
+  ).toEqualTypeOf<Experimental_ManagedSubscription>();
+  expectTypeOf(
+    await client.experimental_events.unsubscribe({ id: watch.id }),
+  ).toEqualTypeOf<Experimental_ManagedSubscription>();
+  expectTypeOf(
+    (await client.experimental_events.listSubscriptions()).subscriptions,
+  ).toEqualTypeOf<Experimental_ManagedSubscription[]>();
+
+  // @ts-expect-error Managed backends own refresh.
+  client.experimental_events.refresh({ id: watch.id });
+  // @ts-expect-error Managed results are not upstream lease grants.
+  watch.refreshBefore;
+  // @ts-expect-error A managed subscription needs exactly one monitoring lifetime.
+  client.experimental_events.subscribe({
+    name: 'comment.created',
+    arguments: {},
+    idempotencyKey: 'intent_1',
+  });
+  // @ts-expect-error Relative and absolute deadlines are mutually exclusive.
+  client.experimental_events.subscribe({ ...input, ttlMs: 1000 });
+  client.experimental_events.subscribe({
+    ...input,
+    // @ts-expect-error The host's adapter owns the callback destination.
+    delivery: { mode: 'webhook', url: 'https://example.com/hook' },
+  });
+  // @ts-expect-error Managed operations use backend IDs, not direct storage keys.
+  client.experimental_events.unsubscribe({ key: 'pending_1' });
+  const store = {} as Experimental_MCPEventStore;
+  const mixed = { transport, experimental_events: { adapter, store } };
+  // @ts-expect-error Reject mixed configuration even through a variable.
+  createMCPClient(mixed);
+  // @ts-expect-error Managed adapters own argument validation.
+  createMCPClient({
+    transport,
+    experimental_events: { adapter, validateArguments: () => {} },
+  });
+  // @ts-expect-error The unreleased configuration must use the experimental prefix.
+  createMCPClient({ transport, events: { store } });
+  const direct = await createMCPClient({
+    transport,
+    experimental_events: { store },
+  });
+  expectTypeOf(direct).toEqualTypeOf<MCPClient>();
+  // @ts-expect-error Direct mode has no managed subscription registry.
+  direct.experimental_events.getSubscription({ id: 'managed_1' });
+  // @ts-expect-error Managed input is not a direct webhook subscription.
+  direct.experimental_events.subscribe(input);
+});
+
+it('accepts configuration whose event mode is only known at runtime', async () => {
+  const config = {} as MCPClientConfig;
+  expectTypeOf(await createMCPClient(config)).toEqualTypeOf<
+    MCPClient | Experimental_ManagedMCPClient
+  >();
+});
+
+it('uses one event configuration union for direct and managed clients', async () => {
+  const adapter = {} as Experimental_MCPEventsAdapter;
+  const store = {} as Experimental_MCPEventStore;
+  const transport = { type: 'http' as const, url: 'https://example.com/mcp' };
+  const managed = { adapter } satisfies Experimental_MCPEventsConfig;
+  const direct = {
+    store,
+    validateArguments: ({ definition, arguments: args }) => {
+      expectTypeOf(definition.name).toEqualTypeOf<string>();
+      expectTypeOf(args).toEqualTypeOf<JSONObject>();
+    },
+  } satisfies Experimental_MCPEventsConfig;
+  expectTypeOf(
+    await createMCPClient({ transport, experimental_events: managed }),
+  ).toEqualTypeOf<Experimental_ManagedMCPClient>();
+  expectTypeOf(
+    await createMCPClient({ transport, experimental_events: direct }),
+  ).toEqualTypeOf<MCPClient>();
+  const discovery = await createMCPClient({ transport });
+  expectTypeOf(discovery).toEqualTypeOf<MCPClient>();
+  await discovery.experimental_events.list();
+
+  // @ts-expect-error An explicit configuration must select a store or adapter.
+  const empty: Experimental_MCPEventsConfig = {};
+  // @ts-expect-error Direct and managed configuration remain exclusive.
+  const mixed: Experimental_MCPEventsConfig = { adapter, store };
+  // @ts-expect-error Argument validation belongs to the managed backend.
+  const validation: Experimental_MCPEventsConfig = {
+    adapter,
+    validateArguments: () => {},
+  };
+  void [empty, mixed, validation];
+
+  const events = {} as Experimental_MCPEventsConfig;
+  const config: MCPClientConfig = { transport, experimental_events: events };
+  const client = await createMCPClient(config);
+  expectTypeOf(client).toEqualTypeOf<
+    MCPClient | Experimental_ManagedMCPClient
+  >();
+  await client.experimental_events.list();
+  // @ts-expect-error A runtime-selected mode is not known to support direct refresh.
+  client.experimental_events.refresh({ id: 'sub_1' });
 });

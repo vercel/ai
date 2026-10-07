@@ -16,6 +16,17 @@ endpoint receives the events.
   Polling and push-stream delivery are not supported.
 </Note>
 
+## Choose who manages subscriptions
+
+Use `experimental_events: { adapter }` when a backend manages subscriptions,
+webhook delivery and renewal. The adapter exposes managed watch handles and
+requires no AI SDK event store. See [managed subscriptions](/docs/reference/ai-sdk-core/mcp-events#managed-subscriptions).
+
+Use `experimental_events: { store }` when your application directly registers
+MCP webhooks, persists their secrets and schedules renewal. The following flow
+describes this direct mode. Event catalog discovery works in either mode, and
+without either configuration.
+
 ## How MCP events work
 
 1. The client sends `events/subscribe` with the event name, filters, webhook URL,
@@ -115,7 +126,7 @@ import { eventStore } from '@/lib/event-store';
 
 const client = await createMCPClient({
   transport: { type: 'http', url: 'https://service.example/mcp' },
-  events: { store: eventStore },
+  experimental_events: { store: eventStore },
 });
 
 try {
