@@ -5,7 +5,7 @@ description: Reference for experimental MCP event methods, the webhook handler, 
 
 # MCP Events
 
-This page covers the experimental methods on `client.events`, the webhook
+This page covers the experimental methods on `client.experimental_events`, the webhook
 handler, and their public types. Create the client with
 [`createMCPClient`](/docs/reference/ai-sdk-core/create-mcp-client). See the
 [MCP Events guide](/docs/ai-sdk-core/mcp-events) for the application flow.
@@ -27,20 +27,20 @@ The store is required for subscribe, refresh, and unsubscribe. Discovery works
 without configuring a store. Mount the
 [webhook handler](/docs/reference/ai-sdk-core/mcp-events#webhook-handler) before subscribing.
 
-The methods below belong to `client.events`; they are not standalone imports.
+The methods below belong to `client.experimental_events`; they are not standalone imports.
 
 ## Listing Events
 
-### `client.events.experimental_list()`
+### `client.experimental_events.list()`
 
 Sends `events/list` and returns one catalog page.
 
 ```ts
-const { events, nextCursor } = await client.events.experimental_list();
+const { events, nextCursor } = await client.experimental_events.list();
 console.log(events.map(event => event.name));
 
 if (nextCursor != null) {
-  const nextPage = await client.events.experimental_list({
+  const nextPage = await client.experimental_events.list({
     params: { cursor: nextCursor },
   });
   console.log(nextPage.events);
@@ -97,13 +97,13 @@ for the definition fields. Pagination is explicit; this method does not fetch al
 
 ## Subscribing to Events
 
-### `client.events.experimental_subscribe(options)`
+### `client.experimental_events.subscribe(options)`
 
 Discovers the named event, checks webhook support, saves a pending subscription,
 and sends `events/subscribe`.
 
 ```ts
-const subscription = await client.events.experimental_subscribe({
+const subscription = await client.experimental_events.subscribe({
   name: 'comment.created',
   arguments: { document_id: 'doc_123' },
   delivery: {
@@ -203,18 +203,18 @@ console.log(subscription.id, subscription.refreshBefore);
 
 Pending records are retained when subscription creation fails, because a timed-out
 request might have registered remotely. Obtain the pending record's `key` from
-your application's store and recover with `experimental_refresh({ key })`, or
-cancel with `experimental_unsubscribe({ key })`. Both reuse the saved callback
-identity even when no server ID was saved. Calling `experimental_subscribe` again
+your application's store and recover with `refresh({ key })`, or
+cancel with `unsubscribe({ key })`. Both reuse the saved callback
+identity even when no server ID was saved. Calling `subscribe` again
 creates a new callback identity.
 
 ```ts
 // pending is the record retained by your application's store after a failed subscribe.
-const recovered = await client.events.experimental_refresh({
+const recovered = await client.experimental_events.refresh({
   key: pending.key,
 });
 // Alternatively, cancel the uncertain remote subscription:
-await client.events.experimental_unsubscribe({ key: pending.key });
+await client.experimental_events.unsubscribe({ key: pending.key });
 ```
 
 ### Returns
@@ -227,7 +227,7 @@ await client.events.experimental_unsubscribe({ key: pending.key });
       name: 'id',
       type: 'string',
       description:
-        'Server-derived subscription ID. Use it with experimental_refresh and experimental_unsubscribe.',
+        'Server-derived subscription ID. Use it with refresh and unsubscribe.',
     },
     {
       name: 'refreshBefore',
@@ -255,7 +255,7 @@ deadline, cursor, and active status before the method resolves.
 
 ## Refreshing a Subscription
 
-### `client.events.experimental_refresh(options)`
+### `client.experimental_events.refresh(options)`
 
 Loads a saved subscription by ID or storage key and sends `events/subscribe` with
 its original name, arguments, callback URL, secret, requested lifetime, and latest
@@ -267,7 +267,7 @@ fails, the record stays pending because the server may have renewed it already;
 you can retry refresh or unsubscribe using the saved ID or key.
 
 ```ts
-const renewed = await client.events.experimental_refresh({
+const renewed = await client.experimental_events.refresh({
   id: subscription.id,
 });
 console.log(renewed.refreshBefore);
@@ -312,14 +312,14 @@ a background renewal timer. Refresh reuses the saved filters without calling
 
 ## Unsubscribing from Events
 
-### `client.events.experimental_unsubscribe(options)`
+### `client.experimental_events.unsubscribe(options)`
 
 Resolves the ID or storage key to the saved name, arguments, and callback URL and
 sends `events/unsubscribe`. It deletes the local record only after the server
 succeeds.
 
 ```ts
-await client.events.experimental_unsubscribe({ id: subscription.id });
+await client.experimental_events.unsubscribe({ id: subscription.id });
 ```
 
 ### Parameters
@@ -404,7 +404,7 @@ setting. See [MCP client error handling](/docs/reference/ai-sdk-core/create-mcp-
 
 Creates a Web Request/Response handler for experimental MCP webhook events.
 It verifies callback challenges and event signatures using subscriptions saved by
-[`client.events.experimental_subscribe`](/docs/reference/ai-sdk-core/mcp-events#subscribing-to-events).
+[`client.experimental_events.subscribe`](/docs/reference/ai-sdk-core/mcp-events#subscribing-to-events).
 
 ### Import
 
@@ -588,11 +588,11 @@ automatically and do not invoke `onControl`.
 
 ### Client Methods
 
-`Experimental_MCPEvents` describes the `client.events` property:
+`Experimental_MCPEvents` describes the `client.experimental_events` property:
 
 ```ts
 interface Experimental_MCPEvents {
-  experimental_list(options?: {
+  list(options?: {
     params?: { cursor?: string };
     options?: {
       signal?: AbortSignal;
@@ -601,11 +601,11 @@ interface Experimental_MCPEvents {
     };
   }): Promise<Experimental_ListEventsResult>;
 
-  experimental_subscribe(
+  subscribe(
     options: Experimental_SubscribeEventOptions,
   ): Promise<Experimental_SubscribeEventResult>;
 
-  experimental_refresh(
+  refresh(
     options: ({ id: string; key?: never } | { key: string; id?: never }) & {
       options?: {
         signal?: AbortSignal;
@@ -615,7 +615,7 @@ interface Experimental_MCPEvents {
     },
   ): Promise<Experimental_SubscribeEventResult>;
 
-  experimental_unsubscribe(
+  unsubscribe(
     options: ({ id: string; key?: never } | { key: string; id?: never }) & {
       options?: {
         signal?: AbortSignal;

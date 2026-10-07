@@ -36,14 +36,14 @@ or reordered, so use the subscription ID and event ID to deduplicate processing.
 ## Using MCP Events
 
 Create an MCP client with `createMCPClient` and manage subscriptions through
-`client.events`. The following methods are experimental:
+`client.experimental_events`. The following methods are experimental:
 
-| Method                                                                                                 | Description                                                                           |
-| ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
-| [`experimental_list()`](/docs/reference/ai-sdk-core/mcp-events#listing-events)                         | List event names, schemas, and delivery modes with `events/list`.                     |
-| [`experimental_subscribe(options)`](/docs/reference/ai-sdk-core/mcp-events#subscribing-to-events)      | Save the signing secret, send `events/subscribe`, and return the subscription result. |
-| [`experimental_refresh({ id })`](/docs/reference/ai-sdk-core/mcp-events#refreshing-a-subscription)     | Renew an existing subscription with `events/subscribe`.                               |
-| [`experimental_unsubscribe({ id })`](/docs/reference/ai-sdk-core/mcp-events#unsubscribing-from-events) | Send `events/unsubscribe` and remove the saved subscription after success.            |
+| Method                                                                                    | Description                                                                           |
+| ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| [`list()`](/docs/reference/ai-sdk-core/mcp-events#listing-events)                         | List event names, schemas, and delivery modes with `events/list`.                     |
+| [`subscribe(options)`](/docs/reference/ai-sdk-core/mcp-events#subscribing-to-events)      | Save the signing secret, send `events/subscribe`, and return the subscription result. |
+| [`refresh({ id })`](/docs/reference/ai-sdk-core/mcp-events#refreshing-a-subscription)     | Renew an existing subscription with `events/subscribe`.                               |
+| [`unsubscribe({ id })`](/docs/reference/ai-sdk-core/mcp-events#unsubscribing-from-events) | Send `events/unsubscribe` and remove the saved subscription after success.            |
 
 Refresh reuses the saved callback URL, arguments, signing secret, and latest
 cursor. Your application schedules renewal before `refreshBefore`.
@@ -114,10 +114,10 @@ const client = await createMCPClient({
 });
 
 try {
-  const { events } = await client.events.experimental_list();
+  const { events } = await client.experimental_events.list();
   console.log(events.map(event => event.name));
 
-  const subscription = await client.events.experimental_subscribe({
+  const subscription = await client.experimental_events.subscribe({
     name: 'comment.created',
     arguments: { document_id: 'doc_123' },
     delivery: {

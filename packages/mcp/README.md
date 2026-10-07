@@ -61,9 +61,8 @@ use them through the standard `tools` option.
 
 ## Experimental webhook events
 
-Use `client.events.experimental_list`, `experimental_subscribe`,
-`experimental_refresh`, and `experimental_unsubscribe` on the same
-`createMCPClient` instance. Configure
+Use `list`, `subscribe`, `refresh`, and `unsubscribe` through
+`client.experimental_events` on the same `createMCPClient` instance. Configure
 `events: { store }` with private durable storage shared with
 `experimental_createMCPEventWebhook`, which you mount at your callback URL.
 

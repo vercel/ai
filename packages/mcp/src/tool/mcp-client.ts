@@ -300,7 +300,7 @@ export async function createMCPClient(
 
 export interface MCPClient {
   /** Experimental event discovery and webhook subscription lifecycle. */
-  readonly events: MCPEvents;
+  readonly experimental_events: MCPEvents;
   /**
    * Information about the connected MCP server, as reported during initialization.
    * @see https://modelcontextprotocol.io/specification/2025-11-25/schema#implementation
@@ -410,7 +410,7 @@ export interface MCPClient {
  * - Resumable SSE streams
  */
 class DefaultMCPClient implements MCPClient {
-  readonly events: MCPEvents;
+  readonly experimental_events: MCPEvents;
   private transport: MCPTransport;
   private protocolVersionDiscovery: boolean;
   private onUncaughtError?: (error: unknown) => void;
@@ -489,7 +489,7 @@ class DefaultMCPClient implements MCPClient {
       name: clientName,
       version,
     };
-    this.events = createMCPEvents({
+    this.experimental_events = createMCPEvents({
       request: args => this.request(args),
       store: events?.store,
       validateArguments: events?.validateArguments,

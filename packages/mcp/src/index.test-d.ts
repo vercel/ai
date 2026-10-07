@@ -16,21 +16,23 @@ it('exposes events on the existing client and types webhook callbacks', async ()
     transport: { type: 'http', url: 'https://example.com/mcp' },
     events: { store },
   });
-  expectTypeOf(client.events).toEqualTypeOf<Experimental_MCPEvents>();
-  const result = await client.events.experimental_subscribe({
+  expectTypeOf(
+    client.experimental_events,
+  ).toEqualTypeOf<Experimental_MCPEvents>();
+  const result = await client.experimental_events.subscribe({
     name: 'comment.created',
     delivery: { mode: 'webhook', url: 'https://app.example/events' },
   });
   expectTypeOf(result).toEqualTypeOf<Experimental_SubscribeEventResult>();
-  const recovered = await client.events.experimental_refresh({
+  const recovered = await client.experimental_events.refresh({
     key: 'pending_1',
   });
   expectTypeOf(recovered).toEqualTypeOf<Experimental_SubscribeEventResult>();
-  await client.events.experimental_unsubscribe({ key: 'pending_1' });
+  await client.experimental_events.unsubscribe({ key: 'pending_1' });
   // @ts-expect-error Select a subscription by either ID or key, never both.
-  await client.events.experimental_refresh({ id: 'sub_1', key: 'pending_1' });
+  await client.experimental_events.refresh({ id: 'sub_1', key: 'pending_1' });
   // @ts-expect-error A subscription ID or key is required.
-  await client.events.experimental_unsubscribe({});
+  await client.experimental_events.unsubscribe({});
   const handler = experimental_createMCPEventWebhook({
     store,
     async onEvent({ event, subscription }) {

@@ -41,9 +41,7 @@ export function createMCPEvents({
   async function getSubscription({
     id,
     key,
-  }: Parameters<
-    MCPEvents['experimental_refresh']
-  >[0]): Promise<MCPEventSubscription> {
+  }: Parameters<MCPEvents['refresh']>[0]): Promise<MCPEventSubscription> {
     const storage = getStore();
     const subscription =
       id !== undefined ? await storage.getById(id) : await storage.get(key);
@@ -89,7 +87,7 @@ export function createMCPEvents({
   }
 
   const events: MCPEvents = {
-    experimental_list({ params, options } = {}) {
+    list({ params, options } = {}) {
       return request({
         request: { method: 'events/list', params },
         resultSchema: ListEventsResultSchema,
@@ -97,7 +95,7 @@ export function createMCPEvents({
       });
     },
 
-    async experimental_subscribe({
+    async subscribe({
       name,
       arguments: args = {},
       delivery,
@@ -141,7 +139,7 @@ export function createMCPEvents({
       const visited = new Set<string>();
       let definition;
       do {
-        const page = await events.experimental_list({
+        const page = await events.list({
           params: { cursor: pageCursor },
           options,
         });
@@ -191,7 +189,7 @@ export function createMCPEvents({
       return subscribe(subscription, options);
     },
 
-    async experimental_refresh(args) {
+    async refresh(args) {
       const subscription = await getSubscription(args);
       // Deliveries must retry until the renewed expiration is persisted.
       // Retain pending state on errors, as the server may have renewed already.
@@ -199,7 +197,7 @@ export function createMCPEvents({
       return subscribe(subscription, args.options);
     },
 
-    async experimental_unsubscribe(args) {
+    async unsubscribe(args) {
       const subscription = await getSubscription(args);
       await request({
         request: {

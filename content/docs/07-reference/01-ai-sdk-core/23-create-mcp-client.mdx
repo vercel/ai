@@ -12,7 +12,7 @@ Creates a lightweight Model Context Protocol (MCP) client that connects to an MC
 - **Prompts**: Methods to list available prompts and retrieve prompt messages
 - **Completions**: Methods to request autocompletion suggestions for prompt arguments and resource template variables
 - **Elicitation**: Support for handling server requests for additional input during tool execution
-- **Experimental events**: Discover events and manage webhook subscriptions with `client.events`
+- **Experimental events**: Discover events and manage webhook subscriptions with `client.experimental_events`
 
 It currently does not support in-band notifications from an MCP server. For
 experimental webhook delivery, see the [MCP Events guide](/docs/ai-sdk-core/mcp-events),
@@ -260,10 +260,10 @@ Returns a Promise that resolves to an `MCPClient` with the following properties 
 <PropertiesTable
   content={[
     {
-      name: 'events',
+      name: 'experimental_events',
       type: 'Experimental_MCPEvents',
       description:
-        'Event discovery and webhook subscription methods. See the [MCP Events reference](/docs/reference/ai-sdk-core/mcp-events) for experimental_list, experimental_subscribe, experimental_refresh, and experimental_unsubscribe.',
+        'Event discovery and webhook subscription methods. See the [MCP Events reference](/docs/reference/ai-sdk-core/mcp-events) for list, subscribe, refresh, and unsubscribe.',
     },
     {
       name: 'initializeResult',

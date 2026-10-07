@@ -41,13 +41,13 @@ async function main() {
     });
 
     try {
-      const { events } = await client.events.experimental_list();
+      const { events } = await client.experimental_events.list();
       console.log(
         'Available events:',
         events.map(event => event.name),
       );
 
-      const subscription = await client.events.experimental_subscribe({
+      const subscription = await client.experimental_events.subscribe({
         name: 'comment.created',
         arguments: { document_id: 'doc_123' },
         delivery: {
@@ -65,7 +65,7 @@ async function main() {
           arguments: { document_id: 'doc_123', text: 'Hello from MCP events!' },
         });
       } finally {
-        await client.events.experimental_unsubscribe({ id: subscription.id });
+        await client.experimental_events.unsubscribe({ id: subscription.id });
       }
     } finally {
       await client.close();

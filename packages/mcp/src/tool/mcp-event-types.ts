@@ -130,15 +130,11 @@ type MCPEventSubscriptionOptions = (
 ) & { options?: RequestOptions };
 
 export interface MCPEvents {
-  experimental_list(options?: {
+  list(options?: {
     params?: { cursor?: string };
     options?: RequestOptions;
   }): Promise<ListEventsResult>;
-  experimental_subscribe(
-    options: SubscribeEventOptions,
-  ): Promise<SubscribeEventResult>;
-  experimental_refresh(
-    options: MCPEventSubscriptionOptions,
-  ): Promise<SubscribeEventResult>;
-  experimental_unsubscribe(options: MCPEventSubscriptionOptions): Promise<void>;
+  subscribe(options: SubscribeEventOptions): Promise<SubscribeEventResult>;
+  refresh(options: MCPEventSubscriptionOptions): Promise<SubscribeEventResult>;
+  unsubscribe(options: MCPEventSubscriptionOptions): Promise<void>;
 }

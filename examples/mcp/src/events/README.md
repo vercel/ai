@@ -60,7 +60,7 @@ Verified callback and registered subscription: sub_...
 Event acknowledged: 204
 ```
 
-The client calls `client.events.experimental_list()` to discover available
+The client calls `client.experimental_events.list()` to discover available
 events before subscribing to `comment.created`.
 
 The app starts its webhook route before subscribing. The SDK saves a generated
@@ -78,10 +78,10 @@ temporary directory. A deployed app with multiple instances should use shared,
 private database storage scoped to one MCP server and authenticated principal.
 The demo server keeps subscriptions in memory for up to 60 seconds and has no
 replay. If a subscribe response is lost, recover the pending record from your
-store and call `client.events.experimental_refresh({ key: pending.key })` to
+store and call `client.experimental_events.refresh({ key: pending.key })` to
 reuse its callback URL and secret. To cancel it without a server ID, call
-`client.events.experimental_unsubscribe({ key: pending.key })` instead.
-For long-lived subscriptions, call `client.events.experimental_refresh`
+`client.experimental_events.unsubscribe({ key: pending.key })` instead.
+For long-lived subscriptions, call `client.experimental_events.refresh`
 before `refreshBefore`. Real deliveries can be duplicated; production handlers
 should deduplicate by subscription ID and event ID.
 

@@ -112,7 +112,7 @@ describe('MCP client events', () => {
       events: { store: new MemoryEventStore() },
     });
     clients.push(client);
-    await client.events.experimental_subscribe({
+    await client.experimental_events.subscribe({
       ...subscribeOptions,
       arguments: {},
     });
@@ -123,7 +123,7 @@ describe('MCP client events', () => {
 
   it('lists events through existing modern MCP discovery and metadata', async () => {
     const { client, transport } = await setup();
-    expect((await client.events.experimental_list()).events).toEqual([
+    expect((await client.experimental_events.list()).events).toEqual([
       eventDefinition,
     ]);
     expect(transport.requests[1]).toMatchObject({
@@ -165,7 +165,7 @@ describe('MCP client events', () => {
       expect(response.status).toBe(200);
       expect(await response.json()).toEqual({ challenge: 'challenge_123' });
     };
-    const result = await client.events.experimental_subscribe(subscribeOptions);
+    const result = await client.experimental_events.subscribe(subscribeOptions);
     expect(result.id).toBe('sub_1');
     expect(await store.getById(result.id)).toMatchObject({
       id: result.id,
@@ -176,7 +176,7 @@ describe('MCP client events', () => {
 
   it('refreshes from persisted state after closing and recreating the client, preserving identity and secret', async () => {
     const { client, store } = await setup();
-    const result = await client.events.experimental_subscribe({
+    const result = await client.experimental_events.subscribe({
       ...subscribeOptions,
       ttlMs: 60_000,
       maxAgeMs: 5000,
@@ -185,7 +185,7 @@ describe('MCP client events', () => {
     await store.update(before.key, { cursor: 'cursor_from_delivery' });
     await client.close();
     const restored = await setup(new EventTransport(), store);
-    await restored.client.events.experimental_refresh({ id: result.id });
+    await restored.client.experimental_events.refresh({ id: result.id });
     expect(restored.transport.requests.at(-1)).toMatchObject({
       method: 'events/subscribe',
       params: {
@@ -201,9 +201,9 @@ describe('MCP client events', () => {
 
   it('unsubscribes using the protocol identity and removes persisted state only after success', async () => {
     const { client, transport, store } = await setup();
-    const result = await client.events.experimental_subscribe(subscribeOptions);
+    const result = await client.experimental_events.subscribe(subscribeOptions);
     const stored = (await store.getById(result.id))!;
-    await client.events.experimental_unsubscribe({ id: result.id });
+    await client.experimental_events.unsubscribe({ id: result.id });
     expect(transport.requests.at(-1)).toMatchObject({
       method: 'events/unsubscribe',
       params: {
@@ -227,7 +227,7 @@ describe('MCP client events', () => {
         throw new Error('Subscribe response lost');
       };
       await expect(
-        client.events.experimental_subscribe({
+        client.experimental_events.subscribe({
           ...subscribeOptions,
           ttlMs: null,
         }),
@@ -252,7 +252,7 @@ describe('MCP client events', () => {
         remoteSubscriptions.add(delivery.url);
       };
       if (action === 'refresh') {
-        const result = await restored.client.events.experimental_refresh({
+        const result = await restored.client.experimental_events.refresh({
           key: pending.key,
         });
         expect(restored.transport.requests.at(-1)?.params).toEqual(
@@ -267,7 +267,7 @@ describe('MCP client events', () => {
           delivery: pending.delivery,
         });
       } else {
-        await restored.client.events.experimental_unsubscribe({
+        await restored.client.experimental_events.unsubscribe({
           key: pending.key,
         });
         expect(restored.transport.requests.at(-1)).toMatchObject({
@@ -284,13 +284,13 @@ describe('MCP client events', () => {
     },
   );
 
-  it.each(['experimental_refresh', 'experimental_unsubscribe'] as const)(
+  it.each(['refresh', 'unsubscribe'] as const)(
     'rejects an unknown key before sending %s',
     async method => {
       const { client, transport } = await setup();
-      await expect(client.events[method]({ key: 'missing' })).rejects.toThrow(
-        'Unknown MCP event subscription: missing',
-      );
+      await expect(
+        client.experimental_events[method]({ key: 'missing' }),
+      ).rejects.toThrow('Unknown MCP event subscription: missing');
       expect(transport.requests).toHaveLength(1);
     },
   );
@@ -300,7 +300,7 @@ describe('MCP client events', () => {
     async phase => {
       const { client, transport, store } = await setup();
       const result =
-        await client.events.experimental_subscribe(subscribeOptions);
+        await client.experimental_events.subscribe(subscribeOptions);
       const stored = (await store.getById(result.id))!;
       await store.update(stored.key, {
         refreshBefore: new Date(Date.now() - 1000).toISOString(),
@@ -334,7 +334,7 @@ describe('MCP client events', () => {
         };
       }
 
-      const renewed = await client.events.experimental_refresh({
+      const renewed = await client.experimental_events.refresh({
         id: result.id,
       });
       expect(await store.get(stored.key)).toMatchObject({
@@ -353,14 +353,14 @@ describe('MCP client events', () => {
     async action => {
       const { client, transport, store } = await setup();
       const result =
-        await client.events.experimental_subscribe(subscribeOptions);
+        await client.experimental_events.subscribe(subscribeOptions);
       const stored = (await store.getById(result.id))!;
       transport.subscribeError = {
         code: -32015,
         message: 'CallbackEndpointError',
       };
       await expect(
-        client.events.experimental_refresh({ id: result.id }),
+        client.experimental_events.refresh({ id: result.id }),
       ).rejects.toMatchObject({ code: -32015 });
       expect(await store.getById(result.id)).toMatchObject({
         status: 'pending',
@@ -369,12 +369,12 @@ describe('MCP client events', () => {
 
       transport.subscribeError = undefined;
       if (action === 'refresh') {
-        await client.events.experimental_refresh({ id: result.id });
+        await client.experimental_events.refresh({ id: result.id });
         expect(await store.getById(result.id)).toMatchObject({
           status: 'active',
         });
       } else {
-        await client.events.experimental_unsubscribe({ id: result.id });
+        await client.experimental_events.unsubscribe({ id: result.id });
         expect(await store.get(stored.key)).toBeUndefined();
       }
     },
@@ -384,7 +384,7 @@ describe('MCP client events', () => {
     const transport = new EventTransport();
     transport.eventsSupported = false;
     const { client } = await setup(transport);
-    await expect(client.events.experimental_list()).rejects.toThrow(
+    await expect(client.experimental_events.list()).rejects.toThrow(
       'Server does not support events',
     );
     expect(transport.requests).toHaveLength(1);
@@ -393,16 +393,16 @@ describe('MCP client events', () => {
   it('allows discovery without storage but requires storage before subscribing', async () => {
     const client = await createMCPClient({ transport: new EventTransport() });
     clients.push(client);
-    expect((await client.events.experimental_list()).events).toHaveLength(1);
+    expect((await client.experimental_events.list()).events).toHaveLength(1);
     await expect(
-      client.events.experimental_subscribe(subscribeOptions),
+      client.experimental_events.subscribe(subscribeOptions),
     ).rejects.toThrow('events.store');
   });
 
   it('awaits optional filter validation before persisting a secret or sending subscribe', async () => {
     const { client, transport, store } = await setup();
     await expect(
-      client.events.experimental_subscribe({
+      client.experimental_events.subscribe({
         ...subscribeOptions,
         arguments: {},
       }),
@@ -427,7 +427,7 @@ describe('MCP client events', () => {
       }
       await send(message);
     };
-    await client.events.experimental_subscribe(subscribeOptions);
+    await client.experimental_events.subscribe(subscribeOptions);
     expect(
       transport.requests.filter(request => request.method === 'events/list'),
     ).toHaveLength(2);
@@ -437,7 +437,7 @@ describe('MCP client events', () => {
     const { client, transport } = await setup();
     transport.listResult = { events: [], nextCursor: 'same' };
     await expect(
-      client.events.experimental_subscribe(subscribeOptions),
+      client.experimental_events.subscribe(subscribeOptions),
     ).rejects.toThrow('Repeated');
   });
 
@@ -447,7 +447,7 @@ describe('MCP client events', () => {
       events: [{ ...eventDefinition, delivery: ['poll'] }],
     };
     await expect(
-      client.events.experimental_subscribe(subscribeOptions),
+      client.experimental_events.subscribe(subscribeOptions),
     ).rejects.toThrow('does not support webhook');
   });
 
@@ -458,7 +458,7 @@ describe('MCP client events', () => {
   ])('rejects callback URL %s', async url => {
     const { client } = await setup();
     await expect(
-      client.events.experimental_subscribe({
+      client.experimental_events.subscribe({
         ...subscribeOptions,
         delivery: { mode: 'webhook', url },
       }),
@@ -472,9 +472,9 @@ describe('MCP client events', () => {
       url: 'http://127.0.0.1:3003/events',
     };
     await expect(
-      client.events.experimental_subscribe({ ...subscribeOptions, delivery }),
+      client.experimental_events.subscribe({ ...subscribeOptions, delivery }),
     ).rejects.toThrow('HTTPS');
-    await client.events.experimental_subscribe({
+    await client.experimental_events.subscribe({
       ...subscribeOptions,
       delivery: { ...delivery, allowInsecureLocalhost: true },
     });
@@ -482,7 +482,7 @@ describe('MCP client events', () => {
       'allowInsecureLocalhost',
     );
     await expect(
-      client.events.experimental_subscribe({
+      client.experimental_events.subscribe({
         ...subscribeOptions,
         delivery: {
           ...delivery,
@@ -496,16 +496,16 @@ describe('MCP client events', () => {
   it('rejects invalid secrets and lifetime options', async () => {
     const { client } = await setup();
     await expect(
-      client.events.experimental_subscribe({
+      client.experimental_events.subscribe({
         ...subscribeOptions,
         delivery: { ...subscribeOptions.delivery, secret: 'whsec_c2hvcnQ=' },
       }),
     ).rejects.toThrow('24–64');
     await expect(
-      client.events.experimental_subscribe({ ...subscribeOptions, ttlMs: -1 }),
+      client.experimental_events.subscribe({ ...subscribeOptions, ttlMs: -1 }),
     ).rejects.toThrow('lifetime');
     await expect(
-      client.events.experimental_subscribe({
+      client.experimental_events.subscribe({
         ...subscribeOptions,
         maxAgeMs: -1,
       }),
@@ -519,7 +519,7 @@ describe('MCP client events', () => {
       message: 'CallbackEndpointError',
     };
     await expect(
-      client.events.experimental_subscribe(subscribeOptions),
+      client.experimental_events.subscribe(subscribeOptions),
     ).rejects.toMatchObject({ code: -32015 });
     expect([...store.records.values()][0]).toMatchObject({
       status: 'pending',
