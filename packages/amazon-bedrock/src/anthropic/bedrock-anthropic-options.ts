@@ -1,6 +1,7 @@
 export type BedrockAnthropicModelId =
   | 'anthropic.claude-sonnet-5'
   | 'anthropic.claude-sonnet-5-5'
+  | 'anthropic.claude-haiku-5-5'
   | 'anthropic.claude-fable-5'
   | 'anthropic.claude-opus-5'
   | 'anthropic.claude-opus-5-5'
@@ -23,6 +24,7 @@ export type BedrockAnthropicModelId =
   | 'anthropic.claude-3-haiku-20240307-v1:0'
   | 'us.anthropic.claude-sonnet-5'
   | 'us.anthropic.claude-sonnet-5-5'
+  | 'us.anthropic.claude-haiku-5-5'
   | 'us.anthropic.claude-fable-5'
   | 'us.anthropic.claude-opus-5'
   | 'us.anthropic.claude-opus-5-5'
