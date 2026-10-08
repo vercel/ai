@@ -76,7 +76,32 @@ test('createPi accepts a file tool path policy with readonly roots', () => {
   createPi({ fileToolPathPolicy: {} });
 });
 
-test('createPi accepts MCP adapter settings', () => {
+test('createPi accepts native MCP server configs', () => {
+  createPi({
+    mcpServers: {
+      brand: {
+        url: 'https://x',
+        headers: { Authorization: 'Bearer t' },
+        exposure: 'deferred',
+      },
+      memory: {
+        command: 'memory-mcp',
+        args: [],
+        toolExposure: { secret: 'hidden' },
+      },
+    },
+  });
+  createPi({
+    // @ts-expect-error
+    mcpServers: { brand: { url: 'https://x', exposure: 'codemode' } },
+  });
+  createPi({
+    // @ts-expect-error
+    mcpServers: { memory: { command: 'memory-mcp', lifecycle: 'eager' } },
+  });
+});
+
+test('createPi accepts deprecated MCP adapter settings', () => {
   createPi({ mcpSettings: { toolPrefix: 'none', outputGuard: false } });
   // @ts-expect-error
   createPi({ mcpSettings: { toolPrefix: 'bare' } });

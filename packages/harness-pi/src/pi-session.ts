@@ -1,6 +1,8 @@
 import {
   createAgentSession,
+  createMcpExtension,
   createReadToolDefinition,
+  createToolSearchExtension,
   DefaultResourceLoader,
   defineTool,
   ModelRegistry,
@@ -10,13 +12,15 @@ import {
   type AgentToolResult,
   type ExtensionAPI,
   type ExtensionFactory,
+  type McpExposure,
+  type McpServerConfig,
   type ProviderConfig,
   type Skill,
   type ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
 import { randomUUID } from 'node:crypto';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { devNull, tmpdir } from 'node:os';
 import path from 'node:path';
 import { Type } from 'typebox';
 import {
@@ -86,27 +90,6 @@ import { PiWorkspaceVfs } from './pi-workspace-vfs';
 import { syncHostWorkspaceFromSandbox } from './pi-workspace-mirror';
 
 const HARNESS_ID = 'pi';
-
-/*
- * pi-mcp-adapter publishes TypeScript source as its package entry point. A
- * non-literal specifier keeps the repository type-check focused on this
- * package's compatibility boundary instead of compiling dependency internals.
- */
-const PI_MCP_ADAPTER_PACKAGE: string = 'pi-mcp-adapter';
-
-type PiMcpAdapterModule = {
-  createMcpAdapter(options: {
-    config: {
-      mcpServers: Record<string, unknown>;
-      settings: {
-        directTools: boolean;
-        toolPrefix: string;
-        disableProxyTool: boolean;
-        outputGuard?: boolean;
-      };
-    };
-  }): ExtensionFactory;
-};
 
 /*
  * Pi runs in this Node process, not behind an attachable in-sandbox bridge.
@@ -247,21 +230,50 @@ export interface PiFileToolPathPolicy {
   readonly deniedRoots?: ReadonlyArray<string>;
 }
 
+/**
+ * MCP exposure modes the harness serves. Pi's `codemode` exposure needs Pi's
+ * codemode extension, which the harness does not load.
+ */
+export type PiMcpExposure = Exclude<McpExposure, 'codemode'>;
+
+/**
+ * Pi's native MCP server configuration (stdio or streamable HTTP), limited to
+ * the exposure modes the harness serves.
+ */
+export type PiMcpServerConfig = McpServerConfig extends infer Config
+  ? Config extends McpServerConfig
+    ? Omit<Config, 'exposure' | 'toolExposure'> & {
+        /**
+         * How the server's tools reach the model.
+         *
+         * @default 'direct'
+         */
+        readonly exposure?: PiMcpExposure;
+        /**
+         * Exposure of single tools, keyed by the tool name the server offers or
+         * a `*` pattern, overriding `exposure`.
+         */
+        readonly toolExposure?: Readonly<Record<string, PiMcpExposure>>;
+      }
+    : never
+  : never;
+
+/**
+ * @deprecated Pi's native MCP serves `mcpServers` and has no adapter settings.
+ * It always names tools `mcp__<server>__<tool>` and always truncates results
+ * over 20 KB, writing the full text to a file in the host temp directory.
+ * Values it cannot honor fail session start.
+ */
 export interface PiMcpSettings {
   /**
-   * How MCP tool names are prefixed: `mcp` (`mcp__<server>_<tool>`), `server`
-   * (`<server>_<tool>`), `short` (the server name without an `mcp` suffix), or
-   * `none` (the bare tool name). Only `mcp`-prefixed tool calls are reported
-   * as provider-executed dynamic tools with parsed JSON results.
-   *
-   * @default 'mcp'
+   * @deprecated Native MCP always names tools `mcp__<server>__<tool>`, so only
+   * `'mcp'` is accepted; any other value fails session start.
    */
   readonly toolPrefix?: 'server' | 'none' | 'short' | 'mcp';
   /**
-   * Whether the MCP adapter truncates large tool results and writes the full
-   * text to a file in the host temp directory.
-   *
-   * @default true
+   * @deprecated Native MCP always truncates results over 20 KB and writes the
+   * full text to a file in the host temp directory, so `false` fails session
+   * start.
    */
   readonly outputGuard?: boolean;
 }
@@ -308,7 +320,7 @@ export interface PiSessionSettings {
   readonly headers?: Readonly<Record<string, string>>;
   readonly thinkingLevel?: PiThinkingLevel;
   readonly cacheRetention?: PiCacheRetention;
-  readonly mcpServers?: Record<string, unknown>;
+  readonly mcpServers?: Readonly<Record<string, PiMcpServerConfig>>;
   readonly mcpSettings?: PiMcpSettings;
   readonly providers?: Readonly<Record<string, ProviderConfig>>;
   readonly extensionFactories?: ReadonlyArray<PiHarnessExtensionFactory>;
@@ -461,6 +473,8 @@ export async function createPiSession(
       await parked.session.doDestroy();
     }
   }
+
+  assertPiMcpSettingsSupported(input.settings.mcpSettings);
 
   // Host-side mirror layout under tmpdir. Replace path-separator characters
   // that would otherwise turn a session id like `2026-05-29T17:54:27` into a
@@ -642,18 +656,17 @@ export async function createPiSession(
     env: resolverEnv,
   });
   let activeResolvedModel = resolveModel();
-  const mcpServers = resolvePiMcpServers({
-    mcpServers: input.settings.mcpServers,
-  });
+  const mcpServers = input.settings.mcpServers ?? {};
   const hasMcpServers = Object.keys(mcpServers).length > 0;
 
   let sessionInstructions: string | undefined;
 
   /*
-   * Configured MCP servers are served by an inline Pi extension, so they share
-   * the extension runtime with the caller-supplied factories: both are loaded
-   * by the resource loader below and both are subject to the reload handling
-   * that keeps the active runtime alive across resource-only reloads.
+   * Configured MCP servers are served by Pi's MCP and tool search extensions,
+   * so they share the extension runtime with the caller-supplied factories:
+   * both are loaded by the resource loader below and both are subject to the
+   * reload handling that keeps the active runtime alive across resource-only
+   * reloads.
    */
   const suspendToolSettleMs = input.settings.suspendToolSettleMs;
   const turnSettle =
@@ -674,21 +687,17 @@ export async function createPiSession(
     ...(turnSettle ? [turnSettle.extension] : []),
   ];
   if (hasMcpServers) {
-    const { createMcpAdapter } = (await import(
-      PI_MCP_ADAPTER_PACKAGE
-    )) as PiMcpAdapterModule;
     extensionFactories.push(
-      createMcpAdapter({
-        config: {
-          mcpServers,
-          settings: {
-            directTools: true,
-            toolPrefix: 'mcp',
-            disableProxyTool: true,
-            ...input.settings.mcpSettings,
-          },
-        },
+      createToolSearchExtension(),
+      createMcpExtension({
+        loadConfig: () => ({ servers: [], errors: [] }),
+        logPath: devNull,
       }),
+      pi => {
+        for (const [name, config] of Object.entries(mcpServers)) {
+          pi.registerMcpServer(name, { exposure: 'direct', ...config });
+        }
+      },
     );
   }
   const hasExtensionFactories = extensionFactories.length > 0;
@@ -1831,20 +1840,19 @@ export async function createPiSession(
   return sessionImpl;
 }
 
-function resolvePiMcpServers({
-  mcpServers,
-}: {
-  mcpServers: Record<string, unknown> | undefined;
-}): Record<string, unknown> {
-  if (mcpServers == null) return {};
-  for (const [name, value] of Object.entries(mcpServers)) {
-    if (value == null || typeof value !== 'object' || Array.isArray(value)) {
-      throw new Error(
-        `Pi MCP server ${JSON.stringify(name)} must be configured with an object value.`,
-      );
-    }
+function assertPiMcpSettingsSupported(
+  mcpSettings: PiMcpSettings | undefined,
+): void {
+  if (mcpSettings?.toolPrefix != null && mcpSettings.toolPrefix !== 'mcp') {
+    throw new Error(
+      `Pi MCP setting toolPrefix ${JSON.stringify(mcpSettings.toolPrefix)} is not supported: Pi's native MCP always names tools mcp__<server>__<tool>.`,
+    );
   }
-  return mcpServers;
+  if (mcpSettings?.outputGuard === false) {
+    throw new Error(
+      "Pi MCP setting outputGuard false is not supported: Pi's native MCP always truncates results over 20 KB and writes the full text to a file in the host temp directory.",
+    );
+  }
 }
 
 function asPiToolResult(text: string): AgentToolResult<unknown> {

@@ -28,7 +28,7 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { devNull, tmpdir } from 'node:os';
 import path from 'node:path';
 import { z } from 'zod/v4';
 import { createPi } from './pi-harness';
@@ -71,6 +71,7 @@ const piMock = vi.hoisted(() => {
         handlers.push(handler);
         extensionHandlers.set(eventType, handlers);
       }),
+      registerMcpServer: vi.fn(),
     } as unknown as ExtensionAPI,
     extensionFactoryInputs: [] as Array<{
       readonly reference: Array<ExtensionFactory>;
@@ -85,23 +86,24 @@ const piMock = vi.hoisted(() => {
   };
 });
 
-const mcpAdapterMock = vi.hoisted(() => {
+const mcpMock = vi.hoisted(() => {
   const mcpExtensionFactory = vi.fn();
+  const toolSearchFactory = vi.fn();
   return {
-    createMcpAdapter: vi.fn(() => mcpExtensionFactory),
+    createMcpExtension: vi.fn(() => mcpExtensionFactory),
+    createToolSearchExtension: vi.fn(() => toolSearchFactory),
     mcpExtensionFactory,
+    toolSearchFactory,
   };
 });
-
-vi.mock('pi-mcp-adapter', () => ({
-  createMcpAdapter: mcpAdapterMock.createMcpAdapter,
-}));
 
 vi.mock('@earendil-works/pi-coding-agent', async importOriginal => {
   const actual = await importOriginal<typeof PiCodingAgentModule>();
   return {
     ...actual,
     createAgentSession: piMock.createAgentSession,
+    createMcpExtension: mcpMock.createMcpExtension,
+    createToolSearchExtension: mcpMock.createToolSearchExtension,
     DefaultResourceLoader: class {
       private extensionsResult: FakeExtensionsResult = {
         errors: [],
@@ -179,8 +181,11 @@ describe('createPiSession', () => {
     piMock.resourceLoaderOptions = [];
     piMock.registerProvider.mockClear();
     piMock.session = undefined;
-    mcpAdapterMock.createMcpAdapter.mockClear();
-    mcpAdapterMock.mcpExtensionFactory.mockClear();
+    vi.mocked(piMock.extensionApi.registerMcpServer).mockClear();
+    mcpMock.createMcpExtension.mockClear();
+    mcpMock.createToolSearchExtension.mockClear();
+    mcpMock.mcpExtensionFactory.mockClear();
+    mcpMock.toolSearchFactory.mockClear();
     piMock.createAgentSession.mockReset();
     piMock.createAgentSession.mockImplementation(async options => {
       piMock.agentSessionExtensionResults.push(
@@ -1459,7 +1464,7 @@ describe('createPiSession', () => {
     }
   });
 
-  it('registers configured MCP servers as direct Pi extension tools', async () => {
+  it('registers configured MCP servers as direct Pi tools by default', async () => {
     const bindExtensions = vi.fn(async () => {});
     const dispose = vi.fn();
     piMock.session = {
@@ -1495,26 +1500,54 @@ describe('createPiSession', () => {
     await control.done;
     await session.doDestroy();
 
-    expect(mcpAdapterMock.createMcpAdapter).toHaveBeenCalledWith({
-      config: {
-        mcpServers: {
-          memory: { command: 'memory-mcp', args: [] },
-        },
-        settings: {
-          directTools: true,
-          toolPrefix: 'mcp',
-          disableProxyTool: true,
-        },
-      },
+    expect(
+      piMock.extensionApi.registerMcpServer,
+    ).toHaveBeenCalledExactlyOnceWith('memory', {
+      exposure: 'direct',
+      command: 'memory-mcp',
+      args: [],
     });
+    expect(mcpMock.createMcpExtension).toHaveBeenCalledExactlyOnceWith({
+      loadConfig: expect.any(Function),
+      logPath: devNull,
+    });
+    const [mcpOptions] = mcpMock.createMcpExtension.mock
+      .lastCall as unknown as [{ loadConfig: () => unknown }];
+    expect(mcpOptions.loadConfig()).toEqual({ servers: [], errors: [] });
+    expect(mcpMock.createToolSearchExtension).toHaveBeenCalledOnce();
     expect(piMock.resourceLoaderOptions.at(-1)?.extensionFactories).toEqual([
-      mcpAdapterMock.mcpExtensionFactory,
+      mcpMock.toolSearchFactory,
+      mcpMock.mcpExtensionFactory,
+      expect.any(Function),
     ]);
     expect(piMock.createAgentSession).toHaveBeenCalledWith(
       expect.objectContaining({ noTools: 'builtin' }),
     );
     expect(bindExtensions).toHaveBeenCalledWith({ mode: 'print' });
     expect(dispose).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps a server's own exposure and tool overrides", async () => {
+    const brand = {
+      url: 'https://mcp.example.com',
+      headers: { Authorization: 'Bearer token' },
+      exposure: 'deferred',
+      toolExposure: { secret: 'hidden' },
+    } as const;
+
+    const session = await createPi({ mcpServers: { brand } }).doStart({
+      sessionId: 'session-mcp-exposure',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+    });
+
+    try {
+      expect(
+        piMock.extensionApi.registerMcpServer,
+      ).toHaveBeenCalledExactlyOnceWith('brand', brand);
+    } finally {
+      await session.doDestroy();
+    }
   });
 
   it('shuts down MCP servers on dispose without reloading the Pi session', async () => {
@@ -1539,7 +1572,7 @@ describe('createPiSession', () => {
       sessionWorkDir: '/sandbox/work',
       settings: {
         mcpServers: {
-          memory: { command: 'memory-mcp', args: [], lifecycle: 'eager' },
+          memory: { command: 'memory-mcp', args: [] },
         },
       },
       clientApp: 'ai-sdk-harness-pi/0.0.0-test',
@@ -1610,7 +1643,7 @@ describe('createPiSession', () => {
     const session = await createPi({
       extensionFactories: [factory],
       mcpServers: {
-        memory: { command: 'memory-mcp', args: [], lifecycle: 'eager' },
+        memory: { command: 'memory-mcp', args: [] },
       },
     }).doStart({
       sessionId: 'session-mcp-rebuild',
@@ -1644,7 +1677,9 @@ describe('createPiSession', () => {
       );
       expect(first.reload).not.toHaveBeenCalled();
       expect(factory).toHaveBeenCalledTimes(2);
-      expect(mcpAdapterMock.mcpExtensionFactory).toHaveBeenCalledTimes(2);
+      expect(mcpMock.mcpExtensionFactory).toHaveBeenCalledTimes(2);
+      expect(mcpMock.toolSearchFactory).toHaveBeenCalledTimes(2);
+      expect(piMock.extensionApi.registerMcpServer).toHaveBeenCalledTimes(2);
 
       await session.doDestroy();
 
@@ -1658,7 +1693,7 @@ describe('createPiSession', () => {
       );
       expect(second.reload).not.toHaveBeenCalled();
       expect(factory).toHaveBeenCalledTimes(2);
-      expect(mcpAdapterMock.mcpExtensionFactory).toHaveBeenCalledTimes(2);
+      expect(mcpMock.mcpExtensionFactory).toHaveBeenCalledTimes(2);
     } finally {
       await session.doDestroy();
     }
@@ -1679,10 +1714,12 @@ describe('createPiSession', () => {
     try {
       expect(piMock.extensionFactoryInputs.at(-1)?.snapshot).toEqual([
         expect.any(Function),
-        mcpAdapterMock.mcpExtensionFactory,
+        mcpMock.toolSearchFactory,
+        mcpMock.mcpExtensionFactory,
+        expect.any(Function),
       ]);
       expect(factory).toHaveBeenCalledOnce();
-      expect(mcpAdapterMock.mcpExtensionFactory).toHaveBeenCalledOnce();
+      expect(mcpMock.mcpExtensionFactory).toHaveBeenCalledOnce();
     } finally {
       await session.doDestroy();
     }
@@ -1690,40 +1727,44 @@ describe('createPiSession', () => {
 
   it.each([
     {
-      mcpSettings: { toolPrefix: 'none', outputGuard: false },
-      expected: { toolPrefix: 'none', outputGuard: false },
+      mcpSettings: { toolPrefix: 'none' },
+      messages: ['toolPrefix', 'mcp__<server>__<tool>'],
     },
     {
       mcpSettings: { outputGuard: false },
-      expected: { toolPrefix: 'mcp', outputGuard: false },
+      messages: ['outputGuard'],
     },
   ] as const)(
-    'passes mcpSettings $mcpSettings to the MCP adapter over the defaults',
-    async ({ mcpSettings, expected }) => {
-      const mcpServers = { memory: { command: 'memory-mcp', args: [] } };
-
-      const session = await createPi({ mcpServers, mcpSettings }).doStart({
+    'rejects mcpSettings $mcpSettings that native MCP cannot honor',
+    async ({ mcpSettings, messages }) => {
+      const start = createPi({
+        mcpServers: { memory: { command: 'memory-mcp', args: [] } },
+        mcpSettings,
+      }).doStart({
         sessionId: 'session-mcp-settings',
         sandboxSession: createSandboxSession(),
         sessionWorkDir: '/sandbox/work',
       });
 
-      try {
-        expect(mcpAdapterMock.createMcpAdapter).toHaveBeenCalledWith({
-          config: {
-            mcpServers,
-            settings: {
-              directTools: true,
-              disableProxyTool: true,
-              ...expected,
-            },
-          },
-        });
-      } finally {
-        await session.doDestroy();
+      for (const message of messages) {
+        await expect(start).rejects.toThrow(message);
       }
+      expect(piMock.createAgentSession).not.toHaveBeenCalled();
     },
   );
+
+  it('accepts mcpSettings that match native MCP', async () => {
+    const session = await createPi({
+      mcpServers: { memory: { command: 'memory-mcp', args: [] } },
+      mcpSettings: { toolPrefix: 'mcp', outputGuard: true },
+    }).doStart({
+      sessionId: 'session-mcp-settings-native',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+    });
+
+    await session.doDestroy();
+  });
 
   it('rejects unsafe resume session filenames before sandbox restore', async () => {
     const sandboxSession = createSandboxSession();
@@ -1826,7 +1867,7 @@ describe('createPiSession', () => {
 
     expect(piMock.appendSystemPrompts.at(-1)).toEqual(['Use turbo build.']);
     expect(prompt).toHaveBeenCalledWith('do the thing');
-    expect(mcpAdapterMock.mcpExtensionFactory).toHaveBeenCalledOnce();
+    expect(mcpMock.mcpExtensionFactory).toHaveBeenCalledOnce();
   });
 
   it('parks a pending tool turn on suspend and resumes it in-process', async () => {
@@ -2078,7 +2119,7 @@ describe('createPiSession', () => {
     },
     {
       name: 'mcpSettings changed',
-      settings: { mcpSettings: { outputGuard: false } },
+      settings: { mcpSettings: { outputGuard: true } },
       resumeStateType: 'continue-turn' as const,
     },
   ])('cold-restores a parked session when $name', async input => {

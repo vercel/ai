@@ -187,7 +187,8 @@ function resolveToolName(
 /**
  * How a tool call is dispatched, from the native tool name. Pi runs its
  * builtin, MCP and extension tools itself; only host tools are handed back to
- * the harness host. `tool-input-start` reports the same flags as the
+ * the harness host. Pi's native MCP names every server tool
+ * `mcp__<server>__<tool>`. `tool-input-start` reports the same flags as the
  * `tool-call` that follows it so a consumer does not have to wait for the call
  * to know who will execute it.
  */
@@ -197,9 +198,7 @@ function resolveToolKind(
 ): ToolKind {
   if (state.hostToolNames.has(nativeName)) return 'host';
   if (state.builtinToolNames.has(nativeName)) return 'builtin';
-  return nativeName === 'mcp' || nativeName.startsWith('mcp__')
-    ? 'mcp'
-    : 'extension';
+  return nativeName.startsWith('mcp__') ? 'mcp' : 'extension';
 }
 
 function isDynamicToolKind(kind: ToolKind): kind is DynamicToolKind {
