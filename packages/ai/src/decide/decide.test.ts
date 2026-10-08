@@ -4,6 +4,7 @@ import {
   Experimental_DecisionRefusalError as DecisionRefusalError,
   Experimental_DecisionUnsupportedQuestionTypeError as DecisionUnsupportedQuestionTypeError,
   type Experimental_DecisionModelV4Result as DecisionModelV4Result,
+  type Experimental_DecisionModelV4Question as DecisionQuestion,
 } from '@ai-sdk/provider';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { InvalidArgumentError } from '../error/invalid-argument-error';
@@ -11,7 +12,6 @@ import { UnsupportedModelVersionError } from '../error/unsupported-model-version
 import type { Telemetry } from '../telemetry/telemetry';
 import { DecisionMockModelV4 } from '../test/decision-mock-model-v4';
 import { experimental_decide as decide } from '../index';
-import type { DecisionQuestion } from './decision-result';
 
 const questions = {
   topic: {
@@ -87,7 +87,7 @@ it('decides answers to mixed questions in one call and preserves distributions a
   });
   expect(doDecide).toHaveBeenCalledTimes(1);
   expect(doDecide).toHaveBeenCalledWith({
-    state,
+    state: [{ type: 'json', value: state }],
     questions,
     abortSignal,
     headers: { custom: 'value', 'user-agent': expect.stringContaining('ai/') },
@@ -247,7 +247,11 @@ describe('input validation', () => {
   it('allows repeated JSON references without treating them as cycles', async () => {
     const shared = { text: 'hello' };
     await expect(
-      decide({ ...setup(), state: [shared, shared], questions }),
+      decide({
+        ...setup(),
+        state: [{ type: 'json', value: [shared, shared] }],
+        questions,
+      }),
     ).resolves.toBeDefined();
   });
 });
@@ -587,7 +591,7 @@ describe('telemetry', () => {
       expect.objectContaining({
         callId: 'test-call-id',
         operationId: 'ai.decide.doDecide',
-        state,
+        state: [{ type: 'json', value: state }],
         questions,
       }),
     );
@@ -663,4 +667,248 @@ describe('telemetry', () => {
       error,
     });
   });
+});
+
+it('preserves ordered state parts and normalizes file shorthands', async () => {
+  const { model, doDecide } = setup();
+  const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
+  await decide({
+    model,
+    questions,
+    state: [
+      { type: 'text', text: '' },
+      { type: 'json', value: [1, null, { label: 'package' }] },
+      {
+        type: 'file',
+        mediaType: 'image',
+        data: bytes.buffer,
+        filename: 'package.png',
+      },
+      {
+        type: 'file',
+        mediaType: 'image',
+        data: new URL('data:image/png;base64,iVBORw=='),
+      },
+      { type: 'text', text: 'Inspect both images.' },
+    ],
+  });
+  expect(doDecide.mock.calls[0][0].state).toEqual([
+    { type: 'text', text: '' },
+    { type: 'json', value: [1, null, { label: 'package' }] },
+    {
+      type: 'file',
+      mediaType: 'image/png',
+      data: { type: 'data', data: bytes },
+      filename: 'package.png',
+    },
+    {
+      type: 'file',
+      mediaType: 'image/png',
+      data: { type: 'data', data: 'iVBORw==' },
+    },
+    { type: 'text', text: 'Inspect both images.' },
+  ]);
+});
+
+it('treats an empty array as an empty list of state parts', async () => {
+  const { model, doDecide } = setup();
+  await decide({ model, questions, state: [] });
+  expect(doDecide.mock.calls[0][0].state).toEqual([]);
+});
+
+it.each(
+  [
+    ['legacy JSON array'],
+    [{ arbitrary: 'object' }],
+    [{ type: 'image', image: 'iVBORw==' }],
+    [{ type: 'text', text: 42 }],
+    [{ type: 'file', mediaType: 'image/png' }],
+    [{ type: 'json', value: undefined }],
+    [{ type: 'json', value: { bad: NaN } }],
+  ].map(state => [state]),
+)('rejects malformed state parts before I/O: %j', async state => {
+  const { model, doDecide } = setup();
+  await expect(
+    decide({ model, questions, state: state as never }),
+  ).rejects.toBeInstanceOf(InvalidArgumentError);
+  expect(doDecide).not.toHaveBeenCalled();
+});
+
+it('downloads image URLs and sends their bytes to the decision model', async () => {
+  const { model, doDecide } = setup();
+  const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
+  const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValue(
+    new Response(bytes, {
+      headers: { 'content-type': 'image/png' },
+    }),
+  );
+  vi.stubGlobal('fetch', fetch);
+  await decide({
+    model,
+    questions,
+    state: [
+      {
+        type: 'file',
+        mediaType: 'image',
+        data: new URL('https://example.com/package.png'),
+      },
+    ],
+  });
+  expect(fetch).toHaveBeenCalledTimes(1);
+  expect(doDecide.mock.calls[0][0].state).toEqual([
+    {
+      type: 'file',
+      mediaType: 'image/png',
+      data: { type: 'data', data: bytes },
+    },
+  ]);
+});
+
+it('stops before provider I/O when an image download fails', async () => {
+  const { model, doDecide } = setup();
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue(new Response(null, { status: 404 })),
+  );
+  await expect(
+    decide({
+      model,
+      questions,
+      state: [
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: new URL('https://example.com/missing.png'),
+        },
+      ],
+    }),
+  ).rejects.toMatchObject({ name: 'AI_DownloadError' });
+  expect(doDecide).not.toHaveBeenCalled();
+});
+
+it.each([
+  {
+    state: 'Inspect this package.',
+    expected: [{ type: 'text', text: 'Inspect this package.' }],
+  },
+  {
+    state: { product: 'glass vase' },
+    expected: [{ type: 'json', value: { product: 'glass vase' } }],
+  },
+  { state: [], expected: [] },
+  {
+    state: [
+      { type: 'json', value: [1, null] },
+      { type: 'text', text: 'Inspect.' },
+    ],
+    expected: [
+      { type: 'json', value: [1, null] },
+      { type: 'text', text: 'Inspect.' },
+    ],
+  },
+] as const)(
+  'normalizes public state into provider parts: $state',
+  async ({ state, expected }) => {
+    const { model, doDecide } = setup();
+    const onStart = vi.fn();
+    const onModelStart = vi.fn();
+    await decide({
+      model,
+      questions,
+      state,
+      onStart,
+      telemetry: {
+        integrations: { experimental_onDecisionModelCallStart: onModelStart },
+      },
+    });
+    expect(doDecide.mock.calls[0][0].state).toEqual(expected);
+    expect(onStart).toHaveBeenCalledWith(expect.objectContaining({ state }));
+    expect(onModelStart).toHaveBeenCalledWith(
+      expect.objectContaining({ state: expected }),
+    );
+  },
+);
+
+it('preserves structured questions for provider calls and all lifecycle events', async () => {
+  const publicQuestions = {
+    topic: {
+      type: 'choice',
+      instructions: 'Pick a "team".\nKeep this string.',
+      criteria: {
+        billing: { includes: ['charges'] },
+        support: ['help', { urgent: true }],
+        other: null,
+      },
+    },
+    severity: {
+      type: 'score',
+      instructions: { task: 'Rate severity' },
+      criteria: [{ level: 'low' }, ['medium', 'high'], null],
+    },
+    refund: {
+      type: 'boolean',
+      instructions: ['Refund?', { locale: 'en' }],
+      criteria: { true: { requested: true }, false: ['status only'] },
+    },
+    noCriteria: { type: 'boolean', instructions: 'No criteria.' },
+    emptyCriteria: {
+      type: 'boolean',
+      instructions: 'Empty criteria.',
+      criteria: {},
+    },
+    nullCriteria: {
+      type: 'boolean',
+      instructions: 'Null criteria.',
+      criteria: { true: null, false: null },
+    },
+    falseCriteria: {
+      type: 'boolean',
+      instructions: 'False criteria.',
+      criteria: { true: null, false: 'No refund requested' },
+    },
+  } as const;
+  const { model, doDecide } = setup({
+    answers: {
+      topic: { type: 'choice', choice: 'billing' },
+      severity: { type: 'score', score: 1.25 },
+      refund: { type: 'boolean', probability: 0.8 },
+      noCriteria: { type: 'boolean', probability: 0.5 },
+      emptyCriteria: { type: 'boolean', probability: 0.5 },
+      nullCriteria: { type: 'boolean', probability: 0.5 },
+      falseCriteria: { type: 'boolean', probability: 0.5 },
+    },
+    warnings: [],
+  });
+  const onStart = vi.fn();
+  const onEnd = vi.fn();
+  const onModelStart = vi.fn();
+  const onModelEnd = vi.fn();
+  const originalQuestions = structuredClone(publicQuestions);
+  await decide({
+    model,
+    state: 'package',
+    questions: publicQuestions,
+    onStart,
+    onEnd,
+    telemetry: {
+      integrations: {
+        experimental_onDecisionModelCallStart: onModelStart,
+        experimental_onDecisionModelCallEnd: onModelEnd,
+      },
+    },
+  });
+  expect(doDecide.mock.calls[0][0].questions).toBe(publicQuestions);
+  expect(onModelStart).toHaveBeenCalledWith(
+    expect.objectContaining({ questions: publicQuestions }),
+  );
+  expect(onModelEnd).toHaveBeenCalledWith(
+    expect.objectContaining({ questions: publicQuestions }),
+  );
+  expect(onStart).toHaveBeenCalledWith(
+    expect.objectContaining({ questions: publicQuestions }),
+  );
+  expect(onEnd).toHaveBeenCalledWith(
+    expect.objectContaining({ questions: publicQuestions }),
+  );
+  expect(publicQuestions).toEqual(originalQuestions);
 });

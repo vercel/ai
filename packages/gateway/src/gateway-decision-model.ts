@@ -1,6 +1,7 @@
-import type {
-  Experimental_DecisionModelV4 as DecisionModelV4,
-  SharedV4ProviderMetadata,
+import {
+  UnsupportedFunctionalityError,
+  type Experimental_DecisionModelV4 as DecisionModelV4,
+  type SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -51,6 +52,21 @@ export class GatewayDecisionModel implements DecisionModelV4 {
   }: Parameters<DecisionModelV4['doDecide']>[0]): Promise<
     Awaited<ReturnType<DecisionModelV4['doDecide']>>
   > {
+    const values = state.map(part => {
+      if (part.type === 'file') {
+        throw new UnsupportedFunctionalityError({
+          functionality: 'Gateway decision file input',
+        });
+      }
+      return part.type === 'text' ? part.text : part.value;
+    });
+    // Keep the legacy Gateway state format: string, JSON object, or JSON array.
+    const requestState =
+      values.length === 1 &&
+      (typeof values[0] === 'string' ||
+        (typeof values[0] === 'object' && values[0] !== null))
+        ? values[0]
+        : values;
     const gatewayOptions = await parseProviderOptions({
       provider: 'gateway',
       providerOptions,
@@ -77,7 +93,7 @@ export class GatewayDecisionModel implements DecisionModelV4 {
           await resolve(this.config.o11yHeaders),
         ),
         body: {
-          state,
+          state: requestState,
           questions,
           ...(validatedProviderOptions
             ? { providerOptions: validatedProviderOptions }

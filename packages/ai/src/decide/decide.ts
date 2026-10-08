@@ -1,7 +1,7 @@
 import {
   Experimental_DecisionRefusalError as DecisionRefusalError,
   Experimental_DecisionUnsupportedQuestionTypeError as DecisionUnsupportedQuestionTypeError,
-  type Experimental_DecisionModelV4CallOptions as DecisionModelV4CallOptions,
+  type Experimental_DecisionModelV4Question as DecisionQuestion,
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
@@ -9,6 +9,7 @@ import {
   type Context,
   type ProviderOptions,
 } from '@ai-sdk/provider-utils';
+import { prepareDecisionState, type DecisionState } from './decision-state';
 import { resolveDecisionModel } from '../model/resolve-model';
 import { logWarnings } from '../logger/log-warnings';
 import type { TelemetryOptions } from '../telemetry/telemetry-options';
@@ -17,11 +18,7 @@ import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
 import type { DecideEndEvent, DecideStartEvent } from './decide-events';
-import type {
-  DecisionModel,
-  DecisionQuestion,
-  DecisionResult,
-} from './decision-result';
+import type { DecisionModel, DecisionResult } from './decision-result';
 import { createRestrictedTelemetryDispatcher } from './restricted-telemetry-dispatcher';
 import {
   validateDecisionInput,
@@ -53,7 +50,7 @@ export async function decide<
 }: {
   /** A decision model instance or an ID resolved by the configured default provider. */
   model: DecisionModel;
-  state: DecisionModelV4CallOptions['state'];
+  state: DecisionState;
   questions: QUESTIONS;
   /** Maximum retries for transient provider failures. Defaults to 2. */
   maxRetries?: number;
@@ -122,12 +119,13 @@ export async function decide<
       });
 
       try {
+        const preparedState = await prepareDecisionState(state, abortSignal);
         const modelCallEvent = {
           callId,
           operationId: 'ai.decide.doDecide' as const,
           provider: model.provider,
           modelId: model.modelId,
-          state,
+          state: preparedState,
           questions,
         };
         await notify({
@@ -139,7 +137,7 @@ export async function decide<
         const result = await retry(async () => {
           abortSignal?.throwIfAborted();
           return await model.doDecide({
-            state,
+            state: preparedState,
             questions,
             abortSignal,
             headers: withUserAgentSuffix(headers ?? {}, `ai/${VERSION}`),

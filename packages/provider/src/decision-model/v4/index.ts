@@ -32,9 +32,6 @@ export type Experimental_EvaluationModelV4 = Omit<
 export type Experimental_EvaluationModelV4CallOptions =
   DecisionModelV4CallOptions;
 
-/** @deprecated Use `Experimental_DecisionModelV4Input` instead. */
-export type Experimental_EvaluationModelV4Input = DecisionModelV4Input;
-
 /** @deprecated Use `Experimental_DecisionModelV4Question` instead. */
 export type Experimental_EvaluationModelV4Question = DecisionModelV4Question;
 
@@ -43,3 +40,11 @@ export type Experimental_EvaluationModelV4Answer = DecisionModelV4Answer;
 
 /** @deprecated Use `Experimental_DecisionModelV4Result` instead. */
 export type Experimental_EvaluationModelV4Result = DecisionModelV4Result;
+
+export type {
+  DecisionModelV4State as Experimental_DecisionModelV4State,
+  DecisionModelV4StatePart as Experimental_DecisionModelV4StatePart,
+} from './decision-model-v4-state';
+
+/** @deprecated Use `Experimental_DecisionModelV4Input` instead. */
+export type Experimental_EvaluationModelV4Input = DecisionModelV4Input;
