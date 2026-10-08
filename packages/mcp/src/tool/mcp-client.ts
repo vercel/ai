@@ -16,8 +16,9 @@ import type { z } from 'zod/v4';
 import { createMCPEvents } from './mcp-events';
 import {
   createManagedMCPEvents,
+  validateMCPEventOperations,
   type ManagedMCPEvents,
-  type MCPEventsAdapter,
+  type MCPEventAdapter,
 } from './mcp-events-adapter';
 import type { MCPEvents, MCPEventsConfig } from './mcp-event-types';
 import { MCPClientError } from '../error/mcp-client-error';
@@ -301,7 +302,9 @@ export type ManagedMCPClient = Omit<MCPClient, 'experimental_events'> & {
 
 export function createMCPClient(
   config: MCPClientConfig & {
-    experimental_events: { adapter: MCPEventsAdapter };
+    experimental_events: {
+      adapter: MCPEventAdapter;
+    };
   },
 ): Promise<ManagedMCPClient>;
 export function createMCPClient(
@@ -486,6 +489,24 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
           'Configure experimental_events with either an adapter or a store, not both. Managed adapters own argument validation.',
       });
     }
+    if (
+      events?.adapter !== undefined &&
+      typeof events.adapter?.createAdapter !== 'function'
+    ) {
+      throw new MCPClientError({
+        message:
+          'experimental_events.adapter must implement createAdapter. Wrap bound operations with { createAdapter: () => operations }.',
+      });
+    }
+    const operations = events?.adapter?.createAdapter({
+      transport: isCustomMcpTransport(transportConfig)
+        ? { type: 'custom' }
+        : { type: transportConfig.type, url: transportConfig.url },
+    });
+    if (events?.adapter !== undefined) {
+      validateMCPEventOperations(operations);
+    }
+
     this.onUncaughtError = onUncaughtError;
     this.maxRetries = prepareMaxRetries(maxRetries);
     this.clientCapabilities = capabilities ?? {};
@@ -527,8 +548,8 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
       store: events?.store,
       validateArguments: events?.validateArguments,
     });
-    this.experimental_events = events?.adapter
-      ? createManagedMCPEvents(events.adapter, directEvents.list)
+    this.experimental_events = operations
+      ? createManagedMCPEvents(operations, directEvents.list)
       : directEvents;
   }
 

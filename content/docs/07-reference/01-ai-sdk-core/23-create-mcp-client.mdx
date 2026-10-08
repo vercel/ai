@@ -59,10 +59,10 @@ experimental webhook delivery, see the [MCP Events guide](/docs/ai-sdk-core/mcp-
                     },
                     {
                       name: 'adapter',
-                      type: 'Experimental_MCPEventsAdapter',
+                      type: 'Experimental_MCPEventAdapter',
                       isOptional: true,
                       description:
-                        'Delegates subscription management to a backend. Cannot be combined with store or validateArguments. No local event store or refresh loop is required.',
+                        "Required in managed mode. Creates bound subscription operations once before transport startup, receiving transport metadata: { type, url } for HTTP/SSE or { type: 'custom' } for custom transports. Cannot be combined with store or validateArguments. No local event store or refresh loop is required.",
                     },
                     {
                       name: 'validateArguments',
