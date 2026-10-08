@@ -1,10 +1,230 @@
 import type { ActiveSessionMessage } from '@agentclientprotocol/sdk';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createHostToolCorrelation } from './host-tool-correlation';
+import { loadWeatherApprovalFixture } from './__fixtures__/weather-approval-fixture';
 
 describe('createHostToolCorrelation', () => {
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it('accepts explicitly supplied normalized Cursor arguments that match the observation', () => {
+    const { correlation } = setup({ hostTools: [{ name: 'get_weather' }] });
+    for (const event of loadWeatherApprovalFixture({ harness: 'cursor' })) {
+      if (event.type === 'update')
+        correlation.update({ message: update(event.value) });
+      else
+        expect(
+          correlation.claimHostToolPermission({
+            toolCall: { ...event.value.toolCall, rawInput: { city: 'Austin' } },
+          }),
+        ).toBe(true);
+    }
+    correlation.close();
+  });
+
+  it.each(['cursor', 'github-copilot', 'fx'])(
+    'claims the captured %s permission after the buffer expires',
+    async harness => {
+      vi.useFakeTimers();
+      const { correlation, semantic, raw } = setup({
+        hostTools: [{ name: 'get_weather' }],
+      });
+      const fixture = loadWeatherApprovalFixture({ harness });
+      for (const event of fixture) {
+        if (event.type === 'update')
+          correlation.update({ message: update(event.value) });
+        else {
+          await vi.advanceTimersByTimeAsync(2000);
+          expect(semantic).toMatchInlineSnapshot(`[]`);
+          expect(
+            correlation.claimHostToolPermission({
+              toolCall: event.value.toolCall,
+            }),
+          ).toBe(true);
+        }
+      }
+      expect(raw).toEqual(
+        fixture
+          .filter(event => event.type === 'update')
+          .map(event => event.value),
+      );
+      expect(semantic).toMatchInlineSnapshot(`[]`);
+      correlation.close();
+    },
+  );
+
+  it.each([
+    { rawInput: { city: 'Quito' } },
+    { rawInput: null },
+    { name: 'different_tool' },
+    {
+      rawInput: {
+        providerIdentifier: 'other-server',
+        toolName: 'get_weather',
+        args: { city: 'Austin' },
+      },
+    },
+    {
+      rawInput: {
+        providerIdentifier: 'ai-sdk-harness-tools',
+        toolName: 'get_weather_forecast',
+        args: { city: 'Austin' },
+      },
+    },
+    {
+      rawInput: {
+        providerIdentifier: 'ai-sdk-harness-tools',
+        toolName: 'get_weather',
+        args: null,
+      },
+    },
+    {
+      rawInput: {
+        providerIdentifier: 'ai-sdk-harness-tools',
+        toolName: 'get_weather',
+        args: { city: 'Austin' },
+        tool_name: 'ai-sdk-harness-tools__get_weather',
+        tool_input: { city: 'Austin' },
+      },
+    },
+    { toolCallId: 'unrelated' },
+  ])(
+    'rejects a captured Cursor permission with conflicting fields: %j',
+    change => {
+      const { correlation } = setup({ hostTools: [{ name: 'get_weather' }] });
+      const fixture = loadWeatherApprovalFixture({ harness: 'cursor' });
+      for (const event of fixture) {
+        if (event.type === 'update')
+          correlation.update({ message: update(event.value) });
+        else
+          expect(
+            correlation.claimHostToolPermission({
+              toolCall: { ...event.value.toolCall, ...change },
+            }),
+          ).toBe(false);
+      }
+      correlation.close();
+    },
+  );
+
+  it.each(['completed', 'failed', 'cleared-input'] as const)(
+    'does not claim a Cursor permission after %s',
+    state => {
+      const { correlation } = setup({ hostTools: [{ name: 'get_weather' }] });
+      const fixture = loadWeatherApprovalFixture({ harness: 'cursor' });
+      for (const event of fixture) {
+        if (event.type === 'update')
+          correlation.update({ message: update(event.value) });
+        else {
+          correlation.update({
+            message: update({
+              sessionUpdate: 'tool_call_update',
+              toolCallId: event.value.toolCall.toolCallId,
+              ...(state === 'cleared-input'
+                ? { rawInput: null }
+                : { status: state }),
+            }),
+          });
+          expect(
+            correlation.claimHostToolPermission({
+              toolCall: event.value.toolCall,
+            }),
+          ).toBe(false);
+        }
+      }
+      correlation.close();
+    },
+  );
+
+  it('retains omitted fields but replaces explicitly cleared fields', () => {
+    const { correlation } = setup();
+    correlation.update({
+      message: update({
+        sessionUpdate: 'tool_call',
+        toolCallId: 'partial',
+        title: 'Native tool',
+        name: 'native',
+        kind: 'read',
+        status: 'pending',
+        rawInput: { path: 'file' },
+        rawOutput: { value: 1 },
+        content: [],
+        locations: [],
+        _meta: { serverName: 'other' },
+      }),
+    });
+    correlation.update({
+      message: update({
+        sessionUpdate: 'tool_call_update',
+        toolCallId: 'partial',
+        status: 'in_progress',
+      }),
+    });
+    expect(correlation.getToolCall({ toolCallId: 'partial' }))
+      .toMatchInlineSnapshot(`
+      {
+        "_meta": {
+          "serverName": "other",
+        },
+        "content": [],
+        "kind": "read",
+        "locations": [],
+        "name": "native",
+        "rawInput": {
+          "path": "file",
+        },
+        "rawOutput": {
+          "value": 1,
+        },
+        "status": "in_progress",
+        "title": "Native tool",
+        "toolCallId": "partial",
+      }
+    `);
+    correlation.update({
+      message: update({
+        sessionUpdate: 'tool_call_update',
+        toolCallId: 'partial',
+        name: null,
+        title: null,
+        kind: null,
+        content: null,
+        locations: null,
+        rawInput: null,
+        rawOutput: null,
+        _meta: null,
+      }),
+    });
+    expect(correlation.getToolCall({ toolCallId: 'partial' }))
+      .toMatchInlineSnapshot(`
+      {
+        "_meta": null,
+        "content": undefined,
+        "kind": undefined,
+        "locations": undefined,
+        "name": "native",
+        "rawInput": null,
+        "rawOutput": null,
+        "status": "in_progress",
+        "title": "Native tool",
+        "toolCallId": "partial",
+      }
+    `);
+    correlation.close();
+  });
+
+  it('does not claim an incomplete permission without a same-ID observation', () => {
+    const { correlation } = setup({ hostTools: [{ name: 'get_weather' }] });
+    expect(
+      correlation.claimHostToolPermission({
+        toolCall: {
+          toolCallId: 'unobserved',
+          title: 'ai-sdk-harness-tools-get_weather: get_weather',
+        },
+      }),
+    ).toBe(false);
+    correlation.close();
   });
 
   it('matches ACP-before-MCP using server, tool, input, and invocation order', () => {

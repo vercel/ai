@@ -38,6 +38,7 @@ import {
   type HostToolRelayTurn,
 } from './host-tool-relay';
 import { createHostToolRelayAuthorization } from './host-tool-relay-authorization';
+import { resolveHostToolCall } from './resolve-host-tool-call';
 import { createHostToolMcpServerDefinition } from './host-tool-mcp-definition';
 import {
   promptAndRefreshInitialHostToolCatalog,
@@ -302,7 +303,22 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     hasPermissionModeMapping: start.permissionModeMapping != null,
     emitToolCall: emitStreamEvent.permissionToolCall,
     claimHostToolPermission: emitStreamEvent.claimHostToolPermission,
-    onHostToolPermissionAllowed: hostToolAuthorization.observeAllowedPermission,
+    onHostToolPermissionAllowed: ({ toolCall }) => {
+      const observed = emitStreamEvent.getToolCall({
+        toolCallId: toolCall.toolCallId,
+      });
+      hostToolAuthorization.observeAllowedPermission({
+        toolCall:
+          observed != null &&
+          resolveHostToolCall({
+            toolCall: observed,
+            serverName: HOST_TOOL_MCP_SERVER_NAME,
+            toolNames: (start.tools ?? []).map(tool => tool.name),
+          }) != null
+            ? observed
+            : toolCall,
+      });
+    },
   });
   activePermissionController = permissionController;
   const relayTurn: HostToolRelayTurn = {
