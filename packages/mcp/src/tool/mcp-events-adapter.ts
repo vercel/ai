@@ -66,11 +66,14 @@ export interface MCPEventOperations {
 
 /**
  * Creates bound subscription operations once per client, before the transport starts.
- * The URL is the configured HTTP/SSE endpoint, not a resolved redirect target.
- * Custom transports have no standard URL and receive undefined.
+ * Receives transport metadata, not credentials or a live transport instance.
+ * HTTP/SSE URLs are the configured endpoints, not resolved redirect targets.
+ * Custom transports have no standard URL and receive only their type.
  */
 export interface MCPEventAdapter {
-  createAdapter(context: { url: string | undefined }): MCPEventOperations;
+  createAdapter(context: {
+    transport: { type: 'http' | 'sse'; url: string } | { type: 'custom' };
+  }): MCPEventOperations;
 }
 
 /** Validate JavaScript integrations before opening the MCP transport. */

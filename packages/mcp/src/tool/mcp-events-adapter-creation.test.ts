@@ -68,7 +68,7 @@ describe('managed MCP event adapter creation', () => {
       });
       clients.push(client);
       expect(integration.createAdapter).toHaveBeenCalledExactlyOnceWith({
-        url,
+        transport: { type, url },
       });
       await client.experimental_events.subscribe(input);
       await client.experimental_events.getSubscription({ id: 'managed_1' });
@@ -226,6 +226,34 @@ describe('managed MCP event adapter creation', () => {
     expect(adapter.subscribe).not.toHaveBeenCalled();
   });
 
+  it('isolates the transport configuration from adapter metadata mutations', async () => {
+    const transportConfig = {
+      type: 'http' as const,
+      url: 'https://example.com/mcp',
+      headers: { Authorization: 'Bearer test' },
+    };
+    const createTransport = vi
+      .spyOn(transports, 'createMcpTransport')
+      .mockReturnValue(new MockMCPTransport());
+    const client = await createMCPClient({
+      transport: transportConfig,
+      experimental_events: {
+        adapter: {
+          createAdapter({ transport }) {
+            expect(transport).not.toBe(transportConfig);
+            if (transport.type !== 'custom') {
+              transport.url = 'https://other.example/mcp';
+            }
+            return createOperations();
+          },
+        },
+      },
+    });
+    clients.push(client);
+    expect(transportConfig.url).toBe('https://example.com/mcp');
+    expect(createTransport).toHaveBeenCalledExactlyOnceWith(transportConfig);
+  });
+
   it('does not infer a URL from arbitrary custom transport properties', async () => {
     const transport = Object.assign(new MockMCPTransport(), {
       url: 'https://not-a-standard-property.example',
@@ -237,7 +265,7 @@ describe('managed MCP event adapter creation', () => {
     });
     clients.push(client);
     expect(adapter.createAdapter).toHaveBeenCalledExactlyOnceWith({
-      url: undefined,
+      transport: { type: 'custom' },
     });
     await client.experimental_events.subscribe(input);
   });
@@ -270,8 +298,8 @@ describe('managed MCP event adapter creation', () => {
       idempotencyKey: 'intent_2',
     });
     expect(adapter.createAdapter.mock.calls).toEqual([
-      [{ url: 'https://first.example/mcp' }],
-      [{ url: 'https://second.example/mcp' }],
+      [{ transport: { type: 'http', url: 'https://first.example/mcp' } }],
+      [{ transport: { type: 'http', url: 'https://second.example/mcp' } }],
     ]);
     expect(adapters[0].subscribe).toHaveBeenCalledExactlyOnceWith(input);
     expect(adapters[1].subscribe).toHaveBeenCalledExactlyOnceWith({

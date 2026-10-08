@@ -227,14 +227,24 @@ it('uses one event configuration union for direct and managed clients', async ()
   client.experimental_events.refresh({ id: 'sub_1' });
 });
 
-it('infers managed clients from adapters and contextually types the URL', async () => {
+it('infers managed clients from adapters and narrows transport metadata', async () => {
   const adapter = {} as Experimental_MCPEventOperations;
   const config = {
     transport: { type: 'http', url: 'https://example.com/mcp' },
     experimental_events: {
       adapter: {
-        createAdapter({ url }) {
-          expectTypeOf(url).toEqualTypeOf<string | undefined>();
+        createAdapter({ transport }) {
+          expectTypeOf(transport.type).toEqualTypeOf<
+            'http' | 'sse' | 'custom'
+          >();
+          if (transport.type === 'custom') {
+            // @ts-expect-error Custom transports do not expose a standard URL.
+            transport.url;
+          } else {
+            expectTypeOf(transport.url).toEqualTypeOf<string>();
+          }
+          // @ts-expect-error The adapter only receives transport metadata.
+          transport.headers;
           return adapter;
         },
       },
@@ -250,8 +260,10 @@ it('infers managed clients from adapters and contextually types the URL', async 
       transport: config.transport,
       experimental_events: {
         adapter: {
-          createAdapter({ url }) {
-            expectTypeOf(url).toEqualTypeOf<string | undefined>();
+          createAdapter({ transport }) {
+            if (transport.type !== 'custom') {
+              expectTypeOf(transport.url).toEqualTypeOf<string>();
+            }
             return adapter;
           },
         },

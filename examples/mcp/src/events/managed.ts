@@ -49,8 +49,11 @@ export function createManagedEventsAdapter({
   mcpUrl?: string;
 }): MCPEventAdapter {
   return {
-    createAdapter({ url }) {
-      return createAdapter({ mcpUrl: mcpUrl ?? url });
+    createAdapter({ transport }) {
+      return createAdapter({
+        mcpUrl:
+          mcpUrl ?? (transport.type === 'custom' ? undefined : transport.url),
+      });
     },
   };
 }

@@ -101,7 +101,7 @@ for the definition fields. Pagination is explicit; this method does not fetch al
 Configure `experimental_events: { adapter }` to delegate subscription lifecycle
 operations to a backend. The `adapter` configuration requires an
 `Experimental_MCPEventAdapter` from `@ai-sdk/mcp`. Its
-`createAdapter({ url })` method returns `Experimental_MCPEventOperations` bound
+`createAdapter({ transport })` method returns `Experimental_MCPEventOperations` bound
 to the authorized account, endpoint and destination by your application or
 integration package.
 
@@ -167,7 +167,7 @@ const client = await createMCPClient({
 ```
 
 The helper holds the authorized account and delivery configuration. AI SDK supplies
-the transport URL to its `createAdapter` method internally, so the application
+the transport type and URL to its `createAdapter` method internally, so the application
 configures that URL only once. When a backend SDK exports this helper, import it
 from that SDK instead of an application module. Use the same authorized account
 for the MCP transport and the backend's subscription operations.
@@ -190,10 +190,12 @@ export function createBackendEventsAdapter(
   config: BackendEventsConfig,
 ): Experimental_MCPEventAdapter {
   return {
-    createAdapter({ url }) {
+    createAdapter({ transport }) {
       return createBackendEventOperations({
         ...config,
-        mcpUrl: config.mcpUrl ?? url,
+        mcpUrl:
+          config.mcpUrl ??
+          (transport.type === 'custom' ? undefined : transport.url),
       });
     },
   };
@@ -211,7 +213,9 @@ The AI SDK adapter contract is:
 
 ```ts
 interface MCPEventAdapter {
-  createAdapter(context: { url: string | undefined }): MCPEventOperations;
+  createAdapter(context: {
+    transport: { type: 'http' | 'sse'; url: string } | { type: 'custom' };
+  }): MCPEventOperations;
 }
 ```
 
@@ -238,14 +242,21 @@ for every client using them. The former subscription operations interface is now
 exported as `Experimental_MCPEventOperations`; `Experimental_MCPEventAdapter`
 names the configured integration with `createAdapter`.
 
-For HTTP and SSE transport configurations, `url` is the configured string,
-including its path and query, not a resolved redirect target. For custom
-`MCPTransport` instances, `url` is `undefined`; arbitrary properties on a custom
-transport are not inspected. The context contains no headers or auth provider.
+For HTTP and SSE transport configurations, the context contains a fresh
+`transport: { type, url }` object. `url` is the configured string, including its
+path and query, not a resolved redirect target. Custom `MCPTransport` instances
+receive `transport: { type: 'custom' }`, with no `url` property; arbitrary
+properties on the instance are not inspected.
+
+This is a description of the transport, not the full configuration or live
+instance. Headers, auth providers, fetch functions, session callbacks and
+`start`/`send`/`close` methods are not passed to the adapter. The `transport`
+grouping leaves room for other client context without mixing it with transport
+metadata. No negotiated protocol version is supplied before initialization.
 
 Return separately bound operations for each client instead of mutating shared
 endpoint state. Adapters may prefer their own explicit endpoint override or
-resolve a configured endpoint when `url` is undefined. That policy belongs to
+resolve a configured endpoint when `transport.type` is `'custom'`. That policy belongs to
 the adapter; it does not change the client's transport or catalog discovery.
 The managed backend must still authorize an endpoint before sending credentials
 there. Receiving the transport URL does not grant that authorization.

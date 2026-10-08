@@ -499,9 +499,9 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
       });
     }
     const operations = events?.adapter?.createAdapter({
-      url: isCustomMcpTransport(transportConfig)
-        ? undefined
-        : transportConfig.url,
+      transport: isCustomMcpTransport(transportConfig)
+        ? { type: 'custom' }
+        : { type: transportConfig.type, url: transportConfig.url },
     });
     if (events?.adapter !== undefined) {
       validateMCPEventOperations(operations);

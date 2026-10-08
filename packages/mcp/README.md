@@ -190,7 +190,8 @@ more information.
 
 Managed backends can implement `Experimental_MCPEventAdapter` and configure
 `experimental_events: { adapter }` instead of a store. Its `createAdapter()`
-method receives the transport URL and returns `Experimental_MCPEventOperations`
+method receives `{ transport }` metadata (HTTP/SSE type and URL, or
+`{ type: 'custom' }` for custom transports) and returns `Experimental_MCPEventOperations`
 bound to the authorized account. Catalog discovery still
 uses the authenticated MCP transport; subscribe/get/list/unsubscribe delegate
 to the backend, which owns renewal and webhook delivery. Managed clients do not
