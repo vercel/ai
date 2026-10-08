@@ -107,37 +107,29 @@ export const anthropicSystemMessageProviderOptions = z.object({
    */
   toolChanges: z
     .array(
-      z.discriminatedUnion('type', [
-        z
-          .strictObject({
-            type: z.literal('tool_addition'),
-            toolName: z.string().optional(),
-            tool: z
-              .strictObject({
-                type: z.literal('function'),
-                name: z.string(),
-                description: z.string().optional(),
-                inputSchema: z.record(
-                  z.string(),
-                  z.json(),
-                ) as z.ZodType<JSONSchema7>,
-                strict: z.boolean().optional(),
-                inputExamples: z
-                  .array(z.object({ input: z.record(z.string(), z.json()) }))
-                  .optional(),
-                providerOptions: z
-                  .record(z.string(), z.record(z.string(), z.json().optional()))
-                  .optional(),
-              })
-              .optional(),
-          })
-          .refine(
-            change => (change.toolName != null) !== (change.tool != null),
-            { message: 'Provide exactly one of toolName or tool.' },
-          ),
+      z.union([
         z.strictObject({
-          type: z.literal('tool_removal'),
+          type: z.enum(['tool_addition', 'tool_removal']),
           toolName: z.string(),
+        }),
+        z.strictObject({
+          type: z.literal('tool_addition'),
+          tool: z.strictObject({
+            type: z.literal('function'),
+            name: z.string(),
+            description: z.string().optional(),
+            inputSchema: z.record(
+              z.string(),
+              z.json(),
+            ) as z.ZodType<JSONSchema7>,
+            strict: z.boolean().optional(),
+            inputExamples: z
+              .array(z.object({ input: z.record(z.string(), z.json()) }))
+              .optional(),
+            providerOptions: z
+              .record(z.string(), z.record(z.string(), z.json().optional()))
+              .optional(),
+          }),
         }),
       ]),
     )

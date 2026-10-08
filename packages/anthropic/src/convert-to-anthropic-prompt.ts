@@ -197,10 +197,7 @@ export async function convertToAnthropicPrompt({
           }
 
           for (const toolChange of toolChanges) {
-            if (
-              toolChange.type === 'tool_addition' &&
-              toolChange.tool != null
-            ) {
+            if ('tool' in toolChange) {
               const {
                 tools,
                 betas: toolsBetas,
@@ -235,7 +232,7 @@ export async function convertToAnthropicPrompt({
               type: toolChange.type,
               tool: {
                 type: 'tool_reference',
-                name: toolNameMapping.toProviderToolName(toolChange.toolName!),
+                name: toolNameMapping.toProviderToolName(toolChange.toolName),
               },
             } satisfies AnthropicToolChangeContent);
           }

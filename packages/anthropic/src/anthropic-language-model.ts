@@ -553,6 +553,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       },
     });
 
+    const defaultEagerInputStreaming =
+      stream && (anthropicOptions?.toolStreaming ?? true);
+
     const toolsetNames = getAnthropicToolsetNames(tools);
 
     const { prompt: messagesPrompt, betas } = await convertToAnthropicPrompt({
@@ -564,8 +567,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       toolsetNames,
       supportsStrictTools,
       supportsStructuredOutput,
-      defaultEagerInputStreaming:
-        stream && (anthropicOptions?.toolStreaming ?? true),
+      defaultEagerInputStreaming,
     });
 
     /*
@@ -1050,9 +1052,6 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     ) {
       betas.add('server-side-fallback-2026-06-01');
     }
-
-    const defaultEagerInputStreaming =
-      stream && (anthropicOptions?.toolStreaming ?? true);
 
     const {
       tools: anthropicTools,
