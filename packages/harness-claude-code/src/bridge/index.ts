@@ -447,7 +447,20 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   // Compaction observation: merge Claude's `compact_boundary` message and
   // `PostCompact` hook (which arrive in either order) into one `compaction`
   // event. See `createCompactionLatch`.
-  const compaction = createCompactionLatch(event => emit(event));
+  const compaction = createCompactionLatch(event => {
+    const hasOpenStep = streamEventState.stepOpen;
+    emit(event);
+    // The harness translates compaction into synthetic step content. When
+    // Claude reports it outside a model step, close that synthetic step here;
+    // otherwise the existing model step will close it with its own usage.
+    if (!hasOpenStep) {
+      emitFinishStep({
+        state: streamEventState,
+        emit,
+        usage: undefined,
+      });
+    }
+  });
 
   // `stream-start` is emitted lazily on the first SDK message (below) so it can
   // carry the model the CLI resolved to, reported on the `system`/`init` message.
