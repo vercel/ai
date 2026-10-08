@@ -3898,6 +3898,66 @@ describe('Chat', () => {
       },
     );
 
+    it('should ignore a duplicate response while automatic sending is pending', async () => {
+      const sendMessages = vi.fn(
+        async () =>
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              controller.enqueue({
+                type: 'tool-output-available',
+                toolCallId: 'call-1',
+                output: { temperature: 72, weather: 'sunny' },
+              });
+              controller.enqueue({ type: 'finish', finishReason: 'stop' });
+              controller.close();
+            },
+          }),
+      );
+      const sendAutomaticallyWhen = vi.fn(
+        ({ messages }: { messages: UIMessage[] }) =>
+          Promise.resolve().then(() =>
+            lastAssistantMessageIsCompleteWithApprovalResponses({ messages }),
+          ),
+      );
+      const chat = new TestChat({
+        id: '123',
+        messages: [
+          {
+            id: 'id-1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-weather',
+                toolCallId: 'call-1',
+                state: 'approval-requested',
+                input: { city: 'Tokyo' },
+                approval: { id: 'approval-1' },
+              },
+            ],
+          },
+        ],
+        sendAutomaticallyWhen,
+        transport: {
+          sendMessages,
+          reconnectToStream: async () => null,
+        },
+      });
+
+      await Promise.all([
+        chat.addToolApprovalResponse({
+          id: 'approval-1',
+          approved: true,
+        }),
+        chat.addToolApprovalResponse({
+          id: 'approval-1',
+          approved: true,
+        }),
+      ]);
+      await vi.runAllTimersAsync();
+
+      expect(sendMessages).toHaveBeenCalledTimes(1);
+    });
+
     it('should process results for an approved invocation in an earlier message', async () => {
       server.urls['http://localhost:3000/api/chat'].response = {
         type: 'stream-chunks',
