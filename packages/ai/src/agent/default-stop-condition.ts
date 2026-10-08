@@ -1,5 +1,5 @@
 import { logWarnings } from '../logger/log-warnings';
-import type { StopCondition } from './stop-condition';
+import type { StopCondition } from '../generate-text/stop-condition';
 
 /**
  * Stop conditions are only evaluated when the tool loop can otherwise continue,

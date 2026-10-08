@@ -6,7 +6,6 @@ import {
   type ModelMessage,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
-import { createDefaultStopCondition } from '../generate-text/default-stop-condition';
 import { generateText } from '../generate-text/generate-text';
 import type {
   GenerateTextOnStartCallback,
@@ -24,6 +23,7 @@ import type {
   AgentStreamParameters,
 } from './agent';
 import type { ToolLoopAgentSettings } from './tool-loop-agent-settings';
+import { createDefaultStopCondition } from './default-stop-condition';
 
 /**
  * A tool loop agent is an agent that runs tools in a loop. In each step,

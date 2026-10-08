@@ -395,8 +395,6 @@ The AI SDK provides several built-in stopping conditions:
 
 You can also combine multiple conditions in an array or create custom conditions. See [Loop Control](/docs/agents/loop-control) for more details.
 
-If the default step limit stops a tool loop that could otherwise continue, the SDK logs a warning. Set `stopWhen` explicitly to choose a limit, even if you want to keep `isStepCount(1)`. Explicit stop conditions do not produce this warning.
-
 <Note>
   The `stopWhen` conditions are only evaluated when the last step contains tool
   results.

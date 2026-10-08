@@ -85,7 +85,6 @@ import { setAbortTimeout } from '../util/set-abort-timeout';
 import type { ActiveTools } from './active-tools';
 import { collectToolApprovals } from './collect-tool-approvals';
 import type { ContentPart } from './content-part';
-import { createDefaultStopCondition } from './default-stop-condition';
 import {
   executeToolsFromStream,
   type ExecuteToolsStreamPart,
@@ -125,7 +124,11 @@ import {
   type StepResult,
   type StepResultPerformance,
 } from './step-result';
-import { isStopConditionMet, type StopCondition } from './stop-condition';
+import {
+  isStepCount,
+  isStopConditionMet,
+  type StopCondition,
+} from './stop-condition';
 import {
   streamLanguageModelCall,
   type LanguageModelStreamPart,
@@ -417,7 +420,7 @@ export function streamText<
   abortSignal,
   timeout,
   headers,
-  stopWhen = createDefaultStopCondition(1),
+  stopWhen = isStepCount(1),
   experimental_sandbox: sandbox,
   output,
   toolApproval,

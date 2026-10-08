@@ -63,7 +63,6 @@ import type { ActiveTools } from './active-tools';
 import { calculateTokensPerSecond } from './calculate-tokens-per-second';
 import { collectToolApprovals } from './collect-tool-approvals';
 import { convertLanguageModelContent } from './convert-language-model-content';
-import { createDefaultStopCondition } from './default-stop-condition';
 import { createToolSearchState } from '../tool-search/prepare-tool-search';
 import { executeToolCall } from './execute-tool-call';
 import {
@@ -96,7 +95,11 @@ import {
   type StepResult,
   type StepResultPerformance,
 } from './step-result';
-import { isStopConditionMet, type StopCondition } from './stop-condition';
+import {
+  isStepCount,
+  isStopConditionMet,
+  type StopCondition,
+} from './stop-condition';
 import { sumTokenCounts } from './sum-token-counts';
 import { toResponseMessages } from './to-response-messages';
 import type { ToolApprovalConfiguration } from './tool-approval-configuration';
@@ -241,7 +244,7 @@ export async function generateText<
   abortSignal,
   timeout,
   headers,
-  stopWhen = createDefaultStopCondition(1),
+  stopWhen = isStepCount(1),
   experimental_sandbox: sandbox,
   output,
   toolApproval,

@@ -3,12 +3,15 @@ import { tool, type Tool } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
-import { ToolLoopAgent } from '../agent/tool-loop-agent';
-import type { ToolLoopAgentSettings } from '../agent/tool-loop-agent-settings';
+import { ToolLoopAgent } from './tool-loop-agent';
+import type { ToolLoopAgentSettings } from './tool-loop-agent-settings';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
-import { generateText } from './generate-text';
-import { isStepCount, type StopCondition } from './stop-condition';
-import { streamText } from './stream-text';
+import { generateText } from '../generate-text/generate-text';
+import {
+  isStepCount,
+  type StopCondition,
+} from '../generate-text/stop-condition';
+import { streamText } from '../generate-text/stream-text';
 
 const tools: { test: Tool<Record<string, never>, string> } = {
   test: tool({
@@ -120,10 +123,15 @@ describe.each([
     }
   }
 
-  it('warns once when the default limit prevents another tool round', async () => {
+  it('warns only for the agent when the default limit prevents another tool round', async () => {
     const steps = await run();
 
     expect(steps).toHaveLength(limit);
+    if (!method.startsWith('agent.')) {
+      expect(logger).not.toHaveBeenCalled();
+      return;
+    }
+
     expect(logger).toHaveBeenCalledExactlyOnceWith({
       provider: 'mock-provider',
       model: 'mock-model-id',
