@@ -121,13 +121,7 @@ describe('host weather approval stream', () => {
         hasPermissionModeMapping: true,
         emitToolCall: emitter.permissionToolCall,
         claimHostToolPermission: emitter.claimHostToolPermission,
-        onHostToolPermissionAllowed: ({ toolCall }) => {
-          authorization.observeAllowedPermission({
-            toolCall:
-              emitter.getToolCall({ toolCallId: toolCall.toolCallId }) ??
-              toolCall,
-          });
-        },
+        onHostToolPermissionAllowed: authorization.authorizePermission,
       });
       try {
         for (const event of fixture) {

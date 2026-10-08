@@ -103,14 +103,28 @@ describe('createHostToolCorrelation', () => {
                 correlation.claimHostToolPermission({
                   toolCall: { ...event.value.toolCall, title, name },
                 }),
-              ).toBe(true);
+              ).toMatchInlineSnapshot(`
+                {
+                  "input": {
+                    "city": "Austin",
+                  },
+                  "toolName": "get_weather",
+                }
+              `);
             }
           }
           expect(
             correlation.claimHostToolPermission({
               toolCall: { ...event.value.toolCall, rawInput: undefined },
             }),
-          ).toBe(true);
+          ).toMatchInlineSnapshot(`
+            {
+              "input": {
+                "city": "Austin",
+              },
+              "toolName": "get_weather",
+            }
+          `);
         }
       }
       correlation.close();
@@ -142,7 +156,14 @@ describe('createHostToolCorrelation', () => {
           correlation.claimHostToolPermission({
             toolCall: { ...event.value.toolCall, rawInput },
           }),
-        ).toBe(true);
+        ).toMatchInlineSnapshot(`
+          {
+            "input": {
+              "city": "Austin",
+            },
+            "toolName": "get_weather",
+          }
+        `);
     }
     correlation.close();
   });
@@ -169,7 +190,14 @@ describe('createHostToolCorrelation', () => {
           title: 'Checking weather',
         },
       }),
-    ).toBe(true);
+    ).toMatchInlineSnapshot(`
+      {
+        "input": {
+          "city": "Austin",
+        },
+        "toolName": "get_weather",
+      }
+    `);
     correlation.close();
   });
 
@@ -197,7 +225,7 @@ describe('createHostToolCorrelation', () => {
             rawInput,
           },
         }),
-      ).toBe(false);
+      ).toBeUndefined();
       correlation.close();
     },
   );
@@ -212,7 +240,14 @@ describe('createHostToolCorrelation', () => {
           correlation.claimHostToolPermission({
             toolCall: { ...event.value.toolCall, rawInput: { city: 'Austin' } },
           }),
-        ).toBe(true);
+        ).toMatchInlineSnapshot(`
+          {
+            "input": {
+              "city": "Austin",
+            },
+            "toolName": "get_weather",
+          }
+        `);
     }
     correlation.close();
   });
@@ -235,7 +270,14 @@ describe('createHostToolCorrelation', () => {
             correlation.claimHostToolPermission({
               toolCall: event.value.toolCall,
             }),
-          ).toBe(true);
+          ).toMatchInlineSnapshot(`
+            {
+              "input": {
+                "city": "Austin",
+              },
+              "toolName": "get_weather",
+            }
+          `);
         }
       }
       expect(raw).toEqual(
@@ -299,7 +341,7 @@ describe('createHostToolCorrelation', () => {
             correlation.claimHostToolPermission({
               toolCall: { ...event.value.toolCall, ...change },
             }),
-          ).toBe(false);
+          ).toBeUndefined();
       }
       correlation.close();
     },
@@ -327,12 +369,62 @@ describe('createHostToolCorrelation', () => {
             correlation.claimHostToolPermission({
               toolCall: event.value.toolCall,
             }),
-          ).toBe(false);
+          ).toBeUndefined();
         }
       }
       correlation.close();
     },
   );
+
+  it.each(['completed', 'failed'] as const)(
+    'does not claim a permission whose own status is %s',
+    status => {
+      const { correlation } = setup({ hostTools: [{ name: 'get_weather' }] });
+      const fixture = loadWeatherApprovalFixture({ harness: 'github-copilot' });
+      for (const event of fixture) {
+        if (event.type === 'update')
+          correlation.update({ message: update(event.value) });
+        else
+          expect(
+            correlation.claimHostToolPermission({
+              toolCall: {
+                ...event.value.toolCall,
+                status,
+              },
+            }),
+          ).toBeUndefined();
+      }
+      correlation.close();
+    },
+  );
+
+  it('returns the canonical call from portable candidate evidence', () => {
+    const { correlation } = setup({ hostTools: [{ name: 'get_weather' }] });
+    const fixture = loadWeatherApprovalFixture({ harness: 'github-copilot' });
+    for (const event of fixture) {
+      if (event.type === 'update') {
+        if (event.value.sessionUpdate !== 'tool_call')
+          throw new Error('Missing captured tool call.');
+        correlation.update({
+          message: update({ ...event.value, title: 'Opaque display' }),
+          rawUpdate: event.value,
+        });
+      } else
+        expect(
+          correlation.claimHostToolPermission({
+            toolCall: event.value.toolCall,
+          }),
+        ).toMatchInlineSnapshot(`
+                {
+                  "input": {
+                    "city": "Austin",
+                  },
+                  "toolName": "get_weather",
+                }
+              `);
+    }
+    correlation.close();
+  });
 
   it('retains omitted fields but replaces explicitly cleared fields', () => {
     const { correlation } = setup();
@@ -360,25 +452,25 @@ describe('createHostToolCorrelation', () => {
     });
     expect(correlation.getToolCall({ toolCallId: 'partial' }))
       .toMatchInlineSnapshot(`
-      {
-        "_meta": {
-          "serverName": "other",
-        },
-        "content": [],
-        "kind": "read",
-        "locations": [],
-        "name": "native",
-        "rawInput": {
-          "path": "file",
-        },
-        "rawOutput": {
-          "value": 1,
-        },
-        "status": "in_progress",
-        "title": "Native tool",
-        "toolCallId": "partial",
-      }
-    `);
+              {
+                "_meta": {
+                  "serverName": "other",
+                },
+                "content": [],
+                "kind": "read",
+                "locations": [],
+                "name": "native",
+                "rawInput": {
+                  "path": "file",
+                },
+                "rawOutput": {
+                  "value": 1,
+                },
+                "status": "in_progress",
+                "title": "Native tool",
+                "toolCallId": "partial",
+              }
+            `);
     correlation.update({
       message: update({
         sessionUpdate: 'tool_call_update',
@@ -395,19 +487,19 @@ describe('createHostToolCorrelation', () => {
     });
     expect(correlation.getToolCall({ toolCallId: 'partial' }))
       .toMatchInlineSnapshot(`
-      {
-        "_meta": null,
-        "content": undefined,
-        "kind": undefined,
-        "locations": undefined,
-        "name": "native",
-        "rawInput": null,
-        "rawOutput": null,
-        "status": "in_progress",
-        "title": "Native tool",
-        "toolCallId": "partial",
-      }
-    `);
+              {
+                "_meta": null,
+                "content": undefined,
+                "kind": undefined,
+                "locations": undefined,
+                "name": "native",
+                "rawInput": null,
+                "rawOutput": null,
+                "status": "in_progress",
+                "title": "Native tool",
+                "toolCallId": "partial",
+              }
+            `);
     correlation.close();
   });
 
@@ -420,7 +512,7 @@ describe('createHostToolCorrelation', () => {
           title: 'ai-sdk-harness-tools-get_weather: get_weather',
         },
       }),
-    ).toBe(false);
+    ).toBeUndefined();
     correlation.close();
   });
 
@@ -546,19 +638,19 @@ describe('createHostToolCorrelation', () => {
     expect(raw).toEqual([rawUpdate]);
     expect(correlation.getToolCall({ toolCallId: rawUpdate.toolCallId }))
       .toMatchInlineSnapshot(`
-      {
-        "_meta": {
-          "serverName": "ai-sdk-harness-tools",
-        },
-        "name": "weather",
-        "rawInput": {
-          "city": "Lima",
-        },
-        "status": "completed",
-        "title": "Opaque display",
-        "toolCallId": "direct-name-call",
-      }
-    `);
+              {
+                "_meta": {
+                  "serverName": "ai-sdk-harness-tools",
+                },
+                "name": "weather",
+                "rawInput": {
+                  "city": "Lima",
+                },
+                "status": "completed",
+                "title": "Opaque display",
+                "toolCallId": "direct-name-call",
+              }
+            `);
   });
 
   it('matches Cursor MCP updates by provider, tool, and nested args', () => {
@@ -647,7 +739,14 @@ describe('createHostToolCorrelation', () => {
       correlation.claimHostToolPermission({
         toolCall,
       }),
-    ).toBe(true);
+    ).toMatchInlineSnapshot(`
+          {
+            "input": {
+              "city": "Lima",
+            },
+            "toolName": "get_weather",
+          }
+        `);
     correlation.update({
       message: toolUpdate({
         toolCallId: toolCall.toolCallId,
@@ -670,7 +769,15 @@ describe('createHostToolCorrelation', () => {
       input: { city: 'Lima' },
     });
 
-    expect(correlation.claimHostToolPermission({ toolCall })).toBe(true);
+    expect(correlation.claimHostToolPermission({ toolCall }))
+      .toMatchInlineSnapshot(`
+        {
+          "input": {
+            "city": "Lima",
+          },
+          "toolName": "get_weather",
+        }
+      `);
   });
 
   it('claims a host permission with a combined identity nested in metadata', () => {
@@ -687,7 +794,15 @@ describe('createHostToolCorrelation', () => {
       },
     } as const;
 
-    expect(correlation.claimHostToolPermission({ toolCall })).toBe(true);
+    expect(correlation.claimHostToolPermission({ toolCall }))
+      .toMatchInlineSnapshot(`
+        {
+          "input": {
+            "city": "Lima",
+          },
+          "toolName": "get_weather",
+        }
+      `);
     correlation.close();
   });
 
@@ -702,7 +817,7 @@ describe('createHostToolCorrelation', () => {
       rawInput: { city: 'Lima' },
     } as const;
 
-    expect(correlation.claimHostToolPermission({ toolCall })).toBe(false);
+    expect(correlation.claimHostToolPermission({ toolCall })).toBeUndefined();
   });
 
   it('claims a direct ACP name when the candidate is server-qualified', () => {
@@ -725,7 +840,15 @@ describe('createHostToolCorrelation', () => {
       rawUpdate: toolCall,
     });
 
-    expect(correlation.claimHostToolPermission({ toolCall })).toBe(true);
+    expect(correlation.claimHostToolPermission({ toolCall }))
+      .toMatchInlineSnapshot(`
+        {
+          "input": {
+            "city": "Lima",
+          },
+          "toolName": "get_weather",
+        }
+      `);
   });
 
   it('suppresses the later update for a permission claimed before the update', () => {
@@ -737,7 +860,15 @@ describe('createHostToolCorrelation', () => {
       combinedToolName: 'ai-sdk-harness-tools__get_weather',
       input: { city: 'Lima' },
     });
-    expect(correlation.claimHostToolPermission({ toolCall })).toBe(true);
+    expect(correlation.claimHostToolPermission({ toolCall }))
+      .toMatchInlineSnapshot(`
+        {
+          "input": {
+            "city": "Lima",
+          },
+          "toolName": "get_weather",
+        }
+      `);
 
     const rawUpdate = {
       sessionUpdate: 'tool_call',
@@ -769,7 +900,7 @@ describe('createHostToolCorrelation', () => {
       title: 'ai-sdk-harness-tools__get_weather',
     });
 
-    expect(correlation.claimHostToolPermission({ toolCall })).toBe(false);
+    expect(correlation.claimHostToolPermission({ toolCall })).toBeUndefined();
   });
 
   it('does not claim a deferred-tool permission with different candidate input', () => {
@@ -793,7 +924,7 @@ describe('createHostToolCorrelation', () => {
       input: { city: 'Quito' },
     });
 
-    expect(correlation.claimHostToolPermission({ toolCall })).toBe(false);
+    expect(correlation.claimHostToolPermission({ toolCall })).toBeUndefined();
   });
 
   it('does not claim combined MCP identity with different input', () => {
@@ -827,7 +958,7 @@ describe('createHostToolCorrelation', () => {
           rawInput: { city: 'Quito' },
         },
       }),
-    ).toBe(false);
+    ).toBeUndefined();
   });
 
   it('does not claim a tool name suffix from a combined MCP identity', () => {
@@ -861,7 +992,7 @@ describe('createHostToolCorrelation', () => {
           rawInput: rawUpdate.rawInput,
         },
       }),
-    ).toBe(false);
+    ).toBeUndefined();
   });
 
   it('does not claim a duplicate host tool identity', () => {
@@ -895,7 +1026,7 @@ describe('createHostToolCorrelation', () => {
           rawInput: rawUpdate.rawInput,
         },
       }),
-    ).toBe(false);
+    ).toBeUndefined();
   });
 
   it('preserves an explicit null raw update', () => {

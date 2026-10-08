@@ -4,6 +4,7 @@ import type {
 } from '@agentclientprotocol/sdk';
 import type { ACPToolCall } from '../../acp-tool-call';
 import { canonicalFingerprint } from './canonical-json-fingerprint';
+import { mergeObservedToolCall } from './merge-observed-tool-call';
 import {
   classifyHostToolInputEnvelope,
   isQualifiedHostToolName,
@@ -62,7 +63,9 @@ export function createHostToolCorrelation({
     input: Readonly<Record<string, unknown>>;
     order: number;
   }): void;
-  claimHostToolPermission(options: { toolCall: ToolCallUpdate }): boolean;
+  claimHostToolPermission(options: {
+    toolCall: ToolCallUpdate;
+  }): HostToolCall | undefined;
   suppressToolCall(options: { toolCallId: string }): void;
   getToolCall(options: { toolCallId: string }): ACPToolCall | undefined;
   flush(): void;
@@ -256,11 +259,13 @@ export function createHostToolCorrelation({
       const candidate = candidates.get(toolCall.toolCallId);
       const observed = observedToolCalls.get(toolCall.toolCallId);
       if (
+        toolCall.status === 'completed' ||
+        toolCall.status === 'failed' ||
         observed?.status === 'completed' ||
         observed?.status === 'failed' ||
         observed?.rawInput === null
       ) {
-        return false;
+        return undefined;
       }
       const observedHostCall =
         observed == null
@@ -279,35 +284,41 @@ export function createHostToolCorrelation({
             serverName: hostToolServerName,
           })
         ) {
-          return false;
+          return undefined;
         }
         suppressToolCallUpdate({ toolCallId: toolCall.toolCallId });
-        return true;
+        return observedHostCall;
       }
-      const matches = hostTools.filter(({ name }) => {
+      const matches: HostToolCall[] = [];
+      for (const { name } of hostTools) {
         const permission = resolvePermissionHostTool({
           toolCall,
           serverName: hostToolServerName,
           toolName: name,
         });
-        if (permission == null) return false;
-        if (candidate == null) return permission.hasRequestIdentity;
-        return hasPortableEvidence({
-          candidate,
-          invocation: {
-            token: '',
-            serverName: hostToolServerName,
-            toolName: name,
-            inputFingerprint: canonicalFingerprint({
-              value: permission.input,
-            }),
-            order: 0,
-          },
-        });
-      });
-      if (matches.length !== 1) return false;
+        if (permission == null) continue;
+        const matchesPermission =
+          candidate == null
+            ? permission.hasRequestIdentity
+            : hasPortableEvidence({
+                candidate,
+                invocation: {
+                  token: '',
+                  serverName: hostToolServerName,
+                  toolName: name,
+                  inputFingerprint: canonicalFingerprint({
+                    value: permission.input,
+                  }),
+                  order: 0,
+                },
+              });
+        if (matchesPermission) {
+          matches.push({ toolName: name, input: permission.input });
+        }
+      }
+      if (matches.length !== 1) return undefined;
       suppressToolCallUpdate({ toolCallId: toolCall.toolCallId });
-      return true;
+      return matches[0];
     },
     suppressToolCall: suppressToolCallUpdate,
     getToolCall: ({ toolCallId }) => observedToolCalls.get(toolCallId),
@@ -383,36 +394,6 @@ function hasConflictingHostToolPermission({
     permissionCall == null ||
     canonicalFingerprint({ value: permissionCall.input }) !== inputFingerprint
   );
-}
-
-function mergeObservedToolCall({
-  previous,
-  update,
-}: {
-  previous: ACPToolCall | undefined;
-  update: ToolCallUpdate;
-}): ACPToolCall {
-  return {
-    ...previous,
-    toolCallId: update.toolCallId,
-    ...((update.name ?? previous?.name) == null
-      ? {}
-      : { name: update.name ?? previous?.name }),
-    title: update.title ?? previous?.title ?? `Tool ${update.toolCallId}`,
-    ...(update.kind === undefined ? {} : { kind: update.kind ?? undefined }),
-    ...(update.status === undefined
-      ? {}
-      : { status: update.status ?? undefined }),
-    ...(update.content === undefined
-      ? {}
-      : { content: update.content ?? undefined }),
-    ...(update.locations === undefined
-      ? {}
-      : { locations: update.locations ?? undefined }),
-    ...(update.rawInput === undefined ? {} : { rawInput: update.rawInput }),
-    ...(update.rawOutput === undefined ? {} : { rawOutput: update.rawOutput }),
-    ...(update._meta === undefined ? {} : { _meta: update._meta }),
-  };
 }
 
 function hasPortableEvidence({

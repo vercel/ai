@@ -1,12 +1,15 @@
 import type { SessionUpdate, ToolCallUpdate } from '@agentclientprotocol/sdk';
+import type { ACPToolCall } from '../../acp-tool-call';
 import { canonicalFingerprint } from './canonical-json-fingerprint';
+import { mergeObservedToolCall } from './merge-observed-tool-call';
 import {
   resolveHostToolCall,
   type HostToolCall,
 } from './resolve-host-tool-call';
 
 type ObservedCall = {
-  toolCall: ToolCallUpdate;
+  toolCall?: ACPToolCall;
+  permissionCall?: HostToolCall;
   consumed: boolean;
   terminal: boolean;
 };
@@ -23,7 +26,10 @@ export function createHostToolRelayAuthorization({
   ttlMs?: number;
 }): {
   observeUpdate(options: { update: SessionUpdate }): void;
-  observeAllowedPermission(options: { toolCall: ToolCallUpdate }): void;
+  authorizePermission(options: {
+    toolCallId: string;
+    call: HostToolCall;
+  }): void;
   waitForToolCallAuthorization(options: HostToolCall): Promise<boolean>;
   close(): void;
 } {
@@ -36,29 +42,46 @@ export function createHostToolRelayAuthorization({
   }> = [];
   let closed = false;
 
+  const authorizeCall = ({
+    toolCallId,
+    call,
+    observed,
+  }: {
+    toolCallId: string;
+    call: HostToolCall;
+    observed: ObservedCall;
+  }) => {
+    const key = callKey(call);
+    authorizations.set(toolCallId, key);
+    const pendingIndex = pendingRequests.findIndex(
+      request => request.key === key,
+    );
+    if (pendingIndex !== -1) {
+      const [pending] = pendingRequests.splice(pendingIndex, 1);
+      clearTimeout(pending.timeout);
+      authorizations.delete(toolCallId);
+      observed.consumed = true;
+      pending.resolve(true);
+    }
+  };
+
   const observe = ({ toolCall }: { toolCall: ToolCallUpdate }) => {
     if (closed) return;
     const previous = observedCalls.get(toolCall.toolCallId);
     if (previous?.consumed || previous?.terminal) return;
-    const merged: ToolCallUpdate = {
-      ...previous?.toolCall,
-      ...toolCall,
-      ...(toolCall.name == null && previous?.toolCall.name != null
-        ? { name: previous.toolCall.name }
-        : {}),
-      ...(toolCall.rawInput === undefined &&
-      previous?.toolCall.rawInput !== undefined
-        ? { rawInput: previous.toolCall.rawInput }
-        : {}),
-      ...(toolCall.title == null && previous?.toolCall.title != null
-        ? { title: previous.toolCall.title }
-        : {}),
-      ...(toolCall._meta == null && previous?.toolCall._meta != null
-        ? { _meta: previous.toolCall._meta }
-        : {}),
-    };
+    const merged = mergeObservedToolCall({
+      previous: previous?.toolCall,
+      update: toolCall,
+    });
+    const permissionCall =
+      toolCall.name == null &&
+      toolCall.rawInput === undefined &&
+      toolCall._meta === undefined
+        ? previous?.permissionCall
+        : undefined;
     const observed: ObservedCall = {
       toolCall: merged,
+      permissionCall,
       consumed: false,
       terminal: merged.status === 'completed' || merged.status === 'failed',
     };
@@ -68,27 +91,18 @@ export function createHostToolRelayAuthorization({
       return;
     }
 
-    const call = resolveHostToolCall({
-      toolCall: merged,
-      serverName,
-      toolNames,
-    });
+    const call =
+      permissionCall ??
+      resolveHostToolCall({
+        toolCall: merged,
+        serverName,
+        toolNames,
+      });
     if (call == null) {
       authorizations.delete(toolCall.toolCallId);
       return;
     }
-    const key = callKey(call);
-    authorizations.set(toolCall.toolCallId, key);
-    const pendingIndex = pendingRequests.findIndex(
-      request => request.key === key,
-    );
-    if (pendingIndex !== -1) {
-      const [pending] = pendingRequests.splice(pendingIndex, 1);
-      clearTimeout(pending.timeout);
-      authorizations.delete(toolCall.toolCallId);
-      observed.consumed = true;
-      pending.resolve(true);
-    }
+    authorizeCall({ toolCallId: toolCall.toolCallId, call, observed });
   };
 
   return {
@@ -100,7 +114,19 @@ export function createHostToolRelayAuthorization({
         observe({ toolCall: update });
       }
     },
-    observeAllowedPermission: ({ toolCall }) => observe({ toolCall }),
+    authorizePermission: ({ toolCallId, call }) => {
+      if (closed) return;
+      const previous = observedCalls.get(toolCallId);
+      if (previous?.consumed || previous?.terminal) return;
+      const observed: ObservedCall = {
+        toolCall: previous?.toolCall,
+        permissionCall: call,
+        consumed: false,
+        terminal: false,
+      };
+      observedCalls.set(toolCallId, observed);
+      authorizeCall({ toolCallId, call, observed });
+    },
     waitForToolCallAuthorization: ({ toolName, input }) => {
       if (closed) return Promise.resolve(false);
       const key = callKey({ toolName, input });
