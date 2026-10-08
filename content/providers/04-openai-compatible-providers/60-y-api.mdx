@@ -1,0 +1,111 @@
+---
+title: Y-API
+description: Use the Y-API OpenAI compatible API with the AI SDK.
+---
+
+# Y-API Provider
+
+[Y-API](https://y-api.bestvirtualgoods.com) is a pay-as-you-go API gateway that provides access to models from multiple AI labs through an OpenAI-compatible API. You can use its Chat Completions endpoint with the AI SDK through the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+Install the OpenAI Compatible provider:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+Create a Y-API API key and set it as a server-side environment variable:
+
+```bash
+export Y_API_API_KEY=your-api-key
+```
+
+See the [Y-API documentation](https://y-api.bestvirtualgoods.com/docs) for instructions on creating an API key.
+
+## Provider Instance
+
+Create a Y-API provider instance with `createOpenAICompatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const yApi = createOpenAICompatible({
+  name: 'y-api',
+  apiKey: process.env.Y_API_API_KEY,
+  baseURL: 'https://api.y-api.bestvirtualgoods.com/v1',
+});
+```
+
+The `apiKey` setting sends your key as a Bearer token in the `Authorization` header.
+
+## Language Models
+
+Create a language model by passing a Y-API model ID to the provider instance:
+
+```ts
+const model = yApi('deepseek/deepseek-v4-flash');
+```
+
+Y-API model IDs contain a slash and are case-sensitive, for example `deepseek/deepseek-v4-flash`, `z-ai/glm-5.3`, and `moonshotai/kimi-k3`. Copy them verbatim from the catalog: they are request identifiers, not display names.
+
+### Generate Text
+
+Use `generateText` to generate text with the model:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const yApi = createOpenAICompatible({
+  name: 'y-api',
+  apiKey: process.env.Y_API_API_KEY,
+  baseURL: 'https://api.y-api.bestvirtualgoods.com/v1',
+});
+
+const { text } = await generateText({
+  model: yApi('deepseek/deepseek-v4-flash'),
+  prompt: 'Explain what an API gateway does in one sentence.',
+});
+
+console.log(text);
+```
+
+### Stream Text
+
+Use `streamText` to stream text as it is generated:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const yApi = createOpenAICompatible({
+  name: 'y-api',
+  apiKey: process.env.Y_API_API_KEY,
+  baseURL: 'https://api.y-api.bestvirtualgoods.com/v1',
+});
+
+const result = streamText({
+  model: yApi('deepseek/deepseek-v4-flash'),
+  prompt: 'Count from 1 to 5, separated by spaces.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+## Supported Models and Capabilities
+
+This integration uses Y-API's OpenAI-compatible Chat Completions endpoint for text generation and streaming. Support for tools, vision, and other model-specific features depends on the selected model.
+
+The model catalog changes over time. Use the key-free [`models.json`](https://y-api.bestvirtualgoods.com/models.json) snapshot or the authenticated [`GET /models`](https://api.y-api.bestvirtualgoods.com/v1/models) endpoint to find current model IDs and capabilities.
+
+Pricing is published in [`pricing.json`](https://y-api.bestvirtualgoods.com/pricing.json). Y-API bills in account credit, and the credit-to-payment conversion used to derive a USD-per-token figure is published alongside those numbers and can change, so read the current values from that file instead of relying on a figure copied into this page.
+
+Y-API also documents an Anthropic Messages endpoint at `POST /v1/messages`. That protocol is outside the scope of this OpenAI-compatible integration page.
+
+## Resources
+
+- [Y-API documentation](https://y-api.bestvirtualgoods.com/docs)
+- [Y-API model catalog snapshot](https://y-api.bestvirtualgoods.com/models.json)
+- [Y-API pricing](https://y-api.bestvirtualgoods.com/pricing.json)
+- [AI SDK OpenAI Compatible provider](/providers/openai-compatible-providers)
