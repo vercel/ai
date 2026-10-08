@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22278,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22278-async-send-automatically-when.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22278-async-send-automatically-when.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #22278 REPRODUCED: async sendAutomaticallyWhen rejection was not surfaced by tool updates and became an unhandledRejection"
+  }
+}
