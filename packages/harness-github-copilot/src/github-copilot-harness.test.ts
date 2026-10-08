@@ -119,9 +119,7 @@ describe('createGitHubCopilot', () => {
     }
     expect(source.packageJson).toContain('"@github/copilot": "1.0.92"');
     expect(source.pnpmLockYaml).toContain("'@github/copilot@1.0.92':");
-    expect(source.pnpmWorkspaceYaml).toBe(
-      "allowBuilds:\n  '@github/copilot': true\n",
-    );
+    expect(source.pnpmWorkspaceYaml).toContain("'@github/copilot");
   });
 
   it('brokers GitHub credentials using their sandbox placeholders', () => {

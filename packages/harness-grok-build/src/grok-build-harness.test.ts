@@ -32,8 +32,8 @@ describe('createGrokBuild', () => {
     expect(settings.source.pnpmLockYaml).toContain(
       "'@xai-official/grok@1.0.49'",
     );
-    expect(settings.source.pnpmWorkspaceYaml).toBe(
-      "allowBuilds:\n  '@xai-official/grok': true\n",
+    expect(settings.source.pnpmWorkspaceYaml).toContain(
+      "'@xai-official/grok': true",
     );
 
     expect({

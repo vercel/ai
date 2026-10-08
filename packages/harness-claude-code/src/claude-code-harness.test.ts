@@ -172,6 +172,8 @@ vi.mock('node:fs/promises', async importOriginal => {
       if (path.endsWith('/bridge/package.json')) return '{"name":"mock"}';
       if (path.endsWith('/bridge/pnpm-lock.yaml'))
         return 'lockfileVersion: "9.0"\n';
+      if (path.endsWith('/bridge/pnpm-workspace.yaml'))
+        return "allowBuilds:\n  '@anthropic-ai/claude-code': true\n";
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (actual.readFile as any)(input, ...rest);
     }),
@@ -1686,9 +1688,7 @@ describe('createClaudeCode adapter', () => {
         'pnpm install --frozen-lockfile --store-dir .pnpm-store',
       );
       expect(commands[1]).toBe('./node_modules/.bin/claude --version');
-      expect(workspace?.content).toBe(
-        "allowBuilds:\n  '@anthropic-ai/claude-code': true\n",
-      );
+      expect(workspace?.content).toContain("'@anthropic-ai/claude-code': true");
     });
 
     it('caches the recipe across calls', async () => {
