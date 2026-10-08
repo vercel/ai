@@ -547,6 +547,34 @@ to `'.'` to use the sandbox's default working directory itself. When omitted,
 regular sessions use the default `<harnessId>-<sessionId>` directory, while
 `onBootstrap` receives the sandbox's default working directory.
 
+By default, `createSession()` runs this setup before the harness starts: it
+runs `onBootstrap` when its marker is missing, creates the session working
+directory, and calls `onSession`. Set `sandboxConfig.setup` to `'lazy'` to run
+the setup on the first file, exec, or spawn operation that the harness or a
+host tool performs on the sandbox instead. A session whose turns never touch the
+sandbox then makes no sandbox calls. If the setup fails, the operation that
+triggered it rejects, and the next operation runs the setup again.
+
+```ts
+const agent = new HarnessAgent({
+  harness: pi,
+  sandboxConfig: {
+    setup: 'lazy',
+    onSession: async ({ session, sessionWorkDir, abortSignal }) => {
+      await session.writeTextFile({
+        path: `${sessionWorkDir}/README.md`,
+        content: 'Session notes for the harness.',
+        abortSignal,
+      });
+    },
+  },
+});
+```
+
+`'lazy'` requires a harness without a sandbox bootstrap recipe. Harnesses such
+as Claude Code and Codex install their runtime into the sandbox before they
+start, so `createSession()` rejects `'lazy'` for them.
+
 ## Prepare Reusable Sandboxes
 
 Use `agent.getSandboxTemplate()` to resolve one harness's bootstrap recipe and
