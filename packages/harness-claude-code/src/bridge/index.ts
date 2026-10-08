@@ -415,6 +415,10 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
             typeof metadataToolCallId === 'string'
               ? metadataToolCallId
               : randomUUID();
+          streamEventState.mcpHandlerCalls.set(toolCallId, {
+            toolName: tool.name,
+            input,
+          });
           emit({
             type: 'tool-call',
             toolCallId,
