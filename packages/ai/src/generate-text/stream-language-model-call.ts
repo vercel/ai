@@ -225,6 +225,7 @@ export async function streamLanguageModelCall<
     generateId = originalGenerateId,
     generateCallId = originalGenerateCallId,
     now = originalNow,
+    onDoStreamStart,
   } = {},
   onStart,
   onLanguageModelCallStart,
@@ -258,6 +259,7 @@ export async function streamLanguageModelCall<
     generateId?: IdGenerator;
     generateCallId?: IdGenerator;
     now?: () => number;
+    onDoStreamStart?: () => void;
   };
   onLanguageModelCallStart?: Arrayable<OnLanguageModelCallStartCallback>;
   onLanguageModelCallEnd?: Arrayable<OnLanguageModelCallEndCallback<TOOLS>>;
@@ -353,18 +355,21 @@ export async function streamLanguageModelCall<
     request,
   } = await executeLanguageModelCallInTelemetryContext({
     ...languageModelCallStartEvent,
-    execute: async () =>
-      await resolvedModel.doStream({
+    execute: async () => {
+      const responseFormat = await output?.responseFormat;
+      onDoStreamStart?.();
+      return await resolvedModel.doStream({
         ...callSettings,
         tools: stepTools,
         toolChoice: stepToolChoice,
-        responseFormat: await output?.responseFormat,
+        responseFormat,
         prompt: promptMessages,
         providerOptions,
         abortSignal,
         headers,
         includeRawChunks,
-      }),
+      });
+    },
   });
 
   const standardizedStream = languageModelStream.pipeThrough(
