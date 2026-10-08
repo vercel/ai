@@ -595,21 +595,21 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         this.status !== 'submitted' &&
         this.sendAutomaticallyWhen
       ) {
-        this.shouldSendAutomatically().then(shouldSend => {
-          if (shouldSend) {
-            // no await to avoid deadlocking
-            const messageId =
-              messageIndex === -1
-                ? this.lastMessage?.id
-                : messages[messageIndex].id;
+        const shouldSend = await this.shouldSendAutomatically();
 
-            this.makeRequestForToolApproval({
-              messageId,
-              messageIndex,
-              ...options,
-            });
-          }
-        });
+        if (shouldSend) {
+          // no await to avoid deadlocking
+          const messageId =
+            messageIndex === -1
+              ? this.lastMessage?.id
+              : messages[messageIndex].id;
+
+          this.makeRequestForToolApproval({
+            messageId,
+            messageIndex,
+            ...options,
+          });
+        }
       }
     });
 
@@ -680,16 +680,16 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         this.status !== 'submitted' &&
         this.sendAutomaticallyWhen
       ) {
-        this.shouldSendAutomatically().then(shouldSend => {
-          if (shouldSend) {
-            // no await to avoid deadlocking
-            this.makeRequest({
-              trigger: 'submit-message',
-              messageId: this.lastMessage?.id,
-              ...options,
-            });
-          }
-        });
+        const shouldSend = await this.shouldSendAutomatically();
+
+        if (shouldSend) {
+          // no await to avoid deadlocking
+          this.makeRequest({
+            trigger: 'submit-message',
+            messageId: this.lastMessage?.id,
+            ...options,
+          });
+        }
       }
     });
 

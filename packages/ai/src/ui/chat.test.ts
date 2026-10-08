@@ -2510,6 +2510,66 @@ describe('Chat', () => {
   });
 
   describe('sendAutomaticallyWhen', () => {
+    it('should reject addToolOutput when the async predicate rejects', async () => {
+      const chat = new TestChat({
+        id: '123',
+        messages: [
+          {
+            id: 'id-0',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-test-tool',
+                toolCallId: 'tool-call-0',
+                state: 'input-available',
+                input: { testArg: 'test-value' },
+              },
+            ],
+          },
+        ],
+        sendAutomaticallyWhen: () =>
+          Promise.reject(new Error('predicate failed')),
+      });
+
+      await expect(
+        chat.addToolOutput({
+          tool: 'test-tool',
+          toolCallId: 'tool-call-0',
+          output: 'test-output',
+        }),
+      ).rejects.toThrow('predicate failed');
+    });
+
+    it('should reject addToolApprovalResponse when the async predicate rejects', async () => {
+      const chat = new TestChat({
+        id: '123',
+        messages: [
+          {
+            id: 'id-0',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-test-tool',
+                toolCallId: 'tool-call-0',
+                state: 'approval-requested',
+                input: { testArg: 'test-value' },
+                approval: { id: 'approval-0' },
+              },
+            ],
+          },
+        ],
+        sendAutomaticallyWhen: () =>
+          Promise.reject(new Error('predicate failed')),
+      });
+
+      await expect(
+        chat.addToolApprovalResponse({
+          id: 'approval-0',
+          approved: true,
+        }),
+      ).rejects.toThrow('predicate failed');
+    });
+
     it('should submit a client tool output when completed text follows the tool call', async () => {
       server.urls['http://localhost:3000/api/chat'].response = {
         type: 'stream-chunks',
