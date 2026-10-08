@@ -1272,9 +1272,7 @@ describe('createOpenCode adapter', () => {
       const bridgeManifest = JSON.parse(packageJson.content) as {
         dependencies: { 'opencode-ai': string };
       };
-      expect(workspace.content).toBe(
-        `allowBuilds:\n  'opencode-ai@${bridgeManifest.dependencies['opencode-ai']}': true\n`,
-      );
+      expect(workspace.content).toBe('allowBuilds:\n  opencode-ai: true\n');
     });
 
     it('allows the pinned OpenCode build and verifies the installed CLI', async () => {

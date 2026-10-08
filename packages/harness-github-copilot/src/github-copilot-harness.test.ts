@@ -120,7 +120,7 @@ describe('createGitHubCopilot', () => {
     expect(source.packageJson).toContain('"@github/copilot": "1.0.92"');
     expect(source.pnpmLockYaml).toContain("'@github/copilot@1.0.92':");
     expect(source.pnpmWorkspaceYaml).toBe(
-      "allowBuilds:\n  '@github/copilot@1.0.92': true\n",
+      "allowBuilds:\n  '@github/copilot': true\n",
     );
   });
 

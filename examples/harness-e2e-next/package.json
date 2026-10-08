@@ -28,7 +28,7 @@
     "@ai-sdk/sandbox-vercel": "workspace:*",
     "@ai-sdk/workflow-harness": "workspace:*",
     "@cline/agents": "^0.0.90",
-    "@cline/core": "^0.0.83",
+    "@cline/core": "^0.0.90",
     "@earendil-works/pi-coding-agent": "^1.0.3",
     "@vercel/sandbox": "^3.0.0",
     "@xai-official/grok": "1.0.49",

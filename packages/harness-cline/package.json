@@ -39,7 +39,7 @@
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
     "@cline/agents": "^0.0.90",
-    "@cline/core": "^0.0.83"
+    "@cline/core": "^0.0.90"
   },
   "peerDependencies": {
     "zod": "^3.25.76 || ^4.1.8"
