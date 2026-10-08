@@ -35,7 +35,7 @@ export const listen = async (server: Server): Promise<string> => {
 export const close = (server: Server): Promise<void> =>
   new Promise(resolve => server.close(() => resolve()));
 
-export const createScriptedModelServer = () => {
+export const createScriptedModelServerThenDone = () => {
   const requests: ModelRequestBody[] = [];
   const queuedResponses: ModelResponseChunks[] = [];
   const server = createServer(async (request, response) => {

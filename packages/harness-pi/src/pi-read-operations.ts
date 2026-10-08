@@ -1,4 +1,5 @@
 import {
+  createReadToolDefinition,
   detectSupportedImageMimeTypeFromFile,
   type ReadOperations,
 } from '@earendil-works/pi-coding-agent';
@@ -9,9 +10,21 @@ import type { PiRemoteOps } from './pi-remote-ops';
 
 const PI_IMAGE_SNIFF_BYTES = 4100;
 
-export function createPiSandboxReadOperations(
+type PiReadToolExecuteArgs = Parameters<
+  ReturnType<typeof createReadToolDefinition>['execute']
+>;
+
+export function executePiSandboxRead(
   remoteOps: PiRemoteOps,
-): ReadOperations {
+  sessionWorkDir: string,
+  ...args: PiReadToolExecuteArgs
+) {
+  return createReadToolDefinition(sessionWorkDir, {
+    operations: createSandboxReadOperations(remoteOps),
+  }).execute(...args);
+}
+
+function createSandboxReadOperations(remoteOps: PiRemoteOps): ReadOperations {
   const reads = new Map<string, Promise<Buffer>>();
   const readFile = (absolutePath: string): Promise<Buffer> => {
     let read = reads.get(absolutePath);

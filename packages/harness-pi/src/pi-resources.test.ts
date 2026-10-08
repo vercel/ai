@@ -7,7 +7,7 @@ import { piLifecycleStateSchema } from './pi-lifecycle-state';
 import {
   close,
   createFakePi,
-  createScriptedModelServer,
+  createScriptedModelServerThenDone,
   createThrowingSandboxSession,
   listen,
   type ModelRequestBody,
@@ -26,7 +26,7 @@ const requestText = (body: ModelRequestBody | undefined): string =>
   JSON.stringify(body?.messages);
 
 describe('Pi with a scripted model', () => {
-  const model = createScriptedModelServer();
+  const model = createScriptedModelServerThenDone();
   const agentDir = mkdtempSync(path.join(tmpdir(), 'pi-resources-agent-'));
   const previousAgentDir = process.env.PI_CODING_AGENT_DIR;
   let modelUrl = '';

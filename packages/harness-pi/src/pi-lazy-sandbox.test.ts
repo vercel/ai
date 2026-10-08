@@ -10,7 +10,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
   close,
   createFakePi,
-  createScriptedModelServer,
+  createScriptedModelServerThenDone,
   listen,
 } from './test-helpers';
 
@@ -62,7 +62,7 @@ const createRecordingSandboxSession = () => {
 };
 
 describe('Pi with a lazy sandbox', () => {
-  const model = createScriptedModelServer();
+  const model = createScriptedModelServerThenDone();
   const agentDir = mkdtempSync(path.join(tmpdir(), 'pi-lazy-sandbox-agent-'));
   const previousAgentDir = process.env.PI_CODING_AGENT_DIR;
   let modelUrl = '';
