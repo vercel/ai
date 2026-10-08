@@ -1631,6 +1631,70 @@ describe('doGenerate', () => {
     expect(providerMetadata?.google.serviceTier).toBeNull();
   });
 
+  it('should send providerOptions.google.continuationToken as a top-level body field', async () => {
+    prepareJsonResponse({ content: 'test response' });
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      maxOutputTokens: 600,
+      providerOptions: { google: { continuationToken: 'token-1' } },
+    });
+
+    const body = (await server.calls[0].requestBodyJson) as Record<string, any>;
+    expect(body.continuationToken).toBe('token-1');
+    expect(body.generationConfig.maxOutputTokens).toBe(600);
+  });
+
+  it('should omit continuationToken from the request body when not set', async () => {
+    prepareJsonResponse({ content: 'test response' });
+
+    await model.doGenerate({ prompt: TEST_PROMPT });
+
+    const body = (await server.calls[0].requestBodyJson) as Record<
+      string,
+      unknown
+    >;
+    expect(body).not.toHaveProperty('continuationToken');
+  });
+
+  it('should expose the candidate continuationToken on a MAX_TOKENS response', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: { parts: [{ text: 'Partial' }], role: 'model' },
+            finishReason: 'MAX_TOKENS',
+            index: 0,
+            continuationToken: 'token-2',
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 1,
+          candidatesTokenCount: 2,
+          totalTokenCount: 3,
+        },
+      },
+    };
+
+    const { providerMetadata, finishReason } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(finishReason).toEqual({ unified: 'length', raw: 'MAX_TOKENS' });
+    expect(providerMetadata?.google.continuationToken).toBe('token-2');
+  });
+
+  it('should not expose continuationToken in provider metadata when absent', async () => {
+    prepareJsonResponse({ content: 'test response' });
+
+    const { providerMetadata } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(providerMetadata?.google).not.toHaveProperty('continuationToken');
+  });
+
   describe('tool-call', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('google-tool-call');
@@ -6673,6 +6737,73 @@ describe('doStream', () => {
       finishEvent?.type === 'finish' &&
         finishEvent.providerMetadata?.google.serviceTier,
     ).toBe('priority');
+  });
+
+  it('should expose the continuationToken from the final chunk on finish', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'Partial' }], role: 'model' },
+              index: 0,
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: '' }], role: 'model' },
+              finishReason: 'MAX_TOKENS',
+              index: 0,
+              continuationToken: 'token-3',
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 10,
+            candidatesTokenCount: 300,
+            totalTokenCount: 310,
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      providerOptions: { google: { continuationToken: 'token-prev' } },
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(finishEvent?.type === 'finish' && finishEvent.finishReason).toEqual({
+      unified: 'length',
+      raw: 'MAX_TOKENS',
+    });
+    expect(
+      finishEvent?.type === 'finish' &&
+        finishEvent.providerMetadata?.google.continuationToken,
+    ).toBe('token-3');
+
+    const body = (await server.calls[0].requestBodyJson) as Record<
+      string,
+      unknown
+    >;
+    expect(body.continuationToken).toBe('token-prev');
+  });
+
+  it('should not expose continuationToken on finish when absent', async () => {
+    prepareStreamResponse({ content: ['Hello'] });
+
+    const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(
+      finishEvent?.type === 'finish' && finishEvent.providerMetadata?.google,
+    ).not.toHaveProperty('continuationToken');
   });
 
   it('should preserve the final complete raw usage metadata', async () => {

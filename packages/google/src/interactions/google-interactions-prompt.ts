@@ -585,6 +585,7 @@ export type GoogleInteractionsRequestBody = {
   agent_config?: GoogleInteractionsAgentConfig;
   previous_interaction_id?: string;
   service_tier?: GoogleInteractionsServiceTier;
+  continuation_token?: string;
   store?: boolean;
   stream?: boolean;
   environment?: GoogleInteractionsEnvironment;

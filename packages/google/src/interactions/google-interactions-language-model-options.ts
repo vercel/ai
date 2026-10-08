@@ -37,6 +37,7 @@ export type GoogleInteractionsModelId =
   | 'gemini-3.6-flash'
   | 'gemini-3.7-flash'
   | 'gemini-3.8-flash'
+  | 'gemini-4-argon'
   | 'gemini-nano-banana-2.1'
   | 'lyria-3-clip-preview'
   | 'lyria-3-pro-preview'
@@ -199,6 +200,15 @@ export const googleInteractionsLanguageModelOptions = lazySchema(() =>
         .array(z.enum(['text', 'image', 'audio', 'video', 'document']))
         .nullish(),
       serviceTier: z.enum(['flex', 'standard', 'priority']).nullish(),
+
+      /**
+       * Resumes a truncated interaction (Gemini 4 long decode). Pass the
+       * `continuationToken` from the previous response's provider metadata
+       * together with the original input and a higher `maxOutputTokens` (the
+       * limit accumulates across continuation requests). Sent as the
+       * `continuation_token` body field.
+       */
+      continuationToken: z.string().nullish(),
 
       /**
        * Alternative to AI SDK `system` message. If both are set, the AI SDK

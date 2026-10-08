@@ -35,6 +35,7 @@ export type GoogleModelId =
   | 'gemini-3.6-flash'
   | 'gemini-3.7-flash'
   | 'gemini-3.8-flash'
+  | 'gemini-4-argon'
   | 'gemini-nano-banana-2.1'
   // latest version
   // https://ai.google.dev/gemini-api/docs/models#latest
@@ -258,6 +259,15 @@ export const googleLanguageModelOptions = lazySchema(() =>
        * `serviceTier` body field. Gemini API only.
        */
       serviceTier: z.enum(['standard', 'flex', 'priority']).optional(),
+
+      /**
+       * Optional. Resumes a truncated response (Gemini 4 long decode). Pass the
+       * `continuationToken` from the previous response's provider metadata
+       * together with the original prompt and a higher `maxOutputTokens`
+       * (the limit accumulates across continuation requests). Sent as the
+       * `continuationToken` body field.
+       */
+      continuationToken: z.string().optional(),
 
       /**
        * Optional. Vertex AI only. Sent as the

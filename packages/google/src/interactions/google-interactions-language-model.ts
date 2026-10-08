@@ -437,6 +437,17 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
       }
     }
 
+    if (
+      googleOptions?.continuationToken != null &&
+      googleOptions.background === true
+    ) {
+      warnings.push({
+        type: 'other',
+        message:
+          "google.interactions: 'continuationToken' cannot be combined with 'background: true'; the API rejects this request. Resume truncated runs with a foreground request instead.",
+      });
+    }
+
     /*
      * `background` is opt-in via `providerOptions.google.background`. Some
      * agents require it because their server-side workflow cannot complete
@@ -460,6 +471,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
       previous_interaction_id:
         googleOptions?.previousInteractionId ?? undefined,
       service_tier: googleOptions?.serviceTier ?? undefined,
+      continuation_token: googleOptions?.continuationToken ?? undefined,
       store: googleOptions?.store ?? undefined,
       generation_config:
         generationConfig != null && Object.keys(generationConfig).length > 0
@@ -583,6 +595,9 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
       google: {
         ...(interactionId != null ? { interactionId } : {}),
         ...(serviceTier != null ? { serviceTier } : {}),
+        ...(response.continuation_token != null
+          ? { continuationToken: response.continuation_token }
+          : {}),
         ...(outputTokensByModality != null ? { outputTokensByModality } : {}),
       },
     };

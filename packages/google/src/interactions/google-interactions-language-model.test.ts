@@ -496,6 +496,62 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
     });
   });
 
+  describe('continuation token', () => {
+    it('sends continuation_token in the request body when providerOptions.google.continuationToken is set', async () => {
+      prepareJsonFixtureResponse('basic');
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        maxOutputTokens: 600,
+        providerOptions: { google: { continuationToken: 'token-1' } },
+      });
+      const body = (await server.calls[0].requestBodyJson) as Record<
+        string,
+        any
+      >;
+      expect(body.continuation_token).toBe('token-1');
+      expect(body.generation_config.max_output_tokens).toBe(600);
+    });
+
+    it('omits continuation_token from the request body when not set', async () => {
+      prepareJsonFixtureResponse('basic');
+      await model.doGenerate({ prompt: TEST_PROMPT });
+      const body = (await server.calls[0].requestBodyJson) as Record<
+        string,
+        unknown
+      >;
+      expect(body).not.toHaveProperty('continuation_token');
+    });
+
+    it('exposes continuation_token as providerMetadata.google.continuationToken on an incomplete interaction', async () => {
+      const fixture = JSON.parse(
+        fs.readFileSync('src/interactions/__fixtures__/basic.json', 'utf8'),
+      );
+      server.urls[TEST_URL].response = {
+        type: 'json-value',
+        body: {
+          ...fixture,
+          status: 'incomplete',
+          continuation_token: 'token-2',
+        },
+      };
+
+      const { providerMetadata, finishReason } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(finishReason.unified).toBe('length');
+      expect(providerMetadata?.google?.continuationToken).toBe('token-2');
+    });
+
+    it('omits continuationToken from providerMetadata when absent', async () => {
+      prepareJsonFixtureResponse('basic');
+      const { providerMetadata } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+      expect(providerMetadata?.google).not.toHaveProperty('continuationToken');
+    });
+  });
+
   describe('service tier', () => {
     it('sends service_tier in the request body when providerOptions.google.serviceTier is set', async () => {
       prepareJsonFixtureResponse('basic');
@@ -1909,6 +1965,41 @@ describe('GoogleInteractionsLanguageModel agent polling', () => {
     [POLL_URL]: {},
   });
 
+  it('warns when continuationToken is combined with background: true', async () => {
+    pollServer.urls[POST_URL].response = {
+      type: 'json-value',
+      body: {
+        id: 'v1_poll-test',
+        status: 'completed',
+        steps: [
+          { type: 'model_output', content: [{ type: 'text', text: 'ok' }] },
+        ],
+      },
+    };
+
+    const fastProvider = createGoogle({
+      apiKey: 'test-api-key',
+      generateId: () => 'test-id',
+    });
+    const result = await fastProvider
+      .interactions('gemini-4-argon')
+      .doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          google: { background: true, continuationToken: 'token-1' },
+        },
+      });
+
+    expect(result.warnings).toContainEqual(
+      expect.objectContaining({
+        type: 'other',
+        message: expect.stringContaining(
+          "'continuationToken' cannot be combined",
+        ),
+      }),
+    );
+  });
+
   it('returns the polled terminal response from doGenerate when POST returns in_progress', async () => {
     pollServer.urls[POST_URL].response = {
       type: 'json-value',
@@ -2584,6 +2675,88 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
         unknown
       >;
       expect(body.service_tier).toBe('priority');
+    });
+
+    it('keeps the latest continuation_token checkpoint from interaction.status_update events', async () => {
+      const objs = readFixtureChunkLines('basic');
+      const completeIdx = objs.findIndex(
+        o => o.event_type === 'interaction.completed',
+      );
+      const complete = objs[completeIdx];
+      const interaction = {
+        ...(complete.interaction as Record<string, unknown>),
+      };
+      delete interaction.continuation_token;
+      objs.splice(
+        completeIdx,
+        1,
+        {
+          event_type: 'interaction.status_update',
+          interaction_id: 'v1_checkpoint',
+          status: 'in_progress',
+          continuation_token: 'checkpoint-1',
+        },
+        {
+          event_type: 'interaction.status_update',
+          interaction_id: 'v1_checkpoint',
+          status: 'in_progress',
+          continuation_token: 'checkpoint-2',
+        },
+        { ...complete, interaction: { ...interaction, status: 'incomplete' } },
+      );
+      prepareCustomChunksWithHeaders(objs);
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+      const parts = await convertReadableStreamToArray(stream);
+      const finish = parts.find(p => p.type === 'finish') as
+        | { providerMetadata?: { google?: { continuationToken?: string } } }
+        | undefined;
+      expect(finish?.providerMetadata?.google?.continuationToken).toBe(
+        'checkpoint-2',
+      );
+    });
+
+    it('exposes continuation_token from interaction.completed as providerMetadata.google.continuationToken', async () => {
+      const objs = readFixtureChunkLines('basic');
+      const completeIdx = objs.findIndex(
+        o => o.event_type === 'interaction.completed',
+      );
+      const complete = objs[completeIdx];
+      const interaction = complete.interaction as Record<string, unknown>;
+      objs[completeIdx] = {
+        ...complete,
+        interaction: {
+          ...interaction,
+          status: 'incomplete',
+          continuation_token: 'token-3',
+        },
+      };
+      prepareCustomChunksWithHeaders(objs);
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+        providerOptions: { google: { continuationToken: 'token-prev' } },
+      });
+      const parts = await convertReadableStreamToArray(stream);
+      const finish = parts.find(p => p.type === 'finish') as
+        | {
+            finishReason: { unified: string };
+            providerMetadata?: { google?: { continuationToken?: string } };
+          }
+        | undefined;
+      expect(finish?.finishReason.unified).toBe('length');
+      expect(finish?.providerMetadata?.google?.continuationToken).toBe(
+        'token-3',
+      );
+      const body = (await server.calls[0].requestBodyJson) as Record<
+        string,
+        unknown
+      >;
+      expect(body.continuation_token).toBe('token-prev');
     });
 
     it('reads providerMetadata.google.serviceTier from the interaction.complete event body service_tier field', async () => {
