@@ -40,7 +40,7 @@
     "streamdown": "^1.6.11",
     "tailwind-merge": "^3.6.0",
     "tailwindcss-animate": "^1.0.7",
-    "workflow": "4.6.0",
+    "workflow": "5.1.0",
     "zod": "3.25.76"
   },
   "devDependencies": {
