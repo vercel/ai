@@ -1,0 +1,335 @@
+---
+title: Decisions
+description: Decide answers to Choice, Score, and Boolean questions against shared state.
+---
+
+# Decisions
+
+`experimental_decide` decides answers to named questions against one shared state using
+a decision model. State can be a string, JSON object, or an array of ordered
+text, file, and JSON parts.
+
+This API and the decision model specification are experimental and may change
+in patch releases. Pass a decision model instance, resolve a model through a
+provider registry, or use a string ID. Strings resolve through Vercel AI Gateway
+unless you configure a decision-capable default provider.
+
+```ts
+import { experimental_decide, type Experimental_DecisionModel } from 'ai';
+
+async function triage(model: Experimental_DecisionModel, message: string) {
+  return experimental_decide({
+    model,
+    state: { message },
+    questions: {
+      department: {
+        type: 'choice',
+        instructions: 'Which team should handle this?',
+        criteria: {
+          billing: 'Payments and refunds',
+          support: 'Other requests',
+        },
+      },
+      severity: {
+        type: 'score',
+        instructions: 'How severe is the issue?',
+        criteria: ['Cosmetic', 'Workaround exists', 'Blocking; no workaround'],
+      },
+      requestsRefund: {
+        type: 'boolean',
+        instructions: 'Is the customer requesting money back?',
+      },
+    },
+  });
+}
+```
+
+## Multimodal state
+
+Combine text, structured data, and images in one state:
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { experimental_decide } from 'ai';
+
+const result = await experimental_decide({
+  model: openai.decisionModel('gpt-6-luna'),
+  state: [
+    { type: 'text', text: 'Inspect this package for damage.' },
+    { type: 'json', value: { product: 'glass vase', packaging: 'cardboard' } },
+    {
+      type: 'file',
+      mediaType: 'image/png',
+      data: new URL('https://example.com/package.png'),
+    },
+  ],
+  questions: {
+    damaged: {
+      type: 'boolean',
+      instructions: 'Is the product visibly damaged?',
+    },
+  },
+});
+```
+
+`Experimental_DecisionState` and `Experimental_DecisionStatePart` are exported
+from `ai`. A part has one of these shapes:
+
+- `TextPart`: `{ type: 'text', text: string }`.
+- `FilePart`: `{ type: 'file', mediaType: string, data: ... }`, using the SDK's
+  file conventions. For images, use bytes, a base64 string, or a URL. Tagged file
+  data is also supported. URLs are downloaded before the model call.
+- JSON: `{ type: 'json', value: JSONValue }`.
+
+Language-model decision adapters accept image files only. The underlying model
+must support the file data form. Gateway and TypeSafe AI accept text and JSON
+state only.
+
+Arrays passed directly as `state` contain parts. To send a JSON array, put it
+inside an object (`state: { records }`) or a JSON part
+(`state: [{ type: 'json', value: records }]`). An empty `state: []` contains zero
+parts. Question instructions and criteria still accept JSON arrays directly.
+
+## Provider models
+
+Use a provider's `decisionModel` factory:
+
+| Provider    | Example model                                          |
+| ----------- | ------------------------------------------------------ |
+| TypeSafe AI | `typeSafeAi.decisionModel('jev-latest')`               |
+| OpenAI      | `openai.decisionModel('gpt-6-luna')`                   |
+| Anthropic   | `anthropic.decisionModel('claude-haiku-4-5-20251001')` |
+| Google      | `google.decisionModel('gemini-3.5-flash-lite')`        |
+
+TypeSafe AI's [Jev](https://vercel.com/i/what-is-jev) and OpenAI's
+[Decisions API](https://developers.openai.com/api/docs/guides/decisions)
+supply native Choice, Score, and Boolean decisions. Each question is evaluated
+independently. Choice and Score answers include native probability distributions.
+
+Anthropic and Google adapt structured language-model output for all three types,
+evaluating all questions in one prompt. Their Boolean answers contain prompted
+estimates of P(true), and Choice and Score answers omit probability distributions.
+Select a model that supports the provider's structured-output API and judge quality
+against your own labeled examples before choosing a model for a task.
+
+The Anthropic and Google language-model adapters request `reasoning: 'none'` by
+default. Each provider maps this setting to its model's reasoning controls. Pass
+supported reasoning settings through `providerOptions` to override this default.
+OpenAI decision models use the Decisions endpoint and do not accept Responses
+API reasoning options.
+
+## Model aliases and registries
+
+Use `customProvider` to give models application-specific names, then register
+providers with `createProviderRegistry`:
+
+```ts
+import { typeSafeAi } from '@ai-sdk/typesafe-ai';
+import { openai } from '@ai-sdk/openai';
+import {
+  customProvider,
+  createProviderRegistry,
+  experimental_decide,
+} from 'ai';
+
+const registry = createProviderRegistry({
+  triage: customProvider({
+    decisionModels: {
+      native: typeSafeAi.decisionModel('jev-latest'),
+      compact: openai.decisionModel('gpt-6-luna'),
+    },
+    fallbackProvider: typeSafeAi,
+  }),
+  openai,
+});
+
+const result = await experimental_decide({
+  model: registry.decisionModel('triage:native'),
+  state: 'I was charged twice.',
+  questions: {
+    department: {
+      type: 'choice',
+      instructions: 'Which team should handle this?',
+      criteria: { billing: 'Charges and refunds', support: 'Other requests' },
+    },
+  },
+});
+
+result.answers.department.choice; // 'billing' | 'support'
+```
+
+Registry IDs use `providerId:modelId`; the `separator` option changes the
+separator. Only the first separator is used, so model IDs can contain it.
+Custom aliases take precedence over a fallback provider. A fallback only resolves
+unknown model IDs; it does not retry failed decisions or substitute a model
+when a question type is unsupported. Registered providers keep their own
+credentials and settings. Registry language/image middleware does not wrap
+decision models.
+
+### Default-provider strings
+
+String IDs use Vercel AI Gateway by default. Configure Gateway authentication
+with `AI_GATEWAY_API_KEY` or Vercel OIDC, then pass a Gateway model ID:
+
+```ts
+import { experimental_decide } from 'ai';
+
+const result = await experimental_decide({
+  model: 'typesafe-ai/jev',
+  state: 'I was charged twice. Please refund the extra charge.',
+  questions: {
+    refund: {
+      type: 'boolean',
+      instructions: 'Is the customer asking for a refund?',
+    },
+  },
+});
+```
+
+To resolve strings through your own provider or aliases, configure the default
+provider once at application startup:
+
+```ts
+// Using the registry above, expose an alias through a custom provider:
+globalThis.AI_SDK_DEFAULT_PROVIDER = customProvider({
+  decisionModels: { native: registry.decisionModel('triage:native') },
+});
+
+const result = await experimental_decide({
+  model: 'native',
+  state: 'I was charged twice.',
+  questions: {
+    refund: {
+      type: 'boolean',
+      instructions: 'Is the customer asking for a refund?',
+    },
+  },
+});
+```
+
+A direct provider such as `typeSafeAi` can also be the default; then use its
+unprefixed model ID, such as `'jev-latest'`. String values in `decisionModels`
+also resolve through this global default. Prefer model instances in aliases to
+avoid resolution cycles. Global configuration affects other AI SDK functions
+too; avoid changing it per request in a shared process.
+
+An explicitly configured default provider must expose a `decisionModel`
+method; Gateway is used only when no default provider is configured. Missing
+registry providers throw `NoSuchProviderError`; missing models or decision
+capabilities throw
+`NoSuchModelError` with `modelType: 'decisionModel'`. Unsupported model versions
+throw `UnsupportedModelVersionError`, including models returned by registries.
+The stable `ProviderV4` and `ProviderRegistryProvider` interfaces are unchanged;
+keep the inferred registry type, or use `Experimental_DecisionProviderRegistry`,
+to retain its experimental `decisionModel` method.
+
+## Question types
+
+| Type      | Criteria                                  | Answer                                                                   |
+| --------- | ----------------------------------------- | ------------------------------------------------------------------------ |
+| `choice`  | A nonempty map of options to descriptions | `choice`, inferred as a union of option keys; optional `probabilities`   |
+| `score`   | At least two ordered level descriptions   | Fractional `score` in `[0, levels.length - 1]`; optional `probabilities` |
+| `boolean` | Optional `true` and `false` descriptions  | Required `probability`, the model-estimated probability of true          |
+
+`Experimental_DecisionQuestion` is exported from `ai`. Instructions and
+descriptions can be strings, JSON objects, or JSON arrays. Descriptions can also
+be `null`.
+
+Functions, class instances, cycles, undefined values, and nonfinite numbers are
+not JSON-compatible.
+
+Answers retain question IDs and have the same `type` as their question. When a
+Choice distribution is supplied, it includes every option and the selected
+choice has maximal probability. Score distributions use string keys for
+zero-based level indices, and the score equals the probability-weighted mean.
+Without a distribution, a score is the model's estimated position on the rubric.
+
+Distributions must sum to one, and weighted scores must agree with their
+distributions. The default absolute tolerance is `0.000001`. Providers that round
+their output can declare `rounding.probabilityDecimals` and
+`rounding.scoreDecimals` (integers from 0 to 15). Validation then also allows half
+a unit in the last decimal place per rounded probability or score, accumulated
+over the sum or weighted mean. For example, probabilities rounded to two decimal
+places can sum to `0.99` even when their unrounded values sum to one. The result
+includes this `rounding` information. Invalid output is rejected; native values
+are preserved, never silently normalized.
+
+## Probabilities and confidence
+
+Choice and Score distributions are optional. Boolean probability is required:
+`0.98` means a strong yes and `0.02` means a strong no. It is not confidence in
+either outcome. The SDK does not promise calibration across providers. Structured
+language-model adapters prompt the model to estimate P(true); native decision providers return
+their API probabilities. Provider-specific confidence statistics belong
+in `providerMetadata`. TypeSafe exposes its separate Choice/Score confidence
+statistic at `result.providerMetadata?.typesafe?.confidence`, keyed by question
+ID. It is not the selected option's probability or a portable confidence measure.
+
+Check for optional distributions before using them. For example, an application
+can route only when a provider supplies a sufficiently high selected-option
+probability:
+
+```ts
+const answer = result.answers.department;
+const selectedProbability = answer.probabilities?.[answer.choice];
+if (selectedProbability != null && selectedProbability >= 0.9) {
+  // Route automatically; otherwise use the application's review path.
+}
+```
+
+Choose Boolean thresholds in application code, using labeled data from the task
+rather than assuming that the same threshold behaves identically across providers:
+
+```ts
+if (result.answers.requestsRefund.probability >= 0.8) {
+  // Route to the refunds queue.
+}
+```
+
+## Errors and cancellation
+
+The model's `supportedQuestionTypes` are checked before calling the provider.
+Any unsupported question fails the entire call with
+`Experimental_DecisionUnsupportedQuestionTypeError`. Successful calls return
+an answer for every question; there is no partial success, and Core does not
+substitute models automatically.
+
+Invalid inputs throw `InvalidArgumentError`. Missing answers, mismatched answer
+types, invalid options, scores, or probabilities throw `InvalidResponseDataError`.
+If the model refuses any question, the call throws
+`Experimental_DecisionRefusalError` with the refused question IDs, and is not
+retried.
+Transient provider failures use the normal retry policy (`maxRetries: 2` by
+default). Use `abortSignal` to cancel the decisions request, `headers` for request headers,
+and `providerOptions` for provider-specific settings.
+
+The result includes `usage`, `warnings`, `providerMetadata`, and `response`.
+Unknown token counts stay `undefined`; `totalTokens` is available only when both
+input and output counts are known.
+
+For tests, use `Experimental_DecisionMockModelV4` from `ai/test`.
+
+## Scope and examples
+
+`experimental_decide` currently returns one complete result for one shared state. It does
+not stream answers, perform multilabel classification, or batch unrelated
+states. Run separate calls for separate states. Provider support and judgment
+quality depend on the chosen model. Core does not choose another model, but a
+provider can implement routing through its provider options. For example, AI
+Gateway supports conditional decision fallbacks under
+`providerOptions.gateway.models`.
+
+Runnable examples are in
+[`examples/ai-functions/src/decide`](https://github.com/vercel/ai/tree/main/examples/ai-functions/src/decide),
+including basic examples for TypeSafe, OpenAI, Anthropic, and Google, model
+registries, custom aliases, default-provider strings, and probability-based routing.
+
+## Related resources
+
+Explore use cases, implementation guides, and a deployable template for using
+Jev from TypeSafe AI with the AI SDK:
+
+- [Jev use cases](https://vercel.com/i/jev-use-cases): Explore ideas for applying decisions in your application.
+- [Classify, route, and score with Jev and AI SDK](https://vercel.com/kb/guide/typesafe-jev-and-ai-sdk): Learn how to ask typed questions, route answers using probabilities, and test routing logic with a mock decision model.
+- [Jev and AI SDK form router guide](https://vercel.com/kb/guide/jev-ai-sdk-form-router): Explore form routing with Jev and the AI SDK.
+- [Jev and AI SDK form router template](https://vercel.com/templates/next.js/jev-and-ai-sdk): Deploy a Next.js application that routes form submissions with Jev and uses a language model fallback for uncertain or failed decisions.

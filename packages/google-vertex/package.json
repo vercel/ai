@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/google-vertex",
-  "version": "5.0.101",
+  "version": "5.0.108",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -96,7 +96,7 @@
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
     "tsdown": "^0.23.0",
-    "typescript": "5.8.3",
+    "typescript": "6.0.3",
     "zod": "3.25.76"
   },
   "peerDependencies": {

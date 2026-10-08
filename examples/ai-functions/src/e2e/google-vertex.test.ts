@@ -86,6 +86,7 @@ const createModelsForRuntime = (
   ],
   imageModels: [
     createImageModelWithCapabilities(vertex.image('gemini-2.5-flash-image')),
+    createImageModelWithCapabilities(vertex.image('gemini-nano-banana-2.1')),
   ],
 });
 

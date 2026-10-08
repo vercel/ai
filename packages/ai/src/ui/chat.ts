@@ -315,7 +315,12 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     status: ChatStatus;
     error?: Error;
   }) {
-    if (this.status === status) return;
+    if (this.status === status) {
+      if (this.error !== error) {
+        this.state.error = error;
+      }
+      return;
+    }
 
     this.state.status = status;
     this.state.error = error;
@@ -586,25 +591,26 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
       // automatically send the message if the sendAutomaticallyWhen function returns true
       if (
+        messageIndex !== -1 &&
         this.status !== 'streaming' &&
         this.status !== 'submitted' &&
         this.sendAutomaticallyWhen
       ) {
-        this.shouldSendAutomatically().then(shouldSend => {
-          if (shouldSend) {
-            // no await to avoid deadlocking
-            const messageId =
-              messageIndex === -1
-                ? this.lastMessage?.id
-                : messages[messageIndex].id;
+        const shouldSend = await this.shouldSendAutomatically();
 
-            this.makeRequestForToolApproval({
-              messageId,
-              messageIndex,
-              ...options,
-            });
-          }
-        });
+        if (shouldSend) {
+          // no await to avoid deadlocking
+          const messageId =
+            messageIndex === -1
+              ? this.lastMessage?.id
+              : messages[messageIndex].id;
+
+          this.makeRequestForToolApproval({
+            messageId,
+            messageIndex,
+            ...options,
+          });
+        }
       }
     });
 
@@ -675,16 +681,16 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         this.status !== 'submitted' &&
         this.sendAutomaticallyWhen
       ) {
-        this.shouldSendAutomatically().then(shouldSend => {
-          if (shouldSend) {
-            // no await to avoid deadlocking
-            this.makeRequest({
-              trigger: 'submit-message',
-              messageId: this.lastMessage?.id,
-              ...options,
-            });
-          }
-        });
+        const shouldSend = await this.shouldSendAutomatically();
+
+        if (shouldSend) {
+          // no await to avoid deadlocking
+          this.makeRequest({
+            trigger: 'submit-message',
+            messageId: this.lastMessage?.id,
+            ...options,
+          });
+        }
       }
     });
 
@@ -857,10 +863,8 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       responseMessageIndex === -1
         ? lastMessage
         : this.state.messages[responseMessageIndex];
-    // the continued stream can start with either
-    // 1) input deltas
-    // 2) or the result of an answered tool approval request
-    // Keep the tool part so in case 2, those chunks can find their tool call
+    // The continued stream can start with input deltas or a tool result.
+    // Keep unfinished tool parts so result chunks can find their tool call.
     const resumableResponseMessage =
       trigger === 'resume-stream' &&
       responseMessage?.role === 'assistant' &&
@@ -868,6 +872,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         part =>
           isToolUIPart(part) &&
           (part.state === 'input-streaming' ||
+            (part.state === 'input-available' && part.providerExecuted) ||
             part.state === 'approval-responded'),
       )
         ? this.state.snapshot(responseMessage)
@@ -1020,13 +1025,16 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
       isError = true;
 
-      // Network errors such as disconnected, timeout, etc.
-      if (
-        err instanceof TypeError &&
-        (err.message.toLowerCase().includes('fetch') ||
-          err.message.toLowerCase().includes('network'))
-      ) {
-        isDisconnect = true;
+      if (err instanceof TypeError) {
+        const message = err.message.toLowerCase();
+
+        isDisconnect =
+          // Chromium request failures; Node.js fetch failures.
+          message.includes('fetch') ||
+          // Firefox request failures; Chromium response-body failures.
+          message.includes('network') ||
+          // Safari/WebKit request and response-body failures.
+          message === 'load failed';
       }
 
       if (isDisconnect) {

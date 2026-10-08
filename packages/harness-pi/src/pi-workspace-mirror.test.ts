@@ -9,7 +9,7 @@ import {
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { gzipSync } from 'node:zlib';
-import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
+import { createJustBashNetworkSandboxSession } from '@ai-sdk/sandbox-just-bash';
 import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -185,9 +185,9 @@ describe('syncHostWorkspaceFromSandbox', () => {
   });
 
   it('mirrors shallow config trees with many siblings in just-bash', async () => {
-    const sandboxSession = await createJustBashSandbox({
+    const sandboxSession = await createJustBashNetworkSandboxSession({
       cwd: sandboxWorkDir,
-    }).createSession();
+    });
     const sandbox = sandboxSession.restricted();
 
     try {
@@ -220,9 +220,9 @@ describe('syncHostWorkspaceFromSandbox', () => {
   }, 30_000);
 
   it('mirrors deeply nested acyclic config trees in just-bash', async () => {
-    const sandboxSession = await createJustBashSandbox({
+    const sandboxSession = await createJustBashNetworkSandboxSession({
       cwd: sandboxWorkDir,
-    }).createSession();
+    });
     const sandbox = sandboxSession.restricted();
 
     try {
@@ -287,9 +287,9 @@ describe('syncHostWorkspaceFromSandbox', () => {
   });
 
   it('mirrors nested files below symlinked config directories in just-bash', async () => {
-    const sandboxSession = await createJustBashSandbox({
+    const sandboxSession = await createJustBashNetworkSandboxSession({
       cwd: sandboxWorkDir,
-    }).createSession();
+    });
     const sandbox = sandboxSession.restricted();
 
     try {
@@ -323,9 +323,9 @@ describe('syncHostWorkspaceFromSandbox', () => {
   it('mirrors config when the sandbox work directory has a symlinked ancestor in just-bash', async () => {
     const sandboxRoot = '/sandbox';
     const linkedWorkDir = '/sandbox/workspace-link/project';
-    const sandboxSession = await createJustBashSandbox({
+    const sandboxSession = await createJustBashNetworkSandboxSession({
       cwd: sandboxRoot,
-    }).createSession();
+    });
     const sandbox = sandboxSession.restricted();
 
     try {
@@ -361,9 +361,9 @@ describe('syncHostWorkspaceFromSandbox', () => {
   });
 
   it('skips config symlinks that resolve to the filesystem root in just-bash', async () => {
-    const sandboxSession = await createJustBashSandbox({
+    const sandboxSession = await createJustBashNetworkSandboxSession({
       cwd: sandboxWorkDir,
-    }).createSession();
+    });
     const sandbox = sandboxSession.restricted();
 
     try {
@@ -386,9 +386,9 @@ describe('syncHostWorkspaceFromSandbox', () => {
   });
 
   it('rejects symlink cycles in just-bash', async () => {
-    const sandboxSession = await createJustBashSandbox({
+    const sandboxSession = await createJustBashNetworkSandboxSession({
       cwd: sandboxWorkDir,
-    }).createSession();
+    });
     const sandbox = sandboxSession.restricted();
 
     try {
@@ -599,14 +599,14 @@ describe('syncHostWorkspaceFromSandbox', () => {
   });
 
   it('transfers a real skills tree as one archive in just-bash', async () => {
-    const sandboxSession = await createJustBashSandbox({
+    const sandboxSession = await createJustBashNetworkSandboxSession({
       cwd: sandboxWorkDir,
       // The scoped traversal spends a handful of shell commands per entry, and
       // just-bash caps a single `run` at 10k commands by default; a real shell
       // has no such cap. Raise it so this test measures the transfer, not the
       // interpreter's budget.
       maxCommandCount: 500_000,
-    }).createSession();
+    });
     const restricted = sandboxSession.restricted();
     const readBinaryFile = vi.fn(
       restricted.readBinaryFile.bind(restricted) as (args: {

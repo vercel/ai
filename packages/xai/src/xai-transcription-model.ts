@@ -101,7 +101,7 @@ export class XaiTranscriptionModel implements TranscriptionModelV4 {
 
     const blob =
       audio instanceof Uint8Array
-        ? new Blob([audio])
+        ? new Blob([audio as Uint8Array<ArrayBuffer>])
         : new Blob([convertBase64ToUint8Array(audio)]);
     const fileExtension = mediaTypeToExtension(mediaType);
 
@@ -154,6 +154,13 @@ export class XaiTranscriptionModel implements TranscriptionModelV4 {
         headers: responseHeaders,
         body: rawResponse,
       },
+      ...(response.words?.some(word => word.speaker != null) && {
+        providerMetadata: {
+          xai: {
+            words: response.words,
+          },
+        },
+      }),
     };
   }
 
@@ -541,6 +548,7 @@ const xaiTranscriptionResponseSchema = z.object({
         text: z.string(),
         start: z.number(),
         end: z.number(),
+        speaker: z.number().nullish(),
       }),
     )
     .nullish(),

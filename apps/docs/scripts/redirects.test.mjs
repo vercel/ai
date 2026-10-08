@@ -2,6 +2,11 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { stripTypeScriptTypes } from 'node:module';
 import test from 'node:test';
+import 'next/dist/server/node-environment-baseline.js';
+import {
+  getRedirectUrl,
+  unstable_getResponseFromNextConfig,
+} from 'next/experimental/testing/server.js';
 
 const source = await readFile(
   new URL('../lib/legacy-redirects.ts', import.meta.url),
@@ -34,8 +39,26 @@ test('legacy redirects preserve representative production destinations', () => {
   }
 });
 
+test('evaluation URLs permanently redirect to decision pages and preserve query parameters', async () => {
+  for (const [source, destination] of [
+    ['/docs/ai-sdk-core/evaluation', '/docs/ai-sdk-core/decisions'],
+    ['/docs/reference/ai-sdk-core/evaluate', '/docs/reference/ai-sdk-core/decide'],
+    [
+      '/docs/reference/ai-sdk-errors/ai-evaluation-unsupported-question-type-error',
+      '/docs/reference/ai-sdk-errors/ai-decision-unsupported-question-type-error',
+    ],
+  ]) {
+    const response = await unstable_getResponseFromNextConfig({
+      url: `https://ai-sdk.dev${source}?ref=bookmark`,
+      nextConfig: { redirects: () => legacyRedirects },
+    });
+    assert.equal(response.status, 308);
+    assert.equal(getRedirectUrl(response), `https://ai-sdk.dev${destination}?ref=bookmark`);
+  }
+});
+
 test('legacy redirects are unique and cannot capture live or migrated routes', () => {
-  assert.equal(legacyRedirects.length, 283);
+  assert.equal(legacyRedirects.length, 286);
   assert.equal(redirects.size, legacyRedirects.length);
 
   for (const source of [

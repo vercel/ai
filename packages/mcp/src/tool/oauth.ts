@@ -658,8 +658,12 @@ export function buildDiscoveryUrls(
     expectedIssuer: pathIssuer,
   });
 
+  // Assign the path rather than resolving it as a URL reference: a pathname
+  // beginning with // would otherwise replace the authorization server host.
+  const oidcDiscoveryUrl = new URL(url.origin);
+  oidcDiscoveryUrl.pathname = `${pathname}/.well-known/openid-configuration`;
   urlsToTry.push({
-    url: new URL(`${pathname}/.well-known/openid-configuration`, url.origin),
+    url: oidcDiscoveryUrl,
     type: 'oidc',
     expectedIssuer: pathIssuer,
   });
@@ -697,7 +701,16 @@ export async function discoverAuthorizationServerMetadata(
 ): Promise<AuthorizationServerMetadata | undefined> {
   const headers = { 'MCP-Protocol-Version': protocolVersion };
 
+  const authorizationServerOrigin = new URL(authorizationServerUrl).origin;
   const urlsToTry = buildDiscoveryUrls(authorizationServerUrl);
+
+  // Check all candidates before any request so discovery cannot bypass an
+  // application's authorization server validation by changing the origin.
+  if (urlsToTry.some(({ url }) => url.origin !== authorizationServerOrigin)) {
+    throw new MCPClientOAuthError({
+      message: 'OAuth discovery URL changed authorization-server origin',
+    });
+  }
 
   for (const { url: endpointUrl, type, expectedIssuer } of urlsToTry) {
     const response = await fetchWithCorsRetry(
@@ -1285,14 +1298,11 @@ export async function auth(
 
       await provider.invalidateCredentials?.('all');
       return await authInternal(provider, options);
-    } else if (error instanceof InvalidGrantError) {
-      if (refreshAttempt.tokens) {
-        await provider.invalidateCredentials?.('tokens', {
-          tokens: refreshAttempt.tokens,
-        });
-      } else {
-        await provider.invalidateCredentials?.('tokens');
-      }
+    } else if (error instanceof InvalidGrantError && refreshAttempt.tokens) {
+      // Only invalidate the tokens used by a failed refresh.
+      await provider.invalidateCredentials?.('tokens', {
+        tokens: refreshAttempt.tokens,
+      });
       return await authInternal(provider, options);
     }
 

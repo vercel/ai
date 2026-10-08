@@ -18,6 +18,7 @@ We provide detailed documentation for the following OpenAI compatible providers:
 - [Heroku](/providers/openai-compatible-providers/heroku)
 - [Clarifai](/providers/openai-compatible-providers/clarifai)
 - [NEAR AI Cloud](/providers/openai-compatible-providers/nearai)
+- [TopxAI](/providers/openai-compatible-providers/topxai)
 
 The general setup and provider instance creation is the same for all of these providers.
 
@@ -92,11 +93,16 @@ You can use the following optional settings to customize the provider instance:
   Matching URLs are passed to the provider instead of being downloaded by the
   AI SDK.
 
-- **transformRequestBody** _(args: Record&lt;string, any&gt;) =&gt; Record&lt;string, any&gt;_
+- **transformRequestBody** _(args: Record&lt;string, any&gt;, warnings?: SharedV4Warning[]) =&gt; Record&lt;string, any&gt;_
 
   Optional function to transform the request body before sending it to the API.
   This is useful for proxy providers that may require a different request format
   than the official OpenAI API.
+
+  The optional second argument is the call's warning collection. Append
+  `SharedV4Warning` entries to report compatibility coercions or other transformations.
+  These warnings are returned by `doGenerate` and included in the `stream-start`
+  event for `doStream`. Existing callbacks that accept only the body continue to work.
 
 - **metadataExtractor** _MetadataExtractor_
 

@@ -36,6 +36,15 @@ const openai = createOpenAI({
 
 You can use the following optional settings to customize the OpenAI provider instance:
 
+- **batchResultDownloads** _object_
+
+  Settings for downloading JSON Lines batch results.
+  - **maxLineBytes** _number_
+
+    Maximum UTF-8 bytes per row, excluding the LF delimiter. Defaults to 64 MiB
+    (67,108,864 bytes). Must be a positive safe integer. Oversized rows throw a
+    `DownloadError` and cancel the download.
+
 - **baseURL** _string_
 
   Use a different URL prefix for API calls, e.g. to use proxy servers.
@@ -3469,18 +3478,18 @@ const result = await generateSpeech({
 | `tts-1-hd`        | <Check />    |
 | `gpt-4o-mini-tts` | <Check />    |
 
-## Evaluation Models
+## Decision Models
 
-Create an experimental evaluation model with `openai.evaluationModel(modelId)`.
-It uses the Responses API with structured output to answer Choice, Score, and
-Boolean questions. Choose a model that supports structured output, such as `gpt-6-luna`.
+Create an experimental decision model with `openai.decisionModel(modelId)`.
+It uses the native [Decisions API](https://developers.openai.com/api/docs/guides/decisions)
+to answer Choice, Score, and Boolean questions with `gpt-6-luna`.
 
 ```ts
 import { openai } from '@ai-sdk/openai';
-import { experimental_evaluate } from 'ai';
+import { experimental_decide } from 'ai';
 
-const { answers } = await experimental_evaluate({
-  model: openai.evaluationModel('gpt-6-luna'),
+const { answers } = await experimental_decide({
+  model: openai.decisionModel('gpt-6-luna'),
   state: 'I was charged twice.',
   questions: {
     requestsRefund: {
@@ -3496,20 +3505,40 @@ const { answers } = await experimental_evaluate({
 });
 ```
 
-Scores are finite fractional positions on the ordered rubric. Choice labels are
-returned exactly as supplied. These are model judgments: no probability
-distributions are returned for Choice or Score. Boolean answers contain a prompted
-estimate of P(true), validated to be finite and in `[0, 1]`. These estimates are
-not guaranteed to be calibrated. Apply thresholds in application code, for example
+Scores are probability-weighted fractional positions on the ordered rubric, starting
+at zero. Choice labels are returned exactly as supplied. Choice and Score answers
+include probability distributions. Boolean questions use the API's predicate
+primitive and return P(true). Apply thresholds in application code, for example
 `answers.requestsRefund.probability >= 0.5`.
 
-The factory respects `createOpenAI` settings, including custom fetch and base URL.
-Pass Responses options through `providerOptions.openai`. Usage, warnings,
-response information, and provider metadata are preserved. Refusals, truncated
-output, or invalid answers fail the entire call. See [Evaluation](/docs/ai-sdk-core/evaluation).
+Structured state, instructions, and criterion descriptions are serialized as JSON
+text. Score levels receive zero-based index labels. Non-null Boolean criteria are
+appended to predicate instructions under `Criteria for true:` and `Criteria for false:`.
+String criteria are passed through; structured criteria are serialized as JSON text.
 
-Evaluation models can also be accessed through `customProvider` aliases or
-`createProviderRegistry().evaluationModel('provider:model')`. Direct string IDs
+The factory respects `createOpenAI` settings, including custom fetch and base URL.
+Set `providerOptions.openai.safetyIdentifier` to an opaque end-user identifier for
+safety monitoring (up to 128 characters). For example:
+
+```ts
+providerOptions: {
+  openai: { safetyIdentifier: 'user-123' } satisfies OpenAIDecisionModelOptions,
+}
+```
+
+Import `OpenAIDecisionModelOptions` from `@ai-sdk/openai` when using the type above.
+Other OpenAI options are unsupported and produce warnings. Native confidence
+values are available in `providerMetadata.openai.confidence`, keyed by question ID.
+Input and output token counts are available in `usage`. The full native token usage
+(including cache, reasoning, and total counts) is preserved in
+`providerMetadata.openai.usage`. Response headers, the returned model ID, and the
+raw response body are preserved. If OpenAI refuses a question, the entire call
+throws `InvalidResponseDataError` with the question name and the raw response in
+`error.data`. Invalid answers also fail the entire decision.
+See [Decisions](/docs/ai-sdk-core/decisions).
+
+Decision models can also be accessed through `customProvider` aliases or
+`createProviderRegistry().decisionModel('provider:model')`. Direct string IDs
 use Gateway by default, or an explicitly configured default provider with an
-`evaluationModel` method. See
-[model aliases and registries](/docs/ai-sdk-core/evaluation#model-aliases-and-registries).
+`decisionModel` method. See
+[model aliases and registries](/docs/ai-sdk-core/decisions#model-aliases-and-registries).

@@ -24,6 +24,7 @@ import { z } from 'zod/v4';
 import {
   embed,
   embedMany,
+  experimental_decide,
   experimental_evaluate,
   generateObject,
   generateText,
@@ -38,7 +39,7 @@ import {
 } from 'ai';
 import {
   MockEmbeddingModelV4,
-  Experimental_EvaluationMockModelV4,
+  Experimental_DecisionMockModelV4,
   MockLanguageModelV4,
   MockRerankingModelV4,
   mockValues,
@@ -2518,62 +2519,202 @@ describe('LegacyOpenTelemetry integration with rerank', () => {
   });
 });
 
-describe('LegacyOpenTelemetry integration with evaluate', () => {
-  it('records evaluation inputs, outputs, and usage', async () => {
-    const tracer = new IntegrationMockTracer();
+describe('LegacyOpenTelemetry integration with decide', () => {
+  it.each(['deprecated', 'current'] as const)(
+    'honors %s subclass hooks with and without super calls',
+    async hooks => {
+      for (const callSuper of [false, true]) {
+        const calls: Array<[string, string]> = [];
+        const tracer = createMockTracer();
+        class DeprecatedHooksIntegration extends LegacyOpenTelemetry {
+          override experimental_onEvaluateStart(
+            event: Parameters<
+              LegacyOpenTelemetry['experimental_onEvaluateStart']
+            >[0],
+          ): void {
+            calls.push(['start', event.operationId]);
+            if (callSuper) super.experimental_onEvaluateStart(event);
+          }
+          override experimental_onEvaluationModelCallStart(
+            event: Parameters<
+              LegacyOpenTelemetry['experimental_onEvaluationModelCallStart']
+            >[0],
+          ): void {
+            calls.push(['model-start', event.operationId]);
+            if (callSuper) super.experimental_onEvaluationModelCallStart(event);
+          }
+          override experimental_onEvaluationModelCallEnd(
+            event: Parameters<
+              LegacyOpenTelemetry['experimental_onEvaluationModelCallEnd']
+            >[0],
+          ): void {
+            calls.push(['model-end', event.operationId]);
+            if (callSuper) super.experimental_onEvaluationModelCallEnd(event);
+          }
+          override experimental_onEvaluateEnd(
+            event: Parameters<
+              LegacyOpenTelemetry['experimental_onEvaluateEnd']
+            >[0],
+          ): void {
+            calls.push(['end', event.operationId]);
+            if (callSuper) super.experimental_onEvaluateEnd(event);
+          }
+        }
+        class CurrentHooksIntegration extends LegacyOpenTelemetry {
+          override experimental_onDecideStart(
+            event: Parameters<
+              LegacyOpenTelemetry['experimental_onDecideStart']
+            >[0],
+          ): void {
+            calls.push(['start', event.operationId]);
+            if (callSuper) super.experimental_onDecideStart(event);
+          }
+          override experimental_onDecisionModelCallStart(
+            event: Parameters<
+              LegacyOpenTelemetry['experimental_onDecisionModelCallStart']
+            >[0],
+          ): void {
+            calls.push(['model-start', event.operationId]);
+            if (callSuper) super.experimental_onDecisionModelCallStart(event);
+          }
+          override experimental_onDecisionModelCallEnd(
+            event: Parameters<
+              LegacyOpenTelemetry['experimental_onDecisionModelCallEnd']
+            >[0],
+          ): void {
+            calls.push(['model-end', event.operationId]);
+            if (callSuper) super.experimental_onDecisionModelCallEnd(event);
+          }
+          override experimental_onDecideEnd(
+            event: Parameters<
+              LegacyOpenTelemetry['experimental_onDecideEnd']
+            >[0],
+          ): void {
+            calls.push(['end', event.operationId]);
+            if (callSuper) super.experimental_onDecideEnd(event);
+          }
+        }
+        const Integration =
+          hooks === 'deprecated'
+            ? DeprecatedHooksIntegration
+            : CurrentHooksIntegration;
+        await experimental_decide({
+          model: new Experimental_DecisionMockModelV4({
+            doDecide: async () => ({
+              answers: { refund: { type: 'boolean', probability: 0.9 } },
+              warnings: [],
+            }),
+          }),
+          state: 'Please refund me',
+          questions: { refund: { type: 'boolean', instructions: 'Refund?' } },
+          telemetry: { integrations: new Integration({ tracer }) },
+        });
+        expect(calls).toEqual([
+          ['start', 'ai.decide'],
+          ['model-start', 'ai.decide.doDecide'],
+          ['model-end', 'ai.decide.doDecide'],
+          ['end', 'ai.decide'],
+        ]);
+        expect(tracer.spans).toHaveLength(callSuper ? 2 : 0);
+        for (const span of tracer.spans) {
+          expect(span.ended).toBe(true);
+          expect(span.end).toHaveBeenCalledOnce();
+        }
+      }
+    },
+  );
 
-    await experimental_evaluate({
-      model: new Experimental_EvaluationMockModelV4({
-        doEvaluate: async () => ({
-          answers: { refund: { type: 'boolean', probability: 0.9 } },
-          usage: { inputTokens: 12, outputTokens: 2 },
-          warnings: [],
+  it.each([true, false])(
+    'serializes decision image bytes with recordInputs=%s',
+    async recordInputs => {
+      const tracer = new IntegrationMockTracer();
+      const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0xff, 0xff]);
+      await experimental_decide({
+        model: new Experimental_DecisionMockModelV4({
+          doDecide: async () => ({
+            answers: { visible: { type: 'boolean', probability: 0.9 } },
+            warnings: [],
+          }),
         }),
-      }),
-      state: { message: 'Please refund me' },
-      questions: {
-        refund: { type: 'boolean', instructions: 'Refund?' },
-      },
-      telemetry: {
-        integrations: new LegacyOpenTelemetry({ tracer }),
-      },
-    });
+        state: [{ type: 'file', mediaType: 'image/png', data: bytes }],
+        questions: {
+          visible: { type: 'boolean', instructions: 'Is the product visible?' },
+        },
+        telemetry: {
+          recordInputs,
+          integrations: new LegacyOpenTelemetry({ tracer }),
+        },
+      });
+      const attributes = tracer.jsonSpans.map(span => span.attributes);
+      expect(attributes).toHaveLength(2);
+      for (const value of attributes) {
+        expect(value['ai.decision.state']).toBe(
+          recordInputs
+            ? '[{"type":"file","mediaType":"image/png","data":"iVBOR///"}]'
+            : undefined,
+        );
+      }
+    },
+  );
 
-    expect(tracer.jsonSpans).toMatchInlineSnapshot(`
+  it.each(['current', 'deprecated'] as const)(
+    'records decision inputs, outputs, and usage through the %s API',
+    async api => {
+      const tracer = new IntegrationMockTracer();
+
+      await (api === 'current' ? experimental_decide : experimental_evaluate)({
+        model: new Experimental_DecisionMockModelV4({
+          doDecide: async () => ({
+            answers: { refund: { type: 'boolean', probability: 0.9 } },
+            usage: { inputTokens: 12, outputTokens: 2 },
+            warnings: [],
+          }),
+        }),
+        state: { message: 'Please refund me' },
+        questions: {
+          refund: { type: 'boolean', instructions: 'Refund?' },
+        },
+        telemetry: {
+          integrations: new LegacyOpenTelemetry({ tracer }),
+        },
+      });
+
+      expect(tracer.jsonSpans).toMatchInlineSnapshot(`
       [
         {
           "attributes": {
-            "ai.evaluation.answers": "{"refund":{"type":"boolean","probability":0.9}}",
-            "ai.evaluation.questions": "{"refund":{"type":"boolean","instructions":"Refund?"}}",
-            "ai.evaluation.state": "{"message":"Please refund me"}",
+            "ai.decision.answers": "{"refund":{"type":"boolean","probability":0.9}}",
+            "ai.decision.questions": "{"refund":{"type":"boolean","instructions":"Refund?"}}",
+            "ai.decision.state": "{"message":"Please refund me"}",
             "ai.model.id": "mock-model-id",
             "ai.model.provider": "mock-provider",
-            "ai.operationId": "ai.evaluate",
+            "ai.operationId": "ai.decide",
             "ai.settings.maxRetries": 2,
-            "operation.name": "ai.evaluate",
+            "operation.name": "ai.decide",
           },
           "events": [],
-          "name": "ai.evaluate",
+          "name": "ai.decide",
         },
         {
           "attributes": {
-            "ai.evaluation.answers": "{"refund":{"type":"boolean","probability":0.9}}",
-            "ai.evaluation.questions": "{"refund":{"type":"boolean","instructions":"Refund?"}}",
-            "ai.evaluation.state": "{"message":"Please refund me"}",
+            "ai.decision.answers": "{"refund":{"type":"boolean","probability":0.9}}",
+            "ai.decision.questions": "{"refund":{"type":"boolean","instructions":"Refund?"}}",
+            "ai.decision.state": "[{"type":"json","value":{"message":"Please refund me"}}]",
             "ai.model.id": "mock-model-id",
             "ai.model.provider": "mock-provider",
-            "ai.operationId": "ai.evaluate.doEvaluate",
+            "ai.operationId": "ai.decide.doDecide",
             "ai.settings.maxRetries": 2,
             "ai.usage.inputTokens": 12,
             "ai.usage.outputTokens": 2,
-            "operation.name": "ai.evaluate.doEvaluate",
+            "operation.name": "ai.decide.doDecide",
           },
           "events": [],
-          "name": "ai.evaluate.doEvaluate",
+          "name": "ai.decide.doDecide",
         },
       ]
     `);
-  });
+    },
+  );
 });
 
 // --- embed integration fixtures ---

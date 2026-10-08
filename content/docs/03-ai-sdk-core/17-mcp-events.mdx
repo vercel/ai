@@ -1,0 +1,169 @@
+---
+title: MCP Events
+description: Understand the MCP webhook events contract and the AI SDK APIs for subscribing, verifying, and receiving events.
+---
+
+# MCP Events
+
+MCP events let a server notify your application when something changes, such as
+a new document comment. Your MCP client manages the subscription; your webhook
+endpoint receives the events.
+
+<Note>
+  These APIs are experimental and implement the webhook portion of the [MCP
+  Events design
+  draft](https://github.com/modelcontextprotocol/experimental-ext-triggers-events/blob/main/docs/design-sketch-proposal.md).
+  Polling and push-stream delivery are not supported.
+</Note>
+
+## Choose who manages subscriptions
+
+Use `experimental_events: { adapter }` when a backend manages subscriptions,
+webhook delivery and renewal. The adapter exposes managed watch handles and
+requires no AI SDK event store. See [managed subscriptions](/docs/reference/ai-sdk-core/mcp-events#managed-subscriptions).
+
+Use `experimental_events: { store }` when your application directly registers
+MCP webhooks, persists their secrets and schedules renewal. The following flow
+describes this direct mode. Event catalog discovery works in either mode, and
+without either configuration.
+
+## How MCP events work
+
+1. The client sends `events/subscribe` with the event name, filters, webhook URL,
+   and signing secret. Optional `ttlMs` and `cursor` parameters set the requested
+   lifetime and replay position.
+2. The server can send a signed challenge to verify the webhook before accepting
+   the subscription. After verification, it returns the subscription ID,
+   `refreshBefore`, `cursor`, and `truncated`.
+3. As events occur, the server sends signed POST requests to the webhook. The
+   webhook verifies each signature, handles the event, and acknowledges delivery.
+4. The client renews the subscription before `refreshBefore` by sending
+   `events/subscribe` with the same identity, or stops it with `events/unsubscribe`.
+   Subscriptions with a finite lifetime expire if they are not renewed.
+
+Your application decides what to do with each event. Deliveries may be duplicated
+or reordered, so use the subscription ID and event ID to deduplicate processing.
+
+## Using MCP Events
+
+Create an MCP client with `createMCPClient` and manage subscriptions through
+`client.experimental_events`. The following methods are experimental:
+
+| Method                                                                                    | Description                                                                           |
+| ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| [`list()`](/docs/reference/ai-sdk-core/mcp-events#listing-events)                         | List event names, schemas, and delivery modes with `events/list`.                     |
+| [`subscribe(options)`](/docs/reference/ai-sdk-core/mcp-events#subscribing-to-events)      | Save the signing secret, send `events/subscribe`, and return the subscription result. |
+| [`refresh({ id })`](/docs/reference/ai-sdk-core/mcp-events#refreshing-a-subscription)     | Renew an existing subscription with `events/subscribe`.                               |
+| [`unsubscribe({ id })`](/docs/reference/ai-sdk-core/mcp-events#unsubscribing-from-events) | Send `events/unsubscribe` and remove the saved subscription after success.            |
+
+Refresh reuses the saved callback URL, arguments, signing secret, and latest
+cursor. Your application schedules renewal before `refreshBefore`.
+
+To receive events, use
+[`experimental_createMCPEventWebhook({ store, onEvent })`](/docs/reference/ai-sdk-core/mcp-events#webhook-handler)
+as your webhook handler. It handles signed verification challenges, verifies
+incoming event signatures, and passes each event directly to your `onEvent`
+callback.
+
+## Connect the webhook and client
+
+Both use an application-provided `eventStore` implementing
+[`Experimental_MCPEventStore`](/docs/reference/ai-sdk-core/mcp-events#event-store). This is an AI SDK storage adapter, not an MCP
+protocol primitive. It privately persists subscription identities, callback URLs,
+signing secrets, and cursors so both sides can access them. See the
+[file-store example](https://github.com/vercel/ai/blob/main/examples/mcp/src/events/event-store.ts)
+for the five methods: `get`, `getById`, `set`, `update`, and `delete`. Use shared
+durable storage scoped to one MCP server and authenticated principal;
+`update` must atomically merge the supplied fields.
+
+**First, expose the webhook route.** It must be reachable before subscribing.
+
+```ts filename="app/api/mcp-events/route.ts"
+import { experimental_createMCPEventWebhook } from '@ai-sdk/mcp';
+import { eventStore } from '@/lib/event-store';
+
+export const POST = experimental_createMCPEventWebhook({
+  store: eventStore,
+  async onEvent({ subscription, event }) {
+    console.log(subscription.id, event.name, event.data);
+  },
+  async onGap({ subscription, gap }) {
+    // Some events cannot be replayed; reconcile state or notify the agent.
+    console.log('Replay gap:', subscription.id, gap.cursor, gap.truncated);
+  },
+  async onTerminated({ subscription, termination }) {
+    // The server ended the subscription; notify the agent of the reason.
+    console.log('Subscription terminated:', subscription.id, termination.error);
+  },
+});
+```
+
+The helper verifies signatures and echoes challenges automatically. It invokes
+`onEvent` without exposing the secret, then returns `204` after successful
+processing. Processing failures return `503` so the server can retry. In your
+app, resolve `onEvent` only after processing or durably accepting the event.
+
+Two optional callbacks handle signed subscription lifecycle messages:
+
+- `onGap({ subscription, messageId, gap })`: some events are no longer available
+  for replay. Reconcile application state or notify the agent. After the callback
+  succeeds, the helper saves `gap.cursor` and `truncated: true`; the subscription
+  stays active and event delivery continues.
+- `onTerminated({ subscription, messageId, termination })`: the server has ended
+  the subscription. Inspect `termination.error` for the reason and notify the
+  agent. After the callback succeeds, the helper removes the saved subscription.
+
+State updates also occur when the corresponding callback is omitted. Callback or
+storage failures return `503` for retry. Resolve callbacks only after processing
+or durable acceptance, and deduplicate by subscription ID and `messageId` (the
+signed `webhook-id`). The helper does not run or notify an agent automatically.
+
+**Then subscribe using the same store.**
+
+```ts
+import { createMCPClient } from '@ai-sdk/mcp';
+import { eventStore } from '@/lib/event-store';
+
+const client = await createMCPClient({
+  transport: { type: 'http', url: 'https://service.example/mcp' },
+  experimental_events: { store: eventStore },
+});
+
+try {
+  const { events } = await client.experimental_events.list();
+  console.log(events.map(event => event.name));
+
+  const subscription = await client.experimental_events.subscribe({
+    name: 'comment.created',
+    arguments: { document_id: 'doc_123' },
+    delivery: {
+      mode: 'webhook',
+      url: 'https://my-app.example/api/mcp-events',
+    },
+    ttlMs: 60 * 60 * 1000,
+  });
+
+  // Save the ID and schedule renewal before the server's granted deadline.
+  console.log(subscription.id, subscription.refreshBefore);
+} finally {
+  await client.close(); // Webhook delivery continues until unsubscribe or expiry.
+}
+```
+
+Before sending the subscription request, the SDK generates and saves
+`delivery.secret`. It appends a `mcp_event_subscription` query parameter to the
+callback URL so the webhook can find that secret even while verification is
+pending. Preserve this parameter and pass the raw request body to the handler.
+
+## Runnable example
+
+The [local example](https://github.com/vercel/ai/tree/main/examples/mcp/src/events)
+uses `@modelcontextprotocol/server` to emit a comment and the AI SDK to subscribe,
+verify, and receive it. It needs no model API key. Local HTTP callbacks require
+`delivery.allowInsecureLocalhost: true`; production callbacks use HTTPS.
+
+## API Reference
+
+- [Event discovery and subscription methods](/docs/reference/ai-sdk-core/mcp-events)
+- [Webhook handler](/docs/reference/ai-sdk-core/mcp-events#webhook-handler)
+- [Event types and store interface](/docs/reference/ai-sdk-core/mcp-events#event-types)
