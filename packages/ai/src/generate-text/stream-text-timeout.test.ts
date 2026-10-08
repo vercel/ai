@@ -462,84 +462,6 @@ describe('streamText model output timeout boundaries', () => {
     },
   ];
 
-  it('should exclude pending doStream from firstChunkMs', async () => {
-    let signal: AbortSignal | undefined;
-    const result = streamText({
-      model: new MockLanguageModelV4({
-        doStream: async ({ abortSignal }) => {
-          signal = abortSignal;
-          await delay(200, { abortSignal });
-          return { stream: convertArrayToReadableStream(textChunks) };
-        },
-      }),
-      prompt: 'test',
-      timeout: { firstChunkMs: 50 },
-      onError: () => {},
-    });
-    const consuming = result.consumeStream();
-
-    await vi.advanceTimersByTimeAsync(100);
-    expect(signal?.aborted).toBe(false);
-    await vi.advanceTimersByTimeAsync(200);
-    await consuming;
-    expect(signal?.aborted).toBe(false);
-    expect(await result.text).toBe('Hello');
-  });
-
-  it('should start firstChunkMs after doStream returns', async () => {
-    let signal: AbortSignal | undefined;
-    const result = streamText({
-      model: new MockLanguageModelV4({
-        doStream: async ({ abortSignal }) => {
-          signal = abortSignal;
-          await delay(30, { abortSignal });
-          return {
-            stream: new ReadableStream<LanguageModelV4StreamPart>({
-              async start(controller) {
-                await delay(60, { abortSignal });
-                for (const chunk of textChunks) controller.enqueue(chunk);
-                controller.close();
-              },
-            }),
-          };
-        },
-      }),
-      prompt: 'test',
-      timeout: { firstChunkMs: 50 },
-      onError: () => {},
-    });
-    const consuming = result.consumeStream();
-
-    await vi.advanceTimersByTimeAsync(60);
-    expect(signal?.aborted).toBe(false);
-    await vi.advanceTimersByTimeAsync(40);
-    expect(signal?.reason.message).toBe('First chunk timeout of 50ms exceeded');
-    await consuming;
-  });
-
-  it('should start firstChunkMs after step preparation', async () => {
-    let signal: AbortSignal | undefined;
-    const result = streamText({
-      model: new MockLanguageModelV4({
-        doStream: async ({ abortSignal }) => {
-          signal = abortSignal;
-          return { stream: convertArrayToReadableStream(textChunks) };
-        },
-      }),
-      prepareStep: async () => {
-        await delay(100);
-        return {};
-      },
-      prompt: 'test',
-      timeout: { firstChunkMs: 50 },
-    });
-    const consuming = result.consumeStream();
-    await vi.advanceTimersByTimeAsync(200);
-    await consuming;
-    expect(signal?.aborted).toBe(false);
-    expect(await result.text).toBe('Hello');
-  });
-
   for (const streamRetries of [0, 1]) {
     it(`should clear chunkMs before a long streaming tool (streamRetries: ${streamRetries})`, async () => {
       let signal: AbortSignal | undefined;
@@ -687,7 +609,7 @@ describe('streamText model output timeout boundaries', () => {
     });
   }
 
-  for (const retryKind of ['request', 'stream', 'callback'] as const) {
+  for (const retryKind of ['stream', 'callback'] as const) {
     it(`should give a ${retryKind} retry a fresh firstChunkMs budget`, async () => {
       let attempts = 0;
       let signal: AbortSignal | undefined;
@@ -697,17 +619,6 @@ describe('streamText model output timeout boundaries', () => {
             signal = abortSignal;
             attempts++;
             if (attempts === 1) {
-              if (retryKind === 'request') {
-                await delay(40, { abortSignal });
-                throw new APICallError({
-                  message: 'retryable error',
-                  url: 'https://example.com',
-                  requestBodyValues: {},
-                  statusCode: 429,
-                  responseHeaders: { 'retry-after-ms': '100' },
-                  isRetryable: true,
-                });
-              }
               return {
                 stream: new ReadableStream<LanguageModelV4StreamPart>({
                   async start(controller) {
@@ -721,12 +632,18 @@ describe('streamText model output timeout boundaries', () => {
                 }),
               };
             }
-            await delay(40, { abortSignal });
-            return { stream: convertArrayToReadableStream(textChunks) };
+            return {
+              stream: new ReadableStream<LanguageModelV4StreamPart>({
+                async start(controller) {
+                  await delay(40, { abortSignal });
+                  for (const chunk of textChunks) controller.enqueue(chunk);
+                  controller.close();
+                },
+              }),
+            };
           },
         }),
         prompt: 'test',
-        maxRetries: 1,
         streamRetries: retryKind === 'stream' ? 1 : 0,
         timeout: { firstChunkMs: 50, chunkMs: 50 },
         onError: () => (retryKind === 'callback' ? { retry: true } : undefined),

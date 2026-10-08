@@ -353,20 +353,18 @@ export async function streamLanguageModelCall<
     request,
   } = await executeLanguageModelCallInTelemetryContext({
     ...languageModelCallStartEvent,
-    execute: async () => {
-      const responseFormat = await output?.responseFormat;
-      return await resolvedModel.doStream({
+    execute: async () =>
+      await resolvedModel.doStream({
         ...callSettings,
         tools: stepTools,
         toolChoice: stepToolChoice,
-        responseFormat,
+        responseFormat: await output?.responseFormat,
         prompt: promptMessages,
         providerOptions,
         abortSignal,
         headers,
         includeRawChunks,
-      });
-    },
+      }),
   });
 
   const standardizedStream = languageModelStream.pipeThrough(

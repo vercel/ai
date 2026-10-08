@@ -143,7 +143,7 @@ You can specify the timeout either as a number (milliseconds) or as an object wi
 
 - `totalMs`: The total timeout for the entire call including all steps.
 - `stepMs`: The timeout for each complete step, including model generation, retries, and local tool execution. The budget is cumulative across provider attempts within the step.
-- `firstChunkMs`: The timeout from a provider streaming attempt returning its stream until its first meaningful model output, excluding request setup (streaming only). Text deltas, reasoning deltas, tool-input deltas, generated files, and tool calls satisfy the timeout. Response metadata, stream starts, empty deltas, raw chunks, and transport activity do not satisfy or reset it.
+- `firstChunkMs`: The timeout until the first content-bearing output of each step (streaming only). Text deltas, reasoning deltas, tool-input deltas, generated files, and tool calls satisfy the timeout. Response metadata, stream starts, empty deltas, raw chunks, and transport activity do not satisfy or reset it.
 - `chunkMs`: The timeout between meaningful model output chunks after output has started (streaming only). It starts with the first meaningful output; it does not limit the wait for that first output. Non-content chunks do not reset it. This is useful for detecting streams that stall after generation begins.
 - `toolMs`: The default timeout for all tool executions. If a tool takes longer, it aborts and returns a tool-error so the model can respond or retry.
 - `tools`: Per-tool timeout overrides using `{toolName}Ms` keys (e.g. `weatherMs`, `slowApiMs`). Takes precedence over `toolMs`. Tool names are type-checked for autocomplete.
@@ -210,7 +210,7 @@ const result = streamText({
   model: __MODEL__,
   prompt: 'Invent a new holiday and describe its traditions.',
   timeout: {
-    firstChunkMs: 10000, // 10 seconds from receiving the provider stream to first model output
+    firstChunkMs: 10000, // 10 seconds for first content in each step
   },
 });
 ```

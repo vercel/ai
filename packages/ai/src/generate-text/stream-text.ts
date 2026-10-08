@@ -2242,8 +2242,8 @@ class DefaultStreamTextResult<
           timeoutMs: stepTimeoutMs,
         });
 
-        // Each provider attempt gets a fresh first-content timeout after its
-        // stream is returned. Request setup is outside this budget.
+        // The first-content timeout is armed when the provider response stream
+        // starts and is cleared by the first semantic output chunk.
         let firstChunkTimeoutId: ReturnType<typeof setTimeout> | undefined =
           undefined;
 
@@ -2435,7 +2435,7 @@ class DefaultStreamTextResult<
 
           const callLanguageModel = () =>
             runInStepTracingChannelContext(() =>
-              retry(() =>
+              retry(async () =>
                 streamLanguageModelCall({
                   model: prepareStepResult?.model ?? model,
                   tools: stepModelTools as TOOLS,
@@ -2504,10 +2504,6 @@ class DefaultStreamTextResult<
                     now,
                   },
                   ...stepCallSettings,
-                }).then(result => {
-                  clearModelOutputTimeouts();
-                  startFirstChunkTimeout();
-                  return result;
                 }),
               ),
             );
@@ -2700,6 +2696,7 @@ class DefaultStreamTextResult<
                 response = retryLanguageModelCall.response;
                 languageModelStreamReader =
                   retryLanguageModelCall.stream.getReader();
+                startFirstChunkTimeout();
                 enqueueStreamRetryAttemptBoundary = true;
               }
             },
@@ -2708,6 +2705,8 @@ class DefaultStreamTextResult<
               return languageModelStreamReader.cancel(reason);
             },
           });
+
+          startFirstChunkTimeout();
 
           const streamAfterToolCallbackInvocation =
             invokeToolCallbacksFromStream({
