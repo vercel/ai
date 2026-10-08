@@ -744,6 +744,14 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
   };
 
+  /**
+   * Stops active work and releases resources owned by the chat transport.
+   */
+  dispose = async (): Promise<void> => {
+    await this.stop();
+    this.transport.close?.();
+  };
+
   private async shouldSendAutomatically(): Promise<boolean> {
     if (!this.sendAutomaticallyWhen) return false;
 
@@ -1041,6 +1049,8 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         stream: processUIMessageStream({
           stream,
           resetStateOnMessageIdChange: trigger === 'resume-stream',
+          resetStateOnFirstMessageStart:
+            trigger === 'resume-stream' && this.transport.resumeStreamIsReplay,
           onToolCall: this.onToolCall,
           onData: this.onData,
           messageMetadataSchema: this.messageMetadataSchema,
