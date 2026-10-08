@@ -854,10 +854,8 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       responseMessageIndex === -1
         ? lastMessage
         : this.state.messages[responseMessageIndex];
-    // the continued stream can start with either
-    // 1) input deltas
-    // 2) or the result of an answered tool approval request
-    // Keep the tool part so in case 2, those chunks can find their tool call
+    // The continued stream can start with input deltas or a tool result.
+    // Keep unfinished tool parts so result chunks can find their tool call.
     const resumableResponseMessage =
       trigger === 'resume-stream' &&
       responseMessage?.role === 'assistant' &&
@@ -865,6 +863,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         part =>
           isToolUIPart(part) &&
           (part.state === 'input-streaming' ||
+            (part.state === 'input-available' && part.providerExecuted) ||
             part.state === 'approval-responded'),
       )
         ? this.state.snapshot(responseMessage)
