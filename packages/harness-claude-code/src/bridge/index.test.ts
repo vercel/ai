@@ -236,7 +236,7 @@ describe('Claude Code bridge configuration', () => {
   });
 
   test.each(['hook-first', 'boundary-first'] as const)(
-    'issue 22292 captures a compaction-only turn (%s)',
+    'closes a compaction-only turn when the %s event arrives first',
     async order => {
       state.start = { ...state.start, prompt: '/compact' };
       state.requestToolResult = vi.fn(async () => ({ output: {} }));
@@ -279,14 +279,183 @@ describe('Claude Code bridge configuration', () => {
         },
       ]);
       expect(state.requestToolResult).not.toHaveBeenCalled();
-      console.log(
-        `ISSUE_22292_EVENTS:${JSON.stringify({
-          order,
-          events: state.emitted,
-        })}`,
-      );
+      expect(state.emitted.map(event => event.type)).toEqual([
+        'stream-start',
+        'compaction',
+        'finish-step',
+        'finish',
+      ]);
+      expect(
+        state.emitted.find(event => event.type === 'finish-step'),
+      ).toMatchObject({
+        usage: {
+          inputTokens: {
+            total: 0,
+            noCache: 0,
+            cacheRead: 0,
+            cacheWrite: 0,
+          },
+          outputTokens: { total: 0, text: 0 },
+        },
+      });
+      expect(
+        state.emitted.find(event => event.type === 'finish'),
+      ).toMatchObject({
+        totalUsage: {
+          inputTokens: {
+            total: 30,
+            noCache: 30,
+            cacheRead: 0,
+            cacheWrite: 0,
+          },
+          outputTokens: { total: 5, text: 5 },
+        },
+      });
     },
   );
+
+  test('leaves compaction inside an open model step for that step to close', async () => {
+    state.createQuery = args =>
+      (async function* () {
+        const hooks = args.options.hooks as {
+          PostCompact: {
+            hooks: ((input: unknown) => Promise<unknown>)[];
+          }[];
+        };
+        yield {
+          type: 'assistant',
+          message: {
+            content: [{ type: 'text', text: 'Before compaction' }],
+            usage: { input_tokens: 10, output_tokens: 2 },
+          },
+        };
+        await hooks.PostCompact[0]!.hooks[0]!({
+          compact_summary: 'Compacted context',
+        });
+        yield {
+          type: 'system',
+          subtype: 'compact_boundary',
+          compact_metadata: { trigger: 'auto', pre_tokens: 1234 },
+        };
+        yield {
+          type: 'result',
+          subtype: 'success',
+          result: 'done',
+          usage: { input_tokens: 30, output_tokens: 5 },
+        };
+      })();
+
+    await import('./index');
+
+    expect(state.emitted.map(event => event.type)).toEqual([
+      'stream-start',
+      'compaction',
+      'finish-step',
+      'finish',
+    ]);
+    expect(
+      state.emitted.find(event => event.type === 'finish-step'),
+    ).toMatchObject({
+      usage: {
+        inputTokens: {
+          total: 10,
+          noCache: 10,
+          cacheRead: 0,
+          cacheWrite: 0,
+        },
+        outputTokens: { total: 2, text: 2 },
+      },
+    });
+  });
+
+  test('closes compaction after a completed model step in a separate step', async () => {
+    state.createQuery = args =>
+      (async function* () {
+        const hooks = args.options.hooks as {
+          PostCompact: {
+            hooks: ((input: unknown) => Promise<unknown>)[];
+          }[];
+        };
+        yield {
+          type: 'assistant',
+          message: {
+            content: [
+              {
+                type: 'tool_use',
+                id: 'bash-1',
+                name: 'Bash',
+                input: { command: 'pwd' },
+              },
+            ],
+            usage: { input_tokens: 10, output_tokens: 2 },
+          },
+        };
+        yield {
+          type: 'user',
+          message: {
+            content: [
+              {
+                type: 'tool_result',
+                tool_use_id: 'bash-1',
+                content: '/tmp',
+              },
+            ],
+          },
+        };
+        yield {
+          type: 'system',
+          subtype: 'compact_boundary',
+          compact_metadata: { trigger: 'auto', pre_tokens: 1234 },
+        };
+        await hooks.PostCompact[0]!.hooks[0]!({
+          compact_summary: 'Compacted context',
+        });
+        yield {
+          type: 'result',
+          subtype: 'success',
+          result: 'done',
+          usage: { input_tokens: 30, output_tokens: 5 },
+        };
+      })();
+
+    await import('./index');
+
+    expect(state.emitted.map(event => event.type)).toEqual([
+      'stream-start',
+      'tool-call',
+      'tool-result',
+      'finish-step',
+      'compaction',
+      'finish-step',
+      'finish',
+    ]);
+    const finishSteps = state.emitted.filter(
+      event => event.type === 'finish-step',
+    );
+    expect(finishSteps).toHaveLength(2);
+    expect(finishSteps[0]).toMatchObject({
+      usage: {
+        inputTokens: {
+          total: 10,
+          noCache: 10,
+          cacheRead: 0,
+          cacheWrite: 0,
+        },
+        outputTokens: { total: 2, text: 2 },
+      },
+    });
+    expect(finishSteps[1]).toMatchObject({
+      usage: {
+        inputTokens: {
+          total: 0,
+          noCache: 0,
+          cacheRead: 0,
+          cacheWrite: 0,
+        },
+        outputTokens: { total: 0, text: 0 },
+      },
+    });
+  });
 
   test('merges the configured environment', async () => {
     process.env.CLAUDE_CODE_BRIDGE_INHERITED_TEST = 'inherited';
