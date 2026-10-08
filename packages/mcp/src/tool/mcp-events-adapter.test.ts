@@ -5,7 +5,7 @@ import {
   type MCPClientConfig,
 } from './mcp-client';
 import type {
-  MCPEventsAdapter,
+  ManagedMCPEventOperations,
   ManagedSubscription,
 } from './mcp-events-adapter';
 import { MockMCPTransport } from './mock-mcp-transport';
@@ -28,26 +28,26 @@ describe('managed MCP events', () => {
     };
     const page = { subscriptions: [subscription], nextCursor: 'page_2' };
     const adapter = {
-      subscribe: vi.fn<MCPEventsAdapter['subscribe']>(
-        async function (this: MCPEventsAdapter) {
+      subscribe: vi.fn<ManagedMCPEventOperations['subscribe']>(
+        async function (this: ManagedMCPEventOperations) {
           expect(this).toBe(adapter);
           return subscription;
         },
       ),
-      getSubscription: vi.fn<MCPEventsAdapter['getSubscription']>(
-        async function (this: MCPEventsAdapter) {
+      getSubscription: vi.fn<ManagedMCPEventOperations['getSubscription']>(
+        async function (this: ManagedMCPEventOperations) {
           expect(this).toBe(adapter);
           return subscription;
         },
       ),
-      listSubscriptions: vi.fn<MCPEventsAdapter['listSubscriptions']>(
-        async function (this: MCPEventsAdapter) {
+      listSubscriptions: vi.fn<ManagedMCPEventOperations['listSubscriptions']>(
+        async function (this: ManagedMCPEventOperations) {
           expect(this).toBe(adapter);
           return page;
         },
       ),
-      unsubscribe: vi.fn<MCPEventsAdapter['unsubscribe']>(
-        async function (this: MCPEventsAdapter) {
+      unsubscribe: vi.fn<ManagedMCPEventOperations['unsubscribe']>(
+        async function (this: ManagedMCPEventOperations) {
           expect(this).toBe(adapter);
           return {
             ...subscription,

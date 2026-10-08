@@ -39,7 +39,7 @@ export type ManagedSubscribeInput = {
  * Implementations must honor request options and preserve actionable errors.
  * Cancelling a request does not cancel an already accepted remote subscription.
  */
-export interface MCPEventsAdapter {
+export interface ManagedMCPEventOperations {
   subscribe(input: ManagedSubscribeInput): Promise<ManagedSubscription>;
 
   getSubscription(input: {
@@ -64,28 +64,30 @@ export interface MCPEventsAdapter {
 }
 
 /**
- * Creates an adapter once per client, before the transport starts.
+ * Creates bound subscription operations once per client, before the transport starts.
  * The URL is the configured HTTP/SSE endpoint, not a resolved redirect target.
  * Custom transports have no standard URL and receive undefined.
  */
-export interface MCPEventsAdapterProvider {
-  createAdapter(context: { url: string | undefined }): MCPEventsAdapter;
+export interface MCPEventsAdapter {
+  createAdapter(context: {
+    url: string | undefined;
+  }): ManagedMCPEventOperations;
 }
 
 /** Catalog discovery uses MCP; all subscription operations use the adapter. */
-export interface ManagedMCPEvents extends MCPEventsAdapter {
+export interface ManagedMCPEvents extends ManagedMCPEventOperations {
   list: MCPEvents['list'];
 }
 
 export function createManagedMCPEvents(
-  adapter: MCPEventsAdapter,
+  operations: ManagedMCPEventOperations,
   list: MCPEvents['list'],
 ): ManagedMCPEvents {
   return {
     list,
-    subscribe: input => adapter.subscribe(input),
-    getSubscription: input => adapter.getSubscription(input),
-    listSubscriptions: input => adapter.listSubscriptions(input),
-    unsubscribe: input => adapter.unsubscribe(input),
+    subscribe: input => operations.subscribe(input),
+    getSubscription: input => operations.getSubscription(input),
+    listSubscriptions: input => operations.listSubscriptions(input),
+    unsubscribe: input => operations.unsubscribe(input),
   };
 }

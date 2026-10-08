@@ -5,15 +5,15 @@ import {
   type MCPClientConfig,
 } from './mcp-client';
 import type {
+  ManagedMCPEventOperations,
   MCPEventsAdapter,
-  MCPEventsAdapterProvider,
   ManagedSubscription,
 } from './mcp-events-adapter';
 import * as transports from './mcp-transport';
 import { MockMCPTransport } from './mock-mcp-transport';
 import { MemoryEventStore } from './__fixtures__/mcp-events';
 
-function createAdapter(): MCPEventsAdapter {
+function createOperations(): ManagedMCPEventOperations {
   const subscription: ManagedSubscription = {
     id: 'managed_1',
     name: 'comment.created',
@@ -39,7 +39,7 @@ const input = {
   idempotencyKey: 'intent_1',
 };
 
-describe('managed MCP event adapter providers', () => {
+describe('managed MCP event adapter creation', () => {
   const clients: ManagedMCPClient[] = [];
   afterEach(async () => {
     await Promise.all(clients.splice(0).map(client => client.close()));
@@ -52,10 +52,10 @@ describe('managed MCP event adapter providers', () => {
       const transport = new MockMCPTransport();
       const start = vi.spyOn(transport, 'start');
       vi.spyOn(transports, 'createMcpTransport').mockReturnValue(transport);
-      const adapter = createAdapter();
-      const provider: MCPEventsAdapterProvider = {
-        createAdapter: vi.fn(function (this: MCPEventsAdapterProvider) {
-          expect(this).toBe(provider);
+      const adapter = createOperations();
+      const integration: MCPEventsAdapter = {
+        createAdapter: vi.fn(function (this: MCPEventsAdapter) {
+          expect(this).toBe(integration);
           expect(start).not.toHaveBeenCalled();
           return adapter;
         }),
@@ -63,10 +63,12 @@ describe('managed MCP event adapter providers', () => {
       const url = 'https://example.com/tenant/mcp?region=west';
       const client = await createMCPClient({
         transport: { type, url, headers: { Authorization: 'Bearer test' } },
-        experimental_events: { adapter: provider },
+        experimental_events: { adapter: integration },
       });
       clients.push(client);
-      expect(provider.createAdapter).toHaveBeenCalledExactlyOnceWith({ url });
+      expect(integration.createAdapter).toHaveBeenCalledExactlyOnceWith({
+        url,
+      });
       await client.experimental_events.subscribe(input);
       await client.experimental_events.getSubscription({ id: 'managed_1' });
       await client.experimental_events.listSubscriptions();
@@ -81,14 +83,14 @@ describe('managed MCP event adapter providers', () => {
       expect(adapter.unsubscribe).toHaveBeenCalledExactlyOnceWith({
         id: 'managed_1',
       });
-      expect(provider.createAdapter).toHaveBeenCalledOnce();
+      expect(integration.createAdapter).toHaveBeenCalledOnce();
     },
   );
 
   it.each([undefined, 'metadata'])(
-    'rejects a bound adapter with createAdapter=%s before transport startup',
+    'rejects bound operations with createAdapter=%s before transport startup',
     async createAdapterMember => {
-      const adapter = Object.assign(createAdapter(), {
+      const adapter = Object.assign(createOperations(), {
         createAdapter: createAdapterMember,
       });
       const transport = new MockMCPTransport();
@@ -98,48 +100,51 @@ describe('managed MCP event adapter providers', () => {
           transport,
           experimental_events: { adapter },
         } as unknown as MCPClientConfig),
-      ).rejects.toThrow('must be a provider with a createAdapter method');
+      ).rejects.toThrow('must implement createAdapter');
       expect(start).not.toHaveBeenCalled();
       expect(adapter.subscribe).not.toHaveBeenCalled();
     },
   );
 
-  it('always invokes the provider even if it also exposes lifecycle methods', async () => {
-    const bound = createAdapter();
-    const provider = { ...createAdapter(), createAdapter: vi.fn(() => bound) };
+  it('always invokes createAdapter even if the integration also exposes lifecycle methods', async () => {
+    const bound = createOperations();
+    const adapter = {
+      ...createOperations(),
+      createAdapter: vi.fn(() => bound),
+    };
     const client = await createMCPClient({
       transport: new MockMCPTransport(),
-      experimental_events: { adapter: provider },
+      experimental_events: { adapter },
     });
     clients.push(client);
     await client.experimental_events.subscribe(input);
-    expect(provider.createAdapter).toHaveBeenCalledOnce();
+    expect(adapter.createAdapter).toHaveBeenCalledOnce();
     expect(bound.subscribe).toHaveBeenCalledExactlyOnceWith(input);
-    expect(provider.subscribe).not.toHaveBeenCalled();
+    expect(adapter.subscribe).not.toHaveBeenCalled();
   });
 
   it('does not infer a URL from arbitrary custom transport properties', async () => {
     const transport = Object.assign(new MockMCPTransport(), {
       url: 'https://not-a-standard-property.example',
     });
-    const provider = { createAdapter: vi.fn(createAdapter) };
+    const adapter = { createAdapter: vi.fn(createOperations) };
     const client = await createMCPClient({
       transport,
-      experimental_events: { adapter: provider },
+      experimental_events: { adapter },
     });
     clients.push(client);
-    expect(provider.createAdapter).toHaveBeenCalledExactlyOnceWith({
+    expect(adapter.createAdapter).toHaveBeenCalledExactlyOnceWith({
       url: undefined,
     });
     await client.experimental_events.subscribe(input);
   });
 
-  it('creates a separate adapter for each client when a provider is reused', async () => {
+  it('creates separate bound operations for each client when an adapter is reused', async () => {
     vi.spyOn(transports, 'createMcpTransport').mockImplementation(
       () => new MockMCPTransport(),
     );
-    const adapters = [createAdapter(), createAdapter()];
-    const provider = {
+    const adapters = [createOperations(), createOperations()];
+    const adapter = {
       createAdapter: vi
         .fn()
         .mockReturnValueOnce(adapters[0])
@@ -152,7 +157,7 @@ describe('managed MCP event adapter providers', () => {
       clients.push(
         await createMCPClient({
           transport: { type: 'http', url },
-          experimental_events: { adapter: provider },
+          experimental_events: { adapter },
         }),
       );
     }
@@ -161,7 +166,7 @@ describe('managed MCP event adapter providers', () => {
       ...input,
       idempotencyKey: 'intent_2',
     });
-    expect(provider.createAdapter.mock.calls).toEqual([
+    expect(adapter.createAdapter.mock.calls).toEqual([
       [{ url: 'https://first.example/mcp' }],
       [{ url: 'https://second.example/mcp' }],
     ]);
@@ -172,13 +177,13 @@ describe('managed MCP event adapter providers', () => {
     });
   });
 
-  it('preserves provider errors without starting or modifying the transport', async () => {
+  it('preserves adapter errors without starting or modifying the transport', async () => {
     const transport = new MockMCPTransport();
     const start = vi.spyOn(transport, 'start');
     const onmessage = vi.fn();
     transport.onmessage = onmessage;
     const error = new Error('Missing endpoint configuration');
-    const provider = {
+    const adapter = {
       createAdapter() {
         throw error;
       },
@@ -186,7 +191,7 @@ describe('managed MCP event adapter providers', () => {
     await expect(
       createMCPClient({
         transport,
-        experimental_events: { adapter: provider },
+        experimental_events: { adapter },
       }),
     ).rejects.toBe(error);
     expect(start).not.toHaveBeenCalled();
@@ -194,18 +199,18 @@ describe('managed MCP event adapter providers', () => {
   });
 
   it.each([{ store: new MemoryEventStore() }, { validateArguments: () => {} }])(
-    'rejects mixed configuration before invoking the provider: %j',
+    'rejects mixed configuration before invoking the adapter: %j',
     async direct => {
       const transport = new MockMCPTransport();
       const start = vi.spyOn(transport, 'start');
-      const provider = { createAdapter: vi.fn(createAdapter) };
+      const adapter = { createAdapter: vi.fn(createOperations) };
       await expect(
         createMCPClient({
           transport,
-          experimental_events: { adapter: provider, ...direct },
+          experimental_events: { adapter, ...direct },
         } as unknown as MCPClientConfig),
       ).rejects.toThrow('either an adapter or a store');
-      expect(provider.createAdapter).not.toHaveBeenCalled();
+      expect(adapter.createAdapter).not.toHaveBeenCalled();
       expect(start).not.toHaveBeenCalled();
     },
   );

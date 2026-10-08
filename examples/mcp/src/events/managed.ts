@@ -1,15 +1,15 @@
 import {
   createMCPClient,
   type MCPClientConfig,
+  type Experimental_ManagedMCPEventOperations as ManagedMCPEventOperations,
   type Experimental_MCPEventsAdapter as MCPEventsAdapter,
-  type Experimental_MCPEventsAdapterProvider as MCPEventsAdapterProvider,
   type Experimental_ManagedSubscribeInput as ManagedSubscribeInput,
 } from '@ai-sdk/mcp';
 
 /**
  * Integrate a managed backend without an AI SDK event store.
  * The caller persists its authorized creation intent and supplies a backend
- * adapter provider bound to the same account as the authenticated MCP transport.
+ * adapter bound to the same account as the authenticated MCP transport.
  * The backend provisions the webhook and owns delivery, renewal and cleanup.
  */
 export async function createManagedWatch({
@@ -18,7 +18,7 @@ export async function createManagedWatch({
   input,
 }: {
   transport: MCPClientConfig['transport'];
-  adapter: MCPEventsAdapterProvider;
+  adapter: MCPEventsAdapter;
   input: ManagedSubscribeInput;
 }) {
   const client = await createMCPClient({
@@ -37,17 +37,19 @@ export async function createManagedWatch({
 }
 
 /**
- * A backend integration can expose a provider so callers configure the MCP URL
+ * A backend integration can expose an adapter so callers configure the MCP URL
  * only on the transport. An explicit backend override takes precedence.
  * Backend implementations must authorize the endpoint before sending credentials.
  */
-export function createManagedEventsProvider({
+export function createManagedEventsAdapter({
   createAdapter,
   mcpUrl,
 }: {
-  createAdapter: (config: { mcpUrl: string | undefined }) => MCPEventsAdapter;
+  createAdapter: (config: {
+    mcpUrl: string | undefined;
+  }) => ManagedMCPEventOperations;
   mcpUrl?: string;
-}): MCPEventsAdapterProvider {
+}): MCPEventsAdapter {
   return {
     createAdapter({ url }) {
       return createAdapter({ mcpUrl: mcpUrl ?? url });

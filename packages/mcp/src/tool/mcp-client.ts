@@ -17,7 +17,7 @@ import { createMCPEvents } from './mcp-events';
 import {
   createManagedMCPEvents,
   type ManagedMCPEvents,
-  type MCPEventsAdapterProvider,
+  type MCPEventsAdapter,
 } from './mcp-events-adapter';
 import type { MCPEvents, MCPEventsConfig } from './mcp-event-types';
 import { MCPClientError } from '../error/mcp-client-error';
@@ -302,7 +302,7 @@ export type ManagedMCPClient = Omit<MCPClient, 'experimental_events'> & {
 export function createMCPClient(
   config: MCPClientConfig & {
     experimental_events: {
-      adapter: MCPEventsAdapterProvider;
+      adapter: MCPEventsAdapter;
     };
   },
 ): Promise<ManagedMCPClient>;
@@ -494,10 +494,10 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
     ) {
       throw new MCPClientError({
         message:
-          'experimental_events.adapter must be a provider with a createAdapter method. Wrap a bound adapter with { createAdapter: () => adapter }.',
+          'experimental_events.adapter must implement createAdapter. Wrap bound operations with { createAdapter: () => operations }.',
       });
     }
-    const adapter = events?.adapter?.createAdapter({
+    const operations = events?.adapter?.createAdapter({
       url: isCustomMcpTransport(transportConfig)
         ? undefined
         : transportConfig.url,
@@ -544,8 +544,8 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
       store: events?.store,
       validateArguments: events?.validateArguments,
     });
-    this.experimental_events = adapter
-      ? createManagedMCPEvents(adapter, directEvents.list)
+    this.experimental_events = operations
+      ? createManagedMCPEvents(operations, directEvents.list)
       : directEvents;
   }
 
