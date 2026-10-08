@@ -230,6 +230,11 @@ const harness = createPi({
 An incoming completed `resume-session` state always takes precedence over an
 older live suspended turn in the process.
 
+The lifecycle state carries the Pi session itself, its header followed by its
+entries. Nothing about the session is stored in the sandbox, so restoring a
+session reads no sandbox files. A state recorded before this format restores as
+a fresh session.
+
 ## Authentication
 
 The `auth` setting selects which credentials Pi reads from the host environment:
