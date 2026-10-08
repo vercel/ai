@@ -1,5 +1,46 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.149
+
+### Patch Changes
+
+- 18c2658: fix(harness-claude-code): forward Claude rate limit events through raw stream parts
+  - @ai-sdk/harness@1.0.145
+
+## 1.0.148
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider@4.0.25
+  - @ai-sdk/provider-utils@5.0.57
+  - @ai-sdk/harness@1.0.144
+
+## 1.0.147
+
+### Patch Changes
+
+- 9d84fad: chore(harness): ensure ACP and MCP dependencies use the latest version and are aligned across adapters
+- Updated dependencies [c4a5c8d]
+- Updated dependencies [50ac48b]
+- Updated dependencies [e8af189]
+  - @ai-sdk/harness@1.0.143
+
+## 1.0.146
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.142
+
+## 1.0.145
+
+### Patch Changes
+
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/harness@1.0.141
+  - @ai-sdk/provider-utils@5.0.56
+
 ## 1.0.144
 
 ### Patch Changes

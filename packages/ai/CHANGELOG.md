@@ -1,5 +1,56 @@
 # ai
 
+## 7.0.134
+
+### Patch Changes
+
+- 8281ec4: fix(ai): propagate async sendAutomaticallyWhen failures from tool updates
+- 46c2b05: fix(ai): preserve provider-executed tool calls when resuming streams
+
+## 7.0.133
+
+### Patch Changes
+
+- 9184a35: Add ordered text, file, and JSON parts to experimental decision state. Support image input in OpenAI Decisions and language model adapters. Gateway retains its existing string and JSON request format and rejects files, as does TypeSafe AI.
+
+  Arrays passed directly as state now contain decision state parts. Wrap JSON arrays in an object or a json part.
+
+  Normalize all public state forms into an array of parts before calling decision providers. Providers receive text and JSON objects as text and json parts.
+
+  Serialize decision file bytes as base64 in OpenTelemetry state attributes. Model-call spans record normalized state parts, while outer spans retain public state inputs.
+
+  Preserve native JSON state in TypeSafe AI when state contains one JSON part. Label shared state in language-model decision prompts.
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider@4.0.25
+  - @ai-sdk/provider-utils@5.0.57
+  - @ai-sdk/gateway@4.0.108
+
+## 7.0.132
+
+### Patch Changes
+
+- 3ebefff: feat(ai): introduce 'onUIMessageStepEnd' callback to persist messages
+
+## 7.0.131
+
+### Patch Changes
+
+- Updated dependencies [866e884]
+- Updated dependencies [04fdf5e]
+  - @ai-sdk/gateway@4.0.107
+
+## 7.0.130
+
+### Patch Changes
+
+- 6f6b9c0: fix(ai): reject pending result promises and cancel the pending stream when the abort signal fires
+- d3bcad9: feat(provider): report decision refusals as refusal answers
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/gateway@4.0.106
+  - @ai-sdk/provider-utils@5.0.56
+
 ## 7.0.129
 
 ### Patch Changes

@@ -1,0 +1,797 @@
+---
+title: MCP Events
+description: Reference for experimental MCP event methods, the webhook handler, and subscription and storage types.
+---
+
+# MCP Events
+
+This page covers the experimental methods on `client.experimental_events`, the webhook
+handler, and their public types. Create the client with
+[`createMCPClient`](/docs/reference/ai-sdk-core/create-mcp-client). See the
+[MCP Events guide](/docs/ai-sdk-core/mcp-events) for the application flow.
+
+## Setup
+
+```ts
+import { createMCPClient } from '@ai-sdk/mcp';
+import { eventStore } from './event-store';
+
+const client = await createMCPClient({
+  transport: { type: 'http', url: 'https://service.example/mcp' },
+  experimental_events: { store: eventStore },
+});
+```
+
+`experimental_events` accepts [`Experimental_MCPEventsConfig`](/docs/reference/ai-sdk-core/mcp-events#client-configuration).
+In direct mode, the store is required for subscribe, refresh, and unsubscribe.
+Alternatively, configure a managed adapter as described below. Discovery works
+without configuring either mode. Mount the
+[webhook handler](/docs/reference/ai-sdk-core/mcp-events#webhook-handler) before subscribing.
+
+The methods below belong to `client.experimental_events`; they are not standalone imports.
+
+## Listing Events
+
+### `client.experimental_events.list()`
+
+Sends `events/list` and returns one catalog page.
+
+```ts
+const { events, nextCursor } = await client.experimental_events.list();
+console.log(events.map(event => event.name));
+
+if (nextCursor != null) {
+  const nextPage = await client.experimental_events.list({
+    params: { cursor: nextCursor },
+  });
+  console.log(nextPage.events);
+}
+```
+
+### Parameters
+
+The optional argument has these properties:
+
+<PropertiesTable
+  content={[
+    {
+      name: 'params',
+      type: '{ cursor?: string }',
+      description:
+        'Pagination parameters. Omit to read the first page. Pass a previous nextCursor to read the next page.',
+      isOptional: true,
+    },
+    {
+      name: 'options',
+      type: '{ signal?: AbortSignal; timeout?: number; maxTotalTimeout?: number }',
+      description:
+        'Request cancellation and timeout settings. See Request Options below.',
+      isOptional: true,
+    },
+  ]}
+/>
+
+### Returns
+
+`Promise<Experimental_ListEventsResult>`:
+
+<PropertiesTable
+  content={[
+    {
+      name: 'events',
+      type: 'Experimental_MCPEventDefinition[]',
+      description:
+        'Event definitions with name, optional description, delivery modes, inputSchema, and payloadSchema. See the event definition type reference.',
+    },
+    {
+      name: 'nextCursor',
+      type: 'string | null',
+      description:
+        'Cursor for the next catalog page. Missing or null means there is no next page.',
+      isOptional: true,
+    },
+  ]}
+/>
+
+See [`Experimental_MCPEventDefinition`](/docs/reference/ai-sdk-core/mcp-events#event-definition)
+for the definition fields. Pagination is explicit; this method does not fetch all pages.
+
+## Managed Subscriptions
+
+Configure `experimental_events: { adapter }` to delegate subscription lifecycle
+operations to a backend. The adapter implements `Experimental_MCPEventsAdapter`
+from `@ai-sdk/mcp`; it is bound to the authorized account and destination by your
+application or integration package.
+
+```ts
+import { createMCPClient } from '@ai-sdk/mcp';
+import { authenticatedTransport, eventsAdapter } from '@/lib/mcp';
+
+const client = await createMCPClient({
+  transport: authenticatedTransport,
+  experimental_events: { adapter: eventsAdapter },
+});
+
+try {
+  // Authenticated MCP discovery; this does not list saved subscriptions.
+  const catalog = await client.experimental_events.list();
+
+  const watch = await client.experimental_events.subscribe({
+    name: 'comment.created',
+    arguments: { document_id: 'doc_123' },
+    context: { bindingId: 'saved_intent_123' },
+    expiresAt: null,
+    idempotencyKey: 'saved_intent_123',
+  });
+
+  const state = await client.experimental_events.getSubscription({
+    id: watch.id,
+  });
+  const page = await client.experimental_events.listSubscriptions({
+    status: 'active',
+    limit: 20,
+  });
+  const stopped = await client.experimental_events.unsubscribe({
+    id: watch.id,
+  });
+} finally {
+  await client.close();
+}
+```
+
+`authenticatedTransport` and `eventsAdapter` are supplied by your application.
+Use the same authorized account for discovery and subscription management.
+Never derive account identity, destination or authorization from model arguments.
+
+### Adapter Contract
+
+```ts
+import type { JSONObject } from '@ai-sdk/provider';
+
+type ManagedSubscription = {
+  id: string;
+  name: string;
+  arguments: JSONObject;
+  status:
+    | 'pending'
+    | 'active'
+    | 'needs_auth'
+    | 'stopped'
+    | 'expired'
+    | 'failed';
+  expiresAt: string | null;
+  cleanupStatus?: 'pending' | 'complete' | 'exhausted';
+};
+
+type ManagedSubscribeInput = {
+  name: string;
+  arguments: JSONObject;
+  context?: JSONObject;
+  idempotencyKey: string;
+  options?: {
+    signal?: AbortSignal;
+    timeout?: number;
+    maxTotalTimeout?: number;
+  };
+} & (
+  | { ttlMs: number; expiresAt?: never }
+  | { expiresAt: string | null; ttlMs?: never }
+);
+```
+
+These types are exported as `Experimental_ManagedSubscription` and
+`Experimental_ManagedSubscribeInput`. Supply exactly one monitoring lifetime:
+a positive `ttlMs`, an ISO deadline in `expiresAt`, or `expiresAt: null` to
+monitor until stopped. The backend validates these values and enforces its limits.
+
+`Experimental_MCPEventsAdapter` has four operations:
+
+| Operation           | Input                                             | Result                             |
+| ------------------- | ------------------------------------------------- | ---------------------------------- |
+| `subscribe`         | `Experimental_ManagedSubscribeInput`              | `Experimental_ManagedSubscription` |
+| `getSubscription`   | `{ id, options? }`                                | `Experimental_ManagedSubscription` |
+| `listSubscriptions` | Optional `{ cursor?, limit?, status?, options? }` | `{ subscriptions, nextCursor? }`   |
+| `unsubscribe`       | `{ id, options? }`                                | `Experimental_ManagedSubscription` |
+
+All operations return promises. The client passes inputs, cancellation/timeout
+options, results and errors through without retries or remapping. The adapter
+must implement request-option handling and retain actionable backend errors,
+such as consent required, quota exceeded or temporary unavailability.
+
+Managed IDs identify backend records. `expiresAt` is the application's monitoring
+deadline, not the upstream MCP `refreshBefore` grant. A pending result means
+durable acceptance by the backend; upstream setup may still be running.
+Stopping can return `cleanupStatus: 'pending'` while remote cleanup continues.
+
+The backend owns callback URLs, secrets, upstream subscription calls, verification,
+renewal and cleanup. Managed `subscribe` does not implicitly discover the catalog,
+generate a secret, write a local store or call upstream `events/subscribe`.
+`getSubscription` and `listSubscriptions` are adapter methods, not MCP wire methods.
+The managed facade has no `refresh()`; the backend renews finite upstream leases
+even when the application watch has no deadline.
+
+Persist an application intent and reuse its idempotency key after an uncertain
+create result, within the backend's documented recovery window. A timeout or
+aborted request does not prove that a remote subscription was cancelled.
+Closing the MCP client does not unsubscribe managed watches.
+
+Managed delivery is separate from this client. Use the backend's delivery verifier
+and receiver contract; `experimental_createMCPEventWebhook` serves direct MCP
+webhooks. Applications still own authorized routing, durable receipt acceptance
+and idempotent work dispatch. The adapter does not invoke event callbacks.
+
+### Configuration and Types
+
+Choose either `experimental_events: { adapter }` or `experimental_events: { store }`.
+Mixing them is rejected in TypeScript and at runtime. `validateArguments` is a
+direct-mode option; managed validation belongs to the backend. The unreleased
+`events` configuration spelling is replaced by `experimental_events`.
+
+`createMCPClient` infers `Experimental_ManagedMCPClient` with
+`Experimental_ManagedMCPEvents` when an adapter is configured. Both modes use
+`MCPClientConfig`, whose `experimental_events` property accepts the
+`Experimental_MCPEventsConfig` union. Direct clients keep `MCPClient` and
+`Experimental_MCPEvents`. The input and result types of each mode remain distinct.
+
+Use `satisfies MCPClientConfig` when saving a configuration to retain inference of
+the selected mode. A configuration whose mode is only known at runtime returns a
+union of the two client types; it does not promise direct-only methods such as
+`refresh()`. Omit `experimental_events` entirely for catalog discovery without a
+store or adapter.
+
+The remaining subscribe, refresh and unsubscribe sections describe direct mode.
+
+## Subscribing to Events
+
+### `client.experimental_events.subscribe(options)`
+
+Discovers the named event, checks webhook support, saves a pending subscription,
+and sends `events/subscribe`.
+
+```ts
+const subscription = await client.experimental_events.subscribe({
+  name: 'comment.created',
+  arguments: { document_id: 'doc_123' },
+  delivery: {
+    mode: 'webhook',
+    url: 'https://app.example/api/mcp-events',
+  },
+  ttlMs: 3_600_000,
+});
+
+console.log(subscription.id, subscription.refreshBefore);
+```
+
+### Parameters
+
+`options` has type [`Experimental_SubscribeEventOptions`](/docs/reference/ai-sdk-core/mcp-events#subscription-options):
+
+<PropertiesTable
+  content={[
+    {
+      name: 'name',
+      type: 'string',
+      description: 'Name of the event to subscribe to.',
+    },
+    {
+      name: 'arguments',
+      type: 'JSONObject',
+      description:
+        'Event filters. Defaults to {}. The SDK does not automatically validate them against inputSchema; experimental_events.validateArguments can provide application validation.',
+      isOptional: true,
+    },
+    {
+      name: 'delivery',
+      type: "{ mode: 'webhook'; url: string; secret?: string; allowInsecureLocalhost?: boolean }",
+      description: 'Webhook delivery configuration.',
+      properties: [
+        {
+          type: 'Webhook delivery',
+          parameters: [
+            {
+              name: 'mode',
+              type: "'webhook'",
+              description: 'The only supported delivery mode.',
+            },
+            {
+              name: 'url',
+              type: 'string',
+              description:
+                'Reachable HTTPS callback URL without credentials or a fragment. The SDK adds a mcp_event_subscription query parameter; preserve it when forwarding requests.',
+            },
+            {
+              name: 'secret',
+              type: 'string',
+              description:
+                'Standard Webhooks secret in whsec_ format containing 24\u201364 base64-encoded random bytes. When omitted, the SDK generates a 32-byte secret. Saved privately under delivery.secret before events/subscribe is sent.',
+              isOptional: true,
+            },
+            {
+              name: 'allowInsecureLocalhost',
+              type: 'boolean',
+              description:
+                'Defaults to false. Allows HTTP only for literal 127.0.0.1 or [::1] callback addresses during local development. This option is not sent to the server.',
+              isOptional: true,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'cursor',
+      type: 'string | null',
+      description: 'Replay position. Defaults to null.',
+      isOptional: true,
+    },
+    {
+      name: 'ttlMs',
+      type: 'number | null',
+      description:
+        'Requested lifetime in milliseconds, as a positive safe integer. Omit for the server default; null requests no expiration. The server chooses the granted deadline.',
+      isOptional: true,
+    },
+    {
+      name: 'maxAgeMs',
+      type: 'number',
+      description:
+        'Optional replay-age bound in milliseconds, as a nonnegative safe integer.',
+      isOptional: true,
+    },
+    {
+      name: 'options',
+      type: '{ signal?: AbortSignal; timeout?: number; maxTotalTimeout?: number }',
+      description:
+        'Cancellation and timeout settings for MCP requests. Catalog discovery can make multiple requests.',
+      isOptional: true,
+    },
+  ]}
+/>
+
+Pending records are retained when subscription creation fails, because a timed-out
+request might have registered remotely. Obtain the pending record's `key` from
+your application's store and recover with `refresh({ key })`, or
+cancel with `unsubscribe({ key })`. Both reuse the saved callback
+identity even when no server ID was saved. Calling `subscribe` again
+creates a new callback identity.
+
+```ts
+// pending is the record retained by your application's store after a failed subscribe.
+const recovered = await client.experimental_events.refresh({
+  key: pending.key,
+});
+// Alternatively, cancel the uncertain remote subscription:
+await client.experimental_events.unsubscribe({ key: pending.key });
+```
+
+### Returns
+
+`Promise<Experimental_SubscribeEventResult>`:
+
+<PropertiesTable
+  content={[
+    {
+      name: 'id',
+      type: 'string',
+      description:
+        'Server-derived subscription ID. Use it with refresh and unsubscribe.',
+    },
+    {
+      name: 'refreshBefore',
+      type: 'string | null',
+      description:
+        'Server-granted renewal deadline as an ISO timestamp. Null means no renewal deadline was granted.',
+    },
+    {
+      name: 'cursor',
+      type: 'string | null',
+      description:
+        'Server-provided replay cursor. If the server omits it, the SDK returns null. Null means no replay cursor is available.',
+    },
+    {
+      name: 'truncated',
+      type: 'boolean',
+      description:
+        'Whether the server reports that the requested replay history was truncated.',
+    },
+  ]}
+/>
+
+The result excludes the signing secret. The store is updated with the server ID,
+deadline, cursor, and active status before the method resolves.
+
+## Refreshing a Subscription
+
+### `client.experimental_events.refresh(options)`
+
+Loads a saved subscription by ID or storage key and sends `events/subscribe` with
+its original name, arguments, callback URL, secret, requested lifetime, and latest
+saved cursor.
+
+The subscription is marked pending before renewal. Event deliveries return `503`
+until the response saves the new expiration and restores active status. If renewal
+fails, the record stays pending because the server may have renewed it already;
+you can retry refresh or unsubscribe using the saved ID or key.
+
+Verified termination messages for a subscription with a saved ID are handled even
+while renewal is pending. For example, if access was revoked, `onTerminated` can
+still run and the saved subscription is removed after successful handling.
+
+```ts
+const renewed = await client.experimental_events.refresh({
+  id: subscription.id,
+});
+console.log(renewed.refreshBefore);
+```
+
+### Parameters
+
+Provide exactly one of `id` or `key`.
+
+<PropertiesTable
+  content={[
+    {
+      name: 'id',
+      type: 'string',
+      description: 'ID of a saved subscription in the configured store.',
+      isOptional: true,
+    },
+    {
+      name: 'key',
+      type: 'string',
+      description:
+        'Storage key of a saved subscription. Use this to recover a pending subscription whose server ID is unknown.',
+      isOptional: true,
+    },
+    {
+      name: 'options',
+      type: '{ signal?: AbortSignal; timeout?: number; maxTotalTimeout?: number }',
+      description: 'Request cancellation and timeout settings.',
+      isOptional: true,
+    },
+  ]}
+/>
+
+### Returns
+
+`Promise<Experimental_SubscribeEventResult>`, with the same fields as
+[subscribe](#subscribing-to-events). The new deadline and cursor are saved locally.
+
+Your application schedules renewal before `refreshBefore`. The SDK does not run
+a background renewal timer. Refresh reuses the saved filters without calling
+`validateArguments` again.
+
+## Unsubscribing from Events
+
+### `client.experimental_events.unsubscribe(options)`
+
+Resolves the ID or storage key to the saved name, arguments, and callback URL and
+sends `events/unsubscribe`. It deletes the local record only after the server
+succeeds.
+
+```ts
+await client.experimental_events.unsubscribe({ id: subscription.id });
+```
+
+### Parameters
+
+Provide exactly one of `id` or `key`.
+
+<PropertiesTable
+  content={[
+    {
+      name: 'id',
+      type: 'string',
+      description: 'ID of a saved subscription in the configured store.',
+      isOptional: true,
+    },
+    {
+      name: 'key',
+      type: 'string',
+      description:
+        'Storage key of a saved subscription. Use this to cancel a pending subscription whose server ID is unknown.',
+      isOptional: true,
+    },
+    {
+      name: 'options',
+      type: '{ signal?: AbortSignal; timeout?: number; maxTotalTimeout?: number }',
+      description: 'Request cancellation and timeout settings.',
+      isOptional: true,
+    },
+  ]}
+/>
+
+### Returns
+
+`Promise<void>`. If the server request fails, the local record is retained.
+Calling `client.close()` only closes the MCP connection; it does not unsubscribe.
+
+## Request Options
+
+All four methods accept an `options` property with the following fields.
+The listing method takes `{ params, options }`; the other methods include
+`options` alongside their own parameters.
+
+<PropertiesTable
+  content={[
+    {
+      name: 'signal',
+      type: 'AbortSignal',
+      description: 'Abort the MCP request.',
+      isOptional: true,
+    },
+    {
+      name: 'timeout',
+      type: 'number',
+      description: 'Request timeout in milliseconds.',
+      isOptional: true,
+    },
+    {
+      name: 'maxTotalTimeout',
+      type: 'number',
+      description:
+        'Maximum request duration in milliseconds. If timeout is also supplied, the smaller limit applies.',
+      isOptional: true,
+    },
+  ]}
+/>
+
+## Errors
+
+The client rejects requests to servers without the `events` capability.
+Subscription lifecycle methods require `experimental_events.store`; refresh and unsubscribe
+also require a known subscription ID or storage key. Subscribe rejects unknown
+event names, unsupported delivery modes, invalid callback URLs, signing secrets,
+or lifetime settings. These checks use `MCPClientError`, except URL parsing may
+throw `TypeError`.
+
+MCP request errors, store failures, and application validation errors propagate
+to the caller. Event requests are not retried by the client's tool-call retry
+setting. See [MCP client error handling](/docs/reference/ai-sdk-core/create-mcp-client#error-handling).
+
+## Webhook Handler
+
+### `experimental_createMCPEventWebhook()`
+
+Creates a Web Request/Response handler for experimental MCP webhook events.
+It verifies callback challenges and event signatures using subscriptions saved by
+[`client.experimental_events.subscribe`](/docs/reference/ai-sdk-core/mcp-events#subscribing-to-events).
+
+### Import
+
+<Snippet
+  text={`import { experimental_createMCPEventWebhook } from "@ai-sdk/mcp"`}
+  prompt={false}
+/>
+
+### Example
+
+```ts filename="app/api/mcp-events/route.ts"
+import { experimental_createMCPEventWebhook } from '@ai-sdk/mcp';
+import { eventStore } from '@/lib/event-store';
+
+export const POST = experimental_createMCPEventWebhook({
+  store: eventStore,
+  async onEvent({ subscription, event }) {
+    console.log(subscription.id, event.name, event.data);
+  },
+  async onGap({ subscription, gap }) {
+    // Some events cannot be replayed; reconcile state or notify the agent.
+    console.log('Replay gap:', subscription.id, gap.cursor, gap.truncated);
+  },
+  async onTerminated({ subscription, termination }) {
+    // The server ended the subscription; notify the agent of the reason.
+    console.log('Subscription terminated:', subscription.id, termination.error);
+  },
+  onError(error) {
+    console.error(error);
+  },
+});
+```
+
+Mount this route before subscribing. The handler and subscribing client must
+access the same private subscription store.
+
+### Parameters
+
+The argument has type
+[`Experimental_MCPEventWebhookOptions`](/docs/reference/ai-sdk-core/mcp-events#webhook-options).
+
+<PropertiesTable
+  content={[
+    {
+      name: 'store',
+      type: 'Experimental_MCPEventStore',
+      description:
+        'Shared subscription storage. Used to look up the routing key and signing secret, and save the cursor after successful handling.',
+    },
+    {
+      name: 'onEvent',
+      type: '({ subscription, event }) => Promise<void>',
+      description:
+        'Required application handler for verified events. Resolve after successful processing or durable acceptance. Throw to return 503 and allow retry.',
+    },
+    {
+      name: 'onGap',
+      type: '({ subscription, messageId, gap }) => Promise<void>',
+      description:
+        'Optional handler when some events cannot be replayed. Reconcile state or notify the agent, then resolve after processing or durable acceptance. The helper saves the fresh cursor and truncated: true; the subscription stays active. Throw to return 503 without changing saved state.',
+      isOptional: true,
+    },
+    {
+      name: 'onTerminated',
+      type: '({ subscription, messageId, termination }) => Promise<void>',
+      description:
+        'Optional handler when the server ends the subscription. Inspect termination.error for the reason and notify the agent, then resolve after processing or durable acceptance. The helper removes the saved subscription. Throw to return 503 without changing saved state.',
+      isOptional: true,
+    },
+    {
+      name: 'validatePayload',
+      type: '({ definition, data }) => void | PromiseLike<void>',
+      description:
+        'Optional application validation after signature and envelope checks, before onEvent. Receives the saved event definition and event.data. Throw to return 400 without calling onEvent or advancing the cursor.',
+      isOptional: true,
+    },
+    {
+      name: 'onError',
+      type: '(error: unknown) => void',
+      description:
+        'Reports processing, storage, and payload-validation callback errors. Should not throw. Invalid signatures and malformed requests return their HTTP status without invoking this callback.',
+      isOptional: true,
+    },
+  ]}
+/>
+
+#### Callback Arguments
+
+`onEvent` receives:
+
+<PropertiesTable
+  content={[
+    {
+      name: 'subscription',
+      type: 'Experimental_MCPEventSubscriptionInfo',
+      description:
+        'Subscription id, name, arguments, delivery mode and URL, and refreshBefore. Does not include delivery.secret.',
+    },
+    {
+      name: 'event',
+      type: 'Experimental_MCPEvent',
+      description:
+        'The eventId, name, timestamp, data object, and optional nullable cursor.',
+    },
+  ]}
+/>
+
+See [subscription metadata](/docs/reference/ai-sdk-core/mcp-events#subscription-metadata)
+and [event fields](/docs/reference/ai-sdk-core/mcp-events#event) for their full types.
+
+`onGap` and `onTerminated` receive the same safe `subscription` metadata and a
+`messageId` from the signed `webhook-id` header. Each callback receives only its
+matching control payload, so no `type` check is needed. Deduplicate retries by
+subscription ID and `messageId`.
+
+- `onGap` receives `gap: { type: 'gap', cursor, truncated: true }`. It means some
+  events are no longer available for replay. Reconcile application state or
+  notify the agent. The helper adds `truncated: true` and saves it with the fresh
+  cursor after the callback resolves. The subscription remains active and event
+  delivery continues.
+- `onTerminated` receives
+  `termination: { type: 'terminated', error: { code, message, data? } }`. It means
+  the server has ended the subscription. Inspect the error for the reason and
+  notify the agent. After the callback resolves, the helper deletes the saved
+  subscription record.
+
+Both return `204` after successful handling. State updates also occur when
+the corresponding callback is omitted. Callback or storage failures return `503`
+for retry. Events and gaps return `503` until activation or renewal is persisted.
+Termination is also accepted during pending renewal when the subscription ID is
+already saved; subscriptions without a saved ID still return `503`.
+Controls are processed even if the saved expiration has passed. They are never
+sent to `onEvent` or `validatePayload`. The helper does not run or notify an agent
+automatically.
+
+### Returns
+
+```ts
+(request: Request) => Promise<Response>;
+```
+
+The handler accepts `POST` requests with `Content-Type: application/json`.
+Pass the original request body bytes and preserve the `mcp_event_subscription`
+query parameter added by the subscribing client. Do not parse and reserialize
+the body before passing it to this handler.
+
+The server must include `webhook-id`, `webhook-timestamp`, `webhook-signature`,
+and `X-MCP-Subscription-Id`. The helper verifies Standard Webhooks v1 HMAC-SHA256
+signatures and accepts signing timestamps within five minutes of the current time.
+An event's `eventId` must match `webhook-id`, and its name must match the subscription.
+
+## Event Types
+
+The following types are exported from `@ai-sdk/mcp` and are experimental.
+
+```ts
+import type {
+  Experimental_MCPEvents,
+  Experimental_MCPEventsConfig,
+  Experimental_MCPEventDefinition,
+  Experimental_ListEventsResult,
+  Experimental_SubscribeEventOptions,
+  Experimental_SubscribeEventResult,
+  Experimental_MCPEvent,
+  Experimental_MCPEventControl,
+  Experimental_MCPEventSubscription,
+  Experimental_MCPEventSubscriptionInfo,
+  Experimental_MCPEventStore,
+  Experimental_MCPEventWebhookOptions,
+} from '@ai-sdk/mcp';
+```
+
+The shapes below use `JSONObject` from `@ai-sdk/provider` for JSON-compatible
+filter objects. Request settings are written inline because `RequestOptions`
+is not exported from `@ai-sdk/mcp`.
+
+### Webhook Controls
+
+`Experimental_MCPEventControl` is the union of the lifecycle payloads. `onGap`
+receives its `gap` variant; `onTerminated` receives its `terminated` variant as
+`termination`:
+
+```ts
+type Experimental_MCPEventControl =
+  | { type: 'gap'; cursor: string; truncated: true }
+  | {
+      type: 'terminated';
+      error: { code: number; message: string; data?: unknown };
+    };
+```
+
+Unknown extension fields are preserved. Verification challenges are echoed
+automatically and do not invoke `onEvent`, `onGap`, or `onTerminated`.
+
+### Client Methods
+
+`Experimental_MCPEvents` describes the `client.experimental_events` property:
+
+```ts
+interface Experimental_MCPEvents {
+  list(options?: {
+    params?: { cursor?: string };
+    options?: {
+      signal?: AbortSignal;
+      timeout?: number;
+      maxTotalTimeout?: number;
+    };
+  }): Promise<Experimental_ListEventsResult>;
+
+  subscribe(
+    options: Experimental_SubscribeEventOptions,
+  ): Promise<Experimental_SubscribeEventResult>;
+
+  refresh(
+    options: ({ id: string; key?: never } | { key: string; id?: never }) & {
+      options?: {
+        signal?: AbortSignal;
+        timeout?: number;
+        maxTotalTimeout?: number;
+      };
+    },
+  ): Promise<Experimental_SubscribeEventResult>;
+
+  unsubscribe(
+    options: ({ id: string; key?: never } | { key: string; id?: never }) & {
+      options?: {
+        signal?: AbortSignal;
+        timeout?: number;
+        maxTotalTimeout?: number;
+      };
+    },
+  ): Promise<void>;
+}
+```
+
+## Related Guides
+
+- [MCP Events guide](/docs/ai-sdk-core/mcp-events)
+- [MCP client configuration](/docs/reference/ai-sdk-core/create-mcp-client)
+- [Runnable example](https://github.com/vercel/ai/tree/main/examples/mcp/src/events)

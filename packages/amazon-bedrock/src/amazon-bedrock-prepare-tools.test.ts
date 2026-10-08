@@ -854,5 +854,25 @@ describe('prepareTools', () => {
         },
       ]);
     });
+
+    it('should omit strict without warning when strict is false and strict mode is unsupported', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+            strict: false,
+          },
+        ],
+        modelId: 'us.anthropic.claude-opus-4-7',
+      });
+
+      expect((result.toolConfig.tools![0] as any).toolSpec).not.toHaveProperty(
+        'strict',
+      );
+      expect(result.toolWarnings).toEqual([]);
+    });
   });
 });

@@ -601,23 +601,28 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
       // automatically send the message if the sendAutomaticallyWhen function returns true
       if (
+        messageIndex !== -1 &&
         this.status !== 'streaming' &&
         this.status !== 'submitted' &&
         this.sendAutomaticallyWhen
       ) {
-        // no await to avoid deadlocking
-        void this.runAutomaticRequest(() => {
-          const messageId =
-            messageIndex === -1
-              ? this.lastMessage?.id
-              : messages[messageIndex].id;
+        const shouldSend = await this.shouldSendAutomatically();
 
-          return this.makeRequestForToolApproval({
-            messageId,
-            messageIndex,
-            ...options,
-          });
-        });
+        if (shouldSend) {
+          // no await to avoid deadlocking
+          void this.runAutomaticRequest(() => {
+            const messageId =
+              messageIndex === -1
+                ? this.lastMessage?.id
+                : messages[messageIndex].id;
+
+            return this.makeRequestForToolApproval({
+              messageId,
+              messageIndex,
+              ...options,
+            });
+          }, shouldSend);
+        }
       }
     });
 
@@ -688,14 +693,20 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         this.status !== 'submitted' &&
         this.sendAutomaticallyWhen
       ) {
-        // no await to avoid deadlocking
-        void this.runAutomaticRequest(() => {
-          return this.makeRequest({
-            trigger: 'submit-message',
-            messageId: this.lastMessage?.id,
-            ...options,
-          });
-        });
+        const shouldSend = await this.shouldSendAutomatically();
+
+        if (shouldSend) {
+          // no await to avoid deadlocking
+          void this.runAutomaticRequest(
+            () =>
+              this.makeRequest({
+                trigger: 'submit-message',
+                messageId: this.lastMessage?.id,
+                ...options,
+              }),
+            shouldSend,
+          );
+        }
       }
     });
 
@@ -750,11 +761,12 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
   private async runAutomaticRequest(
     request: () => Promise<void>,
+    shouldSend?: boolean,
   ): Promise<void> {
     const stopGeneration = this.stopGeneration;
     const startedWhileStopping = this.activeStopCount > 0;
 
-    if (!(await this.shouldSendAutomatically())) {
+    if (!(shouldSend ?? (await this.shouldSendAutomatically()))) {
       return;
     }
 
@@ -918,10 +930,8 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       responseMessageIndex === -1
         ? lastMessage
         : this.state.messages[responseMessageIndex];
-    // the continued stream can start with either
-    // 1) input deltas
-    // 2) or the result of an answered tool approval request
-    // Keep the tool part so in case 2, those chunks can find their tool call
+    // The continued stream can start with input deltas or a tool result.
+    // Keep unfinished tool parts so result chunks can find their tool call.
     const resumableResponseMessage =
       trigger === 'resume-stream' &&
       responseMessage?.role === 'assistant' &&
@@ -929,6 +939,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         part =>
           isToolUIPart(part) &&
           (part.state === 'input-streaming' ||
+            (part.state === 'input-available' && part.providerExecuted) ||
             part.state === 'approval-responded'),
       )
         ? this.state.snapshot(responseMessage)

@@ -116,6 +116,7 @@ const ElicitationCapabilitySchema = z
   .loose();
 
 const ServerCapabilitiesSchema = z.looseObject({
+  events: z.looseObject({ listChanged: z.boolean().nullish() }).nullish(),
   experimental: z.optional(z.object({}).loose()),
   logging: z.optional(z.object({}).loose()),
   completions: z.optional(z.object({}).loose()),

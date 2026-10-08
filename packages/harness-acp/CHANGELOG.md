@@ -1,5 +1,42 @@
 # @ai-sdk/harness-acp
 
+## 1.0.84
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.145
+
+## 1.0.83
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider-utils@5.0.57
+  - @ai-sdk/harness@1.0.144
+
+## 1.0.82
+
+### Patch Changes
+
+- 9d84fad: chore(harness): ensure ACP and MCP dependencies use the latest version and are aligned across adapters
+- Updated dependencies [c4a5c8d]
+- Updated dependencies [50ac48b]
+- Updated dependencies [e8af189]
+  - @ai-sdk/harness@1.0.143
+
+## 1.0.81
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.142
+
+## 1.0.80
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.141
+- @ai-sdk/provider-utils@5.0.56
+
 ## 1.0.79
 
 ### Patch Changes

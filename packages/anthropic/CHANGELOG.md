@@ -1,5 +1,38 @@
 # @ai-sdk/anthropic
 
+## 4.0.77
+
+### Patch Changes
+
+- c01cbb8: fix(anthropic): avoid unsupported strict mode warnings when tools set `strict: false`
+
+## 4.0.76
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider@4.0.25
+  - @ai-sdk/provider-utils@5.0.57
+
+## 4.0.75
+
+### Patch Changes
+
+- 866e884: feat(anthropic): add Claude Haiku 5.5 support
+
+  - add the `claude-haiku-5-5` model ID to `@ai-sdk/anthropic` and `@ai-sdk/google-vertex`, `anthropic.claude-haiku-5-5` and `us.anthropic.claude-haiku-5-5` to `@ai-sdk/amazon-bedrock`, and `anthropic/claude-haiku-5.5` to `@ai-sdk/gateway`
+  - recognize `claude-haiku-5-5` as a known model with a 128k max output token limit, adaptive thinking, and all five effort levels; thinking can be disabled up to `high` effort, and `xhigh` and `max` are lowered to `high` with a warning when thinking is disabled
+  - `claude-haiku-5-5` does not support thinking token budgets: `thinking: { type: 'enabled', budgetTokens }` is converted to adaptive thinking with a warning
+  - use the JSON tool fallback for structured output on Amazon Bedrock for `claude-haiku-5-5`
+
+## 4.0.74
+
+### Patch Changes
+
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/provider-utils@5.0.56
+
 ## 4.0.73
 
 ### Patch Changes

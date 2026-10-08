@@ -164,7 +164,7 @@ it.each([
   },
 );
 
-it('rejects a native refusal without retrying or returning partial answers', async () => {
+it('rejects a native refusal with a refusal error without retrying', async () => {
   const { model, fetch } = setup(
     answers.map(answer =>
       answer.name === 'refund' ? { type: 'refusal', name: 'refund' } : answer,
@@ -173,8 +173,8 @@ it('rejects a native refusal without retrying or returning partial answers', asy
   await expect(
     decide({ model, state: 'Ticket', questions }),
   ).rejects.toMatchObject({
-    name: 'AI_InvalidResponseDataError',
-    message: 'OpenAI Decisions refused question "refund".',
+    name: 'AI_DecisionRefusalError',
+    questionIds: ['refund'],
   });
   expect(fetch).toHaveBeenCalledTimes(1);
 });

@@ -1316,16 +1316,20 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       it.each(['gpt-6-sol', 'gpt-6-luna'])(
-        'should preserve disabled reasoning for %s',
+        'should preserve sampling parameters when reasoning is disabled for %s',
         async modelId => {
           const { warnings } = await createModel(modelId).doGenerate({
             prompt: TEST_PROMPT,
+            temperature: 0,
+            topP: 0.9,
             providerOptions: { openai: { reasoningEffort: 'none' } },
           });
 
           expect(await server.calls[0].requestBodyJson).toMatchObject({
             model: modelId,
             reasoning: { effort: 'none' },
+            temperature: 0,
+            top_p: 0.9,
           });
           expect(warnings).toStrictEqual([]);
         },
@@ -3478,7 +3482,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             {
               type: 'function_call_output',
               call_id: 'call_123',
-              output: '"Error: boom"',
+              output: '{"error":"Error: boom"}',
             },
           ],
           tools: [

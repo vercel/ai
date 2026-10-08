@@ -1,5 +1,46 @@
 # @ai-sdk/harness-opencode
 
+## 1.0.147
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.145
+
+## 1.0.146
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider@4.0.25
+  - @ai-sdk/provider-utils@5.0.57
+  - @ai-sdk/harness@1.0.144
+
+## 1.0.145
+
+### Patch Changes
+
+- 9d84fad: chore(harness): ensure ACP and MCP dependencies use the latest version and are aligned across adapters
+- Updated dependencies [c4a5c8d]
+- Updated dependencies [50ac48b]
+- Updated dependencies [e8af189]
+  - @ai-sdk/harness@1.0.143
+
+## 1.0.144
+
+### Patch Changes
+
+- 214d52c: fix(harness): update from vulnerable `proxy-addr` 2.0.7 dependency
+  - @ai-sdk/harness@1.0.142
+
+## 1.0.143
+
+### Patch Changes
+
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/harness@1.0.141
+  - @ai-sdk/provider-utils@5.0.56
+
 ## 1.0.142
 
 ### Patch Changes

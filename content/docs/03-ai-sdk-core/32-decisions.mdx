@@ -6,8 +6,8 @@ description: Decide answers to Choice, Score, and Boolean questions against shar
 # Decisions
 
 `experimental_decide` decides answers to named questions against one shared state using
-a decision model. State can be a string, JSON object, or JSON array. An array
-is one state, not a batch of unrelated inputs.
+a decision model. State can be a string, JSON object, or an array of ordered
+text, file, and JSON parts.
 
 This API and the decision model specification are experimental and may change
 in patch releases. Pass a decision model instance, resolve a model through a
@@ -43,6 +43,52 @@ async function triage(model: Experimental_DecisionModel, message: string) {
   });
 }
 ```
+
+## Multimodal state
+
+Combine text, structured data, and images in one state:
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { experimental_decide } from 'ai';
+
+const result = await experimental_decide({
+  model: openai.decisionModel('gpt-6-luna'),
+  state: [
+    { type: 'text', text: 'Inspect this package for damage.' },
+    { type: 'json', value: { product: 'glass vase', packaging: 'cardboard' } },
+    {
+      type: 'file',
+      mediaType: 'image/png',
+      data: new URL('https://example.com/package.png'),
+    },
+  ],
+  questions: {
+    damaged: {
+      type: 'boolean',
+      instructions: 'Is the product visibly damaged?',
+    },
+  },
+});
+```
+
+`Experimental_DecisionState` and `Experimental_DecisionStatePart` are exported
+from `ai`. A part has one of these shapes:
+
+- `TextPart`: `{ type: 'text', text: string }`.
+- `FilePart`: `{ type: 'file', mediaType: string, data: ... }`, using the SDK's
+  file conventions. For images, use bytes, a base64 string, or a URL. Tagged file
+  data is also supported. URLs are downloaded before the model call.
+- JSON: `{ type: 'json', value: JSONValue }`.
+
+Language-model decision adapters accept image files only. The underlying model
+must support the file data form. Gateway and TypeSafe AI accept text and JSON
+state only.
+
+Arrays passed directly as `state` contain parts. To send a JSON array, put it
+inside an object (`state: { records }`) or a JSON part
+(`state: [{ type: 'json', value: records }]`). An empty `state: []` contains zero
+parts. Question instructions and criteria still accept JSON arrays directly.
 
 ## Provider models
 
@@ -185,10 +231,12 @@ to retain its experimental `decisionModel` method.
 | `score`   | At least two ordered level descriptions   | Fractional `score` in `[0, levels.length - 1]`; optional `probabilities` |
 | `boolean` | Optional `true` and `false` descriptions  | Required `probability`, the model-estimated probability of true          |
 
-Instructions and descriptions can be strings, JSON objects, or JSON arrays.
-Descriptions can also be `null`. Core treats structured descriptions as content;
-it does not interpret their keys. Functions, class instances, cycles, undefined
-values, and nonfinite numbers are not JSON-compatible.
+`Experimental_DecisionQuestion` is exported from `ai`. Instructions and
+descriptions can be strings, JSON objects, or JSON arrays. Descriptions can also
+be `null`.
+
+Functions, class instances, cycles, undefined values, and nonfinite numbers are
+not JSON-compatible.
 
 Answers retain question IDs and have the same `type` as their question. When a
 Choice distribution is supplied, it includes every option and the selected
@@ -248,6 +296,9 @@ substitute models automatically.
 
 Invalid inputs throw `InvalidArgumentError`. Missing answers, mismatched answer
 types, invalid options, scores, or probabilities throw `InvalidResponseDataError`.
+If the model refuses any question, the call throws
+`Experimental_DecisionRefusalError` with the refused question IDs, and is not
+retried.
 Transient provider failures use the normal retry policy (`maxRetries: 2` by
 default). Use `abortSignal` to cancel the decisions request, `headers` for request headers,
 and `providerOptions` for provider-specific settings.
