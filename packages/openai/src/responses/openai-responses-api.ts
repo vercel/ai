@@ -88,6 +88,7 @@ export type OpenAIResponsesInputItem =
   | OpenAIResponsesToolSearchOutput
   | OpenAIResponsesReasoning
   | OpenAIResponsesItemReference
+  | OpenAIResponsesAdditionalTools
   | OpenAIResponsesConfigurationUpdate;
 
 export type OpenAIResponsesIncludeValue =
@@ -595,6 +596,12 @@ export type OpenAIResponsesReasoning = {
     type: 'summary_text';
     text: string;
   }>;
+};
+
+export type OpenAIResponsesAdditionalTools = {
+  type: 'additional_tools';
+  role: 'developer';
+  tools: Array<OpenAIResponsesTool>;
 };
 
 export type OpenAIResponsesConfigurationUpdate = {

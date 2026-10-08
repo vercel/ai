@@ -283,6 +283,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       await convertToOpenAIResponsesInput({
         prompt,
         configurationUpdateUnsupportedReason,
+        supportsAsyncToolCalling: modelCapabilities.supportsAsyncToolCalling,
         toolNameMapping,
         systemMessageMode:
           openaiOptions?.systemMessageMode ??

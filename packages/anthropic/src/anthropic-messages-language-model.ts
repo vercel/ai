@@ -487,6 +487,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         cacheControlValidator,
         toolNameMapping,
         toolsetNames,
+        supportsStrictTools,
+        supportsStructuredOutput,
+        defaultEagerInputStreaming:
+          stream && (anthropicOptions?.toolStreaming ?? true),
       });
 
     // Some models always run adaptive thinking and reject `disabled` thinking
