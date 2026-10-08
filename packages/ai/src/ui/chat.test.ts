@@ -2350,6 +2350,85 @@ describe('Chat', () => {
     },
   );
 
+  it.each([undefined, 'assistant-1'])(
+    'should resume a provider-executed tool result in the existing assistant message with start ID %s',
+    async messageId => {
+      const state = new TestChatState<UIMessage>([
+        {
+          id: 'user-1',
+          role: 'user',
+          parts: [{ type: 'text', text: 'Set the price to 12' }],
+        },
+        {
+          id: 'assistant-1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-updateProduct',
+              toolCallId: 'call-1',
+              state: 'input-available',
+              input: { price: 12 },
+              providerExecuted: true,
+            },
+          ],
+        },
+      ]);
+      state.snapshot = <T>(value: T): T => structuredClone(value);
+
+      const chat = new TestChatWithState({
+        id: '123',
+        state,
+        generateId: mockId(),
+        transport: {
+          sendMessages: async () => {
+            throw new Error('not implemented');
+          },
+          reconnectToStream: async () =>
+            new ReadableStream<UIMessageChunk>({
+              start(controller) {
+                if (messageId != null) {
+                  controller.enqueue({ type: 'start', messageId });
+                }
+                controller.enqueue({
+                  type: 'tool-output-available',
+                  toolCallId: 'call-1',
+                  output: { price: 12 },
+                  providerExecuted: true,
+                });
+                controller.enqueue({ type: 'finish' });
+                controller.close();
+              },
+            }),
+        },
+      });
+
+      await chat.resumeStream();
+
+      expect(chat.error).toBeUndefined();
+      expect(chat.status).toBe('ready');
+      expect(chat.messages).toHaveLength(2);
+      expect(chat.messages[1]).toEqual({
+        id: 'assistant-1',
+        role: 'assistant',
+        parts: [
+          {
+            type: 'tool-updateProduct',
+            toolCallId: 'call-1',
+            state: 'output-available',
+            input: { price: 12 },
+            output: { price: 12 },
+            providerExecuted: true,
+            preliminary: undefined,
+            callProviderMetadata: undefined,
+            resultProviderMetadata: undefined,
+            title: undefined,
+            toolMetadata: undefined,
+          },
+        ],
+      });
+    },
+  );
+
   it('should continue a hydrated partial static tool call across repeated stream interruptions', async () => {
     const state = new TestChatState<UIMessage>([
       {
