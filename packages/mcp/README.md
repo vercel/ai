@@ -188,8 +188,10 @@ Please check out the
 [AI SDK MCP documentation](https://ai-sdk.dev/docs/ai-sdk-core/mcp-tools) for
 more information.
 
-Managed backends can implement `Experimental_MCPEventsAdapter` and configure
-`experimental_events: { adapter }` instead of a store. Catalog discovery still
+Managed backends can implement `Experimental_MCPEventAdapter` and configure
+`experimental_events: { adapter }` instead of a store. Its `createAdapter()`
+method receives the transport URL and returns `Experimental_MCPEventOperations`
+bound to the authorized account. Catalog discovery still
 uses the authenticated MCP transport; subscribe/get/list/unsubscribe delegate
 to the backend, which owns renewal and webhook delivery. Managed clients do not
 expose `refresh()`. See the [managed subscription reference](https://ai-sdk.dev/docs/reference/ai-sdk-core/mcp-events#managed-subscriptions).
