@@ -173,9 +173,7 @@ can pass the helper's result directly as `adapter`.
 
 ```ts
 interface MCPEventsAdapterProvider {
-  createAdapter(context: {
-    url: string | undefined;
-  }): MCPEventsAdapter;
+  createAdapter(context: { url: string | undefined }): MCPEventsAdapter;
 }
 ```
 
