@@ -1,5 +1,14 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.148
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider@4.0.25
+  - @ai-sdk/provider-utils@5.0.57
+  - @ai-sdk/harness@1.0.144
+
 ## 1.0.147
 
 ### Patch Changes
