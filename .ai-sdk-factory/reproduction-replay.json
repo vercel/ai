@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "issueId": 22293,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22293-harness-claude-code-mcp-validation.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22293-harness-claude-code-mcp-validation.ts",
+    "packages/harness-claude-code/src/bridge/index.test.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22293: expected one finalized host-tool call and result; observed 0 calls and 0 results"
+  }
+}
