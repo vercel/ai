@@ -1,5 +1,14 @@
 # @ai-sdk/anthropic-aws
 
+## 2.0.71
+
+### Patch Changes
+
+- Updated dependencies [4dbc902]
+  - @ai-sdk/provider@4.0.26
+  - @ai-sdk/anthropic@4.0.78
+  - @ai-sdk/provider-utils@5.0.58
+
 ## 2.0.70
 
 ### Patch Changes
