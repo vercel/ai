@@ -13,6 +13,7 @@ import type * as PiCodingAgentModule from '@earendil-works/pi-coding-agent';
 import type {
   HarnessV1NetworkSandboxSession,
   HarnessV1Session,
+  HarnessV1Skill,
   HarnessV1StreamPart,
   HarnessV1ToolSpec,
 } from '@ai-sdk/harness';
@@ -1001,6 +1002,52 @@ describe('createPiSession', () => {
     }
   });
 
+  it('removes materialized skills once, then leaves the sandbox alone', async () => {
+    piMock.session = createFakePiSession().session;
+    const sandboxSession = createSandboxSession();
+    const session = await createPiSession({
+      sessionId: 'session-skills-removed',
+      sandboxSession,
+      sessionWorkDir: '/sandbox/work',
+      settings: {},
+      clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+      isResume: false,
+    });
+    const runTurn = async (skills: HarnessV1Skill[]) => {
+      const control = await session.doPromptTurn({
+        skills,
+        prompt: 'test prompt',
+        tools: [],
+        emit: vi.fn(),
+      });
+      await control.done;
+    };
+
+    try {
+      await runTurn([
+        {
+          name: 'demo-skill',
+          description: 'Demo skill description',
+          content: 'Skill instructions content',
+        },
+      ]);
+      await runTurn([]);
+      expect(sandboxSession.run).toHaveBeenCalledWith(
+        expect.objectContaining({
+          command: "rm -rf -- '/sandbox/home/.agents/skills/demo-skill'",
+        }),
+      );
+
+      vi.mocked(sandboxSession.run).mockClear();
+      vi.mocked(sandboxSession.readTextFile).mockClear();
+      await runTurn([]);
+      expect(sandboxSession.run).not.toHaveBeenCalled();
+      expect(sandboxSession.readTextFile).not.toHaveBeenCalled();
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
   it('applies fileToolPathPolicy to the native read tool', async () => {
     const files = new Map([
       ['/tmp/report.txt', 'report body'],
@@ -1156,7 +1203,7 @@ describe('createPiSession', () => {
     }
   });
 
-  it('fails startup if a denied root cannot be resolved in the sandbox', async () => {
+  it('fails native file tools when a denied root cannot be resolved in the sandbox', async () => {
     const alias = '/sandbox/home/blocked';
     const sandboxSession = createSandboxSession();
     const run = vi.mocked(sandboxSession.run);
@@ -1167,16 +1214,86 @@ describe('createPiSession', () => {
       stderr: '',
       exitCode: command.startsWith(`target='${alias}'`) ? 3 : 0,
     }));
+    const readErrors: unknown[] = [];
+    piMock.session = createFakePiSession({
+      promptImplementation: async () => {
+        for (const file of ['first.txt', 'second.txt']) {
+          await executeReadTool(file).catch(error => readErrors.push(error));
+        }
+      },
+    }).session;
 
-    await expect(
-      createPi({ fileToolPathPolicy: { deniedRoots: [alias] } }).doStart({
-        sessionId: 'session-unresolved-denied-root',
-        sandboxSession,
-        sessionWorkDir: '/sandbox/work',
-      }),
-    ).rejects.toThrow(`Unable to resolve path: ${alias}`);
-    expect(piMock.createAgentSession).not.toHaveBeenCalled();
+    const session = await createPi({
+      fileToolPathPolicy: { deniedRoots: [alias] },
+    }).doStart({
+      sessionId: 'session-unresolved-denied-root',
+      sandboxSession,
+      sessionWorkDir: '/sandbox/work',
+    });
+    expect(run).not.toHaveBeenCalled();
+
+    try {
+      const control = await session.doPromptTurn({
+        skills: [],
+        prompt: 'test prompt',
+        tools: [],
+        emit: vi.fn(),
+      });
+      await control.done;
+
+      const unresolved = expect.objectContaining({
+        message: `Unable to resolve path: ${alias}`,
+      });
+      expect(readErrors).toEqual([unresolved, unresolved]);
+      expect(
+        run.mock.calls.filter(([{ command }]) =>
+          command.startsWith(`target='${alias}'`),
+        ),
+      ).toHaveLength(2);
+      expect(sandboxSession.readBinaryFile).not.toHaveBeenCalled();
+    } finally {
+      await session.doDestroy();
+    }
   });
+
+  it('starts and runs a chat-only turn without touching the sandbox', async () => {
+    const sandboxSession = createThrowingSandboxSession();
+    const { session: fakePiSession, prompt } = createFakePiSession();
+    piMock.session = fakePiSession;
+
+    const session = await createPi().doStart({
+      sessionId: 'session-chat-only',
+      sandboxSession,
+      sessionWorkDir: '/sandbox/work',
+    });
+    const control = await session.doPromptTurn({
+      skills: [],
+      prompt: 'Hello.',
+      tools: [],
+      emit: vi.fn(),
+    });
+    await control.done;
+    await session.doStop();
+
+    expect(prompt).toHaveBeenCalledExactlyOnceWith('Hello.');
+    for (const method of [
+      sandboxSession.run,
+      sandboxSession.spawn,
+      sandboxSession.readFile,
+      sandboxSession.readBinaryFile,
+      sandboxSession.readTextFile,
+      sandboxSession.writeFile,
+      sandboxSession.writeBinaryFile,
+      sandboxSession.writeTextFile,
+      sandboxSession.stop,
+      sandboxSession.destroy,
+      sandboxSession.getPortEndpoint,
+      sandboxSession.getPortUrl,
+    ]) {
+      expect(method).not.toHaveBeenCalled();
+    }
+  });
+
   it('keeps native reads inside the workspace without fileToolPathPolicy', async () => {
     const sandboxSession = createSandboxSession();
     let reads: PromiseSettledResult<string>[] = [];
@@ -3082,4 +3199,31 @@ function createSandboxSession(options?: {
     ),
   };
   return sandbox as unknown as HarnessV1NetworkSandboxSession;
+}
+
+function createThrowingSandboxSession(): HarnessV1NetworkSandboxSession {
+  const untouchable = () =>
+    vi.fn(async (): Promise<never> => {
+      throw new Error('sandbox must not be touched');
+    });
+  const sandbox: HarnessV1NetworkSandboxSession = {
+    id: 'sandbox',
+    description: 'throwing sandbox',
+    defaultWorkingDirectory: '/sandbox',
+    ports: [],
+    run: untouchable(),
+    spawn: untouchable(),
+    readFile: untouchable(),
+    readBinaryFile: untouchable(),
+    readTextFile: untouchable(),
+    writeFile: untouchable(),
+    writeBinaryFile: untouchable(),
+    writeTextFile: untouchable(),
+    stop: untouchable(),
+    destroy: untouchable(),
+    getPortEndpoint: untouchable(),
+    getPortUrl: untouchable(),
+    restricted: () => sandbox,
+  };
+  return sandbox;
 }

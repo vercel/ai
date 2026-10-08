@@ -1,4 +1,7 @@
-import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
+import type {
+  HarnessV1NetworkSandboxSession,
+  HarnessV1StreamPart,
+} from '@ai-sdk/harness';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { createServer, type IncomingMessage, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -48,6 +51,33 @@ const createModelServer = () => {
   return { server, requests };
 };
 
+const untouchable = async (): Promise<never> => {
+  throw new Error('sandbox must not be touched');
+};
+
+const createThrowingSandboxSession = (): HarnessV1NetworkSandboxSession => {
+  const sandbox: HarnessV1NetworkSandboxSession = {
+    id: 'sandbox',
+    description: 'throwing sandbox',
+    defaultWorkingDirectory: '/sandbox',
+    ports: [],
+    run: untouchable,
+    spawn: untouchable,
+    readFile: untouchable,
+    readBinaryFile: untouchable,
+    readTextFile: untouchable,
+    writeFile: untouchable,
+    writeBinaryFile: untouchable,
+    writeTextFile: untouchable,
+    stop: untouchable,
+    destroy: untouchable,
+    getPortEndpoint: untouchable,
+    getPortUrl: untouchable,
+    restricted: () => sandbox,
+  };
+  return sandbox;
+};
+
 const systemPromptOf = (body: ModelRequestBody | undefined): string => {
   const system = body?.messages.find(
     message => message.role === 'system' || message.role === 'developer',
@@ -77,9 +107,7 @@ describe('Pi project resources', () => {
 
   it('places configured context files and skills in the system prompt', async () => {
     const sessionWorkDir = '/sandbox/work';
-    const sandboxSession = await createJustBashSandbox({
-      cwd: sessionWorkDir,
-    }).createSession();
+    const sandboxSession = createThrowingSandboxSession();
     const harness = createPi({
       auth: {},
       providers: {
@@ -117,6 +145,7 @@ describe('Pi project resources', () => {
       },
     });
 
+    const parts: HarnessV1StreamPart[] = [];
     const session = await harness.doStart({
       sessionId: 'session-resources',
       sandboxSession,
@@ -128,14 +157,14 @@ describe('Pi project resources', () => {
         model: 'fake/fake-model',
         tools: [],
         skills: [],
-        emit: () => {},
+        emit: part => parts.push(part),
       });
       await control.done;
     } finally {
       await session.doDestroy();
-      await sandboxSession.destroy();
     }
 
+    expect(parts.filter(part => part.type === 'error')).toEqual([]);
     const systemPrompt = systemPromptOf(model.requests[0]);
     expect(systemPrompt).toContain(
       '<project_instructions path="/sandbox/work/AGENTS.md">\nProject note: AGENTS-TOKEN-41\n</project_instructions>',

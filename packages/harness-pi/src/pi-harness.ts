@@ -108,7 +108,8 @@ export type PiHarnessSettings = {
    * can reach. `readableRoots` lets `read`, `ls`, `find`, and `grep` reach
    * outside the session workspace. `deniedRoots` are refused by every native
    * file tool and take precedence, including through symlinks. Denied roots
-   * are resolved when the session starts. The `bash` tool is not restricted.
+   * are resolved in the sandbox before the first native file tool runs. The
+   * `bash` tool is not restricted.
    */
   readonly fileToolPathPolicy?: PiFileToolPathPolicy;
   /**
