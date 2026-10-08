@@ -16,6 +16,7 @@ import type { z } from 'zod/v4';
 import { createMCPEvents } from './mcp-events';
 import {
   createManagedMCPEvents,
+  validateMCPEventOperations,
   type ManagedMCPEvents,
   type MCPEventsAdapter,
 } from './mcp-events-adapter';
@@ -502,6 +503,9 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
         ? undefined
         : transportConfig.url,
     });
+    if (events?.adapter !== undefined) {
+      validateMCPEventOperations(operations);
+    }
 
     this.onUncaughtError = onUncaughtError;
     this.maxRetries = prepareMaxRetries(maxRetries);

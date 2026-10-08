@@ -1,11 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { MCPClientError } from '../error/mcp-client-error';
 import {
   createMCPClient,
   type ManagedMCPClient,
   type MCPClientConfig,
 } from './mcp-client';
 import type {
-  ManagedMCPEventOperations,
+  MCPEventOperations,
   MCPEventsAdapter,
   ManagedSubscription,
 } from './mcp-events-adapter';
@@ -13,7 +14,7 @@ import * as transports from './mcp-transport';
 import { MockMCPTransport } from './mock-mcp-transport';
 import { MemoryEventStore } from './__fixtures__/mcp-events';
 
-function createOperations(): ManagedMCPEventOperations {
+function createOperations(): MCPEventOperations {
   const subscription: ManagedSubscription = {
     id: 'managed_1',
     name: 'comment.created',
@@ -105,6 +106,108 @@ describe('managed MCP event adapter creation', () => {
       expect(adapter.subscribe).not.toHaveBeenCalled();
     },
   );
+
+  async function expectInvalidOperations(
+    createAdapter: () => unknown,
+    message: string,
+  ) {
+    const transport = new MockMCPTransport();
+    const start = vi.spyOn(transport, 'start');
+    const onmessage = vi.fn();
+    transport.onmessage = onmessage;
+    const initialization = createMCPClient({
+      transport,
+      experimental_events: { adapter: { createAdapter } },
+    } as unknown as MCPClientConfig);
+    await expect(initialization).rejects.toBeInstanceOf(MCPClientError);
+    await expect(initialization).rejects.toThrow(message);
+    expect(start).not.toHaveBeenCalled();
+    expect(transport.onmessage).toBe(onmessage);
+  }
+
+  it.each([undefined, null, false, 0, 'operations', {}, []])(
+    'rejects an invalid operations result (%j) before starting the transport',
+    async result => {
+      await expectInvalidOperations(
+        () => result,
+        'must return an object implementing subscribe, getSubscription, listSubscriptions, and unsubscribe',
+      );
+    },
+  );
+
+  it.each([
+    'subscribe',
+    'getSubscription',
+    'listSubscriptions',
+    'unsubscribe',
+  ] as const)('requires a callable %s operation', async method => {
+    const missing = { ...createOperations() };
+    Reflect.deleteProperty(missing, method);
+    for (const result of [
+      missing,
+      { ...createOperations(), [method]: 'not callable' },
+    ]) {
+      await expectInvalidOperations(
+        () => result,
+        'must return an object implementing',
+      );
+    }
+  });
+
+  it.each([
+    { name: 'async factory', createAdapter: async () => createOperations() },
+    {
+      name: 'rejected async factory',
+      createAdapter: async () => {
+        throw new Error('Async factory failed');
+      },
+    },
+    {
+      name: 'promise with operation methods',
+      createAdapter: () =>
+        Object.assign(Promise.resolve(createOperations()), createOperations()),
+    },
+    {
+      name: 'thenable',
+      createAdapter: () => ({
+        // oxlint-disable-next-line unicorn/no-thenable -- Exercise rejection of thenable adapter results.
+        then: (resolve: (value: MCPEventOperations) => void) =>
+          resolve(createOperations()),
+      }),
+    },
+  ])(
+    'rejects $name results without an unhandled rejection',
+    async ({ createAdapter }) => {
+      await expectInvalidOperations(
+        createAdapter,
+        'must return operations synchronously',
+      );
+    },
+  );
+
+  it('accepts operations implemented on a prototype and preserves their receiver', async () => {
+    const prototype = createOperations();
+    const operations: MCPEventOperations = Object.create(prototype);
+    prototype.subscribe = vi.fn<MCPEventOperations['subscribe']>(
+      async function (this: MCPEventOperations) {
+        expect(this).toBe(operations);
+        return {
+          id: 'managed_1',
+          name: input.name,
+          arguments: {},
+          status: 'active',
+          expiresAt: null,
+        };
+      },
+    );
+    const client = await createMCPClient({
+      transport: new MockMCPTransport(),
+      experimental_events: { adapter: { createAdapter: () => operations } },
+    });
+    clients.push(client);
+    await client.experimental_events.subscribe(input);
+    expect(prototype.subscribe).toHaveBeenCalledExactlyOnceWith(input);
+  });
 
   it('always invokes createAdapter even if the integration also exposes lifecycle methods', async () => {
     const bound = createOperations();

@@ -1,7 +1,7 @@
 import {
   createMCPClient,
   type MCPClientConfig,
-  type Experimental_ManagedMCPEventOperations as ManagedMCPEventOperations,
+  type Experimental_MCPEventOperations as MCPEventOperations,
   type Experimental_MCPEventsAdapter as MCPEventsAdapter,
   type Experimental_ManagedSubscribeInput as ManagedSubscribeInput,
 } from '@ai-sdk/mcp';
@@ -45,9 +45,7 @@ export function createManagedEventsAdapter({
   createAdapter,
   mcpUrl,
 }: {
-  createAdapter: (config: {
-    mcpUrl: string | undefined;
-  }) => ManagedMCPEventOperations;
+  createAdapter: (config: { mcpUrl: string | undefined }) => MCPEventOperations;
   mcpUrl?: string;
 }): MCPEventsAdapter {
   return {

@@ -101,7 +101,7 @@ for the definition fields. Pagination is explicit; this method does not fetch al
 Configure `experimental_events: { adapter }` to delegate subscription lifecycle
 operations to a backend. The `adapter` configuration requires an
 `Experimental_MCPEventsAdapter` from `@ai-sdk/mcp`. Its
-`createAdapter({ url })` method returns `Experimental_ManagedMCPEventOperations` bound
+`createAdapter({ url })` method returns `Experimental_MCPEventOperations` bound
 to the authorized account, endpoint and destination by your application or
 integration package.
 
@@ -202,7 +202,7 @@ export function createBackendEventsAdapter(
 
 These helpers and `BackendEventsConfig` are illustrative application or backend
 SDK code, not AI SDK exports. `createBackendEventOperations` returns
-`Experimental_ManagedMCPEventOperations` bound to the authorized account, endpoint
+`Experimental_MCPEventOperations` bound to the authorized account, endpoint
 and destination. The helper above lets an explicit `mcpUrl` override the transport
 URL for backend operations; it does not change the MCP client's transport or
 catalog discovery. The backend still authorizes the selected endpoint.
@@ -211,16 +211,18 @@ The AI SDK adapter contract is:
 
 ```ts
 interface MCPEventsAdapter {
-  createAdapter(context: {
-    url: string | undefined;
-  }): ManagedMCPEventOperations;
+  createAdapter(context: { url: string | undefined }): MCPEventOperations;
 }
 ```
 
 The interface is exported as `Experimental_MCPEventsAdapter`. The client
 calls `createAdapter` once, before starting the transport, and uses the returned
-operations for managed subscriptions. Creation errors reject `createMCPClient`
-without starting the transport. Bound operations are no longer accepted directly in
+operations for managed subscriptions. The return value must be an object with
+callable `subscribe`, `getSubscription`, `listSubscriptions`, and `unsubscribe`
+methods. Nullish values, missing or non-callable methods, and Promise/thenable
+results reject `createMCPClient` with `MCPClientError` before the transport starts.
+Errors thrown by `createAdapter` also reject initialization without starting the
+transport. Bound operations are no longer accepted directly in
 `experimental_events.adapter`. To migrate existing subscription operations, wrap them explicitly:
 
 ```ts
@@ -233,7 +235,7 @@ experimental_events: {
 
 Only reuse bound operations when their account, endpoint and destination are correct
 for every client using them. The former subscription operations interface is now
-exported as `Experimental_ManagedMCPEventOperations`; `Experimental_MCPEventsAdapter`
+exported as `Experimental_MCPEventOperations`; `Experimental_MCPEventsAdapter`
 names the configured integration with `createAdapter`.
 
 For HTTP and SSE transport configurations, `url` is the configured string,
@@ -289,7 +291,7 @@ These types are exported as `Experimental_ManagedSubscription` and
 a positive `ttlMs`, an ISO deadline in `expiresAt`, or `expiresAt: null` to
 monitor until stopped. The backend validates these values and enforces its limits.
 
-`Experimental_ManagedMCPEventOperations` has four operations:
+`Experimental_MCPEventOperations` has four operations:
 
 | Operation           | Input                                             | Result                             |
 | ------------------- | ------------------------------------------------- | ---------------------------------- |

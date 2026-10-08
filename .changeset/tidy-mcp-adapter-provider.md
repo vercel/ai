@@ -4,4 +4,6 @@
 
 Give experimental managed event adapters a synchronous `createAdapter({ url })` method that receives the configured MCP transport URL and returns bound subscription operations. Applications no longer need to configure the endpoint twice.
 
-This changes the experimental `experimental_events.adapter` contract: wrap existing subscription operations with `{ createAdapter: () => operations }` instead of passing them directly. `Experimental_MCPEventsAdapter` now names this configured integration; its former subscribe, lookup, list and unsubscribe interface is exported as `Experimental_ManagedMCPEventOperations`.
+**Breaking change to the experimental API:** `Experimental_MCPEventsAdapter` now describes the configured integration with `createAdapter`, rather than the four subscription operations. Those operations are exported as `Experimental_MCPEventOperations`. Update operation type annotations and wrap existing operations with `{ createAdapter: () => operations }` instead of passing them directly to `experimental_events.adapter`.
+
+`createAdapter` must synchronously return an object implementing `subscribe`, `getSubscription`, `listSubscriptions`, and `unsubscribe`. Missing or non-callable operations, nullish results, and Promise/thenable results now reject `createMCPClient` with `MCPClientError` before the transport starts.

@@ -1,4 +1,5 @@
 import type { JSONObject } from '@ai-sdk/provider';
+import { MCPClientError } from '../error/mcp-client-error';
 import type { MCPEvents } from './mcp-event-types';
 import type { RequestOptions } from './types';
 
@@ -39,7 +40,7 @@ export type ManagedSubscribeInput = {
  * Implementations must honor request options and preserve actionable errors.
  * Cancelling a request does not cancel an already accepted remote subscription.
  */
-export interface ManagedMCPEventOperations {
+export interface MCPEventOperations {
   subscribe(input: ManagedSubscribeInput): Promise<ManagedSubscription>;
 
   getSubscription(input: {
@@ -69,18 +70,53 @@ export interface ManagedMCPEventOperations {
  * Custom transports have no standard URL and receive undefined.
  */
 export interface MCPEventsAdapter {
-  createAdapter(context: {
-    url: string | undefined;
-  }): ManagedMCPEventOperations;
+  createAdapter(context: { url: string | undefined }): MCPEventOperations;
+}
+
+/** Validate JavaScript integrations before opening the MCP transport. */
+export function validateMCPEventOperations(
+  operations: unknown,
+): asserts operations is MCPEventOperations {
+  if (
+    operations != null &&
+    (typeof operations === 'object' || typeof operations === 'function') &&
+    'then' in operations &&
+    typeof operations.then === 'function'
+  ) {
+    // Consume a rejected async factory result so the configuration error does
+    // not also cause an unhandled rejection. Async factories are not supported.
+    void Promise.resolve(operations).catch(() => {});
+    throw new MCPClientError({
+      message:
+        'experimental_events.adapter.createAdapter() must return operations synchronously. Promise and thenable results are not supported.',
+    });
+  }
+  if (
+    typeof operations !== 'object' ||
+    operations === null ||
+    !('subscribe' in operations) ||
+    typeof operations.subscribe !== 'function' ||
+    !('getSubscription' in operations) ||
+    typeof operations.getSubscription !== 'function' ||
+    !('listSubscriptions' in operations) ||
+    typeof operations.listSubscriptions !== 'function' ||
+    !('unsubscribe' in operations) ||
+    typeof operations.unsubscribe !== 'function'
+  ) {
+    throw new MCPClientError({
+      message:
+        'experimental_events.adapter.createAdapter() must return an object implementing subscribe, getSubscription, listSubscriptions, and unsubscribe.',
+    });
+  }
 }
 
 /** Catalog discovery uses MCP; all subscription operations use the adapter. */
-export interface ManagedMCPEvents extends ManagedMCPEventOperations {
+export interface ManagedMCPEvents extends MCPEventOperations {
   list: MCPEvents['list'];
 }
 
 export function createManagedMCPEvents(
-  operations: ManagedMCPEventOperations,
+  operations: MCPEventOperations,
   list: MCPEvents['list'],
 ): ManagedMCPEvents {
   return {

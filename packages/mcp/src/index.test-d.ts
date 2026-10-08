@@ -9,7 +9,7 @@ import {
   type Experimental_MCPEventStore,
   type Experimental_MCPEvents,
   type Experimental_SubscribeEventResult,
-  type Experimental_ManagedMCPEventOperations,
+  type Experimental_MCPEventOperations,
   type Experimental_MCPEventsAdapter,
   type Experimental_ManagedMCPClient,
   type Experimental_ManagedMCPEvents,
@@ -99,7 +99,7 @@ it('narrows unknown errors and exposes optional MCP error metadata', () => {
 
 it('infers managed event operations and rejects mixing direct and managed APIs', async () => {
   const adapter = {
-    createAdapter: () => ({}) as Experimental_ManagedMCPEventOperations,
+    createAdapter: () => ({}) as Experimental_MCPEventOperations,
   } satisfies Experimental_MCPEventsAdapter;
   const transport = { type: 'http' as const, url: 'https://example.com/mcp' };
   const config = {
@@ -183,7 +183,7 @@ it('accepts configuration whose event mode is only known at runtime', async () =
 
 it('uses one event configuration union for direct and managed clients', async () => {
   const adapter = {
-    createAdapter: () => ({}) as Experimental_ManagedMCPEventOperations,
+    createAdapter: () => ({}) as Experimental_MCPEventOperations,
   } satisfies Experimental_MCPEventsAdapter;
   const store = {} as Experimental_MCPEventStore;
   const transport = { type: 'http' as const, url: 'https://example.com/mcp' };
@@ -228,7 +228,7 @@ it('uses one event configuration union for direct and managed clients', async ()
 });
 
 it('infers managed clients from adapters and contextually types the URL', async () => {
-  const adapter = {} as Experimental_ManagedMCPEventOperations;
+  const adapter = {} as Experimental_MCPEventOperations;
   const config = {
     transport: { type: 'http', url: 'https://example.com/mcp' },
     experimental_events: {
@@ -286,7 +286,7 @@ it('infers managed clients from adapters and contextually types the URL', async 
 });
 
 it('requires createAdapter instead of bound operations in managed configuration', async () => {
-  const adapter = {} as Experimental_ManagedMCPEventOperations;
+  const adapter = {} as Experimental_MCPEventOperations;
   const transport = { type: 'http' as const, url: 'https://example.com/mcp' };
   const config = { transport, experimental_events: { adapter } };
   // @ts-expect-error Managed configuration requires createAdapter.
@@ -304,5 +304,5 @@ it('requires createAdapter instead of bound operations in managed configuration'
 it('exports the configured adapter separately from its bound operations', () => {
   expectTypeOf<
     ReturnType<Experimental_MCPEventsAdapter['createAdapter']>
-  >().toEqualTypeOf<Experimental_ManagedMCPEventOperations>();
+  >().toEqualTypeOf<Experimental_MCPEventOperations>();
 });
