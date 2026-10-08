@@ -4,7 +4,12 @@ import type {
 } from '@agentclientprotocol/sdk';
 import type { ACPToolCall } from '../../acp-tool-call';
 import { canonicalFingerprint } from './canonical-json-fingerprint';
-import { resolveHostToolCall } from './resolve-host-tool-call';
+import {
+  classifyHostToolInputEnvelope,
+  isQualifiedHostToolName,
+  resolveHostToolCall,
+  type HostToolCall,
+} from './resolve-host-tool-call';
 
 type SessionUpdateMessage = Extract<
   ActiveSessionMessage,
@@ -108,6 +113,16 @@ export function createHostToolCorrelation({
     flushTimer.unref?.();
   };
 
+  const suppressBufferedToolCall = ({ toolCallId }: { toolCallId: string }) => {
+    suppressedToolCallIds.add(toolCallId);
+    candidates.delete(toolCallId);
+    buffered = buffered.filter(
+      item =>
+        !isToolUpdate(item.message) ||
+        item.message.update.toolCallId !== toolCallId,
+    );
+  };
+
   const suppressCandidate = ({
     candidate,
     invocation,
@@ -116,14 +131,12 @@ export function createHostToolCorrelation({
     invocation: CorrelationInvocation;
   }) => {
     invocation.toolCallId = candidate.toolCallId;
-    suppressedToolCallIds.add(candidate.toolCallId);
-    candidates.delete(candidate.toolCallId);
+    suppressBufferedToolCall({ toolCallId: candidate.toolCallId });
     deleteInvocation({ invocations, token: invocation.token });
   };
 
   const suppressToolCallUpdate = ({ toolCallId }: { toolCallId: string }) => {
-    suppressedToolCallIds.add(toolCallId);
-    candidates.delete(toolCallId);
+    suppressBufferedToolCall({ toolCallId });
     if (candidates.size === 0) flush();
   };
 
@@ -258,35 +271,13 @@ export function createHostToolCorrelation({
               toolNames: hostToolNames,
             });
       if (observed != null && observedHostCall != null) {
-        const { toolName, input } = observedHostCall;
-        const permissionToolCall = {
-          ...mergeObservedToolCall({ previous: observed, update: toolCall }),
-          ...(toolCall.title == null ||
-          toolCall.title === toolName ||
-          toolCall.title === `${hostToolServerName}-${toolName}: ${toolName}`
-            ? { title: observed.title }
-            : {}),
-        };
-        const permission = resolveHostToolCall({
-          toolCall: permissionToolCall,
-          serverName: hostToolServerName,
-          toolNames: hostToolNames,
-        });
-        const hasNormalizedInput =
-          isRecord(toolCall.rawInput) &&
-          canonicalFingerprint({ value: toolCall.rawInput }) ===
-            canonicalFingerprint({ value: input }) &&
-          resolveHostToolCall({
-            toolCall: { ...permissionToolCall, rawInput: observed.rawInput },
-            serverName: hostToolServerName,
-            toolNames: hostToolNames,
-          })?.toolName === toolName;
         if (
-          !hasNormalizedInput &&
-          (permission == null ||
-            permission.toolName !== toolName ||
-            canonicalFingerprint({ value: permission.input }) !==
-              canonicalFingerprint({ value: input }))
+          hasConflictingHostToolPermission({
+            toolCall,
+            observed,
+            call: observedHostCall,
+            serverName: hostToolServerName,
+          })
         ) {
           return false;
         }
@@ -338,6 +329,60 @@ export function createHostToolCorrelation({
       observedToolCalls.clear();
     },
   };
+}
+
+function hasConflictingHostToolPermission({
+  toolCall,
+  observed,
+  call,
+  serverName,
+}: {
+  toolCall: ToolCallUpdate;
+  observed: ACPToolCall;
+  call: HostToolCall;
+  serverName: string;
+}): boolean {
+  if (
+    toolCall.name != null &&
+    toolCall.name !== call.toolName &&
+    !isQualifiedHostToolName({
+      name: toolCall.name,
+      serverName,
+      toolName: call.toolName,
+    }) &&
+    !(
+      toolCall.name === 'use_tool' &&
+      isRecord(observed.rawInput) &&
+      classifyHostToolInputEnvelope({ rawInput: observed.rawInput }) ===
+        'deferred-tool'
+    )
+  ) {
+    return true;
+  }
+  if (toolCall.rawInput === undefined) return false;
+  if (!isRecord(toolCall.rawInput)) return true;
+  const fingerprint = canonicalFingerprint({ value: toolCall.rawInput });
+  const inputFingerprint = canonicalFingerprint({ value: call.input });
+  if (
+    fingerprint === canonicalFingerprint({ value: observed.rawInput }) ||
+    fingerprint === inputFingerprint
+  ) {
+    return false;
+  }
+  if (
+    classifyHostToolInputEnvelope({ rawInput: toolCall.rawInput }) === 'none'
+  ) {
+    return true;
+  }
+  const permissionCall = resolveHostToolCall({
+    toolCall: { toolCallId: toolCall.toolCallId, rawInput: toolCall.rawInput },
+    serverName,
+    toolNames: [call.toolName],
+  });
+  return (
+    permissionCall == null ||
+    canonicalFingerprint({ value: permissionCall.input }) !== inputFingerprint
+  );
 }
 
 function mergeObservedToolCall({
@@ -490,46 +535,8 @@ function resolvePermissionHostTool({
     toolNames: [toolName],
   });
   if (call != null) return { input: call.input, hasRequestIdentity: true };
-  if (
-    ('providerIdentifier' in toolCall.rawInput &&
-      'toolName' in toolCall.rawInput &&
-      'args' in toolCall.rawInput) ||
-    ('server' in toolCall.rawInput &&
-      'tool' in toolCall.rawInput &&
-      'arguments' in toolCall.rawInput) ||
-    ('origin' in toolCall.rawInput &&
-      'operation' in toolCall.rawInput &&
-      'arguments' in toolCall.rawInput)
-  )
+  if (classifyHostToolInputEnvelope({ rawInput: toolCall.rawInput }) !== 'none')
     return undefined;
-  const deferredToolName = getProperty({
-    value: toolCall.rawInput,
-    property: 'tool_name',
-  });
-  const deferredToolInput = getProperty({
-    value: toolCall.rawInput,
-    property: 'tool_input',
-  });
-  if (
-    hasOwnProperty({ value: toolCall.rawInput, property: 'tool_name' }) &&
-    hasOwnProperty({ value: toolCall.rawInput, property: 'tool_input' })
-  ) {
-    if (
-      typeof deferredToolName !== 'string' ||
-      !isRecord(deferredToolInput) ||
-      !hasDelimitedPair({
-        value: deferredToolName,
-        serverName,
-        toolName,
-      })
-    ) {
-      return undefined;
-    }
-    return {
-      input: deferredToolInput,
-      hasRequestIdentity: true,
-    };
-  }
   return {
     input: toolCall.rawInput,
     hasRequestIdentity: containsCombinedIdentity({
@@ -726,16 +733,6 @@ function getProperty({
     return undefined;
   }
   return Reflect.get(value, property);
-}
-
-function hasOwnProperty({
-  value,
-  property,
-}: {
-  value: Readonly<Record<string, unknown>>;
-  property: string;
-}): boolean {
-  return Object.prototype.hasOwnProperty.call(value, property);
 }
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {

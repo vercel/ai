@@ -318,7 +318,7 @@ describe('createHostToolRelayAuthorization', () => {
     authorization.observeUpdate({
       update: {
         sessionUpdate: 'tool_call',
-        toolCallId: 'codex',
+        toolCallId: 'server-tool',
         title: 'Weather',
         rawInput: {
           server: serverName,
@@ -432,6 +432,32 @@ describe('createHostToolRelayAuthorization', () => {
     authorization.close();
     for (const pending of invalid) await expect(pending).resolves.toBe(false);
   });
+
+  it.each([
+    { tool_name: `${serverName}__weather` },
+    { tool_name: `${serverName}__weather`, tool_input: null },
+    { tool_name: `${serverName}__weather`, tool_input: [] },
+  ])(
+    'does not authorize unresolved deferred permissions: %j',
+    async rawInput => {
+      const authorization = authorizer();
+      authorization.observeAllowedPermission({
+        toolCall: {
+          toolCallId: 'unresolved-deferred',
+          title: `mcp__${serverName}__weather`,
+          rawInput,
+        },
+      });
+      const direct = authorization.waitForToolCallAuthorization({
+        toolName: 'weather',
+        input: rawInput,
+      });
+      const unwrapped = authorization.waitForToolCallAuthorization(weather);
+      authorization.close();
+      await expect(direct).resolves.toBe(false);
+      await expect(unwrapped).resolves.toBe(false);
+    },
+  );
 
   it('uses accepted permission requests as ACP evidence when they precede updates', async () => {
     const authorization = authorizer();

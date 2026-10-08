@@ -8,6 +8,200 @@ describe('createHostToolCorrelation', () => {
     vi.useRealTimers();
   });
 
+  it.each(['resolved-update', 'invocation', 'explicit'] as const)(
+    'drops buffered Cursor updates after %s suppression with an unmatched candidate',
+    async suppression => {
+      for (const status of ['completed', 'failed'] as const) {
+        for (const finish of ['timeout', 'flush', 'close'] as const) {
+          vi.useFakeTimers();
+          const { correlation, semantic, raw } = setup({
+            hostTools: [{ name: 'get_weather' }],
+          });
+          const fixture = loadWeatherApprovalFixture({ harness: 'cursor' });
+          const first = fixture[0];
+          if (
+            first.type !== 'update' ||
+            first.value.sessionUpdate !== 'tool_call'
+          )
+            throw new Error('Missing Cursor update.');
+          const native = toolUpdate({
+            toolCallId: 'native',
+            status: 'in_progress',
+          });
+          const text = update({
+            sessionUpdate: 'agent_message_chunk',
+            content: { type: 'text', text: 'after native' },
+          });
+          correlation.update({ message: native });
+          correlation.update({
+            message: update(first.value),
+            rawUpdate: { ...first.value, _meta: { token: 'cursor-token' } },
+          });
+          correlation.update({ message: text });
+          if (suppression === 'resolved-update') {
+            for (const event of fixture.slice(1)) {
+              if (event.type === 'update')
+                correlation.update({ message: update(event.value) });
+            }
+          } else if (suppression === 'invocation') {
+            register({
+              correlation,
+              token: 'cursor-token',
+              toolName: 'get_weather',
+              input: { city: 'Austin' },
+              order: 1,
+            });
+          } else {
+            correlation.suppressToolCall({
+              toolCallId: first.value.toolCallId,
+            });
+          }
+          correlation.update({
+            message: update({
+              sessionUpdate: 'tool_call_update',
+              toolCallId: first.value.toolCallId,
+              status,
+            }),
+          });
+          const preservedRaw = [...raw];
+          expect(semantic).toMatchInlineSnapshot(`[]`);
+          if (finish === 'timeout') await vi.advanceTimersByTimeAsync(2000);
+          else if (finish === 'flush') correlation.flush();
+          else correlation.close();
+          expect(semantic.map(item => item.message)).toEqual([native, text]);
+          expect(raw).toEqual(preservedRaw);
+          expect(raw).toHaveLength(suppression === 'resolved-update' ? 6 : 4);
+          correlation.close();
+          vi.useRealTimers();
+        }
+      }
+    },
+  );
+
+  it.each(['cursor', 'github-copilot', 'fx'])(
+    'matches the observed %s call independently of permission display titles',
+    async harness => {
+      vi.useFakeTimers();
+      const { correlation } = setup({ hostTools: [{ name: 'get_weather' }] });
+      for (const event of loadWeatherApprovalFixture({ harness })) {
+        if (event.type === 'update') {
+          correlation.update({ message: update(event.value) });
+        } else {
+          await vi.advanceTimersByTimeAsync(2000);
+          for (const title of [
+            'Checking the forecast',
+            'Weather lookup',
+            null,
+          ]) {
+            for (const name of [
+              undefined,
+              null,
+              'get_weather',
+              'mcp__ai-sdk-harness-tools__get_weather',
+            ]) {
+              expect(
+                correlation.claimHostToolPermission({
+                  toolCall: { ...event.value.toolCall, title, name },
+                }),
+              ).toBe(true);
+            }
+          }
+          expect(
+            correlation.claimHostToolPermission({
+              toolCall: { ...event.value.toolCall, rawInput: undefined },
+            }),
+          ).toBe(true);
+        }
+      }
+      correlation.close();
+    },
+  );
+
+  it.each([
+    {
+      server: 'ai-sdk-harness-tools',
+      tool: 'get_weather',
+      arguments: { city: 'Austin' },
+    },
+    {
+      origin: 'ai-sdk-harness-tools',
+      operation: 'get_weather',
+      arguments: { city: 'Austin' },
+    },
+    {
+      tool_name: 'ai-sdk-harness-tools__get_weather',
+      tool_input: { city: 'Austin' },
+    },
+  ])('accepts equivalent permission envelopes: %j', rawInput => {
+    const { correlation } = setup({ hostTools: [{ name: 'get_weather' }] });
+    for (const event of loadWeatherApprovalFixture({ harness: 'cursor' })) {
+      if (event.type === 'update')
+        correlation.update({ message: update(event.value) });
+      else
+        expect(
+          correlation.claimHostToolPermission({
+            toolCall: { ...event.value.toolCall, rawInput },
+          }),
+        ).toBe(true);
+    }
+    correlation.close();
+  });
+
+  it('retains use_tool only for an observed deferred envelope', () => {
+    const { correlation } = setup({ hostTools: [{ name: 'get_weather' }] });
+    const toolCall = deferredToolPermission({
+      toolCallId: 'deferred',
+      combinedToolName: 'ai-sdk-harness-tools__get_weather',
+      input: { city: 'Austin' },
+    });
+    correlation.update({
+      message: update({
+        sessionUpdate: 'tool_call',
+        ...toolCall,
+        name: 'use_tool',
+      }),
+    });
+    expect(
+      correlation.claimHostToolPermission({
+        toolCall: {
+          toolCallId: toolCall.toolCallId,
+          name: 'use_tool',
+          title: 'Checking weather',
+        },
+      }),
+    ).toBe(true);
+    correlation.close();
+  });
+
+  it.each([
+    { tool_name: 'ai-sdk-harness-tools__get_weather' },
+    { tool_name: 'ai-sdk-harness-tools__get_weather', tool_input: null },
+    { tool_name: 'ai-sdk-harness-tools__get_weather', tool_input: [] },
+    { tool_name: 'other-server__get_weather', tool_input: { city: 'Austin' } },
+    {
+      tool_name: 'ai-sdk-harness-tools__get_weather',
+      tool_input: { city: 'Austin' },
+      server: 'ai-sdk-harness-tools',
+      tool: 'get_weather',
+      arguments: { city: 'Austin' },
+    },
+  ])(
+    'does not fall back to title identity for an unresolved envelope: %j',
+    rawInput => {
+      const { correlation } = setup({ hostTools: [{ name: 'get_weather' }] });
+      expect(
+        correlation.claimHostToolPermission({
+          toolCall: {
+            toolCallId: 'unobserved',
+            title: 'mcp__ai-sdk-harness-tools__get_weather',
+            rawInput,
+          },
+        }),
+      ).toBe(false);
+      correlation.close();
+    },
+  );
+
   it('accepts explicitly supplied normalized Cursor arguments that match the observation', () => {
     const { correlation } = setup({ hostTools: [{ name: 'get_weather' }] });
     for (const event of loadWeatherApprovalFixture({ harness: 'cursor' })) {
@@ -57,7 +251,10 @@ describe('createHostToolCorrelation', () => {
   it.each([
     { rawInput: { city: 'Quito' } },
     { rawInput: null },
+    { rawInput: [] },
     { name: 'different_tool' },
+    { name: 'mcp__other-server__get_weather' },
+    { name: 'use_tool' },
     {
       rawInput: {
         providerIdentifier: 'other-server',
