@@ -12,6 +12,8 @@ import {
 } from '../util/async-iterable-stream';
 import { consumeStream } from '../util/consume-stream';
 
+import { createIdMap } from '../util/create-id-map';
+
 function createUIMessageSnapshot<UI_MESSAGE extends UIMessage>(
   message: UI_MESSAGE,
 ): UI_MESSAGE {
@@ -94,7 +96,29 @@ export function readUIMessageStream<UI_MESSAGE extends UIMessage>({
 
   consumeStream({
     stream: processUIMessageStream({
-      stream,
+      stream: stream.pipeThrough(
+        new TransformStream<UIMessageChunk, UIMessageChunk>({
+          transform(chunk, streamController) {
+            if (
+              chunk.type === 'start' &&
+              chunk.messageId != null &&
+              message != null &&
+              message.id !== chunk.messageId
+            ) {
+              state.message = {
+                id: chunk.messageId,
+                metadata: undefined,
+                role: 'assistant',
+                parts: [],
+              } as unknown as UI_MESSAGE;
+              state.activeTextParts = createIdMap();
+              state.activeReasoningParts = createIdMap();
+              state.partialToolCalls = createIdMap();
+            }
+            streamController.enqueue(chunk);
+          },
+        }),
+      ),
       runUpdateMessageJob(
         job: (options: {
           state: StreamingUIMessageState<UI_MESSAGE>;
