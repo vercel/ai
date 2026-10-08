@@ -69,7 +69,7 @@ export interface MCPEventOperations {
  * The URL is the configured HTTP/SSE endpoint, not a resolved redirect target.
  * Custom transports have no standard URL and receive undefined.
  */
-export interface MCPEventsAdapter {
+export interface MCPEventAdapter {
   createAdapter(context: { url: string | undefined }): MCPEventOperations;
 }
 

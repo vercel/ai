@@ -2,7 +2,7 @@ import {
   createMCPClient,
   type MCPClientConfig,
   type Experimental_MCPEventOperations as MCPEventOperations,
-  type Experimental_MCPEventsAdapter as MCPEventsAdapter,
+  type Experimental_MCPEventAdapter as MCPEventAdapter,
   type Experimental_ManagedSubscribeInput as ManagedSubscribeInput,
 } from '@ai-sdk/mcp';
 
@@ -18,7 +18,7 @@ export async function createManagedWatch({
   input,
 }: {
   transport: MCPClientConfig['transport'];
-  adapter: MCPEventsAdapter;
+  adapter: MCPEventAdapter;
   input: ManagedSubscribeInput;
 }) {
   const client = await createMCPClient({
@@ -47,7 +47,7 @@ export function createManagedEventsAdapter({
 }: {
   createAdapter: (config: { mcpUrl: string | undefined }) => MCPEventOperations;
   mcpUrl?: string;
-}): MCPEventsAdapter {
+}): MCPEventAdapter {
   return {
     createAdapter({ url }) {
       return createAdapter({ mcpUrl: mcpUrl ?? url });

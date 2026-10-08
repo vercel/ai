@@ -7,7 +7,7 @@ import {
 } from './mcp-client';
 import type {
   MCPEventOperations,
-  MCPEventsAdapter,
+  MCPEventAdapter,
   ManagedSubscription,
 } from './mcp-events-adapter';
 import * as transports from './mcp-transport';
@@ -54,8 +54,8 @@ describe('managed MCP event adapter creation', () => {
       const start = vi.spyOn(transport, 'start');
       vi.spyOn(transports, 'createMcpTransport').mockReturnValue(transport);
       const adapter = createOperations();
-      const integration: MCPEventsAdapter = {
-        createAdapter: vi.fn(function (this: MCPEventsAdapter) {
+      const integration: MCPEventAdapter = {
+        createAdapter: vi.fn(function (this: MCPEventAdapter) {
           expect(this).toBe(integration);
           expect(start).not.toHaveBeenCalled();
           return adapter;

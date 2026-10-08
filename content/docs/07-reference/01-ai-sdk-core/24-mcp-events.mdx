@@ -100,7 +100,7 @@ for the definition fields. Pagination is explicit; this method does not fetch al
 
 Configure `experimental_events: { adapter }` to delegate subscription lifecycle
 operations to a backend. The `adapter` configuration requires an
-`Experimental_MCPEventsAdapter` from `@ai-sdk/mcp`. Its
+`Experimental_MCPEventAdapter` from `@ai-sdk/mcp`. Its
 `createAdapter({ url })` method returns `Experimental_MCPEventOperations` bound
 to the authorized account, endpoint and destination by your application or
 integration package.
@@ -147,7 +147,7 @@ Never derive account identity, destination or authorization from model arguments
 
 ### Using an Adapter Helper
 
-A backend SDK or application helper can return `Experimental_MCPEventsAdapter`
+A backend SDK or application helper can return `Experimental_MCPEventAdapter`
 directly. Pass the helper's result as `adapter`; you do not need another object
 wrapper or an inline `createAdapter` callback:
 
@@ -177,7 +177,7 @@ for the MCP transport and the backend's subscription operations.
 Backend integration authors implement `createAdapter` inside their helper:
 
 ```ts filename="my-events-adapter.ts"
-import type { Experimental_MCPEventsAdapter } from '@ai-sdk/mcp';
+import type { Experimental_MCPEventAdapter } from '@ai-sdk/mcp';
 import { createBackendEventOperations } from './my-events-backend';
 
 type BackendEventsConfig = {
@@ -188,7 +188,7 @@ type BackendEventsConfig = {
 
 export function createBackendEventsAdapter(
   config: BackendEventsConfig,
-): Experimental_MCPEventsAdapter {
+): Experimental_MCPEventAdapter {
   return {
     createAdapter({ url }) {
       return createBackendEventOperations({
@@ -210,12 +210,12 @@ catalog discovery. The backend still authorizes the selected endpoint.
 The AI SDK adapter contract is:
 
 ```ts
-interface MCPEventsAdapter {
+interface MCPEventAdapter {
   createAdapter(context: { url: string | undefined }): MCPEventOperations;
 }
 ```
 
-The interface is exported as `Experimental_MCPEventsAdapter`. The client
+The interface is exported as `Experimental_MCPEventAdapter`. The client
 calls `createAdapter` once, before starting the transport, and uses the returned
 operations for managed subscriptions. The return value must be an object with
 callable `subscribe`, `getSubscription`, `listSubscriptions`, and `unsubscribe`
@@ -235,7 +235,7 @@ experimental_events: {
 
 Only reuse bound operations when their account, endpoint and destination are correct
 for every client using them. The former subscription operations interface is now
-exported as `Experimental_MCPEventOperations`; `Experimental_MCPEventsAdapter`
+exported as `Experimental_MCPEventOperations`; `Experimental_MCPEventAdapter`
 names the configured integration with `createAdapter`.
 
 For HTTP and SSE transport configurations, `url` is the configured string,

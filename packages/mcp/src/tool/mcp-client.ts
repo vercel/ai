@@ -18,7 +18,7 @@ import {
   createManagedMCPEvents,
   validateMCPEventOperations,
   type ManagedMCPEvents,
-  type MCPEventsAdapter,
+  type MCPEventAdapter,
 } from './mcp-events-adapter';
 import type { MCPEvents, MCPEventsConfig } from './mcp-event-types';
 import { MCPClientError } from '../error/mcp-client-error';
@@ -303,7 +303,7 @@ export type ManagedMCPClient = Omit<MCPClient, 'experimental_events'> & {
 export function createMCPClient(
   config: MCPClientConfig & {
     experimental_events: {
-      adapter: MCPEventsAdapter;
+      adapter: MCPEventAdapter;
     };
   },
 ): Promise<ManagedMCPClient>;

@@ -10,7 +10,7 @@ import {
   type Experimental_MCPEvents,
   type Experimental_SubscribeEventResult,
   type Experimental_MCPEventOperations,
-  type Experimental_MCPEventsAdapter,
+  type Experimental_MCPEventAdapter,
   type Experimental_ManagedMCPClient,
   type Experimental_ManagedMCPEvents,
   type Experimental_MCPEventsConfig,
@@ -100,7 +100,7 @@ it('narrows unknown errors and exposes optional MCP error metadata', () => {
 it('infers managed event operations and rejects mixing direct and managed APIs', async () => {
   const adapter = {
     createAdapter: () => ({}) as Experimental_MCPEventOperations,
-  } satisfies Experimental_MCPEventsAdapter;
+  } satisfies Experimental_MCPEventAdapter;
   const transport = { type: 'http' as const, url: 'https://example.com/mcp' };
   const config = {
     transport,
@@ -184,7 +184,7 @@ it('accepts configuration whose event mode is only known at runtime', async () =
 it('uses one event configuration union for direct and managed clients', async () => {
   const adapter = {
     createAdapter: () => ({}) as Experimental_MCPEventOperations,
-  } satisfies Experimental_MCPEventsAdapter;
+  } satisfies Experimental_MCPEventAdapter;
   const store = {} as Experimental_MCPEventStore;
   const transport = { type: 'http' as const, url: 'https://example.com/mcp' };
   const managed = { adapter } satisfies Experimental_MCPEventsConfig;
@@ -242,7 +242,7 @@ it('infers managed clients from adapters and contextually types the URL', async 
   } satisfies MCPClientConfig;
   expectTypeOf(
     config.experimental_events.adapter,
-  ).toMatchTypeOf<Experimental_MCPEventsAdapter>();
+  ).toMatchTypeOf<Experimental_MCPEventAdapter>();
   const client = await createMCPClient(config);
   expectTypeOf(client).toEqualTypeOf<Experimental_ManagedMCPClient>();
   expectTypeOf(
@@ -276,7 +276,7 @@ it('infers managed clients from adapters and contextually types the URL', async 
   };
   // @ts-expect-error Adapters cannot be combined with a direct store.
   createMCPClient(mixed);
-  const asyncAdapter: Experimental_MCPEventsAdapter = {
+  const asyncAdapter: Experimental_MCPEventAdapter = {
     // @ts-expect-error Operation binding is synchronous.
     async createAdapter() {
       return adapter;
@@ -303,6 +303,6 @@ it('requires createAdapter instead of bound operations in managed configuration'
 
 it('exports the configured adapter separately from its bound operations', () => {
   expectTypeOf<
-    ReturnType<Experimental_MCPEventsAdapter['createAdapter']>
+    ReturnType<Experimental_MCPEventAdapter['createAdapter']>
   >().toEqualTypeOf<Experimental_MCPEventOperations>();
 });
