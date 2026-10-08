@@ -3516,6 +3516,22 @@ text. Score levels receive zero-based index labels. Non-null Boolean criteria ar
 appended to predicate instructions under `Criteria for true:` and `Criteria for false:`.
 String criteria are passed through; structured criteria are serialized as JSON text.
 
+Image file parts in `state` are sent as inline images. Set `imageDetail` in a file
+part's `providerOptions.openai` to `'low'`, `'high'`, `'auto'`, or `'original'` to
+choose its detail level:
+
+```ts
+state: [
+  { type: 'text', text: 'Inspect the product in this photo.' },
+  {
+    type: 'file',
+    mediaType: 'image/png',
+    data: productPhoto,
+    providerOptions: { openai: { imageDetail: 'high' } },
+  },
+],
+```
+
 The factory respects `createOpenAI` settings, including custom fetch and base URL.
 Set `providerOptions.openai.safetyIdentifier` to an opaque end-user identifier for
 safety monitoring (up to 128 characters). For example:

@@ -40,6 +40,14 @@ function createControlledTransport() {
   };
 }
 
+function createIdleTransport(close: () => void): ChatTransport<UIMessage> {
+  return {
+    close,
+    sendMessages: async () => new ReadableStream<UIMessageChunk>(),
+    reconnectToStream: async () => null,
+  };
+}
+
 async function waitForCondition(condition: () => boolean) {
   for (let index = 0; index < 100; index++) {
     await Promise.resolve();
@@ -119,6 +127,22 @@ const MessageWithPartChild = defineComponent({
 });
 
 describe('useChat', () => {
+  describe('transport lifecycle', () => {
+    it('does not close a caller-owned transport shared by multiple scopes', () => {
+      const close = vi.fn();
+      const transport = createIdleTransport(close);
+      const firstScope = effectScope();
+      const secondScope = effectScope();
+
+      firstScope.run(() => useChat({ transport }));
+      secondScope.run(() => useChat({ transport }));
+
+      firstScope.stop();
+      secondScope.stop();
+      expect(close).not.toHaveBeenCalled();
+    });
+  });
+
   describe('initial messages', () => {
     setupTestComponent(
       defineComponent({

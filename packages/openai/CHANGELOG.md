@@ -1,5 +1,16 @@
 # @ai-sdk/openai
 
+## 4.0.91
+
+### Patch Changes
+
+- 5cf13d2: feat: map the top level embedding dimensions to provider settings
+- 72e9d38: feat(openai): send image detail in decisions
+- fb933f9: Report failed and incomplete web searches as tool errors instead of successful tool results in OpenAI Responses API calls and batch results.
+- Updated dependencies [4dbc902]
+  - @ai-sdk/provider@4.0.26
+  - @ai-sdk/provider-utils@5.0.58
+
 ## 4.0.90
 
 ### Patch Changes
