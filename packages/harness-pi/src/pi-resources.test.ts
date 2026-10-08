@@ -1,4 +1,4 @@
-import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
+import type { HarnessV1Session, HarnessV1StreamPart } from '@ai-sdk/harness';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -7,6 +7,7 @@ import {
   close,
   createFakePi,
   createScriptedModelServerThenDone,
+  createThrowingSandboxSession,
   listen,
   type ModelRequestBody,
 } from './test-helpers';
@@ -38,11 +39,25 @@ describe('Pi with a scripted model', () => {
     rmSync(agentDir, { recursive: true, force: true });
   });
 
+  const runPromptTurn = async (
+    session: HarnessV1Session,
+    prompt: string,
+  ): Promise<void> => {
+    const parts: HarnessV1StreamPart[] = [];
+    const control = await session.doPromptTurn({
+      prompt,
+      model: 'fake/fake-model',
+      tools: [],
+      skills: [],
+      emit: part => parts.push(part),
+    });
+    await control.done;
+    expect(parts.filter(part => part.type === 'error')).toEqual([]);
+  };
+
   it('places configured context files and skills in the system prompt', async () => {
     const sessionWorkDir = '/sandbox/work';
-    const sandboxSession = await createJustBashSandbox({
-      cwd: sessionWorkDir,
-    }).createSession();
+    const sandboxSession = createThrowingSandboxSession();
     const firstRequest = model.requests.length;
     const harness = createFakePi(modelUrl, {
       resources: {
@@ -68,17 +83,9 @@ describe('Pi with a scripted model', () => {
       sessionWorkDir,
     });
     try {
-      const control = await session.doPromptTurn({
-        prompt: 'Hello.',
-        model: 'fake/fake-model',
-        tools: [],
-        skills: [],
-        emit: () => {},
-      });
-      await control.done;
+      await runPromptTurn(session, 'Hello.');
     } finally {
       await session.doDestroy();
-      await sandboxSession.destroy();
     }
 
     const systemPrompt = systemPromptOf(model.requests[firstRequest]);

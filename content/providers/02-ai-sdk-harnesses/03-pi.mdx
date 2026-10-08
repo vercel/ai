@@ -167,8 +167,9 @@ const harness = createPi({
 - `deniedRoots`: absolute sandbox directories that every native file tool
   refuses, even inside the workspace or a readable root. Both requested paths
   and denied roots are resolved in the sandbox, so symlinks pointing to or from
-  a denied root are refused. Denied roots are resolved when the Pi session
-  starts; start a new session if a denied symlink changes target. `find` and
+  a denied root are refused. Denied roots are resolved in the sandbox before
+  the first native file tool runs; start a new session if a denied symlink
+  changes target. `find` and
   `grep` skip denied roots when they search a parent directory. `grep` skips
   them by directory name, so it also skips other directories with the same
   name under the searched directory.
