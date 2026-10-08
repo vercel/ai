@@ -2275,6 +2275,9 @@ class DefaultStreamTextResult<
           if (chunkTimeoutId != null) {
             clearTimeout(chunkTimeoutId);
           }
+          if (abortSignal?.aborted) {
+            return;
+          }
           chunkTimeoutId = setAbortTimeout({
             abortController: chunkAbortController,
             label: 'Chunk',
@@ -2289,6 +2292,11 @@ class DefaultStreamTextResult<
           }
         }
 
+        function clearModelOutputTimeouts() {
+          clearFirstChunkTimeout();
+          clearChunkTimeout();
+        }
+
         function clearStepTimeout() {
           if (stepTimeoutId != null) {
             clearTimeout(stepTimeoutId);
@@ -2297,8 +2305,7 @@ class DefaultStreamTextResult<
 
         function clearStepTimeouts() {
           clearStepTimeout();
-          clearFirstChunkTimeout();
-          clearChunkTimeout();
+          clearModelOutputTimeouts();
         }
 
         function cleanupStepTimeouts() {
@@ -2509,7 +2516,6 @@ class DefaultStreamTextResult<
           let automaticStreamRetryCount = 0;
           let callbackStreamRetryCount = 0;
           let bufferedAttemptParts: LanguageModelStreamPart<TOOLS>[] = [];
-          const outputChunksHandledBeforeBuffering = new WeakSet<object>();
           const openTextParts = new Set<string>();
           const openReasoningParts = new Set<string>();
           let enqueueStreamRetryAttemptBoundary = false;
@@ -2561,7 +2567,16 @@ class DefaultStreamTextResult<
               };
 
               while (true) {
-                const { done, value } = await languageModelStreamReader.read();
+                let result: ReadableStreamReadResult<
+                  LanguageModelStreamPart<TOOLS>
+                >;
+                try {
+                  result = await languageModelStreamReader.read();
+                } catch (error) {
+                  clearModelOutputTimeouts();
+                  throw error;
+                }
+                const { done, value } = result;
 
                 if (enqueueStreamRetryAttemptBoundary) {
                   controller.enqueue(
@@ -2576,6 +2591,7 @@ class DefaultStreamTextResult<
                 }
 
                 if (done) {
+                  clearModelOutputTimeouts();
                   flushBufferedAttemptParts();
                   controller.close();
                   return;
@@ -2592,9 +2608,17 @@ class DefaultStreamTextResult<
                   value.type === 'tool-error';
 
                 if (value.type === 'model-call-end') {
+                  clearModelOutputTimeouts();
                   flushBufferedAttemptParts();
                   enqueueAttemptPart(value);
                   return;
+                }
+
+                // Observe model output before buffering and tool processing.
+                // Replaying buffered parts must not re-arm finished timers.
+                if (isOutputChunk(value)) {
+                  clearFirstChunkTimeout();
+                  resetChunkTimeout();
                 }
 
                 if (
@@ -2602,12 +2626,6 @@ class DefaultStreamTextResult<
                   value.type !== 'error' &&
                   (isToolPart || bufferedAttemptParts.length > 0)
                 ) {
-                  if (isOutputChunk(value)) {
-                    clearFirstChunkTimeout();
-                    resetChunkTimeout();
-                    outputChunksHandledBeforeBuffering.add(value);
-                  }
-
                   bufferedAttemptParts.push(value);
                   continue;
                 }
@@ -2617,6 +2635,7 @@ class DefaultStreamTextResult<
                   return;
                 }
 
+                clearModelOutputTimeouts();
                 await notify({
                   event: { chunk: value },
                   callbacks: onChunk,
@@ -2677,10 +2696,12 @@ class DefaultStreamTextResult<
                 response = retryLanguageModelCall.response;
                 languageModelStreamReader =
                   retryLanguageModelCall.stream.getReader();
+                startFirstChunkTimeout();
                 enqueueStreamRetryAttemptBoundary = true;
               }
             },
             cancel(reason) {
+              clearModelOutputTimeouts();
               return languageModelStreamReader.cancel(reason);
             },
           });
@@ -2857,21 +2878,7 @@ class DefaultStreamTextResult<
                   const chunkType = chunk.type;
 
                   if (isOutputChunk(chunk)) {
-                    const timeoutHandledBeforeBuffering =
-                      outputChunksHandledBeforeBuffering.has(chunk);
-
-                    if (
-                      !hasReceivedOutputChunk &&
-                      !timeoutHandledBeforeBuffering
-                    ) {
-                      // Clear before forwarding the first output so a timeout
-                      // cannot race with already-visible generated content.
-                      clearFirstChunkTimeout();
-                    }
                     hasReceivedOutputChunk = true;
-                    if (!timeoutHandledBeforeBuffering) {
-                      resetChunkTimeout();
-                    }
                   }
 
                   switch (chunkType) {
