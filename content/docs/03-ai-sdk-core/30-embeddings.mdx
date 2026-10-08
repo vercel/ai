@@ -92,6 +92,26 @@ an output vector size. It must be a positive integer. When omitted, the model's
 existing behavior is unchanged. For `embedMany`, the same value is forwarded to
 every batch.
 
+```ts
+import { openai } from '@ai-sdk/openai';
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: openai.embedding('text-embedding-3-small'),
+  value: 'sunny day at the beach',
+  dimensions: 512,
+});
+```
+
+Providers map `dimensions` to their native output dimension setting. An explicit
+dimension setting in `providerOptions` takes precedence over `dimensions`.
+Other provider options can be combined with the top-level setting.
+
+Support and allowed dimension values depend on the model. The SDK forwards the
+requested size to the provider API without truncating or resizing the returned
+embeddings. AI Gateway forwards `dimensions` and `providerOptions` for resolution
+by the selected provider.
+
 ### Provider Options
 
 Embedding model settings can be configured using `providerOptions` for provider-specific parameters:

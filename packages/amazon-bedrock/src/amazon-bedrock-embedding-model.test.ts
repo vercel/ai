@@ -173,6 +173,47 @@ describe('doEmbed', () => {
     };
   });
 
+  describe.each(['titan', 'cohere'] as const)('%s dimensions', family => {
+    it.each([
+      {
+        dimensions: undefined,
+        providerDimensions: undefined,
+        expected: undefined,
+      },
+      { dimensions: 256, providerDimensions: undefined, expected: 256 },
+      { dimensions: undefined, providerDimensions: 512, expected: 512 },
+      { dimensions: 256, providerDimensions: 512, expected: 512 },
+    ])(
+      'maps $dimensions with provider override $providerDimensions to $expected',
+      async ({ dimensions, providerDimensions, expected }) => {
+        const embeddingModel =
+          family === 'titan'
+            ? model
+            : new AmazonBedrockEmbeddingModel('cohere.embed-v4:0', {
+                baseUrl: () =>
+                  'https://bedrock-runtime.us-east-1.amazonaws.com',
+                fetch: fakeFetchWithAuth,
+              });
+
+        await embeddingModel.doEmbed({
+          values: [testValues[0]],
+          dimensions,
+          providerOptions: {
+            amazonBedrock:
+              family === 'titan'
+                ? { dimensions: providerDimensions }
+                : { outputDimension: providerDimensions },
+          },
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(
+          family === 'titan' ? body.dimensions : body.output_dimension,
+        ).toBe(expected);
+      },
+    );
+  });
+
   it('should handle single input value and return embeddings', async () => {
     const { embeddings } = await model.doEmbed({
       values: [testValues[0]],
@@ -521,6 +562,27 @@ describe('should support Nova embeddings', () => {
     },
     fetch: fakeFetchWithAuth,
   });
+
+  it.each([
+    { dimensions: undefined, providerDimensions: undefined, expected: 1024 },
+    { dimensions: 256, providerDimensions: undefined, expected: 256 },
+    { dimensions: undefined, providerDimensions: 384, expected: 384 },
+    { dimensions: 256, providerDimensions: 384, expected: 384 },
+  ])(
+    'maps dimensions $dimensions with provider override $providerDimensions to $expected',
+    async ({ dimensions, providerDimensions, expected }) => {
+      await model.doEmbed({
+        values: [testValues[0]],
+        dimensions,
+        providerOptions: {
+          amazonBedrock: { embeddingDimension: providerDimensions },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.singleEmbeddingParams.embeddingDimension).toBe(expected);
+    },
+  );
 
   it('should send SINGLE_EMBEDDING payload for Nova embeddings', async () => {
     const { embeddings } = await model.doEmbed({
