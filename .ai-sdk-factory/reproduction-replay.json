@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22343,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22343-web-search-store-false.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22343-web-search-store-false.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22343_REPRODUCED: second request does not replay prior web_search_call when store is false (web_search, web_search_preview)"
+  }
+}
