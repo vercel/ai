@@ -225,7 +225,6 @@ export async function streamLanguageModelCall<
     generateId = originalGenerateId,
     generateCallId = originalGenerateCallId,
     now = originalNow,
-    onDoStreamStart,
   } = {},
   onStart,
   onLanguageModelCallStart,
@@ -259,7 +258,6 @@ export async function streamLanguageModelCall<
     generateId?: IdGenerator;
     generateCallId?: IdGenerator;
     now?: () => number;
-    onDoStreamStart?: () => void;
   };
   onLanguageModelCallStart?: Arrayable<OnLanguageModelCallStartCallback>;
   onLanguageModelCallEnd?: Arrayable<OnLanguageModelCallEndCallback<TOOLS>>;
@@ -357,7 +355,6 @@ export async function streamLanguageModelCall<
     ...languageModelCallStartEvent,
     execute: async () => {
       const responseFormat = await output?.responseFormat;
-      onDoStreamStart?.();
       return await resolvedModel.doStream({
         ...callSettings,
         tools: stepTools,

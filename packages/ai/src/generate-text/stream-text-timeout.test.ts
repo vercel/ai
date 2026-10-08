@@ -462,7 +462,7 @@ describe('streamText model output timeout boundaries', () => {
     },
   ];
 
-  it('should include pending doStream in firstChunkMs', async () => {
+  it('should exclude pending doStream from firstChunkMs', async () => {
     let signal: AbortSignal | undefined;
     const result = streamText({
       model: new MockLanguageModelV4({
@@ -479,13 +479,14 @@ describe('streamText model output timeout boundaries', () => {
     const consuming = result.consumeStream();
 
     await vi.advanceTimersByTimeAsync(100);
-    expect(signal?.aborted).toBe(true);
-    expect(signal?.reason.message).toBe('First chunk timeout of 50ms exceeded');
+    expect(signal?.aborted).toBe(false);
     await vi.advanceTimersByTimeAsync(200);
     await consuming;
+    expect(signal?.aborted).toBe(false);
+    expect(await result.text).toBe('Hello');
   });
 
-  it('should use one firstChunkMs budget for request setup and first output', async () => {
+  it('should start firstChunkMs after doStream returns', async () => {
     let signal: AbortSignal | undefined;
     const result = streamText({
       model: new MockLanguageModelV4({
@@ -495,7 +496,7 @@ describe('streamText model output timeout boundaries', () => {
           return {
             stream: new ReadableStream<LanguageModelV4StreamPart>({
               async start(controller) {
-                await delay(30, { abortSignal });
+                await delay(60, { abortSignal });
                 for (const chunk of textChunks) controller.enqueue(chunk);
                 controller.close();
               },
@@ -509,7 +510,9 @@ describe('streamText model output timeout boundaries', () => {
     });
     const consuming = result.consumeStream();
 
-    await vi.advanceTimersByTimeAsync(100);
+    await vi.advanceTimersByTimeAsync(60);
+    expect(signal?.aborted).toBe(false);
+    await vi.advanceTimersByTimeAsync(40);
     expect(signal?.reason.message).toBe('First chunk timeout of 50ms exceeded');
     await consuming;
   });

@@ -2242,8 +2242,8 @@ class DefaultStreamTextResult<
           timeoutMs: stepTimeoutMs,
         });
 
-        // Each provider attempt gets a fresh first-content timeout starting
-        // immediately before doStream, including the wait for response headers.
+        // Each provider attempt gets a fresh first-content timeout after its
+        // stream is returned. Request setup is outside this budget.
         let firstChunkTimeoutId: ReturnType<typeof setTimeout> | undefined =
           undefined;
 
@@ -2502,17 +2502,12 @@ class DefaultStreamTextResult<
                   },
                   _internal: {
                     now,
-                    onDoStreamStart: () => {
-                      clearModelOutputTimeouts();
-                      startFirstChunkTimeout();
-                    },
                   },
                   ...stepCallSettings,
-                }).catch(error => {
-                  // Failed attempts do not consume an output timeout budget
-                  // during retry backoff or preparation of the next attempt.
+                }).then(result => {
                   clearModelOutputTimeouts();
-                  throw error;
+                  startFirstChunkTimeout();
+                  return result;
                 }),
               ),
             );
