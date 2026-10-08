@@ -4,6 +4,7 @@ import {
   type ExtensionAPI,
   type ExtensionFactory,
   type ProviderConfig,
+  type Skill,
   type ToolDefinition,
   ModelRuntime,
   SettingsManager,
@@ -20,14 +21,7 @@ import {
   type HarnessAgentContinueTurnState,
 } from '@ai-sdk/harness/agent';
 import { tool } from '@ai-sdk/provider-utils';
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { existsSync } from 'node:fs';
 import { devNull, tmpdir } from 'node:os';
 import path from 'node:path';
 import { z } from 'zod/v4';
@@ -44,15 +38,28 @@ type FakeExtensionsResult = {
   readonly extensions: unknown[];
   readonly runtime: object;
 };
+type FakeSkillsResult = {
+  readonly skills: Skill[];
+  readonly diagnostics: [];
+};
+type FakeAgentsFilesResult = {
+  readonly agentsFiles: Array<{ path: string; content: string }>;
+};
 type ResourceLoaderOptions = {
+  readonly agentsFilesOverride?: (
+    base: FakeAgentsFilesResult,
+  ) => FakeAgentsFilesResult;
   readonly appendSystemPromptOverride?: (base: string[]) => string[];
   readonly extensionFactories?: Array<ExtensionFactory>;
   readonly extensionsOverride?: (
     base: FakeExtensionsResult,
   ) => FakeExtensionsResult;
+  readonly noContextFiles?: boolean;
   readonly noExtensions?: boolean;
   readonly noPromptTemplates?: boolean;
+  readonly noSkills?: boolean;
   readonly noThemes?: boolean;
+  readonly skillsOverride?: (base: FakeSkillsResult) => FakeSkillsResult;
 };
 
 const piMock = vi.hoisted(() => {
@@ -335,37 +342,6 @@ describe('createPiSession', () => {
       ]);
     } finally {
       await session.doDestroy();
-    }
-  });
-
-  it('lets inline extensions read a host-backed session workspace', async () => {
-    const sessionWorkDir = mkdtempSync(
-      path.join(tmpdir(), 'pi-host-workspace-'),
-    );
-    const projectFile = path.join(sessionWorkDir, 'graphify-out', 'graph.json');
-    mkdirSync(path.dirname(projectFile), { recursive: true });
-    writeFileSync(projectFile, '{}');
-    const factory = vi.fn(() => {
-      expect(existsSync(projectFile)).toBe(true);
-      expect(readFileSync(projectFile, 'utf8')).toBe('{}');
-    });
-
-    try {
-      const session = await createPi({
-        extensionFactories: [factory],
-      }).doStart({
-        sessionId: 'session-host-workspace-extension',
-        sandboxSession: createSandboxSession({ hostFilesystem: true }),
-        sessionWorkDir,
-      });
-
-      try {
-        expect(factory).toHaveBeenCalledOnce();
-      } finally {
-        await session.doDestroy();
-      }
-    } finally {
-      rmSync(sessionWorkDir, { recursive: true, force: true });
     }
   });
 
@@ -1452,13 +1428,126 @@ describe('createPiSession', () => {
     try {
       expect(piMock.resourceLoaderOptions.at(-1)).toMatchObject({
         extensionFactories: [],
+        noContextFiles: true,
         noExtensions: true,
         noPromptTemplates: true,
+        noSkills: true,
         noThemes: true,
       });
       expect(
+        piMock.resourceLoaderOptions.at(-1)?.agentsFilesOverride?.({
+          agentsFiles: [{ path: '/sandbox/work/AGENTS.md', content: 'x' }],
+        }),
+      ).toEqual({ agentsFiles: [] });
+      expect(
+        piMock.resourceLoaderOptions.at(-1)?.skillsOverride?.({
+          skills: [],
+          diagnostics: [],
+        }),
+      ).toEqual({ skills: [], diagnostics: [] });
+      expect(
         piMock.resourceLoaderOptions.at(-1)?.extensionsOverride,
       ).toBeUndefined();
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('gives Pi the configured context files and skills and lets read open the skill file', async () => {
+    const skillPath = '/sandbox/skills/brand-voice/SKILL.md';
+    const sandboxSession = createSandboxSession();
+    const run = vi.mocked(sandboxSession.run);
+    const runWithoutRealpath = run.getMockImplementation()!;
+    run.mockImplementation(async input => {
+      const target = input.command.match(/^target='([^']+)'/)?.[1];
+      const marker = input.command.match(/realpath_marker='([^']+)'/)?.[1];
+      if (target == null || marker == null) return runWithoutRealpath(input);
+      return {
+        stdout: `${Buffer.from(target).toString('base64')}${marker}`,
+        stderr: '',
+        exitCode: 0,
+      };
+    });
+    vi.mocked(sandboxSession.readBinaryFile).mockImplementation(
+      async ({ path: filePath }) =>
+        filePath === skillPath ? new TextEncoder().encode('voice rules') : null,
+    );
+    let reads: PromiseSettledResult<string>[] = [];
+    piMock.session = createFakePiSession({
+      promptImplementation: async () => {
+        reads = await Promise.allSettled([
+          executeReadTool(skillPath),
+          executeReadTool('/sandbox/skills/other/SKILL.md'),
+        ]);
+      },
+    }).session;
+
+    const session = await createPi({
+      resources: {
+        contextFiles: [
+          { path: '/sandbox/work/AGENTS.md', content: 'Project note' },
+        ],
+        skills: [
+          {
+            name: 'brand-voice',
+            description: 'Voice rules',
+            filePath: skillPath,
+          },
+        ],
+      },
+    }).doStart({
+      sessionId: 'session-resources',
+      sandboxSession,
+      sessionWorkDir: '/sandbox/work',
+    });
+
+    try {
+      const control = await session.doPromptTurn({
+        skills: [],
+        prompt: 'test prompt',
+        tools: [],
+        emit: vi.fn(),
+      });
+      await control.done;
+
+      const loaderOptions = piMock.resourceLoaderOptions.at(-1);
+      expect(loaderOptions?.agentsFilesOverride?.({ agentsFiles: [] })).toEqual(
+        {
+          agentsFiles: [
+            { path: '/sandbox/work/AGENTS.md', content: 'Project note' },
+          ],
+        },
+      );
+      expect(
+        loaderOptions?.skillsOverride?.({ skills: [], diagnostics: [] }),
+      ).toEqual({
+        skills: [
+          {
+            name: 'brand-voice',
+            description: 'Voice rules',
+            filePath: skillPath,
+            baseDir: '/sandbox/skills/brand-voice',
+            sourceInfo: {
+              path: skillPath,
+              source: 'harness',
+              scope: 'temporary',
+              origin: 'top-level',
+              baseDir: '/sandbox/skills/brand-voice',
+            },
+            disableModelInvocation: false,
+          },
+        ],
+        diagnostics: [],
+      });
+      expect(reads).toEqual([
+        { status: 'fulfilled', value: expect.stringContaining('voice rules') },
+        {
+          status: 'rejected',
+          reason: expect.objectContaining({
+            message: expect.stringContaining('escapes the workspace'),
+          }),
+        },
+      ]);
     } finally {
       await session.doDestroy();
     }
@@ -2719,7 +2808,11 @@ describe('createPiSession', () => {
       modelsPath: '/custom/.pi/agent/models.json',
       allowModelNetwork: false,
     });
-    expect(SettingsManager.create).toHaveBeenCalledTimes(1);
+    expect(SettingsManager.create).toHaveBeenCalledExactlyOnceWith(
+      expect.any(String),
+      '/custom/.pi/agent',
+      { projectTrusted: false },
+    );
     expect(SettingsManager.inMemory).not.toHaveBeenCalled();
   });
 
@@ -2772,7 +2865,10 @@ describe('createPiSession', () => {
       isResume: false,
     });
 
-    expect(SettingsManager.inMemory).toHaveBeenCalledTimes(1);
+    expect(SettingsManager.inMemory).toHaveBeenCalledExactlyOnceWith(
+      {},
+      { projectTrusted: false },
+    );
     expect(SettingsManager.create).not.toHaveBeenCalled();
   });
 });
@@ -2947,8 +3043,6 @@ function assistantMessageWithToolCalls(
 function createSandboxSession(options?: {
   /** When set, resume-path `readBinaryFile` finds a persisted session file. */
   sessionFileContent?: string;
-  /** When set, file reads use the host filesystem at the same paths. */
-  hostFilesystem?: boolean;
 }): HarnessV1NetworkSandboxSession {
   const textFiles = new Map<string, string>();
   const sandbox = {
@@ -2959,16 +3053,6 @@ function createSandboxSession(options?: {
     getPortEndpoint: vi.fn(),
     getPortUrl: vi.fn(),
     readBinaryFile: vi.fn(async ({ path }: { path: string }) => {
-      if (options?.hostFilesystem) {
-        try {
-          return new Uint8Array(readFileSync(path));
-        } catch (error) {
-          if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-            return undefined;
-          }
-          throw error;
-        }
-      }
       return options?.sessionFileContent != null
         ? new TextEncoder().encode(options.sessionFileContent)
         : undefined;

@@ -1,6 +1,6 @@
 # AI SDK - Pi Harness
 
-`HarnessV1` adapter backed by [`@earendil-works/pi-coding-agent`](https://www.npmjs.com/package/@earendil-works/pi-coding-agent). Pi runs in the host Node.js process and uses the sandbox as a remote filesystem + shell — no bridge process is installed inside the sandbox.
+`HarnessV1` adapter backed by [`@earendil-works/pi-coding-agent`](https://www.npmjs.com/package/@earendil-works/pi-coding-agent). Pi runs in the host Node.js process and uses the sandbox as a remote filesystem + shell — no bridge process is installed inside the sandbox. Pi reads project resources such as `AGENTS.md` and project skills only from the `resources` setting, never from the host or the sandbox.
 
 ## Setup
 
@@ -74,6 +74,34 @@ const harness = createPi({
 });
 ```
 
+## Project resources
+
+Pi does not discover `AGENTS.md`, `CLAUDE.md` or project skills on its own. Pass them through `resources`:
+
+```ts
+import { createPi } from '@ai-sdk/harness-pi';
+
+const harness = createPi({
+  resources: {
+    contextFiles: [
+      {
+        path: '/vercel/sandbox/AGENTS.md',
+        content: 'Run pnpm test before committing.',
+      },
+    ],
+    skills: [
+      {
+        name: 'brand-voice',
+        description: 'Rules for writing in the brand voice.',
+        filePath: '/vercel/sandbox/skills/brand-voice/SKILL.md',
+      },
+    ],
+  },
+});
+```
+
+Pi places each context file in the system prompt the way it places `AGENTS.md`, under the given `path`. Skills are listed to the model by name and description. A skill's file must already exist in the sandbox at `filePath`, because the model reads it with the `read` tool; the skill's directory is readable by Pi's file tools. Skills passed to `HarnessAgent` keep working as before and are written into the sandbox each turn.
+
 ## Inline extensions
 
 Use `extensionFactories` to load trusted inline Pi extensions for each harness session:
@@ -108,7 +136,7 @@ const harness = createPi({
 });
 ```
 
-Routine resource refreshes between turns do not reinitialize extension factories. If the underlying Pi session is rebuilt, factories initialize for the new Pi runtime. Extension factories execute in the host Node.js process, so only pass factories you trust. This option does not enable filesystem extension discovery: user, project, personal, and settings-based Pi extensions remain disabled. Themes and prompt templates also remain disabled.
+Routine resource refreshes between turns do not reinitialize extension factories. If the underlying Pi session is rebuilt, factories initialize for the new Pi runtime. Extension factories execute in the host Node.js process, so only pass factories you trust. The host has no copy of the sandbox workspace; read project files through `session.sandboxSession`. This option does not enable filesystem extension discovery: user, project, personal, and settings-based Pi extensions remain disabled. Themes and prompt templates also remain disabled.
 
 ## MCP servers
 

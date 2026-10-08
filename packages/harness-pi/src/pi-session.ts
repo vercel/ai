@@ -2,6 +2,7 @@ import {
   createAgentSession,
   createMcpExtension,
   createReadToolDefinition,
+  createSyntheticSourceInfo,
   createToolSearchExtension,
   DefaultResourceLoader,
   defineTool,
@@ -18,8 +19,7 @@ import {
   type Skill,
   type ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
-import { randomUUID } from 'node:crypto';
-import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, rm } from 'node:fs/promises';
 import { devNull, tmpdir } from 'node:os';
 import path from 'node:path';
 import { Type } from 'typebox';
@@ -86,8 +86,6 @@ import {
   safePiMetadataSegment,
   serializeToolOutput,
 } from './pi-utils';
-import { PiWorkspaceVfs } from './pi-workspace-vfs';
-import { syncHostWorkspaceFromSandbox } from './pi-workspace-mirror';
 
 const HARNESS_ID = 'pi';
 
@@ -107,30 +105,6 @@ const parkedPiSessions = new Map<
     stateType: 'continue-turn' | 'resume-session';
   }
 >();
-
-/**
- * Whether a discovered resource path belongs to a specific directory.
- */
-function isWithinDirectory(parent: string, child: string): boolean {
-  const rel = path.relative(parent, child);
-  return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
-}
-
-/**
- * Whether a discovered resource path belongs to the session workspace — either
- * the sandbox-side working directory the model sees (`sessionWorkDir`) or its
- * host-side mirror (`hostWorkDir`).
- */
-function isWithinWorkspace(
-  candidate: string,
-  sessionWorkDir: string,
-  hostWorkDir: string,
-): boolean {
-  return (
-    isWithinDirectory(sessionWorkDir, candidate) ||
-    isWithinDirectory(hostWorkDir, candidate)
-  );
-}
 
 function createHarnessPiSkills({
   skills,
@@ -313,6 +287,57 @@ export type PiHarnessExtensionFactory = (
   session: PiHarnessExtensionSession,
 ) => ReturnType<ExtensionFactory>;
 
+/**
+ * A file Pi places in the system prompt the way it places `AGENTS.md`.
+ */
+export interface PiContextFile {
+  /**
+   * The path Pi names the file by in the system prompt.
+   */
+  readonly path: string;
+  readonly content: string;
+}
+
+/**
+ * A skill listed to the model. Its file must already exist in the sandbox at
+ * `filePath`, because the model reads it with the `read` tool.
+ */
+export interface PiSandboxSkill {
+  readonly name: string;
+  readonly description: string;
+  /**
+   * Absolute sandbox path of the skill's `SKILL.md`.
+   */
+  readonly filePath: string;
+}
+
+/**
+ * Project resources Pi reads instead of discovering them on a filesystem.
+ */
+export interface PiResources {
+  readonly contextFiles?: ReadonlyArray<PiContextFile>;
+  readonly skills?: ReadonlyArray<PiSandboxSkill>;
+}
+
+function createConfiguredPiSkills(
+  skills: ReadonlyArray<PiSandboxSkill>,
+): Skill[] {
+  return skills.map(skill => {
+    const baseDir = path.posix.dirname(skill.filePath);
+    return {
+      name: skill.name,
+      description: skill.description,
+      filePath: skill.filePath,
+      baseDir,
+      sourceInfo: createSyntheticSourceInfo(skill.filePath, {
+        source: 'harness',
+        baseDir,
+      }),
+      disableModelInvocation: false,
+    };
+  });
+}
+
 export interface PiSessionSettings {
   readonly auth?: PiAuthenticationMode;
   readonly credentials?: PiCredentialStore;
@@ -326,6 +351,7 @@ export interface PiSessionSettings {
   readonly extensionFactories?: ReadonlyArray<PiHarnessExtensionFactory>;
   readonly fileToolPathPolicy?: PiFileToolPathPolicy;
   readonly suspendToolSettleMs?: number;
+  readonly resources?: PiResources;
 }
 
 export interface CreatePiSessionInput {
@@ -375,7 +401,9 @@ function hasCompatibleReattachSettings(
       current.settings.extensionFactories &&
     parked.settings.fileToolPathPolicy ===
       current.settings.fileToolPathPolicy &&
-    parked.settings.suspendToolSettleMs === current.settings.suspendToolSettleMs
+    parked.settings.suspendToolSettleMs ===
+      current.settings.suspendToolSettleMs &&
+    parked.settings.resources === current.settings.resources
   );
 }
 
@@ -416,36 +444,6 @@ interface DeferredRerunBarrier {
   readonly cancel: (reason?: unknown) => void;
 }
 
-async function isWorkspaceAvailableOnHost({
-  sandbox,
-  sessionWorkDir,
-}: {
-  sandbox: SandboxSession;
-  sessionWorkDir: string;
-}): Promise<boolean> {
-  // A host path existing at the same location is not enough to prove that it
-  // belongs to the sandbox. Round-trip a unique marker through the sandbox
-  // filesystem API before using the workspace directly.
-  const probePath = path.join(
-    sessionWorkDir,
-    `.ai-sdk-harness-pi-${randomUUID()}`,
-  );
-  const probeContent = randomUUID();
-
-  try {
-    await writeFile(probePath, probeContent, { flag: 'wx' });
-    const sandboxContent = await sandbox.readBinaryFile({ path: probePath });
-    return (
-      sandboxContent != null &&
-      Buffer.from(sandboxContent).equals(Buffer.from(probeContent))
-    );
-  } catch {
-    return false;
-  } finally {
-    await rm(probePath, { force: true }).catch(() => {});
-  }
-}
-
 export async function createPiSession(
   input: CreatePiSessionInput,
 ): Promise<HarnessV1Session> {
@@ -476,7 +474,7 @@ export async function createPiSession(
 
   assertPiMcpSettingsSupported(input.settings.mcpSettings);
 
-  // Host-side mirror layout under tmpdir. Replace path-separator characters
+  // Host-side Pi state under tmpdir. Replace path-separator characters
   // that would otherwise turn a session id like `2026-05-29T17:54:27` into a
   // sub-directory tree on disk.
   const safeSessionId = input.sessionId.replace(/[\\/: ]/g, '-');
@@ -498,25 +496,7 @@ export async function createPiSession(
     );
   }
 
-  // Pi runs in this host process but must behave as though it lives in the
-  // sandbox workspace: its working directory is the real `sessionWorkDir`
-  // (where `setup()` clones and where the sandbox-backed tools operate), so the
-  // paths Pi advertises to the model — most notably the "Current working
-  // directory" line in its system prompt — resolve inside the sandbox. When
-  // the sandbox filesystem is remote, the workspace VFS maps that sandbox path
-  // to a scoped host mirror for Pi's own `fs`-based resource loading. When the
-  // sandbox and harness share a filesystem, Pi uses the workspace directly so
-  // extensions can inspect project files beyond the scoped resource paths.
   const sessionWorkDir = input.sessionWorkDir;
-  const workspaceAvailableOnHost = await isWorkspaceAvailableOnHost({
-    sandbox: toolSafeSandboxSession,
-    sessionWorkDir,
-  });
-  const hostWorkDir = workspaceAvailableOnHost
-    ? path.resolve(sessionWorkDir)
-    : path.join(hostRoot, 'workspace');
-
-  await mkdir(hostWorkDir, { recursive: true });
   await mkdir(hostAgentDir, { recursive: true });
   await mkdir(hostSessionDir, { recursive: true });
 
@@ -561,31 +541,13 @@ export async function createPiSession(
     });
   }
 
-  // Snapshot sandbox state into the host mirror BEFORE the VFS goes live so
-  // Pi sees the workspace as soon as it boots.
-  if (!workspaceAvailableOnHost) {
-    await syncHostWorkspaceFromSandbox({
-      sandbox: toolSafeSandboxSession,
-      sandboxWorkDir: input.sessionWorkDir,
-      hostWorkDir,
-    });
-  }
-
-  // Mount only the workspace: the model's view of the workspace lives at
-  // `sessionWorkDir` and is backed by `hostWorkDir`. The agent and session
-  // directories stay on the real host filesystem (below) — they are host-only
-  // Pi state (auth, model registry, session journal) that must never surface
-  // in the sandbox or the workspace mirror.
-  const workspaceVfs = new PiWorkspaceVfs();
-  if (!workspaceAvailableOnHost) {
-    workspaceVfs.mount(hostWorkDir, sessionWorkDir);
-  }
-
+  const resources = input.settings.resources ?? {};
+  const configuredSkills = createConfiguredPiSkills(resources.skills ?? []);
   const paths = createPiPathMapper({
-    hostWorkDir,
     sandboxWorkDir: sessionWorkDir,
     readableRoots: [
       { sandboxDir: sandboxSkillRootDir },
+      ...configuredSkills.map(skill => ({ sandboxDir: skill.baseDir })),
       ...(fileToolPathPolicy?.readableRoots ?? []).map(sandboxDir => ({
         sandboxDir,
       })),
@@ -623,10 +585,14 @@ export async function createPiSession(
     modelsPath: path.join(agentDir, 'models.json'),
   });
   const modelRegistry = new ModelRegistry(modelRuntime);
+  // An untrusted project keeps Pi from reading `.pi/` files under the host
+  // path that equals `sessionWorkDir`.
   const settingsManager =
     input.agentDir != null
-      ? SettingsManager.create(hostWorkDir, agentDir)
-      : SettingsManager.inMemory();
+      ? SettingsManager.create(path.join(hostRoot, 'project'), agentDir, {
+          projectTrusted: false,
+        })
+      : SettingsManager.inMemory({}, { projectTrusted: false });
 
   // Run-scoped env (for the model resolver's gateway fallback heuristic).
   const resolverEnv = resolvePiEnv({
@@ -727,25 +693,20 @@ export async function createPiSession(
           },
         }
       : {}),
-    // Pi runs in the host process, so its default resource discovery reaches
-    // the host developer's personal config (`~/.pi/agent/*`, `~/.agents/*`).
-    // The harness exposes only explicitly supplied inline extension factories;
-    // disable filesystem extension discovery entirely to avoid loading and
-    // executing a host developer's personal or project Pi extensions inside
-    // the server process. Themes and prompt templates stay disabled. Skills
-    // are kept but filtered to workspace project skills plus harness-provided
-    // skills whose files live in sandbox HOME.
+    // Pi runs in the host process, where its filesystem discovery would read
+    // the host developer's config and execute their extensions. Project
+    // resources come only from `resources` and per-turn harness skills.
     noExtensions: true,
     noThemes: true,
     noPromptTemplates: true,
+    noSkills: true,
+    noContextFiles: true,
+    agentsFilesOverride: () => ({
+      agentsFiles: [...(resources.contextFiles ?? [])],
+    }),
     skillsOverride: base => ({
       ...base,
-      skills: [
-        ...base.skills.filter(skill =>
-          isWithinWorkspace(skill.filePath, sessionWorkDir, hostWorkDir),
-        ),
-        ...harnessSkills,
-      ],
+      skills: [...configuredSkills, ...harnessSkills],
     }),
   });
   await resourceLoader.reload();
@@ -1421,14 +1382,6 @@ export async function createPiSession(
           await reloadResourcesOnly();
           turnAbortController.signal.throwIfAborted();
         }
-        if (!workspaceAvailableOnHost) {
-          await syncHostWorkspaceFromSandbox({
-            sandbox: toolSafeSandboxSession,
-            sandboxWorkDir: input.sessionWorkDir,
-            hostWorkDir,
-          });
-        }
-        turnAbortController.signal.throwIfAborted();
 
         // Fresh translator state for the new turn — keep the tool sets the
         // session was built with.
@@ -1581,7 +1534,6 @@ export async function createPiSession(
     }
 
     await disposePiSession({ reason: 'quit' });
-    workspaceVfs.unmount();
     await rm(hostRoot, { recursive: true, force: true });
 
     return {
@@ -1710,7 +1662,6 @@ export async function createPiSession(
       await abortingTurn;
       await turnToDestroy?.done.catch(() => {});
       await disposePiSession({ reason: 'quit' });
-      workspaceVfs.unmount();
       await rm(hostRoot, { recursive: true, force: true });
     },
 
@@ -1825,7 +1776,6 @@ export async function createPiSession(
       stopped = true;
       parkedPiSessions.delete(input.sessionId);
       await disposePiSession({ reason: 'quit' });
-      workspaceVfs.unmount();
       await rm(hostRoot, { recursive: true, force: true });
 
       return {

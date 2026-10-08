@@ -50,7 +50,6 @@ describe('createPiSandboxReadOperations with just-bash', () => {
       const remoteOps = createPiRemoteOps({
         sandbox,
         paths: createPiPathMapper({
-          hostWorkDir: '/tmp/pi-read-test-host',
           sandboxWorkDir,
         }),
       });
