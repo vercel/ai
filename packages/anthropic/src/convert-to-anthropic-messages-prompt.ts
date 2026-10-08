@@ -215,10 +215,7 @@ export async function convertToAnthropicMessagesPrompt({
 
           for (const toolChange of toolChanges) {
             toolChangeCount++;
-            if (
-              toolChange.type === 'tool_addition' &&
-              toolChange.tool != null
-            ) {
+            if ('tool' in toolChange) {
               const {
                 tools,
                 betas: toolsBetas,
@@ -253,7 +250,7 @@ export async function convertToAnthropicMessagesPrompt({
               type: toolChange.type,
               tool: {
                 type: 'tool_reference',
-                name: toolNameMapping.toProviderToolName(toolChange.toolName!),
+                name: toolNameMapping.toProviderToolName(toolChange.toolName),
               },
             } satisfies AnthropicToolChangeContent);
           }

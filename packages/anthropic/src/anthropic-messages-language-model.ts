@@ -477,6 +477,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       },
     });
 
+    const defaultEagerInputStreaming =
+      stream && (anthropicOptions?.toolStreaming ?? true);
+
     const toolsetNames = getAnthropicToolsetNames(tools);
 
     const { prompt: messagesPrompt, betas } =
@@ -489,8 +492,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         toolsetNames,
         supportsStrictTools,
         supportsStructuredOutput,
-        defaultEagerInputStreaming:
-          stream && (anthropicOptions?.toolStreaming ?? true),
+        defaultEagerInputStreaming,
       });
 
     // Some models always run adaptive thinking and reject `disabled` thinking
@@ -932,9 +934,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     ) {
       betas.add('server-side-fallback-2026-06-01');
     }
-
-    const defaultEagerInputStreaming =
-      stream && (anthropicOptions?.toolStreaming ?? true);
 
     const {
       tools: anthropicTools,
