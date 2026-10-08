@@ -873,6 +873,167 @@ describe('Claude Code bridge configuration', () => {
     ]);
   });
 
+  test.each([
+    {
+      label: 'rejected before handler',
+      input: {},
+      reachedHandler: false,
+      isError: true,
+    },
+    {
+      label: 'normal success',
+      input: { city: 'Tokyo' },
+      reachedHandler: true,
+      isError: false,
+    },
+    {
+      label: 'host execution error',
+      input: { city: 'Tokyo' },
+      reachedHandler: true,
+      isError: true,
+    },
+  ])(
+    'reports exactly one completed host-tool attempt: $label',
+    async ({ input, reachedHandler, isError }) => {
+      state.start.tools = [
+        {
+          name: 'weather',
+          inputSchema: {
+            type: 'object',
+            properties: { city: { type: 'string' } },
+            required: ['city'],
+          },
+        },
+      ];
+      const requestToolResult = vi.fn(async () => ({
+        output: 'host result',
+        isError,
+      }));
+      state.requestToolResult = requestToolResult;
+      state.createQuery = () =>
+        (async function* () {
+          yield {
+            type: 'stream_event',
+            event: {
+              type: 'content_block_start',
+              index: 0,
+              content_block: {
+                type: 'tool_use',
+                id: 'host-1',
+                name: 'mcp__harness-tools__weather',
+              },
+            },
+          };
+          yield {
+            type: 'stream_event',
+            event: {
+              type: 'content_block_delta',
+              index: 0,
+              delta: {
+                type: 'input_json_delta',
+                partial_json: JSON.stringify(input),
+              },
+            },
+          };
+          yield {
+            type: 'stream_event',
+            event: { type: 'content_block_stop', index: 0 },
+          };
+          yield {
+            type: 'assistant',
+            message: {
+              content: [
+                {
+                  type: 'tool_use',
+                  id: 'host-1',
+                  name: 'mcp__harness-tools__weather',
+                  input,
+                },
+              ],
+            },
+          };
+          const handler = state.toolHandlers.get('weather')!;
+          const invocation = handler(input, {
+            requestId: 'request-1',
+            _meta: { 'claudecode/toolUseId': 'host-1' },
+          });
+          if (reachedHandler) {
+            await invocation;
+          } else {
+            await expect(invocation).rejects.toThrow();
+          }
+          yield {
+            type: 'user',
+            message: {
+              content: [
+                {
+                  type: 'tool_result',
+                  tool_use_id: 'host-1',
+                  is_error: isError,
+                  content: reachedHandler
+                    ? 'host result'
+                    : 'Input validation error: city is required',
+                },
+              ],
+            },
+          };
+          yield { type: 'result', subtype: 'success', result: 'done' };
+        })();
+
+      await import('./index');
+
+      expect(requestToolResult).toHaveBeenCalledTimes(reachedHandler ? 1 : 0);
+      expect(
+        state.emitted.filter(
+          event =>
+            typeof event.type === 'string' &&
+            event.type.startsWith('tool-input-'),
+        ),
+      ).toEqual([
+        {
+          type: 'tool-input-start',
+          id: 'host-1',
+          toolName: 'weather',
+          providerExecuted: false,
+        },
+        {
+          type: 'tool-input-delta',
+          id: 'host-1',
+          delta: JSON.stringify(input),
+        },
+        { type: 'tool-input-end', id: 'host-1' },
+      ]);
+
+      const completedCalls = state.emitted.filter(
+        event => event.type === 'tool-call',
+      );
+      const results = state.emitted.filter(
+        event => event.type === 'tool-result',
+      );
+      if (completedCalls.length !== 1 || results.length !== 1) {
+        throw new Error(
+          `ISSUE_22293: expected one finalized host-tool call and result; observed ${completedCalls.length} calls and ${results.length} results`,
+        );
+      }
+
+      expect(completedCalls[0]).toMatchObject({
+        toolCallId: 'host-1',
+        toolName: 'weather',
+      });
+      expect(results[0]).toMatchObject({
+        toolCallId: 'host-1',
+        toolName: 'weather',
+        isError,
+        result: reachedHandler
+          ? 'host result'
+          : 'Input validation error: city is required',
+      });
+      expect(state.emitted.some(event => event.type === 'finish-step')).toBe(
+        true,
+      );
+    },
+  );
+
   test('reports only the final model call usage for the final step', async () => {
     state.messages = [
       {
