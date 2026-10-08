@@ -1,5 +1,13 @@
 # @ai-sdk/harness-acp
 
+## 1.0.85
+
+### Patch Changes
+
+- 0637573: fix(harness-acp): improve tool call matching logic to fix cross-process tool approval errors for certain ACP backed harnesses
+  - @ai-sdk/harness@1.0.146
+  - @ai-sdk/provider-utils@5.0.58
+
 ## 1.0.84
 
 ### Patch Changes

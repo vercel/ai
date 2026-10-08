@@ -1,5 +1,14 @@
 # @ai-sdk/voyage
 
+## 2.0.58
+
+### Patch Changes
+
+- 5cf13d2: feat: map the top level embedding dimensions to provider settings
+- Updated dependencies [4dbc902]
+  - @ai-sdk/provider@4.0.26
+  - @ai-sdk/provider-utils@5.0.58
+
 ## 2.0.57
 
 ### Patch Changes

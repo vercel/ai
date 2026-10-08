@@ -1,5 +1,21 @@
 # ai
 
+## 7.0.135
+
+### Patch Changes
+
+- 5ddbb70: fix(ai): prevent duplicate continuation requests for repeated tool approval responses
+- 7c40a09: feat(ai): log warning when default step limit stops a tool loop
+- 4dbc902: feat(ai): add a top level 'dimensions' setting for embeddding functions
+- ff18b73: fix(ai): wait for chat stream cleanup when stopping
+- 9be846c: feat(ai): add a persistent WebSocket chat transport with correlated streaming, serialized backpressure, cancellation, validated protocol frames, explicit lifecycle, and sequence-based resume support
+- Updated dependencies [5cf13d2]
+- Updated dependencies [4dbc902]
+- Updated dependencies [908fd12]
+  - @ai-sdk/gateway@4.0.109
+  - @ai-sdk/provider@4.0.26
+  - @ai-sdk/provider-utils@5.0.58
+
 ## 7.0.134
 
 ### Patch Changes
