@@ -44,7 +44,10 @@ import {
   resolveSandboxHomeDir,
   writeSkills,
 } from '@ai-sdk/harness/utils';
-import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
+import {
+  secureJsonParse,
+  type Experimental_SandboxSession as SandboxSession,
+} from '@ai-sdk/provider-utils';
 import {
   createPiModelRuntime,
   registerPiProviders,
@@ -562,7 +565,7 @@ export async function createPiSession(
       sessionManager == null ? seededEntries : sessionEntriesOf(sessionManager);
     return entries == null
       ? {}
-      : { entries: JSON.parse(JSON.stringify(entries)) };
+      : { entries: secureJsonParse(JSON.stringify(entries)) };
   };
 
   // Pi auth + model registry are global to this Pi session. These live on the
