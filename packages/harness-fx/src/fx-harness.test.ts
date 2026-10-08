@@ -167,11 +167,6 @@ describe('createFx', () => {
             "nativeName": undefined,
             "toolUseKind": undefined,
           },
-          "terminal": {
-            "commonName": undefined,
-            "nativeName": undefined,
-            "toolUseKind": "bash",
-          },
           "vision": {
             "commonName": undefined,
             "nativeName": undefined,
@@ -335,7 +330,7 @@ describe('createFx', () => {
     expect(capabilitySearchInputSchema.safeParse({}).success).toBe(false);
   });
 
-  it('accepts fx v0.0.13 location-based and legacy name-based skill inputs', () => {
+  it('accepts fx v0.0.13 location-based skill inputs', () => {
     createFx();
 
     const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
@@ -358,15 +353,7 @@ describe('createFx', () => {
     ).toBe(true);
     expect(
       skillInputSchema.safeParse({ name: 'weather-forecast' }).success,
-    ).toBe(true);
-    expect(
-      skillInputSchema.safeParse({
-        name: 'weather-forecast',
-        location: '/skills/weather-forecast',
-        resource: 'SKILL.md',
-        offset: 1,
-      }).success,
-    ).toBe(true);
+    ).toBe(false);
     expect(skillInputSchema.safeParse({}).success).toBe(false);
   });
 

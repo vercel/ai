@@ -89,156 +89,6 @@ export type FxHarnessSettings = {
   readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
 };
 
-const terminalShellSchema = z.looseObject({
-  kind: z.enum(['user_login', 'executable']),
-  path: z.string().optional(),
-  clean_start: z.boolean().optional(),
-});
-
-const terminalReturnSchema = z.looseObject({
-  kind: z.enum(['started', 'exit', 'quiet', 'match']),
-  duration_ms: z.number().int().positive().optional(),
-  pattern: z.string().optional(),
-});
-
-const terminalDimensionsSchema = z.looseObject({
-  rows: z.number().int().min(1).max(4096),
-  columns: z.number().int().min(1).max(4096),
-});
-
-const terminalMonitorConditionSchema = z.looseObject({
-  kind: z.enum([
-    'process_exit',
-    'exit_code',
-    'signal',
-    'output_contains',
-    'output_matches',
-    'output_quiet',
-    'screen_matches',
-    'tcp_ready',
-    'http_ready',
-    'path_exists',
-    'path_changed',
-    'path_size',
-    'custom_probe',
-  ]),
-  pattern: z.string().optional(),
-  duration_ms: z.number().int().min(10).max(86_400_000).optional(),
-  exit_code: z.number().int().optional(),
-  signal: z
-    .enum(['hangup', 'interrupt', 'quit', 'terminate', 'kill'])
-    .optional(),
-  host: z.string().optional(),
-  port: z.number().int().min(1).max(65_535).optional(),
-  path: z.string().optional(),
-  minimum_bytes: z.number().int().optional(),
-  command: z.string().optional(),
-  cwd: z.string().optional(),
-});
-
-const terminalMonitorDefinitionSchema = z.looseObject({
-  condition: terminalMonitorConditionSchema,
-  check_interval_ms: z.number().int().min(10).max(86_400_000).optional(),
-  notify: z.looseObject({
-    kind: z.enum([
-      'on_match',
-      'on_state_change',
-      'on_exit',
-      'every_check',
-      'every_n_checks',
-      'interval',
-    ]),
-    count: z.number().int().positive().optional(),
-    interval_ms: z.number().int().min(10).max(86_400_000).optional(),
-  }),
-  lifetime: z.looseObject({
-    kind: z.enum(['until_match', 'until_session_end', 'duration']),
-    duration_ms: z.number().int().min(1).max(31_536_000_000).optional(),
-  }),
-});
-
-const terminalRequestSchema = z.looseObject({
-  action: z.enum([
-    'exec',
-    'start',
-    'read',
-    'screen',
-    'write',
-    'wait',
-    'monitor',
-    'inspect',
-    'list',
-    'resize',
-    'signal',
-    'close',
-  ]),
-  session_id: z.string().nullable().optional(),
-  cwd: z.string().nullable().optional(),
-  command: z.string().max(65_536).nullable().optional(),
-  profile: z.enum(['clean', 'user']).nullable().optional(),
-  shell: terminalShellSchema.nullable().optional(),
-  backend: z.enum(['native', 'tmux']).nullable().optional(),
-  return_when: terminalReturnSchema.nullable().optional(),
-  wait_ceiling_ms: z.number().int().positive().nullable().optional(),
-  dimensions: terminalDimensionsSchema.nullable().optional(),
-  initial_monitors: z
-    .array(terminalMonitorDefinitionSchema)
-    .max(32)
-    .nullable()
-    .optional(),
-  cursor_segment: z.number().int().positive().nullable().optional(),
-  cursor_offset: z.number().int().nullable().optional(),
-  after_event_id: z.number().int().nullable().optional(),
-  acknowledge_event_id: z.number().int().positive().nullable().optional(),
-  max_events: z.number().int().min(1).max(256).nullable().optional(),
-  write: z
-    .looseObject({
-      kind: z.enum(['text', 'keys', 'controls', 'paste']),
-      text: z.string().optional(),
-      keys: z
-        .array(
-          z.enum([
-            'enter',
-            'tab',
-            'escape',
-            'backspace',
-            'delete',
-            'insert',
-            'arrow_up',
-            'arrow_down',
-            'arrow_left',
-            'arrow_right',
-            'home',
-            'end',
-            'page_up',
-            'page_down',
-          ]),
-        )
-        .optional(),
-      controls: z.array(z.number().int()).optional(),
-    })
-    .nullable()
-    .optional(),
-  lease: z.enum(['acquire', 'use', 'release', 'revoke']).nullable().optional(),
-  monitor: z
-    .looseObject({
-      kind: z.enum(['add', 'update', 'pause', 'resume', 'remove']),
-      monitor_id: z.string().optional(),
-      definition: terminalMonitorDefinitionSchema.optional(),
-    })
-    .nullable()
-    .optional(),
-  task_id: z.string().nullable().optional(),
-  workspace_root: z.string().nullable().optional(),
-  rows: z.number().int().min(1).max(4096).nullable().optional(),
-  columns: z.number().int().min(1).max(4096).nullable().optional(),
-  signal: z
-    .enum(['hangup', 'interrupt', 'quit', 'terminate', 'kill'])
-    .nullable()
-    .optional(),
-  close_policy: z.enum(['graceful', 'force']).nullable().optional(),
-});
-
 const shellExecutableSchema = z.looseObject({
   kind: z.literal('executable'),
   path: z.string(),
@@ -418,34 +268,16 @@ const FX_BUILTIN_TOOLS = {
     ...tool({ inputSchema: z.looseObject({ url: z.string() }) }),
     toolUseKind: 'readonly',
   },
-  terminal: {
-    ...tool({
-      inputSchema: terminalRequestSchema,
-    }),
-    toolUseKind: 'bash',
-  },
   shell: {
     ...tool({ inputSchema: shellInputSchema }),
     toolUseKind: 'bash',
   },
   skill: {
     ...tool({
-      inputSchema: z.union([
-        z.looseObject({
-          location: z.string(),
-          resource: z.string().optional(),
-        }),
-        z.looseObject({
-          /*
-           * Fx's current model schema uses `location`; retain the name-based
-           * form for compatibility with callers that still send it.
-           */
-          name: z.string(),
-          location: z.string().optional(),
-          resource: z.string().optional(),
-          offset: z.number().int().optional(),
-        }),
-      ]),
+      inputSchema: z.looseObject({
+        location: z.string(),
+        resource: z.string().optional(),
+      }),
     }),
     toolUseKind: 'readonly',
   },

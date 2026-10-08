@@ -40,7 +40,6 @@ test('preserves fx built-in tool types', () => {
     | 'semantic_search'
     | 'open_file'
     | 'web_fetch'
-    | 'terminal'
     | 'skill'
     | 'install_skill'
     | 'subagent'
@@ -59,9 +58,5 @@ test('preserves fx built-in tool types', () => {
   assertType<SkillInput>({
     location: 'skill:test:0/weather-forecast',
     resource: 'SKILL.md',
-  });
-  assertType<SkillInput>({
-    name: 'weather-forecast',
-    offset: 1,
   });
 });
