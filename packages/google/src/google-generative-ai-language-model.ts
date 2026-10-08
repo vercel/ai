@@ -376,6 +376,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
         cachedContent: googleOptions?.cachedContent,
         labels: googleOptions?.labels,
         serviceTier: bodyServiceTier,
+        ...(googleOptions?.continuationToken != null && {
+          continuationToken: googleOptions.continuationToken,
+        }),
       },
       warnings: [...warnings, ...toolWarnings],
       providerOptionsName,
@@ -600,6 +603,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
           usageMetadata: usageMetadata ?? null,
           finishMessage: candidate?.finishMessage ?? null,
           serviceTier: usageMetadata?.serviceTier ?? null,
+          ...(candidate?.continuationToken != null
+            ? { continuationToken: candidate.continuationToken }
+            : {}),
         } satisfies GoogleGenerativeAIProviderMetadata,
       },
       request: { body: args },
@@ -646,6 +652,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     let lastUrlContextMetadata: UrlContextMetadataSchema | null = null;
     let lastSafetyRatings: SafetyRatingSchema[] | null = null;
     let lastFinishMessage: string | null = null;
+    let lastContinuationToken: string | null = null;
     let confirmedPromptBlockReason: string | undefined;
 
     const generateId = this.config.generateId;
@@ -774,6 +781,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
               }
               if (candidate.finishMessage != null) {
                 lastFinishMessage = candidate.finishMessage;
+              }
+              if (candidate.continuationToken != null) {
+                lastContinuationToken = candidate.continuationToken;
               }
             }
 
@@ -1200,6 +1210,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                   usageMetadata: usage ?? null,
                   finishMessage: lastFinishMessage,
                   serviceTier: usage?.serviceTier ?? null,
+                  ...(lastContinuationToken != null
+                    ? { continuationToken: lastContinuationToken }
+                    : {}),
                 } satisfies GoogleGenerativeAIProviderMetadata,
               },
             });
@@ -1571,6 +1584,7 @@ const responseSchema = lazySchema(() =>
             content: getContentSchema().nullish().or(z.object({}).strict()),
             finishReason: z.string().nullish(),
             finishMessage: z.string().nullish(),
+            continuationToken: z.string().nullish(),
             safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
             groundingMetadata: getGroundingMetadataSchema().nullish(),
             urlContextMetadata: getUrlContextMetadataSchema().nullish(),
@@ -1630,6 +1644,7 @@ const chunkSchema = lazySchema(() =>
             content: getContentSchema().nullish(),
             finishReason: z.string().nullish(),
             finishMessage: z.string().nullish(),
+            continuationToken: z.string().nullish(),
             safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
             groundingMetadata: getGroundingMetadataSchema().nullish(),
             urlContextMetadata: getUrlContextMetadataSchema().nullish(),

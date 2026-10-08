@@ -141,6 +141,7 @@ export function buildGoogleInteractionsStreamTransform({
   let interactionId: string | undefined;
   let usage: GoogleInteractionsUsage | undefined;
   let serviceTier: string | undefined = headerServiceTier;
+  let continuationToken: string | undefined;
   let finishStatus: GoogleInteractionsStatus | string | undefined;
   let hasFunctionCall = false;
 
@@ -806,6 +807,17 @@ export function buildGoogleInteractionsStreamTransform({
           } else {
             finishStatus = 'in_progress';
           }
+          /*
+           * Long-running streams emit a cumulative `continuation_token` on
+           * `interaction.status_update` every 5K tokens after 32K. Keep the
+           * latest one so a dropped stream can be resumed from it.
+           */
+          const checkpointToken = (
+            event as { continuation_token?: string | null }
+          ).continuation_token;
+          if (checkpointToken != null) {
+            continuationToken = checkpointToken;
+          }
           break;
         }
 
@@ -819,6 +831,7 @@ export function buildGoogleInteractionsStreamTransform({
             status?: GoogleInteractionsStatus;
             usage?: GoogleInteractionsUsage;
             service_tier?: string;
+            continuation_token?: string;
           };
           if (interaction?.id != null && interaction.id.length > 0) {
             interactionId = interaction.id;
@@ -837,6 +850,9 @@ export function buildGoogleInteractionsStreamTransform({
            */
           if (interaction?.service_tier != null) {
             serviceTier = interaction.service_tier;
+          }
+          if (interaction?.continuation_token != null) {
+            continuationToken = interaction.continuation_token;
           }
           break;
         }
@@ -875,6 +891,7 @@ export function buildGoogleInteractionsStreamTransform({
         google: {
           ...(interactionId != null ? { interactionId } : {}),
           ...(serviceTier != null ? { serviceTier } : {}),
+          ...(continuationToken != null ? { continuationToken } : {}),
           ...(outputTokensByModality != null ? { outputTokensByModality } : {}),
         },
       };
