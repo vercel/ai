@@ -99,7 +99,7 @@ export async function prepareTools({
         const deferLoading = anthropicOptions?.deferLoading;
         const allowedCallers = anthropicOptions?.allowedCallers;
 
-        if (!supportsStrictTools && tool.strict != null) {
+        if (!supportsStrictTools && tool.strict === true) {
           toolWarnings.push({
             type: 'unsupported',
             feature: 'strict',
