@@ -6,13 +6,6 @@ import {
   type TruncationResult,
 } from '@earendil-works/pi-coding-agent';
 
-type ReadToolOutputOptions = {
-  text: string;
-  filePath: string;
-  offset?: number;
-  limit?: number;
-};
-
 function joinContentAndNotice(content: string, notice: string): string {
   return content.length > 0 ? `${content}\n\n[${notice}]` : `[${notice}]`;
 }
@@ -84,64 +77,4 @@ export function truncatePiToolOutputTail(
     truncation.content,
     formatTailNotice(truncation, continuation),
   );
-}
-
-export function formatPiReadToolOutput({
-  text,
-  filePath,
-  offset,
-  limit,
-}: ReadToolOutputOptions): string {
-  const allLines = text.split('\n');
-  const startLine = offset == null ? 0 : Math.max(0, Math.floor(offset) - 1);
-  const startLineDisplay = startLine + 1;
-
-  if (startLine >= allLines.length) {
-    throw new Error(
-      `Offset ${offset} is beyond end of file (${allLines.length} lines total)`,
-    );
-  }
-
-  const normalizedLimit =
-    limit == null ? undefined : Math.max(1, Math.floor(limit));
-  const endLine =
-    normalizedLimit == null
-      ? allLines.length
-      : Math.min(startLine + normalizedLimit, allLines.length);
-  const selectedContent = allLines.slice(startLine, endLine).join('\n');
-  const truncation = truncateHead(selectedContent);
-
-  if (truncation.firstLineExceedsLimit) {
-    const lineSize = formatSize(
-      Buffer.byteLength(allLines[startLine] ?? '', 'utf8'),
-    );
-    return `[Line ${startLineDisplay} is ${lineSize}, exceeds ${formatSize(
-      DEFAULT_MAX_BYTES,
-    )} limit. Use bash: sed -n '${startLineDisplay}p' ${filePath} | head -c ${DEFAULT_MAX_BYTES}]`;
-  }
-
-  if (truncation.truncated) {
-    const endLineDisplay =
-      startLineDisplay + Math.max(0, truncation.outputLines - 1);
-    const nextOffset = endLineDisplay + 1;
-    const limitNotice =
-      truncation.truncatedBy === 'bytes'
-        ? ` (${formatSize(DEFAULT_MAX_BYTES)} limit)`
-        : '';
-    return joinContentAndNotice(
-      truncation.content,
-      `Showing lines ${startLineDisplay}-${endLineDisplay} of ${allLines.length}${limitNotice}. Use offset=${nextOffset} to continue.`,
-    );
-  }
-
-  if (endLine < allLines.length) {
-    return joinContentAndNotice(
-      truncation.content,
-      `${allLines.length - endLine} more lines in file. Use offset=${
-        endLine + 1
-      } to continue.`,
-    );
-  }
-
-  return truncation.content;
 }
