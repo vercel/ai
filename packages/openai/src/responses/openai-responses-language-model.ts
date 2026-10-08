@@ -1283,7 +1283,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             toolName: toolNameMapping.toCustomToolName(
               webSearchToolName ?? 'web_search',
             ),
-            result: mapWebSearchOutput(part.action),
+            ...(part.status === 'failed' || part.status === 'incomplete'
+              ? { isError: true, result: { status: part.status } }
+              : { result: mapWebSearchOutput(part.action) }),
           });
 
           break;
@@ -2148,7 +2150,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   toolName: toolNameMapping.toCustomToolName(
                     webSearchToolName ?? 'web_search',
                   ),
-                  result: mapWebSearchOutput(value.item.action),
+                  ...(value.item.status === 'failed' ||
+                  value.item.status === 'incomplete'
+                    ? { isError: true, result: { status: value.item.status } }
+                    : { result: mapWebSearchOutput(value.item.action) }),
                 });
               } else if (value.item.type === 'computer_call') {
                 ongoingToolCalls[value.output_index] = undefined;

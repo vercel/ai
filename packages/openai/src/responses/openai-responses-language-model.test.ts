@@ -4804,6 +4804,65 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
 
+    describe.each([true, false])(
+      'web search status with action: %s',
+      withAction => {
+        it.each(['failed', 'incomplete'])(
+          'should mark %s web searches as tool errors',
+          async status => {
+            server.urls['https://api.openai.com/v1/responses'].response = {
+              type: 'json-value',
+              body: {
+                id: 'resp_test',
+                created_at: 1,
+                model: 'gpt-4.1',
+                output: [
+                  {
+                    type: 'web_search_call',
+                    id: 'ws_test',
+                    status,
+                    ...(withAction
+                      ? { action: { type: 'search', query: 'AI SDK' } }
+                      : {}),
+                  },
+                ],
+                usage: { input_tokens: 1, output_tokens: 1 },
+              },
+            };
+
+            const result = await createModel('gpt-4.1').doGenerate({
+              prompt: TEST_PROMPT,
+              tools: [
+                {
+                  type: 'provider',
+                  id: 'openai.web_search',
+                  name: 'search',
+                  args: {},
+                },
+              ],
+            });
+
+            expect(result.content).toEqual([
+              {
+                type: 'tool-call',
+                toolCallId: 'ws_test',
+                toolName: 'search',
+                input: '{}',
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'ws_test',
+                toolName: 'search',
+                isError: true,
+                result: { status },
+              },
+            ]);
+          },
+        );
+      },
+    );
+
     describe('web search sources schema resilience', () => {
       it('should accept api-type sources without throwing', async () => {
         server.urls['https://api.openai.com/v1/responses'].response = {
@@ -7949,6 +8008,79 @@ describe('OpenAIResponsesLanguageModel', () => {
           `);
       });
     });
+
+    describe.each([true, false])(
+      'streaming web search status with action: %s',
+      withAction => {
+        it.each(['failed', 'incomplete'])(
+          'should mark %s web searches as tool errors',
+          async status => {
+            const item = {
+              type: 'web_search_call',
+              id: 'ws_test',
+              status,
+              ...(withAction
+                ? { action: { type: 'search', query: 'AI SDK' } }
+                : {}),
+            };
+            const response = {
+              id: 'resp_test',
+              created_at: 1,
+              model: 'gpt-4.1',
+              usage: { input_tokens: 1, output_tokens: 1 },
+            };
+            server.urls['https://api.openai.com/v1/responses'].response = {
+              type: 'stream-chunks',
+              chunks: [
+                { type: 'response.created', response },
+                {
+                  type: 'response.output_item.added',
+                  output_index: 0,
+                  item: { ...item, status: 'in_progress' },
+                },
+                { type: 'response.output_item.done', output_index: 0, item },
+                { type: 'response.completed', response },
+              ].map(event => `data: ${JSON.stringify(event)}\n\n`),
+            };
+
+            const { stream } = await createModel('gpt-4.1').doStream({
+              prompt: TEST_PROMPT,
+              tools: [
+                {
+                  type: 'provider',
+                  id: 'openai.web_search',
+                  name: 'search',
+                  args: {},
+                },
+              ],
+            });
+            const chunks = await convertReadableStreamToArray(stream);
+
+            expect(chunks.filter(chunk => chunk.type === 'tool-call')).toEqual([
+              {
+                type: 'tool-call',
+                toolCallId: 'ws_test',
+                toolName: 'search',
+                input: '{}',
+                providerExecuted: true,
+              },
+            ]);
+            expect(
+              chunks.filter(chunk => chunk.type === 'tool-result'),
+            ).toEqual([
+              {
+                type: 'tool-result',
+                toolCallId: 'ws_test',
+                toolName: 'search',
+                isError: true,
+                result: { status },
+              },
+            ]);
+            expect(chunks.filter(chunk => chunk.type === 'error')).toEqual([]);
+          },
+        );
+      },
+    );
 
     describe('web search tool', () => {
       it('should stream web search results (sources, tool calls, tool results)', async () => {
