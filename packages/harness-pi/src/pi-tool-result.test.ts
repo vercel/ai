@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  formatPiReadToolOutput,
   truncatePiToolOutputHead,
   truncatePiToolOutputTail,
 } from './pi-tool-result';
@@ -37,31 +36,5 @@ describe('Pi tool result truncation', () => {
     expect(result).toContain('last');
     expect(result).toContain('Output truncated');
     expect(result).toContain('Redirect the command to a file.');
-  });
-
-  it('pages read output with an actionable next offset', () => {
-    const text = Array.from(
-      { length: 3_000 },
-      (_, index) => `line ${index + 1}`,
-    ).join('\n');
-
-    const firstPage = formatPiReadToolOutput({
-      text,
-      filePath: 'large.txt',
-    });
-    expect(Buffer.byteLength(firstPage, 'utf8')).toBeLessThan(64 * 1024);
-    expect(firstPage).toContain('line 1');
-    expect(firstPage).toContain('Use offset=2001 to continue.');
-
-    const nextPage = formatPiReadToolOutput({
-      text,
-      filePath: 'large.txt',
-      offset: 2001,
-      limit: 10,
-    });
-    expect(nextPage).toContain('line 2001');
-    expect(nextPage).toContain('line 2010');
-    expect(nextPage).not.toContain('line 2011');
-    expect(nextPage).toContain('Use offset=2011 to continue.');
   });
 });

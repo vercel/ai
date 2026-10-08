@@ -107,8 +107,44 @@ Settings:
 - `providers`: explicit Pi provider configurations for custom models.
 - `reattachInProcess`: whether a suspended turn can reuse its live Pi session
   in the current process. Defaults to `true`.
+- `resources`: context files and skills Pi gives the model. See
+  [Project Resources](#project-resources).
 - `thinkingLevel`: Pi thinking level (`off`, `minimal`, `low`, `medium`,
   `high`, `xhigh`, or `max`).
+
+## Project Resources
+
+Pi does not discover `AGENTS.md`, `CLAUDE.md`, or project skills on the host or
+in the sandbox. Pass them through `resources`:
+
+```ts
+const harness = createPi({
+  resources: {
+    contextFiles: [
+      {
+        path: '/vercel/sandbox/AGENTS.md',
+        content: 'Run pnpm test before committing.',
+      },
+    ],
+    skills: [
+      {
+        name: 'brand-voice',
+        description: 'Rules for writing in the brand voice.',
+        filePath: '/vercel/sandbox/skills/brand-voice/SKILL.md',
+      },
+    ],
+  },
+});
+```
+
+- `contextFiles`: files Pi places in the system prompt the way it places
+  `AGENTS.md`, under the given `path`.
+- `skills`: skills listed to the model by name and description. The file at
+  `filePath` must already exist in the sandbox, because the model reads it with
+  the `read` tool. Pi's read-only file tools can read the skill's directory.
+
+Skills passed to `HarnessAgent` are written into the sandbox on each turn and
+do not need an entry here.
 
 ## File Tool Paths
 
@@ -131,8 +167,9 @@ const harness = createPi({
 - `deniedRoots`: absolute sandbox directories that every native file tool
   refuses, even inside the workspace or a readable root. Both requested paths
   and denied roots are resolved in the sandbox, so symlinks pointing to or from
-  a denied root are refused. Denied roots are resolved when the Pi session
-  starts; start a new session if a denied symlink changes target. `find` and
+  a denied root are refused. Denied roots are resolved in the sandbox before
+  the first native file tool runs; start a new session if a denied symlink
+  changes target. `find` and
   `grep` skip denied roots when they search a parent directory. `grep` skips
   them by directory name, so it also skips other directories with the same
   name under the searched directory.
@@ -169,7 +206,9 @@ Extension factories execute in the host Node.js process with access to the host
 environment, so only pass factories you trust. This setting enables only the
 factories you explicitly provide. Filesystem extension discovery remains
 disabled, including user, project, and settings-based extensions. Themes and
-prompt templates also remain disabled.
+prompt templates also remain disabled. The host has no copy of the sandbox
+workspace, so an extension reads project files through the `sandboxSession` it
+receives.
 
 ## Session Reattachment
 
@@ -190,6 +229,11 @@ const harness = createPi({
 
 An incoming completed `resume-session` state always takes precedence over an
 older live suspended turn in the process.
+
+The lifecycle state carries the Pi session itself, its header followed by its
+entries. Nothing about the session is stored in the sandbox, so restoring a
+session reads no sandbox files. A state recorded before this format restores as
+a fresh session.
 
 ## Authentication
 
@@ -290,6 +334,13 @@ const sandboxSession = await createVercelNetworkSandboxSession({
   template: await agent.getSandboxTemplate(),
 });
 ```
+
+Pi makes no sandbox call for a turn that has no skills and calls no file or
+`bash` tool. To run such turns without a sandbox, set
+`sandboxConfig.setup: 'lazy'` on `HarnessAgent` and pass a session from
+`createLazyNetworkSandboxSession()`, which creates or resumes the sandbox only
+when a turn first needs it. See
+[Start the Sandbox on First Use](/docs/ai-sdk-harnesses/harness-agent#start-the-sandbox-on-first-use).
 
 ## Built-in Tools
 

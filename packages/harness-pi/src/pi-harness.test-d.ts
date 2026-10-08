@@ -1,7 +1,9 @@
+import type { ExtensionFactory } from '@earendil-works/pi-coding-agent';
 import { expectTypeOf, test } from 'vitest';
 import {
   createPi,
   type PiCredentialStore,
+  type PiHarnessExtensionSession,
   type PiHarnessSettings,
 } from './index';
 
@@ -17,6 +19,24 @@ test('PiHarnessSettings accepts readonly extension factory arrays', () => {
     PiHarnessSettings['extensionFactories']
   >();
   createPi(settings);
+});
+
+test('createPi accepts plain Pi extension factories and session-aware ones', () => {
+  const piFactory: ExtensionFactory = pi => {
+    pi.on('agent_start', () => {});
+  };
+  createPi({
+    extensionFactories: [
+      piFactory,
+      (pi, session) => {
+        expectTypeOf(session).toEqualTypeOf<PiHarnessExtensionSession>();
+        expectTypeOf(session.instructions()).toEqualTypeOf<
+          string | undefined
+        >();
+        pi.on('agent_start', () => {});
+      },
+    ],
+  });
 });
 
 test('createPi accepts the max thinking level', () => {
@@ -56,7 +76,32 @@ test('createPi accepts a file tool path policy with readonly roots', () => {
   createPi({ fileToolPathPolicy: {} });
 });
 
-test('createPi accepts MCP adapter settings', () => {
+test('createPi accepts native MCP server configs', () => {
+  createPi({
+    mcpServers: {
+      brand: {
+        url: 'https://x',
+        headers: { Authorization: 'Bearer t' },
+        exposure: 'deferred',
+      },
+      memory: {
+        command: 'memory-mcp',
+        args: [],
+        toolExposure: { secret: 'hidden' },
+      },
+    },
+  });
+  createPi({
+    // @ts-expect-error
+    mcpServers: { brand: { url: 'https://x', exposure: 'codemode' } },
+  });
+  createPi({
+    // @ts-expect-error
+    mcpServers: { memory: { command: 'memory-mcp', lifecycle: 'eager' } },
+  });
+});
+
+test('createPi accepts deprecated MCP adapter settings', () => {
   createPi({ mcpSettings: { toolPrefix: 'none', outputGuard: false } });
   // @ts-expect-error
   createPi({ mcpSettings: { toolPrefix: 'bare' } });
@@ -67,4 +112,21 @@ test('createPi accepts a file tool path policy with readonly roots', () => {
   const deniedRoots = ['/home/vercel-sandbox/.credentials'] as const;
   createPi({ fileToolPathPolicy: { readableRoots, deniedRoots } });
   createPi({ fileToolPathPolicy: {} });
+});
+
+test('createPi accepts project resources', () => {
+  createPi({
+    resources: {
+      contextFiles: [{ path: '/sandbox/work/AGENTS.md', content: 'Notes' }],
+      skills: [
+        {
+          name: 'brand-voice',
+          description: 'Voice rules',
+          filePath: '/sandbox/skills/brand-voice/SKILL.md',
+        },
+      ],
+    },
+  });
+  // @ts-expect-error
+  createPi({ resources: { skills: [{ name: 'brand-voice' }] } });
 });

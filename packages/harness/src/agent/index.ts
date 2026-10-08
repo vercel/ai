@@ -1,5 +1,6 @@
 export { HarnessAgent } from './harness-agent';
 export { createHarnessSandboxTemplate } from './create-harness-sandbox-template';
+export { createLazyNetworkSandboxSession } from './create-lazy-network-sandbox-session';
 export type { HarnessAllTools } from './harness-agent-tool-types';
 export type {
   HarnessAgentSandboxConfig,

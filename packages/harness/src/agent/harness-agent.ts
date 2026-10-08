@@ -64,6 +64,7 @@ import {
   validateSandboxBootstrapSettings,
 } from './internal/sandbox-bootstrap';
 import { buildObservability } from './internal/resolve-observability';
+import { deferSandboxSetup } from './internal/deferred-sandbox-setup';
 import { validateLifecycleStateData } from './internal/lifecycle-state-validation';
 import {
   permissionModeNeedsBuiltinSupport,
@@ -398,6 +399,14 @@ export class HarnessAgent<
     const isResumedSession =
       validatedResumeFrom != null || effectiveContinueFrom != null;
 
+    const recipe = await harness.getBootstrap?.({ abortSignal });
+    const lazySetup = this.sandboxConfig.setup === 'lazy';
+    if (lazySetup && recipe != null) {
+      throw new Error(
+        `HarnessAgent.createSession: \`sandboxConfig.setup: 'lazy'\` is not supported for harness '${harness.harnessId}' because it declares a sandbox bootstrap recipe.`,
+      );
+    }
+
     // Acquires the concrete sandbox session, either by starting fresh and then
     // creating a post-bootstrap snapshot, or by reusing a previously created
     // snapshot based on the bootstrap-based hashes.
@@ -419,7 +428,6 @@ export class HarnessAgent<
         workDir: this.sandboxConfig.workDir,
       });
 
-      const recipe = await harness.getBootstrap?.({ abortSignal });
       if (recipe != null) {
         const recipeIdentity = await hashHarnessBootstrap(recipe);
         try {
@@ -452,7 +460,6 @@ export class HarnessAgent<
         );
       }
 
-      const recipe = await harness.getBootstrap?.({ abortSignal });
       if (isResumedSession) {
         if (sandboxProvider.resumeSession == null) {
           throw new HarnessCapabilityUnsupportedError({
@@ -562,33 +569,45 @@ export class HarnessAgent<
       }
     }
 
-    try {
+    const acquiredSandboxSession = sandboxSession;
+    const setup = async (setupAbortSignal: AbortSignal | undefined) => {
       await runSandboxBootstrap({
-        session: getRestrictedSandboxSession(sandboxSession),
+        session: getRestrictedSandboxSession(acquiredSandboxSession),
         workDir: this.sandboxConfig.workDir,
         onBootstrap: this.sandboxConfig.onBootstrap,
         bootstrapHash: this.sandboxConfig.bootstrapHash,
         skipOnBootstrapIfMarked: true,
-        abortSignal,
+        abortSignal: setupAbortSignal,
       });
       await ensureSandboxDirectory({
-        session: sandboxSession,
+        session: acquiredSandboxSession,
         workDir: sessionWorkDir,
-        abortSignal,
+        abortSignal: setupAbortSignal,
       });
       if (this.sandboxConfig.onSession != null) {
         await this.sandboxConfig.onSession({
-          session: getRestrictedSandboxSession(sandboxSession),
+          session: getRestrictedSandboxSession(acquiredSandboxSession),
           sessionWorkDir,
-          abortSignal,
+          abortSignal: setupAbortSignal,
         });
       }
-    } catch (err) {
-      await cleanupAfterStartFailure({
+    };
+
+    if (lazySetup) {
+      sandboxSession = deferSandboxSetup({
         sandboxSession,
-        ownsSandboxLifecycle,
+        setup: () => setup(undefined),
       });
-      throw err;
+    } else {
+      try {
+        await setup(abortSignal);
+      } catch (err) {
+        await cleanupAfterStartFailure({
+          sandboxSession,
+          ownsSandboxLifecycle,
+        });
+        throw err;
+      }
     }
 
     try {

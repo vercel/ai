@@ -1,6 +1,6 @@
 # AI SDK - Pi Harness
 
-`HarnessV1` adapter backed by [`@earendil-works/pi-coding-agent`](https://www.npmjs.com/package/@earendil-works/pi-coding-agent). Pi runs in the host Node.js process and uses the sandbox as a remote filesystem + shell — no bridge process is installed inside the sandbox.
+`HarnessV1` adapter backed by [`@earendil-works/pi-coding-agent`](https://www.npmjs.com/package/@earendil-works/pi-coding-agent). Pi runs in the host Node.js process and uses the sandbox as a remote filesystem + shell — no bridge process is installed inside the sandbox. Pi reads project resources such as `AGENTS.md` and project skills only from the `resources` setting, never from the host or the sandbox.
 
 ## Setup
 
@@ -55,6 +55,8 @@ try {
 Pi has no in-sandbox bridge, so the supplied sandbox session does not need
 exposed ports. Vercel and just-bash sessions both work.
 
+Pi makes no sandbox call for a turn that has no skills and calls no file or `bash` tool. To run such turns without a sandbox, set `sandboxConfig.setup: 'lazy'` on `HarnessAgent` and pass a session from `createLazyNetworkSandboxSession()`, which creates or resumes the sandbox only when a turn first needs it. See "Start the Sandbox on First Use" in the `HarnessAgent` documentation.
+
 ## Stateless session configuration
 
 By default, a suspended turn can reuse its live Pi session in the same process.
@@ -62,6 +64,11 @@ For stateless or multi-replica applications, set `reattachInProcess: false` so
 continuations restore persisted state using the current request's settings.
 Application-managed credentials can be supplied through a `PiCredentialStore`;
 this replaces Pi's file-backed `auth.json` storage.
+
+The lifecycle state carries the Pi session itself, its header followed by its
+entries, typed as `PiLifecycleData`. Nothing about the session is stored in the
+sandbox, so a continuation can restore it in any process. A state recorded
+before this format restores as a fresh session.
 
 ```ts
 import { createPi, type PiCredentialStore } from '@ai-sdk/harness-pi';
@@ -73,6 +80,34 @@ const harness = createPi({
   reattachInProcess: false,
 });
 ```
+
+## Project resources
+
+Pi does not discover `AGENTS.md`, `CLAUDE.md` or project skills on its own. Pass them through `resources`:
+
+```ts
+import { createPi } from '@ai-sdk/harness-pi';
+
+const harness = createPi({
+  resources: {
+    contextFiles: [
+      {
+        path: '/vercel/sandbox/AGENTS.md',
+        content: 'Run pnpm test before committing.',
+      },
+    ],
+    skills: [
+      {
+        name: 'brand-voice',
+        description: 'Rules for writing in the brand voice.',
+        filePath: '/vercel/sandbox/skills/brand-voice/SKILL.md',
+      },
+    ],
+  },
+});
+```
+
+Pi places each context file in the system prompt the way it places `AGENTS.md`, under the given `path`. Skills are listed to the model by name and description. A skill's file must already exist in the sandbox at `filePath`, because the model reads it with the `read` tool; the skill's directory is readable by Pi's file tools. Skills passed to `HarnessAgent` keep working as before and are written into the sandbox each turn.
 
 ## Inline extensions
 
@@ -92,4 +127,42 @@ const harness = createPi({
 });
 ```
 
-Routine resource refreshes between turns do not reinitialize extension factories. If the underlying Pi session is rebuilt, factories initialize for the new Pi runtime. Extension factories execute in the host Node.js process, so only pass factories you trust. This option does not enable filesystem extension discovery: user, project, personal, and settings-based Pi extensions remain disabled. Themes and prompt templates also remain disabled.
+Each factory also receives the harness session it runs in, as a second argument. It carries the restricted `sandboxSession`, the `sessionWorkDir` and an `instructions()` getter for the current turn's instructions. Instructions arrive with each turn, so read them while a turn runs rather than when the factory runs. A tool that starts a child Pi session against the same sandbox, for example, can use all three:
+
+```ts
+import { createPi } from '@ai-sdk/harness-pi';
+
+const harness = createPi({
+  extensionFactories: [
+    (pi, session) => {
+      pi.on('agent_start', () => {
+        console.log(session.sessionWorkDir, session.instructions());
+      });
+    },
+  ],
+});
+```
+
+Routine resource refreshes between turns do not reinitialize extension factories. If the underlying Pi session is rebuilt, factories initialize for the new Pi runtime. Extension factories execute in the host Node.js process, so only pass factories you trust. The host has no copy of the sandbox workspace; read project files through `session.sandboxSession`. This option does not enable filesystem extension discovery: user, project, personal, and settings-based Pi extensions remain disabled. Themes and prompt templates also remain disabled.
+
+## MCP servers
+
+Use `mcpServers` to serve MCP servers through Pi's native MCP support. Each entry is Pi's MCP server configuration, either stdio (`command`, `args`, `env`, `cwd`) or streamable HTTP (`url`, `headers`):
+
+```ts
+import { createPi } from '@ai-sdk/harness-pi';
+
+const harness = createPi({
+  mcpServers: {
+    docs: {
+      url: 'https://mcp.example.com/docs',
+      headers: { Authorization: `Bearer ${process.env.DOCS_MCP_TOKEN}` },
+      exposure: 'deferred',
+    },
+  },
+});
+```
+
+Tools are named `mcp__<server>__<tool>`, with `-` in either name replaced by `_`. A server's tools are declared to the model by default (`exposure: 'direct'`). With `exposure: 'deferred'`, they stay undeclared until the model finds them with Pi's `tool_search` tool, and the model then calls them by name. `toolExposure` sets the exposure of single tools.
+
+The harness has no sign-in flow, so an HTTP server must carry an `Authorization` header or `auth.provider`. The harness reads no `mcp.json` and writes nothing under Pi's agent directory. `mcpSettings` is deprecated: Pi's native MCP has no tool prefix or output guard settings.
