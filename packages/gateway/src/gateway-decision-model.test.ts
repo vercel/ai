@@ -1,7 +1,4 @@
-import type {
-  Experimental_DecisionModelV4State as DecisionModelV4State,
-  JSONValue,
-} from '@ai-sdk/provider';
+import type { Experimental_DecisionModelV4State as DecisionModelV4State } from '@ai-sdk/provider';
 import { describe, it, expect } from 'vitest';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { createGateway } from './gateway-provider';
@@ -69,27 +66,20 @@ const createTestModel = (
   });
 
 describe('GatewayDecisionModel', () => {
-  const legacyStateCases: {
+  const statePartsCases: {
     name: string;
     state: DecisionModelV4State;
-    expected: JSONValue;
   }[] = [
+    { name: 'a text part', state: [{ type: 'text', text: 'Inspect.' }] },
     {
-      name: 'text',
-      state: [{ type: 'text', text: 'Inspect.' }],
-      expected: 'Inspect.',
-    },
-    {
-      name: 'object',
+      name: 'a JSON object part',
       state: [{ type: 'json', value: { product: 'vase', history: ['new'] } }],
-      expected: { product: 'vase', history: ['new'] },
     },
     {
-      name: 'JSON array',
+      name: 'a JSON array part',
       state: [{ type: 'json', value: ['vase', null] }],
-      expected: ['vase', null],
     },
-    { name: 'empty parts', state: [], expected: [] },
+    { name: 'empty parts', state: [] },
     {
       name: 'mixed parts',
       state: [
@@ -97,48 +87,90 @@ describe('GatewayDecisionModel', () => {
         { type: 'json', value: { product: 'vase' } },
         { type: 'json', value: [1, null] },
       ],
-      expected: ['Inspect.', { product: 'vase' }, [1, null]],
     },
-    { name: 'JSON number', state: [{ type: 'json', value: 1 }], expected: [1] },
-    {
-      name: 'JSON null',
-      state: [{ type: 'json', value: null }],
-      expected: [null],
-    },
+    { name: 'a JSON number', state: [{ type: 'json', value: 1 }] },
+    { name: 'JSON null', state: [{ type: 'json', value: null }] },
   ];
-  it.each(legacyStateCases)(
-    'sends $name using the legacy Gateway state format',
-    async ({ state, expected }) => {
+
+  it.each(statePartsCases)(
+    'sends $name as ordered state parts',
+    async ({ state }) => {
       prepareJsonResponse({});
       await createTestModel().doDecide({ state, questions: testQuestions });
       expect(await server.calls[0].requestBodyJson).toEqual({
-        state: expected,
+        stateParts: state,
         questions: testQuestions,
       });
     },
   );
 
-  it.each(['image/png', 'application/pdf'])(
-    'rejects %s before sending a Gateway request',
-    async mediaType => {
-      await expect(
-        createTestModel().doDecide({
-          state: [
-            {
-              type: 'file',
-              mediaType,
-              data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
-            },
-          ],
-          questions: testQuestions,
-        }),
-      ).rejects.toMatchObject({
-        name: 'AI_UnsupportedFunctionalityError',
-        functionality: 'Gateway decision file input',
-      });
-      expect(server.calls).toHaveLength(0);
-    },
-  );
+  it('sends file bytes as base64 in ordered state parts', async () => {
+    prepareJsonResponse({});
+    await createTestModel().doDecide({
+      state: [
+        { type: 'text', text: 'Inspect this package.' },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          filename: 'box.png',
+          data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
+        },
+        { type: 'json', value: { product: 'vase' } },
+      ],
+      questions: testQuestions,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toEqual({
+      stateParts: [
+        { type: 'text', text: 'Inspect this package.' },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          filename: 'box.png',
+          data: { type: 'data', data: 'AQID' },
+        },
+        { type: 'json', value: { product: 'vase' } },
+      ],
+      questions: testQuestions,
+    });
+  });
+
+  it('sends base64 file strings unchanged', async () => {
+    prepareJsonResponse({});
+    const file = {
+      type: 'file' as const,
+      mediaType: 'image/jpeg',
+      data: { type: 'data' as const, data: 'AQID' },
+    };
+    await createTestModel().doDecide({
+      state: [file],
+      questions: testQuestions,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toEqual({
+      stateParts: [file],
+      questions: testQuestions,
+    });
+  });
+
+  it('rejects URL file data before sending a Gateway request', async () => {
+    await expect(
+      createTestModel().doDecide({
+        state: [
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: { type: 'url', url: new URL('https://example.com/a.png') },
+          },
+        ],
+        questions: testQuestions,
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_UnsupportedFunctionalityError',
+      functionality: 'Gateway decision file input: url data',
+    });
+    expect(server.calls).toHaveLength(0);
+  });
 
   function prepareJsonResponse({
     answers = dummyAnswers,
@@ -249,7 +281,7 @@ describe('GatewayDecisionModel', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        state: testState[0].text,
+        stateParts: testState,
         questions: testQuestions,
       });
     });
@@ -327,7 +359,7 @@ describe('GatewayDecisionModel', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        state: testState[0].text,
+        stateParts: testState,
         questions: testQuestions,
         providerOptions,
       });
