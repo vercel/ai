@@ -66,7 +66,7 @@ const { videos } = await generateVideo({
   model: heygen.video('heygen-video-1'),
   prompt: {
     text: 'The subject moves slowly. Preserve the composition and natural lighting.',
-    image: new URL('https://example.com/first-frame.jpg'),
+    image: 'https://example.com/first-frame.jpg',
   },
   duration: 5,
 });
@@ -84,7 +84,7 @@ const { videos } = await generateVideo({
   prompt: 'The product in <Picture 1> sits on a desk beside a sunlit window.',
   inputReferences: [
     {
-      data: new URL('https://example.com/product.jpg'),
+      data: 'https://example.com/product.jpg',
       mediaType: 'image/jpeg',
     },
   ],
