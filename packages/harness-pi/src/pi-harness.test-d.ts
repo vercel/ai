@@ -49,8 +49,22 @@ test('createPi accepts an injected credential store and reattach opt-out', () =>
   createPi({ credentials, reattachInProcess: false });
 });
 
+test('createPi accepts a file tool path policy with readonly roots', () => {
+  const readableRoots = ['/home/vercel-sandbox', '/tmp'] as const;
+  const deniedRoots = ['/home/vercel-sandbox/.credentials'] as const;
+  createPi({ fileToolPathPolicy: { readableRoots, deniedRoots } });
+  createPi({ fileToolPathPolicy: {} });
+});
+
 test('createPi accepts MCP adapter settings', () => {
   createPi({ mcpSettings: { toolPrefix: 'none', outputGuard: false } });
   // @ts-expect-error
   createPi({ mcpSettings: { toolPrefix: 'bare' } });
+});
+
+test('createPi accepts a file tool path policy with readonly roots', () => {
+  const readableRoots = ['/home/vercel-sandbox', '/tmp'] as const;
+  const deniedRoots = ['/home/vercel-sandbox/.credentials'] as const;
+  createPi({ fileToolPathPolicy: { readableRoots, deniedRoots } });
+  createPi({ fileToolPathPolicy: {} });
 });

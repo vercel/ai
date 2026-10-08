@@ -1,5 +1,24 @@
 # @ai-sdk/harness-pi
 
+## 1.0.145
+
+### Patch Changes
+
+- c371c00: feat(harness-pi): add a `cacheRetention` setting that is passed to every Pi model request, so Anthropic models can use the 1-hour prompt cache
+- 5901911: fix(harness-pi): stream extension-registered tools as provider-executed dynamic tools, and close a compaction that arrives after the turn's last step in its own step
+- d7dedf2: fix(harness-pi): shut down MCP servers on dispose without reloading the Pi session
+- 10bc612: fix(harness-pi): report real step and turn usage
+
+  `finish-step` usage was always zero, and `finish.totalUsage` was the running total of the whole Pi session, not the usage of the current turn. Each step now reports the usage of its assistant message. The turn reports the change in Pi's session stats across the prompt. `inputTokens.total` now includes cached input. `noCache` is set, and `outputTokens.text` and `reasoning` are set when the provider reports reasoning tokens.
+
+- cadd7c1: fix(harness-pi): fail the turn when the requested model is not in Pi's model catalog instead of silently running on the previous model
+- 21148df: feat(harness-pi): add `mcpSettings` to configure the MCP adapter's tool prefix and output guard
+- d45e044: feat(harness-pi): add `fileToolPathPolicy` setting with readable and denied roots for native file tools
+- Updated dependencies [c4a5c8d]
+- Updated dependencies [50ac48b]
+- Updated dependencies [e8af189]
+  - @ai-sdk/harness@1.0.143
+
 ## 1.0.144
 
 ### Patch Changes

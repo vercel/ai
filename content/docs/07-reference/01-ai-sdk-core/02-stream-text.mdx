@@ -4083,6 +4083,19 @@ To see `streamText` in action, check out [these examples](#examples).
               description: 'The original messages.',
             },
             {
+              name: 'onStepEnd',
+              type: '(event: { messages: UIMessage[]; isContinuation: boolean; responseMessage: UIMessage; }) => PromiseLike<void> | void',
+              isOptional: true,
+              description:
+                'Called after each step is converted to UI message parts. Receives the accumulated response message, including step metadata, for inspection or persistence. This UI conversion callback is separate from the generation callback passed to streamText.',
+            },
+            {
+              name: 'onStepFinish',
+              type: '(event: { messages: UIMessage[]; isContinuation: boolean; responseMessage: UIMessage; }) => PromiseLike<void> | void',
+              isOptional: true,
+              description: 'Deprecated alias for onStepEnd.',
+            },
+            {
               name: 'onEnd',
               type: '(options: { messages: UIMessage[]; isContinuation: boolean; responseMessage: UIMessage; isAborted: boolean; isCancelled?: true; outcome: UIMessageStreamOutcome; finishReason?: FinishReason; }) => PromiseLike<void> | void',
               isOptional: true,
