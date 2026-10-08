@@ -1,0 +1,156 @@
+---
+title: Pipeshift
+description: Use the Pipeshift OpenAI compatible API with the AI SDK.
+---
+
+# Pipeshift Provider
+
+[Pipeshift](https://pipeshift.com) provides serverless and dedicated inference for open-source language models through an OpenAI-compatible API. You can use its Chat Completions endpoint with the AI SDK through the `@ai-sdk/openai-compatible` module — no separate provider package is required.
+
+## Setup
+
+The Pipeshift provider is available via the `@ai-sdk/openai-compatible` module as it is compatible with the OpenAI API. You can install it with:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+Create a Pipeshift API key at the [Pipeshift dashboard](https://dashboard.pipeshift.com) and set it as a server-side environment variable:
+
+```bash
+export PIPESHIFT_API_KEY=your-api-key
+```
+
+## Provider Instance
+
+To use Pipeshift, you can create a custom provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const pipeshift = createOpenAICompatible({
+  name: 'pipeshift',
+  apiKey: process.env.PIPESHIFT_API_KEY,
+  baseURL: 'https://api.pipeshift.com/api/v0',
+});
+```
+
+<Note>
+  Pipeshift's serverless API is served from the `/api/v0` path rather than the
+  more common `/v1` alias — there is no `/v1` path on this host. Requests are
+  authenticated with an `Authorization: Bearer <key>` header, which the
+  `apiKey` option sets automatically. The serverless API exposes
+  `/chat/completions`, `/embeddings`, `/rerank`, and `/audio/transcriptions`
+  under this base URL.
+</Note>
+
+## Language Models
+
+You can create Pipeshift models using a provider instance. The first argument is a Pipeshift model ID:
+
+```ts
+const model = pipeshift('zai-org/GLM-5.3');
+```
+
+<Note>
+  Pipeshift does not expose a `/models` endpoint. Find current model IDs in
+  the [Pipeshift dashboard](https://dashboard.pipeshift.com) or the Pipeshift
+  README.
+</Note>
+
+### Example - Generate Text
+
+You can use Pipeshift language models to generate text with the `generateText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const pipeshift = createOpenAICompatible({
+  name: 'pipeshift',
+  apiKey: process.env.PIPESHIFT_API_KEY,
+  baseURL: 'https://api.pipeshift.com/api/v0',
+});
+
+const { text } = await generateText({
+  model: pipeshift('zai-org/GLM-5.3'),
+  prompt: 'Reply with the single word: ready',
+});
+
+console.log(text);
+```
+
+### Example - Stream Text
+
+Pipeshift language models can also generate text in a streaming fashion with the `streamText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const pipeshift = createOpenAICompatible({
+  name: 'pipeshift',
+  apiKey: process.env.PIPESHIFT_API_KEY,
+  baseURL: 'https://api.pipeshift.com/api/v0',
+});
+
+const result = streamText({
+  model: pipeshift('zai-org/GLM-5.3'),
+  prompt: 'Tell me about yourself in one sentence.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+## Supported Models and Capabilities
+
+The following chat model IDs are available on Pipeshift's serverless API today:
+
+- `Qwen/Qwen3.8-Flash` (image input)
+- `Qwen/Qwen3.8-Max` (image input)
+- `deepseek-ai/DeepSeek-V4.1-Flash` (image input)
+- `deepseek-ai/DeepSeek-V4-Flash`
+- `deepseek-ai/DeepSeek-V4-Pro`
+- `moonshotai/Kimi-K3` (image input)
+- `zai-org/GLM-5.3`
+- `zai-org/GLM-5.2`
+
+With `@ai-sdk/openai-compatible` and `ai@7`, the following capabilities have been verified against the serverless API:
+
+- `generateText` and `streamText` both work for all eight models.
+- Tool calling and multi-step tool use work.
+- All eight models return `reasoning_content`, which is surfaced as reasoning.
+- The models marked "image input" above accept image content parts.
+- JSON-object structured output works when the prompt explicitly names the required fields.
+
+<Note type="warning">
+  Pipeshift's `response_format: json_schema` option currently returns an HTTP
+  400 error, so `supportsStructuredOutputs` should not be enabled for the
+  Pipeshift provider instance.
+</Note>
+
+## Embedding Models
+
+The serverless API does not currently serve any embedding models — `/embeddings` is only available on [dedicated deployments](#dedicated-deployments).
+
+## Dedicated Deployments
+
+Pipeshift dedicated deployments run on their own host, for example `https://my-model-us-east-1-a1b2c3-private.pipeshift.com`, and serve `/v1/chat/completions` and `/v1/embeddings`. Use `https://<deployment-host>/v1` as the `baseURL`, and use the deployment's served model name as the model ID:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const pipeshiftDeployment = createOpenAICompatible({
+  name: 'pipeshift',
+  apiKey: process.env.PIPESHIFT_API_KEY,
+  baseURL: 'https://my-model-us-east-1-a1b2c3-private.pipeshift.com/v1',
+});
+
+const model = pipeshiftDeployment('my-deployed-model');
+const embeddingModel = pipeshiftDeployment.embeddingModel('my-deployed-model');
+```
+
+## Resources
+
+- [Pipeshift dashboard](https://dashboard.pipeshift.com)
+- [AI SDK OpenAI Compatible provider](/providers/openai-compatible-providers)
