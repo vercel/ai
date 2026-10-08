@@ -35,10 +35,6 @@ export const listen = async (server: Server): Promise<string> => {
 export const close = (server: Server): Promise<void> =>
   new Promise(resolve => server.close(() => resolve()));
 
-/**
- * OpenAI-completions server that streams the queued responses in order, then
- * answers every later request with the text `done`.
- */
 export const createScriptedModelServer = () => {
   const requests: ModelRequestBody[] = [];
   const queuedResponses: ModelResponseChunks[] = [];
