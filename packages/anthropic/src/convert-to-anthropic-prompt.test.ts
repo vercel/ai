@@ -684,39 +684,28 @@ describe('system messages', () => {
     });
   });
 
-  it('should warn and drop tool changes on the initial system message', async () => {
-    const warnings: SharedV4Warning[] = [];
-
-    const result = await convertToAnthropicPrompt({
-      prompt: [
-        {
-          role: 'system',
-          content: 'initial',
-          providerOptions: {
-            anthropic: {
-              toolChanges: [
-                { type: 'tool_addition', toolName: 'get_forecast' },
-              ],
+  it('should reject tool changes on the initial system message', async () => {
+    await expect(
+      convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'system',
+            content: 'initial',
+            providerOptions: {
+              anthropic: {
+                toolChanges: [
+                  { type: 'tool_addition', toolName: 'get_forecast' },
+                ],
+              },
             },
           },
-        },
-        { role: 'user', content: [{ type: 'text', text: 'hi' }] },
-      ],
-      sendReasoning: true,
-      warnings,
-      toolNameMapping: defaultToolNameMapping,
-    });
-
-    expect(result.prompt.system).toEqual([{ type: 'text', text: 'initial' }]);
-    expect(result.betas.has('mid-conversation-tool-changes-2026-07-01')).toBe(
-      false,
-    );
-    expect(warnings).toContainEqual(
-      expect.objectContaining({
-        type: 'other',
-        message: expect.stringContaining('initial system message'),
+          { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+        ],
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
       }),
-    );
+    ).rejects.toMatchObject({ functionality: 'Message-level toolChanges' });
   });
 });
 

@@ -19,6 +19,7 @@ import {
   type ToolNameMapping,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { openaiResponsesSystemMessageOptionsSchema } from './openai-responses-language-model-options';
 import {
   applyPatchInputSchema,
@@ -383,6 +384,7 @@ export async function convertToOpenAIResponsesInput({
   customProviderToolNames,
   outputSchemaToolNames,
   configurationUpdateUnsupportedReason,
+  supportsAsyncToolCalling = true,
 }: {
   prompt: LanguageModelV4Prompt;
   toolNameMapping: ToolNameMapping;
@@ -403,6 +405,7 @@ export async function convertToOpenAIResponsesInput({
   customProviderToolNames?: Set<string>;
   outputSchemaToolNames?: Set<string>;
   configurationUpdateUnsupportedReason?: string;
+  supportsAsyncToolCalling?: boolean;
 }): Promise<{
   input: OpenAIResponsesInput;
   warnings: Array<SharedV4Warning>;
@@ -424,7 +427,7 @@ export async function convertToOpenAIResponsesInput({
   for (const { role, content, providerOptions } of prompt) {
     switch (role) {
       case 'system': {
-        // Keep effort updates at their original positions so they apply to
+        // Keep controls at their original positions so they apply to
         // the same parts of the conversation when the history is sent again.
         let options = await parseProviderOptions({
           provider: providerOptionsName,
@@ -456,7 +459,49 @@ export async function convertToOpenAIResponsesInput({
             type: 'configuration_update',
             reasoning: { effort },
           });
-          // The control is independent of systemMessageMode's text handling.
+        }
+
+        if (options?.additionalTools != null) {
+          if (content !== '') {
+            throw new UnsupportedFunctionalityError({
+              functionality: 'Message-level additionalTools',
+              message:
+                'Message-level additionalTools requires empty system message content.',
+            });
+          }
+          const { tools, toolWarnings } = await prepareResponsesTools({
+            tools: options.additionalTools,
+            toolChoice: undefined,
+            outputSchemaToolNames,
+            supportsAsyncToolCalling,
+          }).catch(error => {
+            if (UnsupportedFunctionalityError.isInstance(error)) {
+              throw new UnsupportedFunctionalityError({
+                functionality: 'Message-level additionalTools',
+                message: error.message,
+              });
+            }
+            throw error;
+          });
+          const unsupported = toolWarnings.find(
+            warning => warning.type === 'unsupported',
+          );
+          if (unsupported != null) {
+            throw new UnsupportedFunctionalityError({
+              functionality: 'Message-level additionalTools',
+              message: unsupported.details ?? unsupported.feature,
+            });
+          }
+          warnings.push(...toolWarnings);
+          input.push({
+            type: 'additional_tools',
+            role: 'developer',
+            tools: tools!,
+          });
+        }
+
+        // Positioned controls are independent of systemMessageMode's text handling.
+        if (effort != null || options?.additionalTools != null) {
           break;
         }
 

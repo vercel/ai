@@ -1755,7 +1755,7 @@ separate message, as in the example above.
 
 With `claude-opus-4-8`, you can add or remove tools between turns of a conversation without invalidating the prompt cache. Attach `toolChanges` to a system message that appears mid-conversation (right before an assistant message or at the end of the messages). The required `mid-conversation-tool-changes-2026-07-01` beta header is added automatically.
 
-Tools referenced by a `tool_addition` must be declared in the `tools` option — typically with `deferLoading: true`, so they are not loaded into context until the addition surfaces them. A `tool_removal` removes a previously available tool from the conversation going forward.
+Use `toolName` to reference a tool declared in `tools`, typically with `deferLoading: true` so the addition makes it available. Use `tool` to define a function tool discovered later, as shown below. A `tool_removal` removes a previously available tool from the conversation going forward.
 
 ```ts
 import { anthropic } from '@ai-sdk/anthropic';
@@ -1798,13 +1798,126 @@ const result = await generateText({
 });
 ```
 
-To change a tool's definition, remove the old definition at the end of one request, then carry the conversation forward with the updated definition in `tools` on the next request.
+#### Defining New Tools
+
+When a function tool becomes available during a conversation, append its full
+definition in `toolChanges`. Register it in `tools` for input validation and
+execution. Use [model middleware](/docs/ai-sdk-core/middleware) to keep the initial
+request's tool catalog unchanged.
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import {
+  generateText,
+  jsonSchema,
+  tool,
+  wrapLanguageModel,
+  type ModelMessage,
+} from 'ai';
+
+const model = anthropic('claude-opus-5-5');
+const weather = tool({
+  description: 'Get current weather',
+  inputSchema: jsonSchema<{ city: string }>({
+    type: 'object',
+    properties: { city: { type: 'string' } },
+    required: ['city'],
+    additionalProperties: false,
+  }),
+  execute: async ({ city }) => ({ city, temperature: 20 }),
+});
+const messages: ModelMessage[] = [
+  { role: 'user', content: 'Which weather tools are available?' },
+];
+const first = await generateText({
+  model,
+  tools: { get_weather: weather },
+  messages,
+});
+messages.push(...first.responseMessages);
+
+const forecastSchema = {
+  type: 'object' as const,
+  properties: { city: { type: 'string' as const } },
+  required: ['city'],
+  additionalProperties: false,
+};
+const forecast = tool({
+  description: 'Get a five-day forecast',
+  inputSchema: jsonSchema<{ city: string }>(forecastSchema),
+  execute: async ({ city }) => ({ city, forecast: 'Sunny for five days' }),
+});
+messages.push({
+  role: 'user',
+  content: 'What is the five-day forecast for Paris?',
+});
+messages.push({
+  role: 'system',
+  content: '',
+  providerOptions: {
+    anthropic: {
+      toolChanges: [
+        {
+          type: 'tool_addition',
+          tool: {
+            type: 'function',
+            name: 'get_forecast',
+            description: 'Get a five-day forecast',
+            inputSchema: forecastSchema,
+          },
+        },
+      ],
+    },
+  },
+});
+
+const positionedModel = wrapLanguageModel({
+  model,
+  middleware: {
+    transformParams: async ({ params }) => ({
+      ...params,
+      tools: params.tools?.filter(tool => tool.name !== 'get_forecast'),
+    }),
+  },
+});
+
+const result = await generateText({
+  model: positionedModel,
+  messages,
+  allowSystemInMessages: true,
+  tools: { get_weather: weather, get_forecast: forecast },
+});
+console.log(result.text);
+console.log(result.toolResults);
+```
+
+You can replace a function tool's schema by defining it again under the same name.
+The new definition applies from that position onward. Retain all earlier tool
+changes when replaying history, including changes for tools that were later removed.
 
 <Note>
-  Tool changes are not supported on the initial system message. The AI SDK
-  ignores them there and emits a warning — configure the initial tool set via
-  the `tools` option instead.
+  `tool` accepts an SDK function-tool definition with a JSON Schema
+  `inputSchema`, rather than an executable `tool()` object. The provider
+  converts it to an inline `tool_definition` and adds `inline-tools-2026-09-15`.
+  This beta also covers reference additions and removals. Tool options such as
+  `strict`, `deferLoading` and `inputExamples` use the same conversion as
+  request-level tools.
 </Note>
+
+Requirements:
+
+- Use a model and platform that support
+  [inline tool definitions](https://platform.claude.com/docs/en/build-with-claude/mid-conversation-system-messages#define-tools-in-a-message-beta),
+  such as Claude Opus 5.5 or Claude Sonnet 5.5. Claude Sonnet 5 does not support
+  mid-conversation system messages.
+- Set `allowSystemInMessages: true`. Tool changes may include text in the same
+  system message.
+- Place the system message after a user turn or an assistant turn ending in a
+  server tool result, and before an assistant turn or at the end of `messages`.
+- Configure initial tools through `tools`. Tool changes on initial system messages
+  throw an error.
+- Keep at least one non-deferred tool in the initial `tools` catalog to preserve
+  the cached prefix. Otherwise, the first inline definition causes a full cache miss.
 
 ### MCP Connectors
 

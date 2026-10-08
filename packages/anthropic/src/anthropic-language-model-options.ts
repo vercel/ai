@@ -1,3 +1,4 @@
+import type { JSONSchema7 } from '@ai-sdk/provider';
 import { z } from 'zod/v4';
 
 // https://docs.claude.com/en/docs/about-claude/models/overview
@@ -100,19 +101,41 @@ export const anthropicSystemMessageProviderOptions = z.object({
    * initial system prompt). A system message carrying tool changes must come
    * right before an assistant message or at the end of the messages.
    *
-   * Tools referenced by a `tool_addition` must be declared in the `tools`
-   * option (typically with `deferLoading: true` so they are not loaded until
-   * the addition surfaces them). The required
-   * `mid-conversation-tool-changes-2026-07-01` beta is added automatically.
+   * Use `toolName` to reference an existing tool or `tool` to define a new
+   * function tool. Definitions require `inline-tools-2026-09-15`; references
+   * use `mid-conversation-tool-changes-2026-07-01`. Betas are added automatically.
    */
   toolChanges: z
     .array(
       z.discriminatedUnion('type', [
-        z.object({
-          type: z.literal('tool_addition'),
-          toolName: z.string(),
-        }),
-        z.object({
+        z
+          .strictObject({
+            type: z.literal('tool_addition'),
+            toolName: z.string().optional(),
+            tool: z
+              .strictObject({
+                type: z.literal('function'),
+                name: z.string(),
+                description: z.string().optional(),
+                inputSchema: z.record(
+                  z.string(),
+                  z.json(),
+                ) as z.ZodType<JSONSchema7>,
+                strict: z.boolean().optional(),
+                inputExamples: z
+                  .array(z.object({ input: z.record(z.string(), z.json()) }))
+                  .optional(),
+                providerOptions: z
+                  .record(z.string(), z.record(z.string(), z.json().optional()))
+                  .optional(),
+              })
+              .optional(),
+          })
+          .refine(
+            change => (change.toolName != null) !== (change.tool != null),
+            { message: 'Provide exactly one of toolName or tool.' },
+          ),
+        z.strictObject({
           type: z.literal('tool_removal'),
           toolName: z.string(),
         }),

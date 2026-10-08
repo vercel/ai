@@ -38,6 +38,7 @@ import {
   anthropicFilePartProviderOptions,
   anthropicSystemMessageProviderOptions,
 } from './anthropic-language-model-options';
+import { prepareTools } from './anthropic-prepare-tools';
 import { CacheControlValidator } from './get-cache-control';
 import { advisor_20260301OutputSchema } from './tool/advisor_20260301';
 import { codeExecution_20250522OutputSchema } from './tool/code-execution_20250522';
@@ -84,6 +85,9 @@ export async function convertToAnthropicPrompt({
   cacheControlValidator,
   toolNameMapping,
   toolsetNames = {},
+  supportsStrictTools = true,
+  supportsStructuredOutput = false,
+  defaultEagerInputStreaming = false,
 }: {
   prompt: LanguageModelV4Prompt;
   sendReasoning: boolean;
@@ -97,6 +101,9 @@ export async function convertToAnthropicPrompt({
    * serialized as toolset member calls.
    */
   toolsetNames?: Record<string, string>;
+  supportsStrictTools?: boolean;
+  supportsStructuredOutput?: boolean;
+  defaultEagerInputStreaming?: boolean;
 }): Promise<{
   prompt: AnthropicPrompt;
   betas: Set<string>;
@@ -190,11 +197,45 @@ export async function convertToAnthropicPrompt({
           }
 
           for (const toolChange of toolChanges) {
+            if (
+              toolChange.type === 'tool_addition' &&
+              toolChange.tool != null
+            ) {
+              const {
+                tools,
+                betas: toolsBetas,
+                toolWarnings,
+              } = await prepareTools({
+                tools: [toolChange.tool],
+                toolChoice: undefined,
+                cacheControlValidator: validator,
+                supportsStrictTools,
+                supportsStructuredOutput,
+                defaultEagerInputStreaming,
+              });
+              const unsupported = toolWarnings.find(
+                warning => warning.type === 'unsupported',
+              );
+              if (unsupported != null) {
+                throw new UnsupportedFunctionalityError({
+                  functionality: 'Message-level toolChanges',
+                  message: unsupported.details ?? unsupported.feature,
+                });
+              }
+              warnings.push(...toolWarnings);
+              for (const beta of toolsBetas) betas.add(beta);
+              betas.add('inline-tools-2026-09-15');
+              content.push({
+                type: 'tool_addition',
+                tool: { type: 'tool_definition', definition: tools![0] },
+              });
+              continue;
+            }
             content.push({
               type: toolChange.type,
               tool: {
                 type: 'tool_reference',
-                name: toolNameMapping.toProviderToolName(toolChange.toolName),
+                name: toolNameMapping.toProviderToolName(toolChange.toolName!),
               },
             } satisfies AnthropicToolChangeContent);
           }
@@ -219,12 +260,10 @@ export async function convertToAnthropicPrompt({
           (system == null && toolChangeCount === 0 && !hasInlineSystemOptions)
         ) {
           if (toolChangeCount > 0) {
-            warnings.push({
-              type: 'other',
+            throw new UnsupportedFunctionalityError({
+              functionality: 'Message-level toolChanges',
               message:
-                'tool changes on the initial system message are not supported by Anthropic. ' +
-                'Configure the initial tool set via the tools option instead. ' +
-                'The tool changes have been ignored.',
+                'Tool changes on the initial system message are not supported by Anthropic. Configure the initial tool set via the tools option instead.',
             });
           }
 
@@ -1508,6 +1547,10 @@ export async function convertToAnthropicPrompt({
         });
       }
     }
+  }
+
+  if (betas.has('inline-tools-2026-09-15')) {
+    betas.delete('mid-conversation-tool-changes-2026-07-01');
   }
 
   return {

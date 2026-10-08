@@ -562,6 +562,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       cacheControlValidator,
       toolNameMapping,
       toolsetNames,
+      supportsStrictTools,
+      supportsStructuredOutput,
+      defaultEagerInputStreaming:
+        stream && (anthropicOptions?.toolStreaming ?? true),
     });
 
     /*
