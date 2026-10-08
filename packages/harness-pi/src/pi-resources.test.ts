@@ -1,84 +1,17 @@
-import type {
-  HarnessV1NetworkSandboxSession,
-  HarnessV1Session,
-  HarnessV1StreamPart,
-} from '@ai-sdk/harness';
+import type { HarnessV1Session, HarnessV1StreamPart } from '@ai-sdk/harness';
 import { mkdtempSync, rmSync } from 'node:fs';
-import { createServer, type IncomingMessage, type Server } from 'node:http';
-import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createPi, type PiHarnessSettings } from './pi-harness';
 import { piLifecycleStateSchema } from './pi-lifecycle-state';
-
-type ModelRequestBody = {
-  readonly messages: ReadonlyArray<{
-    readonly role: string;
-    readonly content: unknown;
-  }>;
-};
-
-const readBody = async (request: IncomingMessage): Promise<string> => {
-  const chunks: Buffer[] = [];
-  for await (const chunk of request) chunks.push(chunk as Buffer);
-  return Buffer.concat(chunks).toString('utf8');
-};
-
-const listen = async (server: Server): Promise<string> => {
-  await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
-  return `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
-};
-
-const close = (server: Server): Promise<void> =>
-  new Promise(resolve => server.close(() => resolve()));
-
-const STOP_CHUNKS: ReadonlyArray<object> = [
-  { choices: [{ index: 0, delta: { role: 'assistant', content: 'done' } }] },
-  { choices: [{ index: 0, delta: {}, finish_reason: 'stop' }] },
-];
-
-const createModelServer = () => {
-  const requests: ModelRequestBody[] = [];
-  const server = createServer(async (request, response) => {
-    requests.push(JSON.parse(await readBody(request)));
-    response.writeHead(200, { 'content-type': 'text/event-stream' });
-    for (const chunk of STOP_CHUNKS) {
-      response.write(
-        `data: ${JSON.stringify({ id: 'chatcmpl-test', model: 'fake-model', ...chunk })}\n\n`,
-      );
-    }
-    response.end('data: [DONE]\n\n');
-  });
-  return { server, requests };
-};
-
-const untouchable = async (): Promise<never> => {
-  throw new Error('sandbox must not be touched');
-};
-
-const createThrowingSandboxSession = (): HarnessV1NetworkSandboxSession => {
-  const sandbox: HarnessV1NetworkSandboxSession = {
-    id: 'sandbox',
-    description: 'throwing sandbox',
-    defaultWorkingDirectory: '/sandbox',
-    ports: [],
-    run: untouchable,
-    spawn: untouchable,
-    readFile: untouchable,
-    readBinaryFile: untouchable,
-    readTextFile: untouchable,
-    writeFile: untouchable,
-    writeBinaryFile: untouchable,
-    writeTextFile: untouchable,
-    stop: untouchable,
-    destroy: untouchable,
-    getPortEndpoint: untouchable,
-    getPortUrl: untouchable,
-    restricted: () => sandbox,
-  };
-  return sandbox;
-};
+import {
+  close,
+  createFakePi,
+  createScriptedModelServer,
+  createThrowingSandboxSession,
+  listen,
+  type ModelRequestBody,
+} from './test-helpers';
 
 const systemPromptOf = (body: ModelRequestBody | undefined): string => {
   const system = body?.messages.find(
@@ -93,7 +26,7 @@ const requestText = (body: ModelRequestBody | undefined): string =>
   JSON.stringify(body?.messages);
 
 describe('Pi with a scripted model', () => {
-  const model = createModelServer();
+  const model = createScriptedModelServer();
   const agentDir = mkdtempSync(path.join(tmpdir(), 'pi-resources-agent-'));
   const previousAgentDir = process.env.PI_CODING_AGENT_DIR;
   let modelUrl = '';
@@ -109,30 +42,6 @@ describe('Pi with a scripted model', () => {
     await close(model.server);
     rmSync(agentDir, { recursive: true, force: true });
   });
-
-  const createFakePi = (settings: PiHarnessSettings = {}) =>
-    createPi({
-      auth: {},
-      providers: {
-        fake: {
-          baseUrl: `${modelUrl}/v1`,
-          api: 'openai-completions',
-          apiKey: 'test-key',
-          models: [
-            {
-              id: 'fake-model',
-              name: 'Fake Model',
-              reasoning: false,
-              input: ['text'],
-              cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-              contextWindow: 128_000,
-              maxTokens: 4_096,
-            },
-          ],
-        },
-      },
-      ...settings,
-    });
 
   const runPromptTurn = async (
     session: HarnessV1Session,
@@ -154,7 +63,7 @@ describe('Pi with a scripted model', () => {
     const sessionWorkDir = '/sandbox/work';
     const sandboxSession = createThrowingSandboxSession();
     const firstRequest = model.requests.length;
-    const harness = createFakePi({
+    const harness = createFakePi(modelUrl, {
       resources: {
         contextFiles: [
           {
@@ -199,7 +108,7 @@ describe('Pi with a scripted model', () => {
       sessionWorkDir: '/sandbox/work',
     };
 
-    const first = await createFakePi().doStart(sessionStart);
+    const first = await createFakePi(modelUrl).doStart(sessionStart);
     await runPromptTurn(first, 'Remember the word PELICAN.');
     const state = await first.doStop();
 
@@ -208,7 +117,7 @@ describe('Pi with a scripted model', () => {
     );
 
     const firstRequest = model.requests.length;
-    const resumed = await createFakePi().doStart({
+    const resumed = await createFakePi(modelUrl).doStart({
       ...sessionStart,
       resumeFrom: state,
     });
@@ -288,7 +197,7 @@ describe('Pi with a scripted model', () => {
     ];
 
     const firstRequest = model.requests.length;
-    const session = await createFakePi().doStart({
+    const session = await createFakePi(modelUrl).doStart({
       sessionId: 'session-heron',
       sandboxSession: createThrowingSandboxSession(),
       sessionWorkDir: '/sandbox/work',

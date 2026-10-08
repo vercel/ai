@@ -55,6 +55,8 @@ try {
 Pi has no in-sandbox bridge, so the supplied sandbox session does not need
 exposed ports. Vercel and just-bash sessions both work.
 
+Pi makes no sandbox call for a turn that has no skills and calls no file or `bash` tool. To run such turns without a sandbox, set `sandboxConfig.setup: 'lazy'` on `HarnessAgent` and pass a session from `createLazyNetworkSandboxSession()`, which creates or resumes the sandbox only when a turn first needs it. See "Start the Sandbox on First Use" in the `HarnessAgent` documentation.
+
 ## Stateless session configuration
 
 By default, a suspended turn can reuse its live Pi session in the same process.
