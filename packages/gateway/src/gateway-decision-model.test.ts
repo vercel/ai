@@ -1,7 +1,4 @@
-import type {
-  Experimental_DecisionModelV4State as DecisionModelV4State,
-  JSONValue,
-} from '@ai-sdk/provider';
+import type { Experimental_DecisionModelV4State as DecisionModelV4State } from '@ai-sdk/provider';
 import { describe, it, expect } from 'vitest';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { createGateway } from './gateway-provider';
@@ -69,43 +66,19 @@ const createTestModel = (
   });
 
 describe('GatewayDecisionModel', () => {
-  const legacyStateCases: {
-    name: string;
-    state: DecisionModelV4State;
-    expected: JSONValue;
-  }[] = [
-    {
-      name: 'text',
-      state: [{ type: 'text', text: 'Inspect.' }],
-      expected: 'Inspect.',
-    },
-    {
-      name: 'object',
-      state: [{ type: 'json', value: { product: 'vase', history: ['new'] } }],
-      expected: { product: 'vase', history: ['new'] },
-    },
-    {
-      name: 'JSON array',
-      state: [{ type: 'json', value: ['vase', null] }],
-      expected: ['vase', null],
-    },
-  ];
-  it.each(legacyStateCases)(
-    'sends $name using the legacy Gateway state format',
-    async ({ state, expected }) => {
-      prepareJsonResponse({});
-      await createTestModel().doDecide({ state, questions: testQuestions });
-      expect(await server.calls[0].requestBodyJson).toEqual({
-        state: expected,
-        questions: testQuestions,
-      });
-    },
-  );
-
   const statePartsCases: {
     name: string;
     state: DecisionModelV4State;
   }[] = [
+    { name: 'a text part', state: [{ type: 'text', text: 'Inspect.' }] },
+    {
+      name: 'a JSON object part',
+      state: [{ type: 'json', value: { product: 'vase', history: ['new'] } }],
+    },
+    {
+      name: 'a JSON array part',
+      state: [{ type: 'json', value: ['vase', null] }],
+    },
     { name: 'empty parts', state: [] },
     {
       name: 'mixed parts',
@@ -308,7 +281,7 @@ describe('GatewayDecisionModel', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        state: testState[0].text,
+        stateParts: testState,
         questions: testQuestions,
       });
     });
@@ -386,7 +359,7 @@ describe('GatewayDecisionModel', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        state: testState[0].text,
+        stateParts: testState,
         questions: testQuestions,
         providerOptions,
       });
