@@ -438,89 +438,9 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
   };
 
-<<<<<<< HEAD
   addToolOutput = async <TOOL extends keyof InferUIMessageTools<UI_MESSAGE>>({
     state = 'output-available',
     tool,
-=======
-  addToolApprovalResponse: ChatAddToolApproveResponseFunction = async ({
-    id,
-    approved,
-    reason,
-    options,
-  }) =>
-    this.jobExecutor.run(async () => {
-      const messages = this.state.messages;
-
-      const updatePart = (
-        part: UIMessagePart<UIDataTypes, UITools>,
-      ): UIMessagePart<UIDataTypes, UITools> =>
-        isToolUIPart(part) &&
-        part.state === 'approval-requested' &&
-        part.approval.id === id
-          ? {
-              ...part,
-              state: 'approval-responded',
-              approval: { ...part.approval, id, approved, reason },
-            }
-          : part;
-
-      const messageIndex = messages.findIndex(message =>
-        message.parts.some(
-          part =>
-            isToolUIPart(part) &&
-            part.state === 'approval-requested' &&
-            part.approval.id === id,
-        ),
-      );
-
-      if (messageIndex !== -1) {
-        const message = messages[messageIndex];
-
-        // update the message to trigger an immediate UI update
-        this.state.replaceMessage(messageIndex, {
-          ...message,
-          parts: message.parts.map(updatePart),
-        });
-        this.pendingApprovalMessageId = message.id;
-      }
-
-      // update the active response if it exists
-      if (this.activeResponse) {
-        this.activeResponse.state.message.parts =
-          this.activeResponse.state.message.parts.map(updatePart);
-      }
-
-      // automatically send the message if the sendAutomaticallyWhen function returns true
-      if (
-        messageIndex !== -1 &&
-        this.status !== 'streaming' &&
-        this.status !== 'submitted' &&
-        this.sendAutomaticallyWhen
-      ) {
-        const shouldSend = await this.shouldSendAutomatically();
-
-        if (shouldSend) {
-          // no await to avoid deadlocking
-          void this.runAutomaticRequest(() => {
-            const messageId =
-              messageIndex === -1
-                ? this.lastMessage?.id
-                : messages[messageIndex].id;
-
-            return this.makeRequestForToolApproval({
-              messageId,
-              messageIndex,
-              ...options,
-            });
-          }, shouldSend);
-        }
-      }
-    });
-
-  addToolOutput: ChatAddToolOutputFunction<UI_MESSAGE> = async ({
-    state,
->>>>>>> ff18b733f9 (fix: chat.stop() resolving before active stream processing and callback-driven updates terminate (#21798))
     toolCallId,
     output,
     errorText,
@@ -571,15 +491,8 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       if (
         this.status !== 'streaming' &&
         this.status !== 'submitted' &&
-        this.sendAutomaticallyWhen?.({ messages: this.state.messages })
+        this.sendAutomaticallyWhen
       ) {
-<<<<<<< HEAD
-        // no await to avoid deadlocking
-        this.makeRequest({
-          trigger: 'submit-message',
-          messageId: this.lastMessage?.id,
-        });
-=======
         const shouldSend = await this.shouldSendAutomatically();
 
         if (shouldSend) {
@@ -589,12 +502,10 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
               this.makeRequest({
                 trigger: 'submit-message',
                 messageId: this.lastMessage?.id,
-                ...options,
               }),
             shouldSend,
           );
         }
->>>>>>> ff18b733f9 (fix: chat.stop() resolving before active stream processing and callback-driven updates terminate (#21798))
       }
     });
 
@@ -606,13 +517,6 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
    * the request pipeline to finish.
    */
   stop = async () => {
-<<<<<<< HEAD
-    this.activeResumeRequest?.abortController.abort();
-    this.activeResponse?.abortController.abort();
-  };
-
-  private async makeRequest({
-=======
     this.activeStopCount++;
     this.stopGeneration++;
 
@@ -620,9 +524,6 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       const activeResumeRequest = this.activeResumeRequest;
       const activeResponse = this.activeResponse;
 
-      for (const controller of this.pendingMessagePreparations) {
-        controller.abort();
-      }
       activeResumeRequest?.abortController.abort();
       activeResponse?.abortController.abort();
 
@@ -678,36 +579,6 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     await request();
   }
 
-  private async makeRequestForToolApproval({
-    messageId,
-    messageIndex,
-    ...options
-  }: {
-    messageId?: string;
-    messageIndex: number;
-  } & ChatRequestOptions) {
-    const consumesPendingApproval =
-      messageId != null && messageId === this.pendingApprovalMessageId;
-    if (consumesPendingApproval) {
-      this.pendingApprovalMessageId = undefined;
-    }
-
-    await this.makeRequest({
-      trigger: 'submit-message',
-      messageId,
-      ...options,
-    });
-
-    if (
-      consumesPendingApproval &&
-      this.status === 'error' &&
-      this.pendingApprovalMessageId == null
-    ) {
-      this.pendingApprovalMessageId =
-        this.state.messages[messageIndex]?.id ?? messageId;
-    }
-  }
-
   private async makeRequest(options: MakeRequestOptions) {
     const completion = createResolvablePromise<void>();
 
@@ -722,7 +593,6 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   }
 
   private async makeRequestImpl({
->>>>>>> ff18b733f9 (fix: chat.stop() resolving before active stream processing and callback-driven updates terminate (#21798))
     trigger,
     metadata,
     headers,
@@ -974,19 +844,6 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
 
     // automatically send the message if the sendAutomaticallyWhen function returns true
-<<<<<<< HEAD
-    if (
-      this.sendAutomaticallyWhen?.({ messages: this.state.messages }) &&
-      !isError
-    ) {
-      await this.makeRequest({
-        trigger: 'submit-message',
-        messageId: this.lastMessage?.id,
-        metadata,
-        headers,
-        body,
-      });
-=======
     if (!isAbort && !isError) {
       await this.runAutomaticRequest(() =>
         this.makeRequest({
@@ -997,7 +854,6 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           body,
         }),
       );
->>>>>>> ff18b733f9 (fix: chat.stop() resolving before active stream processing and callback-driven updates terminate (#21798))
     }
   }
 }
