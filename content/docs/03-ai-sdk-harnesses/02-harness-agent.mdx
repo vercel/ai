@@ -575,6 +575,66 @@ const agent = new HarnessAgent({
 as Claude Code and Codex install their runtime into the sandbox before they
 start, so `createSession()` rejects `'lazy'` for them.
 
+## Start the Sandbox on First Use
+
+`setup: 'lazy'` defers the setup, but `createSession()` still needs a sandbox
+session. To defer creating the sandbox as well, pass a session from
+`createLazyNetworkSandboxSession()`. Its `acquire` function creates or resumes
+the sandbox the first time the harness or a host tool performs a file, exec,
+spawn, or port operation. A turn that only chats never calls it.
+
+```ts
+import {
+  createLazyNetworkSandboxSession,
+  HarnessAgent,
+} from '@ai-sdk/harness/agent';
+import { pi } from '@ai-sdk/harness-pi';
+import {
+  createVercelNetworkSandboxSession,
+  resumeVercelNetworkSandboxSession,
+} from '@ai-sdk/sandbox-vercel';
+
+const agent = new HarnessAgent({
+  harness: pi,
+  sandboxConfig: { setup: 'lazy' },
+});
+
+const sandboxId = `harness-${sessionId}`;
+const session = await agent.createSession({
+  sessionId,
+  sandboxSession: createLazyNetworkSandboxSession({
+    defaultWorkingDirectory: '/vercel/sandbox',
+    acquire: async () => {
+      const sandboxSession = isFirstTurn
+        ? await createVercelNetworkSandboxSession({
+            sandboxId,
+            runtime: 'node24',
+          })
+        : await resumeVercelNetworkSandboxSession({ sandboxId });
+      await saveSandboxId(sessionId, sandboxSession.id);
+      return sandboxSession;
+    },
+  }),
+});
+```
+
+Keep the following constraints in mind:
+
+- The harness must not declare a sandbox bootstrap recipe, as for
+  `setup: 'lazy'`.
+- `defaultWorkingDirectory`, `ports`, and `description` are fixed when you
+  create the session. `defaultWorkingDirectory` must match what the acquired
+  sandbox reports, because `createSession()` derives the session working
+  directory from it.
+- `acquire` runs at most once. If it rejects, every later operation rejects
+  with the same error, because the sandbox may or may not exist and must not
+  be created twice.
+- `id` throws until `acquire` resolves, so record the sandbox id inside
+  `acquire`.
+- The session does not provide `setNetworkPolicy`, request transformations, or
+  `setPorts`. A harness that needs them needs an eagerly created session.
+- `stop()` and `destroy()` do nothing when the sandbox was never acquired.
+
 ## Prepare Reusable Sandboxes
 
 Use `agent.getSandboxTemplate()` to resolve one harness's bootstrap recipe and

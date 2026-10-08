@@ -21,6 +21,7 @@ import { describe, expect, expectTypeOf, test, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { HarnessAgent } from './harness-agent';
 import { HarnessAgentSession } from './harness-agent-session';
+import { createLazyNetworkSandboxSession } from './create-lazy-network-sandbox-session';
 import { HarnessCapabilityUnsupportedError } from '../errors/harness-capability-unsupported-error';
 import { hashHarnessBootstrap } from './internal/bootstrap-recipe';
 
@@ -3720,6 +3721,62 @@ describe('HarnessAgent', () => {
       ],
       [{ command: 'ls' }],
     ]);
+
+    await session.destroy();
+  });
+
+  test("sandboxConfig.setup 'lazy' with a lazy network sandbox session acquires no sandbox for a chat-only turn", async () => {
+    const { harness, doStart } = mockHarness({
+      script: () => [
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'hello' },
+        { type: 'text-end', id: 'text-1' },
+        {
+          type: 'finish-step',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          usage: zeroUsage(),
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          totalUsage: zeroUsage(),
+        },
+      ],
+    });
+    const run = vi.fn(async () => ({ exitCode: 0, stdout: '', stderr: '' }));
+    const readTextFile = vi.fn(async () => 'content');
+    const acquiredSandbox = makeSandboxSession({ run, readTextFile });
+    const acquire = vi.fn(async () => acquiredSandbox);
+    const agent = new HarnessAgent({
+      harness,
+      sandboxConfig: { setup: 'lazy' },
+    });
+
+    const session = await agent.createSession({
+      sessionId: 's1',
+      sandboxSession: createLazyNetworkSandboxSession({
+        acquire,
+        defaultWorkingDirectory: '/work',
+      }),
+    });
+    const generated = await agent.generate({ session, prompt: 'hi' });
+
+    expect(generated.text).toBe('hello');
+    expect(acquire).not.toHaveBeenCalled();
+
+    const startedSandbox: SandboxSession =
+      doStart.mock.calls[0]?.[0].sandboxSession;
+    await startedSandbox.readTextFile({ path: '/work/mock-s1/a.txt' });
+
+    expect(acquire).toHaveBeenCalledTimes(1);
+    expect(run).toHaveBeenCalledWith({
+      command: 'mkdir -p "$WORK_DIR"',
+      env: { WORK_DIR: '/work/mock-s1' },
+      abortSignal: undefined,
+    });
+    expect(run.mock.invocationCallOrder[0]!).toBeLessThan(
+      readTextFile.mock.invocationCallOrder[0]!,
+    );
 
     await session.destroy();
   });
