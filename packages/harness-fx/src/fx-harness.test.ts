@@ -335,6 +335,41 @@ describe('createFx', () => {
     expect(capabilitySearchInputSchema.safeParse({}).success).toBe(false);
   });
 
+  it('accepts fx v0.0.13 location-based and legacy name-based skill inputs', () => {
+    createFx();
+
+    const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
+    const builtinTools = settings.builtinTools as Record<
+      string,
+      HarnessV1BuiltinTool
+    >;
+    const skillInputSchema = builtinTools.skill.inputSchema as z.ZodType;
+
+    expect(
+      skillInputSchema.safeParse({
+        location: 'skill:test:0/weather-forecast',
+      }).success,
+    ).toBe(true);
+    expect(
+      skillInputSchema.safeParse({
+        location: 'skill:test:0/weather-forecast',
+        resource: 'references/forecast.md',
+      }).success,
+    ).toBe(true);
+    expect(
+      skillInputSchema.safeParse({ name: 'weather-forecast' }).success,
+    ).toBe(true);
+    expect(
+      skillInputSchema.safeParse({
+        name: 'weather-forecast',
+        location: '/skills/weather-forecast',
+        resource: 'SKILL.md',
+        offset: 1,
+      }).success,
+    ).toBe(true);
+    expect(skillInputSchema.safeParse({}).success).toBe(false);
+  });
+
   it('forwards user-configurable settings', () => {
     const mintBridgeToken = (sandboxId: string) => `token-for-${sandboxId}`;
     const credentialForwarding = async ({

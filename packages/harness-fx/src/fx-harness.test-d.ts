@@ -1,5 +1,6 @@
 import type { SandboxChannelReconnectOptions } from '@ai-sdk/harness/utils';
-import { expectTypeOf, test } from 'vitest';
+import type { InferToolInput } from '@ai-sdk/provider-utils';
+import { assertType, expectTypeOf, test } from 'vitest';
 import { createFx, type FxHarnessSettings } from './fx-harness';
 
 test('accepts sandbox bridge reconnect settings', () => {
@@ -52,4 +53,15 @@ test('preserves fx built-in tool types', () => {
     | 'vision'
     | 'read_tool_result'
   >();
+
+  type SkillInput = InferToolInput<typeof harness.builtinTools.skill>;
+
+  assertType<SkillInput>({
+    location: 'skill:test:0/weather-forecast',
+    resource: 'SKILL.md',
+  });
+  assertType<SkillInput>({
+    name: 'weather-forecast',
+    offset: 1,
+  });
 });

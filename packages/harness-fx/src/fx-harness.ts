@@ -430,12 +430,22 @@ const FX_BUILTIN_TOOLS = {
   },
   skill: {
     ...tool({
-      inputSchema: z.looseObject({
-        name: z.string(),
-        location: z.string().optional(),
-        resource: z.string().optional(),
-        offset: z.number().int().optional(),
-      }),
+      inputSchema: z.union([
+        z.looseObject({
+          location: z.string(),
+          resource: z.string().optional(),
+        }),
+        z.looseObject({
+          /*
+           * Fx's current model schema uses `location`; retain the name-based
+           * form for compatibility with callers that still send it.
+           */
+          name: z.string(),
+          location: z.string().optional(),
+          resource: z.string().optional(),
+          offset: z.number().int().optional(),
+        }),
+      ]),
     }),
     toolUseKind: 'readonly',
   },
