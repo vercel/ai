@@ -1,5 +1,14 @@
 # @ai-sdk/workflow
 
+## 2.0.66
+
+### Patch Changes
+
+- 2fdbde7: Upgrade Workflow SDK support to the stable 5.1.0 release.
+- Updated dependencies [8281ec4]
+- Updated dependencies [46c2b05]
+  - ai@7.0.134
+
 ## 2.0.65
 
 ### Patch Changes
