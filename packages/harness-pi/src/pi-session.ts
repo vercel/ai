@@ -90,14 +90,6 @@ const HARNESS_ID = 'pi';
 
 const PI_SESSION_ID_PATTERN = /^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?$/;
 
-/*
- * Pi runs in this Node process, not behind an attachable in-sandbox bridge.
- * During a tool approval pause the Pi turn is still alive and blocked on the
- * custom tool promise, so in-process reattachment parks that live session for
- * the next same-process resume instead of stopping it and resolving the
- * promise as an error. Cross-process resume restores from the session entries
- * in the lifecycle state.
- */
 const parkedPiSessions = new Map<
   string,
   {
@@ -473,9 +465,6 @@ export async function createPiSession(
 
   assertPiMcpSettingsSupported(input.settings.mcpSettings);
 
-  // Host-side Pi state under tmpdir. Replace path-separator characters
-  // that would otherwise turn a session id like `2026-05-29T17:54:27` into a
-  // sub-directory tree on disk.
   const safeSessionId = input.sessionId.replace(/[\\/: ]/g, '-');
   const hostRoot = path.join(tmpdir(), 'ai-sdk-harness', 'pi', safeSessionId);
   const hostAgentDir = path.join(hostRoot, 'agent');
@@ -568,10 +557,6 @@ export async function createPiSession(
     );
     return sessionManager;
   };
-  /*
-   * Lifecycle data is a JSON value, and Pi keeps `undefined` fields on the
-   * entries it holds in memory.
-   */
   const lifecycleData = (): HarnessV1LifecycleState['data'] => {
     const entries =
       sessionManager == null ? seededEntries : sessionEntriesOf(sessionManager);
@@ -654,13 +639,6 @@ export async function createPiSession(
     sessionWorkDir,
     instructions: () => sessionInstructions,
   };
-  /*
-   * Configured MCP servers are served by Pi's MCP and tool search extensions,
-   * so they share the extension runtime with the caller-supplied factories:
-   * both are loaded by the resource loader below and both are subject to the
-   * reload handling that keeps the active runtime alive across resource-only
-   * reloads.
-   */
   const extensionFactories: ExtensionFactory[] = [
     ...(input.settings.extensionFactories ?? []).map(
       (factory): ExtensionFactory =>
@@ -1385,17 +1363,6 @@ export async function createPiSession(
 
           const terminalError = turnState.turnError;
           if (terminalError) {
-            /*
-             * A `doSuspendTurn` aborts the in-flight turn on purpose. Pi surfaces
-             * that abort as a *resolved* prompt with a recorded terminal error
-             * rather than a thrown exception, so the `catch` guard below never
-             * sees it. Once the suspend has begun, every terminal error belongs to
-             * it: the stream then closes cleanly (no spurious `error` chunk) and
-             * the next slice rerun-continues from the journal. Reporting one
-             * instead would end the slice as failed with the unfinished turn
-             * nested in its resume state, and the session built from that state
-             * refuses every later prompt.
-             */
             if (suspending) return;
             currentEmit?.({ type: 'error', error: new Error(terminalError) });
             return;
@@ -1418,8 +1385,6 @@ export async function createPiSession(
             }),
           });
         } catch (err) {
-          // Same rule as the resolved-with-terminalError path: a turn that
-          // throws while its suspend is in flight settles silently.
           if (suspending) return;
           currentEmit?.({ type: 'error', error: err });
         }
@@ -1485,9 +1450,6 @@ export async function createPiSession(
   const sessionImpl: HarnessV1Session = {
     sessionId: input.sessionId,
     isResume: input.isResume,
-    // Pi has no bridge to attach to and no event log to replay; its only
-    // resume path is rebuilding the session from the lifecycle entries, i.e.
-    // `rerun`.
 
     doPromptTurn: async (
       promptOpts: HarnessV1PromptTurnOptions,
@@ -1646,18 +1608,6 @@ export async function createPiSession(
           data: lifecycleData(),
         };
       }
-      /*
-       * Pi's model runs in this host process, which is about to be suspended at
-       * the slice boundary — the in-flight turn cannot survive it. Abort it (the
-       * turn settles silently via the `suspending` guard so the stream closes
-       * cleanly), return the journal as lifecycle data, and tear down host-side
-       * resources. The sandbox itself is left running; the next slice rebuilds
-       * the session from that data and rerun-continues. The
-       * tail in flight at the boundary is recomputed — Pi cannot freeze a live
-       * turn the way a bridge adapter can. With `suspendToolSettleMs` set, the
-       * abort waits (bounded) until the turn is between model requests, so a
-       * running tool's result reaches the journal instead of being recomputed.
-       */
       suspending = true;
       const turnToSuspend = activeTurn;
       deferredRerun?.cancel();

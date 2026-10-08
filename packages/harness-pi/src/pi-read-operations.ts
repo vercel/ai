@@ -9,11 +9,6 @@ import type { PiRemoteOps } from './pi-remote-ops';
 
 const PI_IMAGE_SNIFF_BYTES = 4100;
 
-/**
- * Pi's read tool operations over the sandbox. Pi checks access, sniffs the
- * image type and reads the file as three calls; they share one sandbox read.
- * Create one instance per tool execution so a later read sees fresh content.
- */
 export function createPiSandboxReadOperations(
   remoteOps: PiRemoteOps,
 ): ReadOperations {

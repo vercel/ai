@@ -4,17 +4,9 @@ import type { PiSessionEvent } from './pi-events';
 const PAUSING_REASON =
   'The session is pausing. Continue this work when the turn resumes.';
 
-/**
- * Tracks whether a Pi turn is between model requests, so `doSuspendTurn` can
- * abort it there instead of mid-flight. A tool cut while it runs loses its
- * work, and Pi leaves an aborted assistant message out of the next request, so
- * text the user already saw is regenerated on the next slice. Once a settle
- * has begun, new tool calls are blocked so the turn reaches that point sooner.
- */
 export interface PiTurnSettle {
   /** Inline Pi extension that blocks tool calls once a settle has begun. */
   readonly extension: ExtensionFactory;
-  /** Observe a session event; the translator's subscription forwards each one. */
   observe(event: PiSessionEvent): void;
   /** Resolves once no tool runs and no assistant message streams, or after the bound. */
   settle(): Promise<void>;

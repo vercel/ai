@@ -3313,10 +3313,6 @@ function toolResultEntry(toolCallId: string) {
   });
 }
 
-/**
- * Fake `SessionManager` over a journal of messages. Appended messages become
- * entries, the way Pi's in-memory session manager records them.
- */
 function createJournal(messages: unknown[]) {
   const entries = [
     sessionHeader,
