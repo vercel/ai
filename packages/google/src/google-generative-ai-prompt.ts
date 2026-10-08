@@ -50,4 +50,12 @@ export interface GoogleGenerativeAIProviderMetadata {
   urlContextMetadata: GoogleGenerativeAIUrlContextMetadata | null;
   safetyRatings: GoogleGenerativeAISafetyRating[] | null;
   serviceTier: string | null;
+
+  /**
+   * Opaque token returned when a response stops with `MAX_TOKENS` (and for
+   * streaming long-decode checkpoints). Pass it back as
+   * `providerOptions.google.continuationToken` together with a higher
+   * `maxOutputTokens` and the original prompt to resume generation.
+   */
+  continuationToken?: string | null;
 }

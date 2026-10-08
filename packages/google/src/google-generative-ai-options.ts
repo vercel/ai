@@ -251,6 +251,15 @@ export const googleGenerativeAIProviderOptions = lazySchema(() =>
        * Optional. The service tier to use for the request.
        */
       serviceTier: z.enum(['standard', 'flex', 'priority']).optional(),
+
+      /**
+       * Optional. Resumes a truncated response (Gemini 4 long decode). Pass the
+       * `continuationToken` from the previous response's provider metadata
+       * together with the original prompt and a higher `maxOutputTokens`
+       * (the limit accumulates across continuation requests). Sent as the
+       * `continuationToken` body field.
+       */
+      continuationToken: z.string().optional(),
     }),
   ),
 );

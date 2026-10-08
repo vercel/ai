@@ -266,6 +266,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
         cachedContent: googleOptions?.cachedContent,
         labels: googleOptions?.labels,
         serviceTier: sanitizedServiceTier,
+        ...(googleOptions?.continuationToken != null && {
+          continuationToken: googleOptions.continuationToken,
+        }),
       },
       warnings: [...warnings, ...toolWarnings],
     };
@@ -407,6 +410,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           urlContextMetadata: candidate?.urlContextMetadata ?? null,
           safetyRatings: candidate?.safetyRatings ?? null,
           serviceTier: response.serviceTier ?? null,
+          ...(candidate?.continuationToken != null
+            ? { continuationToken: candidate.continuationToken }
+            : {}),
           usageMetadata: usageMetadata ?? null,
         },
       },
@@ -735,6 +741,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                   urlContextMetadata: lastUrlContextMetadata,
                   safetyRatings: candidate.safetyRatings ?? null,
                   serviceTier,
+                  ...(candidate.continuationToken != null
+                    ? { continuationToken: candidate.continuationToken }
+                    : {}),
                 },
               };
               if (usageMetadata != null) {
@@ -1073,6 +1082,7 @@ const responseSchema = lazySchema(() =>
           z.object({
             content: getContentSchema().nullish().or(z.object({}).strict()),
             finishReason: z.string().nullish(),
+            continuationToken: z.string().nullish(),
             safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
             groundingMetadata: getGroundingMetadataSchema().nullish(),
             urlContextMetadata: getUrlContextMetadataSchema().nullish(),
@@ -1122,6 +1132,7 @@ const chunkSchema = lazySchema(() =>
           z.object({
             content: getContentSchema().nullish(),
             finishReason: z.string().nullish(),
+            continuationToken: z.string().nullish(),
             safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
             groundingMetadata: getGroundingMetadataSchema().nullish(),
             urlContextMetadata: getUrlContextMetadataSchema().nullish(),

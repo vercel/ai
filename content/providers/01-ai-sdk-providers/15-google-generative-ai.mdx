@@ -310,6 +310,86 @@ console.log(text);
 console.log(reasoning); // Reasoning summary
 ```
 
+### Long decode
+
+Gemini 4 models can keep thinking and writing past a single request's limits,
+up to the shared 1M token context window (input, thinking, and output tokens
+together). Use it for hard math, science, proofs, and long coding or agentic
+tasks.
+
+- A single request returns at most 32K output tokens without streaming and 64K
+  with streaming (`streamText`). Both are also the defaults when `maxOutputTokens`
+  is not set. Thinking tokens count towards the output limit.
+- `maxOutputTokens` is a **cumulative budget across continuation hops**, not a
+  target length. A lower value does not make the model think less, it ends the
+  response early (possibly before any answer) and you are still charged for the
+  tokens. Use `thinkingConfig.thinkingLevel` to control how much the model
+  thinks. `thinkingBudget` is not supported by these models.
+- Complex requests can run for several minutes. Make sure your HTTP client
+  allows read timeouts of at least 15 to 20 minutes.
+
+When a request stops because it reached a per-request cap or your
+`maxOutputTokens` budget, the finish reason is `length` and the provider returns
+a continuation token on `result.providerMetadata.google.continuationToken`. To
+continue, send the **original request unchanged** (same prompt, tools, and
+settings; do not append the partial output as a message) together with the token
+as `providerOptions.google.continuationToken`. Each response contains only the
+newly generated content. If the budget was used up, raise `maxOutputTokens` as
+well, otherwise the API rejects the request.
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const maxOutputTokens = 256_000; // cumulative budget across all hops
+let text = '';
+let continuationToken: string | undefined;
+let generatedTokens = 0;
+
+while (true) {
+  const result = await generateText({
+    model: google('gemini-4-argon'),
+    prompt: 'Prove that sqrt(2) is irrational, in detail.',
+    maxOutputTokens,
+    providerOptions: { google: { continuationToken } },
+  });
+
+  text += result.text;
+  generatedTokens += result.usage.outputTokens ?? 0;
+
+  const next = result.providerMetadata?.google?.continuationToken;
+
+  // A hop can spend its whole slice thinking and return no text, so keep
+  // going as long as a token is present and budget remains.
+  if (
+    result.finishReason !== 'length' ||
+    typeof next !== 'string' ||
+    generatedTokens >= maxOutputTokens
+  ) {
+    break;
+  }
+
+  continuationToken = next;
+}
+```
+
+Things to keep in mind when building a loop:
+
+- **Usage is per call.** Each hop re-sends your prompt plus the accumulated
+  thinking and output as input tokens. Repeated input is billed at a discount
+  through implicit caching. Sum `usage` across hops yourself.
+- **Streaming checkpoints.** With `streamText`, long responses emit a
+  continuation token every 5K tokens after the first 32K, and the provider keeps
+  the latest one. If a stream drops after 32K tokens, resume from the last
+  token you received (you are only billed up to that checkpoint). Drop
+  un-checkpointed output from the failed attempt before you resume.
+- **Provider metadata is per call.** If you store the conversation history,
+  combine the content of all hops into one model message only after the final
+  hop finishes. Keep thought signatures unchanged, including the ones on empty
+  trailing text parts.
+- **Zero Data Retention.** Client-side continuation works with `store: false`
+  because the state travels encrypted inside the token.
+
 ### File Inputs
 
 The Google Generative AI provider supports file inputs, e.g. PDF files.
@@ -1018,6 +1098,7 @@ The following Zod features are known to not work with Google Generative AI:
 | Model                                 | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      | Google Search       | URL Context         |
 | ------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
 | `gemini-nano-banana-2.1`              | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `gemini-4-argon`                      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-3.8-flash`                    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-3.7-flash`                    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-3.6-flash`                    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
