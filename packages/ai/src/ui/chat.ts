@@ -8,6 +8,7 @@ import { InvalidArgumentError } from '../error/invalid-argument-error';
 import type { FinishReason } from '../types/language-model';
 import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { consumeStream } from '../util/consume-stream';
+import { createResolvablePromise } from '../util/create-resolvable-promise';
 import { SerialJobExecutor } from '../util/serial-job-executor';
 import type { ChatTransport } from './chat-transport';
 import { convertFileListToFileUIParts } from './convert-file-list-to-file-ui-parts';
@@ -135,11 +136,18 @@ export type ChatStatus = 'submitted' | 'streaming' | 'ready' | 'error';
 type ActiveResponse<UI_MESSAGE extends UIMessage> = {
   state: StreamingUIMessageState<UI_MESSAGE>;
   abortController: AbortController;
+  completionPromise: Promise<void>;
 };
 
 type ActiveResumeRequest = {
   abortController: AbortController;
+  completionPromise: Promise<void>;
 };
+
+type MakeRequestOptions = {
+  trigger: 'submit-message' | 'resume-stream' | 'regenerate-message';
+  messageId?: string;
+} & ChatRequestOptions;
 
 export interface ChatState<UI_MESSAGE extends UIMessage> {
   status: ChatStatus;
@@ -267,6 +275,8 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     | StreamingUIMessageState<UI_MESSAGE>
     | undefined = undefined;
   private jobExecutor = new SerialJobExecutor();
+  private activeStopCount = 0;
+  private stopGeneration = 0;
 
   constructor({
     generateId = generateIdFunc,
@@ -600,16 +610,18 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
         if (shouldSend) {
           // no await to avoid deadlocking
-          const messageId =
-            messageIndex === -1
-              ? this.lastMessage?.id
-              : messages[messageIndex].id;
+          void this.runAutomaticRequest(() => {
+            const messageId =
+              messageIndex === -1
+                ? this.lastMessage?.id
+                : messages[messageIndex].id;
 
-          this.makeRequestForToolApproval({
-            messageId,
-            messageIndex,
-            ...options,
-          });
+            return this.makeRequestForToolApproval({
+              messageId,
+              messageIndex,
+              ...options,
+            });
+          }, shouldSend);
         }
       }
     });
@@ -685,11 +697,15 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
         if (shouldSend) {
           // no await to avoid deadlocking
-          this.makeRequest({
-            trigger: 'submit-message',
-            messageId: this.lastMessage?.id,
-            ...options,
-          });
+          void this.runAutomaticRequest(
+            () =>
+              this.makeRequest({
+                trigger: 'submit-message',
+                messageId: this.lastMessage?.id,
+                ...options,
+              }),
+            shouldSend,
+          );
         }
       }
     });
@@ -698,14 +714,34 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   addToolResult = this.addToolOutput;
 
   /**
-   * Abort the current request immediately, keep the generated tokens if any.
+   * Abort the current request, keep the generated tokens if any, and wait for
+   * the request pipeline to finish.
    */
   stop = async () => {
-    for (const controller of this.pendingMessagePreparations) {
-      controller.abort();
+    this.activeStopCount++;
+    this.stopGeneration++;
+
+    try {
+      const activeResumeRequest = this.activeResumeRequest;
+      const activeResponse = this.activeResponse;
+
+      for (const controller of this.pendingMessagePreparations) {
+        controller.abort();
+      }
+      activeResumeRequest?.abortController.abort();
+      activeResponse?.abortController.abort();
+
+      await Promise.all([
+        activeResumeRequest?.completionPromise,
+        activeResponse?.completionPromise,
+      ]);
+
+      // Stream cancellation can complete while a processing job is still
+      // blocked in onToolCall. Drain that job and any message update it queued.
+      await this.jobExecutor.waitForIdle();
+    } finally {
+      this.activeStopCount--;
     }
-    this.activeResumeRequest?.abortController.abort();
-    this.activeResponse?.abortController.abort();
   };
 
   private async shouldSendAutomatically(): Promise<boolean> {
@@ -721,6 +757,30 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
 
     return result as boolean;
+  }
+
+  private async runAutomaticRequest(
+    request: () => Promise<void>,
+    shouldSend?: boolean,
+  ): Promise<void> {
+    const stopGeneration = this.stopGeneration;
+    const startedWhileStopping = this.activeStopCount > 0;
+
+    if (!(shouldSend ?? (await this.shouldSendAutomatically()))) {
+      return;
+    }
+
+    // A stop invalidates automatic requests that were pending when it started,
+    // including requests queued by callback-driven tool updates.
+    if (
+      startedWhileStopping ||
+      stopGeneration !== this.stopGeneration ||
+      this.activeStopCount > 0
+    ) {
+      return;
+    }
+
+    await request();
   }
 
   private async makeRequestForToolApproval({
@@ -753,23 +813,38 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
   }
 
-  private async makeRequest({
+  private async makeRequest(options: MakeRequestOptions) {
+    const completion = createResolvablePromise<void>();
+
+    try {
+      await this.makeRequestImpl({
+        ...options,
+        completionPromise: completion.promise,
+      });
+    } finally {
+      completion.resolve();
+    }
+  }
+
+  private async makeRequestImpl({
     trigger,
     metadata,
     headers,
     body,
     messageId,
-  }: {
-    trigger: 'submit-message' | 'resume-stream' | 'regenerate-message';
-    messageId?: string;
-  } & ChatRequestOptions) {
+    completionPromise,
+  }: MakeRequestOptions & {
+    completionPromise: Promise<void>;
+  }) {
     if (trigger !== 'resume-stream') {
       this.resumableStreamState = undefined;
     }
 
     const abortController = new AbortController();
     const activeResumeRequest =
-      trigger === 'resume-stream' ? { abortController } : undefined;
+      trigger === 'resume-stream'
+        ? { abortController, completionPromise }
+        : undefined;
 
     if (activeResumeRequest) {
       this.activeResumeRequest?.abortController.abort();
@@ -894,6 +969,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
                 messageId: this.generateId(),
               }),
         abortController,
+        completionPromise,
       } as ActiveResponse<UI_MESSAGE>;
 
       activeResponse = response;
@@ -1060,14 +1136,16 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
 
     // automatically send the message if the sendAutomaticallyWhen function returns true
-    if (!isError && (await this.shouldSendAutomatically())) {
-      await this.makeRequest({
-        trigger: 'submit-message',
-        messageId: this.lastMessage?.id,
-        metadata,
-        headers,
-        body,
-      });
+    if (!isAbort && !isError) {
+      await this.runAutomaticRequest(() =>
+        this.makeRequest({
+          trigger: 'submit-message',
+          messageId: this.lastMessage?.id,
+          metadata,
+          headers,
+          body,
+        }),
+      );
     }
   }
 }
