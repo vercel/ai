@@ -56,6 +56,7 @@ export class GatewayEmbeddingModel implements EmbeddingModelV4 {
 
   async doEmbed({
     values,
+    dimensions,
     headers,
     abortSignal,
     providerOptions,
@@ -80,6 +81,7 @@ export class GatewayEmbeddingModel implements EmbeddingModelV4 {
         ),
         body: {
           values,
+          dimensions,
           ...(providerOptions ? { providerOptions } : {}),
         },
         successfulResponseHandler: createJsonResponseHandler(
