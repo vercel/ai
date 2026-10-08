@@ -1,5 +1,6 @@
 import {
   createAgentSession,
+  createReadToolDefinition,
   DefaultResourceLoader,
   defineTool,
   ModelRegistry,
@@ -55,8 +56,8 @@ import {
   resolvePiSandboxPathOrParent,
   type PiRemoteOps,
 } from './pi-remote-ops';
+import { createPiSandboxReadOperations } from './pi-read-operations';
 import {
-  formatPiReadToolOutput,
   truncatePiToolOutputHead,
   truncatePiToolOutputTail,
 } from './pi-tool-result';
@@ -1854,12 +1855,12 @@ function buildBuiltinToolDefinition(input: {
   }) => Promise<{ approved: boolean; reason?: string }>;
 }): ToolDefinition {
   switch (input.native) {
-    case 'read':
+    case 'read': {
+      const sandboxWorkDir = input.remoteOps.paths.sandboxWorkDir;
       return defineTool({
         name: 'read',
         label: 'read',
-        description:
-          'Read file contents. Output is limited to 2,000 lines or 50KB. Use offset and limit to read large files in pages.',
+        description: createReadToolDefinition(sandboxWorkDir).description,
         parameters: Type.Object({
           file_path: Type.String(),
           offset: Type.Optional(
@@ -1875,24 +1876,29 @@ function buildBuiltinToolDefinition(input: {
             }),
           ),
         }),
-        async execute(toolCallId, params) {
+        async execute(toolCallId, params, signal, onUpdate, ctx) {
           const denied = await maybeDenyPiBuiltinTool({
             toolCallId,
             nativeName: 'read',
             requestApproval: input.requestApproval,
           });
           if (denied) return denied;
-          const buf = await input.remoteOps.readBuffer(params.file_path);
-          return asPiToolResult(
-            formatPiReadToolOutput({
-              text: buf.toString('utf8'),
-              filePath: params.file_path,
-              offset: params.offset,
-              limit: params.limit,
-            }),
+          // Pi expands `~` against the host home, so map the path first.
+          const sandboxPath = input.remoteOps.paths.toReadableSandboxPath(
+            params.file_path,
+          );
+          return createReadToolDefinition(sandboxWorkDir, {
+            operations: createPiSandboxReadOperations(input.remoteOps),
+          }).execute(
+            toolCallId,
+            { path: sandboxPath, offset: params.offset, limit: params.limit },
+            signal,
+            onUpdate,
+            ctx,
           );
         },
       });
+    }
     case 'write':
       return defineTool({
         name: 'write',
