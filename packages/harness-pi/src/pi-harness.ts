@@ -93,6 +93,14 @@ export type PiHarnessSettings = {
    * are resolved when the session starts. The `bash` tool is not restricted.
    */
   readonly fileToolPathPolicy?: PiFileToolPathPolicy;
+  /**
+   * How long suspending a turn at a slice boundary waits, in milliseconds, for
+   * running tools and an in-flight assistant message to finish before the turn
+   * is aborted. New tool calls are blocked while it waits, so the turn is cut
+   * between model requests and the work in flight is kept for the next slice
+   * instead of recomputed. When omitted, the turn is aborted at once.
+   */
+  readonly suspendToolSettleMs?: number;
 };
 
 const PI_BUILTIN_TOOLS = {
@@ -217,6 +225,9 @@ export function createPi(
             : {}),
           ...(settings.fileToolPathPolicy
             ? { fileToolPathPolicy: settings.fileToolPathPolicy }
+            : {}),
+          ...(settings.suspendToolSettleMs != null
+            ? { suspendToolSettleMs: settings.suspendToolSettleMs }
             : {}),
           ...(startOpts.headers ? { headers: startOpts.headers } : {}),
         },

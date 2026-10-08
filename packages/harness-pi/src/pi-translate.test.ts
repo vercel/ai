@@ -430,6 +430,45 @@ describe('translatePiEvent', () => {
     expect(closing.map(part => part.type)).toEqual(['text-end']);
   });
 
+  it('takes the turn error from the last assistant message so a retried request recovers', () => {
+    const state = createPiTranslatorState();
+    const failed = {
+      role: 'assistant',
+      content: [{ type: 'text', text: 'Coffee beans grow' }],
+      stopReason: 'error',
+      errorMessage: '529 overloaded_error',
+    };
+    emit(
+      [
+        { type: 'turn_start' } as PiSessionEvent,
+        { type: 'message_start', message: failed } as PiSessionEvent,
+        { type: 'message_end', message: failed } as PiSessionEvent,
+        { type: 'turn_end', message: failed } as PiSessionEvent,
+        { type: 'agent_end', messages: [], willRetry: true } as PiSessionEvent,
+      ],
+      state,
+    );
+    expect(state.turnError).toBe('529 overloaded_error');
+
+    const answer = {
+      role: 'assistant',
+      content: [{ type: 'text', text: 'Coffee beans come from cherries.' }],
+      stopReason: 'stop',
+    };
+    const parts = emit(
+      [
+        { type: 'auto_retry_start', attempt: 1 } as PiSessionEvent,
+        { type: 'turn_start' } as PiSessionEvent,
+        { type: 'message_start', message: answer } as PiSessionEvent,
+        { type: 'message_end', message: answer } as PiSessionEvent,
+        { type: 'turn_end', message: answer } as PiSessionEvent,
+      ],
+      state,
+    );
+    expect(state.turnError).toBeUndefined();
+    expect(parts.map(part => part.type)).toEqual(['finish-step']);
+  });
+
   it('waits for requested tool executions before emitting finish-step', () => {
     const state = createPiTranslatorState({ builtinToolNames: ['bash'] });
     emit(

@@ -646,6 +646,268 @@ describe('createPiSession', () => {
     }
   });
 
+  it('finishes a turn that Pi recovered by retrying a failed request', async () => {
+    const usage = { input: 2, output: 7, cacheRead: 0, cacheWrite: 0 };
+    const failed = {
+      role: 'assistant',
+      content: [{ type: 'text', text: 'Coffee beans grow' }],
+      stopReason: 'error',
+      errorMessage:
+        '529 {"type":"error","error":{"type":"overloaded_error","message":"Overloaded"}}',
+      usage,
+    };
+    const answer = {
+      role: 'assistant',
+      content: [{ type: 'text', text: 'Coffee beans come from cherries.' }],
+      stopReason: 'stop',
+      usage,
+    };
+    piMock.session = createFakePiSession({
+      promptEvents: [
+        { type: 'agent_start' },
+        { type: 'turn_start' },
+        { type: 'message_start', message: failed },
+        { type: 'message_end', message: failed },
+        { type: 'turn_end', message: failed },
+        { type: 'agent_end', messages: [], willRetry: true },
+        {
+          type: 'auto_retry_start',
+          attempt: 1,
+          maxAttempts: 3,
+          delayMs: 2000,
+          errorMessage: failed.errorMessage,
+        },
+        { type: 'agent_start' },
+        { type: 'turn_start' },
+        { type: 'message_start', message: answer },
+        { type: 'message_end', message: answer },
+        { type: 'auto_retry_end', success: true, attempt: 1 },
+        { type: 'turn_end', message: answer },
+        { type: 'agent_end', messages: [], willRetry: false },
+      ],
+    }).session;
+    const session = await createPiSession({
+      sessionId: 'session-retried-turn',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+      settings: {},
+      clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+      isResume: false,
+    });
+
+    try {
+      const emit = vi.fn();
+      const control = await session.doPromptTurn({
+        skills: [],
+        prompt: 'Where do coffee beans come from?',
+        tools: [],
+        emit,
+      });
+      await control.done;
+
+      const types = emit.mock.calls.map(([part]) => part.type);
+      expect(types).not.toContain('error');
+      expect(types.at(-1)).toBe('finish');
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('does not report a terminal error from a turn cut by its own suspension', async () => {
+    const started = createDeferred<void>();
+    const aborted = createDeferred<void>();
+    const failed = {
+      role: 'assistant',
+      content: [],
+      stopReason: 'error',
+      errorMessage:
+        '400 {"type":"error","error":{"type":"invalid_request_error","message":"bad request"}}',
+      usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    };
+    const fake = createFakePiSession({
+      promptImplementation: async (_text, emitEvent) => {
+        emitEvent({ type: 'turn_start' });
+        started.resolve();
+        await aborted.promise;
+        emitEvent({ type: 'message_start', message: failed });
+        emitEvent({ type: 'message_end', message: failed });
+        emitEvent({ type: 'turn_end', message: failed });
+      },
+    });
+    fake.abort.mockImplementation(async () => aborted.resolve());
+    piMock.session = fake.session;
+    const session = await createPiSession({
+      sessionId: 'session-suspend-terminal-error',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+      settings: {},
+      clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+      isResume: false,
+    });
+    const emit = vi.fn();
+    const control = await session.doPromptTurn({
+      skills: [],
+      prompt: 'go',
+      tools: [],
+      emit,
+    });
+    await started.promise;
+
+    await session.doSuspendTurn();
+    await control.done;
+
+    expect(emit.mock.calls.map(([part]) => part.type)).not.toContain('error');
+  });
+
+  it('does not report a turn that throws while it is being suspended', async () => {
+    const started = createDeferred<void>();
+    const aborted = createDeferred<void>();
+    const fake = createFakePiSession({
+      promptImplementation: async (_text, emitEvent) => {
+        emitEvent({ type: 'turn_start' });
+        started.resolve();
+        await aborted.promise;
+        throw new Error('socket hang up');
+      },
+    });
+    fake.abort.mockImplementation(async () => aborted.resolve());
+    piMock.session = fake.session;
+    const session = await createPiSession({
+      sessionId: 'session-suspend-thrown-error',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+      settings: {},
+      clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+      isResume: false,
+    });
+    const emit = vi.fn();
+    const control = await session.doPromptTurn({
+      skills: [],
+      prompt: 'go',
+      tools: [],
+      emit,
+    });
+    await started.promise;
+
+    await session.doSuspendTurn();
+    await control.done;
+
+    expect(emit.mock.calls.map(([part]) => part.type)).not.toContain('error');
+  });
+
+  it('lets a running tool settle before aborting a suspended turn', async () => {
+    const toolStarted = createDeferred<void>();
+    const toolDone = createDeferred<void>();
+    const aborted = createDeferred<void>();
+    const toolEvent = { toolCallId: 'tool-1', toolName: 'mcp__video__render' };
+    const cut = {
+      role: 'assistant',
+      content: [],
+      stopReason: 'aborted',
+      errorMessage: 'Request was aborted',
+      usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    };
+    const fake = createFakePiSession({
+      promptImplementation: async (_text, emitEvent) => {
+        emitEvent({ type: 'turn_start' });
+        emitEvent({ type: 'tool_execution_start', ...toolEvent, args: {} });
+        toolStarted.resolve();
+        await toolDone.promise;
+        emitEvent({
+          type: 'tool_execution_end',
+          ...toolEvent,
+          result: { content: [{ type: 'text', text: 'rendered' }] },
+          isError: false,
+        });
+        await aborted.promise;
+        emitEvent({ type: 'message_start', message: cut });
+        emitEvent({ type: 'message_end', message: cut });
+        emitEvent({ type: 'turn_end', message: cut });
+      },
+    });
+    fake.abort.mockImplementation(async () => aborted.resolve());
+    piMock.session = fake.session;
+    const session = await createPiSession({
+      sessionId: 'session-suspend-settles-tool',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+      settings: { suspendToolSettleMs: 5000 },
+      clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+      isResume: false,
+    });
+    const emit = vi.fn();
+    const control = await session.doPromptTurn({
+      skills: [],
+      prompt: 'render the video',
+      tools: [],
+      emit,
+    });
+    await toolStarted.promise;
+
+    const suspension = session.doSuspendTurn();
+    await new Promise(resolve => setTimeout(resolve, 20));
+    expect(fake.abort).not.toHaveBeenCalled();
+
+    const [blockToolCall] = piMock.extensionHandlers.get('tool_call') ?? [];
+    expect(
+      blockToolCall?.({
+        type: 'tool_call',
+        toolName: 'bash',
+        toolCallId: 'tool-2',
+        input: { command: 'ls' },
+      }),
+    ).toEqual({ block: true, reason: expect.stringContaining('pausing') });
+
+    toolDone.resolve();
+    await suspension;
+    await control.done;
+
+    expect(fake.abort).toHaveBeenCalledOnce();
+    const types = emit.mock.calls.map(([part]) => part.type);
+    expect(types).toContain('tool-result');
+    expect(types).not.toContain('error');
+  });
+
+  it('aborts a suspended turn once suspendToolSettleMs passes with a tool still running', async () => {
+    const toolStarted = createDeferred<void>();
+    const aborted = createDeferred<void>();
+    const fake = createFakePiSession({
+      promptImplementation: async (_text, emitEvent) => {
+        emitEvent({ type: 'turn_start' });
+        emitEvent({
+          type: 'tool_execution_start',
+          toolCallId: 'tool-1',
+          toolName: 'bash',
+          args: { command: 'sleep 60' },
+        });
+        toolStarted.resolve();
+        await aborted.promise;
+      },
+    });
+    fake.abort.mockImplementation(async () => aborted.resolve());
+    piMock.session = fake.session;
+    const session = await createPiSession({
+      sessionId: 'session-suspend-settle-timeout',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+      settings: { suspendToolSettleMs: 20 },
+      clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+      isResume: false,
+    });
+    const control = await session.doPromptTurn({
+      skills: [],
+      prompt: 'wait',
+      tools: [],
+      emit: vi.fn(),
+    });
+    await toolStarted.promise;
+
+    await session.doSuspendTurn();
+    await control.done;
+
+    expect(fake.abort).toHaveBeenCalledOnce();
+  });
+
   it('materializes skills under sandbox HOME on prompt turn', async () => {
     piMock.session = {
       abort: vi.fn(async () => {}),
