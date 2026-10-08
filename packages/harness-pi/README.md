@@ -92,4 +92,20 @@ const harness = createPi({
 });
 ```
 
+Each factory also receives the harness session it runs in, as a second argument. It carries the restricted `sandboxSession`, the `sessionWorkDir` and an `instructions()` getter for the current turn's instructions. Instructions arrive with each turn, so read them while a turn runs rather than when the factory runs. A tool that starts a child Pi session against the same sandbox, for example, can use all three:
+
+```ts
+import { createPi } from '@ai-sdk/harness-pi';
+
+const harness = createPi({
+  extensionFactories: [
+    (pi, session) => {
+      pi.on('agent_start', () => {
+        console.log(session.sessionWorkDir, session.instructions());
+      });
+    },
+  ],
+});
+```
+
 Routine resource refreshes between turns do not reinitialize extension factories. If the underlying Pi session is rebuilt, factories initialize for the new Pi runtime. Extension factories execute in the host Node.js process, so only pass factories you trust. This option does not enable filesystem extension discovery: user, project, personal, and settings-based Pi extensions remain disabled. Themes and prompt templates also remain disabled.

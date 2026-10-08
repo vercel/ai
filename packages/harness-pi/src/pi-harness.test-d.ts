@@ -1,7 +1,9 @@
+import type { ExtensionFactory } from '@earendil-works/pi-coding-agent';
 import { expectTypeOf, test } from 'vitest';
 import {
   createPi,
   type PiCredentialStore,
+  type PiHarnessExtensionSession,
   type PiHarnessSettings,
 } from './index';
 
@@ -17,6 +19,24 @@ test('PiHarnessSettings accepts readonly extension factory arrays', () => {
     PiHarnessSettings['extensionFactories']
   >();
   createPi(settings);
+});
+
+test('createPi accepts plain Pi extension factories and session-aware ones', () => {
+  const piFactory: ExtensionFactory = pi => {
+    pi.on('agent_start', () => {});
+  };
+  createPi({
+    extensionFactories: [
+      piFactory,
+      (pi, session) => {
+        expectTypeOf(session).toEqualTypeOf<PiHarnessExtensionSession>();
+        expectTypeOf(session.instructions()).toEqualTypeOf<
+          string | undefined
+        >();
+        pi.on('agent_start', () => {});
+      },
+    ],
+  });
 });
 
 test('createPi accepts the max thinking level', () => {
