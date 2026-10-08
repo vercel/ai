@@ -4,10 +4,7 @@ import {
   type HarnessV1BuiltinTool,
 } from '@ai-sdk/harness';
 import { tool } from '@ai-sdk/provider-utils';
-import type {
-  ExtensionFactory,
-  ProviderConfig,
-} from '@earendil-works/pi-coding-agent';
+import type { ProviderConfig } from '@earendil-works/pi-coding-agent';
 import { z } from 'zod/v4';
 import type { PiAuthenticationMode, PiCredentialStore } from './pi-auth';
 import { piResumeStateSchema } from './pi-resume-state';
@@ -15,6 +12,7 @@ import {
   createPiSession,
   type PiCacheRetention,
   type PiFileToolPathPolicy,
+  type PiHarnessExtensionFactory,
   type PiMcpSettings,
   type PiThinkingLevel,
 } from './pi-session';
@@ -82,9 +80,14 @@ export type PiHarnessSettings = {
   /**
    * Trusted inline Pi extensions loaded for each harness session.
    *
+   * Each factory receives the Pi extension API and the harness session it
+   * runs in: the restricted sandbox session, the session work directory and
+   * a getter for the current turn's instructions. Plain Pi `ExtensionFactory`
+   * functions that take only the API keep working.
+   *
    * Filesystem-discovered user and project extensions remain disabled.
    */
-  readonly extensionFactories?: ReadonlyArray<ExtensionFactory>;
+  readonly extensionFactories?: ReadonlyArray<PiHarnessExtensionFactory>;
   /**
    * Absolute sandbox paths that widen or narrow what Pi's native file tools
    * can reach. `readableRoots` lets `read`, `ls`, `find`, and `grep` reach

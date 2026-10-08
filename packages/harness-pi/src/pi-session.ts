@@ -8,6 +8,7 @@ import {
   SettingsManager,
   type AgentSession,
   type AgentToolResult,
+  type ExtensionAPI,
   type ExtensionFactory,
   type ProviderConfig,
   type Skill,
@@ -272,6 +273,34 @@ export interface PiFileToolPathPolicy {
   readonly deniedRoots?: ReadonlyArray<string>;
 }
 
+/**
+ * The harness session a Pi extension factory runs in.
+ */
+export interface PiHarnessExtensionSession {
+  /**
+   * The session's sandbox, restricted to the operations harness tools may use.
+   */
+  readonly sandboxSession: SandboxSession;
+  /**
+   * The sandbox directory the session works in.
+   */
+  readonly sessionWorkDir: string;
+  /**
+   * The instructions of the session's current turn. Instructions arrive with
+   * each turn, so read them when a turn runs, not when the factory runs.
+   */
+  readonly instructions: () => string | undefined;
+}
+
+/**
+ * A Pi extension factory that also receives the harness session it runs in.
+ * Plain Pi `ExtensionFactory` functions are accepted unchanged.
+ */
+export type PiHarnessExtensionFactory = (
+  pi: ExtensionAPI,
+  session: PiHarnessExtensionSession,
+) => ReturnType<ExtensionFactory>;
+
 export interface PiSessionSettings {
   readonly auth?: PiAuthenticationMode;
   readonly credentials?: PiCredentialStore;
@@ -282,7 +311,7 @@ export interface PiSessionSettings {
   readonly mcpServers?: Record<string, unknown>;
   readonly mcpSettings?: PiMcpSettings;
   readonly providers?: Readonly<Record<string, ProviderConfig>>;
-  readonly extensionFactories?: ReadonlyArray<ExtensionFactory>;
+  readonly extensionFactories?: ReadonlyArray<PiHarnessExtensionFactory>;
   readonly fileToolPathPolicy?: PiFileToolPathPolicy;
   readonly suspendToolSettleMs?: number;
 }
@@ -631,8 +660,17 @@ export async function createPiSession(
     suspendToolSettleMs == null
       ? undefined
       : createPiTurnSettle({ timeoutMs: suspendToolSettleMs });
+  const extensionSession: PiHarnessExtensionSession = {
+    sandboxSession: toolSafeSandboxSession,
+    sessionWorkDir,
+    instructions: () => sessionInstructions,
+  };
   const extensionFactories: ExtensionFactory[] = [
-    ...(input.settings.extensionFactories ?? []),
+    ...(input.settings.extensionFactories ?? []).map(
+      (factory): ExtensionFactory =>
+        pi =>
+          factory(pi, extensionSession),
+    ),
     ...(turnSettle ? [turnSettle.extension] : []),
   ];
   if (hasMcpServers) {

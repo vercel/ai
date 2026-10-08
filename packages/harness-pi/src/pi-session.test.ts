@@ -32,7 +32,11 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { z } from 'zod/v4';
 import { createPi } from './pi-harness';
-import { createPiSession } from './pi-session';
+import {
+  createPiSession,
+  type PiHarnessExtensionFactory,
+  type PiHarnessExtensionSession,
+} from './pi-session';
 
 type FakePiTool = Pick<ToolDefinition, 'name' | 'execute'>;
 type FakeExtensionsResult = {
@@ -275,6 +279,60 @@ describe('createPiSession', () => {
     }
   });
 
+  it('gives inline extensions the harness session and the current turn instructions', async () => {
+    const sandboxSession = createSandboxSession();
+    const sessions: PiHarnessExtensionSession[] = [];
+    const instructionsSeen: Array<string | undefined> = [];
+    const factory: PiHarnessExtensionFactory = (piApi, extensionSession) => {
+      sessions.push(extensionSession);
+      piApi.on('agent_start', () => {
+        instructionsSeen.push(extensionSession.instructions());
+      });
+    };
+    piMock.session = Object.assign(
+      createFakePiSession({
+        promptImplementation: async () => {
+          for (const handler of piMock.extensionHandlers.get('agent_start') ??
+            []) {
+            await handler();
+          }
+        },
+      }).session,
+      { getActiveToolNames: () => [], setActiveToolsByName: vi.fn() },
+    );
+
+    const session = await createPi({ extensionFactories: [factory] }).doStart({
+      sessionId: 'session-extension-harness-session',
+      sandboxSession,
+      sessionWorkDir: '/sandbox/work',
+    });
+
+    try {
+      for (const instructions of ['Answer in French.', 'Answer in German.']) {
+        const control = await session.doPromptTurn({
+          skills: [],
+          prompt: 'Hello.',
+          instructions,
+          tools: [],
+          emit: vi.fn(),
+        });
+        await control.done;
+      }
+
+      expect(sessions).toHaveLength(1);
+      expect(sessions[0]).toMatchObject({
+        sandboxSession: sandboxSession.restricted(),
+        sessionWorkDir: '/sandbox/work',
+      });
+      expect(instructionsSeen).toEqual([
+        'Answer in French.',
+        'Answer in German.',
+      ]);
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
   it('lets inline extensions read a host-backed session workspace', async () => {
     const sessionWorkDir = mkdtempSync(
       path.join(tmpdir(), 'pi-host-workspace-'),
@@ -501,7 +559,7 @@ describe('createPiSession', () => {
     try {
       const extensionFactoryInput = piMock.extensionFactoryInputs.at(-1);
       expect(callOrder).toEqual(['first', 'second']);
-      expect(extensionFactoryInput?.snapshot).toEqual(extensionFactories);
+      expect(extensionFactoryInput?.snapshot).toHaveLength(2);
       expect(extensionFactoryInput?.reference).not.toBe(extensionFactories);
     } finally {
       await session.doDestroy();
@@ -1620,7 +1678,7 @@ describe('createPiSession', () => {
 
     try {
       expect(piMock.extensionFactoryInputs.at(-1)?.snapshot).toEqual([
-        factory,
+        expect.any(Function),
         mcpAdapterMock.mcpExtensionFactory,
       ]);
       expect(factory).toHaveBeenCalledOnce();
