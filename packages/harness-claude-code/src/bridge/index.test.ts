@@ -235,6 +235,59 @@ describe('Claude Code bridge configuration', () => {
     vi.resetModules();
   });
 
+  test.each(['hook-first', 'boundary-first'] as const)(
+    'issue 22292 captures a compaction-only turn (%s)',
+    async order => {
+      state.start = { ...state.start, prompt: '/compact' };
+      state.requestToolResult = vi.fn(async () => ({ output: {} }));
+      state.createQuery = args =>
+        (async function* () {
+          const hooks = args.options.hooks as {
+            PostCompact: {
+              hooks: ((input: unknown) => Promise<unknown>)[];
+            }[];
+          };
+          const postCompact = () =>
+            hooks.PostCompact[0]!.hooks[0]!({
+              compact_summary: 'Compacted context',
+            });
+          if (order === 'hook-first') await postCompact();
+          yield {
+            type: 'system',
+            subtype: 'compact_boundary',
+            compact_metadata: { trigger: 'manual', pre_tokens: 1234 },
+          };
+          if (order === 'boundary-first') await postCompact();
+          yield {
+            type: 'result',
+            subtype: 'success',
+            result: '',
+            usage: { input_tokens: 30, output_tokens: 5 },
+          };
+        })();
+
+      await import('./index');
+
+      expect(
+        state.emitted.filter(event => event.type === 'compaction'),
+      ).toEqual([
+        {
+          type: 'compaction',
+          trigger: 'manual',
+          summary: 'Compacted context',
+          tokensBefore: 1234,
+        },
+      ]);
+      expect(state.requestToolResult).not.toHaveBeenCalled();
+      console.log(
+        `ISSUE_22292_EVENTS:${JSON.stringify({
+          order,
+          events: state.emitted,
+        })}`,
+      );
+    },
+  );
+
   test('merges the configured environment', async () => {
     process.env.CLAUDE_CODE_BRIDGE_INHERITED_TEST = 'inherited';
     process.env.CLAUDE_CODE_BRIDGE_OVERRIDE_TEST = 'inherited';
