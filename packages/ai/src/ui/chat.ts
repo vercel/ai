@@ -880,19 +880,20 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     let activeResponse: ActiveResponse<UI_MESSAGE> | undefined;
 
     try {
+      const reusesResumableStreamState =
+        trigger === 'resume-stream' && this.resumableStreamState != null;
       const response = {
-        state:
-          trigger === 'resume-stream' && this.resumableStreamState != null
-            ? this.resumableStreamState
-            : createStreamingUIMessageState({
-                lastMessage:
-                  trigger === 'resume-stream'
-                    ? resumableResponseMessage
-                    : trigger === 'regenerate-message'
-                      ? undefined
-                      : this.state.snapshot(responseMessage),
-                messageId: this.generateId(),
-              }),
+        state: reusesResumableStreamState
+          ? this.resumableStreamState
+          : createStreamingUIMessageState({
+              lastMessage:
+                trigger === 'resume-stream'
+                  ? resumableResponseMessage
+                  : trigger === 'regenerate-message'
+                    ? undefined
+                    : this.state.snapshot(responseMessage),
+              messageId: this.generateId(),
+            }),
         abortController,
       } as ActiveResponse<UI_MESSAGE>;
 
@@ -965,6 +966,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         stream: processUIMessageStream({
           stream,
           resetStateOnMessageIdChange: trigger === 'resume-stream',
+          resetStateOnFirstMessageStart: reusesResumableStreamState,
           onToolCall: this.onToolCall,
           onData: this.onData,
           messageMetadataSchema: this.messageMetadataSchema,

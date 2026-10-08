@@ -917,6 +917,79 @@ describe('Chat', () => {
     },
   );
 
+  it('should replace retained parts when a resumed stream replays the response', async () => {
+    const delivered: UIMessageChunk[] = [
+      { type: 'start', messageId: 'assistant-1' },
+      { type: 'start-step' },
+      { type: 'text-start', id: 'text-1' },
+      { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+    ];
+
+    const chat = new TestChat({
+      id: '123',
+      generateId: mockId(),
+      transport: {
+        sendMessages: async () => {
+          let index = 0;
+
+          return new ReadableStream<UIMessageChunk>({
+            pull(controller) {
+              if (index < delivered.length) {
+                controller.enqueue(delivered[index++]);
+              } else {
+                controller.error(new TypeError('network connection lost'));
+              }
+            },
+          });
+        },
+        reconnectToStream: async () =>
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              for (const chunk of delivered) {
+                controller.enqueue(chunk);
+              }
+              controller.enqueue({
+                type: 'text-delta',
+                id: 'text-1',
+                delta: ' world',
+              });
+              controller.enqueue({ type: 'text-end', id: 'text-1' });
+              controller.enqueue({ type: 'finish-step' });
+              controller.enqueue({ type: 'finish', finishReason: 'stop' });
+              controller.close();
+            },
+          }),
+      },
+    });
+
+    await chat.sendMessage({ text: 'Continue the response.' });
+
+    expect(chat.status).toBe('error');
+    expect(chat.messages.at(-1)?.parts).toEqual([
+      { type: 'step-start' },
+      {
+        type: 'text',
+        text: 'Hello',
+        state: 'streaming',
+        providerMetadata: undefined,
+      },
+    ]);
+
+    chat.clearError();
+    await chat.resumeStream();
+
+    expect(chat.status).toBe('ready');
+    expect(chat.messages.at(-1)?.parts).toEqual([
+      { type: 'step-start' },
+      {
+        type: 'text',
+        text: 'Hello world',
+        state: 'done',
+        providerMetadata: undefined,
+      },
+    ]);
+  });
+
   describe('send handle a stop and an aborted response stream', () => {
     let chat: TestChat;
     let letOnFinishArgs: any[] = [];
