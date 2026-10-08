@@ -145,32 +145,69 @@ try {
 Use the same authorized account for discovery and subscription management.
 Never derive account identity, destination or authorization from model arguments.
 
-### Creating Bound Operations
+### Using an Adapter Helper
 
-Managed configuration always uses an `Experimental_MCPEventsAdapter`.
-Its synchronous `createAdapter({ url })` method receives the transport URL so
-you do not need to configure the endpoint twice:
+A backend SDK or application helper can return `Experimental_MCPEventsAdapter`
+directly. Pass the helper's result as `adapter`; you do not need another object
+wrapper or an inline `createAdapter` callback:
 
 ```ts
 import { createMCPClient } from '@ai-sdk/mcp';
-import { createBackendEventOperations } from './my-events-backend';
+import { createBackendEventsAdapter } from './my-events-adapter';
 
 const client = await createMCPClient({
   transport: { type: 'http', url: 'https://service.example/mcp' },
   experimental_events: {
-    adapter: {
-      createAdapter({ url }) {
-        return createBackendEventOperations({ mcpUrl: url });
-      },
-    },
+    adapter: createBackendEventsAdapter({
+      accountId: authenticatedUser.id,
+      destination: { path: '/hooks' },
+    }),
   },
 });
 ```
 
-`createBackendEventOperations` is application or backend SDK code returning
-`Experimental_ManagedMCPEventOperations` bound to the authorized account and destination.
-A backend SDK can return this adapter object from its own helper, so callers
-can pass the helper's result directly as `adapter`.
+The helper holds the authorized account and delivery configuration. AI SDK supplies
+the transport URL to its `createAdapter` method internally, so the application
+configures that URL only once. When a backend SDK exports this helper, import it
+from that SDK instead of an application module. Use the same authorized account
+for the MCP transport and the backend's subscription operations.
+
+### Implementing an Adapter Helper
+
+Backend integration authors implement `createAdapter` inside their helper:
+
+```ts filename="my-events-adapter.ts"
+import type { Experimental_MCPEventsAdapter } from '@ai-sdk/mcp';
+import { createBackendEventOperations } from './my-events-backend';
+
+type BackendEventsConfig = {
+  accountId: string;
+  destination: { path: string };
+  mcpUrl?: string;
+};
+
+export function createBackendEventsAdapter(
+  config: BackendEventsConfig,
+): Experimental_MCPEventsAdapter {
+  return {
+    createAdapter({ url }) {
+      return createBackendEventOperations({
+        ...config,
+        mcpUrl: config.mcpUrl ?? url,
+      });
+    },
+  };
+}
+```
+
+These helpers and `BackendEventsConfig` are illustrative application or backend
+SDK code, not AI SDK exports. `createBackendEventOperations` returns
+`Experimental_ManagedMCPEventOperations` bound to the authorized account, endpoint
+and destination. The helper above lets an explicit `mcpUrl` override the transport
+URL for backend operations; it does not change the MCP client's transport or
+catalog discovery. The backend still authorizes the selected endpoint.
+
+The AI SDK adapter contract is:
 
 ```ts
 interface MCPEventsAdapter {
