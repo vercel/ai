@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22277,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22277-resume-provider-tool.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22277-resume-provider-tool.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22277: resumed provider-executed tool did not reach output-available with ready status"
+  }
+}
