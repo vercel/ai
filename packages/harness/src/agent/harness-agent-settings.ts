@@ -83,6 +83,28 @@ export type HarnessAgentSandboxConfig = {
     readonly sessionWorkDir: string;
     readonly abortSignal?: AbortSignal;
   }) => Promise<void>;
+
+  /**
+   * When the session's sandbox setup runs. Setup runs `onBootstrap` when its
+   * marker is missing, creates the session work directory, and calls
+   * `onSession`.
+   *
+   * - `'eager'` (default): `createSession()` runs setup before the harness
+   *   adapter starts.
+   * - `'lazy'`: setup runs once, on the first file, exec, or spawn operation
+   *   that the adapter or a host tool performs on the session's sandbox. A
+   *   session whose turns never touch the sandbox makes no sandbox calls.
+   *   Pair it with `createLazyNetworkSandboxSession` so that the sandbox
+   *   itself is not created either. A failed setup rejects the operation that
+   *   triggered it and is retried on the next operation.
+   *
+   * `createSession()` rejects `'lazy'` for a harness adapter that declares a
+   * bootstrap recipe (`getBootstrap`, such as Claude Code or Codex), because
+   * its runtime needs the bootstrapped sandbox at start. A basic
+   * `SandboxSession` without `defaultWorkingDirectory` still answers one
+   * `pwd` in `createSession()`.
+   */
+  readonly setup?: 'eager' | 'lazy';
 };
 
 type HarnessTools<TOOLS extends ToolSet> = ActiveTools<NoInfer<TOOLS>>;
