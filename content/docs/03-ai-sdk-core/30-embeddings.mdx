@@ -85,6 +85,13 @@ console.log(usage); // { tokens: 10 }
 
 ## Settings
 
+### Output Dimensions
+
+Both `embed` and `embedMany` accept an optional `dimensions` parameter to request
+an output vector size. It must be a positive integer. When omitted, the model's
+existing behavior is unchanged. For `embedMany`, the same value is forwarded to
+every batch.
+
 ### Provider Options
 
 Embedding model settings can be configured using `providerOptions` for provider-specific parameters:
