@@ -591,6 +591,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
       // automatically send the message if the sendAutomaticallyWhen function returns true
       if (
+        messageIndex !== -1 &&
         this.status !== 'streaming' &&
         this.status !== 'submitted' &&
         this.sendAutomaticallyWhen
