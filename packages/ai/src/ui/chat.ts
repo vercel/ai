@@ -582,17 +582,8 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         this.status !== 'submitted' &&
         this.sendAutomaticallyWhen
       ) {
-        this.shouldSendAutomatically().then(shouldSend => {
-          if (shouldSend) {
-            // no await to avoid deadlocking
-            const messageId =
-              messageIndex === -1
-                ? this.lastMessage?.id
-                : messages[messageIndex].id;
+        const shouldSend = await this.shouldSendAutomatically();
 
-<<<<<<< HEAD
-            this.makeRequestForToolApproval({
-=======
         if (shouldSend) {
           // no await to avoid deadlocking
           void this.runAutomaticRequest(() => {
@@ -602,18 +593,12 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
                 : messages[messageIndex].id;
 
             return this.makeRequestForToolApproval({
->>>>>>> ff18b733f9 (fix: chat.stop() resolving before active stream processing and callback-driven updates terminate (#21798))
               messageId,
               messageIndex,
               ...options,
             });
-<<<<<<< HEAD
-          }
-        });
-=======
           }, shouldSend);
         }
->>>>>>> ff18b733f9 (fix: chat.stop() resolving before active stream processing and callback-driven updates terminate (#21798))
       }
     });
 
@@ -653,18 +638,6 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         this.status !== 'submitted' &&
         this.sendAutomaticallyWhen
       ) {
-<<<<<<< HEAD
-        this.shouldSendAutomatically().then(shouldSend => {
-          if (shouldSend) {
-            // no await to avoid deadlocking
-            this.makeRequest({
-              trigger: 'submit-message',
-              messageId: this.lastMessage?.id,
-              ...options,
-            });
-          }
-        });
-=======
         const shouldSend = await this.shouldSendAutomatically();
 
         if (shouldSend) {
@@ -679,7 +652,6 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
             shouldSend,
           );
         }
->>>>>>> ff18b733f9 (fix: chat.stop() resolving before active stream processing and callback-driven updates terminate (#21798))
       }
     });
 
@@ -691,10 +663,6 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
    * the request pipeline to finish.
    */
   stop = async () => {
-<<<<<<< HEAD
-    this.activeResumeRequest?.abortController.abort();
-    this.activeResponse?.abortController.abort();
-=======
     this.activeStopCount++;
     this.stopGeneration++;
 
@@ -702,9 +670,6 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       const activeResumeRequest = this.activeResumeRequest;
       const activeResponse = this.activeResponse;
 
-      for (const controller of this.pendingMessagePreparations) {
-        controller.abort();
-      }
       activeResumeRequest?.abortController.abort();
       activeResponse?.abortController.abort();
 
@@ -719,7 +684,6 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     } finally {
       this.activeStopCount--;
     }
->>>>>>> ff18b733f9 (fix: chat.stop() resolving before active stream processing and callback-driven updates terminate (#21798))
   };
 
   private async shouldSendAutomatically(): Promise<boolean> {

@@ -1054,8 +1054,6 @@ describe('Chat', () => {
     });
   });
 
-<<<<<<< HEAD
-=======
   it('should not send automatically after a response is stopped', async () => {
     let sendCount = 0;
     const responseStream = new ReadableStream<UIMessageChunk>({
@@ -1089,7 +1087,7 @@ describe('Chat', () => {
     const sendPromise = chat.sendMessage({ text: 'Hello, world!' });
 
     while ((chat.messages[1]?.parts[1] as any)?.text !== 'Hello') {
-      await vi.advanceTimersByTimeAsync(0);
+      await delay();
     }
 
     await chat.stop();
@@ -1162,7 +1160,7 @@ describe('Chat', () => {
       events.push('stop-finished');
     });
 
-    await vi.advanceTimersByTimeAsync(0);
+    await delay();
     expect(stopSettled).toBe(false);
 
     callbackCanFinish.resolve();
@@ -1170,7 +1168,7 @@ describe('Chat', () => {
 
     chat.messages = [];
     await Promise.all([sendPromise, toolOutputFinished.promise]);
-    await vi.advanceTimersByTimeAsync(0);
+    await delay();
 
     expect(toolOutputError).toBeUndefined();
     expect(events).toEqual([
@@ -1257,7 +1255,7 @@ describe('Chat', () => {
     secondResponseController?.close();
 
     await sendPromise;
-    await vi.advanceTimersByTimeAsync(0);
+    await delay();
 
     expect(sendCount).toBe(1);
     expect((chat as any).activeResponse).toBeUndefined();
@@ -1265,29 +1263,6 @@ describe('Chat', () => {
     expect(chat.messages).toEqual([]);
   });
 
-  it('should not send a message when stopped during message preparation', async () => {
-    const sendMessages = vi.fn(async () => new ReadableStream());
-    const chat = new TestChat({
-      id: '123',
-      generateId: mockId(),
-      transport: {
-        sendMessages,
-        reconnectToStream: () => {
-          throw new Error('not implemented');
-        },
-      },
-    });
-
-    const sendPromise = chat.sendMessage({ text: 'Hello, world!' });
-    await chat.stop();
-    await sendPromise;
-
-    expect(sendMessages).not.toHaveBeenCalled();
-    expect(chat.messages).toEqual([]);
-    expect(chat.status).toBe('ready');
-  });
-
->>>>>>> ff18b733f9 (fix: chat.stop() resolving before active stream processing and callback-driven updates terminate (#21798))
   it('should stop updating messages when a resumed stream is stopped', async () => {
     const nextChunk = createResolvablePromise<void>();
     let reconnectAbortSignal: AbortSignal | undefined;
