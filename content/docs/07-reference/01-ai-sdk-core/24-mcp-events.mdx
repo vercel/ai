@@ -99,17 +99,19 @@ for the definition fields. Pagination is explicit; this method does not fetch al
 ## Managed Subscriptions
 
 Configure `experimental_events: { adapter }` to delegate subscription lifecycle
-operations to a backend. The adapter implements `Experimental_MCPEventsAdapter`
-from `@ai-sdk/mcp`; it is bound to the authorized account and destination by your
-application or integration package.
+operations to a backend. The `adapter` configuration requires an
+`Experimental_MCPEventsAdapterProvider` from `@ai-sdk/mcp`. Its
+`createAdapter({ url })` method returns an `Experimental_MCPEventsAdapter` bound
+to the authorized account, endpoint and destination by your application or
+integration package.
 
 ```ts
 import { createMCPClient } from '@ai-sdk/mcp';
-import { authenticatedTransport, eventsAdapter } from '@/lib/mcp';
+import { authenticatedTransport, eventsAdapterProvider } from '@/lib/mcp';
 
 const client = await createMCPClient({
   transport: authenticatedTransport,
-  experimental_events: { adapter: eventsAdapter },
+  experimental_events: { adapter: eventsAdapterProvider },
 });
 
 try {
@@ -139,14 +141,13 @@ try {
 }
 ```
 
-`authenticatedTransport` and `eventsAdapter` are supplied by your application.
+`authenticatedTransport` and `eventsAdapterProvider` are supplied by your application.
 Use the same authorized account for discovery and subscription management.
 Never derive account identity, destination or authorization from model arguments.
 
 ### Adapter Providers
 
-If your backend needs the MCP endpoint, pass an
-`Experimental_MCPEventsAdapterProvider` instead of a preconfigured adapter.
+Managed configuration always uses an `Experimental_MCPEventsAdapterProvider`.
 Its synchronous `createAdapter({ url })` method receives the transport URL so
 you do not need to configure the endpoint twice:
 
@@ -180,8 +181,20 @@ interface MCPEventsAdapterProvider {
 The interface is exported as `Experimental_MCPEventsAdapterProvider`. The client
 calls `createAdapter` once, before starting the transport, and uses the returned
 adapter for all managed operations. Creation errors reject `createMCPClient`
-without starting the transport. Existing adapter objects continue to work and take
-precedence over providers when an object implements both contracts.
+without starting the transport. Bound adapters are no longer accepted directly in
+`experimental_events.adapter`. To migrate an existing adapter, wrap it explicitly:
+
+```ts
+experimental_events: {
+  adapter: {
+    createAdapter: () => existingAdapter,
+  },
+}
+```
+
+Only reuse a bound adapter when its account, endpoint and destination are correct
+for every client using it. `Experimental_MCPEventsAdapter` remains the operations
+interface returned by the provider.
 
 For HTTP and SSE transport configurations, `url` is the configured string,
 including its path and query, not a resolved redirect target. For custom
@@ -280,7 +293,7 @@ direct-mode option; managed validation belongs to the backend. The unreleased
 `events` configuration spelling is replaced by `experimental_events`.
 
 `createMCPClient` infers `Experimental_ManagedMCPClient` with
-`Experimental_ManagedMCPEvents` when an adapter is configured. Both modes use
+`Experimental_ManagedMCPEvents` when an adapter provider is configured. Both modes use
 `MCPClientConfig`, whose `experimental_events` property accepts the
 `Experimental_MCPEventsConfig` union. Direct clients keep `MCPClient` and
 `Experimental_MCPEvents`. The input and result types of each mode remain distinct.

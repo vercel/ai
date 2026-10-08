@@ -16,9 +16,7 @@ import type { z } from 'zod/v4';
 import { createMCPEvents } from './mcp-events';
 import {
   createManagedMCPEvents,
-  isMCPEventsAdapter,
   type ManagedMCPEvents,
-  type MCPEventsAdapter,
   type MCPEventsAdapterProvider,
 } from './mcp-events-adapter';
 import type { MCPEvents, MCPEventsConfig } from './mcp-event-types';
@@ -304,7 +302,7 @@ export type ManagedMCPClient = Omit<MCPClient, 'experimental_events'> & {
 export function createMCPClient(
   config: MCPClientConfig & {
     experimental_events: {
-      adapter: MCPEventsAdapter | MCPEventsAdapterProvider;
+      adapter: MCPEventsAdapterProvider;
     };
   },
 ): Promise<ManagedMCPClient>;
@@ -490,14 +488,20 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
           'Configure experimental_events with either an adapter or a store, not both. Managed adapters own argument validation.',
       });
     }
-    const adapter =
-      events?.adapter != null && !isMCPEventsAdapter(events.adapter)
-        ? events.adapter.createAdapter({
-            url: isCustomMcpTransport(transportConfig)
-              ? undefined
-              : transportConfig.url,
-          })
-        : events?.adapter;
+    if (
+      events?.adapter !== undefined &&
+      typeof events.adapter?.createAdapter !== 'function'
+    ) {
+      throw new MCPClientError({
+        message:
+          'experimental_events.adapter must be a provider with a createAdapter method. Wrap a bound adapter with { createAdapter: () => adapter }.',
+      });
+    }
+    const adapter = events?.adapter?.createAdapter({
+      url: isCustomMcpTransport(transportConfig)
+        ? undefined
+        : transportConfig.url,
+    });
 
     this.onUncaughtError = onUncaughtError;
     this.maxRetries = prepareMaxRetries(maxRetries);

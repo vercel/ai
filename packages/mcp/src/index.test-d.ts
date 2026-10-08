@@ -98,7 +98,9 @@ it('narrows unknown errors and exposes optional MCP error metadata', () => {
 });
 
 it('infers managed event operations and rejects mixing direct and managed APIs', async () => {
-  const adapter = {} as Experimental_MCPEventsAdapter;
+  const adapter = {
+    createAdapter: () => ({}) as Experimental_MCPEventsAdapter,
+  } satisfies Experimental_MCPEventsAdapterProvider;
   const transport = { type: 'http' as const, url: 'https://example.com/mcp' };
   const config = {
     transport,
@@ -180,7 +182,9 @@ it('accepts configuration whose event mode is only known at runtime', async () =
 });
 
 it('uses one event configuration union for direct and managed clients', async () => {
-  const adapter = {} as Experimental_MCPEventsAdapter;
+  const adapter = {
+    createAdapter: () => ({}) as Experimental_MCPEventsAdapter,
+  } satisfies Experimental_MCPEventsAdapterProvider;
   const store = {} as Experimental_MCPEventStore;
   const transport = { type: 'http' as const, url: 'https://example.com/mcp' };
   const managed = { adapter } satisfies Experimental_MCPEventsConfig;
@@ -279,4 +283,20 @@ it('infers managed clients from adapter providers and contextually types the URL
     },
   };
   void provider;
+});
+
+it('requires a provider instead of a bound adapter in managed configuration', async () => {
+  const adapter = {} as Experimental_MCPEventsAdapter;
+  const transport = { type: 'http' as const, url: 'https://example.com/mcp' };
+  const config = { transport, experimental_events: { adapter } };
+  // @ts-expect-error Managed configuration requires a provider.
+  createMCPClient(config);
+  // @ts-expect-error The config union rejects a bound adapter too.
+  const events: Experimental_MCPEventsConfig = { adapter };
+  void events;
+  const wrapped = await createMCPClient({
+    transport,
+    experimental_events: { adapter: { createAdapter: () => adapter } },
+  });
+  expectTypeOf(wrapped).toEqualTypeOf<Experimental_ManagedMCPClient>();
 });

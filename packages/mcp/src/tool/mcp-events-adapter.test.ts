@@ -81,7 +81,7 @@ describe('managed MCP events', () => {
         serverInfo: { name: 'events', version: '1' },
         capabilities: { events: {}, tools: {} },
       },
-      experimental_events: { adapter },
+      experimental_events: { adapter: { createAdapter: () => adapter } },
     });
     clients.push(client);
     send.mockClear();
@@ -219,7 +219,10 @@ describe('managed MCP events', () => {
       await expect(
         createMCPClient({
           transport,
-          experimental_events: { adapter, ...direct },
+          experimental_events: {
+            adapter: { createAdapter: () => adapter },
+            ...direct,
+          },
         } as unknown as MCPClientConfig),
       ).rejects.toThrow('either an adapter or a store');
       expect(start).not.toHaveBeenCalled();

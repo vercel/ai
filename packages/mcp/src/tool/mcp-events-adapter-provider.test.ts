@@ -85,30 +85,38 @@ describe('managed MCP event adapter providers', () => {
     },
   );
 
-  it.each(['callable', 'non-callable', 'inherited'] as const)(
-    'preserves an existing adapter with a %s createAdapter member',
-    async kind => {
-      const adapter = createAdapter();
-      const factory = vi.fn(() => {
-        throw new Error('Unrelated factory must not run');
+  it.each([undefined, 'metadata'])(
+    'rejects a bound adapter with createAdapter=%s before transport startup',
+    async createAdapterMember => {
+      const adapter = Object.assign(createAdapter(), {
+        createAdapter: createAdapterMember,
       });
-      if (kind === 'inherited') {
-        Object.setPrototypeOf(adapter, { createAdapter: factory });
-      } else {
-        Object.assign(adapter, {
-          createAdapter: kind === 'callable' ? factory : 'metadata',
-        });
-      }
-      const client = await createMCPClient({
-        transport: new MockMCPTransport(),
-        experimental_events: { adapter },
-      });
-      clients.push(client);
-      await client.experimental_events.subscribe(input);
-      expect(adapter.subscribe).toHaveBeenCalledExactlyOnceWith(input);
-      expect(factory).not.toHaveBeenCalled();
+      const transport = new MockMCPTransport();
+      const start = vi.spyOn(transport, 'start');
+      await expect(
+        createMCPClient({
+          transport,
+          experimental_events: { adapter },
+        } as unknown as MCPClientConfig),
+      ).rejects.toThrow('must be a provider with a createAdapter method');
+      expect(start).not.toHaveBeenCalled();
+      expect(adapter.subscribe).not.toHaveBeenCalled();
     },
   );
+
+  it('always invokes the provider even if it also exposes lifecycle methods', async () => {
+    const bound = createAdapter();
+    const provider = { ...createAdapter(), createAdapter: vi.fn(() => bound) };
+    const client = await createMCPClient({
+      transport: new MockMCPTransport(),
+      experimental_events: { adapter: provider },
+    });
+    clients.push(client);
+    await client.experimental_events.subscribe(input);
+    expect(provider.createAdapter).toHaveBeenCalledOnce();
+    expect(bound.subscribe).toHaveBeenCalledExactlyOnceWith(input);
+    expect(provider.subscribe).not.toHaveBeenCalled();
+  });
 
   it('does not infer a URL from arbitrary custom transport properties', async () => {
     const transport = Object.assign(new MockMCPTransport(), {

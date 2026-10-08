@@ -9,7 +9,7 @@ import {
 /**
  * Integrate a managed backend without an AI SDK event store.
  * The caller persists its authorized creation intent and supplies a backend
- * adapter bound to the same account as the authenticated MCP transport.
+ * adapter provider bound to the same account as the authenticated MCP transport.
  * The backend provisions the webhook and owns delivery, renewal and cleanup.
  */
 export async function createManagedWatch({
@@ -18,7 +18,7 @@ export async function createManagedWatch({
   input,
 }: {
   transport: MCPClientConfig['transport'];
-  adapter: MCPEventsAdapter | MCPEventsAdapterProvider;
+  adapter: MCPEventsAdapterProvider;
   input: ManagedSubscribeInput;
 }) {
   const client = await createMCPClient({

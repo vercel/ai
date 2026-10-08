@@ -1,8 +1,5 @@
 import type { JSONObject } from '@ai-sdk/provider';
-import type {
-  MCPEventsAdapter,
-  MCPEventsAdapterProvider,
-} from './mcp-events-adapter';
+import type { MCPEventsAdapterProvider } from './mcp-events-adapter';
 import { z } from 'zod/v4';
 import { ResultSchema, type RequestOptions } from './types';
 
@@ -115,7 +112,7 @@ export type MCPEventsConfig =
       }) => void | PromiseLike<void>;
     }
   | {
-      adapter: MCPEventsAdapter | MCPEventsAdapterProvider;
+      adapter: MCPEventsAdapterProvider;
       store?: never;
       validateArguments?: never;
     };
