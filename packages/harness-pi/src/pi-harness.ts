@@ -15,6 +15,7 @@ import {
   type PiHarnessExtensionFactory,
   type PiMcpServerConfig,
   type PiMcpSettings,
+  type PiResources,
   type PiThinkingLevel,
 } from './pi-session';
 import { VERSION } from './version';
@@ -111,6 +112,17 @@ export type PiHarnessSettings = {
    * are resolved when the session starts. The `bash` tool is not restricted.
    */
   readonly fileToolPathPolicy?: PiFileToolPathPolicy;
+  /**
+   * Project resources for the session. Pi reads no project resources from the
+   * host or the sandbox, so `AGENTS.md`, `CLAUDE.md` and project skills reach
+   * the model only through this setting.
+   *
+   * `contextFiles` are placed in the system prompt the way Pi places
+   * `AGENTS.md`. `skills` are listed to the model and must already exist in
+   * the sandbox at `filePath`, because the model reads them with the `read`
+   * tool.
+   */
+  readonly resources?: PiResources;
 };
 
 const PI_BUILTIN_TOOLS = {
@@ -242,6 +254,7 @@ export function createPi(
           ...(settings.fileToolPathPolicy
             ? { fileToolPathPolicy: settings.fileToolPathPolicy }
             : {}),
+          ...(settings.resources ? { resources: settings.resources } : {}),
           ...(startOpts.headers ? { headers: startOpts.headers } : {}),
         },
         clientApp: PI_CLIENT_APP,
