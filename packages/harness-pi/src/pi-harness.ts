@@ -13,6 +13,7 @@ import {
   type PiCacheRetention,
   type PiFileToolPathPolicy,
   type PiHarnessExtensionFactory,
+  type PiMcpServerConfig,
   type PiMcpSettings,
   type PiThinkingLevel,
 } from './pi-session';
@@ -68,13 +69,26 @@ export type PiHarnessSettings = {
    */
   readonly agentDir?: string;
   /**
-   * MCP server definitions keyed by server name. Each definition uses the
-   * underlying runtime's native MCP server configuration format.
+   * MCP servers keyed by server name, in Pi's native MCP server configuration
+   * (stdio or streamable HTTP). Tools are named `mcp__<server>__<tool>`, with
+   * `-` in either name replaced by `_`.
+   *
+   * `exposure` defaults to `direct`, which declares the server's tools to the
+   * model. `deferred` tools stay undeclared until Pi's `tool_search` tool
+   * finds them; the model then calls them by name.
+   *
+   * The harness has no sign-in flow, so an HTTP server must carry an
+   * `Authorization` header or `auth.provider`; with the header, OAuth never
+   * runs. No `mcp.json` is read and nothing is written under Pi's agent
+   * directory.
    */
-  readonly mcpServers?: Record<string, unknown>;
+  readonly mcpServers?: Readonly<Record<string, PiMcpServerConfig>>;
   /**
-   * Settings for the MCP adapter that serves `mcpServers`, applied over this
-   * package's defaults.
+   * @deprecated Pi's native MCP serves `mcpServers` and has no adapter
+   * settings. It always names tools `mcp__<server>__<tool>` and always
+   * truncates results over 20 KB, writing the full text to a file in the host
+   * temp directory. `toolPrefix` other than `'mcp'` and `outputGuard: false`
+   * fail session start.
    */
   readonly mcpSettings?: PiMcpSettings;
   /**
