@@ -1358,9 +1358,9 @@ describe('createPiRemoteOps with denied roots', () => {
   });
 
   it('skips denied roots in the per-file grep fallback', async () => {
-    const session = await createJustBashSandbox({
+    const session = await createJustBashNetworkSandboxSession({
       cwd: sandboxWorkDir,
-    }).createSession();
+    });
     const sandbox = session.restricted();
 
     try {
@@ -1400,9 +1400,9 @@ describe('createPiRemoteOps with denied roots', () => {
   });
 
   it('resolves denied symlinks and excludes their targets in just-bash', async () => {
-    const session = await createJustBashSandbox({
+    const session = await createJustBashNetworkSandboxSession({
       cwd: sandboxWorkDir,
-    }).createSession();
+    });
     const sandbox = session.restricted();
     const target = `${sandboxWorkDir}/private`;
     const alias = `${sandboxWorkDir}/blocked`;
@@ -1449,9 +1449,9 @@ describe('createPiRemoteOps with denied roots', () => {
   });
 
   it('resolves a missing denied directory beneath a symlinked parent', async () => {
-    const session = await createJustBashSandbox({
+    const session = await createJustBashNetworkSandboxSession({
       cwd: sandboxWorkDir,
-    }).createSession();
+    });
     const sandbox = session.restricted();
 
     try {
