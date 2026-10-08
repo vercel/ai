@@ -2,6 +2,7 @@ import {
   createMCPClient,
   type MCPClientConfig,
   type Experimental_MCPEventsAdapter as MCPEventsAdapter,
+  type Experimental_MCPEventsAdapterProvider as MCPEventsAdapterProvider,
   type Experimental_ManagedSubscribeInput as ManagedSubscribeInput,
 } from '@ai-sdk/mcp';
 
@@ -17,7 +18,7 @@ export async function createManagedWatch({
   input,
 }: {
   transport: MCPClientConfig['transport'];
-  adapter: MCPEventsAdapter;
+  adapter: MCPEventsAdapter | MCPEventsAdapterProvider;
   input: ManagedSubscribeInput;
 }) {
   const client = await createMCPClient({
@@ -33,4 +34,23 @@ export async function createManagedWatch({
     // Closing the discovery connection leaves the managed watch running.
     await client.close();
   }
+}
+
+/**
+ * A backend integration can expose a provider so callers configure the MCP URL
+ * only on the transport. An explicit backend override takes precedence.
+ * Backend implementations must authorize the endpoint before sending credentials.
+ */
+export function createManagedEventsProvider({
+  createAdapter,
+  mcpUrl,
+}: {
+  createAdapter: (config: { mcpUrl: string | undefined }) => MCPEventsAdapter;
+  mcpUrl?: string;
+}): MCPEventsAdapterProvider {
+  return {
+    createAdapter({ url }) {
+      return createAdapter({ mcpUrl: mcpUrl ?? url });
+    },
+  };
 }

@@ -20,7 +20,8 @@ endpoint receives the events.
 
 Use `experimental_events: { adapter }` when a backend manages subscriptions,
 webhook delivery and renewal. The adapter exposes managed watch handles and
-requires no AI SDK event store. See [managed subscriptions](/docs/reference/ai-sdk-core/mcp-events#managed-subscriptions).
+requires no AI SDK event store. A backend SDK can also supply an adapter provider
+whose `createAdapter({ url })` receives the MCP transport URL automatically. See [managed subscriptions](/docs/reference/ai-sdk-core/mcp-events#managed-subscriptions).
 
 Use `experimental_events: { store }` when your application directly registers
 MCP webhooks, persists their secrets and schedules renewal. The following flow

@@ -63,6 +63,15 @@ export interface MCPEventsAdapter {
   }): Promise<ManagedSubscription>;
 }
 
+/**
+ * Creates an adapter once per client, before the transport starts.
+ * The URL is the configured HTTP/SSE endpoint, not a resolved redirect target.
+ * Custom transports have no standard URL and receive undefined.
+ */
+export interface MCPEventsAdapterProvider {
+  createAdapter(context: { url: string | undefined }): MCPEventsAdapter;
+}
+
 /** Catalog discovery uses MCP; all subscription operations use the adapter. */
 export interface ManagedMCPEvents extends MCPEventsAdapter {
   list: MCPEvents['list'];

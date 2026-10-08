@@ -18,6 +18,7 @@ import {
   createManagedMCPEvents,
   type ManagedMCPEvents,
   type MCPEventsAdapter,
+  type MCPEventsAdapterProvider,
 } from './mcp-events-adapter';
 import type { MCPEvents, MCPEventsConfig } from './mcp-event-types';
 import { MCPClientError } from '../error/mcp-client-error';
@@ -301,7 +302,9 @@ export type ManagedMCPClient = Omit<MCPClient, 'experimental_events'> & {
 
 export function createMCPClient(
   config: MCPClientConfig & {
-    experimental_events: { adapter: MCPEventsAdapter };
+    experimental_events: {
+      adapter: MCPEventsAdapter | MCPEventsAdapterProvider;
+    };
   },
 ): Promise<ManagedMCPClient>;
 export function createMCPClient(
@@ -486,6 +489,15 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
           'Configure experimental_events with either an adapter or a store, not both. Managed adapters own argument validation.',
       });
     }
+    const adapter =
+      events?.adapter != null && 'createAdapter' in events.adapter
+        ? events.adapter.createAdapter({
+            url: isCustomMcpTransport(transportConfig)
+              ? undefined
+              : transportConfig.url,
+          })
+        : events?.adapter;
+
     this.onUncaughtError = onUncaughtError;
     this.maxRetries = prepareMaxRetries(maxRetries);
     this.clientCapabilities = capabilities ?? {};
@@ -527,8 +539,8 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
       store: events?.store,
       validateArguments: events?.validateArguments,
     });
-    this.experimental_events = events?.adapter
-      ? createManagedMCPEvents(events.adapter, directEvents.list)
+    this.experimental_events = adapter
+      ? createManagedMCPEvents(adapter, directEvents.list)
       : directEvents;
   }
 

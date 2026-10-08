@@ -143,6 +143,59 @@ try {
 Use the same authorized account for discovery and subscription management.
 Never derive account identity, destination or authorization from model arguments.
 
+### Adapter Providers
+
+If your backend needs the MCP endpoint, pass an
+`Experimental_MCPEventsAdapterProvider` instead of a preconfigured adapter.
+Its synchronous `createAdapter({ url })` method receives the transport URL so
+you do not need to configure the endpoint twice:
+
+```ts
+import { createMCPClient } from '@ai-sdk/mcp';
+import { createBackendEventsAdapter } from './my-events-backend';
+
+const client = await createMCPClient({
+  transport: { type: 'http', url: 'https://service.example/mcp' },
+  experimental_events: {
+    adapter: {
+      createAdapter({ url }) {
+        return createBackendEventsAdapter({ mcpUrl: url });
+      },
+    },
+  },
+});
+```
+
+`createBackendEventsAdapter` is application or backend SDK code returning an
+`Experimental_MCPEventsAdapter` bound to the authorized account and destination.
+A backend SDK can return this provider object from its own helper, so callers
+can pass the helper's result directly as `adapter`.
+
+```ts
+interface MCPEventsAdapterProvider {
+  createAdapter(context: {
+    url: string | undefined;
+  }): MCPEventsAdapter;
+}
+```
+
+The interface is exported as `Experimental_MCPEventsAdapterProvider`. The client
+calls `createAdapter` once, before starting the transport, and uses the returned
+adapter for all managed operations. Creation errors reject `createMCPClient`
+without starting the transport. Existing adapter objects continue to work.
+
+For HTTP and SSE transport configurations, `url` is the configured string,
+including its path and query, not a resolved redirect target. For custom
+`MCPTransport` instances, `url` is `undefined`; arbitrary properties on a custom
+transport are not inspected. The context contains no headers or auth provider.
+
+Return a separately bound adapter for each client instead of mutating shared
+endpoint state. Providers may prefer their own explicit endpoint override or
+resolve a configured endpoint when `url` is undefined. That policy belongs to
+the provider; it does not change the client's transport or catalog discovery.
+The managed backend must still authorize an endpoint before sending credentials
+there. Receiving the transport URL does not grant that authorization.
+
 ### Adapter Contract
 
 ```ts

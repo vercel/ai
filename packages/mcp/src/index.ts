@@ -49,6 +49,7 @@ export { MCPClientError } from './error/mcp-client-error';
 export type { ManagedMCPClient as Experimental_ManagedMCPClient } from './tool/mcp-client';
 export type {
   MCPEventsAdapter as Experimental_MCPEventsAdapter,
+  MCPEventsAdapterProvider as Experimental_MCPEventsAdapterProvider,
   ManagedSubscribeInput as Experimental_ManagedSubscribeInput,
   ManagedSubscription as Experimental_ManagedSubscription,
   ManagedMCPEvents as Experimental_ManagedMCPEvents,

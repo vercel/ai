@@ -10,6 +10,7 @@ import {
   type Experimental_MCPEvents,
   type Experimental_SubscribeEventResult,
   type Experimental_MCPEventsAdapter,
+  type Experimental_MCPEventsAdapterProvider,
   type Experimental_ManagedMCPClient,
   type Experimental_ManagedMCPEvents,
   type Experimental_MCPEventsConfig,
@@ -220,4 +221,62 @@ it('uses one event configuration union for direct and managed clients', async ()
   await client.experimental_events.list();
   // @ts-expect-error A runtime-selected mode is not known to support direct refresh.
   client.experimental_events.refresh({ id: 'sub_1' });
+});
+
+it('infers managed clients from adapter providers and contextually types the URL', async () => {
+  const adapter = {} as Experimental_MCPEventsAdapter;
+  const config = {
+    transport: { type: 'http', url: 'https://example.com/mcp' },
+    experimental_events: {
+      adapter: {
+        createAdapter({ url }) {
+          expectTypeOf(url).toEqualTypeOf<string | undefined>();
+          return adapter;
+        },
+      },
+    },
+  } satisfies MCPClientConfig;
+  expectTypeOf(
+    config.experimental_events.adapter,
+  ).toMatchTypeOf<Experimental_MCPEventsAdapterProvider>();
+  const client = await createMCPClient(config);
+  expectTypeOf(client).toEqualTypeOf<Experimental_ManagedMCPClient>();
+  expectTypeOf(
+    await createMCPClient({
+      transport: config.transport,
+      experimental_events: {
+        adapter: {
+          createAdapter({ url }) {
+            expectTypeOf(url).toEqualTypeOf<string | undefined>();
+            return adapter;
+          },
+        },
+      },
+    }),
+  ).toEqualTypeOf<Experimental_ManagedMCPClient>();
+  const watch = await client.experimental_events.subscribe({
+    name: 'comment.created',
+    arguments: {},
+    expiresAt: null,
+    idempotencyKey: 'intent_1',
+  });
+  expectTypeOf(watch).toEqualTypeOf<Experimental_ManagedSubscription>();
+  // @ts-expect-error Managed providers do not expose direct refresh.
+  client.experimental_events.refresh({ id: watch.id });
+  const mixed = {
+    ...config,
+    experimental_events: {
+      ...config.experimental_events,
+      store: {} as Experimental_MCPEventStore,
+    },
+  };
+  // @ts-expect-error Providers cannot be combined with a direct store.
+  createMCPClient(mixed);
+  const provider: Experimental_MCPEventsAdapterProvider = {
+    // @ts-expect-error Provider creation is synchronous.
+    async createAdapter() {
+      return adapter;
+    },
+  };
+  void provider;
 });
