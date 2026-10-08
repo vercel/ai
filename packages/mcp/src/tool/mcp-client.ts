@@ -16,6 +16,7 @@ import type { z } from 'zod/v4';
 import { createMCPEvents } from './mcp-events';
 import {
   createManagedMCPEvents,
+  isMCPEventsAdapter,
   type ManagedMCPEvents,
   type MCPEventsAdapter,
   type MCPEventsAdapterProvider,
@@ -490,7 +491,7 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
       });
     }
     const adapter =
-      events?.adapter != null && 'createAdapter' in events.adapter
+      events?.adapter != null && !isMCPEventsAdapter(events.adapter)
         ? events.adapter.createAdapter({
             url: isCustomMcpTransport(transportConfig)
               ? undefined

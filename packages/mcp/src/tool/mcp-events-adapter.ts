@@ -72,6 +72,13 @@ export interface MCPEventsAdapterProvider {
   createAdapter(context: { url: string | undefined }): MCPEventsAdapter;
 }
 
+/** Prefer existing adapters, even if they have an unrelated factory member. */
+export function isMCPEventsAdapter(
+  value: MCPEventsAdapter | MCPEventsAdapterProvider,
+): value is MCPEventsAdapter {
+  return 'subscribe' in value && typeof value.subscribe === 'function';
+}
+
 /** Catalog discovery uses MCP; all subscription operations use the adapter. */
 export interface ManagedMCPEvents extends MCPEventsAdapter {
   list: MCPEvents['list'];

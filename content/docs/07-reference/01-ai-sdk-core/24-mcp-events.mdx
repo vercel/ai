@@ -180,7 +180,8 @@ interface MCPEventsAdapterProvider {
 The interface is exported as `Experimental_MCPEventsAdapterProvider`. The client
 calls `createAdapter` once, before starting the transport, and uses the returned
 adapter for all managed operations. Creation errors reject `createMCPClient`
-without starting the transport. Existing adapter objects continue to work.
+without starting the transport. Existing adapter objects continue to work and take
+precedence over providers when an object implements both contracts.
 
 For HTTP and SSE transport configurations, `url` is the configured string,
 including its path and query, not a resolved redirect target. For custom
