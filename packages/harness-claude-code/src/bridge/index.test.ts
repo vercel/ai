@@ -1010,15 +1010,12 @@ describe('Claude Code bridge configuration', () => {
       const results = state.emitted.filter(
         event => event.type === 'tool-result',
       );
-      if (completedCalls.length !== 1 || results.length !== 1) {
-        throw new Error(
-          `ISSUE_22293: expected one finalized host-tool call and result; observed ${completedCalls.length} calls and ${results.length} results`,
-        );
-      }
-
+      expect(completedCalls).toHaveLength(1);
+      expect(results).toHaveLength(1);
       expect(completedCalls[0]).toMatchObject({
         toolCallId: 'host-1',
         toolName: 'weather',
+        providerExecuted: reachedHandler ? false : true,
       });
       expect(results[0]).toMatchObject({
         toolCallId: 'host-1',

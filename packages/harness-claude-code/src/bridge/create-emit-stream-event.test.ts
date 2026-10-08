@@ -983,6 +983,10 @@ describe('createEmitStreamEvent', () => {
 
   it('marks external MCP tools as dynamic and suppresses typed host tools', () => {
     const state = createClaudeStreamEventState();
+    state.mcpHandlerCalls.set('host-tool', {
+      toolName: 'weather',
+      input: {},
+    });
     const emitted: Record<string, unknown>[] = [];
     const emitStreamEvent = createEmitStreamEvent({
       state,
@@ -1055,6 +1059,117 @@ describe('createEmitStreamEvent', () => {
         },
       ]
     `);
+  });
+
+  it('reports a host tool rejected before its MCP handler runs', () => {
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+
+    emitStreamEvent({
+      type: 'assistant',
+      message: {
+        content: [
+          {
+            type: 'tool_use',
+            id: 'host-tool',
+            name: 'mcp__harness-tools__weather',
+            input: {},
+          },
+        ],
+      },
+    });
+    emitStreamEvent({
+      type: 'user',
+      message: {
+        content: [
+          {
+            type: 'tool_result',
+            tool_use_id: 'host-tool',
+            content: 'Input validation error: city is required',
+            is_error: true,
+          },
+        ],
+      },
+    });
+
+    expect(
+      emitted.filter(
+        event => event.type === 'tool-call' || event.type === 'tool-result',
+      ),
+    ).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'host-tool',
+        toolName: 'weather',
+        input: '{}',
+        providerExecuted: true,
+      },
+      {
+        type: 'tool-result',
+        toolCallId: 'host-tool',
+        toolName: 'weather',
+        result: 'Input validation error: city is required',
+        isError: true,
+      },
+    ]);
+  });
+
+  it('deduplicates host tool results when handler metadata cannot be matched', () => {
+    const state = createClaudeStreamEventState();
+    state.mcpHandlerCalls.set('unmatched-handler-id', {
+      toolName: 'weather',
+      input: { city: 'Tokyo' },
+    });
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+
+    emitStreamEvent({
+      type: 'assistant',
+      message: {
+        content: [
+          {
+            type: 'tool_use',
+            id: 'host-tool',
+            name: 'mcp__harness-tools__weather',
+            input: { city: 'Tokyo' },
+          },
+        ],
+      },
+    });
+    emitStreamEvent({
+      type: 'user',
+      message: {
+        content: [
+          {
+            type: 'tool_result',
+            tool_use_id: 'host-tool',
+            content: 'sunny',
+          },
+        ],
+      },
+    });
+
+    expect(
+      emitted.filter(
+        event => event.type === 'tool-call' || event.type === 'tool-result',
+      ),
+    ).toEqual([]);
+    expect(state.mcpHandlerCalls).toHaveLength(0);
   });
 
   it('suppresses native question tool calls', () => {
