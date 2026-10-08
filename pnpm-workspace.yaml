@@ -20,10 +20,9 @@ minimumReleaseAge: 4320 # 3 days
 
 minimumReleaseAgeExclude:
   # First-party packages may be consumed immediately as part of their release flow.
+  - 'ai'
   - '@ai-sdk/*'
   - '@vercel/*'
-  - 'ai'
-  # Workflow SDK packages are maintained by Vercel and released together.
   - '@workflow/*'
   - 'workflow'
 
