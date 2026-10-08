@@ -63,6 +63,11 @@ continuations restore persisted state using the current request's settings.
 Application-managed credentials can be supplied through a `PiCredentialStore`;
 this replaces Pi's file-backed `auth.json` storage.
 
+The lifecycle state carries the Pi session itself, its header followed by its
+entries, typed as `PiLifecycleData`. Nothing about the session is stored in the
+sandbox, so a continuation can restore it in any process. A state recorded
+before this format restores as a fresh session.
+
 ```ts
 import { createPi, type PiCredentialStore } from '@ai-sdk/harness-pi';
 

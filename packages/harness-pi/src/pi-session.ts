@@ -31,6 +31,7 @@ import {
   type HarnessV1PromptControl,
   type HarnessV1PromptTurnOptions,
   type HarnessV1NetworkSandboxSession,
+  type HarnessV1LifecycleState,
   type HarnessV1PermissionMode,
   type HarnessV1ResumeSessionState,
   type HarnessV1Session,
@@ -66,13 +67,11 @@ import {
   truncatePiToolOutputHead,
   truncatePiToolOutputTail,
 } from './pi-tool-result';
-
 import {
-  persistSessionFileToSandbox,
-  pullSessionFileFromSandbox,
-  resolvePiPrivateSessionDirectory,
-  safePiSessionFileName,
-} from './pi-resume-state';
+  sessionEntriesOf,
+  withSessionId,
+  type PiSessionEntries,
+} from './pi-lifecycle-state';
 import {
   createPiTranslatorState,
   finishPiApprovalStep,
@@ -89,13 +88,15 @@ import {
 
 const HARNESS_ID = 'pi';
 
+const PI_SESSION_ID_PATTERN = /^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?$/;
+
 /*
  * Pi runs in this Node process, not behind an attachable in-sandbox bridge.
  * During a tool approval pause the Pi turn is still alive and blocked on the
  * custom tool promise, so in-process reattachment parks that live session for
  * the next same-process resume instead of stopping it and resolving the
- * promise as an error. Cross-process resume still falls back to the persisted
- * session file.
+ * promise as an error. Cross-process resume restores from the session entries
+ * in the lifecycle state.
  */
 const parkedPiSessions = new Map<
   string,
@@ -366,7 +367,7 @@ export interface CreatePiSessionInput {
     | HarnessV1ResumeSessionState['type'];
   readonly permissionMode?: HarnessV1PermissionMode;
   readonly builtinToolFiltering?: HarnessV1BuiltinToolFiltering;
-  readonly resumeSessionFileName?: string;
+  readonly resumeEntries?: PiSessionEntries;
   readonly abortSignal?: AbortSignal;
   /**
    * Directory holding Pi's global agent config (auth.json, models.json,
@@ -486,7 +487,6 @@ export async function createPiSession(
   const safeSessionId = input.sessionId.replace(/[\\/: ]/g, '-');
   const hostRoot = path.join(tmpdir(), 'ai-sdk-harness', 'pi', safeSessionId);
   const hostAgentDir = path.join(hostRoot, 'agent');
-  const hostSessionDir = path.join(hostRoot, 'sessions');
   const toolSafeSandboxSession = getRestrictedSandboxSession(
     input.sandboxSession,
   );
@@ -494,7 +494,6 @@ export async function createPiSession(
 
   const sessionWorkDir = input.sessionWorkDir;
   await mkdir(hostAgentDir, { recursive: true });
-  await mkdir(hostSessionDir, { recursive: true });
 
   const permissionMode = input.permissionMode ?? 'allow-all';
   const activeBuiltinNames = resolveActivePiBuiltinNames(
@@ -561,28 +560,32 @@ export async function createPiSession(
     });
     return sandboxPaths;
   };
-  const resolvePrivateSessionDir = async (): Promise<string> =>
-    resolvePiPrivateSessionDirectory({
-      sandboxHomeDir: (await resolveSandboxPaths()).homeDir,
-      sessionWorkDir,
-      sessionId: input.sessionId,
-    });
 
-  // On resume: pull the Pi session file out of the sandbox into the fresh
-  // host mirror so SessionManager.open can read it.
-  let resumeSessionFilePath: string | undefined;
-  if (input.isResume && input.resumeSessionFileName) {
-    const resumeSessionFileName = safePiSessionFileName(
-      input.resumeSessionFileName,
+  const seededEntries =
+    input.resumeEntries && withSessionId(input.resumeEntries, input.sessionId);
+  const sessionIdOptions = PI_SESSION_ID_PATTERN.test(input.sessionId)
+    ? { id: input.sessionId }
+    : {};
+  let sessionManager: SessionManager | undefined;
+  const getSessionManager = (): SessionManager => {
+    sessionManager ??= SessionManager.inMemory(
+      sessionWorkDir,
+      sessionIdOptions,
+      seededEntries == null ? undefined : structuredClone([...seededEntries]),
     );
-    resumeSessionFilePath = await pullSessionFileFromSandbox({
-      sandbox: toolSafeSandboxSession,
-      privateSessionDir: await resolvePrivateSessionDir(),
-      hostSessionDir,
-      sessionFileName: resumeSessionFileName,
-      ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
-    });
-  }
+    return sessionManager;
+  };
+  /*
+   * Lifecycle data is a JSON value, and Pi keeps `undefined` fields on the
+   * entries it holds in memory.
+   */
+  const lifecycleData = (): HarnessV1LifecycleState['data'] => {
+    const entries =
+      sessionManager == null ? seededEntries : sessionEntriesOf(sessionManager);
+    return entries == null
+      ? {}
+      : { entries: JSON.parse(JSON.stringify(entries)) };
+  };
 
   // Pi auth + model registry are global to this Pi session. These live on the
   // real host filesystem, never in the sandbox/workspace.
@@ -752,7 +755,6 @@ export async function createPiSession(
   let piSession: AgentSession | undefined;
   let unsubscribe: (() => void) | undefined;
   let lastToolsSignature: string | undefined;
-  let sessionFileName: string | undefined;
   let stopped = false;
   /*
    * Set by `doSuspendTurn` before it aborts the in-flight host turn at a slice
@@ -773,9 +775,6 @@ export async function createPiSession(
     string,
     { toolName: string; output: unknown; isError: boolean }
   >();
-  let restoredSessionManager:
-    | ReturnType<typeof SessionManager.open>
-    | undefined;
   let deferredRerun: DeferredRerunBarrier | undefined;
 
   // Emit channel set at the start of every doPromptTurn and cleared on end.
@@ -815,28 +814,6 @@ export async function createPiSession(
     pendingToolApprovals.clear();
   }
 
-  async function persistSessionFile(): Promise<void> {
-    if (!sessionFileName) return;
-    await persistSessionFileToSandbox({
-      sandbox: toolSafeSandboxSession,
-      privateSessionDir: await resolvePrivateSessionDir(),
-      hostSessionDir,
-      sessionFileName,
-    });
-  }
-
-  function getRestoredSessionManager():
-    | ReturnType<typeof SessionManager.open>
-    | undefined {
-    if (resumeSessionFilePath == null) return undefined;
-    restoredSessionManager ??= SessionManager.open(
-      resumeSessionFilePath,
-      hostSessionDir,
-      sessionWorkDir,
-    );
-    return restoredSessionManager;
-  }
-
   /*
    * Host tool calls in the restored journal that never received a result on
    * the active branch. These are the calls that were blocked on host input
@@ -849,12 +826,10 @@ export async function createPiSession(
   function findDanglingHostToolCalls(
     userTools: ReadonlyArray<HarnessV1ToolSpec>,
   ): DanglingHostToolCall[] {
-    if (piSession != null || resumeSessionFilePath == null) return [];
+    if (piSession != null || seededEntries == null) return [];
     const hostToolNames = new Set(userTools.map(tool => tool.name));
     if (hostToolNames.size === 0) return [];
-    const journal = getRestoredSessionManager();
-    if (journal == null) return [];
-    const messages = journal.buildSessionContext().messages;
+    const messages = getSessionManager().buildSessionContext().messages;
     /*
      * Results already delivered by a previous continuation of this session
      * count as resolved even though they are not in the journal yet — the
@@ -930,11 +905,8 @@ export async function createPiSession(
    * produced, so the model sees the same result either way.
    */
   function appendDeliveredHostToolResults(): boolean {
-    if (deliveredDanglingResults.size === 0 || resumeSessionFilePath == null) {
-      return false;
-    }
-    const journal = getRestoredSessionManager();
-    if (journal == null) return false;
+    if (deliveredDanglingResults.size === 0) return false;
+    const journal = getSessionManager();
     for (const [toolCallId, delivered] of deliveredDanglingResults) {
       journal.appendMessage({
         role: 'toolResult',
@@ -954,17 +926,6 @@ export async function createPiSession(
       });
     }
     deliveredDanglingResults.clear();
-    /*
-     * The journal on disk now differs from the copy in the sandbox. Make sure
-     * the lifecycle persistence knows which file to push back even when no
-     * turn ever rebuilt the Pi session in this process (e.g. a suspend that
-     * lands while the rerun is still held back).
-     */
-    if (!sessionFileName) {
-      sessionFileName = safePiSessionFileName(
-        path.basename(resumeSessionFilePath),
-      );
-    }
     return true;
   }
 
@@ -1207,7 +1168,6 @@ export async function createPiSession(
 
   async function rebuildPiSession(
     userTools: ReadonlyArray<HarnessV1ToolSpec>,
-    isFirstBuild: boolean,
   ): Promise<boolean> {
     let resourcesReloaded = false;
     if (piSession) {
@@ -1228,18 +1188,11 @@ export async function createPiSession(
     const { customTools, builtinNames } = buildToolDefinitions(userTools);
     const toolNames = customTools.map(t => t.name);
 
-    // SessionManager: open the resumed file on the first build of a resumed
-    // session; create fresh otherwise.
-    const sessionManager =
-      isFirstBuild && resumeSessionFilePath
-        ? getRestoredSessionManager()!
-        : SessionManager.create(sessionWorkDir, hostSessionDir);
-
     const { session } = await createAgentSession({
       cwd: sessionWorkDir,
       agentDir: hostAgentDir,
       modelRuntime,
-      sessionManager,
+      sessionManager: getSessionManager(),
       settingsManager,
       resourceLoader,
       customTools,
@@ -1263,15 +1216,6 @@ export async function createPiSession(
     }
     if (hasMcpServers) {
       await piSession.bindExtensions({ mode: 'print' });
-    }
-
-    // Pick up the actual session file path so doStop can persist it. Pi
-    // 0.77 emits `.jsonl` files; older builds used `.json`. Persist the
-    // basename verbatim — including the extension — so the resume path can
-    // round-trip it without guessing the extension.
-    const candidatePath = sessionManager.getSessionFile();
-    if (candidatePath) {
-      sessionFileName = safePiSessionFileName(path.basename(candidatePath));
     }
 
     translatorState = createPiTranslatorState({
@@ -1380,10 +1324,7 @@ export async function createPiSession(
           piSession == null || signature !== lastToolsSignature;
         let resourcesReloaded = false;
         if (needsRebuild) {
-          resourcesReloaded = await rebuildPiSession(
-            userTools,
-            piSession == null,
-          );
+          resourcesReloaded = await rebuildPiSession(userTools);
           turnAbortController.signal.throwIfAborted();
           lastToolsSignature = signature;
         } else if (
@@ -1534,22 +1475,8 @@ export async function createPiSession(
      * reach the journal before it is persisted — the framework has marked
      * them settled and will not re-deliver them on a later resume.
      */
-    try {
-      appendDeliveredHostToolResults();
-    } catch {
-      // Best-effort: an unwritable journal falls back to the pre-delivery copy.
-    }
-
-    // Persist the Pi session file into the sandbox so a future process
-    // can pick it up after `provider.resumeSession({ sessionId })` reattaches.
-    if (sessionFileName) {
-      try {
-        await persistSessionFile();
-      } catch {
-        // Best-effort: a missing session file means resume returns to a
-        // fresh conversation rather than failing stop.
-      }
-    }
+    appendDeliveredHostToolResults();
+    const data = lifecycleData();
 
     await disposePiSession({ reason: 'quit' });
     await rm(hostRoot, { recursive: true, force: true });
@@ -1558,16 +1485,16 @@ export async function createPiSession(
       type: 'resume-session',
       harnessId: HARNESS_ID,
       specificationVersion: 'harness-v1',
-      data: sessionFileName ? { sessionFileName } : {},
+      data,
     };
   };
 
   const sessionImpl: HarnessV1Session = {
     sessionId: input.sessionId,
     isResume: input.isResume,
-    // Pi has no bridge to attach to and no on-disk event log to replay; its
-    // only resume path is restoring the session file on a fresh/snapshotted
-    // sandbox, i.e. `rerun`.
+    // Pi has no bridge to attach to and no event log to replay; its only
+    // resume path is rebuilding the session from the lifecycle entries, i.e.
+    // `rerun`.
 
     doPromptTurn: async (
       promptOpts: HarnessV1PromptTurnOptions,
@@ -1652,7 +1579,7 @@ export async function createPiSession(
         throw new Error('Pi session has been stopped.');
       }
       if (piSession == null) {
-        await rebuildPiSession([], true);
+        await rebuildPiSession([]);
         lastToolsSignature = JSON.stringify([]);
       }
       const session = piSession;
@@ -1695,22 +1622,11 @@ export async function createPiSession(
           input,
           stateType: 'resume-session',
         });
-        if (sessionFileName) {
-          try {
-            await persistSessionFile();
-          } catch {
-            /*
-             * The parked in-process session is the authoritative continuation
-             * path while the live turn is waiting on host input. Persistence is
-             * only a fallback for later non-live resumes.
-             */
-          }
-        }
         return {
           type: 'resume-session',
           harnessId: HARNESS_ID,
           specificationVersion: 'harness-v1',
-          data: sessionFileName ? { sessionFileName } : {},
+          data: lifecycleData(),
         };
       }
       return doStop();
@@ -1730,31 +1646,20 @@ export async function createPiSession(
           input,
           stateType: 'continue-turn',
         });
-        if (sessionFileName) {
-          try {
-            await persistSessionFile();
-          } catch {
-            /*
-             * While waiting on host input, the live parked session is the
-             * authoritative same-process continuation path. The sandbox copy
-             * remains a best-effort fallback for a later cold resume.
-             */
-          }
-        }
         return {
           type: 'continue-turn',
           harnessId: HARNESS_ID,
           specificationVersion: 'harness-v1',
-          data: sessionFileName ? { sessionFileName } : {},
+          data: lifecycleData(),
         };
       }
       /*
        * Pi's model runs in this host process, which is about to be suspended at
        * the slice boundary — the in-flight turn cannot survive it. Abort it (the
        * turn settles silently via the `suspending` guard so the stream closes
-       * cleanly), persist the journal into the sandbox, and tear down host-side
-       * resources. The sandbox itself is left running; the next slice pulls the
-       * journal after `provider.resumeSession({ sessionId })` and rerun-continues. The
+       * cleanly), return the journal as lifecycle data, and tear down host-side
+       * resources. The sandbox itself is left running; the next slice rebuilds
+       * the session from that data and rerun-continues. The
        * tail in flight at the boundary is recomputed — Pi cannot freeze a live
        * turn the way a bridge adapter can. With `suspendToolSettleMs` set, the
        * abort waits (bounded) until the turn is between model requests, so a
@@ -1775,21 +1680,8 @@ export async function createPiSession(
        * in the journal now — it will not be re-delivered — while calls still
        * awaiting results stay dangling for the next continuation to collect.
        */
-      try {
-        appendDeliveredHostToolResults();
-      } catch {
-        // Best-effort: an unwritable journal falls back to the pre-delivery copy.
-      }
-
-      if (sessionFileName) {
-        try {
-          await persistSessionFile();
-        } catch {
-          // Best-effort: a missing/failed copy leaves the previously persisted
-          // journal in place, so the next slice resumes from a slightly older
-          // (still valid) state.
-        }
-      }
+      appendDeliveredHostToolResults();
+      const data = lifecycleData();
 
       stopped = true;
       parkedPiSessions.delete(input.sessionId);
@@ -1800,7 +1692,7 @@ export async function createPiSession(
         type: 'continue-turn',
         harnessId: HARNESS_ID,
         specificationVersion: 'harness-v1',
-        data: sessionFileName ? { sessionFileName } : {},
+        data,
       };
     },
   };
