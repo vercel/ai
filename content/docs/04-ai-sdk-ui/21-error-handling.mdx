@@ -52,6 +52,20 @@ globalThis.AI_SDK_LOG_WARNINGS = ({ warnings, provider, model }) => {
 };
 ```
 
+If your application imports multiple AI SDK versions, the global logger accepts
+each version's callback type. Annotate your handler with `LogWarningsFunction`
+from your version of `ai` to retain contextual typing:
+
+```ts
+import type { LogWarningsFunction } from 'ai';
+
+const logger: LogWarningsFunction = ({ warnings, provider, model }) => {
+  // Handle warnings your own way
+};
+
+globalThis.AI_SDK_LOG_WARNINGS = logger;
+```
+
 ### Deprecation Warnings
 
 The default logger emits each deprecation code once per loaded SDK instance.
