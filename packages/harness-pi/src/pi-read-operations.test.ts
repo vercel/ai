@@ -1,11 +1,10 @@
-import { createReadToolDefinition } from '@earendil-works/pi-coding-agent';
 import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
 import { describe, expect, it } from 'vitest';
 import { createPiPathMapper } from './pi-paths';
-import { createPiSandboxReadOperations } from './pi-read-operations';
+import { executePiSandboxRead } from './pi-read-operations';
 import { createPiRemoteOps } from './pi-remote-ops';
 
-describe('createPiSandboxReadOperations with just-bash', () => {
+describe('executePiSandboxRead with just-bash', () => {
   it("lets Pi's read tool return a sandbox image as an image block", async () => {
     const sandboxWorkDir = '/sandbox/workspace';
     const session = await createJustBashSandbox({
@@ -28,9 +27,9 @@ describe('createPiSandboxReadOperations with just-bash', () => {
         }),
       });
 
-      const result = await createReadToolDefinition(sandboxWorkDir, {
-        operations: createPiSandboxReadOperations(remoteOps),
-      }).execute(
+      const result = await executePiSandboxRead(
+        remoteOps,
+        sandboxWorkDir,
         'tool-1',
         { path: `${sandboxWorkDir}/pixel.png` },
         undefined,
@@ -64,9 +63,9 @@ describe('createPiSandboxReadOperations with just-bash', () => {
         paths: createPiPathMapper({ sandboxWorkDir }),
       });
 
-      const result = await createReadToolDefinition(sandboxWorkDir, {
-        operations: createPiSandboxReadOperations(remoteOps),
-      }).execute(
+      const result = await executePiSandboxRead(
+        remoteOps,
+        sandboxWorkDir,
         'tool-1',
         { path: `${sandboxWorkDir}/notes.txt` },
         undefined,

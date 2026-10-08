@@ -93,7 +93,9 @@ const piMock = vi.hoisted(() => {
     registerProvider: vi.fn(),
     session: undefined as AgentSession | undefined,
     sessionManagerInMemory: vi.fn(),
-    sessionManagers: [] as Array<ReturnType<typeof createJournal>['journal']>,
+    sessionManagers: [] as Array<
+      ReturnType<typeof createFakeSessionManager>['sessionManager']
+    >,
   };
 });
 
@@ -206,7 +208,7 @@ describe('createPiSession', () => {
     piMock.sessionManagers = [];
     piMock.sessionManagerInMemory.mockReset();
     piMock.sessionManagerInMemory.mockImplementation(
-      () => createJournal([]).journal,
+      () => createFakeSessionManager([]).sessionManager,
     );
   });
 
@@ -1175,9 +1177,9 @@ describe('createPiSession', () => {
     const answer = assistantText('PELICAN noted.', 'stop');
     piMock.session = createFakePiSession({
       promptImplementation: async text => {
-        const journal = piMock.sessionManagers.at(-1)!;
-        journal.appendMessage(userMessage(text));
-        journal.appendMessage(answer);
+        const sessionManager = piMock.sessionManagers.at(-1)!;
+        sessionManager.appendMessage(userMessage(text));
+        sessionManager.appendMessage(answer);
       },
     }).session;
     const harness = createPi();
@@ -1239,11 +1241,11 @@ describe('createPiSession', () => {
     const partialAnswer = assistantText('Half an ans', 'aborted');
     const { session: firstPiSession, abort } = createFakePiSession({
       promptImplementation: async text => {
-        const journal = piMock.sessionManagers.at(-1)!;
-        journal.appendMessage(userMessage(text));
+        const sessionManager = piMock.sessionManagers.at(-1)!;
+        sessionManager.appendMessage(userMessage(text));
         promptStarted.resolve();
         await aborted.promise;
-        journal.appendMessage(partialAnswer);
+        sessionManager.appendMessage(partialAnswer);
       },
     });
     abort.mockImplementation(async () => aborted.resolve());
@@ -2061,8 +2063,10 @@ describe('createPiSession', () => {
   it('initializes the restored Pi session before compacting a cold resume', async () => {
     const { session: fakePiSession, compact, prompt } = createFakePiSession();
     piMock.session = fakePiSession;
-    const { journal, entries } = createJournal([userMessage('remember this')]);
-    piMock.sessionManagerInMemory.mockImplementation(() => journal);
+    const { sessionManager, entries } = createFakeSessionManager([
+      userMessage('remember this'),
+    ]);
+    piMock.sessionManagerInMemory.mockImplementation(() => sessionManager);
 
     const session = await createPiSession({
       sessionId: 'session-cold-resume-compaction',
@@ -2085,7 +2089,7 @@ describe('createPiSession', () => {
         withSessionId(entries, 'session-cold-resume-compaction'),
       );
       expect(piMock.createAgentSession).toHaveBeenCalledWith(
-        expect.objectContaining({ sessionManager: journal }),
+        expect.objectContaining({ sessionManager }),
       );
       expect(compact).toHaveBeenCalledWith('preserve the decisions');
 
@@ -2465,11 +2469,12 @@ describe('createPiSession', () => {
   it('holds a cross-process rerun until dangling host tool results arrive, then injects them into the journal', async () => {
     const { session: fakePiSession, prompt } = createFakePiSession();
     piMock.session = fakePiSession;
-    const { journal, appendedMessages, entries } = createJournal([
-      userMessage('ask the user something'),
-      assistantMessageWithToolCalls([{ id: 'tool-1', name: 'askUser' }]),
-    ]);
-    piMock.sessionManagerInMemory.mockImplementation(() => journal);
+    const { sessionManager, appendedMessages, entries } =
+      createFakeSessionManager([
+        userMessage('ask the user something'),
+        assistantMessageWithToolCalls([{ id: 'tool-1', name: 'askUser' }]),
+      ]);
+    piMock.sessionManagerInMemory.mockImplementation(() => sessionManager);
 
     const sandboxSession = createThrowingSandboxSession();
     const session = await createPiSession({
@@ -2549,11 +2554,12 @@ describe('createPiSession', () => {
   it('preserves the error flag when injecting a cross-process tool result', async () => {
     const { session: fakePiSession } = createFakePiSession();
     piMock.session = fakePiSession;
-    const { journal, appendedMessages, entries } = createJournal([
-      userMessage('call the tool'),
-      assistantMessageWithToolCalls([{ id: 'tool-1', name: 'askUser' }]),
-    ]);
-    piMock.sessionManagerInMemory.mockImplementation(() => journal);
+    const { sessionManager, appendedMessages, entries } =
+      createFakeSessionManager([
+        userMessage('call the tool'),
+        assistantMessageWithToolCalls([{ id: 'tool-1', name: 'askUser' }]),
+      ]);
+    piMock.sessionManagerInMemory.mockImplementation(() => sessionManager);
 
     const session = await createPiSession({
       sessionId: 'session-cross-process-error',
@@ -2606,7 +2612,7 @@ describe('createPiSession', () => {
   it('reruns immediately on cross-process resume when the journal has no dangling host tool calls', async () => {
     const { session: fakePiSession, prompt } = createFakePiSession();
     piMock.session = fakePiSession;
-    const { journal, entries } = createJournal([
+    const { sessionManager, entries } = createFakeSessionManager([
       userMessage('ask the user something'),
       assistantMessageWithToolCalls([{ id: 'tool-1', name: 'askUser' }]),
       {
@@ -2618,7 +2624,7 @@ describe('createPiSession', () => {
         timestamp: 0,
       },
     ]);
-    piMock.sessionManagerInMemory.mockImplementation(() => journal);
+    piMock.sessionManagerInMemory.mockImplementation(() => sessionManager);
 
     const sandboxSession = createThrowingSandboxSession();
     const session = await createPiSession({
@@ -2640,20 +2646,21 @@ describe('createPiSession', () => {
 
     expect(prompt).toHaveBeenCalledTimes(1);
     expect(prompt).toHaveBeenCalledWith('');
-    expect(journal.appendMessage).not.toHaveBeenCalled();
+    expect(sessionManager.appendMessage).not.toHaveBeenCalled();
   });
 
   it('does not re-await results already delivered by a previous continuation of the same session', async () => {
     const { session: fakePiSession, prompt } = createFakePiSession();
     piMock.session = fakePiSession;
-    const { journal, appendedMessages, entries } = createJournal([
-      userMessage('ask the user two things'),
-      assistantMessageWithToolCalls([
-        { id: 'tool-1', name: 'askUser' },
-        { id: 'tool-2', name: 'askUser' },
-      ]),
-    ]);
-    piMock.sessionManagerInMemory.mockImplementation(() => journal);
+    const { sessionManager, appendedMessages, entries } =
+      createFakeSessionManager([
+        userMessage('ask the user two things'),
+        assistantMessageWithToolCalls([
+          { id: 'tool-1', name: 'askUser' },
+          { id: 'tool-2', name: 'askUser' },
+        ]),
+      ]);
+    piMock.sessionManagerInMemory.mockImplementation(() => sessionManager);
 
     const sandboxSession = createThrowingSandboxSession();
     const session = await createPiSession({
@@ -2721,14 +2728,15 @@ describe('createPiSession', () => {
   it('flushes results delivered before a suspend into the journal so a later resume sees them', async () => {
     const { session: fakePiSession, prompt } = createFakePiSession();
     piMock.session = fakePiSession;
-    const { journal, appendedMessages, entries } = createJournal([
-      userMessage('ask the user two things'),
-      assistantMessageWithToolCalls([
-        { id: 'tool-1', name: 'askUser' },
-        { id: 'tool-2', name: 'askUser' },
-      ]),
-    ]);
-    piMock.sessionManagerInMemory.mockImplementation(() => journal);
+    const { sessionManager, appendedMessages, entries } =
+      createFakeSessionManager([
+        userMessage('ask the user two things'),
+        assistantMessageWithToolCalls([
+          { id: 'tool-1', name: 'askUser' },
+          { id: 'tool-2', name: 'askUser' },
+        ]),
+      ]);
+    piMock.sessionManagerInMemory.mockImplementation(() => sessionManager);
 
     const sandboxSession = createThrowingSandboxSession();
     const session = await createPiSession({
@@ -2896,11 +2904,12 @@ describe('createPiSession', () => {
       ],
     });
     piMock.session = fakePiSession;
-    const { journal, appendedMessages, entries } = createJournal([
-      userMessage('ask the user something'),
-      assistantMessageWithToolCalls([{ id: 'tool-1', name: 'askUser' }]),
-    ]);
-    piMock.sessionManagerInMemory.mockImplementation(() => journal);
+    const { sessionManager, appendedMessages, entries } =
+      createFakeSessionManager([
+        userMessage('ask the user something'),
+        assistantMessageWithToolCalls([{ id: 'tool-1', name: 'askUser' }]),
+      ]);
+    piMock.sessionManagerInMemory.mockImplementation(() => sessionManager);
     const sandboxSession = createSandboxSession();
     const continueFrom: HarnessAgentContinueTurnState = {
       type: 'continue-turn',
@@ -3130,11 +3139,11 @@ async function startDeferredCrossProcessRerun({
   abortSignal?: AbortSignal;
 }) {
   const { session: fakePiSession, prompt, dispose } = createFakePiSession();
-  const { journal, entries } = createJournal([
+  const { sessionManager, entries } = createFakeSessionManager([
     userMessage('ask the user something'),
     assistantMessageWithToolCalls([{ id: 'tool-1', name: 'askUser' }]),
   ]);
-  piMock.sessionManagerInMemory.mockImplementation(() => journal);
+  piMock.sessionManagerInMemory.mockImplementation(() => sessionManager);
   const agentSessionCreation = createDeferred<{ session: AgentSession }>();
   piMock.createAgentSession.mockImplementation(
     async () => agentSessionCreation.promise,
@@ -3200,14 +3209,14 @@ function toolResultEntry(toolCallId: string) {
   });
 }
 
-function createJournal(messages: unknown[]) {
+function createFakeSessionManager(messages: unknown[]) {
   const entries = [
     sessionHeader,
     ...messages.map(messageEntry),
   ] as unknown as PiSessionEntries;
   const appendedMessages: unknown[] = [];
   const journalEntries = messages.map(messageEntry);
-  const journal = {
+  const sessionManager = {
     getHeader: () => sessionHeader,
     getEntries: () => [...journalEntries],
     buildSessionContext: () => ({
@@ -3220,7 +3229,7 @@ function createJournal(messages: unknown[]) {
       return entry.id;
     }),
   };
-  return { journal, appendedMessages, entries };
+  return { sessionManager, appendedMessages, entries };
 }
 
 function userMessage(text: string) {

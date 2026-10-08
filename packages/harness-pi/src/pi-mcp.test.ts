@@ -8,7 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   close,
   createFakePi,
-  createScriptedModelServer,
+  createScriptedModelServerThenDone,
   listen,
   readBody,
   type ModelRequestBody,
@@ -203,7 +203,7 @@ const declaredToolNames = (body: ModelRequestBody | undefined): string[] =>
 
 describe("Pi's native MCP over streamable HTTP", () => {
   const mcp = createMcpServer();
-  const model = createScriptedModelServer();
+  const model = createScriptedModelServerThenDone();
   model.enqueue(...MODEL_SCRIPT);
   const agentDir = mkdtempSync(path.join(tmpdir(), 'pi-mcp-agent-'));
   const previousAgentDir = process.env.PI_CODING_AGENT_DIR;

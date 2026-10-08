@@ -61,7 +61,7 @@ import {
   resolvePiSandboxPathOrParent,
   type PiRemoteOps,
 } from './pi-remote-ops';
-import { createPiSandboxReadOperations } from './pi-read-operations';
+import { executePiSandboxRead } from './pi-read-operations';
 import {
   truncatePiToolOutputHead,
   truncatePiToolOutputTail,
@@ -89,7 +89,7 @@ const HARNESS_ID = 'pi';
 
 const PI_SESSION_ID_PATTERN = /^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?$/;
 
-const parkedPiSessions = new Map<
+const sessionsParkedOnHostInput = new Map<
   string,
   {
     session: HarnessV1Session;
@@ -435,9 +435,9 @@ export async function createPiSession(
   input: CreatePiSessionInput,
 ): Promise<HarnessV1Session> {
   if (input.isResume) {
-    const parked = parkedPiSessions.get(input.sessionId);
+    const parked = sessionsParkedOnHostInput.get(input.sessionId);
     if (parked) {
-      parkedPiSessions.delete(input.sessionId);
+      sessionsParkedOnHostInput.delete(input.sessionId);
       if (
         input.settings.reattachInProcess !== false &&
         (input.resumeStateType == null ||
@@ -1265,6 +1265,7 @@ export async function createPiSession(
     };
 
     const turnPromise = (async () => {
+      let stage: 'preparing' | 'prompting' = 'preparing';
       try {
         await applySessionInstructions(turnOpts.instructions);
         turnAbortController.signal.throwIfAborted();
@@ -1347,39 +1348,32 @@ export async function createPiSession(
 
         const session = piSession!;
         const tokensBefore = session.getSessionStats().tokens;
-        try {
-          await session.prompt(turnOpts.text);
+        stage = 'prompting';
+        await session.prompt(turnOpts.text);
 
-          const terminalError = turnState.turnError;
-          if (terminalError) {
-            if (suspending) return;
-            currentEmit?.({ type: 'error', error: new Error(terminalError) });
-            return;
-          }
+        const terminalError = turnState.turnError;
+        if (terminalError) throw new Error(terminalError);
 
-          const tokensAfter = session.getSessionStats().tokens;
-          const finishReason = {
-            unified: 'stop' as const,
-            raw: undefined,
-          };
-          currentEmit?.({
-            type: 'finish',
-            finishReason,
-            totalUsage: toHarnessUsage({
-              input: tokensAfter.input - tokensBefore.input,
-              output: tokensAfter.output - tokensBefore.output,
-              cacheRead: tokensAfter.cacheRead - tokensBefore.cacheRead,
-              cacheWrite: tokensAfter.cacheWrite - tokensBefore.cacheWrite,
-              reasoning: turnState.turnReasoningTokens,
-            }),
-          });
-        } catch (err) {
-          if (suspending) return;
-          currentEmit?.({ type: 'error', error: err });
-        }
+        const tokensAfter = session.getSessionStats().tokens;
+        const finishReason = {
+          unified: 'stop' as const,
+          raw: undefined,
+        };
+        currentEmit?.({
+          type: 'finish',
+          finishReason,
+          totalUsage: toHarnessUsage({
+            input: tokensAfter.input - tokensBefore.input,
+            output: tokensAfter.output - tokensBefore.output,
+            cacheRead: tokensAfter.cacheRead - tokensBefore.cacheRead,
+            cacheWrite: tokensAfter.cacheWrite - tokensBefore.cacheWrite,
+            reasoning: turnState.turnReasoningTokens,
+          }),
+        });
       } catch (err) {
         if (suspending) return;
-        throw err;
+        if (stage === 'preparing') throw err;
+        currentEmit?.({ type: 'error', error: err });
       }
     })();
 
@@ -1408,7 +1402,7 @@ export async function createPiSession(
       throw new Error('Pi session has been stopped.');
     }
     stopped = true;
-    parkedPiSessions.delete(input.sessionId);
+    sessionsParkedOnHostInput.delete(input.sessionId);
     deferredRerun?.cancel();
     const turnToStop = activeTurn;
     const abortingTurn = turnToStop?.abort();
@@ -1542,7 +1536,7 @@ export async function createPiSession(
     doDestroy: async () => {
       if (stopped) return;
       stopped = true;
-      parkedPiSessions.delete(input.sessionId);
+      sessionsParkedOnHostInput.delete(input.sessionId);
       deferredRerun?.cancel();
       const turnToDestroy = activeTurn;
       const abortingTurn = turnToDestroy?.abort();
@@ -1561,7 +1555,7 @@ export async function createPiSession(
         input.settings.reattachInProcess !== false &&
         (activeTurn != null || pendingToolResults.size > 0)
       ) {
-        parkedPiSessions.set(input.sessionId, {
+        sessionsParkedOnHostInput.set(input.sessionId, {
           session: sessionImpl,
           input,
           stateType: 'resume-session',
@@ -1585,7 +1579,7 @@ export async function createPiSession(
         activeTurn != null &&
         (pendingToolResults.size > 0 || pendingToolApprovals.size > 0)
       ) {
-        parkedPiSessions.set(input.sessionId, {
+        sessionsParkedOnHostInput.set(input.sessionId, {
           session: sessionImpl,
           input,
           stateType: 'continue-turn',
@@ -1616,7 +1610,7 @@ export async function createPiSession(
       const data = lifecycleData();
 
       stopped = true;
-      parkedPiSessions.delete(input.sessionId);
+      sessionsParkedOnHostInput.delete(input.sessionId);
       await disposePiSession({ reason: 'quit' });
       await rm(hostRoot, { recursive: true, force: true });
 
@@ -1718,9 +1712,9 @@ function buildBuiltinToolDefinition(input: {
           const { ops } = approval;
           // Pi expands `~` against the host home, so map the path first.
           const sandboxPath = ops.paths.toReadableSandboxPath(params.file_path);
-          return createReadToolDefinition(input.sessionWorkDir, {
-            operations: createPiSandboxReadOperations(ops),
-          }).execute(
+          return executePiSandboxRead(
+            ops,
+            input.sessionWorkDir,
             toolCallId,
             { path: sandboxPath, offset: params.offset, limit: params.limit },
             signal,
