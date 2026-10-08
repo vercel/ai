@@ -23,6 +23,9 @@ minimumReleaseAgeExclude:
   - '@ai-sdk/*'
   - '@vercel/*'
   - 'ai'
+  # Workflow SDK packages are maintained by Vercel and released together.
+  - '@workflow/*'
+  - 'workflow'
 
 allowBuilds:
   '@google/genai': false

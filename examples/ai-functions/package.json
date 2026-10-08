@@ -99,7 +99,7 @@
     "terminal-image": "^2.0.0",
     "undici": "^8.9.0",
     "valibot": "1.1.0",
-    "workflow": "5.0.0-beta.42",
+    "workflow": "5.1.0",
     "ws": "^8.21.0",
     "zod": "3.25.76"
   },
