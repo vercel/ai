@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 4.0.26
+
+### Patch Changes
+
+- 4dbc902: feat(ai): add a top level 'dimensions' setting for embeddding functions
+
 ## 4.0.25
 
 ### Patch Changes

@@ -62,6 +62,7 @@ export class MistralEmbeddingModel implements EmbeddingModelV4 {
 
   async doEmbed({
     values,
+    dimensions,
     abortSignal,
     headers,
     providerOptions,
@@ -95,7 +96,7 @@ export class MistralEmbeddingModel implements EmbeddingModelV4 {
         model: this.modelId,
         input: values,
         metadata: mistralOptions.metadata,
-        output_dimension: mistralOptions.outputDimension,
+        output_dimension: mistralOptions.outputDimension ?? dimensions,
         output_dtype: mistralOptions.outputDtype,
         encoding_format: 'float',
       },

@@ -170,9 +170,11 @@ export class DecisionOpenAIModel implements DecisionModelV4 {
                   functionality: `OpenAI decision image media type: ${part.mediaType}`,
                 });
               }
+              const detail = part.providerOptions?.openai?.imageDetail;
               return {
                 type: 'input_image',
                 image_url: `data:${mediaType};base64,${typeof part.data.data === 'string' ? part.data.data : convertUint8ArrayToBase64(part.data.data)}`,
+                ...(detail != null && { detail }),
               };
             }),
           },
