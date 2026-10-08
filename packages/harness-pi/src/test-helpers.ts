@@ -1,12 +1,16 @@
 import type { HarnessV1NetworkSandboxSession } from '@ai-sdk/harness';
 import { createServer, type IncomingMessage, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { vi } from 'vitest';
 import { createPi, type PiHarnessSettings } from './pi-harness';
 
 export type ModelRequestBody = {
   readonly messages: ReadonlyArray<{
     readonly role: string;
     readonly content: unknown;
+  }>;
+  readonly tools?: ReadonlyArray<{
+    readonly function: { readonly name: string };
   }>;
 };
 
@@ -17,7 +21,7 @@ const STOP_CHUNKS: ModelResponseChunks = [
   { choices: [{ index: 0, delta: {}, finish_reason: 'stop' }] },
 ];
 
-const readBody = async (request: IncomingMessage): Promise<string> => {
+export const readBody = async (request: IncomingMessage): Promise<string> => {
   const chunks: Buffer[] = [];
   for await (const chunk of request) chunks.push(chunk as Buffer);
   return Buffer.concat(chunks).toString('utf8');
@@ -81,9 +85,10 @@ export const createFakePi = (
     ...settings,
   });
 
-const untouchable = async (): Promise<never> => {
-  throw new Error('sandbox must not be touched');
-};
+const untouchable = () =>
+  vi.fn(async (): Promise<never> => {
+    throw new Error('sandbox must not be touched');
+  });
 
 export const createThrowingSandboxSession =
   (): HarnessV1NetworkSandboxSession => {
@@ -92,18 +97,18 @@ export const createThrowingSandboxSession =
       description: 'throwing sandbox',
       defaultWorkingDirectory: '/sandbox',
       ports: [],
-      run: untouchable,
-      spawn: untouchable,
-      readFile: untouchable,
-      readBinaryFile: untouchable,
-      readTextFile: untouchable,
-      writeFile: untouchable,
-      writeBinaryFile: untouchable,
-      writeTextFile: untouchable,
-      stop: untouchable,
-      destroy: untouchable,
-      getPortEndpoint: untouchable,
-      getPortUrl: untouchable,
+      run: untouchable(),
+      spawn: untouchable(),
+      readFile: untouchable(),
+      readBinaryFile: untouchable(),
+      readTextFile: untouchable(),
+      writeFile: untouchable(),
+      writeBinaryFile: untouchable(),
+      writeTextFile: untouchable(),
+      stop: untouchable(),
+      destroy: untouchable(),
+      getPortEndpoint: untouchable(),
+      getPortUrl: untouchable(),
       restricted: () => sandbox,
     };
     return sandbox;

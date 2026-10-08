@@ -92,7 +92,9 @@ export function createPiPathMapper(
         isInsidePosixPath(root.sandboxDir, normalizedInput),
       )
     ) {
-      throw new Error(`Pi path escapes the readable roots: ${inputPath}`);
+      throw new Error(
+        `Pi path escapes the workspace and readable roots: ${inputPath}`,
+      );
     }
     return normalizedInput;
   };
@@ -114,15 +116,11 @@ export function createPiPathMapper(
       );
     },
     toReadableSandboxPath(inputPath: string) {
-      const sandboxPath = path.posix.normalize(
-        absoluteSandboxPath(expandHome(inputPath)),
-      );
       return assertNotDenied(
-        readableRoots.some(root =>
-          isInsidePosixPath(root.sandboxDir, sandboxPath),
-        )
-          ? sandboxPath
-          : assertWorkspaceSandboxPath(sandboxPath, inputPath),
+        assertReadableSandboxPath(
+          absoluteSandboxPath(expandHome(inputPath)),
+          inputPath,
+        ),
         inputPath,
       );
     },
