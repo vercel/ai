@@ -7,7 +7,10 @@ import { tool } from '@ai-sdk/provider-utils';
 import type { ProviderConfig } from '@earendil-works/pi-coding-agent';
 import { z } from 'zod/v4';
 import type { PiAuthenticationMode, PiCredentialStore } from './pi-auth';
-import { piLifecycleStateSchema } from './pi-lifecycle-state';
+import {
+  piLifecycleStateSchema,
+  type PiLifecycleData,
+} from './pi-lifecycle-state';
 import {
   createPiSession,
   type PiCacheRetention,
@@ -223,10 +226,9 @@ export function createPi(
     lifecycleStateSchema: piLifecycleStateSchema,
     doStart: async startOpts => {
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
-      const resumeEntries =
-        lifecycleState == null
-          ? undefined
-          : piLifecycleStateSchema.parse(lifecycleState.data).entries;
+      const resumeEntries = (
+        lifecycleState?.data as PiLifecycleData | undefined
+      )?.entries;
 
       return createPiSession({
         sessionId: startOpts.sessionId,

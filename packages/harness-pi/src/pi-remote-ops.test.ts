@@ -425,23 +425,23 @@ describe('createPiRemoteOps with just-bash', () => {
       });
 
       await expect(ops.readBuffer('outside-link/secret.txt')).rejects.toThrow(
-        /escapes the readable roots/,
+        /escapes the workspace and readable roots/,
       );
       await expect(
         ops.writeFile('outside-link/written.txt', 'should not be written\n'),
       ).rejects.toThrow(/escapes the workspace/);
       await expect(
         ops.editFile('outside-link/edit.txt', 'old', 'updated'),
-      ).rejects.toThrow(/escapes the readable roots/);
+      ).rejects.toThrow(/escapes the workspace and readable roots/);
       await expect(ops.findFiles('*.txt', 'outside-link')).rejects.toThrow(
-        /escapes the readable roots/,
+        /escapes the workspace and readable roots/,
       );
       await expect(
         ops.grepFiles('secret', {
           path: 'outside-link',
           literal: true,
         }),
-      ).rejects.toThrow(/escapes the readable roots/);
+      ).rejects.toThrow(/escapes the workspace and readable roots/);
 
       await expect(
         sandbox.readTextFile({ path: `${outsideDir}/edit.txt` }),
@@ -632,7 +632,7 @@ describe('createPiRemoteOps.readBuffer', () => {
 
     await expect(
       env.ops.readBuffer('repo-controlled-secret-link'),
-    ).rejects.toThrow(/escapes the readable roots/);
+    ).rejects.toThrow(/escapes the workspace and readable roots/);
     expect(env.readCalls).toEqual([]);
   });
 
@@ -981,7 +981,7 @@ describe('createPiRemoteOps.grepFiles', () => {
         path: 'repo-controlled-secret-link',
         literal: true,
       }),
-    ).rejects.toThrow(/escapes the readable roots/);
+    ).rejects.toThrow(/escapes the workspace and readable roots/);
     expect(env.runCalls.some(call => call.command.includes('grep '))).toBe(
       false,
     );

@@ -114,25 +114,17 @@ function createHarnessPiSkills({
   skills: ReadonlyArray<HarnessV1Skill>;
   sandboxSkillRootDir: string;
 }): Skill[] {
-  return skills.map(skill => {
-    const name = safePiMetadataSegment(skill.name, 'skill');
-    const baseDir = path.posix.join(sandboxSkillRootDir, name);
-    const filePath = path.posix.join(baseDir, 'SKILL.md');
-    return {
+  return createConfiguredPiSkills(
+    skills.map(skill => ({
       name: skill.name,
       description: skill.description,
-      filePath,
-      baseDir,
-      sourceInfo: {
-        path: filePath,
-        source: 'harness',
-        scope: 'temporary',
-        origin: 'top-level',
-        baseDir,
-      },
-      disableModelInvocation: false,
-    };
-  });
+      filePath: path.posix.join(
+        sandboxSkillRootDir,
+        safePiMetadataSegment(skill.name, 'skill'),
+        'SKILL.md',
+      ),
+    })),
+  );
 }
 
 const PI_NATIVE_BUILTIN_NAMES = [
@@ -512,20 +504,21 @@ export async function createPiSession(
   let sandboxPaths: Promise<PiSandboxPaths> | undefined;
   const resolveSandboxPaths = (): Promise<PiSandboxPaths> => {
     sandboxPaths ??= (async () => {
-      const canonicalDeniedRoots: string[] = [];
-      for (const deniedRoot of fileToolPathPolicy?.deniedRoots ?? []) {
-        canonicalDeniedRoots.push(
-          await resolvePiSandboxPathOrParent({
-            sandbox: toolSafeSandboxSession,
-            remotePath: path.posix.normalize(deniedRoot),
-            inputPath: deniedRoot,
-          }),
-        );
-      }
-      const homeDir = await resolveSandboxHomeDir({
-        sandbox: toolSafeSandboxSession,
-        ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
-      });
+      const [canonicalDeniedRoots, homeDir] = await Promise.all([
+        Promise.all(
+          (fileToolPathPolicy?.deniedRoots ?? []).map(deniedRoot =>
+            resolvePiSandboxPathOrParent({
+              sandbox: toolSafeSandboxSession,
+              remotePath: path.posix.normalize(deniedRoot),
+              inputPath: deniedRoot,
+            }),
+          ),
+        ),
+        resolveSandboxHomeDir({
+          sandbox: toolSafeSandboxSession,
+          ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
+        }),
+      ]);
       const skillRootDir = path.posix.join(homeDir, '.agents', 'skills');
       const paths = createPiPathMapper({
         sandboxWorkDir: sessionWorkDir,
@@ -1722,27 +1715,6 @@ function asPiToolResult(text: string): AgentToolResult<unknown> {
   };
 }
 
-async function maybeDenyPiBuiltinTool(input: {
-  toolCallId: string;
-  nativeName: (typeof PI_NATIVE_BUILTIN_NAMES)[number];
-  requestApproval: (args: {
-    toolCallId: string;
-    nativeName: (typeof PI_NATIVE_BUILTIN_NAMES)[number];
-  }) => Promise<{ approved: boolean; reason?: string }>;
-}): Promise<AgentToolResult<unknown> | undefined> {
-  const decision = await input.requestApproval({
-    toolCallId: input.toolCallId,
-    nativeName: input.nativeName,
-  });
-  if (decision.approved) return undefined;
-  return asPiToolResult(
-    serializeToolOutput({
-      type: 'execution-denied',
-      reason: decision.reason,
-    }),
-  );
-}
-
 function piBuiltinToolRequiresApproval(input: {
   permissionMode: HarnessV1PermissionMode;
   kind: 'readonly' | 'edit' | 'bash';
@@ -1761,6 +1733,25 @@ function buildBuiltinToolDefinition(input: {
     nativeName: (typeof PI_NATIVE_BUILTIN_NAMES)[number];
   }) => Promise<{ approved: boolean; reason?: string }>;
 }): ToolDefinition {
+  const approvedOps = async (
+    toolCallId: string,
+  ): Promise<{ ops: PiRemoteOps } | { denied: AgentToolResult<unknown> }> => {
+    const decision = await input.requestApproval({
+      toolCallId,
+      nativeName: input.native,
+    });
+    if (!decision.approved) {
+      return {
+        denied: asPiToolResult(
+          serializeToolOutput({
+            type: 'execution-denied',
+            reason: decision.reason,
+          }),
+        ),
+      };
+    }
+    return { ops: await input.remoteOps() };
+  };
   switch (input.native) {
     case 'read':
       return defineTool({
@@ -1783,13 +1774,9 @@ function buildBuiltinToolDefinition(input: {
           ),
         }),
         async execute(toolCallId, params, signal, onUpdate, ctx) {
-          const denied = await maybeDenyPiBuiltinTool({
-            toolCallId,
-            nativeName: 'read',
-            requestApproval: input.requestApproval,
-          });
-          if (denied) return denied;
-          const ops = await input.remoteOps();
+          const approval = await approvedOps(toolCallId);
+          if ('denied' in approval) return approval.denied;
+          const { ops } = approval;
           // Pi expands `~` against the host home, so map the path first.
           const sandboxPath = ops.paths.toReadableSandboxPath(params.file_path);
           return createReadToolDefinition(input.sessionWorkDir, {
@@ -1813,13 +1800,9 @@ function buildBuiltinToolDefinition(input: {
           content: Type.String(),
         }),
         async execute(toolCallId, params) {
-          const denied = await maybeDenyPiBuiltinTool({
-            toolCallId,
-            nativeName: 'write',
-            requestApproval: input.requestApproval,
-          });
-          if (denied) return denied;
-          const ops = await input.remoteOps();
+          const approval = await approvedOps(toolCallId);
+          if ('denied' in approval) return approval.denied;
+          const { ops } = approval;
           await ops.writeFile(params.file_path, params.content);
           return asPiToolResult(`Wrote ${params.file_path}`);
         },
@@ -1835,13 +1818,9 @@ function buildBuiltinToolDefinition(input: {
           new_string: Type.String(),
         }),
         async execute(toolCallId, params) {
-          const denied = await maybeDenyPiBuiltinTool({
-            toolCallId,
-            nativeName: 'edit',
-            requestApproval: input.requestApproval,
-          });
-          if (denied) return denied;
-          const ops = await input.remoteOps();
+          const approval = await approvedOps(toolCallId);
+          if ('denied' in approval) return approval.denied;
+          const { ops } = approval;
           await ops.editFile(
             params.file_path,
             params.old_string,
@@ -1862,13 +1841,9 @@ function buildBuiltinToolDefinition(input: {
           ),
         }),
         async execute(toolCallId, params, signal) {
-          const denied = await maybeDenyPiBuiltinTool({
-            toolCallId,
-            nativeName: 'bash',
-            requestApproval: input.requestApproval,
-          });
-          if (denied) return denied;
-          const ops = await input.remoteOps();
+          const approval = await approvedOps(toolCallId);
+          if ('denied' in approval) return approval.denied;
+          const { ops } = approval;
           const chunks: Buffer[] = [];
           const result = await ops.exec(params.command, '.', {
             onData(data) {
@@ -1906,13 +1881,9 @@ function buildBuiltinToolDefinition(input: {
           limit: Type.Optional(Type.Number()),
         }),
         async execute(toolCallId, params) {
-          const denied = await maybeDenyPiBuiltinTool({
-            toolCallId,
-            nativeName: 'grep',
-            requestApproval: input.requestApproval,
-          });
-          if (denied) return denied;
-          const ops = await input.remoteOps();
+          const approval = await approvedOps(toolCallId);
+          if ('denied' in approval) return approval.denied;
+          const { ops } = approval;
           const out = await ops.grepFiles(params.pattern, params);
           return asPiToolResult(
             truncatePiToolOutputHead(
@@ -1933,13 +1904,9 @@ function buildBuiltinToolDefinition(input: {
           limit: Type.Optional(Type.Number()),
         }),
         async execute(toolCallId, params) {
-          const denied = await maybeDenyPiBuiltinTool({
-            toolCallId,
-            nativeName: 'find',
-            requestApproval: input.requestApproval,
-          });
-          if (denied) return denied;
-          const ops = await input.remoteOps();
+          const approval = await approvedOps(toolCallId);
+          if ('denied' in approval) return approval.denied;
+          const { ops } = approval;
           const matches = await ops.findFiles(
             params.pattern,
             params.path ?? '.',
@@ -1963,13 +1930,9 @@ function buildBuiltinToolDefinition(input: {
           limit: Type.Optional(Type.Number()),
         }),
         async execute(toolCallId, params) {
-          const denied = await maybeDenyPiBuiltinTool({
-            toolCallId,
-            nativeName: 'ls',
-            requestApproval: input.requestApproval,
-          });
-          if (denied) return denied;
-          const ops = await input.remoteOps();
+          const approval = await approvedOps(toolCallId);
+          if ('denied' in approval) return approval.denied;
+          const { ops } = approval;
           const entries = await ops.listDirectory(
             params.path ?? '.',
             params.limit ?? 500,

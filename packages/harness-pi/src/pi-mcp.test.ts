@@ -1,17 +1,18 @@
 import type { HarnessV1StreamPart } from '@ai-sdk/harness';
 import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
 import { mkdtempSync, readdirSync, rmSync } from 'node:fs';
-import {
-  createServer,
-  type IncomingMessage,
-  type Server,
-  type ServerResponse,
-} from 'node:http';
-import type { AddressInfo } from 'node:net';
+import { createServer, type ServerResponse } from 'node:http';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createPi } from './pi-harness';
+import {
+  close,
+  createFakePi,
+  createScriptedModelServer,
+  listen,
+  readBody,
+  type ModelRequestBody,
+} from './test-helpers';
 
 const MCP_TOKEN = 'mcp-test-token';
 
@@ -51,26 +52,6 @@ const MCP_SERVERS: Readonly<Record<string, Readonly<Record<string, McpTool>>>> =
       },
     },
   };
-
-type ModelRequestBody = {
-  readonly tools?: ReadonlyArray<{
-    readonly function: { readonly name: string };
-  }>;
-};
-
-const readBody = async (request: IncomingMessage): Promise<string> => {
-  const chunks: Buffer[] = [];
-  for await (const chunk of request) chunks.push(chunk as Buffer);
-  return Buffer.concat(chunks).toString('utf8');
-};
-
-const listen = async (server: Server): Promise<string> => {
-  await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
-  return `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
-};
-
-const close = (server: Server): Promise<void> =>
-  new Promise(resolve => server.close(() => resolve()));
 
 const createMcpServer = () => {
   const requests: McpRequestRecord[] = [];
@@ -215,35 +196,15 @@ const toolCallChunks = (name: string, args: object): object[] => [
 const MODEL_SCRIPT: ReadonlyArray<ReadonlyArray<object>> = [
   toolCallChunks('tool_search', { query: 'brand check' }),
   toolCallChunks('mcp__brand_ai__brand_check', { query: 'hello' }),
-  [
-    { choices: [{ index: 0, delta: { role: 'assistant', content: 'done' } }] },
-    { choices: [{ index: 0, delta: {}, finish_reason: 'stop' }] },
-  ],
 ];
-
-const createModelServer = () => {
-  const requests: ModelRequestBody[] = [];
-  const server = createServer(async (request, response) => {
-    const body: ModelRequestBody = JSON.parse(await readBody(request));
-    const chunks = MODEL_SCRIPT[requests.length] ?? MODEL_SCRIPT.at(-1)!;
-    requests.push(body);
-    response.writeHead(200, { 'content-type': 'text/event-stream' });
-    for (const chunk of chunks) {
-      response.write(
-        `data: ${JSON.stringify({ id: 'chatcmpl-test', model: 'fake-model', ...chunk })}\n\n`,
-      );
-    }
-    response.end('data: [DONE]\n\n');
-  });
-  return { server, requests };
-};
 
 const declaredToolNames = (body: ModelRequestBody | undefined): string[] =>
   (body?.tools ?? []).map(tool => tool.function.name);
 
 describe("Pi's native MCP over streamable HTTP", () => {
   const mcp = createMcpServer();
-  const model = createModelServer();
+  const model = createScriptedModelServer();
+  model.enqueue(...MODEL_SCRIPT);
   const agentDir = mkdtempSync(path.join(tmpdir(), 'pi-mcp-agent-'));
   const previousAgentDir = process.env.PI_CODING_AGENT_DIR;
   let mcpUrl = '';
@@ -268,26 +229,7 @@ describe("Pi's native MCP over streamable HTTP", () => {
       cwd: sessionWorkDir,
     }).createSession();
     const headers = { Authorization: `Bearer ${MCP_TOKEN}` };
-    const harness = createPi({
-      auth: {},
-      providers: {
-        fake: {
-          baseUrl: `${modelUrl}/v1`,
-          api: 'openai-completions',
-          apiKey: 'test-key',
-          models: [
-            {
-              id: 'fake-model',
-              name: 'Fake Model',
-              reasoning: false,
-              input: ['text'],
-              cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-              contextWindow: 128_000,
-              maxTokens: 4_096,
-            },
-          ],
-        },
-      },
+    const harness = createFakePi(modelUrl, {
       mcpServers: {
         memory: { url: `${mcpUrl}/memory`, headers },
         brand_ai: { url: `${mcpUrl}/brand_ai`, headers, exposure: 'deferred' },

@@ -3,6 +3,7 @@ import type {
   SessionHeader,
   SessionManager,
 } from '@earendil-works/pi-coding-agent';
+import { isRecord } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 /**
@@ -19,13 +20,9 @@ export interface PiLifecycleData {
   readonly entries?: PiSessionEntries;
 }
 
-function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
-
 const sessionHeaderSchema = z.custom<SessionHeader>(
   value =>
-    isObject(value) &&
+    isRecord(value) &&
     value.type === 'session' &&
     typeof value.id === 'string' &&
     typeof value.timestamp === 'string' &&
@@ -35,7 +32,7 @@ const sessionHeaderSchema = z.custom<SessionHeader>(
 
 const sessionEntrySchema = z.custom<SessionEntry>(
   value =>
-    isObject(value) &&
+    isRecord(value) &&
     typeof value.type === 'string' &&
     value.type !== 'session',
   'Pi session entry must be an object with a type.',

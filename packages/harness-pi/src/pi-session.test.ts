@@ -33,6 +33,7 @@ import {
   type PiHarnessExtensionFactory,
   type PiHarnessExtensionSession,
 } from './pi-session';
+import { createThrowingSandboxSession } from './test-helpers';
 
 type FakePiTool = Pick<ToolDefinition, 'name' | 'execute'>;
 type FakeExtensionsResult = {
@@ -1211,7 +1212,9 @@ describe('createPiSession', () => {
     run.mockImplementation(async ({ command }) => ({
       stdout: command.startsWith(`target='${alias}'`)
         ? '__PI_REALPATH_FAILED__\n'
-        : '',
+        : command === 'printf "%s" "$HOME"'
+          ? '/sandbox/home'
+          : '',
       stderr: '',
       exitCode: command.startsWith(`target='${alias}'`) ? 3 : 0,
     }));
@@ -3405,33 +3408,6 @@ function createSandboxSession(): HarnessV1NetworkSandboxSession {
     ),
   };
   return sandbox as unknown as HarnessV1NetworkSandboxSession;
-}
-
-function createThrowingSandboxSession(): HarnessV1NetworkSandboxSession {
-  const untouchable = () =>
-    vi.fn(async (): Promise<never> => {
-      throw new Error('sandbox must not be touched');
-    });
-  const sandbox: HarnessV1NetworkSandboxSession = {
-    id: 'sandbox',
-    description: 'throwing sandbox',
-    defaultWorkingDirectory: '/sandbox',
-    ports: [],
-    run: untouchable(),
-    spawn: untouchable(),
-    readFile: untouchable(),
-    readBinaryFile: untouchable(),
-    readTextFile: untouchable(),
-    writeFile: untouchable(),
-    writeBinaryFile: untouchable(),
-    writeTextFile: untouchable(),
-    stop: untouchable(),
-    destroy: untouchable(),
-    getPortEndpoint: untouchable(),
-    getPortUrl: untouchable(),
-    restricted: () => sandbox,
-  };
-  return sandbox;
 }
 
 function expectSandboxUntouched(
