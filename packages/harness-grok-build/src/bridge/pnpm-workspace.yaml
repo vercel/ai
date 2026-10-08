@@ -1,2 +1,2 @@
 allowBuilds:
-  '@xai-official/grok': true
+  '@xai-official/grok@1.0.49': true

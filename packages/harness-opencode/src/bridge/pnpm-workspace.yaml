@@ -1,2 +1,2 @@
 allowBuilds:
-  opencode-ai: true
+  'opencode-ai@1.18.34': true

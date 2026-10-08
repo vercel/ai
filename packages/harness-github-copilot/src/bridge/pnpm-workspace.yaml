@@ -1,2 +1,2 @@
 allowBuilds:
-  '@github/copilot': true
+  '@github/copilot@1.0.92': true

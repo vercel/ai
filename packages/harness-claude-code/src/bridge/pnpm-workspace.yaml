@@ -1,2 +1,2 @@
 allowBuilds:
-  '@anthropic-ai/claude-code': true
+  '@anthropic-ai/claude-code@2.1.290': true
