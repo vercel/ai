@@ -124,13 +124,11 @@ function mockRealpathCommand(
   };
 }
 
-const hostWorkDir = '/tmp/pi-test-host';
 const sandboxWorkDir = '/sandbox/workspace';
 
 function makeOps(behaviors: Parameters<typeof makeMockSandbox>[0]) {
   const env = makeMockSandbox(behaviors);
   const paths = createPiPathMapper({
-    hostWorkDir,
     sandboxWorkDir,
     readableRoots: [{ sandboxDir: '/home/vercel-sandbox/.agents/skills' }],
   });
@@ -156,7 +154,7 @@ describe('createPiRemoteOps with just-bash', () => {
 
       const ops = createPiRemoteOps({
         sandbox,
-        paths: createPiPathMapper({ hostWorkDir, sandboxWorkDir }),
+        paths: createPiPathMapper({ sandboxWorkDir }),
       });
 
       expect((await ops.readBuffer('notes.md')).toString('utf8')).toBe(
@@ -219,7 +217,7 @@ describe('createPiRemoteOps with just-bash', () => {
       });
       const ops = createPiRemoteOps({
         sandbox: sandboxWithGrep,
-        paths: createPiPathMapper({ hostWorkDir, sandboxWorkDir }),
+        paths: createPiPathMapper({ sandboxWorkDir }),
       });
 
       expect(
@@ -423,7 +421,7 @@ describe('createPiRemoteOps with just-bash', () => {
 
       const ops = createPiRemoteOps({
         sandbox,
-        paths: createPiPathMapper({ hostWorkDir, sandboxWorkDir }),
+        paths: createPiPathMapper({ sandboxWorkDir }),
       });
 
       await expect(ops.readBuffer('outside-link/secret.txt')).rejects.toThrow(
@@ -464,7 +462,7 @@ async function makeJustBashOps() {
   const sandbox = sandboxSession.restricted();
   const ops = createPiRemoteOps({
     sandbox,
-    paths: createPiPathMapper({ hostWorkDir, sandboxWorkDir }),
+    paths: createPiPathMapper({ sandboxWorkDir }),
   });
 
   return { sandboxSession, sandbox, ops };
@@ -508,7 +506,6 @@ function makeNativeShellOps(workDir: string) {
   return createPiRemoteOps({
     sandbox,
     paths: createPiPathMapper({
-      hostWorkDir: canonicalWorkDir,
       sandboxWorkDir: canonicalWorkDir,
     }),
   });
@@ -697,7 +694,6 @@ describe('createPiRemoteOps.readBuffer', () => {
       const ops = createPiRemoteOps({
         sandbox,
         paths: createPiPathMapper({
-          hostWorkDir: workspace,
           sandboxWorkDir: workspace,
         }),
       });
@@ -735,7 +731,7 @@ describe('createPiRemoteOps.writeFile', () => {
     const sandboxEnv = makeMockSandbox({ readBinary: () => null });
     const ops = createPiRemoteOps({
       sandbox: sandboxEnv.sandbox,
-      paths: createPiPathMapper({ hostWorkDir, sandboxWorkDir }),
+      paths: createPiPathMapper({ sandboxWorkDir }),
       onFileChange,
     });
     await ops.writeFile('a.txt', 'x');
@@ -753,7 +749,7 @@ describe('createPiRemoteOps.writeFile', () => {
     });
     const ops = createPiRemoteOps({
       sandbox: sandboxEnv.sandbox,
-      paths: createPiPathMapper({ hostWorkDir, sandboxWorkDir }),
+      paths: createPiPathMapper({ sandboxWorkDir }),
       onFileChange,
     });
     await ops.writeFile('a.txt', 'x');
@@ -793,7 +789,7 @@ describe('createPiRemoteOps.editFile', () => {
     });
     const ops = createPiRemoteOps({
       sandbox: sandboxEnv.sandbox,
-      paths: createPiPathMapper({ hostWorkDir, sandboxWorkDir }),
+      paths: createPiPathMapper({ sandboxWorkDir }),
     });
     const result = await ops.editFile('a.txt', 'old text', 'new text');
     expect(result).toBe('new text here, and old text again');
@@ -805,7 +801,7 @@ describe('createPiRemoteOps.editFile', () => {
     });
     const ops = createPiRemoteOps({
       sandbox: sandboxEnv.sandbox,
-      paths: createPiPathMapper({ hostWorkDir, sandboxWorkDir }),
+      paths: createPiPathMapper({ sandboxWorkDir }),
     });
     await expect(ops.editFile('a.txt', 'missing', 'x')).rejects.toThrow(
       /not found/,
@@ -1154,7 +1150,6 @@ async function makePathPolicyFixture() {
   const ops = createPiRemoteOps({
     sandbox: createNativeFileSandbox({ readCalls, writeCalls }),
     paths: createPiPathMapper({
-      hostWorkDir: path.join(root, 'host-mirror'),
       sandboxWorkDir: workspace,
       readableRoots: [{ sandboxDir: home }],
       deniedRoots: [denied, dotDenied, path.join(workspace, 'private')],
@@ -1207,7 +1202,6 @@ describe('createPiRemoteOps with denied roots', () => {
       const ops = createPiRemoteOps({
         sandbox,
         paths: createPiPathMapper({
-          hostWorkDir: path.join(root, 'host-mirror'),
           sandboxWorkDir: workspace,
           readableRoots: [{ sandboxDir: home }],
           deniedRoots: [alias, canonicalRoot],
@@ -1377,7 +1371,6 @@ describe('createPiRemoteOps with denied roots', () => {
       const ops = createPiRemoteOps({
         sandbox,
         paths: createPiPathMapper({
-          hostWorkDir,
           sandboxWorkDir,
           deniedRoots: [
             `${sandboxWorkDir}/private`,
@@ -1428,7 +1421,6 @@ describe('createPiRemoteOps with denied roots', () => {
       const ops = createPiRemoteOps({
         sandbox,
         paths: createPiPathMapper({
-          hostWorkDir,
           sandboxWorkDir,
           deniedRoots: [alias, canonicalRoot],
         }),

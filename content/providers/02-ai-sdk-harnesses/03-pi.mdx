@@ -107,8 +107,44 @@ Settings:
 - `providers`: explicit Pi provider configurations for custom models.
 - `reattachInProcess`: whether a suspended turn can reuse its live Pi session
   in the current process. Defaults to `true`.
+- `resources`: context files and skills Pi gives the model. See
+  [Project Resources](#project-resources).
 - `thinkingLevel`: Pi thinking level (`off`, `minimal`, `low`, `medium`,
   `high`, `xhigh`, or `max`).
+
+## Project Resources
+
+Pi does not discover `AGENTS.md`, `CLAUDE.md`, or project skills on the host or
+in the sandbox. Pass them through `resources`:
+
+```ts
+const harness = createPi({
+  resources: {
+    contextFiles: [
+      {
+        path: '/vercel/sandbox/AGENTS.md',
+        content: 'Run pnpm test before committing.',
+      },
+    ],
+    skills: [
+      {
+        name: 'brand-voice',
+        description: 'Rules for writing in the brand voice.',
+        filePath: '/vercel/sandbox/skills/brand-voice/SKILL.md',
+      },
+    ],
+  },
+});
+```
+
+- `contextFiles`: files Pi places in the system prompt the way it places
+  `AGENTS.md`, under the given `path`.
+- `skills`: skills listed to the model by name and description. The file at
+  `filePath` must already exist in the sandbox, because the model reads it with
+  the `read` tool. Pi's read-only file tools can read the skill's directory.
+
+Skills passed to `HarnessAgent` are written into the sandbox on each turn and
+do not need an entry here.
 
 ## File Tool Paths
 
@@ -169,7 +205,9 @@ Extension factories execute in the host Node.js process with access to the host
 environment, so only pass factories you trust. This setting enables only the
 factories you explicitly provide. Filesystem extension discovery remains
 disabled, including user, project, and settings-based extensions. Themes and
-prompt templates also remain disabled.
+prompt templates also remain disabled. The host has no copy of the sandbox
+workspace, so an extension reads project files through the `sandboxSession` it
+receives.
 
 ## Session Reattachment
 
