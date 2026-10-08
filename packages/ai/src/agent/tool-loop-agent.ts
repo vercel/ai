@@ -6,6 +6,7 @@ import {
   type ModelMessage,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
+import { createDefaultStopCondition } from '../generate-text/default-stop-condition';
 import { generateText } from '../generate-text/generate-text';
 import type {
   GenerateTextOnStartCallback,
@@ -13,7 +14,6 @@ import type {
 } from '../generate-text/generate-text-events';
 import type { GenerateTextResult } from '../generate-text/generate-text-result';
 import type { Output } from '../generate-text/output';
-import { isStepCount } from '../generate-text/stop-condition';
 import { streamText } from '../generate-text/stream-text';
 import type { StreamTextResult } from '../generate-text/stream-text-result';
 import type { Prompt } from '../prompt';
@@ -129,7 +129,7 @@ export class ToolLoopAgent<
 
     const baseCallArgs = {
       ...settingsWithoutCallbacks,
-      stopWhen: this.settings.stopWhen ?? isStepCount(20),
+      stopWhen: this.settings.stopWhen ?? createDefaultStopCondition(20),
       ...options,
     };
 
