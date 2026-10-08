@@ -54,6 +54,7 @@ import {
   mapOperationName,
   mapProviderName,
 } from './gen-ai-format-messages';
+import { stringifyDecisionStateForTelemetry } from './stringify-for-telemetry';
 import { recordErrorOnSpan } from './record-span';
 import { getProviderUsageAttributes } from './provider-usage-attributes';
 import { sanitizeAttributes } from './sanitize-attribute-value';
@@ -1665,7 +1666,7 @@ export class OpenTelemetry implements Telemetry {
       ...selectSupplementalAttributes(telemetry, this.supplementalAttributes, {
         experimental_decision: {
           'ai.decision.state': {
-            input: () => JSON.stringify(event.state),
+            input: () => stringifyDecisionStateForTelemetry(event.state),
           },
           'ai.decision.questions': {
             input: () => JSON.stringify(event.questions),
@@ -1778,7 +1779,7 @@ export class OpenTelemetry implements Telemetry {
         {
           experimental_decision: {
             'ai.decision.state': {
-              input: () => JSON.stringify(event.state),
+              input: () => stringifyDecisionStateForTelemetry(event.state),
             },
             'ai.decision.questions': {
               input: () => JSON.stringify(event.questions),

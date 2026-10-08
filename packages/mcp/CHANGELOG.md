@@ -1,5 +1,40 @@
 # @ai-sdk/mcp
 
+## 2.0.71
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider@4.0.25
+  - @ai-sdk/provider-utils@5.0.57
+
+## 2.0.70
+
+### Patch Changes
+
+- 6315a3d: Add experimental managed MCP Events adapters for backend-owned subscription lifecycles without a local event store. Rename the unreleased client event configuration to `experimental_events` and infer distinct managed and direct event APIs from a single MCPClientConfig and exclusive MCPEventsConfig union.
+- ac50548: feat(mcp): add compatibility for webhook based mcp events
+- d8e4b51: fix(mcp): authorization server paths beginning with repeated slashes should not bypass authorization server validation
+
+## 2.0.69
+
+### Patch Changes
+
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/provider-utils@5.0.56
+
+## 2.0.68
+
+### Patch Changes
+
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/provider@4.0.23
+
 ## 2.0.67
 
 ### Patch Changes

@@ -7,6 +7,7 @@ export type { ImageModelResponseMetadata } from './image-model-response-metadata
 export type { JSONValue } from './json-value';
 export type {
   CallWarning,
+  CallWarningRegistry,
   FinishReason,
   LanguageModel,
   ToolChoice,

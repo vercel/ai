@@ -80,6 +80,35 @@ The following harness adapters use an unversioned installer script instead of an
 
 Check the `package.json` files in `examples/harness-e2e-next` and `examples/harness-e2e-tui` for any of the above SDKs they depend on. Those dependencies need to be updated to match the exact version used in the packages as well.
 
+### Update ACP and MCP SDKs everywhere
+
+Find every harness package and bridge manifest that declares either SDK:
+
+```bash
+rg -n '"(@agentclientprotocol/sdk|@modelcontextprotocol/sdk)"' packages/harness-* --glob 'package.json'
+```
+
+For each matching workspace package manifest, update its declared SDKs with
+`pnpm --filter`. Replace the placeholders with the harness workspace name and
+the SDK package names found in that manifest:
+
+```bash
+pnpm --filter <harness-name> update <sdk-package>... --latest --lockfile-only
+
+# Example
+pnpm --filter harness-acp update @agentclientprotocol/sdk @modelcontextprotocol/sdk --latest --lockfile-only
+```
+
+For each matching bridge manifest, run `pnpm --dir` in the directory containing
+that manifest:
+
+```bash
+pnpm --dir <bridge-directory> update <sdk-package>... --latest --ignore-workspace --config.minimumReleaseAge=4320
+
+# Example
+pnpm --dir packages/harness-acp/src/v1/bridge update @agentclientprotocol/sdk @modelcontextprotocol/sdk --latest --ignore-workspace --config.minimumReleaseAge=4320
+```
+
 ### Verification
 
 Run the verification script to ensure all relevant dependency versions are aligned:

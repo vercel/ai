@@ -3,7 +3,7 @@ import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { ToolLoopAgent } from '../agent/tool-loop-agent';
@@ -102,6 +102,46 @@ describe('DirectChatTransport', () => {
         { type: 'text-delta', delta: ', ' },
         { type: 'text-delta', delta: 'world!' },
       ]);
+    });
+
+    it('should expose UI step snapshots through shared stream options', async () => {
+      const onStepEnd = vi.fn();
+      const transport = new DirectChatTransport({
+        agent: new ToolLoopAgent({ model: mockModel }),
+        generateMessageId: () => 'assistant-1',
+        messageMetadata: ({ part }) =>
+          part.type === 'finish-step'
+            ? { totalTokens: part.usage.totalTokens }
+            : undefined,
+        onStepEnd,
+      });
+      await convertReadableStreamToArray(
+        await transport.sendMessages({
+          chatId: 'chat-1',
+          messageId: undefined,
+          trigger: 'submit-message',
+          messages: [
+            {
+              id: 'user-1',
+              role: 'user',
+              parts: [{ type: 'text', text: 'Hello' }],
+            },
+          ],
+          abortSignal: undefined,
+        }),
+      );
+      expect(onStepEnd).toHaveBeenCalledOnce();
+      expect(onStepEnd.mock.calls[0][0]).toMatchObject({
+        isContinuation: false,
+        responseMessage: {
+          id: 'assistant-1',
+          metadata: { totalTokens: 13 },
+          parts: [
+            { type: 'step-start' },
+            { type: 'text', text: 'Hello, world!', state: 'done' },
+          ],
+        },
+      });
     });
 
     it('should pass abortSignal to agent', async () => {
