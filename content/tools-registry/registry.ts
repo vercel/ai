@@ -724,7 +724,7 @@ console.log(text);`,
     slug: 'search1api',
     name: 'Search1API',
     description:
-      'Search1API gives agents web search, news search, and webpage reading. Models only supply the query or URL; your application controls the search engine, result count, domains, language, and time range.',
+      'Search1API gives agents web search, news search, and webpage reading. The model can choose the search engine (including GitHub, arXiv, Reddit, and YouTube), result count, included or excluded domains, and time range; settings passed in code act as defaults.',
     packageName: '@search1api/ai-sdk',
     tags: ['search', 'web', 'news', 'crawl', 'extraction'],
     apiKeyEnvName: 'SEARCH1API_API_KEY',
