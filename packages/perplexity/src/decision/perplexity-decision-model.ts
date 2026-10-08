@@ -27,7 +27,7 @@ interface PerplexityDecisionModelConfig {
 
 export class PerplexityDecisionModel implements DecisionModelV4 {
   readonly specificationVersion = 'v4';
-  readonly supportedQuestionTypes = [];
+  readonly supportedQuestionTypes = ['choice', 'boolean', 'score'] as const;
 
   constructor(
     readonly modelId: PerplexityDecisionModelId,
