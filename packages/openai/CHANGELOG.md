@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 4.0.90
+
+### Patch Changes
+
+- 6c59fb1: fix(openai): preserve sampling parameters for GPT-6 Sol and Luna when reasoning is disabled, accounting for reasoning effort updates in Responses requests
+
 ## 4.0.89
 
 ### Patch Changes

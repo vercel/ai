@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 4.0.77
+
+### Patch Changes
+
+- c01cbb8: fix(anthropic): avoid unsupported strict mode warnings when tools set `strict: false`
+
 ## 4.0.76
 
 ### Patch Changes

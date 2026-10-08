@@ -1,5 +1,12 @@
 # @ai-sdk/workflow-harness
 
+## 1.0.145
+
+### Patch Changes
+
+- 2fdbde7: Upgrade Workflow SDK support to the stable 5.1.0 release.
+  - @ai-sdk/harness@1.0.145
+
 ## 1.0.144
 
 ### Patch Changes

@@ -1,5 +1,15 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.112
+
+### Patch Changes
+
+- c01cbb8: fix(anthropic): avoid unsupported strict mode warnings when tools set `strict: false`
+- Updated dependencies [6c59fb1]
+- Updated dependencies [c01cbb8]
+  - @ai-sdk/openai@4.0.90
+  - @ai-sdk/anthropic@4.0.77
+
 ## 5.0.111
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.149
+
+### Patch Changes
+
+- 18c2658: fix(harness-claude-code): forward Claude rate limit events through raw stream parts
+  - @ai-sdk/harness@1.0.145
+
 ## 1.0.148
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # ai
 
+## 7.0.134
+
+### Patch Changes
+
+- 8281ec4: fix(ai): propagate async sendAutomaticallyWhen failures from tool updates
+- 46c2b05: fix(ai): preserve provider-executed tool calls when resuming streams
+
 ## 7.0.133
 
 ### Patch Changes
