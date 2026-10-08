@@ -8,7 +8,7 @@ import {
 } from 'ai';
 import 'dotenv/config';
 import express, { type Request, type Response } from 'express';
-import { openaiWebSearchAgent } from './openai-web-search-agent.js';
+import { openaiWebSearchAgent } from './openai-web-search-agent';
 
 const app = express();
 app.use(express.json());
