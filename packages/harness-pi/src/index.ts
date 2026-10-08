@@ -14,5 +14,7 @@ export type {
   PiHarnessExtensionSession,
   PiMcpExposure,
   PiMcpServerConfig,
+  PiResources,
+  PiSandboxSkill,
 } from './pi-session';
 export type { PiAuthenticationMode, PiCredentialStore } from './pi-auth';

@@ -111,3 +111,19 @@ test('createPi accepts a file tool path policy with readonly roots', () => {
   createPi({ fileToolPathPolicy: { readableRoots, deniedRoots } });
   createPi({ fileToolPathPolicy: {} });
 });
+
+test('createPi accepts project resources', () => {
+  createPi({
+    resources: {
+      skills: [
+        {
+          name: 'brand-voice',
+          description: 'Voice rules',
+          filePath: '/sandbox/skills/brand-voice/SKILL.md',
+        },
+      ],
+    },
+  });
+  // @ts-expect-error
+  createPi({ resources: { skills: [{ name: 'brand-voice' }] } });
+});
