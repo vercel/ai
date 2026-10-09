@@ -220,7 +220,10 @@ export class DecisionLanguageModel implements DecisionModelV4 {
         const value: unknown = (values as Record<string, unknown>)[`q${index}`];
         if (question.type === 'choice') {
           const options = Object.keys(question.criteria);
-          const choiceIndex = options.findIndex((_, i) => value === `c${i}`);
+          let choiceIndex = options.findIndex((_, i) => value === `c${i}`);
+          if (choiceIndex === -1 && typeof value === 'string') {
+            choiceIndex = options.indexOf(value);
+          }
           if (choiceIndex === -1) {
             throw new InvalidResponseDataError({
               data: values,
