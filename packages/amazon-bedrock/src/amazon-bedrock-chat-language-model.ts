@@ -54,6 +54,7 @@ import {
 } from './amazon-bedrock-anthropic-model-support';
 import {
   amazonBedrockFailedResponseHandler,
+  isAmazonBedrockContextLengthExceeded,
   AmazonBedrockErrorSchema,
 } from './amazon-bedrock-error';
 import { createAmazonBedrockEventStreamResponseHandler } from './amazon-bedrock-event-stream-response-handler';
@@ -708,6 +709,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: AmazonBedrockErrorSchema,
         errorToMessage: error => `${error.message ?? 'Unknown error'}`,
+        isContextLengthExceeded: isAmazonBedrockContextLengthExceeded,
       }),
       successfulResponseHandler: createJsonResponseHandler(
         AmazonBedrockResponseSchema,

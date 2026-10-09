@@ -114,10 +114,16 @@ export const createJsonErrorResponseHandler =
     errorSchema,
     errorToMessage,
     isRetryable,
+    isContextLengthExceeded,
   }: {
     errorSchema: FlexibleSchema<T>;
     errorToMessage: (error: T) => string;
     isRetryable?: (response: Response, error?: T) => boolean;
+    /**
+     * Recognizes the provider's "prompt exceeds the context window" rejection.
+     * Only called with a parsed error body.
+     */
+    isContextLengthExceeded?: (response: Response, error: T) => boolean;
   }): ResponseHandler<APICallError> =>
   async ({ response, url, requestBodyValues }) => {
     const responseBody = await readResponseBodyAsText({ response, url });
@@ -157,6 +163,10 @@ export const createJsonErrorResponseHandler =
           responseBody,
           data: parsedError,
           isRetryable: isRetryable?.(response, parsedError),
+          isContextLengthExceeded: isContextLengthExceeded?.(
+            response,
+            parsedError,
+          ),
         }),
       };
     } catch {

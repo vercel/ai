@@ -11,6 +11,12 @@ export abstract class GatewayError extends Error {
   readonly generationId?: string;
   readonly isRetryable: boolean;
 
+  /**
+   * Whether the upstream provider rejected the request because the prompt
+   * exceeds the model's context window.
+   */
+  readonly isContextLengthExceeded: boolean;
+
   constructor({
     message,
     statusCode = 500,
@@ -21,18 +27,21 @@ export abstract class GatewayError extends Error {
         statusCode === 409 || // conflict
         statusCode === 429 || // too many requests
         statusCode >= 500), // server error
+    isContextLengthExceeded = false,
   }: {
     message: string;
     statusCode?: number;
     cause?: unknown;
     generationId?: string;
     isRetryable?: boolean;
+    isContextLengthExceeded?: boolean;
   }) {
     super(generationId ? `${message} [${generationId}]` : message);
     this.statusCode = statusCode;
     this.cause = cause;
     this.generationId = generationId;
     this.isRetryable = isRetryable;
+    this.isContextLengthExceeded = isContextLengthExceeded;
   }
 
   /**

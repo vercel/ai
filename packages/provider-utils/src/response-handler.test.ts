@@ -439,6 +439,42 @@ describe('createJsonErrorResponseHandler', () => {
 
     expect(cancelled()).toBe(true);
   });
+
+  describe('isContextLengthExceeded', () => {
+    const handler = createJsonErrorResponseHandler({
+      errorSchema: z.object({ code: z.string() }),
+      errorToMessage: error => error.code,
+      isContextLengthExceeded: (_response, error) =>
+        error.code === 'context_length_exceeded',
+    });
+    const call = (body: string) =>
+      handler({
+        url: 'test-url',
+        requestBodyValues: {},
+        response: new Response(body, { status: 400 }),
+      });
+
+    it('sets the flag when the parsed error matches', async () => {
+      const { value } = await call(
+        JSON.stringify({ code: 'context_length_exceeded' }),
+      );
+
+      expect(value.isContextLengthExceeded).toBe(true);
+      expect(value.isRetryable).toBe(false);
+    });
+
+    it('leaves the flag false for other errors', async () => {
+      const { value } = await call(JSON.stringify({ code: 'invalid_value' }));
+
+      expect(value.isContextLengthExceeded).toBe(false);
+    });
+
+    it('leaves the flag false when the body cannot be parsed', async () => {
+      const { value } = await call('not json');
+
+      expect(value.isContextLengthExceeded).toBe(false);
+    });
+  });
 });
 
 describe('createBinaryResponseHandler', () => {

@@ -15,6 +15,14 @@ export class APICallError extends AISDKError {
   readonly responseBody?: string;
 
   readonly isRetryable: boolean;
+
+  /**
+   * Whether the provider rejected the request because the prompt exceeds the
+   * model's context window. Retrying the same request will not succeed;
+   * shortening the prompt (e.g. by summarizing or pruning messages) may.
+   */
+  readonly isContextLengthExceeded: boolean;
+
   readonly data?: unknown;
 
   constructor({
@@ -30,6 +38,7 @@ export class APICallError extends AISDKError {
         statusCode === 409 || // conflict
         statusCode === 429 || // too many requests
         statusCode >= 500), // server error
+    isContextLengthExceeded = false,
     data,
   }: {
     message: string;
@@ -40,6 +49,7 @@ export class APICallError extends AISDKError {
     responseBody?: string;
     cause?: unknown;
     isRetryable?: boolean;
+    isContextLengthExceeded?: boolean;
     data?: unknown;
   }) {
     super({ name, message, cause });
@@ -50,6 +60,7 @@ export class APICallError extends AISDKError {
     this.responseHeaders = responseHeaders;
     this.responseBody = responseBody;
     this.isRetryable = isRetryable;
+    this.isContextLengthExceeded = isContextLengthExceeded;
     this.data = data;
   }
 

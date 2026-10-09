@@ -32,3 +32,32 @@ describe('amazonBedrockFailedResponseHandler', () => {
     ).resolves.toBe('ValidationException: boom');
   });
 });
+
+describe('amazonBedrockFailedResponseHandler isContextLengthExceeded', () => {
+  const call = async (body: object) =>
+    (
+      await amazonBedrockFailedResponseHandler({
+        url: 'https://bedrock-runtime.us-east-1.amazonaws.com/model/test/converse',
+        requestBodyValues: {},
+        response: makeResponse(body),
+      })
+    ).value;
+
+  it.each([
+    'Input is too long for requested model.',
+    'prompt is too long: 215000 tokens > 200000 maximum',
+  ])('flags context window errors: %s', async message => {
+    const value = await call({ type: 'ValidationException', message });
+
+    expect(value.isContextLengthExceeded).toBe(true);
+  });
+
+  it('does not flag other validation errors', async () => {
+    const value = await call({
+      type: 'ValidationException',
+      message: 'The provided model identifier is invalid.',
+    });
+
+    expect(value.isContextLengthExceeded).toBe(false);
+  });
+});

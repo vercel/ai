@@ -15,6 +15,7 @@ This error occurs when an API call fails.
 - `responseHeaders`: The response headers returned by the API (optional)
 - `responseBody`: The response body returned by the API (optional)
 - `isRetryable`: Whether the request can be retried based on the status code
+- `isContextLengthExceeded`: Whether the provider rejected the request because the prompt exceeds the model's context window. Retrying the same request will not succeed; shorten the prompt first (for example by pruning or summarizing older messages).
 - `data`: Any additional data associated with the error (optional)
 - `cause`: The underlying error that caused the API call to fail (optional)
 
@@ -33,3 +34,33 @@ if (APICallError.isInstance(error)) {
   // Handle the error
 }
 ```
+
+## Handling context window errors
+
+Providers that recognize their own "prompt is too long" rejection set
+`isContextLengthExceeded`, so you can shorten the conversation and try again
+without parsing provider-specific messages:
+
+```typescript
+import { APICallError, generateText, pruneMessages } from 'ai';
+
+try {
+  return await generateText({ model, messages });
+} catch (error) {
+  if (APICallError.isInstance(error) && error.isContextLengthExceeded) {
+    return await generateText({
+      model,
+      messages: pruneMessages({
+        messages,
+        reasoning: 'before-last-message',
+        toolCalls: 'before-last-message',
+      }),
+    });
+  }
+  throw error;
+}
+```
+
+AI Gateway errors are `GatewayError`s, not `APICallError`s. They expose the
+same `isContextLengthExceeded` flag when the gateway relays it from the
+upstream provider or reports the `context_length_exceeded` error code.

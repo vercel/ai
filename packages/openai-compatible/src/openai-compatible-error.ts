@@ -20,10 +20,13 @@ export type ProviderErrorStructure<T> = {
   errorSchema: ZodType<T>;
   errorToMessage: (error: T) => string;
   isRetryable?: (response: Response, error?: T) => boolean;
+  isContextLengthExceeded?: (response: Response, error: T) => boolean;
 };
 
 export const defaultOpenAICompatibleErrorStructure: ProviderErrorStructure<OpenAICompatibleErrorData> =
   {
     errorSchema: openaiCompatibleErrorDataSchema,
     errorToMessage: data => data.error.message,
+    isContextLengthExceeded: (_response, data) =>
+      data.error.code === 'context_length_exceeded',
   };

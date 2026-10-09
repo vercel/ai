@@ -18,13 +18,21 @@ export class GatewayInternalServerError extends GatewayError {
     statusCode = 500,
     cause,
     generationId,
+    isContextLengthExceeded,
   }: {
     message?: string;
     statusCode?: number;
     cause?: unknown;
     generationId?: string;
+    isContextLengthExceeded?: boolean;
   } = {}) {
-    super({ message, statusCode, cause, generationId });
+    super({
+      message,
+      statusCode,
+      cause,
+      generationId,
+      isContextLengthExceeded,
+    });
   }
 
   static isInstance(error: unknown): error is GatewayInternalServerError {
