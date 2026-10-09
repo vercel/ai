@@ -1,3 +1,4 @@
+import type { Citation } from '../types/citation';
 import type { JSONObject } from '@ai-sdk/provider';
 import type { Context, IdGenerator, ToolSet } from '@ai-sdk/provider-utils';
 import type { ServerResponse } from 'node:http';
@@ -458,6 +459,7 @@ export type TextStreamTextStartPart = {
 
 export type TextStreamTextEndPart = {
   type: 'text-end';
+  citations?: Array<Citation>;
   id: string;
   providerMetadata?: ProviderMetadata;
 };

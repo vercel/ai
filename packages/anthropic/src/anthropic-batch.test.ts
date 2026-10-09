@@ -1397,6 +1397,31 @@ describe('Anthropic batch', () => {
             {
               type: 'text',
               text: 'Paris is sunny.',
+              citations: [
+                expect.objectContaining({
+                  source: expect.objectContaining({
+                    sourceType: 'document',
+                    id: 'file_page',
+                    title: 'Weather report',
+                  }),
+                  citedText: 'Paris is sunny.',
+                }),
+                expect.objectContaining({
+                  source: expect.objectContaining({
+                    sourceType: 'document',
+                    id: 'file_char',
+                    title: 'Weather report',
+                  }),
+                  citedText: 'Paris is sunny.',
+                }),
+                expect.objectContaining({
+                  source: expect.objectContaining({
+                    sourceType: 'url',
+                    url: 'https://example.com/weather',
+                  }),
+                  citedText: 'Paris is sunny.',
+                }),
+              ],
               providerMetadata: {
                 anthropic: {
                   citations: [
@@ -1433,14 +1458,14 @@ describe('Anthropic batch', () => {
               type: 'source',
               sourceType: 'url',
               id: 'citation-source',
-              url: 'https://example.com/weather',
-              title: 'Paris weather',
               providerMetadata: {
                 anthropic: {
                   citedText: 'Paris is sunny.',
                   encryptedIndex: 'encrypted-index',
                 },
               },
+              url: 'https://example.com/weather',
+              title: 'Paris weather',
             },
           ],
         },
