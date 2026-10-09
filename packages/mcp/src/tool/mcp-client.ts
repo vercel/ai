@@ -488,8 +488,13 @@ class DefaultMCPClient implements MCPClient {
 
       const execute = async (
         args: any,
+<<<<<<< HEAD
         options: ToolCallOptions,
       ): Promise<CallToolResult> => {
+=======
+        options?: ToolExecutionOptions<{}>,
+      ): Promise<unknown> => {
+>>>>>>> 2913c8c22f (fix: MCP tool execute incorrectly requires execution options (#22484))
         options?.abortSignal?.throwIfAborted();
         return self.callTool({ name, args, options });
       };
