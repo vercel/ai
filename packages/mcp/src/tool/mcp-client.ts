@@ -953,7 +953,7 @@ class DefaultMCPClient implements MCPClient {
 
       const execute = async (
         args: any,
-        options: ToolExecutionOptions,
+        options?: ToolExecutionOptions,
       ): Promise<unknown> => {
         options?.abortSignal?.throwIfAborted();
         const result = await self.callTool({ name, args, options });
