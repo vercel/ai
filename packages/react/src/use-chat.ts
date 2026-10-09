@@ -1,4 +1,11 @@
-import type { AbstractChat, ChatInit, CreateUIMessage, UIMessage } from 'ai';
+import {
+  type AbstractChat,
+  type ChatInit,
+  type ChatTransport,
+  type CreateUIMessage,
+  type UIMessage,
+  DefaultChatTransport,
+} from 'ai';
 import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 import { Chat } from './chat.react';
 
@@ -54,8 +61,38 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
   resume = false,
   ...options
 }: UseChatOptions<UI_MESSAGE> = {}): UseChatHelpers<UI_MESSAGE> {
+  // the Chat instance is created once and not recreated when options change,
+  // so it would keep the transport from the first render forever.
+  // keep the latest transport in a ref that is refreshed on every render and
+  // hand `Chat` a stable proxy transport that always delegates to it
+  const latestTransportRef = useRef<ChatTransport<UI_MESSAGE> | undefined>(
+    undefined,
+  );
+  const defaultTransportRef = useRef<ChatTransport<UI_MESSAGE> | undefined>(
+    undefined,
+  );
+
+  if (!('chat' in options)) {
+    latestTransportRef.current = options.transport;
+  }
+
+  // resolve the latest transport and fallback to a lazily created default transport
+  const getTransport = () =>
+    latestTransportRef.current ??
+    (defaultTransportRef.current ??= new DefaultChatTransport<UI_MESSAGE>());
+
+  const createChat = (init: ChatInit<UI_MESSAGE>) =>
+    new Chat<UI_MESSAGE>({
+      ...init,
+      transport: {
+        sendMessages: sendOptions => getTransport().sendMessages(sendOptions),
+        reconnectToStream: reconnectOptions =>
+          getTransport().reconnectToStream(reconnectOptions),
+      },
+    });
+
   const chatRef = useRef<Chat<UI_MESSAGE>>(
-    'chat' in options ? options.chat : new Chat(options),
+    'chat' in options ? options.chat : createChat(options),
   );
 
   const shouldRecreateChat =
@@ -65,7 +102,7 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
       chatRef.current.id !== options.id);
 
   if (shouldRecreateChat) {
-    chatRef.current = 'chat' in options ? options.chat : new Chat(options);
+    chatRef.current = 'chat' in options ? options.chat : createChat(options);
   }
 
   const chat = chatRef.current;
