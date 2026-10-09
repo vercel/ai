@@ -461,8 +461,8 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       }) =>
     this.jobExecutor.run(async () => {
       const messages = this.state.messages;
-      const lastMessage = messages[messages.length - 1];
 
+<<<<<<< HEAD
       this.state.replaceMessage(messages.length - 1, {
         ...lastMessage,
         parts: lastMessage.parts.map(part =>
@@ -471,6 +471,61 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
             : part,
         ),
       });
+=======
+      const updatePart = (
+        part: UIMessagePart<UIDataTypes, UITools>,
+      ): UIMessagePart<UIDataTypes, UITools> => {
+        if (!isToolUIPart(part) || part.toolCallId !== toolCallId) {
+          return part;
+        }
+
+        // Output states can only retain approvals that were granted.
+        const { approval: existingApproval, ...toolPart } = part;
+        const approval =
+          existingApproval?.approved === true
+            ? {
+                approval: {
+                  ...existingApproval,
+                  approved: existingApproval.approved,
+                },
+              }
+            : {};
+
+        return state === 'output-error'
+          ? {
+              ...toolPart,
+              ...approval,
+              state,
+              input: part.input,
+              output: undefined,
+              errorText,
+            }
+          : {
+              ...toolPart,
+              ...approval,
+              state: 'output-available',
+              input: part.input,
+              output,
+              errorText: undefined,
+            };
+      };
+
+      const messageIndex = messages.findIndex(message =>
+        message.parts.some(
+          part => isToolUIPart(part) && part.toolCallId === toolCallId,
+        ),
+      );
+
+      if (messageIndex !== -1) {
+        const message = messages[messageIndex];
+
+        // update the message to trigger an immediate UI update
+        this.state.replaceMessage(messageIndex, {
+          ...message,
+          parts: message.parts.map(updatePart),
+        });
+      }
+>>>>>>> 26d64e9fbc (fix: addToolOutput results being dropped for tool calls in earlier messages (#22361))
 
       // update the active response if it exists
       if (this.activeResponse) {
@@ -489,6 +544,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
       // automatically send the message if the sendAutomaticallyWhen function returns true
       if (
+        messageIndex !== -1 &&
         this.status !== 'streaming' &&
         this.status !== 'submitted' &&
         this.sendAutomaticallyWhen
@@ -501,7 +557,12 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
             () =>
               this.makeRequest({
                 trigger: 'submit-message',
+<<<<<<< HEAD
                 messageId: this.lastMessage?.id,
+=======
+                messageId: messages[messageIndex].id,
+                ...options,
+>>>>>>> 26d64e9fbc (fix: addToolOutput results being dropped for tool calls in earlier messages (#22361))
               }),
             shouldSend,
           );
