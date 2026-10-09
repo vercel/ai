@@ -22,6 +22,7 @@ import {
   openaiResponsesReasoningModelIds,
   type OpenAILanguageModelResponsesOptions,
 } from './openai-responses-language-model-options';
+import type { OpenaiResponsesTextProviderMetadata } from './openai-responses-provider-metadata';
 const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
@@ -4139,6 +4140,47 @@ describe('OpenAIResponsesLanguageModel', () => {
       it('should include web search tool call and result in content', async () => {
         expect(result.content).toMatchSnapshot();
       });
+
+      it('should expose visited URLs as sources and keep citations in text metadata', () => {
+        const sources = result.content.filter(
+          (
+            part,
+          ): part is Extract<
+            LanguageModelV4Content,
+            { type: 'source'; sourceType: 'url' }
+          > => part.type === 'source' && part.sourceType === 'url',
+        );
+        const textParts = result.content.filter(part => part.type === 'text');
+
+        expect(textParts.flatMap(part => part.citations ?? [])).toHaveLength(
+          10,
+        );
+        expect(textParts.flatMap(part => part.citations ?? [])).toContainEqual(
+          expect.objectContaining({
+            source: expect.objectContaining({
+              sourceType: 'url',
+              title: expect.any(String),
+            }),
+            startIndex: expect.any(Number),
+            endIndex: expect.any(Number),
+          }),
+        );
+        expect(sources).toHaveLength(16);
+        expect(sources.map(source => source.url)).toContain(
+          'https://www.investing.com/news/stock-market-news/ai-coding-startup-vercel-raises-300-million-valued-at-93-billion-4264199',
+        );
+        expect(sources.map(source => source.url)).not.toContain(
+          'https://www.investopedia.com/5-things-to-know-before-the-stock-market-opens-december-5-2025-11862701?utm_source=openai',
+        );
+        expect(
+          textParts.flatMap(
+            part =>
+              (part.providerMetadata?.openai?.annotations as
+                | unknown[]
+                | null) ?? [],
+          ),
+        ).toHaveLength(10);
+      });
     });
 
     it('should not include web search sources when disabled by provider options', async () => {
@@ -5368,6 +5410,43 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('file search tool', () => {
+      it('exposes uncited retrieved files and deduplicates multiple passages from one file', async () => {
+        const fixture = JSON.parse(
+          fs.readFileSync(
+            'src/responses/__fixtures__/openai-file-search-tool.2.json',
+            'utf8',
+          ),
+        );
+        const search = fixture.output.find(
+          (part: { type: string }) => part.type === 'file_search_call',
+        );
+        search.results.push(search.results[0], {
+          ...search.results[0],
+          file_id: 'uncited-file',
+          filename: 'uncited.pdf',
+        });
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'json-value',
+          body: fixture,
+        };
+        const result = await createModel('gpt-5-nano').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+        const sources = result.content.filter(part => part.type === 'source');
+        expect(sources).toHaveLength(2);
+        expect(sources).toContainEqual(
+          expect.objectContaining({
+            sourceType: 'document',
+            filename: 'uncited.pdf',
+          }),
+        );
+        expect(
+          result.content
+            .filter(part => part.type === 'text')
+            .flatMap(part => part.citations ?? []),
+        ).toHaveLength(1);
+      });
+
       let result: LanguageModelV4GenerateResult;
 
       describe('without results include', () => {
@@ -5517,6 +5596,62 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         it('should include file search tool call and result in content', async () => {
           expect(result.content).toMatchSnapshot();
+        });
+
+        it('should keep retrieved results separate from inline file citations', () => {
+          const toolResult = result.content.find(
+            (
+              part,
+            ): part is Extract<
+              LanguageModelV4Content,
+              { type: 'tool-result' }
+            > => part.type === 'tool-result' && part.toolName === 'fileSearch',
+          );
+          const textPart = result.content.find(part => part.type === 'text');
+          const annotations =
+            (
+              textPart?.providerMetadata as
+                | OpenaiResponsesTextProviderMetadata
+                | undefined
+            )?.openai.annotations ?? [];
+
+          expect(toolResult?.result).toMatchObject({
+            results: [
+              {
+                fileId: 'file-Ebzhf8H4DPGPr9pUhr7n7v',
+                filename: 'ai.pdf',
+                score: 0.9311,
+              },
+            ],
+          });
+          expect(textPart?.citations).toEqual([
+            expect.objectContaining({
+              source: expect.objectContaining({
+                sourceType: 'document',
+                filename: 'ai.pdf',
+              }),
+            }),
+          ]);
+          const sources = result.content.filter(part => part.type === 'source');
+          expect(sources).toEqual([
+            expect.objectContaining({
+              sourceType: 'document',
+              filename: 'ai.pdf',
+              providerMetadata: {
+                openai: {
+                  type: 'file_search',
+                  fileId: 'file-Ebzhf8H4DPGPr9pUhr7n7v',
+                },
+              },
+            }),
+          ]);
+          expect(annotations).toEqual([
+            expect.objectContaining({
+              type: 'file_citation',
+              file_id: 'file-Ebzhf8H4DPGPr9pUhr7n7v',
+              filename: 'ai.pdf',
+            }),
+          ]);
         });
       });
     });
@@ -5754,7 +5889,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       `);
     });
 
-    it('should handle mixed url_citation and file_citation annotations', async () => {
+    it('should retain citation sources when retrieved sources are unavailable', async () => {
       server.urls['https://api.openai.com/v1/responses'].response = {
         type: 'json-value',
         body: {
@@ -5823,9 +5958,49 @@ describe('OpenAIResponsesLanguageModel', () => {
         prompt: TEST_PROMPT,
       });
 
+      expect(result.content).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: 'source',
+            sourceType: 'url',
+            url: 'https://example.com',
+            title: 'Example URL',
+          }),
+        ]),
+      );
       expect(result.content).toMatchInlineSnapshot(`
         [
           {
+            "citations": [
+              {
+                "endIndex": 10,
+                "source": {
+                  "id": "https://example.com",
+                  "sourceType": "url",
+                  "title": "Example URL",
+                  "type": "source",
+                  "url": "https://example.com",
+                },
+                "startIndex": 0,
+              },
+              {
+                "source": {
+                  "filename": "resource1.json",
+                  "id": "file-abc123",
+                  "mediaType": "text/plain",
+                  "providerMetadata": {
+                    "openai": {
+                      "fileId": "file-abc123",
+                      "index": 123,
+                      "type": "file_citation",
+                    },
+                  },
+                  "sourceType": "document",
+                  "title": "resource1.json",
+                  "type": "source",
+                },
+              },
+            ],
             "providerMetadata": {
               "openai": {
                 "annotations": [
@@ -5940,6 +6115,25 @@ describe('OpenAIResponsesLanguageModel', () => {
       expect(result.content).toMatchInlineSnapshot(`
         [
           {
+            "citations": [
+              {
+                "source": {
+                  "filename": "resource1.json",
+                  "id": "file-xyz789",
+                  "mediaType": "text/plain",
+                  "providerMetadata": {
+                    "openai": {
+                      "fileId": "file-xyz789",
+                      "index": 123,
+                      "type": "file_citation",
+                    },
+                  },
+                  "sourceType": "document",
+                  "title": "resource1.json",
+                  "type": "source",
+                },
+              },
+            ],
             "providerMetadata": {
               "openai": {
                 "annotations": [
@@ -6046,6 +6240,42 @@ describe('OpenAIResponsesLanguageModel', () => {
       expect(result.content).toMatchInlineSnapshot(`
         [
           {
+            "citations": [
+              {
+                "source": {
+                  "filename": "resource1.json",
+                  "id": "file-YRcoCqn3Fo2K4JgraG",
+                  "mediaType": "text/plain",
+                  "providerMetadata": {
+                    "openai": {
+                      "fileId": "file-YRcoCqn3Fo2K4JgraG",
+                      "index": 145,
+                      "type": "file_citation",
+                    },
+                  },
+                  "sourceType": "document",
+                  "title": "resource1.json",
+                  "type": "source",
+                },
+              },
+              {
+                "source": {
+                  "filename": "resource1.json",
+                  "id": "file-YRcoCqn3Fo2K4JgraG",
+                  "mediaType": "text/plain",
+                  "providerMetadata": {
+                    "openai": {
+                      "fileId": "file-YRcoCqn3Fo2K4JgraG",
+                      "index": 192,
+                      "type": "file_citation",
+                    },
+                  },
+                  "sourceType": "document",
+                  "title": "resource1.json",
+                  "type": "source",
+                },
+              },
+            ],
             "providerMetadata": {
               "openai": {
                 "annotations": [
@@ -6170,6 +6400,27 @@ describe('OpenAIResponsesLanguageModel', () => {
       expect(result.content).toMatchInlineSnapshot(`
         [
           {
+            "citations": [
+              {
+                "endIndex": 10,
+                "source": {
+                  "filename": "data.csv",
+                  "id": "file-container",
+                  "mediaType": "text/plain",
+                  "providerMetadata": {
+                    "openai": {
+                      "containerId": "cntr_test",
+                      "fileId": "file-container",
+                      "type": "container_file_citation",
+                    },
+                  },
+                  "sourceType": "document",
+                  "title": "data.csv",
+                  "type": "source",
+                },
+                "startIndex": 0,
+              },
+            ],
             "providerMetadata": {
               "openai": {
                 "annotations": [
@@ -6660,6 +6911,114 @@ describe('OpenAIResponsesLanguageModel', () => {
   });
 
   describe('doStream', () => {
+    it('preserves repeated citation ranges and versioned fragment URLs with Unicode text in generation and streaming', async () => {
+      const text = '🧪 café — 東京 café';
+      const url = 'https://example.com/article?oldid=42#:~:text=caf%C3%A9';
+      const annotations = [
+        {
+          type: 'url_citation',
+          url,
+          title: 'Café',
+          start_index: 2,
+          end_index: 6,
+        },
+        {
+          type: 'url_citation',
+          url,
+          title: 'Café',
+          start_index: 12,
+          end_index: 16,
+        },
+      ];
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'json-value',
+        body: {
+          id: 'response',
+          model: 'gpt-5-nano',
+          output: [
+            {
+              id: 'message',
+              type: 'message',
+              role: 'assistant',
+              content: [{ type: 'output_text', text, annotations }],
+            },
+          ],
+          usage: { input_tokens: 1, output_tokens: 1 },
+        },
+      };
+      const generated = await createModel('gpt-5-nano').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+      const generatedText = generated.content.find(
+        part => part.type === 'text',
+      );
+      const expectedCitations = [
+        {
+          source: {
+            type: 'source',
+            sourceType: 'url',
+            id: url,
+            url,
+            title: 'Café',
+          },
+          startIndex: 2,
+          endIndex: 6,
+        },
+        {
+          source: {
+            type: 'source',
+            sourceType: 'url',
+            id: url,
+            url,
+            title: 'Café',
+          },
+          startIndex: 12,
+          endIndex: 16,
+        },
+      ];
+      expect(generatedText).toMatchObject({
+        text,
+        citations: expectedCitations,
+      });
+
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          {
+            type: 'response.output_item.added',
+            output_index: 0,
+            item: { type: 'message', id: 'message', role: 'assistant' },
+          },
+          {
+            type: 'response.output_text.delta',
+            item_id: 'message',
+            delta: text,
+          },
+          ...annotations.map(annotation => ({
+            type: 'response.output_text.annotation.added',
+            annotation,
+          })),
+          {
+            type: 'response.output_item.done',
+            output_index: 0,
+            item: { type: 'message', id: 'message' },
+          },
+        ].map(event => `data: ${JSON.stringify(event)}\n\n`),
+      };
+      const { stream } = await createModel('gpt-5-nano').doStream({
+        prompt: TEST_PROMPT,
+      });
+      const events = await convertReadableStreamToArray(stream);
+      expect(events.filter(event => event.type === 'error')).toEqual([]);
+      expect(events.find(event => event.type === 'text-delta')).toMatchObject({
+        delta: text,
+      });
+      expect(events.find(event => event.type === 'text-end')).toMatchObject({
+        citations: expectedCitations,
+        providerMetadata: { openai: { annotations } },
+      });
+    });
+
     it('should return helpful error when Chat Completions stream is received', async () => {
       server.urls['https://api.openai.com/v1/responses'].response = {
         type: 'stream-chunks',
@@ -8083,6 +8442,162 @@ describe('OpenAIResponsesLanguageModel', () => {
     );
 
     describe('web search tool', () => {
+      it('keeps citation metadata associated with each completed text block', async () => {
+        const first = {
+          type: 'url_citation',
+          url: 'https://example.com/first',
+          title: 'First',
+          start_index: 0,
+          end_index: 5,
+        };
+        const second = {
+          type: 'url_citation',
+          url: 'https://example.com/second',
+          title: 'Second',
+          start_index: 0,
+          end_index: 6,
+        };
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [first, second]
+            .flatMap((annotation, index) => [
+              {
+                type: 'response.output_item.added',
+                output_index: index,
+                item: {
+                  type: 'message',
+                  id: `message-${index}`,
+                  role: 'assistant',
+                },
+              },
+              { type: 'response.output_text.annotation.added', annotation },
+              {
+                type: 'response.output_item.done',
+                output_index: index,
+                item: { type: 'message', id: `message-${index}` },
+              },
+            ])
+            .map(event => `data: ${JSON.stringify(event)}\n\n`),
+        };
+        const { stream } = await createModel('gpt-5-nano').doStream({
+          prompt: TEST_PROMPT,
+        });
+        const ends = (await convertReadableStreamToArray(stream)).filter(
+          event => event.type === 'text-end',
+        );
+        expect(ends).toHaveLength(2);
+        expect(ends[0].providerMetadata?.openai.annotations).toEqual([first]);
+        expect(ends[1].providerMetadata?.openai.annotations).toEqual([second]);
+        expect(ends[0].citations?.[0].source).toMatchObject({
+          url: first.url,
+          title: first.title,
+        });
+        expect(ends[1].citations?.[0].source).toMatchObject({
+          url: second.url,
+          title: second.title,
+        });
+      });
+
+      it.each(['web_search_call', 'file_search_call'] as const)(
+        'does not emit citation fallback sources when %s results arrive later',
+        async type => {
+          const annotation =
+            type === 'web_search_call'
+              ? {
+                  type: 'url_citation',
+                  url: 'https://example.com/cited',
+                  title: 'Cited',
+                  start_index: 0,
+                  end_index: 6,
+                }
+              : {
+                  type: 'file_citation',
+                  file_id: 'cited-file',
+                  filename: 'cited.pdf',
+                  index: 0,
+                };
+          const item =
+            type === 'web_search_call'
+              ? {
+                  type,
+                  id: 'search',
+                  status: 'completed',
+                  action: {
+                    type: 'search',
+                    query: 'question',
+                    sources: [
+                      { type: 'url', url: 'https://example.com/retrieved' },
+                    ],
+                  },
+                }
+              : {
+                  type,
+                  id: 'search',
+                  queries: ['question'],
+                  results: [
+                    {
+                      file_id: 'retrieved-file',
+                      filename: 'retrieved.pdf',
+                      attributes: {},
+                      score: 1,
+                      text: 'Extracted text',
+                    },
+                    {
+                      file_id: 'retrieved-file',
+                      filename: 'retrieved.pdf',
+                      attributes: {},
+                      score: 0.9,
+                      text: 'Another passage',
+                    },
+                  ],
+                };
+          server.urls['https://api.openai.com/v1/responses'].response = {
+            type: 'stream-chunks',
+            chunks: [
+              {
+                type: 'response.output_item.added',
+                output_index: 0,
+                item: { type: 'message', id: 'message', role: 'assistant' },
+              },
+              { type: 'response.output_text.annotation.added', annotation },
+              {
+                type: 'response.output_item.done',
+                output_index: 0,
+                item: { type: 'message', id: 'message' },
+              },
+              { type: 'response.output_item.done', output_index: 1, item },
+            ].map(event => `data: ${JSON.stringify(event)}\n\n`),
+          };
+          const { stream } = await createModel('gpt-5-nano').doStream({
+            prompt: TEST_PROMPT,
+          });
+          const events = await convertReadableStreamToArray(stream);
+          expect(events.filter(event => event.type === 'error')).toEqual([]);
+          const sources = events.filter(event => event.type === 'source');
+          expect(sources).toHaveLength(1);
+          expect(sources[0]).toMatchObject(
+            type === 'web_search_call'
+              ? { sourceType: 'url', url: 'https://example.com/retrieved' }
+              : { sourceType: 'document', filename: 'retrieved.pdf' },
+          );
+          expect(
+            events.find(event => event.type === 'text-end')?.citations,
+          ).toEqual([
+            expect.objectContaining({
+              source: expect.objectContaining(
+                type === 'web_search_call'
+                  ? {
+                      sourceType: 'url',
+                      url: 'https://example.com/cited',
+                      title: 'Cited',
+                    }
+                  : { sourceType: 'document', filename: 'cited.pdf' },
+              ),
+            }),
+          ]);
+        },
+      );
+
       it('should stream web search results (sources, tool calls, tool results)', async () => {
         prepareChunksFixtureResponse('openai-web-search-tool.1');
 
@@ -8098,7 +8613,21 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
         });
 
-        expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+        const events = await convertReadableStreamToArray(stream);
+        const sources = events.filter(
+          (
+            event,
+          ): event is Extract<
+            LanguageModelV4StreamPart,
+            { type: 'source'; sourceType: 'url' }
+          > => event.type === 'source' && event.sourceType === 'url',
+        );
+
+        expect(sources).toHaveLength(21);
+        expect(sources.map(source => source.url)).not.toContain(
+          'https://www.wired.com/story/the-big-interview-2025-recap?utm_source=openai',
+        );
+        expect(events).toMatchSnapshot();
       });
 
       it('should handle streaming web search with action query field', async () => {
@@ -10484,7 +11013,7 @@ describe('OpenAIResponsesLanguageModel', () => {
   });
 
   describe('mixed citation types', () => {
-    it('should handle both url_citation and file_citation annotations', async () => {
+    it('should retain streamed citation sources when retrieved sources are unavailable', async () => {
       server.urls['https://api.openai.com/v1/responses'].response = {
         type: 'stream-chunks',
         chunks: [
@@ -10505,6 +11034,16 @@ describe('OpenAIResponsesLanguageModel', () => {
 
       const result = await convertReadableStreamToArray(stream);
 
+      expect(result).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: 'source',
+            sourceType: 'url',
+            url: 'https://example.com',
+            title: 'Example URL',
+          }),
+        ]),
+      );
       expect(result).toMatchInlineSnapshot(`
         [
           {
@@ -10512,28 +11051,36 @@ describe('OpenAIResponsesLanguageModel', () => {
             "warnings": [],
           },
           {
-            "id": "id-0",
-            "sourceType": "url",
-            "title": "Example URL",
-            "type": "source",
-            "url": "https://example.com",
-          },
-          {
-            "filename": "resource1.json",
-            "id": "id-1",
-            "mediaType": "text/plain",
-            "providerMetadata": {
-              "openai": {
-                "fileId": "file-abc123",
-                "index": 123,
-                "type": "file_citation",
+            "citations": [
+              {
+                "endIndex": 234,
+                "source": {
+                  "id": "https://example.com",
+                  "sourceType": "url",
+                  "title": "Example URL",
+                  "type": "source",
+                  "url": "https://example.com",
+                },
+                "startIndex": 123,
               },
-            },
-            "sourceType": "document",
-            "title": "resource1.json",
-            "type": "source",
-          },
-          {
+              {
+                "source": {
+                  "filename": "resource1.json",
+                  "id": "file-abc123",
+                  "mediaType": "text/plain",
+                  "providerMetadata": {
+                    "openai": {
+                      "fileId": "file-abc123",
+                      "index": 123,
+                      "type": "file_citation",
+                    },
+                  },
+                  "sourceType": "document",
+                  "title": "resource1.json",
+                  "type": "source",
+                },
+              },
+            ],
             "id": "msg_123",
             "providerMetadata": {
               "openai": {
@@ -10556,6 +11103,28 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
             },
             "type": "text-end",
+          },
+          {
+            "id": "id-0",
+            "sourceType": "url",
+            "title": "Example URL",
+            "type": "source",
+            "url": "https://example.com",
+          },
+          {
+            "filename": "resource1.json",
+            "id": "id-1",
+            "mediaType": "text/plain",
+            "providerMetadata": {
+              "openai": {
+                "fileId": "file-abc123",
+                "index": 123,
+                "type": "file_citation",
+              },
+            },
+            "sourceType": "document",
+            "title": "resource1.json",
+            "type": "source",
           },
           {
             "finishReason": {
@@ -10622,6 +11191,65 @@ describe('OpenAIResponsesLanguageModel', () => {
             "warnings": [],
           },
           {
+            "citations": [
+              {
+                "source": {
+                  "filename": "resource1.json",
+                  "id": "file-YRcoCqn3Fo2K4JgraG",
+                  "mediaType": "text/plain",
+                  "providerMetadata": {
+                    "openai": {
+                      "fileId": "file-YRcoCqn3Fo2K4JgraG",
+                      "index": 145,
+                      "type": "file_citation",
+                    },
+                  },
+                  "sourceType": "document",
+                  "title": "resource1.json",
+                  "type": "source",
+                },
+              },
+              {
+                "source": {
+                  "filename": "resource1.json",
+                  "id": "file-YRcoCqn3Fo2K4JgraG",
+                  "mediaType": "text/plain",
+                  "providerMetadata": {
+                    "openai": {
+                      "fileId": "file-YRcoCqn3Fo2K4JgraG",
+                      "index": 192,
+                      "type": "file_citation",
+                    },
+                  },
+                  "sourceType": "document",
+                  "title": "resource1.json",
+                  "type": "source",
+                },
+              },
+            ],
+            "id": "msg_456",
+            "providerMetadata": {
+              "openai": {
+                "annotations": [
+                  {
+                    "file_id": "file-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 145,
+                    "type": "file_citation",
+                  },
+                  {
+                    "file_id": "file-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 192,
+                    "type": "file_citation",
+                  },
+                ],
+                "itemId": "msg_456",
+              },
+            },
+            "type": "text-end",
+          },
+          {
             "filename": "resource1.json",
             "id": "id-0",
             "mediaType": "text/plain",
@@ -10650,29 +11278,6 @@ describe('OpenAIResponsesLanguageModel', () => {
             "sourceType": "document",
             "title": "resource1.json",
             "type": "source",
-          },
-          {
-            "id": "msg_456",
-            "providerMetadata": {
-              "openai": {
-                "annotations": [
-                  {
-                    "file_id": "file-YRcoCqn3Fo2K4JgraG",
-                    "filename": "resource1.json",
-                    "index": 145,
-                    "type": "file_citation",
-                  },
-                  {
-                    "file_id": "file-YRcoCqn3Fo2K4JgraG",
-                    "filename": "resource1.json",
-                    "index": 192,
-                    "type": "file_citation",
-                  },
-                ],
-                "itemId": "msg_456",
-              },
-            },
-            "type": "text-end",
           },
           {
             "finishReason": {
@@ -10874,6 +11479,27 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "source",
           },
           {
+            "citations": [
+              {
+                "endIndex": 465,
+                "source": {
+                  "filename": "roll2dice_sums_10000.csv",
+                  "id": "cfile_68c2e7084ab48191a67824aa1f4c90f1",
+                  "mediaType": "text/plain",
+                  "providerMetadata": {
+                    "openai": {
+                      "containerId": "cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9",
+                      "fileId": "cfile_68c2e7084ab48191a67824aa1f4c90f1",
+                      "type": "container_file_citation",
+                    },
+                  },
+                  "sourceType": "document",
+                  "title": "roll2dice_sums_10000.csv",
+                  "type": "source",
+                },
+                "startIndex": 423,
+              },
+            ],
             "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
             "providerMetadata": {
               "openai": {

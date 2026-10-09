@@ -90,6 +90,17 @@ describe('doGenerate', () => {
       });
     });
 
+    it('routes dated Ink Whisper snapshots to the batch endpoint', async () => {
+      await provider.transcription('ink-whisper-2025-06-04').doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+      expect(await server.calls[0].requestBodyMultipart).toMatchObject({
+        model: 'ink-whisper-2025-06-04',
+      });
+    });
+
     it('should pass headers', async () => {
       const provider = createCartesia({
         apiKey: 'test-api-key',
@@ -198,6 +209,39 @@ describe('doStream', () => {
   beforeEach(() => {
     MockWebSocket.instances = [];
   });
+
+  it.each(['ink-3', 'new-streaming-model'])(
+    'routes %s through streaming transcription instead of the batch endpoint',
+    async modelId => {
+      const model = createCartesia({
+        apiKey: 'test-api-key',
+        webSocket: MockWebSocket,
+      }).transcription(modelId);
+      await expect(
+        model.doGenerate({
+          audio: new Uint8Array(),
+          mediaType: 'audio/wav',
+        }),
+      ).rejects.toMatchObject({ name: 'AI_UnsupportedFunctionalityError' });
+      expect(server.calls).toHaveLength(0);
+
+      const result = await model.doStream!({
+        audio: convertArrayToReadableStream([]),
+        inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      });
+      expect(server.calls[0].requestUrl).toBe(
+        'https://api.cartesia.ai/access-token',
+      );
+      const ws = MockWebSocket.instances[0];
+      const url = new URL(ws.url);
+      expect(url.pathname).toBe('/stt/turns/websocket');
+      expect(url.searchParams.get('model')).toBe(modelId);
+      ws.open();
+      const reader = result.stream.getReader();
+      await reader.cancel();
+      expect(ws.close).toHaveBeenCalled();
+    },
+  );
 
   it('streams Ink 2 turn-detected transcription over WebSocket', async () => {
     const testDate = new Date(0);

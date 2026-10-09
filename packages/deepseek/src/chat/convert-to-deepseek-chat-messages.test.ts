@@ -961,6 +961,36 @@ describe('convertToDeepSeekChatMessages', () => {
     });
   });
 
+  it.each(['deepseek-v5-pro', 'deepseek-v10-flash', 'deepseek-next'])(
+    'preserves prior-turn reasoning and fills absent reasoning for %s',
+    async modelId => {
+      const result = await convertToDeepSeekChatMessages({
+        modelId,
+        responseFormat: undefined,
+        prompt: [
+          { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+          {
+            role: 'assistant',
+            content: [
+              { type: 'reasoning', text: 'Prior-turn reasoning.' },
+              { type: 'text', text: 'Hi' },
+            ],
+          },
+          { role: 'user', content: [{ type: 'text', text: 'Again' }] },
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello again' }],
+          },
+          { role: 'user', content: [{ type: 'text', text: 'Continue' }] },
+        ],
+      });
+      expect(result.messages[1]).toMatchObject({
+        reasoning_content: 'Prior-turn reasoning.',
+      });
+      expect(result.messages[3]).toMatchObject({ reasoning_content: '' });
+      expect(result.warnings).toEqual([]);
+    },
+  );
   describe('deepseek-v4 thinking mode', () => {
     // V4 demands `reasoning_content` on every assistant turn — including ones
     // before the last user message. Stripping it like we do for R1 makes the
