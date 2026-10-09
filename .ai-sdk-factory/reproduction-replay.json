@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "issueId": 22343,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22343-web-search-store-false.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/issue-22343-web-search-store-false.ts",
+    "packages/openai/src/responses/convert-to-openai-responses-input.test.ts",
+    "packages/openai/src/responses/__fixtures__/issue-22343-web-search-replay-store-false.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22343_PRIMARY_FAILURE: stateless web search context was omitted from the second Responses API request"
+  }
+}

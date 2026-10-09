@@ -1,0 +1,35 @@
+{
+  "object": "response",
+  "status": "completed",
+  "error": null,
+  "model": "gpt-4.1-mini-2025-04-14",
+  "output": [
+    {
+      "id": "msg_01b668cdeb4cb676016ac908ba296887d2a7876f5380483a80",
+      "type": "message",
+      "status": "completed",
+      "content": [
+        {
+          "type": "output_text",
+          "annotations": [],
+          "logprobs": [],
+          "text": "I have noted the prior search for the mayor of Paris."
+        }
+      ],
+      "role": "assistant"
+    }
+  ],
+  "store": false,
+  "usage": {
+    "input_tokens": 36,
+    "input_tokens_details": {
+      "cache_write_tokens": 0,
+      "cached_tokens": 0
+    },
+    "output_tokens": 13,
+    "output_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "total_tokens": 49
+  }
+}

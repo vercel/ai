@@ -2448,6 +2448,143 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
 
+    it('should replay web search calls by content with store: false', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'ws_search',
+                toolName: 'web_search',
+                input: {},
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'ws_search',
+                toolName: 'web_search',
+                output: {
+                  type: 'json',
+                  value: {
+                    action: { type: 'search', query: 'mayor of Paris' },
+                    sources: [{ type: 'url', url: 'https://www.paris.fr' }],
+                  },
+                },
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'ws_preview',
+                toolName: 'web_search_preview',
+                input: {},
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'ws_preview',
+                toolName: 'web_search_preview',
+                output: {
+                  type: 'json',
+                  value: {
+                    action: { type: 'search', query: 'mayor of Paris' },
+                    sources: [{ type: 'url', url: 'https://www.paris.fr' }],
+                  },
+                },
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'ws_open_page',
+                toolName: 'web_search',
+                input: {},
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'ws_open_page',
+                toolName: 'web_search',
+                output: {
+                  type: 'json',
+                  value: {
+                    action: {
+                      type: 'openPage',
+                      url: 'https://www.paris.fr',
+                    },
+                  },
+                },
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'ws_find_in_page',
+                toolName: 'web_search',
+                input: {},
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'ws_find_in_page',
+                toolName: 'web_search',
+                output: {
+                  type: 'json',
+                  value: {
+                    action: {
+                      type: 'findInPage',
+                      url: 'https://www.paris.fr',
+                      pattern: 'mayor',
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        store: false,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'web_search_call',
+          id: 'ws_search',
+          status: 'completed',
+          action: {
+            type: 'search',
+            query: 'mayor of Paris',
+            sources: [{ type: 'url', url: 'https://www.paris.fr' }],
+          },
+        },
+        {
+          type: 'web_search_call',
+          id: 'ws_preview',
+          status: 'completed',
+          action: {
+            type: 'search',
+            query: 'mayor of Paris',
+            sources: [{ type: 'url', url: 'https://www.paris.fr' }],
+          },
+        },
+        {
+          type: 'web_search_call',
+          id: 'ws_open_page',
+          status: 'completed',
+          action: {
+            type: 'open_page',
+            url: 'https://www.paris.fr',
+          },
+        },
+        {
+          type: 'web_search_call',
+          id: 'ws_find_in_page',
+          status: 'completed',
+          action: {
+            type: 'find_in_page',
+            url: 'https://www.paris.fr',
+            pattern: 'mayor',
+          },
+        },
+      ]);
+    });
+
     describe('local shell', () => {
       it('should convert local shell tool call and result into item reference with store: true', async () => {
         const result = await convertToOpenAIResponsesInput({
