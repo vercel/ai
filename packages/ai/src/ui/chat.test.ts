@@ -3459,6 +3459,169 @@ describe('Chat', () => {
     });
   });
 
+<<<<<<< HEAD
+=======
+  describe('addToolOutput', () => {
+    it('should update a tool call in an earlier message', async () => {
+      const laterMessages: UIMessage[] = [
+        {
+          id: 'id-2',
+          role: 'user',
+          parts: [{ type: 'text', text: 'Continue while the tool runs.' }],
+        },
+      ];
+      const chat = new TestChat({
+        id: '123',
+        messages: [
+          {
+            id: 'id-1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'dynamic-tool',
+                toolName: 'test-tool',
+                toolCallId: 'tool-call-0',
+                state: 'input-available',
+                input: { testArg: 'test-value' },
+              },
+            ],
+          },
+          ...laterMessages,
+        ],
+      });
+
+      await chat.addToolOutput({
+        tool: 'test-tool',
+        toolCallId: 'tool-call-0',
+        output: { ok: true },
+      });
+
+      expect(chat.messages[0].parts[0]).toMatchObject({
+        state: 'output-available',
+        output: { ok: true },
+      });
+      expect(chat.messages.slice(1)).toEqual(laterMessages);
+    });
+  });
+
+  describe('addToolOutput approval metadata', () => {
+    it.each(['output-available', 'output-error'] as const)(
+      'should keep the active response valid after adding %s while approval is pending',
+      async state => {
+        const controller = new TestResponseController();
+        server.urls['http://localhost:3000/api/chat'].response = {
+          type: 'controlled-stream',
+          controller,
+        };
+        const chat = new TestChat({
+          transport: new DefaultChatTransport({
+            api: 'http://localhost:3000/api/chat',
+          }),
+        });
+        const response = chat.sendMessage({ text: 'Rename note' });
+        controller.write(formatChunk({ type: 'start' }));
+        controller.write(formatChunk({ type: 'start-step' }));
+        controller.write(
+          formatChunk({
+            type: 'tool-input-available',
+            toolName: 'test-tool',
+            toolCallId: 'tool-call-0',
+            input: { testArg: 'test-value' },
+          }),
+        );
+        controller.write(
+          formatChunk({
+            type: 'tool-approval-request',
+            toolCallId: 'tool-call-0',
+            approvalId: 'approval-1',
+          }),
+        );
+        await vi.waitFor(() => {
+          expect(chat.messages.at(-1)?.parts.at(-1)).toMatchObject({
+            state: 'approval-requested',
+          });
+        });
+
+        await chat.addToolOutput({
+          tool: 'test-tool',
+          toolCallId: 'tool-call-0',
+          ...(state === 'output-error'
+            ? { state, errorText: 'client-side error' }
+            : { output: 'test-output' }),
+        });
+        controller.write(formatChunk({ type: 'finish-step' }));
+        controller.write(formatChunk({ type: 'finish' }));
+        controller.close();
+        await response;
+
+        expect(chat.messages.at(-1)?.parts.at(-1)).toMatchObject({ state });
+        await expect(
+          validateUIMessages({ messages: chat.messages }),
+        ).resolves.toEqual(chat.messages);
+      },
+    );
+
+    for (const dynamic of [false, true]) {
+      for (const state of ['output-available', 'output-error'] as const) {
+        it.each(['pending', 'approved', 'denied'] as const)(
+          `should keep only granted approval metadata for ${dynamic ? 'dynamic' : 'static'} ${state} with %s approval`,
+          async approvalState => {
+            const approval = {
+              id: 'approval-1',
+              descriptor: { label: 'Rename note' },
+              requestReason: 'Requires confirmation',
+              signature: 'signed-approval-envelope',
+            };
+            const part: UIMessage['parts'][number] = {
+              ...(dynamic
+                ? { type: 'dynamic-tool', toolName: 'test-tool' }
+                : { type: 'tool-test-tool' }),
+              toolCallId: 'tool-call-0',
+              input: { testArg: 'test-value' },
+              ...(approvalState === 'pending'
+                ? { state: 'approval-requested', approval }
+                : {
+                    state: 'approval-responded',
+                    approval: {
+                      ...approval,
+                      approved: approvalState === 'approved',
+                      reason: 'User decision',
+                    },
+                  }),
+            };
+            const chat = new TestChat({
+              messages: [{ id: 'message-1', role: 'assistant', parts: [part] }],
+            });
+
+            await chat.addToolOutput({
+              tool: 'test-tool',
+              toolCallId: 'tool-call-0',
+              ...(state === 'output-error'
+                ? { state, errorText: 'client-side error' }
+                : { output: 'test-output' }),
+            });
+
+            expect(chat.messages[0].parts[0]).toEqual({
+              ...part,
+              state,
+              output: state === 'output-available' ? 'test-output' : undefined,
+              errorText:
+                state === 'output-error' ? 'client-side error' : undefined,
+              approval:
+                approvalState === 'approved'
+                  ? { ...approval, approved: true, reason: 'User decision' }
+                  : undefined,
+            });
+            await expect(
+              validateUIMessages({ messages: chat.messages }),
+            ).resolves.toEqual(chat.messages);
+          },
+        );
+      }
+    }
+  });
+
+>>>>>>> 26d64e9fbc (fix: addToolOutput results being dropped for tool calls in earlier messages (#22361))
   describe('addToolOutput options forwarding', () => {
     it('should forward options to makeRequest when auto-sending', async () => {
       server.urls['http://localhost:3000/api/chat'].response = [
