@@ -162,8 +162,12 @@ const sonnet5AnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
 const futureAnthropicModelId = 'us.anthropic.claude-opus-6-v1:0';
 const futureAnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(futureAnthropicModelId)}/converse`;
 
+const futureMinorAnthropicModelId = 'us.anthropic.claude-opus-4-9-v1:0';
+const futureMinorAnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(futureMinorAnthropicModelId)}/converse`;
+
 const server = createTestServer({
   [futureAnthropicGenerateUrl]: {},
+  [futureMinorAnthropicGenerateUrl]: {},
   [generateUrl]: {},
   [streamUrl]: {
     response: {
@@ -9199,10 +9203,15 @@ describe('doGenerate', () => {
   });
 });
 
-it.each([false, true])(
-  'should use JSON instructions for future Claude models (with tools: %s)',
-  async withTools => {
-    server.urls[futureAnthropicGenerateUrl].response = {
+it.each([
+  [futureAnthropicModelId, futureAnthropicGenerateUrl, false],
+  [futureAnthropicModelId, futureAnthropicGenerateUrl, true],
+  [futureMinorAnthropicModelId, futureMinorAnthropicGenerateUrl, false],
+  [futureMinorAnthropicModelId, futureMinorAnthropicGenerateUrl, true],
+] as const)(
+  'should use JSON instructions for future Claude model %s at %s (with tools: %s)',
+  async (modelId, generateUrl, withTools) => {
+    server.urls[generateUrl].response = {
       type: 'json-value',
       body: {
         output: {
@@ -9215,7 +9224,7 @@ it.each([false, true])(
         stopReason: 'end_turn',
       },
     };
-    const model = new AmazonBedrockChatLanguageModel(futureAnthropicModelId, {
+    const model = new AmazonBedrockChatLanguageModel(modelId, {
       baseUrl: () => baseUrl,
       headers: {},
       fetch: fakeFetchWithAuth,

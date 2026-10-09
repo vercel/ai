@@ -343,7 +343,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       responseFormat.schema != null &&
       (rejectsForcedToolUse ||
         (this.modelId.includes('claude-') &&
-          !isKnownModel &&
+          (!isKnownModel || !modelSupportsStructuredOutput) &&
           !supportsNativeStructuredOutput(this.modelId) &&
           structuredOutputMode !== 'jsonTool') ||
         (structuredOutputMode !== 'jsonTool' &&
