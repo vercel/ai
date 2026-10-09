@@ -117,8 +117,8 @@ describe('createGitHubCopilot', () => {
     if (source.type !== 'npm-locked') {
       throw new Error('Expected a locked NPM source.');
     }
-    expect(source.packageJson).toContain('"@github/copilot": "1.0.86"');
-    expect(source.pnpmLockYaml).toContain("'@github/copilot@1.0.86':");
+    expect(source.packageJson).toContain('"@github/copilot": "1.0.92"');
+    expect(source.pnpmLockYaml).toContain("'@github/copilot@1.0.92':");
     expect(source.pnpmWorkspaceYaml).toContain("'@github/copilot");
   });
 

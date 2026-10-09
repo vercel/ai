@@ -1,10 +1,12 @@
 import {
   UnsupportedFunctionalityError,
   type Experimental_DecisionModelV4 as DecisionModelV4,
+  type Experimental_DecisionModelV4State as DecisionModelV4State,
   type SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
+  convertUint8ArrayToBase64,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   getErrorMessage,
@@ -52,21 +54,7 @@ export class GatewayDecisionModel implements DecisionModelV4 {
   }: Parameters<DecisionModelV4['doDecide']>[0]): Promise<
     Awaited<ReturnType<DecisionModelV4['doDecide']>>
   > {
-    const values = state.map(part => {
-      if (part.type === 'file') {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'Gateway decision file input',
-        });
-      }
-      return part.type === 'text' ? part.text : part.value;
-    });
-    // Keep the legacy Gateway state format: string, JSON object, or JSON array.
-    const requestState =
-      values.length === 1 &&
-      (typeof values[0] === 'string' ||
-        (typeof values[0] === 'object' && values[0] !== null))
-        ? values[0]
-        : values;
+    const stateParts = toGatewayDecisionState(state);
     const gatewayOptions = await parseProviderOptions({
       provider: 'gateway',
       providerOptions,
@@ -93,7 +81,7 @@ export class GatewayDecisionModel implements DecisionModelV4 {
           await resolve(this.config.o11yHeaders),
         ),
         body: {
-          state: requestState,
+          stateParts,
           questions,
           ...(validatedProviderOptions
             ? { providerOptions: validatedProviderOptions }
@@ -209,3 +197,24 @@ const gatewayDecisionResponseSchema = lazySchema(() =>
     }),
   ),
 );
+
+function toGatewayDecisionState(
+  state: DecisionModelV4State,
+): DecisionModelV4State {
+  return state.map(part => {
+    if (part.type !== 'file') return part;
+    if (part.data.type !== 'data') {
+      throw new UnsupportedFunctionalityError({
+        functionality: `Gateway decision file input: ${part.data.type} data`,
+      });
+    }
+    const { data } = part.data;
+    return {
+      ...part,
+      data: {
+        type: 'data',
+        data: typeof data === 'string' ? data : convertUint8ArrayToBase64(data),
+      },
+    };
+  });
+}

@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@agentclientprotocol/sdk": "1.5.0",
-    "@modelcontextprotocol/sdk": "1.32.0",
+    "@agentclientprotocol/sdk": "1.7.0",
+    "@modelcontextprotocol/sdk": "1.32.1",
     "ws": "8.21.0",
     "zod": "4.4.3"
   }

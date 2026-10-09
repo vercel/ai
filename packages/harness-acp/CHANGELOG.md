@@ -1,5 +1,20 @@
 # @ai-sdk/harness-acp
 
+## 1.0.86
+
+### Patch Changes
+
+- c357e52: chore(harness): update primary harness SDKs to their latest versions
+  - @ai-sdk/harness@1.0.147
+
+## 1.0.85
+
+### Patch Changes
+
+- 0637573: fix(harness-acp): improve tool call matching logic to fix cross-process tool approval errors for certain ACP backed harnesses
+  - @ai-sdk/harness@1.0.146
+  - @ai-sdk/provider-utils@5.0.58
+
 ## 1.0.84
 
 ### Patch Changes

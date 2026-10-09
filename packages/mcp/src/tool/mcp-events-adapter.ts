@@ -1,4 +1,5 @@
 import type { JSONObject } from '@ai-sdk/provider';
+import { MCPClientError } from '../error/mcp-client-error';
 import type { MCPEvents } from './mcp-event-types';
 import type { RequestOptions } from './types';
 
@@ -39,7 +40,7 @@ export type ManagedSubscribeInput = {
  * Implementations must honor request options and preserve actionable errors.
  * Cancelling a request does not cancel an already accepted remote subscription.
  */
-export interface MCPEventsAdapter {
+export interface MCPEventOperations {
   subscribe(input: ManagedSubscribeInput): Promise<ManagedSubscription>;
 
   getSubscription(input: {
@@ -63,20 +64,69 @@ export interface MCPEventsAdapter {
   }): Promise<ManagedSubscription>;
 }
 
+/**
+ * Creates bound subscription operations once per client, before the transport starts.
+ * Receives transport metadata, not credentials or a live transport instance.
+ * HTTP/SSE URLs are the configured endpoints, not resolved redirect targets.
+ * Custom transports have no standard URL and receive only their type.
+ */
+export interface MCPEventAdapter {
+  createAdapter(context: {
+    transport: { type: 'http' | 'sse'; url: string } | { type: 'custom' };
+  }): MCPEventOperations;
+}
+
+/** Validate JavaScript integrations before opening the MCP transport. */
+export function validateMCPEventOperations(
+  operations: unknown,
+): asserts operations is MCPEventOperations {
+  if (
+    operations != null &&
+    (typeof operations === 'object' || typeof operations === 'function') &&
+    'then' in operations &&
+    typeof operations.then === 'function'
+  ) {
+    // Consume a rejected async factory result so the configuration error does
+    // not also cause an unhandled rejection. Async factories are not supported.
+    void Promise.resolve(operations).catch(() => {});
+    throw new MCPClientError({
+      message:
+        'experimental_events.adapter.createAdapter() must return operations synchronously. Promise and thenable results are not supported.',
+    });
+  }
+  if (
+    typeof operations !== 'object' ||
+    operations === null ||
+    !('subscribe' in operations) ||
+    typeof operations.subscribe !== 'function' ||
+    !('getSubscription' in operations) ||
+    typeof operations.getSubscription !== 'function' ||
+    !('listSubscriptions' in operations) ||
+    typeof operations.listSubscriptions !== 'function' ||
+    !('unsubscribe' in operations) ||
+    typeof operations.unsubscribe !== 'function'
+  ) {
+    throw new MCPClientError({
+      message:
+        'experimental_events.adapter.createAdapter() must return an object implementing subscribe, getSubscription, listSubscriptions, and unsubscribe.',
+    });
+  }
+}
+
 /** Catalog discovery uses MCP; all subscription operations use the adapter. */
-export interface ManagedMCPEvents extends MCPEventsAdapter {
+export interface ManagedMCPEvents extends MCPEventOperations {
   list: MCPEvents['list'];
 }
 
 export function createManagedMCPEvents(
-  adapter: MCPEventsAdapter,
+  operations: MCPEventOperations,
   list: MCPEvents['list'],
 ): ManagedMCPEvents {
   return {
     list,
-    subscribe: input => adapter.subscribe(input),
-    getSubscription: input => adapter.getSubscription(input),
-    listSubscriptions: input => adapter.listSubscriptions(input),
-    unsubscribe: input => adapter.unsubscribe(input),
+    subscribe: input => operations.subscribe(input),
+    getSubscription: input => operations.getSubscription(input),
+    listSubscriptions: input => operations.listSubscriptions(input),
+    unsubscribe: input => operations.unsubscribe(input),
   };
 }

@@ -9,7 +9,8 @@ import {
   type Experimental_MCPEventStore,
   type Experimental_MCPEvents,
   type Experimental_SubscribeEventResult,
-  type Experimental_MCPEventsAdapter,
+  type Experimental_MCPEventOperations,
+  type Experimental_MCPEventAdapter,
   type Experimental_ManagedMCPClient,
   type Experimental_ManagedMCPEvents,
   type Experimental_MCPEventsConfig,
@@ -97,7 +98,9 @@ it('narrows unknown errors and exposes optional MCP error metadata', () => {
 });
 
 it('infers managed event operations and rejects mixing direct and managed APIs', async () => {
-  const adapter = {} as Experimental_MCPEventsAdapter;
+  const adapter = {
+    createAdapter: () => ({}) as Experimental_MCPEventOperations,
+  } satisfies Experimental_MCPEventAdapter;
   const transport = { type: 'http' as const, url: 'https://example.com/mcp' };
   const config = {
     transport,
@@ -179,7 +182,9 @@ it('accepts configuration whose event mode is only known at runtime', async () =
 });
 
 it('uses one event configuration union for direct and managed clients', async () => {
-  const adapter = {} as Experimental_MCPEventsAdapter;
+  const adapter = {
+    createAdapter: () => ({}) as Experimental_MCPEventOperations,
+  } satisfies Experimental_MCPEventAdapter;
   const store = {} as Experimental_MCPEventStore;
   const transport = { type: 'http' as const, url: 'https://example.com/mcp' };
   const managed = { adapter } satisfies Experimental_MCPEventsConfig;
@@ -220,4 +225,96 @@ it('uses one event configuration union for direct and managed clients', async ()
   await client.experimental_events.list();
   // @ts-expect-error A runtime-selected mode is not known to support direct refresh.
   client.experimental_events.refresh({ id: 'sub_1' });
+});
+
+it('infers managed clients from adapters and narrows transport metadata', async () => {
+  const adapter = {} as Experimental_MCPEventOperations;
+  const config = {
+    transport: { type: 'http', url: 'https://example.com/mcp' },
+    experimental_events: {
+      adapter: {
+        createAdapter({ transport }) {
+          expectTypeOf(transport.type).toEqualTypeOf<
+            'http' | 'sse' | 'custom'
+          >();
+          if (transport.type === 'custom') {
+            // @ts-expect-error Custom transports do not expose a standard URL.
+            transport.url;
+          } else {
+            expectTypeOf(transport.url).toEqualTypeOf<string>();
+          }
+          // @ts-expect-error The adapter only receives transport metadata.
+          transport.headers;
+          return adapter;
+        },
+      },
+    },
+  } satisfies MCPClientConfig;
+  expectTypeOf(
+    config.experimental_events.adapter,
+  ).toMatchTypeOf<Experimental_MCPEventAdapter>();
+  const client = await createMCPClient(config);
+  expectTypeOf(client).toEqualTypeOf<Experimental_ManagedMCPClient>();
+  expectTypeOf(
+    await createMCPClient({
+      transport: config.transport,
+      experimental_events: {
+        adapter: {
+          createAdapter({ transport }) {
+            if (transport.type !== 'custom') {
+              expectTypeOf(transport.url).toEqualTypeOf<string>();
+            }
+            return adapter;
+          },
+        },
+      },
+    }),
+  ).toEqualTypeOf<Experimental_ManagedMCPClient>();
+  const watch = await client.experimental_events.subscribe({
+    name: 'comment.created',
+    arguments: {},
+    expiresAt: null,
+    idempotencyKey: 'intent_1',
+  });
+  expectTypeOf(watch).toEqualTypeOf<Experimental_ManagedSubscription>();
+  // @ts-expect-error Managed adapters do not expose direct refresh.
+  client.experimental_events.refresh({ id: watch.id });
+  const mixed = {
+    ...config,
+    experimental_events: {
+      ...config.experimental_events,
+      store: {} as Experimental_MCPEventStore,
+    },
+  };
+  // @ts-expect-error Adapters cannot be combined with a direct store.
+  createMCPClient(mixed);
+  const asyncAdapter: Experimental_MCPEventAdapter = {
+    // @ts-expect-error Operation binding is synchronous.
+    async createAdapter() {
+      return adapter;
+    },
+  };
+  void asyncAdapter;
+});
+
+it('requires createAdapter instead of bound operations in managed configuration', async () => {
+  const adapter = {} as Experimental_MCPEventOperations;
+  const transport = { type: 'http' as const, url: 'https://example.com/mcp' };
+  const config = { transport, experimental_events: { adapter } };
+  // @ts-expect-error Managed configuration requires createAdapter.
+  createMCPClient(config);
+  // @ts-expect-error The config union rejects bound operations too.
+  const events: Experimental_MCPEventsConfig = { adapter };
+  void events;
+  const wrapped = await createMCPClient({
+    transport,
+    experimental_events: { adapter: { createAdapter: () => adapter } },
+  });
+  expectTypeOf(wrapped).toEqualTypeOf<Experimental_ManagedMCPClient>();
+});
+
+it('exports the configured adapter separately from its bound operations', () => {
+  expectTypeOf<
+    ReturnType<Experimental_MCPEventAdapter['createAdapter']>
+  >().toEqualTypeOf<Experimental_MCPEventOperations>();
 });

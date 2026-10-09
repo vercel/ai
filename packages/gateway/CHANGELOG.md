@@ -1,5 +1,21 @@
 # @ai-sdk/gateway
 
+## 4.0.110
+
+### Patch Changes
+
+- e280aa1: feat(gateway): send image files in decision state
+
+## 4.0.109
+
+### Patch Changes
+
+- 5cf13d2: feat: map the top level embedding dimensions to provider settings
+- 908fd12: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [4dbc902]
+  - @ai-sdk/provider@4.0.26
+  - @ai-sdk/provider-utils@5.0.58
+
 ## 4.0.108
 
 ### Patch Changes

@@ -1,5 +1,19 @@
 # @ai-sdk/harness-pi
 
+## 1.0.149
+
+### Patch Changes
+
+- c357e52: chore(harness): update primary harness SDKs to their latest versions
+  - @ai-sdk/harness@1.0.147
+
+## 1.0.148
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.146
+- @ai-sdk/provider-utils@5.0.58
+
 ## 1.0.147
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/harness-grok-build",
-  "version": "1.0.83",
+  "version": "1.0.85",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -46,7 +46,7 @@
   "devDependencies": {
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
-    "@xai-official/grok": "1.0.36",
+    "@xai-official/grok": "1.0.49",
     "tsdown": "^0.23.0",
     "typescript": "6.0.3",
     "zod": "3.25.76"

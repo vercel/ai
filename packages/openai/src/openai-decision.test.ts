@@ -531,6 +531,39 @@ it.each(['iVBORw==', new Uint8Array([0x89, 0x50, 0x4e, 0x47])])(
   },
 );
 
+it.each(['low', 'high', 'auto', 'original'])(
+  'sends %s image detail from file part provider options',
+  async imageDetail => {
+    const { model, fetch } = setup();
+    await model.doDecide({
+      ...options,
+      state: [
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: { type: 'data', data: 'iVBORw==' },
+          providerOptions: { openai: { imageDetail } },
+        },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: { type: 'data', data: 'iVBORw==' },
+        },
+      ],
+    });
+    expect(
+      JSON.parse(fetch.mock.calls[0][1]?.body as string).input[0].content,
+    ).toEqual([
+      {
+        type: 'input_image',
+        image_url: 'data:image/png;base64,iVBORw==',
+        detail: imageDetail,
+      },
+      { type: 'input_image', image_url: 'data:image/png;base64,iVBORw==' },
+    ]);
+  },
+);
+
 it.each([
   { mediaType: 'audio/wav', data: { type: 'data' as const, data: 'AAAA' } },
   { mediaType: 'image/svg+xml', data: { type: 'data' as const, data: 'AAAA' } },
