@@ -1,7 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import * as z4 from 'zod/v4';
+import { asSchema } from './as-schema';
 import { safeParseJSON } from './parse-json';
 import { zodSchema } from './zod-schema';
+
+describe('asSchema', () => {
+  it('should create an object schema when no schema is provided', async () => {
+    const schema = asSchema(undefined);
+
+    expect(await schema.jsonSchema).toStrictEqual({
+      type: 'object',
+      properties: {},
+      additionalProperties: false,
+    });
+  });
+});
 
 describe('zodSchema', () => {
   describe('zod/v4', () => {
