@@ -65,6 +65,19 @@ To test the package that you're working on, run `pnpm test` in the package folde
 You do not need to rebuild your package to test it (only dependencies need to be built).
 Some packages like `ai` also have more details tests and watch mode, see their `package.json` for more information.
 
+#### CI parallelism
+
+`pnpm test:ci` uses Turbo to run at most one package per available CPU. In the
+package-test CI matrix, `VITEST_MAX_WORKERS=2` limits each package's Vitest worker
+pool. On a four-CPU runner, this permits four packages and up to eight test
+workers. Full-suite CI benchmarks selected this balance to reduce contention
+while retaining file parallelism. Individual package tests retain their default
+parallelism locally.
+
+Both `VITEST_MAX_WORKERS` and `TEST_NODE_VERSION` are included in the Turbo test
+environment and cache key. The workflow sets `TEST_NODE_VERSION` to the matrix
+Node version so a passing result from one Node major cannot satisfy another.
+
 #### Adding package dependencies
 
 Please run `pnpm update-references` in workspace root to update the `references` section in the `tsconfig.json` file.
