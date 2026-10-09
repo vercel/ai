@@ -24,6 +24,7 @@ import {
   type Experimental_SandboxSession as SandboxSession,
   type ToolApprovalResponse,
   type ToolResultPart,
+  type ToolResultOutput,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import {
@@ -70,6 +71,7 @@ import { resolveCustomToolApproval } from './permission-mode';
 import { logBridgeError } from '../../utils/bridge-diagnostics';
 import { pinSandboxChannelEventCheckpoint } from '../../utils/sandbox-channel';
 import { normalizeHarnessToolModelOutput } from '../../utils/normalize-harness-tool-model-output';
+import { HarnessCapabilityUnsupportedError } from '../../errors/harness-capability-unsupported-error';
 
 const invalidToolInputMessage = 'Tool input validation failed.';
 
@@ -612,9 +614,23 @@ export function runPrompt<
     const submitToolResult: HarnessV1PromptControl['submitToolResult'] =
       async submission => {
         if (submission.toolResult != null) {
-          const output = normalizeHarnessToolModelOutput({
-            output: submission.toolResult.output,
-          });
+          let output: ToolResultOutput;
+          try {
+            output = normalizeHarnessToolModelOutput({
+              output: submission.toolResult.output,
+            });
+          } catch (error) {
+            if (
+              !continuationsByToolCallId.has(submission.toolCallId) ||
+              !HarnessCapabilityUnsupportedError.isInstance(error)
+            ) {
+              throw error;
+            }
+            output = {
+              type: 'text',
+              value: JSON.stringify(submission.output) ?? 'null',
+            };
+          }
           submission = {
             ...submission,
             toolResult: { ...submission.toolResult, output },

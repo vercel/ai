@@ -19,7 +19,7 @@ import {
   HarnessAgent,
   type HarnessAgentContinueTurnState,
 } from '@ai-sdk/harness/agent';
-import { tool } from '@ai-sdk/provider-utils';
+import { tool, type ToolResultOutput } from '@ai-sdk/provider-utils';
 import {
   existsSync,
   mkdirSync,
@@ -33,6 +33,7 @@ import path from 'node:path';
 import { z } from 'zod/v4';
 import { createPi } from './pi-harness';
 import { createPiSession } from './pi-session';
+import { truncatePiToolOutputHead } from './pi-tool-result';
 
 type FakePiTool = Pick<ToolDefinition, 'name' | 'execute'>;
 type FakeExtensionsResult = {
@@ -1718,78 +1719,248 @@ describe('createPiSession', () => {
     await resumedSession.doDestroy();
   });
 
-  it('injects model-facing text and inline images for dangling host tool results', async () => {
-    const { session: fakePiSession, prompt } = createFakePiSession();
-    piMock.session = fakePiSession;
-    const { journal, appendedMessages } = createJournal([
-      userMessage('ask the user something'),
-      assistantMessageWithToolCalls([{ id: 'tool-1', name: 'askUser' }]),
-    ]);
-    piMock.sessionManagerOpen.mockImplementation(() => journal);
+  it.each(['marker', 'x'.repeat(100_000)])(
+    'injects bounded model-facing text and inline images for dangling host tool results (%#)',
+    async text => {
+      const { session: fakePiSession, prompt } = createFakePiSession();
+      piMock.session = fakePiSession;
+      const { journal, appendedMessages } = createJournal([
+        userMessage('ask the user something'),
+        assistantMessageWithToolCalls([{ id: 'tool-1', name: 'askUser' }]),
+      ]);
+      piMock.sessionManagerOpen.mockImplementation(() => journal);
 
-    const sandboxSession = createSandboxSession({
-      sessionFileContent: 'pi-journal',
-    });
-    const session = await createPiSession({
-      sessionId: 'session-cross-process-image',
-      sandboxSession,
-      sessionWorkDir: '/sandbox/work',
-      settings: {},
-      clientApp: 'ai-sdk-harness-pi/0.0.0-test',
-      isResume: true,
-      resumeSessionFileName: 'pi-session.jsonl',
-    });
+      const sandboxSession = createSandboxSession({
+        sessionFileContent: 'pi-journal',
+      });
+      const session = await createPiSession({
+        sessionId: 'session-cross-process-image',
+        sandboxSession,
+        sessionWorkDir: '/sandbox/work',
+        settings: {},
+        clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+        isResume: true,
+        resumeSessionFileName: 'pi-session.jsonl',
+      });
 
-    const emit = vi.fn();
-    const control = await session.doContinueTurn({
-      skills: [],
-      tools: [{ name: 'askUser' }],
-      instructions: 'Return the tool result exactly.',
-      emit,
-    });
+      const emit = vi.fn();
+      const control = await session.doContinueTurn({
+        skills: [],
+        tools: [{ name: 'askUser' }],
+        instructions: 'Return the tool result exactly.',
+        emit,
+      });
 
-    // The rerun must wait for the framework to re-deliver the result of the
-    // journal-pending tool call; starting it eagerly would resolve the call
-    // as a synthetic empty result and drop the submission below.
-    expect(prompt).not.toHaveBeenCalled();
+      // The rerun must wait for the framework to re-deliver the result of the
+      // journal-pending tool call; starting it eagerly would resolve the call
+      // as a synthetic empty result and drop the submission below.
+      expect(prompt).not.toHaveBeenCalled();
 
-    await control.submitToolResult({
-      toolCallId: 'tool-1',
-      output: { status: 'ready' },
-      toolResult: {
-        type: 'tool-result',
+      await control.submitToolResult({
         toolCallId: 'tool-1',
-        toolName: 'askUser',
-        output: {
-          type: 'content',
-          value: [
-            { type: 'text', text: 'marker' },
-            {
-              type: 'file',
-              mediaType: 'image/png',
-              data: { type: 'data', data: 'iVBORw==' },
-            },
-          ],
+        output: { status: 'ready' },
+        toolResult: {
+          type: 'tool-result',
+          toolCallId: 'tool-1',
+          toolName: 'askUser',
+          output: {
+            type: 'content',
+            value: [
+              { type: 'text', text },
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: { type: 'data', data: 'iVBORw==' },
+              },
+            ],
+          },
         },
-      },
-    });
-    await control.done;
+      });
+      await control.done;
 
-    expect(appendedMessages).toEqual([
-      {
-        role: 'toolResult',
-        toolCallId: 'tool-1',
-        toolName: 'askUser',
-        content: [
-          { type: 'text', text: 'marker' },
-          { type: 'image', data: 'iVBORw==', mimeType: 'image/png' },
-        ],
-        isError: false,
-        timestamp: expect.any(Number),
-      },
-    ]);
-    await session.doDestroy();
-  });
+      expect(appendedMessages).toEqual([
+        {
+          role: 'toolResult',
+          toolCallId: 'tool-1',
+          toolName: 'askUser',
+          content: [
+            {
+              type: 'text',
+              text: truncatePiToolOutputHead(
+                text,
+                'Call the tool again with narrower parameters to inspect the omitted output.',
+              ),
+            },
+            { type: 'image', data: 'iVBORw==', mimeType: 'image/png' },
+          ],
+          isError: false,
+          timestamp: expect.any(Number),
+        },
+      ]);
+      await session.doDestroy();
+    },
+  );
+
+  describe.each(['live', 'restored'] as const)(
+    'converted %s host results',
+    mode => {
+      it.each([
+        {
+          output: { type: 'text', value: 'x'.repeat(100_000) },
+          isError: false,
+        },
+        {
+          output: { type: 'json', value: { large: 'x'.repeat(100_000) } },
+          isError: false,
+        },
+        {
+          output: { type: 'error-text', value: 'x'.repeat(100_000) },
+          isError: true,
+        },
+        {
+          output: { type: 'error-json', value: { large: 'x'.repeat(100_000) } },
+          isError: true,
+        },
+        {
+          output: {
+            type: 'content',
+            value: [
+              { type: 'text', text: 'x'.repeat(30_000) },
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: { type: 'data', data: 'iVBORw==' },
+              },
+              { type: 'text', text: 'y'.repeat(30_000) },
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: { type: 'data', data: 'iVBORw==' },
+              },
+            ],
+          },
+          isError: false,
+        },
+      ] satisfies { output: ToolResultOutput; isError: boolean }[])(
+        'bounds converted host tool output ($output.type)',
+        async ({ output, isError }) => {
+          const toolStarted = createDeferred<void>();
+          let resolvedToolResult: unknown;
+          let toolError: unknown;
+          const { session: fakePiSession } = createFakePiSession({
+            promptImplementation: async () => {
+              if (mode === 'restored') return;
+              const tool = piMock.customTools.find(
+                tool => tool.name === 'visualize',
+              );
+              if (!tool) throw new Error('Expected visualize tool.');
+              const promise = tool.execute(
+                'tool-1',
+                {},
+                undefined,
+                undefined,
+                undefined as never,
+              );
+              toolStarted.resolve();
+              try {
+                resolvedToolResult = await promise;
+              } catch (error) {
+                toolError = error;
+              }
+            },
+          });
+          piMock.session = fakePiSession;
+          const { journal, appendedMessages } = createJournal([
+            userMessage('inspect an image'),
+            assistantMessageWithToolCalls([
+              { id: 'tool-1', name: 'visualize' },
+            ]),
+          ]);
+          piMock.sessionManagerOpen.mockImplementation(() => journal);
+          const session = await createPiSession({
+            sessionId: 'session-live-truncation',
+            sandboxSession: createSandboxSession({
+              sessionFileContent: 'pi-journal',
+            }),
+            sessionWorkDir: '/sandbox/work',
+            settings: {},
+            clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+            isResume: mode === 'restored',
+            ...(mode === 'restored'
+              ? { resumeSessionFileName: 'pi-session.jsonl' }
+              : {}),
+          });
+          const turnOptions = {
+            skills: [],
+            prompt: 'go',
+            tools: [{ name: 'visualize' }],
+            emit: vi.fn(),
+          };
+          const control =
+            mode === 'live'
+              ? await session.doPromptTurn(turnOptions)
+              : await session.doContinueTurn(turnOptions);
+          if (mode === 'live') await toolStarted.promise;
+          const original = structuredClone(output);
+          await control.submitToolResult({
+            toolCallId: 'tool-1',
+            output: { raw: 'unchanged' },
+            toolResult: {
+              type: 'tool-result',
+              toolCallId: 'tool-1',
+              toolName: 'visualize',
+              output,
+            },
+          });
+          await control.done;
+          const text =
+            output.type === 'content'
+              ? output.value
+                  .filter(part => part.type === 'text')
+                  .map(part => part.text)
+                  .join('\n')
+              : typeof output.value === 'string'
+                ? output.value
+                : JSON.stringify(output.value);
+          const expected = truncatePiToolOutputHead(
+            text,
+            'Call the tool again with narrower parameters to inspect the omitted output.',
+          );
+          const expectedContent =
+            output.type === 'content'
+              ? [
+                  { type: 'text', text: expected },
+                  { type: 'image', data: 'iVBORw==', mimeType: 'image/png' },
+                  { type: 'image', data: 'iVBORw==', mimeType: 'image/png' },
+                ]
+              : [{ type: 'text', text: expected }];
+          if (mode === 'restored') {
+            expect(appendedMessages).toEqual([
+              {
+                role: 'toolResult',
+                toolCallId: 'tool-1',
+                toolName: 'visualize',
+                content: expectedContent,
+                isError,
+                timestamp: expect.any(Number),
+              },
+            ]);
+          } else if (isError) {
+            expect(toolError).toEqual(new Error(expected));
+            expect(resolvedToolResult).toBeUndefined();
+          } else {
+            expect(toolError).toBeUndefined();
+            expect(resolvedToolResult).toEqual({
+              content: expectedContent,
+              details: undefined,
+            });
+          }
+          expect(output).toEqual(original);
+          await session.doDestroy();
+        },
+      );
+    },
+  );
 
   it('holds a cross-process rerun until dangling host tool results arrive, then injects them into the journal', async () => {
     const { session: fakePiSession, prompt } = createFakePiSession();

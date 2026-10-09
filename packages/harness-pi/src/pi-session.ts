@@ -57,6 +57,7 @@ import {
 } from './pi-remote-ops';
 import {
   formatPiReadToolOutput,
+  truncatePiToolModelOutput,
   truncatePiToolOutputHead,
   truncatePiToolOutputTail,
 } from './pi-tool-result';
@@ -910,11 +911,19 @@ export async function createPiSession(
           : convertHarnessToolModelOutput({
               output: delivered.toolResult.output,
             });
+      const content =
+        converted == null
+          ? undefined
+          : truncatePiToolModelOutput({
+              content: converted.content,
+              continuation:
+                'Call the tool again with narrower parameters to inspect the omitted output.',
+            });
       journal.appendMessage({
         role: 'toolResult',
         toolCallId,
         toolName: delivered.toolName,
-        content: converted?.content.map(part =>
+        content: content?.map(part =>
           part.type === 'text'
             ? part
             : {
@@ -2130,16 +2139,21 @@ function buildUserToolDefinition(
           const converted = convertHarnessToolModelOutput({
             output: submission.toolResult.output,
           });
+          const content = truncatePiToolModelOutput({
+            content: converted.content,
+            continuation:
+              'Call the tool again with narrower parameters to inspect the omitted output.',
+          });
           if (submission.isError === true || converted.isError) {
             throw new Error(
-              converted.content
+              content
                 .filter(part => part.type === 'text')
                 .map(part => part.text)
                 .join('\n'),
             );
           }
           return {
-            content: converted.content.map(part =>
+            content: content.map(part =>
               part.type === 'text'
                 ? part
                 : {
