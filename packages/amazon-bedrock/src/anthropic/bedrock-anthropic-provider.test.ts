@@ -103,6 +103,8 @@ describe('bedrock-anthropic-provider', () => {
     'us.anthropic.claude-sonnet-4-6-v1',
     'eu.anthropic.claude-sonnet-4-6-v1',
     'global.anthropic.claude-sonnet-4-6-v1',
+    'us.anthropic.claude-opus-6-v1:0',
+    'global.anthropic.claude-future-v1:0',
     'anthropic.claude-opus-4-7',
     'us.anthropic.claude-opus-4-7',
     'eu.anthropic.claude-opus-4-7',
@@ -135,6 +137,8 @@ describe('bedrock-anthropic-provider', () => {
   });
 
   it.each([
+    'us.anthropic.claude-opus-6-v1:0',
+    'global.anthropic.claude-future-v1:0',
     'anthropic.claude-opus-4-7',
     'us.anthropic.claude-opus-4-7',
     'eu.anthropic.claude-opus-4-7',
