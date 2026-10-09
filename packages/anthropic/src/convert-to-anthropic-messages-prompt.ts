@@ -1222,7 +1222,7 @@ export async function convertToAnthropicMessagesPrompt({
                       content: {
                         type: 'tool_search_tool_result_error',
                         error_code:
-                          extractErrorValue(output.value).errorCode ??
+                          (await extractErrorValue(output.value)).errorCode ??
                           'unavailable',
                       },
                       cache_control: cacheControl,

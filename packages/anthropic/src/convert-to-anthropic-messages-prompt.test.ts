@@ -2885,9 +2885,9 @@ describe('assistant messages', () => {
   ] as const)(
     'should convert $toolName $output.type error results',
     async ({ toolName, output }) => {
-      const warnings: SharedV4Warning[] = [];
+      const warnings: SharedV3Warning[] = [];
       const toolCallId = `srvtoolu_${toolName}`;
-      const result = await convertToAnthropicPrompt({
+      const result = await convertToAnthropicMessagesPrompt({
         prompt: [
           {
             role: 'assistant',
