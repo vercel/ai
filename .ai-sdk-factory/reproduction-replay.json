@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "issueId": 10023,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-10023-output-with-tools.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-10023-output-with-tools.ts",
+    "packages/groq/src/__fixtures__/issue-10023-output-with-tools-error.json",
+    "packages/groq/src/issue-10023-output-with-tools.test.ts",
+    "packages/google/src/__fixtures__/issue-10023-output-with-tools-error.json",
+    "packages/google/src/issue-10023-output-with-tools.test.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Reproduced issue #10023: output with tools did not complete successfully (groq.generateText, groq.agent, google.generateText, google.agent)."
+  }
+}
