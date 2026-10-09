@@ -1334,7 +1334,7 @@ describe('prepareTools', () => {
     expect(result.toolChoice).toEqual({ type: 'any' });
   });
 
-  it('should handle tool choice "none"', async () => {
+  it('should preserve tools with tool choice "none"', async () => {
     const result = await prepareTools({
       tools: [
         {
@@ -1348,8 +1348,15 @@ describe('prepareTools', () => {
       supportsStructuredOutput: true,
       supportsStrictTools: true,
     });
-    expect(result.tools).toBeUndefined();
-    expect(result.toolChoice).toBeUndefined();
+    expect(result.tools).toEqual([
+      {
+        cache_control: undefined,
+        name: 'testFunction',
+        description: 'Test',
+        input_schema: {},
+      },
+    ]);
+    expect(result.toolChoice).toEqual({ type: 'none' });
   });
 
   it('should handle tool choice "tool"', async () => {
@@ -1919,7 +1926,8 @@ describe('rejectsForcedToolUse', () => {
       supportsStrictTools: true,
       rejectsForcedToolUse: true,
     });
-    expect(none.tools).toBeUndefined();
+    expect(none.tools).toHaveLength(2);
+    expect(none.toolChoice).toEqual({ type: 'none' });
     expect(none.toolWarnings).toEqual([]);
   });
 });
