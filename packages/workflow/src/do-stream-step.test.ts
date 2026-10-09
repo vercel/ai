@@ -48,6 +48,34 @@ function successfulStream() {
   };
 }
 
+function successfulTextStream(text: string) {
+  return {
+    stream: convertArrayToReadableStream([
+      { type: 'stream-start' as const, warnings: [] },
+      { type: 'text-start' as const, id: 'text-1' },
+      { type: 'text-delta' as const, id: 'text-1', delta: text },
+      { type: 'text-end' as const, id: 'text-1' },
+      {
+        type: 'finish' as const,
+        finishReason: { unified: 'stop' as const, raw: 'stop' },
+        usage: {
+          inputTokens: {
+            total: 1,
+            noCache: 1,
+            cacheRead: undefined,
+            cacheWrite: undefined,
+          },
+          outputTokens: {
+            total: 1,
+            text: 1,
+            reasoning: undefined,
+          },
+        },
+      },
+    ]),
+  };
+}
+
 describe('doStreamStep', () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -390,6 +418,179 @@ describe('doStreamStep', () => {
       finish: { finishReason: 'stop' },
     });
     expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), 25);
+    expect(model.doStreamCalls).toHaveLength(2);
+  });
+
+  it('retries retryable failures while reading an opened model stream', async () => {
+    vi.useFakeTimers();
+    const readError = apiCallError({
+      statusCode: 503,
+      responseHeaders: { 'retry-after-ms': '25' },
+    });
+    const writtenParts: Array<{ type: string }> = [];
+    let attempt = 0;
+    const model = new MockLanguageModelV4({
+      doStream: async () => {
+        attempt++;
+        if (attempt > 1) {
+          return successfulTextStream('recovered');
+        }
+
+        const parts = [
+          { type: 'stream-start' as const, warnings: [] },
+          { type: 'text-start' as const, id: 'text-1' },
+          {
+            type: 'text-delta' as const,
+            id: 'text-1',
+            delta: 'partial',
+          },
+        ];
+
+        return {
+          stream: new ReadableStream({
+            pull(controller) {
+              const part = parts.shift();
+              if (part != null) {
+                controller.enqueue(part);
+              } else {
+                controller.error(readError);
+              }
+            },
+          }),
+        };
+      },
+    });
+
+    const result = doStreamStep(
+      prompt,
+      model,
+      new WritableStream({
+        write(part) {
+          writtenParts.push(part);
+        },
+      }),
+      undefined,
+      { maxRetries: 1 },
+    );
+
+    await vi.runAllTimersAsync();
+
+    await expect(result).resolves.toMatchObject({
+      raw: {
+        content: [{ type: 'text', text: 'recovered' }],
+      },
+      finish: { finishReason: 'stop' },
+    });
+    expect(model.doStreamCalls).toHaveLength(2);
+    expect(
+      writtenParts.filter(part => part.type === 'reset-step'),
+    ).toHaveLength(2);
+  });
+
+  it('retries retryable provider error parts', async () => {
+    vi.useFakeTimers();
+    let attempt = 0;
+    const model = new MockLanguageModelV4({
+      doStream: async () => {
+        attempt++;
+        if (attempt > 1) {
+          return successfulTextStream('recovered');
+        }
+
+        return {
+          stream: convertArrayToReadableStream([
+            { type: 'stream-start' as const, warnings: [] },
+            {
+              type: 'error' as const,
+              error: {
+                message: 'Service temporarily unavailable',
+                statusCode: 503,
+              },
+            },
+            {
+              type: 'finish' as const,
+              finishReason: { unified: 'error' as const, raw: 'error' },
+              usage: {
+                inputTokens: {
+                  total: 1,
+                  noCache: 1,
+                  cacheRead: undefined,
+                  cacheWrite: undefined,
+                },
+                outputTokens: {
+                  total: 0,
+                  text: 0,
+                  reasoning: undefined,
+                },
+              },
+            },
+          ]),
+        };
+      },
+    });
+
+    const result = doStreamStep(prompt, model, undefined, undefined, {
+      maxRetries: 1,
+    });
+
+    await vi.runAllTimersAsync();
+
+    await expect(result).resolves.toMatchObject({
+      raw: {
+        content: [{ type: 'text', text: 'recovered' }],
+      },
+      finish: { finishReason: 'stop' },
+    });
+    expect(model.doStreamCalls).toHaveLength(2);
+  });
+
+  it('returns the final retryable provider error part after retries are exhausted', async () => {
+    vi.useFakeTimers();
+    const model = new MockLanguageModelV4({
+      doStream: async () => ({
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start' as const, warnings: [] },
+          {
+            type: 'error' as const,
+            error: {
+              message: 'Service temporarily unavailable',
+              statusCode: 503,
+            },
+          },
+          {
+            type: 'finish' as const,
+            finishReason: { unified: 'error' as const, raw: 'error' },
+            usage: {
+              inputTokens: {
+                total: 1,
+                noCache: 1,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 0,
+                text: 0,
+                reasoning: undefined,
+              },
+            },
+          },
+        ]),
+      }),
+    });
+
+    const result = doStreamStep(prompt, model, undefined, undefined, {
+      maxRetries: 1,
+    });
+
+    await vi.runAllTimersAsync();
+
+    await expect(result).resolves.toMatchObject({
+      terminalError: {
+        name: 'AI_StreamProviderError',
+        isRetryable: true,
+      },
+      finish: { finishReason: 'error' },
+    });
     expect(model.doStreamCalls).toHaveLength(2);
   });
 
