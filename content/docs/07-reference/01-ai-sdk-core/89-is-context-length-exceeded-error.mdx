@@ -1,0 +1,80 @@
+---
+title: isContextLengthExceededError
+description: API Reference for isContextLengthExceededError.
+---
+
+# `isContextLengthExceededError()`
+
+Checks whether a model call failed because the input plus the reserved output
+tokens exceed the model's context window.
+
+Providers report this rejection in different ways. Provider adapters that
+recognize it set `failureReason: 'context-length-exceeded'` on the error, and
+this function checks it on every error type a model call can fail with:
+`APICallError`, `StreamProviderError` (errors after a stream has started),
+AI Gateway's `GatewayError`, and the last error of a `RetryError`.
+
+Retrying the same request will not succeed. Shorten the input first, for
+example by summarizing older messages, or lower `maxOutputTokens`:
+
+```ts
+import { generateText, isContextLengthExceededError } from 'ai';
+__PROVIDER_IMPORT__;
+
+try {
+  return await generateText({ model: __MODEL__, messages });
+} catch (error) {
+  if (!isContextLengthExceededError(error)) throw error;
+
+  // Your own strategy, e.g. replace older messages with a generated summary.
+  const shorterMessages = await summarizeOlderMessages(messages);
+  return await generateText({ model: __MODEL__, messages: shorterMessages });
+}
+```
+
+AI Gateway errors carry the reason when the gateway reports the upstream
+rejection as `code: 'context_length_exceeded'`.
+
+With `streamText`, errors after the stream has started arrive in `onError`:
+
+```ts
+import { isContextLengthExceededError, streamText } from 'ai';
+__PROVIDER_IMPORT__;
+
+const result = streamText({
+  model: __MODEL__,
+  messages,
+  onError: ({ error }) => {
+    if (isContextLengthExceededError(error)) {
+      // Shorten the conversation before the next request.
+    }
+  },
+});
+```
+
+## Import
+
+<Snippet
+  text={`import { isContextLengthExceededError } from "ai"`}
+  prompt={false}
+/>
+
+## API Signature
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'error',
+      type: 'unknown',
+      description: 'The error thrown or reported by a model call.',
+    },
+  ]}
+/>
+
+### Returns
+
+`true` when the error reports `failureReason: 'context-length-exceeded'`, otherwise
+`false`. Errors from providers that do not recognize this rejection return
+`false`.

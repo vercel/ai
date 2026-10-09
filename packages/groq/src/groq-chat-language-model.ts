@@ -55,6 +55,10 @@ function createGroqStreamError(
     message: error.message,
     type: error.type,
     ...getGroqStreamErrorMetadata(error.type),
+    failureReason:
+      error.type === 'context_length_exceeded'
+        ? 'context-length-exceeded'
+        : undefined,
     data,
   });
 }

@@ -32,6 +32,10 @@ export function createOpenAIProviderStreamError(
     code: streamError.code ?? undefined,
     statusCode,
     isRetryable: isRetryableStreamError(streamError, statusCode),
+    failureReason:
+      streamError.code === 'context_length_exceeded'
+        ? 'context-length-exceeded'
+        : undefined,
     data: frame,
   });
 }
@@ -194,6 +198,7 @@ function createOpenAIStreamError({
     responseBody: JSON.stringify(frame),
     data: frame,
     isRetryable: streamError?.isRetryable,
+    failureReason: streamError?.failureReason,
   });
 }
 

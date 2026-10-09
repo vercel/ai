@@ -67,6 +67,11 @@ function createMoonshotAIStreamError(
     type: error.type ?? undefined,
     code: error.code ?? undefined,
     ...getMoonshotAIStreamErrorMetadata(error.type),
+    failureReason:
+      error.type === 'context_length_exceeded' ||
+      error.code === 'context_length_exceeded'
+        ? 'context-length-exceeded'
+        : undefined,
     data,
   });
 }
@@ -143,6 +148,11 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
     this.failedResponseHandler = createJsonErrorResponseHandler({
       errorSchema: moonshotAIErrorSchema,
       errorToMessage: error => error.error.message,
+      failureReason: (_response, error) =>
+        error.error.code === 'context_length_exceeded' ||
+        error.error.type === 'context_length_exceeded'
+          ? 'context-length-exceeded'
+          : undefined,
     });
   }
 

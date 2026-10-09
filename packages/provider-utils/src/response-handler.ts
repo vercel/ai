@@ -2,6 +2,7 @@ import {
   APICallError,
   EmptyResponseBodyError,
   InvalidArgumentError,
+  type ProviderFailureReason,
 } from '@ai-sdk/provider';
 import { DownloadError } from './download-error';
 import { extractResponseHeaders } from './extract-response-headers';
@@ -114,10 +115,19 @@ export const createJsonErrorResponseHandler =
     errorSchema,
     errorToMessage,
     isRetryable,
+    failureReason,
   }: {
     errorSchema: FlexibleSchema<T>;
     errorToMessage: (error: T) => string;
     isRetryable?: (response: Response, error?: T) => boolean;
+    /**
+     * Classifies a recognized provider rejection (see `APICallError.failureReason`).
+     * Only called with a parsed error body.
+     */
+    failureReason?: (
+      response: Response,
+      error: T,
+    ) => ProviderFailureReason | undefined;
   }): ResponseHandler<APICallError> =>
   async ({ response, url, requestBodyValues }) => {
     const responseBody = await readResponseBodyAsText({ response, url });
@@ -157,6 +167,7 @@ export const createJsonErrorResponseHandler =
           responseBody,
           data: parsedError,
           isRetryable: isRetryable?.(response, parsedError),
+          failureReason: failureReason?.(response, parsedError),
         }),
       };
     } catch {

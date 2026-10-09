@@ -1,4 +1,5 @@
 import { AISDKError } from './ai-sdk-error';
+import type { ProviderFailureReason } from './provider-failure-reason';
 
 const name = 'AI_APICallError';
 const marker = `vercel.ai.error.${name}`;
@@ -15,6 +16,13 @@ export class APICallError extends AISDKError {
   readonly responseBody?: string;
 
   readonly isRetryable: boolean;
+
+  /**
+   * Why the provider rejected the request, when the provider adapter
+   * recognizes the rejection. See {@link ProviderFailureReason}.
+   */
+  readonly failureReason?: ProviderFailureReason;
+
   readonly data?: unknown;
 
   constructor({
@@ -30,6 +38,7 @@ export class APICallError extends AISDKError {
         statusCode === 409 || // conflict
         statusCode === 429 || // too many requests
         statusCode >= 500), // server error
+    failureReason,
     data,
   }: {
     message: string;
@@ -40,6 +49,7 @@ export class APICallError extends AISDKError {
     responseBody?: string;
     cause?: unknown;
     isRetryable?: boolean;
+    failureReason?: ProviderFailureReason;
     data?: unknown;
   }) {
     super({ name, message, cause });
@@ -50,6 +60,7 @@ export class APICallError extends AISDKError {
     this.responseHeaders = responseHeaders;
     this.responseBody = responseBody;
     this.isRetryable = isRetryable;
+    this.failureReason = failureReason;
     this.data = data;
   }
 

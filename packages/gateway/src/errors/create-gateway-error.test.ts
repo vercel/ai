@@ -50,6 +50,55 @@ describe('Valid error responses', () => {
     expect(error.statusCode).toBe(400);
   });
 
+  it('sets the reason on invalid requests with the code', async () => {
+    const response: GatewayErrorResponse = {
+      error: {
+        message: 'prompt is too long: 215000 tokens > 200000 maximum',
+        type: 'invalid_request_error',
+        code: 'context_length_exceeded',
+      },
+    };
+
+    const error = await createGatewayErrorFromResponse({
+      response,
+      statusCode: 400,
+    });
+
+    expect(error).toBeInstanceOf(GatewayInvalidRequestError);
+    expect(error.failureReason).toBe('context-length-exceeded');
+  });
+
+  it('sets the reason on relayed upstream errors with the code', async () => {
+    const message = 'prompt is too long: 1320024 tokens > 200000 maximum';
+    const error = await createGatewayErrorFromResponse({
+      response: {
+        error: {
+          message,
+          type: 'AI_APICallError',
+          code: 'context_length_exceeded',
+        },
+      },
+      statusCode: 400,
+    });
+
+    expect(error).toBeInstanceOf(GatewayInternalServerError);
+    expect(error.failureReason).toBe('context-length-exceeded');
+  });
+
+  it('leaves the reason unset without the code', async () => {
+    const error = await createGatewayErrorFromResponse({
+      response: {
+        error: {
+          message: 'Missing required parameter',
+          type: 'invalid_request_error',
+        },
+      },
+      statusCode: 400,
+    });
+
+    expect(error.failureReason).toBeUndefined();
+  });
+
   it('should create GatewayForbiddenError for forbidden type', async () => {
     const response: GatewayErrorResponse = {
       error: {

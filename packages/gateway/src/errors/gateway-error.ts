@@ -1,3 +1,5 @@
+import type { ProviderFailureReason } from '@ai-sdk/provider';
+
 const marker = 'vercel.ai.gateway.error';
 const symbol = Symbol.for(marker);
 
@@ -11,6 +13,12 @@ export abstract class GatewayError extends Error {
   readonly generationId?: string;
   readonly isRetryable: boolean;
 
+  /**
+   * Why the upstream provider rejected the request, when the gateway reports
+   * it. See `APICallError.failureReason`.
+   */
+  readonly failureReason?: ProviderFailureReason;
+
   constructor({
     message,
     statusCode = 500,
@@ -21,18 +29,21 @@ export abstract class GatewayError extends Error {
         statusCode === 409 || // conflict
         statusCode === 429 || // too many requests
         statusCode >= 500), // server error
+    failureReason,
   }: {
     message: string;
     statusCode?: number;
     cause?: unknown;
     generationId?: string;
     isRetryable?: boolean;
+    failureReason?: ProviderFailureReason;
   }) {
     super(generationId ? `${message} [${generationId}]` : message);
     this.statusCode = statusCode;
     this.cause = cause;
     this.generationId = generationId;
     this.isRetryable = isRetryable;
+    this.failureReason = failureReason;
   }
 
   /**
