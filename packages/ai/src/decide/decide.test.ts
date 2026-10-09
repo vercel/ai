@@ -316,6 +316,36 @@ describe('response validation', () => {
     ).rejects.toBeInstanceOf(InvalidResponseDataError);
   });
 
+  it('accepts a selected choice within the declared probability rounding', async () => {
+    const choiceQuestions = {
+      ...questions,
+      topic: {
+        ...questions.topic,
+        criteria: { billing: null, support: null, other: null },
+      },
+    } as const;
+    const roundedAnswers = {
+      ...answers,
+      topic: {
+        type: 'choice' as const,
+        choice: 'support',
+        probabilities: { billing: 0.44, support: 0.43, other: 0.13 },
+      },
+    };
+
+    await expect(
+      decide({
+        ...setup({
+          answers: roundedAnswers,
+          rounding: { probabilityDecimals: 2 },
+          warnings: [],
+        }),
+        state: 'text',
+        questions: choiceQuestions,
+      }),
+    ).resolves.toMatchObject({ answers: roundedAnswers });
+  });
+
   it.each([-1, 16, NaN, 1.5])(
     'rejects invalid rounding precision %s',
     async probabilityDecimals => {
