@@ -721,16 +721,18 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     this.activeStopCount++;
     this.stopGeneration++;
 
-    try {
-      const activeResumeRequest = this.activeResumeRequest;
-      const activeResponse = this.activeResponse;
+    const isCalledFromExecutorJob =
+      this.jobExecutor.isExecutingJobSynchronously();
+    const activeResumeRequest = this.activeResumeRequest;
+    const activeResponse = this.activeResponse;
 
-      for (const controller of this.pendingMessagePreparations) {
-        controller.abort();
-      }
-      activeResumeRequest?.abortController.abort();
-      activeResponse?.abortController.abort();
+    for (const controller of this.pendingMessagePreparations) {
+      controller.abort();
+    }
+    activeResumeRequest?.abortController.abort();
+    activeResponse?.abortController.abort();
 
+    const finishStopping = async () => {
       await Promise.all([
         activeResumeRequest?.completionPromise,
         activeResponse?.completionPromise,
@@ -739,6 +741,21 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       // Stream cancellation can complete while a processing job is still
       // blocked in onToolCall. Drain that job and any message update it queued.
       await this.jobExecutor.waitForIdle();
+    };
+
+    // Awaiting executor quiescence from a callback that is being invoked by
+    // the executor would make the callback and stop wait for each other.
+    // Abort synchronously, let the callback continue, and finish draining in
+    // the background while keeping automatic requests disabled.
+    if (isCalledFromExecutorJob) {
+      void finishStopping().finally(() => {
+        this.activeStopCount--;
+      });
+      return;
+    }
+
+    try {
+      await finishStopping();
     } finally {
       this.activeStopCount--;
     }
