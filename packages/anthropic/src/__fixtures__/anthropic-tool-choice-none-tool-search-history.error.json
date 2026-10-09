@@ -1,0 +1,8 @@
+{
+  "type": "error",
+  "error": {
+    "type": "invalid_request_error",
+    "message": "Tool reference 'get_weather' not found in available tools"
+  },
+  "request_id": "req_011CfrpTS3ec6CwM2VG6adpm"
+}

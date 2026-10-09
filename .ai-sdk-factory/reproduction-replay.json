@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "issueId": 22433,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22433-anthropic-tool-choice-none.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22433-anthropic-tool-choice-none.ts",
+    "packages/anthropic/src/anthropic-language-model.test.ts",
+    "packages/anthropic/src/__fixtures__/anthropic-tool-choice-none-tool-search-history.success.json",
+    "packages/anthropic/src/__fixtures__/anthropic-tool-choice-none-tool-search-history.error.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22433_REPRODUCED: toolChoice 'none' dropped tools and invalidated tool-search history"
+  }
+}
