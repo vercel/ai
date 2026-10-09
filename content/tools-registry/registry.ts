@@ -720,7 +720,6 @@ console.log(text);`,
     websiteUrl: 'https://pexafy.com',
     npmUrl: 'https://www.npmjs.com/package/pexafy-ai-sdk',
   },
-ts
   {
     slug: 'inam-reputation',
     name: 'INAM Agent Reputation',
