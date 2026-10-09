@@ -60,16 +60,8 @@ export function prepareTools({
     return { tools: undefined, toolConfig: undefined, toolWarnings };
   }
 
-  // Check for mixed tool types and add warnings
   const hasFunctionTools = tools.some(tool => tool.type === 'function');
   const hasProviderTools = tools.some(tool => tool.type === 'provider');
-
-  if (hasFunctionTools && hasProviderTools && !usesGemini3Features) {
-    toolWarnings.push({
-      type: 'unsupported',
-      feature: `combination of function and provider-defined tools`,
-    });
-  }
 
   if (hasProviderTools) {
     const googleTools: any[] = [];
@@ -224,11 +216,23 @@ export function prepareTools({
       };
     }
 
-    return {
-      tools: googleTools.length > 0 ? googleTools : undefined,
-      toolConfig: undefined,
-      toolWarnings,
-    };
+    if (googleTools.length > 0) {
+      if (hasFunctionTools) {
+        toolWarnings.push({
+          type: 'unsupported',
+          feature: `combination of function and provider-defined tools`,
+        });
+      }
+
+      return { tools: googleTools, toolConfig: undefined, toolWarnings };
+    }
+
+    // no provider-defined tool is supported by this model. when function tools
+    // are present, fall through so they are still sent instead of being
+    // dropped alongside the unsupported provider-defined tools:
+    if (!hasFunctionTools) {
+      return { tools: undefined, toolConfig: undefined, toolWarnings };
+    }
   }
 
   const functionDeclarations = [];
@@ -241,10 +245,13 @@ export function prepareTools({
           hasStrictTools = true;
         }
         break;
+      case 'provider':
+        // already reported as unsupported above
+        break;
       default:
         toolWarnings.push({
           type: 'unsupported',
-          feature: `function tool ${tool.name}`,
+          feature: `tool ${tool}`,
         });
         break;
     }
