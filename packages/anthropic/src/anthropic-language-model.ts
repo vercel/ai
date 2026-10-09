@@ -46,6 +46,8 @@ import type {
   AnthropicMessageMetadata,
   AnthropicUsageIteration,
 } from './anthropic-message-metadata';
+import { mapAnthropicCitation } from './map-anthropic-citation';
+import type { AnthropicTextProviderMetadata } from './anthropic-provider-metadata';
 import {
   anthropicChunkSchema,
   anthropicResponseSchema,
@@ -130,8 +132,8 @@ export function createCitationSource(
 ): LanguageModelV4Source | undefined {
   if (citation.type === 'web_search_result_location') {
     return {
-      type: 'source' as const,
-      sourceType: 'url' as const,
+      type: 'source',
+      sourceType: 'url',
       id: generateId(),
       url: citation.url,
       title: citation.title ?? undefined,
@@ -140,7 +142,7 @@ export function createCitationSource(
           citedText: citation.cited_text,
           encryptedIndex: citation.encrypted_index,
         },
-      } satisfies SharedV4ProviderMetadata,
+      },
     };
   }
 
@@ -1253,31 +1255,45 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     const serverToolCalls: Record<string, string> = {}; // tool_use_id -> provider tool name
     let isJsonResponseFromTool = false;
 
+    const hasWebSearchResults = response.content.some(
+      part =>
+        part.type === 'web_search_tool_result' &&
+        Array.isArray(part.content) &&
+        part.content.length > 0,
+    );
     // map response content to content array
     for (const part of response.content) {
       switch (part.type) {
         case 'text': {
           if (!usesJsonResponseTool) {
-            const webSearchCitations = part.citations?.filter(
-              citation => citation.type === 'web_search_result_location',
-            );
+            const citations = part.citations ?? [];
 
             content.push({
               type: 'text',
               text: part.text,
-              ...(webSearchCitations != null &&
-                webSearchCitations.length > 0 && {
-                  providerMetadata: {
-                    anthropic: {
-                      citations: webSearchCitations,
-                    },
+              ...(citations.length > 0 && {
+                citations: citations.map(citation =>
+                  mapAnthropicCitation(citation, citationDocuments),
+                ),
+              }),
+              ...(citations.length > 0 && {
+                providerMetadata: {
+                  anthropic: {
+                    citations,
                   },
-                }),
+                } satisfies AnthropicTextProviderMetadata,
+              }),
             });
 
             // Process citations if present
             if (part.citations) {
               for (const citation of part.citations) {
+                if (
+                  citation.type === 'web_search_result_location' &&
+                  hasWebSearchResults
+                ) {
+                  continue;
+                }
                 const source = createCitationSource(
                   citation,
                   citationDocuments,
@@ -1926,6 +1942,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     let safeguardResults: AnthropicMessageMetadata['safeguardResults'];
     let container: AnthropicMessageMetadata['container'] | null = null;
     let isJsonResponseFromTool = false;
+    let hasWebSearchResults = false;
+    const fallbackWebCitations: Citation[] = [];
     let isMessageOpen = false;
     let activeMessageId: string | null | undefined;
     let hasInvalidMessageSequence = false;
@@ -2345,6 +2363,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                     });
 
                     for (const result of part.content) {
+                      hasWebSearchResults = true;
                       controller.enqueue({
                         type: 'source',
                         sourceType: 'url',
@@ -2587,11 +2606,14 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       type: 'text-end',
                       id: String(value.index),
                       ...(contentBlock.citations.length > 0 && {
+                        citations: contentBlock.citations.map(citation =>
+                          mapAnthropicCitation(citation, citationDocuments),
+                        ),
                         providerMetadata: {
                           anthropic: {
                             citations: contentBlock.citations,
                           },
-                        },
+                        } satisfies AnthropicTextProviderMetadata,
                       }),
                     });
                     break;
@@ -2828,21 +2850,19 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                   const citation = value.delta.citation;
                   const contentBlock = contentBlocks[value.index];
 
-                  if (
-                    contentBlock?.type === 'text' &&
-                    citation.type === 'web_search_result_location'
-                  ) {
+                  if (contentBlock?.type === 'text') {
                     contentBlock.citations.push(citation);
                   }
 
-                  const source = createCitationSource(
-                    citation,
-                    citationDocuments,
-                    generateId,
-                  );
-
-                  if (source) {
-                    controller.enqueue(source);
+                  if (citation.type === 'web_search_result_location') {
+                    fallbackWebCitations.push(citation);
+                  } else {
+                    const source = createCitationSource(
+                      citation,
+                      citationDocuments,
+                      generateId,
+                    );
+                    if (source) controller.enqueue(source);
                   }
 
                   return;
@@ -3101,6 +3121,17 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 providerMetadata[providerOptionsName] = anthropicMetadata;
               }
 
+              if (!hasWebSearchResults) {
+                for (const citation of fallbackWebCitations) {
+                  const source = createCitationSource(
+                    citation,
+                    citationDocuments,
+                    generateId,
+                  );
+                  if (source) controller.enqueue(source);
+                }
+              }
+              fallbackWebCitations.length = 0;
               controller.enqueue({
                 type: 'finish',
                 finishReason,

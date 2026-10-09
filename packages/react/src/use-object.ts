@@ -212,7 +212,9 @@ export function useObject<
             if (!isDeepEqualData(latestObject, currentObject)) {
               latestObject = currentObject;
 
-              mutate({ object: currentObject });
+              if (abortControllerRef.current === abortController) {
+                mutate({ object: currentObject });
+              }
             }
           },
 

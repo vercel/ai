@@ -693,7 +693,6 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   }) =>
     this.jobExecutor.run(async () => {
       const messages = this.state.messages;
-      const lastMessage = messages[messages.length - 1];
 
       const updatePart = (
         part: UIMessagePart<UIDataTypes, UITools>,
@@ -733,11 +732,21 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
             };
       };
 
-      // update the message to trigger an immediate UI update
-      this.state.replaceMessage(messages.length - 1, {
-        ...lastMessage,
-        parts: lastMessage.parts.map(updatePart),
-      });
+      const messageIndex = messages.findIndex(message =>
+        message.parts.some(
+          part => isToolUIPart(part) && part.toolCallId === toolCallId,
+        ),
+      );
+
+      if (messageIndex !== -1) {
+        const message = messages[messageIndex];
+
+        // update the message to trigger an immediate UI update
+        this.state.replaceMessage(messageIndex, {
+          ...message,
+          parts: message.parts.map(updatePart),
+        });
+      }
 
       // update the active response if it exists
       if (this.activeResponse) {
@@ -747,6 +756,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
       // automatically send the message if the sendAutomaticallyWhen function returns true
       if (
+        messageIndex !== -1 &&
         this.status !== 'streaming' &&
         this.status !== 'submitted' &&
         this.sendAutomaticallyWhen
@@ -759,7 +769,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
             () =>
               this.makeRequest({
                 trigger: 'submit-message',
-                messageId: this.lastMessage?.id,
+                messageId: messages[messageIndex].id,
                 ...options,
               }),
             shouldSend,
@@ -996,6 +1006,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       responseMessageIndex === -1
         ? lastMessage
         : this.state.messages[responseMessageIndex];
+    const originalResponseMessageId = responseMessage?.id;
     // The continued stream can start with input deltas or a tool result.
     // Keep unfinished tool parts so result chunks can find their tool call.
     const resumableResponseMessage =
@@ -1086,16 +1097,28 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
                 this.setStatus({ status: 'streaming' });
               }
 
-              if (usesEarlierAssistantMessage) {
+              const existingMessageIndex = this.state.messages.findLastIndex(
+                message => message.id === response.state.message.id,
+              );
+
+              if (existingMessageIndex !== -1) {
                 this.state.replaceMessage(
-                  responseMessageIndex,
+                  existingMessageIndex,
                   response.state.message,
                 );
-              } else if (response.state.message.id === this.lastMessage?.id) {
-                this.state.replaceMessage(
-                  this.state.messages.length - 1,
-                  response.state.message,
+              } else if (usesEarlierAssistantMessage) {
+                const originalMessageIndex = this.state.messages.findLastIndex(
+                  message => message.id === originalResponseMessageId,
                 );
+
+                if (originalMessageIndex !== -1) {
+                  this.state.replaceMessage(
+                    originalMessageIndex,
+                    response.state.message,
+                  );
+                } else {
+                  this.state.pushMessage(response.state.message);
+                }
               } else {
                 this.state.pushMessage(response.state.message);
               }

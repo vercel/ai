@@ -69,6 +69,10 @@ export type OpenaiResponsesTextProviderMetadata = {
 
 export type ResponsesSourceDocumentProviderMetadata =
   | {
+      type: 'file_search';
+      fileId: string;
+    }
+  | {
       type: 'file_citation';
       fileId: string;
       index: number;

@@ -205,7 +205,7 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
 
   // resolve the latest transport and fallback to a lazily created default transport
   let defaultTransport: ChatTransport<UI_MESSAGE> | undefined;
-  const getTransport = () =>
+  const getTransport = (): ChatTransport<UI_MESSAGE> =>
     latestRef.current.transport ??
     (defaultTransport ??= new DefaultChatTransport<UI_MESSAGE>());
 
@@ -213,6 +213,9 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
   const chatOptions: typeof options = {
     ...options,
     transport: {
+      get resumeStreamIsReplay() {
+        return getTransport().resumeStreamIsReplay;
+      },
       sendMessages: sendOptions => getTransport().sendMessages(sendOptions),
       reconnectToStream: reconnectOptions =>
         getTransport().reconnectToStream(reconnectOptions),
