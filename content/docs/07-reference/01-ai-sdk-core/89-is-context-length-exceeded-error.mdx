@@ -1,0 +1,83 @@
+---
+title: isContextLengthExceededError
+description: API Reference for isContextLengthExceededError.
+---
+
+# `isContextLengthExceededError()`
+
+Checks whether a model call failed because the input plus the reserved output
+tokens exceed the model's context window.
+
+Providers report this rejection in different ways. Provider adapters that
+recognize it set `reason: 'context-length-exceeded'` on the error, and this
+function checks that reason on every error type a model call can fail with:
+`APICallError`, `StreamProviderError` (errors after a stream has started),
+AI Gateway's `GatewayError`, and a `RetryError` whose last attempt failed for
+that reason.
+
+Retrying the same request will not succeed. Shortening the input (for example
+by pruning or summarizing older messages) or lowering `maxOutputTokens` may.
+
+```ts
+import { generateText, isContextLengthExceededError, pruneMessages } from 'ai';
+__PROVIDER_IMPORT__;
+
+try {
+  return await generateText({ model: __MODEL__, messages });
+} catch (error) {
+  if (!isContextLengthExceededError(error)) throw error;
+
+  return await generateText({
+    model: __MODEL__,
+    messages: pruneMessages({
+      messages,
+      reasoning: 'before-last-message',
+      toolCalls: 'before-last-message',
+    }),
+  });
+}
+```
+
+With `streamText`, errors after the stream has started arrive in `onError`:
+
+```ts
+import { isContextLengthExceededError, streamText } from 'ai';
+__PROVIDER_IMPORT__;
+
+const result = streamText({
+  model: __MODEL__,
+  messages,
+  onError: ({ error }) => {
+    if (isContextLengthExceededError(error)) {
+      // Shorten the conversation before the next request.
+    }
+  },
+});
+```
+
+## Import
+
+<Snippet
+  text={`import { isContextLengthExceededError } from "ai"`}
+  prompt={false}
+/>
+
+## API Signature
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'error',
+      type: 'unknown',
+      description: 'The error thrown or reported by a model call.',
+    },
+  ]}
+/>
+
+### Returns
+
+`true` when the error reports `reason: 'context-length-exceeded'`, otherwise
+`false`. Errors from providers that do not recognize this rejection return
+`false`.

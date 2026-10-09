@@ -1,3 +1,4 @@
+import type { APICallError } from '@ai-sdk/provider';
 import { createJsonErrorResponseHandler } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
@@ -10,11 +11,12 @@ export const AmazonBedrockErrorSchema = z.object({
  * Converse: "Input is too long for requested model."; Anthropic models:
  * "prompt is too long: 215000 tokens > 200000 maximum".
  */
-export function isAmazonBedrockContextLengthExceeded(
-  _response: Response,
-  error: { message: string },
-): boolean {
-  return /input is too long|prompt is too long/i.test(error.message);
+export function getAmazonBedrockErrorReason(
+  message: string,
+): APICallError['reason'] {
+  return /input is too long|prompt is too long/i.test(message)
+    ? 'context-length-exceeded'
+    : undefined;
 }
 
 export const amazonBedrockFailedResponseHandler =
@@ -22,5 +24,5 @@ export const amazonBedrockFailedResponseHandler =
     errorSchema: AmazonBedrockErrorSchema,
     errorToMessage: error =>
       error.type == null ? error.message : `${error.type}: ${error.message}`,
-    isContextLengthExceeded: isAmazonBedrockContextLengthExceeded,
+    reason: (_response, error) => getAmazonBedrockErrorReason(error.message),
   });

@@ -26,6 +26,8 @@ export const googleFailedResponseHandler = createJsonErrorResponseHandler({
   errorToMessage: data => data.error.message,
   // e.g. "The input token count exceeds the maximum number of tokens allowed
   // 1048576."
-  isContextLengthExceeded: (_response, data) =>
-    /input token count.*exceeds the maximum/i.test(data.error.message),
+  reason: (_response, data) =>
+    /input token count.*exceeds the maximum/i.test(data.error.message)
+      ? 'context-length-exceeded'
+      : undefined,
 });

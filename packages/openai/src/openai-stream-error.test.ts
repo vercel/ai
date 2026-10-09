@@ -93,6 +93,37 @@ describe('throwIfOpenAIStreamErrorBeforeOutput', () => {
     close();
   });
 
+  it('sets the reason when a response.failed frame reports context_length_exceeded before output', async () => {
+    const stream = new ReadableStream<ParseResult<unknown>>({
+      start(controller) {
+        const frame = {
+          type: 'response.failed',
+          response: {
+            error: {
+              code: 'context_length_exceeded',
+              message: 'Your input exceeds the context window of this model.',
+            },
+          },
+        };
+        controller.enqueue({ success: true, value: frame, rawValue: frame });
+        controller.close();
+      },
+    });
+
+    await expect(
+      throwIfOpenAIStreamErrorBeforeOutput({
+        ...baseArgs,
+        stream,
+        getError: chunk => chunk,
+        isOutputChunk: () => false,
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 400,
+      isRetryable: false,
+      reason: 'context-length-exceeded',
+    });
+  });
+
   it('should resolve on the first output chunk and replay all chunks to the consumer', async () => {
     const { stream, enqueue, close } = createControlledStream();
     enqueue({ type: 'created' });

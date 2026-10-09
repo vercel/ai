@@ -1,3 +1,5 @@
+import type { APICallError } from '@ai-sdk/provider';
+
 const marker = Symbol.for('vercel.ai.providerStreamError');
 
 export type ProviderStreamError = {
@@ -6,6 +8,8 @@ export type ProviderStreamError = {
   readonly code?: string | number;
   readonly statusCode?: number;
   readonly isRetryable?: boolean;
+  /** See `APICallError.reason`. */
+  readonly reason?: APICallError['reason'];
   readonly data: unknown;
 };
 
@@ -19,6 +23,7 @@ export function createProviderStreamError({
   code,
   statusCode,
   isRetryable,
+  reason,
   data,
 }: {
   message: string;
@@ -26,6 +31,7 @@ export function createProviderStreamError({
   code?: string | number;
   statusCode?: number;
   isRetryable?: boolean;
+  reason?: APICallError['reason'];
   data: unknown;
 }): ProviderStreamError {
   const error = {
@@ -34,6 +40,8 @@ export function createProviderStreamError({
     code,
     statusCode,
     isRetryable,
+    // Omitted when unset so existing serialized stream errors stay unchanged.
+    ...(reason != null ? { reason } : {}),
     data,
   };
 

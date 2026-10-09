@@ -19,6 +19,8 @@ export type OpenAIErrorData = z.infer<typeof openaiErrorDataSchema>;
 export const openaiFailedResponseHandler = createJsonErrorResponseHandler({
   errorSchema: openaiErrorDataSchema,
   errorToMessage: data => data.error.message,
-  isContextLengthExceeded: (_response, data) =>
-    data.error.code === 'context_length_exceeded',
+  reason: (_response, data) =>
+    data.error.code === 'context_length_exceeded'
+      ? 'context-length-exceeded'
+      : undefined,
 });

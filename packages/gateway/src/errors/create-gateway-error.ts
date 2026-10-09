@@ -65,9 +65,10 @@ export async function createGatewayErrorFromResponse({
   const errorType = validatedResponse.error.type;
   const message = validatedResponse.error.message;
   const generationId = validatedResponse.generationId ?? undefined;
-  const isContextLengthExceeded =
-    validatedResponse.error.code === 'context_length_exceeded' ||
-    isContextLengthExceededParam(validatedResponse.error.param);
+  const reason =
+    validatedResponse.error.code === 'context_length_exceeded'
+      ? 'context-length-exceeded'
+      : undefined;
 
   switch (errorType) {
     case 'authentication_error':
@@ -84,7 +85,7 @@ export async function createGatewayErrorFromResponse({
         statusCode,
         cause,
         generationId,
-        isContextLengthExceeded,
+        reason,
       });
     case 'rate_limit_exceeded':
       return new GatewayRateLimitError({
@@ -120,7 +121,7 @@ export async function createGatewayErrorFromResponse({
         statusCode,
         cause,
         generationId,
-        isContextLengthExceeded,
+        reason,
       });
     case 'failed_dependency':
       return new GatewayFailedDependencyError({
@@ -149,23 +150,9 @@ export async function createGatewayErrorFromResponse({
         statusCode,
         cause,
         generationId,
-        isContextLengthExceeded,
+        reason,
       });
   }
-}
-
-/**
- * Upstream provider errors are relayed with their serialized `APICallError`
- * fields in `param`, including `isContextLengthExceeded` when the provider
- * adapter recognized the rejection.
- */
-function isContextLengthExceededParam(param: unknown): boolean {
-  return (
-    typeof param === 'object' &&
-    param !== null &&
-    (param as { isContextLengthExceeded?: unknown }).isContextLengthExceeded ===
-      true
-  );
 }
 
 const gatewayErrorResponseSchema = lazySchema(() =>

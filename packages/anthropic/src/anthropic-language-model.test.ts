@@ -11929,6 +11929,23 @@ describe('AnthropicLanguageModel', () => {
       }
     });
 
+    it('should set the reason when the first stream chunk reports an over-long prompt', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `event: error\n`,
+          `data: {"type":"error","error":{"type":"invalid_request_error","message":"prompt is too long: 215000 tokens > 200000 maximum"}}\n`,
+          `\n`,
+        ],
+      };
+
+      await expect(model.doStream({ prompt: TEST_PROMPT })).rejects.toSatisfy(
+        error =>
+          APICallError.isInstance(error) &&
+          error.reason === 'context-length-exceeded',
+      );
+    });
+
     it.each([
       {
         type: 'overloaded_error',

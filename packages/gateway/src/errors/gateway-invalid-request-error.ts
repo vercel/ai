@@ -1,3 +1,4 @@
+import type { APICallError } from '@ai-sdk/provider';
 import { GatewayError } from './gateway-error';
 
 const name = 'GatewayInvalidRequestError';
@@ -18,20 +19,20 @@ export class GatewayInvalidRequestError extends GatewayError {
     statusCode = 400,
     cause,
     generationId,
-    isContextLengthExceeded,
+    reason,
   }: {
     message?: string;
     statusCode?: number;
     cause?: unknown;
     generationId?: string;
-    isContextLengthExceeded?: boolean;
+    reason?: APICallError['reason'];
   } = {}) {
     super({
       message,
       statusCode,
       cause,
       generationId,
-      isContextLengthExceeded,
+      reason,
     });
   }
 

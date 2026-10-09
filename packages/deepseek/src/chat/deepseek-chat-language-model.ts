@@ -75,6 +75,11 @@ function createDeepSeekStreamError(
     type: error.type ?? undefined,
     code: error.code ?? undefined,
     ...metadata,
+    reason:
+      error.type === 'context_length_exceeded' ||
+      error.code === 'context_length_exceeded'
+        ? 'context-length-exceeded'
+        : undefined,
     data,
   });
 }

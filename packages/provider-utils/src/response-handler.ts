@@ -114,16 +114,16 @@ export const createJsonErrorResponseHandler =
     errorSchema,
     errorToMessage,
     isRetryable,
-    isContextLengthExceeded,
+    reason,
   }: {
     errorSchema: FlexibleSchema<T>;
     errorToMessage: (error: T) => string;
     isRetryable?: (response: Response, error?: T) => boolean;
     /**
-     * Recognizes the provider's "prompt exceeds the context window" rejection.
+     * Classifies a recognized provider rejection (see `APICallError.reason`).
      * Only called with a parsed error body.
      */
-    isContextLengthExceeded?: (response: Response, error: T) => boolean;
+    reason?: (response: Response, error: T) => APICallError['reason'];
   }): ResponseHandler<APICallError> =>
   async ({ response, url, requestBodyValues }) => {
     const responseBody = await readResponseBodyAsText({ response, url });
@@ -163,10 +163,7 @@ export const createJsonErrorResponseHandler =
           responseBody,
           data: parsedError,
           isRetryable: isRetryable?.(response, parsedError),
-          isContextLengthExceeded: isContextLengthExceeded?.(
-            response,
-            parsedError,
-          ),
+          reason: reason?.(response, parsedError),
         }),
       };
     } catch {

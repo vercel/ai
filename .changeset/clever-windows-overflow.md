@@ -1,4 +1,5 @@
 ---
+'ai': patch
 '@ai-sdk/provider': patch
 '@ai-sdk/provider-utils': patch
 '@ai-sdk/openai': patch
@@ -7,6 +8,10 @@
 '@ai-sdk/google': patch
 '@ai-sdk/amazon-bedrock': patch
 '@ai-sdk/gateway': patch
+'@ai-sdk/groq': patch
+'@ai-sdk/deepseek': patch
+'@ai-sdk/moonshotai': patch
+'@ai-sdk/xai': patch
 ---
 
-feat: add `isContextLengthExceeded` to `APICallError` and `GatewayError` so callers can detect when a provider rejects a prompt for exceeding the model's context window
+feat: add `isContextLengthExceededError` and a `reason` on provider errors, so callers can detect when the input plus reserved output tokens exceed the model's context window

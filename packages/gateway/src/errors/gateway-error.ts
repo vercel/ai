@@ -1,3 +1,5 @@
+import type { APICallError } from '@ai-sdk/provider';
+
 const marker = 'vercel.ai.gateway.error';
 const symbol = Symbol.for(marker);
 
@@ -12,10 +14,10 @@ export abstract class GatewayError extends Error {
   readonly isRetryable: boolean;
 
   /**
-   * Whether the upstream provider rejected the request because the prompt
-   * exceeds the model's context window.
+   * Why the upstream provider rejected the request, when the gateway reports
+   * it. See `APICallError.reason`.
    */
-  readonly isContextLengthExceeded: boolean;
+  readonly reason?: APICallError['reason'];
 
   constructor({
     message,
@@ -27,21 +29,21 @@ export abstract class GatewayError extends Error {
         statusCode === 409 || // conflict
         statusCode === 429 || // too many requests
         statusCode >= 500), // server error
-    isContextLengthExceeded = false,
+    reason,
   }: {
     message: string;
     statusCode?: number;
     cause?: unknown;
     generationId?: string;
     isRetryable?: boolean;
-    isContextLengthExceeded?: boolean;
+    reason?: APICallError['reason'];
   }) {
     super(generationId ? `${message} [${generationId}]` : message);
     this.statusCode = statusCode;
     this.cause = cause;
     this.generationId = generationId;
     this.isRetryable = isRetryable;
-    this.isContextLengthExceeded = isContextLengthExceeded;
+    this.reason = reason;
   }
 
   /**

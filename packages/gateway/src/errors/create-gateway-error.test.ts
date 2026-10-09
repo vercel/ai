@@ -50,7 +50,7 @@ describe('Valid error responses', () => {
     expect(error.statusCode).toBe(400);
   });
 
-  it('flags invalid requests whose code is context_length_exceeded', async () => {
+  it('sets the reason on invalid requests with the code', async () => {
     const response: GatewayErrorResponse = {
       error: {
         message: 'prompt is too long: 215000 tokens > 200000 maximum',
@@ -65,35 +65,27 @@ describe('Valid error responses', () => {
     });
 
     expect(error).toBeInstanceOf(GatewayInvalidRequestError);
-    expect(error.isContextLengthExceeded).toBe(true);
+    expect(error.reason).toBe('context-length-exceeded');
   });
 
-  it('flags relayed upstream errors that the provider adapter recognized', async () => {
+  it('sets the reason on relayed upstream errors with the code', async () => {
     const message = 'prompt is too long: 1320024 tokens > 200000 maximum';
     const error = await createGatewayErrorFromResponse({
       response: {
         error: {
           message,
           type: 'AI_APICallError',
-          param: {
-            error: message,
-            statusCode: 400,
-            name: 'AI_APICallError',
-            message,
-            isRetryable: false,
-            isContextLengthExceeded: true,
-            type: 'AI_APICallError',
-          },
+          code: 'context_length_exceeded',
         },
       },
       statusCode: 400,
     });
 
     expect(error).toBeInstanceOf(GatewayInternalServerError);
-    expect(error.isContextLengthExceeded).toBe(true);
+    expect(error.reason).toBe('context-length-exceeded');
   });
 
-  it('does not flag invalid requests without the code', async () => {
+  it('leaves the reason unset without the code', async () => {
     const error = await createGatewayErrorFromResponse({
       response: {
         error: {
@@ -104,7 +96,7 @@ describe('Valid error responses', () => {
       statusCode: 400,
     });
 
-    expect(error.isContextLengthExceeded).toBe(false);
+    expect(error.reason).toBeUndefined();
   });
 
   it('should create GatewayForbiddenError for forbidden type', async () => {

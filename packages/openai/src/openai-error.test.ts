@@ -53,7 +53,7 @@ describe('openaiFailedResponseHandler', () => {
       code: 'context_length_exceeded',
     });
 
-    expect(value.isContextLengthExceeded).toBe(true);
+    expect(value.reason).toBe('context-length-exceeded');
   });
 
   it('does not flag other invalid request errors', async () => {
@@ -64,6 +64,6 @@ describe('openaiFailedResponseHandler', () => {
       code: 'invalid_value',
     });
 
-    expect(value.isContextLengthExceeded).toBe(false);
+    expect(value.reason).toBeUndefined();
   });
 });

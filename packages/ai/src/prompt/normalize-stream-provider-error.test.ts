@@ -34,6 +34,40 @@ describe('normalizeStreamProviderError', () => {
     });
   });
 
+  it('carries the reason classified by the provider adapter', () => {
+    const data = {
+      type: 'error',
+      code: 'context_length_exceeded',
+      message: 'Your input exceeds the context window of this model.',
+    };
+
+    const error = normalizeStreamProviderError(
+      createProviderStreamError({
+        message: data.message,
+        code: data.code,
+        statusCode: 400,
+        isRetryable: false,
+        reason: 'context-length-exceeded',
+        data,
+      }),
+    );
+
+    expect(error).toMatchObject({ reason: 'context-length-exceeded' });
+  });
+
+  it('does not classify the reason of a raw provider payload', () => {
+    const error = normalizeStreamProviderError({
+      error: {
+        type: 'invalid_request_error',
+        code: 'context_length_exceeded',
+        message: 'Your input exceeds the context window of this model.',
+      },
+    });
+
+    expect(StreamProviderError.isInstance(error)).toBe(true);
+    expect((error as StreamProviderError).reason).toBeUndefined();
+  });
+
   it('uses provider-owned metadata without exposing the metadata wrapper as data', () => {
     const data = {
       error: {

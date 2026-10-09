@@ -20,7 +20,7 @@ describe('defaultOpenAICompatibleErrorStructure', () => {
       code: 'context_length_exceeded',
     });
 
-    expect(value.isContextLengthExceeded).toBe(true);
+    expect(value.reason).toBe('context-length-exceeded');
   });
 
   it('does not flag other errors', async () => {
@@ -29,6 +29,6 @@ describe('defaultOpenAICompatibleErrorStructure', () => {
       code: 'model_not_found',
     });
 
-    expect(value.isContextLengthExceeded).toBe(false);
+    expect(value.reason).toBeUndefined();
   });
 });
