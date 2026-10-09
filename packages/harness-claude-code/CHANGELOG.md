@@ -1,5 +1,12 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.151
+
+### Patch Changes
+
+- c357e52: chore(harness): update primary harness SDKs to their latest versions
+  - @ai-sdk/harness@1.0.147
+
 ## 1.0.150
 
 ### Patch Changes

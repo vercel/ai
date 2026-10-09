@@ -1,5 +1,14 @@
 # @ai-sdk/harness-fx
 
+## 1.0.61
+
+### Patch Changes
+
+- d108786: fix(harness-fx): fix `skill` tool input schema to follow latest upstream shape
+- Updated dependencies [c357e52]
+  - @ai-sdk/harness-acp@1.0.86
+  - @ai-sdk/harness@1.0.147
+
 ## 1.0.60
 
 ### Patch Changes

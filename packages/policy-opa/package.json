@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/policy-opa",
-  "version": "1.0.135",
+  "version": "1.0.136",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,

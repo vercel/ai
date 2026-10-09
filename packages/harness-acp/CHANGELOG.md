@@ -1,5 +1,12 @@
 # @ai-sdk/harness-acp
 
+## 1.0.86
+
+### Patch Changes
+
+- c357e52: chore(harness): update primary harness SDKs to their latest versions
+  - @ai-sdk/harness@1.0.147
+
 ## 1.0.85
 
 ### Patch Changes
