@@ -142,7 +142,7 @@ describe('AlibabaVideoModel', () => {
         expect(body.input.img_url).toBeUndefined();
         expect(body.input.reference_urls).toBeUndefined();
         expect(body.parameters).toMatchObject({
-          resolution: '832x480',
+          resolution: '480P',
           ratio: '16:9',
           audio: false,
         });
@@ -514,7 +514,7 @@ describe('AlibabaVideoModel', () => {
         });
 
         const body = await server.calls[0].requestBodyJson;
-        expect(body).toMatchObject({ parameters: { resolution: '832x480' } });
+        expect(body).toMatchObject({ parameters: { resolution: '480P' } });
         expect(result.warnings).not.toContainEqual(
           expect.objectContaining({ feature: 'resolution' }),
         );
