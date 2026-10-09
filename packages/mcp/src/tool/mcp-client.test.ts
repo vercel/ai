@@ -554,6 +554,7 @@ describe('MCPClient', () => {
     expect(tool).toHaveProperty('inputSchema');
     expect(tool).toHaveProperty('execute');
 
+<<<<<<< HEAD
     // Verify the execute function works
     const result = await tool.execute(
       { foo: 'bar' },
@@ -561,6 +562,14 @@ describe('MCPClient', () => {
     );
     expect(result).toMatchObject({
       content: [{ type: 'text', text: 'Mock tool call result' }],
+=======
+    // Verify the execute function works without AI SDK execution options
+    const result = await tool.execute({ foo: 'bar' });
+    expect(result).toEqual({
+      content: [{ type: 'text', text: JSON.stringify(structuredContent) }],
+      structuredContent,
+      isError: false,
+>>>>>>> 2913c8c22f (fix: MCP tool execute incorrectly requires execution options (#22484))
     });
   });
 
