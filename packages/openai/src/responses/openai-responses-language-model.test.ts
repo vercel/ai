@@ -1,4 +1,5 @@
 import type {
+  JSONValue,
   LanguageModelV2,
   LanguageModelV2Content,
   LanguageModelV2FunctionTool,
@@ -2971,6 +2972,80 @@ describe('OpenAIResponsesLanguageModel', () => {
       it('should include web search tool call and result in content', async () => {
         expect(result.content).toMatchSnapshot();
       });
+    });
+
+    describe('web search replay with custom tool names', () => {
+      it.each(['openai.web_search', 'openai.web_search_preview'] as const)(
+        'should replay %s results in the next stateless request',
+        async toolId => {
+          prepareJsonFixtureResponse('openai-web-search-tool.1');
+
+          const model = createModel('gpt-5-nano');
+          const tools = [
+            {
+              type: 'provider-defined' as const,
+              id: toolId,
+              name: 'webSearch',
+              args: {},
+            },
+          ];
+          const providerOptions = { openai: { store: false } };
+          const first = await model.doGenerate({
+            prompt: TEST_PROMPT,
+            tools,
+            providerOptions,
+          });
+          const toolResult = first.content.find(
+            part => part.type === 'tool-result',
+          );
+          if (toolResult?.type !== 'tool-result') {
+            throw new Error('Expected a web search tool result');
+          }
+          expect(toolResult.toolName).toBe('webSearch');
+
+          const second = await model.doGenerate({
+            prompt: [
+              ...TEST_PROMPT,
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'tool-result',
+                    toolCallId: toolResult.toolCallId,
+                    toolName: toolResult.toolName,
+                    output: {
+                      type: 'json',
+                      value: toolResult.result as JSONValue,
+                    },
+                  },
+                ],
+              },
+              {
+                role: 'user',
+                content: [
+                  { type: 'text', text: 'Summarize the search results.' },
+                ],
+              },
+            ],
+            tools,
+            providerOptions,
+          });
+
+          expect((await server.calls[1].requestBodyJson).input).toContainEqual({
+            type: 'web_search_call',
+            id: toolResult.toolCallId,
+            status: 'completed',
+            action: {
+              type: 'search',
+              query: 'tech news today December 5 2025',
+              sources: expect.arrayContaining([
+                { type: 'url', url: 'https://vercel.com/blog/series-f' },
+              ]),
+            },
+          });
+          expect(second.warnings).toEqual([]);
+        },
+      );
     });
 
     describe('file search tool', () => {

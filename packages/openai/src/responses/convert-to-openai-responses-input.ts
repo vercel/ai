@@ -112,6 +112,7 @@ export async function convertToOpenAIResponsesInput({
   store,
   configurationUpdateUnsupportedReason,
   hasLocalShellTool = false,
+  webSearchToolName,
 }: {
   prompt: LanguageModelV2Prompt;
   systemMessageMode: 'system' | 'developer' | 'remove';
@@ -121,6 +122,7 @@ export async function convertToOpenAIResponsesInput({
   store: boolean;
   configurationUpdateUnsupportedReason?: string;
   hasLocalShellTool?: boolean;
+  webSearchToolName?: string;
 }): Promise<{
   input: OpenAIResponsesInput;
   warnings: Array<LanguageModelV2CallWarning>;
@@ -391,7 +393,8 @@ export async function convertToOpenAIResponsesInput({
             case 'tool-result': {
               if (
                 part.toolName === 'web_search' ||
-                part.toolName === 'web_search_preview'
+                part.toolName === 'web_search_preview' ||
+                part.toolName === webSearchToolName
               ) {
                 const itemId =
                   (

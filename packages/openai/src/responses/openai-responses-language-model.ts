@@ -163,6 +163,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         options: openaiOptions,
       });
 
+    const webSearchToolName = (
+      tools?.find(
+        tool =>
+          tool.type === 'provider-defined' &&
+          (tool.id === 'openai.web_search' ||
+            tool.id === 'openai.web_search_preview'),
+      ) as LanguageModelV2ProviderDefinedTool | undefined
+    )?.name;
+
     const { input, warnings: inputWarnings } =
       await convertToOpenAIResponsesInput({
         prompt,
@@ -175,6 +184,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         fileIdPrefixes: this.config.fileIdPrefixes,
         store: openaiOptions?.store ?? true,
         hasLocalShellTool: hasOpenAITool('openai.local_shell'),
+        webSearchToolName,
       });
 
     warnings.push(...inputWarnings);
@@ -267,15 +277,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     }
 
     // when a web search tool is present, automatically include the sources:
-    const webSearchToolName = (
-      tools?.find(
-        tool =>
-          tool.type === 'provider-defined' &&
-          (tool.id === 'openai.web_search' ||
-            tool.id === 'openai.web_search_preview'),
-      ) as LanguageModelV2ProviderDefinedTool | undefined
-    )?.name;
-
     if (webSearchToolName) {
       addInclude('web_search_call.action.sources');
     }

@@ -2592,6 +2592,83 @@ describe('convertToOpenAIResponsesInput', () => {
       });
     });
 
+    it.each([true, false])(
+      'should use the provider item ID for custom web search names with store: %s',
+      async store => {
+        const result = await convertToOpenAIResponsesInput({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call_search',
+                  toolName: 'webSearch',
+                  providerOptions: { azure: { itemId: 'ws_search' } },
+                  output: {
+                    type: 'json',
+                    value: { action: { type: 'search', query: 'AI SDK' } },
+                  },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+          providerOptionsName: 'azure',
+          webSearchToolName: 'webSearch',
+          store,
+        });
+
+        expect(result).toEqual({
+          input: [
+            store
+              ? { type: 'item_reference', id: 'ws_search' }
+              : {
+                  type: 'web_search_call',
+                  id: 'ws_search',
+                  status: 'completed',
+                  action: { type: 'search', query: 'AI SDK' },
+                },
+          ],
+          warnings: [],
+        });
+      },
+    );
+
+    it.each(['text', 'error-text'] as const)(
+      'should keep warning for non-JSON web search results (%s)',
+      async outputType => {
+        const result = await convertToOpenAIResponsesInput({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'ws_non_json',
+                  toolName: 'web_search',
+                  output: { type: outputType, value: 'Search result' },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+          store: false,
+        });
+
+        expect(result).toEqual({
+          input: [],
+          warnings: [
+            {
+              type: 'other',
+              message:
+                'Results for OpenAI tool web_search are not sent to the API when store is false',
+            },
+          ],
+        });
+      },
+    );
+
     describe('local shell', () => {
       it('should convert local shell tool call and result into item reference with store: true', async () => {
         const result = await convertToOpenAIResponsesInput({
