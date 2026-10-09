@@ -1408,6 +1408,182 @@ describe('Chat', () => {
     expect(chat.status).toBe('ready');
   });
 
+  describe('DefaultChatTransport resume', () => {
+    const encoder = new TextEncoder();
+
+    function responseForChunks(chunks: UIMessageChunk[], disconnect = false) {
+      let index = 0;
+      return new Response(
+        new ReadableStream<Uint8Array>({
+          pull(controller) {
+            if (index < chunks.length) {
+              controller.enqueue(encoder.encode(formatChunk(chunks[index++])));
+            } else if (disconnect) {
+              controller.error(new TypeError('network connection lost'));
+            } else {
+              controller.close();
+            }
+          },
+        }),
+      );
+    }
+
+    it.each([
+      {
+        name: 'an interrupted response',
+        persisted: false,
+        messageId: 'msg-123',
+      },
+      { name: 'a persisted response', persisted: true, messageId: 'msg-123' },
+      {
+        name: 'a response without a start ID',
+        persisted: false,
+        messageId: undefined,
+      },
+    ])(
+      'rebuilds $name without duplicating parts',
+      async ({ persisted, messageId }) => {
+        const chunks: UIMessageChunk[] = [
+          { type: 'start', messageId, messageMetadata: { model: 'test' } },
+          { type: 'start-step' },
+          { type: 'data-progress', data: 'started' },
+          { type: 'reasoning-start', id: 'reasoning-1' },
+          { type: 'reasoning-delta', id: 'reasoning-1', delta: 'thinking' },
+          { type: 'text-start', id: 'text-1' },
+          { type: 'text-delta', id: 'text-1', delta: 'Hello, ' },
+          { type: 'reasoning-delta', id: 'reasoning-1', delta: '...' },
+          { type: 'reasoning-end', id: 'reasoning-1' },
+          { type: 'text-delta', id: 'text-1', delta: 'world!' },
+          { type: 'text-end', id: 'text-1' },
+          { type: 'finish-step' },
+          { type: 'finish', finishReason: 'stop' },
+        ];
+        let reconnectCount = 0;
+        const fetch = vi.fn<typeof globalThis.fetch>(async (_input, init) => {
+          if (init?.method !== 'GET') {
+            return responseForChunks(chunks.slice(0, 7), true);
+          }
+          reconnectCount++;
+          return reconnectCount === 1
+            ? responseForChunks(chunks.slice(0, 10), true)
+            : responseForChunks(chunks);
+        });
+        const onFinish = vi.fn();
+        const transport = new DefaultChatTransport<UIMessage>({ fetch });
+        let chat = new TestChat({ id: '123', transport, onFinish });
+
+        await chat.sendMessage({ text: 'Hello' });
+
+        expect(chat.status).toBe('error');
+        const partialMessage = structuredClone(chat.lastMessage);
+        expect(
+          partialMessage?.parts.filter(part => part.type === 'text'),
+        ).toEqual([
+          expect.objectContaining({ text: 'Hello, ', state: 'streaming' }),
+        ]);
+        expect(
+          partialMessage?.parts.filter(part => part.type === 'reasoning'),
+        ).toEqual([
+          expect.objectContaining({ text: 'thinking', state: 'streaming' }),
+        ]);
+
+        if (persisted) {
+          chat = new TestChat({
+            id: '123',
+            messages: structuredClone(chat.messages),
+            transport,
+            onFinish,
+          });
+        }
+
+        await chat.resumeStream();
+        expect(chat.status).toBe('error');
+        await chat.resumeStream();
+
+        expect(chat.error).toBeUndefined();
+        expect(chat.status).toBe('ready');
+        expect(chat.messages).toHaveLength(2);
+        expect(chat.lastMessage).toEqual({
+          id: partialMessage!.id,
+          role: 'assistant',
+          metadata: { model: 'test' },
+          parts: [
+            { type: 'step-start' },
+            { type: 'data-progress', data: 'started' },
+            {
+              type: 'reasoning',
+              id: 'reasoning-1',
+              text: 'thinking...',
+              state: 'done',
+              providerMetadata: undefined,
+            },
+            {
+              type: 'text',
+              text: 'Hello, world!',
+              state: 'done',
+              providerMetadata: undefined,
+            },
+          ],
+        });
+        expect(onFinish).toHaveBeenLastCalledWith(
+          expect.objectContaining({ isError: false, finishReason: 'stop' }),
+        );
+      },
+    );
+
+    it('preserves active parts when replay is disabled for a continuation endpoint', async () => {
+      const initialChunks: UIMessageChunk[] = [
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        { type: 'reasoning-start', id: 'reasoning-1' },
+        { type: 'reasoning-delta', id: 'reasoning-1', delta: 'thinking' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'Hello, ' },
+      ];
+      const resumedChunks: UIMessageChunk[] = [
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'reasoning-delta', id: 'reasoning-1', delta: '...' },
+        { type: 'reasoning-end', id: 'reasoning-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'world!' },
+        { type: 'text-end', id: 'text-1' },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ];
+      const chat = new TestChat({
+        transport: new DefaultChatTransport({
+          resumeStreamIsReplay: false,
+          fetch: async (_input, init) =>
+            init?.method === 'GET'
+              ? responseForChunks(resumedChunks)
+              : responseForChunks(initialChunks, true),
+        }),
+      });
+
+      await chat.sendMessage({ text: 'Hello' });
+      expect(chat.status).toBe('error');
+      await chat.resumeStream();
+
+      expect(chat.error).toBeUndefined();
+      expect(chat.messages).toHaveLength(2);
+      expect(chat.lastMessage?.parts).toEqual([
+        { type: 'step-start' },
+        {
+          type: 'reasoning',
+          id: 'reasoning-1',
+          text: 'thinking...',
+          state: 'done',
+          providerMetadata: undefined,
+        },
+        {
+          type: 'text',
+          text: 'Hello, world!',
+          state: 'done',
+          providerMetadata: undefined,
+        },
+      ]);
+    });
+  });
+
   it('should stop updating messages when a resumed stream is stopped', async () => {
     const nextChunk = createResolvablePromise<void>();
     let reconnectAbortSignal: AbortSignal | undefined;

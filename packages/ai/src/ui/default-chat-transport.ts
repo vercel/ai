@@ -12,8 +12,15 @@ import type { UIMessage } from './ui-messages';
 export class DefaultChatTransport<
   UI_MESSAGE extends UIMessage,
 > extends HttpChatTransport<UI_MESSAGE> {
-  constructor(options: HttpChatTransportInitOptions<UI_MESSAGE> = {}) {
+  readonly resumeStreamIsReplay: boolean;
+
+  constructor(
+    options: HttpChatTransportInitOptions<UI_MESSAGE> & {
+      resumeStreamIsReplay?: boolean;
+    } = {},
+  ) {
     super(options);
+    this.resumeStreamIsReplay = options.resumeStreamIsReplay ?? true;
   }
 
   protected processResponseStream(

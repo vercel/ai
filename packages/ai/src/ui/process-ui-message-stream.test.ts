@@ -3472,6 +3472,100 @@ describe('processUIMessageStream', () => {
     });
   });
 
+  describe('replayed message start', () => {
+    it.each([undefined, 'msg-123'])(
+      'resets state only on the first replayed start with ID %s',
+      async messageId => {
+        state = createStreamingUIMessageState({
+          messageId: 'msg-123',
+          lastMessage: {
+            id: 'msg-123',
+            role: 'assistant',
+            metadata: { stale: true },
+            parts: [
+              { type: 'step-start' },
+              { type: 'text', text: 'old text', state: 'streaming' },
+              { type: 'reasoning', text: 'old reasoning', state: 'streaming' },
+              {
+                type: 'tool-weather',
+                toolCallId: 'old-call',
+                state: 'input-streaming',
+                input: {},
+                rawInput: '{',
+              },
+            ],
+          },
+        });
+        state.finishReason = 'length';
+
+        const stream = createUIMessageStream([
+          { type: 'start', messageId, messageMetadata: { phase: 'replaying' } },
+          { type: 'start-step' },
+          { type: 'reasoning-start', id: 'reasoning-1' },
+          { type: 'reasoning-delta', id: 'reasoning-1', delta: 'thinking' },
+          { type: 'text-start', id: 'text-1' },
+          { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+          { type: 'start', messageId, messageMetadata: { phase: 'complete' } },
+          { type: 'reasoning-delta', id: 'reasoning-1', delta: '...' },
+          { type: 'reasoning-end', id: 'reasoning-1' },
+          { type: 'text-delta', id: 'text-1', delta: ', world!' },
+          { type: 'text-end', id: 'text-1' },
+          { type: 'finish-step' },
+          { type: 'start-step' },
+          { type: 'text-start', id: 'text-2' },
+          { type: 'text-delta', id: 'text-2', delta: 'Next step.' },
+          { type: 'text-end', id: 'text-2' },
+          { type: 'finish-step' },
+          { type: 'finish' },
+        ]);
+
+        await consumeStream({
+          stream: processUIMessageStream({
+            stream,
+            resetStateOnFirstMessageStart: true,
+            runUpdateMessageJob,
+            onError: error => {
+              throw error;
+            },
+          }),
+        });
+
+        expect(state.message).toEqual({
+          id: 'msg-123',
+          role: 'assistant',
+          metadata: { phase: 'complete' },
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'reasoning',
+              id: 'reasoning-1',
+              text: 'thinking...',
+              state: 'done',
+              providerMetadata: undefined,
+            },
+            {
+              type: 'text',
+              text: 'Hello, world!',
+              state: 'done',
+              providerMetadata: undefined,
+            },
+            { type: 'step-start' },
+            {
+              type: 'text',
+              text: 'Next step.',
+              state: 'done',
+              providerMetadata: undefined,
+            },
+          ],
+        });
+        expect(state.activeTextParts).toEqual({});
+        expect(state.activeReasoningParts).toEqual({});
+        expect(state.partialToolCalls).toEqual({});
+        expect(state.finishReason).toBeUndefined();
+      },
+    );
+  });
+
   describe('start with message id', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([

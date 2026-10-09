@@ -96,6 +96,31 @@ const { messages, sendMessage } = useChat({
 });
 ```
 
+### Stream Resumption
+
+`DefaultChatTransport` defaults to `resumeStreamIsReplay: true`. Its reconnect
+endpoint should replay the complete UI message stream, including the original
+`start` chunk and its stable `messageId`. This lets `useChat` rebuild and replace
+the interrupted assistant message without duplicating text, reasoning, or other
+parts. The default works with the `resumable-stream` setup in
+[Chatbot Resume Streams](/docs/ai-sdk-ui/chatbot-resume-streams).
+
+For custom endpoints that return only the remaining chunks of an interrupted
+response, disable replay handling:
+
+```tsx
+const { messages, sendMessage } = useChat({
+  transport: new DefaultChatTransport({
+    resumeStreamIsReplay: false,
+  }),
+});
+```
+
+This preserves the active streaming state instead of resetting it on a resumed
+`start` chunk. Custom `ChatTransport` implementations can also set the
+`resumeStreamIsReplay` property to `true` when they return complete replays;
+omitting it preserves continuation behavior.
+
 ## WebSocket Transport
 
 Use `WebSocketChatTransport` when you want chat turns to share a persistent
