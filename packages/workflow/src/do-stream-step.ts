@@ -7,12 +7,13 @@ import { asArray, isAbortError } from '@ai-sdk/provider-utils';
 import {
   experimental_streamLanguageModelCall as streamModelCall,
   gateway,
+  NoOutputGeneratedError,
   wrapLanguageModel,
   type LanguageModel,
   type ModelMessage,
   type ToolSet,
 } from 'ai';
-import { prepareRetries } from 'ai/internal';
+import { isOutputChunk, prepareRetries } from 'ai/internal';
 import type { StreamTextTransform } from './workflow-agent.js';
 import {
   resolveSerializableTools,
@@ -216,6 +217,7 @@ export async function doStreamStep(
   let performance: ModelCallPerformance | undefined;
   let terminalError: unknown;
   let hasTerminalError = false;
+  let hasReceivedOutputChunk = false;
   const ongoingToolCallToolNames = new Map<string, string>();
 
   // Acquire writer once before the loop to avoid per-chunk lock overhead
@@ -228,6 +230,10 @@ export async function doStreamStep(
     await writer?.write({ type: 'reset-step' });
 
     for await (const part of modelStream) {
+      if (isOutputChunk(part)) {
+        hasReceivedOutputChunk = true;
+      }
+
       switch (part.type) {
         case 'tool-input-start':
           ongoingToolCallToolNames.set(part.id, part.toolName);
@@ -450,6 +456,14 @@ export async function doStreamStep(
     (options?.timeoutAt != null && options.timeoutAt <= Date.now())
   ) {
     return { aborted: true };
+  }
+
+  if (finish == null && !hasReceivedOutputChunk && !hasTerminalError) {
+    terminalError = new NoOutputGeneratedError({
+      message:
+        'No output generated. The model stream ended without a finish chunk.',
+    });
+    hasTerminalError = true;
   }
 
   return {

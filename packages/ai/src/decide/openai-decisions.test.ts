@@ -143,7 +143,15 @@ it('allows the declared score rounding when validating a two-level distribution'
 it.each([
   { type: 'predicate', name: 'team', probability: 0.5 },
   { ...answers[0], choice: 'unknown' },
-  { ...answers[0], choice: 'technical' },
+  {
+    ...answers[0],
+    choice: 'technical',
+    probabilities: [
+      { value: 'billing', probability: 0.35 },
+      { value: 'technical', probability: 0.33 },
+      { value: 'other', probability: 0.32 },
+    ],
+  },
   { ...answers[0], probabilities: [{ value: 'billing', probability: 1 }] },
   { ...answers[1], score: 1.5 },
   { ...answers[1], score: 3 },
