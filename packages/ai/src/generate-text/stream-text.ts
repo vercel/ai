@@ -1,4 +1,5 @@
 import {
+  AISDKError,
   getErrorMessage,
   UnsupportedFunctionalityError,
   type LanguageModelV4,
@@ -67,6 +68,7 @@ import { toUIMessageStream as toUIMessageStreamHelper } from '../ui-message-stre
 import type { InferUIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import type { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
 import {
+  asAsyncIterableStream,
   createAsyncIterableStream,
   type AsyncIterableStream,
 } from '../util/async-iterable-stream';
@@ -165,6 +167,14 @@ import type { ToolOutput } from './tool-output';
 import type { StaticToolOutputDenied } from './tool-output-denied';
 import type { ToolsContextParameter } from './tools-context-parameter';
 import { validateApprovedToolApprovals } from './validate-tool-approvals';
+
+/** Internal policy, fixed before the model request starts. */
+type StreamTextRetention = {
+  /** Keep a replay branch for independently consumed stream projections. */
+  replay: boolean;
+  /** Collect complete content for results, callbacks, or subsequent steps. */
+  collectContent: boolean;
+};
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -409,6 +419,7 @@ export function streamText<
     now = originalNow,
     generateId = originalGenerateId,
     generateCallId = originalGenerateCallId,
+    retention = { replay: true, collectContent: true },
   } = {},
   ...settings
 }: LanguageModelCallOptions &
@@ -766,6 +777,8 @@ export function streamText<
       now?: () => number;
       generateId?: IdGenerator;
       generateCallId?: IdGenerator;
+      /** Internal policy used by the streaming-only facade. */
+      retention?: StreamTextRetention;
     };
   }): StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
@@ -795,6 +808,7 @@ export function streamText<
     onToolExecutionEnd ?? experimental_onToolCallFinish;
   const resolvedOnStepEnd = onStepEnd ?? onStepFinish;
   return new DefaultStreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>({
+    retention,
     model: resolveLanguageModel(model),
     telemetry,
     headers,
@@ -904,6 +918,7 @@ function createOutputTransformStream<
   OUTPUT extends Output,
 >(
   output: OUTPUT,
+  collectOutput = true,
 ): TransformStream<
   InternalTextStreamPart<TOOLS>,
   InternalEnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
@@ -965,6 +980,14 @@ function createOutputTransformStream<
     InternalEnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
   >({
     async transform(chunk, controller) {
+      if (!collectOutput) {
+        controller.enqueue(
+          isStreamRetryBoundaryPart(chunk)
+            ? chunk
+            : { part: chunk, partialOutput: undefined },
+        );
+        return;
+      }
       if (isStreamRetryBoundaryPart(chunk)) {
         resetOutputState();
         controller.enqueue(chunk);
@@ -1186,7 +1209,11 @@ class DefaultStreamTextResult<
 
   private tools: TOOLS | undefined;
 
+  private readonly retention: StreamTextRetention;
+  private streamClaimed = false;
+
   constructor({
+    retention,
     model,
     telemetry,
     headers,
@@ -1241,6 +1268,7 @@ class DefaultStreamTextResult<
     download,
     include,
   }: {
+    retention: StreamTextRetention;
     model: LanguageModelV4;
     telemetry: TelemetryOptions<RUNTIME_CONTEXT, TOOLS> | undefined;
     headers: Record<string, string | undefined> | undefined;
@@ -1328,6 +1356,7 @@ class DefaultStreamTextResult<
     onToolExecutionStart: undefined | OnToolExecutionStartCallback<TOOLS>;
     onToolExecutionEnd: undefined | OnToolExecutionEndCallback<TOOLS>;
   }) {
+    this.retention = retention;
     this.outputSpecification = output;
     this.tools = tools;
     const resolvedToolCallers = resolveToolCallerConfiguration({
@@ -1361,7 +1390,7 @@ class DefaultStreamTextResult<
     let recordedRequest: Omit<LanguageModelRequestMetadata, 'messages'> = {};
     let recordedRequestMessages: Array<ModelMessage> = [];
     let recordedWarnings: Array<CallWarning> = [];
-    const recordedSteps: StepResult<TOOLS, RUNTIME_CONTEXT>[] = [];
+    let recordedSteps: StepResult<TOOLS, RUNTIME_CONTEXT>[] = [];
     const initialResponseMessages: Array<ResponseMessage> = [];
     let stepMessagesForNextStep: Array<ModelMessage> | undefined;
     let currentStepMessages: Array<ModelMessage> = [];
@@ -1478,7 +1507,7 @@ class DefaultStreamTextResult<
           part.type === 'tool-approval-response' ||
           part.type === 'tool-error'
         ) {
-          recordedContent.push(part);
+          if (retention.collectContent) recordedContent.push(part);
         }
 
         if (part.type === 'text-start') {
@@ -1488,7 +1517,8 @@ class DefaultStreamTextResult<
             providerMetadata: part.providerMetadata,
           };
 
-          recordedContent.push(activeTextContent[part.id]);
+          if (retention.collectContent)
+            recordedContent.push(activeTextContent[part.id]);
         }
 
         if (part.type === 'text-delta') {
@@ -1505,7 +1535,7 @@ class DefaultStreamTextResult<
             return;
           }
 
-          activeText.text += part.text;
+          if (retention.collectContent) activeText.text += part.text;
           activeText.providerMetadata =
             part.providerMetadata ?? activeText.providerMetadata;
         }
@@ -1537,7 +1567,8 @@ class DefaultStreamTextResult<
             providerMetadata: part.providerMetadata,
           };
 
-          recordedContent.push(activeReasoningContent[part.id]);
+          if (retention.collectContent)
+            recordedContent.push(activeReasoningContent[part.id]);
         }
 
         if (part.type === 'reasoning-delta') {
@@ -1554,7 +1585,7 @@ class DefaultStreamTextResult<
             return;
           }
 
-          activeReasoning.text += part.text;
+          if (retention.collectContent) activeReasoning.text += part.text;
           activeReasoning.providerMetadata =
             part.providerMetadata ?? activeReasoning.providerMetadata;
         }
@@ -1580,17 +1611,18 @@ class DefaultStreamTextResult<
         }
 
         if (part.type === 'file' || part.type === 'reasoning-file') {
-          recordedContent.push({
-            type: part.type,
-            file: part.file,
-            ...(part.providerMetadata != null
-              ? { providerMetadata: part.providerMetadata }
-              : {}),
-          });
+          if (retention.collectContent)
+            recordedContent.push({
+              type: part.type,
+              file: part.file,
+              ...(part.providerMetadata != null
+                ? { providerMetadata: part.providerMetadata }
+                : {}),
+            });
         }
 
         if (part.type === 'tool-result' && !part.preliminary) {
-          recordedContent.push(part);
+          if (retention.collectContent) recordedContent.push(part);
         }
 
         if (part.type === 'start-step') {
@@ -1694,7 +1726,7 @@ class DefaultStreamTextResult<
           self._totalUsage.resolve(totalUsage);
 
           // aggregate results:
-          self._steps.resolve(recordedSteps);
+          self._steps.resolve(retention.replay ? recordedSteps : []);
 
           if (isAborted) {
             return;
@@ -1727,7 +1759,11 @@ class DefaultStreamTextResult<
                   const parsedOutput =
                     output == null
                       ? undefined
-                      : await self.getOutputPromise().catch(() => undefined);
+                      : await (
+                          retention.replay
+                            ? self.getOutputPromise()
+                            : self.parseOutput(finalStep)
+                        ).catch(() => undefined);
 
                   await onEnd({
                     ...event,
@@ -1781,6 +1817,17 @@ class DefaultStreamTextResult<
           ]);
         } catch (error) {
           controller.error(error);
+        } finally {
+          if (!retention.replay) {
+            // Replace our references; never mutate arrays delivered to callbacks.
+            recordedSteps = [];
+            recordedContent = [];
+            recordedRequestMessages = [];
+            currentStepMessages = [];
+            stepMessagesForNextStep = undefined;
+            activeTextContent = createIdMap();
+            activeReasoningContent = createIdMap();
+          }
         }
       },
     });
@@ -1899,7 +1946,12 @@ class DefaultStreamTextResult<
     });
 
     this.baseStream = stream
-      .pipeThrough(createOutputTransformStream(output ?? text()))
+      .pipeThrough(
+        createOutputTransformStream(
+          output ?? text(),
+          retention.replay || output != null,
+        ),
+      )
       .pipeThrough(eventProcessor);
 
     const { maxRetries } = prepareRetries({
@@ -2446,6 +2498,7 @@ class DefaultStreamTextResult<
                   },
                   _internal: {
                     now,
+                    collectContent: retention.collectContent,
                   },
                   ...stepCallSettings,
                 }),
@@ -3150,7 +3203,7 @@ class DefaultStreamTextResult<
   get steps() {
     // when any of the promises are accessed, the stream is consumed
     // so it resolves without needing to consume the stream separately
-    this.consumeStream();
+    if (this.retention.replay) this.consumeStream();
 
     return this._steps.promise;
   }
@@ -3250,7 +3303,7 @@ class DefaultStreamTextResult<
   get totalUsage() {
     // when any of the promises are accessed, the stream is consumed
     // so it resolves without needing to consume the stream separately
-    this.consumeStream();
+    if (this.retention.replay) this.consumeStream();
 
     return this._totalUsage.promise;
   }
@@ -3258,7 +3311,7 @@ class DefaultStreamTextResult<
   get finishReason() {
     // when any of the promises are accessed, the stream is consumed
     // so it resolves without needing to consume the stream separately
-    this.consumeStream();
+    if (this.retention.replay) this.consumeStream();
 
     return this._finishReason.promise;
   }
@@ -3266,7 +3319,7 @@ class DefaultStreamTextResult<
   get rawFinishReason() {
     // when any of the promises are accessed, the stream is consumed
     // so it resolves without needing to consume the stream separately
-    this.consumeStream();
+    if (this.retention.replay) this.consumeStream();
 
     return this._rawFinishReason.promise;
   }
@@ -3280,17 +3333,69 @@ class DefaultStreamTextResult<
    * However, the LLM results are expected to be small enough to not cause issues.
    */
   private teeStream() {
+    if (!this.retention.replay) {
+      if (this.streamClaimed) {
+        throw new AISDKError({
+          name: 'AI_StreamAlreadyConsumedError',
+          message:
+            'This result supports one stream consumer. Choose one stream projection or response helper.',
+        });
+      }
+      this.streamClaimed = true;
+      const reader = this.baseStream.getReader();
+      const rejectResults = (error: unknown) =>
+        this.rejectResultPromises(error);
+      return new ReadableStream(
+        {
+          async pull(controller) {
+            try {
+              const { done, value } = await reader.read();
+              if (done) {
+                reader.releaseLock();
+                controller.close();
+              } else {
+                controller.enqueue(value);
+              }
+            } catch (error) {
+              rejectResults(error);
+              reader.releaseLock();
+              controller.error(error);
+            }
+          },
+          async cancel(reason) {
+            rejectResults(
+              reason ??
+                new DOMException('The stream was cancelled.', 'AbortError'),
+            );
+            try {
+              await reader.cancel(reason);
+            } finally {
+              reader.releaseLock();
+            }
+          },
+        },
+        { highWaterMark: 0 },
+      );
+    }
     const [stream1, stream2] = this.baseStream.tee();
     this.baseStream = stream2;
     return stream1;
   }
 
   get textStream(): AsyncIterableStream<string> {
-    return createAsyncIterableStream(toTextStream({ stream: this.stream }));
+    return this.asIterableStream(toTextStream({ stream: this.stream }));
+  }
+
+  private asIterableStream<T>(
+    stream: ReadableStream<T>,
+  ): AsyncIterableStream<T> {
+    return this.retention.replay
+      ? createAsyncIterableStream(stream)
+      : asAsyncIterableStream(stream);
   }
 
   get stream(): AsyncIterableStream<TextStreamPart<TOOLS>> {
-    return createAsyncIterableStream(
+    return this.asIterableStream(
       this.teeStream().pipeThrough(
         new TransformStream<
           EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>,
@@ -3333,9 +3438,11 @@ class DefaultStreamTextResult<
   }
 
   async consumeStream(options?: ConsumeStreamOptions): Promise<void> {
+    // A second consumer must not reject the first consumer's result promises.
+    const stream = this.stream;
     try {
       await consumeStream({
-        stream: this.stream,
+        stream,
         onError: error => {
           this.rejectResultPromises(error);
           options?.onError?.(error);
@@ -3354,7 +3461,13 @@ class DefaultStreamTextResult<
   }
 
   get partialOutputStream(): AsyncIterableStream<InferPartialOutput<OUTPUT>> {
-    return createAsyncIterableStream(
+    if (!this.retention.replay && this.outputSpecification == null) {
+      throw new UnsupportedFunctionalityError({
+        functionality:
+          'partialOutputStream without an explicit output specification in experimental_streamText',
+      });
+    }
+    return this.asIterableStream(
       this.teeStream().pipeThrough(
         new TransformStream<
           EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>,
@@ -3381,25 +3494,29 @@ class DefaultStreamTextResult<
       });
     }
 
-    return createAsyncIterableStream(this.teeStream().pipeThrough(transform));
+    return this.asIterableStream(this.teeStream().pipeThrough(transform));
   }
 
   private getOutputPromise(): Promise<InferCompleteOutput<OUTPUT>> {
     if (this.outputPromise == null) {
-      this.outputPromise = this.finalStep.then(step => {
-        const output = this.outputSpecification ?? text();
-        return output.parseCompleteOutput(
-          { text: step.text },
-          {
-            response: step.response,
-            usage: step.usage,
-            finishReason: step.finishReason,
-          },
-        );
-      });
+      this.outputPromise = this.finalStep.then(step => this.parseOutput(step));
     }
 
     return this.outputPromise;
+  }
+
+  private parseOutput(
+    step: StepResult<TOOLS, RUNTIME_CONTEXT>,
+  ): Promise<InferCompleteOutput<OUTPUT>> {
+    const output = this.outputSpecification ?? text();
+    return output.parseCompleteOutput(
+      { text: step.text },
+      {
+        response: step.response,
+        usage: step.usage,
+        finishReason: step.finishReason,
+      },
+    );
   }
 
   get output(): Promise<InferCompleteOutput<OUTPUT>> {
