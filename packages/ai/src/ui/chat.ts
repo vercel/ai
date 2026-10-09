@@ -991,7 +991,8 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           messageMetadataSchema: this.messageMetadataSchema,
           dataPartSchemas: this.dataPartSchemas,
           runUpdateMessageJob,
-          resetStateOnStart: trigger === 'resume-stream',
+          resetStateOnStart:
+            trigger === 'resume-stream' && this.transport.resumeStreamIsReplay,
           onError: error => {
             throw error;
           },

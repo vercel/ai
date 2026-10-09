@@ -88,6 +88,25 @@ const server = createTestServer({
 });
 
 describe('Chat', () => {
+  function createResponse(parts: UIMessageChunk[], error?: Error) {
+    let index = 0;
+    return new Response(
+      new ReadableStream<Uint8Array>({
+        pull(controller) {
+          if (index < parts.length) {
+            controller.enqueue(
+              new TextEncoder().encode(formatChunk(parts[index++])),
+            );
+          } else if (error != null) {
+            controller.error(error);
+          } else {
+            controller.close();
+          }
+        },
+      }),
+    );
+  }
+
   describe('resume a replayed stream', () => {
     const chunks: UIMessageChunk[] = [
       {
@@ -144,25 +163,6 @@ describe('Chat', () => {
       },
       { type: 'text', text: 'Follow-up.', state: 'done' },
     ];
-
-    function createResponse(parts: UIMessageChunk[], error?: Error) {
-      let index = 0;
-      return new Response(
-        new ReadableStream<Uint8Array>({
-          pull(controller) {
-            if (index < parts.length) {
-              controller.enqueue(
-                new TextEncoder().encode(formatChunk(parts[index++])),
-              );
-            } else if (error != null) {
-              controller.error(error);
-            } else {
-              controller.close();
-            }
-          },
-        }),
-      );
-    }
 
     it.each([4, 8, 12, 20])(
       'should rebuild the same message after disconnecting at chunk %i',
@@ -352,6 +352,262 @@ describe('Chat', () => {
       expect(chat.messages[1].parts).toMatchObject(expectedParts.slice(0, 3));
       expect(chat.messages[1].parts).toHaveLength(3);
     });
+  });
+
+  describe('resume stream transport semantics', () => {
+    it('should let a custom transport explicitly request a complete replay', async () => {
+      const chunks: UIMessageChunk[] = [
+        { type: 'start', messageId: 'assistant-1' },
+        { type: 'start-step' },
+        { type: 'reasoning-start', id: 'reasoning-1' },
+        { type: 'reasoning-delta', id: 'reasoning-1', delta: 'thinking...' },
+        { type: 'reasoning-end', id: 'reasoning-1' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'Hello, world!' },
+        { type: 'text-end', id: 'text-1' },
+        { type: 'finish-step' },
+      ];
+      let index = 0;
+      const state = new TestChatState<UIMessage>();
+      state.snapshot = <T>(value: T): T => structuredClone(value);
+      const chat = new TestChatWithState({
+        id: '123',
+        state,
+        transport: {
+          resumeStreamIsReplay: true,
+          sendMessages: async () =>
+            new ReadableStream<UIMessageChunk>({
+              pull(controller) {
+                if (index < chunks.length) {
+                  controller.enqueue(chunks[index++]);
+                } else {
+                  controller.error(
+                    new TypeError('simulated network disconnect'),
+                  );
+                }
+              },
+            }),
+          reconnectToStream: async () =>
+            new ReadableStream<UIMessageChunk>({
+              start(controller) {
+                for (const chunk of chunks) {
+                  controller.enqueue(chunk);
+                }
+                controller.enqueue({ type: 'finish', finishReason: 'stop' });
+                controller.close();
+              },
+            }),
+        },
+        onError: () => {},
+      });
+
+      await chat.sendMessage({ text: 'Say hello.' });
+      expect(chat.status).toBe('error');
+      const originalMessage = structuredClone(chat.messages[1]);
+      await chat.resumeStream();
+
+      expect(chat.error).toBeUndefined();
+      expect(chat.status).toBe('ready');
+      expect(chat.messages).toHaveLength(2);
+      expect(chat.messages[1]).toEqual(originalMessage);
+      expect(chat.messages[1].parts).toHaveLength(3);
+    });
+
+    it.each(['assistant-1', undefined])(
+      'should reset a default replay only once for message ID %s',
+      async messageId => {
+        const initialChunks: UIMessageChunk[] = [
+          { type: 'start', messageId: 'assistant-1' },
+          { type: 'start-step' },
+          { type: 'text-start', id: 'text-1' },
+          { type: 'text-delta', id: 'text-1', delta: 'Hello, ' },
+        ];
+        const replayChunks: UIMessageChunk[] = [
+          { type: 'start', messageId },
+          ...initialChunks.slice(1),
+          {
+            type: 'start',
+            messageId: 'assistant-1',
+            messageMetadata: { resumed: true },
+          },
+          { type: 'text-delta', id: 'text-1', delta: 'world!' },
+          { type: 'text-end', id: 'text-1' },
+          { type: 'finish-step' },
+          { type: 'finish', finishReason: 'stop' },
+        ];
+        const fetch = vi
+          .fn()
+          .mockResolvedValueOnce(
+            createResponse(
+              initialChunks,
+              new TypeError('simulated network disconnect'),
+            ),
+          )
+          .mockResolvedValueOnce(createResponse(replayChunks));
+        const chat = new TestChat({
+          id: '123',
+          transport: new DefaultChatTransport({ fetch }),
+          onError: () => {},
+        });
+
+        await chat.sendMessage({ text: 'Say hello.' });
+        expect(chat.status).toBe('error');
+        await chat.resumeStream();
+
+        expect(chat.error).toBeUndefined();
+        expect(chat.status).toBe('ready');
+        expect(chat.messages).toHaveLength(2);
+        expect(chat.messages[1]).toMatchObject({
+          id: 'assistant-1',
+          metadata: { resumed: true },
+          parts: [
+            { type: 'step-start' },
+            { type: 'text', text: 'Hello, world!', state: 'done' },
+          ],
+        });
+        expect(chat.messages[1].parts).toHaveLength(2);
+      },
+    );
+
+    it.each(['custom', 'default'] as const)(
+      'should preserve a %s continuation that prepends start metadata',
+      async transportType => {
+        const initialChunks: UIMessageChunk[] = [
+          {
+            type: 'start',
+            messageId: 'assistant-1',
+            messageMetadata: { original: true },
+          },
+          { type: 'start-step' },
+          { type: 'data-progress', id: 'progress-1', data: 'pending' },
+          {
+            type: 'file',
+            mediaType: 'text/plain',
+            url: 'https://example.com/file',
+          },
+          { type: 'reasoning-start', id: 'reasoning-1' },
+          { type: 'reasoning-delta', id: 'reasoning-1', delta: 'think' },
+          { type: 'text-start', id: 'text-1' },
+          { type: 'text-delta', id: 'text-1', delta: 'Hello, ' },
+          { type: 'tool-input-start', toolCallId: 'tool-1', toolName: 'test' },
+          {
+            type: 'tool-input-delta',
+            toolCallId: 'tool-1',
+            inputTextDelta: '{"value":',
+          },
+        ];
+        const remainingChunks: UIMessageChunk[] = [
+          {
+            type: 'start',
+            messageId: 'assistant-1',
+            messageMetadata: { resumed: true },
+          },
+          { type: 'reasoning-delta', id: 'reasoning-1', delta: 'ing...' },
+          { type: 'reasoning-end', id: 'reasoning-1' },
+          { type: 'text-delta', id: 'text-1', delta: 'world!' },
+          { type: 'text-end', id: 'text-1' },
+          {
+            type: 'tool-input-delta',
+            toolCallId: 'tool-1',
+            inputTextDelta: '1}',
+          },
+          {
+            type: 'tool-input-available',
+            toolCallId: 'tool-1',
+            toolName: 'test',
+            input: { value: 1 },
+          },
+          { type: 'finish-step' },
+          { type: 'finish', finishReason: 'stop' },
+        ];
+        let requestCount = 0;
+        const transport = {
+          sendMessages: async () =>
+            new ReadableStream<UIMessageChunk>({
+              pull(controller) {
+                if (requestCount < initialChunks.length) {
+                  controller.enqueue(initialChunks[requestCount++]);
+                } else {
+                  controller.error(
+                    new TypeError('simulated network disconnect'),
+                  );
+                }
+              },
+            }),
+          reconnectToStream: async () =>
+            new ReadableStream<UIMessageChunk>({
+              start(controller) {
+                for (const chunk of remainingChunks) {
+                  controller.enqueue(chunk);
+                }
+                controller.close();
+              },
+            }),
+        };
+        const onError = vi.fn();
+        const state = new TestChatState<UIMessage>();
+        state.snapshot = <T>(value: T): T => structuredClone(value);
+        const chat = new TestChatWithState({
+          id: '123',
+          state,
+          transport:
+            transportType === 'custom'
+              ? transport
+              : new DefaultChatTransport({
+                  resumeStreamIsReplay: false,
+                  fetch: async () => {
+                    const stream =
+                      requestCount === 0
+                        ? await transport.sendMessages()
+                        : await transport.reconnectToStream();
+                    return new Response(
+                      stream.pipeThrough(
+                        new TransformStream<UIMessageChunk, Uint8Array>({
+                          transform(chunk, controller) {
+                            controller.enqueue(
+                              new TextEncoder().encode(formatChunk(chunk)),
+                            );
+                          },
+                        }),
+                      ),
+                    );
+                  },
+                }),
+          onError,
+        });
+
+        await chat.sendMessage({ text: 'Say hello.' });
+        expect(chat.status).toBe('error');
+        await chat.resumeStream();
+
+        expect(onError).toHaveBeenCalledTimes(1);
+        expect(chat.error).toBeUndefined();
+        expect(chat.status).toBe('ready');
+        expect(chat.messages).toHaveLength(2);
+        expect(chat.messages[1]).toMatchObject({
+          id: 'assistant-1',
+          metadata: { original: true, resumed: true },
+          parts: [
+            { type: 'step-start' },
+            { type: 'data-progress', id: 'progress-1', data: 'pending' },
+            {
+              type: 'file',
+              mediaType: 'text/plain',
+              url: 'https://example.com/file',
+            },
+            { type: 'reasoning', text: 'thinking...', state: 'done' },
+            { type: 'text', text: 'Hello, world!', state: 'done' },
+            {
+              type: 'tool-test',
+              toolCallId: 'tool-1',
+              state: 'input-available',
+              input: { value: 1 },
+            },
+          ],
+        });
+        expect(chat.messages[1].parts).toHaveLength(6);
+      },
+    );
   });
 
   describe('send a simple message', () => {

@@ -36,11 +36,29 @@ Stream resumption requires persistence for messages and active streams in your a
 - Integration with [`resumable-stream`](https://www.npmjs.com/package/resumable-stream) to manage Redis storage
 
 When a resume endpoint replays a stream from the beginning, include its original
-`start` chunk and message ID. The client rebuilds that assistant response from
-the replay instead of appending duplicate parts to the interrupted message.
-Custom transports that continue an interrupted stream with only its remaining
-chunks should omit the `start` chunk so the client retains the active streaming
-state.
+`start` chunk and message ID. `DefaultChatTransport` treats resumed streams as
+complete replays by default (`resumeStreamIsReplay: true`). On the first `start`
+chunk, the client rebuilds that assistant response from the replay instead of
+appending duplicate parts to the interrupted message. Later `start` chunks can
+update message metadata without clearing the response again.
+
+For a `DefaultChatTransport` endpoint that sends only the remaining chunks, set
+`resumeStreamIsReplay: false`:
+
+```tsx
+const transport = new DefaultChatTransport({
+  api: '/api/chat',
+  resumeStreamIsReplay: false,
+});
+```
+
+Custom implementations of `ChatTransport` preserve interrupted streaming state
+by default, including when a continuation begins with a same-message `start`
+chunk carrying identity or metadata. A custom transport that replays the complete
+stream should declare `resumeStreamIsReplay: true`. A resumed stream without a
+`start` chunk retains its active state even when replay is enabled. Continuations
+that send deltas for already-started parts require the original in-memory
+streaming state; persisted messages alone do not retain the active chunk IDs.
 
 ## Prerequisites
 

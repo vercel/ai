@@ -122,11 +122,13 @@ export type HttpChatTransportInitOptions<UI_MESSAGE extends UIMessage> = {
    * customizing the request based on the chat session.
    */
   prepareReconnectToStreamRequest?: PrepareReconnectToStreamRequest;
+  resumeStreamIsReplay?: boolean;
 };
 
 export abstract class HttpChatTransport<
   UI_MESSAGE extends UIMessage,
 > implements ChatTransport<UI_MESSAGE> {
+  readonly resumeStreamIsReplay: boolean;
   protected api: string;
   protected credentials: HttpChatTransportInitOptions<UI_MESSAGE>['credentials'];
   protected headers: HttpChatTransportInitOptions<UI_MESSAGE>['headers'];
@@ -143,7 +145,9 @@ export abstract class HttpChatTransport<
     fetch,
     prepareSendMessagesRequest,
     prepareReconnectToStreamRequest,
+    resumeStreamIsReplay = false,
   }: HttpChatTransportInitOptions<UI_MESSAGE>) {
+    this.resumeStreamIsReplay = resumeStreamIsReplay;
     this.api = api;
     this.credentials = credentials;
     this.headers = headers;

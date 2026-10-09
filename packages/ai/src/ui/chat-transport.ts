@@ -13,6 +13,8 @@ import type { UIMessage } from './ui-messages';
  * @template UI_MESSAGE - The UI message type extending UIMessage
  */
 export interface ChatTransport<UI_MESSAGE extends UIMessage> {
+  readonly resumeStreamIsReplay?: boolean;
+
   /**
    * Sends messages to the chat API endpoint and returns a streaming response.
    *

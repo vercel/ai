@@ -897,6 +897,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   }),
                   { finishReason: undefined },
                 );
+                resetStateOnStart = false;
               }
 
               if (chunk.messageId != null) {

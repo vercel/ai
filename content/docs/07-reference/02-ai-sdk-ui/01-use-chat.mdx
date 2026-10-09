@@ -95,6 +95,13 @@ Allows you to easily create a conversational user interface for your chatbot app
                 'Custom fetch implementation. You can use it as a middleware to intercept requests, or to provide a custom fetch implementation for e.g. testing.',
             },
             {
+              name: 'resumeStreamIsReplay',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Whether resumed streams replay from the beginning. Defaults to true for DefaultChatTransport. The first resumed start chunk rebuilds the response. Set to false for endpoints that only send remaining chunks, including continuations that prepend start metadata. Custom ChatTransport implementations default to continuation behavior unless they declare this property as true.',
+            },
+            {
               name: 'prepareSendMessagesRequest',
               type: 'PrepareSendMessagesRequest',
               isOptional: true,

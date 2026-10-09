@@ -13,7 +13,10 @@ export class DefaultChatTransport<
   UI_MESSAGE extends UIMessage,
 > extends HttpChatTransport<UI_MESSAGE> {
   constructor(options: HttpChatTransportInitOptions<UI_MESSAGE> = {}) {
-    super(options);
+    super({
+      ...options,
+      resumeStreamIsReplay: options.resumeStreamIsReplay ?? true,
+    });
   }
 
   protected processResponseStream(
