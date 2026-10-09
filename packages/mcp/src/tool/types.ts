@@ -3,7 +3,7 @@ import type { JSONObject } from '@ai-sdk/provider';
 import type {
   FlexibleSchema,
   Tool,
-  ToolExecutionOptions,
+  ToolCallOptions,
 } from '@ai-sdk/provider-utils';
 
 export const LATEST_PROTOCOL_VERSION = '2025-06-18';
@@ -18,29 +18,24 @@ export type ToolSchemas =
   | 'automatic'
   | undefined;
 
-<<<<<<< HEAD
-=======
-/** Base MCP tool type with execute and _meta */
+/** Base MCP tool type with execute */
 type McpToolBase<INPUT = unknown, OUTPUT = CallToolResult> = Tool<
   INPUT,
   OUTPUT
 > & {
   execute: (
     input: INPUT,
-    options?: ToolExecutionOptions<{}>,
+    options?: ToolCallOptions,
   ) => ReturnType<NonNullable<Tool<INPUT, OUTPUT>['execute']>>;
-  _meta?: ToolMeta;
 };
 
->>>>>>> 2913c8c22f (fix: MCP tool execute incorrectly requires execution options (#22484))
 export type McpToolSet<TOOL_SCHEMAS extends ToolSchemas = 'automatic'> =
   TOOL_SCHEMAS extends Record<string, { inputSchema: FlexibleSchema<any> }>
     ? {
         [K in keyof TOOL_SCHEMAS]: TOOL_SCHEMAS[K] extends {
           inputSchema: FlexibleSchema<infer INPUT>;
         }
-          ? Tool<INPUT, CallToolResult> &
-              Required<Pick<Tool<INPUT, CallToolResult>, 'execute'>>
+          ? McpToolBase<INPUT, CallToolResult>
           : never;
       }
     : McpToolSet<Record<string, { inputSchema: FlexibleSchema<unknown> }>>;
