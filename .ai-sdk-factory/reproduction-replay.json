@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "issueId": 15814,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-15814.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/issue-15814.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_15814: malformed audio media type threw a plain Error instead of an AISDKError"
+  }
+}
