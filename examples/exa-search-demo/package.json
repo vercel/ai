@@ -1,0 +1,14 @@
+{
+  "name": "@example/exa-search-demo",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local browser demo for the Exa web search tool via the AI Gateway (gateway.tools.exaSearch).",
+  "scripts": {
+    "prestart": "pnpm --filter ai... build",
+    "start": "node --env-file-if-exists=.env server.mjs"
+  },
+  "dependencies": {
+    "ai": "workspace:*"
+  }
+}
