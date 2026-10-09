@@ -1,5 +1,13 @@
 # ai
 
+## 6.0.304
+
+### Patch Changes
+
+- 8e74de0: fix(ai): update tool outputs in the message containing the matching tool call
+- 7888841: fix(ai): update streaming chat messages by stable ID
+- e466fb0: fix(ai): reject approved tool calls without results before sending later context to providers
+
 ## 6.0.303
 
 ### Patch Changes
