@@ -492,12 +492,15 @@ export async function* modelCallIterator({
         done = true;
       } else if (shouldProcessTools) {
         lastStepWasYielded = true;
+        // Invalid local calls still need validation error results when execution
+        // is disallowed. WorkflowAgent handles them without executing the tools.
         const processableToolCalls = isToolExecutionAllowed
           ? toolCalls
           : toolCalls.filter(
               toolCall =>
-                toolCall.providerExecuted &&
-                providerExecutedToolResults.has(toolCall.toolCallId),
+                (!toolCall.providerExecuted && toolCall.invalid) ||
+                (toolCall.providerExecuted &&
+                  providerExecutedToolResults.has(toolCall.toolCallId)),
             );
 
         const {
