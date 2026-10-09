@@ -214,7 +214,13 @@ function useObject<
             if (!isDeepEqualData(latestObject, currentObject)) {
               latestObject = currentObject;
 
+<<<<<<< HEAD
               mutate(currentObject);
+=======
+              if (abortControllerRef.current === abortController) {
+                mutate({ object: currentObject });
+              }
+>>>>>>> a527dcd92d (fix: prevent older overlapping useObject responses from overwriting newer results (#22365))
             }
           },
 
