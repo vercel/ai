@@ -1,0 +1,85 @@
+---
+title: Authenticated Outbound Requests
+description: Cryptographically sign outbound HTTP calls made by agent tools so destinations can verify the agent's identity, trust tier, and capability scope.
+---
+
+# Authenticated Outbound Requests
+
+Some agent tools need to call third-party APIs or websites that gate access on verified agent identity — bot-defense systems, enterprise APIs, marketplaces with agent-specific pricing, regulated industries with audit requirements.
+
+By default, an agent's outbound `fetch` calls look programmatic to the destination's bot-defense layer (no mouse movement, no scroll, datacenter IPs, consistent TLS fingerprint). The destination then either overblocks (rejecting legitimate agent traffic) or underblocks (allowing scrapers wearing the same shape).
+
+You can wrap your tool's outbound `fetch` with a passport-signing library so destinations can cryptographically verify the agent at the edge.
+
+<Note>
+  This pattern is library-agnostic — wrap your outbound `fetch` with whatever
+  authentication scheme your destination expects. The example below uses
+  [AgentPKI](https://agentpki.dev), one open-spec implementation.
+</Note>
+
+## Pattern
+
+Create the signed client once, capture it in a closure, then use its signed `fetch` inside any tool's `execute` function:
+
+```ts highlight="6-9,15"
+import { tool } from 'ai';
+import { z } from 'zod';
+import { AgentPKI } from '@agentpki/sdk';
+
+// Create once, capture in closure
+const agent = new AgentPKI({
+  passportProvider: yourMintFn, // your own issuer or a hosted service
+  mode: 'B',                    // RFC 9421 HTTP Message Signatures
+});
+
+const fetchArticle = tool({
+  description: 'Fetch the full text of an article from a URL',
+  inputSchema: z.object({ url: z.string().url() }),
+  execute: async ({ url }) => {
+    const res = await agent.fetch(url); // ← passport attached automatically
+    return await res.text();
+  },
+});
+```
+
+The signed client wraps `fetch` and attaches an authentication header (and optionally an [RFC 9421](https://datatracker.ietf.org/doc/html/rfc9421) HTTP Message Signature) to every outbound request. Destinations verify the credential against the issuer's well-known endpoint and decide whether to serve based on the agent's identity, trust tier, and capability scope.
+
+## Use cases
+
+- **Bot-defense compatibility** — stop being misclassified by Cloudflare / DataDome / hCaptcha / Arkose when fetching from sites whose detection model flags your agent's TLS shape as suspicious.
+- **Capability scoping** — emit credentials with a declared scope such as `purchase:up-to-100usd` or `read:articles`. Destinations enforce the limit cryptographically rather than trusting client-side state.
+- **Multi-agent setups** — each sub-agent (researcher, writer, auditor, …) gets its own credential. Audit trails on destinations show exactly which sub-agent performed each action.
+
+## Example: signed request inside an agent loop
+
+```ts
+import { ToolLoopAgent, tool, stepCountIs } from 'ai';
+import { z } from 'zod';
+import { AgentPKI } from '@agentpki/sdk';
+__PROVIDER_IMPORT__;
+
+const agent = new AgentPKI({
+  passportProvider: yourMintFn,
+  mode: 'B',
+});
+
+const looper = new ToolLoopAgent({
+  model: __MODEL__,
+  tools: {
+    fetchArticle: tool({
+      description: 'Fetch an article from a URL',
+      inputSchema: z.object({ url: z.string().url() }),
+      execute: async ({ url }) => (await agent.fetch(url)).text(),
+    }),
+  },
+  stopWhen: stepCountIs(5),
+});
+```
+
+Every call `fetchArticle` makes inherits the agent's identity automatically. The model doesn't see the signing detail; the destination does.
+
+## Further reading
+
+- Spec and live demo: [agentpki.dev](https://agentpki.dev)
+- Full AI SDK integration examples (single-agent, multi-agent, signed-body purchase flows): [github.com/agentpki/sdk-typescript/tree/main/examples/vercel-ai-sdk](https://github.com/agentpki/sdk-typescript/tree/main/examples/vercel-ai-sdk)
+- AgentPKI is community-maintained and not affiliated with Vercel.
