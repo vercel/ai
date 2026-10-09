@@ -60,6 +60,7 @@ it('streams text-format custom tool input from a live response fixture', async (
     .filter(part => part.type === 'tool-input-delta')
     .map(part => part.delta);
 
+  expect(inputDeltas.length).toBeGreaterThan(1);
   expect(inputDeltas.join('')).toBe(
     '<main><h1>Streaming custom tool input</h1><p>This must arrive progressively.</p></main>',
   );

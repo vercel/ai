@@ -336,6 +336,11 @@ data: {"type":"tool-input-start","toolCallId":"call_fJdQDqnXeGxTmr4E3YPSR7Ar","t
 
 Incremental chunks of tool input as it's being generated.
 
+During `input-streaming`, the tool part's `input` contains the parsed partial
+JSON value when parsing succeeds. If the accumulated input cannot be parsed as
+partial JSON, `input` contains the accumulated raw text instead. This allows
+freeform text tool inputs, such as HTML or SQL, to update progressively.
+
 Format: Server-Sent Event with JSON object
 
 Example:

@@ -419,6 +419,72 @@ describe('regenerate', () => {
 describe('tool invocations', () => {
   setupTestComponent(TestChatToolInvocationsComponent);
 
+  it('should progressively display freeform text tool input', async () => {
+    const controller = new TestResponseController();
+    server.urls['/api/chat'].response = {
+      type: 'controlled-stream',
+      controller,
+    };
+
+    await userEvent.click(screen.getByTestId('do-append'));
+
+    try {
+      controller.write(
+        formatChunk({
+          type: 'tool-input-start',
+          toolCallId: 'tool-call-0',
+          toolName: 'setHtml',
+        }),
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('message-1')).toHaveTextContent(
+          '"state":"input-streaming"',
+        );
+      });
+
+      let input = '';
+      for (const delta of ['<main>', '<h1>Streaming</h1></main>']) {
+        input += delta;
+        controller.write(
+          formatChunk({
+            type: 'tool-input-delta',
+            toolCallId: 'tool-call-0',
+            inputTextDelta: delta,
+          }),
+        );
+
+        await waitFor(() => {
+          expect(
+            JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
+          ).toMatchObject({
+            type: 'tool-setHtml',
+            toolCallId: 'tool-call-0',
+            state: 'input-streaming',
+            input,
+          });
+        });
+      }
+
+      controller.write(
+        formatChunk({
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-0',
+          toolName: 'setHtml',
+          input,
+        }),
+      );
+
+      await waitFor(() => {
+        expect(
+          JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
+        ).toMatchObject({ state: 'input-available', input });
+      });
+    } finally {
+      controller.close();
+    }
+  });
+
   it('should display partial tool call, tool call, and tool result', async () => {
     const controller = new TestResponseController();
     server.urls['/api/chat'].response = [

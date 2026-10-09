@@ -190,77 +190,144 @@ describe('processUIMessageStream', () => {
     });
   });
 
-  describe('freeform tool input streaming', () => {
-    it('should progressively expose freeform text tool input', async () => {
-      const stream = createUIMessageStream([
-        { type: 'start', messageId: 'msg-freeform' },
-        { type: 'start-step' },
+  describe.each([false, true])(
+    'tool input streaming (dynamic: %s)',
+    dynamic => {
+      it.each([
         {
-          type: 'tool-input-start',
-          toolCallId: 'tool-call-freeform',
-          toolName: 'setHtml',
+          name: 'freeform HTML',
+          deltas: ['<main>', '<h1>Streaming</h1></main>'],
+          inputs: ['<main>', '<main><h1>Streaming</h1></main>'],
+          completeInput: '<main><h1>Streaming</h1></main>',
         },
         {
-          type: 'tool-input-delta',
-          toolCallId: 'tool-call-freeform',
-          inputTextDelta: '<main>',
+          name: 'freeform SQL',
+          deltas: ['SELECT * ', 'FROM users'],
+          inputs: ['SELECT * ', 'SELECT * FROM users'],
+          completeInput: 'SELECT * FROM users',
         },
         {
-          type: 'tool-input-delta',
-          toolCallId: 'tool-call-freeform',
-          inputTextDelta: '<h1>Streaming</h1></main>',
+          name: 'freeform shell text',
+          deltas: ['echo ', 'hello'],
+          inputs: ['echo ', 'echo hello'],
+          completeInput: 'echo hello',
         },
         {
-          type: 'tool-input-available',
-          toolCallId: 'tool-call-freeform',
-          toolName: 'setHtml',
-          input: '<main><h1>Streaming</h1></main>',
+          name: 'partial JSON object',
+          deltas: ['{"location":"San', ' Francisco"}'],
+          inputs: [{ location: 'San' }, { location: 'San Francisco' }],
+          completeInput: { location: 'San Francisco' },
         },
-        { type: 'finish-step' },
-        { type: 'finish' },
-      ]);
+        {
+          name: 'partial JSON string',
+          deltas: ['"hello', ' world"'],
+          inputs: ['hello', 'hello world'],
+          completeInput: 'hello world',
+        },
+        {
+          name: 'JSON null',
+          deltas: ['nu', 'll'],
+          inputs: [null, null],
+          completeInput: null,
+        },
+        {
+          name: 'JSON false',
+          deltas: ['fa', 'lse'],
+          inputs: [false, false],
+          completeInput: false,
+        },
+        {
+          name: 'JSON zero',
+          deltas: ['0', ''],
+          inputs: [0, 0],
+          completeInput: 0,
+        },
+        {
+          name: 'empty deltas',
+          deltas: ['', ''],
+          inputs: [undefined, undefined],
+          completeInput: '',
+        },
+      ])(
+        'should progressively expose $name input',
+        async ({ deltas, inputs, completeInput }) => {
+          const stream = createUIMessageStream([
+            { type: 'start', messageId: 'msg-freeform' },
+            { type: 'start-step' },
+            {
+              type: 'tool-input-start',
+              toolCallId: 'tool-call-freeform',
+              toolName: 'setHtml',
+              dynamic,
+            },
+            {
+              type: 'tool-input-delta',
+              toolCallId: 'tool-call-freeform',
+              inputTextDelta: deltas[0],
+            },
+            {
+              type: 'tool-input-delta',
+              toolCallId: 'tool-call-freeform',
+              inputTextDelta: deltas[1],
+            },
+            {
+              type: 'tool-input-available',
+              toolCallId: 'tool-call-freeform',
+              toolName: 'setHtml',
+              input: completeInput,
+              dynamic,
+            },
+            { type: 'finish-step' },
+            { type: 'finish' },
+          ]);
 
-      state = createStreamingUIMessageState({
-        messageId: 'msg-freeform',
-        lastMessage: undefined,
-      });
+          state = createStreamingUIMessageState({
+            messageId: 'msg-freeform',
+            lastMessage: undefined,
+          });
 
-      await consumeStream({
-        stream: processUIMessageStream({
-          stream,
-          runUpdateMessageJob,
-          onError: error => {
-            throw error;
-          },
-        }),
-      });
+          await consumeStream({
+            stream: processUIMessageStream({
+              stream,
+              runUpdateMessageJob,
+              onError: error => {
+                throw error;
+              },
+            }),
+          });
 
-      const toolSnapshots = writeCalls
-        .map(({ message }) =>
-          message.parts.find(part => part.type === 'tool-setHtml'),
-        )
-        .filter(part => part != null);
+          const toolSnapshots = writeCalls
+            .map(({ message }) =>
+              message.parts.find(part =>
+                dynamic
+                  ? part.type === 'dynamic-tool'
+                  : part.type === 'tool-setHtml',
+              ),
+            )
+            .filter(part => part != null);
 
-      expect(toolSnapshots).toEqual([
-        expect.objectContaining({
-          state: 'input-streaming',
-          input: undefined,
-        }),
-        expect.objectContaining({
-          state: 'input-streaming',
-          input: '<main>',
-        }),
-        expect.objectContaining({
-          state: 'input-streaming',
-          input: '<main><h1>Streaming</h1></main>',
-        }),
-        expect.objectContaining({
-          state: 'input-available',
-          input: '<main><h1>Streaming</h1></main>',
-        }),
-      ]);
-    });
-  });
+          expect(toolSnapshots).toEqual([
+            expect.objectContaining({
+              state: 'input-streaming',
+              input: undefined,
+            }),
+            expect.objectContaining({
+              state: 'input-streaming',
+              input: inputs[0],
+            }),
+            expect.objectContaining({
+              state: 'input-streaming',
+              input: inputs[1],
+            }),
+            expect.objectContaining({
+              state: 'input-available',
+              input: completeInput,
+            }),
+          ]);
+        },
+      );
+    },
+  );
 
   describe('errors', () => {
     let errors: Array<unknown>;
