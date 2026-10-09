@@ -58,7 +58,6 @@
         "TOGETHER_API_KEY",
         "TOGETHER_AI_API_KEY",
         "TOPAZ_API_KEY",
-        "HEYGEN_API_KEY",
         "VERCEL_API_KEY",
         "VERCEL_DEPLOYMENT_ID",
         "VERCEL_ENV",
