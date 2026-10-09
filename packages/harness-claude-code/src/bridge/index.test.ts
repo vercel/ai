@@ -803,6 +803,30 @@ describe('Claude Code bridge configuration', () => {
     });
   });
 
+  test('allows ListAgents without approval in allow-reads mode', async () => {
+    state.start = {
+      ...state.start,
+      permissionMode: 'allow-reads',
+    };
+
+    await import('./index');
+
+    const canUseTool = state.queryArgs[0]?.options.canUseTool as
+      | ((
+          toolName: string,
+          toolInput: Record<string, unknown>,
+          options: { toolUseID: string },
+        ) => Promise<unknown>)
+      | undefined;
+    expect(canUseTool).toBeTypeOf('function');
+    await expect(
+      canUseTool!('ListAgents', {}, { toolUseID: 'list-agents' }),
+    ).resolves.toEqual({ behavior: 'allow', updatedInput: {} });
+    expect(
+      state.emitted.some(event => event.type === 'tool-approval-request'),
+    ).toBe(false);
+  });
+
   test('routes questions through a PreToolUse hook in allow-all mode', async () => {
     const nativeInput = {
       questions: [
