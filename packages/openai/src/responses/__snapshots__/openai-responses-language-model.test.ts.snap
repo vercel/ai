@@ -114,6 +114,27 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > code interpreter tool > sho
     "type": "reasoning",
   },
   {
+    "citations": [
+      {
+        "endIndex": 236,
+        "source": {
+          "filename": "two_dice_sums_10000.txt",
+          "id": "cfile_6903bf45e3288191af3d56e6d23c3a4d",
+          "mediaType": "text/plain",
+          "providerMetadata": {
+            "openai": {
+              "containerId": "cntr_6903bf2c0470819090b2b1e63e0b66800c139a5d654a42ec",
+              "fileId": "cfile_6903bf45e3288191af3d56e6d23c3a4d",
+              "type": "container_file_citation",
+            },
+          },
+          "sourceType": "document",
+          "title": "two_dice_sums_10000.txt",
+          "type": "source",
+        },
+        "startIndex": 195,
+      },
+    ],
     "providerMetadata": {
       "openai": {
         "annotations": [
@@ -330,6 +351,20 @@ providers and models, and which ones are available in the AI SDK.",
     "type": "tool-result",
   },
   {
+    "filename": "ai.pdf",
+    "id": "id-0",
+    "mediaType": "text/plain",
+    "providerMetadata": {
+      "openai": {
+        "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+        "type": "file_search",
+      },
+    },
+    "sourceType": "document",
+    "title": "ai.pdf",
+    "type": "source",
+  },
+  {
     "providerMetadata": {
       "openai": {
         "itemId": "rs_0365d26c32c64c650068cabb061740819491324d349d0f07ca",
@@ -340,6 +375,25 @@ providers and models, and which ones are available in the AI SDK.",
     "type": "reasoning",
   },
   {
+    "citations": [
+      {
+        "source": {
+          "filename": "ai.pdf",
+          "id": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+          "mediaType": "text/plain",
+          "providerMetadata": {
+            "openai": {
+              "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+              "index": 350,
+              "type": "file_citation",
+            },
+          },
+          "sourceType": "document",
+          "title": "ai.pdf",
+          "type": "source",
+        },
+      },
+    ],
     "providerMetadata": {
       "openai": {
         "annotations": [
@@ -355,21 +409,6 @@ providers and models, and which ones are available in the AI SDK.",
     },
     "text": "According to the document, an embedding model converts complex data (like words or images) into a dense vector — a list of numbers — called an embedding. It does not generate new text or data; instead it encodes semantic and syntactic relationships between entities so those vector representations can be used as inputs for other models or NLP tasks .",
     "type": "text",
-  },
-  {
-    "filename": "ai.pdf",
-    "id": "id-0",
-    "mediaType": "text/plain",
-    "providerMetadata": {
-      "openai": {
-        "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
-        "index": 350,
-        "type": "file_citation",
-      },
-    },
-    "sourceType": "document",
-    "title": "ai.pdf",
-    "type": "source",
   },
 ]
 `;
@@ -418,6 +457,25 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > file search tool > without 
     "type": "reasoning",
   },
   {
+    "citations": [
+      {
+        "source": {
+          "filename": "ai.pdf",
+          "id": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+          "mediaType": "text/plain",
+          "providerMetadata": {
+            "openai": {
+              "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+              "index": 438,
+              "type": "file_citation",
+            },
+          },
+          "sourceType": "document",
+          "title": "ai.pdf",
+          "type": "source",
+        },
+      },
+    ],
     "providerMetadata": {
       "openai": {
         "annotations": [
@@ -813,6 +871,12 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > web search sources schema r
     "type": "tool-result",
   },
   {
+    "id": "id-0",
+    "sourceType": "url",
+    "type": "source",
+    "url": "https://example.com?a=1&utm_source=openai",
+  },
+  {
     "providerMetadata": {
       "openai": {
         "itemId": "msg_done",
@@ -921,6 +985,102 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > web search tool > should in
     "type": "tool-result",
   },
   {
+    "id": "id-0",
+    "sourceType": "url",
+    "type": "source",
+    "url": "https://www.theverge.com/podcast/838932/openai-chatgpt-code-red-vergecast",
+  },
+  {
+    "id": "id-1",
+    "sourceType": "url",
+    "type": "source",
+    "url": "https://www.wired.com/story/the-big-interview-2025-recap",
+  },
+  {
+    "id": "id-2",
+    "sourceType": "url",
+    "type": "source",
+    "url": "https://www.barrons.com/articles/stock-movers-7c77880d",
+  },
+  {
+    "id": "id-3",
+    "sourceType": "url",
+    "type": "source",
+    "url": "https://www.investors.com/market-trend/stock-market-today/dow-jones-sp500-nasdaq-inflation-data-ai-stock/",
+  },
+  {
+    "id": "id-4",
+    "sourceType": "url",
+    "type": "source",
+    "url": "https://www.investopedia.com/5-things-to-know-before-the-stock-market-opens-december-5-2025-11862701",
+  },
+  {
+    "id": "id-5",
+    "sourceType": "url",
+    "type": "source",
+    "url": "https://www.investing.com/news/stock-market-news/ai-coding-startup-vercel-raises-300-million-valued-at-93-billion-4264199",
+  },
+  {
+    "id": "id-6",
+    "sourceType": "url",
+    "type": "source",
+    "url": "https://www.finsmes.com/2025/10/vercel-closes-300m-series-f-funding-at-9-3-billion-valuation.html",
+  },
+  {
+    "id": "id-7",
+    "sourceType": "url",
+    "type": "source",
+    "url": "https://vercel.com/blog/series-f",
+  },
+  {
+    "id": "id-8",
+    "sourceType": "url",
+    "type": "source",
+    "url": "https://techstartups.com/2025/12/05/technology-news-today-the-latest-in-tech-ai-startup-news-december-5-2025/",
+  },
+  {
+    "id": "id-9",
+    "sourceType": "url",
+    "type": "source",
+    "url": "https://www.nasdaq.com/press-release/vercel-announces-%24150m-in-series-d-funding-at-a-%242.5b-valuation-to-further-fuel",
+  },
+  {
+    "id": "id-10",
+    "sourceType": "url",
+    "type": "source",
+    "url": "https://www.mexc.com/en-NG/news/77540",
+  },
+  {
+    "id": "id-11",
+    "sourceType": "url",
+    "type": "source",
+    "url": "https://www.theinformation.com/briefings/vercel-lands-unsolicited-investment-offers-9-billion",
+  },
+  {
+    "id": "id-12",
+    "sourceType": "url",
+    "type": "source",
+    "url": "https://www.mexc.com/en-NG/news/us-cloud-platform-vercel-achieves-9-billion-valuation-amid-rapid-growth-in-ai-integration/77540",
+  },
+  {
+    "id": "id-13",
+    "sourceType": "url",
+    "type": "source",
+    "url": "https://www.bloomberg.com/news/articles/2025-09-30/vercel-notches-9-3-billion-valuation-in-latest-ai-funding-round",
+  },
+  {
+    "id": "id-14",
+    "sourceType": "url",
+    "type": "source",
+    "url": "https://www.aol.com/exclusive-vercel-completes-250-million-144101876.html",
+  },
+  {
+    "id": "id-15",
+    "sourceType": "url",
+    "type": "source",
+    "url": "https://www.sentinelone.com/vulnerability-database/cve-2025-49826/",
+  },
+  {
     "providerMetadata": {
       "openai": {
         "itemId": "rs_0953eda47ee17412006933306a4f188195b2870a804561da54",
@@ -988,6 +1148,118 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > web search tool > should in
     "type": "reasoning",
   },
   {
+    "citations": [
+      {
+        "endIndex": 517,
+        "source": {
+          "id": "https://www.theverge.com/podcast/838932/openai-chatgpt-code-red-vergecast",
+          "sourceType": "url",
+          "title": "Why OpenAI declared a code red for ChatGPT | The Verge",
+          "type": "source",
+          "url": "https://www.theverge.com/podcast/838932/openai-chatgpt-code-red-vergecast",
+        },
+        "startIndex": 426,
+      },
+      {
+        "endIndex": 778,
+        "source": {
+          "id": "https://techstartups.com/2025/12/05/technology-news-today-the-latest-in-tech-ai-startup-news-december-5-2025/",
+          "sourceType": "url",
+          "title": "Technology News Today – The Latest in Tech, AI & Startup News, December 5, 2025 - Tech Startups",
+          "type": "source",
+          "url": "https://techstartups.com/2025/12/05/technology-news-today-the-latest-in-tech-ai-startup-news-december-5-2025/",
+        },
+        "startIndex": 647,
+      },
+      {
+        "endIndex": 1047,
+        "source": {
+          "id": "https://www.investopedia.com/5-things-to-know-before-the-stock-market-opens-december-5-2025-11862701?utm_source=openai",
+          "sourceType": "url",
+          "title": "5 Things to Know Before the Stock Market Opens",
+          "type": "source",
+          "url": "https://www.investopedia.com/5-things-to-know-before-the-stock-market-opens-december-5-2025-11862701?utm_source=openai",
+        },
+        "startIndex": 907,
+      },
+      {
+        "endIndex": 1343,
+        "source": {
+          "id": "https://vercel.com/blog/series-f",
+          "sourceType": "url",
+          "title": "Towards the AI Cloud: Our Series F - Vercel",
+          "type": "source",
+          "url": "https://vercel.com/blog/series-f",
+        },
+        "startIndex": 1295,
+      },
+      {
+        "endIndex": 1594,
+        "source": {
+          "id": "https://www.sentinelone.com/vulnerability-database/cve-2025-49826/?utm_source=openai",
+          "sourceType": "url",
+          "title": "CVE-2025-49826: Vercel Next.js Cache Poisoning DOS Flaw",
+          "type": "source",
+          "url": "https://www.sentinelone.com/vulnerability-database/cve-2025-49826/?utm_source=openai",
+        },
+        "startIndex": 1489,
+      },
+      {
+        "endIndex": 1926,
+        "source": {
+          "id": "https://www.theverge.com/podcast/838932/openai-chatgpt-code-red-vergecast",
+          "sourceType": "url",
+          "title": "Why OpenAI declared a code red for ChatGPT | The Verge",
+          "type": "source",
+          "url": "https://www.theverge.com/podcast/838932/openai-chatgpt-code-red-vergecast",
+        },
+        "startIndex": 1835,
+      },
+      {
+        "endIndex": 2080,
+        "source": {
+          "id": "https://www.wired.com/story/the-big-interview-2025-recap",
+          "sourceType": "url",
+          "title": "Check Out Highlights From WIRED’s 2025 Big Interview Event | WIRED",
+          "type": "source",
+          "url": "https://www.wired.com/story/the-big-interview-2025-recap",
+        },
+        "startIndex": 2009,
+      },
+      {
+        "endIndex": 2341,
+        "source": {
+          "id": "https://techstartups.com/2025/12/05/technology-news-today-the-latest-in-tech-ai-startup-news-december-5-2025/",
+          "sourceType": "url",
+          "title": "Technology News Today – The Latest in Tech, AI & Startup News, December 5, 2025 - Tech Startups",
+          "type": "source",
+          "url": "https://techstartups.com/2025/12/05/technology-news-today-the-latest-in-tech-ai-startup-news-december-5-2025/",
+        },
+        "startIndex": 2210,
+      },
+      {
+        "endIndex": 2635,
+        "source": {
+          "id": "https://www.bloomberg.com/news/articles/2025-09-30/vercel-notches-9-3-billion-valuation-in-latest-ai-funding-round",
+          "sourceType": "url",
+          "title": "Vercel Notches $9.3 Billion Valuation in Latest AI Funding Round - Bloomberg",
+          "type": "source",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-30/vercel-notches-9-3-billion-valuation-in-latest-ai-funding-round",
+        },
+        "startIndex": 2502,
+      },
+      {
+        "endIndex": 2822,
+        "source": {
+          "id": "https://vercel.com/blog/series-f",
+          "sourceType": "url",
+          "title": "Towards the AI Cloud: Our Series F - Vercel",
+          "type": "source",
+          "url": "https://vercel.com/blog/series-f",
+        },
+        "startIndex": 2774,
+      },
+    ],
     "providerMetadata": {
       "openai": {
         "annotations": [
@@ -1085,76 +1357,6 @@ Would you like me to:
 - open more tech sites from today (e.g., TechCrunch, Reuters, The Information) and run the same "vercel" search across them, or  
 - search for a different keyword or company on today’s tech pages?",
     "type": "text",
-  },
-  {
-    "id": "id-0",
-    "sourceType": "url",
-    "title": "Why OpenAI declared a code red for ChatGPT | The Verge",
-    "type": "source",
-    "url": "https://www.theverge.com/podcast/838932/openai-chatgpt-code-red-vergecast",
-  },
-  {
-    "id": "id-1",
-    "sourceType": "url",
-    "title": "Technology News Today – The Latest in Tech, AI & Startup News, December 5, 2025 - Tech Startups",
-    "type": "source",
-    "url": "https://techstartups.com/2025/12/05/technology-news-today-the-latest-in-tech-ai-startup-news-december-5-2025/",
-  },
-  {
-    "id": "id-2",
-    "sourceType": "url",
-    "title": "5 Things to Know Before the Stock Market Opens",
-    "type": "source",
-    "url": "https://www.investopedia.com/5-things-to-know-before-the-stock-market-opens-december-5-2025-11862701?utm_source=openai",
-  },
-  {
-    "id": "id-3",
-    "sourceType": "url",
-    "title": "Towards the AI Cloud: Our Series F - Vercel",
-    "type": "source",
-    "url": "https://vercel.com/blog/series-f",
-  },
-  {
-    "id": "id-4",
-    "sourceType": "url",
-    "title": "CVE-2025-49826: Vercel Next.js Cache Poisoning DOS Flaw",
-    "type": "source",
-    "url": "https://www.sentinelone.com/vulnerability-database/cve-2025-49826/?utm_source=openai",
-  },
-  {
-    "id": "id-5",
-    "sourceType": "url",
-    "title": "Why OpenAI declared a code red for ChatGPT | The Verge",
-    "type": "source",
-    "url": "https://www.theverge.com/podcast/838932/openai-chatgpt-code-red-vergecast",
-  },
-  {
-    "id": "id-6",
-    "sourceType": "url",
-    "title": "Check Out Highlights From WIRED’s 2025 Big Interview Event | WIRED",
-    "type": "source",
-    "url": "https://www.wired.com/story/the-big-interview-2025-recap",
-  },
-  {
-    "id": "id-7",
-    "sourceType": "url",
-    "title": "Technology News Today – The Latest in Tech, AI & Startup News, December 5, 2025 - Tech Startups",
-    "type": "source",
-    "url": "https://techstartups.com/2025/12/05/technology-news-today-the-latest-in-tech-ai-startup-news-december-5-2025/",
-  },
-  {
-    "id": "id-8",
-    "sourceType": "url",
-    "title": "Vercel Notches $9.3 Billion Valuation in Latest AI Funding Round - Bloomberg",
-    "type": "source",
-    "url": "https://www.bloomberg.com/news/articles/2025-09-30/vercel-notches-9-3-billion-valuation-in-latest-ai-funding-round",
-  },
-  {
-    "id": "id-9",
-    "sourceType": "url",
-    "title": "Towards the AI Cloud: Our Series F - Vercel",
-    "type": "source",
-    "url": "https://vercel.com/blog/series-f",
   },
 ]
 `;
@@ -3517,6 +3719,27 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
     "type": "source",
   },
   {
+    "citations": [
+      {
+        "endIndex": 465,
+        "source": {
+          "filename": "roll2dice_sums_10000.csv",
+          "id": "cfile_68c2e7084ab48191a67824aa1f4c90f1",
+          "mediaType": "text/plain",
+          "providerMetadata": {
+            "openai": {
+              "containerId": "cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9",
+              "fileId": "cfile_68c2e7084ab48191a67824aa1f4c90f1",
+              "type": "container_file_citation",
+            },
+          },
+          "sourceType": "document",
+          "title": "roll2dice_sums_10000.csv",
+          "type": "source",
+        },
+        "startIndex": 423,
+      },
+    ],
     "id": "msg_68c2e7054ae481938354ab3e4e77abad02d3a5742c7ddae9",
     "providerMetadata": {
       "openai": {
@@ -3672,6 +3895,20 @@ providers and models, and which ones are available in the AI SDK.",
     "toolCallId": "fs_06456cb9918b63780068cacd74a1dc81a1bf68dd57f140b4b6",
     "toolName": "fileSearch",
     "type": "tool-result",
+  },
+  {
+    "filename": "ai.pdf",
+    "id": "id-0",
+    "mediaType": "text/plain",
+    "providerMetadata": {
+      "openai": {
+        "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+        "type": "file_search",
+      },
+    },
+    "sourceType": "document",
+    "title": "ai.pdf",
+    "type": "source",
   },
   {
     "id": "rs_06456cb9918b63780068cacd7663c481a191dd84333d842728:0",
@@ -4073,26 +4310,30 @@ providers and models, and which ones are available in the AI SDK.",
     "type": "text-delta",
   },
   {
-    "filename": "ai.pdf",
-    "id": "id-0",
-    "mediaType": "text/plain",
-    "providerMetadata": {
-      "openai": {
-        "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
-        "index": 379,
-        "type": "file_citation",
-      },
-    },
-    "sourceType": "document",
-    "title": "ai.pdf",
-    "type": "source",
-  },
-  {
     "delta": ".",
     "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
     "type": "text-delta",
   },
   {
+    "citations": [
+      {
+        "source": {
+          "filename": "ai.pdf",
+          "id": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+          "mediaType": "text/plain",
+          "providerMetadata": {
+            "openai": {
+              "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+              "index": 379,
+              "type": "file_citation",
+            },
+          },
+          "sourceType": "document",
+          "title": "ai.pdf",
+          "type": "source",
+        },
+      },
+    ],
     "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
     "providerMetadata": {
       "openai": {
@@ -4396,21 +4637,6 @@ exports[`OpenAIResponsesLanguageModel > doStream > file search tool > should str
     "type": "text-delta",
   },
   {
-    "filename": "ai.pdf",
-    "id": "id-0",
-    "mediaType": "text/plain",
-    "providerMetadata": {
-      "openai": {
-        "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
-        "index": 154,
-        "type": "file_citation",
-      },
-    },
-    "sourceType": "document",
-    "title": "ai.pdf",
-    "type": "source",
-  },
-  {
     "delta": ".",
     "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
     "type": "text-delta",
@@ -4616,26 +4842,47 @@ exports[`OpenAIResponsesLanguageModel > doStream > file search tool > should str
     "type": "text-delta",
   },
   {
-    "filename": "ai.pdf",
-    "id": "id-1",
-    "mediaType": "text/plain",
-    "providerMetadata": {
-      "openai": {
-        "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
-        "index": 382,
-        "type": "file_citation",
-      },
-    },
-    "sourceType": "document",
-    "title": "ai.pdf",
-    "type": "source",
-  },
-  {
     "delta": ".",
     "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
     "type": "text-delta",
   },
   {
+    "citations": [
+      {
+        "source": {
+          "filename": "ai.pdf",
+          "id": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+          "mediaType": "text/plain",
+          "providerMetadata": {
+            "openai": {
+              "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+              "index": 154,
+              "type": "file_citation",
+            },
+          },
+          "sourceType": "document",
+          "title": "ai.pdf",
+          "type": "source",
+        },
+      },
+      {
+        "source": {
+          "filename": "ai.pdf",
+          "id": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+          "mediaType": "text/plain",
+          "providerMetadata": {
+            "openai": {
+              "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+              "index": 382,
+              "type": "file_citation",
+            },
+          },
+          "sourceType": "document",
+          "title": "ai.pdf",
+          "type": "source",
+        },
+      },
+    ],
     "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
     "providerMetadata": {
       "openai": {
@@ -4657,6 +4904,36 @@ exports[`OpenAIResponsesLanguageModel > doStream > file search tool > should str
       },
     },
     "type": "text-end",
+  },
+  {
+    "filename": "ai.pdf",
+    "id": "id-0",
+    "mediaType": "text/plain",
+    "providerMetadata": {
+      "openai": {
+        "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+        "index": 154,
+        "type": "file_citation",
+      },
+    },
+    "sourceType": "document",
+    "title": "ai.pdf",
+    "type": "source",
+  },
+  {
+    "filename": "ai.pdf",
+    "id": "id-1",
+    "mediaType": "text/plain",
+    "providerMetadata": {
+      "openai": {
+        "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+        "index": 382,
+        "type": "file_citation",
+      },
+    },
+    "sourceType": "document",
+    "title": "ai.pdf",
+    "type": "source",
   },
   {
     "finishReason": {
@@ -11473,6 +11750,66 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
     "type": "tool-result",
   },
   {
+    "id": "id-0",
+    "sourceType": "url",
+    "type": "source",
+    "url": "https://www.wired.com/story/the-big-interview-2025-recap",
+  },
+  {
+    "id": "id-1",
+    "sourceType": "url",
+    "type": "source",
+    "url": "https://www.barrons.com/articles/stock-movers-7c77880d",
+  },
+  {
+    "id": "id-2",
+    "sourceType": "url",
+    "type": "source",
+    "url": "https://www.investors.com/market-trend/stock-market-today/dow-jones-sp500-nasdaq-inflation-data-ai-stock/",
+  },
+  {
+    "id": "id-3",
+    "sourceType": "url",
+    "type": "source",
+    "url": "https://finance.yahoo.com/news/ai-coding-startup-vercel-raises-163055044.html",
+  },
+  {
+    "id": "id-4",
+    "sourceType": "url",
+    "type": "source",
+    "url": "https://www.finsmes.com/2025/10/vercel-closes-300m-series-f-funding-at-9-3-billion-valuation.html",
+  },
+  {
+    "id": "id-5",
+    "sourceType": "url",
+    "type": "source",
+    "url": "https://www.mexc.co/en-IN/news/us-cloud-platform-vercel-achieves-9-billion-valuation-amid-rapid-growth-in-ai-integration/77540",
+  },
+  {
+    "id": "id-6",
+    "sourceType": "url",
+    "type": "source",
+    "url": "https://finance.yahoo.com/news/vercel-closes-series-f-9-150000846.html",
+  },
+  {
+    "id": "id-7",
+    "sourceType": "url",
+    "type": "source",
+    "url": "https://www.financialcontent.com/article/bizwire-2025-9-30-vercel-closes-series-f-at-93b-valuation-to-scale-the-ai-cloud",
+  },
+  {
+    "id": "id-8",
+    "sourceType": "url",
+    "type": "source",
+    "url": "https://techstartups.com/2025/12/05/technology-news-today-the-latest-in-tech-ai-startup-news-december-5-2025/",
+  },
+  {
+    "id": "id-9",
+    "sourceType": "url",
+    "type": "source",
+    "url": "https://www.mexc.com/en-TR/news/us-cloud-platform-vercel-achieves-9-billion-valuation-amid-rapid-growth-in-ai-integration/77540",
+  },
+  {
     "id": "rs_0cc96ac817fdc57e0069333710f97081989fba3cbe0726ee76:0",
     "providerMetadata": {
       "openai": {
@@ -11565,6 +11902,72 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
     "toolCallId": "ws_0cc96ac817fdc57e0069333715b11c81988f3c9b9af6a95481",
     "toolName": "webSearch",
     "type": "tool-result",
+  },
+  {
+    "id": "id-10",
+    "sourceType": "url",
+    "type": "source",
+    "url": "https://techcrunch.com/2025/12/05/petco-confirms-security-lapse-exposed-customers-personal-data/",
+  },
+  {
+    "id": "id-11",
+    "sourceType": "url",
+    "type": "source",
+    "url": "https://techcrunch.com/2025/12/05/walmart-backed-phonepe-winds-down-its-pincode-app-in-yet-another-e-commerce-step-back/",
+  },
+  {
+    "id": "id-12",
+    "sourceType": "url",
+    "type": "source",
+    "url": "https://techcrunch.com/2025/12/05/in-its-first-dsa-penalty-eu-fines-x-e120m-for-deceptive-blue-check-verification-system/",
+  },
+  {
+    "id": "id-13",
+    "sourceType": "url",
+    "type": "source",
+    "url": "https://techcrunch.com/2025/12/05/the-new-york-times-is-suing-perplexity-for-copyright-infringement/",
+  },
+  {
+    "id": "id-14",
+    "sourceType": "url",
+    "type": "source",
+    "url": "https://techcrunch.com/2025/12/05/meta-signs-commercial-ai-data-agreements-with-publishers-to-offer-real-time-news-on-meta-ai/",
+  },
+  {
+    "id": "id-15",
+    "sourceType": "url",
+    "type": "source",
+    "url": "https://techcrunch.com/2025/12/05/new-knoway-robotaxis-cause-chaos-in-upcoming-grand-theft-auto-online-dlc/",
+  },
+  {
+    "id": "id-16",
+    "sourceType": "url",
+    "type": "source",
+    "url": "https://techcrunch.com/2025/12/05/netflix-to-acquire-warner-bros-in-a-disruptive-deal-valued-at-82-7b/",
+  },
+  {
+    "id": "id-17",
+    "sourceType": "url",
+    "type": "source",
+    "url": "https://techcrunch.com/2025/12/05/esim-adoption-is-on-the-rise-thanks-to-travel-and-device-compatibility/",
+  },
+  {
+    "id": "id-18",
+    "sourceType": "url",
+    "type": "source",
+    "url": "https://techcrunch.com/2025/12/05/new-streaming-channel-launches-to-give-viewers-a-peek-into-city-council-meetings/",
+  },
+  {
+    "id": "id-19",
+    "sourceType": "url",
+    "type": "source",
+    "url": "https://techcrunch.com/2025/12/05/aws-reinvent-was-an-all-in-pitch-for-ai-customers-might-not-be-ready/",
+  },
+  {
+    "id": "id-20",
+    "sourceType": "url",
+    "type": "source",
+    "url": "https://techcrunch.com/2025/12/05/energy-storage-industry-set-aggressive-goals-for-2025-and-already-crushed-them/",
   },
   {
     "id": "rs_0cc96ac817fdc57e00693337185c648198ab92fcd140ad72a8:0",
@@ -11869,13 +12272,6 @@ Top",
     "type": "text-delta",
   },
   {
-    "id": "id-0",
-    "sourceType": "url",
-    "title": "Petco confirms security lapse exposed customers’ personal data | TechCrunch",
-    "type": "source",
-    "url": "https://techcrunch.com/2025/12/05/petco-confirms-security-lapse-exposed-customers-personal-data/?utm_source=openai",
-  },
-  {
     "delta": "
 - The New York",
     "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
@@ -11901,13 +12297,6 @@ Top",
 - Meta signed commercial",
     "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
-  },
-  {
-    "id": "id-1",
-    "sourceType": "url",
-    "title": "The New York Times is suing Perplexity for copyright infringement | TechCrunch",
-    "type": "source",
-    "url": "https://techcrunch.com/2025/12/05/the-new-york-times-is-suing-perplexity-for-copyright-infringement/?utm_source=openai",
   },
   {
     "delta": " AI data agreements",
@@ -11946,13 +12335,6 @@ Top",
     "type": "text-delta",
   },
   {
-    "id": "id-2",
-    "sourceType": "url",
-    "title": "Meta signs commercial AI data agreements with publishers to offer real-time news on Meta AI | TechCrunch",
-    "type": "source",
-    "url": "https://techcrunch.com/2025/12/05/meta-signs-commercial-ai-data-agreements-with-publishers-to-offer-real-time-news-on-meta-ai/?utm_source=openai",
-  },
-  {
     "delta": " major media deal: Netflix",
     "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
@@ -11979,13 +12361,6 @@ Top",
     "type": "text-delta",
   },
   {
-    "id": "id-3",
-    "sourceType": "url",
-    "title": "Netflix to acquire Warner Bros. in a disruptive deal valued at $82.7B | TechCrunch",
-    "type": "source",
-    "url": "https://techcrunch.com/2025/12/05/netflix-to-acquire-warner-bros-in-a-disruptive-deal-valued-at-82-7b/?utm_source=openai",
-  },
-  {
     "delta": " published a recap of its “",
     "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
@@ -12006,13 +12381,6 @@ Top",
 Pages I opened and",
     "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
-  },
-  {
-    "id": "id-4",
-    "sourceType": "url",
-    "title": "Check Out Highlights From WIRED's Big Interview Event",
-    "type": "source",
-    "url": "https://www.wired.com/story/the-big-interview-2025-recap?utm_source=openai",
   },
   {
     "delta": " searched for the pattern "ver",
@@ -12062,13 +12430,6 @@ Pages I opened and",
     "type": "text-delta",
   },
   {
-    "id": "id-5",
-    "sourceType": "url",
-    "title": "Petco confirms security lapse exposed customers’ personal data | TechCrunch",
-    "type": "source",
-    "url": "https://techcrunch.com/2025/12/05/petco-confirms-security-lapse-exposed-customers-personal-data/?utm_source=openai",
-  },
-  {
     "delta": " NYT vs Perplexity",
     "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
@@ -12103,13 +12464,6 @@ Pages I opened and",
 - TechCrunch",
     "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
-  },
-  {
-    "id": "id-6",
-    "sourceType": "url",
-    "title": "The New York Times is suing Perplexity for copyright infringement | TechCrunch",
-    "type": "source",
-    "url": "https://techcrunch.com/2025/12/05/the-new-york-times-is-suing-perplexity-for-copyright-infringement/?utm_source=openai",
   },
   {
     "delta": " — Meta commercial AI data agreements",
@@ -12155,13 +12509,6 @@ Pages I opened and",
     "delta": "([techcrunch.com](https://techcrunch.com/2025/12/05/meta-signs-commercial-ai-data-agreements-with-publishers-to-offer-real-time-news-on-meta-ai/?utm_source=openai))",
     "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
-  },
-  {
-    "id": "id-7",
-    "sourceType": "url",
-    "title": "Meta signs commercial AI data agreements with publishers to offer real-time news on Meta AI | TechCrunch",
-    "type": "source",
-    "url": "https://techcrunch.com/2025/12/05/meta-signs-commercial-ai-data-agreements-with-publishers-to-offer-real-time-news-on-meta-ai/?utm_source=openai",
   },
   {
     "delta": "  
@@ -12221,13 +12568,6 @@ Pages I opened and",
     "type": "text-delta",
   },
   {
-    "id": "id-8",
-    "sourceType": "url",
-    "title": "Netflix to acquire Warner Bros. in a disruptive deal valued at $82.7B | TechCrunch",
-    "type": "source",
-    "url": "https://techcrunch.com/2025/12/05/netflix-to-acquire-warner-bros-in-a-disruptive-deal-valued-at-82-7b/?utm_source=openai",
-  },
-  {
     "delta": " Big Interview recap",
     "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
@@ -12268,13 +12608,6 @@ Pages I opened and",
     "type": "text-delta",
   },
   {
-    "id": "id-9",
-    "sourceType": "url",
-    "title": "Check Out Highlights From WIRED's Big Interview Event",
-    "type": "source",
-    "url": "https://www.wired.com/story/the-big-interview-2025-recap?utm_source=openai",
-  },
-  {
     "delta": "  
 - TechStartups —",
     "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
@@ -12311,13 +12644,6 @@ Pages I opened and",
 So: none of those specific “today” stories",
     "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
-  },
-  {
-    "id": "id-10",
-    "sourceType": "url",
-    "title": "Technology News Today – The Latest in Tech, AI & Startup News, December 5, 2025 - Tech Startups",
-    "type": "source",
-    "url": "https://techstartups.com/2025/12/05/technology-news-today-the-latest-in-tech-ai-startup-news-december-5-2025/?utm_source=openai",
   },
   {
     "delta": "/pages contained the string "",
@@ -12449,13 +12775,6 @@ Would you like",
     "type": "text-delta",
   },
   {
-    "id": "id-11",
-    "sourceType": "url",
-    "title": "AI coding startup Vercel raises $300 million, valued at $9.3 billion",
-    "type": "source",
-    "url": "https://finance.yahoo.com/news/ai-coding-startup-vercel-raises-163055044.html?utm_source=openai",
-  },
-  {
     "delta": " me to:
 - search more",
     "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
@@ -12503,6 +12822,140 @@ Would you like",
     "type": "text-delta",
   },
   {
+    "citations": [
+      {
+        "endIndex": 411,
+        "source": {
+          "id": "https://techcrunch.com/2025/12/05/petco-confirms-security-lapse-exposed-customers-personal-data/?utm_source=openai",
+          "sourceType": "url",
+          "title": "Petco confirms security lapse exposed customers’ personal data | TechCrunch",
+          "type": "source",
+          "url": "https://techcrunch.com/2025/12/05/petco-confirms-security-lapse-exposed-customers-personal-data/?utm_source=openai",
+        },
+        "startIndex": 277,
+      },
+      {
+        "endIndex": 635,
+        "source": {
+          "id": "https://techcrunch.com/2025/12/05/the-new-york-times-is-suing-perplexity-for-copyright-infringement/?utm_source=openai",
+          "sourceType": "url",
+          "title": "The New York Times is suing Perplexity for copyright infringement | TechCrunch",
+          "type": "source",
+          "url": "https://techcrunch.com/2025/12/05/the-new-york-times-is-suing-perplexity-for-copyright-infringement/?utm_source=openai",
+        },
+        "startIndex": 497,
+      },
+      {
+        "endIndex": 910,
+        "source": {
+          "id": "https://techcrunch.com/2025/12/05/meta-signs-commercial-ai-data-agreements-with-publishers-to-offer-real-time-news-on-meta-ai/?utm_source=openai",
+          "sourceType": "url",
+          "title": "Meta signs commercial AI data agreements with publishers to offer real-time news on Meta AI | TechCrunch",
+          "type": "source",
+          "url": "https://techcrunch.com/2025/12/05/meta-signs-commercial-ai-data-agreements-with-publishers-to-offer-real-time-news-on-meta-ai/?utm_source=openai",
+        },
+        "startIndex": 746,
+      },
+      {
+        "endIndex": 1149,
+        "source": {
+          "id": "https://techcrunch.com/2025/12/05/netflix-to-acquire-warner-bros-in-a-disruptive-deal-valued-at-82-7b/?utm_source=openai",
+          "sourceType": "url",
+          "title": "Netflix to acquire Warner Bros. in a disruptive deal valued at $82.7B | TechCrunch",
+          "type": "source",
+          "url": "https://techcrunch.com/2025/12/05/netflix-to-acquire-warner-bros-in-a-disruptive-deal-valued-at-82-7b/?utm_source=openai",
+        },
+        "startIndex": 1009,
+      },
+      {
+        "endIndex": 1305,
+        "source": {
+          "id": "https://www.wired.com/story/the-big-interview-2025-recap?utm_source=openai",
+          "sourceType": "url",
+          "title": "Check Out Highlights From WIRED's Big Interview Event",
+          "type": "source",
+          "url": "https://www.wired.com/story/the-big-interview-2025-recap?utm_source=openai",
+        },
+        "startIndex": 1216,
+      },
+      {
+        "endIndex": 1606,
+        "source": {
+          "id": "https://techcrunch.com/2025/12/05/petco-confirms-security-lapse-exposed-customers-personal-data/?utm_source=openai",
+          "sourceType": "url",
+          "title": "Petco confirms security lapse exposed customers’ personal data | TechCrunch",
+          "type": "source",
+          "url": "https://techcrunch.com/2025/12/05/petco-confirms-security-lapse-exposed-customers-personal-data/?utm_source=openai",
+        },
+        "startIndex": 1472,
+      },
+      {
+        "endIndex": 1851,
+        "source": {
+          "id": "https://techcrunch.com/2025/12/05/the-new-york-times-is-suing-perplexity-for-copyright-infringement/?utm_source=openai",
+          "sourceType": "url",
+          "title": "The New York Times is suing Perplexity for copyright infringement | TechCrunch",
+          "type": "source",
+          "url": "https://techcrunch.com/2025/12/05/the-new-york-times-is-suing-perplexity-for-copyright-infringement/?utm_source=openai",
+        },
+        "startIndex": 1713,
+      },
+      {
+        "endIndex": 2139,
+        "source": {
+          "id": "https://techcrunch.com/2025/12/05/meta-signs-commercial-ai-data-agreements-with-publishers-to-offer-real-time-news-on-meta-ai/?utm_source=openai",
+          "sourceType": "url",
+          "title": "Meta signs commercial AI data agreements with publishers to offer real-time news on Meta AI | TechCrunch",
+          "type": "source",
+          "url": "https://techcrunch.com/2025/12/05/meta-signs-commercial-ai-data-agreements-with-publishers-to-offer-real-time-news-on-meta-ai/?utm_source=openai",
+        },
+        "startIndex": 1975,
+      },
+      {
+        "endIndex": 2397,
+        "source": {
+          "id": "https://techcrunch.com/2025/12/05/netflix-to-acquire-warner-bros-in-a-disruptive-deal-valued-at-82-7b/?utm_source=openai",
+          "sourceType": "url",
+          "title": "Netflix to acquire Warner Bros. in a disruptive deal valued at $82.7B | TechCrunch",
+          "type": "source",
+          "url": "https://techcrunch.com/2025/12/05/netflix-to-acquire-warner-bros-in-a-disruptive-deal-valued-at-82-7b/?utm_source=openai",
+        },
+        "startIndex": 2257,
+      },
+      {
+        "endIndex": 2590,
+        "source": {
+          "id": "https://www.wired.com/story/the-big-interview-2025-recap?utm_source=openai",
+          "sourceType": "url",
+          "title": "Check Out Highlights From WIRED's Big Interview Event",
+          "type": "source",
+          "url": "https://www.wired.com/story/the-big-interview-2025-recap?utm_source=openai",
+        },
+        "startIndex": 2501,
+      },
+      {
+        "endIndex": 2844,
+        "source": {
+          "id": "https://techstartups.com/2025/12/05/technology-news-today-the-latest-in-tech-ai-startup-news-december-5-2025/?utm_source=openai",
+          "sourceType": "url",
+          "title": "Technology News Today – The Latest in Tech, AI & Startup News, December 5, 2025 - Tech Startups",
+          "type": "source",
+          "url": "https://techstartups.com/2025/12/05/technology-news-today-the-latest-in-tech-ai-startup-news-december-5-2025/?utm_source=openai",
+        },
+        "startIndex": 2695,
+      },
+      {
+        "endIndex": 3427,
+        "source": {
+          "id": "https://finance.yahoo.com/news/ai-coding-startup-vercel-raises-163055044.html?utm_source=openai",
+          "sourceType": "url",
+          "title": "AI coding startup Vercel raises $300 million, valued at $9.3 billion",
+          "type": "source",
+          "url": "https://finance.yahoo.com/news/ai-coding-startup-vercel-raises-163055044.html?utm_source=openai",
+        },
+        "startIndex": 3309,
+      },
+    ],
     "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "providerMetadata": {
       "openai": {
