@@ -2480,6 +2480,78 @@ describe('Chat', () => {
     expect(getMessageText(chat.messages[1])).toBe('Keep this message.');
   });
 
+  it('should update a renamed earlier response after preceding messages are removed before streaming starts', async () => {
+    let controller!: ReadableStreamDefaultController<UIMessageChunk>;
+    const stream = new ReadableStream<UIMessageChunk>({
+      start(streamController) {
+        controller = streamController;
+      },
+    });
+    const chat = new TestChatWithState({
+      state: new SnapshottingTestChatState([
+        {
+          id: 'user-before',
+          role: 'user',
+          parts: [{ type: 'text', text: 'Run the approved tool.' }],
+        },
+        {
+          id: 'assistant-1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-weather',
+              toolCallId: 'call-1',
+              state: 'approval-responded',
+              input: { city: 'Tokyo' },
+              approval: { id: 'approval-1', approved: true },
+            },
+          ],
+        },
+        {
+          id: 'user-later',
+          role: 'user',
+          parts: [{ type: 'text', text: 'Keep this message.' }],
+        },
+        {
+          id: 'assistant-later',
+          role: 'assistant',
+          parts: [{ type: 'text', text: 'This is a later response.' }],
+        },
+      ]),
+      generateId: mockId(),
+      transport: {
+        sendMessages: async () => stream,
+        reconnectToStream: async () => null,
+      },
+    });
+
+    const sendPromise = chat.sendMessage();
+
+    chat.messages = chat.messages.filter(
+      message => message.id !== 'user-before',
+    );
+
+    controller.enqueue({ type: 'start', messageId: 'renamed-assistant' });
+    controller.enqueue({ type: 'text-start', id: 'text-1' });
+    controller.enqueue({
+      type: 'text-delta',
+      id: 'text-1',
+      delta: 'Hello',
+    });
+    controller.enqueue({ type: 'text-end', id: 'text-1' });
+    controller.enqueue({ type: 'finish' });
+    controller.close();
+    await sendPromise;
+
+    expect(chat.messages.map(message => message.id)).toEqual([
+      'renamed-assistant',
+      'user-later',
+      'assistant-later',
+    ]);
+    expect(getMessageText(chat.messages[0])).toBe('Hello');
+    expect(getMessageText(chat.messages[1])).toBe('Keep this message.');
+  });
+
   it('should handle error parts', async () => {
     server.urls['http://localhost:3000/api/chat'].response = {
       type: 'stream-chunks',

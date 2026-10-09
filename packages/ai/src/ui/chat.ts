@@ -938,6 +938,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       responseMessageIndex === -1
         ? lastMessage
         : this.state.messages[responseMessageIndex];
+    const originalResponseMessageId = responseMessage?.id;
     // The continued stream can start with input deltas or a tool result.
     // Keep unfinished tool parts so result chunks can find their tool call.
     const resumableResponseMessage =
@@ -1038,10 +1039,18 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
                   response.state.message,
                 );
               } else if (usesEarlierAssistantMessage) {
-                this.state.replaceMessage(
-                  responseMessageIndex,
-                  response.state.message,
+                const originalMessageIndex = this.state.messages.findLastIndex(
+                  message => message.id === originalResponseMessageId,
                 );
+
+                if (originalMessageIndex !== -1) {
+                  this.state.replaceMessage(
+                    originalMessageIndex,
+                    response.state.message,
+                  );
+                } else {
+                  this.state.pushMessage(response.state.message);
+                }
               } else {
                 this.state.pushMessage(response.state.message);
               }
