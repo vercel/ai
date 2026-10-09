@@ -3729,7 +3729,7 @@ describe('convertToOpenAIResponsesInput', () => {
       expect(toolSearchCall.execution).toBe('client');
     });
 
-    it('should exclude provider-executed tool calls and results from prompt with store: false', async () => {
+    it('should reconstruct provider-executed web search results with store: false', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
         prompt: [
@@ -3795,6 +3795,21 @@ describe('convertToOpenAIResponsesInput', () => {
               "role": "assistant",
             },
             {
+              "action": {
+                "query": "San Francisco major news events June 22 2025",
+                "sources": [
+                  {
+                    "type": "url",
+                    "url": "https://patch.com/california/san-francisco/calendar",
+                  },
+                ],
+                "type": "search",
+              },
+              "id": "ws_67cf2b3051e88190b006770db6fdb13d",
+              "status": "completed",
+              "type": "web_search_call",
+            },
+            {
               "content": [
                 {
                   "text": "Based on the search results, several significant events took place in San Francisco yesterday (June 22, 2025).",
@@ -3805,14 +3820,145 @@ describe('convertToOpenAIResponsesInput', () => {
               "role": "assistant",
             },
           ],
-          "warnings": [
-            {
-              "message": "Results for OpenAI tool web_search are not sent to the API when store is false",
-              "type": "other",
-            },
-          ],
+          "warnings": [],
         }
       `);
+    });
+
+    it('should reconstruct web search preview and page actions with store: false', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'ws_preview',
+                toolName: 'web_search_preview',
+                output: {
+                  type: 'json',
+                  value: {
+                    action: {
+                      type: 'search',
+                      query: 'AI SDK',
+                    },
+                    sources: [
+                      {
+                        type: 'url',
+                        url: 'https://ai-sdk.dev',
+                      },
+                    ],
+                  },
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'ws_open_page',
+                toolName: 'web_search',
+                output: {
+                  type: 'json',
+                  value: {
+                    action: {
+                      type: 'openPage',
+                      url: 'https://ai-sdk.dev/docs',
+                    },
+                  },
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'ws_find_in_page',
+                toolName: 'web_search',
+                output: {
+                  type: 'json',
+                  value: {
+                    action: {
+                      type: 'findInPage',
+                      url: 'https://ai-sdk.dev/docs',
+                      pattern: 'streamText',
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result).toEqual({
+        input: [
+          {
+            type: 'web_search_call',
+            id: 'ws_preview',
+            status: 'completed',
+            action: {
+              type: 'search',
+              query: 'AI SDK',
+              sources: [{ type: 'url', url: 'https://ai-sdk.dev' }],
+            },
+          },
+          {
+            type: 'web_search_call',
+            id: 'ws_open_page',
+            status: 'completed',
+            action: {
+              type: 'open_page',
+              url: 'https://ai-sdk.dev/docs',
+            },
+          },
+          {
+            type: 'web_search_call',
+            id: 'ws_find_in_page',
+            status: 'completed',
+            action: {
+              type: 'find_in_page',
+              url: 'https://ai-sdk.dev/docs',
+              pattern: 'streamText',
+            },
+          },
+        ],
+        warnings: [],
+      });
+    });
+
+    it('should keep warning for web search results without an action', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'ws_missing_action',
+                toolName: 'web_search',
+                output: {
+                  type: 'json',
+                  value: {},
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result).toEqual({
+        input: [],
+        warnings: [
+          {
+            type: 'other',
+            message:
+              'Results for OpenAI tool web_search are not sent to the API when store is false',
+          },
+        ],
+      });
     });
 
     it('should skip provider-executed execution-denied tool results in assistant messages', async () => {
