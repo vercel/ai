@@ -148,6 +148,126 @@ const { text } = await generateText({
 });
 ```
 
+<<<<<<< HEAD:content/providers/02-openai-compatible-providers/index.mdx
+=======
+### Uploaded File References
+
+For providers that accept uploaded files through `file_id`, pass the uploaded
+file ID as a provider reference. The reference key must match the provider's
+configured `name`, including hyphens:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const provider = createOpenAICompatible({
+  name: 'my-provider',
+  apiKey: process.env.PROVIDER_API_KEY,
+  baseURL: 'https://api.provider.com/v1',
+});
+
+const { text } = await generateText({
+  model: provider('model-id'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Summarize this document.' },
+        {
+          type: 'file',
+          mediaType: 'application/pdf',
+          data: {
+            type: 'reference',
+            reference: { 'my-provider': 'file-abc123' },
+          },
+        },
+      ],
+    },
+  ],
+});
+```
+
+The file part is sent as `{ type: 'file', file: { file_id: 'file-abc123' } }`.
+File references also work with streaming and supported multi-part tool results.
+Inline PDF data continues to be sent as a base64 data URL.
+
+Upload the file using the destination provider's Files API before referencing
+it. The OpenAI Compatible provider does not upload files itself. File-reference
+support and accepted file types depend on the destination provider and model.
+
+### Video Inputs
+
+OpenAI-compatible providers that accept the non-standard `video_url` content
+part can receive video file parts. Inline bytes and base64-encoded data are sent
+as data URLs:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+import fs from 'node:fs';
+
+const provider = createOpenAICompatible({
+  name: 'providerName',
+  apiKey: process.env.PROVIDER_API_KEY,
+  baseURL: 'https://api.provider.com/v1',
+});
+
+const { text } = await generateText({
+  model: provider('video-capable-model'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Describe the main action in this video.' },
+        {
+          type: 'file',
+          mediaType: 'video/mp4',
+          data: fs.readFileSync('./video.mp4'),
+        },
+      ],
+    },
+  ],
+});
+```
+
+To pass a hosted video URL through without downloading it first, configure
+`supportedUrls` for the provider:
+
+```ts
+const provider = createOpenAICompatible({
+  name: 'providerName',
+  apiKey: process.env.PROVIDER_API_KEY,
+  baseURL: 'https://api.provider.com/v1',
+  supportedUrls: () => ({
+    'video/*': [/^https:\/\/cdn\.example\.com\//],
+  }),
+});
+
+const { text } = await generateText({
+  model: provider('video-capable-model'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Summarize this video.' },
+        {
+          type: 'file',
+          mediaType: 'video/mp4',
+          data: new URL('https://cdn.example.com/video.mp4'),
+        },
+      ],
+    },
+  ],
+});
+```
+
+`video_url` is an OpenAI-compatible provider extension, not an official OpenAI
+Chat Completions content type. Video support, accepted formats, size and
+duration limits, and support for public or data URLs depend on the provider and
+model. Prefer hosted URLs when supported to avoid embedding large videos in
+request bodies.
+
+>>>>>>> 2c6996ec62 (feat(openai-compatible): support uploaded file references via file_id (#22466)):content/providers/04-openai-compatible-providers/index.mdx
 ### Including model ids for auto-completion
 
 ```ts

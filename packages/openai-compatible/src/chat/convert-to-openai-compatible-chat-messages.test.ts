@@ -1,3 +1,4 @@
+import { NoSuchProviderReferenceError } from '@ai-sdk/provider';
 import { convertToOpenAICompatibleChatMessages } from './convert-to-openai-compatible-chat-messages';
 import { describe, it, expect } from 'vitest';
 
@@ -423,7 +424,84 @@ describe('user messages', () => {
           ],
         },
       ]),
+<<<<<<< HEAD
     ).toThrow("'file part media type video/mp4' functionality not supported");
+=======
+    ).toThrow(
+      "'file part media type application/zip' functionality not supported",
+    );
+  });
+
+  it.each(['application/pdf', 'image/png'])(
+    'should convert %s provider references to file IDs',
+    mediaType => {
+      const result = convertToOpenAICompatibleChatMessages(
+        [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: {
+                  type: 'reference',
+                  reference: {
+                    'custom-provider': 'file-123',
+                    openai: 'file-other',
+                  },
+                },
+                mediaType,
+                filename: 'document.pdf',
+                providerOptions: {
+                  openaiCompatible: { customOption: 'value' },
+                },
+              },
+            ],
+          },
+        ],
+        { provider: 'custom-provider' },
+      );
+
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              file: { file_id: 'file-123' },
+              customOption: 'value',
+            },
+          ],
+        },
+      ]);
+    },
+  );
+
+  it('should reject a reference without an ID for the configured provider', () => {
+    const reference = { openai: 'file-other' };
+
+    expect(() =>
+      convertToOpenAICompatibleChatMessages(
+        [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: { type: 'reference', reference },
+                mediaType: 'application/pdf',
+              },
+            ],
+          },
+        ],
+        { provider: 'custom-provider' },
+      ),
+    ).toThrow(
+      new NoSuchProviderReferenceError({
+        provider: 'custom-provider',
+        reference,
+      }),
+    );
+>>>>>>> 2c6996ec62 (feat(openai-compatible): support uploaded file references via file_id (#22466))
   });
 });
 
@@ -544,6 +622,108 @@ describe('tool calls', () => {
       },
     ]);
   });
+<<<<<<< HEAD
+=======
+
+  it('should stringify multi-part tool content by default', () => {
+    const value = [
+      { type: 'text' as const, text: 'image result' },
+      {
+        type: 'file' as const,
+        data: { type: 'data' as const, data: 'iVBORw0KGgo=' },
+        mediaType: 'image/png',
+      },
+    ];
+
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'useImage',
+            output: { type: 'content', value },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'tool',
+        tool_call_id: 'call-1',
+        content: JSON.stringify(value),
+      },
+    ]);
+  });
+
+  it('should convert multi-part tool content when supported', () => {
+    const result = convertToOpenAICompatibleChatMessages(
+      [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'useImage',
+              output: {
+                type: 'content',
+                value: [
+                  { type: 'text', text: 'image result' },
+                  {
+                    type: 'file',
+                    data: {
+                      type: 'reference',
+                      reference: { 'custom-provider': 'file-123' },
+                    },
+                    mediaType: 'application/pdf',
+                  },
+                  {
+                    type: 'file',
+                    data: { type: 'data', data: 'iVBORw0KGgo=' },
+                    mediaType: 'image/png',
+                  },
+                  {
+                    type: 'file',
+                    data: {
+                      type: 'url',
+                      url: new URL('https://example.com/image.png'),
+                    },
+                    mediaType: 'image/png',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+      { provider: 'custom-provider', supportsMultiPartToolContent: true },
+    );
+
+    expect(result).toEqual([
+      {
+        role: 'tool',
+        tool_call_id: 'call-1',
+        content: [
+          { type: 'text', text: 'image result' },
+          { type: 'file', file: { file_id: 'file-123' } },
+          {
+            type: 'image_url',
+            image_url: {
+              url: 'data:image/png;base64,iVBORw0KGgo=',
+            },
+          },
+          {
+            type: 'image_url',
+            image_url: { url: 'https://example.com/image.png' },
+          },
+        ],
+      },
+    ]);
+  });
+>>>>>>> 2c6996ec62 (feat(openai-compatible): support uploaded file references via file_id (#22466))
 });
 
 describe('provider-specific metadata merging', () => {

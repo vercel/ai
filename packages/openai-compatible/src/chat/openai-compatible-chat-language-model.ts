@@ -277,7 +277,16 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
         verbosity: compatibleOptions.textVerbosity,
 
         // messages:
+<<<<<<< HEAD
         messages: convertToOpenAICompatibleChatMessages(prompt),
+=======
+        messages: convertToOpenAICompatibleChatMessages(prompt, {
+          provider: this.providerOptionsName,
+          providerOptionsKey: metadataKey,
+          supportsMultiPartToolContent:
+            this.config.supportsMultiPartToolContent,
+        }),
+>>>>>>> 2c6996ec62 (feat(openai-compatible): support uploaded file references via file_id (#22466))
 
         // tools:
         tools: openaiTools,

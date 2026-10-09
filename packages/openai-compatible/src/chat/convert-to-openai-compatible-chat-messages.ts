@@ -7,6 +7,12 @@ import type { OpenAICompatibleChatPrompt } from './openai-compatible-api-types';
 import {
   convertBase64ToUint8Array,
   convertToBase64,
+<<<<<<< HEAD
+=======
+  getTopLevelMediaType,
+  resolveFullMediaType,
+  resolveProviderReference,
+>>>>>>> 2c6996ec62 (feat(openai-compatible): support uploaded file references via file_id (#22466))
 } from '@ai-sdk/provider-utils';
 
 function getOpenAIMetadata(message: {
@@ -27,8 +33,172 @@ function getAudioFormat(mediaType: string): 'wav' | 'mp3' | null {
   }
 }
 
+<<<<<<< HEAD
 export function convertToOpenAICompatibleChatMessages(
   prompt: LanguageModelV3Prompt,
+=======
+function convertToOpenAICompatibleContentPart(
+  part: LanguageModelV4TextPart | LanguageModelV4FilePart,
+  provider: string,
+): OpenAICompatibleContentPart {
+  const partMetadata = getOpenAIMetadata(part);
+
+  switch (part.type) {
+    case 'text': {
+      return { type: 'text', text: part.text, ...partMetadata };
+    }
+    case 'file': {
+      switch (part.data.type) {
+        case 'reference': {
+          return {
+            type: 'file',
+            file: {
+              file_id: resolveProviderReference({
+                reference: part.data.reference,
+                provider,
+              }),
+            },
+            ...partMetadata,
+          };
+        }
+        case 'text': {
+          throw new UnsupportedFunctionalityError({
+            functionality: 'text file parts',
+          });
+        }
+        case 'url':
+        case 'data': {
+          const topLevel = getTopLevelMediaType(part.mediaType);
+
+          if (topLevel === 'image') {
+            return {
+              type: 'image_url',
+              image_url: {
+                url:
+                  part.data.type === 'url'
+                    ? part.data.url.toString()
+                    : `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`,
+              },
+              ...partMetadata,
+            };
+          }
+
+          if (topLevel === 'video') {
+            return {
+              type: 'video_url',
+              video_url: {
+                url:
+                  part.data.type === 'url'
+                    ? part.data.url.toString()
+                    : `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`,
+              },
+              ...partMetadata,
+            };
+          }
+
+          if (topLevel === 'audio') {
+            if (part.data.type === 'url') {
+              throw new UnsupportedFunctionalityError({
+                functionality: 'audio file parts with URLs',
+              });
+            }
+
+            const fullMediaType = resolveFullMediaType({ part });
+            const format = getAudioFormat(fullMediaType);
+            if (format === null) {
+              throw new UnsupportedFunctionalityError({
+                functionality: `audio media type ${fullMediaType}`,
+              });
+            }
+
+            return {
+              type: 'input_audio',
+              input_audio: {
+                data: convertToBase64(part.data.data),
+                format,
+              },
+              ...partMetadata,
+            };
+          }
+
+          if (topLevel === 'application') {
+            if (part.data.type === 'url') {
+              throw new UnsupportedFunctionalityError({
+                functionality: 'PDF file parts with URLs',
+              });
+            }
+
+            const fullMediaType = resolveFullMediaType({ part });
+            if (fullMediaType !== 'application/pdf') {
+              throw new UnsupportedFunctionalityError({
+                functionality: `file part media type ${fullMediaType}`,
+              });
+            }
+
+            return {
+              type: 'file',
+              file: {
+                filename: part.filename ?? 'document.pdf',
+                file_data: `data:application/pdf;base64,${convertToBase64(part.data.data)}`,
+              },
+              ...partMetadata,
+            };
+          }
+
+          if (topLevel === 'text') {
+            const textContent =
+              part.data.type === 'url'
+                ? part.data.url.toString()
+                : typeof part.data.data === 'string'
+                  ? new TextDecoder().decode(
+                      convertBase64ToUint8Array(part.data.data),
+                    )
+                  : new TextDecoder().decode(part.data.data);
+
+            return {
+              type: 'text',
+              text: textContent,
+              ...partMetadata,
+            };
+          }
+
+          throw new UnsupportedFunctionalityError({
+            functionality: `file part media type ${part.mediaType}`,
+          });
+        }
+      }
+    }
+  }
+}
+
+function convertToolContentPart(
+  part: Extract<
+    LanguageModelV4ToolResultOutput,
+    { type: 'content' }
+  >['value'][number],
+  provider: string,
+): OpenAICompatibleContentPart {
+  if (part.type === 'custom') {
+    throw new UnsupportedFunctionalityError({
+      functionality: 'custom tool content parts',
+    });
+  }
+
+  return convertToOpenAICompatibleContentPart(part, provider);
+}
+
+export function convertToOpenAICompatibleChatMessages(
+  prompt: LanguageModelV4Prompt,
+  {
+    provider = 'openaiCompatible',
+    providerOptionsKey = 'google',
+    supportsMultiPartToolContent = false,
+  }: {
+    provider?: string;
+    providerOptionsKey?: string;
+    supportsMultiPartToolContent?: boolean;
+  } = {},
+>>>>>>> 2c6996ec62 (feat(openai-compatible): support uploaded file references via file_id (#22466))
 ): OpenAICompatibleChatPrompt {
   const messages: OpenAICompatibleChatPrompt = [];
   for (const { role, content, ...message } of prompt) {
@@ -51,6 +221,7 @@ export function convertToOpenAICompatibleChatMessages(
 
         messages.push({
           role: 'user',
+<<<<<<< HEAD
           content: content.map(part => {
             const partMetadata = getOpenAIMetadata(part);
             switch (part.type) {
@@ -141,6 +312,11 @@ export function convertToOpenAICompatibleChatMessages(
               }
             }
           }),
+=======
+          content: content.map(part =>
+            convertToOpenAICompatibleContentPart(part, provider),
+          ),
+>>>>>>> 2c6996ec62 (feat(openai-compatible): support uploaded file references via file_id (#22466))
           ...metadata,
         });
 
@@ -233,6 +409,16 @@ export function convertToOpenAICompatibleChatMessages(
             case 'error-json':
               contentValue = JSON.stringify(output.value);
               break;
+<<<<<<< HEAD
+=======
+            case 'content':
+              contentValue = supportsMultiPartToolContent
+                ? output.value.map(part =>
+                    convertToolContentPart(part, provider),
+                  )
+                : JSON.stringify(output.value);
+              break;
+>>>>>>> 2c6996ec62 (feat(openai-compatible): support uploaded file references via file_id (#22466))
           }
 
           const toolResponseMetadata = getOpenAIMetadata(toolResponse);

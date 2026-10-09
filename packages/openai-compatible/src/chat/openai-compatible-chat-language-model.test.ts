@@ -61,6 +61,64 @@ function prepareChunksFixtureResponse(
   };
 }
 
+<<<<<<< HEAD
+=======
+function prepareSseFixtureResponse(filename: string) {
+  server.urls['https://my.api.com/v1/chat/completions'].response = {
+    type: 'stream-chunks',
+    chunks: [fs.readFileSync(`src/chat/__fixtures__/${filename}.sse`, 'utf8')],
+  };
+}
+
+describe.each(['doGenerate', 'doStream'] as const)(
+  'file references (%s)',
+  method => {
+    it('should resolve file IDs using the provider name even with camelCase options', async () => {
+      if (method === 'doGenerate') {
+        prepareJsonFixtureResponse('xai-text');
+      } else {
+        prepareChunksFixtureResponse('xai-text');
+      }
+
+      const result = await model[method]({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: {
+                  type: 'reference',
+                  reference: {
+                    'test-provider': 'file-pdf-123',
+                    testProvider: 'file-wrong-provider',
+                  },
+                },
+                mediaType: 'application/pdf',
+              },
+            ],
+          },
+        ],
+        providerOptions: { testProvider: { user: 'test-user' } },
+      });
+
+      if ('stream' in result) {
+        await convertReadableStreamToArray(result.stream);
+      }
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        messages: [
+          {
+            role: 'user',
+            content: [{ type: 'file', file: { file_id: 'file-pdf-123' } }],
+          },
+        ],
+      });
+    });
+  },
+);
+
+>>>>>>> 2c6996ec62 (feat(openai-compatible): support uploaded file references via file_id (#22466))
 describe('config', () => {
   it('should extract base name from provider string', () => {
     const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
