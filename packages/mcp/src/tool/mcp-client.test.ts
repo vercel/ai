@@ -694,7 +694,7 @@ describe('MCPClient', () => {
     expect(parsed.tools[0].name).toBe('mock-tool');
   });
 
-  it('should create tools from cached definitions via toolsFromDefinitions()', async () => {
+  it('executes tools from cached definitions without execution options', async () => {
     const structuredContent = { value: 42 };
     client = await createMCPClient({
       transport: new MockMCPTransport({
@@ -718,10 +718,7 @@ describe('MCPClient', () => {
     expect(tool).toHaveProperty('execute');
 
     // Verify the execute function works
-    const result = await tool.execute(
-      { foo: 'bar' },
-      { messages: [], toolCallId: '1', context: {} },
-    );
+    const result = await tool.execute({ foo: 'bar' });
     expect(result).toEqual({
       content: [{ type: 'text', text: JSON.stringify(structuredContent) }],
       structuredContent,
