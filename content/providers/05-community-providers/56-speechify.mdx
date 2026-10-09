@@ -1,0 +1,162 @@
+---
+title: Speechify
+description: Learn how to use the Speechify provider for the AI SDK.
+---
+
+# Speechify Provider
+
+The [Speechify provider](https://github.com/Speechify-AI/ai-sdk-provider) adds [SpeechifyAI](https://speechify.ai) text-to-speech to the AI SDK.
+It supports the Simba 3 speech models and returns word-level speech marks (timestamps) with every generation.
+The package is maintained by Speechify. See the [Speechify AI SDK guide](https://docs.speechify.ai/build/guides/integrations/vercel-ai-sdk?utm_source=ai-sdk.dev&utm_medium=docs&utm_campaign=vercel-ai-sdk) for more detail.
+
+## Setup
+
+The Speechify provider is available in the `@speechify/ai-sdk-provider` module. You can install it with
+
+<InstallPackages packages="@speechify/ai-sdk-provider" />
+
+## Provider Instance
+
+You can import the default provider instance `speechify` from `@speechify/ai-sdk-provider`:
+
+```ts
+import { speechify } from '@speechify/ai-sdk-provider';
+```
+
+If you need a customized setup, you can import `createSpeechify` and create a provider instance with your settings:
+
+```ts
+import { createSpeechify } from '@speechify/ai-sdk-provider';
+
+const speechify = createSpeechify({
+  apiKey: process.env.SPEECHIFY_API_KEY,
+});
+```
+
+You can use the following optional settings to customize the Speechify provider instance:
+
+- **apiKey** _string_
+
+  API key that is sent as a Bearer token.
+  It defaults to the `SPEECHIFY_API_KEY` environment variable.
+  You can get one by [signing up for SpeechifyAI](https://platform.speechify.ai/signup?utm_source=ai-sdk.dev&utm_medium=docs&utm_campaign=vercel-ai-sdk).
+
+- **baseURL** _string_
+
+  API base URL. Defaults to `https://api.speechify.ai`.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  Defaults to the global `fetch` function.
+
+## Speech Models
+
+You can create models that call the [Speechify speech API](https://docs.speechify.ai/build/api-reference/v1/audio/speech) using the `.speech()` factory method:
+
+```ts
+import { generateSpeech } from 'ai';
+import { speechify } from '@speechify/ai-sdk-provider';
+
+const { audio } = await generateSpeech({
+  model: speechify.speech('simba-3.2'),
+  text: 'Hello from Speechify and the AI SDK.',
+  voice: 'harper_32',
+});
+```
+
+| Model       | Languages                                                           |
+| ----------- | ------------------------------------------------------------------- |
+| `simba-3.2` | English. Speechify's lowest-latency model.                          |
+| `simba-3.0` | English, German, Spanish, French, Italian and Brazilian Portuguese. |
+
+A voice works with a model when the model appears in that voice's `models` list in [`GET /v1/voices`](https://docs.speechify.ai/build/api-reference/v1/voices/get).
+
+### Supported Parameters
+
+- **text** _string_ (required)
+
+  The text to convert to speech, as plain text or SSML, up to 2,000 characters.
+
+- **voice** _string_
+
+  The Speechify voice ID, including cloned voices. Defaults to `'harper_32'`.
+
+- **outputFormat** _string_
+
+  `'mp3'` (default), `'wav'`, `'ogg'`, `'aac'` or `'pcm'`, or a codec string with sample rate and bitrate such as `'mp3_24000_128'`, `'pcm_16000'` or `'ulaw_8000'`.
+
+- **speed** _number_
+
+  Speech rate multiplier from 0.5 to 100, applied as SSML `<prosody rate>`.
+
+- **language** _string_
+
+  An ISO 639-1 code such as `'de'`, or a locale such as `'de-DE'`.
+
+<Note>
+  The `instructions` parameter is not supported by Speechify speech models and
+  will be ignored with a warning.
+</Note>
+
+### Provider Options
+
+You can pass additional provider-specific options using the `providerOptions` argument:
+
+```ts
+import { generateSpeech } from 'ai';
+import {
+  speechify,
+  type SpeechifySpeechModelOptions,
+} from '@speechify/ai-sdk-provider';
+
+const result = await generateSpeech({
+  model: speechify.speech('simba-3.0'),
+  text: 'Guten Tag!',
+  voice: 'anton',
+  language: 'de',
+  providerOptions: {
+    speechify: {
+      loudnessNormalization: true,
+    } satisfies SpeechifySpeechModelOptions,
+  },
+});
+```
+
+The following provider options are available:
+
+- **loudnessNormalization** _boolean_
+
+  Normalize the audio to -14 LUFS. Adds latency. Defaults to `false`.
+
+- **textNormalization** _boolean_
+
+  Read numbers, dates and similar tokens as words. Defaults to `true`.
+
+### Provider Metadata
+
+Every result includes Speechify's speech marks and billing count under `providerMetadata.speechify`:
+
+```ts
+import type { SpeechifySpeechProviderMetadata } from '@speechify/ai-sdk-provider';
+
+const { speechMarks, billableCharactersCount } = result.providerMetadata
+  .speechify as SpeechifySpeechProviderMetadata;
+
+for (const word of speechMarks?.chunks ?? []) {
+  console.log(word.value, word.start_time, word.end_time);
+}
+```
+
+Mark times are in milliseconds, and `start` and `end` index characters of the input text.
+
+## Resources
+
+- [Speechify AI SDK guide](https://docs.speechify.ai/build/guides/integrations/vercel-ai-sdk?utm_source=ai-sdk.dev&utm_medium=docs&utm_campaign=vercel-ai-sdk)
+- [Provider repository](https://github.com/Speechify-AI/ai-sdk-provider)
+- [npm package](https://www.npmjs.com/package/@speechify/ai-sdk-provider)
+- [Speechify API reference](https://docs.speechify.ai/build/api-reference/v1/audio/speech)
