@@ -275,7 +275,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     | StreamingUIMessageState<UI_MESSAGE>
     | undefined = undefined;
   private jobExecutor = new SerialJobExecutor();
-  private activeProcessingCallbackCount = 0;
+  private processingCallbackInvocationCount = 0;
   private activeStopCount = 0;
   private stopGeneration = 0;
 
@@ -726,15 +726,16 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
   /**
    * Abort the current request, keep the generated tokens if any, and wait for
-   * the request pipeline to finish. When a blocking processing callback is
-   * active, remaining callback work is drained in the background to avoid a
-   * reentrant wait cycle.
+   * the request pipeline to finish. When called reentrantly during the
+   * invocation of a blocking processing callback, remaining work is drained in
+   * the background to avoid waiting for the callback that called stop.
    */
   stop = async () => {
     this.activeStopCount++;
     this.stopGeneration++;
 
-    const isProcessingCallback = this.activeProcessingCallbackCount > 0;
+    const isProcessingCallbackInvocation =
+      this.processingCallbackInvocationCount > 0;
     const activeResumeRequest = this.activeResumeRequest;
     const activeResponse = this.activeResponse;
 
@@ -755,11 +756,11 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       await this.jobExecutor.waitForIdle();
     };
 
-    // Awaiting executor quiescence while a blocking callback is active can
-    // make stop and that callback wait for each other. Abort synchronously,
-    // let the callback continue, and finish draining in the background while
-    // keeping automatic requests disabled.
-    if (isProcessingCallback) {
+    // Awaiting executor quiescence while invoking a blocking callback can make
+    // stop and that callback wait for each other. Abort synchronously, let the
+    // callback continue, and finish draining in the background while keeping
+    // automatic requests disabled.
+    if (isProcessingCallbackInvocation) {
       void finishStopping().finally(() => {
         this.activeStopCount--;
       });
@@ -792,15 +793,15 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     );
   }
 
-  private async runProcessingCallback<T>(
+  private runProcessingCallback<T>(
     callback: () => T | PromiseLike<T>,
-  ): Promise<T> {
-    this.activeProcessingCallbackCount++;
+  ): T | PromiseLike<T> {
+    this.processingCallbackInvocationCount++;
 
     try {
-      return await callback();
+      return callback();
     } finally {
-      this.activeProcessingCallbackCount--;
+      this.processingCallbackInvocationCount--;
     }
   }
 
@@ -1103,8 +1104,6 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           resetStateOnMessageIdChange: trigger === 'resume-stream',
           resetStateOnFirstMessageStart:
             trigger === 'resume-stream' && this.transport.resumeStreamIsReplay,
-          // Track the complete callback lifetime, including asynchronous
-          // continuations, so stop can avoid waiting on its executor job.
           onToolCall:
             onToolCall == null
               ? undefined

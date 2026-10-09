@@ -1242,7 +1242,7 @@ describe('Chat', () => {
     expect(chat.status).toBe('ready');
   });
 
-  it('should drain a pending tool callback in the background after stop resolves', async () => {
+  it('should wait for a pending tool callback and queued executor work before an external stop resolves', async () => {
     const callbackStarted = createResolvablePromise<void>();
     const callbackCanFinish = createResolvablePromise<void>();
     const toolOutputFinished = createResolvablePromise<void>();
@@ -1306,26 +1306,29 @@ describe('Chat', () => {
     });
 
     await vi.advanceTimersByTimeAsync(0);
-    expect(stopSettled).toBe(true);
-    expect(events).toEqual(['tool-callback-started', 'stop-finished']);
+    expect(stopSettled).toBe(false);
+    expect(events).toEqual(['tool-callback-started']);
 
-    chat.messages = [];
     callbackCanFinish.resolve();
-    await stopPromise;
-
-    await Promise.all([sendPromise, toolOutputFinished.promise]);
+    await Promise.all([stopPromise, sendPromise, toolOutputFinished.promise]);
     await vi.advanceTimersByTimeAsync(0);
 
     expect(toolOutputError).toBeUndefined();
     expect(events).toEqual([
       'tool-callback-started',
-      'stop-finished',
       'tool-output-finished',
+      'stop-finished',
     ]);
-    expect(chat.messages).toEqual([]);
+    expect(chat.messages[1]?.parts).toContainEqual({
+      type: 'tool-test-tool',
+      toolCallId: 'tool-call-0',
+      state: 'output-available',
+      input: { testArg: 'test-value' },
+      output: 'test-output',
+    });
   });
 
-  it('should allow a tool callback to await stop after yielding', async () => {
+  it('should allow a tool callback to await stop during its invocation', async () => {
     const callbackStarted = createResolvablePromise<void>();
     const callbackReturned = createResolvablePromise<void>();
     let chat: TestChat;
@@ -1354,7 +1357,6 @@ describe('Chat', () => {
       },
       onToolCall: async () => {
         callbackStarted.resolve();
-        await Promise.resolve();
         await chat.stop();
         callbackReturned.resolve();
       },
@@ -3112,7 +3114,7 @@ describe('Chat', () => {
   });
 
   describe('sendAutomaticallyWhen', () => {
-    it('should allow the async predicate to await stop after yielding', async () => {
+    it('should allow the async predicate to await stop during its invocation', async () => {
       const predicateStarted = createResolvablePromise<void>();
       const predicateReturned = createResolvablePromise<void>();
       const sendMessages = vi.fn(
@@ -3142,7 +3144,6 @@ describe('Chat', () => {
         },
         sendAutomaticallyWhen: async () => {
           predicateStarted.resolve();
-          await Promise.resolve();
           await chat.stop();
           predicateReturned.resolve();
           return true;
