@@ -12,6 +12,181 @@ function emit(events: PiSessionEvent[], state: PiTranslatorState) {
 }
 
 describe('translatePiEvent', () => {
+  it.each(['', 'native output'])(
+    'projects text %j without an undefined details member',
+    text => {
+      const state = createPiTranslatorState();
+      translatePiEvent({ type: 'turn_start' }, state);
+      translatePiEvent(
+        {
+          type: 'tool_execution_start',
+          toolCallId: 'file-call',
+          toolName: 'ls',
+          args: {},
+        },
+        state,
+      );
+      const result = { content: [{ type: 'text', text }], details: undefined };
+      const events = translatePiEvent(
+        {
+          type: 'tool_execution_end',
+          toolCallId: 'file-call',
+          toolName: 'ls',
+          result,
+        },
+        state,
+      );
+
+      expect(events[0]).toMatchObject({
+        type: 'tool-result',
+        toolCallId: 'file-call',
+        result: text,
+      });
+      expect(JSON.parse(JSON.stringify(events[0]))).toEqual(events[0]);
+      expect(Object.prototype.hasOwnProperty.call(result, 'details')).toBe(
+        true,
+      );
+    },
+  );
+
+  it.each([false, true])(
+    'retains native result details and error semantics (error=%s)',
+    isError => {
+      const state = createPiTranslatorState();
+      translatePiEvent({ type: 'turn_start' }, state);
+      translatePiEvent(
+        {
+          type: 'tool_execution_start',
+          toolCallId: 'file-call',
+          toolName: 'grep',
+          args: {},
+        },
+        state,
+      );
+      const result = {
+        content: [{ type: 'text', text: 'partial output' }],
+        details: { truncated: true, nextOffset: 20 },
+      };
+      const events = translatePiEvent(
+        {
+          type: 'tool_execution_end',
+          toolCallId: 'file-call',
+          toolName: 'grep',
+          result,
+          isError,
+        },
+        state,
+      );
+
+      expect(events[0]).toMatchObject({ type: 'tool-result', result });
+      expect('isError' in events[0] ? events[0].isError : false).toBe(isError);
+    },
+  );
+
+  it.each([
+    {
+      name: 'image content',
+      result: {
+        content: [{ type: 'image', data: 'AA==', mimeType: 'image/png' }],
+        details: undefined,
+      },
+      expected: {
+        content: [{ type: 'image', data: 'AA==', mimeType: 'image/png' }],
+      },
+    },
+    {
+      name: 'mixed text and image content',
+      result: {
+        content: [
+          { type: 'text', text: 'caption' },
+          { type: 'image', data: 'AA==', mimeType: 'image/png' },
+        ],
+        details: undefined,
+      },
+      expected: {
+        content: [
+          { type: 'text', text: 'caption' },
+          { type: 'image', data: 'AA==', mimeType: 'image/png' },
+        ],
+      },
+    },
+    {
+      name: 'an empty content array',
+      result: { content: [], details: undefined },
+      expected: { content: [] },
+    },
+    {
+      name: 'additional envelope fields',
+      result: {
+        content: [{ type: 'text', text: 'done' }],
+        details: undefined,
+        terminate: true,
+      },
+      expected: {
+        content: [{ type: 'text', text: 'done' }],
+        terminate: true,
+      },
+    },
+  ])('retains $name in a JSON-safe envelope', ({ result, expected }) => {
+    const state = createPiTranslatorState();
+    translatePiEvent({ type: 'turn_start' }, state);
+    translatePiEvent(
+      {
+        type: 'tool_execution_start',
+        toolCallId: 'file-call',
+        toolName: 'read',
+        args: {},
+      },
+      state,
+    );
+    const events = translatePiEvent(
+      {
+        type: 'tool_execution_end',
+        toolCallId: 'file-call',
+        toolName: 'read',
+        result,
+      },
+      state,
+    );
+
+    expect(events[0]).toMatchObject({
+      type: 'tool-result',
+      result: expected,
+    });
+    expect(JSON.parse(JSON.stringify(events[0]))).toEqual(events[0]);
+    expect(Object.prototype.hasOwnProperty.call(result, 'details')).toBe(true);
+  });
+
+  it('projects empty text from flat tool results', () => {
+    const state = createPiTranslatorState();
+    translatePiEvent({ type: 'turn_start' }, state);
+    translatePiEvent(
+      {
+        type: 'tool_execution_start',
+        toolCallId: 'file-call',
+        toolName: 'ls',
+        args: {},
+      },
+      state,
+    );
+    const events = translatePiEvent(
+      {
+        type: 'tool_result',
+        toolCallId: 'file-call',
+        toolName: 'ls',
+        content: [{ type: 'text', text: '' }],
+        details: undefined,
+      },
+      state,
+    );
+
+    expect(events[0]).toMatchObject({
+      type: 'tool-result',
+      result: '',
+    });
+    expect(JSON.parse(JSON.stringify(events[0]))).toEqual(events[0]);
+  });
+
   it('drops events before turn_start', () => {
     const state = createPiTranslatorState();
     const out = translatePiEvent(

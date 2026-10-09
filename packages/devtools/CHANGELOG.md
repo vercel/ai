@@ -1,5 +1,12 @@
 # @ai-sdk/devtools
 
+## 1.0.40
+
+### Patch Changes
+
+- Updated dependencies [e27cc64]
+  - ai@7.0.137
+
 ## 1.0.39
 
 ### Patch Changes

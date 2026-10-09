@@ -4,16 +4,16 @@ type GoogleModelCapabilities = {
   usesGemini3Features: boolean;
 };
 
-const gemini1ModelPattern = /(^|\/)gemini-1(?:[.-]|$)/i;
-const gemini2ModelPattern = /(^|\/)gemini-2(?:[.-]|$)/i;
-const gemini25ModelPattern = /(^|\/)gemini-2\.5(?:[.-]|$)/i;
-const geminiModelPattern = /(^|\/)gemini-/i;
+const gemini1ModelPattern = /(^|[/.])gemini-1(?:[.-]|$)/i;
+const gemini2ModelPattern = /(^|[/.])gemini-2(?:[.-]|$)/i;
+const gemini25ModelPattern = /(^|[/.])gemini-2\.5(?:[.-]|$)/i;
+const geminiModelPattern = /(^|[/.])gemini-/i;
 
 function isKnownPreGemini2Model(modelId: string): boolean {
   return (
     gemini1ModelPattern.test(modelId) ||
-    /(^|\/)gemini-pro(?:-vision)?$/i.test(modelId) ||
-    /(^|\/)gemini-robotics-er-1\.5(?:[.-]|$)/i.test(modelId)
+    /(^|[/.])gemini-pro(?:-vision)?$/i.test(modelId) ||
+    /(^|[/.])gemini-robotics-er-1\.5(?:[.-]|$)/i.test(modelId)
   );
 }
 

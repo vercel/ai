@@ -19,7 +19,7 @@ import {
   type Tool,
 } from '@ai-sdk/provider-utils';
 import { dynamicTool, tool, type ToolSet } from 'ai';
-import Ajv from 'ajv';
+import Ajv, { type ErrorObject } from 'ajv';
 import Ajv2020 from 'ajv/dist/2020.js';
 
 /**
@@ -140,6 +140,29 @@ function resolveToolDescription<TOOLS extends ToolSet>({
         });
 }
 
+function formatAjvError(error: ErrorObject): string {
+  const path = `data${error.instancePath}`;
+
+  switch (error.keyword) {
+    case 'enum':
+      return `${path} must be one of ${error.params.allowedValues
+        .map((value: unknown) => JSON.stringify(value))
+        .join(', ')}`;
+    case 'additionalProperties':
+      return `${path} has unexpected property ${JSON.stringify(
+        error.params.additionalProperty,
+      )}`;
+    case 'const':
+      return `${path} must equal ${JSON.stringify(error.params.allowedValue)}`;
+    case 'required':
+      return `${path} is missing required property ${JSON.stringify(
+        error.params.missingProperty,
+      )}`;
+    default:
+      return `${path} ${error.message ?? 'is invalid'}`;
+  }
+}
+
 /**
  * Reconstructs tool objects from serializable tool definitions inside a step.
  *
@@ -151,6 +174,7 @@ export function resolveSerializableTools(
   tools: Record<string, SerializableToolDef>,
 ): ToolSet {
   const ajvOptions = {
+    allErrors: true,
     strict: false,
     validateFormats: false,
   } as const;
@@ -175,7 +199,7 @@ export function resolveSerializableTools(
         }
         return {
           success: false,
-          error: new Error(schemaAjv.errorsText(validateFn.errors)),
+          error: new Error(validateFn.errors!.map(formatAjvError).join(', ')),
         };
       },
     });

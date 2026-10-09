@@ -172,6 +172,7 @@ export interface WorkflowChatTransportOptions<UI_MESSAGE extends UIMessage> {
 
   /**
    * Maximum number of consecutive errors allowed during reconnection attempts.
+   * Streams that end without receiving any UI message chunks count as errors.
    * Defaults to 3 if not provided.
    */
   maxConsecutiveErrors?: number;
@@ -491,6 +492,7 @@ export class WorkflowChatTransport<
       useExplicitStartIndex = false;
 
       try {
+        const streamStartIndex = chunkIndex;
         const chunkStream = parseJsonEventStream({
           stream: response.body,
           schema: uiMessageChunkSchema,
@@ -510,7 +512,10 @@ export class WorkflowChatTransport<
             gotFinish = true;
           }
         }
-        // Reset consecutive error count only after successful stream parsing
+        if (chunkIndex === streamStartIndex) {
+          throw new Error('Reconnect stream ended without receiving chunks.');
+        }
+        // Reset consecutive errors only after successful parsing with progress.
         consecutiveErrors = 0;
       } catch (error) {
         console.error('Error in chat GET reconnectToStream', error);
