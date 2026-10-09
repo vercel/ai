@@ -3,6 +3,7 @@ import {
   DefaultGeneratedFile,
   type GeneratedFile,
 } from '../generate-text/generated-file';
+import { InvalidResponseDataError } from '@ai-sdk/provider';
 /**
  * A generated audio file.
  */
