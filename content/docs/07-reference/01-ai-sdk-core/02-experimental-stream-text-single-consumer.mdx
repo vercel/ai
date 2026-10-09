@@ -1,9 +1,9 @@
 ---
-title: experimental_streamText
+title: experimental_streamTextSingleConsumer
 description: Stream with the streamText execution engine without a replay buffer or unused final results.
 ---
 
-# `experimental_streamText()`
+# `experimental_streamTextSingleConsumer()`
 
 <Note>This API is experimental and may change in future versions.</Note>
 
@@ -12,7 +12,7 @@ with one stream consumer and no replay buffer. Use it when you forward or proces
 an output once and do not need to read the complete content afterward.
 
 ```ts
-import { experimental_streamText as streamText } from 'ai';
+import { experimental_streamTextSingleConsumer as streamText } from 'ai';
 __PROVIDER_IMPORT__;
 
 const result = streamText({
@@ -41,7 +41,11 @@ not silently skipped. The existing error semantics also apply: use `onError` or
 `stream` to observe provider errors; `textStream` contains only text deltas.
 
 ```ts
-import { experimental_streamText as streamText, isStepCount, tool } from 'ai';
+import {
+  experimental_streamTextSingleConsumer as streamText,
+  isStepCount,
+  tool,
+} from 'ai';
 import { z } from 'zod/v4';
 __PROVIDER_IMPORT__;
 
@@ -66,8 +70,8 @@ for await (const part of result.stream) {
 
 ## Memory usage
 
-`experimental_streamText` never saves a copy of the stream so that you can read it
-again. This removes one source of memory growth in ordinary `streamText`.
+`experimental_streamTextSingleConsumer` never saves a copy of the stream so that
+you can read it again. This removes one source of memory growth in ordinary `streamText`.
 
 This API reduces memory use; it does not set a fixed memory limit. Providers, UI
 message assembly, and your own code can also keep output in memory. For example,
@@ -75,7 +79,7 @@ appending every chunk to a string in your application still builds the full answ
 
 ## Return value
 
-Returns an `Experimental_StreamingTextResult` immediately, with these members:
+Returns an `Experimental_StreamTextSingleConsumerResult` immediately, with these members:
 
 | Member                                                                                    | Behavior                                                                                                  |
 | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |

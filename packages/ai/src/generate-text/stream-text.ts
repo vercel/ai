@@ -3464,7 +3464,7 @@ class DefaultStreamTextResult<
     if (!this.retention.replay && this.outputSpecification == null) {
       throw new UnsupportedFunctionalityError({
         functionality:
-          'partialOutputStream without an explicit output specification in experimental_streamText',
+          'partialOutputStream without an explicit output specification in experimental_streamTextSingleConsumer',
       });
     }
     return this.asIterableStream(

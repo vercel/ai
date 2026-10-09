@@ -7,10 +7,12 @@ import {
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
-import { Output } from './index';
+import {
+  experimental_streamTextSingleConsumer as streamTextWithMinimalRetention,
+  Output,
+} from './index';
 import { isStepCount } from './stop-condition';
 import { streamText } from './stream-text';
-import { streamTextWithMinimalRetention } from './stream-text-with-minimal-retention';
 
 const usage = {
   inputTokens: {
@@ -48,7 +50,7 @@ function modelWithSteps(...steps: LanguageModelV4StreamPart[][]) {
 // The same behavioral checks run against both facades of the execution engine.
 describe.each([
   ['streamText', streamText],
-  ['experimental_streamText', streamTextWithMinimalRetention],
+  ['experimental_streamTextSingleConsumer', streamTextWithMinimalRetention],
 ] as const)('%s behavior', (_name, generate) => {
   it('executes tools and sends complete history into the next step', async () => {
     const execute = vi.fn(
