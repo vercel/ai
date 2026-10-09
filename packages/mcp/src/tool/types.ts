@@ -59,7 +59,7 @@ type McpToolBase<INPUT = unknown, OUTPUT = CallToolResult> = Tool<
 > & {
   execute: (
     input: INPUT,
-    options?: ToolExecutionOptions<{}>,
+    options?: ToolExecutionOptions,
   ) => ReturnType<NonNullable<Tool<INPUT, OUTPUT>['execute']>>;
   _meta?: ToolMeta;
 };
