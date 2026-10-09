@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22355,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22355-add-tool-output-earlier-message.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22355-add-tool-output-earlier-message.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22355_REPRODUCED: addToolOutput did not update the earlier tool call"
+  }
+}
