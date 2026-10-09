@@ -2653,6 +2653,7 @@ describe('Chat', () => {
             output: { price: 12 },
             providerExecuted: true,
             preliminary: undefined,
+            resultPosition: { stepIndex: 0, contentIndex: 1 },
             callProviderMetadata: undefined,
             resultProviderMetadata: undefined,
             title: undefined,
