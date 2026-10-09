@@ -83,6 +83,10 @@ export async function prepareTools({
   for (const tool of tools) {
     switch (tool.type) {
       case 'function': {
+        if (toolChoice?.type !== 'none') {
+          validateFunctionToolInputSchema(tool);
+        }
+
         const cacheControl = validator.getCacheControl(tool.providerOptions, {
           type: 'tool definition',
           canCache: true,
@@ -555,5 +559,26 @@ export async function prepareTools({
         functionality: `tool choice type: ${_exhaustiveCheck}`,
       });
     }
+  }
+}
+
+function validateFunctionToolInputSchema(
+  tool: Extract<
+    NonNullable<LanguageModelV4CallOptions['tools']>[number],
+    { type: 'function' }
+  >,
+) {
+  const schema = tool.inputSchema;
+
+  if (
+    schema.type !== 'object' ||
+    schema.oneOf != null ||
+    schema.anyOf != null ||
+    schema.allOf != null
+  ) {
+    throw new UnsupportedFunctionalityError({
+      functionality: 'Anthropic tool input schema',
+      message: `Tool '${tool.name}' has an unsupported input schema for Anthropic. Anthropic tool input schemas must have type 'object' and must not use oneOf, anyOf, or allOf at the top level. Wrap the union in an object property instead.`,
+    });
   }
 }

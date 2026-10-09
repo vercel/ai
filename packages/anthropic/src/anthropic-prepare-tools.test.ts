@@ -1,3 +1,4 @@
+import type { JSONSchema7 } from '@ai-sdk/provider';
 import { describe, it, expect } from 'vitest';
 import { prepareTools } from './anthropic-prepare-tools';
 import { CacheControlValidator } from './get-cache-control';
@@ -68,6 +69,114 @@ describe('prepareTools', () => {
     ]);
     expect(result.toolChoice).toBeUndefined();
     expect(result.toolWarnings).toEqual([]);
+  });
+
+  it('should reject function tools with root union input schemas', async () => {
+    await expect(
+      prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'lookup',
+            description: 'Look up an item',
+            inputSchema: {
+              oneOf: [
+                {
+                  type: 'object',
+                  properties: { id: { type: 'string' } },
+                  required: ['id'],
+                },
+                {
+                  type: 'object',
+                  properties: { query: { type: 'string' } },
+                  required: ['query'],
+                },
+              ],
+            },
+          },
+        ],
+        toolChoice: undefined,
+        supportsStructuredOutput: true,
+        supportsStrictTools: true,
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_UnsupportedFunctionalityError',
+      message:
+        "Tool 'lookup' has an unsupported input schema for Anthropic. Anthropic tool input schemas must have type 'object' and must not use oneOf, anyOf, or allOf at the top level. Wrap the union in an object property instead.",
+    });
+  });
+
+  it.each(['oneOf', 'anyOf', 'allOf'] as const)(
+    'should reject object-root function tools with top-level %s',
+    async combinator => {
+      await expect(
+        prepareTools({
+          tools: [
+            {
+              type: 'function',
+              name: 'lookup',
+              description: 'Look up an item',
+              inputSchema: {
+                type: 'object',
+                properties: {},
+                [combinator]: [
+                  {
+                    type: 'object',
+                    properties: { id: { type: 'string' } },
+                  },
+                ],
+              },
+            },
+          ],
+          toolChoice: undefined,
+          supportsStructuredOutput: true,
+          supportsStrictTools: true,
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_UnsupportedFunctionalityError',
+        message:
+          "Tool 'lookup' has an unsupported input schema for Anthropic. Anthropic tool input schemas must have type 'object' and must not use oneOf, anyOf, or allOf at the top level. Wrap the union in an object property instead.",
+      });
+    },
+  );
+
+  it('should allow unions nested in object properties', async () => {
+    const inputSchema: JSONSchema7 = {
+      type: 'object',
+      properties: {
+        request: {
+          oneOf: [
+            {
+              type: 'object',
+              properties: { id: { type: 'string' } },
+              required: ['id'],
+            },
+            {
+              type: 'object',
+              properties: { query: { type: 'string' } },
+              required: ['query'],
+            },
+          ],
+        },
+      },
+      required: ['request'],
+    };
+
+    const result = await prepareTools({
+      tools: [
+        {
+          type: 'function',
+          name: 'lookup',
+          description: 'Look up an item',
+          inputSchema,
+        },
+      ],
+      toolChoice: undefined,
+      supportsStructuredOutput: true,
+      supportsStrictTools: true,
+    });
+
+    expect(result.tools?.[0]).toMatchObject({ input_schema: inputSchema });
   });
 
   it('should correctly preserve tool input examples', async () => {
@@ -1466,7 +1575,7 @@ describe('prepareTools', () => {
           type: 'function',
           name: 'testFunction',
           description: 'Test',
-          inputSchema: {},
+          inputSchema: { type: 'object', properties: {} },
         },
       ],
       toolChoice: { type: 'auto' },
@@ -1484,7 +1593,7 @@ describe('prepareTools', () => {
           type: 'function',
           name: 'testFunction',
           description: 'Test',
-          inputSchema: {},
+          inputSchema: { type: 'object', properties: {} },
         },
       ],
       toolChoice: { type: 'required' },
@@ -1502,7 +1611,14 @@ describe('prepareTools', () => {
           type: 'function',
           name: 'testFunction',
           description: 'Test',
-          inputSchema: {},
+          inputSchema: {
+            oneOf: [
+              {
+                type: 'object',
+                properties: { value: { type: 'string' } },
+              },
+            ],
+          },
         },
       ],
       toolChoice: { type: 'none' },
@@ -1520,7 +1636,7 @@ describe('prepareTools', () => {
           type: 'function',
           name: 'testFunction',
           description: 'Test',
-          inputSchema: {},
+          inputSchema: { type: 'object', properties: {} },
         },
       ],
       toolChoice: { type: 'tool', toolName: 'testFunction' },
@@ -1537,7 +1653,7 @@ describe('prepareTools', () => {
           type: 'function',
           name: 'testFunction',
           description: 'Test',
-          inputSchema: {},
+          inputSchema: { type: 'object', properties: {} },
           providerOptions: {
             anthropic: {
               cacheControl: { type: 'ephemeral' },
@@ -1557,7 +1673,10 @@ describe('prepareTools', () => {
             "type": "ephemeral",
           },
           "description": "Test",
-          "input_schema": {},
+          "input_schema": {
+            "properties": {},
+            "type": "object",
+          },
           "name": "testFunction",
         },
       ]
@@ -1572,7 +1691,7 @@ describe('prepareTools', () => {
           type: 'function',
           name: 'tool1',
           description: 'Test 1',
-          inputSchema: {},
+          inputSchema: { type: 'object', properties: {} },
           providerOptions: {
             anthropic: { cacheControl: { type: 'ephemeral' } },
           },
@@ -1581,7 +1700,7 @@ describe('prepareTools', () => {
           type: 'function',
           name: 'tool2',
           description: 'Test 2',
-          inputSchema: {},
+          inputSchema: { type: 'object', properties: {} },
           providerOptions: {
             anthropic: { cacheControl: { type: 'ephemeral' } },
           },
@@ -1590,7 +1709,7 @@ describe('prepareTools', () => {
           type: 'function',
           name: 'tool3',
           description: 'Test 3',
-          inputSchema: {},
+          inputSchema: { type: 'object', properties: {} },
           providerOptions: {
             anthropic: { cacheControl: { type: 'ephemeral' } },
           },
@@ -1599,7 +1718,7 @@ describe('prepareTools', () => {
           type: 'function',
           name: 'tool4',
           description: 'Test 4',
-          inputSchema: {},
+          inputSchema: { type: 'object', properties: {} },
           providerOptions: {
             anthropic: { cacheControl: { type: 'ephemeral' } },
           },
@@ -1608,7 +1727,7 @@ describe('prepareTools', () => {
           type: 'function',
           name: 'tool5',
           description: 'Test 5 (should be rejected)',
-          inputSchema: {},
+          inputSchema: { type: 'object', properties: {} },
           providerOptions: {
             anthropic: { cacheControl: { type: 'ephemeral' } },
           },
@@ -2111,13 +2230,13 @@ describe('rejectsForcedToolUse', () => {
       type: 'function' as const,
       name: 'testFunction',
       description: 'Test',
-      inputSchema: {},
+      inputSchema: { type: 'object' as const, properties: {} },
     },
     {
       type: 'function' as const,
       name: 'otherFunction',
       description: 'Other',
-      inputSchema: {},
+      inputSchema: { type: 'object' as const, properties: {} },
     },
   ];
 

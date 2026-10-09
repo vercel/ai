@@ -1,9 +1,10 @@
-import type {
-  LanguageModelV4,
-  LanguageModelV4CallOptions,
-  LanguageModelV4StreamPart,
-  LanguageModelV4GenerateResult,
-  LanguageModelV4StreamResult,
+import {
+  UnsupportedFunctionalityError,
+  type LanguageModelV4,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4StreamPart,
+  type LanguageModelV4GenerateResult,
+  type LanguageModelV4StreamResult,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -59,6 +60,13 @@ export class GatewayLanguageModel implements LanguageModelV4 {
 
   private async getArgs(options: LanguageModelV4CallOptions) {
     const { abortSignal: _abortSignal, ...optionsWithoutSignal } = options;
+
+    if (
+      this.modelId.startsWith('anthropic/') &&
+      options.toolChoice?.type !== 'none'
+    ) {
+      validateAnthropicToolInputSchemas(options.tools);
+    }
 
     return {
       args: this.maybeEncodeFileParts(optionsWithoutSignal),
@@ -231,6 +239,30 @@ export class GatewayLanguageModel implements LanguageModelV4 {
       'ai-language-model-id': modelId,
       'ai-language-model-streaming': String(streaming),
     };
+  }
+}
+
+function validateAnthropicToolInputSchemas(
+  tools: LanguageModelV4CallOptions['tools'],
+) {
+  for (const tool of tools ?? []) {
+    if (tool.type !== 'function') {
+      continue;
+    }
+
+    const schema = tool.inputSchema;
+
+    if (
+      schema.type !== 'object' ||
+      schema.oneOf != null ||
+      schema.anyOf != null ||
+      schema.allOf != null
+    ) {
+      throw new UnsupportedFunctionalityError({
+        functionality: 'Anthropic tool input schema',
+        message: `Tool '${tool.name}' has an unsupported input schema for Anthropic. Anthropic tool input schemas must have type 'object' and must not use oneOf, anyOf, or allOf at the top level. Wrap the union in an object property instead.`,
+      });
+    }
   }
 }
 
