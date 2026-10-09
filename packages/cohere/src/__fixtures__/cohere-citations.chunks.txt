@@ -1,0 +1,8 @@
+{"id":"68475c80-574b-4c65-98a4-e81cebab5dce","type":"message-start","delta":{"message":{"role":"assistant","content":[],"tool_plan":"","tool_calls":[],"citations":[]}}}
+{"type":"content-start","index":0,"delta":{"message":{"content":{"type":"text","text":""}}}}
+{"type":"content-delta","index":0,"delta":{"message":{"content":{"text":"The key benefits are "}}}}
+{"type":"content-delta","index":0,"delta":{"message":{"content":{"text":"automation of tasks."}}}}
+{"type":"content-end","index":0}
+{"type":"citation-start","index":0,"delta":{"message":{"citations":{"start":21,"end":40,"text":"automation of tasks","sources":[{"type":"document","id":"doc:0","document":{"id":"doc:0","text":"AI provides: 1. Automation of tasks 2. Better decision-making 3. Cost reduction","title":"benefits.txt"}}],"type":"TEXT_CONTENT"}}}}
+{"type":"citation-end","index":0}
+{"type":"message-end","delta":{"finish_reason":"COMPLETE","usage":{"billed_units":{"input_tokens":39,"output_tokens":27},"tokens":{"input_tokens":1683,"output_tokens":62}}}}
