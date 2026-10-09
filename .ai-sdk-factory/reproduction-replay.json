@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22374,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/workflow-agent-validation-feedback.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/workflow-agent-validation-feedback.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #22374 REPRODUCED: WorkflowAgent validation feedback omits actionable validation details"
+  }
+}
