@@ -2,8 +2,10 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { ToolListChangedNotificationSchema } from '@modelcontextprotocol/sdk/types.js';
 import { describe, expect, it, vi } from 'vitest';
-import type { ToolResultOutput } from '@ai-sdk/provider-utils';
-import { createHostToolMCPServer } from './host-tool-mcp-server';
+import {
+  createHostToolMCPServer,
+  type HostToolMCPInvocationResult,
+} from './host-tool-mcp-server';
 
 describe('createHostToolMCPServer', () => {
   it.each([
@@ -58,7 +60,7 @@ describe('createHostToolMCPServer', () => {
       isError: false,
     },
   ] satisfies Array<{
-    output: ToolResultOutput;
+    output: NonNullable<HostToolMCPInvocationResult['toolResult']>['output'];
     content: unknown[];
     isError: boolean;
   }>)(

@@ -6,8 +6,10 @@
  */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { convertHarnessToolModelOutput } from '@ai-sdk/harness/bridge';
-import type { ToolResultPart } from '@ai-sdk/provider-utils';
+import {
+  convertHarnessToolModelOutput,
+  type BridgeTurn,
+} from '@ai-sdk/harness/bridge';
 import { jsonSchemaToZodShape } from './json-schema-to-zod';
 
 type ToolSchema = {
@@ -53,7 +55,9 @@ for (const schema of schemas) {
         const data = (await res.json()) as {
           result?: unknown;
           isError?: boolean;
-          toolResult?: ToolResultPart;
+          toolResult?: Awaited<
+            ReturnType<BridgeTurn['requestToolResult']>
+          >['toolResult'];
         };
         if (data.toolResult != null) {
           const converted = convertHarnessToolModelOutput({

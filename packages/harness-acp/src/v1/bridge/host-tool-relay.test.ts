@@ -1,5 +1,4 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { ToolResultPart } from '@ai-sdk/provider-utils';
 import {
   catalogFingerprint,
   startHostToolRelay,
@@ -15,7 +14,11 @@ describe('startHostToolRelay', () => {
   ])(
     'filters images according to declared content types: %j',
     async ({ nonTextContentTypes }) => {
-      const toolResult: ToolResultPart = {
+      const toolResult: NonNullable<
+        Awaited<
+          ReturnType<HostToolRelayTurn['requestToolResult']>
+        >['toolResult']
+      > = {
         type: 'tool-result',
         toolCallId: 'call',
         toolName: 'inspect',

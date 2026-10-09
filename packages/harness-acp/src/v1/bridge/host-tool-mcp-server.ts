@@ -8,8 +8,10 @@ import {
   type Tool,
 } from '@modelcontextprotocol/sdk/types.js';
 import type { HarnessV1BridgeToolWire } from '@ai-sdk/harness';
-import { convertHarnessToolModelOutput } from '@ai-sdk/harness/bridge';
-import type { ToolResultPart } from '@ai-sdk/provider-utils';
+import {
+  convertHarnessToolModelOutput,
+  type BridgeTurn,
+} from '@ai-sdk/harness/bridge';
 
 declare const __PACKAGE_VERSION__: string | undefined;
 
@@ -21,7 +23,9 @@ const VERSION: string =
 export type HostToolMCPInvocationResult = {
   readonly output: unknown;
   readonly isError?: boolean;
-  readonly toolResult?: ToolResultPart;
+  readonly toolResult?: Awaited<
+    ReturnType<BridgeTurn['requestToolResult']>
+  >['toolResult'];
   readonly correlationToken: string;
 };
 

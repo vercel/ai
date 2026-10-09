@@ -2,7 +2,7 @@ import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { createServer, type IncomingMessage, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import type { HarnessV1BridgeToolWire } from '@ai-sdk/harness';
-import type { ToolResultPart } from '@ai-sdk/provider-utils';
+import type { BridgeTurn } from '@ai-sdk/harness/bridge';
 import type {
   ACPHostToolMCPTransport,
   ACPV1Settings,
@@ -13,6 +13,10 @@ import {
   HOST_TOOL_MCP_ENDPOINT_PATH,
   type HostToolMCPHttpEndpoint,
 } from './host-tool-mcp-http';
+
+type ToolResultPart = NonNullable<
+  Awaited<ReturnType<BridgeTurn['requestToolResult']>>['toolResult']
+>;
 
 export type HostToolCorrelationInvocation = {
   readonly token: string;

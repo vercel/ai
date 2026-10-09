@@ -3,7 +3,6 @@ import { readFile } from 'node:fs/promises';
 import { env } from 'node:process';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import type { HarnessV1BridgeToolWire } from '@ai-sdk/harness';
-import type { ToolResultPart } from '@ai-sdk/provider-utils';
 import {
   createHostToolMCPServer,
   type HostToolMCPInvocationResult,
@@ -164,7 +163,10 @@ function validateInvocationResult({
     output: value.output,
     ...(value.toolResult == null
       ? {}
-      : { toolResult: value.toolResult as unknown as ToolResultPart }),
+      : {
+          toolResult:
+            value.toolResult as unknown as HostToolMCPInvocationResult['toolResult'],
+        }),
     ...(value.isError ? { isError: true } : {}),
     correlationToken: value.correlationToken,
   };
