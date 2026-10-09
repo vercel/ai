@@ -1,6 +1,7 @@
 import {
   type LanguageModelV2CallWarning,
   type LanguageModelV2Prompt,
+  type LanguageModelV2ToolResultOutput,
   type LanguageModelV2ToolCallPart,
   type SharedV2ProviderOptions,
   UnsupportedFunctionalityError,
@@ -8,12 +9,7 @@ import {
 import {
   convertToBase64,
   parseProviderOptions,
-<<<<<<< HEAD
-=======
-  resolveFullMediaType,
-  resolveProviderReference,
   safeValidateTypes,
->>>>>>> 6aedb07c54 (fix: preserve web search context across stateless OpenAI Responses steps (#22346))
   validateTypes,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
@@ -27,48 +23,14 @@ import type {
   OpenAIResponsesFunctionCallOutput,
   OpenAIResponsesInput,
   OpenAIResponsesReasoning,
-<<<<<<< HEAD
-} from './openai-responses-api';
-=======
-  OpenAIResponsesToolCaller,
   OpenAIResponsesWebSearchCall,
 } from './openai-responses-api';
-import {
-  toolSearchInputSchema,
-  toolSearchOutputSchema,
-} from '../tool/tool-search';
-import {
-  programmaticToolCallingInputSchema,
-  programmaticToolCallingOutputSchema,
-} from '../tool/programmatic-tool-calling';
-import { webSearchOutputSchema } from '../tool/web-search';
-import {
-  getParallelToolCallMetadata,
-  type ParallelToolCallMetadata,
-} from './expand-parallel-tool-call';
-
-function serializeToolCallArguments(input: unknown): string {
-  return JSON.stringify(input === undefined ? {} : input);
-}
-
-function mapToolCaller(
-  caller:
-    | { type: 'direct' }
-    | { type: 'program'; callerId: string }
-    | undefined,
-): OpenAIResponsesToolCaller | undefined {
-  return caller == null
-    ? undefined
-    : caller.type === 'program'
-      ? { type: 'program', caller_id: caller.callerId }
-      : caller;
-}
 
 async function convertWebSearchToolResultOutput({
   output,
   id,
 }: {
-  output: LanguageModelV4ToolResultOutput;
+  output: LanguageModelV2ToolResultOutput;
   id: string;
 }): Promise<OpenAIResponsesWebSearchCall | undefined> {
   if (output.type !== 'json') {
@@ -95,7 +57,6 @@ async function convertWebSearchToolResultOutput({
         action: {
           type: 'search',
           ...(action.query != null && { query: action.query }),
-          ...(action.queries != null && { queries: action.queries }),
           ...(sources != null && { sources }),
         },
       };
@@ -122,263 +83,6 @@ async function convertWebSearchToolResultOutput({
       };
   }
 }
-
-async function convertFunctionToolResultOutput({
-  output,
-  toolName,
-  outputSchemaToolNames,
-  promptCacheBreakpoint,
-  providerOptionsName,
-  warnings,
-}: {
-  output: LanguageModelV4ToolResultOutput;
-  toolName: string;
-  outputSchemaToolNames: Set<string> | undefined;
-  promptCacheBreakpoint?: OpenAIPromptCacheBreakpoint;
-  providerOptionsName: string;
-  warnings: Array<SharedV4Warning>;
-}): Promise<OpenAIResponsesFunctionCallOutput['output']> {
-  // `output` is always a string, but for functions with output_schema OpenAI
-  // parses the contents of that string as JSON. Text-like results therefore
-  // need JSON.stringify to become valid JSON string literals.
-  const hasOutputSchema = outputSchemaToolNames?.has(toolName);
-  const convertScalarOutput = (
-    value: string,
-  ): OpenAIResponsesFunctionCallOutput['output'] =>
-    promptCacheBreakpoint == null
-      ? value
-      : [
-          {
-            type: 'input_text',
-            text: value,
-            prompt_cache_breakpoint: promptCacheBreakpoint,
-          },
-        ];
-
-  switch (output.type) {
-    case 'text':
-      return convertScalarOutput(
-        hasOutputSchema ? JSON.stringify(output.value) : output.value,
-      );
-    case 'error-text':
-    case 'error-json':
-      return convertScalarOutput(JSON.stringify({ error: output.value }));
-    case 'execution-denied': {
-      const reason = output.reason ?? 'Tool call execution denied.';
-      return convertScalarOutput(
-        hasOutputSchema ? JSON.stringify(reason) : reason,
-      );
-    }
-    case 'json':
-      return convertScalarOutput(JSON.stringify(output.value));
-    case 'content':
-      return output.value
-        .map(item => {
-          const promptCacheBreakpoint = getPromptCacheBreakpoint(
-            item.providerOptions,
-            providerOptionsName,
-          );
-          switch (item.type) {
-            case 'text': {
-              return {
-                type: 'input_text' as const,
-                text: item.text,
-                ...(promptCacheBreakpoint != null && {
-                  prompt_cache_breakpoint: promptCacheBreakpoint,
-                }),
-              };
-            }
-
-            case 'file': {
-              const topLevel = getTopLevelMediaType(item.mediaType);
-              const imageDetail =
-                item.providerOptions?.[providerOptionsName]?.imageDetail;
-
-              if (item.data.type === 'reference') {
-                const fileId = resolveProviderReference({
-                  reference: item.data.reference,
-                  provider: providerOptionsName,
-                });
-
-                if (topLevel === 'image') {
-                  return {
-                    type: 'input_image' as const,
-                    file_id: fileId,
-                    detail: imageDetail,
-                    ...(promptCacheBreakpoint != null && {
-                      prompt_cache_breakpoint: promptCacheBreakpoint,
-                    }),
-                  };
-                }
-
-                return {
-                  type: 'input_file' as const,
-                  file_id: fileId,
-                  ...(promptCacheBreakpoint != null && {
-                    prompt_cache_breakpoint: promptCacheBreakpoint,
-                  }),
-                };
-              }
-
-              if (item.data.type === 'data') {
-                const fullMediaType = resolveFullMediaType({ part: item });
-                if (topLevel === 'image') {
-                  return {
-                    type: 'input_image' as const,
-                    image_url: `data:${fullMediaType};base64,${convertToBase64(item.data.data)}`,
-                    detail: imageDetail,
-                    ...(promptCacheBreakpoint != null && {
-                      prompt_cache_breakpoint: promptCacheBreakpoint,
-                    }),
-                  };
-                }
-                return {
-                  type: 'input_file' as const,
-                  filename: item.filename ?? 'data',
-                  file_data: `data:${fullMediaType};base64,${convertToBase64(item.data.data)}`,
-                  ...(promptCacheBreakpoint != null && {
-                    prompt_cache_breakpoint: promptCacheBreakpoint,
-                  }),
-                };
-              }
-
-              if (item.data.type === 'url') {
-                if (topLevel === 'image') {
-                  return {
-                    type: 'input_image' as const,
-                    image_url: item.data.url.toString(),
-                    detail: imageDetail,
-                    ...(promptCacheBreakpoint != null && {
-                      prompt_cache_breakpoint: promptCacheBreakpoint,
-                    }),
-                  };
-                }
-                return {
-                  type: 'input_file' as const,
-                  file_url: item.data.url.toString(),
-                  ...(promptCacheBreakpoint != null && {
-                    prompt_cache_breakpoint: promptCacheBreakpoint,
-                  }),
-                };
-              }
-
-              warnings.push({
-                type: 'other',
-                message: `unsupported tool content part type: ${item.type} with data type: ${item.data.type}`,
-              });
-              return undefined;
-            }
-
-            default: {
-              warnings.push({
-                type: 'other',
-                message: `unsupported tool content part type: ${item.type}`,
-              });
-              return undefined;
-            }
-          }
-        })
-        .filter(isNonNullable);
-  }
-}
-
-type ParallelToolResultGroup = {
-  metadata: ParallelToolCallMetadata;
-  results: Array<LanguageModelV4ToolResultPart>;
-};
-
-function hasSameParallelToolCall(
-  first: ParallelToolCallMetadata,
-  second: ParallelToolCallMetadata,
-): boolean {
-  return (
-    first.itemId === second.itemId &&
-    first.toolCallId === second.toolCallId &&
-    first.toolName === second.toolName &&
-    first.input === second.input &&
-    first.count === second.count
-  );
-}
-
-function collectCompleteParallelToolResultGroups({
-  prompt,
-  providerOptionsName,
-}: {
-  prompt: LanguageModelV4Prompt;
-  providerOptionsName: string;
-}): Map<string, ParallelToolResultGroup> {
-  const pendingGroups = new Map<
-    string,
-    {
-      metadata: ParallelToolCallMetadata;
-      results: Map<number, LanguageModelV4ToolResultPart>;
-      invalid: boolean;
-    }
-  >();
-
-  for (const message of prompt) {
-    if (message.role !== 'tool') {
-      continue;
-    }
-
-    for (const part of message.content) {
-      if (part.type !== 'tool-result') {
-        continue;
-      }
-
-      const metadata = getParallelToolCallMetadata({
-        providerOptions: part.providerOptions,
-        providerOptionsName,
-      });
-
-      if (metadata == null) {
-        continue;
-      }
-
-      const existing = pendingGroups.get(metadata.toolCallId);
-      if (existing == null) {
-        pendingGroups.set(metadata.toolCallId, {
-          metadata,
-          results: new Map([[metadata.index, part]]),
-          invalid: false,
-        });
-        continue;
-      }
-
-      if (
-        !hasSameParallelToolCall(existing.metadata, metadata) ||
-        existing.results.has(metadata.index)
-      ) {
-        existing.invalid = true;
-        continue;
-      }
-
-      existing.results.set(metadata.index, part);
-    }
-  }
-
-  const completeGroups = new Map<string, ParallelToolResultGroup>();
-
-  for (const [toolCallId, group] of pendingGroups) {
-    if (group.invalid || group.results.size !== group.metadata.count) {
-      continue;
-    }
-
-    const results = Array.from({ length: group.metadata.count }, (_, index) =>
-      group.results.get(index),
-    );
-
-    if (results.every(isNonNullable)) {
-      completeGroups.set(toolCallId, {
-        metadata: group.metadata,
-        results,
-      });
-    }
-  }
-
-  return completeGroups;
-}
->>>>>>> 6aedb07c54 (fix: preserve web search context across stateless OpenAI Responses steps (#22346))
 
 type OpenAIPromptCacheBreakpoint = { mode: 'explicit' };
 
@@ -685,33 +389,9 @@ export async function convertToOpenAIResponsesInput({
 
             // assistant tool result parts are from provider-executed tools:
             case 'tool-result': {
-<<<<<<< HEAD
-=======
-              // Skip execution-denied results - these are synthetic results from denied
-              // approvals and have no corresponding item in OpenAI's store.
-              // Check both the direct type and if it was transformed to json with execution-denied inside
               if (
-                part.output.type === 'execution-denied' ||
-                (part.output.type === 'json' &&
-                  typeof part.output.value === 'object' &&
-                  part.output.value != null &&
-                  'type' in part.output.value &&
-                  part.output.value.type === 'execution-denied')
-              ) {
-                break;
-              }
-
-              if (hasConversation) {
-                break;
-              }
-
-              const resolvedResultToolName = toolNameMapping.toProviderToolName(
-                part.toolName,
-              );
-
-              if (
-                resolvedResultToolName === 'web_search' ||
-                resolvedResultToolName === 'web_search_preview'
+                part.toolName === 'web_search' ||
+                part.toolName === 'web_search_preview'
               ) {
                 const itemId =
                   (
@@ -736,103 +416,6 @@ export async function convertToOpenAIResponsesInput({
                 }
               }
 
-              if (part.toolName === toolSearchToolName) {
-                const itemId = (part.providerOptions?.[providerOptionsName]
-                  ?.itemId ??
-                  (
-                    part as {
-                      providerMetadata?: {
-                        [providerOptionsName]?: { itemId?: string };
-                      };
-                    }
-                  ).providerMetadata?.[providerOptionsName]?.itemId ??
-                  part.toolCallId) as string;
-
-                if (store) {
-                  input.push({ type: 'item_reference', id: itemId });
-                } else if (part.output.type === 'json') {
-                  const parsedOutput = await validateTypes({
-                    value: part.output.value,
-                    schema: toolSearchOutputSchema,
-                  });
-
-                  input.push({
-                    type: 'tool_search_output',
-                    id: itemId,
-                    execution: 'server',
-                    call_id: null,
-                    status: 'completed',
-                    tools: parsedOutput.tools,
-                  });
-                }
-
-                break;
-              }
-
-              if (resolvedResultToolName === 'programmatic_tool_calling') {
-                const itemId = (part.providerOptions?.[providerOptionsName]
-                  ?.itemId ??
-                  (
-                    part as {
-                      providerMetadata?: {
-                        [providerOptionsName]?: { itemId?: string };
-                      };
-                    }
-                  ).providerMetadata?.[providerOptionsName]?.itemId ??
-                  part.toolCallId) as string;
-
-                if (store) {
-                  input.push({ type: 'item_reference', id: itemId });
-                } else if (part.output.type === 'json') {
-                  const parsedOutput = await validateTypes({
-                    value: part.output.value,
-                    schema: programmaticToolCallingOutputSchema,
-                  });
-
-                  input.push({
-                    type: 'program_output',
-                    id: itemId,
-                    call_id: part.toolCallId,
-                    result: parsedOutput.result,
-                    status: parsedOutput.status,
-                  });
-                }
-                break;
-              }
-
-              /*
-               * Shell tool results are separate output items (shell_call_output)
-               * with their own item IDs distinct from the shell_call's item ID.
-               * Since the pipeline only preserves the shell_call's item ID in
-               * callProviderMetadata, we reconstruct the full shell_call_output
-               * instead of using an item_reference with the wrong ID.
-               */
-              if (hasShellTool && resolvedResultToolName === 'shell') {
-                if (part.output.type === 'json') {
-                  const parsedOutput = await validateTypes({
-                    value: part.output.value,
-                    schema: shellOutputSchema,
-                  });
-                  input.push({
-                    type: 'shell_call_output',
-                    call_id: part.toolCallId,
-                    output: parsedOutput.output.map(item => ({
-                      stdout: item.stdout,
-                      stderr: item.stderr,
-                      outcome:
-                        item.outcome.type === 'timeout'
-                          ? { type: 'timeout' as const }
-                          : {
-                              type: 'exit' as const,
-                              exit_code: item.outcome.exitCode,
-                            },
-                    })),
-                  });
-                }
-                break;
-              }
-
->>>>>>> 6aedb07c54 (fix: preserve web search context across stateless OpenAI Responses steps (#22346))
               if (store) {
                 // use item references to refer to tool results from built-in tools
                 input.push({ type: 'item_reference', id: part.toolCallId });
