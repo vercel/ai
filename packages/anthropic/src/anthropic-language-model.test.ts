@@ -4404,6 +4404,38 @@ describe('AnthropicLanguageModel', () => {
         it('should include tool search tool call and result in content', async () => {
           expect(result.content).toMatchSnapshot();
         });
+
+        it('should parse a recorded failed tool search result', async () => {
+          prepareJsonFixtureResponse('anthropic-tool-search-error-step-2.1');
+
+          const result = await provider('claude-sonnet-5-5').doGenerate({
+            prompt: [
+              {
+                role: 'user',
+                content: [{ type: 'text', text: 'Use an invalid regex.' }],
+              },
+            ],
+            tools: [
+              {
+                type: 'provider',
+                id: 'anthropic.tool_search_regex_20251119',
+                name: 'toolSearch',
+                args: {},
+              },
+            ],
+          });
+
+          expect(result.content).toContainEqual({
+            type: 'tool-result',
+            toolCallId: 'srvtoolu_018yKDHFpyBNErTrzqbP8etq',
+            toolName: 'toolSearch',
+            isError: true,
+            result: {
+              type: 'tool_search_tool_result_error',
+              errorCode: 'invalid_tool_input',
+            },
+          });
+        });
       });
 
       describe('bm25 variant', () => {

@@ -3497,6 +3497,90 @@ describe('assistant messages', () => {
     expect(warnings).toMatchInlineSnapshot(`[]`);
   });
 
+  it.each([
+    {
+      toolName: 'tool_search_tool_regex',
+      output: {
+        type: 'error-json' as const,
+        value: {
+          type: 'tool_search_tool_result_error',
+          errorCode: 'invalid_tool_input',
+        },
+      },
+    },
+    {
+      toolName: 'tool_search_tool_regex',
+      output: {
+        type: 'json' as const,
+        value: {
+          type: 'tool_search_tool_result_error',
+          errorCode: 'invalid_tool_input',
+        },
+      },
+    },
+    {
+      toolName: 'tool_search_tool_bm25',
+      output: {
+        type: 'error-json' as const,
+        value: {
+          type: 'tool_search_tool_result_error',
+          errorCode: 'invalid_tool_input',
+        },
+      },
+    },
+    {
+      toolName: 'tool_search_tool_bm25',
+      output: {
+        type: 'json' as const,
+        value: {
+          type: 'tool_search_tool_result_error',
+          errorCode: 'invalid_tool_input',
+        },
+      },
+    },
+  ])(
+    'should convert $toolName $output.type error results',
+    async ({ toolName, output }) => {
+      const warnings: SharedV4Warning[] = [];
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                input: { pattern: '[' },
+                providerExecuted: true,
+                toolCallId: 'srvtoolu_error',
+                toolName,
+                type: 'tool-call',
+              },
+              {
+                output,
+                toolCallId: 'srvtoolu_error',
+                toolName,
+                type: 'tool-result',
+              },
+            ],
+          },
+        ],
+        sendReasoning: false,
+        warnings,
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result.prompt.messages[0].content[1]).toEqual({
+        type: 'tool_search_tool_result',
+        tool_use_id: 'srvtoolu_error',
+        content: {
+          type: 'tool_search_tool_result_error',
+          error_code: 'invalid_tool_input',
+        },
+        cache_control: undefined,
+      });
+      expect(warnings).toEqual([]);
+    },
+  );
+
   describe('advisor 20260301 multi-turn round-trip', () => {
     it('should convert advisor server_tool_use + advisor_result back to the API shape', async () => {
       const warnings: SharedV4Warning[] = [];
