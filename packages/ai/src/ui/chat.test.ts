@@ -732,6 +732,8 @@ describe('Chat', () => {
     let chat: TestChat;
     let letOnFinishArgs: any[] = [];
     let isAborted = false;
+    let statusAfterStop: ChatStatus;
+    let onFinishCalledAfterStop = false;
 
     beforeEach(async () => {
       let controller: ReadableStreamDefaultController<UIMessageChunk>;
@@ -784,12 +786,19 @@ describe('Chat', () => {
       }
 
       await chat.stop();
+      statusAfterStop = chat.status;
+      onFinishCalledAfterStop = letOnFinishArgs.length > 0;
 
       await finishPromise.promise;
     });
 
     it('should have been aborted', async () => {
       expect(isAborted).toBe(true);
+    });
+
+    it('should finish the request pipeline before stop resolves', async () => {
+      expect(statusAfterStop).toBe('ready');
+      expect(onFinishCalledAfterStop).toBe(true);
     });
 
     it('should call onFinish with message and messages', async () => {
@@ -964,6 +973,215 @@ describe('Chat', () => {
     });
   });
 
+  it('should not send automatically after a response is stopped', async () => {
+    let sendCount = 0;
+    const responseStream = new ReadableStream<UIMessageChunk>({
+      start(controller) {
+        controller.enqueue({ type: 'start' });
+        controller.enqueue({ type: 'start-step' });
+        controller.enqueue({ type: 'text-start', id: 'text-1' });
+        controller.enqueue({
+          type: 'text-delta',
+          id: 'text-1',
+          delta: 'Hello',
+        });
+      },
+    });
+
+    const chat = new TestChat({
+      id: '123',
+      generateId: mockId(),
+      transport: {
+        sendMessages: async () => {
+          sendCount++;
+          return responseStream;
+        },
+        reconnectToStream: () => {
+          throw new Error('not implemented');
+        },
+      },
+      sendAutomaticallyWhen: () => true,
+    });
+
+    const sendPromise = chat.sendMessage({ text: 'Hello, world!' });
+
+    while ((chat.messages[1]?.parts[1] as any)?.text !== 'Hello') {
+      await delay();
+    }
+
+    await chat.stop();
+    await sendPromise;
+
+    expect(sendCount).toBe(1);
+    expect(chat.status).toBe('ready');
+  });
+
+  it('should wait for a pending tool callback and its message update before stop resolves', async () => {
+    const callbackStarted = createResolvablePromise<void>();
+    const callbackCanFinish = createResolvablePromise<void>();
+    const toolOutputFinished = createResolvablePromise<void>();
+    const events: string[] = [];
+    let toolOutputError: unknown;
+    let chat: TestChat;
+
+    const responseStream = new ReadableStream<UIMessageChunk>({
+      start(controller) {
+        controller.enqueue({ type: 'start' });
+        controller.enqueue({ type: 'start-step' });
+        controller.enqueue({
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          input: { testArg: 'test-value' },
+        });
+      },
+    });
+
+    chat = new TestChat({
+      id: '123',
+      generateId: mockId(),
+      transport: {
+        sendMessages: async () => responseStream,
+        reconnectToStream: () => {
+          throw new Error('not implemented');
+        },
+      },
+      onToolCall: async () => {
+        events.push('tool-callback-started');
+        callbackStarted.resolve();
+        await callbackCanFinish.promise;
+
+        void Promise.resolve(
+          chat.addToolOutput({
+            tool: 'test-tool',
+            toolCallId: 'tool-call-0',
+            output: 'test-output',
+          }),
+        ).then(
+          () => {
+            events.push('tool-output-finished');
+            toolOutputFinished.resolve();
+          },
+          (error: unknown) => {
+            toolOutputError = error;
+            toolOutputFinished.resolve();
+          },
+        );
+      },
+    });
+
+    const sendPromise = chat.sendMessage({ text: 'Hello, world!' });
+    await callbackStarted.promise;
+
+    let stopSettled = false;
+    const stopPromise = chat.stop().then(() => {
+      stopSettled = true;
+      events.push('stop-finished');
+    });
+
+    await delay();
+    expect(stopSettled).toBe(false);
+
+    callbackCanFinish.resolve();
+    await stopPromise;
+
+    chat.messages = [];
+    await Promise.all([sendPromise, toolOutputFinished.promise]);
+    await delay();
+
+    expect(toolOutputError).toBeUndefined();
+    expect(events).toEqual([
+      'tool-callback-started',
+      'tool-output-finished',
+      'stop-finished',
+    ]);
+    expect(chat.messages).toEqual([]);
+  });
+
+  it('should not restart the chat from a tool output queued while stopping', async () => {
+    const callbackStarted = createResolvablePromise<void>();
+    const callbackCanFinish = createResolvablePromise<void>();
+    let sendCount = 0;
+    let secondResponseController:
+      | ReadableStreamDefaultController<UIMessageChunk>
+      | undefined;
+    let chat: TestChat;
+
+    const responseStream = new ReadableStream<UIMessageChunk>({
+      start(controller) {
+        controller.enqueue({ type: 'start' });
+        controller.enqueue({ type: 'start-step' });
+        controller.enqueue({
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          input: { testArg: 'test-value' },
+        });
+      },
+    });
+
+    chat = new TestChat({
+      id: '123',
+      generateId: mockId(),
+      transport: {
+        sendMessages: async () => {
+          sendCount++;
+
+          if (sendCount === 1) {
+            return responseStream;
+          }
+
+          return new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              secondResponseController = controller;
+            },
+          });
+        },
+        reconnectToStream: () => {
+          throw new Error('not implemented');
+        },
+      },
+      onToolCall: async () => {
+        callbackStarted.resolve();
+        await callbackCanFinish.promise;
+
+        void chat.addToolOutput({
+          tool: 'test-tool',
+          toolCallId: 'tool-call-0',
+          output: 'test-output',
+        });
+      },
+      sendAutomaticallyWhen: () => true,
+    });
+
+    const sendPromise = chat.sendMessage({ text: 'Hello, world!' });
+    await callbackStarted.promise;
+
+    const stopPromise = chat.stop();
+    callbackCanFinish.resolve();
+    await stopPromise;
+
+    chat.messages = [];
+
+    secondResponseController?.enqueue({ type: 'start' });
+    secondResponseController?.enqueue({ type: 'start-step' });
+    secondResponseController?.enqueue({ type: 'text-start', id: 'text-1' });
+    secondResponseController?.enqueue({
+      type: 'text-delta',
+      id: 'text-1',
+      delta: 'after stop',
+    });
+    secondResponseController?.close();
+
+    await sendPromise;
+    await delay();
+
+    expect(sendCount).toBe(1);
+    expect((chat as any).activeResponse).toBeUndefined();
+    expect(chat.status).toBe('ready');
+    expect(chat.messages).toEqual([]);
+  });
+
   it('should stop updating messages when a resumed stream is stopped', async () => {
     const nextChunk = createResolvablePromise<void>();
     let reconnectAbortSignal: AbortSignal | undefined;
@@ -1049,7 +1267,7 @@ describe('Chat', () => {
     const resumePromise = chat.resumeStream();
 
     expect(chat.status).toBe('submitted');
-    await chat.stop();
+    const stopPromise = chat.stop();
     expect(reconnectAbortSignal?.aborted).toBe(true);
 
     reconnectResult.resolve(
@@ -1070,6 +1288,7 @@ describe('Chat', () => {
       }),
     );
 
+    await stopPromise;
     await resumePromise;
 
     expect(isCancelled).toBe(true);
