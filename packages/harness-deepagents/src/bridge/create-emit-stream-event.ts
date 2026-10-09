@@ -27,7 +27,8 @@ export type DeepAgentsStreamEventState = {
   // Approval-gated tools are announced before execution; these tie the later run back to the approval id and dedup the call.
   approvedToolQueue: Map<string, string[]>;
   approvedRunIds: Map<string, string>;
-  dynamicToolRunIds: Set<string>;
+  dynamicToolRunIds: Map<string, string>;
+  settledMcpRunIds: Set<string>;
 };
 
 export function createDeepAgentsStreamEventState(): DeepAgentsStreamEventState {
@@ -42,7 +43,8 @@ export function createDeepAgentsStreamEventState(): DeepAgentsStreamEventState {
     pendingStep: undefined,
     approvedToolQueue: new Map(),
     approvedRunIds: new Map(),
-    dynamicToolRunIds: new Set(),
+    dynamicToolRunIds: new Map(),
+    settledMcpRunIds: new Set(),
   };
 }
 
@@ -64,6 +66,7 @@ export function createEmitStreamEvent({
   hostToolNames,
   mcpToolNames,
   structuredOutputToolNames = new Set(),
+  abortSignal,
   emit,
 }: {
   state: DeepAgentsStreamEventState;
@@ -71,6 +74,7 @@ export function createEmitStreamEvent({
   hostToolNames: ReadonlySet<string>;
   mcpToolNames: ReadonlySet<string>;
   structuredOutputToolNames?: ReadonlySet<string>;
+  abortSignal?: AbortSignal;
   emit: Emit;
 }): (event: DeepAgentsStreamEvent) => void {
   return event => {
@@ -180,7 +184,15 @@ export function createEmitStreamEvent({
       // Host tools emit their own tool-call; surface only top-level builtin (providerExecuted) tools.
       if (!nested && !hostToolNames.has(toolName)) {
         const isMcpTool = mcpToolNames.has(toolName);
-        if (isMcpTool && runId) state.dynamicToolRunIds.add(runId);
+        if (isMcpTool && runId) {
+          if (
+            state.dynamicToolRunIds.has(runId) ||
+            state.settledMcpRunIds.has(runId)
+          ) {
+            return;
+          }
+          state.dynamicToolRunIds.set(runId, toolName);
+        }
         const queued = state.approvedToolQueue.get(toolName);
         if (queued && queued.length > 0) {
           // Already announced at approval time; tie this run to that id and don't re-emit the call.
@@ -200,12 +212,63 @@ export function createEmitStreamEvent({
           });
         }
       }
+    } else if (kind === 'on_tool_error') {
+      const toolName = event.name ?? 'unknown';
+      const runId = event.run_id ?? '';
+      if (
+        nested ||
+        hostToolNames.has(toolName) ||
+        structuredOutputToolNames.has(toolName) ||
+        abortSignal?.aborted ||
+        !runId ||
+        data.error === undefined ||
+        state.dynamicToolRunIds.get(runId) !== toolName ||
+        state.settledMcpRunIds.has(runId)
+      ) {
+        return;
+      }
+
+      state.settledMcpRunIds.add(runId);
+      const error = data.error;
+      const message =
+        error instanceof Error
+          ? error.message
+          : error &&
+              typeof error === 'object' &&
+              'message' in error &&
+              typeof error.message === 'string'
+            ? error.message
+            : String(error);
+      emit({
+        type: 'tool-result',
+        toolCallId: state.approvedRunIds.get(runId) ?? runId,
+        toolName: toCommonName(toolName),
+        result: message,
+        isError: true,
+        dynamic: true,
+      });
+      state.approvedRunIds.delete(runId);
     } else if (kind === 'on_tool_end') {
       const toolName = event.name ?? 'unknown';
       if (structuredOutputToolNames.has(toolName)) return;
       const runId = event.run_id ?? '';
       if (!nested && !hostToolNames.has(toolName)) {
-        const dynamic = state.dynamicToolRunIds.delete(runId);
+        const nativeMcpName = state.dynamicToolRunIds.get(runId);
+        if (
+          nativeMcpName !== undefined
+            ? nativeMcpName !== toolName || state.settledMcpRunIds.has(runId)
+            : mcpToolNames.has(toolName)
+        ) {
+          return;
+        }
+        const dynamic = nativeMcpName !== undefined;
+        if (dynamic) state.settledMcpRunIds.add(runId);
+        const isError =
+          dynamic &&
+          data.output !== null &&
+          typeof data.output === 'object' &&
+          'status' in data.output &&
+          data.output.status === 'error';
         let output: unknown = data.output ?? '';
         if (output && typeof output === 'object' && 'content' in output) {
           output = (output as { content: unknown }).content;
@@ -215,6 +278,7 @@ export function createEmitStreamEvent({
           toolCallId: state.approvedRunIds.get(runId) ?? runId,
           toolName: toCommonName(toolName),
           result: output ?? null,
+          ...(isError ? { isError: true } : {}),
           ...(dynamic ? { dynamic: true } : {}),
         });
         state.approvedRunIds.delete(runId);

@@ -597,6 +597,75 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         }),
       );
     });
+
+    it.each([
+      ['content-filter', 'content-filter'],
+      ['error', 'error'],
+      ['other', 'other'],
+      ['unknown', 'unknown'],
+      ['no finish part', undefined],
+    ] as const)(
+      'should retain assistant content when the stream ends with %s',
+      async (_, finishReason) => {
+        const model = new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start' as const, warnings: [] },
+              { type: 'reasoning-start' as const, id: 'reasoning-1' },
+              {
+                type: 'reasoning-delta' as const,
+                id: 'reasoning-1',
+                delta: 'Thinking.',
+              },
+              { type: 'reasoning-end' as const, id: 'reasoning-1' },
+              { type: 'text-start' as const, id: 'text-1' },
+              {
+                type: 'text-delta' as const,
+                id: 'text-1',
+                delta: 'A partial answer.',
+              },
+              { type: 'text-end' as const, id: 'text-1' },
+              ...(finishReason == null
+                ? []
+                : [
+                    {
+                      ...dummyStreamFinish,
+                      finishReason: {
+                        unified: finishReason,
+                        raw: finishReason,
+                      },
+                    } as LanguageModelV4StreamPart,
+                  ]),
+            ]),
+          }),
+        });
+        const onEnd = vi.fn();
+        const agent = new WorkflowAgent({ model });
+
+        const { writable } = createMockWritable();
+        const result = await agent.stream({
+          messages: [{ role: 'user', content: 'Write an answer.' }],
+          writable,
+          onEnd,
+        });
+
+        const assistantMessage = {
+          role: 'assistant',
+          content: [
+            { type: 'reasoning', text: 'Thinking.' },
+            { type: 'text', text: 'A partial answer.' },
+          ],
+        };
+        expect(result.messages.at(-1)).toEqual(assistantMessage);
+        expect(result.steps[0]?.response.messages).toEqual([assistantMessage]);
+        expect(onEnd).toHaveBeenCalledWith(
+          expect.objectContaining({
+            messages: result.messages,
+            text: 'A partial answer.',
+          }),
+        );
+      },
+    );
   });
 
   describe('experimental_onStart', () => {

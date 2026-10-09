@@ -7,6 +7,7 @@ import { asArray, isAbortError } from '@ai-sdk/provider-utils';
 import {
   experimental_streamLanguageModelCall as streamModelCall,
   gateway,
+  NoOutputGeneratedError,
   RetryError,
   StreamProviderError,
   wrapLanguageModel,
@@ -15,7 +16,7 @@ import {
   type ModelMessage,
   type ToolSet,
 } from 'ai';
-import { prepareRetries } from 'ai/internal';
+import { isOutputChunk, prepareRetries } from 'ai/internal';
 import type { StreamTextTransform } from './workflow-agent.js';
 import {
   resolveSerializableTools,
@@ -259,6 +260,7 @@ async function consumeModelStream({
   let performance: ModelCallPerformance | undefined;
   let terminalError: unknown;
   let hasTerminalError = false;
+  let hasReceivedOutputChunk = false;
   const ongoingToolCallToolNames = new Map<string, string>();
   const toolInputLifecycleEvents: ToolInputLifecycleEvent[] = [];
 
@@ -268,6 +270,10 @@ async function consumeModelStream({
     await writer?.write({ type: 'reset-step' });
 
     for await (const part of modelStream) {
+      if (isOutputChunk(part)) {
+        hasReceivedOutputChunk = true;
+      }
+
       switch (part.type) {
         case 'tool-input-start':
           ongoingToolCallToolNames.set(part.id, part.toolName);
@@ -485,6 +491,14 @@ async function consumeModelStream({
 
   if (abortSignal?.aborted || (timeoutAt != null && timeoutAt <= Date.now())) {
     return { aborted: true };
+  }
+
+  if (finish == null && !hasReceivedOutputChunk && !hasTerminalError) {
+    terminalError = new NoOutputGeneratedError({
+      message:
+        'No output generated. The model stream ended without a finish chunk.',
+    });
+    hasTerminalError = true;
   }
 
   return {
