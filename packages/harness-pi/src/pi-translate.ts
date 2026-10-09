@@ -125,32 +125,71 @@ function newId(): string {
  * Pi's `tool_execution_end` event payload (`result`) is a Pi `AgentToolResult`
  * envelope `{ content: (TextContent | ImageContent)[], details, terminate? }`.
  * The `tool_result` event uses a flat shape with `content` and `details` at
- * the top level. In both cases we extract just the text payload (joined when
- * multiple text parts are present) so the AI SDK consumer sees the raw
- * string the tool produced.
+ * the top level. Text-only results without details retain the string projection,
+ * including empty text. Preserve envelopes carrying details or non-text content.
  */
 function unwrapPiToolResult(event: PiSessionEvent): never {
   const candidates: unknown[] = [];
   const result = event.result as unknown;
   if (result && typeof result === 'object') {
     const inner = (result as { content?: unknown }).content;
-    if (Array.isArray(inner)) candidates.push(inner);
+    if (Array.isArray(inner)) {
+      const envelope = result as { content: unknown[]; details?: unknown };
+      if (
+        envelope.details != null ||
+        inner.length === 0 ||
+        Object.keys(envelope).some(
+          key => key !== 'content' && key !== 'details',
+        ) ||
+        inner.some(
+          part =>
+            !part ||
+            typeof part !== 'object' ||
+            !('type' in part) ||
+            part.type !== 'text',
+        )
+      ) {
+        if (envelope.details === undefined) {
+          const { details: _details, ...preserved } = envelope;
+          return preserved as never;
+        }
+        return envelope as never;
+      }
+      candidates.push(inner);
+    }
   }
-  if (Array.isArray(event.content)) candidates.push(event.content);
+  if (Array.isArray(event.content)) {
+    if (
+      event.details != null ||
+      event.content.length === 0 ||
+      event.content.some(
+        part =>
+          !part ||
+          typeof part !== 'object' ||
+          !('type' in part) ||
+          part.type !== 'text',
+      )
+    ) {
+      return {
+        content: event.content,
+        ...(event.details === undefined ? {} : { details: event.details }),
+      } as never;
+    }
+    candidates.push(event.content);
+  }
 
   for (const content of candidates) {
     if (!Array.isArray(content)) continue;
-    const text = content
-      .filter(
-        (p): p is { type: 'text'; text: string } =>
-          !!p &&
-          typeof p === 'object' &&
-          (p as { type?: unknown }).type === 'text' &&
-          typeof (p as { text?: unknown }).text === 'string',
-      )
-      .map(p => p.text)
-      .join('');
-    if (text) return text as never;
+    const textParts = content.filter(
+      (p): p is { type: 'text'; text: string } =>
+        !!p &&
+        typeof p === 'object' &&
+        (p as { type?: unknown }).type === 'text' &&
+        typeof (p as { text?: unknown }).text === 'string',
+    );
+    if (textParts.length > 0) {
+      return textParts.map(p => p.text).join('') as never;
+    }
   }
 
   if (typeof event.result === 'string') return event.result as never;
