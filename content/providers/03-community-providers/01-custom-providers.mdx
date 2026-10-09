@@ -284,7 +284,7 @@ The streaming system uses typed events for different stages:
 1. **Stream Lifecycle Events**:
 
    - `stream-start`: Initial event with any warnings about unsupported features
-   - `response-metadata`: Model information and response headers
+   - `response-metadata`: Model information and response headers, plus optional provisional `usage` known at response start (the `finish` usage remains authoritative)
    - `finish`: Final event with usage statistics and finish reason
    - `error`: Error events that can occur at any point
 
