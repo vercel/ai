@@ -117,7 +117,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   messageMetadataSchema,
   dataPartSchemas,
   runUpdateMessageJob,
-  onError,
+  onError: _onError,
   onToolCall,
   onData,
   resetStateOnMessageIdChange = false,
@@ -1010,7 +1010,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'error': {
-              onError?.(new Error(chunk.errorText));
+              // Error callback already invoked in stream-text.ts formatter stage
+              // with the original error. The errorText here is the formatted result.
               break;
             }
 
