@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22375,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/workflow-agent-missing-finish.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/workflow-agent-missing-finish.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "BUG: WorkflowAgent resolved incomplete no-output stream(s) without NoOutputGeneratedError"
+  }
+}
