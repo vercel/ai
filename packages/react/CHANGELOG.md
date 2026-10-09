@@ -1,5 +1,17 @@
 # @ai-sdk/react
 
+## 2.0.277
+
+### Patch Changes
+
+- 878eb71: fix(react): prevent stale useObject streams from overwriting newer results
+- Updated dependencies [ab0ecab]
+- Updated dependencies [dc561f0]
+- Updated dependencies [c060bd2]
+- Updated dependencies [dbf4338]
+- Updated dependencies [99c9177]
+  - ai@5.0.274
+
 ## 2.0.276
 
 ### Patch Changes
