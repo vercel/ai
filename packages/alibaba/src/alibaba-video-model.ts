@@ -114,7 +114,8 @@ function detectMode(modelId: string): 't2v' | 'i2v' | 'r2v' {
 type AlibabaVideoProtocol = 'legacy' | 'wan27' | 'wan3';
 
 function detectProtocol(modelId: string): AlibabaVideoProtocol {
-  const version = /^wan(\d+)(?:\.(\d+))?(?=[.-]|$)/.exec(modelId);
+  // `wanx` is the older id prefix (e.g. `wanx2.1-t2v-turbo`).
+  const version = /^wanx?(\d+)(?:\.(\d+))?(?=[.-]|$)/.exec(modelId);
   if (version != null) {
     const major = Number(version[1]);
     const minor = Number(version[2] ?? 0);

@@ -121,6 +121,19 @@ describe('AlibabaVideoModel', () => {
       },
     );
 
+    it.each(['wan2.6-t2v', 'wan2.2-t2v-plus', 'wanx2.1-t2v-turbo'])(
+      'should use the legacy size protocol for %s',
+      async modelId => {
+        await createModel({ modelId }).doStart({
+          ...defaultOptions,
+          resolution: '1280x720',
+        });
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.parameters.size).toBe('1280*720');
+        expect(body.parameters.resolution).toBeUndefined();
+      },
+    );
+
     it.each(['wan4.0-video', 'wan10.0-video', 'wan-next-video'])(
       'should use the latest all-in-one protocol for %s',
       async modelId => {
