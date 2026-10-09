@@ -24,6 +24,8 @@ export type ModelCallStreamPart<TTools extends ToolSet = ToolSet> =
       approvalId: string;
       toolCallId: string;
       signature?: string;
+      /** Raw input before the original tool schema transformed it. */
+      inputSchemaInput?: unknown;
     }
   | { type: 'reset-step' };
 

@@ -427,7 +427,12 @@ export async function doStreamStep(
             toolCallId: part.toolCall.toolCallId,
             ...(part.signature != null ? { signature: part.signature } : {}),
           });
-        } else {
+        } else if (
+          // The original schema must validate and normalize these calls outside
+          // the step before they become available to UI stream consumers.
+          part.type !== 'tool-call' ||
+          !serializedTools?.[part.toolName]?.hasOwnValidator
+        ) {
           await writer.write(part);
         }
       }

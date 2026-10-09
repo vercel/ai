@@ -2,11 +2,19 @@ import type {
   LanguageModelV4GenerateResult,
   LanguageModelV4StreamPart,
 } from '@ai-sdk/provider';
-import { tool, type ModelMessage, type ToolSet } from 'ai';
+import {
+  readUIMessageStream,
+  safeValidateUIMessages,
+  tool,
+  type ModelMessage,
+  type ToolSet,
+  type UIMessage,
+} from 'ai';
 import { verifyToolApprovalSignature } from 'ai/internal';
 import { MockLanguageModelV4, convertArrayToReadableStream } from 'ai/test';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
+import { createModelCallToUIChunkTransform } from './to-ui-message-chunk.js';
 import { WorkflowAgent } from './workflow-agent.js';
 
 type Mode = 'generate' | 'stream';
@@ -132,6 +140,17 @@ function approve(messages: ModelMessage[], approved: boolean): ModelMessage[] {
       ],
     },
   ];
+}
+
+function streamFrom<T>(values: readonly T[]): ReadableStream<T> {
+  return new ReadableStream({
+    start(controller) {
+      for (const value of values) {
+        controller.enqueue(value);
+      }
+      controller.close();
+    },
+  });
 }
 
 afterEach(() => vi.unstubAllEnvs());
@@ -290,6 +309,56 @@ describe.each<Mode>(['generate', 'stream'])(
         expect.any(Object),
       );
     });
+
+    if (mode === 'stream') {
+      it('preserves normalized approval input through the writable UI stream', async () => {
+        const chunks: unknown[] = [];
+        const inputSchema = z.object({
+          value: z.string().transform(value => `${value}!`),
+        });
+        const agent = new WorkflowAgent<ToolSet>({
+          model: model([approvalCall]),
+          tools: {
+            action: tool({
+              inputSchema,
+              needsApproval: true,
+              execute: async () => 'executed',
+            }),
+          },
+        });
+
+        await run(mode, agent, prompt, chunks);
+
+        let message: UIMessage | undefined;
+        for await (const snapshot of readUIMessageStream({
+          stream: streamFrom(chunks as any[]).pipeThrough(
+            createModelCallToUIChunkTransform(),
+          ),
+        })) {
+          message = snapshot;
+        }
+
+        expect(
+          message?.parts.find(part => part.type === 'tool-action'),
+        ).toMatchObject({
+          type: 'tool-action',
+          state: 'approval-requested',
+          input: { value: 'requested!' },
+          approval: {
+            id: 'approval-call-1',
+            inputSchemaInput: { value: 'requested' },
+          },
+        });
+        await expect(
+          safeValidateUIMessages({
+            messages: [message],
+            tools: {
+              action: { inputSchema },
+            },
+          } as any),
+        ).resolves.toMatchObject({ success: true });
+      });
+    }
 
     it('rejects tampered approval input before executing the tool', async () => {
       vi.stubEnv('WORKFLOW_TOOL_APPROVAL_SECRET', secret);

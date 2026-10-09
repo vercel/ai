@@ -1,5 +1,6 @@
 ---
+'ai': patch
 '@ai-sdk/workflow': patch
 ---
 
-fix(workflow): apply tool input schema validation and transformations in WorkflowAgent
+Preserve original tool schema validation, normalization, repair, callbacks, and transformed approval input across WorkflowAgent and UI message round trips.

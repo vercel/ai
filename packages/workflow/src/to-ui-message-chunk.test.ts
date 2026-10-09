@@ -245,4 +245,22 @@ describe('workflow signed tool approvals', () => {
       signature: 'signed-approval',
     });
   });
+
+  it('preserves transformed tool input through the UI stream', async () => {
+    await expect(
+      transform([
+        {
+          type: 'tool-approval-request',
+          approvalId: 'approval-call-1',
+          toolCallId: 'call-1',
+          inputSchemaInput: { value: ' requested ' },
+        },
+      ]),
+    ).resolves.toContainEqual({
+      type: 'tool-approval-request',
+      approvalId: 'approval-call-1',
+      toolCallId: 'call-1',
+      inputSchemaInput: { value: ' requested ' },
+    });
+  });
 });
