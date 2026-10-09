@@ -1,6 +1,7 @@
 import {
   type LanguageModelV2CallWarning,
   type LanguageModelV2Prompt,
+  type LanguageModelV2ToolResultOutput,
   type LanguageModelV2ToolCallPart,
   type SharedV2ProviderOptions,
   UnsupportedFunctionalityError,
@@ -8,6 +9,7 @@ import {
 import {
   convertToBase64,
   parseProviderOptions,
+  safeValidateTypes,
   validateTypes,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
@@ -21,7 +23,66 @@ import type {
   OpenAIResponsesFunctionCallOutput,
   OpenAIResponsesInput,
   OpenAIResponsesReasoning,
+  OpenAIResponsesWebSearchCall,
 } from './openai-responses-api';
+
+async function convertWebSearchToolResultOutput({
+  output,
+  id,
+}: {
+  output: LanguageModelV2ToolResultOutput;
+  id: string;
+}): Promise<OpenAIResponsesWebSearchCall | undefined> {
+  if (output.type !== 'json') {
+    return undefined;
+  }
+
+  const validation = await safeValidateTypes({
+    value: output.value,
+    schema: webSearchOutputSchema,
+  });
+
+  if (!validation.success || validation.value.action == null) {
+    return undefined;
+  }
+
+  const { action, sources } = validation.value;
+
+  switch (action.type) {
+    case 'search':
+      return {
+        type: 'web_search_call',
+        id,
+        status: 'completed',
+        action: {
+          type: 'search',
+          ...(action.query != null && { query: action.query }),
+          ...(sources != null && { sources }),
+        },
+      };
+    case 'openPage':
+      return {
+        type: 'web_search_call',
+        id,
+        status: 'completed',
+        action: {
+          type: 'open_page',
+          url: action.url,
+        },
+      };
+    case 'findInPage':
+      return {
+        type: 'web_search_call',
+        id,
+        status: 'completed',
+        action: {
+          type: 'find_in_page',
+          url: action.url,
+          pattern: action.pattern,
+        },
+      };
+  }
+}
 
 type OpenAIPromptCacheBreakpoint = { mode: 'explicit' };
 
@@ -51,6 +112,7 @@ export async function convertToOpenAIResponsesInput({
   store,
   configurationUpdateUnsupportedReason,
   hasLocalShellTool = false,
+  webSearchToolName,
 }: {
   prompt: LanguageModelV2Prompt;
   systemMessageMode: 'system' | 'developer' | 'remove';
@@ -60,6 +122,7 @@ export async function convertToOpenAIResponsesInput({
   store: boolean;
   configurationUpdateUnsupportedReason?: string;
   hasLocalShellTool?: boolean;
+  webSearchToolName?: string;
 }): Promise<{
   input: OpenAIResponsesInput;
   warnings: Array<LanguageModelV2CallWarning>;
@@ -328,6 +391,34 @@ export async function convertToOpenAIResponsesInput({
 
             // assistant tool result parts are from provider-executed tools:
             case 'tool-result': {
+              if (
+                part.toolName === 'web_search' ||
+                part.toolName === 'web_search_preview' ||
+                part.toolName === webSearchToolName
+              ) {
+                const itemId =
+                  (
+                    part.providerOptions?.[providerOptionsName] as
+                      | { itemId?: string }
+                      | undefined
+                  )?.itemId ?? part.toolCallId;
+
+                if (store) {
+                  input.push({ type: 'item_reference', id: itemId });
+                  break;
+                }
+
+                const webSearchCall = await convertWebSearchToolResultOutput({
+                  output: part.output,
+                  id: itemId,
+                });
+
+                if (webSearchCall != null) {
+                  input.push(webSearchCall);
+                  break;
+                }
+              }
+
               if (store) {
                 // use item references to refer to tool results from built-in tools
                 input.push({ type: 'item_reference', id: part.toolCallId });

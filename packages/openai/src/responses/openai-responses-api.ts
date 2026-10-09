@@ -17,6 +17,7 @@ export type OpenAIResponsesInputItem =
   | OpenAIResponsesComputerCall
   | OpenAIResponsesLocalShellCall
   | OpenAIResponsesLocalShellCallOutput
+  | OpenAIResponsesWebSearchCall
   | OpenAIResponsesReasoning
   | OpenAIResponsesItemReference
   | OpenAIResponsesConfigurationUpdate;
@@ -151,6 +152,13 @@ export type OpenAIResponsesLocalShellCallOutput = {
   type: 'local_shell_call_output';
   call_id: string;
   output: string;
+};
+
+export type OpenAIResponsesWebSearchCall = {
+  type: 'web_search_call';
+  id: string;
+  status: 'completed';
+  action: OpenAIResponsesWebSearchAction;
 };
 
 export type OpenAIResponsesItemReference = {
