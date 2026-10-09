@@ -1491,7 +1491,10 @@ describe('Chat', () => {
             : responseForChunks(chunks);
         });
         const onFinish = vi.fn();
-        const transport = new DefaultChatTransport<UIMessage>({ fetch });
+        const transport = new DefaultChatTransport<UIMessage>({
+          fetch,
+          resumeStreamIsReplay: true,
+        });
         let chat = new TestChat({ id: '123', transport, onFinish });
 
         await chat.sendMessage({ text: 'Hello' });
@@ -1553,54 +1556,137 @@ describe('Chat', () => {
       },
     );
 
-    it('preserves active parts when replay is disabled for a continuation endpoint', async () => {
-      const initialChunks: UIMessageChunk[] = [
-        { type: 'start', messageId: 'msg-123' },
-        { type: 'start-step' },
-        { type: 'reasoning-start', id: 'reasoning-1' },
-        { type: 'reasoning-delta', id: 'reasoning-1', delta: 'thinking' },
-        { type: 'text-start', id: 'text-1' },
-        { type: 'text-delta', id: 'text-1', delta: 'Hello, ' },
-      ];
+    it.each([
+      { resumeStreamIsReplay: undefined, start: 'with ID' },
+      { resumeStreamIsReplay: undefined, start: 'without ID' },
+      { resumeStreamIsReplay: undefined, start: 'omitted' },
+      { resumeStreamIsReplay: false, start: 'with ID' },
+      { resumeStreamIsReplay: false, start: 'without ID' },
+      { resumeStreamIsReplay: false, start: 'omitted' },
+    ] as const)(
+      'preserves active parts for continuation with replay $resumeStreamIsReplay and start $start',
+      async ({ resumeStreamIsReplay, start }) => {
+        const initialChunks: UIMessageChunk[] = [
+          { type: 'start', messageId: 'msg-123' },
+          { type: 'start-step' },
+          { type: 'reasoning-start', id: 'reasoning-1' },
+          { type: 'reasoning-delta', id: 'reasoning-1', delta: 'thinking' },
+          { type: 'text-start', id: 'text-1' },
+          { type: 'text-delta', id: 'text-1', delta: 'Hello, ' },
+        ];
+        const resumedChunks: UIMessageChunk[] = [
+          { type: 'reasoning-delta', id: 'reasoning-1', delta: '...' },
+          { type: 'reasoning-end', id: 'reasoning-1' },
+          { type: 'text-delta', id: 'text-1', delta: 'world!' },
+          { type: 'text-end', id: 'text-1' },
+          { type: 'finish-step' },
+          { type: 'finish' },
+        ];
+        if (start !== 'omitted') {
+          resumedChunks.unshift({
+            type: 'start',
+            ...(start === 'with ID' ? { messageId: 'msg-123' } : {}),
+          });
+        }
+        const chat = new TestChat({
+          transport: new DefaultChatTransport({
+            ...(resumeStreamIsReplay === undefined
+              ? {}
+              : { resumeStreamIsReplay }),
+            fetch: async (_input, init) =>
+              init?.method === 'GET'
+                ? responseForChunks(resumedChunks)
+                : responseForChunks(initialChunks, true),
+          }),
+        });
+
+        await chat.sendMessage({ text: 'Hello' });
+        expect(chat.status).toBe('error');
+        await chat.resumeStream();
+
+        expect(chat.error).toBeUndefined();
+        expect(chat.messages).toHaveLength(2);
+        expect(chat.lastMessage?.parts).toEqual([
+          { type: 'step-start' },
+          {
+            type: 'reasoning',
+            id: 'reasoning-1',
+            text: 'thinking...',
+            state: 'done',
+            providerMetadata: undefined,
+          },
+          {
+            type: 'text',
+            text: 'Hello, world!',
+            state: 'done',
+            providerMetadata: undefined,
+          },
+        ]);
+      },
+    );
+
+    it('preserves persisted parts when the default transport continues a provider-executed tool', async () => {
+      const lastMessage: UIMessage = {
+        id: 'msg-123',
+        role: 'assistant',
+        metadata: { persisted: true },
+        parts: [
+          { type: 'step-start' },
+          { type: 'reasoning', text: 'thinking...', state: 'done' },
+          { type: 'text', text: 'Hello, world!', state: 'done' },
+          {
+            type: 'tool-weather',
+            toolCallId: 'call-1',
+            state: 'input-available',
+            input: { city: 'Berlin' },
+            providerExecuted: true,
+          },
+        ],
+      };
       const resumedChunks: UIMessageChunk[] = [
         { type: 'start', messageId: 'msg-123' },
-        { type: 'reasoning-delta', id: 'reasoning-1', delta: '...' },
-        { type: 'reasoning-end', id: 'reasoning-1' },
-        { type: 'text-delta', id: 'text-1', delta: 'world!' },
-        { type: 'text-end', id: 'text-1' },
+        {
+          type: 'tool-output-available',
+          toolCallId: 'call-1',
+          output: { temperature: 20 },
+          providerExecuted: true,
+        },
+        { type: 'start-step' },
+        { type: 'text-start', id: 'text-2' },
+        { type: 'text-delta', id: 'text-2', delta: 'Next step.' },
+        { type: 'text-end', id: 'text-2' },
         { type: 'finish-step' },
         { type: 'finish' },
       ];
       const chat = new TestChat({
+        messages: [structuredClone(lastMessage)],
         transport: new DefaultChatTransport({
-          resumeStreamIsReplay: false,
-          fetch: async (_input, init) =>
-            init?.method === 'GET'
-              ? responseForChunks(resumedChunks)
-              : responseForChunks(initialChunks, true),
+          fetch: async () => responseForChunks(resumedChunks),
         }),
       });
 
-      await chat.sendMessage({ text: 'Hello' });
-      expect(chat.status).toBe('error');
       await chat.resumeStream();
 
       expect(chat.error).toBeUndefined();
-      expect(chat.messages).toHaveLength(2);
-      expect(chat.lastMessage?.parts).toEqual([
-        { type: 'step-start' },
+      expect(chat.status).toBe('ready');
+      expect(chat.messages).toEqual([
         {
-          type: 'reasoning',
-          id: 'reasoning-1',
-          text: 'thinking...',
-          state: 'done',
-          providerMetadata: undefined,
-        },
-        {
-          type: 'text',
-          text: 'Hello, world!',
-          state: 'done',
-          providerMetadata: undefined,
+          ...lastMessage,
+          parts: [
+            ...lastMessage.parts.slice(0, 3),
+            {
+              ...lastMessage.parts[3],
+              state: 'output-available',
+              output: { temperature: 20 },
+            },
+            { type: 'step-start' },
+            {
+              type: 'text',
+              text: 'Next step.',
+              state: 'done',
+              providerMetadata: undefined,
+            },
+          ],
         },
       ]);
     });

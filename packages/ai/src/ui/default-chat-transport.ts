@@ -20,7 +20,7 @@ export class DefaultChatTransport<
     } = {},
   ) {
     super(options);
-    this.resumeStreamIsReplay = options.resumeStreamIsReplay ?? true;
+    this.resumeStreamIsReplay = options.resumeStreamIsReplay ?? false;
   }
 
   protected processResponseStream(

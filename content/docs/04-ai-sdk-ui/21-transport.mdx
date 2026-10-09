@@ -98,28 +98,36 @@ const { messages, sendMessage } = useChat({
 
 ### Stream Resumption
 
-`DefaultChatTransport` defaults to `resumeStreamIsReplay: true`. Its reconnect
-endpoint should replay the complete UI message stream, including the original
-`start` chunk and its stable `messageId`. This lets `useChat` rebuild and replace
-the interrupted assistant message without duplicating text, reasoning, or other
-parts. The default works with the `resumable-stream` setup in
-[Chatbot Resume Streams](/docs/ai-sdk-ui/chatbot-resume-streams).
+`DefaultChatTransport` defaults to `resumeStreamIsReplay: false`, preserving the
+streaming state for endpoints that return only the remaining chunks of an
+interrupted response. A resumed `start` chunk does not reset the message in this
+mode, so existing continuation-only endpoints do not need configuration changes.
 
-For custom endpoints that return only the remaining chunks of an interrupted
-response, disable replay handling:
+For endpoints that replay the complete UI message stream, including the
+`resumable-stream` setup in
+[Chatbot Resume Streams](/docs/ai-sdk-ui/chatbot-resume-streams), enable replay
+handling explicitly:
 
 ```tsx
 const { messages, sendMessage } = useChat({
   transport: new DefaultChatTransport({
-    resumeStreamIsReplay: false,
+    resumeStreamIsReplay: true,
   }),
 });
 ```
 
-This preserves the active streaming state instead of resetting it on a resumed
-`start` chunk. Custom `ChatTransport` implementations can also set the
-`resumeStreamIsReplay` property to `true` when they return complete replays;
-omitting it preserves continuation behavior.
+Replay mode resets the streaming state once on the first resumed `start` chunk
+and rebuilds the assistant message without duplicating text, reasoning, or other
+parts. Include the original `start` chunk and its stable `messageId` so the
+replay replaces the interrupted message, including after loading it from storage.
+Do not enable replay mode for continuation-only endpoints: resetting their state
+can discard retained content and cause errors for deltas whose part-start chunks
+were already received.
+
+Custom `ChatTransport` implementations can also set the `resumeStreamIsReplay`
+property to `true` when they return complete replays; omitting it preserves
+continuation behavior. The stream protocol does not identify replay versus
+continuation, so the transport must be configured to match its endpoint.
 
 ## WebSocket Transport
 
