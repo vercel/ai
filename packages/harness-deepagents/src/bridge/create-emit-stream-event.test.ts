@@ -1,7 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  clearHostInputWaiting,
   createDeepAgentsStreamEventState,
   createEmitStreamEvent,
+  flushStep,
+  markHostToolWaiting,
+  settleHostToolCall,
 } from './create-emit-stream-event';
 
 vi.mock('node:crypto', () => ({ randomUUID: () => 'uuid' }));
@@ -274,5 +278,80 @@ describe('createEmitStreamEvent', () => {
     });
 
     expect(emitted).toEqual([]);
+  });
+
+  it('emits one early finish-step once every tool call of the step waits on the host', () => {
+    const state = createDeepAgentsStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emit = (event: Record<string, unknown>) => emitted.push(event);
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      configuredModel: undefined,
+      hostToolNames: new Set(['get_weather']),
+      mcpToolNames: new Set(),
+      emit,
+    });
+    const finishSteps = () =>
+      emitted.filter(event => event.type === 'finish-step');
+
+    emitStreamEvent({ event: 'on_chat_model_start' });
+    emitStreamEvent({
+      event: 'on_chat_model_end',
+      data: {
+        output: {
+          tool_calls: [
+            { name: 'get_weather', id: 'paris' },
+            { name: 'get_weather', id: 'tokyo' },
+          ],
+        },
+      },
+    });
+    markHostToolWaiting({ state, emit, toolCallId: 'host-paris' });
+    emitStreamEvent({ event: 'on_tool_start', name: 'get_weather' });
+
+    expect(finishSteps()).toHaveLength(0);
+
+    markHostToolWaiting({ state, emit, toolCallId: 'host-tokyo' });
+
+    expect(finishSteps()).toHaveLength(0);
+
+    emitStreamEvent({ event: 'on_tool_start', name: 'get_weather' });
+
+    expect(finishSteps()).toMatchInlineSnapshot(`
+      [
+        {
+          "finishReason": {
+            "raw": "host-input",
+            "unified": "tool-calls",
+          },
+          "harnessMetadata": {
+            "deepagents": {
+              "inferredStep": true,
+            },
+          },
+          "type": "finish-step",
+          "usage": {
+            "inputTokens": {
+              "total": 0,
+            },
+            "outputTokens": {
+              "total": 0,
+            },
+          },
+        },
+      ]
+    `);
+
+    for (const toolCallId of ['host-paris', 'host-tokyo']) {
+      clearHostInputWaiting({ state, toolCallId });
+      settleHostToolCall({ state, emit, toolCallId });
+    }
+    flushStep({ state, emit });
+
+    expect(
+      finishSteps().map(
+        event => (event.finishReason as { unified: string }).unified,
+      ),
+    ).toEqual(['tool-calls', 'stop']);
   });
 });
