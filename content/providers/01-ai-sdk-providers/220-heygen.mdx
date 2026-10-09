@@ -1,0 +1,183 @@
+---
+title: HeyGen
+description: Learn how to use the HeyGen video generation provider for the AI SDK.
+---
+
+# HeyGen Provider
+
+The [HeyGen](https://developers.heygen.com/docs/models/heygen-video) provider supports `heygen-video-1`, a video generation model with text-to-video, image-to-video, and reference-to-video modes. Generated clips include audio.
+
+This provider supports video generation only. HeyGen's avatar, voice, translation, and video editing APIs are not included.
+
+## Setup
+
+<InstallPackages packages="@ai-sdk/heygen" />
+
+## Provider Instance
+
+Import the default instance:
+
+```ts
+import { heygen } from '@ai-sdk/heygen';
+```
+
+Or create a customized instance:
+
+```ts
+import { createHeyGen } from '@ai-sdk/heygen';
+
+const heygen = createHeyGen({
+  apiKey: process.env.HEYGEN_API_KEY,
+});
+```
+
+The following settings are optional:
+
+- **apiKey** _string_: The key sent in the `x-api-key` header. Defaults to the `HEYGEN_API_KEY` environment variable.
+- **baseURL** _string_: The API URL prefix. Defaults to `https://api.heygen.com`.
+- **headers** _Record&lt;string, string&gt;_: Additional request headers.
+- **fetch** _typeof fetch_: A custom fetch implementation.
+
+## Video Models
+
+Create a model with `heygen.video('heygen-video-1')` or `heygen.videoModel('heygen-video-1')`.
+
+### Text to Video
+
+```ts
+import { heygen } from '@ai-sdk/heygen';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { videos } = await generateVideo({
+  model: heygen.video('heygen-video-1'),
+  prompt:
+    'A paper boat floats down a quiet stream. Static camera, soft morning light, the sound of flowing water. No music.',
+  duration: 5,
+  aspectRatio: '16:9',
+});
+```
+
+### Image to Video
+
+Pass an image in the prompt to use it as the first frame. The video follows the image's aspect ratio; a supplied `aspectRatio` is ignored with a warning.
+
+```ts
+const { videos } = await generateVideo({
+  model: heygen.video('heygen-video-1'),
+  prompt: {
+    text: 'The subject moves slowly. Preserve the composition and natural lighting.',
+    image: 'https://example.com/first-frame.jpg',
+  },
+  duration: 5,
+});
+```
+
+A single `first_frame` in `frameImages` is also supported. Last-frame conditioning and multiple first frames are rejected.
+
+### Reference to Video
+
+Use `inputReferences` to condition a new scene on images or videos. Include a `mediaType` for explicit URL references so the provider can select the reference kind.
+
+```ts
+const { videos } = await generateVideo({
+  model: heygen.video('heygen-video-1'),
+  prompt: 'The product in <Picture 1> sits on a desk beside a sunlit window.',
+  inputReferences: [
+    {
+      data: 'https://example.com/product.jpg',
+      mediaType: 'image/jpeg',
+    },
+  ],
+  duration: 5,
+  aspectRatio: '16:9',
+});
+```
+
+References are grouped by media type, preserving order within each group. Address them in the prompt as `<Picture 1>`, `<Video 1>`, and `<Audio 1>`. Provider-option references are appended after standard references of the same kind.
+
+Reference-to-video requires at least one image or video. Audio-only conditioning is not supported. HeyGen accepts up to 9 image references, 3 video references, and 3 audio references, with a combined maximum of 12. Only the first 5 seconds of each reference video are used.
+
+### Provider Options
+
+```ts
+import { heygen, type HeyGenVideoModelOptions } from '@ai-sdk/heygen';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { videos } = await generateVideo({
+  model: heygen.video('heygen-video-1'),
+  prompt: 'The product in <Picture 1> rotates slowly on a table. No music.',
+  aspectRatio: '16:9',
+  providerOptions: {
+    heygen: {
+      resolution: '1080p',
+      promptEnhancement: 'disabled',
+      referenceImages: [{ type: 'asset_id', assetId: 'YOUR_ASSET_ID' }],
+    } satisfies HeyGenVideoModelOptions,
+  },
+});
+```
+
+- **mode** _'text_to_video' | 'image_to_video' | 'reference_to_video'_: Inferred from the inputs when omitted. Explicit modes must match the supplied inputs. First-frame images cannot be combined with references.
+- **resolution** _'480p' | '768p' | '1080p' | '2k'_: Output size class. Defaults to `768p`. Takes precedence over the standard `resolution` option.
+- **promptEnhancement** _'turbo' | 'quality' | 'disabled'_: HeyGen's prompt enhancement setting. The API defaults to `turbo`.
+- **image** _HeyGenVideoAsset_: First-frame input, including an existing asset ID. Cannot be combined with a standard image or `frameImages`.
+- **referenceImages** _HeyGenVideoAsset[]_: Additional image references.
+- **referenceVideos** _HeyGenVideoAsset[]_: Additional video references.
+- **referenceAudio** _HeyGenVideoAsset[]_: Additional audio references.
+- **pollIntervalMillis** _number_: Delay between status requests in milliseconds. Defaults to 5000.
+- **pollTimeoutMillis** _number_: Maximum polling duration in milliseconds. Defaults to 600000.
+
+`HeyGenVideoAsset` supports these representations:
+
+```ts
+{ type: 'url', url: 'https://example.com/input.jpg' }
+{ type: 'asset_id', assetId: 'YOUR_ASSET_ID' }
+{ type: 'base64', mediaType: 'image/jpeg', data: 'BASE64_DATA' }
+```
+
+Asset IDs must already exist in the workspace associated with the API key. This provider does not upload or manage HeyGen assets. Standard file inputs are sent inline as base64. HeyGen permits up to 5 MB per inline image and 16 MB per inline video or audio input. URL inputs must use HTTPS and be directly accessible without redirects; HeyGen permits up to 16 MB per image URL and 32 MB per video or audio URL.
+
+### Resolution and Aspect Ratio
+
+Prefer `providerOptions.heygen.resolution` to select a size class. The standard `resolution` option accepts the exact frame sizes below and infers the corresponding aspect ratio when `aspectRatio` is omitted:
+
+| Aspect ratio | `480p`    | `768p`     | `1080p`     | `2k`        |
+| ------------ | --------- | ---------- | ----------- | ----------- |
+| `21:9`       | `960x416` | `1536x672` | —           | —           |
+| `16:9`       | `832x480` | `1344x768` | `1890x1080` | `2688x1536` |
+| `4:3`        | `640x480` | `1024x768` | —           | —           |
+| `1:1`        | `480x480` | `768x768`  | —           | —           |
+| `3:4`        | `480x640` | `768x1024` | —           | —           |
+| `9:16`       | `480x832` | `768x1344` | `1080x1890` | `1536x2688` |
+
+Text-to-video defaults to `16:9`. Reference-to-video defaults to `adaptive`, inheriting the first reference image or video's shape. At `1080p` or `2k`, text-to-video and reference-to-video require `16:9` or `9:16`. Image-to-video always inherits the first frame's shape, even when a standard frame size is supplied; only its size class is used.
+
+### Other Constraints
+
+- Prompts must contain between 1 and 32,000 characters.
+- Duration must be an integer from 5 to 15 seconds; the default is 5.
+- Seeds must be unsigned 32-bit integers.
+- One video is generated per provider call.
+- Output is MP4 at 24 fps with generated audio. Unsupported `fps` values and `generateAudio: false` produce warnings.
+
+### Polling
+
+The AI SDK 6 provider implements `doGenerate`: it submits the video and polls until completion. Polling defaults to a 5-second interval and a 10-minute timeout. Set `providerOptions.heygen.pollIntervalMillis` and `pollTimeoutMillis` to customize these values. Both options must be positive integers in milliseconds. Native webhook completion is not implemented.
+
+HeyGen jobs continue running after submission. Aborting a local request does not cancel the remote generation. The returned video URL is signed and may expire.
+
+Pass an `Idempotency-Key` through the standard `headers` option when retrying the same submission. HeyGen retains keys for 24 hours; concurrent duplicates return an HTTP 409 error.
+
+### Provider Metadata
+
+`providerMetadata.heygen.videos` contains one entry per completed video. The AI SDK combines these entries when multiple videos are requested. Each entry contains:
+
+- `videoId`: The HeyGen video identifier.
+- `mode`: The generation mode submitted to HeyGen.
+- `resolution`: The resolved size class submitted to HeyGen, retained throughout polling. This is separate from the actual output dimensions.
+- `duration`, `width`, `height`, `aspectRatio`, and `seed`: Values reported by HeyGen on completion, when available.
+- `timings.inference`: The inference timing reported by HeyGen, when available.
+
+Failed or cancelled jobs throw an error that includes the provider failure message and code when available.
+
+The current HeyGen video endpoint does not document token counts or credit consumption in its generation response. The provider returns the reported duration and dimensions without estimating those quantities. Reported inference timing is preserved per video.

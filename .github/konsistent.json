@@ -426,6 +426,7 @@
     "deepinfra": "DeepInfra",
     "deepseek": "DeepSeek",
     "elevenlabs": "ElevenLabs",
+    "heygen": "HeyGen",
     "huggingface": "HuggingFace",
     "klingai": "KlingAI",
     "minimax": "MiniMax",
@@ -437,6 +438,7 @@
     "togetherai": "TogetherAI"
   },
   "kebabToCamelMap": {
+    "heygen": "heygen",
     "minimax": "minimax"
   }
 }

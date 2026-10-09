@@ -85,6 +85,9 @@
       "path": "packages/groq"
     },
     {
+      "path": "packages/heygen"
+    },
+    {
       "path": "packages/huggingface"
     },
     {
