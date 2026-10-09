@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "issueId": 22343,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22343-web-search-store-false.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22343-web-search-store-false.ts",
+    "packages/openai/src/responses/__fixtures__/issue-22343-live-web-search-store-false.json",
+    "packages/openai/src/responses/convert-to-openai-responses-input-web-search-replay.test.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22343_REPRODUCED: store:false dropped replayable web_search_call items from the next Responses API request"
+  }
+}

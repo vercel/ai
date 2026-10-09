@@ -1,0 +1,130 @@
+{
+  "recordedAt": "2026-10-09",
+  "request": {
+    "model": "gpt-5-mini",
+    "store": false,
+    "tools": [
+      {
+        "type": "web_search"
+      }
+    ],
+    "input": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "Who is the mayor of Paris?"
+          }
+        ]
+      },
+      {
+        "id": "ws_0a76c91bedfdd317016ac90881305087d2b9f90e94fa09419a",
+        "type": "web_search_call",
+        "status": "completed",
+        "action": {
+          "type": "search",
+          "queries": [
+            "Le maire de Paris",
+            "Maire de Paris",
+            "Mayor of Paris"
+          ],
+          "query": "Le maire de Paris",
+          "sources": [
+            {
+              "type": "url",
+              "url": "https://www.paris.fr/en/pages/emmanuel-gregoire-officially-elected-mayor-of-paris-34424"
+            },
+            {
+              "type": "url",
+              "url": "https://www.paris.fr/pages/emmanuel-gregoire-elu-officiellement-maire-de-paris-34421"
+            },
+            {
+              "type": "url",
+              "url": "https://www.paris.fr/pages/gregoire-emmanuel-2323"
+            },
+            {
+              "type": "url",
+              "url": "https://www.paris.fr/pages/ariel-weil-6053"
+            },
+            {
+              "type": "url",
+              "url": "https://www.paris.fr/pages/lecoq-jean-pierre-2241/"
+            },
+            {
+              "type": "url",
+              "url": "https://www.paris.fr/pages/abdoulaye-kante-34363"
+            },
+            {
+              "type": "url",
+              "url": "https://www.paris.fr/pages/boulard-geoffroy-2234"
+            },
+            {
+              "type": "url",
+              "url": "https://ws-paris-v4.paris.fr/pages/organigramme-de-la-ville-de-paris-2380"
+            },
+            {
+              "type": "url",
+              "url": "https://www.paris.fr/pages/jeremy-redler-7935"
+            },
+            {
+              "type": "url",
+              "url": "https://www.paris.fr/pages/le-maire-de-paris-sera-elu-officiellement-ce-dimanche-29-mars-34180"
+            },
+            {
+              "type": "url",
+              "url": "https://www.paris.fr/pages/baudrier-jacques-2051"
+            },
+            {
+              "type": "url",
+              "url": "https://www.paris.fr/pages/dati-rachida-2211"
+            },
+            {
+              "type": "url",
+              "url": "https://cdn.paris.fr/paris/2019/07/24/0e81b1d533c4280380e3e9cdafc0208a.pdf"
+            },
+            {
+              "type": "url",
+              "url": "https://cdn.paris.fr/paris/filer/LIVRE_BLANC_PARIS_GB_18x25_WEB.pdf"
+            },
+            {
+              "type": "url",
+              "url": "https://cdn.paris.fr/paris/2024/03/28/2024_03_23-10-ans-de-mandature-dp-ZKr0.pdf"
+            },
+            {
+              "type": "url",
+              "url": "https://cdn.paris.fr/presse/2025/04/10/030eaae71f4e9ed5941de4269ac8122f.pdf"
+            },
+            {
+              "type": "url",
+              "url": "https://cdn.paris.fr/paris/2022/09/21/53787b2d3bad08d58e3d7a59df7ff487.pdf"
+            },
+            {
+              "type": "url",
+              "url": "https://www.paris.fr/en/pages/emmanuel-gregoire-officially-elected-mayor-of-paris-34424?utm_source=openai"
+            }
+          ]
+        }
+      },
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "input_text",
+            "text": "Answer using the search already performed; do not search again."
+          }
+        ]
+      }
+    ]
+  },
+  "response": {
+    "id": "resp_0a76c91bedfdd317016ac908a84ed487d28d885eb65ab50874",
+    "status": "completed",
+    "model": "gpt-5-mini-2025-08-07",
+    "outputTypes": [
+      "reasoning",
+      "message"
+    ],
+    "error": null
+  }
+}
