@@ -9,7 +9,7 @@ As covered under Foundations, [tools](/docs/foundations/tools) are objects that 
 Function tools and dynamic tools contain several core elements:
 
 - **`description`**: An optional description of the tool that can influence when the tool is picked. It can be a string or a function that derives the description from the tool's context and experimental sandbox.
-- **`inputSchema`**: A [Zod schema](/docs/foundations/tools#schemas) or a [JSON schema](/docs/reference/ai-sdk-core/json-schema) that defines the input parameters. The schema is consumed by the LLM, and also used to validate the LLM tool calls.
+- **`inputSchema`**: A [Zod, Valibot or JSON schema](/docs/foundations/tools#schemas) that defines the input parameters. The schema is consumed by the LLM, and also used to validate the LLM tool calls.
 - **`execute`**: An optional async function that is called with the inputs from the tool call. It produces a value of type `RESULT` (generic type). It is optional because you might want to forward tool calls to the client or to a queue instead of executing them in the same process.
 - **`strict`**: _(optional, boolean)_ Enables strict tool calling when supported by the provider
 
