@@ -1,5 +1,139 @@
 # ai
 
+## 7.0.137
+
+### Patch Changes
+
+- e27cc64: fix(ai): discard unrelated message state when reading resumed streams
+
+## 7.0.136
+
+### Patch Changes
+
+- 7b5497c: Fix streaming output timeouts: stop `chunkMs` and `firstChunkMs` when the model response ends, so long-running local tools do not trigger model output timeouts. Give each retry fresh output timeout budgets. `stepMs` continues to cover the complete step, including local tools.
+- Updated dependencies [e280aa1]
+  - @ai-sdk/gateway@4.0.110
+
+## 7.0.135
+
+### Patch Changes
+
+- 5ddbb70: fix(ai): prevent duplicate continuation requests for repeated tool approval responses
+- 7c40a09: feat(ai): log warning when default step limit stops a tool loop
+- 4dbc902: feat(ai): add a top level 'dimensions' setting for embeddding functions
+- ff18b73: fix(ai): wait for chat stream cleanup when stopping
+- 9be846c: feat(ai): add a persistent WebSocket chat transport with correlated streaming, serialized backpressure, cancellation, validated protocol frames, explicit lifecycle, and sequence-based resume support
+- Updated dependencies [5cf13d2]
+- Updated dependencies [4dbc902]
+- Updated dependencies [908fd12]
+  - @ai-sdk/gateway@4.0.109
+  - @ai-sdk/provider@4.0.26
+  - @ai-sdk/provider-utils@5.0.58
+
+## 7.0.134
+
+### Patch Changes
+
+- 8281ec4: fix(ai): propagate async sendAutomaticallyWhen failures from tool updates
+- 46c2b05: fix(ai): preserve provider-executed tool calls when resuming streams
+
+## 7.0.133
+
+### Patch Changes
+
+- 9184a35: Add ordered text, file, and JSON parts to experimental decision state. Support image input in OpenAI Decisions and language model adapters. Gateway retains its existing string and JSON request format and rejects files, as does TypeSafe AI.
+
+  Arrays passed directly as state now contain decision state parts. Wrap JSON arrays in an object or a json part.
+
+  Normalize all public state forms into an array of parts before calling decision providers. Providers receive text and JSON objects as text and json parts.
+
+  Serialize decision file bytes as base64 in OpenTelemetry state attributes. Model-call spans record normalized state parts, while outer spans retain public state inputs.
+
+  Preserve native JSON state in TypeSafe AI when state contains one JSON part. Label shared state in language-model decision prompts.
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider@4.0.25
+  - @ai-sdk/provider-utils@5.0.57
+  - @ai-sdk/gateway@4.0.108
+
+## 7.0.132
+
+### Patch Changes
+
+- 3ebefff: feat(ai): introduce 'onUIMessageStepEnd' callback to persist messages
+
+## 7.0.131
+
+### Patch Changes
+
+- Updated dependencies [866e884]
+- Updated dependencies [04fdf5e]
+  - @ai-sdk/gateway@4.0.107
+
+## 7.0.130
+
+### Patch Changes
+
+- 6f6b9c0: fix(ai): reject pending result promises and cancel the pending stream when the abort signal fires
+- d3bcad9: feat(provider): report decision refusals as refusal answers
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/gateway@4.0.106
+  - @ai-sdk/provider-utils@5.0.56
+
+## 7.0.129
+
+### Patch Changes
+
+- e37d213: feat(ai): emit deprecation warnings with stable codes and deduplicate them
+- 73d8343: fix(ai): preserve V2 provider-reported total tokens in raw usage
+- 268225c: feat(provider): add a portable `max` reasoning level with native provider mappings, compatibility coercions, and budget-based fallback support.
+
+  Compatibility notes:
+
+  - **TypeScript source compatibility:** Adding `max` widens `LanguageModelV4CallOptions['reasoning']` and the derived `ReasoningLevel` type. Third-party providers and consumers with exhaustive switches or `Record<ReasoningLevel, ...>` mappings must handle `max` before upgrading. Ordinary calls using existing reasoning levels remain accepted.
+  - **Amazon Bedrock:** Existing Nova 2 calls using portable `reasoning: 'xhigh'` now send `maxReasoningEffort: 'high'` instead of the unsupported `'max'`, and return a compatibility warning. Anthropic and OpenAI Bedrock effort mappings retain their existing `xhigh` behavior. Partial Bedrock reasoning configurations continue to preserve explicit values and derive missing fields; explicit effort/budget overrides and disabled thinking no longer emit warnings for portable mappings that are not sent.
+  - **Fireworks:** Existing portable `minimal` and `xhigh` calls keep their request mappings to `low` and `high`, respectively, and now return compatibility warnings in generation and streaming results. Portable `max` maps to `high` with the same warning behavior.
+
+  **Release classification:** This remains a patch changeset under the repository's explicit release policy, which uses patch releases for both fixes and features. The TypeScript source-compatibility caveat for exhaustive consumers is disclosed above. Maintainers can override this classification with a `major` label if they decide to align the provider-spec addition with a future AI SDK major release.
+
+- d83366e: fix(ai): publish the latest error after repeated failed stream resume attempts
+- 34905a2: fix(ai): preserve provider options from approval-only tool messages
+- 16ab882: fix(ai): recognize WebKit network errors
+- f810ea3: fix(ai): prevent unavailable tools from exposing persisted output to models
+- 19a127b: fix(ai): avoid duplicate slashes in chat reconnect URLs
+- 0af2f7c: chore: upgrade to TypeScript 6
+- 4c6979c: fix(harness): preserve adapter warnings in agent stream results and declare
+  their compatibility warning shapes
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [753f2e1]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+- Updated dependencies [ad64697]
+- Updated dependencies [0c82824]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/gateway@4.0.105
+  - @ai-sdk/provider@4.0.23
+
+## 7.0.128
+
+### Patch Changes
+
+- 0fe8c67: fix: preserve tool approval state when resuming streams
+- 2959d35: feat: rename `evaluate` to `decide`
+- 0ca1ab9: Add durable non-streaming `WorkflowAgent.generate()` with a shared tool loop, a 20-step default, typed output, and core generation result semantics. Reuse core result and content construction through internal exports while preserving existing Workflow streaming behavior. Transport-independent approval creation remains separate follow-up work.
+- d6b42fd: feat(ai): support custom reasoning delimiters in extractReasoningMiddleware
+- ed6e72d: fix(ai): return successful empty transcripts for silent audio
+- 2136151: Throw `InvalidResponseDataError` instead of a generic `Error` when a generated audio file's format cannot be determined from its media type, so callers can identify the failure with `AISDKError.isInstance`.
+- Updated dependencies [131532b]
+- Updated dependencies [2959d35]
+- Updated dependencies [59116e6]
+- Updated dependencies [6ac923a]
+  - @ai-sdk/gateway@4.0.104
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+
 ## 7.0.127
 
 ### Patch Changes

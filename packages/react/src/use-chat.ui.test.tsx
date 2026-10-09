@@ -17,6 +17,7 @@ import {
   DefaultChatTransport,
   isStaticToolUIPart,
   TextStreamChatTransport,
+  type ChatTransport,
   type FinishReason,
   type UIMessage,
   type UIMessageChunk,
@@ -37,6 +38,107 @@ const server = createTestServer({
 });
 
 describe('use-chat', () => {
+  describe('transport lifecycle', () => {
+    afterEach(cleanup);
+
+    it('does not close a caller-owned transport shared by multiple hooks', () => {
+      const close = vi.fn();
+      const transport = {
+        close,
+        sendMessages: async () => new ReadableStream<UIMessageChunk>(),
+        reconnectToStream: async () => null,
+      } satisfies ChatTransport<UIMessage>;
+
+      function TestComponent() {
+        useChat({ transport });
+        return null;
+      }
+
+      const firstView = render(<TestComponent />);
+      const secondView = render(<TestComponent />);
+
+      firstView.unmount();
+      secondView.unmount();
+      expect(close).not.toHaveBeenCalled();
+    });
+
+    it('replaces a partial response when a resumed transport replays the full stream', async () => {
+      function createStream(chunks: UIMessageChunk[], error?: Error) {
+        let index = 0;
+        return new ReadableStream<UIMessageChunk>({
+          pull(controller) {
+            if (index < chunks.length) {
+              controller.enqueue(chunks[index++]);
+            } else if (error == null) {
+              controller.close();
+            } else {
+              controller.error(error);
+            }
+          },
+        });
+      }
+
+      const transport = {
+        resumeStreamIsReplay: true,
+        sendMessages: async () =>
+          createStream(
+            [
+              { type: 'start', messageId: 'assistant-1' },
+              { type: 'start-step' },
+              { type: 'text-start', id: 'text-1' },
+              { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+            ],
+            new TypeError('simulated network disconnect'),
+          ),
+        reconnectToStream: async () =>
+          createStream([
+            { type: 'start', messageId: 'assistant-1' },
+            { type: 'start-step' },
+            { type: 'text-start', id: 'text-1' },
+            { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+            { type: 'text-delta', id: 'text-1', delta: ' world' },
+            { type: 'text-end', id: 'text-1' },
+            { type: 'finish-step' },
+            { type: 'finish' },
+          ]),
+      } satisfies ChatTransport<UIMessage>;
+      let helpers!: ReturnType<typeof useChat>;
+
+      function TestComponent() {
+        helpers = useChat({ transport, onError: () => {} });
+        return null;
+      }
+
+      render(<TestComponent />);
+
+      await act(async () => {
+        await helpers.sendMessage({ text: 'hi' });
+      });
+      expect(helpers.messages.at(-1)?.parts).toEqual([
+        { type: 'step-start' },
+        {
+          type: 'text',
+          text: 'Hello',
+          state: 'streaming',
+          providerMetadata: undefined,
+        },
+      ]);
+
+      await act(async () => {
+        await helpers.resumeStream();
+      });
+      expect(helpers.messages.at(-1)?.parts).toEqual([
+        { type: 'step-start' },
+        {
+          type: 'text',
+          text: 'Hello world',
+          state: 'done',
+          providerMetadata: undefined,
+        },
+      ]);
+    });
+  });
+
   describe('updates during suspended navigation', () => {
     afterEach(cleanup);
 

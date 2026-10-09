@@ -845,6 +845,7 @@ export async function convertToAnthropicPrompt({
                   break;
                 }
 
+                betas.add('server-side-fallback-2026-06-01');
                 anthropicContent.push({
                   type: 'fallback',
                   from: fallbackMetadata.value.from,
@@ -1340,6 +1341,30 @@ export async function convertToAnthropicPrompt({
                   providerToolName === 'tool_search_tool_bm25'
                 ) {
                   const output = part.output;
+
+                  if (
+                    output.type === 'error-json' ||
+                    (output.type === 'json' &&
+                      output.value != null &&
+                      typeof output.value === 'object' &&
+                      !Array.isArray(output.value) &&
+                      'type' in output.value &&
+                      output.value.type === 'tool_search_tool_result_error')
+                  ) {
+                    anthropicContent.push({
+                      type: 'tool_search_tool_result',
+                      tool_use_id: part.toolCallId,
+                      content: {
+                        type: 'tool_search_tool_result_error',
+                        error_code:
+                          extractErrorValue(output.value).errorCode ??
+                          'unavailable',
+                      },
+                      cache_control: cacheControl,
+                    });
+
+                    break;
+                  }
 
                   if (output.type !== 'json') {
                     warnings.push({

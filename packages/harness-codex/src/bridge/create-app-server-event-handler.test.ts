@@ -4,6 +4,114 @@ import { createAppServerEventHandler } from './create-app-server-event-handler';
 import { createEmitStreamEvent } from './create-emit-stream-event';
 
 describe('createAppServerEventHandler', () => {
+  it('preserves MCP completion status through app-server normalization', () => {
+    const emitted: Array<Record<string, unknown>> = [];
+    const stepTracker = createCodexStepTracker({
+      send: event => emitted.push(event),
+    });
+    const handler = createAppServerEventHandler({
+      stepTracker,
+      emitStreamEvent: createEmitStreamEvent({
+        send: event => emitted.push(event),
+        stepTracker,
+        setTurnUsage: () => {},
+        setThreadId: () => {},
+        emitWarning: vi.fn(),
+        emitError: vi.fn(),
+      }),
+      emitWarning: vi.fn(),
+      emitError: vi.fn(),
+    });
+    handler.announceThread('thread-1');
+    handler.setTurnId('turn-1');
+
+    const items = [
+      {
+        type: 'mcpToolCall',
+        id: 'failed',
+        server: 'fixture',
+        tool: 'fail',
+        arguments: { exact: true },
+        status: 'inProgress',
+      },
+      {
+        type: 'mcpToolCall',
+        id: 'success',
+        server: 'fixture',
+        tool: 'ok',
+        arguments: {},
+        status: 'inProgress',
+      },
+      {
+        type: 'mcpToolCall',
+        id: 'empty-failure',
+        server: 'fixture',
+        tool: 'fail',
+        arguments: {},
+        status: 'inProgress',
+      },
+    ];
+    const handleItem = (
+      method: 'item/started' | 'item/completed',
+      item: Record<string, unknown>,
+    ) =>
+      handler.handle({
+        method,
+        params: {
+          threadId: 'thread-1',
+          turnId: 'turn-1',
+          item,
+        },
+      });
+
+    for (const item of items) handleItem('item/started', item);
+    handleItem('item/completed', {
+      ...items[1],
+      status: 'completed',
+      result: { structuredContent: { ok: true } },
+    });
+    handleItem('item/completed', {
+      ...items[0],
+      status: 'failed',
+      error: { message: 'native failure' },
+    });
+    handleItem('item/completed', {
+      ...items[2],
+      status: 'failed',
+    });
+
+    expect(
+      emitted
+        .filter(event => event.type === 'tool-call')
+        .map(event => event.toolCallId),
+    ).toEqual(['failed', 'success', 'empty-failure']);
+    expect(emitted.filter(event => event.type === 'tool-result')).toEqual([
+      {
+        type: 'tool-result',
+        toolCallId: 'success',
+        toolName: 'mcp__fixture__ok',
+        result: { ok: true },
+        dynamic: true,
+      },
+      {
+        type: 'tool-result',
+        toolCallId: 'failed',
+        toolName: 'mcp__fixture__fail',
+        result: { error: 'native failure' },
+        isError: true,
+        dynamic: true,
+      },
+      {
+        type: 'tool-result',
+        toolCallId: 'empty-failure',
+        toolName: 'mcp__fixture__fail',
+        result: null,
+        isError: true,
+        dynamic: true,
+      },
+    ]);
+  });
+
   it('maps streamed items and accumulates every distinct model request usage', async () => {
     const emitted: Array<Record<string, unknown>> = [];
     let turnUsage: Record<string, unknown> = defaultUsage();

@@ -246,6 +246,43 @@ describe('text stream', () => {
       },
     );
 
+    it('should ignore object updates from an older overlapping request', async () => {
+      const firstController = new TestResponseController();
+      const secondController = new TestResponseController();
+      server.urls['/api/use-object'].response = [
+        {
+          type: 'controlled-stream',
+          controller: firstController,
+        },
+        {
+          type: 'controlled-stream',
+          controller: secondController,
+        },
+      ];
+
+      await userEvent.click(screen.getByTestId('submit-button'));
+      await userEvent.click(screen.getByTestId('submit-button'));
+
+      await secondController.write('{"content":"second"}');
+      await secondController.close();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('object')).toHaveTextContent(
+          '{"content":"second"}',
+        );
+      });
+
+      await firstController.write('{"content":"first"}');
+      await firstController.close();
+
+      await waitFor(() => {
+        expect(onFinishCalls).toHaveLength(2);
+        expect(screen.getByTestId('object')).toHaveTextContent(
+          '{"content":"second"}',
+        );
+      });
+    });
+
     it('should keep the newer overlapping request active when the older request fails', async () => {
       const firstController = new TestResponseController();
       const secondController = new TestResponseController();

@@ -1,13 +1,13 @@
 /**
  * WorkflowAgent compatibility test suite — ported from AI SDK's ToolLoopAgent tests.
  *
- * These tests are a 1:1 port of tool-loop-agent.test.ts (stream tests only).
- * They use the SAME API names as ToolLoopAgent to serve as a compatibility spec.
- * Tests that fail are expected — they indicate features WorkflowAgent must implement.
+ * These passing tests adapt ToolLoopAgent's stream tests to WorkflowAgent and
+ * cover shared option names, callbacks, and tool behavior. See
+ * workflow-agent-contract.test.ts for matched core-generate/Workflow-stream
+ * fixtures and contributing/workflow-agent-compatibility.md for intended parity.
  *
  * DIVERGENCES from ToolLoopAgent (necessary for workflow runtime):
- * - WorkflowAgent.stream() requires `messages` (ModelMessage[]) + `writable` (WritableStream)
- *   instead of ToolLoopAgent's `prompt` string
+ * - WorkflowAgent.stream() accepts `prompt` or `messages` and an optional writable.
  * - WorkflowAgent returns WorkflowAgentStreamResult (not StreamTextResult with consumeStream())
  */
 import type { LanguageModelV4StreamPart } from '@ai-sdk/provider';
@@ -30,7 +30,7 @@ import { WorkflowAgent } from './workflow-agent.js';
 
 /**
  * Creates a mock WritableStream for WorkflowAgent.stream().
- * DIVERGENCE: WorkflowAgent requires a writable stream; ToolLoopAgent does not.
+ * WorkflowAgent writes chunks to an optional writable instead of returning a reader.
  */
 function createMockWritable() {
   const chunks: Experimental_LanguageModelStreamPart<ToolSet>[] = [];
@@ -548,6 +548,124 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         }
       `);
     });
+
+    it('should retain partial assistant content when the output length limit is reached', async () => {
+      const model = new MockLanguageModelV4({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'stream-start' as const, warnings: [] },
+            { type: 'text-start' as const, id: 'text-1' },
+            {
+              type: 'text-delta' as const,
+              id: 'text-1',
+              delta: 'A partial answer.',
+            },
+            { type: 'text-end' as const, id: 'text-1' },
+            {
+              ...dummyStreamFinish,
+              finishReason: {
+                unified: 'length' as const,
+                raw: 'length',
+              },
+            },
+          ]),
+        }),
+      });
+      const onFinish = vi.fn();
+      const agent = new WorkflowAgent({ model });
+
+      const { writable } = createMockWritable();
+      const result = await agent.stream({
+        messages: [{ role: 'user', content: 'Write an answer.' }],
+        writable,
+        onFinish,
+      });
+
+      const assistantMessage = {
+        role: 'assistant',
+        content: [{ type: 'text', text: 'A partial answer.' }],
+      };
+      expect(result.finishReason).toBe('length');
+      expect(result.steps[0]?.text).toBe('A partial answer.');
+      expect(result.messages.at(-1)).toEqual(assistantMessage);
+      expect(result.steps[0]?.response.messages).toEqual([assistantMessage]);
+      expect(onFinish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          finishReason: 'length',
+          messages: result.messages,
+          text: 'A partial answer.',
+        }),
+      );
+    });
+
+    it.each([
+      ['content-filter', 'content-filter'],
+      ['error', 'error'],
+      ['other', 'other'],
+      ['unknown', 'unknown'],
+      ['no finish part', undefined],
+    ] as const)(
+      'should retain assistant content when the stream ends with %s',
+      async (_, finishReason) => {
+        const model = new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start' as const, warnings: [] },
+              { type: 'reasoning-start' as const, id: 'reasoning-1' },
+              {
+                type: 'reasoning-delta' as const,
+                id: 'reasoning-1',
+                delta: 'Thinking.',
+              },
+              { type: 'reasoning-end' as const, id: 'reasoning-1' },
+              { type: 'text-start' as const, id: 'text-1' },
+              {
+                type: 'text-delta' as const,
+                id: 'text-1',
+                delta: 'A partial answer.',
+              },
+              { type: 'text-end' as const, id: 'text-1' },
+              ...(finishReason == null
+                ? []
+                : [
+                    {
+                      ...dummyStreamFinish,
+                      finishReason: {
+                        unified: finishReason,
+                        raw: finishReason,
+                      },
+                    } as LanguageModelV4StreamPart,
+                  ]),
+            ]),
+          }),
+        });
+        const onEnd = vi.fn();
+        const agent = new WorkflowAgent({ model });
+
+        const { writable } = createMockWritable();
+        const result = await agent.stream({
+          messages: [{ role: 'user', content: 'Write an answer.' }],
+          writable,
+          onEnd,
+        });
+
+        const assistantMessage = {
+          role: 'assistant',
+          content: [
+            { type: 'reasoning', text: 'Thinking.' },
+            { type: 'text', text: 'A partial answer.' },
+          ],
+        };
+        expect(result.messages.at(-1)).toEqual(assistantMessage);
+        expect(result.steps[0]?.response.messages).toEqual([assistantMessage]);
+        expect(onEnd).toHaveBeenCalledWith(
+          expect.objectContaining({
+            messages: result.messages,
+            text: 'A partial answer.',
+          }),
+        );
+      },
+    );
   });
 
   describe('experimental_onStart', () => {

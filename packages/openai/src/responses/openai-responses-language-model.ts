@@ -685,11 +685,19 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     // remove unsupported settings for reasoning models
     // see https://platform.openai.com/docs/guides/reasoning#limitations
     if (isReasoningModel) {
-      // when reasoning effort is none, gpt-5.1 models allow temperature, topP, logprobs
+      // Input updates change the effort used to validate sampling parameters.
+      let effectiveReasoningEffort = resolvedReasoningEffort;
+      for (const item of input) {
+        if (item.type === 'configuration_update') {
+          effectiveReasoningEffort = item.reasoning.effort;
+        }
+      }
+
+      // supported models allow temperature, topP, and logprobs when reasoning effort is none
       //  https://platform.openai.com/docs/guides/latest-model#gpt-5-1-parameter-compatibility
       if (
         !(
-          resolvedReasoningEffort === 'none' &&
+          effectiveReasoningEffort === 'none' &&
           modelCapabilities.supportsNonReasoningParameters
         )
       ) {
@@ -1275,7 +1283,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             toolName: toolNameMapping.toCustomToolName(
               webSearchToolName ?? 'web_search',
             ),
-            result: mapWebSearchOutput(part.action),
+            ...(part.status === 'failed' || part.status === 'incomplete'
+              ? { isError: true, result: { status: part.status } }
+              : { result: mapWebSearchOutput(part.action) }),
           });
 
           break;
@@ -2140,7 +2150,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   toolName: toolNameMapping.toCustomToolName(
                     webSearchToolName ?? 'web_search',
                   ),
-                  result: mapWebSearchOutput(value.item.action),
+                  ...(value.item.status === 'failed' ||
+                  value.item.status === 'incomplete'
+                    ? { isError: true, result: { status: value.item.status } }
+                    : { result: mapWebSearchOutput(value.item.action) }),
                 });
               } else if (value.item.type === 'computer_call') {
                 ongoingToolCalls[value.output_index] = undefined;

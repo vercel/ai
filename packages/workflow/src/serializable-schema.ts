@@ -19,7 +19,8 @@ import {
   type Tool,
 } from '@ai-sdk/provider-utils';
 import { dynamicTool, tool, type ToolSet } from 'ai';
-import Ajv from 'ajv';
+import Ajv, { type ErrorObject } from 'ajv';
+import Ajv2020 from 'ajv/dist/2020.js';
 
 /**
  * Serializable tool definition — plain objects only, safe for workflow steps.
@@ -132,6 +133,29 @@ function resolveToolDescription<TOOLS extends ToolSet>({
         });
 }
 
+function formatAjvError(error: ErrorObject): string {
+  const path = `data${error.instancePath}`;
+
+  switch (error.keyword) {
+    case 'enum':
+      return `${path} must be one of ${error.params.allowedValues
+        .map((value: unknown) => JSON.stringify(value))
+        .join(', ')}`;
+    case 'additionalProperties':
+      return `${path} has unexpected property ${JSON.stringify(
+        error.params.additionalProperty,
+      )}`;
+    case 'const':
+      return `${path} must equal ${JSON.stringify(error.params.allowedValue)}`;
+    case 'required':
+      return `${path} is missing required property ${JSON.stringify(
+        error.params.missingProperty,
+      )}`;
+    default:
+      return `${path} ${error.message ?? 'is invalid'}`;
+  }
+}
+
 /**
  * Reconstructs tool objects from serializable tool definitions inside a step.
  *
@@ -142,7 +166,37 @@ function resolveToolDescription<TOOLS extends ToolSet>({
 export function resolveSerializableTools(
   tools: Record<string, SerializableToolDef>,
 ): ToolSet {
-  const ajv = new Ajv();
+  const ajvOptions = {
+    allErrors: true,
+    strict: false,
+    validateFormats: false,
+  } as const;
+  const ajv = new Ajv(ajvOptions);
+  const ajv2020 = new Ajv2020(ajvOptions);
+
+  const createValidatedInputSchema = (inputSchema: JSONSchema7) => {
+    const schemaDialect =
+      typeof inputSchema.$schema === 'string'
+        ? inputSchema.$schema.replace(/#$/, '')
+        : undefined;
+    const schemaAjv =
+      schemaDialect === 'https://json-schema.org/draft/2020-12/schema'
+        ? ajv2020
+        : ajv;
+    const validateFn = schemaAjv.compile(inputSchema);
+
+    return jsonSchema(inputSchema, {
+      validate: value => {
+        if (validateFn(value)) {
+          return { success: true, value: value as any };
+        }
+        return {
+          success: false,
+          error: new Error(validateFn.errors!.map(formatAjvError).join(', ')),
+        };
+      },
+    });
+  };
 
   return Object.fromEntries(
     Object.entries(tools).map(([name, t]) => {
@@ -175,30 +229,17 @@ export function resolveSerializableTools(
       }
 
       if (t.type === 'dynamic') {
-        const validateFn = ajv.compile(t.inputSchema);
-
         return [
           name,
           dynamicTool({
             description: t.description,
             inputExamples: t.inputExamples,
             providerOptions: t.providerOptions,
-            inputSchema: jsonSchema(t.inputSchema, {
-              validate: value => {
-                if (validateFn(value)) {
-                  return { success: true, value };
-                }
-                return {
-                  success: false,
-                  error: new Error(ajv.errorsText(validateFn.errors)),
-                };
-              },
-            }),
+            inputSchema: createValidatedInputSchema(t.inputSchema),
           }),
         ];
       }
 
-      const validateFn = ajv.compile(t.inputSchema);
       const functionTool = {
         title: t.title,
         metadata: t.metadata,
@@ -206,17 +247,7 @@ export function resolveSerializableTools(
         strict: t.strict,
         inputExamples: t.inputExamples,
         providerOptions: t.providerOptions,
-        inputSchema: jsonSchema(t.inputSchema, {
-          validate: value => {
-            if (validateFn(value)) {
-              return { success: true, value: value as any };
-            }
-            return {
-              success: false,
-              error: new Error(ajv.errorsText(validateFn.errors)),
-            };
-          },
-        }),
+        inputSchema: createValidatedInputSchema(t.inputSchema),
       };
 
       return [

@@ -1,5 +1,93 @@
 # @ai-sdk/harness-pi
 
+## 1.0.150
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.148
+
+## 1.0.149
+
+### Patch Changes
+
+- c357e52: chore(harness): update primary harness SDKs to their latest versions
+  - @ai-sdk/harness@1.0.147
+
+## 1.0.148
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.146
+- @ai-sdk/provider-utils@5.0.58
+
+## 1.0.147
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.145
+
+## 1.0.146
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider-utils@5.0.57
+  - @ai-sdk/harness@1.0.144
+
+## 1.0.145
+
+### Patch Changes
+
+- c371c00: feat(harness-pi): add a `cacheRetention` setting that is passed to every Pi model request, so Anthropic models can use the 1-hour prompt cache
+- 5901911: fix(harness-pi): stream extension-registered tools as provider-executed dynamic tools, and close a compaction that arrives after the turn's last step in its own step
+- d7dedf2: fix(harness-pi): shut down MCP servers on dispose without reloading the Pi session
+- 10bc612: fix(harness-pi): report real step and turn usage
+
+  `finish-step` usage was always zero, and `finish.totalUsage` was the running total of the whole Pi session, not the usage of the current turn. Each step now reports the usage of its assistant message. The turn reports the change in Pi's session stats across the prompt. `inputTokens.total` now includes cached input. `noCache` is set, and `outputTokens.text` and `reasoning` are set when the provider reports reasoning tokens.
+
+- cadd7c1: fix(harness-pi): fail the turn when the requested model is not in Pi's model catalog instead of silently running on the previous model
+- 21148df: feat(harness-pi): add `mcpSettings` to configure the MCP adapter's tool prefix and output guard
+- d45e044: feat(harness-pi): add `fileToolPathPolicy` setting with readable and denied roots for native file tools
+- Updated dependencies [c4a5c8d]
+- Updated dependencies [50ac48b]
+- Updated dependencies [e8af189]
+  - @ai-sdk/harness@1.0.143
+
+## 1.0.144
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.142
+
+## 1.0.143
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.141
+- @ai-sdk/provider-utils@5.0.56
+
+## 1.0.142
+
+### Patch Changes
+
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+- Updated dependencies [4c6979c]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/harness@1.0.140
+
+## 1.0.141
+
+### Patch Changes
+
+- Updated dependencies [2959d35]
+- Updated dependencies [e7da240]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider-utils@5.0.54
+  - @ai-sdk/harness@1.0.139
+
 ## 1.0.140
 
 ### Patch Changes

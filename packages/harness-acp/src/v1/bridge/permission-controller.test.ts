@@ -95,7 +95,7 @@ describe('ACP permission controller', () => {
         emitToolCall: ({ toolCall }) => {
           order.push(`tool-call:${toolCall.toolCallId}`);
         },
-        claimHostToolPermission: () => false,
+        claimHostToolPermission: () => undefined,
       });
       const request = controller.requestPermission(
         permissionRequest({ toolCallId: 'call-1' }),
@@ -129,7 +129,8 @@ describe('ACP permission controller', () => {
   it('releases a proven host tool to the MCP relay without native approval', async () => {
     const fake = createFakeTurn();
     const emitToolCall = vi.fn();
-    const claimHostToolPermission = vi.fn(() => true);
+    const call = { toolName: 'weather', input: { city: 'Austin' } };
+    const claimHostToolPermission = vi.fn(() => call);
     const onHostToolPermissionAllowed = vi.fn();
     const controller = createACPPermissionController({
       turn: fake.turn,
@@ -152,7 +153,8 @@ describe('ACP permission controller', () => {
       toolCall: request.toolCall,
     });
     expect(onHostToolPermissionAllowed).toHaveBeenCalledExactlyOnceWith({
-      toolCall: request.toolCall,
+      toolCallId: request.toolCall.toolCallId,
+      call,
     });
     expect(emitToolCall).not.toHaveBeenCalled();
     expect(fake.events).toEqual([]);
@@ -176,7 +178,7 @@ describe('ACP permission controller', () => {
       permissionMode: 'allow-all',
       hasPermissionModeMapping: true,
       emitToolCall,
-      claimHostToolPermission: () => false,
+      claimHostToolPermission: () => undefined,
     });
 
     await expect(
@@ -200,7 +202,7 @@ describe('ACP permission controller', () => {
       permissionMode: 'allow-all',
       hasPermissionModeMapping: true,
       emitToolCall: () => {},
-      claimHostToolPermission: () => false,
+      claimHostToolPermission: () => undefined,
     });
     const first = controller.requestPermission(
       permissionRequest({ toolCallId: 'call-1' }),
@@ -237,7 +239,7 @@ describe('ACP permission controller', () => {
         permissionMode,
         hasPermissionModeMapping: false,
         emitToolCall,
-        claimHostToolPermission: () => false,
+        claimHostToolPermission: () => undefined,
       });
 
       await expect(
@@ -268,7 +270,7 @@ describe('ACP permission controller', () => {
         permissionMode,
         hasPermissionModeMapping: false,
         emitToolCall: () => {},
-        claimHostToolPermission: () => false,
+        claimHostToolPermission: () => undefined,
       });
       const request = controller.requestPermission(
         permissionRequest({ toolCallId: 'call-1', kind }),
@@ -296,7 +298,7 @@ describe('ACP permission controller', () => {
         permissionMode,
         hasPermissionModeMapping: true,
         emitToolCall: () => {},
-        claimHostToolPermission: () => false,
+        claimHostToolPermission: () => undefined,
       });
       const request = controller.requestPermission(
         permissionRequest({ toolCallId: 'call-1', kind }),

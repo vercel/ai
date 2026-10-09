@@ -1980,6 +1980,41 @@ describe('tool messages', () => {
 });
 
 describe('assistant messages', () => {
+  it('should ignore message-start accounting parts when replaying assistant content', async () => {
+    const warnings: SharedV4Warning[] = [];
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'custom',
+              kind: 'anthropic.message_start',
+              providerOptions: {
+                anthropic: {
+                  id: 'msg_usage',
+                  model: 'claude-haiku-4-5',
+                  usage: { input_tokens: 13, output_tokens: 1 },
+                },
+              },
+            },
+            { type: 'text', text: 'Hi!' },
+          ],
+        },
+      ],
+      sendReasoning: false,
+      warnings,
+      toolNameMapping: defaultToolNameMapping,
+    });
+    expect(result.prompt.messages).toEqual([
+      {
+        role: 'assistant',
+        content: [{ type: 'text', text: 'Hi!', cache_control: undefined }],
+      },
+    ]);
+    expect(warnings).toEqual([]);
+  });
+
   it('should preserve fallback boundaries between reasoning blocks', async () => {
     const result = await convertToAnthropicPrompt({
       prompt: [
@@ -2041,6 +2076,7 @@ describe('assistant messages', () => {
         ],
       },
     ]);
+    expect(result.betas).toContain('server-side-fallback-2026-06-01');
   });
 
   it('should warn and omit fallback boundaries with invalid metadata', async () => {
@@ -3460,6 +3496,94 @@ describe('assistant messages', () => {
     `);
     expect(warnings).toMatchInlineSnapshot(`[]`);
   });
+
+  it.each([
+    {
+      toolName: 'tool_search_tool_regex',
+      output: {
+        type: 'error-json',
+        value: JSON.stringify({
+          type: 'tool_search_tool_result_error',
+          errorCode: 'invalid_tool_input',
+        }),
+      },
+    },
+    {
+      toolName: 'tool_search_tool_regex',
+      output: {
+        type: 'json',
+        value: {
+          type: 'tool_search_tool_result_error',
+          errorCode: 'invalid_tool_input',
+        },
+      },
+    },
+    {
+      toolName: 'tool_search_tool_bm25',
+      output: {
+        type: 'error-json',
+        value: JSON.stringify({
+          type: 'tool_search_tool_result_error',
+          errorCode: 'invalid_tool_input',
+        }),
+      },
+    },
+    {
+      toolName: 'tool_search_tool_bm25',
+      output: {
+        type: 'json',
+        value: {
+          type: 'tool_search_tool_result_error',
+          errorCode: 'invalid_tool_input',
+        },
+      },
+    },
+  ] as const)(
+    'should convert $toolName $output.type error results',
+    async ({ toolName, output }) => {
+      const warnings: SharedV4Warning[] = [];
+      const toolCallId = `srvtoolu_${toolName}`;
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                input:
+                  toolName === 'tool_search_tool_regex'
+                    ? { pattern: '[' }
+                    : { query: 'weather' },
+                providerExecuted: true,
+                toolCallId,
+                toolName,
+                type: 'tool-call',
+              },
+              {
+                output,
+                toolCallId,
+                toolName,
+                type: 'tool-result',
+              },
+            ],
+          },
+        ],
+        sendReasoning: false,
+        warnings,
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result.prompt.messages[0].content[1]).toEqual({
+        cache_control: undefined,
+        content: {
+          error_code: 'invalid_tool_input',
+          type: 'tool_search_tool_result_error',
+        },
+        tool_use_id: toolCallId,
+        type: 'tool_search_tool_result',
+      });
+      expect(warnings).toEqual([]);
+    },
+  );
 
   describe('advisor 20260301 multi-turn round-trip', () => {
     it('should convert advisor server_tool_use + advisor_result back to the API shape', async () => {

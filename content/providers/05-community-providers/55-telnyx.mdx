@@ -88,11 +88,11 @@ const { embedding } = await embed({
 console.log(embedding);
 ```
 
-### `experimental_transcribe`
+### `transcribe`
 
 ```typescript
 import { telnyx } from '@telnyx/ai-sdk-provider';
-import { experimental_transcribe as transcribe } from 'ai';
+import { transcribe } from 'ai';
 import { readFile } from 'node:fs/promises';
 
 const result = await transcribe({
@@ -103,11 +103,11 @@ const result = await transcribe({
 console.log(result.text);
 ```
 
-### `experimental_generateSpeech`
+### `generateSpeech`
 
 ```typescript
 import { telnyx } from '@telnyx/ai-sdk-provider';
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 
 const { audio } = await generateSpeech({
   model: telnyx.speech('Telnyx.NaturalHD.astra'),

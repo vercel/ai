@@ -27,20 +27,20 @@
     "@ai-sdk/react": "workspace:*",
     "@ai-sdk/sandbox-vercel": "workspace:*",
     "@ai-sdk/workflow-harness": "workspace:*",
-    "@cline/agents": "^0.0.83",
-    "@cline/core": "^0.0.83",
-    "@earendil-works/pi-coding-agent": "^0.85.1",
+    "@cline/agents": "^0.0.90",
+    "@cline/core": "^0.0.90",
+    "@earendil-works/pi-coding-agent": "^1.0.3",
     "@vercel/sandbox": "^3.0.0",
-    "@xai-official/grok": "1.0.36",
+    "@xai-official/grok": "1.0.49",
     "ai": "workspace:*",
     "clsx": "^2.1.1",
-    "next": "^16.3.3",
+    "next": "^16.3.6",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "streamdown": "^1.6.11",
     "tailwind-merge": "^3.6.0",
     "tailwindcss-animate": "^1.0.7",
-    "workflow": "4.6.0",
+    "workflow": "5.1.0",
     "zod": "3.25.76"
   },
   "devDependencies": {
@@ -50,6 +50,6 @@
     "autoprefixer": "^10.5.0",
     "postcss": "^8.5.14",
     "tailwindcss": "^3.4.19",
-    "typescript": "5.8.3"
+    "typescript": "6.0.3"
   }
 }

@@ -22,12 +22,14 @@ export function convertCohereUsage(
   const tokens = usage.tokens;
   const inputTokens = tokens.input_tokens;
   const outputTokens = tokens.output_tokens;
+  const cacheReadTokens = usage.cached_tokens ?? undefined;
 
   return {
     inputTokens: {
       total: inputTokens,
-      noCache: inputTokens,
-      cacheRead: undefined,
+      noCache:
+        cacheReadTokens != null ? inputTokens - cacheReadTokens : inputTokens,
+      cacheRead: cacheReadTokens,
       cacheWrite: undefined,
     },
     outputTokens: {

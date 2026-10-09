@@ -11,6 +11,8 @@ import { z } from 'zod/v4';
 export const bflErrorSchema = z.object({
   message: z.string().optional(),
   detail: z.any().optional(),
+  status: z.string().nullish(),
+  state: z.string().nullish(),
 });
 
 function bflErrorToMessage(error: unknown): string | undefined {
@@ -31,11 +33,34 @@ function bflErrorToMessage(error: unknown): string | undefined {
 export const bflFailedResponseHandler = createJsonErrorResponseHandler({
   errorSchema: bflErrorSchema,
   errorToMessage: error =>
-    bflErrorToMessage(error) ?? 'Unknown Black Forest Labs error',
+    bflErrorToMessage(error) ??
+    ((error.status ?? error.state) != null
+      ? `Black Forest Labs generation failed: ${error.status ?? error.state}.`
+      : 'Unknown Black Forest Labs error'),
+  isRetryable: (response, error) => {
+    // Failed tasks can use HTTP 503; resubmitting them starts a new generation.
+    if (
+      [
+        'Content Moderated',
+        'Error',
+        'Failed',
+        'Request Moderated',
+        'Task not found',
+      ].includes(error?.status ?? error?.state ?? '')
+    ) {
+      return false;
+    }
+    return (
+      response.status === 408 ||
+      response.status === 409 ||
+      response.status === 429 ||
+      response.status >= 500
+    );
+  },
 });
 
 /**
- * Black Forest Labs returns response-supplied URLs (polling and delivery) on
+ * Black Forest Labs returns response-supplied polling URLs on
  * sibling cluster hosts of the API origin (e.g. `api.us1.bfl.ai` for a base
  * URL on `api.bfl.ai`), so a strict same-origin check against the configured
  * base URL is not enough. Credentials may also be sent to any https host under
