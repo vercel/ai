@@ -34,22 +34,61 @@ export async function buildModelStepResult(
 ): Promise<StepResult<ToolSet, any>> {
   if (raw.generation != null && finish != null) {
     const providerContent: LanguageModelV4Content[] = [];
+    const toolCallIdCounts = new Map<string, number>();
+    for (const toolCall of toolCalls) {
+      toolCallIdCounts.set(
+        toolCall.toolCallId,
+        (toolCallIdCounts.get(toolCall.toolCallId) ?? 0) + 1,
+      );
+    }
+    const usedToolCallIds = new Set(toolCalls.map(call => call.toolCallId));
+    const convertedToolCalls = toolCalls.map((toolCall, toolCallIndex) => {
+      if (toolCallIdCounts.get(toolCall.toolCallId) === 1) {
+        return toolCall;
+      }
+
+      let convertedToolCallId = `${toolCall.toolCallId}:workflow:${toolCallIndex}`;
+      while (usedToolCallIds.has(convertedToolCallId)) {
+        convertedToolCallId += ':';
+      }
+      usedToolCallIds.add(convertedToolCallId);
+
+      return { ...toolCall, toolCallId: convertedToolCallId };
+    });
+    const originalToolCallIds = new Map(
+      convertedToolCalls.map((toolCall, toolCallIndex) => [
+        toolCall.toolCallId,
+        toolCalls[toolCallIndex].toolCallId,
+      ]),
+    );
     for (const part of raw.content) {
       switch (part.type) {
         case 'reasoning':
           if (!('reasoningIndex' in part)) providerContent.push(part);
           break;
         case 'tool-call': {
-          const call = toolCalls[part.toolCallIndex];
+          const call = convertedToolCalls[part.toolCallIndex];
           providerContent.push({ ...call, input: '', type: 'tool-call' });
           break;
         }
-        case 'provider-tool-result':
+        case 'provider-tool-result': {
+          const providerResult = providerExecutedToolResults.get(
+            part.providerResultKey ?? part.toolCallId,
+          );
+          if (providerResult == null) {
+            break;
+          }
+          const { toolCallIndex, ...providerResultContent } = providerResult;
           providerContent.push({
-            ...providerExecutedToolResults.get(part.toolCallId)!,
+            ...providerResultContent,
+            toolCallId:
+              toolCallIndex == null
+                ? providerResult.toolCallId
+                : convertedToolCalls[toolCallIndex].toolCallId,
             type: 'tool-result',
           } as Extract<LanguageModelV4Content, { type: 'tool-result' }>);
           break;
+        }
         case 'file':
           providerContent.push({
             ...part,
@@ -62,12 +101,26 @@ export async function buildModelStepResult(
     }
     const content = await convertLanguageModelContent({
       content: providerContent,
-      toolCalls: toolCalls as StepResult<ToolSet>['toolCalls'],
+      toolCalls: convertedToolCalls as StepResult<ToolSet>['toolCalls'],
       toolOutputs: [],
       toolApprovalRequests: [],
       toolApprovalResponses: [],
       tools: opts.tools,
     });
+    for (const part of content) {
+      if (
+        part.type === 'tool-call' ||
+        part.type === 'tool-result' ||
+        part.type === 'tool-error'
+      ) {
+        part.toolCallId =
+          originalToolCallIds.get(part.toolCallId) ?? part.toolCallId;
+      } else if (part.type === 'tool-approval-request') {
+        part.toolCall.toolCallId =
+          originalToolCallIds.get(part.toolCall.toolCallId) ??
+          part.toolCall.toolCallId;
+      }
+    }
     const duration = raw.generation.responseTimeMs;
     const rate = (tokens: number | undefined) =>
       calculateTokensPerSecond({ tokens, durationMs: duration });
@@ -211,14 +264,19 @@ export async function buildModelStepResult(
         break;
       }
       case 'provider-tool-result': {
-        const result = providerExecutedToolResults.get(part.toolCallId);
+        const result = providerExecutedToolResults.get(
+          part.providerResultKey ?? part.toolCallId,
+        );
         if (result == null) {
           break;
         }
 
-        const toolCall = toolCalls.find(
-          toolCall => toolCall.toolCallId === result.toolCallId,
-        );
+        const toolCall =
+          result.toolCallIndex == null
+            ? toolCalls.find(
+                toolCall => toolCall.toolCallId === result.toolCallId,
+              )
+            : toolCalls[result.toolCallIndex];
         const common = {
           toolCallId: result.toolCallId,
           toolName: result.toolName,

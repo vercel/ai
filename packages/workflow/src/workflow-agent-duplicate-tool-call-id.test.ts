@@ -204,4 +204,141 @@ describe('WorkflowAgent duplicate tool call IDs', () => {
       'Error: failed for b',
     ]);
   });
+
+  it('preserves duplicate provider-executed results and errors', async () => {
+    const { model } = createScriptedModel([
+      [
+        { type: 'stream-start', warnings: [] },
+        {
+          type: 'tool-call',
+          toolCallId: 'call_0',
+          toolName: 'lookup',
+          input: '{"q":"a"}',
+          providerExecuted: true,
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'call_0',
+          toolName: 'lookup',
+          input: '{"q":"b"}',
+          providerExecuted: true,
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'call_0',
+          toolName: 'lookup',
+          result: 'provider result for a',
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'call_0',
+          toolName: 'lookup',
+          result: 'provider failed for b',
+          isError: true,
+        },
+        finish('tool-calls'),
+      ],
+    ]);
+    const writtenParts: ModelCallStreamPart[] = [];
+
+    const result = await new WorkflowAgent({
+      model,
+      tools: {
+        lookup: tool({
+          inputSchema: z.object({ q: z.string() }),
+        }),
+      },
+    }).stream({
+      prompt: 'go',
+      writable: new WritableStream<ModelCallStreamPart>({
+        write(part) {
+          writtenParts.push(part);
+        },
+      }),
+    });
+
+    expect(
+      result.steps[0].content
+        .filter(
+          part => part.type === 'tool-result' || part.type === 'tool-error',
+        )
+        .map(part =>
+          part.type === 'tool-result'
+            ? { input: part.input, output: part.output }
+            : { input: part.input, error: part.error },
+        ),
+    ).toEqual([
+      { input: { q: 'a' }, output: 'provider result for a' },
+      { input: { q: 'b' }, error: 'provider failed for b' },
+    ]);
+    expect(
+      writtenParts
+        .filter(
+          part => part.type === 'tool-result' || part.type === 'tool-error',
+        )
+        .map(part =>
+          part.type === 'tool-result'
+            ? part.output
+            : part.error instanceof Error
+              ? part.error.message
+              : part.error,
+        ),
+    ).toEqual([
+      'provider result for a',
+      'provider failed for b',
+      'provider result for a',
+      'provider failed for b',
+    ]);
+    expect(
+      result.messages.flatMap(message =>
+        message.role === 'assistant' && Array.isArray(message.content)
+          ? message.content.flatMap(part =>
+              part.type === 'tool-result' && 'value' in part.output
+                ? [part.output.value]
+                : [],
+            )
+          : [],
+      ),
+    ).toEqual(['provider result for a', 'provider failed for b']);
+  });
+
+  it('retains metadata when a valid call follows an invalid call', async () => {
+    const { model } = createScriptedModel([
+      [
+        { type: 'stream-start', warnings: [] },
+        {
+          type: 'tool-call',
+          toolCallId: 'invalid',
+          toolName: 'lookup',
+          input: '{"wrong":true}',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'valid',
+          toolName: 'lookup',
+          input: '{"q":"valid"}',
+        },
+        finish('tool-calls'),
+      ],
+      done,
+    ]);
+
+    const result = await new WorkflowAgent({
+      model,
+      tools: {
+        lookup: tool({
+          inputSchema: z.object({ q: z.string() }),
+          execute: async ({ q }) => `result for ${q}`,
+        }),
+      },
+    }).stream({ prompt: 'go' });
+
+    expect(result.steps[0].toolResults).toMatchObject([
+      {
+        toolCallId: 'valid',
+        input: { q: 'valid' },
+        output: 'result for valid',
+      },
+    ]);
+  });
 });

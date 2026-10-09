@@ -1352,7 +1352,16 @@ function getToolCallForResult<TOOL_CALL extends { toolCallId: string }>(
 function addToolResultsToStep(
   step: StepResult<ToolSet, any> | undefined,
   executedResults: WorkflowToolExecutionResult[],
-  mode: 'generate' | 'stream' = 'stream',
+  mode: 'generate' | 'stream',
+  sourceToolCalls:
+    | Array<{
+        toolCallId: string;
+        input?: unknown;
+        dynamic?: boolean;
+        providerExecuted?: boolean;
+        toolMetadata?: unknown;
+      }>
+    | undefined,
 ) {
   if (step == null || executedResults.length === 0) {
     return;
@@ -1368,7 +1377,10 @@ function addToolResultsToStep(
   );
 
   const toolOutputs = executedResults.flatMap(result => {
-    const toolCall = getToolCallForResult(step.toolCalls, result);
+    const toolCall = getToolCallForResult(
+      sourceToolCalls ?? step.toolCalls,
+      result,
+    );
 
     if (existingProviderResultIds.has(result.modelResult.toolCallId)) {
       return [];
@@ -2641,12 +2653,17 @@ export class WorkflowAgent<
           const providerToolCalls = validToolCalls.filter(
             tc => tc.providerExecuted,
           );
-          const providerToolCallsForResults = [
+          const providerToolCallsForResults: Array<
+            (typeof validToolCalls)[number] & { providerResultKey?: string }
+          > = [
             ...providerToolCalls,
-            ...[...capturedProviderToolResults.values()].flatMap(
-              providerResult =>
-                providerToolCalls.some(
-                  toolCall => toolCall.toolCallId === providerResult.toolCallId,
+            ...[...capturedProviderToolResults.entries()].flatMap(
+              ([providerResultKey, providerResult]) =>
+                providerToolCalls.some(toolCall =>
+                  providerResult.toolCallIndex == null
+                    ? toolCall.toolCallId === providerResult.toolCallId
+                    : toolCallIndexes.get(toolCall) ===
+                      providerResult.toolCallIndex,
                 )
                   ? []
                   : [
@@ -2660,6 +2677,7 @@ export class WorkflowAgent<
                         )?.input,
                         providerExecuted: true,
                         dynamic: providerResult.dynamic,
+                        providerResultKey,
                       },
                     ],
             ),
@@ -2749,6 +2767,8 @@ export class WorkflowAgent<
                     capturedProviderToolResults,
                     stepTools,
                     download,
+                    toolCallIndexes.get(toolCall),
+                    toolCall.providerResultKey,
                   ),
                 })),
             );
@@ -2836,7 +2856,7 @@ export class WorkflowAgent<
               output: r.rawOutput,
             }));
 
-            addToolResultsToStep(step, executedResults, mode);
+            addToolResultsToStep(step, executedResults, mode, toolCalls);
 
             // Approval data belongs to the execution, whether or not it has a
             // writable. Only the environment-variable reference enters the
@@ -2993,6 +3013,8 @@ export class WorkflowAgent<
                 capturedProviderToolResults,
                 stepTools,
                 download,
+                toolCallIndexes.get(toolCall),
+                toolCall.providerResultKey,
               ),
             })),
           );
@@ -3099,7 +3121,7 @@ export class WorkflowAgent<
             output: r.rawOutput,
           }));
 
-          addToolResultsToStep(step, executedToolResults, mode);
+          addToolResultsToStep(step, executedToolResults, mode, toolCalls);
 
           result = await iterator.next(continuationToolResults);
         } else {
@@ -3555,8 +3577,17 @@ async function resolveProviderToolResult(
   providerExecutedToolResults?: Map<string, ProviderExecutedToolResult>,
   tools?: ToolSet,
   download?: DownloadFunction,
+  toolCallIndex?: number,
+  providerResultKey?: string,
 ): Promise<WorkflowToolExecutionResult | undefined> {
-  const streamResult = providerExecutedToolResults?.get(toolCall.toolCallId);
+  const streamResult =
+    providerResultKey == null
+      ? toolCallIndex == null
+        ? providerExecutedToolResults?.get(toolCall.toolCallId)
+        : ([...(providerExecutedToolResults?.values() ?? [])].find(
+            result => result.toolCallIndex === toolCallIndex,
+          ) ?? providerExecutedToolResults?.get(toolCall.toolCallId))
+      : providerExecutedToolResults?.get(providerResultKey);
   if (!streamResult) {
     const tool = tools?.[toolCall.toolName];
     if (

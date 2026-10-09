@@ -137,18 +137,55 @@ async function generateModelCall(
     string,
     ProviderExecutedToolResult
   >();
-  const content: ModelCallRawContentPart[] = response.content.map(part => {
+  const matchedProviderResultToolCallIndexes = new Set<number>();
+  let toolCallIndex = 0;
+  const content: ModelCallRawContentPart[] = response.content.flatMap(part => {
     switch (part.type) {
-      case 'tool-call':
+      case 'tool-call': {
+        const currentToolCallIndex = toolCallIndex++;
         return {
           type: 'tool-call',
-          toolCallIndex: toolCalls.findIndex(
-            call => call.toolCallId === part.toolCallId,
-          ),
+          toolCallIndex: currentToolCallIndex,
         };
-      case 'tool-result':
-        providerExecutedToolResults.set(part.toolCallId, part);
-        return { type: 'provider-tool-result', toolCallId: part.toolCallId };
+      }
+      case 'tool-result': {
+        let matchingToolCallIndex = toolCalls.findIndex(
+          (toolCall, index) =>
+            toolCall.providerExecuted &&
+            toolCall.toolCallId === part.toolCallId &&
+            !matchedProviderResultToolCallIndexes.has(index),
+        );
+        if (matchingToolCallIndex >= 0) {
+          matchedProviderResultToolCallIndexes.add(matchingToolCallIndex);
+        } else {
+          matchingToolCallIndex = findLastProviderToolCallIndex(
+            toolCalls,
+            part.toolCallId,
+          );
+        }
+        const existingProviderResultKey =
+          matchingToolCallIndex < 0
+            ? undefined
+            : [...providerExecutedToolResults.entries()].find(
+                ([, result]) => result.toolCallIndex === matchingToolCallIndex,
+              )?.[0];
+        const providerResultKey =
+          existingProviderResultKey ??
+          createProviderResultKey(providerExecutedToolResults, part.toolCallId);
+        providerExecutedToolResults.set(providerResultKey, {
+          ...part,
+          ...(matchingToolCallIndex >= 0
+            ? { toolCallIndex: matchingToolCallIndex }
+            : {}),
+        });
+        return existingProviderResultKey == null
+          ? {
+              type: 'provider-tool-result',
+              toolCallId: part.toolCallId,
+              providerResultKey,
+            }
+          : [];
+      }
       case 'file':
         return {
           type: 'file',
@@ -207,6 +244,37 @@ async function generateModelCall(
     providerExecutedToolResults,
     toolInputLifecycleEvents,
   };
+}
+
+function findLastProviderToolCallIndex(
+  toolCalls: Array<{
+    toolCallId: string;
+    providerExecuted?: boolean;
+  }>,
+  toolCallId: string,
+): number {
+  for (let index = toolCalls.length - 1; index >= 0; index--) {
+    const toolCall = toolCalls[index];
+    if (toolCall.providerExecuted && toolCall.toolCallId === toolCallId) {
+      return index;
+    }
+  }
+  return -1;
+}
+
+function createProviderResultKey(
+  results: Map<string, ProviderExecutedToolResult>,
+  toolCallId: string,
+): string {
+  if (!results.has(toolCallId)) {
+    return toolCallId;
+  }
+
+  let occurrence = 1;
+  while (results.has(`${toolCallId}:${occurrence}`)) {
+    occurrence++;
+  }
+  return `${toolCallId}:${occurrence}`;
 }
 
 doGenerateStep.maxRetries = 0;
