@@ -10,14 +10,20 @@ describe('isDeepSeekV4Model', () => {
     'deepseek-v4-flash-vision-exp',
     'deepseek-flash',
     'deepseek-pro',
+    'deepseek-v5-pro',
+    'deepseek-v10-flash',
+    'deepseek-next',
+    'provider/deepseek-v5-pro',
   ])('should treat %s as V4', modelId => {
     expect(isDeepSeekV4Model(modelId)).toBe(true);
   });
 
-  it.each(['deepseek-chat', 'deepseek-reasoner'])(
-    'should not treat legacy %s as V4',
-    modelId => {
-      expect(isDeepSeekV4Model(modelId)).toBe(false);
-    },
-  );
+  it.each([
+    'deepseek-chat',
+    'deepseek-reasoner',
+    'deepseek-v3.2',
+    'provider/deepseek-v2.5',
+  ])('should not treat legacy %s as V4', modelId => {
+    expect(isDeepSeekV4Model(modelId)).toBe(false);
+  });
 });
