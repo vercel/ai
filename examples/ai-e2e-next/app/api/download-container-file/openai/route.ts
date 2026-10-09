@@ -8,20 +8,27 @@ export async function GET(req: Request) {
     return new Response('Missing container_id or file_id', { status: 400 });
   }
 
+  const idPattern = /^[A-Za-z0-9_-]+$/;
+  if (!idPattern.test(containerId) || !idPattern.test(fileId)) {
+    return new Response('Invalid container_id or file_id', { status: 400 });
+  }
+
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return new Response('OPENAI_API_KEY not configured', { status: 500 });
   }
 
   try {
-    const response = await fetch(
-      `https://api.openai.com/v1/containers/${containerId}/files/${fileId}/content`,
-      {
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-        },
-      },
+    const openaiUrl = new URL(
+      `/v1/containers/${encodeURIComponent(containerId)}/files/${encodeURIComponent(fileId)}/content`,
+      'https://api.openai.com',
     );
+
+    const response = await fetch(openaiUrl.toString(), {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+    });
 
     if (!response.ok) {
       return new Response(`Failed to fetch file: ${response.statusText}`, {
@@ -32,11 +39,12 @@ export async function GET(req: Request) {
     const arrayBuffer = await response.arrayBuffer();
     const contentType =
       response.headers.get('content-type') || 'application/octet-stream';
+    const safeFilename = filename.replace(/[\r\n"]/g, '_');
 
     return new Response(arrayBuffer, {
       headers: {
         'Content-Type': contentType,
-        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Content-Disposition': `attachment; filename="${safeFilename}"`,
       },
     });
   } catch (error) {
