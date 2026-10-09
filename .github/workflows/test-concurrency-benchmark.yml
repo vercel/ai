@@ -10,43 +10,39 @@ jobs:
   benchmark:
     name: Node ${{ matrix.node }} / ${{ matrix.trial.name }}
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
         include:
           - node: 22
             trial:
-              name: packages-2-workers-3-1
-              cases: '2:3'
+              name: balanced-order-1
+              cases: 16:default 2:3 4:2
           - node: 22
             trial:
-              name: packages-3-workers-2-1
-              cases: '3:2'
+              name: balanced-order-2
+              cases: 2:3 4:2 16:default
           - node: 22
             trial:
-              name: packages-4-workers-2-1
-              cases: '4:2'
-          - node: 22
-            trial:
-              name: packages-2-workers-3-2
-              cases: '2:3'
-          - node: 22
-            trial:
-              name: packages-3-workers-2-2
-              cases: '3:2'
-          - node: 22
-            trial:
-              name: packages-4-workers-2-2
-              cases: '4:2'
+              name: balanced-order-3
+              cases: 4:2 16:default 2:3
           - node: 24
             trial:
-              name: packages-4-workers-2-validation
-              cases: '4:2'
+              name: paired-forward
+              cases: 2:3 4:2
+          - node: 24
+            trial:
+              name: paired-reverse
+              cases: 4:2 2:3
           - node: 26
             trial:
-              name: packages-4-workers-2-validation
-              cases: '4:2'
+              name: paired-forward
+              cases: 2:3 4:2
+          - node: 26
+            trial:
+              name: paired-reverse
+              cases: 4:2 2:3
     steps:
       - name: Checkout identical tested revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
