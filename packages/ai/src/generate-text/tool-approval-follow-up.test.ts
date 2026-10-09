@@ -1,16 +1,16 @@
-import type { LanguageModelV4Usage } from '@ai-sdk/provider';
+import type { LanguageModelV3Usage } from '@ai-sdk/provider';
 import { tool } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { MissingToolResultsError } from '../error/missing-tool-result-error';
-import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
+import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { convertToModelMessages } from '../ui/convert-to-model-messages';
 import type { UIMessage } from '../ui/ui-messages';
 import { generateText } from './generate-text';
 import { streamText } from './stream-text';
 
-const usage: LanguageModelV4Usage = {
+const usage: LanguageModelV3Usage = {
   inputTokens: {
     total: 1,
     noCache: 1,
@@ -32,9 +32,13 @@ describe.each(['generateText', 'streamText'] as const)(
       async sequence => {
         const execute = vi.fn(async () => 'saved');
         const tools = {
-          set_theme: tool({ inputSchema: z.object({}), execute }),
+          set_theme: tool({
+            inputSchema: z.object({}),
+            execute,
+            needsApproval: true,
+          }),
         };
-        const model = new MockLanguageModelV4({
+        const model = new MockLanguageModelV3({
           doGenerate: {
             content: [{ type: 'text', text: 'OK' }],
             finishReason: { unified: 'stop', raw: 'stop' },
@@ -79,7 +83,6 @@ describe.each(['generateText', 'streamText'] as const)(
         const options = {
           model,
           tools,
-          toolApproval: { set_theme: 'user-approval' as const },
           messages: await convertToModelMessages(messages, {
             tools,
             ignoreIncompleteToolCalls: true,

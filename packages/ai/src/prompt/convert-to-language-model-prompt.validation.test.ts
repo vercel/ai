@@ -28,24 +28,13 @@ describe('tool validation', () => {
     expect(result).toMatchSnapshot();
   });
 
-<<<<<<< HEAD
-  it('should pass validation for tool-approval-response', async () => {
-    const result = await convertToLanguageModelPrompt({
-      prompt: {
-        messages: [
-          {
-            role: 'assistant',
-            content: [
-=======
   it.each([false, true])(
     'should reject an unresolved local approval (follow-up: %s)',
     async followUp => {
       await expect(
         convertToLanguageModelPrompt({
           prompt: {
-            instructions: undefined,
             messages: [
->>>>>>> 7d0458b958 (fix: reject unresolved approved tool calls followed by later context (#22449))
               {
                 role: 'assistant',
                 content: [
