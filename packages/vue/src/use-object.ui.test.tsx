@@ -2,9 +2,12 @@ import {
   createTestServer,
   TestResponseController,
 } from '@ai-sdk/test-server/with-vitest';
-import { cleanup, screen, waitFor } from '@testing-library/vue';
+import { cleanup, render, screen, waitFor } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
+import { defineComponent, h, ref } from 'vue';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { z } from 'zod/v4';
+import { useObject } from './use-object';
 import { setupTestComponent } from './setup-test-component';
 import TestUseObjectComponent from './TestUseObjectComponent.vue';
 import TestUseObjectCustomTransportComponent from './TestUseObjectCustomTransportComponent.vue';
@@ -245,5 +248,67 @@ describe('text stream', () => {
       await userEvent.click(screen.getByTestId('submit-button'));
       expect(server.calls[0].requestCredentials).toBe('include');
     });
+  });
+});
+
+describe('rejected onFinish', () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  const RejectedOnFinishComponent = defineComponent({
+    setup() {
+      const errorResult = ref<Error | undefined>(undefined);
+
+      const { error, isLoading, submit } = useObject({
+        api: '/api/use-object',
+        schema: z.object({ content: z.string() }),
+        onError(err) {
+          errorResult.value = err;
+        },
+        async onFinish() {
+          await Promise.resolve();
+          throw new Error('Save failed');
+        },
+      });
+
+      return () =>
+        h('div', [
+          h('div', { 'data-testid': 'loading' }, isLoading.value.toString()),
+          h('div', { 'data-testid': 'error' }, error.value?.toString()),
+          h(
+            'button',
+            {
+              'data-testid': 'submit-button',
+              onClick: () => submit('test-input'),
+            },
+            'Generate',
+          ),
+          h(
+            'div',
+            { 'data-testid': 'on-error-result' },
+            errorResult.value?.toString(),
+          ),
+        ]);
+    },
+  });
+
+  it('should surface rejected asynchronous onFinish callbacks', async () => {
+    server.urls['/api/use-object'].response = {
+      type: 'stream-chunks',
+      chunks: ['{ ', '"content": "Hello, ', 'world', '!"', '}'],
+    };
+
+    render(RejectedOnFinishComponent);
+
+    await userEvent.click(screen.getByTestId('submit-button'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('on-error-result')).toHaveTextContent(
+        'Save failed',
+      );
+    });
+    expect(screen.getByTestId('error')).toHaveTextContent('Save failed');
+    expect(screen.getByTestId('loading')).toHaveTextContent('false');
   });
 });
