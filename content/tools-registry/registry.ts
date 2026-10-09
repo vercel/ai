@@ -236,6 +236,38 @@ console.log(text);`,
     npmUrl: 'https://www.npmjs.com/package/@tavily/ai-sdk',
   },
   {
+    slug: 'linkup',
+    name: 'Linkup',
+    description:
+      'Linkup is a web search API that connects in real time your LLMs & agents to the web. Linkup searches and extracts real-time web data for code docs, prospect enrichment, legislation, news, SEC filings, and a lot more. Ground your agent & LLMs with the Linkup web search tool in a single tool call.',
+    packageName: 'linkup-ai-sdk',
+    tags: ['search', 'web'],
+    apiKeyEnvName: 'LINKUP_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add linkup-ai-sdk',
+      npm: 'npm install linkup-ai-sdk',
+      yarn: 'yarn add linkup-ai-sdk',
+      bun: 'bun add linkup-ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { webSearch } from 'linkup-ai-sdk';
+
+const { text } = await generateText({
+  model: 'google/gemini-3-pro-preview',
+  prompt: 'What are the latest developments in agentic search?',
+  tools: {
+    webSearch: webSearch({ depth: 'standard' }),
+  },
+  stopWhen: isStepCount(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.linkup.so/pages/integrations/vercel-ai-sdk',
+    apiKeyUrl: 'https://app.linkup.so',
+    websiteUrl: 'https://linkup.so',
+    npmUrl: 'https://www.npmjs.com/package/linkup-ai-sdk',
+  },
+  {
     slug: 'firecrawl',
     name: 'Firecrawl',
     description:
