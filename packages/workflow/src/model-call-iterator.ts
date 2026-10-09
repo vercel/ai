@@ -4,9 +4,14 @@ import type {
   LanguageModelV4ToolResultPart,
   SharedV4ProviderOptions,
 } from '@ai-sdk/provider';
-import type { Context } from '@ai-sdk/provider-utils';
+import {
+  asSchema,
+  safeValidateTypes,
+  type Context,
+} from '@ai-sdk/provider-utils';
 import {
   experimental_filterActiveTools as filterActiveTools,
+  InvalidToolInputError,
   type ActiveTools,
   type Experimental_SandboxSession as SandboxSession,
   type Instructions,
@@ -409,12 +414,16 @@ export async function* modelCallIterator({
       }
 
       const {
-        toolCalls,
+        toolCalls: serializedToolCalls,
         finish,
         raw,
         providerExecutedToolResults,
         toolInputLifecycleEvents,
       } = modelCallResult;
+      const toolCalls = await validateToolCallInputs({
+        toolCalls: serializedToolCalls,
+        tools: effectiveTools,
+      });
       await invokeToolInputLifecycleCallbacks({
         events: toolInputLifecycleEvents ?? [],
         toolCalls,
@@ -650,6 +659,66 @@ export async function* modelCallIterator({
   }
 
   return conversationPrompt;
+}
+
+async function validateToolCallInputs({
+  toolCalls,
+  tools,
+}: {
+  toolCalls: ParsedToolCall[];
+  tools: ToolSet;
+}): Promise<ParsedToolCall[]> {
+  return Promise.all(
+    toolCalls.map(async toolCall => {
+      if (toolCall.invalid || toolCall.providerExecuted) {
+        return toolCall;
+      }
+
+      const tool = tools[toolCall.toolName];
+      if (tool == null) {
+        return toolCall;
+      }
+
+      const inputSchema = asSchema(tool.inputSchema);
+      if (inputSchema.validate == null) {
+        return toolCall;
+      }
+
+      const validation = await safeValidateTypes({
+        value: toolCall.input,
+        schema: inputSchema,
+      });
+
+      if (!validation.success) {
+        return {
+          ...toolCall,
+          dynamic: true,
+          invalid: true,
+          error: new InvalidToolInputError({
+            toolName: toolCall.toolName,
+            toolInput: JSON.stringify(toolCall.input) ?? String(toolCall.input),
+            cause: validation.error,
+          }),
+        };
+      }
+
+      return {
+        ...toolCall,
+        input: validation.value,
+        ...(areToolInputsDifferent(validation.rawValue, validation.value)
+          ? { inputSchemaInput: validation.rawValue }
+          : {}),
+      };
+    }),
+  );
+}
+
+function areToolInputsDifferent(rawInput: unknown, parsedInput: unknown) {
+  try {
+    return JSON.stringify(rawInput) !== JSON.stringify(parsedInput);
+  } catch {
+    return true;
+  }
 }
 
 async function invokeToolInputLifecycleCallbacks({

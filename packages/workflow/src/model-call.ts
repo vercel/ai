@@ -88,6 +88,8 @@ export interface ParsedToolCall {
   dynamic?: boolean;
   invalid?: boolean;
   error?: unknown;
+  /** Raw input before the original tool schema validated and transformed it. */
+  inputSchemaInput?: unknown;
 }
 
 /**
