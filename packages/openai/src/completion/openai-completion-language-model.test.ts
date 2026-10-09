@@ -477,7 +477,7 @@ describe('doStream', () => {
     `);
   });
 
-  it('should handle error stream parts', async () => {
+  it('should throw an api error when the first stream chunk is an error', async () => {
     server.urls['https://api.openai.com/v1/completions'].response = {
       type: 'stream-chunks',
       chunks: [
@@ -487,40 +487,44 @@ describe('doStream', () => {
       ],
     };
 
+    await expect(
+      model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      }),
+    ).rejects.toMatchObject({
+      message:
+        'The server had an error processing your request. Sorry about that! You can retry your request, or contact us through our help center at help.openai.com if you keep seeing this error.',
+      statusCode: 500,
+      isRetryable: true,
+    });
+  });
+
+  it('should forward error stream parts after output has started', async () => {
+    server.urls['https://api.openai.com/v1/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"cmpl-error-after-output","object":"text_completion","created":1711363440,"choices":[{"text":"Hello","index":0,"logprobs":null,"finish_reason":null}],"model":"gpt-3.5-turbo-instruct"}\n\n`,
+        `data: {"error":{"message":"stream failed after output","type":"server_error","param":null,"code":null}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
       includeRawChunks: false,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
-      [
-        {
-          "type": "stream-start",
-          "warnings": [],
-        },
-        {
-          "error": {
-            "code": null,
-            "message": "The server had an error processing your request. Sorry about that! You can retry your request, or contact us through our help center at help.openai.com if you keep seeing this error.",
-            "param": null,
-            "type": "server_error",
-          },
-          "type": "error",
-        },
-        {
-          "finishReason": "error",
-          "providerMetadata": {
-            "openai": {},
-          },
-          "type": "finish",
-          "usage": {
-            "inputTokens": undefined,
-            "outputTokens": undefined,
-            "totalTokens": undefined,
-          },
-        },
-      ]
-    `);
+    const parts = await convertReadableStreamToArray(stream);
+
+    expect(parts.find(part => part.type === 'error')).toMatchObject({
+      error: { message: 'stream failed after output' },
+    });
+    expect(parts.some(part => part.type === 'text-delta')).toBe(true);
+    expect(parts.at(-1)).toMatchObject({
+      type: 'finish',
+      finishReason: 'error',
+    });
   });
 
   it.skipIf(isNodeVersion(20))(

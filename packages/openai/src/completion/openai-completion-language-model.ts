@@ -16,6 +16,7 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
+import { throwIfOpenAIStreamErrorBeforeOutput } from '../openai-stream-error';
 import { convertToOpenAICompletionPrompt } from './convert-to-openai-completion-prompt';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
@@ -219,11 +220,13 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
       },
     };
 
+    const url = this.config.url({
+      path: '/completions',
+      modelId: this.modelId,
+    });
+
     const { responseHeaders, value: response } = await postJsonToApi({
-      url: this.config.url({
-        path: '/completions',
-        modelId: this.modelId,
-      }),
+      url,
       headers: combineHeaders(this.config.headers(), options.headers),
       body,
       failedResponseHandler: openaiFailedResponseHandler,
@@ -232,6 +235,15 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
       ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
+    });
+
+    const checkedResponse = await throwIfOpenAIStreamErrorBeforeOutput({
+      stream: response,
+      getError: chunk => ('error' in chunk ? chunk.error : undefined),
+      isOutputChunk: isOpenAICompletionOutputChunk,
+      url,
+      requestBodyValues: body,
+      responseHeaders,
     });
 
     let finishReason: LanguageModelV2FinishReason = 'unknown';
@@ -244,7 +256,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
     let isFirstChunk = true;
 
     return {
-      stream: response.pipeThrough(
+      stream: checkedResponse.pipeThrough(
         new TransformStream<
           ParseResult<OpenAICompletionChunk>,
           LanguageModelV2StreamPart
@@ -328,4 +340,10 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
       response: { headers: responseHeaders },
     };
   }
+}
+
+function isOpenAICompletionOutputChunk(chunk: OpenAICompletionChunk): boolean {
+  return (
+    !('error' in chunk) && chunk.choices.some(choice => choice.text.length > 0)
+  );
 }
