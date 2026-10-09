@@ -86,6 +86,7 @@ export type OpenAIResponsesInputItem =
   | OpenAIResponsesApplyPatchCallOutput
   | OpenAIResponsesToolSearchCall
   | OpenAIResponsesToolSearchOutput
+  | OpenAIResponsesWebSearchCall
   | OpenAIResponsesReasoning
   | OpenAIResponsesItemReference
   | OpenAIResponsesConfigurationUpdate;
@@ -226,6 +227,13 @@ export type OpenAIResponsesFunctionCallOutput = {
             prompt_cache_breakpoint?: { mode: 'explicit' };
           }
       >;
+};
+
+export type OpenAIResponsesWebSearchCall = {
+  type: 'web_search_call';
+  id: string;
+  status: 'completed';
+  action: OpenAIResponsesWebSearchAction;
 };
 
 export type OpenAIResponsesCustomToolCall = {

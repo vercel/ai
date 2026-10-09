@@ -12,6 +12,12 @@ import {
   isNonNullable,
   parseJSON,
   parseProviderOptions,
+<<<<<<< HEAD
+=======
+  resolveFullMediaType,
+  resolveProviderReference,
+  safeValidateTypes,
+>>>>>>> 6aedb07c54 (fix: preserve web search context across stateless OpenAI Responses steps (#22346))
   validateTypes,
   type ToolNameMapping,
 } from '@ai-sdk/provider-utils';
@@ -26,16 +32,36 @@ import {
   localShellOutputSchema,
 } from '../tool/local-shell';
 import { shellInputSchema, shellOutputSchema } from '../tool/shell';
+<<<<<<< HEAD
+=======
+import type {
+  OpenAIResponsesCompactionItem,
+  OpenAIResponsesCustomToolCallOutput,
+  OpenAIResponsesFunctionCallOutput,
+  OpenAIResponsesInput,
+  OpenAIResponsesReasoning,
+  OpenAIResponsesToolCaller,
+  OpenAIResponsesWebSearchCall,
+} from './openai-responses-api';
+>>>>>>> 6aedb07c54 (fix: preserve web search context across stateless OpenAI Responses steps (#22346))
 import {
   toolSearchInputSchema,
   toolSearchOutputSchema,
 } from '../tool/tool-search';
+<<<<<<< HEAD
 import type {
   OpenAIResponsesCustomToolCallOutput,
   OpenAIResponsesFunctionCallOutput,
   OpenAIResponsesInput,
   OpenAIResponsesReasoning,
 } from './openai-responses-api';
+=======
+import {
+  programmaticToolCallingInputSchema,
+  programmaticToolCallingOutputSchema,
+} from '../tool/programmatic-tool-calling';
+import { webSearchOutputSchema } from '../tool/web-search';
+>>>>>>> 6aedb07c54 (fix: preserve web search context across stateless OpenAI Responses steps (#22346))
 import {
   getParallelToolCallMetadata,
   type ParallelToolCallMetadata,
@@ -45,6 +71,81 @@ function serializeToolCallArguments(input: unknown): string {
   return JSON.stringify(input === undefined ? {} : input);
 }
 
+<<<<<<< HEAD
+=======
+function mapToolCaller(
+  caller:
+    | { type: 'direct' }
+    | { type: 'program'; callerId: string }
+    | undefined,
+): OpenAIResponsesToolCaller | undefined {
+  return caller == null
+    ? undefined
+    : caller.type === 'program'
+      ? { type: 'program', caller_id: caller.callerId }
+      : caller;
+}
+
+async function convertWebSearchToolResultOutput({
+  output,
+  id,
+}: {
+  output: LanguageModelV4ToolResultOutput;
+  id: string;
+}): Promise<OpenAIResponsesWebSearchCall | undefined> {
+  if (output.type !== 'json') {
+    return undefined;
+  }
+
+  const validation = await safeValidateTypes({
+    value: output.value,
+    schema: webSearchOutputSchema,
+  });
+
+  if (!validation.success || validation.value.action == null) {
+    return undefined;
+  }
+
+  const { action, sources } = validation.value;
+
+  switch (action.type) {
+    case 'search':
+      return {
+        type: 'web_search_call',
+        id,
+        status: 'completed',
+        action: {
+          type: 'search',
+          ...(action.query != null && { query: action.query }),
+          ...(action.queries != null && { queries: action.queries }),
+          ...(sources != null && { sources }),
+        },
+      };
+    case 'openPage':
+      return {
+        type: 'web_search_call',
+        id,
+        status: 'completed',
+        action: {
+          type: 'open_page',
+          url: action.url,
+        },
+      };
+    case 'findInPage':
+      return {
+        type: 'web_search_call',
+        id,
+        status: 'completed',
+        action: {
+          type: 'find_in_page',
+          url: action.url,
+          pattern: action.pattern,
+        },
+      };
+  }
+}
+
+>>>>>>> 6aedb07c54 (fix: preserve web search context across stateless OpenAI Responses steps (#22346))
 async function convertFunctionToolResultOutput({
   output,
   promptCacheBreakpoint,
@@ -864,6 +965,33 @@ export async function convertToOpenAIResponsesInput({
               const resolvedResultToolName = toolNameMapping.toProviderToolName(
                 part.toolName,
               );
+
+              if (
+                resolvedResultToolName === 'web_search' ||
+                resolvedResultToolName === 'web_search_preview'
+              ) {
+                const itemId =
+                  (
+                    part.providerOptions?.[providerOptionsName] as
+                      | { itemId?: string }
+                      | undefined
+                  )?.itemId ?? part.toolCallId;
+
+                if (store) {
+                  input.push({ type: 'item_reference', id: itemId });
+                  break;
+                }
+
+                const webSearchCall = await convertWebSearchToolResultOutput({
+                  output: part.output,
+                  id: itemId,
+                });
+
+                if (webSearchCall != null) {
+                  input.push(webSearchCall);
+                  break;
+                }
+              }
 
               if (part.toolName === toolSearchToolName) {
                 const itemId = (part.providerOptions?.[providerOptionsName]
