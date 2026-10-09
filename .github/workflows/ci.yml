@@ -92,10 +92,11 @@ jobs:
       - name: Restore build caches
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
+          # Match example workspaces directly to avoid walking pnpm dependency symlinks.
           path: |
             .turbo/cache
-            examples/**/.next/cache
-            examples/**/.angular/cache
+            examples/*/.next/cache
+            examples/*/.angular/cache
           key: ${{ runner.os }}-build-examples-${{ matrix.shard }}-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-build-examples-${{ matrix.shard }}-
