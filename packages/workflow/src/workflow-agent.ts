@@ -1335,7 +1335,19 @@ type WorkflowToolExecutionResult = {
   modelResult: LanguageModelV4ToolResultPart;
   rawOutput: unknown;
   isError: boolean;
+  toolCallIndex?: number;
 };
+
+function getToolCallForResult<TOOL_CALL extends { toolCallId: string }>(
+  toolCalls: TOOL_CALL[],
+  result: WorkflowToolExecutionResult,
+): TOOL_CALL | undefined {
+  return result.toolCallIndex == null
+    ? toolCalls.find(
+        toolCall => toolCall.toolCallId === result.modelResult.toolCallId,
+      )
+    : toolCalls[result.toolCallIndex];
+}
 
 function addToolResultsToStep(
   step: StepResult<ToolSet, any> | undefined,
@@ -1356,9 +1368,7 @@ function addToolResultsToStep(
   );
 
   const toolOutputs = executedResults.flatMap(result => {
-    const toolCall = step.toolCalls.find(
-      toolCall => toolCall.toolCallId === result.modelResult.toolCallId,
-    );
+    const toolCall = getToolCallForResult(step.toolCalls, result);
 
     if (existingProviderResultIds.has(result.modelResult.toolCallId)) {
       return [];
@@ -2618,6 +2628,9 @@ export class WorkflowAgent<
         // response. Deferred provider results may arrive without a matching
         // tool call in the current step.
         if (toolCalls.length > 0 || capturedProviderToolResults.size > 0) {
+          const toolCallIndexes = new Map(
+            toolCalls.map((toolCall, index) => [toolCall, index]),
+          );
           const invalidToolCalls = toolCalls.filter(tc => tc.invalid === true);
           const validToolCalls = toolCalls.filter(tc => tc.invalid !== true);
 
@@ -2706,17 +2719,17 @@ export class WorkflowAgent<
           ) {
             // Execute any executable tools that were also called in this step
             const executableResults = await Promise.all(
-              executableToolCalls.map(
-                (toolCall): Promise<WorkflowToolExecutionResult> =>
-                  executeToolWithCallbacks(
-                    toolCall,
-                    stepTools,
-                    iterMessages,
-                    toolsContext,
-                    currentStepNumber,
-                    toolExecutionSandbox,
-                  ),
-              ),
+              executableToolCalls.map(async toolCall => ({
+                ...(await executeToolWithCallbacks(
+                  toolCall,
+                  stepTools,
+                  iterMessages,
+                  toolsContext,
+                  currentStepNumber,
+                  toolExecutionSandbox,
+                )),
+                toolCallIndex: toolCallIndexes.get(toolCall),
+              })),
             );
 
             // Collect provider tool results
@@ -2754,18 +2767,59 @@ export class WorkflowAgent<
               ),
             );
             const providerResults = providerResultEntries.flatMap(
-              ({ result }) => (result == null ? [] : [result]),
+              ({ toolCall, result }) =>
+                result == null
+                  ? []
+                  : [
+                      {
+                        ...result,
+                        toolCallIndex: toolCallIndexes.get(toolCall),
+                      },
+                    ],
             );
 
-            const continuationInvalidResults = invalidToolCalls
+            const continuationInvalidResultEntries = invalidToolCalls
               .filter(toolCall => !toolCall.providerExecuted)
-              .map(createInvalidToolResult);
-            const resolvedResults: LanguageModelV4ToolResultPart[] = [
-              ...executableResults.map(result => result.modelResult),
-              ...providerResults.map(result => result.modelResult),
-              ...continuationInvalidResults,
-            ];
-            const executedResults = [...executableResults, ...providerResults];
+              .map(toolCall => ({
+                toolCallIndex: toolCallIndexes.get(toolCall)!,
+                result: createInvalidToolResult(toolCall),
+              }));
+            const executedResults = [
+              ...executableResults,
+              ...providerResults,
+            ].sort(
+              (left, right) =>
+                (left.toolCallIndex ?? Number.MAX_SAFE_INTEGER) -
+                (right.toolCallIndex ?? Number.MAX_SAFE_INTEGER),
+            );
+            const executedResultsByToolCallIndex = new Map(
+              executedResults.flatMap(result =>
+                result.toolCallIndex == null
+                  ? []
+                  : [[result.toolCallIndex, result] as const],
+              ),
+            );
+            const invalidResultsByToolCallIndex = new Map(
+              continuationInvalidResultEntries.map(
+                ({ toolCallIndex, result }) => [toolCallIndex, result],
+              ),
+            );
+            const resolvedResults: LanguageModelV4ToolResultPart[] =
+              toolCalls.flatMap((_toolCall, toolCallIndex) => {
+                const invalidResult =
+                  invalidResultsByToolCallIndex.get(toolCallIndex);
+                if (invalidResult != null) return [invalidResult];
+                const executedResult =
+                  executedResultsByToolCallIndex.get(toolCallIndex);
+                return executedResult == null
+                  ? []
+                  : [executedResult.modelResult];
+              });
+            resolvedResults.push(
+              ...providerResults.flatMap(result =>
+                result.toolCallIndex == null ? [result.modelResult] : [],
+              ),
+            );
 
             const allToolCalls: ToolCall[] = toolCalls.map(tc => ({
               type: 'tool-call' as const,
@@ -2778,9 +2832,7 @@ export class WorkflowAgent<
               type: 'tool-result' as const,
               toolCallId: r.modelResult.toolCallId,
               toolName: r.modelResult.toolName,
-              input: toolCalls.find(
-                tc => tc.toolCallId === r.modelResult.toolCallId,
-              )?.input,
+              input: getToolCallForResult(toolCalls, r)?.input,
               output: r.rawOutput,
             }));
 
@@ -2897,9 +2949,7 @@ export class WorkflowAgent<
                   executedResults.map(r => ({
                     toolCallId: r.modelResult.toolCallId,
                     toolName: r.modelResult.toolName,
-                    input: toolCalls.find(
-                      tc => tc.toolCallId === r.modelResult.toolCallId,
-                    )?.input,
+                    input: getToolCallForResult(toolCalls, r)?.input,
                     output: r.rawOutput,
                     isError: r.isError,
                   })),
@@ -2921,17 +2971,17 @@ export class WorkflowAgent<
 
           // Execute client tools (all have execute functions at this point)
           const clientToolResults = await Promise.all(
-            nonProviderToolCalls.map(
-              (toolCall): Promise<WorkflowToolExecutionResult> =>
-                executeToolWithCallbacks(
-                  toolCall,
-                  stepTools,
-                  iterMessages,
-                  toolsContext,
-                  currentStepNumber,
-                  toolExecutionSandbox,
-                ),
-            ),
+            nonProviderToolCalls.map(async toolCall => ({
+              ...(await executeToolWithCallbacks(
+                toolCall,
+                stepTools,
+                iterMessages,
+                toolsContext,
+                currentStepNumber,
+                toolExecutionSandbox,
+              )),
+              toolCallIndex: toolCallIndexes.get(toolCall),
+            })),
           );
 
           // For provider-executed tools, use the results from the stream
@@ -2961,50 +3011,59 @@ export class WorkflowAgent<
             ),
           );
           const providerToolResults = providerToolResultEntries.flatMap(
-            ({ result }) => (result == null ? [] : [result]),
+            ({ toolCall, result }) =>
+              result == null
+                ? []
+                : [
+                    {
+                      ...result,
+                      toolCallIndex: toolCallIndexes.get(toolCall),
+                    },
+                  ],
           );
-          const continuationInvalidToolResults = invalidToolCalls
+          const continuationInvalidToolResultEntries = invalidToolCalls
             .filter(toolCall => !toolCall.providerExecuted)
-            .map(createInvalidToolResult);
+            .map(toolCall => ({
+              toolCallIndex: toolCallIndexes.get(toolCall)!,
+              result: createInvalidToolResult(toolCall),
+            }));
 
           // Combine executable/provider results in the original order,
           // while preserving invalid tool calls as error results for the
           // next model step without emitting them as synthetic UI success.
-          const executedToolResults = toolCalls.flatMap(tc => {
-            const clientResult = clientToolResults.find(
-              r => r.modelResult.toolCallId === tc.toolCallId,
-            );
-            if (clientResult) return [clientResult];
-            const providerResult = providerToolResults.find(
-              r => r.modelResult.toolCallId === tc.toolCallId,
-            );
-            if (providerResult) return [providerResult];
-            return [];
-          });
-          const currentToolCallIds = new Set(
-            toolCalls.map(toolCall => toolCall.toolCallId),
+          const executedToolResults = [
+            ...clientToolResults,
+            ...providerToolResults,
+          ].sort(
+            (left, right) =>
+              (left.toolCallIndex ?? Number.MAX_SAFE_INTEGER) -
+              (right.toolCallIndex ?? Number.MAX_SAFE_INTEGER),
           );
-          executedToolResults.push(
-            ...providerToolResults.filter(
-              result => !currentToolCallIds.has(result.modelResult.toolCallId),
+          const executedResultsByToolCallIndex = new Map(
+            executedToolResults.flatMap(result =>
+              result.toolCallIndex == null
+                ? []
+                : [[result.toolCallIndex, result] as const],
             ),
           );
-          const continuationToolResults = toolCalls.flatMap(tc => {
-            const invalidResult = continuationInvalidToolResults.find(
-              r => r.toolCallId === tc.toolCallId,
-            );
-            if (invalidResult) return [invalidResult];
-            const executedResult = executedToolResults.find(
-              r => r.modelResult.toolCallId === tc.toolCallId,
-            );
-            if (executedResult) return [executedResult.modelResult];
-            return [];
-          });
+          const invalidResultsByToolCallIndex = new Map(
+            continuationInvalidToolResultEntries.map(
+              ({ toolCallIndex, result }) => [toolCallIndex, result],
+            ),
+          );
+          const continuationToolResults = toolCalls.flatMap(
+            (_toolCall, toolCallIndex) => {
+              const invalidResult =
+                invalidResultsByToolCallIndex.get(toolCallIndex);
+              if (invalidResult != null) return [invalidResult];
+              const executedResult =
+                executedResultsByToolCallIndex.get(toolCallIndex);
+              return executedResult == null ? [] : [executedResult.modelResult];
+            },
+          );
           continuationToolResults.push(
             ...providerToolResults.flatMap(result =>
-              currentToolCallIds.has(result.modelResult.toolCallId)
-                ? []
-                : [result.modelResult],
+              result.toolCallIndex == null ? [result.modelResult] : [],
             ),
           );
 
@@ -3017,9 +3076,7 @@ export class WorkflowAgent<
               executedToolResults.map(r => ({
                 toolCallId: r.modelResult.toolCallId,
                 toolName: r.modelResult.toolName,
-                input: toolCalls.find(
-                  tc => tc.toolCallId === r.modelResult.toolCallId,
-                )?.input,
+                input: getToolCallForResult(toolCalls, r)?.input,
                 output: r.rawOutput,
                 isError: r.isError,
               })),
@@ -3038,9 +3095,7 @@ export class WorkflowAgent<
             type: 'tool-result' as const,
             toolCallId: r.modelResult.toolCallId,
             toolName: r.modelResult.toolName,
-            input: toolCalls.find(
-              tc => tc.toolCallId === r.modelResult.toolCallId,
-            )?.input,
+            input: getToolCallForResult(toolCalls, r)?.input,
             output: r.rawOutput,
           }));
 
