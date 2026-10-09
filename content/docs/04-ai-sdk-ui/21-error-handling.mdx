@@ -52,6 +52,41 @@ globalThis.AI_SDK_LOG_WARNINGS = warnings => {
 };
 ```
 
+If your application loads multiple AI SDK versions in the same runtime, they all
+share `globalThis.AI_SDK_LOG_WARNINGS`. Each version calls the logger with its own
+arguments and warning types. The merged global type declarations prevent
+TypeScript declaration conflicts, but do not convert these arguments at runtime.
+A handler typed for only one version may therefore fail when another version
+calls it.
+
+Import the warning logger type from every installed version that can call the
+logger and accept a union of their parameter types. For example, with AI SDK 5
+installed as `ai` and AI SDK 6 installed under the package alias `ai-v6`
+(`npm:ai@6`):
+
+```ts
+import type { Experimental_LogWarningsFunction as LogWarningsFunctionV5 } from 'ai';
+import type { LogWarningsFunction as LogWarningsFunctionV6 } from 'ai-v6';
+
+type LoggerArguments =
+  | Parameters<LogWarningsFunctionV5>[0]
+  | Parameters<LogWarningsFunctionV6>[0];
+
+const logger = (args: LoggerArguments) => {
+  const warnings = Array.isArray(args) ? args : args.warnings;
+
+  for (const warning of warnings) {
+    console.warn('AI SDK Warning:', warning);
+  }
+};
+
+globalThis.AI_SDK_LOG_WARNINGS = logger;
+```
+
+Check the argument shape and warning type before accessing version-specific
+fields. If AI SDK 7 is also installed, include its `LogWarningsFunction` parameter
+type in the union.
+
 <Note>
   Custom warning functions are experimental and can change in patch releases
   without notice.
