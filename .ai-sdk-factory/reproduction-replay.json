@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22419,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22419.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22419.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22419_REPRODUCED: experimental_evaluate rejected a selected choice within the declared probability rounding precision."
+  }
+}
