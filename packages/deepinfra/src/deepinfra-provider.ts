@@ -20,6 +20,7 @@ import type { DeepInfraCompletionModelId } from './deepinfra-completion-options'
 import type { DeepInfraImageModelId } from './deepinfra-image-settings';
 import { DeepInfraImageModel } from './deepinfra-image-model';
 import { DeepInfraChatLanguageModel } from './deepinfra-chat-language-model';
+import { deepInfraChatErrorStructure } from './deepinfra-chat-error';
 import { VERSION } from './version';
 
 export interface DeepInfraProviderSettings {
@@ -125,16 +126,16 @@ export function createDeepInfra(
   };
 
   const createCompletionModel = (modelId: DeepInfraCompletionModelId) =>
-    new OpenAICompatibleCompletionLanguageModel(
-      modelId,
-      getCommonModelConfig('completion'),
-    );
+    new OpenAICompatibleCompletionLanguageModel(modelId, {
+      ...getCommonModelConfig('completion'),
+      errorStructure: deepInfraChatErrorStructure,
+    });
 
   const createEmbeddingModel = (modelId: DeepInfraEmbeddingModelId) =>
-    new OpenAICompatibleEmbeddingModel(
-      modelId,
-      getCommonModelConfig('embedding'),
-    );
+    new OpenAICompatibleEmbeddingModel(modelId, {
+      ...getCommonModelConfig('embedding'),
+      errorStructure: deepInfraChatErrorStructure,
+    });
 
   const createImageModel = (modelId: DeepInfraImageModelId) =>
     new DeepInfraImageModel(modelId, {

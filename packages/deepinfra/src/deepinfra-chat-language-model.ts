@@ -10,6 +10,8 @@ import {
   WORKFLOW_DESERIALIZE,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
+import { deepInfraChatErrorStructure } from './deepinfra-chat-error';
+
 type DeepInfraChatConfig = {
   provider: string;
   url: (options: { path: string; modelId?: string }) => string;
@@ -31,6 +33,12 @@ export class DeepInfraChatLanguageModel extends OpenAICompatibleChatLanguageMode
     config: DeepInfraChatConfig;
   }) {
     return new DeepInfraChatLanguageModel(options.modelId, options.config);
+  }
+
+  // Injected here rather than via config so it survives workflow
+  // (de)serialization, which drops non-JSON config values.
+  constructor(modelId: string, config: DeepInfraChatConfig) {
+    super(modelId, { ...config, errorStructure: deepInfraChatErrorStructure });
   }
 
   /**

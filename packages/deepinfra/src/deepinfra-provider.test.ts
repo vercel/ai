@@ -1,6 +1,7 @@
 import { DeepInfraImageModel } from './deepinfra-image-model';
 import { createDeepInfra } from './deepinfra-provider';
 import { DeepInfraChatLanguageModel } from './deepinfra-chat-language-model';
+import { deepInfraChatErrorStructure } from './deepinfra-chat-error';
 import {
   OpenAICompatibleCompletionLanguageModel,
   OpenAICompatibleEmbeddingModel,
@@ -130,6 +131,13 @@ describe('DeepInfraProvider', () => {
       const model = provider.completionModel(modelId);
 
       expect(model).toBeInstanceOf(OpenAICompatibleCompletionLanguageModel);
+      expect(OpenAICompatibleCompletionLanguageModel).toHaveBeenCalledWith(
+        modelId,
+        expect.objectContaining({
+          provider: 'deepinfra.completion',
+          errorStructure: deepInfraChatErrorStructure,
+        }),
+      );
     });
   });
 
@@ -141,6 +149,13 @@ describe('DeepInfraProvider', () => {
       const model = provider.embeddingModel(modelId);
 
       expect(model).toBeInstanceOf(OpenAICompatibleEmbeddingModel);
+      expect(OpenAICompatibleEmbeddingModel).toHaveBeenCalledWith(
+        modelId,
+        expect.objectContaining({
+          provider: 'deepinfra.embedding',
+          errorStructure: deepInfraChatErrorStructure,
+        }),
+      );
     });
   });
 
