@@ -1,0 +1,92 @@
+---
+title: Bash Tool
+description: Run provider-independent bash commands over in-memory files with the AI SDK.
+---
+
+# Bash Tool
+
+The `@ai-sdk/tools/bash` entry point provides a bash tool that works with any
+model supporting function calling. Use it to search, analyze, and transform
+files with commands such as `cat`, `grep`, `sort`, and `jq`.
+
+The AI SDK defines the tool's schema, instructions, execution, and output
+handling, using [just-bash](https://github.com/vercel-labs/just-bash) as its
+execution engine.
+
+## Installation
+
+```sh
+pnpm add ai @ai-sdk/tools
+```
+
+This tool requires Node.js 22.13 or newer.
+
+## Usage
+
+Initialize a workspace with UTF-8 text files and add the returned bash tool to
+`generateText`, `streamText`, or `ToolLoopAgent`:
+
+```ts
+import { createBashTool } from '@ai-sdk/tools/bash';
+import { generateText, isStepCount } from 'ai';
+
+const { bash, sandbox } = await createBashTool({
+  files: {
+    'sales.json': JSON.stringify([
+      { product: 'Apples', revenue: 120 },
+      { product: 'Pears', revenue: 80 },
+    ]),
+  },
+});
+
+const result = await generateText({
+  model, // Your configured model with function calling support.
+  tools: { bash },
+  stopWhen: isStepCount(6),
+  prompt: 'Analyze sales.json and write a short report to report.md.',
+});
+
+console.log(result.text);
+console.log(await sandbox.readFile('/workspace/report.md'));
+```
+
+The model calls the tool with `{ command: string }`. The result contains
+`stdout`, `stderr`, and `exitCode`. Nonzero exit codes are returned with their
+output so the model can inspect failures and recover.
+
+## Execution and file lifecycle
+
+Commands execute through just-bash in the same Node.js process as the application.
+The tool does not start the host's Bash executable or provision a remote service.
+It supports the commands implemented by just-bash, rather than arbitrary
+programs installed on the host. For example, this default environment cannot run
+a project's `pnpm test` command.
+
+Initial file paths must be relative and resolve within `/workspace`. Files are
+placed under `/workspace`, which is also the starting directory
+for every command. Commands can create and change in-memory files. These changes
+remain available to subsequent calls using the same tool instance, but do not
+modify the host filesystem. Working directory changes and shell variables reset
+between commands.
+
+Create a separate instance for each independent workflow. Reuse that instance
+across turns to retain files. A new process or serverless invocation does not
+automatically restore the workspace. Use the returned `sandbox.readFile(path)`
+method to retrieve generated text files in application code; it rejects when a
+file does not exist. The sandbox handle is not itself exposed to the model.
+
+## Options
+
+`createBashTool()` accepts an optional object:
+
+| Option            | Type                     | Description                                                                                                                        |
+| ----------------- | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `files`           | `Record<string, string>` | Initial UTF-8 files, with paths relative to `/workspace`. Defaults to an empty workspace.                                          |
+| `maxOutputLength` | `number`                 | Positive integer specifying characters retained from each output stream before appending a truncation notice. Defaults to `30000`. |
+
+Output truncation happens after execution. This option does not limit execution
+memory or duration, and this initial integration does not forward AI SDK
+cancellation to the execution engine.
+
+The initial API exposes only bash. Custom executors, host directory loading,
+and separate read/write tools are not part of this API.
