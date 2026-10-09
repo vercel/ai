@@ -159,7 +159,15 @@ const sonnet5AnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   sonnet5AnthropicModelId,
 )}/converse`;
 
+const futureMajorAnthropicModelId = 'us.anthropic.claude-opus-6-v1:0';
+const futureMajorAnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(futureMajorAnthropicModelId)}/converse`;
+
+const futureMinorAnthropicModelId = 'us.anthropic.claude-opus-4-9-v1:0';
+const futureMinorAnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(futureMinorAnthropicModelId)}/converse`;
+
 const server = createTestServer({
+  [futureMajorAnthropicGenerateUrl]: {},
+  [futureMinorAnthropicGenerateUrl]: {},
   [generateUrl]: {},
   [streamUrl]: {
     response: {
@@ -6139,7 +6147,7 @@ describe('doGenerate', () => {
       },
     };
 
-    it('should use native structured output for a platform-prefixed unknown Claude model', async () => {
+    it('should use JSON instructions for a platform-prefixed unknown Claude model', async () => {
       server.urls[futureAnthropicGenerateUrl].response = simpleResponse;
 
       await futureAnthropicModel.doGenerate({
@@ -6150,8 +6158,17 @@ describe('doGenerate', () => {
       const requestBody = await server.calls[0].requestBodyJson;
       expect(requestBody.toolConfig).toBeUndefined();
       expect(
-        requestBody.additionalModelRequestFields?.output_config?.format?.type,
-      ).toBe('json_schema');
+        requestBody.additionalModelRequestFields?.output_config?.format,
+      ).toBeUndefined();
+      expect(requestBody.system).toEqual(
+        expect.arrayContaining([
+          {
+            text: expect.stringContaining(
+              'You MUST answer with only a JSON object',
+            ),
+          },
+        ]),
+      );
     });
 
     it.each([
@@ -7463,3 +7480,75 @@ describe('doGenerate', () => {
     `);
   });
 });
+
+it.each([
+  [futureMajorAnthropicModelId, futureMajorAnthropicGenerateUrl, false],
+  [futureMajorAnthropicModelId, futureMajorAnthropicGenerateUrl, true],
+  [futureMinorAnthropicModelId, futureMinorAnthropicGenerateUrl, false],
+  [futureMinorAnthropicModelId, futureMinorAnthropicGenerateUrl, true],
+] as const)(
+  'should use JSON instructions for future Claude model %s at %s (with tools: %s)',
+  async (modelId, generateUrl, withTools) => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ text: '{"name":"Test"}' }],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+        stopReason: 'end_turn',
+      },
+    };
+    const model = new BedrockChatLanguageModel(modelId, {
+      baseUrl: () => baseUrl,
+      headers: {},
+      fetch: fakeFetchWithAuth,
+      generateId: () => 'test-id',
+    });
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema: { type: 'object', properties: { name: { type: 'string' } } },
+      },
+      tools: withTools
+        ? [
+            {
+              type: 'function',
+              name: 'lookup',
+              strict: true,
+              inputSchema: {
+                type: 'object',
+                properties: {},
+                additionalProperties: false,
+              },
+            },
+          ]
+        : undefined,
+    });
+    const body = await server.calls[0].requestBodyJson;
+    expect(
+      body.additionalModelRequestFields?.output_config?.format,
+    ).toBeUndefined();
+    expect(body.system).toEqual(
+      expect.arrayContaining([
+        {
+          text: expect.stringContaining(
+            'You MUST answer with only a JSON object',
+          ),
+        },
+      ]),
+    );
+    if (withTools) {
+      expect(body.toolConfig.tools).toHaveLength(1);
+      expect(body.toolConfig.tools[0].toolSpec.name).toBe('lookup');
+      expect(body.toolConfig.tools[0].toolSpec.strict).toBeUndefined();
+    } else {
+      expect(body.toolConfig).toBeUndefined();
+    }
+    expect(result.content).toEqual([{ type: 'text', text: '{"name":"Test"}' }]);
+  },
+);
