@@ -122,6 +122,34 @@ describe('inboundMessageSchema', () => {
     ).not.toThrow();
   });
 
+  it('preserves inline native settings', () => {
+    const message = {
+      type: 'start' as const,
+      prompt: 'hi',
+      thinking: { type: 'disabled' as const },
+      settings: {
+        skillOverrides: {
+          'update-config': 'off',
+          init: 'off',
+        },
+        customSetting: { nested: true },
+      },
+    };
+
+    expect(inboundMessageSchema.parse(message)).toEqual(message);
+  });
+
+  it('accepts a sandbox-local settings file path', () => {
+    const message = {
+      type: 'start' as const,
+      prompt: 'hi',
+      thinking: { type: 'disabled' as const },
+      settings: '/vercel/sandbox/claude-settings.json',
+    };
+
+    expect(inboundMessageSchema.parse(message)).toEqual(message);
+  });
+
   it('rejects a non-string resumeSessionId', () => {
     expect(() =>
       inboundMessageSchema.parse({
