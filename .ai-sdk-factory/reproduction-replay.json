@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22412,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22412-codex-mcp-error-status.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22412-codex-mcp-error-status.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #22412 REPRODUCED: failed native MCP calls were translated as successful tool-result events."
+  }
+}
