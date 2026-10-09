@@ -421,9 +421,24 @@ export function runPrompt<
       toolExecutions.clear();
       bufferedToolOutcomes = [];
     };
-    let expectedStepToolCallCount: number | undefined;
-    let observedStepToolCallCount = 0;
-    let pauseAfterStepToolCalls = false;
+    type FinishStepPart = Extract<HarnessV1StreamPart, { type: 'finish-step' }>;
+    /*
+     * An approval request or a pending client tool result does not end the
+     * response right away: the rest of the step (other tool calls, native
+     * results, host tool executions) still has to be surfaced. The pause
+     * happens at the next `finish-step`, once every host tool started in
+     * this response has been echoed back by the runtime.
+     */
+    let hostInputPauseRequested = false;
+    let deferredPauseFinishStep: FinishStepPart | undefined;
+    /*
+     * A `finish-step` that arrives while host tools started in this step have
+     * not been echoed back is the adapter signalling that the runtime waits on
+     * host input, not the end of the step. It is remembered so the step can
+     * still be closed if the turn finishes without another `finish-step`.
+     */
+    let ignoredFinishStep: FinishStepPart | undefined;
+    const hostToolCallIdsAwaitingEcho = new Set<string>();
     const buildModelCallContent = (): ContentPart<TOOLS>[] => {
       const parts: ContentPart<TOOLS>[] = [];
       if (stepText) parts.push({ type: 'text', text: stepText });
@@ -441,9 +456,7 @@ export function runPrompt<
       stepApprovalRequests = [];
       bufferedToolOutcomes = [];
       toolExecutions.clear();
-      expectedStepToolCallCount = undefined;
-      observedStepToolCallCount = 0;
-      pauseAfterStepToolCalls = false;
+      ignoredFinishStep = undefined;
     };
     const zeroUsage: LanguageModelV4Usage = {
       inputTokens: {
@@ -484,24 +497,26 @@ export function runPrompt<
       resetStepContent();
       return step;
     };
-    const finishForHostInputPause = async (options: {
-      completeCurrentStep: boolean;
-    }): Promise<void> => {
+    const finishForHostInputPause = async (): Promise<void> => {
       await waitForOutstandingHostToolExecutions();
-      if (options.completeCurrentStep) {
-        await completeStep({
-          finishReason: toolCallsFinishReason,
-          usage: zeroUsage,
-          providerMetadata: undefined,
-        });
-      } else {
-        await publishToolExecutions();
-      }
+      await publishToolExecutions();
       await lifecycle.end({
         steps: completedSteps,
         usage: asLanguageModelUsage(zeroUsage),
       });
       await result.finish();
+    };
+    const pauseForHostInput = async (
+      finishStep: FinishStepPart | undefined,
+    ): Promise<void> => {
+      await waitForOutstandingHostToolExecutions();
+      closingResumedStep = false;
+      await completeStep({
+        finishReason: toolCallsFinishReason,
+        usage: finishStep?.usage ?? zeroUsage,
+        providerMetadata: finishStep?.harnessMetadata,
+      });
+      await finishForHostInputPause();
     };
     const enqueueApprovalRequest = (approval: {
       approvalId: string;
@@ -610,6 +625,9 @@ export function runPrompt<
     const submitToolResult: HarnessV1PromptControl['submitToolResult'] =
       async submission => {
         if (!input.isTurnSuspending?.()) {
+          if (!settledHostToolCallIds.has(submission.toolCallId)) {
+            hostToolCallIdsAwaitingEcho.add(submission.toolCallId);
+          }
           return control.submitToolResult(submission);
         }
         const toolCall =
@@ -808,7 +826,7 @@ export function runPrompt<
       });
       if (!execution.executed) {
         recordPendingToolResult({ toolCall: rawToolCall });
-        await finishForHostInputPause({ completeCurrentStep: false });
+        await finishForHostInputPause();
         return 'awaiting-tool-result';
       }
       const toolExecution = toolExecutions.get(rawToolCall.toolCallId)!;
@@ -852,11 +870,10 @@ export function runPrompt<
 
       while (true) {
         if (
-          pauseAfterStepToolCalls &&
-          expectedStepToolCallCount != null &&
-          observedStepToolCallCount >= expectedStepToolCallCount
+          deferredPauseFinishStep != null &&
+          hostToolCallIdsAwaitingEcho.size === 0
         ) {
-          await finishForHostInputPause({ completeCurrentStep: true });
+          await pauseForHostInput(deferredPauseFinishStep);
           return;
         }
 
@@ -873,6 +890,9 @@ export function runPrompt<
         if (value.type === 'raw') {
           result.enqueueRaw(value.rawValue);
           continue;
+        }
+        if (value.type === 'tool-result') {
+          hostToolCallIdsAwaitingEcho.delete(value.toolCallId);
         }
 
         if (pendingStopBoundary != null) {
@@ -964,6 +984,45 @@ export function runPrompt<
         if (settledHostInputReplay || settledBuiltinApprovalReplay) {
           continue;
         }
+        if (value.type === 'finish-step') {
+          if (hostInputPauseRequested) {
+            await waitForOutstandingHostToolExecutions();
+            if (hostToolCallIdsAwaitingEcho.size === 0) {
+              await pauseForHostInput(value);
+              return;
+            }
+            deferredPauseFinishStep = value;
+            continue;
+          }
+          if (hostToolCallIdsAwaitingEcho.size > 0) {
+            ignoredFinishStep = value;
+            continue;
+          }
+          ignoredFinishStep = undefined;
+        }
+        if (value.type === 'finish') {
+          if (hostInputPauseRequested) {
+            await pauseForHostInput(deferredPauseFinishStep);
+            return;
+          }
+          if (ignoredFinishStep != null) {
+            const finishStep = ignoredFinishStep;
+            ignoredFinishStep = undefined;
+            await waitForOutstandingHostToolExecutions();
+            if (closingResumedStep) {
+              closingResumedStep = false;
+              await publishToolExecutions();
+              resetStepContent();
+              result.discardCurrentStepContent();
+            } else {
+              await completeStep({
+                finishReason: finishStep.finishReason,
+                usage: finishStep.usage,
+                providerMetadata: finishStep.harnessMetadata,
+              });
+            }
+          }
+        }
         if (displayValue.type === 'finish-step' && closingResumedStep) {
           closingResumedStep = false;
           await publishToolExecutions();
@@ -994,6 +1053,12 @@ export function runPrompt<
                 `Harness '${input.harness.harnessId}' emitted a built-in tool approval request but does not support approval responses.`,
               );
             }
+            /*
+             * The runtime may report a step boundary while it waits for this
+             * decision. The decision is answered here, so that boundary must
+             * not end the step before the denied call's result arrives.
+             */
+            hostToolCallIdsAwaitingEcho.add(displayValue.toolCallId);
             await control.submitToolApproval({
               approvalId: displayValue.approvalId,
               approved: false,
@@ -1100,8 +1165,6 @@ export function runPrompt<
         }
 
         if (value.type === 'tool-call') {
-          observedStepToolCallCount += 1;
-          expectedStepToolCallCount ??= value.stepToolCallCount;
           const toolCall = toolCallsByToolCallId.get(value.toolCallId);
           if (toolCall != null) {
             stepToolCalls.push(toolCall as ContentPart<TOOLS>);
@@ -1201,8 +1264,8 @@ export function runPrompt<
             approvalId: pendingApproval.approvalId,
             toolCall,
           });
-          await finishForHostInputPause({ completeCurrentStep: true });
-          return;
+          hostInputPauseRequested = true;
+          continue;
         }
 
         // Drive step boundaries.
@@ -1270,15 +1333,8 @@ export function runPrompt<
           }
           if (isClientExecutedBuiltin) {
             recordPendingToolResult({ toolCall });
-            if (
-              expectedStepToolCallCount != null &&
-              observedStepToolCallCount < expectedStepToolCallCount
-            ) {
-              pauseAfterStepToolCalls = true;
-              continue;
-            }
-            await finishForHostInputPause({ completeCurrentStep: true });
-            return;
+            hostInputPauseRequested = true;
+            continue;
           }
           if (validatedHostToolCall == null) {
             throw new Error(
@@ -1393,28 +1449,15 @@ export function runPrompt<
               approvalId: pendingApproval.approvalId,
               toolCall: pendingParsedToolCall,
             });
-            if (
-              expectedStepToolCallCount != null &&
-              observedStepToolCallCount < expectedStepToolCallCount
-            ) {
-              pauseAfterStepToolCalls = true;
-              continue;
-            }
-            await finishForHostInputPause({ completeCurrentStep: true });
-            return;
+            hostInputPauseRequested = true;
+            continue;
           }
           if (!isExecutableTool(activeTools[toolCall.toolName])) {
             recordPendingToolResult({ toolCall });
-            if (
-              expectedStepToolCallCount != null &&
-              observedStepToolCallCount < expectedStepToolCallCount
-            ) {
-              pauseAfterStepToolCalls = true;
-              continue;
-            }
-            await finishForHostInputPause({ completeCurrentStep: true });
-            return;
+            hostInputPauseRequested = true;
+            continue;
           }
+          hostToolCallIdsAwaitingEcho.add(toolCall.toolCallId);
           startHostToolExecution(
             (async () => {
               const toolExecution = toolExecutions.get(toolCall.toolCallId);
@@ -1480,6 +1523,10 @@ export function runPrompt<
             })(),
           );
         }
+      }
+      if (hostInputPauseRequested && input.isTurnSuspending?.() !== true) {
+        await pauseForHostInput(deferredPauseFinishStep);
+        return;
       }
       await waitForOutstandingHostToolExecutions();
       const isTurnSuspending = input.isTurnSuspending?.() === true;

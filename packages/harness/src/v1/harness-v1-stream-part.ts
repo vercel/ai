@@ -65,11 +65,6 @@ export type HarnessV1StreamPart =
   // when it differs from the wire `toolName` (e.g. `toolName: 'bash'`,
   // `nativeName: 'Bash'`).
   //
-  // `stepToolCallCount` lets adapters that know a step's complete tool-call
-  // set up front report its cardinality. The host uses it to collect every
-  // approval/result request from the step before pausing; adapters that cannot
-  // know the count omit it and retain pause-on-first behavior.
-  //
   // Whether the call was executed by the underlying runtime (Claude Code's
   // built-in `Bash`, Codex's `shell`) vs. needs host dispatch is signalled by
   // the standard `providerExecuted` field on `LanguageModelV4ToolCall` —
@@ -79,16 +74,21 @@ export type HarnessV1StreamPart =
   | Extract<LanguageModelV4StreamPart, { type: 'tool-input-end' }>
   | (LanguageModelV4ToolCall & {
       nativeName?: string;
-      /**
-       * Total tool calls in the current model step, when known before tool
-       * execution begins. Populate this on every tool call in the step.
-       */
-      stepToolCallCount?: number;
     })
   | LanguageModelV4ToolApprovalRequest
   | LanguageModelV4ToolResult
 
   // Step boundary inside a multi-step turn.
+  //
+  // Adapters also emit `finish-step` when the runtime cannot make progress
+  // without host input: every unsettled tool call of the step waits for
+  // `submitToolResult`, `submitToolApproval`, or a question answer. The
+  // runtime's step stays open, and the adapter emits another `finish-step`
+  // once those calls settle. Such a `finish-step` is only emitted when a
+  // waiting call was not already covered by an earlier one in the same step.
+  // The host may pause the turn there for pending approvals or client tool
+  // results, and ignores it while host tools it started have not been echoed
+  // back as `tool-result` parts yet.
   | {
       type: 'finish-step';
       finishReason: LanguageModelV4FinishReason;
@@ -304,7 +304,6 @@ export const harnessV1ToolCallPartSchema = z.object({
   dynamic: z.boolean().optional(),
   providerMetadata: harnessV1ProviderMetadataSchema.optional(),
   nativeName: z.string().optional(),
-  stepToolCallCount: z.number().int().positive().optional(),
 });
 
 export const harnessV1ToolApprovalRequestPartSchema = z.object({

@@ -566,14 +566,12 @@ describe('runPrompt telemetry lifecycle', () => {
             toolCallId: 'fast-call',
             toolName: 'work',
             input: JSON.stringify({ label: 'fast' }),
-            stepToolCallCount: 2,
           });
           options.emit({
             type: 'tool-call',
             toolCallId: 'slow-call',
             toolName: 'work',
             input: JSON.stringify({ label: 'slow' }),
-            stepToolCallCount: 2,
           });
         });
         return {
@@ -2627,7 +2625,7 @@ describe('runPrompt host tool generator results', () => {
     expect(stopBoundaryCalls).toBe(0);
   });
 
-  test('surfaces every approval request from a counted tool-call step', async () => {
+  test('surfaces every approval request of a step before pausing', async () => {
     const pending: unknown[] = [];
     const weather = tool({
       description: 'Get weather',
@@ -2643,14 +2641,12 @@ describe('runPrompt host tool generator results', () => {
           toolCallId: 'c1',
           toolName: 'weather',
           input: JSON.stringify({ city: 'SF' }),
-          stepToolCallCount: 2,
         },
         {
           type: 'tool-call',
           toolCallId: 'c2',
           toolName: 'weather',
           input: JSON.stringify({ city: 'NYC' }),
-          stepToolCallCount: 2,
         },
       ]),
       prompt: 'go',
@@ -3661,5 +3657,278 @@ describe('runPrompt abort semantics', () => {
     expect(chunkTypes).toContain('abort');
     expect(chunkTypes).not.toContain('error');
     expect(onEndCalls).toEqual([{ isAborted: true }]);
+  });
+});
+
+describe('runPrompt host input pauses', () => {
+  const usage = (total: number) => ({
+    inputTokens: {
+      total,
+      noCache: undefined,
+      cacheRead: undefined,
+      cacheWrite: undefined,
+    },
+    outputTokens: { total: undefined, text: undefined, reasoning: undefined },
+  });
+  const boundary = (total: number): HarnessV1StreamPart => ({
+    type: 'finish-step',
+    finishReason: { unified: 'tool-calls', raw: 'host-input' },
+    usage: usage(total),
+  });
+
+  function scriptedSession(input: {
+    start: (emit: (part: HarnessV1StreamPart) => void) => void;
+    onSubmitToolResult?: (
+      submission: Parameters<HarnessV1PromptControl['submitToolResult']>[0],
+      emit: (part: HarnessV1StreamPart) => void,
+    ) => void;
+  }): HarnessV1Session {
+    const session = fakeSession([]);
+    return {
+      ...session,
+      doPromptTurn: async options => {
+        let resolveDone!: () => void;
+        const done = new Promise<void>(resolve => {
+          resolveDone = resolve;
+        });
+        queueMicrotask(() => {
+          input.start(part => {
+            options.emit(part);
+            if (part.type === 'finish') resolveDone();
+          });
+        });
+        return {
+          async submitToolResult(submission) {
+            input.onSubmitToolResult?.(submission, part => {
+              options.emit(part);
+              if (part.type === 'finish') resolveDone();
+            });
+          },
+          done,
+        };
+      },
+    };
+  }
+
+  const weather = tool({
+    description: 'Get weather',
+    inputSchema: z.object({ city: z.string() }),
+    execute: async ({ city }) => ({ city, temperature: 72 }),
+  });
+
+  test('surfaces the rest of the step and pauses at the next finish-step', async () => {
+    const pending: HarnessV1PendingToolApproval[] = [];
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          input: JSON.stringify({ city: 'SF' }),
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'native-1',
+          toolName: 'read',
+          input: JSON.stringify({ path: 'a.txt' }),
+          providerExecuted: true,
+          dynamic: true,
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'native-1',
+          toolName: 'read',
+          result: 'file contents',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'c2',
+          toolName: 'weather',
+          input: JSON.stringify({ city: 'NYC' }),
+        },
+        boundary(7),
+        { type: 'text-start', id: 't1' },
+        { type: 'text-delta', id: 't1', delta: 'must not appear' },
+        { type: 'text-end', id: 't1' },
+        ...finishEvents,
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { weather } as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      toolApproval: { weather: 'user-approval' },
+      onPendingToolApproval: approval => pending.push(approval),
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(pending.map(approval => approval.toolCallId)).toEqual(['c1', 'c2']);
+    expect(parts.some(part => part.type === 'text-delta')).toBe(false);
+    const steps = await result.steps;
+    expect(steps).toHaveLength(1);
+    expect(steps[0]!.finishReason).toBe('tool-calls');
+    expect(steps[0]!.usage.inputTokens).toBe(7);
+    expect(steps[0]!.content.map(part => part.type)).toEqual([
+      'tool-call',
+      'tool-approval-request',
+      'tool-call',
+      'tool-result',
+      'tool-call',
+      'tool-approval-request',
+    ]);
+  });
+
+  test('ignores a finish-step while a host tool has not been echoed yet', async () => {
+    const { result, done } = runPrompt({
+      harness,
+      session: scriptedSession({
+        start: emit => {
+          emit({ type: 'stream-start', modelId: 'fake-model' });
+          emit({
+            type: 'tool-call',
+            toolCallId: 'c1',
+            toolName: 'weather',
+            input: JSON.stringify({ city: 'SF' }),
+          });
+          emit(boundary(3));
+        },
+        onSubmitToolResult: (submission, emit) => {
+          emit({
+            type: 'tool-result',
+            toolCallId: submission.toolCallId,
+            toolName: 'weather',
+            result: submission.output as { city: string },
+          });
+          emit(boundary(5));
+          emit(finishEvents[1]!);
+        },
+      }),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { weather } as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+    });
+
+    await result.consumeStream();
+    await done;
+
+    const steps = await result.steps;
+    expect(steps).toHaveLength(1);
+    expect(steps[0]!.usage.inputTokens).toBe(5);
+    expect(steps[0]!.content.map(part => part.type)).toEqual([
+      'tool-call',
+      'tool-result',
+    ]);
+  });
+
+  test('waits for the echo of host tool results before pausing', async () => {
+    const local = tool({
+      inputSchema: z.object({ city: z.string() }),
+      execute: async () => {
+        await new Promise(resolve => setTimeout(resolve, 10));
+        return { local: true };
+      },
+    });
+    const { result, done } = runPrompt({
+      harness,
+      session: scriptedSession({
+        start: emit => {
+          emit({ type: 'stream-start', modelId: 'fake-model' });
+          emit({
+            type: 'tool-call',
+            toolCallId: 'local-1',
+            toolName: 'local',
+            input: JSON.stringify({ city: 'SF' }),
+          });
+          emit({
+            type: 'tool-call',
+            toolCallId: 'c1',
+            toolName: 'weather',
+            input: JSON.stringify({ city: 'SF' }),
+          });
+          emit(boundary(2));
+        },
+        onSubmitToolResult: (submission, emit) => {
+          setTimeout(() => {
+            emit({
+              type: 'tool-result',
+              toolCallId: submission.toolCallId,
+              toolName: 'local',
+              result: submission.output as { local: boolean },
+            });
+          }, 10);
+        },
+      }),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { weather, local } as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      toolApproval: { weather: 'user-approval' },
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(
+      parts
+        .filter(part => part.type === 'tool-result')
+        .map(part => part.toolCallId),
+    ).toEqual(['local-1']);
+    const steps = await result.steps;
+    expect(steps).toHaveLength(1);
+    expect(steps[0]!.usage.inputTokens).toBe(2);
+    expect(steps[0]!.content.map(part => part.type)).toEqual([
+      'tool-call',
+      'tool-call',
+      'tool-approval-request',
+      'tool-result',
+    ]);
+  });
+
+  test('closes a step whose finish-step was ignored when the turn finishes', async () => {
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          input: JSON.stringify({ city: 'SF' }),
+        },
+        ...finishEvents,
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { weather } as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+    });
+
+    await result.consumeStream();
+    await done;
+
+    const steps = await result.steps;
+    expect(steps).toHaveLength(1);
+    expect(steps[0]!.content.map(part => part.type)).toEqual(['tool-call']);
+    expect(await result.finishReason).toBe('stop');
   });
 });
