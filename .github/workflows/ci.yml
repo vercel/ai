@@ -333,6 +333,10 @@ jobs:
       - name: Run tests
         env:
           SKIP_RSC_E2E: '1'
+          # Turbo parallelizes packages; keep each Vitest worker pool bounded.
+          VITEST_MAX_WORKERS: '1'
+          # Test results must not be reused across the Node version matrix.
+          TEST_NODE_VERSION: ${{ matrix.node-version }}
         run: pnpm test:ci
 
   test_mcp_windows:
