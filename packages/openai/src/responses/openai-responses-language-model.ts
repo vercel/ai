@@ -71,6 +71,10 @@ import {
   expandParallelToolCall,
   isUndeclaredParallelToolCall,
 } from './expand-parallel-tool-call';
+import {
+  mapOpenAIResponsesAnnotationSource,
+  mapOpenAIResponsesCitations,
+} from './map-openai-responses-annotation';
 import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
 import {
   openaiResponsesChunkSchema,
@@ -95,7 +99,6 @@ import type {
   ResponsesCompactionProviderMetadata,
   ResponsesProviderMetadata,
   ResponsesReasoningProviderMetadata,
-  ResponsesSourceDocumentProviderMetadata,
   ResponsesTextProviderMetadata,
   ResponsesToolCallProviderMetadata,
 } from './openai-responses-provider-metadata';
@@ -904,6 +907,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         part.action.sources?.some(source => source.type === 'url'),
     );
 
+    const hasFileSearchResults = response.output.some(
+      part =>
+        part.type === 'file_search_call' && (part.results?.length ?? 0) > 0,
+    );
+    const retrievedFileIds = new Set<string>();
+
     // flag that checks if there have been client-side tool calls (not executed by openai)
     let hasFunctionCall = false;
     const hostedToolSearchCallIds: string[] = [];
@@ -1082,84 +1091,35 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             content.push({
               type: 'text',
               text: contentPart.text,
+              ...(contentPart.annotations.some(
+                annotation => annotation.type !== 'file_path',
+              ) && {
+                citations: mapOpenAIResponsesCitations(
+                  contentPart.annotations,
+                  providerOptionsName,
+                ),
+              }),
               providerMetadata: {
                 [providerOptionsName]: providerMetadata,
               },
             });
 
             for (const annotation of contentPart.annotations) {
-              // Legacy web-search-preview and citation-only responses do not
-              // provide the retrieved source set. Preserve their normalized
-              // URL sources without duplicating citations for modern responses.
+              // Use citation-derived sources only when retrieval data is unavailable.
               if (
-                annotation.type === 'url_citation' &&
-                !hasWebSearchActionSources
+                (annotation.type === 'url_citation' &&
+                  hasWebSearchActionSources) ||
+                (annotation.type === 'file_citation' && hasFileSearchResults)
               ) {
-                content.push({
-                  type: 'source',
-                  sourceType: 'url',
-                  id: this.config.generateId?.() ?? generateId(),
-                  url: annotation.url,
-                  title: annotation.title,
-                });
-              } else if (annotation.type === 'file_citation') {
-                content.push({
-                  type: 'source',
-                  sourceType: 'document',
-                  id: this.config.generateId?.() ?? generateId(),
-                  mediaType: 'text/plain',
-                  title: annotation.filename,
-                  filename: annotation.filename,
-                  providerMetadata: {
-                    [providerOptionsName]: {
-                      type: annotation.type,
-                      fileId: annotation.file_id,
-                      index: annotation.index,
-                    } satisfies Extract<
-                      ResponsesSourceDocumentProviderMetadata,
-                      { type: 'file_citation' }
-                    >,
-                  },
-                });
-              } else if (annotation.type === 'container_file_citation') {
-                content.push({
-                  type: 'source',
-                  sourceType: 'document',
-                  id: this.config.generateId?.() ?? generateId(),
-                  mediaType: 'text/plain',
-                  title: annotation.filename,
-                  filename: annotation.filename,
-                  providerMetadata: {
-                    [providerOptionsName]: {
-                      type: annotation.type,
-                      fileId: annotation.file_id,
-                      containerId: annotation.container_id,
-                    } satisfies Extract<
-                      ResponsesSourceDocumentProviderMetadata,
-                      { type: 'container_file_citation' }
-                    >,
-                  },
-                });
-              } else if (annotation.type === 'file_path') {
-                content.push({
-                  type: 'source',
-                  sourceType: 'document',
-                  id: this.config.generateId?.() ?? generateId(),
-                  mediaType: 'application/octet-stream',
-                  title: annotation.file_id,
-                  filename: annotation.file_id,
-                  providerMetadata: {
-                    [providerOptionsName]: {
-                      type: annotation.type,
-                      fileId: annotation.file_id,
-                      index: annotation.index,
-                    } satisfies Extract<
-                      ResponsesSourceDocumentProviderMetadata,
-                      { type: 'file_path' }
-                    >,
-                  },
-                });
+                continue;
               }
+              content.push(
+                mapOpenAIResponsesAnnotationSource(
+                  annotation,
+                  providerOptionsName,
+                  this.config.generateId?.() ?? generateId(),
+                ),
+              );
             }
           }
 
@@ -1439,6 +1399,26 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 })) ?? null,
             } satisfies InferSchema<typeof fileSearchOutputSchema>,
           });
+          for (const result of part.results ?? []) {
+            if (retrievedFileIds.has(result.file_id)) {
+              continue;
+            }
+            retrievedFileIds.add(result.file_id);
+            content.push({
+              type: 'source',
+              sourceType: 'document',
+              id: this.config.generateId?.() ?? generateId(),
+              mediaType: 'text/plain',
+              title: result.filename,
+              filename: result.filename,
+              providerMetadata: {
+                [providerOptionsName]: {
+                  type: 'file_search',
+                  fileId: result.file_id,
+                },
+              },
+            });
+          }
           break;
         }
 
@@ -1632,13 +1612,16 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     > = {};
 
     // set annotations in 'text-end' part providerMetadata.
-    const ongoingAnnotations: Array<
+    let ongoingAnnotations: Array<
       Extract<
         OpenAIResponsesChunk,
         { type: 'response.output_text.annotation.added' }
       >['annotation']
     > = [];
     let hasWebSearchActionSources = false;
+    let hasFileSearchResults = false;
+    const retrievedFileIds = new Set<string>();
+    const fallbackAnnotations: typeof ongoingAnnotations = [];
 
     // track the phase of the current message being streamed
     let activeMessagePhase: 'commentary' | 'final_answer' | undefined;
@@ -1910,7 +1893,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 // shell_call_output is handled in output_item.done
               } else if (value.item.type === 'message') {
                 activeOutputItemIds[value.output_index] = value.item.id;
-                ongoingAnnotations.splice(0);
+                ongoingAnnotations = [];
                 activeMessagePhase = value.item.phase ?? undefined;
                 controller.enqueue({
                   type: 'text-start',
@@ -1957,6 +1940,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 controller.enqueue({
                   type: 'text-end',
                   id: itemId,
+                  ...(ongoingAnnotations.some(
+                    annotation => annotation.type !== 'file_path',
+                  ) && {
+                    citations: mapOpenAIResponsesCitations(
+                      ongoingAnnotations,
+                      providerOptionsName,
+                    ),
+                  }),
                   providerMetadata: {
                     [providerOptionsName]: {
                       itemId,
@@ -2254,6 +2245,27 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                       })) ?? null,
                   } satisfies InferSchema<typeof fileSearchOutputSchema>,
                 });
+                for (const result of value.item.results ?? []) {
+                  hasFileSearchResults = true;
+                  if (retrievedFileIds.has(result.file_id)) {
+                    continue;
+                  }
+                  retrievedFileIds.add(result.file_id);
+                  controller.enqueue({
+                    type: 'source',
+                    sourceType: 'document',
+                    id: self.config.generateId?.() ?? generateId(),
+                    mediaType: 'text/plain',
+                    title: result.filename,
+                    filename: result.filename,
+                    providerMetadata: {
+                      [providerOptionsName]: {
+                        type: 'file_search',
+                        fileId: result.file_id,
+                      },
+                    },
+                  });
+                }
               } else if (value.item.type === 'code_interpreter_call') {
                 ongoingToolCalls[value.output_index] = undefined;
 
@@ -2870,77 +2882,21 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
               }
             } else if (isResponseAnnotationAddedChunk(value)) {
               ongoingAnnotations.push(value.annotation);
-              // Legacy web-search-preview and citation-only streams do not
-              // provide the retrieved source set. Preserve their normalized
-              // URL sources without duplicating citations for modern streams.
               if (
-                value.annotation.type === 'url_citation' &&
-                !hasWebSearchActionSources
+                value.annotation.type === 'url_citation' ||
+                value.annotation.type === 'file_citation'
               ) {
-                controller.enqueue({
-                  type: 'source',
-                  sourceType: 'url',
-                  id: self.config.generateId?.() ?? generateId(),
-                  url: value.annotation.url,
-                  title: value.annotation.title,
-                });
-              } else if (value.annotation.type === 'file_citation') {
-                controller.enqueue({
-                  type: 'source',
-                  sourceType: 'document',
-                  id: self.config.generateId?.() ?? generateId(),
-                  mediaType: 'text/plain',
-                  title: value.annotation.filename,
-                  filename: value.annotation.filename,
-                  providerMetadata: {
-                    [providerOptionsName]: {
-                      type: value.annotation.type,
-                      fileId: value.annotation.file_id,
-                      index: value.annotation.index,
-                    } satisfies Extract<
-                      ResponsesSourceDocumentProviderMetadata,
-                      { type: 'file_citation' }
-                    >,
-                  },
-                });
-              } else if (value.annotation.type === 'container_file_citation') {
-                controller.enqueue({
-                  type: 'source',
-                  sourceType: 'document',
-                  id: self.config.generateId?.() ?? generateId(),
-                  mediaType: 'text/plain',
-                  title: value.annotation.filename,
-                  filename: value.annotation.filename,
-                  providerMetadata: {
-                    [providerOptionsName]: {
-                      type: value.annotation.type,
-                      fileId: value.annotation.file_id,
-                      containerId: value.annotation.container_id,
-                    } satisfies Extract<
-                      ResponsesSourceDocumentProviderMetadata,
-                      { type: 'container_file_citation' }
-                    >,
-                  },
-                });
-              } else if (value.annotation.type === 'file_path') {
-                controller.enqueue({
-                  type: 'source',
-                  sourceType: 'document',
-                  id: self.config.generateId?.() ?? generateId(),
-                  mediaType: 'application/octet-stream',
-                  title: value.annotation.file_id,
-                  filename: value.annotation.file_id,
-                  providerMetadata: {
-                    [providerOptionsName]: {
-                      type: value.annotation.type,
-                      fileId: value.annotation.file_id,
-                      index: value.annotation.index,
-                    } satisfies Extract<
-                      ResponsesSourceDocumentProviderMetadata,
-                      { type: 'file_path' }
-                    >,
-                  },
-                });
+                // Retrieval events may arrive after the annotation. Decide the
+                // compatibility fallback once the complete source set is known.
+                fallbackAnnotations.push(value.annotation);
+              } else {
+                controller.enqueue(
+                  mapOpenAIResponsesAnnotationSource(
+                    value.annotation,
+                    providerOptionsName,
+                    self.config.generateId?.() ?? generateId(),
+                  ),
+                );
               }
             } else if (isErrorChunk(value)) {
               encounteredStreamError = true;
@@ -2953,6 +2909,23 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
           },
 
           flush(controller) {
+            for (const annotation of fallbackAnnotations) {
+              if (
+                (annotation.type === 'url_citation' &&
+                  hasWebSearchActionSources) ||
+                (annotation.type === 'file_citation' && hasFileSearchResults)
+              ) {
+                continue;
+              }
+              controller.enqueue(
+                mapOpenAIResponsesAnnotationSource(
+                  annotation,
+                  providerOptionsName,
+                  self.config.generateId?.() ?? generateId(),
+                ),
+              );
+            }
+
             for (const toolCall of Object.values(ongoingToolCalls)) {
               if (!toolCall?.suppressInputStreaming) {
                 continue;

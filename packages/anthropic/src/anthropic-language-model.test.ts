@@ -3007,6 +3007,29 @@ describe('AnthropicLanguageModel', () => {
       expect(result.content).toMatchInlineSnapshot(`
         [
           {
+            "citations": [
+              {
+                "citedText": "Revenue increased by 25% year over year",
+                "source": {
+                  "filename": "financial-report.pdf",
+                  "id": "0",
+                  "mediaType": "application/pdf",
+                  "providerMetadata": {
+                    "anthropic": {
+                      "cited_text": "Revenue increased by 25% year over year",
+                      "document_index": 0,
+                      "document_title": "Financial Report 2023",
+                      "end_page_number": 6,
+                      "start_page_number": 5,
+                      "type": "page_location",
+                    },
+                  },
+                  "sourceType": "document",
+                  "title": "Financial Report 2023",
+                  "type": "source",
+                },
+              },
+            ],
             "providerMetadata": {
               "anthropic": {
                 "citations": [
@@ -3110,6 +3133,29 @@ describe('AnthropicLanguageModel', () => {
       expect(result.content).toMatchInlineSnapshot(`
         [
           {
+            "citations": [
+              {
+                "citedText": "important information",
+                "source": {
+                  "filename": "test.txt",
+                  "id": "0",
+                  "mediaType": "text/plain",
+                  "providerMetadata": {
+                    "anthropic": {
+                      "cited_text": "important information",
+                      "document_index": 0,
+                      "document_title": "Test Document",
+                      "end_char_index": 35,
+                      "start_char_index": 15,
+                      "type": "char_location",
+                    },
+                  },
+                  "sourceType": "document",
+                  "title": "Test Document",
+                  "type": "source",
+                },
+              },
+            ],
             "providerMetadata": {
               "anthropic": {
                 "citations": [
@@ -3565,6 +3611,11 @@ describe('AnthropicLanguageModel', () => {
           );
           const textParts = result.content.filter(part => part.type === 'text');
 
+          expect(
+            result.content
+              .filter(part => part.type === 'text')
+              .flatMap(part => part.citations ?? []),
+          ).toHaveLength(3);
           expect(sources).toHaveLength(10);
           expect(new Set(sources.map(source => source.url)).size).toBe(10);
           expect(
@@ -7249,6 +7300,149 @@ describe('AnthropicLanguageModel', () => {
   });
 
   describe('doStream', () => {
+    it.each([
+      {
+        type: 'page_location',
+        cited_text: 'Supporting passage',
+        document_index: 0,
+        document_title: 'Report',
+        start_page_number: 1,
+        end_page_number: 2,
+      },
+      {
+        type: 'char_location',
+        cited_text: 'Supporting passage',
+        document_index: 0,
+        document_title: 'Report',
+        start_char_index: 0,
+        end_char_index: 18,
+      },
+      {
+        type: 'content_block_location',
+        cited_text: 'Supporting passage',
+        document_index: 0,
+        document_title: 'Report',
+        start_block_index: 0,
+        end_block_index: 1,
+        file_id: null,
+      },
+      {
+        type: 'web_search_result_location',
+        cited_text: 'Supporting passage',
+        title: 'Report',
+        url: 'https://example.com/report',
+        encrypted_index: 'opaque',
+      },
+      {
+        type: 'search_result_location',
+        cited_text: 'Supporting passage',
+        title: 'Report',
+        source: 'https://example.com/report',
+        search_result_index: 0,
+        start_block_index: 0,
+        end_block_index: 1,
+      },
+    ])(
+      'preserves $type citations on streamed text with generation parity',
+      async citation => {
+        const prompt: LanguageModelV4Prompt = [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: { type: 'data', data: 'base64PDFdata' },
+                mediaType: 'application/pdf',
+                filename: 'report.pdf',
+                providerOptions: {
+                  anthropic: { citations: { enabled: true } },
+                },
+              },
+            ],
+          },
+        ];
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            id: 'msg_citations',
+            type: 'message',
+            role: 'assistant',
+            model: 'claude-3-haiku-20240307',
+            content: [{ type: 'text', text: 'Answer', citations: [citation] }],
+            stop_reason: 'end_turn',
+            stop_sequence: null,
+            usage: { input_tokens: 1, output_tokens: 1 },
+          },
+        };
+        const generated = await model.doGenerate({ prompt });
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            {
+              type: 'message_start',
+              message: {
+                id: 'msg_citations',
+                model: 'claude-3-haiku-20240307',
+                usage: { input_tokens: 1, output_tokens: 0 },
+              },
+            },
+            {
+              type: 'content_block_start',
+              index: 0,
+              content_block: { type: 'text', text: '' },
+            },
+            {
+              type: 'content_block_delta',
+              index: 0,
+              delta: { type: 'text_delta', text: 'Answer' },
+            },
+            {
+              type: 'content_block_delta',
+              index: 0,
+              delta: { type: 'citations_delta', citation },
+            },
+            { type: 'content_block_stop', index: 0 },
+            {
+              type: 'message_delta',
+              delta: { stop_reason: 'end_turn', stop_sequence: null },
+              usage: { output_tokens: 1 },
+            },
+            { type: 'message_stop' },
+          ].map(event => `data: ${JSON.stringify(event)}\n\n`),
+        };
+        const { stream } = await model.doStream({ prompt });
+        const events = await convertReadableStreamToArray(stream);
+        expect(events.filter(event => event.type === 'error')).toEqual([]);
+        const end = events.find(event => event.type === 'text-end');
+        const text = generated.content.find(part => part.type === 'text');
+        expect(end?.citations).toEqual(text?.citations);
+        expect(end?.citations).toEqual([
+          expect.objectContaining({
+            citedText: 'Supporting passage',
+            source: expect.objectContaining({ title: 'Report' }),
+          }),
+        ]);
+        expect(end?.providerMetadata).toEqual({
+          anthropic: { citations: [citation] },
+        });
+        if (citation.type === 'web_search_result_location') {
+          const expectedMetadata = {
+            anthropic: {
+              citedText: 'Supporting passage',
+              encryptedIndex: 'opaque',
+            },
+          };
+          expect(
+            events.find(event => event.type === 'source')?.providerMetadata,
+          ).toEqual(expectedMetadata);
+          expect(
+            generated.content.find(part => part.type === 'source')
+              ?.providerMetadata,
+          ).toEqual(expectedMetadata);
+        }
+      },
+    );
+
     describe('json schema response format (unsupported model)', () => {
       let result: Array<LanguageModelV4StreamPart>;
 
@@ -10225,8 +10419,8 @@ describe('AnthropicLanguageModel', () => {
             `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
             `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Based on the document"}}\n\n`,
             `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":", results show growth."}}\n\n`,
-            `data: {"type":"content_block_stop","index":0}\n\n`,
             `data: {"type":"content_block_delta","index":0,"delta":{"type":"citations_delta","citation":{"type":"page_location","cited_text":"Revenue increased by 25% year over year","document_index":0,"document_title":"Financial Report 2023","start_page_number":5,"end_page_number":6}}}\n\n`,
+            `data: {"type":"content_block_stop","index":0}\n\n`,
             `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":227}}\n\n`,
             `data: {"type":"message_stop"}\n\n`,
           ],
@@ -10299,10 +10493,6 @@ describe('AnthropicLanguageModel', () => {
               "type": "text-delta",
             },
             {
-              "id": "0",
-              "type": "text-end",
-            },
-            {
               "filename": "financial-report.pdf",
               "id": "id-0",
               "mediaType": "application/pdf",
@@ -10316,6 +10506,47 @@ describe('AnthropicLanguageModel', () => {
               "sourceType": "document",
               "title": "Financial Report 2023",
               "type": "source",
+            },
+            {
+              "citations": [
+                {
+                  "citedText": "Revenue increased by 25% year over year",
+                  "source": {
+                    "filename": "financial-report.pdf",
+                    "id": "0",
+                    "mediaType": "application/pdf",
+                    "providerMetadata": {
+                      "anthropic": {
+                        "cited_text": "Revenue increased by 25% year over year",
+                        "document_index": 0,
+                        "document_title": "Financial Report 2023",
+                        "end_page_number": 6,
+                        "start_page_number": 5,
+                        "type": "page_location",
+                      },
+                    },
+                    "sourceType": "document",
+                    "title": "Financial Report 2023",
+                    "type": "source",
+                  },
+                },
+              ],
+              "id": "0",
+              "providerMetadata": {
+                "anthropic": {
+                  "citations": [
+                    {
+                      "cited_text": "Revenue increased by 25% year over year",
+                      "document_index": 0,
+                      "document_title": "Financial Report 2023",
+                      "end_page_number": 6,
+                      "start_page_number": 5,
+                      "type": "page_location",
+                    },
+                  ],
+                },
+              },
+              "type": "text-end",
             },
             {
               "finishReason": {

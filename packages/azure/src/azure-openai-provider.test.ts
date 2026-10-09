@@ -2004,6 +2004,65 @@ describe('responses', () => {
             "warnings": [],
           },
           {
+            "citations": [
+              {
+                "source": {
+                  "filename": "resource1.json",
+                  "id": "assistant-YRcoCqn3Fo2K4JgraG",
+                  "mediaType": "text/plain",
+                  "providerMetadata": {
+                    "azure": {
+                      "fileId": "assistant-YRcoCqn3Fo2K4JgraG",
+                      "index": 145,
+                      "type": "file_citation",
+                    },
+                  },
+                  "sourceType": "document",
+                  "title": "resource1.json",
+                  "type": "source",
+                },
+              },
+              {
+                "source": {
+                  "filename": "resource1.json",
+                  "id": "assistant-YRcoCqn3Fo2K4JgraG",
+                  "mediaType": "text/plain",
+                  "providerMetadata": {
+                    "azure": {
+                      "fileId": "assistant-YRcoCqn3Fo2K4JgraG",
+                      "index": 192,
+                      "type": "file_citation",
+                    },
+                  },
+                  "sourceType": "document",
+                  "title": "resource1.json",
+                  "type": "source",
+                },
+              },
+            ],
+            "id": "msg_456",
+            "providerMetadata": {
+              "azure": {
+                "annotations": [
+                  {
+                    "file_id": "assistant-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 145,
+                    "type": "file_citation",
+                  },
+                  {
+                    "file_id": "assistant-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 192,
+                    "type": "file_citation",
+                  },
+                ],
+                "itemId": "msg_456",
+              },
+            },
+            "type": "text-end",
+          },
+          {
             "filename": "resource1.json",
             "id": "id-0",
             "mediaType": "text/plain",
@@ -2032,29 +2091,6 @@ describe('responses', () => {
             "sourceType": "document",
             "title": "resource1.json",
             "type": "source",
-          },
-          {
-            "id": "msg_456",
-            "providerMetadata": {
-              "azure": {
-                "annotations": [
-                  {
-                    "file_id": "assistant-YRcoCqn3Fo2K4JgraG",
-                    "filename": "resource1.json",
-                    "index": 145,
-                    "type": "file_citation",
-                  },
-                  {
-                    "file_id": "assistant-YRcoCqn3Fo2K4JgraG",
-                    "filename": "resource1.json",
-                    "index": 192,
-                    "type": "file_citation",
-                  },
-                ],
-                "itemId": "msg_456",
-              },
-            },
-            "type": "text-end",
           },
           {
             "finishReason": {
