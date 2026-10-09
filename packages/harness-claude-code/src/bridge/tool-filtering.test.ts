@@ -11,8 +11,11 @@ describe('resolveNativeTools', () => {
 
   it('maps allowlisted common tool names to native names', () => {
     expect(
-      resolveNativeTools({ mode: 'allow', toolNames: ['read', 'Workflow'] }),
-    ).toEqual(['Read', 'Workflow']);
+      resolveNativeTools({
+        mode: 'allow',
+        toolNames: ['read', 'Projects', 'ClaudeDesign'],
+      }),
+    ).toEqual(['Read', 'Projects', 'ClaudeDesign']);
   });
 
   it('preserves an empty allowlist', () => {
@@ -35,8 +38,8 @@ describe('resolveInactiveNativeTools', () => {
     expect(
       resolveInactiveNativeTools({
         mode: 'deny',
-        toolNames: ['bash', 'Workflow'],
+        toolNames: ['bash', 'Projects', 'ClaudeDesign'],
       }),
-    ).toEqual(['Bash', 'Workflow']);
+    ).toEqual(['Bash', 'Projects', 'ClaudeDesign']);
   });
 });

@@ -765,6 +765,55 @@ describe('Claude Code bridge configuration', () => {
     expect(state.queryArgs[0]?.options).not.toHaveProperty('canUseTool');
   });
 
+  test('forwards conditional cloud tool filtering to the Agent SDK', async () => {
+    state.start = {
+      ...state.start,
+      builtinToolFiltering: {
+        mode: 'allow',
+        toolNames: ['Projects', 'ClaudeDesign'],
+      },
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({
+      tools: ['Projects', 'ClaudeDesign'],
+    });
+  });
+
+  test('forwards disabled conditional cloud tools to the Agent SDK', async () => {
+    state.start = {
+      ...state.start,
+      builtinToolFiltering: {
+        mode: 'deny',
+        toolNames: ['Projects', 'ClaudeDesign'],
+      },
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({
+      disallowedTools: ['Projects', 'ClaudeDesign'],
+    });
+  });
+
+  test('classifies conditional cloud tools as edits for approval settings', async () => {
+    state.start = {
+      ...state.start,
+      permissionMode: 'allow-reads',
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({
+      settings: {
+        permissions: {
+          ask: expect.arrayContaining(['ClaudeDesign(*)', 'Projects(*)']),
+        },
+      },
+    });
+  });
+
   test('marks approval-gated external MCP tool calls as dynamic', async () => {
     state.start = {
       ...state.start,

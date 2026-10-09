@@ -617,6 +617,39 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
     }),
     toolUseKind: 'edit',
   },
+  ClaudeDesign: {
+    ...tool({
+      description: 'Run a Claude Design operation',
+      inputSchema: z.object({
+        operation: z.string(),
+        arguments: z.record(z.string(), z.unknown()),
+      }),
+    }),
+    toolUseKind: 'edit',
+  },
+  Projects: {
+    ...tool({
+      description: 'Read or update an attached claude.ai project',
+      inputSchema: z.object({
+        method: z.enum([
+          'project_info',
+          'project_read',
+          'project_search',
+          'project_write',
+          'project_delete',
+          'project_memory_list',
+          'project_memory_read',
+        ]),
+        path: z.string().optional(),
+        content: z.string().optional(),
+        local_path: z.string().optional(),
+        present_to_user: z.boolean().optional(),
+        query: z.string().optional(),
+        n: z.number().optional(),
+      }),
+    }),
+    toolUseKind: 'edit',
+  },
   LSP: {
     ...tool({
       description: 'Query a language server for code intelligence',

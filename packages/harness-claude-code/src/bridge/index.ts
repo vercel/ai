@@ -114,6 +114,8 @@ const NATIVE_TOOL_KINDS: Readonly<
   Skill: 'readonly',
   AskUserQuestion: 'readonly',
   ToolSearch: 'readonly',
+  ClaudeDesign: 'edit',
+  Projects: 'edit',
   Bash: 'bash',
   Monitor: 'bash',
 };

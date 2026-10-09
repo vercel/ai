@@ -214,6 +214,57 @@ not fit a common tool shape.
 Claude Code supports built-in tool approval requests when `permissionMode` is
 `allow-reads` or `allow-edits`.
 
+### Conditional Built-in Tools
+
+The adapter also declares `Projects` and `ClaudeDesign`, which are conditional
+cloud tools in the Claude Agent SDK. Their schemas are available through
+`agent.tools` even when the underlying Claude Code runtime does not activate
+the corresponding feature:
+
+```ts
+import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { claudeCode } from '@ai-sdk/harness-claude-code';
+
+const agent = new HarnessAgent({
+  harness: claudeCode,
+  inactiveTools: ['Projects', 'ClaudeDesign'],
+});
+```
+
+- `Projects` reads, searches, writes, or deletes documents and reads project
+  memory for a claude.ai project attached to the Claude Code session. It
+  requires project context and credentials accepted by the underlying runtime.
+- `ClaudeDesign` invokes operations made available by the Claude Design
+  service. Availability depends on the authenticated account, provider, and
+  Claude Code rollout.
+
+Registering these tools does not enable their upstream features or change
+Claude Code's activation gates. `activeTools` and `inactiveTools` only control
+whether Claude Code may call the named tool. They do not detach a project,
+disable related services, or disable adjacent tools such as `DesignSync`.
+Conversely, disabling a broader Claude Code feature through runtime
+configuration can affect capabilities beyond the named tool.
+
+### Built-in Catalog Scope
+
+The adapter's typed built-in catalog covers native tools with a public Claude
+Agent SDK input contract, plus conditional tools whose SDK use has otherwise
+been established. It is intentionally not an inventory of every name present
+in the Claude Code executable.
+
+Internal runner administration, host-specific UI and device integrations,
+child-session protocols, diagnostics, and CLI-only tools are not declared as
+ordinary harness built-ins. `SendFile`, `SendUserMessage`, `memory_list`,
+`memory_read`, `memory_write`, and `GetTask` are also not currently declared
+because the pinned public Agent SDK does not define a supported input contract
+for those native names. Note that `GetTask` is distinct from the supported
+`TaskGet` built-in.
+
+Names outside the declared catalog cannot be passed to `activeTools` or
+`inactiveTools`. The catalog may expand when a native tool gains a supported
+Agent SDK contract; schema presence or a name found in the Claude Code
+executable alone is not treated as that contract.
+
 ## Related
 
 - [HarnessAgent](/docs/ai-sdk-harnesses/harness-agent)
