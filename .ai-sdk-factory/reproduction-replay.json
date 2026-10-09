@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 17033,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-17033-trailing-context-skips-tool-approval.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-17033-trailing-context-skips-tool-approval.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_17033_REPRODUCED: approved local tool executed 0 times after trailing user context (expected exactly once or rejection before provider invocation); provider was called 1 time(s) with tool result type undefined."
+  }
+}
