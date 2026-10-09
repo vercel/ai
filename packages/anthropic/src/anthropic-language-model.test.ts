@@ -1140,6 +1140,209 @@ describe('AnthropicLanguageModel', () => {
       });
     });
 
+    describe('json schema response format with automatic json tool response', () => {
+      const responseFormat = {
+        type: 'json' as const,
+        schema: {
+          type: 'object' as const,
+          properties: {
+            weather: { type: 'string' as const },
+            temperature: { type: 'number' as const },
+          },
+          required: ['weather', 'temperature'],
+          additionalProperties: false,
+        },
+      };
+
+      const weatherTool = {
+        type: 'function' as const,
+        name: 'weather',
+        description: 'Get the weather in a location',
+        inputSchema: {
+          type: 'object' as const,
+          properties: {
+            location: { type: 'string' as const },
+          },
+          required: ['location'],
+          additionalProperties: false,
+        },
+      };
+
+      it('should send native structured output with a strict automatically selected json tool', async () => {
+        prepareJsonFixtureResponse('anthropic-json-tool.1');
+
+        const result = await provider('claude-sonnet-5-5').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [weatherTool],
+          responseFormat,
+          providerOptions: {
+            anthropic: {
+              structuredOutputMode: 'autoTool',
+            } satisfies AnthropicLanguageModelOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          output_config: {
+            format: {
+              type: 'json_schema',
+              schema: responseFormat.schema,
+            },
+          },
+          tool_choice: { type: 'auto' },
+          tools: [
+            {
+              name: 'weather',
+            },
+            {
+              name: 'json',
+              strict: true,
+              input_schema: responseFormat.schema,
+            },
+          ],
+        });
+        expect(result.content).toEqual([
+          {
+            type: 'text',
+            text: JSON.stringify(
+              (
+                JSON.parse(
+                  fs.readFileSync(
+                    'src/__fixtures__/anthropic-json-tool.1.json',
+                    'utf8',
+                  ),
+                ) as { content: Array<{ input: unknown }> }
+              ).content[0].input,
+            ),
+          },
+        ]);
+        expect(result.finishReason).toEqual({
+          unified: 'stop',
+          raw: 'tool_use',
+        });
+        expect(result.warnings).toEqual([]);
+      });
+
+      it('should preserve a direct native structured response', async () => {
+        prepareJsonFixtureResponse('anthropic-json-output-format.1');
+
+        const result = await provider('claude-sonnet-5-5').doGenerate({
+          prompt: TEST_PROMPT,
+          responseFormat,
+          providerOptions: {
+            anthropic: {
+              structuredOutputMode: 'autoTool',
+            } satisfies AnthropicLanguageModelOptions,
+          },
+        });
+
+        expect(result.content).toHaveLength(1);
+        expect(result.content[0]).toMatchObject({ type: 'text' });
+        expect(result.finishReason.unified).toBe('stop');
+      });
+
+      it.each([
+        {
+          name: 'before',
+          content: [
+            {
+              type: 'tool_use',
+              id: 'answer-call',
+              name: 'json',
+              input: { weather: 'sunny', temperature: 20 },
+            },
+            {
+              type: 'tool_use',
+              id: 'weather-call',
+              name: 'weather',
+              input: { location: 'San Francisco' },
+            },
+          ],
+        },
+        {
+          name: 'after',
+          content: [
+            {
+              type: 'tool_use',
+              id: 'weather-call',
+              name: 'weather',
+              input: { location: 'San Francisco' },
+            },
+            {
+              type: 'tool_use',
+              id: 'answer-call',
+              name: 'json',
+              input: { weather: 'sunny', temperature: 20 },
+            },
+          ],
+        },
+      ])(
+        'should discard an automatic json response tool call $name an ordinary tool call',
+        async ({ content }) => {
+          server.urls['https://api.anthropic.com/v1/messages'].response = {
+            type: 'json-value',
+            body: {
+              model: 'claude-sonnet-5-5',
+              id: 'message-id',
+              type: 'message',
+              role: 'assistant',
+              content,
+              stop_reason: 'tool_use',
+              usage: {
+                input_tokens: 10,
+                output_tokens: 20,
+              },
+            },
+          };
+
+          const result = await provider('claude-sonnet-5-5').doGenerate({
+            prompt: TEST_PROMPT,
+            tools: [weatherTool],
+            responseFormat,
+            providerOptions: {
+              anthropic: {
+                structuredOutputMode: 'autoTool',
+              } satisfies AnthropicLanguageModelOptions,
+            },
+          });
+
+          expect(result.content).toEqual([
+            {
+              type: 'tool-call',
+              toolCallId: 'weather-call',
+              toolName: 'weather',
+              input: '{"location":"San Francisco"}',
+            },
+          ]);
+          expect(result.finishReason).toEqual({
+            unified: 'tool-calls',
+            raw: 'tool_use',
+          });
+        },
+      );
+
+      it('should avoid collisions with consumer tool names', async () => {
+        prepareJsonFixtureResponse('anthropic-json-output-format.1');
+
+        await provider('claude-sonnet-5-5').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [{ ...weatherTool, name: 'json' }],
+          responseFormat,
+          providerOptions: {
+            anthropic: {
+              structuredOutputMode: 'autoTool',
+            } satisfies AnthropicLanguageModelOptions,
+          },
+        });
+
+        expect(
+          (await server.calls[0].requestBodyJson).tools.map(
+            (tool: { name: string }) => tool.name,
+          ),
+        ).toEqual(['json', 'json_2']);
+      });
+    });
+
     describe('json schema response format with other tool response (unsupported model)', () => {
       let result: Awaited<ReturnType<typeof model.doGenerate>>;
 
@@ -7374,6 +7577,253 @@ describe('AnthropicLanguageModel', () => {
           ]
         `);
       });
+    });
+
+    describe('json schema response format with automatic json tool streaming', () => {
+      const responseFormat = {
+        type: 'json' as const,
+        schema: {
+          type: 'object' as const,
+          properties: {
+            weather: { type: 'string' as const },
+            temperature: { type: 'number' as const },
+          },
+          required: ['weather', 'temperature'],
+          additionalProperties: false,
+        },
+      };
+
+      const weatherTool = {
+        type: 'function' as const,
+        name: 'weather',
+        inputSchema: {
+          type: 'object' as const,
+          properties: {
+            location: { type: 'string' as const },
+          },
+          required: ['location'],
+          additionalProperties: false,
+        },
+      };
+
+      function prepareToolUseStream(
+        toolCalls: Array<{
+          id: string;
+          name: string;
+          input: Record<string, unknown>;
+        }>,
+      ) {
+        const events: Array<unknown> = [
+          {
+            type: 'message_start',
+            message: {
+              model: 'claude-sonnet-5-5',
+              id: 'message-id',
+              type: 'message',
+              role: 'assistant',
+              content: [],
+              stop_reason: null,
+              stop_sequence: null,
+              usage: {
+                input_tokens: 10,
+                output_tokens: 1,
+              },
+            },
+          },
+        ];
+
+        for (const [index, toolCall] of toolCalls.entries()) {
+          events.push(
+            {
+              type: 'content_block_start',
+              index,
+              content_block: {
+                type: 'tool_use',
+                id: toolCall.id,
+                name: toolCall.name,
+                input: {},
+              },
+            },
+            {
+              type: 'content_block_delta',
+              index,
+              delta: {
+                type: 'input_json_delta',
+                partial_json: JSON.stringify(toolCall.input),
+              },
+            },
+            {
+              type: 'content_block_stop',
+              index,
+            },
+          );
+        }
+
+        events.push(
+          {
+            type: 'message_delta',
+            delta: {
+              stop_reason: 'tool_use',
+              stop_sequence: null,
+            },
+            usage: {
+              input_tokens: 10,
+              output_tokens: 20,
+            },
+          },
+          { type: 'message_stop' },
+        );
+
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            ...events.map(event => `data: ${JSON.stringify(event)}\n\n`),
+            'data: [DONE]\n\n',
+          ],
+        };
+      }
+
+      it('should buffer an automatic json response tool until the turn is complete', async () => {
+        prepareToolUseStream([
+          {
+            id: 'answer-call',
+            name: 'json',
+            input: { weather: 'sunny', temperature: 20 },
+          },
+        ]);
+
+        const { stream } = await provider('claude-sonnet-5-5').doStream({
+          prompt: TEST_PROMPT,
+          responseFormat,
+          providerOptions: {
+            anthropic: {
+              structuredOutputMode: 'autoTool',
+            } satisfies AnthropicLanguageModelOptions,
+          },
+        });
+        const result = await convertReadableStreamToArray(stream);
+
+        const textStartIndex = result.findIndex(
+          part => part.type === 'text-start',
+        );
+        const finishIndex = result.findIndex(part => part.type === 'finish');
+
+        expect(textStartIndex).toBeGreaterThan(
+          result.findIndex(
+            part =>
+              part.type === 'custom' && part.kind === 'anthropic.message_start',
+          ),
+        );
+        expect(textStartIndex).toBe(finishIndex - 3);
+        expect(result.slice(textStartIndex, finishIndex)).toEqual([
+          { type: 'text-start', id: '0' },
+          {
+            type: 'text-delta',
+            id: '0',
+            delta: '{"weather":"sunny","temperature":20}',
+          },
+          { type: 'text-end', id: '0' },
+        ]);
+        expect(result[finishIndex]).toMatchObject({
+          type: 'finish',
+          finishReason: {
+            unified: 'stop',
+            raw: 'tool_use',
+          },
+        });
+      });
+
+      it('should discard a text prefix when the automatic json response tool is the final answer', async () => {
+        prepareChunksFixtureResponse('anthropic-json-tool.2');
+
+        const { stream } = await provider('claude-sonnet-5-5').doStream({
+          prompt: TEST_PROMPT,
+          responseFormat,
+          providerOptions: {
+            anthropic: {
+              structuredOutputMode: 'autoTool',
+            } satisfies AnthropicLanguageModelOptions,
+          },
+        });
+        const result = await convertReadableStreamToArray(stream);
+
+        expect(
+          result
+            .filter(part => part.type === 'text-delta')
+            .map(part => part.delta)
+            .join(''),
+        ).toBe(
+          '{"elements": [{"location": "San Francisco", "temperature": 58, "condition": "sunny"}]}',
+        );
+      });
+
+      it.each([
+        {
+          name: 'before',
+          toolCalls: [
+            {
+              id: 'answer-call',
+              name: 'json',
+              input: { weather: 'sunny', temperature: 20 },
+            },
+            {
+              id: 'weather-call',
+              name: 'weather',
+              input: { location: 'San Francisco' },
+            },
+          ],
+        },
+        {
+          name: 'after',
+          toolCalls: [
+            {
+              id: 'weather-call',
+              name: 'weather',
+              input: { location: 'San Francisco' },
+            },
+            {
+              id: 'answer-call',
+              name: 'json',
+              input: { weather: 'sunny', temperature: 20 },
+            },
+          ],
+        },
+      ])(
+        'should discard a buffered json response tool $name an ordinary tool call',
+        async ({ toolCalls }) => {
+          prepareToolUseStream(toolCalls);
+
+          const { stream } = await provider('claude-sonnet-5-5').doStream({
+            prompt: TEST_PROMPT,
+            tools: [weatherTool],
+            responseFormat,
+            providerOptions: {
+              anthropic: {
+                structuredOutputMode: 'autoTool',
+              } satisfies AnthropicLanguageModelOptions,
+            },
+          });
+          const result = await convertReadableStreamToArray(stream);
+
+          expect(result.some(part => part.type === 'text-start')).toBe(false);
+          expect(
+            result.filter(part => part.type === 'tool-call'),
+          ).toMatchObject([
+            {
+              type: 'tool-call',
+              toolCallId: 'weather-call',
+              toolName: 'weather',
+              input: '{"location":"San Francisco"}',
+            },
+          ]);
+          expect(result.find(part => part.type === 'finish')).toMatchObject({
+            finishReason: {
+              unified: 'tool-calls',
+              raw: 'tool_use',
+            },
+          });
+        },
+      );
     });
 
     describe('json schema response format with text content prefix', () => {

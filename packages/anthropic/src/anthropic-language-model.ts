@@ -217,6 +217,20 @@ function getAnthropicToolsetNames(
   return toolsetNames;
 }
 
+function getJsonResponseToolName(
+  tools: LanguageModelV4CallOptions['tools'],
+): string {
+  const toolNames = new Set(tools?.map(tool => tool.name));
+  let name = 'json';
+  let suffix = 2;
+
+  while (toolNames.has(name)) {
+    name = `json_${suffix++}`;
+  }
+
+  return name;
+}
+
 /**
  * Toolset member calls (e.g. `left_click` from the computer toolset) are
  * exposed as a single tool call on the toolset tool. The member name is
@@ -459,11 +473,20 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     const supportsStrictTools =
       (config.supportsStrictTools ?? true) && modelSupportsStructuredOutput;
 
-    const structureOutputMode =
+    const structuredOutputMode =
       anthropicOptions?.structuredOutputMode ?? 'auto';
+    // `autoTool` is intentionally opt-in. Keep the established `auto`
+    // selection policy unchanged while consumers evaluate this strategy.
     let useStructuredOutput =
-      structureOutputMode === 'outputFormat' ||
-      (structureOutputMode === 'auto' && supportsStructuredOutput);
+      structuredOutputMode === 'outputFormat' ||
+      structuredOutputMode === 'autoTool' ||
+      (structuredOutputMode === 'auto' && supportsStructuredOutput);
+    let jsonResponseToolMode: 'forced' | 'auto' | undefined =
+      structuredOutputMode === 'autoTool'
+        ? 'auto'
+        : !useStructuredOutput
+          ? 'forced'
+          : undefined;
 
     // The JSON response tool relies on forced tool use, which some models
     // reject (e.g. Opus 5.5, Fable 5.1). Fall back to native structured
@@ -483,22 +506,31 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           `Using 'outputFormat' instead.`,
       });
       useStructuredOutput = true;
+      jsonResponseToolMode = undefined;
     }
 
+    const jsonResponseToolName =
+      jsonResponseToolMode != null ? getJsonResponseToolName(tools) : undefined;
     const jsonResponseTool: LanguageModelV4FunctionTool | undefined =
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
-      !useStructuredOutput
+      jsonResponseToolMode != null &&
+      jsonResponseToolName != null
         ? {
             type: 'function',
-            name: 'json',
-            description: 'Respond with a JSON object.',
+            name: jsonResponseToolName,
+            description:
+              jsonResponseToolMode === 'auto'
+                ? 'Use this tool to provide the final JSON response when you have finished using other tools.'
+                : 'Respond with a JSON object.',
             inputSchema: responseFormat.schema,
+            ...(jsonResponseToolMode === 'auto' && { strict: true }),
           }
         : undefined;
 
     if (
       jsonResponseTool != null &&
+      jsonResponseToolMode === 'forced' &&
       anthropicOptions?.disableParallelToolUse === false
     ) {
       warnings.push({
@@ -1059,10 +1091,17 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       jsonResponseTool != null
         ? {
             tools: [...(tools ?? []), jsonResponseTool],
-            toolChoice: { type: 'required' },
-            disableParallelToolUse: true,
+            toolChoice:
+              jsonResponseToolMode === 'auto'
+                ? { type: 'auto' }
+                : { type: 'required' },
+            disableParallelToolUse:
+              jsonResponseToolMode === 'auto'
+                ? anthropicOptions?.disableParallelToolUse
+                : true,
             cacheControlValidator,
-            supportsStructuredOutput: false,
+            supportsStructuredOutput:
+              jsonResponseToolMode === 'auto' && supportsStructuredOutput,
             supportsStrictTools,
             defaultEagerInputStreaming,
             rejectsForcedToolUse,
@@ -1096,6 +1135,13 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         ...userSuppliedBetas,
         ...(anthropicOptions?.anthropicBeta ?? []),
       ]),
+      jsonResponseTool:
+        jsonResponseTool != null && jsonResponseToolMode != null
+          ? {
+              name: jsonResponseTool.name,
+              mode: jsonResponseToolMode,
+            }
+          : undefined,
       usesJsonResponseTool: jsonResponseTool != null,
       toolNameMapping,
       providerOptionsName,
@@ -1214,7 +1260,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       args,
       warnings,
       betas,
-      usesJsonResponseTool,
+      jsonResponseTool,
       toolNameMapping,
       providerOptionsName,
       usedCustomProviderKey,
@@ -1251,13 +1297,26 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     const content: Array<LanguageModelV4Content> = [];
     const mcpToolCalls: Record<string, LanguageModelV4ToolCall> = {};
     const serverToolCalls: Record<string, string> = {}; // tool_use_id -> provider tool name
-    let isJsonResponseFromTool = false;
+    const hasJsonResponseToolCall =
+      jsonResponseTool != null &&
+      response.content.some(
+        part => part.type === 'tool_use' && part.name === jsonResponseTool.name,
+      );
+    const hasOtherClientToolCall =
+      jsonResponseTool != null &&
+      response.content.some(
+        part => part.type === 'tool_use' && part.name !== jsonResponseTool.name,
+      );
+    const useJsonResponseToolCall =
+      hasJsonResponseToolCall &&
+      (jsonResponseTool?.mode === 'forced' || !hasOtherClientToolCall);
+    const isJsonResponseFromTool = useJsonResponseToolCall;
 
     // map response content to content array
     for (const part of response.content) {
       switch (part.type) {
         case 'text': {
-          if (!usesJsonResponseTool) {
+          if (jsonResponseTool?.mode !== 'forced' && !useJsonResponseToolCall) {
             const webSearchCitations = part.citations?.filter(
               citation => citation.type === 'web_search_result_location',
             );
@@ -1345,16 +1404,16 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         }
         case 'tool_use': {
           const isJsonResponseTool =
-            usesJsonResponseTool && part.name === 'json';
+            jsonResponseTool != null && part.name === jsonResponseTool.name;
 
           if (isJsonResponseTool) {
-            isJsonResponseFromTool = true;
-
-            // when a json response tool is used, the tool call becomes the text:
-            content.push({
-              type: 'text',
-              text: JSON.stringify(part.input),
-            });
+            if (useJsonResponseToolCall) {
+              // when a json response tool is used, the tool call becomes the text:
+              content.push({
+                type: 'text',
+                text: JSON.stringify(part.input),
+              });
+            }
           } else if (part.toolset_name != null) {
             // toolset member calls (e.g. the computer toolset) are mapped to
             // the toolset tool with the member name as the `action`:
@@ -1843,7 +1902,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       args: body,
       warnings,
       betas,
-      usesJsonResponseTool,
+      jsonResponseTool,
       toolNameMapping,
       providerOptionsName,
       usedCustomProviderKey,
@@ -1912,6 +1971,12 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         }
       | { type: 'text'; citations: Citation[] }
       | { type: 'reasoning' }
+      | {
+          type: 'json-response-tool';
+          id: string;
+          input: string;
+          streamImmediately: boolean;
+        }
     > = {};
     const mcpToolCalls: Record<string, LanguageModelV4ToolCall> = {};
     const serverToolCalls: Record<string, string> = {}; // tool_use_id -> provider tool name
@@ -1926,6 +1991,12 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     let safeguardResults: AnthropicMessageMetadata['safeguardResults'];
     let container: AnthropicMessageMetadata['container'] | null = null;
     let isJsonResponseFromTool = false;
+    let hasOtherClientToolCall = false;
+    const bufferedJsonResponseToolCalls: Array<{
+      id: string;
+      input: string;
+    }> = [];
+    const bufferedAutoToolTextParts: LanguageModelV4StreamPart[] = [];
     let isMessageOpen = false;
     let activeMessageId: string | null | undefined;
     let hasInvalidMessageSequence = false;
@@ -1974,6 +2045,17 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           }
 
           const value = chunk.value;
+          const markOtherClientToolCall = () => {
+            if (hasOtherClientToolCall) {
+              return;
+            }
+
+            hasOtherClientToolCall = true;
+            for (const part of bufferedAutoToolTextParts) {
+              controller.enqueue(part);
+            }
+            bufferedAutoToolTextParts.length = 0;
+          };
 
           switch (value.type) {
             case 'ping': {
@@ -2005,7 +2087,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 case 'text': {
                   // when a json response tool is used, the tool call is returned as text,
                   // so we ignore the text content:
-                  if (usesJsonResponseTool) {
+                  if (jsonResponseTool?.mode === 'forced') {
                     return;
                   }
 
@@ -2013,10 +2095,18 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                     type: 'text',
                     citations: [],
                   };
-                  controller.enqueue({
+                  const textStart = {
                     type: 'text-start',
                     id: String(value.index),
-                  });
+                  } as const;
+                  if (
+                    jsonResponseTool?.mode === 'auto' &&
+                    !hasOtherClientToolCall
+                  ) {
+                    bufferedAutoToolTextParts.push(textStart);
+                  } else {
+                    controller.enqueue(textStart);
+                  }
                   return;
                 }
 
@@ -2080,21 +2170,29 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
                 case 'tool_use': {
                   const isJsonResponseTool =
-                    usesJsonResponseTool && part.name === 'json';
+                    jsonResponseTool != null &&
+                    part.name === jsonResponseTool.name;
 
                   if (isJsonResponseTool) {
-                    isJsonResponseFromTool = true;
+                    const hasNonEmptyInput =
+                      part.input && Object.keys(part.input).length > 0;
 
                     contentBlocks[value.index] = {
-                      type: 'text',
-                      citations: [],
+                      type: 'json-response-tool',
+                      id: String(value.index),
+                      input: hasNonEmptyInput ? JSON.stringify(part.input) : '',
+                      streamImmediately: jsonResponseTool.mode === 'forced',
                     };
 
-                    controller.enqueue({
-                      type: 'text-start',
-                      id: String(value.index),
-                    });
+                    if (jsonResponseTool.mode === 'forced') {
+                      isJsonResponseFromTool = true;
+                      controller.enqueue({
+                        type: 'text-start',
+                        id: String(value.index),
+                      });
+                    }
                   } else if (part.toolset_name != null) {
+                    markOtherClientToolCall();
                     const callerInfo = getAnthropicCallerInfo(part.caller);
                     const customToolName = toolNameMapping.toCustomToolName(
                       part.toolset_name,
@@ -2123,6 +2221,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       toolName: customToolName,
                     });
                   } else {
+                    markOtherClientToolCall();
                     const callerInfo = getAnthropicCallerInfo(part.caller);
 
                     // Programmatic tool calling: for deferred tool calls from code_execution,
@@ -2583,7 +2682,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
                 switch (contentBlock.type) {
                   case 'text': {
-                    controller.enqueue({
+                    const textEnd = {
                       type: 'text-end',
                       id: String(value.index),
                       ...(contentBlock.citations.length > 0 && {
@@ -2593,7 +2692,15 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                           },
                         },
                       }),
-                    });
+                    } as const;
+                    if (
+                      jsonResponseTool?.mode === 'auto' &&
+                      !hasOtherClientToolCall
+                    ) {
+                      bufferedAutoToolTextParts.push(textEnd);
+                    } else {
+                      controller.enqueue(textEnd);
+                    }
                     break;
                   }
 
@@ -2605,11 +2712,31 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                     break;
                   }
 
+                  case 'json-response-tool': {
+                    if (contentBlock.streamImmediately) {
+                      controller.enqueue({
+                        type: 'text-end',
+                        id: contentBlock.id,
+                      });
+                    } else {
+                      // Automatic tool choice can produce the answer tool
+                      // alongside executable tools. Buffer its input until the
+                      // complete turn tells us whether it is the final answer.
+                      bufferedJsonResponseToolCalls.push({
+                        id: contentBlock.id,
+                        input:
+                          contentBlock.input === '' ? '{}' : contentBlock.input,
+                      });
+                    }
+                    break;
+                  }
+
                   case 'tool-call':
                     // when a json response tool is used, the tool call is returned as text,
                     // so we ignore the tool call content:
                     const isJsonResponseTool =
-                      usesJsonResponseTool && contentBlock.toolName === 'json';
+                      jsonResponseTool != null &&
+                      contentBlock.toolName === jsonResponseTool.name;
 
                     if (!isJsonResponseTool) {
                       // toolset member calls: emit the accumulated input with
@@ -2717,15 +2844,23 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 case 'text_delta': {
                   // when a json response tool is used, the tool call is returned as text,
                   // so we ignore the text content:
-                  if (usesJsonResponseTool) {
+                  if (jsonResponseTool?.mode === 'forced') {
                     return; // excluding the text-start will also exclude the text-end
                   }
 
-                  controller.enqueue({
+                  const textDelta = {
                     type: 'text-delta',
                     id: String(value.index),
                     delta: value.delta.text,
-                  });
+                  } as const;
+                  if (
+                    jsonResponseTool?.mode === 'auto' &&
+                    !hasOtherClientToolCall
+                  ) {
+                    bufferedAutoToolTextParts.push(textDelta);
+                  } else {
+                    controller.enqueue(textDelta);
+                  }
 
                   return;
                 }
@@ -2780,16 +2915,16 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                     return;
                   }
 
-                  if (isJsonResponseFromTool) {
-                    if (contentBlock?.type !== 'text') {
-                      return; // exclude reasoning
-                    }
+                  if (contentBlock?.type === 'json-response-tool') {
+                    contentBlock.input += delta;
 
-                    controller.enqueue({
-                      type: 'text-delta',
-                      id: String(value.index),
-                      delta,
-                    });
+                    if (contentBlock.streamImmediately) {
+                      controller.enqueue({
+                        type: 'text-delta',
+                        id: contentBlock.id,
+                        delta,
+                      });
+                    }
                   } else {
                     if (contentBlock?.type !== 'tool-call') {
                       return;
@@ -2939,6 +3074,32 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 ) {
                   const part = value.message.content[contentIndex];
                   if (part.type === 'tool_use') {
+                    const isJsonResponseTool =
+                      jsonResponseTool != null &&
+                      part.name === jsonResponseTool.name;
+                    const inputStr = JSON.stringify(part.input ?? {});
+
+                    if (isJsonResponseTool) {
+                      if (jsonResponseTool.mode === 'forced') {
+                        isJsonResponseFromTool = true;
+                        const id = `message-start-${contentIndex}`;
+                        controller.enqueue({ type: 'text-start', id });
+                        controller.enqueue({
+                          type: 'text-delta',
+                          id,
+                          delta: inputStr,
+                        });
+                        controller.enqueue({ type: 'text-end', id });
+                      } else {
+                        bufferedJsonResponseToolCalls.push({
+                          id: `message-start-${contentIndex}`,
+                          input: inputStr,
+                        });
+                      }
+                      continue;
+                    }
+
+                    markOtherClientToolCall();
                     const callerInfo = getAnthropicCallerInfo(part.caller);
 
                     controller.enqueue({
@@ -2947,7 +3108,6 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       toolName: part.name,
                     });
 
-                    const inputStr = JSON.stringify(part.input ?? {});
                     controller.enqueue({
                       type: 'tool-input-delta',
                       id: part.id,
@@ -3054,6 +3214,42 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
             case 'message_stop': {
               isMessageOpen = false;
               activeMessageId = undefined;
+
+              if (
+                jsonResponseTool?.mode === 'auto' &&
+                bufferedJsonResponseToolCalls.length > 0 &&
+                !hasOtherClientToolCall
+              ) {
+                isJsonResponseFromTool = true;
+                finishReason = {
+                  unified: mapAnthropicStopReason({
+                    finishReason: finishReason.raw,
+                    isJsonResponseFromTool,
+                  }),
+                  raw: finishReason.raw,
+                };
+
+                for (const responseToolCall of bufferedJsonResponseToolCalls) {
+                  controller.enqueue({
+                    type: 'text-start',
+                    id: responseToolCall.id,
+                  });
+                  controller.enqueue({
+                    type: 'text-delta',
+                    id: responseToolCall.id,
+                    delta: responseToolCall.input,
+                  });
+                  controller.enqueue({
+                    type: 'text-end',
+                    id: responseToolCall.id,
+                  });
+                }
+              } else {
+                for (const part of bufferedAutoToolTextParts) {
+                  controller.enqueue(part);
+                }
+              }
+              bufferedAutoToolTextParts.length = 0;
 
               const anthropicMetadata = {
                 usage: (rawUsage as JSONObject) ?? null,
