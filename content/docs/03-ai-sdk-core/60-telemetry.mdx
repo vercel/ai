@@ -614,8 +614,11 @@ kind: a **`decide {modelId}`** root span for the whole operation and one
 **`decide {modelId}`** child span for decision model work, including
 retries. Both include the provider and requested model with
 `gen_ai.operation.name: "decide"`. Token
-usage is recorded on the child span. When decision attributes are enabled,
-answers are recorded on both spans so the operation span contains its output.
+usage is recorded on the child span, along with `gen_ai.response.id` and
+`gen_ai.response.model` when the provider reports them, so the resolved model
+is available even when the requested model ID is an alias. When decision
+attributes are enabled, answers are recorded on both spans so the operation
+span contains its output.
 
 `decide` is an AI SDK-defined custom operation name, not a well-known
 OpenTelemetry GenAI operation. OpenTelemetry permits custom operation names
