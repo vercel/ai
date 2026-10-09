@@ -326,6 +326,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
 
         // messages:
         messages: convertToOpenAICompatibleChatMessages(prompt, {
+          provider: this.providerOptionsName,
           providerOptionsKey: metadataKey,
           supportsMultiPartToolContent:
             this.config.supportsMultiPartToolContent,
