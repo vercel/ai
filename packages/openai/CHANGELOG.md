@@ -1,5 +1,12 @@
 # @ai-sdk/openai
 
+## 3.0.125
+
+### Patch Changes
+
+- ce4202b: fix(openai): replay web search results when response storage is disabled
+- fde0b6c: fix(openai): classify Responses stream errors with null codes
+
 ## 3.0.124
 
 ### Patch Changes
