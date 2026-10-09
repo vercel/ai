@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "issueId": 22363,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/use-object-stale-overlap.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/use-object-stale-overlap.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "BUG REPRODUCED: stale request A overwrote newer completed result"
+  }
+}
