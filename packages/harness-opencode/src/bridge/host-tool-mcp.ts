@@ -6,20 +6,15 @@
  */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { readHostToolSchemasFromEnvironment } from './host-tool-schemas';
 import { jsonSchemaToZodShape } from './json-schema-to-zod';
 
-type ToolSchema = {
-  name: string;
-  description?: string;
-  inputSchema?: unknown;
-};
-
-const schemas: ToolSchema[] = JSON.parse(process.env.TOOL_SCHEMAS || '[]');
+const schemas = readHostToolSchemasFromEnvironment(process.env);
 const relayUrl = process.env.TOOL_RELAY_URL || '';
 
 if (!schemas.length || !relayUrl) {
   process.stderr.write(
-    '[host-tool-mcp] Missing TOOL_SCHEMAS or TOOL_RELAY_URL; exiting\n',
+    '[host-tool-mcp] Missing TOOL_SCHEMAS_PATH/TOOL_SCHEMAS or TOOL_RELAY_URL; exiting\n',
   );
   process.exit(0);
 }
