@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "issueId": 8347,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-8347-mcp-execute-options.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-8347-mcp-execute-options.ts",
+    "examples/ai-functions/package.json",
+    "pnpm-lock.yaml"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #8347: MCP tool execute requires an options argument even though runtime accepts its absence."
+  }
+}
