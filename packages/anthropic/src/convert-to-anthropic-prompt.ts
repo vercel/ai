@@ -39,6 +39,7 @@ import {
   anthropicSystemMessageProviderOptions,
 } from './anthropic-language-model-options';
 import { CacheControlValidator } from './get-cache-control';
+import { restoreAnthropicToolResultPositions } from './anthropic-tool-result-position';
 import { advisor_20260301OutputSchema } from './tool/advisor_20260301';
 import { codeExecution_20250522OutputSchema } from './tool/code-execution_20250522';
 import { codeExecution_20250825OutputSchema } from './tool/code-execution_20250825';
@@ -1509,6 +1510,8 @@ export async function convertToAnthropicPrompt({
       }
     }
   }
+
+  await restoreAnthropicToolResultPositions(messages, prompt);
 
   return {
     prompt: { system, messages },

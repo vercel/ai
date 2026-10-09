@@ -14,6 +14,7 @@ import {
   type LanguageModelV4StreamPart,
   type LanguageModelV4StreamResult,
   type LanguageModelV4ToolCall,
+  type LanguageModelV4ToolResult,
   type SharedV4ProviderMetadata,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
@@ -69,6 +70,7 @@ import {
 } from './convert-anthropic-usage';
 import { convertToAnthropicPrompt } from './convert-to-anthropic-prompt';
 import { CacheControlValidator } from './get-cache-control';
+import { withAnthropicToolResultPosition } from './anthropic-tool-result-position';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 import { sanitizeJsonSchema } from './sanitize-json-schema';
 
@@ -1254,7 +1256,16 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     let isJsonResponseFromTool = false;
 
     // map response content to content array
-    for (const part of response.content) {
+    for (const [blockIndex, part] of response.content.entries()) {
+      // Keep the wire position before conversion loses the response block index.
+      // UI replay combines a result with its earlier call, so Anthropic needs
+      // this metadata to put the result back in its response message.
+      function pushToolResult(result: LanguageModelV4ToolResult) {
+        content.push(
+          withAnthropicToolResultPosition(result, args.messages, blockIndex),
+        );
+      }
+
       switch (part.type) {
         case 'text': {
           if (!usesJsonResponseTool) {
@@ -1488,7 +1499,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           break;
         }
         case 'mcp_tool_result': {
-          content.push({
+          pushToolResult({
             type: 'tool-result',
             toolCallId: part.tool_use_id,
             toolName: mcpToolCalls[part.tool_use_id].toolName,
@@ -1505,7 +1516,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               title: part.content.content.title ?? part.content.url,
               mediaType: part.content.content.source.media_type,
             });
-            content.push({
+            pushToolResult({
               type: 'tool-result',
               toolCallId: part.tool_use_id,
               toolName: toolNameMapping.toCustomToolName('web_fetch'),
@@ -1527,7 +1538,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               ...getAnthropicCallerMetadata(part.caller),
             });
           } else if (part.content.type === 'web_fetch_tool_result_error') {
-            content.push({
+            pushToolResult({
               type: 'tool-result',
               toolCallId: part.tool_use_id,
               toolName: toolNameMapping.toCustomToolName('web_fetch'),
@@ -1543,7 +1554,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         }
         case 'web_search_tool_result': {
           if (Array.isArray(part.content)) {
-            content.push({
+            pushToolResult({
               type: 'tool-result',
               toolCallId: part.tool_use_id,
               toolName: toolNameMapping.toCustomToolName('web_search'),
@@ -1572,7 +1583,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               });
             }
           } else {
-            content.push({
+            pushToolResult({
               type: 'tool-result',
               toolCallId: part.tool_use_id,
               toolName: toolNameMapping.toCustomToolName('web_search'),
@@ -1590,7 +1601,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         // code execution 20250522:
         case 'code_execution_tool_result': {
           if (part.content.type === 'code_execution_result') {
-            content.push({
+            pushToolResult({
               type: 'tool-result',
               toolCallId: part.tool_use_id,
               toolName: toolNameMapping.toCustomToolName('code_execution'),
@@ -1603,7 +1614,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               },
             });
           } else if (part.content.type === 'encrypted_code_execution_result') {
-            content.push({
+            pushToolResult({
               type: 'tool-result',
               toolCallId: part.tool_use_id,
               toolName: toolNameMapping.toCustomToolName('code_execution'),
@@ -1616,7 +1627,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               },
             });
           } else if (part.content.type === 'code_execution_tool_result_error') {
-            content.push({
+            pushToolResult({
               type: 'tool-result',
               toolCallId: part.tool_use_id,
               toolName: toolNameMapping.toCustomToolName('code_execution'),
@@ -1633,7 +1644,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         // code execution 20250825:
         case 'bash_code_execution_tool_result':
         case 'text_editor_code_execution_tool_result': {
-          content.push({
+          pushToolResult({
             type: 'tool-result',
             toolCallId: part.tool_use_id,
             toolName: toolNameMapping.toCustomToolName('code_execution'),
@@ -1664,7 +1675,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           }
 
           if (part.content.type === 'tool_search_tool_search_result') {
-            content.push({
+            pushToolResult({
               type: 'tool-result',
               toolCallId: part.tool_use_id,
               toolName: toolNameMapping.toCustomToolName(providerToolName),
@@ -1674,7 +1685,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               })),
             });
           } else {
-            content.push({
+            pushToolResult({
               type: 'tool-result',
               toolCallId: part.tool_use_id,
               toolName: toolNameMapping.toCustomToolName(providerToolName),
@@ -1692,7 +1703,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         case 'advisor_tool_result': {
           const advisorToolName = toolNameMapping.toCustomToolName('advisor');
           if (part.content.type === 'advisor_result') {
-            content.push({
+            pushToolResult({
               type: 'tool-result',
               toolCallId: part.tool_use_id,
               toolName: advisorToolName,
@@ -1705,7 +1716,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               },
             });
           } else if (part.content.type === 'advisor_redacted_result') {
-            content.push({
+            pushToolResult({
               type: 'tool-result',
               toolCallId: part.tool_use_id,
               toolName: advisorToolName,
@@ -1718,7 +1729,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               },
             });
           } else {
-            content.push({
+            pushToolResult({
               type: 'tool-result',
               toolCallId: part.tool_use_id,
               toolName: advisorToolName,
@@ -1974,6 +1985,19 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           }
 
           const value = chunk.value;
+
+          // Streaming emits results through the controller. Use the same
+          // metadata as doGenerate so persisting either response preserves
+          // the position that Anthropic needs for prompt cache reuse.
+          function enqueueToolResult(part: LanguageModelV4ToolResult) {
+            controller.enqueue(
+              withAnthropicToolResultPosition(
+                part,
+                body.messages,
+                'index' in value ? value.index : 0,
+              ),
+            );
+          }
 
           switch (value.type) {
             case 'ping': {
@@ -2286,7 +2310,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       title: part.content.content.title ?? part.content.url,
                       mediaType: part.content.content.source.media_type,
                     });
-                    controller.enqueue({
+                    enqueueToolResult({
                       type: 'tool-result',
                       toolCallId: part.tool_use_id,
                       toolName: toolNameMapping.toCustomToolName('web_fetch'),
@@ -2310,7 +2334,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                   } else if (
                     part.content.type === 'web_fetch_tool_result_error'
                   ) {
-                    controller.enqueue({
+                    enqueueToolResult({
                       type: 'tool-result',
                       toolCallId: part.tool_use_id,
                       toolName: toolNameMapping.toCustomToolName('web_fetch'),
@@ -2328,7 +2352,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
                 case 'web_search_tool_result': {
                   if (Array.isArray(part.content)) {
-                    controller.enqueue({
+                    enqueueToolResult({
                       type: 'tool-result',
                       toolCallId: part.tool_use_id,
                       toolName: toolNameMapping.toCustomToolName('web_search'),
@@ -2361,7 +2385,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       });
                     }
                   } else {
-                    controller.enqueue({
+                    enqueueToolResult({
                       type: 'tool-result',
                       toolCallId: part.tool_use_id,
                       toolName: toolNameMapping.toCustomToolName('web_search'),
@@ -2379,7 +2403,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 // code execution 20250522:
                 case 'code_execution_tool_result': {
                   if (part.content.type === 'code_execution_result') {
-                    controller.enqueue({
+                    enqueueToolResult({
                       type: 'tool-result',
                       toolCallId: part.tool_use_id,
                       toolName:
@@ -2395,7 +2419,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                   } else if (
                     part.content.type === 'encrypted_code_execution_result'
                   ) {
-                    controller.enqueue({
+                    enqueueToolResult({
                       type: 'tool-result',
                       toolCallId: part.tool_use_id,
                       toolName:
@@ -2411,7 +2435,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                   } else if (
                     part.content.type === 'code_execution_tool_result_error'
                   ) {
-                    controller.enqueue({
+                    enqueueToolResult({
                       type: 'tool-result',
                       toolCallId: part.tool_use_id,
                       toolName:
@@ -2430,7 +2454,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 // code execution 20250825:
                 case 'bash_code_execution_tool_result':
                 case 'text_editor_code_execution_tool_result': {
-                  controller.enqueue({
+                  enqueueToolResult({
                     type: 'tool-result',
                     toolCallId: part.tool_use_id,
                     toolName:
@@ -2462,7 +2486,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                   }
 
                   if (part.content.type === 'tool_search_tool_search_result') {
-                    controller.enqueue({
+                    enqueueToolResult({
                       type: 'tool-result',
                       toolCallId: part.tool_use_id,
                       toolName:
@@ -2473,7 +2497,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       })),
                     });
                   } else {
-                    controller.enqueue({
+                    enqueueToolResult({
                       type: 'tool-result',
                       toolCallId: part.tool_use_id,
                       toolName:
@@ -2494,7 +2518,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                   const advisorToolName =
                     toolNameMapping.toCustomToolName('advisor');
                   if (part.content.type === 'advisor_result') {
-                    controller.enqueue({
+                    enqueueToolResult({
                       type: 'tool-result',
                       toolCallId: part.tool_use_id,
                       toolName: advisorToolName,
@@ -2507,7 +2531,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       },
                     });
                   } else if (part.content.type === 'advisor_redacted_result') {
-                    controller.enqueue({
+                    enqueueToolResult({
                       type: 'tool-result',
                       toolCallId: part.tool_use_id,
                       toolName: advisorToolName,
@@ -2520,7 +2544,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       },
                     });
                   } else {
-                    controller.enqueue({
+                    enqueueToolResult({
                       type: 'tool-result',
                       toolCallId: part.tool_use_id,
                       toolName: advisorToolName,
@@ -2554,7 +2578,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 }
 
                 case 'mcp_tool_result': {
-                  controller.enqueue({
+                  enqueueToolResult({
                     type: 'tool-result',
                     toolCallId: part.tool_use_id,
                     toolName: mcpToolCalls[part.tool_use_id].toolName,

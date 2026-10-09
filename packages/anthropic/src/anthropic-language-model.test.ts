@@ -61,6 +61,143 @@ describe('AnthropicLanguageModel', () => {
     };
   }
 
+  describe('deferred tool result position metadata', () => {
+    it.each([
+      { method: 'generate', prefill: false },
+      { method: 'generate', prefill: true },
+      { method: 'stream', prefill: false },
+      { method: 'stream', prefill: true },
+    ] as const)(
+      'records positions in $method responses (prefill=$prefill)',
+      async ({ method, prefill }) => {
+        const toolCallId = 'deferred-search';
+        const result = {
+          type: 'tool_search_tool_result',
+          tool_use_id: toolCallId,
+          content: {
+            type: 'tool_search_tool_search_result',
+            tool_references: [{ type: 'tool_reference', tool_name: 'edit' }],
+          },
+        };
+        const usage = { input_tokens: 1, output_tokens: 1 };
+        if (method === 'generate') {
+          server.urls['https://api.anthropic.com/v1/messages'].response = {
+            type: 'json-value',
+            body: {
+              id: 'response',
+              model: 'claude-sonnet-4-5',
+              type: 'message',
+              role: 'assistant',
+              content: [{ type: 'text', text: 'Before' }, result],
+              stop_reason: 'end_turn',
+              stop_sequence: null,
+              usage,
+            },
+          };
+        } else {
+          server.urls['https://api.anthropic.com/v1/messages'].response = {
+            type: 'stream-chunks',
+            chunks: [
+              {
+                type: 'message_start',
+                message: {
+                  id: 'response',
+                  model: 'claude-sonnet-4-5',
+                  type: 'message',
+                  role: 'assistant',
+                  content: [],
+                  usage,
+                },
+              },
+              {
+                type: 'content_block_start',
+                index: 0,
+                content_block: { type: 'text', text: '' },
+              },
+              {
+                type: 'content_block_delta',
+                index: 0,
+                delta: { type: 'text_delta', text: 'Before' },
+              },
+              { type: 'content_block_stop', index: 0 },
+              { type: 'content_block_start', index: 1, content_block: result },
+              { type: 'content_block_stop', index: 1 },
+              {
+                type: 'message_delta',
+                delta: { stop_reason: 'end_turn', stop_sequence: null },
+                usage: { output_tokens: 1 },
+              },
+              { type: 'message_stop' },
+            ].map(chunk => `data: ${JSON.stringify(chunk)}\n\n`),
+          };
+        }
+        const options = {
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId,
+                  toolName: 'search',
+                  input: { query: 'edit' },
+                  providerExecuted: true,
+                },
+                {
+                  type: 'tool-call',
+                  toolCallId: 'read',
+                  toolName: 'read',
+                  input: {},
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'read',
+                  toolName: 'read',
+                  output: { type: 'json', value: 'note' },
+                },
+              ],
+            },
+            ...(prefill
+              ? [
+                  {
+                    role: 'assistant' as const,
+                    content: [{ type: 'text' as const, text: 'Prefill' }],
+                  },
+                ]
+              : []),
+          ] satisfies LanguageModelV4Prompt,
+          tools: [
+            {
+              type: 'provider' as const,
+              id: 'anthropic.tool_search_bm25_20251119' as const,
+              name: 'search',
+              args: {},
+            },
+          ],
+        };
+        const content =
+          method === 'generate'
+            ? (await model.doGenerate(options)).content
+            : await convertReadableStreamToArray(
+                (await model.doStream(options)).stream,
+              );
+        const output = content.find(part => part.type === 'tool-result');
+        expect(output?.providerMetadata?.anthropic?.toolResultPosition).toEqual(
+          {
+            messageOffset: 2,
+            blockIndex: prefill ? 2 : 1,
+            previousMessageBlockCount: 1,
+          },
+        );
+      },
+    );
+  });
+
   describe('initial per-message effort', () => {
     it.each([
       { method: 'generate', requestEffort: undefined },

@@ -5997,3 +5997,227 @@ describe('toolsets', () => {
     },
   );
 });
+
+describe('deferred provider tool result positions', () => {
+  const search = (
+    id: string,
+  ): Extract<
+    LanguageModelV4Prompt[number],
+    { role: 'assistant' }
+  >['content'][number] => ({
+    type: 'tool-call',
+    toolCallId: id,
+    toolName: 'tool_search_tool_bm25',
+    input: { query: 'edit' },
+    providerExecuted: true,
+  });
+  const result = (
+    id: string,
+    blockIndex: number,
+    messageOffset = 2,
+  ): Extract<
+    LanguageModelV4Prompt[number],
+    { role: 'assistant' }
+  >['content'][number] => ({
+    type: 'tool-result',
+    toolCallId: id,
+    toolName: 'tool_search_tool_bm25',
+    output: {
+      type: 'json',
+      value: [{ type: 'tool_reference', toolName: 'edit' }],
+    },
+    providerOptions: {
+      anthropic: {
+        toolResultPosition: {
+          messageOffset,
+          blockIndex,
+          previousMessageBlockCount: 1,
+        },
+      },
+    },
+  });
+  const readCall: Extract<
+    LanguageModelV4Prompt[number],
+    { role: 'assistant' }
+  >['content'][number] = {
+    type: 'tool-call',
+    toolCallId: 'read',
+    toolName: 'read',
+    input: {},
+  };
+  const readResult: LanguageModelV4Prompt[number] = {
+    role: 'tool',
+    content: [
+      {
+        type: 'tool-result',
+        toolCallId: 'read',
+        toolName: 'read',
+        output: { type: 'json', value: 'note' },
+      },
+    ],
+  };
+  const before: Extract<
+    LanguageModelV4Prompt[number],
+    { role: 'assistant' }
+  >['content'][number] = { type: 'text', text: 'Before result' };
+  async function convert(prompt: LanguageModelV4Prompt) {
+    return (
+      await convertToAnthropicPrompt({
+        prompt,
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      })
+    ).prompt.messages;
+  }
+  const brief = (messages: Awaited<ReturnType<typeof convert>>) =>
+    messages.map(m => [
+      m.role,
+      m.content.map(p =>
+        'tool_use_id' in p
+          ? `${p.type}:${p.tool_use_id}`
+          : 'id' in p
+            ? `${p.type}:${p.id}`
+            : p.type,
+      ),
+    ]);
+
+  it('restores a result between text and a subsequent tool call without mutating the input', async () => {
+    const prompt: LanguageModelV4Prompt = [
+      { role: 'assistant', content: [search('a'), result('a', 1), readCall] },
+      readResult,
+      {
+        role: 'assistant',
+        content: [
+          before,
+          {
+            type: 'tool-call',
+            toolCallId: 'edit',
+            toolName: 'edit',
+            input: {},
+          },
+        ],
+      },
+    ];
+    const original = structuredClone(prompt);
+    expect(brief(await convert(prompt))).toEqual([
+      ['assistant', ['server_tool_use:a', 'tool_use:read']],
+      ['user', ['tool_result:read']],
+      ['assistant', ['text', 'tool_search_tool_result:a', 'tool_use:edit']],
+    ]);
+    expect(prompt).toEqual(original);
+  });
+
+  it('restores results in arrival order across intervening content', async () => {
+    const prompt: LanguageModelV4Prompt = [
+      {
+        role: 'assistant',
+        content: [
+          search('a'),
+          result('a', 2),
+          search('b'),
+          result('b', 0),
+          readCall,
+        ],
+      },
+      readResult,
+      { role: 'assistant', content: [before] },
+    ];
+    expect(brief(await convert(prompt)).at(-1)).toEqual([
+      'assistant',
+      ['tool_search_tool_result:b', 'text', 'tool_search_tool_result:a'],
+    ]);
+  });
+
+  it('recreates a result-only message before the next user turn', async () => {
+    expect(
+      brief(
+        await convert([
+          {
+            role: 'assistant',
+            content: [search('a'), result('a', 0), readCall],
+          },
+          readResult,
+          { role: 'user', content: [{ type: 'text', text: 'Next turn' }] },
+        ]),
+      ),
+    ).toEqual([
+      ['assistant', ['server_tool_use:a', 'tool_use:read']],
+      ['user', ['tool_result:read']],
+      ['assistant', ['tool_search_tool_result:a']],
+      ['user', ['text']],
+    ]);
+  });
+
+  it('leaves correctly positioned model history unchanged', async () => {
+    const prompt: LanguageModelV4Prompt = [
+      { role: 'assistant', content: [search('a'), readCall] },
+      readResult,
+      { role: 'assistant', content: [before, result('a', 1)] },
+    ];
+    const withoutMetadata = structuredClone(prompt);
+    const part = withoutMetadata[2].content[1];
+    if (typeof part !== 'string' && part.type === 'tool-result')
+      delete part.providerOptions;
+    expect(await convert(prompt)).toEqual(await convert(withoutMetadata));
+  });
+
+  it('restores a deferred result within an assistant prefill', async () => {
+    expect(
+      brief(
+        await convert([
+          {
+            role: 'assistant',
+            content: [search('a'), result('a', 2, 0), before],
+          },
+        ]),
+      ),
+    ).toEqual([
+      ['assistant', ['server_tool_use:a', 'text', 'tool_search_tool_result:a']],
+    ]);
+  });
+
+  it('leaves legacy results without metadata in place', async () => {
+    const part = result('a', 0);
+    if (part.type === 'tool-result') delete part.providerOptions;
+    expect(
+      brief(
+        await convert([{ role: 'assistant', content: [search('a'), part] }]),
+      ),
+    ).toEqual([
+      ['assistant', ['server_tool_use:a', 'tool_search_tool_result:a']],
+    ]);
+  });
+  it.each([
+    { messageOffset: -1, blockIndex: 0, previousMessageBlockCount: 1 },
+    { messageOffset: 100, blockIndex: 0, previousMessageBlockCount: 1 },
+    { messageOffset: 2, blockIndex: 'invalid', previousMessageBlockCount: 1 },
+  ])(
+    'ignores invalid or out-of-range position metadata: %j',
+    async toolResultPosition => {
+      const part = result('a', 0);
+      if (part.type === 'tool-result')
+        part.providerOptions = { anthropic: { toolResultPosition } };
+      const prompt: LanguageModelV4Prompt = [
+        { role: 'assistant', content: [search('a'), part] },
+      ];
+      const withoutMetadata = structuredClone(prompt);
+      const resultPart = withoutMetadata[0].content[1];
+      if (typeof resultPart !== 'string' && resultPart.type === 'tool-result')
+        delete resultPart.providerOptions;
+      expect(await convert(prompt)).toEqual(await convert(withoutMetadata));
+    },
+  );
+
+  it('leaves results in place when their call has been pruned', async () => {
+    const part = result('a', 0);
+    const prompt: LanguageModelV4Prompt = [
+      { role: 'assistant', content: [before, part] },
+    ];
+    const withoutMetadata = structuredClone(prompt);
+    const resultPart = withoutMetadata[0].content[1];
+    if (typeof resultPart !== 'string' && resultPart.type === 'tool-result')
+      delete resultPart.providerOptions;
+    expect(await convert(prompt)).toEqual(await convert(withoutMetadata));
+  });
+});
