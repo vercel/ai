@@ -1028,14 +1028,18 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
                 this.setStatus({ status: 'streaming' });
               }
 
-              if (usesEarlierAssistantMessage) {
+              const existingMessageIndex = this.state.messages.findLastIndex(
+                message => message.id === response.state.message.id,
+              );
+
+              if (existingMessageIndex !== -1) {
                 this.state.replaceMessage(
-                  responseMessageIndex,
+                  existingMessageIndex,
                   response.state.message,
                 );
-              } else if (response.state.message.id === this.lastMessage?.id) {
+              } else if (usesEarlierAssistantMessage) {
                 this.state.replaceMessage(
-                  this.state.messages.length - 1,
+                  responseMessageIndex,
                   response.state.message,
                 );
               } else {
