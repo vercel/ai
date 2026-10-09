@@ -159,7 +159,11 @@ const sonnet5AnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   sonnet5AnthropicModelId,
 )}/converse`;
 
+const futureAnthropicModelId = 'us.anthropic.claude-opus-6-v1:0';
+const futureAnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(futureAnthropicModelId)}/converse`;
+
 const server = createTestServer({
+  [futureAnthropicGenerateUrl]: {},
   [generateUrl]: {},
   [streamUrl]: {
     response: {
@@ -9194,3 +9198,70 @@ describe('doGenerate', () => {
     });
   });
 });
+
+it.each([false, true])(
+  'should use JSON instructions for future Claude models (with tools: %s)',
+  async withTools => {
+    server.urls[futureAnthropicGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ text: '{"name":"Test"}' }],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+        stopReason: 'end_turn',
+      },
+    };
+    const model = new AmazonBedrockChatLanguageModel(futureAnthropicModelId, {
+      baseUrl: () => baseUrl,
+      headers: {},
+      fetch: fakeFetchWithAuth,
+      generateId: () => 'test-id',
+    });
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema: { type: 'object', properties: { name: { type: 'string' } } },
+      },
+      tools: withTools
+        ? [
+            {
+              type: 'function',
+              name: 'lookup',
+              strict: true,
+              inputSchema: {
+                type: 'object',
+                properties: {},
+                additionalProperties: false,
+              },
+            },
+          ]
+        : undefined,
+    });
+    const body = await server.calls[0].requestBodyJson;
+    expect(
+      body.additionalModelRequestFields?.output_config?.format,
+    ).toBeUndefined();
+    expect(body.system).toEqual(
+      expect.arrayContaining([
+        {
+          text: expect.stringContaining(
+            'You MUST answer with only a JSON object',
+          ),
+        },
+      ]),
+    );
+    if (withTools) {
+      expect(body.toolConfig.tools).toHaveLength(1);
+      expect(body.toolConfig.tools[0].toolSpec.name).toBe('lookup');
+      expect(body.toolConfig.tools[0].toolSpec.strict).toBeUndefined();
+    } else {
+      expect(body.toolConfig).toBeUndefined();
+    }
+    expect(result.content).toEqual([{ type: 'text', text: '{"name":"Test"}' }]);
+  },
+);

@@ -178,6 +178,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       supportsStructuredOutput: modelSupportsStructuredOutput,
       rejectsSamplingParameters,
       rejectsForcedToolUse,
+      isKnownModel,
     } = getModelCapabilities(this.modelId);
 
     if (frequencyPenalty != null) {
@@ -341,6 +342,10 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
       (rejectsForcedToolUse ||
+        (this.modelId.includes('claude-') &&
+          !isKnownModel &&
+          !supportsNativeStructuredOutput(this.modelId) &&
+          structuredOutputMode !== 'jsonTool') ||
         (structuredOutputMode !== 'jsonTool' &&
           !supportsStrictTools(this.modelId) &&
           tools != null &&
