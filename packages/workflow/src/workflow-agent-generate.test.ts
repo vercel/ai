@@ -33,12 +33,16 @@ function response(
     },
   };
 }
-function model(responses: LanguageModelV4GenerateResult[]) {
+function model(
+  responses: LanguageModelV4GenerateResult[],
+  supportedUrls: Record<string, RegExp[]> = {},
+) {
   return new MockLanguageModelV4({
     doGenerate: responses,
     doStream: () => {
       throw new Error('generate must not stream');
     },
+    supportedUrls,
   });
 }
 function tools() {
@@ -219,6 +223,106 @@ describe('WorkflowAgent.generate', () => {
       'constructor-end',
       'call-end',
     ]);
+  });
+
+  it('downloads URL-backed files that the generate model does not support', async () => {
+    const fileUrl = new URL('https://example.com/file.pdf');
+    const runtime = globalThis as typeof globalThis & {
+      EdgeRuntime?: unknown;
+    };
+    const originalEdgeRuntime = runtime.EdgeRuntime;
+    runtime.EdgeRuntime = 'test';
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(new Uint8Array([1, 2, 3]), {
+        headers: { 'content-type': 'application/pdf' },
+      }),
+    );
+    const m = model([response([{ type: 'text', text: 'Done' }])]);
+
+    try {
+      await new WorkflowAgent({ model: m }).generate({
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: fileUrl,
+                mediaType: 'application/pdf',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(fetchSpy).toHaveBeenCalledOnce();
+      expect(m.doGenerateCalls[0].prompt).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
+              mediaType: 'application/pdf',
+              filename: undefined,
+              providerOptions: undefined,
+            },
+          ],
+        },
+      ]);
+    } finally {
+      fetchSpy.mockRestore();
+      if (originalEdgeRuntime === undefined) {
+        delete runtime.EdgeRuntime;
+      } else {
+        runtime.EdgeRuntime = originalEdgeRuntime;
+      }
+    }
+  });
+
+  it('preserves URL-backed files supported by the generate model without fetching', async () => {
+    const fileUrl = new URL('https://example.com/file.pdf');
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(() => {
+      throw new Error('fetch must not be called for supported URLs');
+    });
+    const m = model([response([{ type: 'text', text: 'Done' }])], {
+      'application/pdf': [/.*/],
+    });
+
+    try {
+      await new WorkflowAgent({ model: m }).generate({
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: fileUrl,
+                mediaType: 'application/pdf',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(fetchSpy).not.toHaveBeenCalled();
+      expect(m.doGenerateCalls[0].prompt).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: { type: 'url', url: fileUrl },
+              mediaType: 'application/pdf',
+              filename: undefined,
+              providerOptions: undefined,
+            },
+          ],
+        },
+      ]);
+    } finally {
+      fetchSpy.mockRestore();
+    }
   });
 
   it('preserves generated history when prepareStep replaces the conversation', async () => {
