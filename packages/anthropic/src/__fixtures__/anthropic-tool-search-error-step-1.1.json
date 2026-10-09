@@ -1,0 +1,60 @@
+{
+  "model": "claude-sonnet-5-5",
+  "id": "msg_011Cfrv95MQ8Dxcqz6SZxwP2",
+  "type": "message",
+  "role": "assistant",
+  "content": [
+    {
+      "type": "server_tool_use",
+      "id": "srvtoolu_01HefMsTPWaw1rE9gmpk6v8q",
+      "name": "tool_search_tool_regex",
+      "input": {
+        "pattern": "["
+      }
+    },
+    {
+      "type": "tool_search_tool_result",
+      "tool_use_id": "srvtoolu_01HefMsTPWaw1rE9gmpk6v8q",
+      "content": {
+        "type": "tool_search_tool_result_error",
+        "error_code": "invalid_tool_input",
+        "error_message": "Invalid regular expression pattern: missing ]: ["
+      }
+    },
+    {
+      "type": "tool_use",
+      "id": "toolu_01G4GmRqQSoG3uMYfbhzZtrh",
+      "name": "continue_tool",
+      "input": {
+        "value": "continue"
+      },
+      "caller": {
+        "type": "direct"
+      }
+    }
+  ],
+  "container": null,
+  "stop_reason": "tool_use",
+  "stop_sequence": null,
+  "stop_details": null,
+  "usage": {
+    "input_tokens": 1769,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 106,
+    "output_tokens_details": {
+      "thinking_tokens": 0
+    },
+    "service_tier": "standard",
+    "inference_geo": "global",
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    }
+  },
+  "diagnostics": null
+}
