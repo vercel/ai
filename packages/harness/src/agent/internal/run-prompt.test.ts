@@ -2,6 +2,7 @@ import {
   tool,
   type Experimental_SandboxSession,
   type ToolApprovalResponse,
+  type ToolResultOutput,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import {
@@ -1541,7 +1542,148 @@ type SubmittedResult = {
   toolCallId: string;
   output: unknown;
   isError?: boolean;
+  toolResult?: Parameters<
+    HarnessV1PromptControl['submitToolResult']
+  >[0]['toolResult'];
 };
+
+describe('runPrompt tool model output', () => {
+  test.each([false, true])(
+    'converts once and preserves raw results (generator: %s)',
+    async generator => {
+      const raw = { status: 'ready' };
+      const callback = vi.fn(async function (
+        this: unknown,
+        options: { toolCallId: string; input: unknown; output: unknown },
+      ): Promise<ToolResultOutput> {
+        expect(this).toBe(visualize);
+        expect(options).toEqual({
+          toolCallId: 'visual',
+          input: {},
+          output: raw,
+        });
+        return {
+          type: 'content',
+          value: [
+            { type: 'text', text: 'model-only' },
+            {
+              type: 'file',
+              mediaType: 'image',
+              data: { type: 'data', data: new Uint8Array([137, 80, 78, 71]) },
+            },
+          ],
+        };
+      });
+      const execute = vi.fn(async () => raw);
+      const visualize = tool({
+        inputSchema: z.object({}),
+        execute: generator
+          ? async function* () {
+              yield { status: 'loading' };
+              yield await execute();
+            }
+          : execute,
+        toModelOutput: callback,
+      });
+      const submitted: SubmittedResult[] = [];
+      const { result, done } = runPrompt({
+        harness,
+        session: fakeSession(
+          [
+            {
+              type: 'tool-call',
+              toolCallId: 'visual',
+              toolName: 'visualize',
+              input: '{}',
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'visual',
+              toolName: 'visualize',
+              result: raw,
+            },
+            ...finishEvents,
+          ],
+          submission => submitted.push(submission),
+        ),
+        prompt: 'go',
+        instructions: undefined,
+        tools: { visualize } as ToolSet,
+        toolSpecs: [],
+        sandboxSession,
+        sessionWorkDir: WORK_DIR,
+        runtimeContext: {} as never,
+        abortSignal: undefined,
+      });
+      await result.consumeStream();
+      await done;
+      expect(execute).toHaveBeenCalledTimes(1);
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(submitted[0]?.output).toEqual(raw);
+      expect(submitted[0]?.toolResult?.output).toEqual({
+        type: 'content',
+        value: [
+          { type: 'text', text: 'model-only' },
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: { type: 'data', data: 'iVBORw==' },
+          },
+        ],
+      });
+      expect(
+        (await result.toolResults).filter(part => !part.preliminary)[0]?.output,
+      ).toEqual(raw);
+      expect(
+        (await result.responseMessages).flatMap(message =>
+          typeof message.content === 'string'
+            ? []
+            : (message.content as unknown[]),
+        ),
+      ).toContainEqual(
+        expect.objectContaining({
+          type: 'tool-result',
+          output: submitted[0]?.toolResult?.output,
+        }),
+      );
+      expect(callback).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  test('submits a callback failure as a tool error without re-execution', async () => {
+    const execute = vi.fn(async () => ({ ok: true }));
+    const callback = vi.fn(async () => {
+      throw new Error('conversion failed');
+    });
+    const { submitted } = await runHostToolScript({
+      events: [
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'visualize',
+          input: '{}',
+        },
+        ...finishEvents,
+      ],
+      tools: {
+        visualize: tool({
+          inputSchema: z.object({}),
+          execute,
+          toModelOutput: callback,
+        }),
+      },
+    });
+    expect(execute).toHaveBeenCalledTimes(1);
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(submitted).toEqual([
+      {
+        toolCallId: 'c1',
+        output: { error: 'Error: conversion failed' },
+        isError: true,
+      },
+    ]);
+  });
+});
 
 async function runHostToolScript(options: {
   events: HarnessV1StreamPart[];

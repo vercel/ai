@@ -1718,6 +1718,79 @@ describe('createPiSession', () => {
     await resumedSession.doDestroy();
   });
 
+  it('injects model-facing text and inline images for dangling host tool results', async () => {
+    const { session: fakePiSession, prompt } = createFakePiSession();
+    piMock.session = fakePiSession;
+    const { journal, appendedMessages } = createJournal([
+      userMessage('ask the user something'),
+      assistantMessageWithToolCalls([{ id: 'tool-1', name: 'askUser' }]),
+    ]);
+    piMock.sessionManagerOpen.mockImplementation(() => journal);
+
+    const sandboxSession = createSandboxSession({
+      sessionFileContent: 'pi-journal',
+    });
+    const session = await createPiSession({
+      sessionId: 'session-cross-process-image',
+      sandboxSession,
+      sessionWorkDir: '/sandbox/work',
+      settings: {},
+      clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+      isResume: true,
+      resumeSessionFileName: 'pi-session.jsonl',
+    });
+
+    const emit = vi.fn();
+    const control = await session.doContinueTurn({
+      skills: [],
+      tools: [{ name: 'askUser' }],
+      instructions: 'Return the tool result exactly.',
+      emit,
+    });
+
+    // The rerun must wait for the framework to re-deliver the result of the
+    // journal-pending tool call; starting it eagerly would resolve the call
+    // as a synthetic empty result and drop the submission below.
+    expect(prompt).not.toHaveBeenCalled();
+
+    await control.submitToolResult({
+      toolCallId: 'tool-1',
+      output: { status: 'ready' },
+      toolResult: {
+        type: 'tool-result',
+        toolCallId: 'tool-1',
+        toolName: 'askUser',
+        output: {
+          type: 'content',
+          value: [
+            { type: 'text', text: 'marker' },
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: { type: 'data', data: 'iVBORw==' },
+            },
+          ],
+        },
+      },
+    });
+    await control.done;
+
+    expect(appendedMessages).toEqual([
+      {
+        role: 'toolResult',
+        toolCallId: 'tool-1',
+        toolName: 'askUser',
+        content: [
+          { type: 'text', text: 'marker' },
+          { type: 'image', data: 'iVBORw==', mimeType: 'image/png' },
+        ],
+        isError: false,
+        timestamp: expect.any(Number),
+      },
+    ]);
+    await session.doDestroy();
+  });
+
   it('holds a cross-process rerun until dangling host tool results arrive, then injects them into the journal', async () => {
     const { session: fakePiSession, prompt } = createFakePiSession();
     piMock.session = fakePiSession;

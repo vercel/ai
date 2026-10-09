@@ -6,6 +6,7 @@
 
 import {
   runBridge,
+  convertHarnessToolModelOutput,
   type BridgeEvent,
   type BridgeTurn,
   type Experimental_BridgeUserMessage,
@@ -426,7 +427,8 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
             input: JSON.stringify(input),
             providerExecuted: false,
           });
-          const { output, isError } = await turn.requestToolResult(toolCallId);
+          const { output, isError, toolResult } =
+            await turn.requestToolResult(toolCallId);
           emit({
             type: 'tool-result',
             toolCallId,
@@ -434,6 +436,23 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
             result: output ?? null,
             isError: !!isError,
           });
+          if (toolResult != null) {
+            const converted = convertHarnessToolModelOutput({
+              output: toolResult.output,
+            });
+            return {
+              content: converted.content.map(part =>
+                part.type === 'text'
+                  ? part
+                  : {
+                      type: 'image' as const,
+                      data: part.data,
+                      mimeType: part.mediaType,
+                    },
+              ),
+              isError: isError === true || converted.isError,
+            };
+          }
           return {
             content: [{ type: 'text', text: JSON.stringify(output ?? null) }],
             isError,

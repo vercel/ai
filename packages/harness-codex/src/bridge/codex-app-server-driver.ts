@@ -1,4 +1,7 @@
-import type { BridgeTurn } from '@ai-sdk/harness/bridge';
+import {
+  convertHarnessToolModelOutput,
+  type BridgeTurn,
+} from '@ai-sdk/harness/bridge';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import type { StartMessage } from '../codex-bridge-protocol';
@@ -566,6 +569,22 @@ export async function handleAppServerRequest({
     result: result.output ?? null,
     isError: result.isError === true,
   });
+  if (result.toolResult != null) {
+    const converted = convertHarnessToolModelOutput({
+      output: result.toolResult.output,
+    });
+    return {
+      contentItems: converted.content.map(part =>
+        part.type === 'text'
+          ? { type: 'inputText', text: part.text }
+          : {
+              type: 'inputImage',
+              imageUrl: `data:${part.mediaType};base64,${part.data}`,
+            },
+      ),
+      success: result.isError !== true && !converted.isError,
+    };
+  }
   return {
     contentItems: [
       { type: 'inputText', text: serializeToolOutput(result.output) },
