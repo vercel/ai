@@ -964,6 +964,31 @@ describe('LegacyOpenTelemetry', () => {
       expect(stepSpan.ended).toBe(true);
     });
 
+    it('records terminal stream error finish attributes', () => {
+      otelIntegration.onStart!(
+        makeOnStartEvent({ operationId: 'ai.streamText' }),
+      );
+      otelIntegration.onStepStart!(makeStepStartEvent());
+
+      otelIntegration.onError!({
+        callId,
+        error: new Error('provider error'),
+        finishReason: 'error',
+      });
+
+      for (const span of tracer.spans) {
+        expect(span.attributes).toMatchObject({
+          'ai.response.finishReason': 'error',
+          'gen_ai.response.finish_reasons': ['error'],
+        });
+        expect(span.status).toEqual({
+          code: SpanStatusCode.ERROR,
+          message: 'provider error',
+        });
+        expect(span.ended).toBe(true);
+      }
+    });
+
     it('handles non-Error objects', () => {
       otelIntegration.onStart!(makeOnStartEvent());
 

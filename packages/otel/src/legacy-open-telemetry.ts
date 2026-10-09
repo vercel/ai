@@ -1467,15 +1467,29 @@ export class LegacyOpenTelemetry implements Telemetry {
   }
 
   onError(error: unknown): void {
-    const event = error as { callId?: string; error?: unknown };
+    const event = error as {
+      callId?: string;
+      error?: unknown;
+      finishReason?: string;
+    };
     if (!event?.callId) return;
 
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan) return;
 
     const actualError = event.error ?? error;
+    const finishReasonAttributes =
+      event.finishReason == null
+        ? undefined
+        : selectAttributes(state.telemetry, {
+            'ai.response.finishReason': event.finishReason,
+            'gen_ai.response.finish_reasons': [event.finishReason],
+          });
 
     if (state.stepSpan) {
+      if (finishReasonAttributes != null) {
+        state.stepSpan.setAttributes(finishReasonAttributes);
+      }
       recordSpanError(state.stepSpan, actualError);
       state.stepSpan.end();
     }
@@ -1498,6 +1512,9 @@ export class LegacyOpenTelemetry implements Telemetry {
       state.decisionSpan = undefined;
     }
 
+    if (finishReasonAttributes != null) {
+      state.rootSpan.setAttributes(finishReasonAttributes);
+    }
     recordSpanError(state.rootSpan, actualError);
 
     state.rootSpan.end();

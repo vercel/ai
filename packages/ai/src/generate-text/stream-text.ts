@@ -1510,6 +1510,12 @@ class DefaultStreamTextResult<
         if (part.type === 'error') {
           const error = wrapGatewayError(part.error);
 
+          await telemetryDispatcher.onError?.({
+            callId,
+            error,
+            finishReason: 'error',
+          });
+
           if (NoOutputGeneratedError.isInstance(error)) {
             recordedNoOutputError = error;
           }
