@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 8347,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-8347-mcp-execute-options.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-8347-mcp-execute-options.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #8347 REPRODUCED: MCP execute(input) succeeds at runtime but TypeScript rejects it with TS2554 because options is required."
+  }
+}
