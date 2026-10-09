@@ -377,7 +377,7 @@ describe('Chat', () => {
   });
 
   describe('resume stream transport semantics', () => {
-    it('should let a custom transport explicitly request a complete replay', async () => {
+    it('should rebuild a complete replay from an unmarked custom transport', async () => {
       const chunks: UIMessageChunk[] = [
         { type: 'start', messageId: 'assistant-1' },
         { type: 'start-step' },
@@ -396,7 +396,6 @@ describe('Chat', () => {
         id: '123',
         state,
         transport: {
-          resumeStreamIsReplay: true,
           sendMessages: async () =>
             new ReadableStream<UIMessageChunk>({
               pull(controller) {
@@ -544,6 +543,7 @@ describe('Chat', () => {
         ];
         let requestCount = 0;
         const transport = {
+          resumeStreamIsReplay: false,
           sendMessages: async () =>
             new ReadableStream<UIMessageChunk>({
               pull(controller) {

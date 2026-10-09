@@ -122,6 +122,11 @@ export type HttpChatTransportInitOptions<UI_MESSAGE extends UIMessage> = {
    * customizing the request based on the chat session.
    */
   prepareReconnectToStreamRequest?: PrepareReconnectToStreamRequest;
+
+  /**
+   * Whether reconnecting replays the response from the beginning.
+   * Defaults to true.
+   */
   resumeStreamIsReplay?: boolean;
 };
 
@@ -145,7 +150,7 @@ export abstract class HttpChatTransport<
     fetch,
     prepareSendMessagesRequest,
     prepareReconnectToStreamRequest,
-    resumeStreamIsReplay = false,
+    resumeStreamIsReplay = true,
   }: HttpChatTransportInitOptions<UI_MESSAGE>) {
     this.resumeStreamIsReplay = resumeStreamIsReplay;
     this.api = api;

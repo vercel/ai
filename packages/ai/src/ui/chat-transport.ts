@@ -13,6 +13,12 @@ import type { UIMessage } from './ui-messages';
  * @template UI_MESSAGE - The UI message type extending UIMessage
  */
 export interface ChatTransport<UI_MESSAGE extends UIMessage> {
+  /**
+   * Whether `reconnectToStream` replays the response from the beginning.
+   *
+   * Defaults to `true`. Set to `false` when reconnection only returns chunks
+   * that were not received before the disconnect.
+   */
   readonly resumeStreamIsReplay?: boolean;
 
   /**
