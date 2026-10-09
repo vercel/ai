@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 21110,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/custom-provider-v2-video-fallback.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/custom-provider-v2-video-fallback.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #21110: customProvider fallback lost the v2 provider video model; received AI_NoSuchModelError"
+  }
+}
