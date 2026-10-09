@@ -781,6 +781,19 @@ Each `Citation` (exported from `ai`) contains:
 - `citedText`: An optional supporting passage from the source. This is source
   text, rather than an offset in the generated answer.
 
+For inline rendering, use the offsets within the containing text part and follow
+the provider's character indexing convention. JavaScript's `slice()` uses UTF-16
+code units, so provider offsets may need conversion when the text contains emoji
+or other characters outside the basic multilingual plane. When offsets are
+absent or cannot be interpreted reliably, render the references alongside the
+containing text block instead of guessing a range.
+
+`citedText` and provider-specific document locations identify the supporting
+evidence in the source; they do not locate the claim in the generated answer.
+Preserve query parameters and fragments in source URLs, since they can identify a
+particular version, page, or passage. Multiple citations can reference the same
+source at different locations in the generated text.
+
 Anthropic supplies supporting passages and document locations instead of output
 text offsets. Provider-specific location details remain in provider metadata.
 OpenAI file-search citation `index` values are retained in provider metadata;

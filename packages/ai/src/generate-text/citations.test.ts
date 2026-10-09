@@ -173,4 +173,61 @@ describe('citations', () => {
       }),
     ).rejects.toThrow();
   });
+
+  it.each([
+    'https://example.com/report.pdf?version=2026-10-01#page=12',
+    'https://example.com/article?oldid=42#:~:text=caf%C3%A9',
+  ])(
+    'preserves repeated citations, Unicode offsets, and URL %s through streaming and persistence',
+    async url => {
+      const text = '🧪 café — 東京 café';
+      // These mock provider offsets count Unicode code points rather than
+      // JavaScript UTF-16 code units. The SDK must preserve them as supplied.
+      const textCitations: Array<Citation> = [
+        {
+          source: { type: 'source', sourceType: 'url', id: url, url },
+          startIndex: 2,
+          endIndex: 6,
+          citedText: 'café',
+        },
+        {
+          source: { type: 'source', sourceType: 'url', id: url, url },
+          startIndex: 12,
+          endIndex: 16,
+          citedText: 'café',
+        },
+      ];
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: {
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              { type: 'text-start', id: 'text' },
+              { type: 'text-delta', id: 'text', delta: '🧪 café — ' },
+              { type: 'text-delta', id: 'text', delta: '東京 café' },
+              { type: 'text-end', id: 'text', citations: textCitations },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage,
+              },
+            ]),
+          },
+        }),
+        prompt: 'Question',
+      });
+      const messages = await convertReadableStreamToArray(
+        readUIMessageStream({ stream: result.toUIMessageStream() }),
+      );
+      expect(
+        (await result.content).find(part => part.type === 'text'),
+      ).toMatchObject({ text, citations: textCitations });
+      const persistedMessages = await validateUIMessages({
+        messages: JSON.parse(JSON.stringify([messages.at(-1)!])),
+      });
+      expect(
+        persistedMessages[0].parts.find(part => part.type === 'text'),
+      ).toMatchObject({ text, citations: textCitations });
+    },
+  );
 });

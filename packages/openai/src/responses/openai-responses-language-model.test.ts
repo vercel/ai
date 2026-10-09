@@ -6848,6 +6848,114 @@ describe('OpenAIResponsesLanguageModel', () => {
   });
 
   describe('doStream', () => {
+    it('preserves repeated citation ranges and versioned fragment URLs with Unicode text in generation and streaming', async () => {
+      const text = '🧪 café — 東京 café';
+      const url = 'https://example.com/article?oldid=42#:~:text=caf%C3%A9';
+      const annotations = [
+        {
+          type: 'url_citation',
+          url,
+          title: 'Café',
+          start_index: 2,
+          end_index: 6,
+        },
+        {
+          type: 'url_citation',
+          url,
+          title: 'Café',
+          start_index: 12,
+          end_index: 16,
+        },
+      ];
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'json-value',
+        body: {
+          id: 'response',
+          model: 'gpt-5-nano',
+          output: [
+            {
+              id: 'message',
+              type: 'message',
+              role: 'assistant',
+              content: [{ type: 'output_text', text, annotations }],
+            },
+          ],
+          usage: { input_tokens: 1, output_tokens: 1 },
+        },
+      };
+      const generated = await createModel('gpt-5-nano').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+      const generatedText = generated.content.find(
+        part => part.type === 'text',
+      );
+      const expectedCitations = [
+        {
+          source: {
+            type: 'source',
+            sourceType: 'url',
+            id: url,
+            url,
+            title: 'Café',
+          },
+          startIndex: 2,
+          endIndex: 6,
+        },
+        {
+          source: {
+            type: 'source',
+            sourceType: 'url',
+            id: url,
+            url,
+            title: 'Café',
+          },
+          startIndex: 12,
+          endIndex: 16,
+        },
+      ];
+      expect(generatedText).toMatchObject({
+        text,
+        citations: expectedCitations,
+      });
+
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          {
+            type: 'response.output_item.added',
+            output_index: 0,
+            item: { type: 'message', id: 'message', role: 'assistant' },
+          },
+          {
+            type: 'response.output_text.delta',
+            item_id: 'message',
+            delta: text,
+          },
+          ...annotations.map(annotation => ({
+            type: 'response.output_text.annotation.added',
+            annotation,
+          })),
+          {
+            type: 'response.output_item.done',
+            output_index: 0,
+            item: { type: 'message', id: 'message' },
+          },
+        ].map(event => `data: ${JSON.stringify(event)}\n\n`),
+      };
+      const { stream } = await createModel('gpt-5-nano').doStream({
+        prompt: TEST_PROMPT,
+      });
+      const events = await convertReadableStreamToArray(stream);
+      expect(events.filter(event => event.type === 'error')).toEqual([]);
+      expect(events.find(event => event.type === 'text-delta')).toMatchObject({
+        delta: text,
+      });
+      expect(events.find(event => event.type === 'text-end')).toMatchObject({
+        citations: expectedCitations,
+        providerMetadata: { openai: { annotations } },
+      });
+    });
+
     it('should return helpful error when Chat Completions stream is received', async () => {
       server.urls['https://api.openai.com/v1/responses'].response = {
         type: 'stream-chunks',
