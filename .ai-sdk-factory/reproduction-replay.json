@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "issueId": 13588,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-13588-expo-react-native-streaming.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/issue-13588-expo-react-native-streaming.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_13588_REPRODUCED: Expo-like streamText failed on successful HTTP 200 SSE responses"
+  }
+}
