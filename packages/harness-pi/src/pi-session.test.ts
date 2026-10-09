@@ -1483,7 +1483,7 @@ describe('createPiSession', () => {
     expect(resolvedToolResult).toMatchInlineSnapshot(
       {
         content: [{ type: 'text', text: '{"weather":"sunny"}' }],
-        details: undefined,
+        details: null,
       },
       `
       {
@@ -1493,7 +1493,7 @@ describe('createPiSession', () => {
             "type": "text",
           },
         ],
-        "details": undefined,
+        "details": null,
       }
     `,
     );

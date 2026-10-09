@@ -127,6 +127,9 @@
       "path": "packages/harness"
     },
     {
+      "path": "packages/heygen"
+    },
+    {
       "path": "packages/huggingface"
     },
     {
