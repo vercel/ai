@@ -1085,6 +1085,79 @@ describe('doStream', () => {
     ]);
   });
 
+  it('streams preset reasoning thoughts without a reasoning.started event', async () => {
+    const events = readFileSync(
+      'src/__fixtures__/agent-web-search.chunks.txt',
+      'utf8',
+    )
+      .split('\n')
+      .filter(Boolean)
+      .map(line => JSON.parse(line));
+    prepareStream(events);
+
+    const result = await model.doStream({ prompt: TEST_PROMPT });
+    const chunks = await convertReadableStreamToArray(result.stream);
+
+    expect(chunks.filter(chunk => chunk.type.startsWith('reasoning-'))).toEqual(
+      [
+        { type: 'reasoning-start', id: 'reasoning-4' },
+        {
+          type: 'reasoning-delta',
+          id: 'reasoning-4',
+          delta: 'Searching the web...',
+        },
+        {
+          type: 'reasoning-delta',
+          id: 'reasoning-4',
+          delta: '\nFound 10 results',
+        },
+        { type: 'reasoning-end', id: 'reasoning-4' },
+      ],
+    );
+
+    const types = chunks.map(chunk => chunk.type);
+    expect(types.indexOf('reasoning-end')).toBeLessThan(
+      types.indexOf('text-start'),
+    );
+  });
+
+  it('ends open reasoning before a client function call', async () => {
+    prepareStream([
+      {
+        type: 'response.reasoning.search_queries',
+        sequence_number: 0,
+        thought: 'Searching the web...',
+      },
+      {
+        type: 'response.output_item.done',
+        output_index: 1,
+        item: {
+          id: 'fc-123',
+          type: 'function_call',
+          call_id: 'call-123',
+          name: 'weather',
+          arguments: '{"city":"San Francisco"}',
+        },
+      },
+    ]);
+
+    const result = await model.doStream({ prompt: TEST_PROMPT });
+    const chunks = await convertReadableStreamToArray(result.stream);
+    const types = chunks.map(chunk => chunk.type);
+
+    expect(types).toEqual([
+      'stream-start',
+      'reasoning-start',
+      'reasoning-delta',
+      'reasoning-end',
+      'tool-input-start',
+      'tool-input-delta',
+      'tool-input-end',
+      'tool-call',
+      'finish',
+    ]);
+  });
+
   it('streams Agent API reasoning thoughts', async () => {
     prepareStream([
       {
