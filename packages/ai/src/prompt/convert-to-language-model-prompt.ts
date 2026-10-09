@@ -52,38 +52,6 @@ export async function convertToLanguageModelPrompt({
     supportedUrls,
   );
 
-  const approvalIdToToolCallId = new Map<string, string>();
-  for (const message of prompt.messages) {
-    if (message.role === 'assistant' && Array.isArray(message.content)) {
-      for (const part of message.content) {
-        if (
-          part.type === 'tool-approval-request' &&
-          'approvalId' in part &&
-          'toolCallId' in part
-        ) {
-          approvalIdToToolCallId.set(
-            part.approvalId as string,
-            part.toolCallId as string,
-          );
-        }
-      }
-    }
-  }
-
-  const approvedToolCallIds = new Set<string>();
-  for (const message of prompt.messages) {
-    if (message.role === 'tool') {
-      for (const part of message.content) {
-        if (part.type === 'tool-approval-response') {
-          const toolCallId = approvalIdToToolCallId.get(part.approvalId);
-          if (toolCallId) {
-            approvedToolCallIds.add(toolCallId);
-          }
-        }
-      }
-    }
-  }
-
   const messages = [
     ...(prompt.system != null
       ? typeof prompt.system === 'string'
@@ -149,11 +117,6 @@ export async function convertToLanguageModelPrompt({
       }
       case 'user':
       case 'system':
-        // remove approved tool calls from the set before checking:
-        for (const id of approvedToolCallIds) {
-          toolCallIds.delete(id);
-        }
-
         if (toolCallIds.size > 0) {
           throw new MissingToolResultsError({
             toolCallIds: Array.from(toolCallIds),
@@ -161,11 +124,6 @@ export async function convertToLanguageModelPrompt({
         }
         break;
     }
-  }
-
-  // remove approved tool calls from the set before checking:
-  for (const id of approvedToolCallIds) {
-    toolCallIds.delete(id);
   }
 
   if (toolCallIds.size > 0) {
