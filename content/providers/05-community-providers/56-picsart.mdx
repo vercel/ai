@@ -58,7 +58,7 @@ const picsart = createPicsart({
 
 ## Models
 
-`listModels` returns `{ id, name, mode, inputType }` for each model. `inputType` says what a model takes: `t2i`, `i2i`, `t2v`, `i2v`, `a2v` or `v2v`.
+`listModels` returns `{ id, name, mode, inputType, requiredParams }` for each model. `inputType` says what a model takes: `t2i`, `i2i`, `t2v`, `i2v`, `a2v` or `v2v`. `requiredParams` lists the parameters a model requires besides `prompt`; some text-to-image and text-to-video models also require reference images or IDs, so an empty list finds a model that runs from a prompt alone.
 
 ```ts
 import { picsart } from '@picsart/vercel-ai-provider';
@@ -76,7 +76,7 @@ import { generateImage } from 'ai';
 import { picsart } from '@picsart/vercel-ai-provider';
 
 const [imageModel] = (await picsart.listModels({ mode: 'image' })).filter(
-  model => model.inputType === 't2i',
+  model => model.inputType === 't2i' && model.requiredParams.length === 0,
 );
 
 const { image, images } = await generateImage({
@@ -97,7 +97,7 @@ import { experimental_generateVideo } from 'ai';
 import { picsart } from '@picsart/vercel-ai-provider';
 
 const [videoModel] = (await picsart.listModels({ mode: 'video' })).filter(
-  model => model.inputType === 't2v',
+  model => model.inputType === 't2v' && model.requiredParams.length === 0,
 );
 
 const { video } = await experimental_generateVideo({
@@ -117,7 +117,7 @@ import { experimental_getVideoStatus, experimental_startVideo } from 'ai';
 import { picsart } from '@picsart/vercel-ai-provider';
 
 const [videoModel] = (await picsart.listModels({ mode: 'video' })).filter(
-  model => model.inputType === 't2v',
+  model => model.inputType === 't2v' && model.requiredParams.length === 0,
 );
 
 // First request: start the job and store the operation (plain JSON).
@@ -192,7 +192,7 @@ import {
 } from '@picsart/vercel-ai-provider';
 
 const [imageModel] = (await picsart.listModels({ mode: 'image' })).filter(
-  model => model.inputType === 't2i',
+  model => model.inputType === 't2i' && model.requiredParams.length === 0,
 );
 const result = await generateImage({
   model: picsart.image(imageModel.id),
