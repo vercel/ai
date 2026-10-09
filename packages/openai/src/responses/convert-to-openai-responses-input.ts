@@ -12,12 +12,7 @@ import {
   isNonNullable,
   parseJSON,
   parseProviderOptions,
-<<<<<<< HEAD
-=======
-  resolveFullMediaType,
-  resolveProviderReference,
   safeValidateTypes,
->>>>>>> 6aedb07c54 (fix: preserve web search context across stateless OpenAI Responses steps (#22346))
   validateTypes,
   type ToolNameMapping,
 } from '@ai-sdk/provider-utils';
@@ -32,36 +27,18 @@ import {
   localShellOutputSchema,
 } from '../tool/local-shell';
 import { shellInputSchema, shellOutputSchema } from '../tool/shell';
-<<<<<<< HEAD
-=======
-import type {
-  OpenAIResponsesCompactionItem,
-  OpenAIResponsesCustomToolCallOutput,
-  OpenAIResponsesFunctionCallOutput,
-  OpenAIResponsesInput,
-  OpenAIResponsesReasoning,
-  OpenAIResponsesToolCaller,
-  OpenAIResponsesWebSearchCall,
-} from './openai-responses-api';
->>>>>>> 6aedb07c54 (fix: preserve web search context across stateless OpenAI Responses steps (#22346))
 import {
   toolSearchInputSchema,
   toolSearchOutputSchema,
 } from '../tool/tool-search';
-<<<<<<< HEAD
+import { webSearchOutputSchema } from '../tool/web-search';
 import type {
   OpenAIResponsesCustomToolCallOutput,
   OpenAIResponsesFunctionCallOutput,
   OpenAIResponsesInput,
   OpenAIResponsesReasoning,
+  OpenAIResponsesWebSearchCall,
 } from './openai-responses-api';
-=======
-import {
-  programmaticToolCallingInputSchema,
-  programmaticToolCallingOutputSchema,
-} from '../tool/programmatic-tool-calling';
-import { webSearchOutputSchema } from '../tool/web-search';
->>>>>>> 6aedb07c54 (fix: preserve web search context across stateless OpenAI Responses steps (#22346))
 import {
   getParallelToolCallMetadata,
   type ParallelToolCallMetadata,
@@ -71,26 +48,11 @@ function serializeToolCallArguments(input: unknown): string {
   return JSON.stringify(input === undefined ? {} : input);
 }
 
-<<<<<<< HEAD
-=======
-function mapToolCaller(
-  caller:
-    | { type: 'direct' }
-    | { type: 'program'; callerId: string }
-    | undefined,
-): OpenAIResponsesToolCaller | undefined {
-  return caller == null
-    ? undefined
-    : caller.type === 'program'
-      ? { type: 'program', caller_id: caller.callerId }
-      : caller;
-}
-
 async function convertWebSearchToolResultOutput({
   output,
   id,
 }: {
-  output: LanguageModelV4ToolResultOutput;
+  output: LanguageModelV3ToolResultOutput;
   id: string;
 }): Promise<OpenAIResponsesWebSearchCall | undefined> {
   if (output.type !== 'json') {
@@ -145,7 +107,6 @@ async function convertWebSearchToolResultOutput({
   }
 }
 
->>>>>>> 6aedb07c54 (fix: preserve web search context across stateless OpenAI Responses steps (#22346))
 async function convertFunctionToolResultOutput({
   output,
   promptCacheBreakpoint,

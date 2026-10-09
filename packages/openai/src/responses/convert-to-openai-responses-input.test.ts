@@ -3795,15 +3795,6 @@ describe('convertToOpenAIResponsesInput', () => {
               "role": "assistant",
             },
             {
-<<<<<<< HEAD
-              "content": [
-                {
-                  "text": "Based on the search results, several significant events took place in San Francisco yesterday (June 22, 2025).",
-                  "type": "output_text",
-                },
-              ],
-              "id": undefined,
-=======
               "action": {
                 "query": "San Francisco major news events June 22 2025",
                 "sources": [
@@ -3819,8 +3810,13 @@ describe('convertToOpenAIResponsesInput', () => {
               "type": "web_search_call",
             },
             {
-              "content": "Based on the search results, several significant events took place in San Francisco yesterday (June 22, 2025).",
->>>>>>> 6aedb07c54 (fix: preserve web search context across stateless OpenAI Responses steps (#22346))
+              "content": [
+                {
+                  "text": "Based on the search results, several significant events took place in San Francisco yesterday (June 22, 2025).",
+                  "type": "output_text",
+                },
+              ],
+              "id": undefined,
               "role": "assistant",
             },
           ],
