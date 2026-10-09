@@ -188,7 +188,7 @@ console.log(text);`,
     'generateSpeech',
     `const { audio } = await generateSpeech({
   model: __MODEL__,
-  text: 'You can build and host many different types of applications.',
+  text: 'You can build and host many types of applications.',
 });
 
 console.log(audio);`,
