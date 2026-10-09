@@ -5654,9 +5654,77 @@ describe('doStream', () => {
         await convertReadableStreamToArray(stream)
       ).filter(chunk => chunk.type === 'response-metadata');
 
-      expect(responseMetadata).toEqual([
-        { type: 'response-metadata', id: 'bH6LaZW8Fp_3nsEPqtaSwQ4' },
-      ]);
+      expect(responseMetadata).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "bH6LaZW8Fp_3nsEPqtaSwQ4",
+            "type": "response-metadata",
+            "usage": {
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": undefined,
+                "noCache": 9,
+                "total": 9,
+              },
+              "outputTokens": {
+                "reasoning": 185,
+                "text": 5,
+                "total": 190,
+              },
+              "raw": {
+                "candidatesTokenCount": 5,
+                "promptTokenCount": 9,
+                "promptTokensDetails": [
+                  {
+                    "modality": "TEXT",
+                    "tokenCount": 9,
+                  },
+                ],
+                "thoughtsTokenCount": 185,
+                "totalTokenCount": 199,
+              },
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should omit usage on response-metadata when the first chunk has no usageMetadata', async () => {
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            candidates: [
+              { content: { parts: [{ text: 'Hello' }], role: 'model' } },
+            ],
+            responseId: 'response-id',
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            candidates: [
+              {
+                content: { parts: [{ text: ' world' }], role: 'model' },
+                finishReason: 'STOP',
+              },
+            ],
+            usageMetadata: {
+              promptTokenCount: 9,
+              candidatesTokenCount: 2,
+              totalTokenCount: 11,
+            },
+            responseId: 'response-id',
+          })}\n\n`,
+        ],
+      };
+
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const events = await convertReadableStreamToArray(stream);
+
+      expect(
+        events.filter(event => event.type === 'response-metadata'),
+      ).toEqual([{ type: 'response-metadata', id: 'response-id' }]);
+      expect(
+        events.find(event => event.type === 'response-metadata'),
+      ).not.toHaveProperty('usage');
     });
 
     it('should expose the raw response headers', async () => {
@@ -6381,6 +6449,20 @@ describe('doStream', () => {
     expect(events).toContainEqual({
       type: 'response-metadata',
       id: 'blocked-response-id',
+      usage: {
+        inputTokens: {
+          total: 9,
+          noCache: 9,
+          cacheRead: 0,
+          cacheWrite: undefined,
+        },
+        outputTokens: { total: 0, text: 0, reasoning: 0 },
+        raw: {
+          promptTokenCount: 9,
+          totalTokenCount: 9,
+          serviceTier: 'standard',
+        },
+      },
     });
     expect(events.find(event => event.type === 'finish')).toMatchObject({
       type: 'finish',

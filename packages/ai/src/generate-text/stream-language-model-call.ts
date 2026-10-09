@@ -144,6 +144,12 @@ export type LanguageModelStreamPart<TOOLS extends ToolSet = ToolSet> =
        * The ID of the response model that was used to generate the response, if the provider sends one.
        */
       modelId?: string;
+
+      /**
+       * Provisional (possibly partial) usage known when the response starts, if sent.
+       * The usage on `model-call-end` is authoritative; do not add the two together.
+       */
+      usage?: LanguageModelUsage;
     };
 
 /**
@@ -830,6 +836,9 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
             id: chunk.id,
             timestamp: chunk.timestamp,
             modelId: chunk.modelId,
+            ...(chunk.usage != null
+              ? { usage: asLanguageModelUsage(chunk.usage) }
+              : {}),
           });
           break;
         }
