@@ -541,8 +541,6 @@ function emitLegacyToolPart({
 
 function legacyToolPartInput(part: LegacyToolPart): Record<string, unknown> {
   return {
-    ...part.metadata,
-    ...part.state?.metadata,
     ...part.state?.input,
   };
 }
