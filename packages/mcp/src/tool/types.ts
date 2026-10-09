@@ -1,6 +1,10 @@
 import { z } from 'zod/v4';
 import type { JSONObject } from '@ai-sdk/provider';
-import type { FlexibleSchema, Tool } from '@ai-sdk/provider-utils';
+import type {
+  FlexibleSchema,
+  Tool,
+  ToolExecutionOptions,
+} from '@ai-sdk/provider-utils';
 
 export const LATEST_PROTOCOL_VERSION = '2025-11-25';
 export const SUPPORTED_PROTOCOL_VERSIONS = [
@@ -52,10 +56,13 @@ export type ToolSchemas =
 type McpToolBase<INPUT = unknown, OUTPUT = CallToolResult> = Tool<
   INPUT,
   OUTPUT
-> &
-  Required<Pick<Tool<INPUT, OUTPUT>, 'execute'>> & {
-    _meta?: ToolMeta;
-  };
+> & {
+  execute: (
+    input: INPUT,
+    options?: ToolExecutionOptions,
+  ) => ReturnType<NonNullable<Tool<INPUT, OUTPUT>['execute']>>;
+  _meta?: ToolMeta;
+};
 
 export type McpToolSet<TOOL_SCHEMAS extends ToolSchemas = 'automatic'> =
   TOOL_SCHEMAS extends Record<
