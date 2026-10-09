@@ -217,6 +217,30 @@ export default function Chat() {
 }
 ```
 
+Applications can terminally stop automatic reconnection with `stopWhen`:
+
+```ts
+let stopRequested = false;
+
+const transport = new WorkflowChatTransport({
+  api: '/api/chat',
+  stopWhen: () => stopRequested,
+});
+
+async function stopWorkflow() {
+  stopRequested = true;
+  await fetch('/api/chat/stop', { method: 'POST' });
+}
+```
+
+When the predicate returns `true`, the transport closes its output stream
+without requiring a synthetic `finish` chunk and makes no later reconnect
+requests. This does not abort the active request or cancel the server-side
+workflow, so the stop endpoint must authenticate the caller and cancel the
+corresponding workflow run. `onChatEnd` is only called after a real `finish`
+chunk. Reset the state read by `stopWhen` before reusing the transport for a new
+chat lifecycle.
+
 The transport requires your POST endpoint to return an `x-workflow-run-id` response header, and a GET endpoint at `{api}/{runId}/stream` for reconnection:
 
 ```ts filename="app/api/chat/route.ts"
