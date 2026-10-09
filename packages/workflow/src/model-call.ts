@@ -56,6 +56,9 @@ export interface ModelCallOptions {
   maxRetries?: number;
   abortSignal?: AbortSignal;
   timeoutAt?: number;
+  stepTimeoutMs?: number;
+  firstChunkTimeoutMs?: number;
+  chunkTimeoutMs?: number;
   headers?: Record<string, string | undefined>;
   reasoning?: LanguageModelV4CallOptions['reasoning'];
   providerOptions?: ProviderOptions;

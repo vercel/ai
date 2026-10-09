@@ -584,9 +584,9 @@ const result = await agent.stream({
     },
     {
       name: 'timeout',
-      type: 'number',
+      type: 'number | WorkflowAgentStreamTimeoutConfiguration',
       isOptional: true,
-      description: 'Model-call deadline in milliseconds. Inside a workflow, the absolute deadline is checked at dispatch and retry and remains in effect across suspension. It does not cancel a tool waiting on a Workflow hook; use run.cancel() to stop the suspended run.',
+      description: 'Timeout controls for streaming model calls. A number, or totalMs, sets one absolute deadline for the agent run. stepMs resets for each model call, firstChunkMs limits the wait for the first output chunk in each model call, and chunkMs limits gaps between later output chunks. Inside a workflow, the total deadline remains in effect across suspension. It does not cancel a tool waiting on a Workflow hook; use run.cancel() to stop the suspended run.',
     },
     {
       name: 'sendFinish',
@@ -743,6 +743,22 @@ const result = await agent.stream({
 
 ]}
 />
+
+`firstChunkMs` and `chunkMs` track generated output rather than protocol
+activity. Stream starts, response metadata, raw events, structural start/end
+events, and empty deltas do not satisfy or reset these timers.
+
+```ts
+const result = await agent.stream({
+  prompt: 'Summarize the report.',
+  timeout: {
+    totalMs: 5 * 60_000,
+    stepMs: 60_000,
+    firstChunkMs: 15_000,
+    chunkMs: 10_000,
+  },
+});
+```
 
 #### Returns
 

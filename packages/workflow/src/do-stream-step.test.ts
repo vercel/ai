@@ -435,6 +435,132 @@ describe('doStreamStep', () => {
     }
   });
 
+  it.each([
+    {
+      name: 'step timeout',
+      options: { stepTimeoutMs: 50 },
+      expectedMessage: 'Step timeout of 50ms exceeded',
+      chunks: [{ type: 'response-metadata' as const, id: 'response-1' }],
+    },
+    {
+      name: 'first chunk timeout',
+      options: { firstChunkTimeoutMs: 50 },
+      expectedMessage: 'First chunk timeout of 50ms exceeded',
+      chunks: [
+        { type: 'response-metadata' as const, id: 'response-1' },
+        { type: 'text-start' as const, id: 'text-1' },
+        {
+          type: 'text-delta' as const,
+          id: 'text-1',
+          delta: '',
+        },
+      ],
+    },
+    {
+      name: 'chunk timeout',
+      options: { chunkTimeoutMs: 50 },
+      expectedMessage: 'Chunk timeout of 50ms exceeded',
+      chunks: [
+        { type: 'text-start' as const, id: 'text-1' },
+        {
+          type: 'text-delta' as const,
+          id: 'text-1',
+          delta: 'partial output',
+        },
+        { type: 'response-metadata' as const, id: 'response-1' },
+      ],
+    },
+  ])(
+    'returns an aborted result when the $name expires',
+    async ({ options, expectedMessage, chunks }) => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      let receivedAbortSignal: AbortSignal | undefined;
+      const model = new MockLanguageModelV4({
+        doStream: async ({ abortSignal }) => {
+          receivedAbortSignal = abortSignal;
+
+          return {
+            stream: new ReadableStream({
+              start(controller) {
+                for (const chunk of chunks) {
+                  controller.enqueue(chunk);
+                }
+                abortSignal?.addEventListener(
+                  'abort',
+                  () => controller.error(abortSignal.reason),
+                  { once: true },
+                );
+              },
+            }),
+          };
+        },
+      });
+
+      const result = doStreamStep(prompt, model, undefined, undefined, options);
+
+      await vi.advanceTimersByTimeAsync(100);
+
+      await expect(result).resolves.toEqual({ aborted: true });
+      expect(receivedAbortSignal?.aborted).toBe(true);
+      expect(receivedAbortSignal?.reason).toMatchObject({
+        name: 'TimeoutError',
+        message: expectedMessage,
+      });
+    },
+  );
+
+  it('clears streaming timeout timers after the model step completes', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    let receivedAbortSignal: AbortSignal | undefined;
+    const model = new MockLanguageModelV4({
+      doStream: async ({ abortSignal }) => {
+        receivedAbortSignal = abortSignal;
+        return {
+          stream: convertArrayToReadableStream([
+            { type: 'text-start' as const, id: 'text-1' },
+            {
+              type: 'text-delta' as const,
+              id: 'text-1',
+              delta: 'complete',
+            },
+            { type: 'text-end' as const, id: 'text-1' },
+            {
+              type: 'finish' as const,
+              finishReason: { unified: 'stop' as const, raw: 'stop' },
+              usage: {
+                inputTokens: {
+                  total: 1,
+                  noCache: 1,
+                  cacheRead: undefined,
+                  cacheWrite: undefined,
+                },
+                outputTokens: {
+                  total: 1,
+                  text: 1,
+                  reasoning: undefined,
+                },
+              },
+            },
+          ]),
+        };
+      },
+    });
+
+    await expect(
+      doStreamStep(prompt, model, undefined, undefined, {
+        stepTimeoutMs: 50,
+        firstChunkTimeoutMs: 50,
+        chunkTimeoutMs: 50,
+      }),
+    ).resolves.toMatchObject({
+      finish: { finishReason: 'stop' },
+    });
+
+    await vi.advanceTimersByTimeAsync(100);
+
+    expect(receivedAbortSignal?.aborted).toBe(false);
+  });
+
   it('returns model stream errors as terminal step data', async () => {
     const terminal = new Error('terminal model error');
     const streamedParts: unknown[] = [];
