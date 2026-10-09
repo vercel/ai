@@ -12,6 +12,7 @@ import {
 import {
   experimental_filterActiveTools as filterActiveTools,
   InvalidToolInputError,
+  isDeepEqualData,
   type ActiveTools,
   type Experimental_SandboxSession as SandboxSession,
   type Instructions,
@@ -691,20 +692,12 @@ async function validateToolCallInputs({
       return {
         ...toolCall,
         input: validation.value,
-        ...(areToolInputsDifferent(validation.rawValue, validation.value)
+        ...(!isDeepEqualData(validation.rawValue, validation.value)
           ? { inputSchemaInput: validation.rawValue }
           : {}),
       };
     }),
   );
-}
-
-function areToolInputsDifferent(rawInput: unknown, parsedInput: unknown) {
-  try {
-    return JSON.stringify(rawInput) !== JSON.stringify(parsedInput);
-  } catch {
-    return true;
-  }
 }
 
 async function invokeToolInputLifecycleCallbacks({

@@ -199,8 +199,7 @@ describe('resolveSerializableTools', () => {
     expect(tools.getWeather.description).toBe('Get weather for a city');
   });
 
-<<<<<<< HEAD
-  it('defers validation when the original schema has its own validator', async () => {
+  it('defers validation to the original schema when it has its own validator', async () => {
     const tools = resolveSerializableTools(
       serializeToolSet({
         normalize: tool({
@@ -215,7 +214,8 @@ describe('resolveSerializableTools', () => {
         extra: true,
       }),
     ).toBeUndefined();
-=======
+  });
+
   it('reports actionable details for every validation error', async () => {
     const tools = resolveSerializableTools({
       interaction: {
@@ -273,7 +273,6 @@ describe('resolveSerializableTools', () => {
         'data/edits/0 has unexpected property "path", data/edits/1 has unexpected property "path"',
       ),
     });
->>>>>>> origin/main
   });
 
   it('accepts tool schemas with formats, annotations, unions, and JSON Schema 2020-12 without warnings', async () => {
