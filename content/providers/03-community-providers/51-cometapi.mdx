@@ -1,0 +1,184 @@
+---
+title: CometAPI
+description: Learn how to use CometAPI with the AI SDK.
+---
+
+# CometAPI Provider
+
+The [CometAPI](https://www.cometapi.com/) provider offers unified access to multiple AI providers through the CometAPI gateway, including OpenAI, Anthropic Claude, Google Gemini, and many more models. View all available models at [cometapi.com/models](https://www.cometapi.com/models).
+
+## Setup
+
+The CometAPI provider is available in the `@cometapi/ai-sdk-provider` module. You can install it with
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @cometapi/ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @cometapi/ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @cometapi/ai-sdk-provider" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+### Method 1: Using createCometAPI
+
+To create a CometAPI provider instance, use the `createCometAPI` function:
+
+```typescript
+import { createCometAPI } from '@cometapi/ai-sdk-provider';
+
+const cometapi = createCometAPI({
+  apiKey: 'YOUR_COMETAPI_API_KEY',
+});
+```
+
+You can obtain your CometAPI API key from the [CometAPI Console](https://www.cometapi.com/console/token).
+
+### Method 2: Using Environment Variables
+
+Alternatively, you can use the pre-configured `cometapi` instance by setting the `COMETAPI_KEY` environment variable:
+
+```bash
+# .env
+COMETAPI_KEY=your_api_key_here
+```
+
+Then import and use the pre-configured instance:
+
+```ts
+import { cometapi } from '@cometapi/ai-sdk-provider';
+```
+
+## Usage
+
+### Chat Completion
+
+```ts
+import { cometapi } from '@cometapi/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: cometapi('gpt-5.2'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+### Claude Model
+
+```ts
+import { cometapi } from '@cometapi/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: cometapi('claude-sonnet-4-6'),
+  prompt: 'Explain quantum computing in simple terms.',
+});
+```
+
+### Gemini Model
+
+```ts
+import { cometapi } from '@cometapi/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: cometapi('gemini-3.1-pro-preview'),
+  prompt: 'Create a Python script to sort a list of numbers.',
+});
+```
+
+### Image Generation
+
+```ts
+import { cometapi } from '@cometapi/ai-sdk-provider';
+import { generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: cometapi.imageModel('dall-e-3'),
+  prompt: 'A beautiful sunset over mountains',
+});
+```
+
+### Embeddings
+
+```ts
+import { cometapi } from '@cometapi/ai-sdk-provider';
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: cometapi.textEmbeddingModel('text-embedding-3-large'),
+  value: 'Hello, world!',
+});
+```
+
+### Stream Text
+
+```ts
+import { cometapi } from '@cometapi/ai-sdk-provider';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: cometapi('gpt-5-mini'),
+  prompt: 'Write a short story about a robot learning to paint.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+### Structured Output
+
+```ts
+import { cometapi } from '@cometapi/ai-sdk-provider';
+import { generateText, Output } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: cometapi('gpt-5-mini'),
+  output: Output.object({
+    schema: z.object({
+      recipe: z.object({
+        name: z.string(),
+        ingredients: z.array(
+          z.object({
+            name: z.string(),
+            amount: z.string(),
+          }),
+        ),
+        steps: z.array(z.string()),
+      }),
+    }),
+  }),
+  prompt: 'Generate a lasagna recipe.',
+});
+
+console.log(JSON.stringify(result.output.recipe, null, 2));
+```
+
+### Embed Many
+
+```ts
+import { cometapi } from '@cometapi/ai-sdk-provider';
+import { embedMany } from 'ai';
+
+const { embeddings } = await embedMany({
+  model: cometapi.textEmbeddingModel('text-embedding-3-large'),
+  values: [
+    'sunny day at the beach',
+    'rainy afternoon in the city',
+    'snowy night in the mountains',
+  ],
+});
+```
+
+## Additional Resources
+
+- [CometAPI Provider Repository](https://github.com/cometapi-dev/ai-sdk-provider)
+- [CometAPI Documentation](https://www.cometapi.com/docs)
+- [CometAPI Console](https://www.cometapi.com/console/token)
