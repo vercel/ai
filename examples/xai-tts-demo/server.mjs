@@ -3,7 +3,10 @@
 // browser.
 import { createServer } from 'node:http';
 import { xai } from '@ai-sdk/xai';
-import { generateSpeech, transcribe } from 'ai';
+import {
+  experimental_generateSpeech as generateSpeech,
+  experimental_transcribe as transcribe,
+} from 'ai';
 
 const PORT = Number(process.env.PORT) || 5051;
 const VOICES = ['eve', 'ara', 'rex', 'sal', 'leo'];
