@@ -1,5 +1,13 @@
 # ai
 
+## 7.0.136
+
+### Patch Changes
+
+- 7b5497c: Fix streaming output timeouts: stop `chunkMs` and `firstChunkMs` when the model response ends, so long-running local tools do not trigger model output timeouts. Give each retry fresh output timeout budgets. `stepMs` continues to cover the complete step, including local tools.
+- Updated dependencies [e280aa1]
+  - @ai-sdk/gateway@4.0.110
+
 ## 7.0.135
 
 ### Patch Changes

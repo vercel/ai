@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 4.0.110
+
+### Patch Changes
+
+- e280aa1: feat(gateway): send image files in decision state
+
 ## 4.0.109
 
 ### Patch Changes
