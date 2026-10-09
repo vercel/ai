@@ -3,6 +3,7 @@ import {
   type Experimental_VideoModelV4,
   type LanguageModelV4,
   type ProviderV4,
+  type SpeechModelV4,
 } from '@ai-sdk/provider';
 import {
   generateId,
@@ -15,6 +16,8 @@ import { AnthropicLanguageModel } from '@ai-sdk/anthropic/internal';
 import type { MiniMaxChatModelId } from './minimax-chat-options';
 import { MiniMaxVideoModel } from './minimax-video-model';
 import type { MiniMaxVideoModelId } from './minimax-video-settings';
+import { MinimaxSpeechModel } from './speech/minimax-speech-model';
+import type { MinimaxSpeechModelId } from './speech/minimax-speech-model-options';
 import { VERSION } from './version';
 
 export interface MiniMaxProviderSettings {
@@ -33,6 +36,11 @@ export interface MiniMaxProviderSettings {
    * The default prefix is `https://api.minimax.io`.
    */
   videoBaseURL?: string;
+  /**
+   * Use a different URL prefix for speech generation API calls.
+   * The default prefix is `https://api.minimax.io`.
+   */
+  speechBaseURL?: string;
   /**
    * Custom headers to include in the requests.
    */
@@ -71,6 +79,16 @@ export interface MiniMaxProvider extends ProviderV4 {
   videoModel(modelId: MiniMaxVideoModelId): Experimental_VideoModelV4;
 
   /**
+   * Creates a MiniMax speech model for speech generation (text-to-speech).
+   */
+  speech(modelId: MinimaxSpeechModelId): SpeechModelV4;
+
+  /**
+   * Creates a MiniMax speech model for speech generation (text-to-speech).
+   */
+  speechModel(modelId: MinimaxSpeechModelId): SpeechModelV4;
+
+  /**
    * @deprecated Use `embeddingModel` instead.
    */
   textEmbeddingModel(modelId: string): never;
@@ -78,6 +96,7 @@ export interface MiniMaxProvider extends ProviderV4 {
 
 const defaultBaseURL = 'https://api.minimax.io/anthropic/v1';
 const defaultVideoBaseURL = 'https://api.minimax.io';
+const defaultSpeechBaseURL = 'https://api.minimax.io';
 
 export function createMiniMax(
   options: MiniMaxProviderSettings = {},
@@ -88,6 +107,10 @@ export function createMiniMax(
   const videoBaseURL =
     withoutTrailingSlash(options.videoBaseURL ?? defaultVideoBaseURL) ??
     defaultVideoBaseURL;
+
+  const speechBaseURL =
+    withoutTrailingSlash(options.speechBaseURL ?? defaultSpeechBaseURL) ??
+    defaultSpeechBaseURL;
 
   const getHeaders = () =>
     withUserAgentSuffix(
@@ -134,6 +157,14 @@ export function createMiniMax(
       fetch: options.fetch,
     });
 
+  const createSpeechModel = (modelId: MinimaxSpeechModelId) =>
+    new MinimaxSpeechModel(modelId, {
+      provider: 'minimax.speech',
+      baseURL: speechBaseURL,
+      headers: getVideoHeaders,
+      fetch: options.fetch,
+    });
+
   const provider = (modelId: MiniMaxChatModelId) => createChatModel(modelId);
 
   provider.specificationVersion = 'v4' as const;
@@ -141,6 +172,8 @@ export function createMiniMax(
   provider.chat = createChatModel;
   provider.video = createVideoModel;
   provider.videoModel = createVideoModel;
+  provider.speech = createSpeechModel;
+  provider.speechModel = createSpeechModel;
 
   provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
