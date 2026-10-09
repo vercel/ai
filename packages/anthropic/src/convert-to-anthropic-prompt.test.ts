@@ -1980,6 +1980,41 @@ describe('tool messages', () => {
 });
 
 describe('assistant messages', () => {
+  it('should ignore message-start accounting parts when replaying assistant content', async () => {
+    const warnings: SharedV4Warning[] = [];
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'custom',
+              kind: 'anthropic.message_start',
+              providerOptions: {
+                anthropic: {
+                  id: 'msg_usage',
+                  model: 'claude-haiku-4-5',
+                  usage: { input_tokens: 13, output_tokens: 1 },
+                },
+              },
+            },
+            { type: 'text', text: 'Hi!' },
+          ],
+        },
+      ],
+      sendReasoning: false,
+      warnings,
+      toolNameMapping: defaultToolNameMapping,
+    });
+    expect(result.prompt.messages).toEqual([
+      {
+        role: 'assistant',
+        content: [{ type: 'text', text: 'Hi!', cache_control: undefined }],
+      },
+    ]);
+    expect(warnings).toEqual([]);
+  });
+
   it('should preserve fallback boundaries between reasoning blocks', async () => {
     const result = await convertToAnthropicPrompt({
       prompt: [
@@ -2041,6 +2076,7 @@ describe('assistant messages', () => {
         ],
       },
     ]);
+    expect(result.betas).toContain('server-side-fallback-2026-06-01');
   });
 
   it('should warn and omit fallback boundaries with invalid metadata', async () => {

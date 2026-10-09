@@ -12,8 +12,12 @@ Creates a lightweight Model Context Protocol (MCP) client that connects to an MC
 - **Prompts**: Methods to list available prompts and retrieve prompt messages
 - **Completions**: Methods to request autocompletion suggestions for prompt arguments and resource template variables
 - **Elicitation**: Support for handling server requests for additional input during tool execution
+- **Experimental events**: Discover events and manage webhook subscriptions with `client.experimental_events`
 
-It currently does not support accepting notifications from an MCP server.
+It currently does not support in-band notifications from an MCP server. For
+experimental webhook delivery, see the [MCP Events guide](/docs/ai-sdk-core/mcp-events),
+[event methods reference](/docs/reference/ai-sdk-core/mcp-events), and
+[webhook handler reference](/docs/reference/ai-sdk-core/mcp-events#webhook-handler).
 
 ## Import
 
@@ -36,6 +40,41 @@ It currently does not support accepting notifications from an MCP server.
         {
           type: 'MCPClientConfig',
           parameters: [
+            {
+              name: 'experimental_events',
+              type: 'Experimental_MCPEventsConfig',
+              isOptional: true,
+              description:
+                'Experimental event subscriptions. Configure either a private durable store for direct webhooks or a managed adapter. See [MCP Events](/docs/reference/ai-sdk-core/mcp-events#managed-subscriptions).',
+              properties: [
+                {
+                  type: 'Experimental_MCPEventsConfig',
+                  parameters: [
+                    {
+                      name: 'store',
+                      type: 'Experimental_MCPEventStore',
+                      isOptional: true,
+                      description:
+                        'Required in direct mode. Persists subscription identities, callback URLs, signing secrets, cursors, and expirations. Shared with the webhook receiver. Cannot be combined with adapter.',
+                    },
+                    {
+                      name: 'adapter',
+                      type: 'Experimental_MCPEventAdapter',
+                      isOptional: true,
+                      description:
+                        "Required in managed mode. Creates bound subscription operations once before transport startup, receiving transport metadata: { type, url } for HTTP/SSE or { type: 'custom' } for custom transports. Cannot be combined with store or validateArguments. No local event store or refresh loop is required.",
+                    },
+                    {
+                      name: 'validateArguments',
+                      type: '({ definition, arguments }) => void | PromiseLike<void>',
+                      isOptional: true,
+                      description:
+                        'Optional application validation for event filters. Throw to reject a subscription before persisting its secret or sending events/subscribe.',
+                    },
+                  ],
+                },
+              ],
+            },
             {
               name: 'transport',
               type: 'MCPTransportConfig | MCPTransport',
@@ -229,6 +268,12 @@ Returns a Promise that resolves to an `MCPClient` with the following properties 
 <PropertiesTable
   content={[
     {
+      name: 'experimental_events',
+      type: 'Experimental_MCPEvents | Experimental_ManagedMCPEvents',
+      description:
+        'Event catalog discovery and mode-specific subscription methods. Managed mode adds getSubscription and listSubscriptions; direct mode has refresh. See the [MCP Events reference](/docs/reference/ai-sdk-core/mcp-events).',
+    },
+    {
       name: 'initializeResult',
       type: 'InitializeResult',
       description:
@@ -368,11 +413,24 @@ Returns a Promise that resolves to an `MCPClient` with the following properties 
                 'Tool definitions, typically returned by `listTools`.',
             },
             {
-              name: 'schemas',
-              type: 'TOOL_SCHEMAS',
+              name: 'options',
+              type: '{ schemas?: TOOL_SCHEMAS }',
               isOptional: true,
-              description:
-                'Optional schema definitions for compile-time type checking and typed outputs.',
+              description: 'Options for converting the tool definitions.',
+              properties: [
+                {
+                  type: 'options',
+                  parameters: [
+                    {
+                      name: 'schemas',
+                      type: 'TOOL_SCHEMAS',
+                      isOptional: true,
+                      description:
+                        'Optional schema definitions for compile-time type checking and typed outputs.',
+                    },
+                  ],
+                },
+              ],
             },
           ],
         },
@@ -640,6 +698,47 @@ The client throws `MCPClientError` for:
 - Protocol version mismatches
 - Missing server capabilities
 - Connection failures
+
+Import `MCPClientError` from `@ai-sdk/mcp` and use its `isInstance` method to
+safely narrow unknown errors:
+
+```typescript
+import { createMCPClient, MCPClientError } from '@ai-sdk/mcp';
+
+try {
+  await createMCPClient({
+    transport: {
+      type: 'http',
+      url: 'https://your-server.com/mcp',
+    },
+  });
+} catch (error) {
+  if (MCPClientError.isInstance(error)) {
+    if (error.statusCode === 401 || error.statusCode === 403) {
+      // Authentication or authorization must be fixed before retrying.
+      throw error;
+    }
+
+    // Inspect error.code and error.statusCode according to your application's policy.
+  }
+
+  throw error;
+}
+```
+
+The error exposes the optional `code`, `statusCode`, `url`, and `responseBody`
+properties. `code` is the JSON-RPC application error code. `statusCode`, `url`,
+and `responseBody` contain HTTP transport context when it is available. They
+are `undefined` for failures without an HTTP response, such as network errors,
+timeouts, aborted requests, and stdio transport failures.
+
+`MCPClientError` also represents configuration and protocol errors, so its
+type or a missing `statusCode` alone does not indicate a retryable failure.
+OAuth failures can instead throw the separately exported `UnauthorizedError`
+or `MCPClientOAuthError`.
+
+Avoid logging `url` or `responseBody` without redacting sensitive endpoint,
+query parameter, or server response data.
 
 For tool execution, errors are propagated as `CallToolError` errors.
 

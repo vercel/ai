@@ -89,6 +89,7 @@ export class OpenAICompatibleEmbeddingModel implements EmbeddingModelV4 {
 
   async doEmbed({
     values,
+    dimensions,
     headers,
     abortSignal,
     providerOptions,
@@ -156,7 +157,7 @@ export class OpenAICompatibleEmbeddingModel implements EmbeddingModelV4 {
         model: this.modelId,
         input: values,
         encoding_format: 'float',
-        dimensions: compatibleOptions.dimensions,
+        dimensions: compatibleOptions.dimensions ?? dimensions,
         user: compatibleOptions.user,
       },
       failedResponseHandler: createJsonErrorResponseHandler(

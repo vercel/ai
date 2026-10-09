@@ -5,8 +5,12 @@ import {
   extractAssistantText,
   getPiTerminalError,
   type PiSessionEvent,
+  type PiUsage,
 } from './pi-events';
 import { serializeToolOutput } from './pi-utils';
+
+type DynamicToolKind = 'mcp' | 'extension';
+type ToolKind = 'host' | 'builtin' | DynamicToolKind;
 
 /**
  * Translator state shared across all events of a single turn. Reset at the
@@ -45,6 +49,9 @@ export interface PiTranslatorState {
   stepToolCallCount: number | undefined;
   /** Whether the current assistant message has opened a visible step. */
   stepOpen: boolean;
+  stepUsage: PiUsage | undefined;
+  /** Pi's session stats do not track reasoning. */
+  turnReasoningTokens: number | undefined;
   /**
    * Tool-call id → the exact output value the host submitted for a
    * user-registered (host-executed) tool. Pi only echoes the tool result back
@@ -57,7 +64,7 @@ export interface PiTranslatorState {
    * the matching `tool_result`/`tool_execution_end` event is translated.
    */
   hostToolResults: Map<string, unknown>;
-  dynamicToolCallIds: Set<string>;
+  dynamicToolCalls: Map<string, DynamicToolKind>;
   /**
    * Names of tools that Pi executes natively (read/write/edit/bash/grep/
    * find/ls). `tool-call` events for these get `providerExecuted: true`
@@ -100,8 +107,10 @@ export function createPiTranslatorState(
     pendingStepToolCallIds: new Set(),
     stepToolCallCount: undefined,
     stepOpen: false,
+    stepUsage: undefined,
+    turnReasoningTokens: undefined,
     hostToolResults: new Map(),
-    dynamicToolCallIds: new Set(),
+    dynamicToolCalls: new Map(),
     builtinToolNames: new Set(options.builtinToolNames),
     hostToolNames: new Set(options.hostToolNames),
     nativeToCommonNameMap: map,
@@ -168,22 +177,24 @@ function resolveToolName(
 
 /**
  * How a tool call is dispatched, from the native tool name. Pi runs its
- * builtin tools and MCP tools itself; everything else is handed back to the
- * harness host. `tool-input-start` reports the same flags as the `tool-call`
- * that follows it so a consumer does not have to wait for the call to know
- * who will execute it.
+ * builtin, MCP and extension tools itself; only host tools are handed back to
+ * the harness host. `tool-input-start` reports the same flags as the
+ * `tool-call` that follows it so a consumer does not have to wait for the call
+ * to know who will execute it.
  */
-function resolveToolDispatch(
+function resolveToolKind(
   state: PiTranslatorState,
   nativeName: string,
-): { isMcpTool: boolean; providerExecuted: boolean } {
-  const isMcpTool =
-    !state.hostToolNames.has(nativeName) &&
-    (nativeName === 'mcp' || nativeName.startsWith('mcp__'));
-  return {
-    isMcpTool,
-    providerExecuted: state.builtinToolNames.has(nativeName) || isMcpTool,
-  };
+): ToolKind {
+  if (state.hostToolNames.has(nativeName)) return 'host';
+  if (state.builtinToolNames.has(nativeName)) return 'builtin';
+  return nativeName === 'mcp' || nativeName.startsWith('mcp__')
+    ? 'mcp'
+    : 'extension';
+}
+
+function isDynamicToolKind(kind: ToolKind): kind is DynamicToolKind {
+  return kind === 'mcp' || kind === 'extension';
 }
 
 /**
@@ -208,22 +219,54 @@ function readStreamingToolCall(
   return { contentIndex, id, name };
 }
 
+export function toHarnessUsage(
+  usage: PiUsage,
+): Extract<HarnessV1StreamPart, { type: 'finish-step' }>['usage'] {
+  return {
+    inputTokens: {
+      total: usage.input + usage.cacheRead + usage.cacheWrite,
+      noCache: usage.input,
+      cacheRead: usage.cacheRead,
+      cacheWrite: usage.cacheWrite,
+    },
+    outputTokens: {
+      total: usage.output,
+      text:
+        usage.reasoning === undefined
+          ? undefined
+          : usage.output - usage.reasoning,
+      reasoning: usage.reasoning,
+    },
+  };
+}
+
+const ZERO_PI_USAGE: PiUsage = {
+  input: 0,
+  output: 0,
+  cacheRead: 0,
+  cacheWrite: 0,
+  reasoning: 0,
+};
+
+function createInferredFinishStep(
+  usage = toHarnessUsage(ZERO_PI_USAGE),
+): HarnessV1StreamPart {
+  return {
+    type: 'finish-step',
+    finishReason: { unified: 'stop', raw: 'stop' },
+    usage,
+    harnessMetadata: { pi: { inferredStep: true } },
+  };
+}
+
 function finishStep(state: PiTranslatorState): HarnessV1StreamPart[] {
   if (!state.stepOpen || state.pendingStepToolCallIds.size > 0) return [];
   state.stepOpen = false;
   state.pendingStepToolCallIds.clear();
   state.stepToolCallCount = undefined;
-  return [
-    {
-      type: 'finish-step',
-      finishReason: { unified: 'stop', raw: 'stop' },
-      usage: {
-        inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
-        outputTokens: { total: 0, text: 0, reasoning: 0 },
-      },
-      harnessMetadata: { pi: { inferredStep: true } },
-    },
-  ];
+  const usage = toHarnessUsage(state.stepUsage ?? ZERO_PI_USAGE);
+  state.stepUsage = undefined;
+  return [createInferredFinishStep(usage)];
 }
 
 export function finishPiApprovalStep(
@@ -274,6 +317,7 @@ export function translatePiEvent(
         state.stepOpen = true;
         state.pendingStepToolCallIds.clear();
         state.stepToolCallCount = undefined;
+        state.stepUsage = undefined;
       }
       state.streamedAssistantText = '';
       state.currentTextId = undefined;
@@ -346,18 +390,15 @@ export function translatePiEvent(
         const call = readStreamingToolCall(event);
         if (!call) return [];
         const { wire, native } = resolveToolName(state, call.name);
-        const { isMcpTool, providerExecuted } = resolveToolDispatch(
-          state,
-          native,
-        );
+        const kind = resolveToolKind(state, native);
         state.streamingToolInputIds.set(call.contentIndex, call.id);
         return [
           {
             type: 'tool-input-start',
             id: call.id,
             toolName: wire,
-            ...(providerExecuted ? { providerExecuted: true } : {}),
-            ...(isMcpTool ? { dynamic: true } : {}),
+            ...(kind !== 'host' ? { providerExecuted: true } : {}),
+            ...(isDynamicToolKind(kind) ? { dynamic: true } : {}),
           },
         ];
       }
@@ -406,6 +447,15 @@ export function translatePiEvent(
         state.currentReasoningId = undefined;
       }
       if (event.type === 'message_end') {
+        const usage =
+          event.message?.role === 'assistant' ? event.message.usage : undefined;
+        if (usage) {
+          state.stepUsage = usage;
+          if (usage.reasoning !== undefined) {
+            state.turnReasoningTokens =
+              (state.turnReasoningTokens ?? 0) + usage.reasoning;
+          }
+        }
         const toolCallIds = extractPiToolCallIds(event.message);
         state.stepToolCallCount =
           toolCallIds.length > 0 ? toolCallIds.length : undefined;
@@ -426,11 +476,10 @@ export function translatePiEvent(
       if (!event.toolCallId || !event.toolName) return [];
       const { wire, native } = resolveToolName(state, event.toolName);
       state.observedToolNames.set(event.toolCallId, wire);
-      const { isMcpTool, providerExecuted } = resolveToolDispatch(
-        state,
-        native,
-      );
-      if (isMcpTool) state.dynamicToolCallIds.add(event.toolCallId);
+      const kind = resolveToolKind(state, native);
+      if (isDynamicToolKind(kind)) {
+        state.dynamicToolCalls.set(event.toolCallId, kind);
+      }
       const input = serializeToolOutput(event.args ?? event.input ?? {});
       return [
         {
@@ -439,8 +488,8 @@ export function translatePiEvent(
           toolName: wire,
           input,
           ...(wire !== native ? { nativeName: native } : {}),
-          ...(providerExecuted ? { providerExecuted: true } : {}),
-          ...(isMcpTool ? { dynamic: true } : {}),
+          ...(kind !== 'host' ? { providerExecuted: true } : {}),
+          ...(isDynamicToolKind(kind) ? { dynamic: true } : {}),
           ...(state.stepToolCallCount != null
             ? { stepToolCallCount: state.stepToolCallCount }
             : {}),
@@ -457,7 +506,8 @@ export function translatePiEvent(
         recordedName ??
         (nativeName ? resolveToolName(state, nativeName).wire : undefined);
       if (!wire) return [];
-      const dynamic = state.dynamicToolCallIds.delete(event.toolCallId);
+      const dynamicKind = state.dynamicToolCalls.get(event.toolCallId);
+      state.dynamicToolCalls.delete(event.toolCallId);
       /*
        * Prefer the exact value the host submitted for user-registered tools
        * (see `hostToolResults`). Built-in tools, whose results Pi produces and
@@ -469,7 +519,7 @@ export function translatePiEvent(
             HarnessV1StreamPart,
             { type: 'tool-result' }
           >['result'])
-        : dynamic
+        : dynamicKind === 'mcp'
           ? parseMcpToolResult(unwrapPiToolResult(event))
           : unwrapPiToolResult(event);
       state.hostToolResults.delete(event.toolCallId);
@@ -481,7 +531,7 @@ export function translatePiEvent(
           toolName: wire,
           result,
           ...(event.isError ? { isError: true } : {}),
-          ...(dynamic ? { dynamic: true } : {}),
+          ...(dynamicKind ? { dynamic: true } : {}),
         } as HarnessV1StreamPart,
         ...finishStep(state),
       ];
@@ -495,7 +545,8 @@ export function translatePiEvent(
        * rather than dropping the event. `reason` is `'manual'` for an explicit
        * `session.compact()` call, `'threshold'`/`'overflow'` for Pi's automatic
        * compaction — both map to `'auto'` on the wire. Pi reports `tokensBefore`
-       * but not `tokensAfter`.
+       * but not `tokensAfter`. Pi checks the threshold after the turn's last
+       * assistant message, so the step is often already finished.
        */
       if (event.aborted) return [];
       const result = event.result;
@@ -504,14 +555,15 @@ export function translatePiEvent(
       const summary =
         typeof rawSummary === 'string' ? rawSummary : '(no summary provided)';
       const tokensBefore = (result as { tokensBefore?: unknown }).tokensBefore;
-      return [
-        {
-          type: 'compaction',
-          trigger: event.reason === 'manual' ? 'manual' : 'auto',
-          summary,
-          ...(typeof tokensBefore === 'number' ? { tokensBefore } : {}),
-        },
-      ];
+      const compaction: HarnessV1StreamPart = {
+        type: 'compaction',
+        trigger: event.reason === 'manual' ? 'manual' : 'auto',
+        summary,
+        ...(typeof tokensBefore === 'number' ? { tokensBefore } : {}),
+      };
+      return state.stepOpen
+        ? [compaction]
+        : [compaction, createInferredFinishStep()];
     }
 
     default:

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/code-mode",
-  "version": "1.0.84",
+  "version": "1.0.93",
   "description": "QuickJS-backed code mode tool for AI SDK",
   "keywords": [
     "ai",
@@ -53,7 +53,7 @@
     "@vercel/ai-tsconfig": "workspace:*",
     "ai": "workspace:*",
     "tsdown": "^0.23.0",
-    "typescript": "5.8.3",
+    "typescript": "6.0.3",
     "zod": "3.25.76"
   },
   "engines": {

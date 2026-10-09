@@ -71,6 +71,7 @@ export interface TurnLifecycle<
     toolCallId: string;
     execute: () => PromiseLike<T>;
   }): Promise<T>;
+  abort(reason?: unknown): Promise<void>;
   error(error: unknown): Promise<void>;
 }
 
@@ -358,11 +359,22 @@ export function createTurnLifecycle<
       });
     },
 
+    async abort(reason) {
+      if (ended) return;
+      if (!started) await start();
+      ended = true;
+      await telemetry.onAbort?.({
+        callId: options.callId,
+        steps: [...completedSteps],
+        ...(reason !== undefined ? { reason } : {}),
+      });
+    },
+
     async error(error) {
       if (ended) return;
       if (!started) await start();
       ended = true;
-      await telemetry.onError?.(error);
+      await telemetry.onError?.({ callId: options.callId, error });
     },
   };
 }

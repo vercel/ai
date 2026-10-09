@@ -120,6 +120,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   onError,
   onToolCall,
   onData,
+  resetStateOnMessageIdChange = false,
+  resetStateOnFirstMessageStart = false,
 }: {
   // input stream is not fully typed yet:
   stream: ReadableStream<UIMessageChunk>;
@@ -136,6 +138,10 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
     }) => Promise<void>,
   ) => Promise<void>;
   onError: ErrorHandler;
+  // During resume, a different message ID identifies a separate response.
+  resetStateOnMessageIdChange?: boolean;
+  // A transport can replay a response from the beginning using the same ID.
+  resetStateOnFirstMessageStart?: boolean;
 }): ReadableStream<InferUIMessageChunk<UI_MESSAGE>> {
   return stream.pipeThrough(
     new TransformStream<UIMessageChunk, InferUIMessageChunk<UI_MESSAGE>>({
@@ -953,6 +959,25 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'start': {
+              if (
+                chunk.messageId != null &&
+                (resetStateOnFirstMessageStart ||
+                  (resetStateOnMessageIdChange &&
+                    chunk.messageId !== state.message.id))
+              ) {
+                // Start the separate response with empty parts and metadata.
+                // Reset the active-part maps too, so earlier chunks stay with
+                // the previous response. Keep the state object for its callers.
+                Object.assign(
+                  state,
+                  createStreamingUIMessageState({
+                    lastMessage: undefined,
+                    messageId: chunk.messageId,
+                  }),
+                  { finishReason: undefined },
+                );
+              }
+
               if (chunk.messageId != null) {
                 state.message.id = chunk.messageId;
               }

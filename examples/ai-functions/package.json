@@ -95,11 +95,11 @@
     "image-type": "^5.2.0",
     "just-bash": "^2.14.5",
     "mathjs": "^15.2.0",
-    "sharp": "^0.33.5",
+    "sharp": "^0.35.4",
     "terminal-image": "^2.0.0",
     "undici": "^8.9.0",
     "valibot": "1.1.0",
-    "workflow": "5.0.0-beta.42",
+    "workflow": "5.1.0",
     "ws": "^8.21.0",
     "zod": "3.25.76"
   },
@@ -112,6 +112,6 @@
     "@types/node": "22.19.19",
     "@types/ws": "^8.5.13",
     "tsx": "4.23.12",
-    "typescript": "5.8.3"
+    "typescript": "6.0.3"
   }
 }

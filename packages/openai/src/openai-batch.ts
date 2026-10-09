@@ -181,6 +181,7 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
     private readonly options: {
       provider: string;
       config: OpenAIConfig;
+      maxLineBytes?: number;
     },
   ) {
     this.provider = options.provider;
@@ -466,6 +467,7 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
         failedResponseHandler: openaiFailedResponseHandler,
         successfulResponseHandler: createJsonLinesResponseHandler(
           openaiBatchResultLineSchema,
+          { maxLineBytes: this.options.maxLineBytes },
         ),
         abortSignal: options.abortSignal,
         fetch: this.options.config.fetch,
@@ -810,7 +812,9 @@ async function convertOpenAIBatchResult(
           type: 'tool-result',
           toolCallId: part.id,
           toolName: 'web_search',
-          result: mapWebSearchOutput(part.action),
+          ...(part.status === 'failed' || part.status === 'incomplete'
+            ? { isError: true, result: { status: part.status } }
+            : { result: mapWebSearchOutput(part.action) }),
           dynamic: true,
         });
         break;

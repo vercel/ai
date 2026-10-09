@@ -22,6 +22,7 @@ import { z } from 'zod/v4';
 import {
   embed,
   embedMany,
+  experimental_decide,
   experimental_evaluate,
   generateObject,
   generateText,
@@ -31,7 +32,7 @@ import {
   type Telemetry,
 } from 'ai';
 import {
-  Experimental_EvaluationMockModelV4,
+  Experimental_DecisionMockModelV4,
   MockEmbeddingModelV4,
   MockLanguageModelV4,
 } from 'ai/test';
@@ -3106,77 +3107,216 @@ describe('OpenTelemetry', () => {
   });
 });
 
-describe('OpenTelemetry integration with evaluate', () => {
-  it('creates operation and model-call spans', async () => {
-    const tracer = createMockTracer();
-    const questions = {
-      refund: { type: 'boolean', instructions: 'Refund?' },
-    } as const;
+describe('OpenTelemetry integration with decide', () => {
+  it.each(['deprecated', 'current'] as const)(
+    'honors %s subclass hooks with and without super calls',
+    async hooks => {
+      for (const callSuper of [false, true]) {
+        const calls: Array<[string, string]> = [];
+        const tracer = createMockTracer();
+        class DeprecatedHooksIntegration extends OpenTelemetry {
+          override experimental_onEvaluateStart(
+            event: Parameters<OpenTelemetry['experimental_onEvaluateStart']>[0],
+          ): void {
+            calls.push(['start', event.operationId]);
+            if (callSuper) super.experimental_onEvaluateStart(event);
+          }
+          override experimental_onEvaluationModelCallStart(
+            event: Parameters<
+              OpenTelemetry['experimental_onEvaluationModelCallStart']
+            >[0],
+          ): void {
+            calls.push(['model-start', event.operationId]);
+            if (callSuper) super.experimental_onEvaluationModelCallStart(event);
+          }
+          override experimental_onEvaluationModelCallEnd(
+            event: Parameters<
+              OpenTelemetry['experimental_onEvaluationModelCallEnd']
+            >[0],
+          ): void {
+            calls.push(['model-end', event.operationId]);
+            if (callSuper) super.experimental_onEvaluationModelCallEnd(event);
+          }
+          override experimental_onEvaluateEnd(
+            event: Parameters<OpenTelemetry['experimental_onEvaluateEnd']>[0],
+          ): void {
+            calls.push(['end', event.operationId]);
+            if (callSuper) super.experimental_onEvaluateEnd(event);
+          }
+        }
+        class CurrentHooksIntegration extends OpenTelemetry {
+          override experimental_onDecideStart(
+            event: Parameters<OpenTelemetry['experimental_onDecideStart']>[0],
+          ): void {
+            calls.push(['start', event.operationId]);
+            if (callSuper) super.experimental_onDecideStart(event);
+          }
+          override experimental_onDecisionModelCallStart(
+            event: Parameters<
+              OpenTelemetry['experimental_onDecisionModelCallStart']
+            >[0],
+          ): void {
+            calls.push(['model-start', event.operationId]);
+            if (callSuper) super.experimental_onDecisionModelCallStart(event);
+          }
+          override experimental_onDecisionModelCallEnd(
+            event: Parameters<
+              OpenTelemetry['experimental_onDecisionModelCallEnd']
+            >[0],
+          ): void {
+            calls.push(['model-end', event.operationId]);
+            if (callSuper) super.experimental_onDecisionModelCallEnd(event);
+          }
+          override experimental_onDecideEnd(
+            event: Parameters<OpenTelemetry['experimental_onDecideEnd']>[0],
+          ): void {
+            calls.push(['end', event.operationId]);
+            if (callSuper) super.experimental_onDecideEnd(event);
+          }
+        }
+        const Integration =
+          hooks === 'deprecated'
+            ? DeprecatedHooksIntegration
+            : CurrentHooksIntegration;
+        await experimental_decide({
+          model: new Experimental_DecisionMockModelV4({
+            doDecide: async () => ({
+              answers: { refund: { type: 'boolean', probability: 0.9 } },
+              warnings: [],
+            }),
+          }),
+          state: 'Please refund me',
+          questions: { refund: { type: 'boolean', instructions: 'Refund?' } },
+          telemetry: { integrations: new Integration({ tracer }) },
+        });
+        expect(calls).toEqual([
+          ['start', 'ai.decide'],
+          ['model-start', 'ai.decide.doDecide'],
+          ['model-end', 'ai.decide.doDecide'],
+          ['end', 'ai.decide'],
+        ]);
+        expect(tracer.spans).toHaveLength(callSuper ? 2 : 0);
+        for (const span of tracer.spans) {
+          expect(span.ended).toBe(true);
+          expect(span.end).toHaveBeenCalledOnce();
+        }
+      }
+    },
+  );
 
-    await experimental_evaluate({
-      model: new Experimental_EvaluationMockModelV4({
-        doEvaluate: async () => ({
-          answers: { refund: { type: 'boolean', probability: 0.9 } },
-          usage: { inputTokens: 12, outputTokens: 2 },
-          warnings: [],
+  it.each([true, false])(
+    'serializes decision image bytes with recordInputs=%s',
+    async recordInputs => {
+      const tracer = createMockTracer();
+      const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0xff, 0xff]);
+      await experimental_decide({
+        model: new Experimental_DecisionMockModelV4({
+          doDecide: async () => ({
+            answers: { visible: { type: 'boolean', probability: 0.9 } },
+            warnings: [],
+          }),
         }),
-      }),
-      state: { message: 'Please refund me' },
-      questions,
-      telemetry: {
-        integrations: new OpenTelemetry({
-          tracer,
-          experimental_evaluation: true,
-        }),
-      },
-    });
+        state: [{ type: 'file', mediaType: 'image/png', data: bytes }],
+        questions: {
+          visible: { type: 'boolean', instructions: 'Is the product visible?' },
+        },
+        telemetry: {
+          recordInputs,
+          integrations: new OpenTelemetry({
+            tracer,
+            experimental_decision: true,
+          }),
+        },
+      });
+      const attributes = tracer.spans.map(
+        span => serializeSpan(span, tracer).initAttributes,
+      );
+      expect(attributes).toHaveLength(2);
+      for (const value of attributes) {
+        expect(value['ai.decision.state']).toBe(
+          recordInputs
+            ? '[{"type":"file","mediaType":"image/png","data":"iVBOR///"}]'
+            : undefined,
+        );
+      }
+    },
+  );
 
-    expect(tracer.spans).toHaveLength(2);
-    expect(tracer.spans.map(span => serializeSpan(span, tracer)))
-      .toMatchInlineSnapshot(`
+  it.each(['current', 'deprecated'] as const)(
+    'creates decision spans through the %s API',
+    async api => {
+      const tracer = createMockTracer();
+      const questions = {
+        refund: { type: 'boolean', instructions: 'Refund?' },
+      } as const;
+
+      await (api === 'current' ? experimental_decide : experimental_evaluate)({
+        model: new Experimental_DecisionMockModelV4({
+          doDecide: async () => ({
+            answers: { refund: { type: 'boolean', probability: 0.9 } },
+            usage: { inputTokens: 12, outputTokens: 2 },
+            warnings: [],
+          }),
+        }),
+        state: { message: 'Please refund me' },
+        questions,
+        telemetry: {
+          integrations: new OpenTelemetry({
+            tracer,
+            ...(api === 'current'
+              ? { experimental_decision: true }
+              : { experimental_evaluation: true }),
+          }),
+        },
+      });
+
+      expect(tracer.spans).toHaveLength(2);
+      expect(tracer.spans.map(span => serializeSpan(span, tracer)))
+        .toMatchInlineSnapshot(`
         [
           {
             "ended": true,
             "initAttributes": {
-              "ai.evaluation.questions": "{"refund":{"type":"boolean","instructions":"Refund?"}}",
-              "ai.evaluation.state": "{"message":"Please refund me"}",
-              "gen_ai.operation.name": "evaluate",
+              "ai.decision.questions": "{"refund":{"type":"boolean","instructions":"Refund?"}}",
+              "ai.decision.state": "{"message":"Please refund me"}",
+              "gen_ai.operation.name": "decide",
               "gen_ai.provider.name": "mock-provider",
               "gen_ai.request.model": "mock-model-id",
             },
-            "name": "evaluate mock-model-id",
+            "name": "decide mock-model-id",
             "runtimeAttributes": {
-              "ai.evaluation.answers": "{"refund":{"type":"boolean","probability":0.9}}",
+              "ai.decision.answers": "{"refund":{"type":"boolean","probability":0.9}}",
             },
           },
           {
             "ended": true,
             "initAttributes": {
-              "ai.evaluation.questions": "{"refund":{"type":"boolean","instructions":"Refund?"}}",
-              "ai.evaluation.state": "{"message":"Please refund me"}",
-              "gen_ai.operation.name": "evaluate",
+              "ai.decision.questions": "{"refund":{"type":"boolean","instructions":"Refund?"}}",
+              "ai.decision.state": "[{"type":"json","value":{"message":"Please refund me"}}]",
+              "gen_ai.operation.name": "decide",
               "gen_ai.provider.name": "mock-provider",
               "gen_ai.request.model": "mock-model-id",
             },
-            "name": "evaluate mock-model-id",
+            "name": "decide mock-model-id",
             "runtimeAttributes": {
-              "ai.evaluation.answers": "{"refund":{"type":"boolean","probability":0.9}}",
+              "ai.decision.answers": "{"refund":{"type":"boolean","probability":0.9}}",
               "gen_ai.usage.input_tokens": 12,
               "gen_ai.usage.output_tokens": 2,
             },
           },
         ]
       `);
-  });
+    },
+  );
 
-  it('ends both spans with error status when evaluation fails', async () => {
+  it('ends both spans with error status when decision fails', async () => {
     const tracer = createMockTracer();
-    const error = new Error('evaluation failed');
+    const error = new Error('decision failed');
 
     await expect(
-      experimental_evaluate({
-        model: new Experimental_EvaluationMockModelV4({
-          doEvaluate: async () => {
+      experimental_decide({
+        model: new Experimental_DecisionMockModelV4({
+          doDecide: async () => {
             throw error;
           },
         }),
@@ -3194,7 +3334,7 @@ describe('OpenTelemetry integration with evaluate', () => {
       expect(span.ended).toBe(true);
       expect(span.status).toEqual({
         code: SpanStatusCode.ERROR,
-        message: 'evaluation failed',
+        message: 'decision failed',
       });
       expect(span.exceptions).toHaveLength(1);
     }

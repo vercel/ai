@@ -159,4 +159,41 @@ describe('SerialJobExecutor', () => {
     // Verify that jobs were executed in the order they were queued
     expect(executionOrder).toEqual([1, 2, 3]);
   });
+
+  it('should wait until jobs queued by a running job have finished', async () => {
+    const executor = new SerialJobExecutor();
+    const jobStarted = new DelayedPromise<void>();
+    const jobCanFinish = new DelayedPromise<void>();
+    const executionOrder: string[] = [];
+
+    void executor.run(async () => {
+      executionOrder.push('first-started');
+      jobStarted.resolve();
+      await jobCanFinish.promise;
+
+      void executor.run(async () => {
+        executionOrder.push('nested-finished');
+      });
+
+      executionOrder.push('first-finished');
+    });
+
+    await jobStarted.promise;
+
+    let idle = false;
+    const idlePromise = executor.waitForIdle().then(() => {
+      idle = true;
+    });
+
+    expect(idle).toBe(false);
+
+    jobCanFinish.resolve();
+    await idlePromise;
+
+    expect(executionOrder).toEqual([
+      'first-started',
+      'first-finished',
+      'nested-finished',
+    ]);
+  });
 });
