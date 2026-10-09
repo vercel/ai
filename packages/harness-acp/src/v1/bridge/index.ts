@@ -554,6 +554,12 @@ async function ensureSession({
         active.emitStreamEvent.suppressToolCall({
           toolCallId: nativeToolCallId ?? classification.toolCallId,
         });
+        active.turn.emit({
+          type: 'finish-step',
+          finishReason: { unified: 'tool-calls', raw: 'host-input' },
+          usage: unknownUsage(),
+          harnessMetadata: { acp: { inferredStep: true } },
+        });
         try {
           const nativeResult = await active.turn.requestToolResult(
             classification.toolCallId,

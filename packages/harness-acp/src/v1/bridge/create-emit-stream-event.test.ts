@@ -214,16 +214,41 @@ describe('host weather approval stream', () => {
           await called;
           expect(events.filter(event => event.type !== 'raw'))
             .toMatchInlineSnapshot(`
-          [
-            {
-              "input": "{"city":"Austin"}",
-              "providerExecuted": false,
-              "toolCallId": "relay-weather",
-              "toolName": "get_weather",
-              "type": "tool-call",
-            },
-          ]
-        `);
+              [
+                {
+                  "input": "{"city":"Austin"}",
+                  "providerExecuted": false,
+                  "toolCallId": "relay-weather",
+                  "toolName": "get_weather",
+                  "type": "tool-call",
+                },
+                {
+                  "finishReason": {
+                    "raw": "host-input",
+                    "unified": "tool-calls",
+                  },
+                  "harnessMetadata": {
+                    "acp": {
+                      "inferredStep": true,
+                    },
+                  },
+                  "type": "finish-step",
+                  "usage": {
+                    "inputTokens": {
+                      "cacheRead": undefined,
+                      "cacheWrite": undefined,
+                      "noCache": undefined,
+                      "total": undefined,
+                    },
+                    "outputTokens": {
+                      "reasoning": undefined,
+                      "text": undefined,
+                      "total": undefined,
+                    },
+                  },
+                },
+              ]
+            `);
           resolveResult({ output: { city: 'Austin', temperature: 72 } });
           expect((await response).status).toBe(200);
           expect((await invoke()).status).toBe(401);

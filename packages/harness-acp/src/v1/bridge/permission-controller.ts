@@ -113,6 +113,12 @@ export function createACPPermissionController({
         approvalId,
         toolCallId: request.toolCall.toolCallId,
       });
+      turn.emit({
+        type: 'finish-step',
+        finishReason: { unified: 'tool-calls', raw: 'host-input' },
+        usage: unknownUsage(),
+        harnessMetadata: { acp: { inferredStep: true } },
+      });
 
       try {
         const response = await Promise.race([approval, cancellation]);
@@ -162,4 +168,20 @@ function shouldAutoApprove({
 
 function cancelled(): RequestPermissionResponse {
   return { outcome: { outcome: 'cancelled' } };
+}
+
+function unknownUsage() {
+  return {
+    inputTokens: {
+      total: undefined,
+      noCache: undefined,
+      cacheRead: undefined,
+      cacheWrite: undefined,
+    },
+    outputTokens: {
+      total: undefined,
+      text: undefined,
+      reasoning: undefined,
+    },
+  };
 }

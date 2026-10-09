@@ -292,6 +292,12 @@ export function createACPStreamTranslator({
     });
     stepOpen = true;
     pendingToolCallIds.add(toolCallId);
+    emit({
+      type: 'finish-step',
+      finishReason: { unified: 'tool-calls', raw: 'host-input' },
+      usage: unknownUsage(),
+      harnessMetadata: { acp: { inferredStep: true } },
+    });
   };
 
   const hostToolResult = ({

@@ -3789,6 +3789,12 @@ describe('createACP', () => {
       input: JSON.stringify({ key: 'answer' }),
       providerExecuted: false,
     });
+    firstChannel.emit({
+      type: 'finish-step',
+      finishReason: { unified: 'tool-calls', raw: 'host-input' },
+      usage: unknownUsage(),
+      harnessMetadata: { acp: { inferredStep: true } },
+    });
     await firstPartsPromise;
 
     harnessUtilsMocks.nextSuspensionCursor = 31;
@@ -3899,6 +3905,12 @@ describe('createACP', () => {
       type: 'tool-approval-request',
       approvalId: 'native-approval',
       toolCallId: 'native-call',
+    });
+    firstChannel.emit({
+      type: 'finish-step',
+      finishReason: { unified: 'tool-calls', raw: 'host-input' },
+      usage: unknownUsage(),
+      harnessMetadata: { acp: { inferredStep: true } },
     });
     await firstPartsPromise;
 
@@ -4399,6 +4411,12 @@ describe('createACP', () => {
       toolName: 'clientTool',
       input: JSON.stringify({ question: 'name' }),
       providerExecuted: false,
+    });
+    channel.emit({
+      type: 'finish-step',
+      finishReason: { unified: 'tool-calls', raw: 'host-input' },
+      usage: unknownUsage(),
+      harnessMetadata: { acp: { inferredStep: true } },
     });
     await firstPartsPromise;
     expect(session.hasUnfinishedTurn()).toBe(true);
