@@ -59,6 +59,7 @@ export type GatewayModelId =
   | 'bytedance/seed-1.6'
   | 'bytedance/seed-1.8'
   | 'bytedance/seed-2.1-turbo'
+  | 'callstack/apex'
   | 'cohere/command-a'
   | 'deepseek/deepseek-r1'
   | 'deepseek/deepseek-v3.1'
