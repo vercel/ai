@@ -65,6 +65,7 @@ export type UseChatOptions<UI_MESSAGE extends UIMessage> = (
 type AutomaticResumeState = {
   registrations: Set<object>;
   cleanupVisibilityListener?: () => void;
+  pendingVisibilityResume?: Promise<void>;
 };
 
 const automaticResumeStates = new WeakMap<object, AutomaticResumeState>();
@@ -86,31 +87,45 @@ function registerAutomaticResume<UI_MESSAGE extends UIMessage>({
   let state = automaticResumeStates.get(chat);
 
   if (state == null) {
-    let cleanupVisibilityListener: (() => void) | undefined;
+    state = {
+      registrations: new Set(),
+    };
+    automaticResumeStates.set(chat, state);
 
     if (typeof document !== 'undefined') {
+      const automaticResumeState = state;
       const onVisibilityChange = () => {
-        if (document.visibilityState === 'visible') {
-          void (chat as Chat<UI_MESSAGE> & AutomaticallyResumableChat)[
-            '~resumeStreamIfDisconnected'
-          ]({
+        if (
+          document.visibilityState === 'visible' &&
+          automaticResumeState.pendingVisibilityResume == null
+        ) {
+          const resumePromise = (
+            chat as Chat<UI_MESSAGE> & AutomaticallyResumableChat
+          )['~resumeStreamIfDisconnected']({
             waitForCurrentResponse: true,
-            shouldResume: () => document.visibilityState === 'visible',
+            shouldResume: () =>
+              automaticResumeStates.get(chat) === automaticResumeState &&
+              automaticResumeState.registrations.size > 0 &&
+              document.visibilityState === 'visible',
           });
+          automaticResumeState.pendingVisibilityResume = resumePromise;
+
+          const clearPendingResume = () => {
+            if (
+              automaticResumeState.pendingVisibilityResume === resumePromise
+            ) {
+              automaticResumeState.pendingVisibilityResume = undefined;
+            }
+          };
+          void resumePromise.then(clearPendingResume, clearPendingResume);
         }
       };
 
       document.addEventListener('visibilitychange', onVisibilityChange);
-      cleanupVisibilityListener = () => {
+      state.cleanupVisibilityListener = () => {
         document.removeEventListener('visibilitychange', onVisibilityChange);
       };
     }
-
-    state = {
-      registrations: new Set(),
-      cleanupVisibilityListener,
-    };
-    automaticResumeStates.set(chat, state);
   }
 
   const { registrations } = state;

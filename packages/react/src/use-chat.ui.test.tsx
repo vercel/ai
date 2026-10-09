@@ -32,6 +32,13 @@ function formatChunk(part: UIMessageChunk) {
   return `data: ${JSON.stringify(part)}\n\n`;
 }
 
+type AutomaticallyResumableChat = Chat<UIMessage> & {
+  '~resumeStreamIfDisconnected': (options: {
+    waitForCurrentResponse: boolean;
+    shouldResume: () => boolean;
+  }) => Promise<void>;
+};
+
 const server = createTestServer({
   '/api/chat': {},
   '/api/chat/123/stream': {},
@@ -2664,6 +2671,10 @@ describe('use-chat', () => {
           },
         },
       });
+      const resumeIfDisconnected = vi.spyOn(
+        chat as AutomaticallyResumableChat,
+        '~resumeStreamIfDisconnected',
+      );
 
       function Consumer() {
         useChat({ chat, resume: true });
@@ -2696,6 +2707,10 @@ describe('use-chat', () => {
       fireEvent(document, new Event('visibilitychange'));
       visibilityState.mockReturnValue('visible');
       fireEvent(document, new Event('visibilitychange'));
+      fireEvent(document, new Event('visibilitychange'));
+      fireEvent(document, new Event('visibilitychange'));
+
+      expect(resumeIfDisconnected).toHaveBeenCalledOnce();
 
       await act(async () => {
         originalController.error(new TypeError('network connection lost'));
@@ -2715,6 +2730,72 @@ describe('use-chat', () => {
         ]);
       });
     });
+
+    it.each(['unmounts', 'disables automatic resumption'] as const)(
+      'should not reconnect after the last consumer %s while recovery is pending',
+      async cleanupMode => {
+        const visibilityState = vi
+          .spyOn(document, 'visibilityState', 'get')
+          .mockReturnValue('visible');
+        let originalController!: ReadableStreamDefaultController<UIMessageChunk>;
+        let reconnectCount = 0;
+        const chat = new Chat({
+          id: `cancelled-${cleanupMode}`,
+          transport: {
+            sendMessages: async () =>
+              new ReadableStream<UIMessageChunk>({
+                start(controller) {
+                  originalController = controller;
+                },
+              }),
+            reconnectToStream: async () => {
+              reconnectCount++;
+              return null;
+            },
+          },
+        });
+        const resumeIfDisconnected = vi.spyOn(
+          chat as AutomaticallyResumableChat,
+          '~resumeStreamIfDisconnected',
+        );
+
+        function Consumer({ resume }: { resume: boolean }) {
+          useChat({ chat, resume });
+          return null;
+        }
+
+        const view = render(<Consumer resume />);
+        await waitFor(() => expect(reconnectCount).toBe(1));
+
+        let sendPromise!: Promise<void>;
+        await act(async () => {
+          sendPromise = chat.sendMessage({ text: 'hi' });
+        });
+        await vi.waitUntil(() => originalController != null);
+        await waitFor(() => expect(chat.status).toBe('submitted'));
+
+        visibilityState.mockReturnValue('hidden');
+        fireEvent(document, new Event('visibilitychange'));
+        visibilityState.mockReturnValue('visible');
+        fireEvent(document, new Event('visibilitychange'));
+        expect(resumeIfDisconnected).toHaveBeenCalledOnce();
+
+        if (cleanupMode === 'unmounts') {
+          view.unmount();
+        } else {
+          view.rerender(<Consumer resume={false} />);
+        }
+
+        await act(async () => {
+          originalController.error(new TypeError('network connection lost'));
+          await sendPromise;
+        });
+        await act(async () => {});
+
+        expect(reconnectCount).toBe(1);
+        expect(chat.status).toBe('error');
+      },
+    );
 
     it('should preserve non-network errors when document becomes visible', async () => {
       const visibilityState = vi
