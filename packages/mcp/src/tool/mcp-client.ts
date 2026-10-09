@@ -488,7 +488,7 @@ class DefaultMCPClient implements MCPClient {
 
       const execute = async (
         args: any,
-        options: ToolCallOptions,
+        options?: ToolCallOptions,
       ): Promise<CallToolResult> => {
         options?.abortSignal?.throwIfAborted();
         return self.callTool({ name, args, options });

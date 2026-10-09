@@ -168,15 +168,7 @@ describe('MCPClient', () => {
 
     const toolCall = tool.execute;
     expect(toolCall).toBeDefined();
-    expect(
-      await toolCall(
-        { foo: 'bar' },
-        {
-          messages: [],
-          toolCallId: '1',
-        },
-      ),
-    ).toMatchInlineSnapshot(`
+    expect(await toolCall({ foo: 'bar' })).toMatchInlineSnapshot(`
       {
         "content": [
           {
