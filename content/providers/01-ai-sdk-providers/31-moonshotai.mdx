@@ -103,14 +103,12 @@ unchanged.
 
 #### Structured Outputs
 
-Native structured outputs are enabled for Kimi K models and the official
-Moonshot V1 text, auto, and vision models.
+Native structured outputs are enabled for all model IDs, including Kimi K
+models, the official Moonshot V1 text, auto, and vision models, and custom or
+future model IDs.
 
 The provider normalizes schemas to Moonshot's supported JSON Schema subset and
 enables strict schema validation by default.
-
-For unknown custom model IDs, object generation falls back to JSON mode instead
-of schema-constrained decoding.
 
 For best reliability, it is strongly recommended to include your schema requirements in your prompt in addition to passing the schema through `Output`.
 
