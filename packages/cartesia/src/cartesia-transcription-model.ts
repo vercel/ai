@@ -561,7 +561,9 @@ function cartesiaEncodingFromInputAudioFormat(type: string): string {
 }
 
 function isStreamingTranscriptionModelId(modelId: string): boolean {
-  return modelId === 'ink-2' || modelId.startsWith('ink-2-');
+  // Ink Whisper is the known batch-only model. Future IDs inherit the
+  // current streaming protocol regardless of their name.
+  return modelId !== 'ink-whisper';
 }
 
 const cartesiaTranscriptionResponseSchema = z.object({
