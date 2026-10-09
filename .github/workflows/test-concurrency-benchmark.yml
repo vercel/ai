@@ -14,17 +14,39 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node:
-          - 22
-        trial:
-          - name: paired-forward
-            cases: 2:2 4:2
-          - name: paired-reverse
-            cases: 4:2 2:2
-          - name: one-package-four-workers-1
-            cases: '1:4'
-          - name: one-package-four-workers-2
-            cases: '1:4'
+        include:
+          - node: 22
+            trial:
+              name: packages-2-workers-3-1
+              cases: '2:3'
+          - node: 22
+            trial:
+              name: packages-3-workers-2-1
+              cases: '3:2'
+          - node: 22
+            trial:
+              name: packages-4-workers-2-1
+              cases: '4:2'
+          - node: 22
+            trial:
+              name: packages-2-workers-3-2
+              cases: '2:3'
+          - node: 22
+            trial:
+              name: packages-3-workers-2-2
+              cases: '3:2'
+          - node: 22
+            trial:
+              name: packages-4-workers-2-2
+              cases: '4:2'
+          - node: 24
+            trial:
+              name: packages-4-workers-2-validation
+              cases: '4:2'
+          - node: 26
+            trial:
+              name: packages-4-workers-2-validation
+              cases: '4:2'
     steps:
       - name: Checkout identical tested revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -96,6 +118,7 @@ jobs:
               'order': int(os.environ['BENCHMARK_ORDER']),
               'node': subprocess.check_output(['node', '--version'], text=True).strip(),
               'cpus': os.cpu_count(),
+              'cpu_model': next((line.split(':', 1)[1].strip() for line in pathlib.Path('/proc/cpuinfo').read_text().splitlines() if line.startswith('model name')), ''),
               'available_parallelism': subprocess.check_output(['node', '-p', 'require("node:os").availableParallelism()'], text=True).strip(),
               'revision': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
               'exit_code': int(os.environ['TEST_STATUS']),
