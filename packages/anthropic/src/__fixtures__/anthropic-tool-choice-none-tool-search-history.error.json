@@ -1,0 +1,8 @@
+{
+  "type": "error",
+  "error": {
+    "type": "invalid_request_error",
+    "message": "Tool reference 'lookup_documents' not found in available tools"
+  },
+  "request_id": "req_011CfrvEkff81JwQM2B2HR77"
+}

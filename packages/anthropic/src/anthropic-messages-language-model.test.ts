@@ -3906,6 +3906,144 @@ describe('AnthropicMessagesLanguageModel', () => {
         });
       });
 
+      it('should return final text with none after completed tool-search history', async () => {
+        const successResponse = JSON.parse(
+          fs.readFileSync(
+            'src/__fixtures__/anthropic-tool-choice-none-tool-search-history.success.json',
+            'utf8',
+          ),
+        );
+        const errorResponse = JSON.parse(
+          fs.readFileSync(
+            'src/__fixtures__/anthropic-tool-choice-none-tool-search-history.error.json',
+            'utf8',
+          ),
+        );
+        const noneProvider = createAnthropic({
+          apiKey: 'test-api-key',
+          generateId: mockId({ prefix: 'id' }),
+          fetch: async (_input, init) => {
+            const body = JSON.parse(init?.body as string);
+            const isValidNoneRequest =
+              body.tool_choice?.type === 'none' &&
+              body.tools?.some(
+                (tool: { name?: string }) => tool.name === 'lookup_documents',
+              );
+
+            return new Response(
+              JSON.stringify(
+                isValidNoneRequest ? successResponse : errorResponse,
+              ),
+              {
+                status: isValidNoneRequest ? 200 : 400,
+                headers: { 'content-type': 'application/json' },
+              },
+            );
+          },
+        });
+
+        const result = await noneProvider('claude-opus-5-5').doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Find the document lookup tool, use it for Apple revenue, then answer.',
+                },
+              ],
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'srvtoolu_issue22433_completed_search',
+                  toolName: 'tool_search',
+                  input: { query: 'Apple revenue document lookup' },
+                  providerExecuted: true,
+                  providerOptions: {
+                    anthropic: { caller: { type: 'direct' } },
+                  },
+                },
+                {
+                  type: 'tool-result',
+                  toolCallId: 'srvtoolu_issue22433_completed_search',
+                  toolName: 'tool_search',
+                  output: {
+                    type: 'json',
+                    value: [
+                      {
+                        type: 'tool_reference',
+                        toolName: 'lookup_documents',
+                      },
+                    ],
+                  },
+                },
+                {
+                  type: 'tool-call',
+                  toolCallId: 'toolu_issue22433_lookup',
+                  toolName: 'lookup_documents',
+                  input: { company: 'Apple', topic: 'revenue' },
+                  providerOptions: {
+                    anthropic: { caller: { type: 'direct' } },
+                  },
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'toolu_issue22433_lookup',
+                  toolName: 'lookup_documents',
+                  output: {
+                    type: 'json',
+                    value: { text: 'Net sales FY2025: $416.2B' },
+                  },
+                },
+              ],
+            },
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Write your final answer now.' }],
+            },
+          ],
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.tool_search_bm25_20251119',
+              name: 'tool_search',
+              args: {},
+            },
+            {
+              type: 'function',
+              name: 'lookup_documents',
+              description: 'Look up documents for a company and topic.',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  company: { type: 'string' },
+                  topic: { type: 'string' },
+                },
+                required: ['company', 'topic'],
+                additionalProperties: false,
+              },
+              providerOptions: {
+                anthropic: { deferLoading: true },
+              },
+            },
+          ],
+          toolChoice: { type: 'none' },
+        });
+
+        expect(result.content).toContainEqual({
+          type: 'text',
+          text: expect.stringContaining('$416.2 billion'),
+        });
+      });
+
       describe('deferred result - bm25 variant', () => {
         it('should correctly map tool_search_tool_result when result comes without server_tool_use in same response', async () => {
           prepareJsonFixtureResponse('anthropic-tool-search-deferred-bm25.2');
