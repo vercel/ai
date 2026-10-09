@@ -196,19 +196,4 @@ describe('SerialJobExecutor', () => {
       'nested-finished',
     ]);
   });
-
-  it('should identify the synchronous invocation of a running job', async () => {
-    const executor = new SerialJobExecutor();
-    let isExecutingBeforeAwait: boolean | undefined;
-    let isExecutingAfterAwait: boolean | undefined;
-
-    await executor.run(async () => {
-      isExecutingBeforeAwait = executor.isExecutingJobSynchronously();
-      await Promise.resolve();
-      isExecutingAfterAwait = executor.isExecutingJobSynchronously();
-    });
-
-    expect(isExecutingBeforeAwait).toBe(true);
-    expect(isExecutingAfterAwait).toBe(false);
-  });
 });

@@ -275,6 +275,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     | StreamingUIMessageState<UI_MESSAGE>
     | undefined = undefined;
   private jobExecutor = new SerialJobExecutor();
+  private activeProcessingCallbackCount = 0;
   private activeStopCount = 0;
   private stopGeneration = 0;
 
@@ -725,14 +726,15 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
   /**
    * Abort the current request, keep the generated tokens if any, and wait for
-   * the request pipeline to finish.
+   * the request pipeline to finish. When a blocking processing callback is
+   * active, remaining callback work is drained in the background to avoid a
+   * reentrant wait cycle.
    */
   stop = async () => {
     this.activeStopCount++;
     this.stopGeneration++;
 
-    const isCalledFromExecutorJob =
-      this.jobExecutor.isExecutingJobSynchronously();
+    const isProcessingCallback = this.activeProcessingCallbackCount > 0;
     const activeResumeRequest = this.activeResumeRequest;
     const activeResponse = this.activeResponse;
 
@@ -753,11 +755,11 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       await this.jobExecutor.waitForIdle();
     };
 
-    // Awaiting executor quiescence from a callback that is being invoked by
-    // the executor would make the callback and stop wait for each other.
-    // Abort synchronously, let the callback continue, and finish draining in
-    // the background while keeping automatic requests disabled.
-    if (isCalledFromExecutorJob) {
+    // Awaiting executor quiescence while a blocking callback is active can
+    // make stop and that callback wait for each other. Abort synchronously,
+    // let the callback continue, and finish draining in the background while
+    // keeping automatic requests disabled.
+    if (isProcessingCallback) {
       void finishStopping().finally(() => {
         this.activeStopCount--;
       });
@@ -780,18 +782,26 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   };
 
   private async shouldSendAutomatically(): Promise<boolean> {
-    if (!this.sendAutomaticallyWhen) return false;
+    const sendAutomaticallyWhen = this.sendAutomaticallyWhen;
+    if (!sendAutomaticallyWhen) return false;
 
-    const result = this.sendAutomaticallyWhen({
-      messages: this.state.messages,
-    });
+    return this.runProcessingCallback(() =>
+      sendAutomaticallyWhen({
+        messages: this.state.messages,
+      }),
+    );
+  }
 
-    // Check if result is a promise
-    if (result && typeof result === 'object' && 'then' in result) {
-      return await result;
+  private async runProcessingCallback<T>(
+    callback: () => T | PromiseLike<T>,
+  ): Promise<T> {
+    this.activeProcessingCallbackCount++;
+
+    try {
+      return await callback();
+    } finally {
+      this.activeProcessingCallbackCount--;
     }
-
-    return result as boolean;
   }
 
   private async runAutomaticRequest(
@@ -1072,13 +1082,21 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           });
         });
 
+      const onToolCall = this.onToolCall;
+
       await consumeStream({
         stream: processUIMessageStream({
           stream,
           resetStateOnMessageIdChange: trigger === 'resume-stream',
           resetStateOnFirstMessageStart:
             trigger === 'resume-stream' && this.transport.resumeStreamIsReplay,
-          onToolCall: this.onToolCall,
+          // Track the complete callback lifetime, including asynchronous
+          // continuations, so stop can avoid waiting on its executor job.
+          onToolCall:
+            onToolCall == null
+              ? undefined
+              : options =>
+                  this.runProcessingCallback(() => onToolCall(options)),
           onData: this.onData,
           messageMetadataSchema: this.messageMetadataSchema,
           dataPartSchemas: this.dataPartSchemas,

@@ -3,7 +3,6 @@ import type { Job } from './job';
 export class SerialJobExecutor {
   private queue: Array<Job> = [];
   private isProcessing = false;
-  private isInvokingJob = false;
   private idleWaiters: Array<() => void> = [];
 
   private async processQueue() {
@@ -15,16 +14,7 @@ export class SerialJobExecutor {
 
     try {
       while (this.queue.length > 0) {
-        let jobPromise: Promise<void>;
-
-        this.isInvokingJob = true;
-        try {
-          jobPromise = this.queue[0]();
-        } finally {
-          this.isInvokingJob = false;
-        }
-
-        await jobPromise;
+        await this.queue[0]();
         this.queue.shift();
       }
     } finally {
@@ -59,9 +49,5 @@ export class SerialJobExecutor {
     await new Promise<void>(resolve => {
       this.idleWaiters.push(resolve);
     });
-  }
-
-  isExecutingJobSynchronously(): boolean {
-    return this.isInvokingJob;
   }
 }
