@@ -461,16 +461,27 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       }) =>
     this.jobExecutor.run(async () => {
       const messages = this.state.messages;
-      const lastMessage = messages[messages.length - 1];
 
-      this.state.replaceMessage(messages.length - 1, {
-        ...lastMessage,
-        parts: lastMessage.parts.map(part =>
-          isToolOrDynamicToolUIPart(part) && part.toolCallId === toolCallId
-            ? { ...part, state, output, errorText }
-            : part,
+      const messageIndex = messages.findIndex(message =>
+        message.parts.some(
+          part =>
+            isToolOrDynamicToolUIPart(part) && part.toolCallId === toolCallId,
         ),
-      });
+      );
+
+      if (messageIndex !== -1) {
+        const message = messages[messageIndex];
+
+        // update the message to trigger an immediate UI update
+        this.state.replaceMessage(messageIndex, {
+          ...message,
+          parts: message.parts.map(part =>
+            isToolOrDynamicToolUIPart(part) && part.toolCallId === toolCallId
+              ? { ...part, state, output, errorText }
+              : part,
+          ),
+        });
+      }
 
       // update the active response if it exists
       if (this.activeResponse) {
@@ -489,6 +500,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
       // automatically send the message if the sendAutomaticallyWhen function returns true
       if (
+        messageIndex !== -1 &&
         this.status !== 'streaming' &&
         this.status !== 'submitted' &&
         this.sendAutomaticallyWhen
@@ -501,7 +513,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
             () =>
               this.makeRequest({
                 trigger: 'submit-message',
-                messageId: this.lastMessage?.id,
+                messageId: messages[messageIndex].id,
               }),
             shouldSend,
           );
