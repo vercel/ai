@@ -1,0 +1,37 @@
+{
+  "model": "claude-opus-5-5",
+  "id": "msg_011CfrpT4ZpdvB3CJ847UKuN",
+  "type": "message",
+  "role": "assistant",
+  "content": [
+    {
+      "type": "thinking",
+      "thinking": "",
+      "signature": "CAQS4QUKEAgSGAI4AUIIdGhpbmtpbmcSDCB6JJ9cH+t7R1CKExoMCTepzXsWtPneLAp0IjBI7Rf1n/rS0ncqRlkbe9vJeVXY49waGuOmW12Vi7NRqKNLsK3PqmB7SThSlWLZz6Iq/gQPuHy6mx+P5Imv7iPw1UaVhBJSjaeAkgij81a2eWl6PaVRUcjtaulOY0i8QAOOagtyZRqSRpy6HThGJReqQwGx7+3uK+Ye+OIGPEfkIXol5ZW/Fr+gHwXIjH+FAprIlKqlNDaDlbWlUGTnvwkEQDePfyUqJYrQkIfJF3C5sjYWnzhiF/DGNdn1zWyF6ilVZu9lDHIkuXOV5+KNa3hAs78E9nXdlS06exQSLtDw5FsWraWYgIl057PfPOU2CnzzjOY2eAsasHrPX+oIyqrxt4Ww0y1OJdbzOHes9IrL2trXb7H/V36vh4z06cMyZi+9Ageir2SWCpYncfoQHKRdqxczpI/Cm/zQk3iG77qywl/eTT5c517E68m4YKVfSXOuQuaJgMkgf/0kYXnfBDg0rythZe5L+fH6OZYvYiynDxxgx+zDwIX15WYx3+yYBb6HRxmp7lOm3xy6iCMdUBFX+PjlC3GFGf0550lxcJnltcTRbHT54InzemzW8Z6UVrN47bxu5QgM1Ljzu64XJ9/o4KSfAKL94stYLTjr3tDzM1RILdUi91iiZtJqHIYgm6C6iJD+l/A6g6RVCKwoUD9rgUUYyssfuPqIpnVed6PWAXIdsb7pL3TavyQHmyLRAWrf8XsjMq9fXHHs6g+wSFI69s/VXDg3YkDMX5DQHVKO6tsRh1n7uQm2peJKM/POQ8y8RQH8PUHCr7zkRshfQWQKpE6ST6PkEh5fSaH291xW7a69fPBiMuDYI382Q7IxHTaBYRq8VLKeqaMKVD2Xu3lmwxRlLnQH6l7nGOs2WqAkh00mldcjFf6zVOCs5rbLnxkKs2CahlUjLRjBIrW7P+Y8+RgB"
+    },
+    {
+      "type": "text",
+      "text": "I found one: **`get_weather`**, which gets the current weather for a location you name.\n\n- **Input:** `location` (text, required), such as \"Paris\" or \"Tokyo\".\n- **Limits:** It only gives current conditions. It doesn't appear to offer forecasts or past weather.\n\nI haven't used it yet. Tell me a location and I'll check the weather there."
+    }
+  ],
+  "container": null,
+  "stop_reason": "end_turn",
+  "stop_sequence": null,
+  "stop_details": null,
+  "usage": {
+    "input_tokens": 841,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 166,
+    "output_tokens_details": {
+      "thinking_tokens": 46
+    },
+    "service_tier": "standard",
+    "inference_geo": "global"
+  },
+  "diagnostics": null
+}
