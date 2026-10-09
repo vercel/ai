@@ -1,5 +1,16 @@
 # ai
 
+## 6.0.303
+
+### Patch Changes
+
+- c0350be: fix(ai): prevent global type conflicts across SDK versions
+- 88aa201: fix(ai): wait for chat stream cleanup when stopping
+- 8444abe: fix(ai): discard unrelated message state when reading resumed streams
+- Updated dependencies [897cb0c]
+- Updated dependencies [7719e88]
+  - @ai-sdk/gateway@3.0.212
+
 ## 6.0.302
 
 ### Patch Changes
