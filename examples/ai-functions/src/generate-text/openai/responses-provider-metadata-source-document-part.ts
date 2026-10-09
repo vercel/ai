@@ -26,6 +26,10 @@ run(async () => {
         if (!providerMetadata) continue;
         const annotation = providerMetadata.openai;
         switch (annotation.type) {
+          case 'file_search':
+            // Retrieved file-search result; provides fileId.
+            // The filename is available as part.filename.
+            break;
           case 'file_citation':
             // file_citation is returned from file_search and provides:
             // properties: type, fileId and index
