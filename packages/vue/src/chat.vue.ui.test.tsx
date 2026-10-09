@@ -439,7 +439,7 @@ describe('tool invocations', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"input-streaming"}',
+        '{"state":"input-streaming","type":"tool-test-tool","toolCallId":"tool-call-0"}',
       );
     });
 
@@ -453,7 +453,7 @@ describe('tool invocations', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"input-streaming","input":{"testArg":"t"},"rawInput":"{\\"testArg\\":\\"t"}',
+        '{"state":"input-streaming","input":{"testArg":"t"},"type":"tool-test-tool","rawInput":"{\\"testArg\\":\\"t","toolCallId":"tool-call-0"}',
       );
     });
 
@@ -467,7 +467,7 @@ describe('tool invocations', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"input-streaming","input":{"testArg":"test-value"},"rawInput":"{\\"testArg\\":\\"test-value\\"}}"}',
+        '{"state":"input-streaming","input":{"testArg":"test-value"},"type":"tool-test-tool","rawInput":"{\\"testArg\\":\\"test-value\\"}}","toolCallId":"tool-call-0"}',
       );
     });
 
@@ -582,7 +582,7 @@ describe('tool invocations', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"input-available","input":{"testArg":"test-value"}}',
+        '{"state":"input-available","input":{"testArg":"test-value"},"type":"tool-test-tool","toolCallId":"tool-call-0"}',
       );
     });
 
@@ -590,7 +590,7 @@ describe('tool invocations', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"output-available","input":{"testArg":"test-value"},"output":"test-result"}',
+        '{"state":"output-available","input":{"testArg":"test-value"},"output":"test-result","type":"tool-test-tool","toolCallId":"tool-call-0"}',
       );
     });
 
