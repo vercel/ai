@@ -133,6 +133,48 @@ type OnChatEnd = ({
   chunkIndex: number;
 }) => void | Promise<void>;
 
+type WaitUntilReconnectAllowed = ({
+  abortSignal,
+}: {
+  abortSignal: AbortSignal;
+}) => void | Promise<void>;
+
+function convertCancellableAsyncIteratorToReadableStream<T>(
+  iterator: AsyncIterator<T>,
+  onCancel: (reason?: unknown) => void,
+): ReadableStream<T> {
+  let cancelled = false;
+
+  return new ReadableStream<T>({
+    async pull(controller) {
+      if (cancelled) return;
+
+      try {
+        const { value, done } = await iterator.next();
+        if (done) {
+          controller.close();
+        } else {
+          controller.enqueue(value);
+        }
+      } catch (error) {
+        controller.error(error);
+      }
+    },
+    async cancel(reason?: unknown) {
+      cancelled = true;
+      onCancel(reason);
+
+      if (iterator.return) {
+        try {
+          await iterator.return(reason);
+        } catch {
+          // Cancellation errors are intentionally ignored.
+        }
+      }
+    },
+  });
+}
+
 /**
  * Configuration options for the WorkflowChatTransport.
  *
@@ -176,6 +218,17 @@ export interface WorkflowChatTransportOptions<UI_MESSAGE extends UIMessage> {
    * Defaults to 3 if not provided.
    */
   maxConsecutiveErrors?: number;
+
+  /**
+   * Called before every reconnection request. Return immediately when
+   * reconnection is allowed, or return a promise that resolves once it is
+   * allowed again.
+   *
+   * Waiting is nonterminal, does not issue requests, and does not consume the
+   * consecutive error budget. The supplied abort signal is triggered when the
+   * chat request or returned stream is cancelled.
+   */
+  waitUntilReconnectAllowed?: WaitUntilReconnectAllowed;
 
   /**
    * Default `startIndex` to use when reconnecting to a stream without a known
@@ -225,6 +278,7 @@ export class WorkflowChatTransport<
   private readonly onChatSendMessage?: OnChatSendMessage<UI_MESSAGE>;
   private readonly onChatEnd?: OnChatEnd;
   private readonly maxConsecutiveErrors: number;
+  private readonly waitUntilReconnectAllowed?: WaitUntilReconnectAllowed;
   private readonly initialStartIndex: number;
   private readonly prepareSendMessagesRequest?: PrepareSendMessagesRequest<UI_MESSAGE>;
   private readonly prepareReconnectToStreamRequest?: PrepareReconnectToStreamRequest;
@@ -238,6 +292,7 @@ export class WorkflowChatTransport<
    * @param options.onChatSendMessage - Callback after sending messages
    * @param options.onChatEnd - Callback when chat stream ends
    * @param options.maxConsecutiveErrors - Maximum consecutive errors for reconnection
+   * @param options.waitUntilReconnectAllowed - Waits for application permission before reconnecting
    * @param options.prepareSendMessagesRequest - Function to prepare send messages request
    * @param options.prepareReconnectToStreamRequest - Function to prepare reconnect request
    */
@@ -247,6 +302,7 @@ export class WorkflowChatTransport<
     this.onChatSendMessage = options.onChatSendMessage;
     this.onChatEnd = options.onChatEnd;
     this.maxConsecutiveErrors = options.maxConsecutiveErrors ?? 3;
+    this.waitUntilReconnectAllowed = options.waitUntilReconnectAllowed;
     this.initialStartIndex = options.initialStartIndex ?? 0;
     this.prepareSendMessagesRequest = options.prepareSendMessagesRequest;
     this.prepareReconnectToStreamRequest =
@@ -274,15 +330,20 @@ export class WorkflowChatTransport<
   async sendMessages(
     options: SendMessagesOptions<UI_MESSAGE> & ChatRequestOptions,
   ): Promise<ReadableStream<UIMessageChunk>> {
-    return convertAsyncIteratorToReadableStream(
-      normalizeUIMessageStreamParts(this.sendMessagesIterator(options)),
+    return this.createReadableStream(
+      abortSignal =>
+        normalizeUIMessageStreamParts(
+          this.sendMessagesIterator(options, abortSignal),
+        ),
+      options.abortSignal,
     );
   }
 
   private async *sendMessagesIterator(
     options: SendMessagesOptions<UI_MESSAGE> & ChatRequestOptions,
+    requestAbortSignal = options.abortSignal,
   ): AsyncGenerator<UIMessageChunk> {
-    const { chatId, messages, abortSignal, trigger, messageId } = options;
+    const { chatId, messages, trigger, messageId } = options;
 
     // We keep track of if the "finish" chunk is received to determine
     // if we need to reconnect, and keep track of the chunk index to resume from.
@@ -312,7 +373,7 @@ export class WorkflowChatTransport<
       ),
       headers: requestConfig?.headers,
       credentials: requestConfig?.credentials,
-      signal: abortSignal,
+      signal: requestAbortSignal,
     });
 
     if (!response.ok || !response.body) {
@@ -362,7 +423,11 @@ export class WorkflowChatTransport<
       // If the initial POST request did not include the "finish" chunk,
       // we need to reconnect to the stream. This could indicate that a
       // network error occurred or the Vercel Function timed out.
-      yield* this.reconnectToStreamIterator(options, workflowRunId, chunkIndex);
+      yield* this.reconnectToStreamIterator(
+        { ...options, abortSignal: requestAbortSignal },
+        workflowRunId,
+        chunkIndex,
+      );
     }
   }
 
@@ -381,10 +446,13 @@ export class WorkflowChatTransport<
   async reconnectToStream(
     options: ReconnectToStreamOptions & ChatRequestOptions,
   ): Promise<ReadableStream<UIMessageChunk> | null> {
-    const reconnectIterator = normalizeUIMessageStreamParts(
-      this.reconnectToStreamIterator(options),
+    return this.createReadableStream(
+      abortSignal =>
+        normalizeUIMessageStreamParts(
+          this.reconnectToStreamIterator({ ...options, abortSignal }),
+        ),
+      options.abortSignal,
     );
-    return convertAsyncIteratorToReadableStream(reconnectIterator);
   }
 
   private async *reconnectToStreamIterator(
@@ -439,6 +507,8 @@ export class WorkflowChatTransport<
         : null;
 
     while (!gotFinish) {
+      await this.waitForReconnectPermission(options.abortSignal);
+
       const startIndex = useExplicitStartIndex
         ? explicitStartIndex
         : replayFromStart
@@ -530,6 +600,66 @@ export class WorkflowChatTransport<
     }
 
     await this.onFinish(gotFinish, { chatId: options.chatId, chunkIndex });
+  }
+
+  private createReadableStream(
+    createIterator: (
+      abortSignal: AbortSignal | undefined,
+    ) => AsyncIterator<UIMessageChunk>,
+    abortSignal: AbortSignal | undefined,
+  ): ReadableStream<UIMessageChunk> {
+    // Preserve the existing stream and signal behavior when no connectivity
+    // policy is configured.
+    if (this.waitUntilReconnectAllowed == null) {
+      return convertAsyncIteratorToReadableStream(createIterator(abortSignal));
+    }
+
+    // A transport-owned signal lets ReadableStream.cancel() interrupt a
+    // pending connectivity wait even when the caller did not supply a signal.
+    const streamAbortController = new AbortController();
+    const combinedAbortSignal =
+      abortSignal == null
+        ? streamAbortController.signal
+        : AbortSignal.any([abortSignal, streamAbortController.signal]);
+
+    return convertCancellableAsyncIteratorToReadableStream(
+      createIterator(combinedAbortSignal),
+      reason => streamAbortController.abort(reason),
+    );
+  }
+
+  private async waitForReconnectPermission(
+    abortSignal: AbortSignal | undefined,
+  ): Promise<void> {
+    if (this.waitUntilReconnectAllowed == null) return;
+
+    // createReadableStream always supplies a signal when the callback exists.
+    if (abortSignal == null) {
+      throw new Error('Reconnect permission wait requires an abort signal.');
+    }
+
+    abortSignal.throwIfAborted();
+
+    let onAbort: (() => void) | undefined;
+    const abortPromise = new Promise<never>((_, reject) => {
+      onAbort = () => reject(abortSignal.reason);
+      abortSignal.addEventListener('abort', onAbort, { once: true });
+    });
+
+    try {
+      await Promise.race([
+        Promise.resolve().then(() =>
+          this.waitUntilReconnectAllowed?.({ abortSignal }),
+        ),
+        abortPromise,
+      ]);
+      // Cancellation wins if it races with permission being restored.
+      abortSignal.throwIfAborted();
+    } finally {
+      if (onAbort != null) {
+        abortSignal.removeEventListener('abort', onAbort);
+      }
+    }
   }
 
   private async onFinish(
