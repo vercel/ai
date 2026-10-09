@@ -124,6 +124,9 @@
       "path": "packages/harness-pi"
     },
     {
+      "path": "packages/harness-jcode"
+    },
+    {
       "path": "packages/harness"
     },
     {
