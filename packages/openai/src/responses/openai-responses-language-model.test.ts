@@ -8617,6 +8617,21 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
       });
 
+      it('should throw a retryable api error for nested error events with a null code before output starts', async () => {
+        prepareChunksFixtureResponse('openai-error-null-code');
+
+        await expect(
+          createModel('gpt-5').doStream({
+            prompt: TEST_PROMPT,
+            includeRawChunks: false,
+          }),
+        ).rejects.toMatchObject({
+          message: 'An error occurred while processing the request.',
+          statusCode: 500,
+          isRetryable: true,
+        });
+      });
+
       it('should throw an api error for documented top-level error events before output starts', async () => {
         server.urls['https://api.openai.com/v1/responses'].response = {
           type: 'stream-chunks',
