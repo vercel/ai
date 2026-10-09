@@ -1,5 +1,18 @@
 # ai
 
+## 5.0.274
+
+### Patch Changes
+
+- ab0ecab: fix(ai): update tool outputs in the message containing the matching tool call
+- dc561f0: fix(ai): prevent global type conflicts across SDK versions
+- c060bd2: fix(ai): wait for chat stream cleanup when stopping
+- dbf4338: fix(ai): update streaming chat messages by stable ID
+- 99c9177: fix(ai): discard unrelated message state when reading resumed streams
+- Updated dependencies [313a602]
+- Updated dependencies [ae1ebda]
+  - @ai-sdk/gateway@2.0.165
+
 ## 5.0.273
 
 ### Patch Changes
