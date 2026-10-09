@@ -52,6 +52,7 @@ import {
   type Experimental_SandboxSession as SandboxSession,
   type Experimental_SandboxProcess,
 } from '@ai-sdk/provider-utils';
+import type { JSONObject } from '@ai-sdk/provider';
 import { WebSocket } from 'ws';
 import { z } from 'zod/v4';
 import {
@@ -80,6 +81,14 @@ type ClaudeCodeChannel = SandboxChannel<OutboundMessage, InboundMessage>;
 type ClaudeCodeRespawnStrategy = 'replay' | 'rerun';
 
 /**
+ * Inline Claude Code settings forwarded to the Claude Agent SDK.
+ *
+ * The settings schema is owned by Claude Code and can grow independently of
+ * this adapter, so the adapter intentionally accepts any JSON object.
+ */
+export type ClaudeCodeSettings = JSONObject;
+
+/**
  * Value to use in User-Agent and `x-client-app` headers.
  */
 const CLAUDE_CODE_CLIENT_APP = `ai-sdk-harness-claude-code/${VERSION}`;
@@ -102,6 +111,12 @@ export type ClaudeCodeHarnessSettings = {
    * back to the caller. Unset means the CLI's default.
    */
   readonly maxTurns?: number;
+  /**
+   * Invocation-specific Claude Code settings. A string is resolved as a
+   * settings file path inside the sandbox; an object is forwarded as inline
+   * settings.
+   */
+  readonly settings?: string | ClaudeCodeSettings;
   /**
    * Enables periodic AI-generated progress summaries for running subagents.
    * The summaries are forwarded in raw `task_progress` stream parts.
@@ -1046,6 +1061,7 @@ export function createClaudeCode(
             // sandbox is left running, stopped, or destroyed.
             proc: undefined,
             maxTurns: settings.maxTurns,
+            claudeSettings: settings.settings,
             agentProgressSummaries: settings.agentProgressSummaries,
             forwardSubagentText: settings.forwardSubagentText,
             env: sandboxClaudeEnvironment,
@@ -1209,6 +1225,7 @@ export function createClaudeCode(
         finishListenerAttachment,
         proc,
         maxTurns: settings.maxTurns,
+        claudeSettings: settings.settings,
         agentProgressSummaries: settings.agentProgressSummaries,
         forwardSubagentText: settings.forwardSubagentText,
         env: sandboxClaudeEnvironment,
@@ -1527,6 +1544,7 @@ function createSession({
   finishListenerAttachment,
   proc,
   maxTurns,
+  claudeSettings,
   agentProgressSummaries,
   forwardSubagentText,
   env,
@@ -1554,6 +1572,7 @@ function createSession({
   /** Undefined on `attach` — the live bridge was spawned by another process. */
   proc: Experimental_SandboxProcess | undefined;
   maxTurns: number | undefined;
+  claudeSettings: string | ClaudeCodeSettings | undefined;
   agentProgressSummaries: boolean | undefined;
   forwardSubagentText: boolean | undefined;
   env: Readonly<Record<string, string>> | undefined;
@@ -1829,6 +1848,7 @@ function createSession({
           : {}),
         model: promptOpts.model,
         maxTurns,
+        ...(claudeSettings !== undefined ? { settings: claudeSettings } : {}),
         ...(agentProgressSummaries !== undefined
           ? { agentProgressSummaries }
           : {}),
@@ -1897,6 +1917,7 @@ function createSession({
             : {}),
           model: continueOpts.model,
           maxTurns,
+          ...(claudeSettings !== undefined ? { settings: claudeSettings } : {}),
           ...(agentProgressSummaries !== undefined
             ? { agentProgressSummaries }
             : {}),

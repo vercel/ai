@@ -733,6 +733,104 @@ describe('Claude Code bridge configuration', () => {
     });
   });
 
+  test('passes native settings unchanged to the Agent SDK', async () => {
+    const settings = {
+      skillOverrides: {
+        'update-config': 'off',
+        init: 'off',
+      },
+    };
+    state.start = {
+      ...state.start,
+      settings,
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options.settings).toBe(settings);
+  });
+
+  test('passes a settings file path unchanged to the Agent SDK', async () => {
+    state.start = {
+      ...state.start,
+      settings: '/tmp/harness-claude-code-test/settings.json',
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options.settings).toBe(
+      '/tmp/harness-claude-code-test/settings.json',
+    );
+  });
+
+  test('omits native settings when they are not configured', async () => {
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).not.toHaveProperty('settings');
+  });
+
+  test.each([
+    {
+      permissionMode: 'allow-reads' as const,
+      allowedTool: 'Read',
+      gatedTool: 'Edit',
+    },
+    {
+      permissionMode: 'allow-edits' as const,
+      allowedTool: 'Edit',
+      gatedTool: 'Bash',
+    },
+  ])(
+    'preserves $permissionMode approval boundaries with native settings',
+    async ({ permissionMode, allowedTool, gatedTool }) => {
+      const settings = {
+        skillOverrides: {
+          init: 'off',
+        },
+      };
+      state.start = {
+        ...state.start,
+        permissionMode,
+        settings,
+      };
+
+      await import('./index');
+
+      const options = state.queryArgs[0]?.options;
+      expect(options?.settings).toBe(settings);
+      expect(options?.canUseTool).toBeTypeOf('function');
+
+      const hooks = options?.hooks as {
+        PreToolUse: Array<{
+          hooks: Array<(input: Record<string, unknown>) => Promise<unknown>>;
+        }>;
+      };
+      const permissionHook = hooks.PreToolUse[0]?.hooks[0];
+
+      await expect(
+        permissionHook({
+          hook_event_name: 'PreToolUse',
+          tool_name: allowedTool,
+          tool_input: {},
+          tool_use_id: 'allowed-tool',
+        }),
+      ).resolves.toEqual({});
+      await expect(
+        permissionHook({
+          hook_event_name: 'PreToolUse',
+          tool_name: gatedTool,
+          tool_input: {},
+          tool_use_id: 'gated-tool',
+        }),
+      ).resolves.toEqual({
+        hookSpecificOutput: {
+          hookEventName: 'PreToolUse',
+          permissionDecision: 'ask',
+        },
+      });
+    },
+  );
+
   test('omits canUseTool when bypassing permissions', async () => {
     await import('./index');
 
