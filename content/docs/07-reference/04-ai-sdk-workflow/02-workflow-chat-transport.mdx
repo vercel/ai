@@ -62,6 +62,13 @@ export default function Chat() {
         'Maximum number of consecutive errors allowed during reconnection attempts before giving up. Streams that end without receiving any UI message chunks count as errors. Default: 3.',
     },
     {
+      name: 'retryDelayMs',
+      type: 'number | (({ consecutiveErrors }) => number)',
+      isOptional: true,
+      description:
+        'Delay in milliseconds before each automatic reconnection retry. A callback can compute a backoff from the current consecutive error count. It receives 0 after an incomplete reconnect stream made progress and a positive count after an empty or invalid stream. The initial reconnect remains immediate. Default: no delay.',
+    },
+    {
       name: 'initialStartIndex',
       type: 'number',
       isOptional: true,
@@ -199,8 +206,43 @@ The transport follows this flow:
 2. **Stream** the SSE response, counting chunks as they arrive.
 3. **Detect interruption**: If the stream closes without a `finish` event (e.g., function timeout, network error), the transport knows the response is incomplete.
 4. **Reconnect** via GET to `{api}/{runId}/stream?startIndex={chunkIndex}` to resume from the last received chunk.
-5. **Retry**: If the reconnection stream also interrupts, resume from the updated chunk index. Streams that end without receiving any UI message chunks count toward `maxConsecutiveErrors`, as do stream parsing errors. A successfully parsed stream that receives chunks resets the consecutive error count.
+5. **Retry**: If the reconnection stream also interrupts, resume from the updated chunk index. Streams that end without receiving any UI message chunks count toward `maxConsecutiveErrors`, as do stream parsing errors. A successfully parsed stream that receives chunks resets the consecutive error count. When `retryDelayMs` is configured, wait before starting the next reconnect request.
 6. **Complete**: Once a `finish` event is received, call `onChatEnd` and close the stream.
+
+### Retry Delay and Cancellation
+
+The first reconnect request starts immediately. `retryDelayMs` only applies
+between reconnect requests when another request will be made:
+
+```ts
+const transport = new WorkflowChatTransport({
+  maxConsecutiveErrors: 5,
+  retryDelayMs: ({ consecutiveErrors }) =>
+    Math.min(500 * 2 ** Math.max(0, consecutiveErrors - 1), 10_000),
+});
+```
+
+The callback runs after an incomplete reconnect stream. It receives:
+
+- `consecutiveErrors: 0` when the stream received UI message chunks but ended
+  before `finish`
+- a positive `consecutiveErrors` value after an empty stream or stream parsing
+  error
+
+This lets a backoff reset after the stream makes progress. A fixed number can
+be used when every reconnect should have the same delay.
+
+No delay is scheduled after a `finish` chunk or after
+`maxConsecutiveErrors` is reached, and waiting does not increment the error
+count. The wait uses the operation's `abortSignal`; calling `stop` through a
+chat integration, aborting that signal directly, or cancelling the returned
+`ReadableStream` ends a pending wait immediately. `onChatEnd` is only called
+after a `finish` chunk, never when a wait is cancelled or the retry limit is
+reached.
+
+Delay values must be between `0` and `2147483647` milliseconds. Invalid fixed
+values throw when the transport is constructed; invalid callback results and
+callback errors stop the reconnect operation.
 
 ### Negative Start Index
 
@@ -293,6 +335,34 @@ export default function Chat() {
 
   const { messages, sendMessage } = useChat({ transport });
 
+  // ... render chat UI
+}
+```
+
+### With Reconnection Backoff
+
+```tsx
+'use client';
+
+import { useChat } from '@ai-sdk/react';
+import { WorkflowChatTransport } from '@ai-sdk/workflow/client';
+import { useMemo } from 'react';
+
+export default function Chat() {
+  const transport = useMemo(
+    () =>
+      new WorkflowChatTransport({
+        api: '/api/chat',
+        maxConsecutiveErrors: 5,
+        retryDelayMs: ({ consecutiveErrors }) =>
+          Math.min(500 * 2 ** Math.max(0, consecutiveErrors - 1), 10_000),
+      }),
+    [],
+  );
+
+  const { messages, sendMessage, stop } = useChat({ transport });
+
+  // Calling stop() also cancels a pending backoff wait.
   // ... render chat UI
 }
 ```

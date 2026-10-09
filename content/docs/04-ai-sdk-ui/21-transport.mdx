@@ -244,6 +244,8 @@ export default function Chat() {
       new WorkflowChatTransport({
         api: '/api/chat',
         maxConsecutiveErrors: 5,
+        retryDelayMs: ({ consecutiveErrors }) =>
+          Math.min(500 * 2 ** Math.max(0, consecutiveErrors - 1), 10_000),
         onChatEnd: ({ chatId, chunkIndex }) => {
           console.log(`Chat complete: ${chunkIndex} chunks`);
         },
@@ -262,7 +264,13 @@ Key features:
 - **Automatic reconnection**: Detects interrupted streams (no `finish` event) and reconnects via GET to `{api}/{runId}/stream`
 - **Page refresh recovery**: `initialStartIndex` controls where the initial reconnection begins
 - **Configurable retries**: `maxConsecutiveErrors` controls how many consecutive reconnection failures to tolerate
+- **Configurable backoff**: `retryDelayMs` adds a fixed or computed delay between reconnect requests
 - **Lifecycle callbacks**: `onChatSendMessage` and `onChatEnd` for tracking chat state
+
+The initial reconnect remains immediate. Backoff waits are cancelled when the
+chat operation is stopped or its returned stream is cancelled. Waiting does
+not count as an error, and no delay is scheduled after `finish` or after the
+consecutive error limit is reached.
 
 Negative `initialStartIndex` values can fetch only the tail when the durable
 server stream already stores `UIMessageChunk` objects. For raw `WorkflowAgent`
