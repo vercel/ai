@@ -68,6 +68,7 @@ export class PerplexityEmbeddingModel implements EmbeddingModelV4 {
 
   async doEmbed({
     values,
+    dimensions,
     abortSignal,
     headers,
     providerOptions,
@@ -103,7 +104,7 @@ export class PerplexityEmbeddingModel implements EmbeddingModelV4 {
       body: {
         model: this.modelId,
         input: values,
-        dimensions: perplexityOptions.dimensions,
+        dimensions: perplexityOptions.dimensions ?? dimensions,
         encoding_format: encodingFormat,
       },
       failedResponseHandler: createJsonErrorResponseHandler({

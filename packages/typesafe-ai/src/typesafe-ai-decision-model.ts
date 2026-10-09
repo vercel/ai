@@ -1,5 +1,6 @@
 import {
   InvalidArgumentError,
+  UnsupportedFunctionalityError,
   type Experimental_DecisionModelV4 as DecisionModelV4,
   type Experimental_DecisionModelV4Answer as DecisionModelV4Answer,
   type SharedV4Warning,
@@ -97,6 +98,20 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
       type: 'unsupported',
       feature: `providerOptions.typesafe.${option}`,
     }));
+    const requestState =
+      state.length === 1 && state[0].type === 'json'
+        ? state[0].value
+        : state
+            .map(part => {
+              if (part.type === 'file')
+                throw new UnsupportedFunctionalityError({
+                  functionality: 'TypeSafe AI decision file input',
+                });
+              return part.type === 'text'
+                ? part.text
+                : JSON.stringify(part.value);
+            })
+            .join('\n');
     const modelHeaders =
       this.config.headers === undefined
         ? withUserAgentSuffix(
@@ -115,7 +130,7 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
       headers: combineHeaders(modelHeaders, headers),
       body: {
         model: this.modelId,
-        state,
+        state: requestState,
         questions: Object.fromEntries(
           Object.entries(questions).map(([id, question]) => [
             id,

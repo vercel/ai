@@ -1,5 +1,74 @@
 # @ai-sdk/azure
 
+## 4.0.99
+
+### Patch Changes
+
+- Updated dependencies [5cf13d2]
+- Updated dependencies [72e9d38]
+- Updated dependencies [fb933f9]
+- Updated dependencies [4dbc902]
+  - @ai-sdk/openai@4.0.91
+  - @ai-sdk/provider@4.0.26
+  - @ai-sdk/deepseek@3.0.63
+  - @ai-sdk/provider-utils@5.0.58
+
+## 4.0.98
+
+### Patch Changes
+
+- Updated dependencies [6c59fb1]
+  - @ai-sdk/openai@4.0.90
+
+## 4.0.97
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider@4.0.25
+  - @ai-sdk/provider-utils@5.0.57
+  - @ai-sdk/openai@4.0.89
+  - @ai-sdk/deepseek@3.0.62
+
+## 4.0.96
+
+### Patch Changes
+
+- Updated dependencies [32ff7ad]
+  - @ai-sdk/openai@4.0.88
+
+## 4.0.95
+
+### Patch Changes
+
+- Updated dependencies [bccc1b7]
+  - @ai-sdk/openai@4.0.87
+
+## 4.0.94
+
+### Patch Changes
+
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/openai@4.0.86
+  - @ai-sdk/deepseek@3.0.61
+  - @ai-sdk/provider-utils@5.0.56
+
+## 4.0.93
+
+### Patch Changes
+
+- 0af2f7c: chore: upgrade to TypeScript 6
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [99bdcd2]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/openai@4.0.85
+  - @ai-sdk/provider@4.0.23
+  - @ai-sdk/deepseek@3.0.60
+
 ## 4.0.92
 
 ### Patch Changes

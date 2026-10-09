@@ -68,6 +68,46 @@ describe('GoogleEmbeddingModel', () => {
     };
   }
 
+  describe.each([1, 2])('dimensions with %i input values', count => {
+    it.each([
+      {
+        dimensions: undefined,
+        providerDimensions: undefined,
+        expected: undefined,
+      },
+      { dimensions: 256, providerDimensions: undefined, expected: 256 },
+      { dimensions: undefined, providerDimensions: 512, expected: 512 },
+      { dimensions: 256, providerDimensions: 512, expected: 512 },
+    ])(
+      'maps $dimensions with provider override $providerDimensions to $expected',
+      async ({ dimensions, providerDimensions, expected }) => {
+        if (count === 1) {
+          prepareSingleJsonResponse();
+        } else {
+          prepareBatchJsonResponse();
+        }
+
+        await model.doEmbed({
+          values: testValues.slice(0, count),
+          dimensions,
+          providerOptions: {
+            google: { outputDimensionality: providerDimensions },
+          },
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        if (count === 1) {
+          expect(body.outputDimensionality).toBe(expected);
+        } else {
+          expect(body.requests).toHaveLength(count);
+          for (const request of body.requests) {
+            expect(request.outputDimensionality).toBe(expected);
+          }
+        }
+      },
+    );
+  });
+
   it('should extract embedding', async () => {
     prepareBatchJsonResponse();
 

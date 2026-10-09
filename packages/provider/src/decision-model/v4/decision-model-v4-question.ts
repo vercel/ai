@@ -1,6 +1,6 @@
 import type { JSONObject, JSONValue } from '../../json-value';
 
-/** Shared state or structured instructions for a decision. */
+/** Content for decision instructions and criteria descriptions. */
 export type DecisionModelV4Input =
   | string
   | Readonly<JSONObject>

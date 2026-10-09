@@ -243,6 +243,26 @@ describe('prepareTools', () => {
       `);
     });
 
+    it('should omit strict without warning when strict is false and strict tools are unsupported', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+            strict: false,
+          },
+        ],
+        toolChoice: undefined,
+        supportsStructuredOutput: false,
+        supportsStrictTools: false,
+      });
+
+      expect(result.tools?.[0]).not.toHaveProperty('strict');
+      expect(result.toolWarnings).toEqual([]);
+    });
+
     it('should include strict but not beta when supportsStructuredOutput is false but supportsStrictTools is true', async () => {
       const result = await prepareTools({
         tools: [
