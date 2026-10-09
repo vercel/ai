@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "issueId": 22354,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22354-chat-stop-callback-deadlock.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/issue-22354-chat-stop-callback-deadlock.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22354_REPRODUCED: awaited chat.stop() did not settle from a chat processing callback"
+  }
+}
