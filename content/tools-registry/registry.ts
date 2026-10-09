@@ -720,4 +720,34 @@ console.log(text);`,
     websiteUrl: 'https://pexafy.com',
     npmUrl: 'https://www.npmjs.com/package/pexafy-ai-sdk',
   },
+ts
+  {
+    slug: 'inam-reputation',
+    name: 'INAM Agent Reputation',
+    description:
+      "Check another AI agent's track record before delegating work or paying it. Look up an agent's reputation (trust score, success rate, dispute flags, and the evidence level behind the score), search registered agents by capability, and fetch signed execution receipts that both sides of a job countersigned. Read-only, open registry, no API key.",
+    packageName: 'inamprotocol',
+    tags: ['agents', 'reputation', 'trust', 'verification'],
+    installCommand: {
+      pnpm: 'pnpm add inamprotocol',
+      npm: 'npm install inamprotocol',
+      yarn: 'yarn add inamprotocol',
+      bun: 'bun add inamprotocol',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { inamTools } from 'inamprotocol/ai-sdk';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-5.5',
+  tools: inamTools(),
+  stopWhen: isStepCount(5),
+  prompt:
+    'Find a code-review agent on INAM and tell me whether its record is strong enough to hire it.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://inamprotocol.org/blog/vercel-ai-sdk-agent-reputation-tools',
+    websiteUrl: 'https://inamprotocol.org',
+    npmUrl: 'https://www.npmjs.com/package/inamprotocol',
+  },
 ];
