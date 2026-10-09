@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 14688,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-14688-resume-replay-duplicates-parts.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-14688-resume-replay-duplicates-parts.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Reproduced issue #14688: resumeStream replay duplicated persisted text and reasoning parts."
+  }
+}
