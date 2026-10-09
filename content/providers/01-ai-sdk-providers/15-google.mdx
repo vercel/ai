@@ -1160,6 +1160,11 @@ Google realtime models may require provider-specific audio formats, depending
 on the model and modality. See [Realtime](/docs/ai-sdk-core/realtime) for the
 complete setup and tool calling pattern.
 
+To route Gemini model audio through an avatar or another application-owned
+sink, disable SDK playback with `playback: false` and consume `audio-delta`
+events. Use `playback: { getPositionMs }` when the SDK should use your sink's
+played position for interruption truncation.
+
 Gemini lifecycle signals that do not have provider-neutral equivalents are
 emitted as custom events. Inspect `rawType` for `goAway`,
 `sessionResumptionUpdate`, and `generationComplete` and use the event's `raw`
