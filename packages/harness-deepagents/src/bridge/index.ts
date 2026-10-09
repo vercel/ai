@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { argv, env as procEnv } from 'node:process';
 import {
   runBridge,
+  convertHarnessToolModelOutput,
   type BridgeEvent,
   type BridgeTurn,
 } from '@ai-sdk/harness/bridge';
@@ -207,7 +208,8 @@ function buildHostTools(toolSchemas: StartMessage['tools']) {
           input: JSON.stringify(input),
           providerExecuted: false,
         } as BridgeEvent);
-        const { output, isError } = await turn.requestToolResult(toolCallId);
+        const { output, isError, toolResult } =
+          await turn.requestToolResult(toolCallId);
         turn.emit({
           type: 'tool-result',
           toolCallId,
@@ -215,6 +217,21 @@ function buildHostTools(toolSchemas: StartMessage['tools']) {
           result: output ?? null,
           ...(isError !== undefined ? { isError } : {}),
         });
+        if (toolResult != null) {
+          const converted = convertHarnessToolModelOutput({
+            output: toolResult.output,
+          });
+          return converted.content.map(part =>
+            part.type === 'text'
+              ? part
+              : {
+                  type: 'image_url' as const,
+                  image_url: {
+                    url: `data:${part.mediaType};base64,${part.data}`,
+                  },
+                },
+          );
+        }
         return typeof output === 'string' ? output : JSON.stringify(output);
       },
       {

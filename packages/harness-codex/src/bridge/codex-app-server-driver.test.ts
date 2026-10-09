@@ -995,6 +995,49 @@ describe('Codex app-server dynamic tools', () => {
     ]);
   });
 
+  it('returns model-facing text and inline images as native content items', async () => {
+    const dynamicTools = createDynamicTools([
+      { name: 'inspect', inputSchema: { type: 'object' } },
+    ]);
+
+    await expect(
+      handleAppServerRequest({
+        request: {
+          id: 1,
+          method: 'item/tool/call',
+          params: { callId: 'call-1', tool: 'inspect', arguments: {} },
+        },
+        dynamicTools,
+        emit: () => {},
+        requestToolResult: async () => ({
+          output: { status: 'ready' },
+          toolResult: {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'inspect',
+            output: {
+              type: 'content',
+              value: [
+                { type: 'text', text: 'marker' },
+                {
+                  type: 'file',
+                  mediaType: 'image/png',
+                  data: { type: 'data', data: 'iVBORw==' },
+                },
+              ],
+            },
+          },
+        }),
+      }),
+    ).resolves.toEqual({
+      contentItems: [
+        { type: 'inputText', text: 'marker' },
+        { type: 'inputImage', imageUrl: 'data:image/png;base64,iVBORw==' },
+      ],
+      success: true,
+    });
+  });
+
   it('reports host tool errors through dynamic tool success', async () => {
     const emitted: Array<Record<string, unknown>> = [];
     const dynamicTools = createDynamicTools([

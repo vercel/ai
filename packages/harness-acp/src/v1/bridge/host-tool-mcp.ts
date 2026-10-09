@@ -149,12 +149,24 @@ function validateInvocationResult({
   if (
     !isRecord(value) ||
     typeof value.correlationToken !== 'string' ||
-    (value.isError !== undefined && typeof value.isError !== 'boolean')
+    (value.isError !== undefined && typeof value.isError !== 'boolean') ||
+    (value.toolResult !== undefined &&
+      (!isRecord(value.toolResult) ||
+        value.toolResult.type !== 'tool-result' ||
+        typeof value.toolResult.toolCallId !== 'string' ||
+        typeof value.toolResult.toolName !== 'string' ||
+        !isRecord(value.toolResult.output)))
   ) {
     throw new Error('Invalid host tool relay response.');
   }
   return {
     output: value.output,
+    ...(value.toolResult == null
+      ? {}
+      : {
+          toolResult:
+            value.toolResult as unknown as HostToolMCPInvocationResult['toolResult'],
+        }),
     ...(value.isError ? { isError: true } : {}),
     correlationToken: value.correlationToken,
   };

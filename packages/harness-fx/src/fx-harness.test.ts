@@ -22,6 +22,7 @@ describe('createFx', () => {
     createFx();
 
     const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
+    expect(settings.nonTextContentTypes).toBeUndefined();
 
     expect({
       version: settings.version,

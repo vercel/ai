@@ -2,6 +2,7 @@ import {
   tool,
   type Experimental_SandboxSession,
   type ToolApprovalResponse,
+  type ToolResultOutput,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import {
@@ -1541,7 +1542,399 @@ type SubmittedResult = {
   toolCallId: string;
   output: unknown;
   isError?: boolean;
+  toolResult?: Parameters<
+    HarnessV1PromptControl['submitToolResult']
+  >[0]['toolResult'];
 };
+
+describe('runPrompt tool model output', () => {
+  const unsupportedParts: Extract<
+    ToolResultOutput,
+    { type: 'content' }
+  >['value'] = [
+    {
+      type: 'file',
+      mediaType: 'image/png',
+      data: { type: 'url', url: new URL('https://example.com/image.png') },
+    },
+    { type: 'image-url', url: 'https://example.com/image.png' },
+    {
+      type: 'file-url',
+      url: 'https://example.com/file.pdf',
+      mediaType: 'application/pdf',
+    },
+    {
+      type: 'file',
+      mediaType: 'image/png',
+      data: { type: 'reference', reference: { test: 'image-id' } },
+    },
+    {
+      type: 'file',
+      mediaType: 'application/pdf',
+      data: { type: 'data', data: 'cGRm' },
+    },
+  ];
+
+  test.each(unsupportedParts)(
+    'serializes an unsupported client continuation without failing: %j',
+    async part => {
+      const output: ToolResultOutput = {
+        type: 'content',
+        value: [{ type: 'text', text: 'keep the whole output' }, part],
+      };
+      const execute = vi.fn(async () => 'not reached');
+      const callback = vi.fn(
+        (): ToolResultOutput => ({ type: 'text', value: 'not reached' }),
+      );
+      const submitted: SubmittedResult[] = [];
+      const { result, done } = runPrompt({
+        harness,
+        session: fakeSession(finishEvents, submission =>
+          submitted.push(submission),
+        ),
+        mode: 'continue',
+        instructions: undefined,
+        tools: {
+          visualize: tool({
+            inputSchema: z.object({}),
+            execute,
+            toModelOutput: callback,
+          }),
+        },
+        toolSpecs: [],
+        sandboxSession,
+        sessionWorkDir: WORK_DIR,
+        runtimeContext: {} as never,
+        abortSignal: undefined,
+        pendingToolResults: [
+          { toolCallId: 'c1', toolName: 'visualize', input: '{}' },
+        ],
+        toolResultContinuations: [
+          {
+            type: 'tool-result',
+            toolCallId: 'c1',
+            toolName: 'visualize',
+            output,
+            providerOptions: { test: { marker: 'preserved' } },
+          },
+        ],
+      });
+      const parts: TextStreamPart<ToolSet>[] = [];
+      for await (const part of result.fullStream) parts.push(part);
+      await done;
+      expect(submitted).toEqual([
+        {
+          toolCallId: 'c1',
+          output,
+          isError: undefined,
+          toolResult: {
+            type: 'tool-result',
+            toolCallId: 'c1',
+            toolName: 'visualize',
+            providerOptions: { test: { marker: 'preserved' } },
+            output: { type: 'text', value: JSON.stringify(output) },
+          },
+        },
+      ]);
+      expect(execute).not.toHaveBeenCalled();
+      expect(callback).not.toHaveBeenCalled();
+      expect(parts.some(part => part.type === 'error')).toBe(false);
+      await expect(result.steps).resolves.toEqual([]);
+    },
+  );
+
+  test.each([
+    {
+      output: { type: 'content', value: [unsupportedParts[0]!] },
+      normalized: undefined,
+    },
+    {
+      output: {
+        type: 'content',
+        value: [
+          { type: 'image-data', mediaType: 'image/png', data: 'iVBORw==' },
+        ],
+      },
+      normalized: {
+        type: 'content',
+        value: [
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: { type: 'data', data: 'iVBORw==' },
+          },
+        ],
+      },
+    },
+  ] satisfies {
+    output: ToolResultOutput;
+    normalized: ToolResultOutput | undefined;
+  }[])(
+    'persists normalized client output on suspension and submits it exactly once on resume (%#)',
+    async ({ output, normalized }) => {
+      const pending: HarnessV1PendingToolResult[] = [];
+      const submitted: SubmittedResult[] = [];
+      const expected = normalized ?? {
+        type: 'text',
+        value: JSON.stringify(output),
+      };
+      const options = {
+        harness,
+        session: fakeSession(finishEvents, (submission: SubmittedResult) =>
+          submitted.push(submission),
+        ),
+        mode: 'continue' as const,
+        instructions: undefined,
+        tools: {},
+        toolSpecs: [],
+        sandboxSession,
+        sessionWorkDir: WORK_DIR,
+        runtimeContext: {} as never,
+        abortSignal: undefined,
+      };
+      const suspended = runPrompt({
+        ...options,
+        pendingToolResults: [
+          { toolCallId: 'c1', toolName: 'visualize', input: '{}' },
+        ],
+        toolResultContinuations: [
+          {
+            type: 'tool-result',
+            toolCallId: 'c1',
+            toolName: 'visualize',
+            output,
+          },
+        ],
+        isTurnSuspending: () => true,
+        onPendingToolResult: part => pending.push(part),
+      });
+      await suspended.result.consumeStream();
+      await suspended.done;
+      expect(submitted).toEqual([]);
+      expect(pending).toHaveLength(1);
+      expect(pending[0]?.completedResult?.toolResult?.output).toEqual(expected);
+      const resumed = runPrompt({ ...options, pendingToolResults: pending });
+      await resumed.result.consumeStream();
+      await resumed.done;
+      expect(submitted).toHaveLength(1);
+      expect(submitted[0]?.output).toEqual(output);
+      expect(submitted[0]?.toolResult?.output).toEqual(expected);
+    },
+  );
+
+  test('does not swallow fallback serialization errors', async () => {
+    const output: ToolResultOutput = {
+      type: 'content',
+      value: [unsupportedParts[0]!],
+    };
+    output.value.push({
+      type: 'custom',
+      providerOptions: { test: { circular: output as never } },
+    });
+    const submitted = vi.fn();
+    const onTurnFailed = vi.fn();
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession(finishEvents, submitted),
+      mode: 'continue',
+      instructions: undefined,
+      tools: {},
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      pendingToolResults: [
+        { toolCallId: 'c1', toolName: 'visualize', input: '{}' },
+      ],
+      toolResultContinuations: [
+        {
+          type: 'tool-result',
+          toolCallId: 'c1',
+          toolName: 'visualize',
+          output,
+        },
+      ],
+      onTurnFailed,
+    });
+    await result.consumeStream();
+    await done;
+    expect(submitted).not.toHaveBeenCalled();
+    expect(onTurnFailed).toHaveBeenCalledOnce();
+    await expect(result.steps).rejects.toThrow(/circular/i);
+  });
+
+  test('keeps unsupported host callback output strict', async () => {
+    const { submitted } = await runHostToolScript({
+      events: [
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'visualize',
+          input: '{}',
+        },
+        ...finishEvents,
+      ],
+      tools: {
+        visualize: tool({
+          inputSchema: z.object({}),
+          execute: async () => ({ ok: true }),
+          toModelOutput: () => ({
+            type: 'content',
+            value: [unsupportedParts[0]!],
+          }),
+        }),
+      },
+    });
+    expect(submitted).toEqual([
+      {
+        toolCallId: 'c1',
+        isError: true,
+        output: {
+          error: expect.stringContaining(
+            'Harnesses support only text and inline images',
+          ),
+        },
+      },
+    ]);
+  });
+
+  test.each([false, true])(
+    'converts once and preserves raw results (generator: %s)',
+    async generator => {
+      const raw = { status: 'ready' };
+      const callback = vi.fn(async function (
+        this: unknown,
+        options: { toolCallId: string; input: unknown; output: unknown },
+      ): Promise<ToolResultOutput> {
+        expect(this).toBe(visualize);
+        expect(options).toEqual({
+          toolCallId: 'visual',
+          input: {},
+          output: raw,
+        });
+        return {
+          type: 'content',
+          value: [
+            { type: 'text', text: 'model-only' },
+            {
+              type: 'file',
+              mediaType: 'image',
+              data: { type: 'data', data: new Uint8Array([137, 80, 78, 71]) },
+            },
+          ],
+        };
+      });
+      const execute = vi.fn(async () => raw);
+      const visualize = tool({
+        inputSchema: z.object({}),
+        execute: generator
+          ? async function* () {
+              yield { status: 'loading' };
+              yield await execute();
+            }
+          : execute,
+        toModelOutput: callback,
+      });
+      const submitted: SubmittedResult[] = [];
+      const { result, done } = runPrompt({
+        harness,
+        session: fakeSession(
+          [
+            {
+              type: 'tool-call',
+              toolCallId: 'visual',
+              toolName: 'visualize',
+              input: '{}',
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'visual',
+              toolName: 'visualize',
+              result: raw,
+            },
+            ...finishEvents,
+          ],
+          submission => submitted.push(submission),
+        ),
+        prompt: 'go',
+        instructions: undefined,
+        tools: { visualize } as ToolSet,
+        toolSpecs: [],
+        sandboxSession,
+        sessionWorkDir: WORK_DIR,
+        runtimeContext: {} as never,
+        abortSignal: undefined,
+      });
+      await result.consumeStream();
+      await done;
+      expect(execute).toHaveBeenCalledTimes(1);
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(submitted[0]?.output).toEqual(raw);
+      expect(submitted[0]?.toolResult?.output).toEqual({
+        type: 'content',
+        value: [
+          { type: 'text', text: 'model-only' },
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: { type: 'data', data: 'iVBORw==' },
+          },
+        ],
+      });
+      expect(
+        (await result.toolResults).filter(part => !part.preliminary)[0]?.output,
+      ).toEqual(raw);
+      expect(
+        (await result.responseMessages).flatMap(message =>
+          typeof message.content === 'string'
+            ? []
+            : (message.content as unknown[]),
+        ),
+      ).toContainEqual(
+        expect.objectContaining({
+          type: 'tool-result',
+          output: submitted[0]?.toolResult?.output,
+        }),
+      );
+      expect(callback).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  test('submits a callback failure as a tool error without re-execution', async () => {
+    const execute = vi.fn(async () => ({ ok: true }));
+    const callback = vi.fn(async () => {
+      throw new Error('conversion failed');
+    });
+    const { submitted } = await runHostToolScript({
+      events: [
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'visualize',
+          input: '{}',
+        },
+        ...finishEvents,
+      ],
+      tools: {
+        visualize: tool({
+          inputSchema: z.object({}),
+          execute,
+          toModelOutput: callback,
+        }),
+      },
+    });
+    expect(execute).toHaveBeenCalledTimes(1);
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(submitted).toEqual([
+      {
+        toolCallId: 'c1',
+        output: { error: 'Error: conversion failed' },
+        isError: true,
+      },
+    ]);
+  });
+});
 
 async function runHostToolScript(options: {
   events: HarnessV1StreamPart[];

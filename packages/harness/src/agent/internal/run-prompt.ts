@@ -24,6 +24,7 @@ import {
   type Experimental_SandboxSession as SandboxSession,
   type ToolApprovalResponse,
   type ToolResultPart,
+  type ToolResultOutput,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import {
@@ -36,6 +37,7 @@ import {
   addLanguageModelUsage,
   asLanguageModelUsage,
   createNullLanguageModelUsage,
+  createToolModelOutput,
   parseToolCall,
   validateToolContext,
 } from 'ai/internal';
@@ -68,6 +70,8 @@ import {
 import { resolveCustomToolApproval } from './permission-mode';
 import { logBridgeError } from '../../utils/bridge-diagnostics';
 import { pinSandboxChannelEventCheckpoint } from '../../utils/sandbox-channel';
+import { normalizeHarnessToolModelOutput } from '../../utils/normalize-harness-tool-model-output';
+import { HarnessCapabilityUnsupportedError } from '../../errors/harness-capability-unsupported-error';
 
 const invalidToolInputMessage = 'Tool input validation failed.';
 
@@ -609,6 +613,33 @@ export function runPrompt<
     };
     const submitToolResult: HarnessV1PromptControl['submitToolResult'] =
       async submission => {
+        if (submission.toolResult != null) {
+          let output: ToolResultOutput;
+          try {
+            output = normalizeHarnessToolModelOutput({
+              output: submission.toolResult.output,
+            });
+          } catch (error) {
+            if (
+              !continuationsByToolCallId.has(submission.toolCallId) ||
+              !HarnessCapabilityUnsupportedError.isInstance(error)
+            ) {
+              throw error;
+            }
+            output = {
+              type: 'text',
+              value: JSON.stringify(submission.output) ?? 'null',
+            };
+          }
+          submission = {
+            ...submission,
+            toolResult: { ...submission.toolResult, output },
+          };
+          result.setToolModelOutput({
+            toolCallId: submission.toolCallId,
+            output,
+          });
+        }
         if (!input.isTurnSuspending?.()) {
           return control.submitToolResult(submission);
         }
@@ -1695,6 +1726,22 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
     await input.submitToolResult({
       toolCallId: input.event.toolCallId,
       output,
+      ...(tool.toModelOutput == null
+        ? {}
+        : {
+            toolResult: {
+              type: 'tool-result' as const,
+              toolCallId: input.event.toolCallId,
+              toolName: input.event.toolName,
+              output: await createToolModelOutput({
+                toolCallId: input.event.toolCallId,
+                input: input.parsedToolCall.input,
+                output,
+                tool,
+                errorMode: 'none',
+              }),
+            },
+          }),
     });
     return { executed: true, outcome: { ok: true, output } };
   } catch (err) {

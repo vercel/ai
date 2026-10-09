@@ -30,7 +30,7 @@ const state = vi.hoisted(() => ({
     | undefined,
   headers: undefined as Record<string, string> | undefined,
   hostToolResponse: undefined as
-    | { output: unknown; isError?: boolean }
+    | { output: unknown; isError?: boolean; toolResult?: unknown }
     | undefined,
   hostToolOutput: undefined as unknown,
   receivedToolCallId: undefined as string | undefined,
@@ -67,7 +67,8 @@ vi.mock('deepagents', () => ({
   LocalShellBackend: class {},
 }));
 
-vi.mock('@ai-sdk/harness/bridge', () => ({
+vi.mock('@ai-sdk/harness/bridge', async importOriginal => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   runBridge: async ({
     onStart,
   }: {
@@ -328,6 +329,41 @@ describe('Deep Agents bridge instructions', () => {
 
   it('emits one successful host-tool result without duplicating on_tool_end', async () => {
     await expectHostToolResult({ output: { temperature: 18 }, isError: false });
+  });
+
+  it('returns model-facing text and inline images as LangChain content blocks', async () => {
+    state.hostToolResponse = {
+      output: { status: 'ready' },
+      toolResult: {
+        type: 'tool-result',
+        toolCallId: 'weather-1',
+        toolName: 'weather',
+        output: {
+          type: 'content',
+          value: [
+            { type: 'text', text: 'marker' },
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: { type: 'data', data: 'iVBORw==' },
+            },
+          ],
+        },
+      },
+    };
+
+    await import('./index');
+
+    expect(state.hostToolOutput).toEqual([
+      { type: 'text', text: 'marker' },
+      {
+        type: 'image_url',
+        image_url: { url: 'data:image/png;base64,iVBORw==' },
+      },
+    ]);
+    expect(state.emitted.filter(event => event.type === 'tool-result')).toEqual(
+      [expect.objectContaining({ result: { status: 'ready' } })],
+    );
   });
 
   it('emits one errored host-tool result without duplicating on_tool_end', async () => {

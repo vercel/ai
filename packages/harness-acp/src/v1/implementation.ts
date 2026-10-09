@@ -178,6 +178,7 @@ export function createImplementationIdentity({
   modelMapping,
   providerAuthentication,
   permissionModeMapping,
+  nonTextContentTypes,
 }: {
   harnessId: string;
   acpVersion: 'v1';
@@ -187,6 +188,7 @@ export function createImplementationIdentity({
   modelMapping: ACPModelMapping;
   providerAuthentication: ACPProviderAuthenticationCompatibility | undefined;
   permissionModeMapping?: ACPPermissionModeMapping;
+  nonTextContentTypes?: ACPV1Settings['nonTextContentTypes'];
 }): string {
   const { source } = implementation;
   const sourceIdentity =
@@ -234,6 +236,9 @@ export function createImplementationIdentity({
     },
     providerAuthentication: providerAuthentication ?? null,
     permissionModeMapping: permissionModeMapping ?? null,
+    ...(nonTextContentTypes == null || nonTextContentTypes.length === 0
+      ? {}
+      : { nonTextContentTypes: [...new Set(nonTextContentTypes)].sort() }),
   };
   return createHash('sha256')
     .update(stableStringify({ value: payload }))

@@ -15,6 +15,10 @@ import type { ToolResultPart } from '@ai-sdk/provider-utils';
 import { WebSocketServer, type WebSocket } from 'ws';
 
 export { HarnessBridgeCapabilityUnsupportedError } from './harness-bridge-capability-unsupported-error';
+export {
+  convertHarnessToolModelOutput,
+  type HarnessToolModelOutputContent,
+} from '../utils/convert-harness-tool-model-output';
 
 export type BridgeState = 'init' | 'waiting' | 'running' | 'draining' | 'done';
 

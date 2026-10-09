@@ -209,6 +209,9 @@ or apply its own permission policy without sending an ACP permission request.
   sandbox-external request transformations. When a sandbox without that
   capability is provided, custom `headers` therefore cannot be passed and are
   ignored.
+- Images returned by tool `toModelOutput()` callbacks are not supported. The
+  adapter omits image content and writes a warning to bridge stderr. Text
+  output is still delivered to the model.
 
 ## Related
 

@@ -135,7 +135,8 @@ vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => ({
   },
 }));
 
-vi.mock('@ai-sdk/harness/bridge', () => ({
+vi.mock('@ai-sdk/harness/bridge', async importOriginal => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   runBridge: async ({
     onStart,
     onStop,
@@ -942,6 +943,53 @@ describe('Claude Code bridge configuration', () => {
         providerExecuted: false,
       },
     ]);
+  });
+
+  test('returns model-facing text and inline images as MCP content', async () => {
+    state.start.tools = [
+      { name: 'inspect', inputSchema: { type: 'object', properties: {} } },
+    ];
+    state.requestToolResult = async () => ({
+      output: { status: 'ready' },
+      toolResult: {
+        type: 'tool-result',
+        toolCallId: 'host-1',
+        toolName: 'inspect',
+        output: {
+          type: 'content',
+          value: [
+            { type: 'text', text: 'marker' },
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: { type: 'data', data: 'iVBORw==' },
+            },
+          ],
+        },
+      },
+    });
+    let handlerResult: unknown;
+    state.createQuery = () =>
+      (async function* () {
+        handlerResult = await state.toolHandlers.get('inspect')!(
+          {},
+          {
+            requestId: 'request-1',
+            _meta: { 'claudecode/toolUseId': 'host-1' },
+          },
+        );
+        yield { type: 'result', subtype: 'success', result: 'done' };
+      })();
+
+    await import('./index');
+
+    expect(handlerResult).toEqual({
+      content: [
+        { type: 'text', text: 'marker' },
+        { type: 'image', data: 'iVBORw==', mimeType: 'image/png' },
+      ],
+      isError: false,
+    });
   });
 
   test('uses callback metadata to correlate identical parallel host tool calls', async () => {

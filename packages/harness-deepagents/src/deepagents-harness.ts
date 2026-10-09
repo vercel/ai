@@ -766,6 +766,7 @@ function createSession({
           toolCallId: input.toolCallId,
           output: input.output,
           isError: input.isError,
+          ...(input.toolResult != null ? { toolResult: input.toolResult } : {}),
         });
       },
       submitToolApproval: async input => {

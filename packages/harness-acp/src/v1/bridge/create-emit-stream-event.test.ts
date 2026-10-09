@@ -191,6 +191,7 @@ describe('host weather approval stream', () => {
           requestToolResult: () => result,
           registerCorrelationInvocation:
             emitter.registerHostToolCorrelationInvocation,
+          emitWarning: vi.fn(),
           removeCorrelationInvocation:
             emitter.removeHostToolCorrelationInvocation,
         };
