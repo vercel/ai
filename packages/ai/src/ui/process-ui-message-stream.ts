@@ -679,13 +679,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
               partialToolCall.text += chunk.inputTextDelta;
 
-              const { value, state: parseState } = await parsePartialJson(
+              const { value: partialArgs } = await parsePartialJson(
                 partialToolCall.text,
               );
-              const partialArgs =
-                parseState === 'failed-parse' && partialToolCall.text.length > 0
-                  ? partialToolCall.text
-                  : value;
 
               if (partialToolCall.dynamic) {
                 updateDynamicToolPart({

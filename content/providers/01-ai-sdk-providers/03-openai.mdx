@@ -1547,6 +1547,12 @@ Custom tools return a raw string instead of JSON, optionally constrained to a gr
 (regex or Lark syntax). This makes them useful for generating structured text like
 SQL queries, code snippets, or any output that must match a specific pattern.
 
+With `streamText`, custom-tool input deltas are encoded as a JSON string, matching
+the completed tool call. Chat decodes that string progressively during
+`input-streaming`, preserving the original text even when it looks like JSON
+(for example, `null`, `123`, or `{"x":1}`). Structured function-tool inputs
+continue to use partial-JSON parsing.
+
 ```ts
 import { openai } from '@ai-sdk/openai';
 import { generateText, isStepCount } from 'ai';

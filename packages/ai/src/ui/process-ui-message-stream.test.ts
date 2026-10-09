@@ -351,21 +351,69 @@ describe('processUIMessageStream', () => {
       it.each([
         {
           name: 'freeform HTML',
-          deltas: ['<main>', '<h1>Streaming</h1></main>'],
+          deltas: ['"<main>', '<h1>Streaming</h1></main>"'],
           inputs: ['<main>', '<main><h1>Streaming</h1></main>'],
           completeInput: '<main><h1>Streaming</h1></main>',
         },
         {
           name: 'freeform SQL',
-          deltas: ['SELECT * ', 'FROM users'],
+          deltas: ['"SELECT * ', 'FROM users"'],
           inputs: ['SELECT * ', 'SELECT * FROM users'],
           completeInput: 'SELECT * FROM users',
         },
         {
           name: 'freeform shell text',
-          deltas: ['echo ', 'hello'],
+          deltas: ['"echo ', 'hello"'],
           inputs: ['echo ', 'echo hello'],
           completeInput: 'echo hello',
+        },
+        {
+          name: 'freeform null text',
+          deltas: ['"nu', 'll"'],
+          inputs: ['nu', 'null'],
+          completeInput: 'null',
+        },
+        {
+          name: 'freeform boolean text',
+          deltas: ['"fa', 'lse"'],
+          inputs: ['fa', 'false'],
+          completeInput: 'false',
+        },
+        {
+          name: 'freeform numeric text',
+          deltas: ['"12', '3"'],
+          inputs: ['12', '123'],
+          completeInput: '123',
+        },
+        {
+          name: 'freeform JSON object text',
+          deltas: ['"{\\"x\\":', '1}"'],
+          inputs: ['{"x":', '{"x":1}'],
+          completeInput: '{"x":1}',
+        },
+        {
+          name: 'freeform text with a null prefix',
+          deltas: ['"null', ' byte"'],
+          inputs: ['null', 'null byte'],
+          completeInput: 'null byte',
+        },
+        {
+          name: 'freeform text with a number prefix',
+          deltas: ['"123', ' apples"'],
+          inputs: ['123', '123 apples'],
+          completeInput: '123 apples',
+        },
+        {
+          name: 'whitespace-prefixed JSON object',
+          deltas: [' \n\t', '{"location":"San Francisco"}'],
+          inputs: [undefined, { location: 'San Francisco' }],
+          completeInput: { location: 'San Francisco' },
+        },
+        {
+          name: 'malformed structured input',
+          deltas: ['not JSON', ' at all'],
+          inputs: [undefined, undefined],
+          completeInput: { location: 'San Francisco' },
         },
         {
           name: 'partial JSON object',
