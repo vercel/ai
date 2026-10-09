@@ -18,7 +18,7 @@ const futureModelIds = [
 const futureBaseURL =
   'https://us-central1-aiplatform.googleapis.com/v1beta1/projects/test-project/locations/us-central1/publishers/google';
 
-const server = createTestServer({
+const server = createTestServer<Record<string, {}>>({
   [TEST_URL]: {},
   ...Object.fromEntries(
     futureModelIds.map(modelId => [
