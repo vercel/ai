@@ -642,6 +642,15 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     this.setStatus({ status: 'submitted', error: undefined });
 
     const lastMessage = this.lastMessage;
+    const responseMessageIndex =
+      trigger === 'submit-message' && messageId != null
+        ? this.state.messages.findIndex(message => message.id === messageId)
+        : this.state.messages.length - 1;
+    const responseMessage =
+      responseMessageIndex === -1
+        ? lastMessage
+        : this.state.messages[responseMessageIndex];
+    const originalResponseMessageId = responseMessage?.id;
     const resumableResponseMessage =
       trigger === 'resume-stream' &&
       lastMessage?.role === 'assistant' &&
@@ -651,6 +660,10 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       )
         ? this.state.snapshot(lastMessage)
         : undefined;
+    const usesEarlierAssistantMessage =
+      responseMessageIndex !== -1 &&
+      responseMessageIndex < this.state.messages.length - 1 &&
+      responseMessage?.role === 'assistant';
 
     let isAbort = false;
     let isDisconnect = false;
@@ -666,7 +679,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
                 lastMessage:
                   trigger === 'resume-stream'
                     ? resumableResponseMessage
-                    : this.state.snapshot(lastMessage),
+                    : this.state.snapshot(responseMessage),
                 messageId: this.generateId(),
               }),
         abortController,
@@ -746,14 +759,28 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
                 this.setStatus({ status: 'streaming' });
               }
 
-              const replaceLastMessage =
-                response.state.message.id === this.lastMessage?.id;
+              const existingMessageIndex = this.state.messages.findLastIndex(
+                message => message.id === response.state.message.id,
+              );
 
-              if (replaceLastMessage) {
+              if (existingMessageIndex !== -1) {
                 this.state.replaceMessage(
-                  this.state.messages.length - 1,
+                  existingMessageIndex,
                   response.state.message,
                 );
+              } else if (usesEarlierAssistantMessage) {
+                const originalMessageIndex = this.state.messages.findLastIndex(
+                  message => message.id === originalResponseMessageId,
+                );
+
+                if (originalMessageIndex !== -1) {
+                  this.state.replaceMessage(
+                    originalMessageIndex,
+                    response.state.message,
+                  );
+                } else {
+                  this.state.pushMessage(response.state.message);
+                }
               } else {
                 this.state.pushMessage(response.state.message);
               }
