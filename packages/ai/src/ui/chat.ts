@@ -642,6 +642,20 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     this.setStatus({ status: 'submitted', error: undefined });
 
     const lastMessage = this.lastMessage;
+<<<<<<< HEAD
+=======
+    const responseMessageIndex =
+      trigger === 'submit-message' && messageId != null
+        ? this.state.messages.findIndex(message => message.id === messageId)
+        : this.state.messages.length - 1;
+    const responseMessage =
+      responseMessageIndex === -1
+        ? lastMessage
+        : this.state.messages[responseMessageIndex];
+    const originalResponseMessageId = responseMessage?.id;
+    // The continued stream can start with input deltas or a tool result.
+    // Keep unfinished tool parts so result chunks can find their tool call.
+>>>>>>> 5150d50e23 (fix: preserve streaming assistant message identity when the chat message list changes (#22393))
     const resumableResponseMessage =
       trigger === 'resume-stream' &&
       lastMessage?.role === 'assistant' &&
@@ -746,6 +760,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
                 this.setStatus({ status: 'streaming' });
               }
 
+<<<<<<< HEAD
               const replaceLastMessage =
                 response.state.message.id === this.lastMessage?.id;
 
@@ -753,7 +768,30 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
                 this.state.replaceMessage(
                   this.state.messages.length - 1,
                   response.state.message,
+=======
+              const existingMessageIndex = this.state.messages.findLastIndex(
+                message => message.id === response.state.message.id,
+              );
+
+              if (existingMessageIndex !== -1) {
+                this.state.replaceMessage(
+                  existingMessageIndex,
+                  response.state.message,
                 );
+              } else if (usesEarlierAssistantMessage) {
+                const originalMessageIndex = this.state.messages.findLastIndex(
+                  message => message.id === originalResponseMessageId,
+>>>>>>> 5150d50e23 (fix: preserve streaming assistant message identity when the chat message list changes (#22393))
+                );
+
+                if (originalMessageIndex !== -1) {
+                  this.state.replaceMessage(
+                    originalMessageIndex,
+                    response.state.message,
+                  );
+                } else {
+                  this.state.pushMessage(response.state.message);
+                }
               } else {
                 this.state.pushMessage(response.state.message);
               }
