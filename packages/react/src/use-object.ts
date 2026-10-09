@@ -214,7 +214,9 @@ function useObject<
             if (!isDeepEqualData(latestObject, currentObject)) {
               latestObject = currentObject;
 
-              mutate(currentObject);
+              if (abortControllerRef.current === abortController) {
+                mutate(currentObject);
+              }
             }
           },
 
