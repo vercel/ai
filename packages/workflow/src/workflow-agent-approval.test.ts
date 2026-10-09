@@ -199,6 +199,49 @@ describe.each<Mode>(['generate', 'stream'])(
       },
     );
 
+    it('resumes approved tools with transformed input without transforming twice', async () => {
+      const needsApproval = vi.fn(async () => true);
+      const execute = vi.fn(async () => 'executed');
+      const agent = new WorkflowAgent<ToolSet>({
+        model: model([approvalCall]),
+        tools: {
+          action: tool({
+            inputSchema: z.object({
+              value: z.string().transform(value => `${value}!`),
+            }),
+            needsApproval,
+            execute,
+          }),
+        },
+      });
+
+      const issued = await run(mode, agent, prompt);
+
+      expect(needsApproval).toHaveBeenCalledWith(
+        { value: 'requested!' },
+        expect.any(Object),
+      );
+      expect(issued.messages[0]).toMatchObject({
+        role: 'assistant',
+        content: expect.arrayContaining([
+          {
+            type: 'tool-approval-request',
+            approvalId: 'approval-call-1',
+            toolCallId: 'call-1',
+            inputSchemaInput: { value: 'requested' },
+          },
+        ]),
+      });
+
+      await run(mode, agent, approve(issued.messages, true));
+
+      expect(execute).toHaveBeenCalledOnce();
+      expect(execute).toHaveBeenCalledWith(
+        { value: 'requested!' },
+        expect.any(Object),
+      );
+    });
+
     it('rejects tampered approval input before executing the tool', async () => {
       vi.stubEnv('WORKFLOW_TOOL_APPROVAL_SECRET', secret);
       const execute = vi.fn(async () => 'executed');
