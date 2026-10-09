@@ -71,13 +71,18 @@ const anthropicBatchResponseZodSchema = () =>
   z.object({
     id: z.string(),
     type: z.literal('message_batch'),
-    processing_status: z.string(),
+    processing_status: z.union([
+      z.literal('in_progress'),
+      z.literal('canceling'),
+      z.literal('ended'),
+      z.string(),
+    ]),
     request_counts: z.object({
-      processing: z.number(),
-      succeeded: z.number(),
-      errored: z.number(),
-      canceled: z.number(),
-      expired: z.number(),
+      processing: z.number().default(0),
+      succeeded: z.number().default(0),
+      errored: z.number().default(0),
+      canceled: z.number().default(0),
+      expired: z.number().default(0),
     }),
     created_at: z.string(),
     expires_at: z.string(),
@@ -95,6 +100,7 @@ const anthropicBatchListResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
       data: z.array(anthropicBatchResponseZodSchema()),
+      first_id: z.string().nullish(),
       has_more: z.boolean(),
       last_id: z.string().nullish(),
     }),
