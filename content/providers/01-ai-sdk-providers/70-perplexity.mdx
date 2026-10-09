@@ -420,6 +420,56 @@ The following optional provider options are available for embedding models:
 | `pplx-embed-v1-0.6b` | 1024       | 512                 |
 | `pplx-embed-v1-4b`   | 2560       | 512                 |
 
+## Decision Models
+
+You can create Perplexity decision models using the `.decisionModel()` factory method:
+
+```ts
+import { perplexity } from '@ai-sdk/perplexity';
+import { decide } from 'ai';
+
+const { answers } = await decide({
+  model: perplexity.decisionModel('pplx-decider-v1-27b'),
+  state: 'The headphones sound great, but the battery stopped charging after two weeks.',
+  questions: {
+    'defect': {
+      'type': 'boolean',
+      'instructions': 'Does the review report a product defect?'
+    },
+    'sentiment': {
+      'type': 'choice',
+      'instructions': 'What is the overall sentiment of the review?',
+      'criteria': {
+        'positive': 'Mostly satisfied',
+        'mixed': 'Praise and complaints in one review',
+        'negative': 'Mostly dissatisfied'
+      }
+    },
+    'severity': {
+      'type': 'score',
+      'instructions': 'How severe is the reported problem?',
+      'criteria': [
+        'Cosmetic',
+        'Inconvenient',
+        'Product unusable'
+      ]
+    }
+  },
+});
+```
+
+<Note>
+  Decision models are experimental and subject to change. The Perplexity decision API
+  currently supports the `pplx-decider-v1-27b` and `pplx-decider-v1.1-27b` models.
+</Note>
+
+The decision model transforms boolean questions to Perplexity's `noul` format and maps
+response types back to the standard DecisionModelV4 format. The response includes:
+
+- **answers**: Structured answers with probabilities for choice and score questions
+- **usage**: Token usage information (input and output tokens)
+- **response**: Raw API response with model ID, headers, and body
+
 ## Model Capabilities
 
 | Model    | Image Input | Object Generation | Tool Usage | Tool Streaming |

@@ -3,6 +3,7 @@ import {
   type LanguageModelV4,
   type EmbeddingModelV4,
   type ProviderV4,
+  type Experimental_DecisionModelV4 as DecisionModelV4,
 } from '@ai-sdk/provider';
 import {
   generateId,
@@ -16,6 +17,8 @@ import type { PerplexityEmbeddingModelId } from './perplexity-embedding-model-op
 import { PerplexityLanguageModel } from './perplexity-language-model';
 import type { PerplexityLanguageModelId } from './perplexity-options';
 import { VERSION } from './version';
+import type { PerplexityDecisionModelId } from './decision/perplexity-decision-model-options';
+import { PerplexityDecisionModel } from './decision/perplexity-decision-model';
 
 export interface PerplexityProvider extends ProviderV4 {
   /**
@@ -42,6 +45,11 @@ export interface PerplexityProvider extends ProviderV4 {
    * @deprecated Use `embeddingModel` instead.
    */
   textEmbeddingModel(modelId: PerplexityEmbeddingModelId): EmbeddingModelV4;
+
+  /**
+   * Creates a Perplexity model for decision.
+   */
+  decisionModel(modelId: PerplexityDecisionModelId): DecisionModelV4;
 }
 
 export interface PerplexityProviderSettings {
@@ -117,6 +125,14 @@ export function createPerplexity(
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
+
+  provider.decisionModel = (modelId: PerplexityDecisionModelId) =>
+    new PerplexityDecisionModel(modelId, {
+      provider: 'perplexity.decision',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
 
   return provider;
 }
