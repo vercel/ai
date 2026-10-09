@@ -17,6 +17,16 @@ export type OpenAIResponsesInputItem =
   | OpenAIResponsesComputerCall
   | OpenAIResponsesLocalShellCall
   | OpenAIResponsesLocalShellCallOutput
+<<<<<<< HEAD
+=======
+  | OpenAIResponsesShellCall
+  | OpenAIResponsesShellCallOutput
+  | OpenAIResponsesApplyPatchCall
+  | OpenAIResponsesApplyPatchCallOutput
+  | OpenAIResponsesToolSearchCall
+  | OpenAIResponsesToolSearchOutput
+  | OpenAIResponsesWebSearchCall
+>>>>>>> 6aedb07c54 (fix: preserve web search context across stateless OpenAI Responses steps (#22346))
   | OpenAIResponsesReasoning
   | OpenAIResponsesItemReference
   | OpenAIResponsesConfigurationUpdate;
@@ -137,6 +147,7 @@ export type OpenAIResponsesLocalShellCall = {
   type: 'local_shell_call';
   id: string;
   call_id: string;
+<<<<<<< HEAD
   action: {
     type: 'exec';
     command: string[];
@@ -144,6 +155,64 @@ export type OpenAIResponsesLocalShellCall = {
     user?: string;
     working_directory?: string;
     env?: Record<string, string>;
+=======
+  code: string;
+  fingerprint: string;
+};
+
+export type OpenAIResponsesProgramOutput = {
+  type: 'program_output';
+  id: string;
+  call_id: string;
+  result: string;
+  status: 'completed' | 'incomplete';
+};
+
+export type OpenAIResponsesWebSearchCall = {
+  type: 'web_search_call';
+  id: string;
+  status: 'completed';
+  action: OpenAIResponsesWebSearchAction;
+};
+
+export type OpenAIResponsesCustomToolCall = {
+  type: 'custom_tool_call';
+  id?: string;
+  call_id: string;
+  name: string;
+  input: string;
+  async?: boolean;
+};
+
+export type OpenAIResponsesCustomToolCallOutput = {
+  type: 'custom_tool_call_output';
+  call_id: string;
+  output: OpenAIResponsesFunctionCallOutput['output'];
+};
+
+export type OpenAIResponsesMcpApprovalResponse = {
+  type: 'mcp_approval_response';
+  approval_request_id: string;
+  approve: boolean;
+};
+
+export type OpenAIResponsesComputerAction = InferSchema<
+  typeof openaiResponsesComputerActionSchema
+>;
+
+export type OpenAIResponsesComputerCall = InferSchema<
+  typeof openaiResponsesComputerCallSchema
+>;
+
+export type OpenAIResponsesComputerCallOutput = {
+  type: 'computer_call_output';
+  call_id: string;
+  output: {
+    type: 'computer_screenshot';
+    image_url?: string;
+    file_id?: string;
+    detail?: 'auto' | 'low' | 'high' | 'original';
+>>>>>>> 6aedb07c54 (fix: preserve web search context across stateless OpenAI Responses steps (#22346))
   };
 };
 

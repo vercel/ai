@@ -2364,7 +2364,291 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
 
+<<<<<<< HEAD
     it('should exclude provider-executed tool calls and results from prompt with store: false', async () => {
+=======
+    it('should reconstruct hosted tool search call and output with store: false', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'tsc_hosted_123',
+                toolName: 'tool_search',
+                input: JSON.stringify({
+                  arguments: { paths: ['get_weather'] },
+                  call_id: null,
+                }),
+                providerExecuted: true,
+                providerOptions: {
+                  openai: {
+                    itemId: 'tsc_hosted_123',
+                  },
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'tsc_hosted_123',
+                toolName: 'tool_search',
+                output: {
+                  type: 'json',
+                  value: {
+                    tools: [
+                      {
+                        type: 'function',
+                        name: 'get_weather',
+                        defer_loading: true,
+                      },
+                    ],
+                  },
+                },
+                providerOptions: {
+                  openai: {
+                    itemId: 'tso_hosted_456',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result).toEqual({
+        input: [
+          {
+            type: 'tool_search_call',
+            id: 'tsc_hosted_123',
+            execution: 'server',
+            call_id: null,
+            status: 'completed',
+            arguments: { paths: ['get_weather'] },
+          },
+          {
+            type: 'tool_search_output',
+            id: 'tso_hosted_456',
+            execution: 'server',
+            call_id: null,
+            status: 'completed',
+            tools: [
+              {
+                type: 'function',
+                name: 'get_weather',
+                defer_loading: true,
+              },
+            ],
+          },
+        ],
+        warnings: [],
+      });
+    });
+
+    it('should use distinct item references for hosted tool search call and output with store: true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'tsc_hosted_123',
+                toolName: 'tool_search',
+                input: JSON.stringify({
+                  arguments: { paths: ['get_weather'] },
+                  call_id: null,
+                }),
+                providerExecuted: true,
+                providerOptions: {
+                  openai: {
+                    itemId: 'tsc_hosted_123',
+                  },
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'tsc_hosted_123',
+                toolName: 'tool_search',
+                output: {
+                  type: 'json',
+                  value: {
+                    tools: [
+                      {
+                        type: 'function',
+                        name: 'get_weather',
+                      },
+                    ],
+                  },
+                },
+                providerOptions: {
+                  openai: {
+                    itemId: 'tso_hosted_456',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result).toEqual({
+        input: [
+          {
+            type: 'item_reference',
+            id: 'tsc_hosted_123',
+          },
+          {
+            type: 'item_reference',
+            id: 'tso_hosted_456',
+          },
+        ],
+        warnings: [],
+      });
+    });
+
+    it('should serialize client tool search output with call_id from tool role', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_abc123',
+                toolName: 'tool_search',
+                input: JSON.stringify({
+                  arguments: { goal: 'Find weather tools' },
+                  call_id: 'call_abc123',
+                }),
+                providerOptions: {
+                  openai: {
+                    itemId: 'tsc_client_1',
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_abc123',
+                toolName: 'tool_search',
+                output: {
+                  type: 'json',
+                  value: {
+                    tools: [
+                      {
+                        type: 'function',
+                        name: 'get_weather',
+                        description: 'Get weather',
+                        defer_loading: true,
+                        parameters: {
+                          type: 'object',
+                          properties: {
+                            location: { type: 'string' },
+                          },
+                          required: ['location'],
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result).toEqual({
+        input: [
+          {
+            type: 'tool_search_call',
+            id: 'tsc_client_1',
+            execution: 'client',
+            call_id: 'call_abc123',
+            status: 'completed',
+            arguments: { goal: 'Find weather tools' },
+          },
+          {
+            type: 'tool_search_output',
+            execution: 'client',
+            call_id: 'call_abc123',
+            status: 'completed',
+            tools: [
+              {
+                type: 'function',
+                name: 'get_weather',
+                description: 'Get weather',
+                defer_loading: true,
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    location: { type: 'string' },
+                  },
+                  required: ['location'],
+                },
+              },
+            ],
+          },
+        ],
+        warnings: [],
+      });
+    });
+
+    it('should use call_id (not item id) for client tool search call serialization', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_xyz789',
+                toolName: 'tool_search',
+                input: JSON.stringify({
+                  arguments: { goal: 'Find tools' },
+                  call_id: 'call_xyz789',
+                }),
+                providerOptions: {
+                  openai: {
+                    itemId: 'tsc_item_id',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      const toolSearchCall = result.input.find(
+        (item: any) => item.type === 'tool_search_call',
+      ) as any;
+
+      expect(toolSearchCall.call_id).toBe('call_xyz789');
+      expect(toolSearchCall.id).toBe('tsc_item_id');
+      expect(toolSearchCall.execution).toBe('client');
+    });
+
+    it('should reconstruct provider-executed web search results with store: false', async () => {
+>>>>>>> 6aedb07c54 (fix: preserve web search context across stateless OpenAI Responses steps (#22346))
       const result = await convertToOpenAIResponsesInput({
         prompt: [
           {
@@ -2428,6 +2712,7 @@ describe('convertToOpenAIResponsesInput', () => {
               "role": "assistant",
             },
             {
+<<<<<<< HEAD
               "content": [
                 {
                   "text": "Based on the search results, several significant events took place in San Francisco yesterday (June 22, 2025).",
@@ -2435,19 +2720,362 @@ describe('convertToOpenAIResponsesInput', () => {
                 },
               ],
               "id": undefined,
+=======
+              "action": {
+                "query": "San Francisco major news events June 22 2025",
+                "sources": [
+                  {
+                    "type": "url",
+                    "url": "https://patch.com/california/san-francisco/calendar",
+                  },
+                ],
+                "type": "search",
+              },
+              "id": "ws_67cf2b3051e88190b006770db6fdb13d",
+              "status": "completed",
+              "type": "web_search_call",
+            },
+            {
+              "content": "Based on the search results, several significant events took place in San Francisco yesterday (June 22, 2025).",
+>>>>>>> 6aedb07c54 (fix: preserve web search context across stateless OpenAI Responses steps (#22346))
               "role": "assistant",
             },
           ],
-          "warnings": [
-            {
-              "message": "Results for OpenAI tool web_search are not sent to the API when store is false",
-              "type": "other",
-            },
-          ],
+          "warnings": [],
         }
       `);
     });
 
+<<<<<<< HEAD
+=======
+    it('should reconstruct web search preview and page actions with store: false', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'ws_preview',
+                toolName: 'web_search_preview',
+                output: {
+                  type: 'json',
+                  value: {
+                    action: {
+                      type: 'search',
+                      query: 'AI SDK',
+                    },
+                    sources: [
+                      {
+                        type: 'url',
+                        url: 'https://ai-sdk.dev',
+                      },
+                    ],
+                  },
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'ws_open_page',
+                toolName: 'web_search',
+                output: {
+                  type: 'json',
+                  value: {
+                    action: {
+                      type: 'openPage',
+                      url: 'https://ai-sdk.dev/docs',
+                    },
+                  },
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'ws_find_in_page',
+                toolName: 'web_search',
+                output: {
+                  type: 'json',
+                  value: {
+                    action: {
+                      type: 'findInPage',
+                      url: 'https://ai-sdk.dev/docs',
+                      pattern: 'streamText',
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result).toEqual({
+        input: [
+          {
+            type: 'web_search_call',
+            id: 'ws_preview',
+            status: 'completed',
+            action: {
+              type: 'search',
+              query: 'AI SDK',
+              sources: [{ type: 'url', url: 'https://ai-sdk.dev' }],
+            },
+          },
+          {
+            type: 'web_search_call',
+            id: 'ws_open_page',
+            status: 'completed',
+            action: {
+              type: 'open_page',
+              url: 'https://ai-sdk.dev/docs',
+            },
+          },
+          {
+            type: 'web_search_call',
+            id: 'ws_find_in_page',
+            status: 'completed',
+            action: {
+              type: 'find_in_page',
+              url: 'https://ai-sdk.dev/docs',
+              pattern: 'streamText',
+            },
+          },
+        ],
+        warnings: [],
+      });
+    });
+
+    it('should keep warning for web search results without an action', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'ws_missing_action',
+                toolName: 'web_search',
+                output: {
+                  type: 'json',
+                  value: {},
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result).toEqual({
+        input: [],
+        warnings: [
+          {
+            type: 'other',
+            message:
+              'Results for OpenAI tool web_search are not sent to the API when store is false',
+          },
+        ],
+      });
+    });
+
+    it('should skip provider-executed execution-denied tool results in assistant messages', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'I need approval before running that tool.',
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'ws_denied_123',
+                toolName: 'web_search',
+                output: {
+                  type: 'execution-denied',
+                  reason: 'User denied the tool execution',
+                },
+              },
+              {
+                type: 'text',
+                text: 'The tool was not run.',
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result).toEqual({
+        input: [
+          {
+            role: 'assistant',
+            content: 'I need approval before running that tool.',
+          },
+          {
+            role: 'assistant',
+            content: 'The tool was not run.',
+          },
+        ],
+        warnings: [],
+      });
+    });
+
+    it('should skip json-wrapped execution-denied tool results in assistant messages', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'I need approval before running that tool.',
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'ws_denied_json_123',
+                toolName: 'web_search',
+                output: {
+                  type: 'json',
+                  value: {
+                    type: 'execution-denied',
+                    reason: 'User denied the tool execution',
+                  },
+                },
+              },
+              {
+                type: 'text',
+                text: 'The tool was not run.',
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result).toEqual({
+        input: [
+          {
+            role: 'assistant',
+            content: 'I need approval before running that tool.',
+          },
+          {
+            role: 'assistant',
+            content: 'The tool was not run.',
+          },
+        ],
+        warnings: [],
+      });
+    });
+
+    describe('provider-executed shell', () => {
+      it('should reconstruct the shell call and output with store: false', async () => {
+        const callId = 'call_shell';
+
+        const result = await convertToOpenAIResponsesInput({
+          toolNameMapping: testToolNameMapping,
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Run `printf hello` using the shell tool.',
+                },
+              ],
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: callId,
+                  toolName: 'shell',
+                  input: {
+                    action: {
+                      commands: ['printf hello'],
+                    },
+                  },
+                  providerExecuted: true,
+                  providerOptions: {
+                    openai: {
+                      itemId: 'shell_item',
+                    },
+                  },
+                },
+                {
+                  type: 'tool-result',
+                  toolCallId: callId,
+                  toolName: 'shell',
+                  output: {
+                    type: 'json',
+                    value: {
+                      output: [
+                        {
+                          stdout: 'hello',
+                          stderr: '',
+                          outcome: { type: 'exit', exitCode: 0 },
+                        },
+                      ],
+                    },
+                  },
+                },
+                {
+                  type: 'text',
+                  text: 'hello',
+                },
+              ],
+            },
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'What did the command print?' }],
+            },
+          ],
+          systemMessageMode: 'system',
+          providerOptionsName: 'openai',
+          store: false,
+          hasShellTool: true,
+        });
+
+        expect(result.input).toContainEqual({
+          type: 'shell_call',
+          call_id: callId,
+          id: 'shell_item',
+          status: 'completed',
+          action: {
+            commands: ['printf hello'],
+            timeout_ms: undefined,
+            max_output_length: undefined,
+          },
+        });
+        expect(result.input).toContainEqual({
+          type: 'shell_call_output',
+          call_id: callId,
+          output: [
+            {
+              stdout: 'hello',
+              stderr: '',
+              outcome: { type: 'exit', exit_code: 0 },
+            },
+          ],
+        });
+      });
+    });
+
+>>>>>>> 6aedb07c54 (fix: preserve web search context across stateless OpenAI Responses steps (#22346))
     describe('local shell', () => {
       it('should convert local shell tool call and result into item reference with store: true', async () => {
         const result = await convertToOpenAIResponsesInput({
