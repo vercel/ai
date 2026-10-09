@@ -324,7 +324,7 @@ describe('prepareTools', () => {
       expect(result.toolWarnings).toMatchInlineSnapshot(`
         [
           {
-            "details": "Browser search is only supported on the following models: openai/gpt-oss-20b, openai/gpt-oss-120b. Current model: gemma2-9b-it",
+            "details": "Browser search is not supported on model gemma2-9b-it.",
             "feature": "provider-defined tool groq.browser_search",
             "type": "unsupported",
           },
@@ -366,6 +366,41 @@ describe('prepareTools', () => {
       ]);
       expect(result.toolWarnings).toEqual([]);
     });
+
+    it.each(['openai/gpt-oss-240b', 'future/browser-model', 'new-model'])(
+      'keeps browser search and function tools for unknown model %s',
+      modelId => {
+        const result = prepareTools({
+          modelId,
+          tools: [
+            {
+              type: 'provider',
+              id: 'groq.browser_search',
+              name: 'search',
+              args: {},
+            },
+            {
+              type: 'function',
+              name: 'lookup',
+              inputSchema: { type: 'object', properties: {} },
+            },
+          ],
+          toolChoice: { type: 'required' },
+        });
+        expect(result.tools).toEqual([
+          { type: 'browser_search' },
+          {
+            type: 'function',
+            function: {
+              name: 'lookup',
+              parameters: { type: 'object', properties: {} },
+            },
+          },
+        ]);
+        expect(result.toolChoice).toBe('required');
+        expect(result.toolWarnings).toEqual([]);
+      },
+    );
 
     it('should validate all browser search supported models', () => {
       const supportedModels = ['openai/gpt-oss-20b', 'openai/gpt-oss-120b'];
