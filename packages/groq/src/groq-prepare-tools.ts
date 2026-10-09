@@ -3,10 +3,7 @@ import {
   type LanguageModelV2CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import {
-  getSupportedModelsString,
-  isBrowserSearchSupportedModel,
-} from './groq-browser-search-models';
+import { isBrowserSearchSupportedModel } from './groq-browser-search-models';
 import type { GroqChatModelId } from './groq-chat-options';
 
 export function prepareTools({
@@ -71,7 +68,7 @@ export function prepareTools({
           toolWarnings.push({
             type: 'unsupported-tool',
             tool,
-            details: `Browser search is only supported on the following models: ${getSupportedModelsString()}. Current model: ${modelId}`,
+            details: `Browser search is not supported on model ${modelId}.`,
           });
         } else {
           groqTools.push({
