@@ -69,6 +69,13 @@ type AutomaticResumeState = {
 
 const automaticResumeStates = new WeakMap<object, AutomaticResumeState>();
 
+type AutomaticallyResumableChat = {
+  '~resumeStreamIfDisconnected': (options: {
+    waitForCurrentResponse: boolean;
+    shouldResume: () => boolean;
+  }) => Promise<void>;
+};
+
 function registerAutomaticResume<UI_MESSAGE extends UIMessage>({
   chat,
   registration,
@@ -83,8 +90,13 @@ function registerAutomaticResume<UI_MESSAGE extends UIMessage>({
 
     if (typeof document !== 'undefined') {
       const onVisibilityChange = () => {
-        if (document.visibilityState === 'visible' && chat.status === 'error') {
-          void chat.resumeStream();
+        if (document.visibilityState === 'visible') {
+          void (chat as Chat<UI_MESSAGE> & AutomaticallyResumableChat)[
+            '~resumeStreamIfDisconnected'
+          ]({
+            waitForCurrentResponse: true,
+            shouldResume: () => document.visibilityState === 'visible',
+          });
         }
       };
 

@@ -274,6 +274,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   private resumableStreamState:
     | StreamingUIMessageState<UI_MESSAGE>
     | undefined = undefined;
+  private disconnectedResumePromise: Promise<void> | undefined = undefined;
   private jobExecutor = new SerialJobExecutor();
   private activeStopCount = 0;
   private stopGeneration = 0;
@@ -539,6 +540,63 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
    */
   resumeStream = async (options: ChatRequestOptions = {}): Promise<void> => {
     await this.makeRequest({ trigger: 'resume-stream', ...options });
+  };
+
+  /**
+   * Resume only after a response has ended with a resumable network
+   * disconnect. When requested, wait for the current response so callers can
+   * safely handle lifecycle events that arrive just before the network error.
+   *
+   * @internal
+   */
+  '~resumeStreamIfDisconnected' = async ({
+    waitForCurrentResponse = false,
+    shouldResume = () => true,
+  }: {
+    waitForCurrentResponse?: boolean;
+    shouldResume?: () => boolean;
+  } = {}): Promise<void> => {
+    let resumableState = this.resumableStreamState;
+
+    if (resumableState == null && waitForCurrentResponse) {
+      const activeResponse = this.activeResponse;
+
+      if (activeResponse == null) {
+        return;
+      }
+
+      await activeResponse.completionPromise;
+
+      if (this.resumableStreamState !== activeResponse.state) {
+        return;
+      }
+
+      resumableState = activeResponse.state;
+    }
+
+    if (
+      resumableState == null ||
+      this.resumableStreamState !== resumableState ||
+      !shouldResume()
+    ) {
+      return;
+    }
+
+    if (this.disconnectedResumePromise != null) {
+      await this.disconnectedResumePromise;
+      return;
+    }
+
+    const resumePromise = this.resumeStream();
+    this.disconnectedResumePromise = resumePromise;
+
+    try {
+      await resumePromise;
+    } finally {
+      if (this.disconnectedResumePromise === resumePromise) {
+        this.disconnectedResumePromise = undefined;
+      }
+    }
   };
 
   /**

@@ -1,4 +1,5 @@
 ---
+'ai': patch
 '@ai-sdk/react': patch
 ---
 
