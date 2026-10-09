@@ -3309,6 +3309,43 @@ describe('OpenTelemetry integration with decide', () => {
     },
   );
 
+  it('records the response id and model on the decision model span', async () => {
+    const tracer = createMockTracer();
+
+    await experimental_decide({
+      model: new Experimental_DecisionMockModelV4({
+        modelId: 'mock-model-alias',
+        doDecide: async () => ({
+          answers: { refund: { type: 'boolean', probability: 0.9 } },
+          usage: { inputTokens: 12, outputTokens: 2 },
+          warnings: [],
+          response: { id: 'response-id', modelId: 'mock-model-resolved' },
+        }),
+      }),
+      state: { message: 'Please refund me' },
+      questions: { refund: { type: 'boolean', instructions: 'Refund?' } },
+      telemetry: { integrations: new OpenTelemetry({ tracer }) },
+    });
+
+    expect(tracer.spans).toHaveLength(2);
+    const [operationSpan, modelCallSpan] = tracer.spans.map(span =>
+      serializeSpan(span, tracer),
+    );
+    expect(operationSpan.initAttributes['gen_ai.request.model']).toBe(
+      'mock-model-alias',
+    );
+    expect(operationSpan.runtimeAttributes).not.toHaveProperty(
+      'gen_ai.response.model',
+    );
+    expect(modelCallSpan.initAttributes['gen_ai.request.model']).toBe(
+      'mock-model-alias',
+    );
+    expect(modelCallSpan.runtimeAttributes).toMatchObject({
+      'gen_ai.response.id': 'response-id',
+      'gen_ai.response.model': 'mock-model-resolved',
+    });
+  });
+
   it('ends both spans with error status when decision fails', async () => {
     const tracer = createMockTracer();
     const error = new Error('decision failed');
