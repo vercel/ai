@@ -62,7 +62,7 @@ describe('anthropicFailedResponseHandler', () => {
   ])('flags context window errors: %s', async message => {
     const { value } = await call({ type: 'invalid_request_error', message });
 
-    expect(value.reason).toBe('context-length-exceeded');
+    expect(value.failureReason).toBe('context-length-exceeded');
   });
 
   it('does not flag other invalid request errors', async () => {
@@ -72,6 +72,6 @@ describe('anthropicFailedResponseHandler', () => {
         'max_tokens: 64000 > 32000, which is the maximum allowed number of output tokens for claude-opus-4-20250514',
     });
 
-    expect(value.reason).toBeUndefined();
+    expect(value.failureReason).toBeUndefined();
   });
 });

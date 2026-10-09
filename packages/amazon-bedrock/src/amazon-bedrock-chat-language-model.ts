@@ -103,7 +103,7 @@ function createAmazonBedrockStreamError({
     message,
     type,
     ...getAmazonBedrockStreamErrorMetadata(type),
-    reason: getAmazonBedrockErrorReason(message),
+    failureReason: getAmazonBedrockErrorReason(message),
     data,
   });
 }
@@ -710,7 +710,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: AmazonBedrockErrorSchema,
         errorToMessage: error => `${error.message ?? 'Unknown error'}`,
-        reason: (_response, error) =>
+        failureReason: (_response, error) =>
           getAmazonBedrockErrorReason(error.message),
       }),
       successfulResponseHandler: createJsonResponseHandler(

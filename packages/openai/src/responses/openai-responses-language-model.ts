@@ -881,7 +881,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         responseHeaders,
         responseBody: rawResponse as string,
         isRetryable: false,
-        reason:
+        failureReason:
           response.error.code === 'context_length_exceeded'
             ? 'context-length-exceeded'
             : undefined,

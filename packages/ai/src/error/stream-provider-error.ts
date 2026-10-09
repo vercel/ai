@@ -1,4 +1,4 @@
-import { AISDKError, type APICallError } from '@ai-sdk/provider';
+import { AISDKError, type ProviderFailureReason } from '@ai-sdk/provider';
 
 const name = 'AI_StreamProviderError';
 const marker = `vercel.ai.error.${name}`;
@@ -33,9 +33,9 @@ export class StreamProviderError extends AISDKError {
 
   /**
    * Why the provider rejected the request, when the provider adapter
-   * recognizes the rejection. See `APICallError.reason`.
+   * recognizes the rejection. See `APICallError.failureReason`.
    */
-  readonly reason?: APICallError['reason'];
+  readonly failureReason?: ProviderFailureReason;
 
   /**
    * Original provider error payload.
@@ -48,7 +48,7 @@ export class StreamProviderError extends AISDKError {
     code,
     statusCode,
     isRetryable = isRetryableStatusCode(statusCode),
-    reason,
+    failureReason,
     data,
     cause,
   }: {
@@ -57,7 +57,7 @@ export class StreamProviderError extends AISDKError {
     code?: string | number;
     statusCode?: number;
     isRetryable?: boolean;
-    reason?: APICallError['reason'];
+    failureReason?: ProviderFailureReason;
     data?: unknown;
     cause?: unknown;
   }) {
@@ -67,7 +67,7 @@ export class StreamProviderError extends AISDKError {
     this.code = code;
     this.statusCode = statusCode;
     this.isRetryable = isRetryable;
-    this.reason = reason;
+    this.failureReason = failureReason;
     this.data = data;
   }
 

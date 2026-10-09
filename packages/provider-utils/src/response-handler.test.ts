@@ -440,11 +440,11 @@ describe('createJsonErrorResponseHandler', () => {
     expect(cancelled()).toBe(true);
   });
 
-  describe('reason', () => {
+  describe('failureReason', () => {
     const handler = createJsonErrorResponseHandler({
       errorSchema: z.object({ code: z.string() }),
       errorToMessage: error => error.code,
-      reason: (_response, error) =>
+      failureReason: (_response, error) =>
         error.code === 'context_length_exceeded'
           ? 'context-length-exceeded'
           : undefined,
@@ -461,20 +461,20 @@ describe('createJsonErrorResponseHandler', () => {
         JSON.stringify({ code: 'context_length_exceeded' }),
       );
 
-      expect(value.reason).toBe('context-length-exceeded');
+      expect(value.failureReason).toBe('context-length-exceeded');
       expect(value.isRetryable).toBe(false);
     });
 
     it('leaves the reason unset for other errors', async () => {
       const { value } = await call(JSON.stringify({ code: 'invalid_value' }));
 
-      expect(value.reason).toBeUndefined();
+      expect(value.failureReason).toBeUndefined();
     });
 
     it('leaves the reason unset when the body cannot be parsed', async () => {
       const { value } = await call('not json');
 
-      expect(value.reason).toBeUndefined();
+      expect(value.failureReason).toBeUndefined();
     });
   });
 });

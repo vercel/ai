@@ -65,7 +65,7 @@ describe('Valid error responses', () => {
     });
 
     expect(error).toBeInstanceOf(GatewayInvalidRequestError);
-    expect(error.reason).toBe('context-length-exceeded');
+    expect(error.failureReason).toBe('context-length-exceeded');
   });
 
   it('sets the reason on relayed upstream errors with the code', async () => {
@@ -82,7 +82,7 @@ describe('Valid error responses', () => {
     });
 
     expect(error).toBeInstanceOf(GatewayInternalServerError);
-    expect(error.reason).toBe('context-length-exceeded');
+    expect(error.failureReason).toBe('context-length-exceeded');
   });
 
   it('leaves the reason unset without the code', async () => {
@@ -96,7 +96,7 @@ describe('Valid error responses', () => {
       statusCode: 400,
     });
 
-    expect(error.reason).toBeUndefined();
+    expect(error.failureReason).toBeUndefined();
   });
 
   it('should create GatewayForbiddenError for forbidden type', async () => {

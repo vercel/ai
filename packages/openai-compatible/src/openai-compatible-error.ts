@@ -1,4 +1,4 @@
-import type { APICallError } from '@ai-sdk/provider';
+import type { ProviderFailureReason } from '@ai-sdk/provider';
 import { z, type ZodType } from 'zod/v4';
 export const openaiCompatibleErrorDataSchema = z.object({
   error: z.object({
@@ -21,14 +21,17 @@ export type ProviderErrorStructure<T> = {
   errorSchema: ZodType<T>;
   errorToMessage: (error: T) => string;
   isRetryable?: (response: Response, error?: T) => boolean;
-  reason?: (response: Response, error: T) => APICallError['reason'];
+  failureReason?: (
+    response: Response,
+    error: T,
+  ) => ProviderFailureReason | undefined;
 };
 
 export const defaultOpenAICompatibleErrorStructure: ProviderErrorStructure<OpenAICompatibleErrorData> =
   {
     errorSchema: openaiCompatibleErrorDataSchema,
     errorToMessage: data => data.error.message,
-    reason: (_response, data) =>
+    failureReason: (_response, data) =>
       data.error.code === 'context_length_exceeded'
         ? 'context-length-exceeded'
         : undefined,

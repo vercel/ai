@@ -19,6 +19,6 @@ export function isContextLengthExceededError(error: unknown): boolean {
     (APICallError.isInstance(candidate) ||
       StreamProviderError.isInstance(candidate) ||
       GatewayError.isInstance(candidate)) &&
-    candidate.reason === 'context-length-exceeded'
+    candidate.failureReason === 'context-length-exceeded'
   );
 }

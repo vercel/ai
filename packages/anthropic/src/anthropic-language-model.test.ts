@@ -11942,7 +11942,7 @@ describe('AnthropicLanguageModel', () => {
       await expect(model.doStream({ prompt: TEST_PROMPT })).rejects.toSatisfy(
         error =>
           APICallError.isInstance(error) &&
-          error.reason === 'context-length-exceeded',
+          error.failureReason === 'context-length-exceeded',
       );
     });
 

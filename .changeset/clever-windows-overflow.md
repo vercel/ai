@@ -14,4 +14,4 @@
 '@ai-sdk/xai': patch
 ---
 
-feat: add `isContextLengthExceededError` and a `reason` on provider errors, so callers can detect when the input plus reserved output tokens exceed the model's context window
+feat: add `isContextLengthExceededError` and a `failureReason` on provider errors, so callers can detect when the input plus reserved output tokens exceed the model's context window

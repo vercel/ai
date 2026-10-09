@@ -34,7 +34,7 @@ describe('googleFailedResponseHandler', () => {
   });
 });
 
-describe('googleFailedResponseHandler reason', () => {
+describe('googleFailedResponseHandler failureReason', () => {
   const call = (message: string) =>
     googleFailedResponseHandler({
       url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
@@ -52,12 +52,12 @@ describe('googleFailedResponseHandler reason', () => {
       'The input token count exceeds the maximum number of tokens allowed 1048576.',
     );
 
-    expect(value.reason).toBe('context-length-exceeded');
+    expect(value.failureReason).toBe('context-length-exceeded');
   });
 
   it('does not flag other invalid argument errors', async () => {
     const { value } = await call('Request contains an invalid argument.');
 
-    expect(value.reason).toBeUndefined();
+    expect(value.failureReason).toBeUndefined();
   });
 });

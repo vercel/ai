@@ -5,13 +5,13 @@ import { RetryError } from '../util/retry-error';
 import { isContextLengthExceededError } from './is-context-length-exceeded-error';
 import { StreamProviderError } from './stream-provider-error';
 
-function apiCallError(reason?: 'context-length-exceeded') {
+function apiCallError(failureReason?: 'context-length-exceeded') {
   return new APICallError({
     message: 'prompt is too long: 215000 tokens > 200000 maximum',
     url: 'https://api.anthropic.com/v1/messages',
     requestBodyValues: {},
     statusCode: 400,
-    reason,
+    failureReason,
   });
 }
 
@@ -23,7 +23,7 @@ describe('isContextLengthExceededError', () => {
       new StreamProviderError({
         message: 'Your input exceeds the context window of this model.',
         statusCode: 400,
-        reason: 'context-length-exceeded',
+        failureReason: 'context-length-exceeded',
       }),
     ],
     [
@@ -31,7 +31,7 @@ describe('isContextLengthExceededError', () => {
       new GatewayInternalServerError({
         message: 'prompt is too long: 215000 tokens > 200000 maximum',
         statusCode: 400,
-        reason: 'context-length-exceeded',
+        failureReason: 'context-length-exceeded',
       }),
     ],
     [

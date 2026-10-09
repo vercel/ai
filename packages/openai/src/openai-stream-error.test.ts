@@ -120,7 +120,7 @@ describe('throwIfOpenAIStreamErrorBeforeOutput', () => {
     ).rejects.toMatchObject({
       statusCode: 400,
       isRetryable: false,
-      reason: 'context-length-exceeded',
+      failureReason: 'context-length-exceeded',
     });
   });
 

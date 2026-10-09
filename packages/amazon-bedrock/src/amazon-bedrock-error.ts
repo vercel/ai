@@ -1,4 +1,4 @@
-import type { APICallError } from '@ai-sdk/provider';
+import type { ProviderFailureReason } from '@ai-sdk/provider';
 import { createJsonErrorResponseHandler } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
@@ -13,7 +13,7 @@ export const AmazonBedrockErrorSchema = z.object({
  */
 export function getAmazonBedrockErrorReason(
   message: string,
-): APICallError['reason'] {
+): ProviderFailureReason | undefined {
   return /input is too long|prompt is too long/i.test(message)
     ? 'context-length-exceeded'
     : undefined;
@@ -24,5 +24,6 @@ export const amazonBedrockFailedResponseHandler =
     errorSchema: AmazonBedrockErrorSchema,
     errorToMessage: error =>
       error.type == null ? error.message : `${error.type}: ${error.message}`,
-    reason: (_response, error) => getAmazonBedrockErrorReason(error.message),
+    failureReason: (_response, error) =>
+      getAmazonBedrockErrorReason(error.message),
   });

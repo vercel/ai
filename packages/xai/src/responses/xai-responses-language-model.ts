@@ -77,7 +77,7 @@ function createXaiResponsesStreamError({
           isRetryable: isRetryableStatusCode(statusCode),
         }
       : getXaiResponsesStreamErrorMetadata(code)),
-    reason:
+    failureReason:
       code === 'context_length_exceeded'
         ? 'context-length-exceeded'
         : undefined,

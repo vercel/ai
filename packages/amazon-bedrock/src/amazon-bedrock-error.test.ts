@@ -33,7 +33,7 @@ describe('amazonBedrockFailedResponseHandler', () => {
   });
 });
 
-describe('amazonBedrockFailedResponseHandler reason', () => {
+describe('amazonBedrockFailedResponseHandler failureReason', () => {
   const call = async (body: object) =>
     (
       await amazonBedrockFailedResponseHandler({
@@ -49,7 +49,7 @@ describe('amazonBedrockFailedResponseHandler reason', () => {
   ])('flags context window errors: %s', async message => {
     const value = await call({ type: 'ValidationException', message });
 
-    expect(value.reason).toBe('context-length-exceeded');
+    expect(value.failureReason).toBe('context-length-exceeded');
   });
 
   it('does not flag other validation errors', async () => {
@@ -58,6 +58,6 @@ describe('amazonBedrockFailedResponseHandler reason', () => {
       message: 'The provided model identifier is invalid.',
     });
 
-    expect(value.reason).toBeUndefined();
+    expect(value.failureReason).toBeUndefined();
   });
 });

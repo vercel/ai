@@ -65,7 +65,7 @@ export async function createGatewayErrorFromResponse({
   const errorType = validatedResponse.error.type;
   const message = validatedResponse.error.message;
   const generationId = validatedResponse.generationId ?? undefined;
-  const reason =
+  const failureReason =
     validatedResponse.error.code === 'context_length_exceeded'
       ? 'context-length-exceeded'
       : undefined;
@@ -85,7 +85,7 @@ export async function createGatewayErrorFromResponse({
         statusCode,
         cause,
         generationId,
-        reason,
+        failureReason,
       });
     case 'rate_limit_exceeded':
       return new GatewayRateLimitError({
@@ -121,7 +121,7 @@ export async function createGatewayErrorFromResponse({
         statusCode,
         cause,
         generationId,
-        reason,
+        failureReason,
       });
     case 'failed_dependency':
       return new GatewayFailedDependencyError({
@@ -150,7 +150,7 @@ export async function createGatewayErrorFromResponse({
         statusCode,
         cause,
         generationId,
-        reason,
+        failureReason,
       });
   }
 }

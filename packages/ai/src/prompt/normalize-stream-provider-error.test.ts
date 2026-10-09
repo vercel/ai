@@ -47,12 +47,12 @@ describe('normalizeStreamProviderError', () => {
         code: data.code,
         statusCode: 400,
         isRetryable: false,
-        reason: 'context-length-exceeded',
+        failureReason: 'context-length-exceeded',
         data,
       }),
     );
 
-    expect(error).toMatchObject({ reason: 'context-length-exceeded' });
+    expect(error).toMatchObject({ failureReason: 'context-length-exceeded' });
   });
 
   it('does not classify the reason of a raw provider payload', () => {
@@ -65,7 +65,7 @@ describe('normalizeStreamProviderError', () => {
     });
 
     expect(StreamProviderError.isInstance(error)).toBe(true);
-    expect((error as StreamProviderError).reason).toBeUndefined();
+    expect((error as StreamProviderError).failureReason).toBeUndefined();
   });
 
   it('uses provider-owned metadata without exposing the metadata wrapper as data', () => {

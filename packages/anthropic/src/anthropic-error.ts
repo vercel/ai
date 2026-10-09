@@ -1,4 +1,4 @@
-import type { APICallError } from '@ai-sdk/provider';
+import type { ProviderFailureReason } from '@ai-sdk/provider';
 import {
   createJsonErrorResponseHandler,
   lazySchema,
@@ -29,7 +29,7 @@ export type AnthropicErrorData = InferSchema<typeof anthropicErrorDataSchema>;
  */
 export function getAnthropicErrorReason(
   message: string,
-): APICallError['reason'] {
+): ProviderFailureReason | undefined {
   return /prompt is too long|exceed context limit|input is too long/i.test(
     message,
   )
@@ -40,5 +40,6 @@ export function getAnthropicErrorReason(
 export const anthropicFailedResponseHandler = createJsonErrorResponseHandler({
   errorSchema: anthropicErrorDataSchema,
   errorToMessage: data => data.error.message,
-  reason: (_response, data) => getAnthropicErrorReason(data.error.message),
+  failureReason: (_response, data) =>
+    getAnthropicErrorReason(data.error.message),
 });

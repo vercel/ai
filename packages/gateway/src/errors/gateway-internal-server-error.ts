@@ -1,4 +1,4 @@
-import type { APICallError } from '@ai-sdk/provider';
+import type { ProviderFailureReason } from '@ai-sdk/provider';
 import { GatewayError } from './gateway-error';
 
 const name = 'GatewayInternalServerError';
@@ -19,20 +19,20 @@ export class GatewayInternalServerError extends GatewayError {
     statusCode = 500,
     cause,
     generationId,
-    reason,
+    failureReason,
   }: {
     message?: string;
     statusCode?: number;
     cause?: unknown;
     generationId?: string;
-    reason?: APICallError['reason'];
+    failureReason?: ProviderFailureReason;
   } = {}) {
     super({
       message,
       statusCode,
       cause,
       generationId,
-      reason,
+      failureReason,
     });
   }
 

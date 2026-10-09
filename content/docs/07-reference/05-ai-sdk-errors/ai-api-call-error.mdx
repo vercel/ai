@@ -15,7 +15,7 @@ This error occurs when an API call fails.
 - `responseHeaders`: The response headers returned by the API (optional)
 - `responseBody`: The response body returned by the API (optional)
 - `isRetryable`: Whether the request can be retried based on the status code
-- `reason`: Why the provider rejected the request, when the provider adapter recognizes the rejection (optional). `'context-length-exceeded'` means the input plus the reserved output tokens exceed the model's context window.
+- `failureReason`: Why the provider rejected the request, when the provider adapter recognizes the rejection (optional). `'context-length-exceeded'` means the input plus the reserved output tokens exceed the model's context window.
 - `data`: Any additional data associated with the error (optional)
 - `cause`: The underlying error that caused the API call to fail (optional)
 
