@@ -1,0 +1,10 @@
+{"type":"message_start","message":{"model":"claude-sonnet-4-6","id":"msg_011CfLsc7dMnX4ix7MuJF59r","type":"message","role":"assistant","content":[],"container":null,"stop_reason":null,"stop_sequence":null,"stop_details":null,"usage":{"input_tokens":830,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"cache_creation":{"ephemeral_5m_input_tokens":0,"ephemeral_1h_input_tokens":0},"output_tokens":7,"service_tier":"standard","inference_geo":"global"},"diagnostics":null}}
+{"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"toolu_01Go3YHrpoX5xrZ2zvrSCp3J","name":"lookup","input":{},"caller":{"type":"direct"}}}
+{"type":"ping"}
+{"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":""}}
+{"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\"__ai_sdk_tool_input\": {\"action\": \"lookup\","}}
+{"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":" \"id\": \"123\"}"}}
+{"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"}"}}
+{"type":"content_block_stop","index":0}
+{"type":"message_delta","delta":{"stop_reason":"tool_use","stop_sequence":null,"stop_details":null,"container":null},"usage":{"input_tokens":830,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":54}}
+{"type":"message_stop"}

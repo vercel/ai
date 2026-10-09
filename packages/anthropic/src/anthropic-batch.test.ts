@@ -95,6 +95,37 @@ function messageResultBody(text: string) {
 }
 
 describe('Anthropic batch', () => {
+  it('rejects schemas that need wrapping because results lack schema context', async () => {
+    const batch = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
+    await expect(
+      batch.doStartBatch({
+        requests: [
+          {
+            id: 'lookup-request',
+            ...request('Look up an item', {
+              tools: [
+                {
+                  type: 'function',
+                  name: 'lookup',
+                  inputSchema: {
+                    oneOf: [{ type: 'object' }, { type: 'null' }],
+                  },
+                },
+              ],
+            }),
+          },
+        ],
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_UnsupportedFunctionalityError',
+      functionality: 'automatic tool input wrapping in batches',
+      message: expect.stringContaining('lookup-request'),
+    });
+    expect(server.calls).toHaveLength(0);
+  });
+
   it('rejects unsupported request types before making an API request', async () => {
     const model = createAnthropic({
       apiKey: 'test-api-key',
