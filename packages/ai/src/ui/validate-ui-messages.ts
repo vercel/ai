@@ -222,6 +222,7 @@ const uiMessagesSchema = lazySchema(() => {
                   errorText: z.never().optional(),
                   callProviderMetadata: providerMetadataSchema.optional(),
                   resultProviderMetadata: providerMetadataSchema.optional(),
+                  resultStepIndex: z.number().int().nonnegative().optional(),
                   preliminary: z.boolean().optional(),
                   approval: approvalGrantedSchema.optional(),
                 }),
@@ -240,6 +241,7 @@ const uiMessagesSchema = lazySchema(() => {
                   errorText: z.string(),
                   callProviderMetadata: providerMetadataSchema.optional(),
                   resultProviderMetadata: providerMetadataSchema.optional(),
+                  resultStepIndex: z.number().int().nonnegative().optional(),
                   approval: approvalGrantedSchema.optional(),
                 }),
                 z.object({
@@ -322,6 +324,7 @@ const uiMessagesSchema = lazySchema(() => {
                   errorText: z.never().optional(),
                   callProviderMetadata: providerMetadataSchema.optional(),
                   resultProviderMetadata: providerMetadataSchema.optional(),
+                  resultStepIndex: z.number().int().nonnegative().optional(),
                   preliminary: z.boolean().optional(),
                   approval: approvalGrantedSchema.optional(),
                 }),
@@ -338,6 +341,7 @@ const uiMessagesSchema = lazySchema(() => {
                   errorText: z.string(),
                   callProviderMetadata: providerMetadataSchema.optional(),
                   resultProviderMetadata: providerMetadataSchema.optional(),
+                  resultStepIndex: z.number().int().nonnegative().optional(),
                   approval: approvalGrantedSchema.optional(),
                 }),
                 z.object({

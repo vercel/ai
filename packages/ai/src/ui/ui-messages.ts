@@ -358,6 +358,11 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
       resultProviderMetadata?: ProviderMetadata;
+      /**
+       * The zero-based step index where a deferred provider-executed tool
+       * result was received.
+       */
+      resultStepIndex?: number;
       preliminary?: boolean;
       approval?: {
         id: string;
@@ -382,6 +387,11 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       errorText: string;
       callProviderMetadata?: ProviderMetadata;
       resultProviderMetadata?: ProviderMetadata;
+      /**
+       * The zero-based step index where a deferred provider-executed tool
+       * result was received.
+       */
+      resultStepIndex?: number;
       approval?: {
         id: string;
         approved: true;
@@ -510,6 +520,11 @@ export type DynamicToolUIPart = {
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
       resultProviderMetadata?: ProviderMetadata;
+      /**
+       * The zero-based step index where a deferred provider-executed tool
+       * result was received.
+       */
+      resultStepIndex?: number;
       preliminary?: boolean;
       approval?: {
         id: string;
@@ -529,6 +544,11 @@ export type DynamicToolUIPart = {
       errorText: string;
       callProviderMetadata?: ProviderMetadata;
       resultProviderMetadata?: ProviderMetadata;
+      /**
+       * The zero-based step index where a deferred provider-executed tool
+       * result was received.
+       */
+      resultStepIndex?: number;
       approval?: {
         id: string;
         approved: true;
