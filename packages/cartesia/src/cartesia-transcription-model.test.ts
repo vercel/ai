@@ -90,6 +90,17 @@ describe('doGenerate', () => {
       });
     });
 
+    it('routes dated Ink Whisper snapshots to the batch endpoint', async () => {
+      await provider.transcription('ink-whisper-2025-06-04').doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+      expect(await server.calls[0].requestBodyMultipart).toMatchObject({
+        model: 'ink-whisper-2025-06-04',
+      });
+    });
+
     it('should pass headers', async () => {
       const provider = createCartesia({
         apiKey: 'test-api-key',
