@@ -20,10 +20,11 @@ coverage, and the limitations of the historical Zod regression reproduction.
 ## CI parallelism
 
 `pnpm test:ci` uses Turbo to run at most one package per available CPU. In the
-package-test CI matrix, `VITEST_MAX_WORKERS=1` limits each package's Vitest worker
-pool. This avoids multiplying package concurrency by Vitest's default worker
-count, which can make mocked provider requests exceed the test timeout on busy
-runners. Individual package tests retain their default parallelism locally.
+package-test CI matrix, `VITEST_MAX_WORKERS=2` limits each package's Vitest worker
+pool. On a four-CPU runner, this permits four packages and up to eight test
+workers. Full-suite CI benchmarks selected this balance to reduce contention
+while retaining file parallelism. Individual package tests retain their default
+parallelism locally.
 
 Both `VITEST_MAX_WORKERS` and `TEST_NODE_VERSION` are included in the Turbo test
 environment and cache key. The workflow sets `TEST_NODE_VERSION` to the matrix
