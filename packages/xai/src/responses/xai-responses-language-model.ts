@@ -333,9 +333,12 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
         }
 
         case 'reasoning': {
-          const summaryTexts = part.summary
-            .map(s => s.text)
-            .filter(text => text && text.length > 0);
+          const texts =
+            part.summary.length > 0
+              ? part.summary.map(s => s.text)
+              : (part.content ?? []).map(c => c.text);
+
+          const summaryTexts = texts.filter(text => text && text.length > 0);
 
           if (summaryTexts.length > 0) {
             const reasoningText = summaryTexts.join('');
