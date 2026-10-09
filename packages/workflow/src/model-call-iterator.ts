@@ -118,6 +118,10 @@ export interface ModelCallIteratorErrorValue {
   messages: LanguageModelV4Prompt;
 }
 
+export type ModelCallToolResults = LanguageModelV4ToolResultPart[] & {
+  providerExecutedToolResultIndexes?: ReadonlySet<number>;
+};
+
 // This runs in the workflow context
 export async function* modelCallIterator({
   prompt,
@@ -179,7 +183,7 @@ export async function* modelCallIterator({
   | LanguageModelV4Prompt
   | ModelCallIteratorAbortedValue
   | ModelCallIteratorErrorValue,
-  LanguageModelV4ToolResultPart[]
+  ModelCallToolResults
 > {
   let conversationPrompt = [...prompt]; // Create a mutable copy
   let currentModel: LanguageModel = model;
@@ -542,6 +546,8 @@ export async function* modelCallIterator({
               result => result.toolCallId,
             ),
           ]),
+          providerExecutedToolResultIndexes:
+            toolResults.providerExecutedToolResultIndexes,
           providerExecutedToolResultPositions,
         });
         step.response.messages.push(

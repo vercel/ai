@@ -302,6 +302,114 @@ describe('WorkflowAgent duplicate tool call IDs', () => {
     ).toEqual(['provider result for a', 'provider failed for b']);
   });
 
+  it('preserves local and provider-executed results that share an ID', async () => {
+    const { model, prompts } = createScriptedModel([
+      [
+        { type: 'stream-start', warnings: [] },
+        {
+          type: 'tool-call',
+          toolCallId: 'call_0',
+          toolName: 'lookup',
+          input: '{"q":"local"}',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'call_0',
+          toolName: 'lookup',
+          input: '{"q":"provider"}',
+          providerExecuted: true,
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'call_0',
+          toolName: 'lookup',
+          result: 'provider result',
+        },
+        finish('tool-calls'),
+      ],
+      done,
+    ]);
+    const writtenParts: ModelCallStreamPart[] = [];
+
+    const result = await new WorkflowAgent({
+      model,
+      tools: {
+        lookup: tool({
+          inputSchema: z.object({ q: z.string() }),
+          execute: async ({ q }) => `local result for ${q}`,
+        }),
+      },
+    }).stream({
+      prompt: 'go',
+      writable: new WritableStream<ModelCallStreamPart>({
+        write(part) {
+          writtenParts.push(part);
+        },
+      }),
+    });
+
+    expect(toolMessageOutputs(prompts[1])).toEqual(['local result for local']);
+    expect(
+      (
+        prompts[1] as Array<{
+          role: string;
+          content: Array<{ type: string; output?: { value?: unknown } }>;
+        }>
+      )
+        .filter(message => message.role === 'assistant')
+        .flatMap(message => message.content)
+        .flatMap(part =>
+          part.type === 'tool-result' ? [part.output?.value] : [],
+        ),
+    ).toEqual(['provider result']);
+    expect(
+      result.steps[0].content
+        .filter(
+          part => part.type === 'tool-result' || part.type === 'tool-error',
+        )
+        .map(part =>
+          part.type === 'tool-result'
+            ? { input: part.input, output: part.output }
+            : { input: part.input, error: part.error },
+        ),
+    ).toEqual([
+      { input: { q: 'provider' }, output: 'provider result' },
+      { input: { q: 'local' }, output: 'local result for local' },
+    ]);
+    expect(
+      result.steps[0].toolResults.map(part => ({
+        input: part.input,
+        output: part.output,
+      })),
+    ).toEqual([
+      { input: { q: 'provider' }, output: 'provider result' },
+      { input: { q: 'local' }, output: 'local result for local' },
+    ]);
+    expect(
+      writtenParts
+        .filter(part => part.type === 'tool-result')
+        .map(part => ({ input: part.input, output: part.output })),
+    ).toEqual([
+      { input: { q: 'provider' }, output: 'provider result' },
+      { input: { q: 'local' }, output: 'local result for local' },
+      { input: { q: 'provider' }, output: 'provider result' },
+    ]);
+    expect(toolMessageOutputs(result.messages)).toEqual([
+      'local result for local',
+    ]);
+    expect(
+      result.messages.flatMap(message =>
+        message.role === 'assistant' && Array.isArray(message.content)
+          ? message.content.flatMap(part =>
+              part.type === 'tool-result' && 'value' in part.output
+                ? [part.output.value]
+                : [],
+            )
+          : [],
+      ),
+    ).toEqual(['provider result']);
+  });
+
   it('retains metadata when a valid call follows an invalid call', async () => {
     const { model } = createScriptedModel([
       [
