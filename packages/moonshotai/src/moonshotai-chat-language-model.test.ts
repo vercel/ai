@@ -1084,19 +1084,31 @@ describe('MoonshotAIChatLanguageModel', () => {
         });
       });
 
-      it('should fall back to json_object for unknown models', async () => {
-        await provider.chatModel('custom-model').doGenerate({
-          prompt: TEST_PROMPT,
-          responseFormat: {
-            type: 'json',
-            schema: { type: 'object', properties: {} },
-          },
-        });
+      it.each(['custom-model', 'moonshot-v2', 'kimi-next'])(
+        'should preserve JSON schema output for unknown model %s',
+        async modelId => {
+          const result = await provider.chatModel(modelId).doGenerate({
+            prompt: TEST_PROMPT,
+            responseFormat: {
+              type: 'json',
+              name: 'response',
+              schema: { type: 'object', properties: {} },
+            },
+          });
 
-        expect(
-          (await server.calls[0].requestBodyJson).response_format,
-        ).toStrictEqual({ type: 'json_object' });
-      });
+          expect(
+            (await server.calls[0].requestBodyJson).response_format,
+          ).toStrictEqual({
+            type: 'json_schema',
+            json_schema: {
+              name: 'response',
+              strict: true,
+              schema: { type: 'object', properties: {} },
+            },
+          });
+          expect(result.warnings).toEqual([]);
+        },
+      );
     });
 
     it('should send logprobs options and expose response logprobs', async () => {
