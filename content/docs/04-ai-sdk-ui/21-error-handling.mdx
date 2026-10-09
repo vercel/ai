@@ -49,19 +49,39 @@ globalThis.AI_SDK_LOG_WARNINGS = ({ warnings, provider, model }) => {
 };
 ```
 
-If your application imports multiple AI SDK versions, the global logger accepts
-each version's callback type. Annotate your handler with `LogWarningsFunction`
-from your version of `ai` to retain contextual typing:
+If your application loads multiple AI SDK versions in the same runtime, they all
+share `globalThis.AI_SDK_LOG_WARNINGS`. Each version calls the logger with its own
+arguments and warning types. The merged global type declarations prevent
+TypeScript declaration conflicts, but do not convert these arguments at runtime.
+A handler typed for only one version may therefore fail when another version
+calls it.
+
+Import `LogWarningsFunction` from every installed version that can call the logger
+and accept a union of their parameter types. For example, with AI SDK 7 installed
+as `ai` and AI SDK 6 installed under the package alias `ai-v6` (`npm:ai@6`):
 
 ```ts
-import type { LogWarningsFunction } from 'ai';
+import type { LogWarningsFunction as LogWarningsFunctionV7 } from 'ai';
+import type { LogWarningsFunction as LogWarningsFunctionV6 } from 'ai-v6';
 
-const logger: LogWarningsFunction = ({ warnings, provider, model }) => {
-  // Handle warnings your own way
+type LoggerOptions =
+  | Parameters<LogWarningsFunctionV7>[0]
+  | Parameters<LogWarningsFunctionV6>[0];
+
+const logger = ({ warnings, provider, model }: LoggerOptions) => {
+  for (const warning of warnings) {
+    console.warn('AI SDK Warning:', warning, { provider, model });
+  }
 };
 
 globalThis.AI_SDK_LOG_WARNINGS = logger;
 ```
+
+Check the argument shape and warning type before accessing version-specific
+fields. If AI SDK 5 is also installed, include its
+`Experimental_LogWarningsFunction` parameter type and use `Array.isArray` to
+handle its warning array before accessing the options object used by AI SDK 6
+and 7.
 
 ## Error Handling
 
