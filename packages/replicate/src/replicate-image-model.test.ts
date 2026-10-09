@@ -14,6 +14,21 @@ const model = provider.image('black-forest-labs/flux-schnell');
 
 describe('capabilities', () => {
   it.each([
+    ['black-forest-labs/flux-schnell', 1],
+    ['black-forest-labs/flux-fill-pro', 1],
+    ['black-forest-labs/flux-schnell:pinned-version', 1],
+    ['black-forest-labs/flux-2-pro', 8],
+    ['black-forest-labs/flux-3-pro', 8],
+    ['future/multi-image-model', 8],
+    ['future/multi-image-model:pinned-version', 8],
+  ] as const)(
+    'uses the expected output batch limit for %s',
+    (modelId, expectedLimit) => {
+      expect(provider.image(modelId).maxImagesPerCall).toBe(expectedLimit);
+    },
+  );
+
+  it.each([
     {
       modelId: 'black-forest-labs/flux-fill-pro',
       supportsFileInputs: true,
@@ -824,6 +839,31 @@ describe('doGenerate', () => {
         }
       `);
     });
+  });
+
+  it('forwards an eight-image batch for an unknown model and returns every image', async () => {
+    prepareResponse({
+      output: Array.from(
+        { length: 8 },
+        (_, index) => `https://replicate.delivery/output-${index}.webp`,
+      ),
+    });
+    const modelId = 'future/multi-image-model';
+    const result = await provider.image(modelId).doGenerate({
+      prompt,
+      n: 8,
+      files: undefined,
+      mask: undefined,
+      size: undefined,
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {},
+    });
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      input: { num_outputs: 8 },
+    });
+    expect(result.images).toHaveLength(8);
+    expect(result.warnings).toEqual([]);
   });
 
   describe('Flux-2 Models', () => {
