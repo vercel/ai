@@ -1007,6 +1007,35 @@ describe('doGenerate', () => {
       });
     });
 
+    it.each([
+      'magistral-large-latest',
+      'mistral-large-5',
+      'future-reasoning-model',
+    ])(
+      'forwards reasoning and provider overrides for future model %s',
+      async modelId => {
+        const model = provider.chat(modelId);
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'high',
+        });
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          reasoning_effort: 'high',
+        });
+        expect(result.warnings).not.toContainEqual(
+          expect.objectContaining({ feature: 'reasoning' }),
+        );
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'high',
+          providerOptions: { mistral: { reasoningEffort: 'none' } },
+        });
+        expect(await server.calls[1].requestBodyJson).toMatchObject({
+          reasoning_effort: 'none',
+        });
+      },
+    );
+
     it('should not send reasoning_effort for non-supporting models', async () => {
       const unsupportedModel = provider.chat('mistral-large-latest');
       await unsupportedModel.doGenerate({
