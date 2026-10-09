@@ -462,57 +462,10 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     this.jobExecutor.run(async () => {
       const messages = this.state.messages;
 
-<<<<<<< HEAD
-      this.state.replaceMessage(messages.length - 1, {
-        ...lastMessage,
-        parts: lastMessage.parts.map(part =>
-          isToolOrDynamicToolUIPart(part) && part.toolCallId === toolCallId
-            ? { ...part, state, output, errorText }
-            : part,
-        ),
-      });
-=======
-      const updatePart = (
-        part: UIMessagePart<UIDataTypes, UITools>,
-      ): UIMessagePart<UIDataTypes, UITools> => {
-        if (!isToolUIPart(part) || part.toolCallId !== toolCallId) {
-          return part;
-        }
-
-        // Output states can only retain approvals that were granted.
-        const { approval: existingApproval, ...toolPart } = part;
-        const approval =
-          existingApproval?.approved === true
-            ? {
-                approval: {
-                  ...existingApproval,
-                  approved: existingApproval.approved,
-                },
-              }
-            : {};
-
-        return state === 'output-error'
-          ? {
-              ...toolPart,
-              ...approval,
-              state,
-              input: part.input,
-              output: undefined,
-              errorText,
-            }
-          : {
-              ...toolPart,
-              ...approval,
-              state: 'output-available',
-              input: part.input,
-              output,
-              errorText: undefined,
-            };
-      };
-
       const messageIndex = messages.findIndex(message =>
         message.parts.some(
-          part => isToolUIPart(part) && part.toolCallId === toolCallId,
+          part =>
+            isToolOrDynamicToolUIPart(part) && part.toolCallId === toolCallId,
         ),
       );
 
@@ -522,10 +475,13 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         // update the message to trigger an immediate UI update
         this.state.replaceMessage(messageIndex, {
           ...message,
-          parts: message.parts.map(updatePart),
+          parts: message.parts.map(part =>
+            isToolOrDynamicToolUIPart(part) && part.toolCallId === toolCallId
+              ? { ...part, state, output, errorText }
+              : part,
+          ),
         });
       }
->>>>>>> 26d64e9fbc (fix: addToolOutput results being dropped for tool calls in earlier messages (#22361))
 
       // update the active response if it exists
       if (this.activeResponse) {
@@ -557,12 +513,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
             () =>
               this.makeRequest({
                 trigger: 'submit-message',
-<<<<<<< HEAD
-                messageId: this.lastMessage?.id,
-=======
                 messageId: messages[messageIndex].id,
-                ...options,
->>>>>>> 26d64e9fbc (fix: addToolOutput results being dropped for tool calls in earlier messages (#22361))
               }),
             shouldSend,
           );
