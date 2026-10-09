@@ -35,6 +35,13 @@ Stream resumption requires persistence for messages and active streams in your a
 - Two API endpoints: POST to create streams, GET to resume them
 - Integration with [`resumable-stream`](https://www.npmjs.com/package/resumable-stream) to manage Redis storage
 
+When a resume endpoint replays a stream from the beginning, include its original
+`start` chunk and message ID. The client rebuilds that assistant response from
+the replay instead of appending duplicate parts to the interrupted message.
+Custom transports that continue an interrupted stream with only its remaining
+chunks should omit the `start` chunk so the client retains the active streaming
+state.
+
 ## Prerequisites
 
 To implement resumable streams in your chat application, you need:

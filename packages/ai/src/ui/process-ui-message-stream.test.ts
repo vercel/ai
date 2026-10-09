@@ -62,6 +62,71 @@ describe('processUIMessageStream', () => {
     });
   };
 
+  describe('reset state on a replayed start', () => {
+    it.each(['msg-123', 'msg-456', undefined])(
+      'should reset all streaming state for message ID %s',
+      async messageId => {
+        const lastMessage: UIMessage = {
+          id: 'msg-123',
+          role: 'assistant',
+          metadata: { stale: true },
+          parts: [
+            { type: 'step-start' },
+            { type: 'text', text: 'Hello, ', state: 'streaming' },
+            { type: 'reasoning', text: 'thinking...', state: 'streaming' },
+            {
+              type: 'tool-test',
+              toolCallId: 'tool-1',
+              state: 'input-streaming',
+              input: undefined,
+              rawInput: '{',
+            },
+          ],
+        };
+        const originalMessage = structuredClone(lastMessage);
+        state = createStreamingUIMessageState({
+          messageId: 'msg-123',
+          lastMessage,
+        });
+        state.activeTextParts['text-1'] = lastMessage.parts.find(
+          part => part.type === 'text',
+        )!;
+        state.activeReasoningParts['reasoning-1'] = lastMessage.parts.find(
+          part => part.type === 'reasoning',
+        )!;
+        state.finishReason = 'length';
+        const originalState = state;
+
+        await consumeStream({
+          stream: processUIMessageStream({
+            stream: createUIMessageStream([
+              { type: 'start', messageId, messageMetadata: { count: 1 } },
+            ]),
+            resetStateOnStart: true,
+            runUpdateMessageJob,
+            onError: error => {
+              throw error;
+            },
+          }),
+        });
+
+        expect(state).toBe(originalState);
+        expect(state.message).toEqual({
+          id: messageId ?? 'msg-123',
+          role: 'assistant',
+          metadata: { count: 1 },
+          parts: [],
+        });
+        expect(state.activeTextParts).toEqual({});
+        expect(state.activeReasoningParts).toEqual({});
+        expect(state.partialToolCalls).toEqual({});
+        expect(state.finishReason).toBeUndefined();
+        expect(lastMessage).toEqual(originalMessage);
+        expect(writeCalls).toEqual([{ message: state.message }]);
+      },
+    );
+  });
+
   describe('text', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([

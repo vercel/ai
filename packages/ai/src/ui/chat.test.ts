@@ -88,6 +88,272 @@ const server = createTestServer({
 });
 
 describe('Chat', () => {
+  describe('resume a replayed stream', () => {
+    const chunks: UIMessageChunk[] = [
+      {
+        type: 'start',
+        messageId: 'assistant-1',
+        messageMetadata: { count: 1 },
+      },
+      { type: 'start-step' },
+      { type: 'reasoning-start', id: 'reasoning-1' },
+      { type: 'reasoning-delta', id: 'reasoning-1', delta: 'thinking...' },
+      { type: 'reasoning-end', id: 'reasoning-1' },
+      { type: 'text-start', id: 'text-1' },
+      { type: 'text-delta', id: 'text-1', delta: 'Hello, ' },
+      { type: 'text-delta', id: 'text-1', delta: 'world!' },
+      { type: 'text-end', id: 'text-1' },
+      { type: 'data-progress', data: 'complete' },
+      {
+        type: 'file',
+        mediaType: 'text/plain',
+        url: 'https://example.com/file',
+      },
+      { type: 'finish-step' },
+      { type: 'start-step' },
+      { type: 'reasoning-start', id: 'reasoning-2' },
+      { type: 'reasoning-delta', id: 'reasoning-2', delta: 'more thinking...' },
+      { type: 'reasoning-end', id: 'reasoning-2' },
+      { type: 'text-start', id: 'text-2' },
+      { type: 'text-delta', id: 'text-2', delta: 'Follow-up.' },
+      { type: 'text-end', id: 'text-2' },
+      { type: 'finish-step' },
+      { type: 'finish', finishReason: 'stop' },
+    ];
+    const expectedParts = [
+      { type: 'step-start' },
+      {
+        type: 'reasoning',
+        id: 'reasoning-1',
+        text: 'thinking...',
+        state: 'done',
+      },
+      { type: 'text', text: 'Hello, world!', state: 'done' },
+      { type: 'data-progress', data: 'complete' },
+      {
+        type: 'file',
+        mediaType: 'text/plain',
+        url: 'https://example.com/file',
+      },
+      { type: 'step-start' },
+      {
+        type: 'reasoning',
+        id: 'reasoning-2',
+        text: 'more thinking...',
+        state: 'done',
+      },
+      { type: 'text', text: 'Follow-up.', state: 'done' },
+    ];
+
+    function createResponse(parts: UIMessageChunk[], error?: Error) {
+      let index = 0;
+      return new Response(
+        new ReadableStream<Uint8Array>({
+          pull(controller) {
+            if (index < parts.length) {
+              controller.enqueue(
+                new TextEncoder().encode(formatChunk(parts[index++])),
+              );
+            } else if (error != null) {
+              controller.error(error);
+            } else {
+              controller.close();
+            }
+          },
+        }),
+      );
+    }
+
+    it.each([4, 8, 12, 20])(
+      'should rebuild the same message after disconnecting at chunk %i',
+      async chunkCount => {
+        const networkError = new TypeError('simulated network disconnect');
+        const onError = vi.fn();
+        const fetch = vi
+          .fn()
+          .mockResolvedValueOnce(
+            createResponse(chunks.slice(0, chunkCount), networkError),
+          )
+          .mockResolvedValueOnce(createResponse(chunks))
+          .mockResolvedValueOnce(createResponse(chunks));
+        const state = new TestChatState<UIMessage>();
+        state.snapshot = <T>(value: T): T => structuredClone(value);
+        const chat = new TestChatWithState({
+          id: '123',
+          state,
+          transport: new DefaultChatTransport({ fetch }),
+          onError,
+        });
+
+        await chat.sendMessage({ text: 'Say hello.' });
+        expect(chat.status).toBe('error');
+        expect(onError).toHaveBeenCalledWith(networkError);
+        expect(chat.messages).toHaveLength(2);
+        expect(chat.messages[1].parts.length).toBeGreaterThan(0);
+
+        for (let attempt = 0; attempt < 2; attempt++) {
+          await chat.resumeStream();
+
+          expect(chat.error).toBeUndefined();
+          expect(chat.status).toBe('ready');
+          expect(chat.messages).toHaveLength(2);
+          expect(chat.messages[1]).toMatchObject({
+            id: 'assistant-1',
+            role: 'assistant',
+            metadata: { count: 1 },
+            parts: expectedParts,
+          });
+          expect(chat.messages[1].parts).toHaveLength(expectedParts.length);
+        }
+
+        expect(fetch.mock.calls.map(([, options]) => options.method)).toEqual([
+          'POST',
+          'GET',
+          'GET',
+        ]);
+      },
+    );
+
+    it('should restart replay again after a second network disconnect', async () => {
+      const networkError = new TypeError('simulated network disconnect');
+      const fetch = vi
+        .fn()
+        .mockResolvedValueOnce(createResponse(chunks.slice(0, 4), networkError))
+        .mockResolvedValueOnce(createResponse(chunks.slice(0, 8), networkError))
+        .mockResolvedValueOnce(createResponse(chunks));
+      const chat = new TestChat({
+        id: '123',
+        transport: new DefaultChatTransport({ fetch }),
+        onError: () => {},
+      });
+
+      await chat.sendMessage({ text: 'Say hello.' });
+      await chat.resumeStream();
+      expect(chat.status).toBe('error');
+      await chat.resumeStream();
+
+      expect(chat.error).toBeUndefined();
+      expect(chat.messages).toHaveLength(2);
+      expect(chat.messages[1].parts).toMatchObject(expectedParts);
+      expect(chat.messages[1].parts).toHaveLength(expectedParts.length);
+    });
+
+    it('should replay against a persisted assistant message', async () => {
+      const state = new TestChatState<UIMessage>([
+        {
+          id: 'assistant-1',
+          role: 'assistant',
+          metadata: { stale: true },
+          parts: [
+            { type: 'step-start' },
+            { type: 'reasoning', text: 'thinking...', state: 'done' },
+            { type: 'text', text: 'Hello, ', state: 'streaming' },
+            {
+              type: 'tool-test',
+              toolCallId: 'tool-1',
+              state: 'input-streaming',
+              input: undefined,
+            },
+          ],
+        },
+      ]);
+      state.snapshot = <T>(value: T): T => structuredClone(value);
+      const chat = new TestChatWithState({
+        id: '123',
+        state,
+        transport: new DefaultChatTransport({
+          fetch: async () => createResponse(chunks),
+        }),
+      });
+
+      await chat.resumeStream();
+
+      expect(chat.error).toBeUndefined();
+      expect(chat.messages).toHaveLength(1);
+      expect(chat.messages[0]).toMatchObject({
+        id: 'assistant-1',
+        role: 'assistant',
+        parts: expectedParts,
+      });
+      expect(chat.messages[0].parts).toHaveLength(expectedParts.length);
+      expect(chat.messages[0].metadata).toEqual({ count: 1 });
+    });
+
+    it('should not carry disconnected parts into a different resumed message', async () => {
+      const fetch = vi
+        .fn()
+        .mockResolvedValueOnce(
+          createResponse(
+            chunks.slice(0, 8),
+            new TypeError('simulated network disconnect'),
+          ),
+        )
+        .mockResolvedValueOnce(
+          createResponse([
+            { type: 'start', messageId: 'assistant-2' },
+            ...chunks.slice(1),
+          ]),
+        );
+      const chat = new TestChat({
+        id: '123',
+        transport: new DefaultChatTransport({ fetch }),
+        onError: () => {},
+      });
+      await chat.sendMessage({ text: 'Say hello.' });
+      const previousMessage = structuredClone(chat.messages[1]);
+
+      await chat.resumeStream();
+
+      expect(chat.error).toBeUndefined();
+      expect(chat.messages).toHaveLength(3);
+      expect(chat.messages[1]).toEqual(previousMessage);
+      expect(chat.messages[2]).toMatchObject({
+        id: 'assistant-2',
+        parts: expectedParts,
+      });
+      expect(chat.messages[2].parts).toHaveLength(expectedParts.length);
+    });
+
+    it('should preserve active parts when resuming only the remaining deltas', async () => {
+      const tailChunks: UIMessageChunk[] = [
+        { type: 'start', messageId: 'assistant-1' },
+        { type: 'start-step' },
+        { type: 'reasoning-start', id: 'reasoning-1' },
+        { type: 'reasoning-delta', id: 'reasoning-1', delta: 'think' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'Hello, ' },
+        { type: 'reasoning-delta', id: 'reasoning-1', delta: 'ing...' },
+        { type: 'reasoning-end', id: 'reasoning-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'world!' },
+        { type: 'text-end', id: 'text-1' },
+        { type: 'finish-step' },
+        { type: 'finish', finishReason: 'stop' },
+      ];
+      const fetch = vi
+        .fn()
+        .mockResolvedValueOnce(
+          createResponse(
+            tailChunks.slice(0, 6),
+            new TypeError('simulated network disconnect'),
+          ),
+        )
+        .mockResolvedValueOnce(createResponse(tailChunks.slice(6)));
+      const chat = new TestChat({
+        id: '123',
+        transport: new DefaultChatTransport({ fetch }),
+        onError: () => {},
+      });
+
+      await chat.sendMessage({ text: 'Say hello.' });
+      await chat.resumeStream();
+
+      expect(chat.error).toBeUndefined();
+      expect(chat.messages).toHaveLength(2);
+      expect(chat.messages[1].parts).toMatchObject(expectedParts.slice(0, 3));
+      expect(chat.messages[1].parts).toHaveLength(3);
+    });
+  });
+
   describe('send a simple message', () => {
     let chat: TestChat;
     let letOnFinishArgs: any[] = [];
