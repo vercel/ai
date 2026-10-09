@@ -8,6 +8,8 @@ import {
   type Tool,
 } from '@modelcontextprotocol/sdk/types.js';
 import type { HarnessV1BridgeToolWire } from '@ai-sdk/harness';
+import { convertHarnessToolModelOutput } from '@ai-sdk/harness/bridge';
+import type { ToolResultPart } from '@ai-sdk/provider-utils';
 
 declare const __PACKAGE_VERSION__: string | undefined;
 
@@ -19,6 +21,7 @@ const VERSION: string =
 export type HostToolMCPInvocationResult = {
   readonly output: unknown;
   readonly isError?: boolean;
+  readonly toolResult?: ToolResultPart;
   readonly correlationToken: string;
 };
 
@@ -154,14 +157,31 @@ function toCallToolResult({
 }: {
   result: HostToolMCPInvocationResult;
 }): CallToolResult {
+  const converted =
+    result.toolResult == null
+      ? undefined
+      : convertHarnessToolModelOutput({ output: result.toolResult.output });
   return {
-    content: [
-      {
-        type: 'text',
-        text: stringifyOutput({ output: result.output }),
-      },
-    ],
-    ...(result.isError ? { isError: true } : {}),
+    content:
+      converted == null
+        ? [
+            {
+              type: 'text',
+              text: stringifyOutput({ output: result.output }),
+            },
+          ]
+        : converted.content.map(part =>
+            part.type === 'text'
+              ? part
+              : {
+                  type: 'image' as const,
+                  data: part.data,
+                  mimeType: part.mediaType,
+                },
+          ),
+    ...(result.isError === true || converted?.isError === true
+      ? { isError: true }
+      : {}),
     _meta: {
       'ai-sdk-harness-acp-correlation': result.correlationToken,
     },

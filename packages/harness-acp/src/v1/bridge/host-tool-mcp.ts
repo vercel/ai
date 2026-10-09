@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { env } from 'node:process';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import type { HarnessV1BridgeToolWire } from '@ai-sdk/harness';
+import type { ToolResultPart } from '@ai-sdk/provider-utils';
 import {
   createHostToolMCPServer,
   type HostToolMCPInvocationResult,
@@ -149,12 +150,21 @@ function validateInvocationResult({
   if (
     !isRecord(value) ||
     typeof value.correlationToken !== 'string' ||
-    (value.isError !== undefined && typeof value.isError !== 'boolean')
+    (value.isError !== undefined && typeof value.isError !== 'boolean') ||
+    (value.toolResult !== undefined &&
+      (!isRecord(value.toolResult) ||
+        value.toolResult.type !== 'tool-result' ||
+        typeof value.toolResult.toolCallId !== 'string' ||
+        typeof value.toolResult.toolName !== 'string' ||
+        !isRecord(value.toolResult.output)))
   ) {
     throw new Error('Invalid host tool relay response.');
   }
   return {
     output: value.output,
+    ...(value.toolResult == null
+      ? {}
+      : { toolResult: value.toolResult as unknown as ToolResultPart }),
     ...(value.isError ? { isError: true } : {}),
     correlationToken: value.correlationToken,
   };

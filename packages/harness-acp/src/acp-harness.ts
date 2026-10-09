@@ -90,6 +90,12 @@ export type ACPHarnessSettings<
    * `agentCapabilities.mcpCapabilities.http`.
    */
   readonly hostToolMcpTransport?: ACPV1Settings['hostToolMcpTransport'];
+  /**
+   * Non-text tool model output the ACP implementation can deliver to its
+   * model. Text is always supported. Undeclared image content is omitted
+   * with a warning. Defaults to an empty list.
+   */
+  readonly nonTextContentTypes?: ACPV1Settings['nonTextContentTypes'];
   readonly askUserQuestions?: TAskUserQuestions;
   readonly permissionModeMapping?: ACPV1Settings['permissionModeMapping'];
   readonly session?: ACPV1Settings['session'];

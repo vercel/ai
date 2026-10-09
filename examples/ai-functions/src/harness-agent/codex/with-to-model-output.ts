@@ -52,7 +52,6 @@ run(async () => {
       const agent = new HarnessAgent({
         harness: createCodex(),
         tools: { inspectImage },
-        activeTools: ['inspectImage'],
       });
 
       let session: HarnessAgentSession | undefined;

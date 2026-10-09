@@ -51,7 +51,6 @@ run(async () => {
       const agent = new HarnessAgent({
         harness: createCline(),
         tools: { inspectImage },
-        activeTools: ['inspectImage'],
       });
 
       let session: HarnessAgentSession | undefined;

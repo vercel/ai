@@ -303,6 +303,7 @@ export function createGrokBuild(
   const clientAppSegments = GROK_BUILD_CLIENT_APP.split('/');
   const clientAppVersion = clientAppSegments.pop()!;
   return createACP({
+    nonTextContentTypes: ['image'],
     auth: settings.auth,
     resolveAuthenticationEnvironment: resolveGrokBuildSubscriptionEnvironment,
     authentication: { methodId: 'xai.api_key' },

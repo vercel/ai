@@ -225,6 +225,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         modelMapping: settings.modelMapping,
         providerAuthentication: providerAuthenticationCompatibility,
         permissionModeMapping: settings.permissionModeMapping,
+        nonTextContentTypes: settings.nonTextContentTypes,
       });
       const authenticationProfile = createACPAuthenticationProfileIdentity({
         authentication: settings.authentication,
@@ -649,6 +650,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
             askUserQuestionsRequestMethod:
               settings.askUserQuestions?.requestMethod,
             hostToolMcpTransport: settings.hostToolMcpTransport,
+            nonTextContentTypes: settings.nonTextContentTypes,
           }),
           ...sandboxProviderAuthenticationEnvironment,
           BRIDGE_CHANNEL_TOKEN: token,

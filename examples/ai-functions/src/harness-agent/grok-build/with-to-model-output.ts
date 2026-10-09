@@ -8,14 +8,15 @@ import {
   harnessToolModelOutputPrompt,
 } from '../../lib/harness-tool-model-output';
 import { run } from '../../lib/run';
-import { createPi } from './_create';
+import { createGrokBuild } from './_create';
 
 run(async () => {
   const sandboxSession = await createVercelNetworkSandboxSession({
     runtime: 'node24',
+    ports: [4000],
     timeout: 10 * 60 * 1000,
     template: await new HarnessAgent({
-      harness: createPi(),
+      harness: createGrokBuild(),
     }).getSandboxTemplate(),
   });
 
@@ -49,7 +50,7 @@ run(async () => {
       });
 
       const agent = new HarnessAgent({
-        harness: createPi(),
+        harness: createGrokBuild(),
         tools: { inspectImage },
       });
 

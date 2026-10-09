@@ -356,6 +356,7 @@ export function createCursor(
   }
 
   return createACP({
+    nonTextContentTypes: ['image'],
     auth: settings.auth,
     resolveAuthenticationEnvironment: resolveCursorSubscriptionEnvironment,
     credentialForwarding: settings.credentialForwarding,

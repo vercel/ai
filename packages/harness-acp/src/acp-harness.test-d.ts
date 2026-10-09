@@ -13,6 +13,15 @@ const modelMapping: ACPV1Settings['modelMapping'] = {
 };
 
 describe('createACP built-in tool inference', () => {
+  test('accepts only image as a non-text content type', () => {
+    expectTypeOf<ACPV1Settings['nonTextContentTypes']>().toEqualTypeOf<
+      ReadonlyArray<'image'> | undefined
+    >();
+    expectTypeOf<ReadonlyArray<'text' | 'audio'>>().not.toExtend<
+      NonNullable<ACPV1Settings['nonTextContentTypes']>
+    >();
+  });
+
   test('keeps the local ACP tool-call type aligned with the protocol SDK', () => {
     expectTypeOf<ACPToolCall>().toExtend<ToolCall>();
     expectTypeOf<ToolCall>().toExtend<ACPToolCall>();

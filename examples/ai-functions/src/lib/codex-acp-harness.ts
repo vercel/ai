@@ -102,6 +102,7 @@ export function createCodexACP({
   });
 
   return createACP({
+    nonTextContentTypes: ['image'],
     harnessId: 'codex-acp',
     auth,
     mcpServers,

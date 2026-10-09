@@ -2,9 +2,154 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { ToolListChangedNotificationSchema } from '@modelcontextprotocol/sdk/types.js';
 import { describe, expect, it, vi } from 'vitest';
+import type { ToolResultOutput } from '@ai-sdk/provider-utils';
 import { createHostToolMCPServer } from './host-tool-mcp-server';
 
 describe('createHostToolMCPServer', () => {
+  it.each([
+    {
+      output: { type: 'text', value: 'converted' },
+      content: [{ type: 'text', text: 'converted' }],
+      isError: false,
+    },
+    {
+      output: { type: 'json', value: { converted: true } },
+      content: [{ type: 'text', text: '{"converted":true}' }],
+      isError: false,
+    },
+    {
+      output: { type: 'error-text', value: 'failed' },
+      content: [{ type: 'text', text: 'failed' }],
+      isError: true,
+    },
+    {
+      output: { type: 'error-json', value: { failed: true } },
+      content: [{ type: 'text', text: '{"failed":true}' }],
+      isError: true,
+    },
+    {
+      output: { type: 'execution-denied', reason: 'denied' },
+      content: [{ type: 'text', text: 'denied' }],
+      isError: true,
+    },
+    { output: { type: 'content', value: [] }, content: [], isError: false },
+    {
+      output: {
+        type: 'content',
+        value: [
+          { type: 'text', text: 'marker' },
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: { type: 'data', data: 'aW1hZ2U=' },
+          },
+          {
+            type: 'file',
+            mediaType: 'image/jpeg',
+            data: { type: 'data', data: 'anBlZw==' },
+          },
+        ],
+      },
+      content: [
+        { type: 'text', text: 'marker' },
+        { type: 'image', mimeType: 'image/png', data: 'aW1hZ2U=' },
+        { type: 'image', mimeType: 'image/jpeg', data: 'anBlZw==' },
+      ],
+      isError: false,
+    },
+  ] satisfies Array<{
+    output: ToolResultOutput;
+    content: unknown[];
+    isError: boolean;
+  }>)(
+    'converts $output.type without using the raw result',
+    async ({ output, content, isError }) => {
+      const { client, close } = await connect({
+        tools: [{ name: 'inspect', inputSchema: { type: 'object' } }],
+        invoke: async () => ({
+          output: { raw: true },
+          toolResult: {
+            type: 'tool-result',
+            toolCallId: 'call',
+            toolName: 'inspect',
+            output,
+          },
+          correlationToken: 'token',
+        }),
+      });
+      try {
+        expect(
+          await client.callTool({ name: 'inspect', arguments: {} }),
+        ).toEqual({
+          content,
+          ...(isError ? { isError: true } : {}),
+          _meta: { 'ai-sdk-harness-acp-correlation': 'token' },
+        });
+      } finally {
+        await close();
+      }
+    },
+  );
+
+  it('preserves raw execution errors with a successful converted output', async () => {
+    const { client, close } = await connect({
+      tools: [{ name: 'inspect', inputSchema: { type: 'object' } }],
+      invoke: async () => ({
+        output: 'raw error',
+        isError: true,
+        correlationToken: 'token',
+        toolResult: {
+          type: 'tool-result',
+          toolCallId: 'call',
+          toolName: 'inspect',
+          output: { type: 'text', value: 'converted' },
+        },
+      }),
+    });
+    try {
+      expect(
+        await client.callTool({ name: 'inspect', arguments: {} }),
+      ).toMatchObject({
+        content: [{ type: 'text', text: 'converted' }],
+        isError: true,
+      });
+    } finally {
+      await close();
+    }
+  });
+
+  it('rejects unsupported non-image content instead of serializing it', async () => {
+    const { client, close } = await connect({
+      tools: [{ name: 'inspect', inputSchema: { type: 'object' } }],
+      invoke: async () => ({
+        output: {},
+        correlationToken: 'token',
+        toolResult: {
+          type: 'tool-result',
+          toolCallId: 'call',
+          toolName: 'inspect',
+          output: {
+            type: 'content',
+            value: [
+              {
+                type: 'file',
+                mediaType: 'audio/wav',
+                data: { type: 'data', data: 'AQID' },
+              },
+            ],
+          },
+        },
+      }),
+    });
+    try {
+      await expect(
+        client.callTool({ name: 'inspect', arguments: {} }),
+      ).rejects.toThrow('Harnesses support only text and inline images');
+    } finally {
+      await close();
+    }
+  });
+
   it('preserves recursive JSON Schema and relays successful calls', async () => {
     const recursiveSchema = {
       type: 'object',
