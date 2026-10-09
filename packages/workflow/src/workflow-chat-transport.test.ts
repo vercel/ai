@@ -914,6 +914,167 @@ describe('WorkflowChatTransport', () => {
     });
   });
 
+  describe('empty reconnect streams', () => {
+    function response(...chunks: UIMessageChunk[]) {
+      return new Response(
+        chunks.map(chunk => `data: ${JSON.stringify(chunk)}\n\n`).join(''),
+        { headers: { 'x-workflow-run-id': 'test-run' } },
+      );
+    }
+
+    it.each([undefined, 2])(
+      'stops at the consecutive error limit (%s)',
+      async maxConsecutiveErrors => {
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+        const onChatEnd = vi.fn();
+        const limit = maxConsecutiveErrors ?? 3;
+        const transport = new WorkflowChatTransport({
+          fetch: mockFetch,
+          maxConsecutiveErrors,
+          onChatEnd,
+        });
+
+        mockFetch.mockImplementation(async () => {
+          // Bound the regression so a broken transport fails instead of hanging.
+          if (mockFetch.mock.calls.length > limit) {
+            throw new Error('Exceeded reconnect request limit');
+          }
+          return response();
+        });
+
+        const stream = await transport.reconnectToStream({
+          chatId: 'test-chat',
+        });
+
+        await expect(stream!.getReader().read()).rejects.toThrow(
+          `Failed to reconnect after ${limit} consecutive errors. Last error: Error: Reconnect stream ended without receiving chunks.`,
+        );
+        expect(mockFetch).toHaveBeenCalledTimes(limit);
+        expect(onChatEnd).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([': keep-alive\n\n', 'data: [DONE]\n\n'])(
+      'counts SSE without UI chunks as an empty reconnect (%s)',
+      async body => {
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+        const transport = new WorkflowChatTransport({
+          fetch: mockFetch,
+          maxConsecutiveErrors: 1,
+        });
+        mockFetch.mockImplementation(async () => {
+          if (mockFetch.mock.calls.length > 1) {
+            throw new Error('Exceeded reconnect request limit');
+          }
+          return new Response(body);
+        });
+
+        const stream = await transport.reconnectToStream({
+          chatId: 'test-chat',
+        });
+
+        await expect(stream!.getReader().read()).rejects.toThrow(
+          'Failed to reconnect after 1 consecutive errors',
+        );
+        expect(mockFetch).toHaveBeenCalledTimes(1);
+      },
+    );
+
+    it('applies the limit when reconnecting after an interrupted POST', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      const transport = new WorkflowChatTransport({ fetch: mockFetch });
+      mockFetch.mockImplementation(async () => {
+        if (mockFetch.mock.calls.length > 4) {
+          throw new Error('Exceeded reconnect request limit');
+        }
+        return response();
+      });
+
+      const stream = await transport.sendMessages({
+        trigger: 'submit-message',
+        chatId: 'test-chat',
+        messages: [],
+      });
+
+      await expect(stream.getReader().read()).rejects.toThrow(
+        'Failed to reconnect after 3 consecutive errors',
+      );
+      expect(mockFetch).toHaveBeenCalledTimes(4);
+      expect(mockFetch).toHaveBeenLastCalledWith(
+        '/api/chat/test-run/stream?startIndex=0',
+        expect.any(Object),
+      );
+    });
+
+    it('counts filtered orphan chunks as progress when resuming from a negative index', async () => {
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const transport = new WorkflowChatTransport({
+        fetch: mockFetch,
+        maxConsecutiveErrors: 1,
+        initialStartIndex: -2,
+      });
+      const orphanResponse = response({
+        type: 'text-delta',
+        id: 'orphan',
+        delta: 'hello',
+      });
+      orphanResponse.headers.set('x-workflow-stream-tail-index', '4');
+      mockFetch
+        .mockResolvedValueOnce(orphanResponse)
+        .mockResolvedValueOnce(response({ type: 'finish' }));
+
+      const stream = await transport.reconnectToStream({ chatId: 'test-chat' });
+      const reader = stream!.getReader();
+
+      await expect(reader.read()).resolves.toMatchObject({
+        value: { type: 'finish' },
+      });
+      await expect(reader.read()).resolves.toMatchObject({ done: true });
+      expect(mockFetch).toHaveBeenLastCalledWith(
+        '/api/chat/test-chat/stream?startIndex=4',
+        expect.any(Object),
+      );
+      expect(errorSpy).not.toHaveBeenCalled();
+    });
+
+    it('resets consecutive errors after receiving chunks and resumes at the updated cursor', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      const onChatEnd = vi.fn();
+      const transport = new WorkflowChatTransport({
+        fetch: mockFetch,
+        maxConsecutiveErrors: 2,
+        onChatEnd,
+      });
+      mockFetch
+        .mockResolvedValueOnce(response())
+        .mockResolvedValueOnce(response({ type: 'start-step' }))
+        .mockResolvedValueOnce(response())
+        .mockResolvedValueOnce(response({ type: 'finish' }));
+
+      const stream = await transport.reconnectToStream({ chatId: 'test-chat' });
+      const reader = stream!.getReader();
+
+      await expect(reader.read()).resolves.toMatchObject({
+        value: { type: 'start-step' },
+      });
+      await expect(reader.read()).resolves.toMatchObject({
+        value: { type: 'finish' },
+      });
+      await expect(reader.read()).resolves.toMatchObject({ done: true });
+      expect(mockFetch.mock.calls.map(([url]) => url)).toEqual([
+        '/api/chat/test-chat/stream?startIndex=0',
+        '/api/chat/test-chat/stream?startIndex=0',
+        '/api/chat/test-chat/stream?startIndex=1',
+        '/api/chat/test-chat/stream?startIndex=1',
+      ]);
+      expect(onChatEnd).toHaveBeenCalledExactlyOnceWith({
+        chatId: 'test-chat',
+        chunkIndex: 2,
+      });
+    });
+  });
+
   describe('reconnection error formatting', () => {
     it('should format object errors with JSON instead of [object Object]', async () => {
       const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});

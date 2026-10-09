@@ -484,12 +484,7 @@ export async function* modelCallIterator({
         isToolExecutionAllowed &&
         (toolCalls.length > 0 || providerExecutedToolResults.size > 0);
 
-      if (hasTerminalError) {
-        // The error crossed the durable step boundary as data. End the loop
-        // without throwing so WorkflowAgent can preserve the existing
-        // resolved-result contract and expose the original value.
-        done = true;
-      } else if (shouldProcessTools) {
+      if (!hasTerminalError && shouldProcessTools) {
         lastStepWasYielded = true;
 
         const {
@@ -568,10 +563,16 @@ export async function* modelCallIterator({
           stopConditionMet ||
           (!hasClientToolCalls && pendingDeferredToolCallIds.size === 0);
       } else if (
+        hasTerminalError ||
         mode === 'generate' ||
         finishReason === 'stop' ||
         finishReason === 'tool-calls' ||
-        finishReason === 'length'
+        finishReason === 'length' ||
+        finishReason === 'content-filter' ||
+        finishReason === 'error' ||
+        finishReason === 'other' ||
+        finishReason === 'unknown' ||
+        !finishReason
       ) {
         // Add assistant response content to the conversation
         const { content: assistantContent } = getAssistantMessageContent(
@@ -594,21 +595,6 @@ export async function* modelCallIterator({
           );
         }
 
-        done = true;
-      } else if (finishReason === 'content-filter') {
-        // Content filter triggered - stop but don't throw
-        done = true;
-      } else if (finishReason === 'error') {
-        // Model error - stop but don't throw
-        done = true;
-      } else if (finishReason === 'other') {
-        // Other reason - stop but don't throw
-        done = true;
-      } else if (finishReason === 'unknown') {
-        // Unknown reason - stop but don't throw
-        done = true;
-      } else if (!finishReason) {
-        // No finish reason - this might happen on incomplete streams
         done = true;
       } else {
         throw new Error(
