@@ -2025,10 +2025,6 @@ describe('Chat', () => {
     },
   );
 
-<<<<<<< HEAD
-  it('should reject with onFinish errors and clear the active response', async () => {
-    const onFinishError = new Error('onFinish failed');
-=======
   it('should update a streaming response in place after a later message is appended', async () => {
     let controller!: ReadableStreamDefaultController<UIMessageChunk>;
     const stream = new ReadableStream<UIMessageChunk>({
@@ -2091,6 +2087,9 @@ describe('Chat', () => {
 
   it('should update an earlier streaming response after preceding messages are removed', async () => {
     let controller!: ReadableStreamDefaultController<UIMessageChunk>;
+    const requestStarted = createResolvablePromise<void>();
+    const finishPromise = createResolvablePromise<void>();
+    let shouldSendAutomatically = true;
     const stream = new ReadableStream<UIMessageChunk>({
       start(streamController) {
         controller = streamController;
@@ -2108,11 +2107,11 @@ describe('Chat', () => {
           role: 'assistant',
           parts: [
             {
-              type: 'tool-weather',
+              type: 'dynamic-tool',
+              toolName: 'weather',
               toolCallId: 'call-1',
-              state: 'approval-responded',
+              state: 'input-available',
               input: { city: 'Tokyo' },
-              approval: { id: 'approval-1', approved: true },
             },
           ],
         },
@@ -2129,12 +2128,27 @@ describe('Chat', () => {
       ]),
       generateId: mockId(),
       transport: {
-        sendMessages: async () => stream,
+        sendMessages: async () => {
+          requestStarted.resolve();
+          return stream;
+        },
         reconnectToStream: async () => null,
       },
+      sendAutomaticallyWhen: () => {
+        const result = shouldSendAutomatically;
+        shouldSendAutomatically = false;
+        return result;
+      },
+      onFinish: () => finishPromise.resolve(),
     });
 
-    const sendPromise = chat.sendMessage();
+    await chat.addToolOutput({
+      tool: 'weather',
+      toolCallId: 'call-1',
+      output: { temperature: 20 },
+    });
+    await requestStarted.promise;
+
     controller.enqueue({ type: 'text-start', id: 'text-1' });
     controller.enqueue({
       type: 'text-delta',
@@ -2162,7 +2176,7 @@ describe('Chat', () => {
     controller.enqueue({ type: 'text-end', id: 'text-1' });
     controller.enqueue({ type: 'finish' });
     controller.close();
-    await sendPromise;
+    await finishPromise.promise;
 
     expect(chat.messages.map(message => message.id)).toEqual([
       'assistant-1',
@@ -2175,6 +2189,9 @@ describe('Chat', () => {
 
   it('should update a renamed earlier response after preceding messages are removed before streaming starts', async () => {
     let controller!: ReadableStreamDefaultController<UIMessageChunk>;
+    const requestStarted = createResolvablePromise<void>();
+    const finishPromise = createResolvablePromise<void>();
+    let shouldSendAutomatically = true;
     const stream = new ReadableStream<UIMessageChunk>({
       start(streamController) {
         controller = streamController;
@@ -2192,11 +2209,11 @@ describe('Chat', () => {
           role: 'assistant',
           parts: [
             {
-              type: 'tool-weather',
+              type: 'dynamic-tool',
+              toolName: 'weather',
               toolCallId: 'call-1',
-              state: 'approval-responded',
+              state: 'input-available',
               input: { city: 'Tokyo' },
-              approval: { id: 'approval-1', approved: true },
             },
           ],
         },
@@ -2213,12 +2230,26 @@ describe('Chat', () => {
       ]),
       generateId: mockId(),
       transport: {
-        sendMessages: async () => stream,
+        sendMessages: async () => {
+          requestStarted.resolve();
+          return stream;
+        },
         reconnectToStream: async () => null,
       },
+      sendAutomaticallyWhen: () => {
+        const result = shouldSendAutomatically;
+        shouldSendAutomatically = false;
+        return result;
+      },
+      onFinish: () => finishPromise.resolve(),
     });
 
-    const sendPromise = chat.sendMessage();
+    await chat.addToolOutput({
+      tool: 'weather',
+      toolCallId: 'call-1',
+      output: { temperature: 20 },
+    });
+    await requestStarted.promise;
 
     chat.messages = chat.messages.filter(
       message => message.id !== 'user-before',
@@ -2234,7 +2265,7 @@ describe('Chat', () => {
     controller.enqueue({ type: 'text-end', id: 'text-1' });
     controller.enqueue({ type: 'finish' });
     controller.close();
-    await sendPromise;
+    await finishPromise.promise;
 
     expect(chat.messages.map(message => message.id)).toEqual([
       'renamed-assistant',
@@ -2245,17 +2276,8 @@ describe('Chat', () => {
     expect(getMessageText(chat.messages[1])).toBe('Keep this message.');
   });
 
-  it('should handle error parts', async () => {
-    server.urls['http://localhost:3000/api/chat'].response = {
-      type: 'stream-chunks',
-      chunks: [
-        formatChunk({ type: 'start' }),
-        formatChunk({ type: 'error', errorText: 'test-error' }),
-      ],
-    };
-
-    const errorPromise = createResolvablePromise<void>();
->>>>>>> 5150d50e23 (fix: preserve streaming assistant message identity when the chat message list changes (#22393))
+  it('should reject with onFinish errors and clear the active response', async () => {
+    const onFinishError = new Error('onFinish failed');
 
     const chat = new TestChat({
       id: '123',
