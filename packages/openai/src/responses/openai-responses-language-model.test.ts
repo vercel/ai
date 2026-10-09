@@ -7442,6 +7442,11 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "tool-input-start",
               },
               {
+                "delta": """,
+                "id": "call_custom_sql_001",
+                "type": "tool-input-delta",
+              },
+              {
                 "delta": "SELECT * ",
                 "id": "call_custom_sql_001",
                 "type": "tool-input-delta",
@@ -7453,6 +7458,11 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "delta": "WHERE age > 25",
+                "id": "call_custom_sql_001",
+                "type": "tool-input-delta",
+              },
+              {
+                "delta": """,
                 "id": "call_custom_sql_001",
                 "type": "tool-input-delta",
               },
