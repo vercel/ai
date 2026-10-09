@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "issueId": 10781,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-10781.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/issue-10781.ts",
+    "pnpm-lock.yaml"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_10781_REPRODUCED duplicate text part IDs across steps: 0"
+  }
+}
