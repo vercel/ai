@@ -3459,6 +3459,49 @@ describe('Chat', () => {
     });
   });
 
+  describe('addToolOutput', () => {
+    it('should update a tool call in an earlier message', async () => {
+      const laterMessages: UIMessage[] = [
+        {
+          id: 'id-2',
+          role: 'user',
+          parts: [{ type: 'text', text: 'Continue while the tool runs.' }],
+        },
+      ];
+      const chat = new TestChat({
+        id: '123',
+        messages: [
+          {
+            id: 'id-1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'dynamic-tool',
+                toolName: 'test-tool',
+                toolCallId: 'tool-call-0',
+                state: 'input-available',
+                input: { testArg: 'test-value' },
+              },
+            ],
+          },
+          ...laterMessages,
+        ],
+      });
+
+      await chat.addToolOutput({
+        tool: 'test-tool',
+        toolCallId: 'tool-call-0',
+        output: { ok: true },
+      });
+
+      expect(chat.messages[0].parts[0]).toMatchObject({
+        state: 'output-available',
+        output: { ok: true },
+      });
+      expect(chat.messages.slice(1)).toEqual(laterMessages);
+    });
+  });
+
   describe('addToolOutput options forwarding', () => {
     it('should forward options to makeRequest when auto-sending', async () => {
       server.urls['http://localhost:3000/api/chat'].response = [
