@@ -97,4 +97,36 @@ describe('WorkflowAgent.stream error parts', () => {
     expect(onError).toHaveBeenCalledTimes(1);
     expect(onError).toHaveBeenCalledWith({ error: terminal });
   });
+
+  it('reports an incomplete stream without output as a no-output error', async () => {
+    const model = new MockLanguageModelV4({
+      doStream: async () => ({
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start' as const, warnings: [] },
+          {
+            type: 'response-metadata' as const,
+            id: 'response-1',
+            modelId: 'mock-model',
+          },
+        ]),
+      }),
+    });
+    const onError = vi.fn();
+
+    const result = await new WorkflowAgent({ model }).stream({
+      prompt: 'trigger an incomplete stream',
+      onError,
+    });
+
+    expect(result).toMatchObject({
+      finishReason: 'other',
+      error: {
+        name: 'AI_NoOutputGeneratedError',
+        message:
+          'No output generated. The model stream ended without a finish chunk.',
+      },
+    });
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledWith({ error: result.error });
+  });
 });
