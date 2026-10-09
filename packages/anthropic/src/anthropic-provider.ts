@@ -1,6 +1,8 @@
 import {
   InvalidArgumentError,
   NoSuchModelError,
+  type Experimental_BatchV4 as BatchV4,
+  type Experimental_DecisionModelV4 as DecisionModelV4,
   type FilesV4,
   type LanguageModelV4,
   type ProviderV4,
@@ -15,8 +17,10 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
+import { Experimental_DecisionLanguageModel as DecisionLanguageModel } from '@ai-sdk/provider-utils/experimental-decision';
 import { AnthropicFiles } from './anthropic-files';
 import { AnthropicLanguageModel } from './anthropic-language-model';
+import { AnthropicBatch } from './anthropic-batch';
 import type { AnthropicModelId } from './anthropic-language-model-options';
 import { anthropicTools } from './anthropic-tools';
 import { AnthropicSkills } from './skills/anthropic-skills';
@@ -50,6 +54,15 @@ export interface AnthropicProvider extends ProviderV4 {
 
   messages(modelId: AnthropicModelId): LanguageModelV4;
 
+  /** Creates an experimental Choice/Score/Boolean decision model using Messages. */
+  decisionModel(modelId: AnthropicModelId): DecisionModelV4;
+  /** @deprecated Use `decisionModel` instead. */
+  evaluationModel(modelId: AnthropicModelId): DecisionModelV4 & {
+    doEvaluate: DecisionModelV4['doDecide'];
+  };
+
+  experimental_batch(): BatchV4<{ text: AnthropicModelId }>;
+
   /**
    * @deprecated Use `embeddingModel` instead.
    */
@@ -69,6 +82,12 @@ export interface AnthropicProvider extends ProviderV4 {
 }
 
 export interface AnthropicProviderSettings {
+  /** Settings for downloading JSON Lines batch results. */
+  batchResultDownloads?: {
+    /** Maximum UTF-8 bytes per row, excluding LF. Defaults to 64 MiB. */
+    maxLineBytes?: number;
+  };
+
   /**
    * Use a different URL prefix for API calls, e.g. to use proxy servers.
    * The default prefix is `https://api.anthropic.com/v1`.
@@ -124,6 +143,10 @@ export function createAnthropic(
     ) ?? ANTHROPIC_API_VERSIONED_URL;
 
   const providerName = options.name ?? 'anthropic.messages';
+  const supportedUrls = {
+    'image/*': [/^https?:\/\/.*$/],
+    'application/pdf': [/^https?:\/\/.*$/],
+  };
 
   // Only error if both are explicitly provided in options
   if (options.apiKey && options.authToken) {
@@ -151,21 +174,28 @@ export function createAnthropic(
         ...authHeaders,
         ...options.headers,
       },
-      `ai-sdk/anthropic/${VERSION}`,
+      `ai-sdk-anthropic/${VERSION}`,
     );
   };
 
+  const languageModelConfig = {
+    provider: providerName,
+    baseURL,
+    headers: getHeaders,
+    fetch: options.fetch,
+    generateId: options.generateId ?? generateId,
+    supportedUrls: () => supportedUrls,
+  };
+
   const createChatModel = (modelId: AnthropicModelId) =>
-    new AnthropicLanguageModel(modelId, {
-      provider: providerName,
-      baseURL,
-      headers: getHeaders,
-      fetch: options.fetch,
-      generateId: options.generateId ?? generateId,
-      supportedUrls: () => ({
-        'image/*': [/^https?:\/\/.*$/],
-        'application/pdf': [/^https?:\/\/.*$/],
-      }),
+    new AnthropicLanguageModel(modelId, languageModelConfig);
+
+  const createBatch = () =>
+    new AnthropicBatch({
+      provider: `${providerName.replace(/\.messages$/, '')}.batch`,
+      maxLineBytes: options.batchResultDownloads?.maxLineBytes,
+      config: languageModelConfig,
+      supportedUrls,
     });
 
   const createSkills = () =>
@@ -190,6 +220,14 @@ export function createAnthropic(
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.messages = createChatModel;
+  provider.decisionModel = (modelId: AnthropicModelId) =>
+    new DecisionLanguageModel({
+      model: createChatModel(modelId),
+      provider: `${providerName.replace(/\.messages$/, '')}.decision`,
+    });
+  provider.evaluationModel =
+    provider.decisionModel as AnthropicProvider['evaluationModel'];
+  provider.experimental_batch = createBatch;
 
   provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });

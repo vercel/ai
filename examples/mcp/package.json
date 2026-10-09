@@ -3,10 +3,14 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
+    "server:events": "tsx src/events/server.ts",
+    "client:events": "tsx src/events/client.ts",
     "server:sse": "tsx src/sse/server.ts",
     "client:sse": "tsx src/sse/client.ts",
     "server:http": "tsx src/http/server.ts",
     "client:http": "tsx src/http/client.ts",
+    "server:http-2026": "tsx src/http-2026/server.ts",
+    "client:http-2026": "tsx src/http-2026/client.ts",
     "server:mcp-with-auth": "tsx src/mcp-with-auth/server.ts",
     "client:mcp-with-auth": "tsx src/mcp-with-auth/client.ts",
     "server:mcp-prompts": "tsx src/mcp-prompts/server.ts",
@@ -22,6 +26,8 @@
     "client:tool-meta": "tsx src/tool-meta/client.ts",
     "server:provider-metadata": "tsx src/provider-metadata/server.ts",
     "client:provider-metadata": "tsx src/provider-metadata/client.ts",
+    "server:tool-annotations": "tsx src/tool-annotations/server.ts",
+    "client:tool-annotations": "tsx src/tool-annotations/client.ts",
     "server:server-instructions": "tsx src/server-instructions/server.ts",
     "client:server-instructions": "tsx src/server-instructions/client.ts",
     "stdio:build": "tsc src/stdio/server.ts --outDir src/stdio/dist --target es2023 --module nodenext",
@@ -32,7 +38,9 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "workspace:*",
-    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@modelcontextprotocol/node": "^2.0.0",
+    "@modelcontextprotocol/sdk": "^1.32.0",
+    "@modelcontextprotocol/server": "^2.0.0",
     "ai": "workspace:*",
     "dotenv": "16.4.5",
     "express": "5.0.1",
@@ -42,7 +50,7 @@
     "@ai-sdk/mcp": "workspace:*",
     "@types/express": "5.0.0",
     "@types/node": "22.19.19",
-    "tsx": "4.19.2",
-    "typescript": "5.8.3"
+    "tsx": "4.23.12",
+    "typescript": "6.0.3"
   }
 }

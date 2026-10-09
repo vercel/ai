@@ -7,3 +7,6 @@
 # Next.js
 /.next/
 next-env.d.ts
+
+# Vercel CLI project link
+.vercel

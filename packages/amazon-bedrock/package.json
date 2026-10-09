@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/amazon-bedrock",
-  "version": "5.0.28",
+  "version": "5.0.113",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -23,9 +23,9 @@
     "doc": "./docs"
   },
   "scripts": {
-    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
-    "build:watch": "pnpm clean && tsup --watch",
-    "clean": "del-cli dist docs *.tsbuildinfo",
+    "build": "pnpm clean && tsdown",
+    "build:watch": "pnpm clean && tsdown --watch",
+    "clean": "del-cli docs *.tsbuildinfo",
     "prepack": "mkdir -p docs && cp ../../content/providers/01-ai-sdk-providers/08-amazon-bedrock.mdx ./docs/",
     "postpack": "del-cli docs",
     "type-check": "tsc --build",
@@ -66,8 +66,8 @@
     "@ai-sdk/test-server": "workspace:*",
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
-    "tsup": "^8.5.1",
-    "typescript": "5.8.3",
+    "tsdown": "^0.23.0",
+    "typescript": "6.0.3",
     "zod": "3.25.76"
   },
   "peerDependencies": {

@@ -1,3 +1,9 @@
+import type { GatewayDecisionModelId } from './gateway-decision-model-settings';
+import type { DecisionFallbackCondition } from './gateway-provider-options';
+
+export type { GatewayEmbeddingModelId } from './gateway-embedding-model-settings';
+export type { GatewayDecisionModelId } from './gateway-decision-model-settings';
+export type { GatewayImageModelId } from './gateway-image-model-settings';
 export type { GatewayModelId } from './gateway-language-model-settings';
 export {
   GATEWAY_AUTH_SUBPROTOCOL_PREFIX,
@@ -40,6 +46,12 @@ export type {
   GatewayProviderSettings,
 } from './gateway-provider';
 export type {
+  GatewayAsyncJobMetadata,
+  GatewayProviderMetadata,
+} from './gateway-provider-metadata';
+export type {
+  DecisionFallbackCondition,
+  GatewayModelFallback,
   GatewayProviderOptions,
   /** @deprecated Use `GatewayProviderOptions` instead. */
   GatewayProviderOptions as GatewayLanguageModelOptions,
@@ -52,8 +64,15 @@ export {
   GatewayInvalidRequestError,
   GatewayRateLimitError,
   GatewayModelNotFoundError,
+  GatewayNotFoundError,
   GatewayInternalServerError,
   GatewayResponseError,
 } from './errors';
 export type { GatewayErrorResponse } from './errors';
 export { VERSION } from './version';
+
+/** @deprecated Use `GatewayDecisionModelId` instead. */
+export type GatewayEvaluationModelId = GatewayDecisionModelId;
+/** @deprecated Use `DecisionFallbackCondition` instead. */
+export type EvaluationFallbackCondition<QUESTION_ID extends string = string> =
+  DecisionFallbackCondition<QUESTION_ID>;

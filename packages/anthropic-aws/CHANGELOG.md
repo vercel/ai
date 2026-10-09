@@ -1,5 +1,553 @@
 # @ai-sdk/anthropic-aws
 
+## 2.0.71
+
+### Patch Changes
+
+- Updated dependencies [4dbc902]
+  - @ai-sdk/provider@4.0.26
+  - @ai-sdk/anthropic@4.0.78
+  - @ai-sdk/provider-utils@5.0.58
+
+## 2.0.70
+
+### Patch Changes
+
+- Updated dependencies [c01cbb8]
+  - @ai-sdk/anthropic@4.0.77
+
+## 2.0.69
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider@4.0.25
+  - @ai-sdk/provider-utils@5.0.57
+  - @ai-sdk/anthropic@4.0.76
+
+## 2.0.68
+
+### Patch Changes
+
+- 5d42987: fix(amazon-bedrock,anthropic-aws): skip SigV4 signing for non-ASCII header values
+
+## 2.0.67
+
+### Patch Changes
+
+- Updated dependencies [866e884]
+  - @ai-sdk/anthropic@4.0.75
+
+## 2.0.66
+
+### Patch Changes
+
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/anthropic@4.0.74
+  - @ai-sdk/provider-utils@5.0.56
+
+## 2.0.65
+
+### Patch Changes
+
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/anthropic@4.0.73
+  - @ai-sdk/provider@4.0.23
+
+## 2.0.64
+
+### Patch Changes
+
+- Updated dependencies [2959d35]
+- Updated dependencies [b5dfea1]
+- Updated dependencies [686cca9]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+  - @ai-sdk/anthropic@4.0.72
+
+## 2.0.63
+
+### Patch Changes
+
+- Updated dependencies [c35458e]
+  - @ai-sdk/anthropic@4.0.71
+
+## 2.0.62
+
+### Patch Changes
+
+- 527a163: fix: validate hostname parts using `isValidHostnamePart`
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+  - @ai-sdk/anthropic@4.0.70
+
+## 2.0.61
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [ede5b89]
+- Updated dependencies [a587f55]
+  - @ai-sdk/anthropic@4.0.69
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
+## 2.0.60
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/anthropic@4.0.68
+  - @ai-sdk/provider-utils@5.0.51
+
+## 2.0.59
+
+### Patch Changes
+
+- Updated dependencies [e361d39]
+- Updated dependencies [8373a22]
+  - @ai-sdk/anthropic@4.0.67
+
+## 2.0.58
+
+### Patch Changes
+
+- Updated dependencies [e3605f6]
+- Updated dependencies [525efc5]
+  - @ai-sdk/provider-utils@5.0.50
+  - @ai-sdk/provider@4.0.19
+  - @ai-sdk/anthropic@4.0.66
+
+## 2.0.57
+
+### Patch Changes
+
+- Updated dependencies [af9597b]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/provider-utils@5.0.49
+  - @ai-sdk/anthropic@4.0.65
+
+## 2.0.56
+
+### Patch Changes
+
+- Updated dependencies [67f8000]
+- Updated dependencies [be877ff]
+  - @ai-sdk/anthropic@4.0.64
+  - @ai-sdk/provider-utils@5.0.48
+
+## 2.0.55
+
+### Patch Changes
+
+- Updated dependencies [154221f]
+  - @ai-sdk/anthropic@4.0.63
+
+## 2.0.54
+
+### Patch Changes
+
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [771e74b]
+  - @ai-sdk/provider-utils@5.0.47
+  - @ai-sdk/anthropic@4.0.62
+
+## 2.0.53
+
+### Patch Changes
+
+- Updated dependencies [ffb0e76]
+- Updated dependencies [3733d6e]
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/anthropic@4.0.61
+  - @ai-sdk/provider-utils@5.0.46
+
+## 2.0.52
+
+### Patch Changes
+
+- Updated dependencies [49295bb]
+  - @ai-sdk/anthropic@4.0.60
+
+## 2.0.51
+
+### Patch Changes
+
+- Updated dependencies [f7b7b2a]
+  - @ai-sdk/anthropic@4.0.59
+
+## 2.0.50
+
+### Patch Changes
+
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+  - @ai-sdk/anthropic@4.0.58
+
+## 2.0.49
+
+### Patch Changes
+
+- Updated dependencies [0455398]
+  - @ai-sdk/provider-utils@5.0.44
+  - @ai-sdk/anthropic@4.0.57
+
+## 2.0.48
+
+### Patch Changes
+
+- Updated dependencies [d4d96bf]
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [a7dd893]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/anthropic@4.0.56
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/provider@4.0.17
+
+## 2.0.47
+
+### Patch Changes
+
+- Updated dependencies [132bdae]
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/anthropic@4.0.55
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/provider@4.0.16
+
+## 2.0.46
+
+### Patch Changes
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+  - @ai-sdk/anthropic@4.0.54
+  - @ai-sdk/provider-utils@5.0.41
+
+## 2.0.45
+
+### Patch Changes
+
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+- Updated dependencies [e4292e7]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/anthropic@4.0.53
+  - @ai-sdk/provider@4.0.14
+  - @ai-sdk/provider-utils@5.0.40
+
+## 2.0.44
+
+### Patch Changes
+
+- Updated dependencies [9942196]
+- Updated dependencies [5a7e647]
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/anthropic@4.0.52
+  - @ai-sdk/provider-utils@5.0.39
+
+## 2.0.43
+
+### Patch Changes
+
+- Updated dependencies [912fb01]
+  - @ai-sdk/provider@4.0.12
+  - @ai-sdk/anthropic@4.0.51
+  - @ai-sdk/provider-utils@5.0.38
+
+## 2.0.42
+
+### Patch Changes
+
+- Updated dependencies [a4ba394]
+- Updated dependencies [45099da]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/anthropic@4.0.50
+  - @ai-sdk/provider-utils@5.0.37
+
+## 2.0.41
+
+### Patch Changes
+
+- Updated dependencies [65397d7]
+  - @ai-sdk/anthropic@4.0.49
+
+## 2.0.40
+
+### Patch Changes
+
+- Updated dependencies [4d25a08]
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/anthropic@4.0.48
+  - @ai-sdk/provider-utils@5.0.36
+
+## 2.0.39
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+  - @ai-sdk/anthropic@4.0.47
+
+## 2.0.38
+
+### Patch Changes
+
+- Updated dependencies [aa45741]
+  - @ai-sdk/anthropic@4.0.46
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
+## 2.0.37
+
+### Patch Changes
+
+- Updated dependencies [90192f1]
+  - @ai-sdk/provider-utils@5.0.33
+  - @ai-sdk/anthropic@4.0.45
+
+## 2.0.36
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+  - @ai-sdk/anthropic@4.0.44
+
+## 2.0.35
+
+### Patch Changes
+
+- Updated dependencies [7de3612]
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/anthropic@4.0.43
+  - @ai-sdk/provider-utils@5.0.31
+
+## 2.0.34
+
+### Patch Changes
+
+- Updated dependencies [591d25b]
+  - @ai-sdk/anthropic@4.0.42
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
+## 2.0.33
+
+### Patch Changes
+
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+  - @ai-sdk/anthropic@4.0.41
+
+## 2.0.32
+
+### Patch Changes
+
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+  - @ai-sdk/anthropic@4.0.40
+
+## 2.0.31
+
+### Patch Changes
+
+- Updated dependencies [4579b08]
+  - @ai-sdk/anthropic@4.0.39
+
+## 2.0.30
+
+### Patch Changes
+
+- Updated dependencies [7fbfc6d]
+  - @ai-sdk/provider-utils@5.0.27
+  - @ai-sdk/anthropic@4.0.38
+
+## 2.0.29
+
+### Patch Changes
+
+- Updated dependencies [401a4ba]
+  - @ai-sdk/provider-utils@5.0.26
+  - @ai-sdk/anthropic@4.0.37
+
+## 2.0.28
+
+### Patch Changes
+
+- Updated dependencies [ad6a650]
+- Updated dependencies [81cd026]
+  - @ai-sdk/provider@4.0.7
+  - @ai-sdk/provider-utils@5.0.25
+  - @ai-sdk/anthropic@4.0.36
+
+## 2.0.27
+
+### Patch Changes
+
+- Updated dependencies [1937bef]
+  - @ai-sdk/provider-utils@5.0.24
+  - @ai-sdk/anthropic@4.0.35
+
+## 2.0.26
+
+### Patch Changes
+
+- Updated dependencies [e6415bd]
+  - @ai-sdk/anthropic@4.0.34
+
+## 2.0.25
+
+### Patch Changes
+
+- Updated dependencies [3469d0c]
+  - @ai-sdk/provider@4.0.6
+  - @ai-sdk/anthropic@4.0.33
+  - @ai-sdk/provider-utils@5.0.23
+
+## 2.0.24
+
+### Patch Changes
+
+- Updated dependencies [8b96941]
+  - @ai-sdk/anthropic@4.0.32
+
+## 2.0.23
+
+### Patch Changes
+
+- Updated dependencies [2b60826]
+- Updated dependencies [7a9da75]
+  - @ai-sdk/provider-utils@5.0.22
+  - @ai-sdk/anthropic@4.0.31
+
+## 2.0.22
+
+### Patch Changes
+
+- Updated dependencies [1bec07d]
+  - @ai-sdk/provider-utils@5.0.21
+  - @ai-sdk/anthropic@4.0.30
+
+## 2.0.21
+
+### Patch Changes
+
+- Updated dependencies [160ccdb]
+  - @ai-sdk/provider-utils@5.0.20
+  - @ai-sdk/anthropic@4.0.29
+
+## 2.0.20
+
+### Patch Changes
+
+- Updated dependencies [9337ecd]
+- Updated dependencies [79e133c]
+  - @ai-sdk/anthropic@4.0.28
+  - @ai-sdk/provider@4.0.5
+  - @ai-sdk/provider-utils@5.0.19
+
+## 2.0.19
+
+### Patch Changes
+
+- Updated dependencies [5fc7da5]
+- Updated dependencies [93b2acd]
+  - @ai-sdk/provider-utils@5.0.18
+  - @ai-sdk/anthropic@4.0.27
+
+## 2.0.18
+
+### Patch Changes
+
+- Updated dependencies [dc0c28e]
+- Updated dependencies [fa95504]
+  - @ai-sdk/anthropic@4.0.26
+  - @ai-sdk/provider-utils@5.0.17
+
+## 2.0.17
+
+### Patch Changes
+
+- Updated dependencies [d8210b6]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+  - @ai-sdk/anthropic@4.0.25
+
+## 2.0.16
+
+### Patch Changes
+
+- Updated dependencies [1659cd5]
+- Updated dependencies [6a5bdff]
+  - @ai-sdk/provider-utils@5.0.15
+  - @ai-sdk/anthropic@4.0.24
+
+## 2.0.15
+
+### Patch Changes
+
+- Updated dependencies [0c464d9]
+- Updated dependencies [c49380c]
+  - @ai-sdk/provider-utils@5.0.14
+  - @ai-sdk/anthropic@4.0.23
+
+## 2.0.14
+
+### Patch Changes
+
+- Updated dependencies [1e2f324]
+  - @ai-sdk/provider@4.0.4
+  - @ai-sdk/anthropic@4.0.22
+  - @ai-sdk/provider-utils@5.0.13
+
+## 2.0.13
+
+### Patch Changes
+
+- Updated dependencies [e29788d]
+  - @ai-sdk/anthropic@4.0.21
+
+## 2.0.12
+
+### Patch Changes
+
+- Updated dependencies [cbdc990]
+- Updated dependencies [cbdc990]
+- Updated dependencies [cbdc990]
+  - @ai-sdk/anthropic@4.0.20
+
+## 2.0.11
+
+### Patch Changes
+
+- Updated dependencies [01a596a]
+  - @ai-sdk/anthropic@4.0.19
+
 ## 2.0.10
 
 ### Patch Changes

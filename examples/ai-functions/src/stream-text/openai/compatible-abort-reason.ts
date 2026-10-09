@@ -21,7 +21,7 @@ run(async () => {
     ]);
 
     const result = streamText({
-      model: openaiCompatible('deepseek-chat'),
+      model: openaiCompatible('deepseek-v4-flash'),
       prompt: 'Write a short poem about a lighthouse.',
       abortSignal: finalSignal,
     });

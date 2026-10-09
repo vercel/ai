@@ -54,6 +54,50 @@ describe('ByteDanceImageModel', () => {
     },
   });
 
+  describe('capabilities', () => {
+    it.each([
+      {
+        modelId: 'seedream-5-0-260128',
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      },
+      ...[
+        'dola-seedream-5-0-pro-260628',
+        'seedream-5-0-lite-260128',
+        'seedream-4-5-251128',
+        'seedream-4-0-250828',
+      ].map(modelId => ({
+        modelId,
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      })),
+      ...['not-seedream', 'custom-seedream-model', 'seedream-future'].map(
+        modelId => ({
+          modelId,
+          supportsFileInputs: undefined,
+          supportsMaskInputs: undefined,
+        }),
+      ),
+      {
+        modelId: 'custom-image-model',
+        supportsFileInputs: undefined,
+        supportsMaskInputs: undefined,
+      },
+    ] as const)(
+      'advertises file=$supportsFileInputs and mask=$supportsMaskInputs for $modelId',
+      ({ modelId, supportsFileInputs, supportsMaskInputs }) => {
+        const model = new ByteDanceImageModel(modelId, {
+          provider: 'bytedance.image',
+          baseURL: 'https://api.example.com',
+          headers: () => ({}),
+        });
+
+        expect(model.supportsFileInputs).toBe(supportsFileInputs);
+        expect(model.supportsMaskInputs).toBe(supportsMaskInputs);
+      },
+    );
+  });
+
   describe('constructor', () => {
     it('should expose correct provider and model information', () => {
       const model = createBasicModel();
@@ -223,6 +267,87 @@ describe('ByteDanceImageModel', () => {
         timestamp: testDate,
         modelId: 'seedream-5-0-260128',
         headers: expect.any(Object),
+      });
+    });
+
+    describe('usage', () => {
+      it('should map Ark token usage, leaving inputTokens undefined', async () => {
+        server.urls['https://api.example.com/images/generations'].response = {
+          type: 'json-value',
+          body: {
+            data: [{ b64_json: 'test1234' }],
+            usage: {
+              generated_images: 1,
+              output_tokens: 4096,
+              total_tokens: 4096,
+            },
+          },
+        };
+
+        const model = createBasicModel();
+        const result = await model.doGenerate(createDefaultGenerateParams());
+
+        // Ark reports no input token count for image generation.
+        expect(result.usage).toStrictEqual({
+          inputTokens: undefined,
+          outputTokens: 4096,
+          totalTokens: 4096,
+        });
+      });
+
+      it('should not map generated_images into usage', async () => {
+        server.urls['https://api.example.com/images/generations'].response = {
+          type: 'json-value',
+          body: {
+            data: [{ b64_json: 'test1234' }, { b64_json: 'test5678' }],
+            usage: {
+              generated_images: 2,
+              output_tokens: 8192,
+              total_tokens: 8192,
+            },
+          },
+        };
+
+        const model = createBasicModel();
+        const result = await model.doGenerate(createDefaultGenerateParams());
+
+        // `generated_images` is an image counter, not a token counter.
+        expect(result.usage).toStrictEqual({
+          inputTokens: undefined,
+          outputTokens: 8192,
+          totalTokens: 8192,
+        });
+        expect(result.images).toHaveLength(2);
+      });
+
+      it('should return undefined usage when Ark omits it', async () => {
+        const model = createBasicModel();
+        const result = await model.doGenerate(createDefaultGenerateParams());
+
+        expect(result.usage).toBeUndefined();
+      });
+
+      it('should map null token fields to undefined', async () => {
+        server.urls['https://api.example.com/images/generations'].response = {
+          type: 'json-value',
+          body: {
+            data: [{ b64_json: 'test1234' }],
+            usage: {
+              generated_images: 1,
+              output_tokens: null,
+              total_tokens: null,
+            },
+          },
+        };
+
+        const model = createBasicModel();
+        const result = await model.doGenerate(createDefaultGenerateParams());
+
+        expect(result.usage).toStrictEqual({
+          inputTokens: undefined,
+          outputTokens: undefined,
+          totalTokens: undefined,
+        });
       });
     });
   });

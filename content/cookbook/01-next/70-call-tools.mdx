@@ -90,9 +90,9 @@ export default function Page() {
 
 You will create a new route at `/api/chat` that will use the `streamText` function from the `ai` module to generate the assistant's response based on the conversation history.
 
-You will use the [`tools`](/docs/reference/ai-sdk-core/generate-text#tools) parameter to specify a tool called `celsiusToFahrenheit` that will convert a user given value in celsius to fahrenheit.
+You will use the [`tools`](/docs/reference/ai-sdk-core/generate-text#tools) parameter to specify a tool called `getWeather` that will get the weather for a user given city.
 
-You will also use zod to specify the schema for the `celsiusToFahrenheit` function's parameters.
+You will also use zod to specify the schema for the `getWeather` tool's parameters.
 
 ```tsx filename='app/api/chat/route.ts'
 import {
@@ -137,8 +137,8 @@ export async function POST(req: Request) {
   const { messages }: { messages: ChatMessage[] } = await req.json();
 
   const result = streamText({
-    model: 'openai/gpt-4o',
-    system: 'You are a helpful assistant.',
+    model: 'openai/gpt-6-astra',
+    instructions: 'You are a helpful assistant.',
     messages: await convertToModelMessages(messages),
     stopWhen: isStepCount(5),
     tools,

@@ -1,0 +1,2 @@
+allowBuilds:
+  '@github/copilot': true

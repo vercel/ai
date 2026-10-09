@@ -117,6 +117,31 @@ export class FireworksImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 1;
 
+  get supportsFileInputs(): boolean | undefined {
+    if (
+      this.modelId === 'accounts/fireworks/models/flux-kontext-pro' ||
+      this.modelId === 'accounts/fireworks/models/flux-kontext-max'
+    ) {
+      return true;
+    }
+
+    return [
+      'accounts/fireworks/models/flux-1-dev-fp8',
+      'accounts/fireworks/models/flux-1-schnell-fp8',
+      'accounts/fireworks/models/playground-v2-5-1024px-aesthetic',
+      'accounts/fireworks/models/japanese-stable-diffusion-xl',
+      'accounts/fireworks/models/playground-v2-1024px-aesthetic',
+      'accounts/fireworks/models/SSD-1B',
+      'accounts/fireworks/models/stable-diffusion-xl-1024-v1-0',
+    ].includes(this.modelId)
+      ? false
+      : undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    return this.supportsFileInputs == null ? undefined : false;
+  }
+
   get provider(): string {
     return this.config.provider;
   }
@@ -338,49 +363,66 @@ export class FireworksImageModel implements ImageModelV4 {
       this.config.pollIntervalMillis ?? DEFAULT_POLL_INTERVAL_MILLIS;
     const pollTimeoutMillis =
       this.config.pollTimeoutMillis ?? DEFAULT_POLL_TIMEOUT_MILLIS;
-    const maxPollAttempts = Math.ceil(
-      pollTimeoutMillis / Math.max(1, pollIntervalMillis),
-    );
 
     const pollUrl = getPollUrlForModel(this.config.baseURL, this.modelId);
 
-    for (let i = 0; i < maxPollAttempts; i++) {
-      const { value: pollResponse } = await postJsonToApi({
-        url: pollUrl,
-        headers,
-        body: { id: requestId },
-        failedResponseHandler: createStatusCodeErrorResponseHandler(),
-        successfulResponseHandler: createJsonResponseHandler(
-          asyncPollResponseSchema,
-        ),
-        abortSignal,
-        fetch: this.config.fetch,
-      });
+    const timeoutController = new AbortController();
+    let didTimeout = false;
+    const timeoutId = setTimeout(() => {
+      didTimeout = true;
+      timeoutController.abort();
+    }, pollTimeoutMillis);
+    const pollingAbortSignal =
+      abortSignal == null
+        ? timeoutController.signal
+        : AbortSignal.any([abortSignal, timeoutController.signal]);
 
-      const status = pollResponse.status;
+    try {
+      while (true) {
+        const { value: pollResponse } = await postJsonToApi({
+          url: pollUrl,
+          headers,
+          body: { id: requestId },
+          failedResponseHandler: createStatusCodeErrorResponseHandler(),
+          successfulResponseHandler: createJsonResponseHandler(
+            asyncPollResponseSchema,
+          ),
+          abortSignal: pollingAbortSignal,
+          fetch: this.config.fetch,
+        });
 
-      if (status === 'Ready') {
-        const imageUrl = pollResponse.result?.sample;
-        if (typeof imageUrl === 'string') {
-          return imageUrl;
+        const status = pollResponse.status;
+
+        if (status === 'Ready') {
+          const imageUrl = pollResponse.result?.sample;
+          if (typeof imageUrl === 'string') {
+            return imageUrl;
+          }
+          throw new Error(
+            'Fireworks poll response is Ready but missing result.sample',
+          );
         }
+
+        if (status === 'Error' || status === 'Failed') {
+          throw new Error(
+            `Fireworks image generation failed with status: ${status}`,
+          );
+        }
+
+        // Wait before next poll attempt
+        await delay(pollIntervalMillis, {
+          abortSignal: pollingAbortSignal,
+        });
+      }
+    } catch (error) {
+      if (didTimeout) {
         throw new Error(
-          'Fireworks poll response is Ready but missing result.sample',
+          `Fireworks image generation timed out after ${pollTimeoutMillis}ms`,
         );
       }
-
-      if (status === 'Error' || status === 'Failed') {
-        throw new Error(
-          `Fireworks image generation failed with status: ${status}`,
-        );
-      }
-
-      // Wait before next poll attempt
-      await delay(pollIntervalMillis);
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
     }
-
-    throw new Error(
-      `Fireworks image generation timed out after ${pollTimeoutMillis}ms`,
-    );
   }
 }

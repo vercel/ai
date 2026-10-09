@@ -7,7 +7,7 @@ const errorMessage = fs.readFileSync('data/error-message.txt', 'utf8');
 
 run(async () => {
   const result1 = streamText({
-    model: google('gemini-2.5-flash'),
+    model: google('gemini-3.8-flash'),
     prompt: errorMessage,
   });
 
@@ -29,7 +29,7 @@ run(async () => {
   // }
 
   const result2 = streamText({
-    model: google('gemini-2.5-flash'),
+    model: google('gemini-3.8-flash'),
     prompt: errorMessage,
   });
 

@@ -51,6 +51,34 @@ it('drops invalid array attribute entries', () => {
   });
 });
 
+it('drops non-finite direct and resolver-produced numeric attributes', () => {
+  const result = selectAttributes(
+    { isEnabled: true },
+    {
+      finite: 1,
+      directNaN: Number.NaN,
+      directInfinity: Number.POSITIVE_INFINITY,
+      directArray: [1, Number.NEGATIVE_INFINITY],
+      inputNaN: {
+        input: () => Number.NaN,
+      },
+      inputArray: {
+        input: () => [1, Number.POSITIVE_INFINITY],
+      },
+      outputInfinity: {
+        output: () => Number.NEGATIVE_INFINITY,
+      },
+      outputArray: {
+        output: () => [1, Number.NaN],
+      },
+    },
+  );
+
+  expect(result).toEqual({
+    finite: 1,
+  });
+});
+
 it('drops array attributes that serialize to empty OTLP AnyValues', () => {
   const attributeValue = [undefined] as unknown as AttributeValue;
 

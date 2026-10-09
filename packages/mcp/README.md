@@ -44,7 +44,7 @@ try {
   const tools = await mcpClient.tools();
 
   const { text } = await generateText({
-    model: 'openai/gpt-5.4',
+    model: 'openai/gpt-6-astra',
     tools,
     stopWhen: isStepCount(10),
     prompt: 'Use the available tools to answer the user question.',
@@ -58,6 +58,34 @@ try {
 
 The client converts MCP tool definitions into AI SDK tools, so model calls can
 use them through the standard `tools` option.
+
+## Experimental webhook events
+
+Use `list`, `subscribe`, `refresh`, and `unsubscribe` through
+`client.experimental_events` on the same `createMCPClient` instance. Configure
+`experimental_events: { store }` with private durable storage shared with
+`experimental_createMCPEventWebhook`, which you mount at your callback URL.
+
+Subscription creation persists `delivery.url` and the generated signing secret
+before contacting the server, enabling signed callback verification during the
+subscribe request. The receiver verifies raw request bytes and checks event
+envelopes before invoking your handler. Optional callbacks let your application
+validate filters and event data. Agent execution and durable deduplication
+remain application concerns; closing the client does not unsubscribe.
+
+See the [MCP Events guide](https://ai-sdk.dev/docs/ai-sdk-core/mcp-events) and the
+[local server/client example](../../examples/mcp/src/events/README.md).
+
+## Protocol versions
+
+The client supports legacy MCP protocol versions through the `initialize`
+handshake and MCP `2026-07-28` through stateless protocol discovery. The
+built-in stdio transport probes with `server/discover` and falls back to the
+legacy handshake when connected to an older server.
+
+Custom transports can opt into the same negotiation by setting
+`supportsProtocolVersionDiscovery` to `true`. Modern requests include the
+protocol version, client capabilities, and client information in `_meta`.
 
 For streaming responses, close the MCP client when the stream finishes:
 
@@ -73,7 +101,7 @@ const mcpClient = await createMCPClient({
 });
 
 const result = streamText({
-  model: 'openai/gpt-5.4',
+  model: 'openai/gpt-6-astra',
   tools: await mcpClient.tools(),
   prompt: 'Use the available tools to answer the user question.',
   onEnd: async () => {
@@ -89,6 +117,10 @@ for await (const textPart of result.textStream) {
 ## Transports
 
 HTTP is recommended for production deployments:
+
+Session persistence applies only to legacy MCP protocol versions. MCP
+`2026-07-28` is stateless and does not use session ids or cached initialize
+results.
 
 ```ts
 import { createMCPClient } from '@ai-sdk/mcp';
@@ -155,3 +187,12 @@ const mcpClient = await createMCPClient({
 Please check out the
 [AI SDK MCP documentation](https://ai-sdk.dev/docs/ai-sdk-core/mcp-tools) for
 more information.
+
+Managed backends can implement `Experimental_MCPEventAdapter` and configure
+`experimental_events: { adapter }` instead of a store. Its `createAdapter()`
+method receives `{ transport }` metadata (HTTP/SSE type and URL, or
+`{ type: 'custom' }` for custom transports) and returns `Experimental_MCPEventOperations`
+bound to the authorized account. Catalog discovery still
+uses the authenticated MCP transport; subscribe/get/list/unsubscribe delegate
+to the backend, which owns renewal and webhook delivery. Managed clients do not
+expose `refresh()`. See the [managed subscription reference](https://ai-sdk.dev/docs/reference/ai-sdk-core/mcp-events#managed-subscriptions).

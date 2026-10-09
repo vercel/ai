@@ -1,5 +1,472 @@
 # @ai-sdk/openai-compatible
 
+## 3.0.67
+
+### Patch Changes
+
+- 5cf13d2: feat: map the top level embedding dimensions to provider settings
+- Updated dependencies [4dbc902]
+  - @ai-sdk/provider@4.0.26
+  - @ai-sdk/provider-utils@5.0.58
+
+## 3.0.66
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider@4.0.25
+  - @ai-sdk/provider-utils@5.0.57
+
+## 3.0.65
+
+### Patch Changes
+
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/provider-utils@5.0.56
+
+## 3.0.64
+
+### Patch Changes
+
+- 268225c: feat(provider): add a portable `max` reasoning level with native provider mappings, compatibility coercions, and budget-based fallback support.
+
+  Compatibility notes:
+
+  - **TypeScript source compatibility:** Adding `max` widens `LanguageModelV4CallOptions['reasoning']` and the derived `ReasoningLevel` type. Third-party providers and consumers with exhaustive switches or `Record<ReasoningLevel, ...>` mappings must handle `max` before upgrading. Ordinary calls using existing reasoning levels remain accepted.
+  - **Amazon Bedrock:** Existing Nova 2 calls using portable `reasoning: 'xhigh'` now send `maxReasoningEffort: 'high'` instead of the unsupported `'max'`, and return a compatibility warning. Anthropic and OpenAI Bedrock effort mappings retain their existing `xhigh` behavior. Partial Bedrock reasoning configurations continue to preserve explicit values and derive missing fields; explicit effort/budget overrides and disabled thinking no longer emit warnings for portable mappings that are not sent.
+  - **Fireworks:** Existing portable `minimal` and `xhigh` calls keep their request mappings to `low` and `high`, respectively, and now return compatibility warnings in generation and streaming results. Portable `max` maps to `high` with the same warning behavior.
+
+  **Release classification:** This remains a patch changeset under the repository's explicit release policy, which uses patch releases for both fixes and features. The TypeScript source-compatibility caveat for exhaustive consumers is disclosed above. Maintainers can override this classification with a `major` label if they decide to align the provider-spec addition with a future AI SDK major release.
+
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/provider@4.0.23
+
+## 3.0.63
+
+### Patch Changes
+
+- Updated dependencies [2959d35]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+
+## 3.0.62
+
+### Patch Changes
+
+- 04be48f: fix(openai-compatible): support multipart tool results for compatible providers
+
+## 3.0.61
+
+### Patch Changes
+
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+
+## 3.0.60
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [ede5b89]
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
+## 3.0.59
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/provider-utils@5.0.51
+
+## 3.0.58
+
+### Patch Changes
+
+- e3605f6: Fix streamed tool calls with missing, blank, or repeated IDs.
+- 525efc5: feat(provider): advertise image model file and mask input support
+
+  Use confirmed model IDs for capability declarations so unrecognized model names
+  remain unknown. Include Together AI FLUX.2 Pro and Flex single-image editing, and
+  allow asynchronous capability lookups and middleware overrides to resolve to
+  unknown.
+
+  Advertise QuiverAI Arrow 2 and Arrow 2 Telos file-input support, and mark Together
+  AI Gemini image inputs unsupported by the current single-image request mapping.
+
+- Updated dependencies [e3605f6]
+- Updated dependencies [525efc5]
+  - @ai-sdk/provider-utils@5.0.50
+  - @ai-sdk/provider@4.0.19
+
+## 3.0.57
+
+### Patch Changes
+
+- Updated dependencies [af9597b]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/provider-utils@5.0.49
+
+## 3.0.56
+
+### Patch Changes
+
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+
+## 3.0.55
+
+### Patch Changes
+
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [771e74b]
+  - @ai-sdk/provider-utils@5.0.47
+
+## 3.0.54
+
+### Patch Changes
+
+- Updated dependencies [ffb0e76]
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/provider-utils@5.0.46
+
+## 3.0.53
+
+### Patch Changes
+
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+
+## 3.0.52
+
+### Patch Changes
+
+- Updated dependencies [0455398]
+  - @ai-sdk/provider-utils@5.0.44
+
+## 3.0.51
+
+### Patch Changes
+
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [a7dd893]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/provider@4.0.17
+
+## 3.0.50
+
+### Patch Changes
+
+- 11b4c2d: fix(openai-compatible): extract streaming response metadata after placeholder chunks
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/provider@4.0.16
+
+## 3.0.49
+
+### Patch Changes
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+  - @ai-sdk/provider-utils@5.0.41
+
+## 3.0.48
+
+### Patch Changes
+
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/provider@4.0.14
+  - @ai-sdk/provider-utils@5.0.40
+
+## 3.0.47
+
+### Patch Changes
+
+- Updated dependencies [9942196]
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/provider-utils@5.0.39
+
+## 3.0.46
+
+### Patch Changes
+
+- ccb8952: fix(openai): return an AI SDK error for empty chat completion choices
+- Updated dependencies [912fb01]
+  - @ai-sdk/provider@4.0.12
+  - @ai-sdk/provider-utils@5.0.38
+
+## 3.0.45
+
+### Patch Changes
+
+- Updated dependencies [a4ba394]
+- Updated dependencies [45099da]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/provider-utils@5.0.37
+
+## 3.0.44
+
+### Patch Changes
+
+- e5a22f0: fix(openai-compatible): keep reasoning streams contiguous when deltas include empty tool call arrays
+
+## 3.0.43
+
+### Patch Changes
+
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+
+## 3.0.42
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+
+## 3.0.41
+
+### Patch Changes
+
+- 23eb659: Support text and thinking parts in array-based chat completion content while ignoring unknown part types.
+- Updated dependencies [aa45741]
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
+## 3.0.40
+
+### Patch Changes
+
+- Updated dependencies [90192f1]
+  - @ai-sdk/provider-utils@5.0.33
+
+## 3.0.39
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+
+## 3.0.38
+
+### Patch Changes
+
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/provider-utils@5.0.31
+
+## 3.0.37
+
+### Patch Changes
+
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
+## 3.0.36
+
+### Patch Changes
+
+- ece5bdb: fix: send `reasoning_effort: "none"` when top-level reasoning is disabled
+
+## 3.0.35
+
+### Patch Changes
+
+- 7dd9ec3: feat(openai-compatible): convert video file parts to `video_url` content parts
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+
+## 3.0.34
+
+### Patch Changes
+
+- 99989ba: feat(provider/openai-compatible): report image generation token usage
+
+## 3.0.33
+
+### Patch Changes
+
+- d68139c: fix(openai-compatible): report truncated chat streams as errors
+
+## 3.0.32
+
+### Patch Changes
+
+- e6087c9: fix: handle empty string tool call IDs
+- 2f77de8: Preserve Gemini thought signatures for custom OpenAI-compatible provider names
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+
+## 3.0.31
+
+### Patch Changes
+
+- 86892f3: fix(openai-compatible): preserve unmapped usage fields in `usage.raw`
+
+  `usage.raw` is specified as usage "in the shape that the provider returns",
+  and the chat model already parsed the usage object loosely so that extra
+  top-level fields survived. The nested `prompt_tokens_details` and
+  `completion_tokens_details` objects were still strict, so anything a provider
+  reported inside them was dropped — which is where providers put their most
+  distinguishing detail. The existing "should preserve extra usage fields"
+  fixture was itself losing `audio_tokens`, `image_tokens` and `text_tokens`
+  this way.
+
+  Both nested objects are now parsed loosely, as is the completion model's usage
+  schema, which was strict throughout despite feeding the same `raw` field.
+
+  Only `usage.raw` changes. The mapped token counts are unaffected.
+
+## 3.0.30
+
+### Patch Changes
+
+- Updated dependencies [7fbfc6d]
+  - @ai-sdk/provider-utils@5.0.27
+
+## 3.0.29
+
+### Patch Changes
+
+- Updated dependencies [401a4ba]
+  - @ai-sdk/provider-utils@5.0.26
+
+## 3.0.28
+
+### Patch Changes
+
+- 83e6510: fix(provider/openai-compatible): clamp `outputTokens.text` at 0 when a provider reports `completion_tokens_details.reasoning_tokens` greater than `completion_tokens` (observed with Baseten serving reasoning models that hit the length stop mid-reasoning). The text share of completion tokens can never be negative; `total` and `reasoning` remain as reported by the provider.
+
+## 3.0.27
+
+### Patch Changes
+
+- Updated dependencies [ad6a650]
+- Updated dependencies [81cd026]
+  - @ai-sdk/provider@4.0.7
+  - @ai-sdk/provider-utils@5.0.25
+
+## 3.0.26
+
+### Patch Changes
+
+- Updated dependencies [1937bef]
+  - @ai-sdk/provider-utils@5.0.24
+
+## 3.0.25
+
+### Patch Changes
+
+- Updated dependencies [3469d0c]
+  - @ai-sdk/provider@4.0.6
+  - @ai-sdk/provider-utils@5.0.23
+
+## 3.0.24
+
+### Patch Changes
+
+- Updated dependencies [2b60826]
+  - @ai-sdk/provider-utils@5.0.22
+
+## 3.0.23
+
+### Patch Changes
+
+- 1bec07d: Fix streamed tool calls with non-zero, non-contiguous, reused, or missing indexes.
+- Updated dependencies [1bec07d]
+  - @ai-sdk/provider-utils@5.0.21
+
+## 3.0.22
+
+### Patch Changes
+
+- Updated dependencies [160ccdb]
+  - @ai-sdk/provider-utils@5.0.20
+
+## 3.0.21
+
+### Patch Changes
+
+- Updated dependencies [79e133c]
+  - @ai-sdk/provider@4.0.5
+  - @ai-sdk/provider-utils@5.0.19
+
+## 3.0.20
+
+### Patch Changes
+
+- 5fc7da5: chore: centralize empty language model usage creation in provider utilities.
+- 93b2acd: chore: centralize response metadata conversion
+- Updated dependencies [5fc7da5]
+- Updated dependencies [93b2acd]
+  - @ai-sdk/provider-utils@5.0.18
+
+## 3.0.19
+
+### Patch Changes
+
+- Updated dependencies [fa95504]
+  - @ai-sdk/provider-utils@5.0.17
+
+## 3.0.18
+
+### Patch Changes
+
+- Updated dependencies [d8210b6]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+
+## 3.0.17
+
+### Patch Changes
+
+- Updated dependencies [1659cd5]
+- Updated dependencies [6a5bdff]
+  - @ai-sdk/provider-utils@5.0.15
+
+## 3.0.16
+
+### Patch Changes
+
+- Updated dependencies [0c464d9]
+- Updated dependencies [c49380c]
+  - @ai-sdk/provider-utils@5.0.14
+
+## 3.0.15
+
+### Patch Changes
+
+- Updated dependencies [1e2f324]
+  - @ai-sdk/provider@4.0.4
+  - @ai-sdk/provider-utils@5.0.13
+
 ## 3.0.14
 
 ### Patch Changes

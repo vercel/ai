@@ -6,8 +6,10 @@ import type {
   LanguageModelV4ToolResult,
   LanguageModelV4Usage,
 } from '@ai-sdk/provider';
+import type { CallWarning } from 'ai';
 import type { z } from 'zod/v4';
 import { expectTypeOf, test } from 'vitest';
+import type { HarnessV1CallWarning } from './harness-v1-call-warning';
 import type {
   HarnessV1StreamPart,
   harnessV1StreamPartSchema,
@@ -50,14 +52,24 @@ test('text/reasoning variants are structurally assignable to V4 (modulo metadata
 });
 
 test('tool variants reuse V4 primitives verbatim', () => {
-  // tool-call is the V4 type plus optional `nativeName`. A value matching V4
+  expectTypeOf<HPartByType<'tool-input-start'>>().toEqualTypeOf<
+    V4PartByType<'tool-input-start'>
+  >();
+  expectTypeOf<HPartByType<'tool-input-delta'>>().toEqualTypeOf<
+    V4PartByType<'tool-input-delta'>
+  >();
+  expectTypeOf<HPartByType<'tool-input-end'>>().toEqualTypeOf<
+    V4PartByType<'tool-input-end'>
+  >();
+
+  // tool-call is the V4 type plus optional harness fields. A value matching V4
   // must therefore satisfy the harness variant.
   expectTypeOf<LanguageModelV4ToolCall>().toMatchTypeOf<
     HPartByType<'tool-call'>
   >();
   // The reverse direction must also hold on the V4-defined fields.
   expectTypeOf<
-    Omit<HPartByType<'tool-call'>, 'nativeName'>
+    Omit<HPartByType<'tool-call'>, 'nativeName' | 'stepToolCallCount'>
   >().toMatchTypeOf<LanguageModelV4ToolCall>();
 
   // tool-approval-request and tool-result are direct re-uses.
@@ -82,6 +94,13 @@ test('finish + finish-step reuse exact V4 finish-reason + usage', () => {
   expectTypeOf<
     HPartByType<'finish-step'>['usage']
   >().toEqualTypeOf<LanguageModelV4Usage>();
+});
+
+test('all stream-start warning variants satisfy the AI SDK call warning contract', () => {
+  expectTypeOf<HarnessV1CallWarning>().toMatchTypeOf<CallWarning>();
+  expectTypeOf<
+    NonNullable<HPartByType<'stream-start'>['warnings']>[number]
+  >().toMatchTypeOf<CallWarning>();
 });
 
 test('error variant matches V4 error variant', () => {

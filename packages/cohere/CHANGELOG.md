@@ -1,5 +1,407 @@
 # @ai-sdk/cohere
 
+## 4.0.59
+
+### Patch Changes
+
+- 5cf13d2: feat: map the top level embedding dimensions to provider settings
+- Updated dependencies [4dbc902]
+  - @ai-sdk/provider@4.0.26
+  - @ai-sdk/provider-utils@5.0.58
+
+## 4.0.58
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider@4.0.25
+  - @ai-sdk/provider-utils@5.0.57
+
+## 4.0.57
+
+### Patch Changes
+
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/provider-utils@5.0.56
+
+## 4.0.56
+
+### Patch Changes
+
+- 3301f8a: fix(cohere): report cached input tokens in usage details
+- 268225c: feat(provider): add a portable `max` reasoning level with native provider mappings, compatibility coercions, and budget-based fallback support.
+
+  Compatibility notes:
+
+  - **TypeScript source compatibility:** Adding `max` widens `LanguageModelV4CallOptions['reasoning']` and the derived `ReasoningLevel` type. Third-party providers and consumers with exhaustive switches or `Record<ReasoningLevel, ...>` mappings must handle `max` before upgrading. Ordinary calls using existing reasoning levels remain accepted.
+  - **Amazon Bedrock:** Existing Nova 2 calls using portable `reasoning: 'xhigh'` now send `maxReasoningEffort: 'high'` instead of the unsupported `'max'`, and return a compatibility warning. Anthropic and OpenAI Bedrock effort mappings retain their existing `xhigh` behavior. Partial Bedrock reasoning configurations continue to preserve explicit values and derive missing fields; explicit effort/budget overrides and disabled thinking no longer emit warnings for portable mappings that are not sent.
+  - **Fireworks:** Existing portable `minimal` and `xhigh` calls keep their request mappings to `low` and `high`, respectively, and now return compatibility warnings in generation and streaming results. Portable `max` maps to `high` with the same warning behavior.
+
+  **Release classification:** This remains a patch changeset under the repository's explicit release policy, which uses patch releases for both fixes and features. The TypeScript source-compatibility caveat for exhaustive consumers is disclosed above. Maintainers can override this classification with a `major` label if they decide to align the provider-spec addition with a future AI SDK major release.
+
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/provider@4.0.23
+
+## 4.0.55
+
+### Patch Changes
+
+- 5440b3a: Allow 768 and 2048 in the Cohere embedding `outputDimension` option for Embed 5 models.
+- f17f0ce: feat(cohere): support selecting embedding formats
+- Updated dependencies [2959d35]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+
+## 4.0.54
+
+### Patch Changes
+
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+
+## 4.0.53
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [ede5b89]
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
+## 4.0.52
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/provider-utils@5.0.51
+
+## 4.0.51
+
+### Patch Changes
+
+- Updated dependencies [e3605f6]
+- Updated dependencies [525efc5]
+  - @ai-sdk/provider-utils@5.0.50
+  - @ai-sdk/provider@4.0.19
+
+## 4.0.50
+
+### Patch Changes
+
+- Updated dependencies [af9597b]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/provider-utils@5.0.49
+
+## 4.0.49
+
+### Patch Changes
+
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+
+## 4.0.48
+
+### Patch Changes
+
+- 771e74b: chore: enable dead code lint rules
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [771e74b]
+  - @ai-sdk/provider-utils@5.0.47
+
+## 4.0.47
+
+### Patch Changes
+
+- Updated dependencies [ffb0e76]
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/provider-utils@5.0.46
+
+## 4.0.46
+
+### Patch Changes
+
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+
+## 4.0.45
+
+### Patch Changes
+
+- Updated dependencies [0455398]
+  - @ai-sdk/provider-utils@5.0.44
+
+## 4.0.44
+
+### Patch Changes
+
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [a7dd893]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/provider@4.0.17
+
+## 4.0.43
+
+### Patch Changes
+
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/provider@4.0.16
+
+## 4.0.42
+
+### Patch Changes
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+  - @ai-sdk/provider-utils@5.0.41
+
+## 4.0.41
+
+### Patch Changes
+
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/provider@4.0.14
+  - @ai-sdk/provider-utils@5.0.40
+
+## 4.0.40
+
+### Patch Changes
+
+- Updated dependencies [9942196]
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/provider-utils@5.0.39
+
+## 4.0.39
+
+### Patch Changes
+
+- Updated dependencies [912fb01]
+  - @ai-sdk/provider@4.0.12
+  - @ai-sdk/provider-utils@5.0.38
+
+## 4.0.38
+
+### Patch Changes
+
+- Updated dependencies [a4ba394]
+- Updated dependencies [45099da]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/provider-utils@5.0.37
+
+## 4.0.37
+
+### Patch Changes
+
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+
+## 4.0.36
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+
+## 4.0.35
+
+### Patch Changes
+
+- Updated dependencies [aa45741]
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
+## 4.0.34
+
+### Patch Changes
+
+- Updated dependencies [90192f1]
+  - @ai-sdk/provider-utils@5.0.33
+
+## 4.0.33
+
+### Patch Changes
+
+- 0599400: fix(provider/cohere): preserve complete raw usage objects
+
+## 4.0.32
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+
+## 4.0.31
+
+### Patch Changes
+
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/provider-utils@5.0.31
+
+## 4.0.30
+
+### Patch Changes
+
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
+## 4.0.29
+
+### Patch Changes
+
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+
+## 4.0.28
+
+### Patch Changes
+
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+
+## 4.0.27
+
+### Patch Changes
+
+- Updated dependencies [7fbfc6d]
+  - @ai-sdk/provider-utils@5.0.27
+
+## 4.0.26
+
+### Patch Changes
+
+- Updated dependencies [401a4ba]
+  - @ai-sdk/provider-utils@5.0.26
+
+## 4.0.25
+
+### Patch Changes
+
+- Updated dependencies [ad6a650]
+- Updated dependencies [81cd026]
+  - @ai-sdk/provider@4.0.7
+  - @ai-sdk/provider-utils@5.0.25
+
+## 4.0.24
+
+### Patch Changes
+
+- Updated dependencies [1937bef]
+  - @ai-sdk/provider-utils@5.0.24
+
+## 4.0.23
+
+### Patch Changes
+
+- Updated dependencies [3469d0c]
+  - @ai-sdk/provider@4.0.6
+  - @ai-sdk/provider-utils@5.0.23
+
+## 4.0.22
+
+### Patch Changes
+
+- Updated dependencies [2b60826]
+  - @ai-sdk/provider-utils@5.0.22
+
+## 4.0.21
+
+### Patch Changes
+
+- Updated dependencies [1bec07d]
+  - @ai-sdk/provider-utils@5.0.21
+
+## 4.0.20
+
+### Patch Changes
+
+- Updated dependencies [160ccdb]
+  - @ai-sdk/provider-utils@5.0.20
+
+## 4.0.19
+
+### Patch Changes
+
+- Updated dependencies [79e133c]
+  - @ai-sdk/provider@4.0.5
+  - @ai-sdk/provider-utils@5.0.19
+
+## 4.0.18
+
+### Patch Changes
+
+- 5fc7da5: chore: centralize empty language model usage creation in provider utilities.
+- Updated dependencies [5fc7da5]
+- Updated dependencies [93b2acd]
+  - @ai-sdk/provider-utils@5.0.18
+
+## 4.0.17
+
+### Patch Changes
+
+- Updated dependencies [fa95504]
+  - @ai-sdk/provider-utils@5.0.17
+
+## 4.0.16
+
+### Patch Changes
+
+- Updated dependencies [d8210b6]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+
+## 4.0.15
+
+### Patch Changes
+
+- Updated dependencies [1659cd5]
+- Updated dependencies [6a5bdff]
+  - @ai-sdk/provider-utils@5.0.15
+
+## 4.0.14
+
+### Patch Changes
+
+- Updated dependencies [0c464d9]
+- Updated dependencies [c49380c]
+  - @ai-sdk/provider-utils@5.0.14
+
+## 4.0.13
+
+### Patch Changes
+
+- Updated dependencies [1e2f324]
+  - @ai-sdk/provider@4.0.4
+  - @ai-sdk/provider-utils@5.0.13
+
 ## 4.0.12
 
 ### Patch Changes

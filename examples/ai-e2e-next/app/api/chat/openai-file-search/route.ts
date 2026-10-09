@@ -32,7 +32,7 @@ export async function POST(req: Request) {
   const uiMessages = await validateUIMessages({ messages });
 
   const result = streamText({
-    model: openai('gpt-5-nano'),
+    model: openai('gpt-5.4-nano'),
     tools,
     messages: await convertToModelMessages(uiMessages),
     onStepFinish: ({ request }) => {

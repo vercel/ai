@@ -33,6 +33,19 @@ export { lastAssistantMessageIsCompleteWithApprovalResponses } from './last-assi
 export { lastAssistantMessageIsCompleteWithToolCalls } from './last-assistant-message-is-complete-with-tool-calls';
 export { TextStreamChatTransport } from './text-stream-chat-transport';
 export {
+  safeValidateWebSocketChatTransportRequest,
+  WebSocketChatTransport,
+  type PrepareWebSocketChatTransportReconnectToStreamRequest,
+  type PrepareWebSocketChatTransportSendMessagesRequest,
+  type SafeValidateWebSocketChatTransportRequestResult,
+  type WebSocketChatTransportAbortRequest,
+  type WebSocketChatTransportInitOptions,
+  type WebSocketChatTransportRequest,
+  type WebSocketChatTransportResponse,
+  type WebSocketChatTransportResumeRequest,
+  type WebSocketChatTransportSendRequest,
+} from './websocket-chat-transport';
+export {
   getStaticToolName,
   getToolName,
   getToolOrDynamicToolName,
@@ -44,6 +57,7 @@ export {
   isReasoningUIPart,
   isStaticToolUIPart,
   isTextUIPart,
+  isToolOutputErrorUIPart,
   isToolUIPart,
   type CustomContentUIPart,
   type DataUIPart,
@@ -57,6 +71,7 @@ export {
   type SourceUrlUIPart,
   type StepStartUIPart,
   type TextUIPart,
+  type ToolOutputErrorUIPart,
   type ToolUIPart,
   type UIDataTypes,
   type UIMessage,

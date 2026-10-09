@@ -34,6 +34,29 @@ describe('doEmbed', () => {
     prepareJsonFixtureResponse('voyage-embedding');
   });
 
+  it.each([
+    {
+      dimensions: undefined,
+      providerDimensions: undefined,
+      expected: undefined,
+    },
+    { dimensions: 256, providerDimensions: undefined, expected: 256 },
+    { dimensions: undefined, providerDimensions: 512, expected: 512 },
+    { dimensions: 256, providerDimensions: 512, expected: 512 },
+  ])(
+    'maps dimensions $dimensions with provider override $providerDimensions to $expected',
+    async ({ dimensions, providerDimensions, expected }) => {
+      await model.doEmbed({
+        values: testValues,
+        dimensions,
+        providerOptions: { voyage: { outputDimension: providerDimensions } },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.output_dimension).toBe(expected);
+    },
+  );
+
   it('should extract embedding', async () => {
     const { embeddings } = await model.doEmbed({ values: testValues });
 
@@ -168,7 +191,7 @@ describe('doEmbed', () => {
       }
     `);
     expect(server.calls[0].requestUserAgent).toContain(
-      `ai-sdk/voyage/0.0.0-test`,
+      `ai-sdk-voyage/0.0.0-test`,
     );
   });
 });

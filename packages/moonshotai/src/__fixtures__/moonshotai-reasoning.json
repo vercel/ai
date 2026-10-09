@@ -1,0 +1,26 @@
+{
+  "id": "chatcmpl-test-reasoning",
+  "object": "chat.completion",
+  "created": 1785880001,
+  "model": "kimi-k2.6",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "There are three.",
+        "reasoning_content": "Let me count the letters carefully."
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 20,
+    "completion_tokens": 30,
+    "total_tokens": 50,
+    "cached_tokens": 10,
+    "completion_tokens_details": {
+      "reasoning_tokens": 22
+    }
+  }
+}

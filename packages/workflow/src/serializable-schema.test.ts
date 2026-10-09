@@ -1,10 +1,13 @@
-import { describe, it, expect } from 'vitest';
-import { tool } from 'ai';
-import { jsonSchema } from '@ai-sdk/provider-utils';
+import type { JSONSchema7 } from '@ai-sdk/provider';
+import { asSchema, jsonSchema } from '@ai-sdk/provider-utils';
+import { dynamicTool, tool } from 'ai';
+import { describe, expect, it, vi } from 'vitest';
+import { z } from 'zod/v4';
 import {
   serializeToolSet,
   resolveSerializableTools,
 } from './serializable-schema';
+import { createTestSandbox } from './test/test-sandbox';
 
 describe('serializeToolSet', () => {
   it('serializes function tools with description and inputSchema', () => {
@@ -65,9 +68,101 @@ describe('serializeToolSet', () => {
       },
     });
   });
+
+  it('resolves descriptions from tool context and sandbox', () => {
+    const sandbox = createTestSandbox({
+      description: 'request sandbox',
+    });
+    const tools = {
+      getWeather: tool({
+        description: ({ context, experimental_sandbox }) =>
+          `${context.city} via ${experimental_sandbox?.description}`,
+        inputSchema: jsonSchema({
+          type: 'object',
+          properties: {},
+        }),
+        contextSchema: jsonSchema<{ city: string }>({
+          type: 'object',
+          properties: { city: { type: 'string' } },
+          required: ['city'],
+        }),
+      }),
+    };
+
+    const serialized = serializeToolSet(tools, {
+      toolsContext: {
+        getWeather: { city: 'Berlin' },
+      },
+      experimental_sandbox: sandbox,
+    });
+
+    expect(serialized.getWeather.description).toBe(
+      'Berlin via request sandbox',
+    );
+  });
 });
 
 describe('resolveSerializableTools', () => {
+  it('round-trips function tool input examples and provider options', () => {
+    const original = {
+      search: tool({
+        description: 'Search documentation',
+        inputSchema: jsonSchema({
+          type: 'object',
+          properties: { query: { type: 'string' } },
+          required: ['query'],
+        }),
+        inputExamples: [{ input: { query: 'workflow durability' } }],
+        providerOptions: {
+          anthropic: {
+            cacheControl: { type: 'ephemeral' },
+          },
+        },
+      }),
+    };
+
+    const resolved = resolveSerializableTools(serializeToolSet(original));
+
+    expect(resolved.search.inputExamples).toEqual(
+      original.search.inputExamples,
+    );
+    expect(resolved.search.providerOptions).toEqual(
+      original.search.providerOptions,
+    );
+  });
+
+  it('round-trips current function and dynamic tool fields', () => {
+    const original = {
+      search: tool({
+        title: 'Search title',
+        metadata: { source: 'docs' },
+        description: 'Search documentation',
+        strict: true,
+        inputSchema: jsonSchema({
+          type: 'object',
+          properties: { query: { type: 'string' } },
+          required: ['query'],
+        }),
+      }),
+      dynamicSearch: dynamicTool({
+        inputSchema: jsonSchema({
+          type: 'object',
+          properties: { query: { type: 'string' } },
+          required: ['query'],
+        }),
+      }),
+    };
+
+    const resolved = resolveSerializableTools(serializeToolSet(original));
+
+    expect(resolved.search).toMatchObject({
+      title: 'Search title',
+      metadata: { source: 'docs' },
+      strict: true,
+    });
+    expect(resolved.dynamicSearch.type).toBe('dynamic');
+  });
+
   it('reconstructs function tools with Ajv validation', () => {
     const serialized = {
       getWeather: {
@@ -85,6 +180,114 @@ describe('resolveSerializableTools', () => {
 
     expect(tools.getWeather).toBeDefined();
     expect(tools.getWeather.description).toBe('Get weather for a city');
+  });
+
+  it('reports actionable details for every validation error', async () => {
+    const tools = resolveSerializableTools({
+      interaction: {
+        inputSchema: {
+          type: 'object',
+          properties: {
+            action: { enum: ['click', 'type', 'scroll'] },
+          },
+          required: ['action'],
+        },
+      },
+      edit: {
+        inputSchema: {
+          type: 'object',
+          properties: {
+            edits: {
+              type: 'array',
+              items: {
+                type: 'object',
+                additionalProperties: false,
+                properties: {
+                  oldText: { type: 'string' },
+                  newText: { type: 'string' },
+                },
+                required: ['oldText', 'newText'],
+              },
+            },
+          },
+          required: ['edits'],
+        },
+      },
+    });
+
+    const enumValidation = await asSchema(
+      tools.interaction.inputSchema,
+    ).validate?.({
+      action: 'press',
+    });
+    const additionalPropertiesValidation = await asSchema(
+      tools.edit.inputSchema,
+    ).validate?.({
+      edits: [
+        { oldText: 'a', newText: 'b', path: 'a.ts' },
+        { oldText: 'c', newText: 'd', path: 'b.ts' },
+      ],
+    });
+
+    expect(enumValidation).toMatchObject({
+      success: false,
+      error: new Error('data/action must be one of "click", "type", "scroll"'),
+    });
+    expect(additionalPropertiesValidation).toMatchObject({
+      success: false,
+      error: new Error(
+        'data/edits/0 has unexpected property "path", data/edits/1 has unexpected property "path"',
+      ),
+    });
+  });
+
+  it('accepts tool schemas with formats, annotations, unions, and JSON Schema 2020-12 without warnings', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const tools = resolveSerializableTools(
+      serializeToolSet({
+        formatted: tool({
+          inputSchema: z.object({
+            email: z.email(),
+            url: z.url(),
+            id: z.uuid(),
+          }),
+        }),
+        annotated: tool({
+          inputSchema: jsonSchema({
+            type: 'object',
+            properties: {
+              value: {
+                type: ['string', 'number'],
+                example: 'example',
+                'x-order': 1,
+              },
+            },
+          } as JSONSchema7),
+        }),
+        modern: tool({
+          inputSchema: jsonSchema({
+            $schema: 'https://json-schema.org/draft/2020-12/schema',
+            type: 'object',
+            properties: {
+              creditCard: { type: 'number' },
+              billingAddress: { type: 'string' },
+            },
+            dependentRequired: {
+              creditCard: ['billingAddress'],
+            },
+          } as JSONSchema7),
+        }),
+      }),
+    );
+
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+
+    const validation = await asSchema(tools.modern.inputSchema).validate?.({
+      creditCard: 1234,
+    });
+    expect(validation).toMatchObject({ success: false });
   });
 
   it('reconstructs provider tools preserving type, id, and args', () => {
@@ -113,6 +316,38 @@ describe('resolveSerializableTools', () => {
     expect((webSearch as any).args).toEqual({
       maxUses: 5,
       allowedDomains: ['vercel.com'],
+    });
+  });
+
+  it('round-trips provider tool display metadata and deferred result support', () => {
+    const original = {
+      program: tool({
+        type: 'provider',
+        title: 'Program',
+        metadata: { source: 'provider' },
+        id: 'test.program',
+        args: {},
+        isProviderExecuted: true,
+        supportsDeferredResults: true,
+        inputSchema: jsonSchema({
+          type: 'object',
+          properties: { code: { type: 'string' } },
+          required: ['code'],
+        }),
+        outputSchema: jsonSchema({
+          type: 'object',
+          properties: { status: { type: 'string' } },
+          required: ['status'],
+        }),
+      }),
+    };
+
+    const resolved = resolveSerializableTools(serializeToolSet(original));
+
+    expect(resolved.program).toMatchObject({
+      title: 'Program',
+      metadata: { source: 'provider' },
+      supportsDeferredResults: true,
     });
   });
 });

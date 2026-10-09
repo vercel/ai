@@ -1,6 +1,6 @@
 {
   "name": "ai",
-  "version": "7.0.35",
+  "version": "7.0.137",
   "type": "module",
   "description": "AI SDK by Vercel - build apps like ChatGPT, Claude, Gemini, and more with a single interface for any model using the Vercel AI Gateway or go direct to OpenAI, Anthropic, Google, or any other model provider.",
   "license": "Apache-2.0",
@@ -24,9 +24,9 @@
     "doc": "./docs"
   },
   "scripts": {
-    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
-    "build:watch": "pnpm clean && tsup --watch --tsconfig tsconfig.build.json",
-    "clean": "del-cli dist docs *.tsbuildinfo",
+    "build": "pnpm clean && tsdown",
+    "build:watch": "pnpm clean && tsdown --watch",
+    "clean": "del-cli docs *.tsbuildinfo",
     "prepack": "cp -r ../../content/docs ./docs",
     "postpack": "del-cli docs",
     "type-check": "tsc --build",
@@ -61,15 +61,25 @@
     "@ai-sdk/provider-utils": "workspace:*"
   },
   "devDependencies": {
+    "@ai-sdk/amazon-bedrock": "workspace:*",
+    "@ai-sdk/deepseek": "workspace:*",
+    "@ai-sdk/google": "workspace:*",
+    "@ai-sdk/groq": "workspace:*",
+    "@ai-sdk/huggingface": "workspace:*",
+    "@ai-sdk/moonshotai": "workspace:*",
+    "@ai-sdk/openai": "workspace:*",
     "@ai-sdk/test-server": "workspace:*",
+    "@ai-sdk/xai": "workspace:*",
     "@edge-runtime/vm": "^5.0.0",
+    "@smithy/eventstream-codec": "^4.3.3",
+    "@smithy/util-utf8": "^4.3.3",
     "@types/json-schema": "7.0.15",
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
-    "esbuild": "^0.28.1",
-    "tsup": "^7.2.0",
-    "tsx": "^4.22.0",
-    "typescript": "5.8.3",
+    "esbuild": "^0.28.2",
+    "tsdown": "^0.23.0",
+    "tsx": "4.23.12",
+    "typescript": "6.0.3",
     "zod": "3.25.76"
   },
   "peerDependencies": {

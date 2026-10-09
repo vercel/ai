@@ -4,6 +4,7 @@ exports[`doGenerate > no additional formats > should work when no additional for
 {
   "durationInSeconds": 2.479,
   "language": "eng",
+  "providerMetadata": Anything,
   "response": {
     "body": {
       "language_code": "eng",

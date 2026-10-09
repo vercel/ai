@@ -1,5 +1,275 @@
 # @ai-sdk/devtools
 
+## 1.0.40
+
+### Patch Changes
+
+- Updated dependencies [e27cc64]
+  - ai@7.0.137
+
+## 1.0.39
+
+### Patch Changes
+
+- Updated dependencies [7b5497c]
+  - ai@7.0.136
+
+## 1.0.38
+
+### Patch Changes
+
+- Updated dependencies [5ddbb70]
+- Updated dependencies [7c40a09]
+- Updated dependencies [4dbc902]
+- Updated dependencies [ff18b73]
+- Updated dependencies [9be846c]
+  - ai@7.0.135
+  - @ai-sdk/provider@4.0.26
+
+## 1.0.37
+
+### Patch Changes
+
+- Updated dependencies [8281ec4]
+- Updated dependencies [46c2b05]
+  - ai@7.0.134
+
+## 1.0.36
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - ai@7.0.133
+  - @ai-sdk/provider@4.0.25
+
+## 1.0.35
+
+### Patch Changes
+
+- Updated dependencies [3ebefff]
+  - ai@7.0.132
+
+## 1.0.34
+
+### Patch Changes
+
+- ai@7.0.131
+
+## 1.0.33
+
+### Patch Changes
+
+- Updated dependencies [6f6b9c0]
+- Updated dependencies [d3bcad9]
+  - ai@7.0.130
+  - @ai-sdk/provider@4.0.24
+
+## 1.0.32
+
+### Patch Changes
+
+- 0af2f7c: chore: upgrade to TypeScript 6
+- Updated dependencies [e37d213]
+- Updated dependencies [73d8343]
+- Updated dependencies [268225c]
+- Updated dependencies [d83366e]
+- Updated dependencies [34905a2]
+- Updated dependencies [16ab882]
+- Updated dependencies [f810ea3]
+- Updated dependencies [19a127b]
+- Updated dependencies [0af2f7c]
+- Updated dependencies [4c6979c]
+  - ai@7.0.129
+  - @ai-sdk/provider@4.0.23
+
+## 1.0.31
+
+### Patch Changes
+
+- Updated dependencies [0fe8c67]
+- Updated dependencies [2959d35]
+- Updated dependencies [0ca1ab9]
+- Updated dependencies [d6b42fd]
+- Updated dependencies [ed6e72d]
+- Updated dependencies [2136151]
+  - ai@7.0.128
+  - @ai-sdk/provider@4.0.22
+
+## 1.0.30
+
+### Patch Changes
+
+- Updated dependencies [158a718]
+- Updated dependencies [bb8d33e]
+- Updated dependencies [284dc11]
+- Updated dependencies [ba8afe9]
+  - ai@7.0.127
+
+## 1.0.29
+
+### Patch Changes
+
+- Updated dependencies [4f3d236]
+  - ai@7.0.126
+
+## 1.0.28
+
+### Patch Changes
+
+- Updated dependencies [ff3dcef]
+  - ai@7.0.125
+
+## 1.0.27
+
+### Patch Changes
+
+- 8c65988: feat(ai): add telemetry to speech generation and transcription, including
+  provider usage propagation and experimental streaming lifecycle callbacks
+- Updated dependencies [8c65988]
+  - ai@7.0.124
+  - @ai-sdk/provider@4.0.21
+
+## 1.0.26
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [05cdac6]
+- Updated dependencies [4514fc1]
+- Updated dependencies [ede5b89]
+- Updated dependencies [2a625cf]
+- Updated dependencies [50a26d5]
+  - ai@7.0.123
+  - @ai-sdk/provider@4.0.20
+
+## 1.0.25
+
+### Patch Changes
+
+- Updated dependencies [525efc5]
+  - @ai-sdk/provider@4.0.19
+
+## 1.0.24
+
+### Patch Changes
+
+- 771e74b: chore: enable dead code lint rules
+
+## 1.0.23
+
+### Patch Changes
+
+- Updated dependencies [ffb0e76]
+  - @ai-sdk/provider@4.0.18
+
+## 1.0.22
+
+### Patch Changes
+
+- Updated dependencies [a7dd893]
+  - @ai-sdk/provider@4.0.17
+
+## 1.0.21
+
+### Patch Changes
+
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+  - @ai-sdk/provider@4.0.16
+
+## 1.0.20
+
+### Patch Changes
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+
+## 1.0.19
+
+### Patch Changes
+
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+  - @ai-sdk/provider@4.0.14
+
+## 1.0.18
+
+### Patch Changes
+
+- Updated dependencies [9942196]
+  - @ai-sdk/provider@4.0.13
+
+## 1.0.17
+
+### Patch Changes
+
+- Updated dependencies [912fb01]
+  - @ai-sdk/provider@4.0.12
+
+## 1.0.16
+
+### Patch Changes
+
+- Updated dependencies [a4ba394]
+- Updated dependencies [45099da]
+  - @ai-sdk/provider@4.0.11
+
+## 1.0.15
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+
+## 1.0.14
+
+### Patch Changes
+
+- Updated dependencies [aa45741]
+  - @ai-sdk/provider@4.0.9
+
+## 1.0.13
+
+### Patch Changes
+
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+
+## 1.0.12
+
+### Patch Changes
+
+- Updated dependencies [ad6a650]
+  - @ai-sdk/provider@4.0.7
+
+## 1.0.11
+
+### Patch Changes
+
+- Updated dependencies [3469d0c]
+  - @ai-sdk/provider@4.0.6
+
+## 1.0.10
+
+### Patch Changes
+
+- Updated dependencies [79e133c]
+  - @ai-sdk/provider@4.0.5
+
+## 1.0.9
+
+### Patch Changes
+
+- d09a5fd: Add safe image, audio, and video previews for media parts in DevTools prompts and tool inputs and outputs.
+
+## 1.0.8
+
+### Patch Changes
+
+- Updated dependencies [1e2f324]
+  - @ai-sdk/provider@4.0.4
+
 ## 1.0.7
 
 ### Patch Changes

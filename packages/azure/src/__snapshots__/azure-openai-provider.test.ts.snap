@@ -139,6 +139,20 @@ providers and models, and which ones are available in the AI SDK.",
     "type": "tool-result",
   },
   {
+    "filename": "ai.pdf",
+    "id": "id-0",
+    "mediaType": "text/plain",
+    "providerMetadata": {
+      "azure": {
+        "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+        "type": "file_search",
+      },
+    },
+    "sourceType": "document",
+    "title": "ai.pdf",
+    "type": "source",
+  },
+  {
     "providerMetadata": {
       "azure": {
         "itemId": "rs_0365d26c32c64c650068cabb061740819491324d349d0f07ca",
@@ -149,6 +163,25 @@ providers and models, and which ones are available in the AI SDK.",
     "type": "reasoning",
   },
   {
+    "citations": [
+      {
+        "source": {
+          "filename": "ai.pdf",
+          "id": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+          "mediaType": "text/plain",
+          "providerMetadata": {
+            "azure": {
+              "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+              "index": 350,
+              "type": "file_citation",
+            },
+          },
+          "sourceType": "document",
+          "title": "ai.pdf",
+          "type": "source",
+        },
+      },
+    ],
     "providerMetadata": {
       "azure": {
         "annotations": [
@@ -164,21 +197,6 @@ providers and models, and which ones are available in the AI SDK.",
     },
     "text": "According to the document, an embedding model converts complex data (like words or images) into a dense vector — a list of numbers — called an embedding. It does not generate new text or data; instead it encodes semantic and syntactic relationships between entities so those vector representations can be used as inputs for other models or NLP tasks .",
     "type": "text",
-  },
-  {
-    "filename": "ai.pdf",
-    "id": "id-0",
-    "mediaType": "text/plain",
-    "providerMetadata": {
-      "azure": {
-        "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
-        "index": 350,
-        "type": "file_citation",
-      },
-    },
-    "sourceType": "document",
-    "title": "ai.pdf",
-    "type": "source",
   },
 ]
 `;
@@ -227,6 +245,25 @@ exports[`responses > doGenerate > file search tool > without results include > s
     "type": "reasoning",
   },
   {
+    "citations": [
+      {
+        "source": {
+          "filename": "ai.pdf",
+          "id": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+          "mediaType": "text/plain",
+          "providerMetadata": {
+            "azure": {
+              "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+              "index": 438,
+              "type": "file_citation",
+            },
+          },
+          "sourceType": "document",
+          "title": "ai.pdf",
+          "type": "source",
+        },
+      },
+    ],
     "providerMetadata": {
       "azure": {
         "annotations": [
@@ -388,6 +425,7 @@ Final result: 570",
             ],
             "type": "object",
           },
+          "strict": false,
           "type": "function",
         },
       ],
@@ -547,6 +585,7 @@ Final result: 570",
       "output_tokens_details": {
         "reasoning_tokens": 64,
       },
+      "total_tokens": 665,
     },
   },
   "warnings": [],
@@ -779,6 +818,7 @@ exports[`responses > doGenerate > text > should extract text content 1`] = `
       "output_tokens_details": {
         "reasoning_tokens": 0,
       },
+      "total_tokens": 22,
     },
   },
   "warnings": [],
@@ -1026,13 +1066,14 @@ exports[`responses > doGenerate > tool call > should extract tool call content 1
       "output_tokens_details": {
         "reasoning_tokens": 0,
       },
+      "total_tokens": 69,
     },
   },
   "warnings": [],
 }
 `;
 
-exports[`responses > doGenerate > web search preview tool > should stream web search preview results include 1`] = `
+exports[`responses > doGenerate > web search preview tool > should retain web search preview citation sources 1`] = `
 [
   {
     "input": "{}",
@@ -1071,6 +1112,19 @@ exports[`responses > doGenerate > web search preview tool > should stream web se
     "type": "tool-result",
   },
   {
+    "citations": [
+      {
+        "endIndex": 576,
+        "source": {
+          "id": "https://www.straitstimes.com/world/while-you-were-sleeping-5-stories-you-might-have-missed-nov-19-2025",
+          "sourceType": "url",
+          "title": "While You Were Sleeping: 5 stories you might have missed, Nov 19, 2025",
+          "type": "source",
+          "url": "https://www.straitstimes.com/world/while-you-were-sleeping-5-stories-you-might-have-missed-nov-19-2025",
+        },
+        "startIndex": 453,
+      },
+    ],
     "providerMetadata": {
       "azure": {
         "annotations": [
@@ -1203,6 +1257,20 @@ providers and models, and which ones are available in the AI SDK.",
     "toolCallId": "fs_06456cb9918b63780068cacd74a1dc81a1bf68dd57f140b4b6",
     "toolName": "file_search",
     "type": "tool-result",
+  },
+  {
+    "filename": "ai.pdf",
+    "id": "id-0",
+    "mediaType": "text/plain",
+    "providerMetadata": {
+      "azure": {
+        "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+        "type": "file_search",
+      },
+    },
+    "sourceType": "document",
+    "title": "ai.pdf",
+    "type": "source",
   },
   {
     "id": "rs_06456cb9918b63780068cacd7663c481a191dd84333d842728:0",
@@ -1604,26 +1672,30 @@ providers and models, and which ones are available in the AI SDK.",
     "type": "text-delta",
   },
   {
-    "filename": "ai.pdf",
-    "id": "id-0",
-    "mediaType": "text/plain",
-    "providerMetadata": {
-      "azure": {
-        "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
-        "index": 379,
-        "type": "file_citation",
-      },
-    },
-    "sourceType": "document",
-    "title": "ai.pdf",
-    "type": "source",
-  },
-  {
     "delta": ".",
     "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
     "type": "text-delta",
   },
   {
+    "citations": [
+      {
+        "source": {
+          "filename": "ai.pdf",
+          "id": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+          "mediaType": "text/plain",
+          "providerMetadata": {
+            "azure": {
+              "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+              "index": 379,
+              "type": "file_citation",
+            },
+          },
+          "sourceType": "document",
+          "title": "ai.pdf",
+          "type": "source",
+        },
+      },
+    ],
     "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
     "providerMetadata": {
       "azure": {
@@ -1673,6 +1745,7 @@ providers and models, and which ones are available in the AI SDK.",
         "output_tokens_details": {
           "reasoning_tokens": 448,
         },
+        "total_tokens": 4291,
       },
     },
   },
@@ -1926,21 +1999,6 @@ exports[`responses > doStream > file search tool > should stream file search res
     "type": "text-delta",
   },
   {
-    "filename": "ai.pdf",
-    "id": "id-0",
-    "mediaType": "text/plain",
-    "providerMetadata": {
-      "azure": {
-        "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
-        "index": 154,
-        "type": "file_citation",
-      },
-    },
-    "sourceType": "document",
-    "title": "ai.pdf",
-    "type": "source",
-  },
-  {
     "delta": ".",
     "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
     "type": "text-delta",
@@ -2146,26 +2204,47 @@ exports[`responses > doStream > file search tool > should stream file search res
     "type": "text-delta",
   },
   {
-    "filename": "ai.pdf",
-    "id": "id-1",
-    "mediaType": "text/plain",
-    "providerMetadata": {
-      "azure": {
-        "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
-        "index": 382,
-        "type": "file_citation",
-      },
-    },
-    "sourceType": "document",
-    "title": "ai.pdf",
-    "type": "source",
-  },
-  {
     "delta": ".",
     "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
     "type": "text-delta",
   },
   {
+    "citations": [
+      {
+        "source": {
+          "filename": "ai.pdf",
+          "id": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+          "mediaType": "text/plain",
+          "providerMetadata": {
+            "azure": {
+              "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+              "index": 154,
+              "type": "file_citation",
+            },
+          },
+          "sourceType": "document",
+          "title": "ai.pdf",
+          "type": "source",
+        },
+      },
+      {
+        "source": {
+          "filename": "ai.pdf",
+          "id": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+          "mediaType": "text/plain",
+          "providerMetadata": {
+            "azure": {
+              "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+              "index": 382,
+              "type": "file_citation",
+            },
+          },
+          "sourceType": "document",
+          "title": "ai.pdf",
+          "type": "source",
+        },
+      },
+    ],
     "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
     "providerMetadata": {
       "azure": {
@@ -2187,6 +2266,36 @@ exports[`responses > doStream > file search tool > should stream file search res
       },
     },
     "type": "text-end",
+  },
+  {
+    "filename": "ai.pdf",
+    "id": "id-0",
+    "mediaType": "text/plain",
+    "providerMetadata": {
+      "azure": {
+        "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+        "index": 154,
+        "type": "file_citation",
+      },
+    },
+    "sourceType": "document",
+    "title": "ai.pdf",
+    "type": "source",
+  },
+  {
+    "filename": "ai.pdf",
+    "id": "id-1",
+    "mediaType": "text/plain",
+    "providerMetadata": {
+      "azure": {
+        "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+        "index": 382,
+        "type": "file_citation",
+      },
+    },
+    "sourceType": "document",
+    "title": "ai.pdf",
+    "type": "source",
   },
   {
     "finishReason": {
@@ -2221,6 +2330,7 @@ exports[`responses > doStream > file search tool > should stream file search res
         "output_tokens_details": {
           "reasoning_tokens": 512,
         },
+        "total_tokens": 4358,
       },
     },
   },
@@ -2454,6 +2564,7 @@ exports[`responses > doStream > image generation tool > should stream image gene
         "output_tokens_details": {
           "reasoning_tokens": 0,
         },
+        "total_tokens": 2046,
       },
     },
   },
@@ -4228,6 +4339,7 @@ Generated numbers (formatted to 2 decimal places): 88.99, 51.21, 89.85, 88.97, 7
         "output_tokens_details": {
           "reasoning_tokens": 576,
         },
+        "total_tokens": 3062,
       },
     },
   },
@@ -5522,6 +5634,7 @@ I",
         "output_tokens_details": {
           "reasoning_tokens": 0,
         },
+        "total_tokens": 327,
       },
     },
   },
@@ -5596,6 +5709,7 @@ exports[`responses > doStream > text > should stream text content 1`] = `
         "output_tokens_details": {
           "reasoning_tokens": 0,
         },
+        "total_tokens": 22,
       },
     },
   },
@@ -5697,13 +5811,14 @@ exports[`responses > doStream > tool call > should stream tool call content 1`] 
         "output_tokens_details": {
           "reasoning_tokens": 0,
         },
+        "total_tokens": 69,
       },
     },
   },
 ]
 `;
 
-exports[`responses > doStream > web search preview tool > should stream web search preview results include 1`] = `
+exports[`responses > doStream > web search preview tool > should retain streamed web search preview citation sources 1`] = `
 [
   {
     "type": "stream-start",
@@ -7491,13 +7606,19 @@ exports[`responses > doStream > web search preview tool > should stream web sear
     "type": "text-delta",
   },
   {
-    "id": "id-0",
-    "sourceType": "url",
-    "title": "While You Were Sleeping: 5 stories you might have missed, Nov 19, 2025",
-    "type": "source",
-    "url": "https://www.straitstimes.com/world/while-you-were-sleeping-5-stories-you-might-have-missed-nov-19-2025",
-  },
-  {
+    "citations": [
+      {
+        "endIndex": 577,
+        "source": {
+          "id": "https://www.straitstimes.com/world/while-you-were-sleeping-5-stories-you-might-have-missed-nov-19-2025",
+          "sourceType": "url",
+          "title": "While You Were Sleeping: 5 stories you might have missed, Nov 19, 2025",
+          "type": "source",
+          "url": "https://www.straitstimes.com/world/while-you-were-sleeping-5-stories-you-might-have-missed-nov-19-2025",
+        },
+        "startIndex": 458,
+      },
+    ],
     "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
     "providerMetadata": {
       "azure": {
@@ -7514,6 +7635,13 @@ exports[`responses > doStream > web search preview tool > should stream web sear
       },
     },
     "type": "text-end",
+  },
+  {
+    "id": "id-0",
+    "sourceType": "url",
+    "title": "While You Were Sleeping: 5 stories you might have missed, Nov 19, 2025",
+    "type": "source",
+    "url": "https://www.straitstimes.com/world/while-you-were-sleeping-5-stories-you-might-have-missed-nov-19-2025",
   },
   {
     "finishReason": {
@@ -7548,6 +7676,7 @@ exports[`responses > doStream > web search preview tool > should stream web sear
         "output_tokens_details": {
           "reasoning_tokens": 0,
         },
+        "total_tokens": 5462,
       },
     },
   },

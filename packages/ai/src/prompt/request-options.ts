@@ -4,9 +4,9 @@ import type { ToolSet } from '@ai-sdk/provider-utils';
  * Timeout configuration for API calls. Can be specified as:
  * - A number representing milliseconds
  * - An object with `totalMs` property for the total timeout in milliseconds
- * - An object with `stepMs` property for the timeout of each step in milliseconds
+ * - An object with `stepMs` property for the timeout of each complete step, including model generation, retries, and local tool execution, in milliseconds
  * - An object with `firstChunkMs` property for the timeout until the first content chunk of each step (streaming only)
- * - An object with `chunkMs` property for the timeout between content chunks (streaming only)
+ * - An object with `chunkMs` property for the timeout between meaningful model output chunks, starting with the first output and ending when the model response ends (streaming only)
  * - An object with `toolMs` property for the default timeout for all tool executions
  * - An object with `tools` property for per-tool timeout overrides using `{toolName}Ms` keys
  */

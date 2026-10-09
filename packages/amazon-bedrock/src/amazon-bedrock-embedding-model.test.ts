@@ -28,6 +28,13 @@ const cohereV4UsProfileEmbedUrl = `https://bedrock-runtime.us-east-1.amazonaws.c
   'us.cohere.embed-v4:0',
 )}/invoke`;
 
+const cohereV4ApplicationProfileArn =
+  'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/qibm5eutlkcy';
+
+const cohereV4ApplicationProfileEmbedUrl = `https://bedrock-runtime.us-east-1.amazonaws.com/model/${encodeURIComponent(
+  cohereV4ApplicationProfileArn,
+)}/invoke`;
+
 describe('doEmbed', () => {
   const mockConfigHeaders = {
     'config-header': 'config-value',
@@ -91,6 +98,20 @@ describe('doEmbed', () => {
         ),
       },
     },
+    [cohereV4ApplicationProfileEmbedUrl]: {
+      response: {
+        type: 'binary',
+        headers: {
+          'content-type': 'application/json',
+          'x-amzn-bedrock-input-token-count': '12',
+        },
+        body: Buffer.from(
+          JSON.stringify({
+            embeddings: { float: mockEmbeddings },
+          }),
+        ),
+      },
+    },
   });
 
   const model = new AmazonBedrockEmbeddingModel(
@@ -150,6 +171,47 @@ describe('doEmbed', () => {
         }),
       ),
     };
+  });
+
+  describe.each(['titan', 'cohere'] as const)('%s dimensions', family => {
+    it.each([
+      {
+        dimensions: undefined,
+        providerDimensions: undefined,
+        expected: undefined,
+      },
+      { dimensions: 256, providerDimensions: undefined, expected: 256 },
+      { dimensions: undefined, providerDimensions: 512, expected: 512 },
+      { dimensions: 256, providerDimensions: 512, expected: 512 },
+    ])(
+      'maps $dimensions with provider override $providerDimensions to $expected',
+      async ({ dimensions, providerDimensions, expected }) => {
+        const embeddingModel =
+          family === 'titan'
+            ? model
+            : new AmazonBedrockEmbeddingModel('cohere.embed-v4:0', {
+                baseUrl: () =>
+                  'https://bedrock-runtime.us-east-1.amazonaws.com',
+                fetch: fakeFetchWithAuth,
+              });
+
+        await embeddingModel.doEmbed({
+          values: [testValues[0]],
+          dimensions,
+          providerOptions: {
+            amazonBedrock:
+              family === 'titan'
+                ? { dimensions: providerDimensions }
+                : { outputDimension: providerDimensions },
+          },
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(
+          family === 'titan' ? body.dimensions : body.output_dimension,
+        ).toBe(expected);
+      },
+    );
   });
 
   it('should handle single input value and return embeddings', async () => {
@@ -339,6 +401,36 @@ describe('doEmbed', () => {
     });
   });
 
+  it('should support Cohere models behind application inference profile ARNs', async () => {
+    const cohereV4ApplicationProfileModel = new AmazonBedrockEmbeddingModel(
+      cohereV4ApplicationProfileArn,
+      {
+        baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
+        headers: mockConfigHeaders,
+        fetch: fakeFetchWithAuth,
+        modelFamily: 'cohere',
+      },
+    );
+
+    const { embeddings, usage } = await cohereV4ApplicationProfileModel.doEmbed(
+      {
+        values: [testValues[0]],
+      },
+    );
+
+    expect(embeddings).toStrictEqual(mockEmbeddings);
+    expect(usage?.tokens).toBe(12);
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body).toEqual({
+      input_type: 'search_query',
+      texts: [testValues[0]],
+      truncate: undefined,
+      output_dimension: undefined,
+    });
+    expect(cohereV4ApplicationProfileModel.maxEmbeddingsPerCall).toBe(96);
+  });
+
   it('should pass outputDimension for Cohere v4 embedding models', async () => {
     const cohereV4Model = new AmazonBedrockEmbeddingModel('cohere.embed-v4:0', {
       baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
@@ -470,6 +562,27 @@ describe('should support Nova embeddings', () => {
     },
     fetch: fakeFetchWithAuth,
   });
+
+  it.each([
+    { dimensions: undefined, providerDimensions: undefined, expected: 1024 },
+    { dimensions: 256, providerDimensions: undefined, expected: 256 },
+    { dimensions: undefined, providerDimensions: 384, expected: 384 },
+    { dimensions: 256, providerDimensions: 384, expected: 384 },
+  ])(
+    'maps dimensions $dimensions with provider override $providerDimensions to $expected',
+    async ({ dimensions, providerDimensions, expected }) => {
+      await model.doEmbed({
+        values: [testValues[0]],
+        dimensions,
+        providerOptions: {
+          amazonBedrock: { embeddingDimension: providerDimensions },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.singleEmbeddingParams.embeddingDimension).toBe(expected);
+    },
+  );
 
   it('should send SINGLE_EMBEDDING payload for Nova embeddings', async () => {
     const { embeddings } = await model.doEmbed({

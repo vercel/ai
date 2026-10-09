@@ -1,5 +1,115 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { generateKlingAIAuthToken } from './klingai-auth';
+import {
+  generateKlingAIAuthToken,
+  resolveKlingAIAuthToken,
+} from './klingai-auth';
+
+const decodePayload = (token: string) =>
+  JSON.parse(
+    atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')),
+  ) as { iss: string; exp: number; nbf: number };
+
+describe('resolveKlingAIAuthToken', () => {
+  beforeEach(() => {
+    vi.stubEnv('KLINGAI_API_KEY', undefined as unknown as string);
+    vi.stubEnv('KLINGAI_ACCESS_KEY', undefined as unknown as string);
+    vi.stubEnv('KLINGAI_SECRET_KEY', undefined as unknown as string);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('should return the api key verbatim when passed explicitly', async () => {
+    await expect(
+      resolveKlingAIAuthToken({ apiKey: 'test-api-key' }),
+    ).resolves.toBe('test-api-key');
+  });
+
+  it('should trim the api key', async () => {
+    await expect(
+      resolveKlingAIAuthToken({ apiKey: '  test-api-key  ' }),
+    ).resolves.toBe('test-api-key');
+  });
+
+  it('should load the api key from the environment', async () => {
+    vi.stubEnv('KLINGAI_API_KEY', 'env-api-key');
+
+    await expect(resolveKlingAIAuthToken({})).resolves.toBe('env-api-key');
+  });
+
+  it('should prefer an explicit api key over the environment variable', async () => {
+    vi.stubEnv('KLINGAI_API_KEY', 'env-api-key');
+
+    await expect(
+      resolveKlingAIAuthToken({ apiKey: 'explicit-api-key' }),
+    ).resolves.toBe('explicit-api-key');
+  });
+
+  it('should prefer an explicit api key over explicit legacy credentials', async () => {
+    const token = await resolveKlingAIAuthToken({
+      apiKey: 'explicit-api-key',
+      accessKey: 'test-ak',
+      secretKey: 'test-sk',
+    });
+
+    expect(token).toBe('explicit-api-key');
+  });
+
+  it('should prefer explicit legacy credentials over the api key environment variable', async () => {
+    vi.stubEnv('KLINGAI_API_KEY', 'env-api-key');
+
+    const token = await resolveKlingAIAuthToken({
+      accessKey: 'test-ak',
+      secretKey: 'test-sk',
+    });
+
+    expect(token.split('.')).toHaveLength(3);
+    expect(decodePayload(token).iss).toBe('test-ak');
+  });
+
+  it('should prefer the api key environment variable over legacy environment variables', async () => {
+    vi.stubEnv('KLINGAI_API_KEY', 'env-api-key');
+    vi.stubEnv('KLINGAI_ACCESS_KEY', 'env-access-key');
+    vi.stubEnv('KLINGAI_SECRET_KEY', 'env-secret-key');
+
+    await expect(resolveKlingAIAuthToken({})).resolves.toBe('env-api-key');
+  });
+
+  it('should fall back to a signed JWT when only legacy environment variables are set', async () => {
+    vi.stubEnv('KLINGAI_ACCESS_KEY', 'env-access-key');
+    vi.stubEnv('KLINGAI_SECRET_KEY', 'env-secret-key');
+
+    const token = await resolveKlingAIAuthToken({});
+
+    expect(token.split('.')).toHaveLength(3);
+    expect(decodePayload(token).iss).toBe('env-access-key');
+  });
+
+  it('should ignore a blank api key and fall back to legacy credentials', async () => {
+    vi.stubEnv('KLINGAI_API_KEY', '   ');
+    vi.stubEnv('KLINGAI_ACCESS_KEY', 'env-access-key');
+    vi.stubEnv('KLINGAI_SECRET_KEY', 'env-secret-key');
+
+    const token = await resolveKlingAIAuthToken({});
+
+    expect(decodePayload(token).iss).toBe('env-access-key');
+  });
+
+  it('should throw an api-key-centric error when no credentials are available', async () => {
+    await expect(resolveKlingAIAuthToken({})).rejects.toThrow(
+      /KlingAI API key is missing.*'apiKey'.*KLINGAI_API_KEY/s,
+    );
+  });
+
+  it('should still report the missing secret key when only an access key is set', async () => {
+    vi.stubEnv('KLINGAI_ACCESS_KEY', 'env-access-key');
+
+    await expect(resolveKlingAIAuthToken({})).rejects.toThrow(
+      'KlingAI secret key',
+    );
+  });
+});
 
 describe('generateKlingAIAuthToken', () => {
   beforeEach(() => {

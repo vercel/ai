@@ -156,7 +156,7 @@ Here's the code for the `handleNewAppMention` function:
 ```typescript filename="lib/handle-app-mention.ts"
 import { AppMentionEvent } from '@slack/web-api';
 import { client, getThread } from './slack-utils';
-import { generateResponse } from './ai';
+import { generateResponse } from './generate-response';
 
 const updateStatusUtil = async (
   initialStatus: string,
@@ -268,7 +268,7 @@ Here's the code for the `handleNewAssistantMessage` function:
 ```typescript filename="lib/handle-messages.ts"
 import type { GenericMessageEvent } from '@slack/web-api';
 import { client, getThread } from './slack-utils';
-import { generateResponse } from './ai';
+import { generateResponse } from './generate-response';
 
 export async function handleNewAssistantMessage(
   event: GenericMessageEvent,
@@ -327,7 +327,7 @@ export const generateResponse = async (
 ) => {
   const { text } = await generateText({
     model: __MODEL__,
-    system: `You are a Slack bot assistant. Keep your responses concise and to the point.
+    instructions: `You are a Slack bot assistant. Keep your responses concise and to the point.
     - Do not tag users.
     - Current date is: ${new Date().toISOString().split('T')[0]}`,
     messages,
@@ -340,7 +340,7 @@ export const generateResponse = async (
 
 This basic implementation:
 
-1. Uses the AI SDK's `generateText` function to call Anthropic's `claude-sonnet-4.5` model
+1. Uses the AI SDK's `generateText` function to call the configured model
 2. Provides a system prompt to guide the model's behavior
 3. Formats the response for Slack's markdown format
 
@@ -360,7 +360,7 @@ export const generateResponse = async (
 ) => {
   const { text } = await generateText({
     model: __MODEL__,
-    system: `You are a Slack bot assistant. Keep your responses concise and to the point.
+    instructions: `You are a Slack bot assistant. Keep your responses concise and to the point.
     - Do not tag users.
     - Current date is: ${new Date().toISOString().split('T')[0]}
     - Always include sources in your final response if you use web search.`,
@@ -500,3 +500,5 @@ You've built a Slack chatbot powered by the AI SDK! Here are some ways you could
   In a production environment, it is recommended to implement a robust queueing
   system to ensure messages are properly handled.
 </Note>
+
+For a framework-managed alternative with durable threaded sessions, typing indicators, approval buttons, and multichannel support, see [eve's Slack channel](https://eve.dev/docs/channels/slack).

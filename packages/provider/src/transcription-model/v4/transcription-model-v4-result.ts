@@ -48,6 +48,12 @@ export type TranscriptionModelV4Result = {
   warnings: Array<SharedV4Warning>;
 
   /**
+   * Usage information reported by the provider, in the provider's native
+   * JSON-compatible shape.
+   */
+  usage?: JSONObject;
+
+  /**
    * Optional request information for telemetry and debugging purposes.
    */
   request?: {

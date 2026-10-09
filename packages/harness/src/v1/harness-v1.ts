@@ -87,7 +87,7 @@ export type HarnessV1<TBuiltinTools extends ToolSet = ToolSet> = {
 
   /**
    * Start a fresh session, resume a parked session via `resumeFrom`, or resume
-   * an interrupted turn via `continueFrom`. The host then issues prompts against
+   * a suspended turn via `continueFrom`. The host then issues prompts against
    * the returned session, ending with `doDetach`, `doStop`, or `doDestroy`.
    */
   doStart(options: HarnessV1StartOptions): PromiseLike<HarnessV1Session>;

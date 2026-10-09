@@ -24,6 +24,8 @@ import { z } from 'zod/v4';
 import {
   embed,
   embedMany,
+  experimental_decide,
+  experimental_evaluate,
   generateObject,
   generateText,
   isStepCount,
@@ -37,6 +39,7 @@ import {
 } from 'ai';
 import {
   MockEmbeddingModelV4,
+  Experimental_DecisionMockModelV4,
   MockLanguageModelV4,
   MockRerankingModelV4,
   mockValues,
@@ -1510,6 +1513,52 @@ describe('LegacyOpenTelemetry integration with generateText', () => {
     `);
   });
 
+  it('should include configured runtime context on tool call spans', async () => {
+    await generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async () => ({
+          ...integrationDummyResponseValues,
+          content: [
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              input: `{ "value": "value" }`,
+            },
+          ],
+        }),
+      }),
+      tools: {
+        tool1: {
+          inputSchema: z.object({ value: z.string() }),
+          execute: async () => 'result1',
+        },
+      },
+      prompt: 'test-input',
+      runtimeContext: {
+        requestId: 'request-123',
+        privateValue: 'excluded',
+      },
+      telemetry: {
+        isEnabled: true,
+        includeRuntimeContext: {
+          requestId: true,
+        },
+        integrations: new LegacyOpenTelemetry({ tracer }),
+      },
+    });
+
+    const toolCallSpan = tracer.spans.find(span => span.name === 'ai.toolCall');
+
+    expect(toolCallSpan?.attributes).toMatchObject({
+      'ai.settings.context.requestId': 'request-123',
+    });
+    expect(
+      toolCallSpan?.attributes['ai.settings.context.privateValue'],
+    ).toBeUndefined();
+  });
+
   it('should record error on tool call', async () => {
     await generateText({
       model: new MockLanguageModelV4({
@@ -2470,6 +2519,204 @@ describe('LegacyOpenTelemetry integration with rerank', () => {
   });
 });
 
+describe('LegacyOpenTelemetry integration with decide', () => {
+  it.each(['deprecated', 'current'] as const)(
+    'honors %s subclass hooks with and without super calls',
+    async hooks => {
+      for (const callSuper of [false, true]) {
+        const calls: Array<[string, string]> = [];
+        const tracer = createMockTracer();
+        class DeprecatedHooksIntegration extends LegacyOpenTelemetry {
+          override experimental_onEvaluateStart(
+            event: Parameters<
+              LegacyOpenTelemetry['experimental_onEvaluateStart']
+            >[0],
+          ): void {
+            calls.push(['start', event.operationId]);
+            if (callSuper) super.experimental_onEvaluateStart(event);
+          }
+          override experimental_onEvaluationModelCallStart(
+            event: Parameters<
+              LegacyOpenTelemetry['experimental_onEvaluationModelCallStart']
+            >[0],
+          ): void {
+            calls.push(['model-start', event.operationId]);
+            if (callSuper) super.experimental_onEvaluationModelCallStart(event);
+          }
+          override experimental_onEvaluationModelCallEnd(
+            event: Parameters<
+              LegacyOpenTelemetry['experimental_onEvaluationModelCallEnd']
+            >[0],
+          ): void {
+            calls.push(['model-end', event.operationId]);
+            if (callSuper) super.experimental_onEvaluationModelCallEnd(event);
+          }
+          override experimental_onEvaluateEnd(
+            event: Parameters<
+              LegacyOpenTelemetry['experimental_onEvaluateEnd']
+            >[0],
+          ): void {
+            calls.push(['end', event.operationId]);
+            if (callSuper) super.experimental_onEvaluateEnd(event);
+          }
+        }
+        class CurrentHooksIntegration extends LegacyOpenTelemetry {
+          override experimental_onDecideStart(
+            event: Parameters<
+              LegacyOpenTelemetry['experimental_onDecideStart']
+            >[0],
+          ): void {
+            calls.push(['start', event.operationId]);
+            if (callSuper) super.experimental_onDecideStart(event);
+          }
+          override experimental_onDecisionModelCallStart(
+            event: Parameters<
+              LegacyOpenTelemetry['experimental_onDecisionModelCallStart']
+            >[0],
+          ): void {
+            calls.push(['model-start', event.operationId]);
+            if (callSuper) super.experimental_onDecisionModelCallStart(event);
+          }
+          override experimental_onDecisionModelCallEnd(
+            event: Parameters<
+              LegacyOpenTelemetry['experimental_onDecisionModelCallEnd']
+            >[0],
+          ): void {
+            calls.push(['model-end', event.operationId]);
+            if (callSuper) super.experimental_onDecisionModelCallEnd(event);
+          }
+          override experimental_onDecideEnd(
+            event: Parameters<
+              LegacyOpenTelemetry['experimental_onDecideEnd']
+            >[0],
+          ): void {
+            calls.push(['end', event.operationId]);
+            if (callSuper) super.experimental_onDecideEnd(event);
+          }
+        }
+        const Integration =
+          hooks === 'deprecated'
+            ? DeprecatedHooksIntegration
+            : CurrentHooksIntegration;
+        await experimental_decide({
+          model: new Experimental_DecisionMockModelV4({
+            doDecide: async () => ({
+              answers: { refund: { type: 'boolean', probability: 0.9 } },
+              warnings: [],
+            }),
+          }),
+          state: 'Please refund me',
+          questions: { refund: { type: 'boolean', instructions: 'Refund?' } },
+          telemetry: { integrations: new Integration({ tracer }) },
+        });
+        expect(calls).toEqual([
+          ['start', 'ai.decide'],
+          ['model-start', 'ai.decide.doDecide'],
+          ['model-end', 'ai.decide.doDecide'],
+          ['end', 'ai.decide'],
+        ]);
+        expect(tracer.spans).toHaveLength(callSuper ? 2 : 0);
+        for (const span of tracer.spans) {
+          expect(span.ended).toBe(true);
+          expect(span.end).toHaveBeenCalledOnce();
+        }
+      }
+    },
+  );
+
+  it.each([true, false])(
+    'serializes decision image bytes with recordInputs=%s',
+    async recordInputs => {
+      const tracer = new IntegrationMockTracer();
+      const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0xff, 0xff]);
+      await experimental_decide({
+        model: new Experimental_DecisionMockModelV4({
+          doDecide: async () => ({
+            answers: { visible: { type: 'boolean', probability: 0.9 } },
+            warnings: [],
+          }),
+        }),
+        state: [{ type: 'file', mediaType: 'image/png', data: bytes }],
+        questions: {
+          visible: { type: 'boolean', instructions: 'Is the product visible?' },
+        },
+        telemetry: {
+          recordInputs,
+          integrations: new LegacyOpenTelemetry({ tracer }),
+        },
+      });
+      const attributes = tracer.jsonSpans.map(span => span.attributes);
+      expect(attributes).toHaveLength(2);
+      for (const value of attributes) {
+        expect(value['ai.decision.state']).toBe(
+          recordInputs
+            ? '[{"type":"file","mediaType":"image/png","data":"iVBOR///"}]'
+            : undefined,
+        );
+      }
+    },
+  );
+
+  it.each(['current', 'deprecated'] as const)(
+    'records decision inputs, outputs, and usage through the %s API',
+    async api => {
+      const tracer = new IntegrationMockTracer();
+
+      await (api === 'current' ? experimental_decide : experimental_evaluate)({
+        model: new Experimental_DecisionMockModelV4({
+          doDecide: async () => ({
+            answers: { refund: { type: 'boolean', probability: 0.9 } },
+            usage: { inputTokens: 12, outputTokens: 2 },
+            warnings: [],
+          }),
+        }),
+        state: { message: 'Please refund me' },
+        questions: {
+          refund: { type: 'boolean', instructions: 'Refund?' },
+        },
+        telemetry: {
+          integrations: new LegacyOpenTelemetry({ tracer }),
+        },
+      });
+
+      expect(tracer.jsonSpans).toMatchInlineSnapshot(`
+      [
+        {
+          "attributes": {
+            "ai.decision.answers": "{"refund":{"type":"boolean","probability":0.9}}",
+            "ai.decision.questions": "{"refund":{"type":"boolean","instructions":"Refund?"}}",
+            "ai.decision.state": "{"message":"Please refund me"}",
+            "ai.model.id": "mock-model-id",
+            "ai.model.provider": "mock-provider",
+            "ai.operationId": "ai.decide",
+            "ai.settings.maxRetries": 2,
+            "operation.name": "ai.decide",
+          },
+          "events": [],
+          "name": "ai.decide",
+        },
+        {
+          "attributes": {
+            "ai.decision.answers": "{"refund":{"type":"boolean","probability":0.9}}",
+            "ai.decision.questions": "{"refund":{"type":"boolean","instructions":"Refund?"}}",
+            "ai.decision.state": "[{"type":"json","value":{"message":"Please refund me"}}]",
+            "ai.model.id": "mock-model-id",
+            "ai.model.provider": "mock-provider",
+            "ai.operationId": "ai.decide.doDecide",
+            "ai.settings.maxRetries": 2,
+            "ai.usage.inputTokens": 12,
+            "ai.usage.outputTokens": 2,
+            "operation.name": "ai.decide.doDecide",
+          },
+          "events": [],
+          "name": "ai.decide.doDecide",
+        },
+      ]
+    `);
+    },
+  );
+});
+
 // --- embed integration fixtures ---
 
 const embedDummyEmbedding = [0.1, 0.2, 0.3];
@@ -2501,8 +2748,8 @@ describe('LegacyOpenTelemetry integration with embed', () => {
     tracer = new IntegrationMockTracer();
   });
 
-  it('should record telemetry data when isEnabled is not explicitly set', async () => {
-    await embed({
+  it('should omit usage attributes when the provider does not return usage', async () => {
+    const result = await embed({
       model: new MockEmbeddingModelV4({
         doEmbed: mockEmbedSingle([embedTestValue], [embedDummyEmbedding]),
       }),
@@ -2512,6 +2759,10 @@ describe('LegacyOpenTelemetry integration with embed', () => {
       },
     });
 
+    expect(result.usage.tokens).toBeNaN();
+    for (const span of tracer.jsonSpans) {
+      expect('ai.usage.tokens' in span.attributes).toBe(false);
+    }
     expect(tracer.jsonSpans).toMatchSnapshot();
   });
 
@@ -3535,5 +3786,99 @@ describe('LegacyOpenTelemetry integration with streamText transform', () => {
     await result.consumeStream();
 
     expect(tracer.jsonSpans).toMatchSnapshot();
+  });
+});
+
+describe('LegacyOpenTelemetry speech and transcription operations', () => {
+  it('honors speech input and output privacy controls', () => {
+    const tracer = createMockTracer();
+    const integration: Telemetry = new LegacyOpenTelemetry({ tracer });
+    const speechCallId = 'speech-call';
+
+    integration.onStart!({
+      callId: speechCallId,
+      operationId: 'ai.generateSpeech',
+      provider: 'openai.speech',
+      modelId: 'gpt-4o-mini-tts',
+      text: 'private text',
+      voice: 'alloy',
+      outputFormat: 'mp3',
+      instructions: undefined,
+      speed: undefined,
+      language: undefined,
+      maxRetries: 2,
+      headers: undefined,
+      providerOptions: {},
+      recordInputs: false,
+      recordOutputs: false,
+      functionId: undefined,
+    });
+    integration.onEnd!({
+      callId: speechCallId,
+      operationId: 'ai.generateSpeech',
+      provider: 'openai.speech',
+      modelId: 'gpt-4o-mini-tts',
+      text: 'private text',
+      audio: {
+        byteLength: 1234,
+        mediaType: 'audio/mpeg',
+        format: 'mp3',
+      },
+      usage: { characters: 12 },
+      warnings: [],
+      providerMetadata: undefined,
+      response: {
+        timestamp: new Date(0),
+        modelId: 'gpt-4o-mini-tts',
+      },
+      recordInputs: false,
+      recordOutputs: false,
+      functionId: undefined,
+    });
+
+    const startAttributes = getStartSpanAttributes(tracer, 0);
+    const endAttributes = getSetAttributesArg(tracer.spans[0]);
+    expect(startAttributes['ai.request.text']).toBeUndefined();
+    expect(endAttributes['ai.response.audio.size']).toBeUndefined();
+    expect(endAttributes['ai.response.audio.mediaType']).toBeUndefined();
+    expect(endAttributes['ai.response.audio.format']).toBeUndefined();
+    expect(endAttributes['ai.usage.characters']).toBe(12);
+    expect(endAttributes['ai.response.usage']).toBe(
+      JSON.stringify({ characters: 12 }),
+    );
+  });
+
+  it('records streaming transcription errors on the operation span', () => {
+    const tracer = createMockTracer();
+    const integration: Telemetry = new LegacyOpenTelemetry({ tracer });
+    const streamCallId = 'stream-call';
+    const error = new Error('stream failed');
+
+    integration.experimental_onStreamTranscriptionStart!({
+      callId: streamCallId,
+      operationId: 'ai.streamTranscribe',
+      provider: 'openai.transcription',
+      modelId: 'gpt-realtime-whisper',
+      audio: { byteLength: undefined, mediaType: 'audio/pcm' },
+      inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+      maxRetries: undefined,
+      headers: undefined,
+      providerOptions: {},
+      recordInputs: undefined,
+      recordOutputs: undefined,
+      functionId: undefined,
+    });
+    integration.onError!({ callId: streamCallId, error });
+
+    expect(tracer.spans[0].recordException).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'stream failed' }),
+    );
+    expect(tracer.spans[0].setStatus).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: SpanStatusCode.ERROR,
+        message: 'stream failed',
+      }),
+    );
+    expect(tracer.spans[0].ended).toBe(true);
   });
 });

@@ -1,4 +1,5 @@
 import type { LanguageModelV4Usage } from '@ai-sdk/provider';
+import { createNullLanguageModelUsage } from '@ai-sdk/provider-utils';
 
 export function convertDeepSeekUsage(
   usage:
@@ -6,6 +7,12 @@ export function convertDeepSeekUsage(
         prompt_tokens?: number | null | undefined;
         completion_tokens?: number | null | undefined;
         prompt_cache_hit_tokens?: number | null | undefined;
+        prompt_tokens_details?:
+          | {
+              cached_tokens?: number | null | undefined;
+            }
+          | null
+          | undefined;
         completion_tokens_details?:
           | {
               reasoning_tokens?: number | null | undefined;
@@ -17,25 +24,15 @@ export function convertDeepSeekUsage(
     | null,
 ): LanguageModelV4Usage {
   if (usage == null) {
-    return {
-      inputTokens: {
-        total: undefined,
-        noCache: undefined,
-        cacheRead: undefined,
-        cacheWrite: undefined,
-      },
-      outputTokens: {
-        total: undefined,
-        text: undefined,
-        reasoning: undefined,
-      },
-      raw: undefined,
-    };
+    return createNullLanguageModelUsage();
   }
 
   const promptTokens = usage.prompt_tokens ?? 0;
   const completionTokens = usage.completion_tokens ?? 0;
-  const cacheReadTokens = usage.prompt_cache_hit_tokens ?? 0;
+  const cacheReadTokens =
+    usage.prompt_cache_hit_tokens ??
+    usage.prompt_tokens_details?.cached_tokens ??
+    0;
   const reasoningTokens =
     usage.completion_tokens_details?.reasoning_tokens ?? 0;
 
@@ -48,7 +45,7 @@ export function convertDeepSeekUsage(
     },
     outputTokens: {
       total: completionTokens,
-      text: completionTokens - reasoningTokens,
+      text: Math.max(0, completionTokens - reasoningTokens),
       reasoning: reasoningTokens,
     },
     raw: usage,

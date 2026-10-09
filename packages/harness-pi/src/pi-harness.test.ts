@@ -1,5 +1,16 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createPi } from './pi-harness';
+import type { PiCredentialStore } from './pi-auth';
+import type * as PiSessionModule from './pi-session';
+
+const mocks = vi.hoisted(() => ({
+  createPiSession: vi.fn(async () => ({})),
+}));
+
+vi.mock('./pi-session', async importOriginal => {
+  const actual = await importOriginal<typeof PiSessionModule>();
+  return { ...actual, createPiSession: mocks.createPiSession };
+});
 
 describe('createPi adapter', () => {
   it('declares the harness id and builtin tools', () => {
@@ -39,4 +50,49 @@ describe('createPi adapter', () => {
     const harness = createPi();
     expect(harness.getBootstrap).toBeUndefined();
   });
+
+  it.each(['continue-turn', 'resume-session'] as const)(
+    'forwards %s lifecycle state and stateless runtime settings',
+    async resumeStateType => {
+      mocks.createPiSession.mockClear();
+      const credentials = {} as PiCredentialStore;
+      const harness = createPi({
+        credentials,
+        reattachInProcess: false,
+      });
+      const lifecycleState = {
+        harnessId: 'pi',
+        specificationVersion: 'harness-v1',
+        data: {},
+      } as const;
+
+      const startOptions = {
+        sessionId: `session-${resumeStateType}`,
+        sandboxSession: {} as never,
+        sessionWorkDir: '/sandbox/work',
+      };
+      if (resumeStateType === 'continue-turn') {
+        await harness.doStart({
+          ...startOptions,
+          continueFrom: { ...lifecycleState, type: 'continue-turn' },
+        });
+      } else {
+        await harness.doStart({
+          ...startOptions,
+          resumeFrom: { ...lifecycleState, type: 'resume-session' },
+        });
+      }
+
+      expect(mocks.createPiSession).toHaveBeenCalledWith(
+        expect.objectContaining({
+          isResume: true,
+          resumeStateType,
+          settings: expect.objectContaining({
+            credentials,
+            reattachInProcess: false,
+          }),
+        }),
+      );
+    },
+  );
 });

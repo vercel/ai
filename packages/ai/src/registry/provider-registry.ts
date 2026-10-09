@@ -1,4 +1,5 @@
 import {
+  type Experimental_DecisionModelV4 as DecisionModelV4,
   type EmbeddingModelV4,
   type Experimental_VideoModelV3,
   type Experimental_VideoModelV4,
@@ -13,6 +14,12 @@ import {
   type SpeechModelV4,
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
+import type { DecisionModel } from '../decide/decision-result';
+import type { DecisionProvider } from '../decide/decision-provider';
+import {
+  resolveDecisionModel,
+  asEvaluationModel,
+} from '../model/resolve-model';
 import { wrapImageModel } from '../middleware/wrap-image-model';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
 import { asProviderV4 } from '../model/as-provider-v4';
@@ -34,13 +41,50 @@ type RegistryModelType =
   | 'transcriptionModel'
   | 'speechModel'
   | 'rerankingModel'
-  | 'videoModel';
+  | 'videoModel'
+  | 'decisionModel';
 
 type ProviderVideoModelIdentifier<PROVIDER> = PROVIDER extends {
   videoModel: (...args: infer ARGS) => unknown;
 }
   ? ExtractLiteralUnion<ARGS[0]>
   : never;
+
+type ProviderDecisionModelIdentifier<PROVIDER> = PROVIDER extends {
+  decisionModel: (...args: infer ARGS) => unknown;
+}
+  ? ExtractLiteralUnion<ARGS[0]>
+  : PROVIDER extends { evaluationModel: (...args: infer ARGS) => unknown }
+    ? ExtractLiteralUnion<ARGS[0]>
+    : never;
+
+/** Registry with experimental decision access, separate from the stable interface. */
+export type DecisionProviderRegistry<
+  PROVIDERS extends Record<string, ProviderV4 | ProviderV3> = Record<
+    string,
+    ProviderV4 | ProviderV3
+  >,
+  SEPARATOR extends string = ':',
+> = ProviderRegistryProvider<PROVIDERS, SEPARATOR> & {
+  decisionModel<KEY extends keyof PROVIDERS>(
+    id: KEY extends string
+      ? `${KEY & string}${SEPARATOR}${ProviderDecisionModelIdentifier<PROVIDERS[KEY]>}`
+      : never,
+  ): DecisionModelV4;
+  decisionModel<KEY extends keyof PROVIDERS>(
+    id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
+  ): DecisionModelV4;
+  /** @deprecated Use `decisionModel` instead. */
+  evaluationModel<KEY extends keyof PROVIDERS>(
+    id: KEY extends string
+      ? `${KEY & string}${SEPARATOR}${ProviderDecisionModelIdentifier<PROVIDERS[KEY]>}`
+      : never,
+  ): DecisionModelV4 & { doEvaluate: DecisionModelV4['doDecide'] };
+  /** @deprecated Use `decisionModel` instead. */
+  evaluationModel<KEY extends keyof PROVIDERS>(
+    id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
+  ): DecisionModelV4 & { doEvaluate: DecisionModelV4['doDecide'] };
+};
 
 export interface ProviderRegistryProvider<
   PROVIDERS extends Record<string, ProviderV4 | ProviderV3> = Record<
@@ -150,7 +194,7 @@ export function createProviderRegistry<
       | LanguageModelMiddleware[];
     imageModelMiddleware?: ImageModelMiddleware | ImageModelMiddleware[];
   } = {},
-): ProviderRegistryProvider<PROVIDERS, SEPARATOR> {
+): DecisionProviderRegistry<PROVIDERS, SEPARATOR> {
   const registry = new DefaultProviderRegistry<PROVIDERS, SEPARATOR>({
     separator,
     languageModelMiddleware,
@@ -175,10 +219,17 @@ export const experimental_createProviderRegistry = createProviderRegistry;
 class DefaultProviderRegistry<
   PROVIDERS extends Record<string, ProviderV4 | ProviderV3>,
   SEPARATOR extends string,
-> implements ProviderRegistryProvider<PROVIDERS, SEPARATOR> {
+>
+  implements
+    ProviderRegistryProvider<PROVIDERS, SEPARATOR>,
+    DecisionProviderRegistry<PROVIDERS, SEPARATOR>
+{
   private providers: Partial<
-    Record<keyof PROVIDERS, ProviderV4 & ProviderWithOptionalVideoModel>
-  > = {};
+    Record<
+      keyof PROVIDERS,
+      ProviderV4 & ProviderWithOptionalVideoModel & DecisionProvider
+    >
+  > = Object.create(null);
   private separator: SEPARATOR;
   private languageModelMiddleware?:
     | LanguageModelMiddleware
@@ -213,7 +264,12 @@ class DefaultProviderRegistry<
       provider as ProviderWithOptionalVideoModel
     ).videoModel?.bind(provider);
 
-    this.providers[id] =
+    const decisionProvider = provider as DecisionProvider;
+    const decisionModel = (
+      decisionProvider.decisionModel ?? decisionProvider.evaluationModel
+    )?.bind(provider);
+
+    const registeredProvider =
       videoModel == null
         ? providerV4
         : Object.assign(Object.create(Object.getPrototypeOf(providerV4)), {
@@ -221,12 +277,18 @@ class DefaultProviderRegistry<
             videoModel: (modelId: string) =>
               asVideoModelV4(videoModel(modelId)),
           });
+
+    // Keep v4 instances intact. Adapted providers need the original decision receiver.
+    if (registeredProvider !== provider && decisionModel != null) {
+      Object.assign(registeredProvider, { decisionModel });
+    }
+    this.providers[id] = registeredProvider;
   }
 
   private getProvider(
     id: string,
     modelType: RegistryModelType,
-  ): ProviderV4 & ProviderWithOptionalVideoModel {
+  ): ProviderV4 & ProviderWithOptionalVideoModel & DecisionProvider {
     const provider = this.providers[id as keyof PROVIDERS];
 
     if (provider == null) {
@@ -380,6 +442,30 @@ class DefaultProviderRegistry<
     }
 
     return asVideoModelV4(model);
+  }
+
+  decisionModel<KEY extends keyof PROVIDERS>(
+    id: `${KEY & string}${SEPARATOR}${string}`,
+  ): DecisionModelV4 {
+    const [providerId, modelId] = this.splitId(id, 'decisionModel');
+    const provider = this.getProvider(providerId, 'decisionModel');
+    const factory:
+      | ((modelId: string) => Exclude<DecisionModel, string>)
+      | undefined = provider.decisionModel ?? provider.evaluationModel;
+    const model = factory?.call(provider, modelId);
+
+    if (model == null) {
+      throw new NoSuchModelError({ modelId: id, modelType: 'decisionModel' });
+    }
+
+    return resolveDecisionModel(model);
+  }
+
+  /** @deprecated Use `decisionModel` instead. */
+  evaluationModel<KEY extends keyof PROVIDERS>(
+    id: `${KEY & string}${SEPARATOR}${string}`,
+  ) {
+    return asEvaluationModel(this.decisionModel(id));
   }
 
   files<KEY extends keyof PROVIDERS>(id: KEY & string): FilesV4 {

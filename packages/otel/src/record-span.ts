@@ -1,3 +1,4 @@
+import { APICallError } from '@ai-sdk/provider';
 import {
   SpanStatusCode,
   context,
@@ -5,6 +6,8 @@ import {
   type Span,
   type Tracer,
 } from '@opentelemetry/api';
+import { RetryError } from 'ai';
+
 export async function recordSpan<T>({
   name,
   tracer,
@@ -58,6 +61,15 @@ export async function recordSpan<T>({
  * @param error - The error to record on the span.
  */
 export function recordErrorOnSpan(span: Span, error: unknown) {
+  const apiCallError = RetryError.isInstance(error) ? error.lastError : error;
+
+  if (
+    APICallError.isInstance(apiCallError) &&
+    apiCallError.statusCode != null
+  ) {
+    span.setAttribute('http.response.status_code', apiCallError.statusCode);
+  }
+
   if (error instanceof Error) {
     span.recordException({
       name: error.name,

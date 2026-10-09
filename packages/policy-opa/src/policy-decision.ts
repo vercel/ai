@@ -9,5 +9,5 @@
 export type PolicyDecision =
   | { type: 'approved'; reason?: string }
   | { type: 'denied'; reason?: string }
-  | { type: 'user-approval' }
+  | { type: 'user-approval'; reason?: string }
   | { type: 'not-applicable' };

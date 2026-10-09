@@ -12,8 +12,8 @@ import {
 
 const recipe: HarnessV1Bootstrap = {
   harnessId: 'demo',
-  bootstrapDir: '/tmp/harness/demo',
-  files: [{ path: '/tmp/harness/demo/a.txt', content: 'one' }],
+  bootstrapDir: '.harness-bootstrap/demo',
+  files: [{ path: '.harness-bootstrap/demo/a.txt', content: 'one' }],
   commands: [{ command: 'echo ok' }],
 };
 
@@ -23,12 +23,17 @@ function makeSession(): {
   readTextFile: ReturnType<typeof vi.fn>;
   writeTextFile: ReturnType<typeof vi.fn>;
 } {
-  const run = vi.fn(async (args: { command: string }) => {
-    if (args.command === 'pwd') {
-      return { exitCode: 0, stdout: '/work\n', stderr: '' };
-    }
-    return { exitCode: 0, stdout: '', stderr: '' };
-  });
+  const run = vi.fn(
+    async (args: { command: string; workingDirectory?: string }) => {
+      if (args.command === 'pwd') {
+        return { exitCode: 0, stdout: '/work\n', stderr: '' };
+      }
+      if (args.command === 'printf "%s" "$HOME"') {
+        return { exitCode: 0, stdout: '/home/agent', stderr: '' };
+      }
+      return { exitCode: 0, stdout: '', stderr: '' };
+    },
+  );
   const readTextFile = vi.fn(async () => null);
   const writeTextFile = vi.fn(async () => {});
   return {
@@ -60,7 +65,15 @@ describe('validateSandboxBootstrapSettings', () => {
   });
 
   it('rejects invalid workDir values', () => {
-    for (const value of ['', '.', '/repo', '../repo', 'repo/../../x', 'a\\b']) {
+    for (const value of [
+      '',
+      './',
+      'repo/..',
+      '/repo',
+      '../repo',
+      'repo/../../x',
+      'a\\b',
+    ]) {
       expect(() =>
         validateSandboxBootstrapSettings({
           workDir: value,
@@ -72,6 +85,7 @@ describe('validateSandboxBootstrapSettings', () => {
   it('normalizes workDir values that stay inside the default cwd', () => {
     expect(normalizeSandboxWorkDir('repo/../ai-sdk')).toBe('ai-sdk');
     expect(normalizeSandboxWorkDir('./ai-sdk')).toBe('ai-sdk');
+    expect(normalizeSandboxWorkDir('.')).toBe('.');
   });
 });
 
@@ -129,6 +143,23 @@ describe('resolveSessionWorkDir', () => {
     ).toBe('/work/mock-s1');
   });
 
+  it('keeps caller-controlled IDs within the default working directory', () => {
+    expect(
+      resolveSessionWorkDir({
+        defaultWorkingDirectory: '/work',
+        harnessId: 'mock',
+        sessionId: '../../../../project',
+      }),
+    ).toBe('/work/mock-..%2F..%2F..%2F..%2Fproject');
+    expect(
+      resolveSessionWorkDir({
+        defaultWorkingDirectory: '/work',
+        harnessId: '../mock',
+        sessionId: 's1',
+      }),
+    ).toBe('/work/..%2Fmock-s1');
+  });
+
   it('uses the stable workDir when provided', () => {
     expect(
       resolveSessionWorkDir({
@@ -139,11 +170,22 @@ describe('resolveSessionWorkDir', () => {
       }),
     ).toBe('/work/ai-sdk');
   });
+
+  it('uses the sandbox default working directory for workDir dot', () => {
+    expect(
+      resolveSessionWorkDir({
+        defaultWorkingDirectory: '/work',
+        harnessId: 'mock',
+        sessionId: 's1',
+        workDir: '.',
+      }),
+    ).toBe('/work');
+  });
 });
 
 describe('runSandboxBootstrap', () => {
   it('runs built-in bootstrap before caller bootstrap', async () => {
-    const { session, run } = makeSession();
+    const { session, run, readTextFile, writeTextFile } = makeSession();
     const onSandboxBootstrap = vi.fn(async () => {});
     const recipeIdentity = await hashHarnessBootstrap(recipe);
 
@@ -161,11 +203,24 @@ describe('runSandboxBootstrap', () => {
       abortSignal: undefined,
     });
     expect(run.mock.calls.map(([args]) => args.command)).toEqual([
+      'printf "%s" "$HOME"',
+      'mkdir -p "$BOOTSTRAP_DIR"',
       'echo ok',
       'pwd',
       'mkdir -p "$WORK_DIR"',
     ]);
-    expect(run.mock.invocationCallOrder[0]!).toBeLessThan(
+    expect(readTextFile).toHaveBeenCalledWith({
+      path: expect.stringMatching(
+        /^\/home\/agent\/\.ai-sdk-harness\/\.harness-bootstrap\/demo\/\.bootstrap-[0-9a-f]{16}\.ok$/,
+      ),
+      abortSignal: undefined,
+    });
+    expect(writeTextFile).toHaveBeenCalledWith({
+      path: '/home/agent/.ai-sdk-harness/.harness-bootstrap/demo/a.txt',
+      content: 'one',
+      abortSignal: undefined,
+    });
+    expect(run.mock.invocationCallOrder[2]!).toBeLessThan(
       onSandboxBootstrap.mock.invocationCallOrder[0]!,
     );
   });
@@ -179,6 +234,28 @@ describe('runSandboxBootstrap', () => {
       onBootstrap: onSandboxBootstrap,
     });
 
+    expect(onSandboxBootstrap).toHaveBeenCalledWith({
+      session,
+      workDir: '/work',
+      abortSignal: undefined,
+    });
+  });
+
+  it('uses the sandbox default working directory for caller bootstrap when workDir is dot', async () => {
+    const { session, run } = makeSession();
+    const onSandboxBootstrap = vi.fn(async () => {});
+
+    await runSandboxBootstrap({
+      session,
+      workDir: '.',
+      onBootstrap: onSandboxBootstrap,
+    });
+
+    expect(run).toHaveBeenCalledWith({
+      command: 'mkdir -p "$WORK_DIR"',
+      env: { WORK_DIR: '/work' },
+      abortSignal: undefined,
+    });
     expect(onSandboxBootstrap).toHaveBeenCalledWith({
       session,
       workDir: '/work',

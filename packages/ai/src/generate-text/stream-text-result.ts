@@ -1,3 +1,4 @@
+import type { Citation } from '../types/citation';
 import type { JSONObject } from '@ai-sdk/provider';
 import type { Context, IdGenerator, ToolSet } from '@ai-sdk/provider-utils';
 import type { ServerResponse } from 'node:http';
@@ -12,6 +13,8 @@ import type { LanguageModelResponseMetadata } from '../types/language-model-resp
 import type { LanguageModelUsage } from '../types/usage';
 import type { InferUIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import type { UIMessageStreamOnEndCallback } from '../ui-message-stream/ui-message-stream-on-end-callback';
+import type { UIMessageStreamOnStepEndCallback } from '../ui-message-stream/ui-message-stream-on-step-end-callback';
+import type { UIMessageStreamOnStepFinishCallback } from '../ui-message-stream/ui-message-stream-on-step-finish-callback';
 import type { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
 import type { InferUIMessageMetadata, UIMessage } from '../ui/ui-messages';
 import type { AsyncIterableStream } from '../util/async-iterable-stream';
@@ -56,6 +59,15 @@ export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
    * the original messages are provided and the last message is an assistant message).
    */
   generateMessageId?: IdGenerator;
+
+  /**
+   * Called after each step is converted to UI message parts.
+   * Receives the accumulated UI message for inspection or persistence.
+   */
+  onStepEnd?: UIMessageStreamOnStepEndCallback<UI_MESSAGE>;
+
+  /** @deprecated Use `onStepEnd` instead. */
+  onStepFinish?: UIMessageStreamOnStepFinishCallback<UI_MESSAGE>;
 
   onEnd?: UIMessageStreamOnEndCallback<UI_MESSAGE>;
 
@@ -103,6 +115,11 @@ export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
 
   /**
    * Process an error, e.g. to log it. Default to `() => 'An error occurred.'`.
+   *
+   * Tool execution errors marked `providerExecuted: true` bypass this callback.
+   * Their strings pass through unchanged; other values are JSON-stringified to
+   * preserve provider error data for model-message round trips and harness
+   * runtime error messages. Stream errors and invalid tool calls still use it.
    *
    * @returns error message to include in the data stream.
    */
@@ -300,8 +317,9 @@ export interface StreamTextResult<
 
   /**
    * A text stream that returns only the generated text deltas. You can use it
-   * as either an AsyncIterable or a ReadableStream. When an error occurs, the
-   * stream will throw the error.
+   * as either an AsyncIterable or a ReadableStream. Error parts are not
+   * surfaced in this stream. Use the `onError` callback or `stream` to observe
+   * them.
    */
   readonly textStream: AsyncIterableStream<string>;
 
@@ -441,6 +459,7 @@ export type TextStreamTextStartPart = {
 
 export type TextStreamTextEndPart = {
   type: 'text-end';
+  citations?: Array<Citation>;
   id: string;
   providerMetadata?: ProviderMetadata;
 };

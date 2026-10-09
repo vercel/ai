@@ -48,6 +48,33 @@ describe('doEmbed', () => {
     };
   }
 
+  it.each([
+    {
+      dimensions: undefined,
+      providerDimensions: undefined,
+      expected: undefined,
+    },
+    { dimensions: 256, providerDimensions: undefined, expected: 256 },
+    { dimensions: undefined, providerDimensions: 512, expected: 512 },
+    { dimensions: 256, providerDimensions: 512, expected: 512 },
+  ])(
+    'maps dimensions $dimensions with provider override $providerDimensions to $expected',
+    async ({ dimensions, providerDimensions, expected }) => {
+      prepareJsonResponse();
+
+      await model.doEmbed({
+        values: testValues,
+        dimensions,
+        providerOptions: {
+          openaiCompatible: { dimensions: providerDimensions },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.dimensions).toBe(expected);
+    },
+  );
+
   it('should extract embedding', async () => {
     prepareJsonResponse();
 

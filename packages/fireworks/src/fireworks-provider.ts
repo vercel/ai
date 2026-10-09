@@ -27,12 +27,22 @@ import { VERSION } from './version';
 export type FireworksErrorData = z.infer<typeof fireworksErrorSchema>;
 
 const fireworksErrorSchema = z.object({
-  error: z.string(),
+  error: z.union([
+    z.string(),
+    z.object({
+      message: z.string(),
+      object: z.string().nullish(),
+      type: z.string().nullish(),
+      param: z.any().nullish(),
+      code: z.union([z.string(), z.number()]).nullish(),
+    }),
+  ]),
 });
 
 const fireworksErrorStructure: ProviderErrorStructure<FireworksErrorData> = {
   errorSchema: fireworksErrorSchema,
-  errorToMessage: data => data.error,
+  errorToMessage: data =>
+    typeof data.error === 'string' ? data.error : data.error.message,
 };
 
 export interface FireworksProviderSettings {
@@ -114,7 +124,7 @@ export function createFireworks(
         })}`,
         ...options.headers,
       },
-      `ai-sdk/fireworks/${VERSION}`,
+      `ai-sdk-fireworks/${VERSION}`,
     );
 
   interface CommonModelConfig {
@@ -136,7 +146,8 @@ export function createFireworks(
       ...getCommonModelConfig('chat'),
       includeUsage: true,
       errorStructure: fireworksErrorStructure,
-      transformRequestBody: args => {
+      supportsStructuredOutputs: true,
+      transformRequestBody: (args, warnings) => {
         const thinking = args.thinking as
           | { type?: string; budgetTokens?: number }
           | undefined;
@@ -153,16 +164,26 @@ export function createFireworks(
           ...rest
         } = args;
 
+        // Fireworks supports low, medium, and high reasoning levels.
+        const mappedReasoningEffort =
+          reasoning_effort === 'minimal'
+            ? 'low'
+            : reasoning_effort === 'xhigh' || reasoning_effort === 'max'
+              ? 'high'
+              : reasoning_effort;
+
+        if (mappedReasoningEffort !== reasoning_effort) {
+          warnings?.push({
+            type: 'compatibility',
+            feature: 'reasoning',
+            details: `reasoning "${reasoning_effort}" is not directly supported by this model. mapped to effort "${mappedReasoningEffort}".`,
+          });
+        }
+
         return {
           ...rest,
           ...(reasoning_effort != null && {
-            // Workaround since OpenAI spec allows for 5 reasoning levels, but Fireworks only supports 3 of them.
-            reasoning_effort:
-              reasoning_effort === 'minimal'
-                ? 'low'
-                : reasoning_effort === 'xhigh'
-                  ? 'high'
-                  : reasoning_effort,
+            reasoning_effort: mappedReasoningEffort,
           }),
           ...(promptCacheKey !== undefined && {
             prompt_cache_key: promptCacheKey,

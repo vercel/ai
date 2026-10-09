@@ -3,9 +3,14 @@ export type {
   AnthropicUsageIteration,
 } from './anthropic-message-metadata';
 export type {
+  AnthropicCitation,
+  AnthropicTextProviderMetadata,
+} from './anthropic-provider-metadata';
+export type {
   AnthropicLanguageModelOptions,
   /** @deprecated Use `AnthropicLanguageModelOptions` instead. */
   AnthropicLanguageModelOptions as AnthropicProviderOptions,
+  AnthropicSystemMessageProviderOptions,
 } from './anthropic-language-model-options';
 export type { AnthropicToolOptions } from './anthropic-prepare-tools';
 export { anthropic, createAnthropic } from './anthropic-provider';

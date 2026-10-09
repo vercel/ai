@@ -35,6 +35,7 @@ export type AlibabaChatUserMessageContent =
 export interface AlibabaChatAssistantMessage {
   role: 'assistant';
   content: string | null | Array<AlibabaChatAssistantMessageContent>;
+  reasoning_content?: string;
   tool_calls?: Array<{
     id: string;
     type: 'function';
@@ -65,3 +66,13 @@ export type AlibabaChatToolChoice =
   | 'auto'
   | 'none'
   | 'required';
+
+export type AlibabaFunctionTool = {
+  type: 'function';
+  function: {
+    name: string;
+    description: string | undefined;
+    parameters: unknown;
+    strict?: boolean;
+  };
+};

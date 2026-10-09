@@ -1,0 +1,203 @@
+import {
+  InvalidArgumentError,
+  UnsupportedFunctionalityError,
+  type Experimental_DecisionModelV4 as DecisionModelV4,
+  type Experimental_DecisionModelV4Answer as DecisionModelV4Answer,
+  type SharedV4Warning,
+} from '@ai-sdk/provider';
+import {
+  combineHeaders,
+  createJsonResponseHandler,
+  loadApiKey,
+  postJsonToApi,
+  resolve,
+  serializeModelOptions,
+  withUserAgentSuffix,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  type FetchFunction,
+  type Resolvable,
+} from '@ai-sdk/provider-utils';
+import {
+  typesafeDecisionResponseSchema,
+  typesafeFailedResponseHandler,
+} from './typesafe-ai-decision-api';
+import { VERSION } from './version';
+
+export type TypeSafeAiDecisionModelId = 'jev-latest' | (string & {});
+
+type TypeSafeAiDecisionModelConfig = {
+  provider: string;
+  baseURL: string;
+  headers?: Resolvable<Record<string, string | undefined>>;
+  fetch?: FetchFunction;
+};
+
+export class DecisionTypeSafeAiModel implements DecisionModelV4 {
+  readonly specificationVersion = 'v4';
+  readonly supportedQuestionTypes = ['choice', 'score', 'boolean'] as const;
+
+  constructor(
+    readonly modelId: TypeSafeAiDecisionModelId,
+    private readonly config: TypeSafeAiDecisionModelConfig,
+  ) {}
+
+  get provider() {
+    return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: DecisionTypeSafeAiModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: TypeSafeAiDecisionModelId;
+    config: TypeSafeAiDecisionModelConfig;
+  }) {
+    return new DecisionTypeSafeAiModel(options.modelId, options.config);
+  }
+
+  /** @deprecated Use `doDecide` instead. */
+  doEvaluate(options: Parameters<DecisionModelV4['doDecide']>[0]) {
+    return this.doDecide(options);
+  }
+
+  async doDecide({
+    state,
+    questions,
+    headers,
+    abortSignal,
+    providerOptions,
+  }: Parameters<DecisionModelV4['doDecide']>[0]): Promise<
+    Awaited<ReturnType<DecisionModelV4['doDecide']>>
+  > {
+    for (const [id, question] of Object.entries(questions)) {
+      if (
+        question.type === 'choice' &&
+        Object.keys(question.criteria).length > 255
+      ) {
+        throw new InvalidArgumentError({
+          argument: `questions.${id}.criteria`,
+          message: 'TypeSafe Choice questions support at most 255 options.',
+        });
+      }
+      if (question.type === 'score' && question.criteria.length > 10) {
+        throw new InvalidArgumentError({
+          argument: `questions.${id}.criteria`,
+          message: 'TypeSafe Score questions support at most 10 levels.',
+        });
+      }
+    }
+
+    const warnings: SharedV4Warning[] = Object.keys(
+      providerOptions?.typesafe ?? {},
+    ).map(option => ({
+      type: 'unsupported',
+      feature: `providerOptions.typesafe.${option}`,
+    }));
+    const requestState =
+      state.length === 1 && state[0].type === 'json'
+        ? state[0].value
+        : state
+            .map(part => {
+              if (part.type === 'file')
+                throw new UnsupportedFunctionalityError({
+                  functionality: 'TypeSafe AI decision file input',
+                });
+              return part.type === 'text'
+                ? part.text
+                : JSON.stringify(part.value);
+            })
+            .join('\n');
+    const modelHeaders =
+      this.config.headers === undefined
+        ? withUserAgentSuffix(
+            {
+              Authorization: `Bearer ${loadApiKey({ apiKey: undefined, environmentVariableName: 'TYPESAFE_AI_API_KEY', description: 'TypeSafe' })}`,
+            },
+            `ai-sdk-typesafe-ai/${VERSION}`,
+          )
+        : await resolve(this.config.headers);
+    const {
+      value: response,
+      rawValue,
+      responseHeaders,
+    } = await postJsonToApi({
+      url: `${this.config.baseURL}/systemone`,
+      headers: combineHeaders(modelHeaders, headers),
+      body: {
+        model: this.modelId,
+        state: requestState,
+        questions: Object.fromEntries(
+          Object.entries(questions).map(([id, question]) => [
+            id,
+            question.type === 'boolean'
+              ? { ...question, type: 'noul' }
+              : question,
+          ]),
+        ),
+      },
+      abortSignal,
+      fetch: this.config.fetch,
+      failedResponseHandler: typesafeFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        typesafeDecisionResponseSchema,
+      ),
+    });
+
+    const confidence = Object.fromEntries(
+      Object.entries(response.answers).flatMap(([id, answer]) =>
+        answer.type !== 'noul' && answer.confidence != null
+          ? [[id, answer.confidence]]
+          : [],
+      ),
+    );
+
+    return {
+      answers: Object.fromEntries(
+        Object.entries(response.answers).map(
+          ([id, answer]): [string, DecisionModelV4Answer] => {
+            switch (answer.type) {
+              case 'noul':
+                return [id, { type: 'boolean', probability: answer.noul }];
+              case 'choice':
+                return [
+                  id,
+                  {
+                    type: 'choice',
+                    choice: answer.choice,
+                    probabilities: answer.probabilities,
+                  },
+                ];
+              case 'score':
+                return [
+                  id,
+                  {
+                    type: 'score',
+                    score: answer.score,
+                    probabilities: answer.probabilities,
+                  },
+                ];
+            }
+          },
+        ),
+      ),
+      usage: {
+        inputTokens: response.usage?.input_tokens ?? undefined,
+        outputTokens: response.usage?.output_tokens ?? undefined,
+      },
+      // The API rounds displayed probabilities and scores to two decimal places.
+      rounding: { probabilityDecimals: 2, scoreDecimals: 2 },
+      warnings,
+      providerMetadata: { typesafe: { confidence } },
+      response: {
+        modelId: response.model ?? this.modelId,
+        headers: responseHeaders,
+        body: rawValue,
+      },
+    };
+  }
+}

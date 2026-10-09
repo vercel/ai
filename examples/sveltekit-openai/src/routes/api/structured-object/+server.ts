@@ -11,7 +11,7 @@ export async function POST({ request }: { request: Request }) {
   const context = await request.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     output: Output.object({ schema: notificationSchema }),
     prompt:
       `Generate 3 notifications for a messages app in this context:` + context,

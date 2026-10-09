@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: togetherai.chatModel('mistralai/Mistral-7B-Instruct-v0.1'),
+    model: togetherai.chatModel('deepseek-ai/DeepSeek-V4-Flash-0731'),
     output: Output.object({
       schema: z.object({
         recipe: z.object({
@@ -20,7 +20,8 @@ run(async () => {
         }),
       }),
     }),
-    prompt: 'Generate a lasagna recipe.',
+    prompt:
+      'Generate a lasagna recipe. Return only JSON with a recipe object containing a name, an ingredients array of name and amount objects, and a steps array.',
   });
 
   console.log(JSON.stringify(result.output?.recipe, null, 2));
