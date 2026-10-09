@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 15789,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-15789-openai-compatible-text-id.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-15789-openai-compatible-text-id.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #15789 REPRODUCED: duplicate text part id txt-0 merged text around tool call"
+  }
+}
