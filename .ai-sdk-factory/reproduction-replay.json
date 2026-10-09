@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 13588,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-13588-expo-react-native-streaming.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-13588-expo-react-native-streaming.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #13588: streamText failed to process successful SSE responses without TextDecoderStream (OpenAI-compatible, Google)"
+  }
+}
