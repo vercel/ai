@@ -4823,21 +4823,28 @@ describe('doGenerate', () => {
       const gemini3Model = provider.chat('gemini-3-pro-preview');
       const gemini37FlashModel = provider.chat('gemini-3.7-flash');
 
-      it('should map reasoning "minimal" to thinkingLevel "minimal"', async () => {
+      it('should coerce reasoning "minimal" to thinkingLevel "low" for Gemini 3 Pro', async () => {
         server.urls[TEST_URL_GEMINI_3_PRO].response = {
           type: 'json-value',
           body: simpleResponseBody,
         };
 
-        await gemini3Model.doGenerate({
+        const result = await gemini3Model.doGenerate({
           prompt: TEST_PROMPT,
           reasoning: 'minimal',
         });
 
         expect(await server.calls[0].requestBodyJson).toMatchObject({
           generationConfig: {
-            thinkingConfig: { thinkingLevel: 'minimal' },
+            thinkingConfig: { thinkingLevel: 'low' },
           },
+        });
+
+        expect(result.warnings).toContainEqual({
+          type: 'compatibility',
+          feature: 'reasoning',
+          details:
+            'reasoning "minimal" is not directly supported by this model. mapped to effort "low".',
         });
       });
 
@@ -4895,7 +4902,7 @@ describe('doGenerate', () => {
         });
       });
 
-      it('should map reasoning "none" to thinkingLevel "minimal"', async () => {
+      it('should coerce reasoning "none" to thinkingLevel "low" for Gemini 3 Pro', async () => {
         server.urls[TEST_URL_GEMINI_3_PRO].response = {
           type: 'json-value',
           body: simpleResponseBody,
@@ -4908,7 +4915,7 @@ describe('doGenerate', () => {
 
         expect(await server.calls[0].requestBodyJson).toMatchObject({
           generationConfig: {
-            thinkingConfig: { thinkingLevel: 'minimal' },
+            thinkingConfig: { thinkingLevel: 'low' },
           },
         });
       });
@@ -5070,6 +5077,71 @@ describe('doGenerate', () => {
           modelId: 'gemini-flash-lite-latest',
           reasoning: 'minimal' as const,
           expectedThinkingLevel: 'minimal',
+        },
+        {
+          modelId: 'gemini-3.5-flash',
+          reasoning: 'none' as const,
+          expectedThinkingLevel: 'minimal',
+        },
+        {
+          modelId: 'gemini-3.5-flash',
+          reasoning: 'minimal' as const,
+          expectedThinkingLevel: 'minimal',
+        },
+        {
+          modelId: 'au.gemini-3.5-flash',
+          reasoning: 'none' as const,
+          expectedThinkingLevel: 'minimal',
+        },
+        {
+          modelId: 'au.gemini-3.5-flash',
+          reasoning: 'minimal' as const,
+          expectedThinkingLevel: 'minimal',
+        },
+        {
+          modelId: 'eu.gemini-3.5-flash',
+          reasoning: 'none' as const,
+          expectedThinkingLevel: 'minimal',
+        },
+        {
+          modelId: 'gemini-3.5-pro',
+          reasoning: 'none' as const,
+          expectedThinkingLevel: 'low',
+        },
+        {
+          modelId: 'gemini-3.5-pro',
+          reasoning: 'minimal' as const,
+          expectedThinkingLevel: 'low',
+        },
+        {
+          modelId: 'gemini-3.1-pro',
+          reasoning: 'none' as const,
+          expectedThinkingLevel: 'low',
+        },
+        {
+          modelId: 'gemini-3.1-pro',
+          reasoning: 'minimal' as const,
+          expectedThinkingLevel: 'low',
+        },
+        {
+          modelId: 'gemini-3.1-pro-preview',
+          reasoning: 'none' as const,
+          expectedThinkingLevel: 'low',
+        },
+        {
+          modelId: 'gemini-3-pro-preview',
+          reasoning: 'none' as const,
+          expectedThinkingLevel: 'low',
+        },
+        {
+          modelId: 'us.gemini-3.1-pro',
+          reasoning: 'none' as const,
+          expectedThinkingLevel: 'low',
+        },
+        {
+          modelId: 'au.gemini-3.7-flash',
+          reasoning: 'minimal' as const,
+          expectedThinkingLevel: 'low',
         },
       ])(
         'should map reasoning "$reasoning" to thinkingLevel "$expectedThinkingLevel" for $modelId',
@@ -5283,6 +5355,34 @@ describe('doGenerate', () => {
           generationConfig: {
             thinkingConfig: { thinkingBudget: 999 },
           },
+        });
+        expect(
+          body.generationConfig.thinkingConfig.thinkingLevel,
+        ).toBeUndefined();
+      });
+
+      it('should clear resolved thinkingLevel when providerOptions sets thinkingBudget on Gemini 3 model', async () => {
+        server.urls[TEST_URL_GEMINI_3_PRO].response = {
+          type: 'json-value',
+          body: simpleResponseBody,
+        };
+
+        const gemini3Model = provider.chat('gemini-3-pro-preview');
+        await gemini3Model.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'high',
+          providerOptions: {
+            google: {
+              thinkingConfig: {
+                thinkingBudget: 999,
+              },
+            },
+          },
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.generationConfig.thinkingConfig).toEqual({
+          thinkingBudget: 999,
         });
         expect(
           body.generationConfig.thinkingConfig.thinkingLevel,

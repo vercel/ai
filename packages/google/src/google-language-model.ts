@@ -66,7 +66,7 @@ const configurableSafetySettingCategories = [
   'HARM_CATEGORY_SEXUALLY_EXPLICIT',
 ] as const;
 
-const gemini25ModelPattern = /(^|\/)gemini-2\.5(?:[.-]|$)/i;
+const gemini25ModelPattern = /(^|[/.])gemini-2\.5(?:[.-]|$)/i;
 
 const googleCloudStorageFunctionResponseUrls = {
   'image/png': [/^gs:\/\/.*$/],
@@ -357,7 +357,16 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     });
     const thinkingConfig =
       googleOptions?.thinkingConfig || resolvedThinking
-        ? { ...resolvedThinking, ...googleOptions?.thinkingConfig }
+        ? {
+            ...resolvedThinking,
+            ...googleOptions?.thinkingConfig,
+            ...(googleOptions?.thinkingConfig?.thinkingBudget !== undefined
+              ? { thinkingLevel: undefined }
+              : {}),
+            ...(googleOptions?.thinkingConfig?.thinkingLevel !== undefined
+              ? { thinkingBudget: undefined }
+              : {}),
+          }
         : undefined;
 
     const streamFunctionCallArguments =
@@ -1460,9 +1469,16 @@ function resolveGemini3ThinkingConfig({
 function getMinimumThinkingLevelForGemini3Model(
   modelId: string,
 ): 'minimal' | 'low' {
-  const modelName = modelId.split('/').at(-1)?.toLowerCase();
+  const modelName = modelId
+    .split('/')
+    .at(-1)
+    ?.toLowerCase()
+    .replace(/^[a-z]{2,}\.(?=(?:gemini|gemma)-)/, '');
 
-  if (modelName === 'gemini-flash-latest') {
+  if (
+    modelName === 'gemini-flash-latest' ||
+    (modelName != null && /^gemini-(?:\d+(?:\.\d+)?-)?pro(?:$|-)/.test(modelName))
+  ) {
     return 'low';
   }
 
