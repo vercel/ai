@@ -23571,6 +23571,189 @@ describe('streamText', () => {
     });
   });
 
+  describe('continueWhen', () => {
+    it('should continue after a natural stop and let prepareStep update messages', async () => {
+      const prompts: LanguageModelV4Prompt[] = [];
+      const steeringMessages = [
+        { role: 'user' as const, content: 'steer the next step' },
+      ];
+      let responseCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async ({ prompt }) => {
+            prompts.push(prompt);
+            const text = responseCount++ === 0 ? 'first' : 'second';
+
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: text },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        prompt: 'test-input',
+        stopWhen: isStepCount(2),
+        continueWhen: () => steeringMessages.length > 0,
+        prepareStep: ({ messages, stepNumber }) => {
+          if (stepNumber === 0 || steeringMessages.length === 0) {
+            return;
+          }
+
+          return {
+            messages: [...messages, ...steeringMessages.splice(0)],
+          };
+        },
+      });
+
+      await result.consumeStream();
+
+      expect(await result.steps).toHaveLength(2);
+      expect(prompts).toHaveLength(2);
+      expect(prompts[1]).toContainEqual({
+        role: 'user',
+        content: [{ type: 'text', text: 'steer the next step' }],
+        providerOptions: undefined,
+      });
+    });
+
+    it('should continue after tool results without calling continueWhen', async () => {
+      const continueWhen = vi.fn(async () => false);
+      let modelCallCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            const isToolStep = modelCallCount++ === 0;
+
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                ...(isToolStep
+                  ? [
+                      {
+                        type: 'tool-call' as const,
+                        toolCallId: 'call-1',
+                        toolName: 'tool1',
+                        input: '{}',
+                      },
+                    ]
+                  : [
+                      { type: 'text-start' as const, id: '1' },
+                      { type: 'text-delta' as const, id: '1', delta: 'done' },
+                      { type: 'text-end' as const, id: '1' },
+                    ]),
+                {
+                  type: 'finish',
+                  finishReason: {
+                    unified: isToolStep ? 'tool-calls' : 'stop',
+                    raw: isToolStep ? 'tool-calls' : 'stop',
+                  },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        prompt: 'test-input',
+        tools: {
+          tool1: {
+            inputSchema: z.object({}),
+            execute: async () => 'tool result',
+          },
+        },
+        stopWhen: isStepCount(2),
+        continueWhen,
+      });
+
+      await result.consumeStream();
+
+      expect(modelCallCount).toBe(2);
+      expect(await result.steps).toHaveLength(2);
+      expect(await result.text).toBe('done');
+      expect(continueWhen).not.toHaveBeenCalled();
+    });
+
+    it('should not call stopWhen after a natural stop without continueWhen', async () => {
+      let modelCallCount = 0;
+      const stopWhen = vi.fn(async () => false);
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            modelCallCount++;
+
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'done' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        prompt: 'test-input',
+        stopWhen,
+      });
+
+      await result.consumeStream();
+
+      expect(modelCallCount).toBe(1);
+      expect(await result.steps).toHaveLength(1);
+      expect(stopWhen).not.toHaveBeenCalled();
+    });
+
+    it('should let stopWhen prevent a requested continuation', async () => {
+      let modelCallCount = 0;
+      const continueWhen = vi.fn(async () => true);
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            modelCallCount++;
+
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'done' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        prompt: 'test-input',
+        stopWhen: isStepCount(1),
+        continueWhen,
+      });
+
+      await result.consumeStream();
+
+      expect(modelCallCount).toBe(1);
+      expect(await result.steps).toHaveLength(1);
+      expect(continueWhen).not.toHaveBeenCalled();
+    });
+  });
+
   describe('options.experimental_toolCallers', () => {
     it('late-binds local caller tools and hides local-only callees', async () => {
       let modelTools: LanguageModelV4CallOptions['tools'];
