@@ -597,6 +597,91 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         }),
       );
     });
+
+    it('should keep provider-executed tool results paired when the output length limit is reached', async () => {
+      const tools = {
+        webSearch: tool({
+          type: 'provider' as const,
+          id: 'test.web_search',
+          args: {},
+          isProviderExecuted: true,
+          inputSchema: z.object({ query: z.string() }),
+        }),
+      };
+      const model = new MockLanguageModelV4({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'stream-start' as const, warnings: [] },
+            {
+              type: 'tool-call' as const,
+              toolCallId: 'call-1',
+              toolName: 'webSearch',
+              input: '{"query":"test"}',
+              providerExecuted: true,
+            },
+            {
+              type: 'tool-result' as const,
+              toolCallId: 'call-1',
+              toolName: 'webSearch',
+              result: { hits: 3 },
+              providerExecuted: true,
+            },
+            { type: 'text-start' as const, id: 'text-1' },
+            {
+              type: 'text-delta' as const,
+              id: 'text-1',
+              delta: 'A partial answer.',
+            },
+            { type: 'text-end' as const, id: 'text-1' },
+            {
+              ...dummyStreamFinish,
+              finishReason: {
+                unified: 'length' as const,
+                raw: 'length',
+              },
+            },
+          ]),
+        }),
+      });
+
+      const result = await new WorkflowAgent({ model, tools }).stream({
+        messages: [{ role: 'user', content: 'Write an answer.' }],
+      });
+
+      const assistantMessage = {
+        role: 'assistant',
+        content: [
+          { type: 'tool-call', toolCallId: 'call-1' },
+          { type: 'tool-result', toolCallId: 'call-1' },
+          { type: 'text', text: 'A partial answer.' },
+        ],
+      };
+      expect(result.finishReason).toBe('length');
+      expect(result.messages.at(-1)).toMatchObject(assistantMessage);
+      expect(result.steps[0]?.response.messages).toMatchObject([
+        assistantMessage,
+      ]);
+
+      let continuedPrompt: unknown;
+      const continuationModel = new MockLanguageModelV4({
+        doStream: async ({ prompt }) => {
+          continuedPrompt = prompt;
+          return createShortStreamResponse();
+        },
+      });
+      await new WorkflowAgent({
+        model: continuationModel,
+        tools,
+      }).stream({
+        messages: [...result.messages, { role: 'user', content: 'Continue.' }],
+      });
+
+      expect(continuedPrompt).toMatchObject([
+        expect.anything(),
+        assistantMessage,
+        expect.anything(),
+      ]);
+    });
   });
 
   describe('experimental_onStart', () => {
