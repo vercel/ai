@@ -151,6 +151,25 @@ describe('prepareTools', () => {
       ]);
     });
 
+    it('should warn for unknown provider-defined tools on anthropic models', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'anthropic.unknown_tool',
+            name: 'unknown_tool',
+            args: {},
+          },
+        ],
+        modelId: ANTHROPIC_MODEL,
+      });
+
+      expect(result.toolConfig).toEqual({});
+      expect(result.toolWarnings).toEqual([
+        { type: 'unsupported', feature: 'tool anthropic.unknown_tool' },
+      ]);
+    });
+
     it('should warn and filter out web_search_20250305 tool', async () => {
       const result = await prepareTools({
         tools: [
