@@ -20,6 +20,31 @@ type TestTools = {
 type AssertAssignable<Target, Source extends Target> = Source;
 
 describe('UIMessagePart', () => {
+  it('exposes optional result positions on static and dynamic output parts', () => {
+    type Position = { stepIndex: number; contentIndex: number } | undefined;
+    expectTypeOf<
+      Extract<
+        ToolUIPart<TestTools>,
+        { state: 'output-available' }
+      >['resultPosition']
+    >().toEqualTypeOf<Position>();
+    expectTypeOf<
+      Extract<
+        ToolUIPart<TestTools>,
+        { state: 'output-error' }
+      >['resultPosition']
+    >().toEqualTypeOf<Position>();
+    expectTypeOf<
+      Extract<
+        DynamicToolUIPart,
+        { state: 'output-available' }
+      >['resultPosition']
+    >().toEqualTypeOf<Position>();
+    expectTypeOf<
+      Extract<DynamicToolUIPart, { state: 'output-error' }>['resultPosition']
+    >().toEqualTypeOf<Position>();
+  });
+
   it('allows dynamic input-streaming tool parts with optional input', () => {
     type Part = {
       type: 'dynamic-tool';

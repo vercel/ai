@@ -162,6 +162,84 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             return getCurrentStepParts().filter(isToolUIPart);
           }
 
+          function getCurrentStepIndex() {
+            const parts = state.message.parts;
+            const firstStepStart = parts.findIndex(
+              part => part.type === 'step-start',
+            );
+            const hasPrelude = parts
+              .slice(0, Math.max(firstStepStart, 0))
+              .some(
+                part =>
+                  part.type !== 'source-url' && part.type !== 'source-document',
+              );
+            return Math.max(
+              parts.filter(part => part.type === 'step-start').length -
+                1 +
+                (hasPrelude ? 1 : 0),
+              0,
+            );
+          }
+
+          function getToolResultPosition(
+            toolInvocation: ToolUIPart | DynamicToolUIPart,
+          ) {
+            if (
+              (toolInvocation.state === 'output-available' ||
+                toolInvocation.state === 'output-error') &&
+              toolInvocation.resultPosition != null
+            ) {
+              return toolInvocation.resultPosition;
+            }
+
+            const stepIndex = getCurrentStepIndex();
+            let contentIndex = 0;
+            for (const part of getCurrentStepParts()) {
+              switch (part.type) {
+                case 'text':
+                case 'reasoning':
+                case 'custom':
+                case 'file':
+                case 'reasoning-file':
+                  contentIndex++;
+                  break;
+                default:
+                  if (isToolUIPart(part) && part.state !== 'input-streaming') {
+                    contentIndex++;
+                    if (part.approval != null) {
+                      contentIndex++;
+                    }
+                    // Older messages place results beside their calls.
+                    if (
+                      part.providerExecuted === true &&
+                      (part.state === 'output-error' ||
+                        (part.state === 'output-available' &&
+                          part.preliminary !== true)) &&
+                      part.resultPosition == null &&
+                      part !== toolInvocation
+                    ) {
+                      contentIndex++;
+                    }
+                  }
+              }
+            }
+
+            // Results may be stored on calls from an earlier step.
+            for (const part of state.message.parts) {
+              if (
+                isToolUIPart(part) &&
+                part.providerExecuted === true &&
+                (part.state === 'output-error' ||
+                  (part.state === 'output-available' &&
+                    part.preliminary !== true)) &&
+                part.resultPosition?.stepIndex === stepIndex
+              ) {
+                contentIndex++;
+              }
+            }
+            return { stepIndex, contentIndex };
+          }
+
           function getToolInvocation(toolCallId: string) {
             const toolInvocations = getCurrentStepToolInvocations();
 
@@ -843,6 +921,11 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
             case 'tool-output-available': {
               const toolInvocation = getToolInvocation(chunk.toolCallId);
+              const resultPosition =
+                (chunk.providerExecuted ?? toolInvocation.providerExecuted) ===
+                  true && chunk.preliminary !== true
+                  ? getToolResultPosition(toolInvocation)
+                  : undefined;
 
               if (toolInvocation.type === 'dynamic-tool') {
                 updateDynamicToolPart(
@@ -880,12 +963,24 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 );
               }
 
+              if (toolInvocation.state === 'output-available') {
+                if (resultPosition != null) {
+                  toolInvocation.resultPosition = resultPosition;
+                } else {
+                  delete toolInvocation.resultPosition;
+                }
+              }
               write();
               break;
             }
 
             case 'tool-output-error': {
               const toolInvocation = getToolInvocation(chunk.toolCallId);
+              const resultPosition =
+                (chunk.providerExecuted ?? toolInvocation.providerExecuted) ===
+                true
+                  ? getToolResultPosition(toolInvocation)
+                  : undefined;
 
               if (toolInvocation.type === 'dynamic-tool') {
                 updateDynamicToolPart(
@@ -922,6 +1017,13 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 );
               }
 
+              if (toolInvocation.state === 'output-error') {
+                if (resultPosition != null) {
+                  toolInvocation.resultPosition = resultPosition;
+                } else {
+                  delete toolInvocation.resultPosition;
+                }
+              }
               write();
               break;
             }
@@ -940,6 +1042,45 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
             case 'reset-step': {
               const currentStepParts = getCurrentStepParts();
+              const stepIndex = getCurrentStepIndex();
+              let resetDeferredResult = false;
+
+              // Deferred results updated calls outside the reset step.
+              for (const part of state.message.parts) {
+                if (
+                  !isToolUIPart(part) ||
+                  (part.state !== 'output-available' &&
+                    part.state !== 'output-error') ||
+                  part.resultPosition?.stepIndex !== stepIndex ||
+                  currentStepParts.includes(part)
+                ) {
+                  continue;
+                }
+                delete part.resultPosition;
+                delete part.resultProviderMetadata;
+                if (part.type === 'dynamic-tool') {
+                  updateDynamicToolPart(
+                    {
+                      state: 'input-available',
+                      toolCallId: part.toolCallId,
+                      toolName: part.toolName,
+                      input: part.input,
+                    },
+                    part,
+                  );
+                } else {
+                  updateToolPart(
+                    {
+                      state: 'input-available',
+                      toolCallId: part.toolCallId,
+                      toolName: getStaticToolName(part),
+                      input: part.input,
+                    },
+                    part,
+                  );
+                }
+                resetDeferredResult = true;
+              }
 
               state.activeTextParts = createIdMap();
               state.activeReasoningParts = createIdMap();
@@ -950,6 +1091,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   state.message.parts.length - currentStepParts.length,
                   currentStepParts.length,
                 );
+                write();
+              } else if (resetDeferredResult) {
                 write();
               }
               break;

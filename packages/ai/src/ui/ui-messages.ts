@@ -358,6 +358,12 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
       resultProviderMetadata?: ProviderMetadata;
+      /**
+       * The zero-based step and assistant content indices where the final
+       * provider-executed result arrived. Preserve this field when saving
+       * messages so model-message conversion can restore the original order.
+       */
+      resultPosition?: { stepIndex: number; contentIndex: number };
       preliminary?: boolean;
       approval?: {
         id: string;
@@ -382,6 +388,12 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       errorText: string;
       callProviderMetadata?: ProviderMetadata;
       resultProviderMetadata?: ProviderMetadata;
+      /**
+       * The zero-based step and assistant content indices where the final
+       * provider-executed result arrived. Preserve this field when saving
+       * messages so model-message conversion can restore the original order.
+       */
+      resultPosition?: { stepIndex: number; contentIndex: number };
       approval?: {
         id: string;
         approved: true;
@@ -502,6 +514,12 @@ export type DynamicToolUIPart = {
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
       resultProviderMetadata?: ProviderMetadata;
+      /**
+       * The zero-based step and assistant content indices where the final
+       * provider-executed result arrived. Preserve this field when saving
+       * messages so model-message conversion can restore the original order.
+       */
+      resultPosition?: { stepIndex: number; contentIndex: number };
       preliminary?: boolean;
       approval?: {
         id: string;
@@ -521,6 +539,12 @@ export type DynamicToolUIPart = {
       errorText: string;
       callProviderMetadata?: ProviderMetadata;
       resultProviderMetadata?: ProviderMetadata;
+      /**
+       * The zero-based step and assistant content indices where the final
+       * provider-executed result arrived. Preserve this field when saving
+       * messages so model-message conversion can restore the original order.
+       */
+      resultPosition?: { stepIndex: number; contentIndex: number };
       approval?: {
         id: string;
         approved: true;

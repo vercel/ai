@@ -159,6 +159,91 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
 
       case 'assistant': {
         if (message.parts != null) {
+          const firstStepStart = message.parts.findIndex(
+            part => part.type === 'step-start',
+          );
+          const hasPrelude = message.parts
+            .slice(0, Math.max(firstStepStart, 0))
+            .some(
+              part =>
+                part.type !== 'source-url' && part.type !== 'source-document',
+            );
+          const lastStepIndex = Math.max(
+            message.parts.filter(part => part.type === 'step-start').length -
+              1 +
+              (hasPrelude ? 1 : 0),
+            0,
+          );
+          const positionedResults = new Map<
+            number,
+            Array<{ contentIndex: number; result: ToolResultPart }>
+          >();
+          const positionedToolParts = new Set<object>();
+          let currentStepIndex = 0;
+          let hasStepStarted = false;
+
+          async function createProviderToolResult(
+            part: Extract<
+              ToolUIPart | DynamicToolUIPart,
+              { state: 'output-available' | 'output-error' }
+            >,
+          ): Promise<ToolResultPart> {
+            const toolName = getToolName(part);
+            const resultProviderMetadata =
+              part.resultProviderMetadata ?? part.callProviderMetadata;
+            return {
+              type: 'tool-result',
+              toolCallId: part.toolCallId,
+              toolName,
+              output: await createToolModelOutput({
+                toolCallId: part.toolCallId,
+                input: part.input,
+                output:
+                  part.state === 'output-error' ? part.errorText : part.output,
+                tool: getOwn(options?.tools, toolName),
+                errorMode: part.state === 'output-error' ? 'json' : 'none',
+              }),
+              ...(resultProviderMetadata != null
+                ? { providerOptions: resultProviderMetadata }
+                : {}),
+            };
+          }
+
+          // Collect results before processing steps, including result-only steps.
+          let callStepIndex = hasPrelude ? 0 : -1;
+          for (const part of message.parts) {
+            if (part.type === 'step-start') {
+              callStepIndex++;
+            }
+            if (
+              !isToolUIPart(part) ||
+              part.providerExecuted !== true ||
+              (part.state !== 'output-available' &&
+                part.state !== 'output-error') ||
+              (part.state === 'output-available' && part.preliminary === true)
+            ) {
+              continue;
+            }
+            const position = part.resultPosition;
+            if (
+              position == null ||
+              !Number.isInteger(position.stepIndex) ||
+              !Number.isInteger(position.contentIndex) ||
+              position.stepIndex < Math.max(callStepIndex, 0) ||
+              position.stepIndex > lastStepIndex ||
+              position.contentIndex < 0
+            ) {
+              continue;
+            }
+            const results = positionedResults.get(position.stepIndex) ?? [];
+            results.push({
+              contentIndex: position.contentIndex,
+              result: await createProviderToolResult(part),
+            });
+            positionedResults.set(position.stepIndex, results);
+            positionedToolParts.add(part);
+          }
+
           let block: Array<
             | CustomContentUIPart
             | TextUIPart
@@ -171,7 +256,8 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
           > = [];
 
           async function processBlock() {
-            if (block.length === 0) {
+            const results = positionedResults.get(currentStepIndex) ?? [];
+            if (block.length === 0 && results.length === 0) {
               return;
             }
 
@@ -277,28 +363,15 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                     (part.state === 'output-available' ||
                       part.state === 'output-error')
                   ) {
-                    const resultProviderMetadata =
-                      part.resultProviderMetadata ?? part.callProviderMetadata;
-
-                    content.push({
-                      type: 'tool-result',
-                      toolCallId: part.toolCallId,
-                      toolName,
-                      output: await createToolModelOutput({
-                        toolCallId: part.toolCallId,
-                        input: part.input,
-                        output:
-                          part.state === 'output-error'
-                            ? part.errorText
-                            : part.output,
-                        tool: getOwn(options?.tools, toolName),
-                        errorMode:
-                          part.state === 'output-error' ? 'json' : 'none',
-                      }),
-                      ...(resultProviderMetadata != null
-                        ? { providerOptions: resultProviderMetadata }
-                        : {}),
-                    });
+                    if (
+                      !positionedToolParts.has(part) &&
+                      !(
+                        part.state === 'output-available' &&
+                        part.preliminary === true
+                      )
+                    ) {
+                      content.push(await createProviderToolResult(part));
+                    }
                   }
                 }
               } else if (isDataUIPart(part)) {
@@ -313,6 +386,13 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                 const _exhaustiveCheck: never = part;
                 throw new Error(`Unsupported part: ${_exhaustiveCheck}`);
               }
+            }
+
+            // Insert in ascending order because indices include other results.
+            for (const { contentIndex, result } of results.sort(
+              (a, b) => a.contentIndex - b.contentIndex,
+            )) {
+              content.splice(contentIndex, 0, result);
             }
 
             if (content.length > 0) {
@@ -448,7 +528,12 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
             ) {
               block.push(part as (typeof block)[number]);
             } else if (part.type === 'step-start') {
-              await processBlock();
+              // The first boundary opens step 0; subsequent boundaries close it.
+              if (hasStepStarted || block.length > 0) {
+                await processBlock();
+                currentStepIndex++;
+              }
+              hasStepStarted = true;
             }
           }
 

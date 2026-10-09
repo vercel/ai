@@ -184,12 +184,14 @@ type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
         state: 'output-available';
         input: TOOLS[NAME]['input'];
         output: TOOLS[NAME]['output'];
+        resultPosition?: { stepIndex: number; contentIndex: number };
         errorText?: never;
         providerExecuted?: boolean;
       }
     | {
         state: 'output-error';
         input: TOOLS[NAME]['input'];
+        resultPosition?: { stepIndex: number; contentIndex: number };
         output?: never;
         errorText: string;
         providerExecuted?: boolean;
@@ -197,6 +199,22 @@ type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
   );
 }>;
 ```
+
+`resultPosition` is an optional field on static and dynamic tool parts in the
+`output-available` and `output-error` states. The SDK records it when a final
+provider-executed result arrives. `convertToModelMessages` uses it to restore the
+result's original position, including when the result arrives in a later step
+than its call.
+
+- `stepIndex` is the zero-based step index within the assistant UI message.
+  Steps from earlier streams that continued the same message are included.
+- `contentIndex` is the zero-based position in that step's assistant content,
+  counting calls and results separately. Sources, UI data parts, and local tool
+  results in separate tool messages are excluded.
+
+Preserve this field when saving messages. If you edit or remove parts, update
+the affected positions or remove the fields. Messages without this field keep
+the previous behavior, which places provider results beside their calls.
 
 `approval.descriptor` contains optional opaque metadata supplied as
 `approvalDescriptor` on the approval request stream chunk. It is preserved when
