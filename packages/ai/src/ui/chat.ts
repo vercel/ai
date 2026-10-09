@@ -882,12 +882,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       responseMessageIndex === -1
         ? lastMessage
         : this.state.messages[responseMessageIndex];
-<<<<<<< HEAD
-=======
     const originalResponseMessageId = responseMessage?.id;
-    // The continued stream can start with input deltas or a tool result.
-    // Keep unfinished tool parts so result chunks can find their tool call.
->>>>>>> 5150d50e23 (fix: preserve streaming assistant message identity when the chat message list changes (#22393))
     const resumableResponseMessage =
       trigger === 'resume-stream' &&
       responseMessage?.role === 'assistant' &&
