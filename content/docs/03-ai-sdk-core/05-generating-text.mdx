@@ -547,6 +547,10 @@ for await (const part of result.stream) {
 You can use the `experimental_transform` option to transform the stream.
 This is useful for e.g. filtering, changing, or smoothing the text stream.
 
+v0 calls a production version of this pattern [LLM Suspense](/docs/advanced/llm-suspense):
+rewrite the stream (imports, URLs, icons) so the user never sees a broken
+intermediate state.
+
 The transformations are applied before the callbacks are invoked and the promises are resolved.
 If you e.g. have a transformation that changes all text to uppercase, the `onEnd` callback will receive the transformed text.
 

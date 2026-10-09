@@ -1,0 +1,130 @@
+---
+title: LLM Suspense
+description: Rewrite model output while it streams so users never see a broken intermediate state.
+---
+
+# LLM Suspense
+
+[v0](https://vercel.com/blog/how-we-made-v0-an-effective-coding-agent) calls the
+layer that rewrites tokens **as they stream** “LLM Suspense”. The user only sees
+the cleaned stream — not the raw model typo, the 200-character blob URL, or an
+icon import that does not exist.
+
+The AI SDK primitive is [`experimental_transform`](/docs/ai-sdk-core/generating-text#stream-transformation)
+on [`streamText`](/docs/reference/ai-sdk-core/stream-text). A transform is a
+`TransformStream` over `TextStreamPart`. It runs **before** `textStream`,
+`onFinish`, and the resolved `text` promise.
+
+Use it when you can fix the output **deterministically** in milliseconds
+(string rewrite, lookup, regex). Use a second model / AST pass after the stream
+for anything that needs a full file.
+
+## Why it exists
+
+| Problem | What Suspense does |
+|---------|-------------------|
+| Long attachment URLs waste tokens | Swap in a short id before the prompt; expand it on the way out |
+| Model invents a `lucide-react` icon | Rewrite the import to a real export (or the nearest name) |
+| Model emits a deprecated package path | Find-and-replace while the line is still streaming |
+
+The user never sees the wrong import flash and then correct.
+
+## Buffer, then emit
+
+Tokens split in the middle of identifiers. Hold a small tail of text until you
+have a complete rewrite unit (for example a full `import … from 'lucide-react'`
+line), then enqueue the cleaned `text-delta`.
+
+```ts filename="llm-suspense.ts"
+import type { TextStreamPart, ToolSet } from 'ai';
+
+const IMPORT_RE = /import\s+\{([^}]+)\}\s+from\s+['"]lucide-react['"]/;
+
+const ICON_ALIASES: Record<string, string> = {
+  VercelLogo: 'Triangle',
+};
+
+export function lucideSuspenseTransform<TOOLS extends ToolSet>() {
+  return () => {
+    let buffer = '';
+
+    return new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
+      transform(chunk, controller) {
+        if (chunk.type !== 'text-delta') {
+          flush(controller);
+          controller.enqueue(chunk);
+          return;
+        }
+
+        buffer += chunk.text;
+        const newline = buffer.lastIndexOf('\n');
+        if (newline === -1) return;
+
+        const complete = buffer.slice(0, newline + 1);
+        buffer = buffer.slice(newline + 1);
+        controller.enqueue({ ...chunk, text: rewriteLucideImport(complete) });
+      },
+      flush(controller) {
+        flush(controller);
+      },
+    });
+
+    function flush(
+      controller: TransformStreamDefaultController<TextStreamPart<TOOLS>>,
+    ) {
+      if (!buffer) return;
+      controller.enqueue({
+        type: 'text-delta',
+        id: 'suspense',
+        text: rewriteLucideImport(buffer),
+      } as TextStreamPart<TOOLS>);
+      buffer = '';
+    }
+  };
+}
+
+function rewriteLucideImport(text: string): string {
+  return text.replace(IMPORT_RE, (_match, names: string) => {
+    const rewritten = names
+      .split(',')
+      .map(part => part.trim())
+      .filter(Boolean)
+      .map(name => {
+        const alias = ICON_ALIASES[name];
+        return alias ? `${alias} as ${name}` : name;
+      })
+      .join(', ');
+    return `import { ${rewritten} } from 'lucide-react'`;
+  });
+}
+```
+
+## Wire it up
+
+```ts
+import { streamText } from 'ai';
+import { lucideSuspenseTransform } from './llm-suspense';
+
+const result = streamText({
+  model: 'openai/gpt-4.1-mini',
+  prompt: 'Write a React header that uses a Vercel logo icon from lucide-react.',
+  experimental_transform: lucideSuspenseTransform(),
+});
+
+for await (const delta of result.textStream) {
+  process.stdout.write(delta);
+}
+```
+
+You can pass an **array** of transforms. Run cheap string rewrites first;
+keep `smoothStream()` last if you also want word-by-word UI.
+
+See the [Node cookbook](/cookbook/node/llm-suspense) for a runnable snippet
+that also expands short blob ids back to full URLs.
+
+## What not to put in Suspense
+
+- Multi-file or AST fixes (wrap a hook in `QueryClientProvider`) — do that
+  **after** the stream, as v0’s autofixers do.
+- Anything that needs another LLM call on the hot path. Keep this layer
+  under ~100ms.
