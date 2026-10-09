@@ -717,11 +717,8 @@ describe('MCPClient', () => {
     expect(tool).toHaveProperty('inputSchema');
     expect(tool).toHaveProperty('execute');
 
-    // Verify the execute function works
-    const result = await tool.execute(
-      { foo: 'bar' },
-      { messages: [], toolCallId: '1', context: {} },
-    );
+    // Verify the execute function works without AI SDK execution options
+    const result = await tool.execute({ foo: 'bar' });
     expect(result).toEqual({
       content: [{ type: 'text', text: JSON.stringify(structuredContent) }],
       structuredContent,
