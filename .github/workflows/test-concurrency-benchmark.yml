@@ -1,78 +1,71 @@
 name: Test concurrency benchmark
-
-on:
+'on':
   push:
     branches:
       - codex/ci-test-concurrency-benchmark
-
 permissions:
   contents: read
   actions: read
-
 jobs:
   benchmark:
-    name: 'Node ${{ matrix.node }} / ${{ matrix.setting.name }} / repeat ${{ matrix.repeat }}'
+    name: Node ${{ matrix.node }} / ${{ matrix.trial.name }}
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        node: [22]
-        repeat: [1, 2]
-        setting:
-          - name: packages-4-workers-1
-            packages: 4
-            workers: '1'
-          - name: packages-2-workers-2
-            packages: 2
-            workers: '2'
-          - name: packages-4-workers-2
-            packages: 4
-            workers: '2'
-          - name: packages-8-workers-1
-            packages: 8
-            workers: '1'
-          - name: packages-16-workers-default
-            packages: 16
-            workers: 'default'
+        node:
+          - 22
+        trial:
+          - name: paired-forward
+            cases: 2:2 4:2
+          - name: paired-reverse
+            cases: 4:2 2:2
+          - name: one-package-four-workers-1
+            cases: '1:4'
+          - name: one-package-four-workers-2
+            cases: '1:4'
     steps:
       - name: Checkout identical tested revision
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: 897e930dcfbad27bcfe44b45b935aa2599ac83de
-
       - name: Setup pnpm
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
       - name: Use Node.js ${{ matrix.node }}
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: ${{ matrix.node }}
-          cache: 'pnpm'
-
+          cache: pnpm
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
       - name: Download identical package build artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           name: package-build-artifacts
           run-id: 37960649691
           github-token: ${{ github.token }}
-
       - name: Extract package build artifacts
         run: tar -xzf package-build-artifacts.tgz
-
       - name: Measure full package test suite without cache reads
         env:
           SKIP_RSC_E2E: '1'
           TEST_NODE_VERSION: ${{ matrix.node }}
-          BENCHMARK_PACKAGES: ${{ matrix.setting.packages }}
-          BENCHMARK_WORKERS: ${{ matrix.setting.workers }}
-          BENCHMARK_REPEAT: ${{ matrix.repeat }}
-          BENCHMARK_SETTING: ${{ matrix.setting.name }}
+          BENCHMARK_CASES: ${{ matrix.trial.cases }}
+          BENCHMARK_TRIAL: ${{ matrix.trial.name }}
         run: |
           mkdir -p benchmark-results
+          BENCHMARK_ORDER=0
+          OVERALL_STATUS=0
+          for BENCHMARK_CASE in $BENCHMARK_CASES; do
+            BENCHMARK_ORDER=$((BENCHMARK_ORDER + 1))
+            export BENCHMARK_ORDER
+            export BENCHMARK_PACKAGES="${BENCHMARK_CASE%:*}"
+            export BENCHMARK_WORKERS="${BENCHMARK_CASE#*:}"
+            export BENCHMARK_SETTING="packages-$BENCHMARK_PACKAGES-workers-$BENCHMARK_WORKERS"
+            export BENCHMARK_REPEAT="$BENCHMARK_TRIAL"
+            export BENCHMARK_DIRECTORY="benchmark-results/$BENCHMARK_ORDER-$BENCHMARK_SETTING"
+            mkdir -p "$BENCHMARK_DIRECTORY"
           node --version
           pnpm --version
           nproc
@@ -83,23 +76,24 @@ jobs:
             export VITEST_MAX_WORKERS="$BENCHMARK_WORKERS"
           fi
           set +e
-          /usr/bin/time -f 'elapsed_seconds=%e\nuser_seconds=%U\nsystem_seconds=%S\nmax_rss_kb=%M' -o benchmark-results/time.txt \
+          /usr/bin/time -f 'elapsed_seconds=%e\nuser_seconds=%U\nsystem_seconds=%S\nmax_rss_kb=%M' -o "$BENCHMARK_DIRECTORY/time.txt" \
             pnpm exec turbo test --concurrency="$BENCHMARK_PACKAGES" \
               --filter='!@example/*' --filter='!ai' --filter='!@ai-sdk/codemod' \
-              --only --cache=local:w --summarize 2>&1 | tee benchmark-results/tests.log
+              --only --cache=local:w --summarize 2>&1 | tee "$BENCHMARK_DIRECTORY/tests.log"
           TEST_STATUS=${PIPESTATUS[0]}
           set -e
           export TEST_STATUS
-          cp .turbo/runs/*.json benchmark-results/ || true
+          cp .turbo/runs/*.json "$BENCHMARK_DIRECTORY/" || true
           python3 - <<'PY'
           import json, os, pathlib, subprocess
-          root = pathlib.Path('benchmark-results')
+          root = pathlib.Path(os.environ['BENCHMARK_DIRECTORY'])
           metrics = dict(line.split('=', 1) for line in (root / 'time.txt').read_text().splitlines() if '=' in line)
           result = {
               'setting': os.environ['BENCHMARK_SETTING'],
               'packages': int(os.environ['BENCHMARK_PACKAGES']),
               'workers': os.environ['BENCHMARK_WORKERS'],
-              'repeat': int(os.environ['BENCHMARK_REPEAT']),
+              'repeat': os.environ['BENCHMARK_REPEAT'],
+              'order': int(os.environ['BENCHMARK_ORDER']),
               'node': subprocess.check_output(['node', '--version'], text=True).strip(),
               'cpus': os.cpu_count(),
               'available_parallelism': subprocess.check_output(['node', '-p', 'require("node:os").availableParallelism()'], text=True).strip(),
@@ -112,11 +106,12 @@ jobs:
           with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
               summary.write(f"{result['setting']}, repeat {result['repeat']}, Node {result['node']}, {result['cpus']} CPUs: {metrics['elapsed_seconds']} seconds, exit {result['exit_code']}.\n")
           PY
-          exit "$TEST_STATUS"
-
+          if [ "$TEST_STATUS" -ne 0 ]; then OVERALL_STATUS="$TEST_STATUS"; fi
+          done
+          exit "$OVERALL_STATUS"
       - name: Upload measurements and failure diagnostics
         if: ${{ always() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: benchmark-node-${{ matrix.node }}-${{ matrix.setting.name }}-${{ matrix.repeat }}
+          name: benchmark-node-${{ matrix.node }}-${{ matrix.trial.name }}
           path: benchmark-results/
