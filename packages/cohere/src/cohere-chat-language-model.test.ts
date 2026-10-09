@@ -715,9 +715,9 @@ describe('doGenerate', () => {
       expect(usage).toMatchInlineSnapshot(`
         {
           "inputTokens": {
-            "cacheRead": undefined,
+            "cacheRead": 448,
             "cacheWrite": undefined,
-            "noCache": 507,
+            "noCache": 59,
             "total": 507,
           },
           "outputTokens": {
@@ -773,8 +773,8 @@ describe('doGenerate', () => {
       expect(usage).toStrictEqual({
         inputTokens: {
           total: 507,
-          noCache: 507,
-          cacheRead: undefined,
+          noCache: 59,
+          cacheRead: 448,
           cacheWrite: undefined,
         },
         outputTokens: {
@@ -928,8 +928,8 @@ describe('doStream', () => {
           usage: {
             inputTokens: {
               total: 507,
-              noCache: 507,
-              cacheRead: undefined,
+              noCache: 59,
+              cacheRead: 448,
               cacheWrite: undefined,
             },
             outputTokens: {

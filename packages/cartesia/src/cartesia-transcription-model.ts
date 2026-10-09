@@ -104,7 +104,7 @@ export class CartesiaTranscriptionModel implements TranscriptionModelV4 {
     const formData = new FormData();
     const blob =
       audio instanceof Uint8Array
-        ? new Blob([audio])
+        ? new Blob([audio as Uint8Array<ArrayBuffer>])
         : new Blob([convertBase64ToUint8Array(audio)]);
 
     const fileExtension = mediaTypeToExtension(mediaType);
@@ -561,7 +561,10 @@ function cartesiaEncodingFromInputAudioFormat(type: string): string {
 }
 
 function isStreamingTranscriptionModelId(modelId: string): boolean {
-  return modelId === 'ink-2' || modelId.startsWith('ink-2-');
+  // Ink Whisper (including dated snapshots such as `ink-whisper-2025-06-04`)
+  // is the known batch-only model family. Future IDs inherit the current
+  // streaming protocol regardless of their name.
+  return modelId !== 'ink-whisper' && !modelId.startsWith('ink-whisper-');
 }
 
 const cartesiaTranscriptionResponseSchema = z.object({

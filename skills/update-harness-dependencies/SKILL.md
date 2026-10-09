@@ -26,7 +26,7 @@ pnpm --filter harness-acp update @agentclientprotocol/sdk @modelcontextprotocol/
 # Claude Code
 pnpm --filter harness-claude-code update @anthropic-ai/claude-agent-sdk @modelcontextprotocol/sdk --latest --lockfile-only
 # Cline
-pnpm --filter harness-cline update @cline/agents --latest --lockfile-only
+pnpm --filter harness-cline update @cline/agents @cline/core --latest --lockfile-only
 # Codex
 pnpm --filter harness-codex update @openai/codex --latest --lockfile-only
 # Deep Agents
@@ -62,15 +62,6 @@ pnpm --dir packages/harness-grok-build/src/bridge update @agentclientprotocol/sd
 pnpm --dir packages/harness-opencode/src/bridge update @opencode-ai/sdk opencode-ai --latest --ignore-workspace --config.minimumReleaseAge=4320
 ```
 
-For bridge CLI packages that require install scripts, also update the exact
-version in the bridge's `pnpm-workspace.yaml` `allowBuilds` entry to match the
-new version in its `package.json`:
-
-- `packages/harness-claude-code/src/bridge/pnpm-workspace.yaml`
-- `packages/harness-github-copilot/src/bridge/pnpm-workspace.yaml`
-- `packages/harness-grok-build/src/bridge/pnpm-workspace.yaml`
-- `packages/harness-opencode/src/bridge/pnpm-workspace.yaml`
-
 The following harness adapters use an unversioned installer script instead of an NPM package for their SDK / CLI and therefore can be ignored:
 
 - `packages/harness-cursor`
@@ -79,6 +70,35 @@ The following harness adapters use an unversioned installer script instead of an
 #### Example dependencies
 
 Check the `package.json` files in `examples/harness-e2e-next` and `examples/harness-e2e-tui` for any of the above SDKs they depend on. Those dependencies need to be updated to match the exact version used in the packages as well.
+
+### Update ACP and MCP SDKs everywhere
+
+Find every harness package and bridge manifest that declares either SDK:
+
+```bash
+rg -n '"(@agentclientprotocol/sdk|@modelcontextprotocol/sdk)"' packages/harness-* --glob 'package.json'
+```
+
+For each matching workspace package manifest, update its declared SDKs with
+`pnpm --filter`. Replace the placeholders with the harness workspace name and
+the SDK package names found in that manifest:
+
+```bash
+pnpm --filter <harness-name> update <sdk-package>... --latest --lockfile-only
+
+# Example
+pnpm --filter harness-acp update @agentclientprotocol/sdk @modelcontextprotocol/sdk --latest --lockfile-only
+```
+
+For each matching bridge manifest, run `pnpm --dir` in the directory containing
+that manifest:
+
+```bash
+pnpm --dir <bridge-directory> update <sdk-package>... --latest --ignore-workspace --config.minimumReleaseAge=4320
+
+# Example
+pnpm --dir packages/harness-acp/src/v1/bridge update @agentclientprotocol/sdk @modelcontextprotocol/sdk --latest --ignore-workspace --config.minimumReleaseAge=4320
+```
 
 ### Verification
 

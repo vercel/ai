@@ -40,6 +40,13 @@ const { embedding } = await embed({
       description: 'The value to embed. The type depends on the model.',
     },
     {
+      name: 'dimensions',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Requested output embedding dimensions. Must be a positive integer. Forwarded to the model; requires support in the provider implementation. Provider mappings are being added separately. Use providerOptions until your provider supports this setting.',
+    },
+    {
       name: 'maxRetries',
       type: 'number',
       isOptional: true,
@@ -164,6 +171,13 @@ const { embedding } = await embed({
               name: 'value',
               type: 'string | Array<string>',
               description: 'The value being embedded.',
+            },
+            {
+              name: 'dimensions',
+              type: 'number',
+              isOptional: true,
+              description:
+                'Requested output embedding dimensions, when specified.',
             },
             {
               name: 'maxRetries',

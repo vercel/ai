@@ -1,10 +1,15 @@
-import { openai } from '@ai-sdk/openai';
+import { openai, type OpenAIDecisionModelOptions } from '@ai-sdk/openai';
 import { experimental_decide } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await experimental_decide({
     model: openai.decisionModel('gpt-6-luna'),
+    providerOptions: {
+      openai: {
+        safetyIdentifier: 'example-user',
+      } satisfies OpenAIDecisionModelOptions,
+    },
     state: {
       message:
         'I was charged twice. A refund is pending, so I can keep working.',
@@ -32,11 +37,13 @@ run(async () => {
   });
 
   console.log('Answers:', result.answers);
-  // Boolean probabilities are prompted estimates; choose a threshold for your task.
+  // Choose a threshold for the native predicate probability for your task.
   console.log(
     'Requests refund:',
     result.answers.requestsRefund.probability >= 0.5,
   );
   console.log('Usage:', result.usage);
+  console.log('Native usage:', result.providerMetadata?.openai?.usage);
+  console.log('Confidence:', result.providerMetadata?.openai?.confidence);
   console.log('Model:', result.response.modelId);
 });

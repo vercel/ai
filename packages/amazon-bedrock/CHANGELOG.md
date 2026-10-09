@@ -1,5 +1,97 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.113
+
+### Patch Changes
+
+- 5cf13d2: feat: map the top level embedding dimensions to provider settings
+- Updated dependencies [5cf13d2]
+- Updated dependencies [72e9d38]
+- Updated dependencies [fb933f9]
+- Updated dependencies [4dbc902]
+  - @ai-sdk/openai@4.0.91
+  - @ai-sdk/provider@4.0.26
+  - @ai-sdk/anthropic@4.0.78
+  - @ai-sdk/provider-utils@5.0.58
+
+## 5.0.112
+
+### Patch Changes
+
+- c01cbb8: fix(anthropic): avoid unsupported strict mode warnings when tools set `strict: false`
+- Updated dependencies [6c59fb1]
+- Updated dependencies [c01cbb8]
+  - @ai-sdk/openai@4.0.90
+  - @ai-sdk/anthropic@4.0.77
+
+## 5.0.111
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider@4.0.25
+  - @ai-sdk/provider-utils@5.0.57
+  - @ai-sdk/openai@4.0.89
+  - @ai-sdk/anthropic@4.0.76
+
+## 5.0.110
+
+### Patch Changes
+
+- 5d42987: fix(amazon-bedrock,anthropic-aws): skip SigV4 signing for non-ASCII header values
+- Updated dependencies [32ff7ad]
+  - @ai-sdk/openai@4.0.88
+
+## 5.0.109
+
+### Patch Changes
+
+- 866e884: feat(anthropic): add Claude Haiku 5.5 support
+
+  - add the `claude-haiku-5-5` model ID to `@ai-sdk/anthropic` and `@ai-sdk/google-vertex`, `anthropic.claude-haiku-5-5` and `us.anthropic.claude-haiku-5-5` to `@ai-sdk/amazon-bedrock`, and `anthropic/claude-haiku-5.5` to `@ai-sdk/gateway`
+  - recognize `claude-haiku-5-5` as a known model with a 128k max output token limit, adaptive thinking, and all five effort levels; thinking can be disabled up to `high` effort, and `xhigh` and `max` are lowered to `high` with a warning when thinking is disabled
+  - `claude-haiku-5-5` does not support thinking token budgets: `thinking: { type: 'enabled', budgetTokens }` is converted to adaptive thinking with a warning
+  - use the JSON tool fallback for structured output on Amazon Bedrock for `claude-haiku-5-5`
+
+- Updated dependencies [866e884]
+- Updated dependencies [bccc1b7]
+  - @ai-sdk/anthropic@4.0.75
+  - @ai-sdk/openai@4.0.87
+
+## 5.0.108
+
+### Patch Changes
+
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/openai@4.0.86
+  - @ai-sdk/anthropic@4.0.74
+  - @ai-sdk/provider-utils@5.0.56
+
+## 5.0.107
+
+### Patch Changes
+
+- 268225c: feat(provider): add a portable `max` reasoning level with native provider mappings, compatibility coercions, and budget-based fallback support.
+
+  Compatibility notes:
+
+  - **TypeScript source compatibility:** Adding `max` widens `LanguageModelV4CallOptions['reasoning']` and the derived `ReasoningLevel` type. Third-party providers and consumers with exhaustive switches or `Record<ReasoningLevel, ...>` mappings must handle `max` before upgrading. Ordinary calls using existing reasoning levels remain accepted.
+  - **Amazon Bedrock:** Existing Nova 2 calls using portable `reasoning: 'xhigh'` now send `maxReasoningEffort: 'high'` instead of the unsupported `'max'`, and return a compatibility warning. Anthropic and OpenAI Bedrock effort mappings retain their existing `xhigh` behavior. Partial Bedrock reasoning configurations continue to preserve explicit values and derive missing fields; explicit effort/budget overrides and disabled thinking no longer emit warnings for portable mappings that are not sent.
+  - **Fireworks:** Existing portable `minimal` and `xhigh` calls keep their request mappings to `low` and `high`, respectively, and now return compatibility warnings in generation and streaming results. Portable `max` maps to `high` with the same warning behavior.
+
+  **Release classification:** This remains a patch changeset under the repository's explicit release policy, which uses patch releases for both fixes and features. The TypeScript source-compatibility caveat for exhaustive consumers is disclosed above. Maintainers can override this classification with a `major` label if they decide to align the provider-spec addition with a future AI SDK major release.
+
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [99bdcd2]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/openai@4.0.85
+  - @ai-sdk/anthropic@4.0.73
+  - @ai-sdk/provider@4.0.23
+
 ## 5.0.106
 
 ### Patch Changes

@@ -607,6 +607,14 @@ describe('doGenerate', () => {
       expect((await server.calls[1].requestBodyJson).reasoning_effort).toBe(
         'max',
       );
+
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'max',
+      });
+      expect((await server.calls[2].requestBodyJson).reasoning_effort).toBe(
+        'max',
+      );
     });
 
     it('should prefer explicit reasoningEffort over generic reasoning', async () => {
@@ -936,20 +944,30 @@ describe('doGenerate', () => {
       });
     });
 
-    it('should fall back to json_object for unknown models', async () => {
-      await provider.chatModel('custom-model-id').doGenerate({
-        prompt: TEST_PROMPT,
-        responseFormat: {
-          type: 'json',
-          schema: { type: 'object', properties: {} },
-        },
-      });
+    it.each(['custom-model-id', 'moonshot-v2', 'kimi-next'])(
+      'should preserve JSON schema output for unknown model %s',
+      async modelId => {
+        const result = await provider.chatModel(modelId).doGenerate({
+          prompt: TEST_PROMPT,
+          responseFormat: {
+            type: 'json',
+            name: 'response',
+            schema: { type: 'object', properties: {} },
+          },
+        });
 
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.response_format).toStrictEqual({
-        type: 'json_object',
-      });
-    });
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.response_format).toStrictEqual({
+          type: 'json_schema',
+          json_schema: {
+            name: 'response',
+            schema: { type: 'object', properties: {} },
+            strict: true,
+          },
+        });
+        expect(result.warnings).toEqual([]);
+      },
+    );
   });
 
   describe('Partial Mode', () => {

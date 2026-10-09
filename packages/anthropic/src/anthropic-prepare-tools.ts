@@ -99,7 +99,7 @@ export async function prepareTools({
         const deferLoading = anthropicOptions?.deferLoading;
         const allowedCallers = anthropicOptions?.allowedCallers;
 
-        if (!supportsStrictTools && tool.strict != null) {
+        if (!supportsStrictTools && tool.strict === true) {
           toolWarnings.push({
             type: 'unsupported',
             feature: 'strict',
@@ -515,8 +515,12 @@ export async function prepareTools({
         betas,
       };
     case 'none':
-      // Anthropic does not support 'none' tool choice, so we remove the tools:
-      return { tools: undefined, toolChoice: undefined, toolWarnings, betas };
+      return {
+        tools: anthropicTools,
+        toolChoice: { type: 'none' },
+        toolWarnings,
+        betas,
+      };
     case 'tool':
       if (rejectsForcedToolUse) {
         toolWarnings.push({

@@ -1,8 +1,10 @@
 import {
   InvalidResponseDataError,
-  type Experimental_DecisionModelV4CallOptions as DecisionModelV4CallOptions,
   type Experimental_DecisionModelV4Result as DecisionModelV4Result,
+  type Experimental_DecisionModelV4Question as DecisionQuestion,
 } from '@ai-sdk/provider';
+import { filePartSchema, textPartSchema } from '../prompt/content-part';
+import type { DecisionState } from './decision-state';
 import { InvalidArgumentError } from '../error/invalid-argument-error';
 
 // Absolute tolerance for sums and means. Never renormalize provider output.
@@ -50,12 +52,30 @@ function invalidInput(
 export function validateDecisionInput({
   state,
   questions,
-}: DecisionModelV4CallOptions) {
-  if (!isInput(state)) {
+}: {
+  state: DecisionState;
+  questions: Readonly<Record<string, DecisionQuestion>>;
+}) {
+  const validState = Array.isArray(state)
+    ? Array.from(state).every(part => {
+        if (!isRecord(part)) return false;
+        switch (part.type) {
+          case 'text':
+            return textPartSchema.safeParse(part).success;
+          case 'file':
+            return filePartSchema.safeParse(part).success;
+          case 'json':
+            return isJSON(part.value);
+          default:
+            return false;
+        }
+      })
+    : (typeof state === 'string' || isRecord(state)) && isJSON(state);
+  if (!validState) {
     invalidInput(
       'state',
       state,
-      'must be a JSON-compatible string, object, or array',
+      'must be a string, JSON object, or array of text, file, or json parts',
     );
   }
   if (!isRecord(questions) || Object.keys(questions).length === 0) {
@@ -178,7 +198,7 @@ export function validateDecisionAnswers({
   answers,
   rounding,
 }: {
-  questions: DecisionModelV4CallOptions['questions'];
+  questions: Readonly<Record<string, DecisionQuestion>>;
   answers: unknown;
   rounding?: DecisionModelV4Result['rounding'];
 }) {
@@ -203,6 +223,7 @@ export function validateDecisionAnswers({
 
   for (const [id, question] of Object.entries(questions)) {
     const answer = answers[id];
+    if (isRecord(answer) && answer.type === 'refusal') continue;
     if (!isRecord(answer) || answer.type !== question.type) {
       invalidAnswer(
         answers,
@@ -232,7 +253,8 @@ export function validateDecisionAnswers({
           const selected = answer.probabilities[answer.choice];
           if (
             Object.values(answer.probabilities).some(
-              probability => probability > selected + tolerance,
+              probability =>
+                probability > selected + tolerance + 2 * probabilityError,
             )
           ) {
             invalidAnswer(

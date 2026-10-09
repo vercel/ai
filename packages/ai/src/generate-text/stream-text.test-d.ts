@@ -268,6 +268,61 @@ describe('streamText types', () => {
   });
 
   describe('toUIMessageStream options', () => {
+    it('preserves custom UI message types in step callbacks across all conversion methods', () => {
+      type Message = UIMessage<
+        { totalTokens: number },
+        { context: { project: string } },
+        {
+          weather: {
+            input: { location: string };
+            output: { temperature: number };
+          };
+        }
+      >;
+      const result = streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+      });
+      const checkSnapshot = (message: Message) => {
+        expectTypeOf(message.metadata).toEqualTypeOf<
+          { totalTokens: number } | undefined
+        >();
+        for (const part of message.parts) {
+          if (part.type === 'data-context') {
+            expectTypeOf(part.data).toEqualTypeOf<{ project: string }>();
+          }
+          if (
+            part.type === 'tool-weather' &&
+            part.state === 'output-available'
+          ) {
+            expectTypeOf(part.input).toEqualTypeOf<{ location: string }>();
+            expectTypeOf(part.output).toEqualTypeOf<{ temperature: number }>();
+          }
+        }
+      };
+      result.toUIMessageStream<Message>({
+        onStepEnd: event => {
+          expectTypeOf(event.responseMessage).toEqualTypeOf<Message>();
+          expectTypeOf(event.messages).toEqualTypeOf<Message[]>();
+          checkSnapshot(event.responseMessage);
+        },
+      });
+      result.toUIMessageStreamResponse<Message>({
+        onStepEnd: event => {
+          expectTypeOf(event.responseMessage).toEqualTypeOf<Message>();
+          expectTypeOf(event.messages).toEqualTypeOf<Message[]>();
+          checkSnapshot(event.responseMessage);
+        },
+      });
+      result.pipeUIMessageStreamToResponse<Message>(null as never, {
+        onStepFinish: event => {
+          expectTypeOf(event.responseMessage).toEqualTypeOf<Message>();
+          expectTypeOf(event.messages).toEqualTypeOf<Message[]>();
+          checkSnapshot(event.responseMessage);
+        },
+      });
+    });
+
     it('should support onEnd and deprecated onFinish', () => {
       const result = streamText({
         model: new MockLanguageModelV4(),
@@ -848,7 +903,7 @@ describe('streamText types', () => {
             frequencyPenalty: 0,
             stopSequences: ['stop'],
             seed: 0,
-            reasoning: 'high',
+            reasoning: 'max',
           }),
         });
       });

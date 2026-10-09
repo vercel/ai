@@ -689,6 +689,10 @@ export function convertToGoogleMessages(
               );
             }
           } else {
+            const isError =
+              output.type === 'error-text' ||
+              output.type === 'error-json' ||
+              output.type === 'execution-denied';
             parts.push({
               functionResponse: {
                 ...(includeFunctionCallIds && part.toolCallId != null
@@ -697,10 +701,16 @@ export function convertToGoogleMessages(
                 name: part.toolName,
                 response: {
                   name: part.toolName,
-                  content:
-                    output.type === 'execution-denied'
-                      ? (output.reason ?? 'Tool call execution denied.')
-                      : serializeFunctionResponseContent(output.value),
+                  ...(isError
+                    ? {
+                        error:
+                          output.type === 'execution-denied'
+                            ? (output.reason ?? 'Tool call execution denied.')
+                            : serializeFunctionResponseContent(output.value),
+                      }
+                    : {
+                        content: serializeFunctionResponseContent(output.value),
+                      }),
                 },
               },
             });

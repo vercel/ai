@@ -1,5 +1,83 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.152
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.148
+
+## 1.0.151
+
+### Patch Changes
+
+- c357e52: chore(harness): update primary harness SDKs to their latest versions
+  - @ai-sdk/harness@1.0.147
+
+## 1.0.150
+
+### Patch Changes
+
+- 0887035: fix(harness-claude-code): close compaction events emitted outside a model step
+- 714f3fc: fix(harness-claude-code): report host tool calls rejected by MCP input validation
+- Updated dependencies [4dbc902]
+  - @ai-sdk/provider@4.0.26
+  - @ai-sdk/harness@1.0.146
+  - @ai-sdk/provider-utils@5.0.58
+
+## 1.0.149
+
+### Patch Changes
+
+- 18c2658: fix(harness-claude-code): forward Claude rate limit events through raw stream parts
+  - @ai-sdk/harness@1.0.145
+
+## 1.0.148
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider@4.0.25
+  - @ai-sdk/provider-utils@5.0.57
+  - @ai-sdk/harness@1.0.144
+
+## 1.0.147
+
+### Patch Changes
+
+- 9d84fad: chore(harness): ensure ACP and MCP dependencies use the latest version and are aligned across adapters
+- Updated dependencies [c4a5c8d]
+- Updated dependencies [50ac48b]
+- Updated dependencies [e8af189]
+  - @ai-sdk/harness@1.0.143
+
+## 1.0.146
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.142
+
+## 1.0.145
+
+### Patch Changes
+
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/harness@1.0.141
+  - @ai-sdk/provider-utils@5.0.56
+
+## 1.0.144
+
+### Patch Changes
+
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+- Updated dependencies [4c6979c]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/provider@4.0.23
+  - @ai-sdk/harness@1.0.140
+
 ## 1.0.143
 
 ### Patch Changes

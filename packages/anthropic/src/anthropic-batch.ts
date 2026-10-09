@@ -1,3 +1,4 @@
+import { mapAnthropicCitation } from './map-anthropic-citation';
 import {
   InvalidArgumentError,
   InvalidResponseDataError,
@@ -44,8 +45,8 @@ import {
 } from './anthropic-api';
 import { anthropicFailedResponseHandler } from './anthropic-error';
 import {
-  AnthropicLanguageModel,
   createCitationSource,
+  AnthropicLanguageModel,
   type AnthropicLanguageModelConfig,
 } from './anthropic-language-model';
 import {
@@ -189,6 +190,7 @@ export class AnthropicBatch implements BatchV4<{
       provider: string;
       config: AnthropicLanguageModelConfig;
       supportedUrls: Record<string, RegExp[]>;
+      maxLineBytes?: number;
     },
   ) {
     this.provider = options.provider;
@@ -409,6 +411,7 @@ export class AnthropicBatch implements BatchV4<{
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createJsonLinesResponseHandler(
         anthropicBatchResultLineSchema,
+        { maxLineBytes: this.options.maxLineBytes },
       ),
       abortSignal: options.abortSignal,
       fetch: this.options.config.fetch,
@@ -744,6 +747,12 @@ function convertAnthropicBatchResponse(
   > = {};
   const serverToolCalls: Record<string, string> = {};
 
+  const hasWebSearchResults = response.content.some(
+    part =>
+      part.type === 'web_search_tool_result' &&
+      Array.isArray(part.content) &&
+      part.content.length > 0,
+  );
   for (const part of response.content) {
     switch (part.type) {
       case 'text':
@@ -754,18 +763,24 @@ function convertAnthropicBatchResponse(
           text: part.text,
           ...(citations != null &&
             citations.length > 0 && {
+              citations: citations.map(citation =>
+                mapAnthropicCitation(citation, []),
+              ),
+            }),
+          ...(citations != null &&
+            citations.length > 0 && {
               providerMetadata: {
                 anthropic: { citations },
               },
             }),
         });
         for (const citation of part.citations ?? []) {
-          // Batch result retrieval does not include the original prompt's
-          // document ordering, so indexed document citations cannot be
-          // normalized safely. Preserve them above as provider metadata.
-          const source = createCitationSource(citation, [], generateId);
-          if (source != null) {
-            content.push(source);
+          if (
+            citation.type === 'web_search_result_location' &&
+            !hasWebSearchResults
+          ) {
+            const source = createCitationSource(citation, [], generateId);
+            if (source) content.push(source);
           }
         }
         break;

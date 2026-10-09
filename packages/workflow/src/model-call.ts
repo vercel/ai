@@ -9,6 +9,7 @@ import type {
   Experimental_LanguageModelStreamPart,
   FinishReason,
   LanguageModelUsage,
+  StepResultPerformance,
   StopCondition,
   ToolCallRepairFunction,
   ToolChoice,
@@ -70,6 +71,21 @@ export interface ModelCallOptions {
   experimental_transform?:
     | StreamTextTransform<ToolSet>
     | Array<StreamTextTransform<ToolSet>>;
+  /**
+   * Set when the model step dispatches telemetry to globally registered
+   * integrations, which are not available in the workflow body.
+   */
+  telemetry?: ModelCallTelemetry;
+}
+
+/**
+ * Serializable telemetry settings for a durable model call.
+ */
+export interface ModelCallTelemetry {
+  functionId?: string;
+  recordInputs?: boolean;
+  recordOutputs?: boolean;
+  stepNumber: number;
 }
 
 /**
@@ -98,6 +114,11 @@ export interface ModelCallFinish {
   usage: LanguageModelUsage;
   providerMetadata?: Record<string, unknown>;
 }
+
+export type ModelCallPerformance = Omit<
+  StepResultPerformance,
+  'stepTimeMs' | 'toolExecutionMs'
+>;
 
 export type ModelCallRawContentPart =
   | Extract<
@@ -175,6 +196,8 @@ export interface ModelCallRawResult {
     request?: { body?: unknown };
     responseTimeMs: number;
   };
+  /** Present on streamed results produced after performance tracking was added. */
+  performance?: ModelCallPerformance;
   warnings?: unknown[];
 }
 

@@ -625,6 +625,37 @@ describe('OpenAI batch service', () => {
     });
   });
 
+  it.each([16, 4096])(
+    'applies the factory maxLineBytes setting of %s',
+    async maxLineBytes => {
+      server.urls[urls.batch].response = {
+        type: 'json-value',
+        body: batchResponse({ output_file_id: 'file-output' }),
+      };
+      server.urls[urls.output].response = {
+        type: 'stream-chunks',
+        chunks: [
+          resultLine({ id: 'france', body: responsesResultBody('Paris') }) +
+            '\n',
+        ],
+      };
+      const batch = createOpenAI({
+        apiKey: 'test-api-key',
+        batchResultDownloads: { maxLineBytes },
+      }).experimental_batch();
+      const stream = await batch.doGetBatchResults({ batchId: 'batch_123' });
+      const results = convertReadableStreamToArray(stream);
+      if (maxLineBytes === 16) {
+        await expect(results).rejects.toMatchObject({
+          name: 'AI_DownloadError',
+          url: urls.output,
+        });
+      } else {
+        await expect(results).resolves.toHaveLength(1);
+      }
+    },
+  );
+
   it('incrementally parses Responses results across chunk boundaries', async () => {
     server.urls[urls.batch].response = {
       type: 'json-value',
@@ -1001,6 +1032,74 @@ describe('OpenAI batch service', () => {
         message: 'OpenAI batch "batch_123" completed without batch output.',
       });
     });
+
+    describe.each([true, false])(
+      'web search status with action: %s',
+      withAction => {
+        it.each(['failed', 'incomplete'])(
+          'preserves %s web search tool errors in successful batch responses',
+          async status => {
+            server.urls[urls.batch].response = {
+              type: 'json-value',
+              body: batchResponse({ output_file_id: 'file-output' }),
+            };
+            server.urls[urls.output].response = {
+              type: 'stream-chunks',
+              chunks: [
+                resultLine({
+                  id: 'web-search',
+                  body: {
+                    ...responsesResultBody(''),
+                    output: [
+                      {
+                        type: 'web_search_call',
+                        id: 'ws_test',
+                        status,
+                        ...(withAction
+                          ? { action: { type: 'search', query: 'AI SDK' } }
+                          : {}),
+                      },
+                    ],
+                  },
+                }),
+              ],
+            };
+            const batch = createOpenAI({
+              apiKey: 'test-api-key',
+            }).experimental_batch();
+            const stream = await batch.doGetBatchResults({
+              batchId: 'batch_123',
+            });
+            const results = await convertReadableStreamToArray(stream);
+
+            expect(results).toMatchObject([
+              {
+                id: 'web-search',
+                status: 'succeeded',
+                result: {
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallId: 'ws_test',
+                      toolName: 'web_search',
+                      input: '{}',
+                      providerExecuted: true,
+                    },
+                    {
+                      type: 'tool-result',
+                      toolCallId: 'ws_test',
+                      toolName: 'web_search',
+                      isError: true,
+                      result: { status },
+                    },
+                  ],
+                },
+              },
+            ]);
+          },
+        );
+      },
+    );
 
     it('preserves tool calls and fails unsupported items without stopping later results', async () => {
       server.urls[urls.batch].response = {

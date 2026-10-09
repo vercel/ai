@@ -1,3 +1,4 @@
+import type { Experimental_DecisionModelV4State as DecisionModelV4State } from '@ai-sdk/provider';
 import { describe, it, expect } from 'vitest';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { createGateway } from './gateway-provider';
@@ -8,7 +9,9 @@ import {
   GatewayInternalServerError,
 } from './errors';
 
-const testState = 'The capital of France is Paris.';
+const testState = [
+  { type: 'text', text: 'The capital of France is Paris.' },
+] as const;
 
 const testQuestions = {
   correct: {
@@ -63,6 +66,112 @@ const createTestModel = (
   });
 
 describe('GatewayDecisionModel', () => {
+  const statePartsCases: {
+    name: string;
+    state: DecisionModelV4State;
+  }[] = [
+    { name: 'a text part', state: [{ type: 'text', text: 'Inspect.' }] },
+    {
+      name: 'a JSON object part',
+      state: [{ type: 'json', value: { product: 'vase', history: ['new'] } }],
+    },
+    {
+      name: 'a JSON array part',
+      state: [{ type: 'json', value: ['vase', null] }],
+    },
+    { name: 'empty parts', state: [] },
+    {
+      name: 'mixed parts',
+      state: [
+        { type: 'text', text: 'Inspect.' },
+        { type: 'json', value: { product: 'vase' } },
+        { type: 'json', value: [1, null] },
+      ],
+    },
+    { name: 'a JSON number', state: [{ type: 'json', value: 1 }] },
+    { name: 'JSON null', state: [{ type: 'json', value: null }] },
+  ];
+
+  it.each(statePartsCases)(
+    'sends $name as ordered state parts',
+    async ({ state }) => {
+      prepareJsonResponse({});
+      await createTestModel().doDecide({ state, questions: testQuestions });
+      expect(await server.calls[0].requestBodyJson).toEqual({
+        stateParts: state,
+        questions: testQuestions,
+      });
+    },
+  );
+
+  it('sends file bytes as base64 in ordered state parts', async () => {
+    prepareJsonResponse({});
+    await createTestModel().doDecide({
+      state: [
+        { type: 'text', text: 'Inspect this package.' },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          filename: 'box.png',
+          data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
+        },
+        { type: 'json', value: { product: 'vase' } },
+      ],
+      questions: testQuestions,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toEqual({
+      stateParts: [
+        { type: 'text', text: 'Inspect this package.' },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          filename: 'box.png',
+          data: { type: 'data', data: 'AQID' },
+        },
+        { type: 'json', value: { product: 'vase' } },
+      ],
+      questions: testQuestions,
+    });
+  });
+
+  it('sends base64 file strings unchanged', async () => {
+    prepareJsonResponse({});
+    const file = {
+      type: 'file' as const,
+      mediaType: 'image/jpeg',
+      data: { type: 'data' as const, data: 'AQID' },
+    };
+    await createTestModel().doDecide({
+      state: [file],
+      questions: testQuestions,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toEqual({
+      stateParts: [file],
+      questions: testQuestions,
+    });
+  });
+
+  it('rejects URL file data before sending a Gateway request', async () => {
+    await expect(
+      createTestModel().doDecide({
+        state: [
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: { type: 'url', url: new URL('https://example.com/a.png') },
+          },
+        ],
+        questions: testQuestions,
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_UnsupportedFunctionalityError',
+      functionality: 'Gateway decision file input: url data',
+    });
+    expect(server.calls).toHaveLength(0);
+  });
+
   function prepareJsonResponse({
     answers = dummyAnswers,
     model,
@@ -172,7 +281,7 @@ describe('GatewayDecisionModel', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        state: testState,
+        stateParts: testState,
         questions: testQuestions,
       });
     });
@@ -250,7 +359,7 @@ describe('GatewayDecisionModel', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        state: testState,
+        stateParts: testState,
         questions: testQuestions,
         providerOptions,
       });
@@ -290,6 +399,18 @@ describe('GatewayDecisionModel', () => {
       });
 
       expect(answers).toStrictEqual(dummyAnswers);
+    });
+
+    it('should extract refusal answers', async () => {
+      const refusedAnswers = { ...dummyAnswers, tone: { type: 'refusal' } };
+      prepareJsonResponse({ answers: refusedAnswers });
+
+      const { answers } = await createTestModel().doDecide({
+        state: testState,
+        questions: testQuestions,
+      });
+
+      expect(answers).toStrictEqual(refusedAnswers);
     });
 
     it('should extract rounding', async () => {
