@@ -27,6 +27,7 @@ const DEFAULT_POLL_TIMEOUT_MILLIS = 120000; // 2 minutes for image generation
 interface FireworksImageModelBackendConfig {
   urlFormat: 'workflows' | 'workflows_async' | 'image_generation';
   supportsSize?: boolean;
+  supportsAspectRatio?: boolean;
   supportsEditing?: boolean;
 }
 
@@ -69,11 +70,24 @@ const modelToBackendConfig: Partial<
   },
 };
 
+// New models use the current async workflow. Keep exact entries above only
+// for known models whose endpoint or capabilities differ from this default.
+const defaultBackendConfig: FireworksImageModelBackendConfig = {
+  urlFormat: 'workflows_async',
+  supportsSize: true,
+  supportsAspectRatio: true,
+  supportsEditing: true,
+};
+
+function getBackendConfig(modelId: FireworksImageModelId) {
+  return modelToBackendConfig[modelId] ?? defaultBackendConfig;
+}
+
 function getUrlForModel(
   baseUrl: string,
   modelId: FireworksImageModelId,
 ): string {
-  const config = modelToBackendConfig[modelId];
+  const config = getBackendConfig(modelId);
 
   switch (config?.urlFormat) {
     case 'image_generation':
@@ -118,24 +132,7 @@ export class FireworksImageModel implements ImageModelV4 {
   readonly maxImagesPerCall = 1;
 
   get supportsFileInputs(): boolean | undefined {
-    if (
-      this.modelId === 'accounts/fireworks/models/flux-kontext-pro' ||
-      this.modelId === 'accounts/fireworks/models/flux-kontext-max'
-    ) {
-      return true;
-    }
-
-    return [
-      'accounts/fireworks/models/flux-1-dev-fp8',
-      'accounts/fireworks/models/flux-1-schnell-fp8',
-      'accounts/fireworks/models/playground-v2-5-1024px-aesthetic',
-      'accounts/fireworks/models/japanese-stable-diffusion-xl',
-      'accounts/fireworks/models/playground-v2-1024px-aesthetic',
-      'accounts/fireworks/models/SSD-1B',
-      'accounts/fireworks/models/stable-diffusion-xl-1024-v1-0',
-    ].includes(this.modelId)
-      ? false
-      : undefined;
+    return getBackendConfig(this.modelId).supportsEditing ?? false;
   }
 
   get supportsMaskInputs(): boolean | undefined {
@@ -181,7 +178,7 @@ export class FireworksImageModel implements ImageModelV4 {
   > {
     const warnings: Array<SharedV4Warning> = [];
 
-    const backendConfig = modelToBackendConfig[this.modelId];
+    const backendConfig = getBackendConfig(this.modelId);
     if (!backendConfig?.supportsSize && size != null) {
       warnings.push({
         type: 'unsupported',
@@ -191,9 +188,9 @@ export class FireworksImageModel implements ImageModelV4 {
       });
     }
 
-    // Use supportsSize as a proxy for whether the model does not support
-    // aspectRatio. This invariant holds for the current set of models.
-    if (backendConfig?.supportsSize && aspectRatio != null) {
+    const supportsAspectRatio =
+      backendConfig.supportsAspectRatio ?? !backendConfig.supportsSize;
+    if (!supportsAspectRatio && aspectRatio != null) {
       warnings.push({
         type: 'unsupported',
         feature: 'aspectRatio',

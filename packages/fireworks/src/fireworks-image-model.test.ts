@@ -69,11 +69,12 @@ function createAsyncModel({
  */
 function createAsyncEditFetch({
   capturedBodies,
+  modelId = 'accounts/fireworks/models/flux-kontext-pro',
 }: {
+  modelId?: string;
   capturedBodies: Array<Record<string, unknown>>;
 }) {
-  const submitUrl =
-    'https://api.edit.example.com/workflows/accounts/fireworks/models/flux-kontext-pro';
+  const submitUrl = `https://api.edit.example.com/workflows/${modelId}`;
   const pollUrl = `${submitUrl}/get_result`;
   const imageUrl = 'https://edit-result.example.com/image.png';
 
@@ -161,8 +162,8 @@ describe('FireworksImageModel', () => {
       },
       {
         modelId: 'accounts/fireworks/models/custom-image-model',
-        supportsFileInputs: undefined,
-        supportsMaskInputs: undefined,
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
       },
     ] as const)(
       'advertises file=$supportsFileInputs and mask=$supportsMaskInputs for $modelId',
@@ -179,6 +180,43 @@ describe('FireworksImageModel', () => {
   });
 
   describe('doGenerate', () => {
+    it('uses async polling, size, and editing for an unknown image model', async () => {
+      const modelId = 'accounts/fireworks/models/future-image-model';
+      const capturedBodies: Array<Record<string, unknown>> = [];
+      const fetch = createAsyncEditFetch({ capturedBodies, modelId });
+      const model = new FireworksImageModel(modelId, {
+        provider: 'fireworks',
+        baseURL: 'https://api.edit.example.com',
+        fetch,
+        pollIntervalMillis: 0,
+      });
+      const result = await model.doGenerate({
+        prompt: 'Edit the image',
+        n: 1,
+        size: '1024x768',
+        aspectRatio: '4:3',
+        seed: undefined,
+        files: [{ type: 'url', url: 'https://example.com/input.png' }],
+        mask: undefined,
+        providerOptions: {},
+      });
+      expect(capturedBodies).toEqual([
+        {
+          prompt: 'Edit the image',
+          samples: 1,
+          width: '1024',
+          height: '768',
+          aspect_ratio: '4:3',
+          input_image: 'https://example.com/input.png',
+        },
+      ]);
+      expect(result.images).toEqual([
+        new Uint8Array(Buffer.from('edited-image-data')),
+      ]);
+      expect(result.warnings).toEqual([]);
+      expect(vi.mocked(fetch)).toHaveBeenCalledTimes(3);
+    });
+
     it('should pass the correct parameters including aspect ratio and seed', async () => {
       const model = createBasicModel();
 
