@@ -882,6 +882,12 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       responseMessageIndex === -1
         ? lastMessage
         : this.state.messages[responseMessageIndex];
+<<<<<<< HEAD
+=======
+    const originalResponseMessageId = responseMessage?.id;
+    // The continued stream can start with input deltas or a tool result.
+    // Keep unfinished tool parts so result chunks can find their tool call.
+>>>>>>> 5150d50e23 (fix: preserve streaming assistant message identity when the chat message list changes (#22393))
     const resumableResponseMessage =
       trigger === 'resume-stream' &&
       responseMessage?.role === 'assistant' &&
@@ -966,16 +972,28 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
                 this.setStatus({ status: 'streaming' });
               }
 
-              if (usesEarlierAssistantMessage) {
+              const existingMessageIndex = this.state.messages.findLastIndex(
+                message => message.id === response.state.message.id,
+              );
+
+              if (existingMessageIndex !== -1) {
                 this.state.replaceMessage(
-                  responseMessageIndex,
+                  existingMessageIndex,
                   response.state.message,
                 );
-              } else if (response.state.message.id === this.lastMessage?.id) {
-                this.state.replaceMessage(
-                  this.state.messages.length - 1,
-                  response.state.message,
+              } else if (usesEarlierAssistantMessage) {
+                const originalMessageIndex = this.state.messages.findLastIndex(
+                  message => message.id === originalResponseMessageId,
                 );
+
+                if (originalMessageIndex !== -1) {
+                  this.state.replaceMessage(
+                    originalMessageIndex,
+                    response.state.message,
+                  );
+                } else {
+                  this.state.pushMessage(response.state.message);
+                }
               } else {
                 this.state.pushMessage(response.state.message);
               }
