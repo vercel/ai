@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { PiSessionEvent } from './pi-events';
 import {
   createPiTranslatorState,
-  finishPiApprovalStep,
+  takePiEarlyFinishStep,
   translatePiEvent,
   type PiTranslatorState,
 } from './pi-translate';
@@ -209,14 +209,33 @@ describe('translatePiEvent', () => {
             partial: { content },
           },
         } as PiSessionEvent,
+        {
+          type: 'tool_execution_start',
+          toolCallId: 'call-2',
+          toolName: 'read',
+          args: {},
+        } as PiSessionEvent,
       ],
       state,
     );
 
-    expect(out.slice(2)).toEqual([
-      { type: 'tool-input-delta', id: 'call-2', delta: 'b' },
-      { type: 'tool-input-delta', id: 'call-1', delta: 'a' },
+    expect(
+      out.map(p => [
+        p.type,
+        'id' in p ? p.id : 'toolCallId' in p ? p.toolCallId : undefined,
+      ]),
+    ).toEqual([
+      ['tool-input-start', 'call-1'],
+      ['tool-input-delta', 'call-1'],
+      ['tool-input-start', 'call-2'],
+      ['tool-input-delta', 'call-2'],
+      ['tool-call', 'call-2'],
     ]);
+    expect(out[3]).toEqual({
+      type: 'tool-input-delta',
+      id: 'call-2',
+      delta: 'b',
+    });
   });
 
   it('drops tool input deltas that arrive without a start', () => {
@@ -469,63 +488,67 @@ describe('translatePiEvent', () => {
     );
 
     expect(start.map(p => p.type)).toEqual(['tool-call']);
-    expect(start[0]).toMatchObject({ stepToolCallCount: 1 });
     expect(end.map(p => p.type)).toEqual(['tool-result', 'finish-step']);
   });
 
-  it('reports the same step tool-call count on parallel tool calls', () => {
+  it('buffers tool input of later calls until Pi starts them', () => {
     const state = createPiTranslatorState({ hostToolNames: ['deploy'] });
-    emit(
+    const content = [
+      { type: 'toolCall', id: 'call-1', name: 'deploy' },
+      { type: 'toolCall', id: 'call-2', name: 'deploy' },
+    ];
+    const streamed = emit(
       [
         { type: 'turn_start' } as PiSessionEvent,
         {
           type: 'message_start',
           message: { role: 'assistant', content: [] },
         } as PiSessionEvent,
+        ...[0, 1].flatMap(contentIndex => [
+          {
+            type: 'message_update',
+            assistantMessageEvent: {
+              type: 'toolcall_start',
+              contentIndex,
+              partial: { content },
+            },
+          } as PiSessionEvent,
+          {
+            type: 'message_update',
+            assistantMessageEvent: {
+              type: 'toolcall_end',
+              contentIndex,
+              partial: { content },
+            },
+          } as PiSessionEvent,
+        ]),
         {
           type: 'message_end',
-          message: {
-            role: 'assistant',
-            content: [
-              { type: 'toolCall', id: 'call-1', name: 'deploy' },
-              { type: 'toolCall', id: 'call-2', name: 'deploy' },
-            ],
-          },
+          message: { role: 'assistant', content },
         } as PiSessionEvent,
       ],
       state,
     );
-
-    const calls = emit(
-      [
-        {
-          type: 'tool_execution_start',
-          toolCallId: 'call-1',
-          toolName: 'deploy',
-          args: { target: 'one' },
-        } as PiSessionEvent,
-        {
-          type: 'tool_execution_start',
-          toolCallId: 'call-2',
-          toolName: 'deploy',
-          args: { target: 'two' },
-        } as PiSessionEvent,
-      ],
-      state,
-    );
-
-    expect(calls).toEqual([
-      expect.objectContaining({
-        type: 'tool-call',
-        toolCallId: 'call-1',
-        stepToolCallCount: 2,
-      }),
-      expect.objectContaining({
-        type: 'tool-call',
-        toolCallId: 'call-2',
-        stepToolCallCount: 2,
-      }),
+    expect(streamed.map(p => [p.type, 'id' in p ? p.id : undefined])).toEqual([
+      ['tool-input-start', 'call-1'],
+      ['tool-input-end', 'call-1'],
     ]);
+
+    const second = translatePiEvent(
+      {
+        type: 'tool_execution_start',
+        toolCallId: 'call-2',
+        toolName: 'deploy',
+        args: { target: 'two' },
+      } as PiSessionEvent,
+      state,
+    );
+    expect(second.map(p => p.type)).toEqual([
+      'tool-input-start',
+      'tool-input-end',
+      'tool-call',
+    ]);
+    expect(second[2]).not.toHaveProperty('stepToolCallCount');
   });
 
   it("reports each step's usage from its assistant message", () => {
@@ -615,29 +638,101 @@ describe('translatePiEvent', () => {
     });
   });
 
-  it('emits finish-step after a built-in approval request pauses the step', () => {
-    const state = createPiTranslatorState();
-    emit(
-      [
-        { type: 'turn_start' } as PiSessionEvent,
-        {
-          type: 'message_start',
-          message: { role: 'assistant', content: [] },
-        } as PiSessionEvent,
-        {
-          type: 'message_end',
-          message: {
-            role: 'assistant',
-            content: [{ type: 'toolCall', id: 'approval-1', name: 'write' }],
-          },
-        } as PiSessionEvent,
-      ],
-      state,
-    );
+  describe('takePiEarlyFinishStep', () => {
+    function stateWithBatch(ids: string[]) {
+      const state = createPiTranslatorState({ hostToolNames: ['weather'] });
+      emit(
+        [
+          { type: 'turn_start' } as PiSessionEvent,
+          {
+            type: 'message_start',
+            message: { role: 'assistant', content: [] },
+          } as PiSessionEvent,
+          {
+            type: 'message_end',
+            message: {
+              role: 'assistant',
+              content: ids.map(id => ({
+                type: 'toolCall',
+                id,
+                name: 'weather',
+              })),
+            },
+          } as PiSessionEvent,
+        ],
+        state,
+      );
+      return state;
+    }
 
-    expect(finishPiApprovalStep(state, 'approval-1').map(p => p.type)).toEqual([
-      'finish-step',
-    ]);
+    it('waits until every call of a parallel batch waits on host input', () => {
+      const state = stateWithBatch(['a', 'b']);
+      expect(
+        takePiEarlyFinishStep(state, {
+          waitingToolCallIds: new Set(['a']),
+          sequential: false,
+        }),
+      ).toEqual([]);
+      expect(
+        takePiEarlyFinishStep(state, {
+          waitingToolCallIds: new Set(['a', 'b']),
+          sequential: false,
+        }),
+      ).toEqual([
+        expect.objectContaining({
+          type: 'finish-step',
+          finishReason: { unified: 'tool-calls', raw: 'host-input' },
+        }),
+      ]);
+    });
+
+    it('does not repeat for calls that were already covered', () => {
+      const state = stateWithBatch(['a', 'b']);
+      const waiting = new Set(['a', 'b']);
+      expect(
+        takePiEarlyFinishStep(state, {
+          waitingToolCallIds: waiting,
+          sequential: false,
+        }),
+      ).toHaveLength(1);
+      expect(
+        takePiEarlyFinishStep(state, {
+          waitingToolCallIds: new Set(['b']),
+          sequential: false,
+        }),
+      ).toEqual([]);
+    });
+
+    it('only needs the first unsettled call of a sequential batch', () => {
+      const state = stateWithBatch(['a', 'b']);
+      expect(
+        takePiEarlyFinishStep(state, {
+          waitingToolCallIds: new Set(['b']),
+          sequential: true,
+        }),
+      ).toEqual([]);
+      expect(
+        takePiEarlyFinishStep(state, {
+          waitingToolCallIds: new Set(['a']),
+          sequential: true,
+        }),
+      ).toHaveLength(1);
+      translatePiEvent(
+        {
+          type: 'tool_execution_end',
+          toolCallId: 'a',
+          toolName: 'weather',
+          result: 'ok',
+        } as PiSessionEvent,
+        state,
+      );
+      expect(
+        takePiEarlyFinishStep(state, {
+          waitingToolCallIds: new Set(['b']),
+          sequential: true,
+        }),
+      ).toHaveLength(1);
+    });
   });
 
   it('emits reasoning-start lazily on first thinking_delta', () => {

@@ -20,6 +20,35 @@ const piSessionFileNameSchema = z
     'Pi sessionFileName must be a safe .jsonl or .json basename.',
   );
 
+const piCompletedToolResultSchema = z.object({
+  toolCallId: z.string(),
+  result: z.looseObject({ content: z.array(z.unknown()).optional() }),
+  isError: z.boolean(),
+});
+
+/**
+ * A tool batch that was waiting on host input (tool results, approvals) when
+ * its turn was persisted. Pi cannot resume in the middle of a batch, so a cold
+ * continuation replays the batch's assistant message through Pi's tool
+ * executor: calls in `completedToolResults` (finished but not yet written to
+ * the journal) reuse their stored result, calls in `awaitingToolCallIds`
+ * receive the host input delivered with the continuation.
+ */
+export const piPendingToolBatchSchema = z.object({
+  awaitingToolCallIds: z.array(z.string()),
+  completedToolResults: z.array(piCompletedToolResultSchema),
+  nativeApprovalDecisions: z.array(
+    z.object({
+      toolCallId: z.string(),
+      approved: z.boolean(),
+      reason: z.string().optional(),
+    }),
+  ),
+});
+
+export type PiPendingToolBatch = z.infer<typeof piPendingToolBatchSchema>;
+export type PiCompletedToolResult = z.infer<typeof piCompletedToolResultSchema>;
+
 /**
  * Schema for the adapter-specific portion of lifecycle state `data` produced
  * by Pi's resumable lifecycle methods. Carries the basename
@@ -29,6 +58,7 @@ const piSessionFileNameSchema = z
  */
 export const piResumeStateSchema = z.looseObject({
   sessionFileName: piSessionFileNameSchema.optional(),
+  pendingToolBatch: piPendingToolBatchSchema.optional(),
 });
 
 export type PiResumeStateData = z.infer<typeof piResumeStateSchema>;

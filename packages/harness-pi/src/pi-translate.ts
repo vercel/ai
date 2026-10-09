@@ -45,8 +45,20 @@ export interface PiTranslatorState {
   streamingToolInputIds: Map<number, string>;
   /** Tool ids requested by the current assistant message but not yet completed. */
   pendingStepToolCallIds: Set<string>;
-  /** Total tool calls requested by the current assistant message. */
-  stepToolCallCount: number | undefined;
+  /**
+   * Id of the first tool call the current assistant message streamed. Pi
+   * always starts that call first, so its input streams live. Inputs of later
+   * calls are buffered until Pi starts them: in sequential batches a call
+   * that has not started yet must not surface before the turn pauses.
+   */
+  firstStreamedToolCallId: string | undefined;
+  /** Tool-call id -> buffered `tool-input-*` parts for not-yet-started calls. */
+  bufferedToolInputParts: Map<string, HarnessV1StreamPart[]>;
+  /**
+   * Tool calls already covered by an early `finish-step` of the current step
+   * (see `takePiEarlyFinishStep`).
+   */
+  earlyFinishStepToolCallIds: Set<string>;
   /** Whether the current assistant message has opened a visible step. */
   stepOpen: boolean;
   stepUsage: PiUsage | undefined;
@@ -105,7 +117,9 @@ export function createPiTranslatorState(
     observedToolNames: new Map(),
     streamingToolInputIds: new Map(),
     pendingStepToolCallIds: new Set(),
-    stepToolCallCount: undefined,
+    firstStreamedToolCallId: undefined,
+    bufferedToolInputParts: new Map(),
+    earlyFinishStepToolCallIds: new Set(),
     stepOpen: false,
     stepUsage: undefined,
     turnReasoningTokens: undefined,
@@ -263,19 +277,62 @@ function finishStep(state: PiTranslatorState): HarnessV1StreamPart[] {
   if (!state.stepOpen || state.pendingStepToolCallIds.size > 0) return [];
   state.stepOpen = false;
   state.pendingStepToolCallIds.clear();
-  state.stepToolCallCount = undefined;
+  state.earlyFinishStepToolCallIds.clear();
   const usage = toHarnessUsage(state.stepUsage ?? ZERO_PI_USAGE);
   state.stepUsage = undefined;
   return [createInferredFinishStep(usage)];
 }
 
-export function finishPiApprovalStep(
+/**
+ * Emit an early `finish-step` when Pi cannot make progress on the current
+ * tool batch without host input, while keeping the step open: the regular
+ * `finish-step` follows once every call of the batch has settled.
+ *
+ * In a parallel batch Pi waits on every unsettled call, so all of them must
+ * be waiting on host input. In a sequential batch Pi waits on the first
+ * unsettled call only; later calls have not started yet. A call that was
+ * already covered by an earlier early `finish-step` of the same step does
+ * not trigger another one, so a waiting set that only shrinks (results
+ * arriving one by one) never produces an extra step boundary.
+ */
+export function takePiEarlyFinishStep(
   state: PiTranslatorState,
-  toolCallId: string,
+  options: {
+    waitingToolCallIds: ReadonlySet<string>;
+    sequential: boolean;
+  },
 ): HarnessV1StreamPart[] {
-  state.stepOpen = true;
-  state.pendingStepToolCallIds.delete(toolCallId);
-  return finishStep(state);
+  if (!state.stepOpen || state.pendingStepToolCallIds.size === 0) return [];
+  const unsettled = [...state.pendingStepToolCallIds];
+  const blocking = options.sequential ? unsettled.slice(0, 1) : unsettled;
+  if (!blocking.every(id => options.waitingToolCallIds.has(id))) return [];
+  const waiting = unsettled.filter(id => options.waitingToolCallIds.has(id));
+  if (waiting.every(id => state.earlyFinishStepToolCallIds.has(id))) {
+    return [];
+  }
+  for (const id of waiting) state.earlyFinishStepToolCallIds.add(id);
+  return [
+    {
+      type: 'finish-step',
+      finishReason: { unified: 'tool-calls', raw: 'host-input' },
+      usage: toHarnessUsage(state.stepUsage ?? ZERO_PI_USAGE),
+      harnessMetadata: { pi: { inferredStep: true } },
+    },
+  ];
+}
+
+function bufferToolInputPart(
+  state: PiTranslatorState,
+  part: Extract<
+    HarnessV1StreamPart,
+    { type: 'tool-input-start' | 'tool-input-delta' | 'tool-input-end' }
+  >,
+): HarnessV1StreamPart[] {
+  if (part.id === state.firstStreamedToolCallId) return [part];
+  const buffered = state.bufferedToolInputParts.get(part.id) ?? [];
+  buffered.push(part);
+  state.bufferedToolInputParts.set(part.id, buffered);
+  return [];
 }
 
 function extractPiToolCallIds(message: PiSessionEvent['message']): string[] {
@@ -316,8 +373,10 @@ export function translatePiEvent(
       if (event.type === 'message_start') {
         state.stepOpen = true;
         state.pendingStepToolCallIds.clear();
-        state.stepToolCallCount = undefined;
+        state.earlyFinishStepToolCallIds.clear();
         state.stepUsage = undefined;
+        state.firstStreamedToolCallId = undefined;
+        state.bufferedToolInputParts.clear();
       }
       state.streamedAssistantText = '';
       state.currentTextId = undefined;
@@ -392,15 +451,14 @@ export function translatePiEvent(
         const { wire, native } = resolveToolName(state, call.name);
         const kind = resolveToolKind(state, native);
         state.streamingToolInputIds.set(call.contentIndex, call.id);
-        return [
-          {
-            type: 'tool-input-start',
-            id: call.id,
-            toolName: wire,
-            ...(kind !== 'host' ? { providerExecuted: true } : {}),
-            ...(isDynamicToolKind(kind) ? { dynamic: true } : {}),
-          },
-        ];
+        state.firstStreamedToolCallId ??= call.id;
+        return bufferToolInputPart(state, {
+          type: 'tool-input-start',
+          id: call.id,
+          toolName: wire,
+          ...(kind !== 'host' ? { providerExecuted: true } : {}),
+          ...(isDynamicToolKind(kind) ? { dynamic: true } : {}),
+        });
       }
       if (update.type === 'toolcall_delta' || update.type === 'toolcall_end') {
         const contentIndex = update.contentIndex;
@@ -411,10 +469,14 @@ export function translatePiEvent(
         if (id === undefined) return [];
         if (update.type === 'toolcall_end') {
           state.streamingToolInputIds.delete(contentIndex);
-          return [{ type: 'tool-input-end', id }];
+          return bufferToolInputPart(state, { type: 'tool-input-end', id });
         }
         if (typeof update.delta !== 'string') return [];
-        return [{ type: 'tool-input-delta', id, delta: update.delta }];
+        return bufferToolInputPart(state, {
+          type: 'tool-input-delta',
+          id,
+          delta: update.delta,
+        });
       }
       return [];
     }
@@ -457,14 +519,11 @@ export function translatePiEvent(
           }
         }
         const toolCallIds = extractPiToolCallIds(event.message);
-        state.stepToolCallCount =
-          toolCallIds.length > 0 ? toolCallIds.length : undefined;
         for (const toolCallId of toolCallIds) {
           state.pendingStepToolCallIds.add(toolCallId);
         }
       } else {
         state.pendingStepToolCallIds.clear();
-        state.stepToolCallCount = undefined;
         if (!getPiTerminalError(event)) {
           parts.push(...finishStep(state));
         }
@@ -481,7 +540,11 @@ export function translatePiEvent(
         state.dynamicToolCalls.set(event.toolCallId, kind);
       }
       const input = serializeToolOutput(event.args ?? event.input ?? {});
+      const bufferedInput =
+        state.bufferedToolInputParts.get(event.toolCallId) ?? [];
+      state.bufferedToolInputParts.delete(event.toolCallId);
       return [
+        ...bufferedInput,
         {
           type: 'tool-call',
           toolCallId: event.toolCallId,
@@ -490,9 +553,6 @@ export function translatePiEvent(
           ...(wire !== native ? { nativeName: native } : {}),
           ...(kind !== 'host' ? { providerExecuted: true } : {}),
           ...(isDynamicToolKind(kind) ? { dynamic: true } : {}),
-          ...(state.stepToolCallCount != null
-            ? { stepToolCallCount: state.stepToolCallCount }
-            : {}),
         } as HarnessV1StreamPart,
       ];
     }

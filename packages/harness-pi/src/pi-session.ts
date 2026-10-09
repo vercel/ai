@@ -46,7 +46,11 @@ import {
   type PiCredentialStore,
 } from './pi-auth';
 import { resolvePiSubscriptionAgentDir } from './pi-subscription';
-import { getPiTerminalError, parseNativeEvent } from './pi-events';
+import {
+  getPiTerminalError,
+  parseNativeEvent,
+  type PiSessionEvent,
+} from './pi-events';
 import { createPiModelResolver } from './pi-model-resolver';
 import { createPiPathMapper } from './pi-paths';
 import {
@@ -65,10 +69,13 @@ import {
   pullSessionFileFromSandbox,
   resolvePiPrivateSessionDirectory,
   safePiSessionFileName,
+  type PiCompletedToolResult,
+  type PiPendingToolBatch,
 } from './pi-resume-state';
+import { runToolBatchReplay, takeToolBatchForReplay } from './pi-tool-batch';
 import {
   createPiTranslatorState,
-  finishPiApprovalStep,
+  takePiEarlyFinishStep,
   toHarnessUsage,
   translatePiEvent,
   type PiTranslatorState,
@@ -297,6 +304,11 @@ export interface CreatePiSessionInput {
   readonly permissionMode?: HarnessV1PermissionMode;
   readonly builtinToolFiltering?: HarnessV1BuiltinToolFiltering;
   readonly resumeSessionFileName?: string;
+  /**
+   * Tool batch that was waiting on host input when the resumed state was
+   * persisted. The first continuation replays it once its host input arrives.
+   */
+  readonly resumePendingToolBatch?: PiPendingToolBatch;
   readonly abortSignal?: AbortSignal;
   /**
    * Directory holding Pi's global agent config (auth.json, models.json,
@@ -348,26 +360,27 @@ interface ActivePiTurn {
 }
 
 /**
- * A host tool call recorded in the restored journal without a matching tool
- * result — it was awaiting host input (typically a tool approval) when the
- * process that owned the live turn went away.
+ * Holds a cross-process continuation until the framework has delivered the
+ * host input (tool results, built-in approval decisions) for every call of
+ * the persisted tool batch, then replays the batch.
  */
-interface DanglingHostToolCall {
-  readonly toolCallId: string;
-  readonly toolName: string;
+interface ToolBatchReplayBarrier {
+  readonly awaiting: Set<string>;
+  readonly deliveredHostResults: Map<
+    string,
+    { output: unknown; isError: boolean }
+  >;
+  readonly toCheckpoint: () => PiPendingToolBatch;
+  readonly start: () => void;
+  /** Settle the barrier without replaying: resolves `done` cleanly when no
+   * reason is given, rejects it otherwise. No-op once the replay started. */
+  readonly cancel: (reason?: unknown) => void;
 }
 
-/**
- * Barrier that holds a cross-process rerun until the framework has
- * re-delivered the results for every journal-pending host tool call.
- */
-interface DeferredRerunBarrier {
-  /** toolCallId -> toolName still awaiting a submitted result. */
-  readonly awaiting: Map<string, string>;
-  readonly startRerun: () => void;
-  /** Settle the barrier without running: resolves `done` cleanly when no
-   * reason is given, rejects it otherwise. No-op once the rerun started. */
-  readonly cancel: (reason?: unknown) => void;
+interface PiToolBatchReplay {
+  readonly toolResults: Map<string, PiCompletedToolResult>;
+  readonly suppressedToolCallIds: Set<string>;
+  readonly hostToolResults: Map<string, { output: unknown; isError: boolean }>;
 }
 
 async function isWorkspaceAvailableOnHost({
@@ -712,7 +725,10 @@ export async function createPiSession(
   let piSession: AgentSession | undefined;
   let unsubscribe: (() => void) | undefined;
   let lastToolsSignature: string | undefined;
-  let sessionFileName: string | undefined;
+  let sessionFileName: string | undefined =
+    resumeSessionFilePath == null
+      ? undefined
+      : safePiSessionFileName(path.basename(resumeSessionFilePath));
   let stopped = false;
   /*
    * Set by `doSuspendTurn` before it aborts the in-flight host turn at a slice
@@ -723,20 +739,34 @@ export async function createPiSession(
   let suspending = false;
   const pendingToolResults = new Map<string, PendingToolResult>();
   const pendingToolApprovals = new Map<string, PendingToolApproval>();
-  /*
-   * Results the framework submitted for journal-pending (dangling) host tool
-   * calls while no live turn held a promise for them — the cross-process
-   * continuation path. They are written into the restored journal before the
-   * rerun (or on suspend/stop, so a later resume still sees them).
-   */
-  const deliveredDanglingResults = new Map<
-    string,
-    { toolName: string; output: unknown; isError: boolean }
-  >();
   let restoredSessionManager:
     | ReturnType<typeof SessionManager.open>
     | undefined;
-  let deferredRerun: DeferredRerunBarrier | undefined;
+  let pendingToolBatchToReplay = input.resumePendingToolBatch;
+  let replayBarrier: ToolBatchReplayBarrier | undefined;
+  /*
+   * Built-in approval decisions delivered while no live turn waited for them
+   * (the cross-process continuation path). The replayed built-in tool reads
+   * its decision from here instead of requesting approval again.
+   */
+  const nativeApprovalDecisions = new Map<
+    string,
+    { approved: boolean; reason?: string }
+  >();
+  /*
+   * The current assistant message's tool batch. Parallel batches only write
+   * their tool results to the journal after every call finished, so results
+   * of calls that already finished are kept here for checkpoints.
+   */
+  let currentToolBatch:
+    | {
+        readonly completed: Map<string, PiCompletedToolResult>;
+        readonly journaled: Set<string>;
+      }
+    | undefined;
+  let currentToolBatchSequential = false;
+  let replayingAssistantMessage = false;
+  let replaySuppressedToolCallIds = new Set<string>();
 
   // Emit channel set at the start of every doPromptTurn and cleared on end.
   let currentEmit: ((part: HarnessV1StreamPart) => void) | undefined;
@@ -805,162 +835,188 @@ export async function createPiSession(
     return restoredSessionManager;
   }
 
-  /*
-   * Host tool calls in the restored journal that never received a result on
-   * the active branch. These are the calls that were blocked on host input
-   * (typically a tool approval) when the process owning the live turn exited;
-   * the framework re-delivers their results via `submitToolResult` right after
-   * `doContinueTurn` returns. Only meaningful before the first rebuild of a
-   * resumed session — once a Pi session is live, pending host input is held as
-   * in-process promises instead.
-   */
-  function findDanglingHostToolCalls(
-    userTools: ReadonlyArray<HarnessV1ToolSpec>,
-  ): DanglingHostToolCall[] {
-    if (piSession != null || resumeSessionFilePath == null) return [];
-    const hostToolNames = new Set(userTools.map(tool => tool.name));
-    if (hostToolNames.size === 0) return [];
-    const journal = getRestoredSessionManager();
-    if (journal == null) return [];
-    const messages = journal.buildSessionContext().messages;
-    /*
-     * Results already delivered by a previous continuation of this session
-     * count as resolved even though they are not in the journal yet — the
-     * framework has marked them settled and will never re-deliver them, so a
-     * new barrier must not wait on them (it would deadlock the turn). They
-     * are injected into the journal before the rerun.
-     */
-    const resolvedToolCallIds = new Set<string>(
-      deliveredDanglingResults.keys(),
+  function getWaitingToolCallIds(): Set<string> {
+    return new Set([
+      ...pendingToolResults.keys(),
+      ...pendingToolApprovals.keys(),
+    ]);
+  }
+
+  function emitEarlyFinishStepIfReady(): void {
+    if (!translatorState || !currentEmit) return;
+    for (const part of takePiEarlyFinishStep(translatorState, {
+      waitingToolCallIds: getWaitingToolCallIds(),
+      sequential: currentToolBatchSequential,
+    })) {
+      currentEmit(part);
+    }
+  }
+
+  function trackToolBatch(event: PiSessionEvent, rawEvent: unknown): void {
+    const message = event.message as Record<string, unknown> | undefined;
+    if (event.type === 'message_end' && message?.role === 'assistant') {
+      const toolNames = Array.isArray(message.content)
+        ? message.content.flatMap(block =>
+            block != null &&
+            typeof block === 'object' &&
+            (block as { type?: unknown }).type === 'toolCall' &&
+            typeof (block as { name?: unknown }).name === 'string'
+              ? [(block as { name: string }).name]
+              : [],
+          )
+        : [];
+      currentToolBatch =
+        toolNames.length > 0
+          ? { completed: new Map(), journaled: new Set() }
+          : undefined;
+      const agent = piSession?.agent;
+      currentToolBatchSequential =
+        agent != null &&
+        (agent.toolExecution === 'sequential' ||
+          toolNames.some(
+            name =>
+              agent.state.tools.find(tool => tool.name === name)
+                ?.executionMode === 'sequential',
+          ));
+      return;
+    }
+    if (event.type === 'message_end' && message?.role === 'toolResult') {
+      if (typeof message.toolCallId === 'string') {
+        currentToolBatch?.journaled.add(message.toolCallId);
+      }
+      return;
+    }
+    if (
+      event.type === 'tool_execution_end' &&
+      event.toolCallId &&
+      currentToolBatch != null
+    ) {
+      const raw = rawEvent as { result?: unknown; isError?: unknown };
+      currentToolBatch.completed.set(event.toolCallId, {
+        toolCallId: event.toolCallId,
+        result:
+          raw.result != null && typeof raw.result === 'object'
+            ? (raw.result as PiCompletedToolResult['result'])
+            : { content: [] },
+        isError: raw.isError === true,
+      });
+    }
+  }
+
+  function isReplaySuppressedEvent(event: PiSessionEvent): boolean {
+    if (
+      replayingAssistantMessage &&
+      (event.type === 'message_start' ||
+        event.type === 'message_update' ||
+        event.type === 'message_end') &&
+      event.message?.role === 'assistant'
+    ) {
+      return true;
+    }
+    return (
+      event.type.startsWith('tool_execution') &&
+      event.toolCallId != null &&
+      replaySuppressedToolCallIds.has(event.toolCallId)
     );
-    for (const message of messages) {
-      if (message.role === 'toolResult') {
-        resolvedToolCallIds.add(message.toolCallId);
-      }
-    }
-    const dangling: DanglingHostToolCall[] = [];
-    for (const message of messages) {
-      if (message.role !== 'assistant') continue;
-      /*
-       * Pi's message transform drops errored/aborted assistant messages from
-       * the LLM context entirely, so their tool calls are not awaiting
-       * results — the model retries from the last valid state instead.
-       */
-      if (message.stopReason === 'error' || message.stopReason === 'aborted') {
-        continue;
-      }
-      for (const block of message.content) {
-        if (
-          block.type === 'toolCall' &&
-          hostToolNames.has(block.name) &&
-          !resolvedToolCallIds.has(block.id)
-        ) {
-          dangling.push({ toolCallId: block.id, toolName: block.name });
-        }
-      }
-    }
-    return dangling;
   }
 
   /*
-   * A result submitted while no live turn holds a pending promise for its
-   * toolCallId. On the cross-process continuation path this is the framework
-   * re-delivering the caller's tool-approval/tool-result continuation for a
-   * journal-pending call; stash it for injection and release the rerun once
-   * every dangling call has its result. Results for ids that are neither live
-   * nor journal-pending have nowhere to go and are dropped, as before.
+   * The state of a tool batch that waits on host input, for a later cold
+   * continuation in another process. Undefined when no batch is waiting.
    */
-  function acceptDanglingHostToolResult(args: {
+  function createPendingToolBatchCheckpoint(): PiPendingToolBatch | undefined {
+    if (replayBarrier != null) return replayBarrier.toCheckpoint();
+    if (pendingToolBatchToReplay != null) return pendingToolBatchToReplay;
+    const batch = currentToolBatch;
+    const awaitingToolCallIds = [...getWaitingToolCallIds()];
+    if (batch == null || awaitingToolCallIds.length === 0) return undefined;
+    return {
+      awaitingToolCallIds,
+      completedToolResults: [...batch.completed.values()].filter(
+        result =>
+          !batch.journaled.has(result.toolCallId) &&
+          !awaitingToolCallIds.includes(result.toolCallId),
+      ),
+      nativeApprovalDecisions: [],
+    };
+  }
+
+  function createLifecycleData(
+    pendingToolBatch: PiPendingToolBatch | undefined,
+  ): HarnessV1ResumeSessionState['data'] {
+    return {
+      ...(sessionFileName ? { sessionFileName } : {}),
+      ...(pendingToolBatch ? { pendingToolBatch } : {}),
+    } as HarnessV1ResumeSessionState['data'];
+  }
+
+  function acceptReplayToolResult(args: {
     toolCallId: string;
     output: unknown;
     isError?: boolean;
   }): void {
-    const barrier = deferredRerun;
-    const toolName = barrier?.awaiting.get(args.toolCallId);
-    if (barrier == null || toolName == null) return;
+    const barrier = replayBarrier;
+    if (barrier == null || !barrier.awaiting.has(args.toolCallId)) return;
     barrier.awaiting.delete(args.toolCallId);
-    deliveredDanglingResults.set(args.toolCallId, {
-      toolName,
+    barrier.deliveredHostResults.set(args.toolCallId, {
       output: args.output,
       isError: args.isError ?? false,
     });
-    if (barrier.awaiting.size === 0) {
-      barrier.startRerun();
-    }
+    if (barrier.awaiting.size === 0) barrier.start();
+  }
+
+  function acceptReplayToolApproval(args: {
+    approvalId: string;
+    approved: boolean;
+    reason?: string;
+  }): void {
+    const barrier = replayBarrier;
+    if (barrier == null || !barrier.awaiting.has(args.approvalId)) return;
+    barrier.awaiting.delete(args.approvalId);
+    nativeApprovalDecisions.set(args.approvalId, {
+      approved: args.approved,
+      ...(args.reason !== undefined ? { reason: args.reason } : {}),
+    });
+    if (barrier.awaiting.size === 0) barrier.start();
   }
 
   /*
-   * Write delivered dangling-call results into the restored journal so the
-   * rerun's context carries the real outputs — without this, Pi's message
-   * transform synthesizes an error result ("No result provided") for each
-   * dangling call and the model continues as if the tool never answered. The
-   * serialized and truncated text matches what a live turn would have
-   * produced, so the model sees the same result either way.
+   * Cross-process continuation of a turn whose tool batch waited on host
+   * input. The framework delivers that input through `submitToolResult` /
+   * `submitToolApproval` right after this returns. Once every waiting call
+   * has its input, the batch is replayed: calls that finished before the
+   * turn was persisted reuse their results, the others run with the
+   * delivered input. If the caller never supplies all of it, the turn stays
+   * parked, like a live turn blocked on its tool promises.
    */
-  function appendDeliveredHostToolResults(): boolean {
-    if (deliveredDanglingResults.size === 0 || resumeSessionFilePath == null) {
-      return false;
-    }
-    const journal = getRestoredSessionManager();
-    if (journal == null) return false;
-    for (const [toolCallId, delivered] of deliveredDanglingResults) {
-      journal.appendMessage({
-        role: 'toolResult',
-        toolCallId,
-        toolName: delivered.toolName,
-        content: [
-          {
-            type: 'text',
-            text: truncatePiToolOutputHead(
-              serializeToolOutput(delivered.output),
-              'Call the tool again with narrower parameters to inspect the omitted output.',
-            ),
-          },
-        ],
-        isError: delivered.isError,
-        timestamp: Date.now(),
-      });
-    }
-    deliveredDanglingResults.clear();
-    /*
-     * The journal on disk now differs from the copy in the sandbox. Make sure
-     * the lifecycle persistence knows which file to push back even when no
-     * turn ever rebuilt the Pi session in this process (e.g. a suspend that
-     * lands while the rerun is still held back).
-     */
-    if (!sessionFileName) {
-      sessionFileName = safePiSessionFileName(
-        path.basename(resumeSessionFilePath),
-      );
-    }
-    return true;
-  }
-
-  /*
-   * Cross-process continuation of a turn that paused on host input: the
-   * restored journal ends with host tool calls that have no results, and the
-   * framework re-delivers those results through `control.submitToolResult`
-   * (with the original tool-call ids) immediately after this call returns.
-   * Starting the rerun right away would race that delivery — the rerun's
-   * context would resolve the dangling calls as synthetic empty results and
-   * the submitted outputs would be dropped. Hold the rerun until every
-   * dangling call's result has arrived, write the results into the journal,
-   * and only then re-drive the turn.
-   *
-   * If the caller resumes without supplying all continuations, the turn stays
-   * parked awaiting the remaining host input — the same behaviour as the
-   * in-process path, where the live turn stays blocked on its tool promises.
-   */
-  function deferRerunUntilHostToolResults(
-    danglingCalls: ReadonlyArray<DanglingHostToolCall>,
+  function waitForToolBatchInputThenReplay(
+    batch: PiPendingToolBatch,
     continueOpts: HarnessV1ContinueTurnOptions,
   ): HarnessV1PromptControl {
-    /*
-     * A previous continuation may have ended while its rerun was still held
-     * back (e.g. it paused again awaiting a tool-result continuation). Close
-     * that turn's control cleanly before installing the new barrier.
-     */
-    deferredRerun?.cancel();
+    replayBarrier?.cancel();
+
+    for (const decision of batch.nativeApprovalDecisions) {
+      nativeApprovalDecisions.set(decision.toolCallId, {
+        approved: decision.approved,
+        ...(decision.reason !== undefined ? { reason: decision.reason } : {}),
+      });
+    }
+    const completed = new Map(
+      batch.completedToolResults.map(result => [result.toolCallId, result]),
+    );
+    const awaiting = new Set(batch.awaitingToolCallIds);
+    const deliveredHostResults = new Map<
+      string,
+      { output: unknown; isError: boolean }
+    >();
+    const deliveredToolResults = (): PiCompletedToolResult[] =>
+      [...deliveredHostResults].map(([toolCallId, delivered]) => ({
+        toolCallId,
+        result: toPiHostToolResult(
+          delivered.output,
+        ) as unknown as PiCompletedToolResult['result'],
+        isError: delivered.isError,
+      }));
 
     let resolveDone!: () => void;
     let rejectDone!: (error: unknown) => void;
@@ -970,14 +1026,16 @@ export async function createPiSession(
     });
     let settled = false;
 
-    const startRerun = () => {
+    const start = () => {
       if (settled) return;
       settled = true;
-      deferredRerun = undefined;
+      replayBarrier = undefined;
+      const toolResults = new Map(completed);
+      for (const result of deliveredToolResults()) {
+        toolResults.set(result.toolCallId, result);
+      }
       void (async () => {
         try {
-          // `runTurn` injects the delivered results into the journal before
-          // rebuilding the Pi session from it.
           const control = await runTurn({
             text: '',
             ...(continueOpts.model ? { model: continueOpts.model } : {}),
@@ -986,6 +1044,11 @@ export async function createPiSession(
             instructions: continueOpts.instructions,
             emit: continueOpts.emit,
             abortSignal: continueOpts.abortSignal,
+            replay: {
+              toolResults,
+              suppressedToolCallIds: new Set(completed.keys()),
+              hostToolResults: deliveredHostResults,
+            },
           });
           await control.done;
           resolveDone();
@@ -998,7 +1061,7 @@ export async function createPiSession(
     const cancel = (reason?: unknown) => {
       if (settled) return;
       settled = true;
-      deferredRerun = undefined;
+      replayBarrier = undefined;
       if (reason == null) {
         resolveDone();
       } else {
@@ -1006,11 +1069,20 @@ export async function createPiSession(
       }
     };
 
-    deferredRerun = {
-      awaiting: new Map(
-        danglingCalls.map(call => [call.toolCallId, call.toolName]),
-      ),
-      startRerun,
+    replayBarrier = {
+      awaiting,
+      deliveredHostResults,
+      toCheckpoint: () => ({
+        awaitingToolCallIds: [...awaiting],
+        completedToolResults: [
+          ...completed.values(),
+          ...deliveredToolResults(),
+        ],
+        nativeApprovalDecisions: [...nativeApprovalDecisions].map(
+          ([toolCallId, decision]) => ({ toolCallId, ...decision }),
+        ),
+      }),
+      start,
       cancel,
     };
 
@@ -1029,6 +1101,8 @@ export async function createPiSession(
         once: true,
       });
     }
+
+    if (awaiting.size === 0) start();
 
     return createPromptControl({
       done,
@@ -1066,7 +1140,7 @@ export async function createPiSession(
       async submitToolResult(args) {
         const pending = pendingToolResults.get(args.toolCallId);
         if (!pending) {
-          acceptDanglingHostToolResult(args);
+          acceptReplayToolResult(args);
           return;
         }
         pendingToolResults.delete(args.toolCallId);
@@ -1082,7 +1156,10 @@ export async function createPiSession(
       },
       async submitToolApproval(args) {
         const pending = pendingToolApprovals.get(args.approvalId);
-        if (!pending) return;
+        if (!pending) {
+          acceptReplayToolApproval(args);
+          return;
+        }
         pendingToolApprovals.delete(args.approvalId);
         pending.resolve({
           approved: args.approved,
@@ -1111,21 +1188,19 @@ export async function createPiSession(
     ) {
       return { approved: true };
     }
+    const deliveredDecision = nativeApprovalDecisions.get(args.toolCallId);
+    if (deliveredDecision != null) {
+      nativeApprovalDecisions.delete(args.toolCallId);
+      return deliveredDecision;
+    }
     currentEmit?.({
       type: 'tool-approval-request',
       approvalId: args.toolCallId,
       toolCallId: args.toolCallId,
     });
-    if (translatorState) {
-      for (const part of finishPiApprovalStep(
-        translatorState,
-        args.toolCallId,
-      )) {
-        currentEmit?.(part);
-      }
-    }
     return new Promise(resolve => {
       pendingToolApprovals.set(args.toolCallId, { resolve });
+      emitEarlyFinishStepIfReady();
     });
   }
 
@@ -1143,7 +1218,11 @@ export async function createPiSession(
         }),
       ),
       ...userTools.map(spec =>
-        buildUserToolDefinition(spec, pendingToolResults),
+        buildUserToolDefinition({
+          spec,
+          pending: pendingToolResults,
+          onPending: emitEarlyFinishStepIfReady,
+        }),
       ),
     ];
     return {
@@ -1251,7 +1330,16 @@ export async function createPiSession(
       if (!translatorState) return;
       const event = parseNativeEvent(rawEvent);
       if (!event) return;
+      trackToolBatch(event, rawEvent);
+      /*
+       * During a tool batch replay, the replayed assistant message and calls
+       * that finished before the turn was persisted were already reported
+       * to the consumer. Their events still update the translator state so
+       * step accounting stays intact; only step boundaries are forwarded.
+       */
+      const suppressed = isReplaySuppressedEvent(event);
       for (const part of translatePiEvent(event, translatorState)) {
+        if (suppressed && part.type !== 'finish-step') continue;
         if (currentEmit) {
           currentEmit(part);
         } else if (part.type === 'compaction') {
@@ -1260,6 +1348,10 @@ export async function createPiSession(
         }
         // Other event types outside a turn have no consumer and are dropped.
       }
+      if (event.type === 'message_end' && event.message?.role === 'assistant') {
+        replayingAssistantMessage = false;
+      }
+      emitEarlyFinishStepIfReady();
     });
     return resourcesReloaded;
   }
@@ -1277,6 +1369,7 @@ export async function createPiSession(
     instructions?: string;
     emit: (part: HarnessV1StreamPart) => void;
     abortSignal?: AbortSignal;
+    replay?: PiToolBatchReplay;
   }): Promise<HarnessV1PromptControl> {
     if (stopped) {
       throw new Error('Pi session has been stopped.');
@@ -1328,12 +1421,27 @@ export async function createPiSession(
         turnAbortController.signal.throwIfAborted();
 
         /*
-         * Any host tool results delivered while no turn was live must land in the
-         * journal before the session (re)builds from it, whichever turn entry
-         * point runs next. No-op when nothing was delivered.
+         * The restored journal must be moved back to before the tool batch
+         * before the Pi session builds its transcript from it.
          */
-        const didAppendDeliveredHostToolResults =
-          appendDeliveredHostToolResults();
+        const restoredJournal =
+          turnOpts.replay != null && piSession == null
+            ? getRestoredSessionManager()
+            : undefined;
+        const replayBatch =
+          restoredJournal == null
+            ? undefined
+            : takeToolBatchForReplay({ journal: restoredJournal });
+        const replayToolResults = new Map(turnOpts.replay?.toolResults);
+        const replaySuppressed = new Set(
+          turnOpts.replay?.suppressedToolCallIds,
+        );
+        for (const result of replayBatch?.journaledToolResults ?? []) {
+          if (!replayToolResults.has(result.toolCallId)) {
+            replayToolResults.set(result.toolCallId, result);
+            replaySuppressed.add(result.toolCallId);
+          }
+        }
 
         if (nextModel != null) activeResolvedModel = nextModel;
 
@@ -1384,33 +1492,9 @@ export async function createPiSession(
           ...(piSession?.model?.id ? { modelId: piSession.model.id } : {}),
         });
 
-        /*
-         * A live continuation reports the completed tool execution before the
-         * next assistant message, which closes the resumed tool-call step. A
-         * journal rerun starts after that result has already been persisted,
-         * so Pi has no live tool event to emit. Recreate only the missing step
-         * boundary; otherwise the continuation layer mistakes the next
-         * assistant response for the resumed step and discards it.
-         */
-        if (didAppendDeliveredHostToolResults) {
-          currentEmit?.({
-            type: 'finish-step',
-            finishReason: { unified: 'tool-calls', raw: undefined },
-            usage: {
-              inputTokens: {
-                total: 0,
-                noCache: 0,
-                cacheRead: 0,
-                cacheWrite: 0,
-              },
-              outputTokens: {
-                total: 0,
-                text: 0,
-                reasoning: 0,
-              },
-            },
-            harnessMetadata: { pi: { inferredStep: true } },
-          });
+        for (const [toolCallId, delivered] of turnOpts.replay
+          ?.hostToolResults ?? []) {
+          translatorState.hostToolResults.set(toolCallId, delivered.output);
         }
 
         let terminalError: string | undefined;
@@ -1429,7 +1513,24 @@ export async function createPiSession(
 
         const tokensBefore = session.getSessionStats().tokens;
         try {
-          await session.prompt(turnOpts.text);
+          if (replayBatch != null) {
+            replaySuppressedToolCallIds = replaySuppressed;
+            try {
+              await runToolBatchReplay({
+                agent: session.agent,
+                assistantMessage: replayBatch.assistantMessage,
+                toolResults: replayToolResults,
+                onReplayedMessage: () => {
+                  replayingAssistantMessage = true;
+                },
+              });
+            } finally {
+              replaySuppressedToolCallIds = new Set();
+              replayingAssistantMessage = false;
+            }
+          } else {
+            await session.prompt(turnOpts.text);
+          }
 
           if (terminalError) {
             /*
@@ -1506,7 +1607,20 @@ export async function createPiSession(
     }
     stopped = true;
     parkedPiSessions.delete(input.sessionId);
-    deferredRerun?.cancel();
+    /*
+     * A tool batch waiting on host input is checkpointed before the turn is
+     * aborted: aborting settles the waiting calls with errors, which must not
+     * reach the persisted journal a later continuation replays.
+     */
+    const pendingToolBatch = createPendingToolBatchCheckpoint();
+    replayBarrier?.cancel();
+    if (pendingToolBatch != null && sessionFileName) {
+      try {
+        await persistSessionFile();
+      } catch {
+        // Best-effort, like the regular persistence below.
+      }
+    }
     const turnToStop = activeTurn;
     const abortingTurn = turnToStop?.abort();
     settlePendingToolResults('Pi session stopped');
@@ -1514,20 +1628,9 @@ export async function createPiSession(
     await abortingTurn;
     await turnToStop?.done.catch(() => {});
 
-    /*
-     * Results the framework already delivered for journal-pending calls must
-     * reach the journal before it is persisted — the framework has marked
-     * them settled and will not re-deliver them on a later resume.
-     */
-    try {
-      appendDeliveredHostToolResults();
-    } catch {
-      // Best-effort: an unwritable journal falls back to the pre-delivery copy.
-    }
-
     // Persist the Pi session file into the sandbox so a future process
     // can pick it up after `provider.resumeSession({ sessionId })` reattaches.
-    if (sessionFileName) {
+    if (sessionFileName && pendingToolBatch == null) {
       try {
         await persistSessionFile();
       } catch {
@@ -1544,7 +1647,7 @@ export async function createPiSession(
       type: 'resume-session',
       harnessId: HARNESS_ID,
       specificationVersion: 'harness-v1',
-      data: sessionFileName ? { sessionFileName } : {},
+      data: createLifecycleData(pendingToolBatch),
     };
   };
 
@@ -1564,6 +1667,8 @@ export async function createPiSession(
           harnessId: HARNESS_ID,
         });
       }
+      pendingToolBatchToReplay = undefined;
+      replayBarrier?.cancel();
       return runTurn({
         text: extractUserText(promptOpts.prompt),
         ...(promptOpts.model ? { model: promptOpts.model } : {}),
@@ -1597,21 +1702,11 @@ export async function createPiSession(
         throw new Error('Pi session has been stopped.');
       }
 
-      /*
-       * The restored journal ends with host tool calls that never got their
-       * results — the turn was paused on host input (e.g. a tool approval)
-       * when the previous process exited. The framework re-delivers those
-       * results via `submitToolResult` right after this call returns; hold
-       * the rerun until they have all arrived so they reach the model.
-       */
-      const danglingHostToolCalls = findDanglingHostToolCalls(
-        continueOpts.tools ?? [],
-      );
-      if (danglingHostToolCalls.length > 0) {
-        return deferRerunUntilHostToolResults(
-          danglingHostToolCalls,
-          continueOpts,
-        );
+      const pendingToolBatch =
+        replayBarrier?.toCheckpoint() ?? pendingToolBatchToReplay;
+      pendingToolBatchToReplay = undefined;
+      if (pendingToolBatch != null && piSession == null) {
+        return waitForToolBatchInputThenReplay(pendingToolBatch, continueOpts);
       }
 
       /*
@@ -1658,7 +1753,7 @@ export async function createPiSession(
       if (stopped) return;
       stopped = true;
       parkedPiSessions.delete(input.sessionId);
-      deferredRerun?.cancel();
+      replayBarrier?.cancel();
       const turnToDestroy = activeTurn;
       const abortingTurn = turnToDestroy?.abort();
       settlePendingToolResults('Pi session stopped');
@@ -1682,6 +1777,7 @@ export async function createPiSession(
           input,
           stateType: 'resume-session',
         });
+        const pendingToolBatch = createPendingToolBatchCheckpoint();
         if (sessionFileName) {
           try {
             await persistSessionFile();
@@ -1697,7 +1793,7 @@ export async function createPiSession(
           type: 'resume-session',
           harnessId: HARNESS_ID,
           specificationVersion: 'harness-v1',
-          data: sessionFileName ? { sessionFileName } : {},
+          data: createLifecycleData(pendingToolBatch),
         };
       }
       return doStop();
@@ -1717,6 +1813,7 @@ export async function createPiSession(
           input,
           stateType: 'continue-turn',
         });
+        const pendingToolBatch = createPendingToolBatchCheckpoint();
         if (sessionFileName) {
           try {
             await persistSessionFile();
@@ -1732,7 +1829,7 @@ export async function createPiSession(
           type: 'continue-turn',
           harnessId: HARNESS_ID,
           specificationVersion: 'harness-v1',
-          data: sessionFileName ? { sessionFileName } : {},
+          data: createLifecycleData(pendingToolBatch),
         };
       }
       /*
@@ -1745,28 +1842,28 @@ export async function createPiSession(
        * tail in flight at the boundary is recomputed — Pi cannot freeze a live
        * turn the way a bridge adapter can.
        */
+      /*
+       * Same as `doStop`: checkpoint a tool batch waiting on host input
+       * before the abort settles its calls with errors.
+       */
+      const pendingToolBatch = createPendingToolBatchCheckpoint();
+      replayBarrier?.cancel();
+      if (pendingToolBatch != null && sessionFileName) {
+        try {
+          await persistSessionFile();
+        } catch {
+          // Best-effort, like the regular persistence below.
+        }
+      }
       suspending = true;
       const turnToSuspend = activeTurn;
       const abortingTurn = turnToSuspend?.abort();
-      deferredRerun?.cancel();
       settlePendingToolResults('Pi session suspended');
       settlePendingToolApprovals('Pi session suspended');
       await abortingTurn;
       await turnToSuspend?.done.catch(() => {});
 
-      /*
-       * A suspend can land while the rerun is still held back waiting for
-       * host tool results. Whatever the framework already delivered must land
-       * in the journal now — it will not be re-delivered — while calls still
-       * awaiting results stay dangling for the next continuation to collect.
-       */
-      try {
-        appendDeliveredHostToolResults();
-      } catch {
-        // Best-effort: an unwritable journal falls back to the pre-delivery copy.
-      }
-
-      if (sessionFileName) {
+      if (sessionFileName && pendingToolBatch == null) {
         try {
           await persistSessionFile();
         } catch {
@@ -1786,7 +1883,7 @@ export async function createPiSession(
         type: 'continue-turn',
         harnessId: HARNESS_ID,
         specificationVersion: 'harness-v1',
-        data: sessionFileName ? { sessionFileName } : {},
+        data: createLifecycleData(pendingToolBatch),
       };
     },
   };
@@ -2094,10 +2191,24 @@ function buildBuiltinToolDefinition(input: {
   }
 }
 
-function buildUserToolDefinition(
-  spec: HarnessV1ToolSpec,
-  pending: Map<string, PendingToolResult>,
-): ToolDefinition {
+function toPiHostToolResult(output: unknown): AgentToolResult<unknown> {
+  return asPiToolResult(
+    truncatePiToolOutputHead(
+      serializeToolOutput(output),
+      'Call the tool again with narrower parameters to inspect the omitted output.',
+    ),
+  );
+}
+
+function buildUserToolDefinition({
+  spec,
+  pending,
+  onPending,
+}: {
+  spec: HarnessV1ToolSpec;
+  pending: Map<string, PendingToolResult>;
+  onPending: () => void;
+}): ToolDefinition {
   const schema = spec.inputSchema ?? {
     type: 'object',
     properties: {},
@@ -2111,14 +2222,8 @@ function buildUserToolDefinition(
     async execute(toolCallId) {
       return new Promise<unknown>(resolve => {
         pending.set(toolCallId, { resolve });
-      }).then(output =>
-        asPiToolResult(
-          truncatePiToolOutputHead(
-            serializeToolOutput(output),
-            'Call the tool again with narrower parameters to inspect the omitted output.',
-          ),
-        ),
-      );
+        onPending();
+      }).then(toPiHostToolResult);
     },
   });
 }

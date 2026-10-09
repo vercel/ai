@@ -58,6 +58,7 @@ import {
   createClineTranslatorState,
   finishClineTranslation,
   toolApprovalParts,
+  takeClineEarlyFinishStep,
   translateClineEvent,
   type ClineTranslatorState,
 } from './cline-translate';
@@ -398,7 +399,22 @@ export async function createClineSession(
     }
     return new Promise(resolve => {
       pendingToolApprovals.set(toolCall.toolCallId, { resolve });
+      emitEarlyFinishStepIfReady();
     });
+  }
+
+  function emitEarlyFinishStepIfReady(): void {
+    if (!translatorState || !currentEmit) return;
+    const waitingToolCallIds = new Set([
+      ...pendingToolResults.keys(),
+      ...pendingToolApprovals.keys(),
+      ...pendingQuestions.keys(),
+    ]);
+    for (const part of takeClineEarlyFinishStep(translatorState, {
+      waitingToolCallIds,
+    })) {
+      currentEmit(part);
+    }
   }
 
   function rebuildAgent(rebuildInput: {
@@ -440,6 +456,7 @@ export async function createClineSession(
           activeNames: activeBuiltinNames,
           pendingQuestions,
           pendingQuestionResults,
+          onHostInputPending: emitEarlyFinishStepIfReady,
         }),
         ...(rebuildInput.skillsRuntime.tool &&
         activeBuiltinNames.includes('skills')
@@ -449,6 +466,7 @@ export async function createClineSession(
         ...buildUserAgentTools({
           specs: rebuildInput.userTools,
           pendingToolResults,
+          onHostInputPending: emitEarlyFinishStepIfReady,
         }),
         ...(rebuildInput.responseFormat?.type === 'json' &&
         rebuildInput.responseFormat.schema != null

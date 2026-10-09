@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import {
   createClineTranslatorState,
   finishClineTranslation,
+  takeClineEarlyFinishStep,
   toolApprovalParts,
   translateClineEvent,
 } from './cline-translate';
@@ -774,6 +775,75 @@ describe('finishClineTranslation', () => {
         },
         state,
       ),
+    ).toEqual([]);
+  });
+
+  it('emits one early finish-step once every unfinished step tool call waits on host input', () => {
+    const state = newState();
+    const toolCall = (toolCallId: string) => ({
+      type: 'tool-call' as const,
+      toolCallId,
+      toolName: 'get_weather',
+      input: {},
+    });
+    translateClineEvent(
+      {
+        type: 'assistant-message',
+        snapshot,
+        iteration: 1,
+        finishReason: 'tool-calls',
+        message: {
+          id: 'm1',
+          role: 'assistant',
+          content: [toolCall('paris'), toolCall('tokyo')],
+          createdAt: 0,
+        },
+      } as AgentRuntimeEvent,
+      state,
+    );
+
+    expect(
+      takeClineEarlyFinishStep(state, {
+        waitingToolCallIds: new Set(['paris']),
+      }),
+    ).toEqual([]);
+    expect(
+      takeClineEarlyFinishStep(state, {
+        waitingToolCallIds: new Set(['paris', 'tokyo']),
+      }),
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "finishReason": {
+            "raw": "host-input",
+            "unified": "tool-calls",
+          },
+          "harnessMetadata": {
+            "cline": {
+              "inferredStep": true,
+            },
+          },
+          "type": "finish-step",
+          "usage": {
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+          },
+        },
+      ]
+    `);
+    expect(
+      takeClineEarlyFinishStep(state, {
+        waitingToolCallIds: new Set(['paris', 'tokyo']),
+      }),
     ).toEqual([]);
   });
 });
