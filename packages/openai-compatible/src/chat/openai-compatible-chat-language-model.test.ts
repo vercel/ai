@@ -2091,6 +2091,113 @@ describe('doStream', () => {
     `);
   });
 
+  it('should stream tool deltas when function.name arrives in a later chunk', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-late-name","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"role":"assistant","content":null},"finish_reason":null}]}\n\n`,
+        // First tool_calls delta carries id and (empty) arguments but no function.name
+        `data: {"id":"chatcmpl-late-name","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"call_late","type":"function","function":{"arguments":""}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        // function.name arrives in the next chunk together with the start of the arguments
+        `data: {"id":"chatcmpl-late-name","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"call_late","type":"function","function":{"name":"test-tool","arguments":"{\\""}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-late-name","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"value"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-late-name","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\":\\"hi\\"}"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-late-name","object":"chat.completion.chunk","created":1729171479,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],` +
+          `"usage":{"prompt_tokens":18,"completion_tokens":10,"total_tokens":28}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          inputSchema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+
+    expect(parts.filter(part => part.type === 'tool-input-start')).toEqual([
+      { type: 'tool-input-start', id: 'call_late', toolName: 'test-tool' },
+    ]);
+    expect(
+      parts
+        .flatMap(part => (part.type === 'tool-input-delta' ? [part.delta] : []))
+        .join(''),
+    ).toBe('{"value":"hi"}');
+    expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'call_late',
+        toolName: 'test-tool',
+        input: '{"value":"hi"}',
+      },
+    ]);
+    expect(parts.find(part => part.type === 'finish')).toMatchObject({
+      finishReason: 'tool-calls',
+    });
+  });
+
+  it('should error when streamed tool call never receives a function.name', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-no-name","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"role":"assistant","content":null},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-no-name","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"call_missing","type":"function","function":{"arguments":"{}"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-no-name","object":"chat.completion.chunk","created":1729171479,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],` +
+          `"usage":{"prompt_tokens":18,"completion_tokens":10,"total_tokens":28}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          inputSchema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    await expect(convertReadableStreamToArray(stream)).rejects.toThrow(
+      "Expected 'function.name' to be a string.",
+    );
+  });
+
   it('should stream empty tool call that is sent in one chunk', async () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
