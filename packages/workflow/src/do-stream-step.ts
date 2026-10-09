@@ -19,6 +19,10 @@ import {
   resolveSerializableTools,
   type SerializableToolDef,
 } from './serializable-schema.js';
+import {
+  runModelCallWithTelemetry,
+  type LanguageModelCallTelemetry,
+} from './model-call-telemetry.js';
 
 import type {
   ModelCallFinish as StreamFinish,
@@ -55,6 +59,36 @@ export async function doStreamStep(
 ): Promise<DoStreamStepResult> {
   'use step';
 
+  return runModelCallWithTelemetry({
+    telemetry: options?.telemetry,
+    modelInit,
+    prompt: conversationPrompt,
+    serializedTools,
+    options,
+    execute: languageModelCallTelemetry =>
+      streamModelStep(
+        conversationPrompt,
+        modelInit,
+        writable,
+        serializedTools,
+        options,
+        languageModelCallTelemetry,
+      ),
+  });
+}
+
+// Model-call retries are handled below so the workflow runtime must not add
+// another retry layer around the durable step.
+doStreamStep.maxRetries = 0;
+
+async function streamModelStep(
+  conversationPrompt: LanguageModelV4Prompt,
+  modelInit: LanguageModel,
+  writable: WritableStream<ModelCallStreamPart<ToolSet>> | undefined,
+  serializedTools: Record<string, SerializableToolDef> | undefined,
+  options: DoStreamStepOptions | undefined,
+  languageModelCallTelemetry: LanguageModelCallTelemetry | undefined,
+): Promise<DoStreamStepResult> {
   const timeout =
     options?.timeoutAt == null ? undefined : options.timeoutAt - Date.now();
 
@@ -177,6 +211,7 @@ export async function doStreamStep(
           stopSequences: options?.stopSequences,
           seed: options?.seed,
           repairToolCall: options?.repairToolCall,
+          ...languageModelCallTelemetry,
         }),
       );
 
@@ -481,10 +516,6 @@ export async function doStreamStep(
     ...(hasTerminalError ? { terminalError } : {}),
   };
 }
-
-// Model-call retries are handled above so the workflow runtime must not add
-// another retry layer around the durable step.
-doStreamStep.maxRetries = 0;
 
 function applyStreamTransforms({
   stream,
