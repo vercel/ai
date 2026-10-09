@@ -1,0 +1,18 @@
+{
+  "capturedAt": "2026-10-09",
+  "model": "gemini-3.1-pro-preview",
+  "reasoningNoneResponse": {
+    "error": {
+      "code": 400,
+      "message": "Thinking level MINIMAL is not supported for this model. Please retry with other thinking level.",
+      "status": "INVALID_ARGUMENT"
+    }
+  },
+  "thinkingLevelAndBudgetResponse": {
+    "error": {
+      "code": 400,
+      "message": "You can only set only one of thinking budget and thinking level.",
+      "status": "INVALID_ARGUMENT"
+    }
+  }
+}
