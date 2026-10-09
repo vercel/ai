@@ -159,90 +159,17 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
 
       case 'assistant': {
         if (message.parts != null) {
-          const firstStepStart = message.parts.findIndex(
-            part => part.type === 'step-start',
-          );
-          const hasPrelude = message.parts
-            .slice(0, Math.max(firstStepStart, 0))
-            .some(
-              part =>
-                part.type !== 'source-url' && part.type !== 'source-document',
-            );
-          const lastStepIndex = Math.max(
-            message.parts.filter(part => part.type === 'step-start').length -
-              1 +
-              (hasPrelude ? 1 : 0),
-            0,
-          );
-          const positionedResults = new Map<
-            number,
-            Array<{ contentIndex: number; result: ToolResultPart }>
-          >();
-          const positionedToolParts = new Set<object>();
-          let currentStepIndex = 0;
+          const stepMessages: Array<{
+            content: Exclude<AssistantContent, string>;
+            messages: ModelMessage[];
+          }> = [];
+          const resultMoves: Array<{
+            result: ToolResultPart;
+            source: Exclude<AssistantContent, string>;
+            callStepIndex: number;
+            position: { stepIndex: number; contentIndex: number };
+          }> = [];
           let hasStepStarted = false;
-
-          async function createProviderToolResult(
-            part: Extract<
-              ToolUIPart | DynamicToolUIPart,
-              { state: 'output-available' | 'output-error' }
-            >,
-          ): Promise<ToolResultPart> {
-            const toolName = getToolName(part);
-            const resultProviderMetadata =
-              part.resultProviderMetadata ?? part.callProviderMetadata;
-            return {
-              type: 'tool-result',
-              toolCallId: part.toolCallId,
-              toolName,
-              output: await createToolModelOutput({
-                toolCallId: part.toolCallId,
-                input: part.input,
-                output:
-                  part.state === 'output-error' ? part.errorText : part.output,
-                tool: getOwn(options?.tools, toolName),
-                errorMode: part.state === 'output-error' ? 'json' : 'none',
-              }),
-              ...(resultProviderMetadata != null
-                ? { providerOptions: resultProviderMetadata }
-                : {}),
-            };
-          }
-
-          // Collect results before processing steps, including result-only steps.
-          let callStepIndex = hasPrelude ? 0 : -1;
-          for (const part of message.parts) {
-            if (part.type === 'step-start') {
-              callStepIndex++;
-            }
-            if (
-              !isToolUIPart(part) ||
-              part.providerExecuted !== true ||
-              (part.state !== 'output-available' &&
-                part.state !== 'output-error') ||
-              (part.state === 'output-available' && part.preliminary === true)
-            ) {
-              continue;
-            }
-            const position = part.resultPosition;
-            if (
-              position == null ||
-              !Number.isInteger(position.stepIndex) ||
-              !Number.isInteger(position.contentIndex) ||
-              position.stepIndex < Math.max(callStepIndex, 0) ||
-              position.stepIndex > lastStepIndex ||
-              position.contentIndex < 0
-            ) {
-              continue;
-            }
-            const results = positionedResults.get(position.stepIndex) ?? [];
-            results.push({
-              contentIndex: position.contentIndex,
-              result: await createProviderToolResult(part),
-            });
-            positionedResults.set(position.stepIndex, results);
-            positionedToolParts.add(part);
-          }
 
           let block: Array<
             | CustomContentUIPart
@@ -256,12 +183,10 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
           > = [];
 
           async function processBlock() {
-            const results = positionedResults.get(currentStepIndex) ?? [];
-            if (block.length === 0 && results.length === 0) {
-              return;
-            }
-
             const content: AssistantContent = [];
+            const messages: ModelMessage[] = [{ role: 'assistant', content }];
+            const currentStepIndex = stepMessages.length;
+            stepMessages.push({ content, messages });
 
             for (const part of block) {
               if (isTextUIPart(part)) {
@@ -359,18 +284,39 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
 
                   if (
                     part.providerExecuted === true &&
-                    part.state !== 'approval-responded' &&
-                    (part.state === 'output-available' ||
-                      part.state === 'output-error')
+                    (part.state === 'output-error' ||
+                      (part.state === 'output-available' &&
+                        part.preliminary !== true))
                   ) {
-                    if (
-                      !positionedToolParts.has(part) &&
-                      !(
-                        part.state === 'output-available' &&
-                        part.preliminary === true
-                      )
-                    ) {
-                      content.push(await createProviderToolResult(part));
+                    const resultProviderMetadata =
+                      part.resultProviderMetadata ?? part.callProviderMetadata;
+                    const result: ToolResultPart = {
+                      type: 'tool-result',
+                      toolCallId: part.toolCallId,
+                      toolName,
+                      output: await createToolModelOutput({
+                        toolCallId: part.toolCallId,
+                        input: part.input,
+                        output:
+                          part.state === 'output-error'
+                            ? part.errorText
+                            : part.output,
+                        tool: getOwn(options?.tools, toolName),
+                        errorMode:
+                          part.state === 'output-error' ? 'json' : 'none',
+                      }),
+                      ...(resultProviderMetadata != null
+                        ? { providerOptions: resultProviderMetadata }
+                        : {}),
+                    };
+                    content.push(result);
+                    if (part.resultPosition != null) {
+                      resultMoves.push({
+                        result,
+                        source: content,
+                        callStepIndex: currentStepIndex,
+                        position: part.resultPosition,
+                      });
                     }
                   }
                 }
@@ -386,20 +332,6 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                 const _exhaustiveCheck: never = part;
                 throw new Error(`Unsupported part: ${_exhaustiveCheck}`);
               }
-            }
-
-            // Insert in ascending order because indices include other results.
-            for (const { contentIndex, result } of results.sort(
-              (a, b) => a.contentIndex - b.contentIndex,
-            )) {
-              content.splice(contentIndex, 0, result);
-            }
-
-            if (content.length > 0) {
-              modelMessages.push({
-                role: 'assistant',
-                content,
-              });
             }
 
             // check if there are tool invocations with results in the block
@@ -504,7 +436,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                 }
 
                 if (content.length > 0) {
-                  modelMessages.push({
+                  messages.push({
                     role: 'tool',
                     content,
                   });
@@ -531,13 +463,46 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
               // The first boundary opens step 0; subsequent boundaries close it.
               if (hasStepStarted || block.length > 0) {
                 await processBlock();
-                currentStepIndex++;
               }
               hasStepStarted = true;
             }
           }
 
           await processBlock();
+
+          // Remove results first so their old positions cannot affect insertion.
+          const moves = resultMoves.filter(
+            ({ position, callStepIndex }) =>
+              Number.isInteger(position.stepIndex) &&
+              Number.isInteger(position.contentIndex) &&
+              position.stepIndex >= callStepIndex &&
+              position.stepIndex < stepMessages.length &&
+              position.contentIndex >= 0,
+          );
+          for (const { result, source } of moves) {
+            source.splice(source.indexOf(result), 1);
+          }
+          // Indices include other results, so insert them in ascending order.
+          moves.sort(
+            (a, b) =>
+              a.position.stepIndex - b.position.stepIndex ||
+              a.position.contentIndex - b.position.contentIndex,
+          );
+          for (const { result, position } of moves) {
+            stepMessages[position.stepIndex].content.splice(
+              position.contentIndex,
+              0,
+              result,
+            );
+          }
+          for (const { messages } of stepMessages) {
+            modelMessages.push(
+              ...messages.filter(
+                message =>
+                  Array.isArray(message.content) && message.content.length > 0,
+              ),
+            );
+          }
 
           break;
         }
