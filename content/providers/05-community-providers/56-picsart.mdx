@@ -149,11 +149,13 @@ import { picsart } from '@picsart/vercel-ai-provider';
 
 const models = await picsart.catalog.listModels({ mode: 'image' });
 const model = models.find(
-  candidate => candidate.params.resolution?.kind === 'enum',
+  candidate =>
+    candidate.inputType === 't2i' &&
+    candidate.params.resolution?.kind === 'enum',
 );
 const resolution = model?.params.resolution?.options?.[0]?.id;
 if (!model || resolution === undefined)
-  throw new Error('No image model lists resolutions');
+  throw new Error('No text-to-image model lists resolutions');
 
 const { image, warnings } = await generateImage({
   model: picsart.image(model.id),
