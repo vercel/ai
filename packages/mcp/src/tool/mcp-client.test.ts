@@ -87,6 +87,7 @@ class ProtocolDiscoveryTransport implements MCPTransport {
     private readonly discoveryBehavior:
       | 'modern'
       | 'legacy'
+      | 'silent'
       | 'unsupported' = 'modern',
     private readonly includeToolListResultType = true,
   ) {}
@@ -109,6 +110,10 @@ class ProtocolDiscoveryTransport implements MCPTransport {
     }
 
     if (message.method === 'server/discover') {
+      if (this.discoveryBehavior === 'silent') {
+        return;
+      }
+
       if (this.discoveryBehavior === 'legacy') {
         this.onmessage?.({
           jsonrpc: '2.0',
@@ -3329,6 +3334,23 @@ describe('MCPClient', () => {
           ? toolListRequest.params?._meta
           : undefined,
       ).toBeUndefined();
+    });
+
+    it('should fall back to legacy initialization when discovery gets no response', async () => {
+      vi.useFakeTimers();
+      const transport = new ProtocolDiscoveryTransport('silent');
+
+      [client] = await Promise.all([
+        createMCPClient({ transport }),
+        vi.advanceTimersByTimeAsync(1000),
+      ]);
+
+      expect(transport.protocolVersion).toBe(LATEST_LEGACY_PROTOCOL_VERSION);
+      expect(
+        transport.sentMessages.map(message =>
+          'method' in message ? message.method : undefined,
+        ),
+      ).toEqual(['server/discover', 'initialize', 'notifications/initialized']);
     });
 
     it('should not fall back for a recognized modern protocol error', async () => {
