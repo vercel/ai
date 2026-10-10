@@ -1596,11 +1596,14 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
     const handler = this.responseHandlers.get(messageId);
 
     if (handler === undefined) {
-      throw new MCPClientError({
-        message: `Protocol error: Received a response for an unknown message ID: ${JSON.stringify(
-          response,
-        )}`,
-      });
+      this.onError(
+        new MCPClientError({
+          message: `Protocol error: Received a response for an unknown message ID: ${JSON.stringify(
+            response,
+          )}`,
+        }),
+      );
+      return;
     }
 
     this.responseHandlers.delete(messageId);
