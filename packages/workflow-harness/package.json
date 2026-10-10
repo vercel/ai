@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/workflow-harness",
-  "version": "1.0.141",
+  "version": "1.0.148",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -38,7 +38,7 @@
     "@ai-sdk/harness": "workspace:*"
   },
   "peerDependencies": {
-    "workflow": "^4.2.1"
+    "workflow": "^5.1.0"
   },
   "devDependencies": {
     "@types/node": "22.19.19",
@@ -46,7 +46,7 @@
     "ai": "workspace:*",
     "tsdown": "^0.23.0",
     "typescript": "6.0.3",
-    "workflow": "4.6.0"
+    "workflow": "5.1.0"
   },
   "engines": {
     "node": ">=22"

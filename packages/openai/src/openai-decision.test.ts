@@ -17,7 +17,7 @@ const fixture = JSON.parse(
   readFileSync('src/__fixtures__/decision.json', 'utf8'),
 );
 const options = {
-  state: 'A billing issue with a workaround.',
+  state: [{ type: 'text', text: 'A billing issue with a workaround.' }],
   questions: {
     department: {
       type: 'choice',
@@ -81,7 +81,12 @@ it('sends all primitives directly to Decisions with configured authentication an
   );
   expect(JSON.parse(request?.body as string)).toEqual({
     model: 'gpt-6-luna',
-    input: options.state,
+    input: [
+      {
+        role: 'user',
+        content: [{ type: 'input_text', text: options.state[0].text }],
+      },
+    ],
     questions: [
       {
         type: 'choice',
@@ -142,7 +147,7 @@ it('preserves native values, maps reordered named answers, and exposes confidenc
 it('serializes structured input and rubrics, omits null descriptions, and preserves boolean criteria', async () => {
   const { model, fetch } = setup();
   await model.doDecide({
-    state: { ticket: ['charged twice'] },
+    state: [{ type: 'json', value: { ticket: ['charged twice'] } }],
     questions: {
       department: {
         type: 'choice',
@@ -166,7 +171,12 @@ it('serializes structured input and rubrics, omits null descriptions, and preser
   });
   expect(JSON.parse(fetch.mock.calls[0][1]?.body as string)).toEqual({
     model: 'gpt-6-luna',
-    input: '{"ticket":["charged twice"]}',
+    input: [
+      {
+        role: 'user',
+        content: [{ type: 'input_text', text: '{"ticket":["charged twice"]}' }],
+      },
+    ],
     questions: [
       {
         name: 'department',
@@ -403,7 +413,7 @@ it.each([
   { criteria: {}, expected: 'Refund?' },
   { criteria: { true: null, false: null }, expected: 'Refund?' },
   {
-    criteria: { true: 'Money back', false: null },
+    criteria: { true: 'Money back' },
     expected: 'Refund?\n\nCriteria for true:\nMoney back',
   },
   {
@@ -411,7 +421,7 @@ it.each([
     expected: 'Refund?\n\nCriteria for false:\n["Status request"]',
   },
 ] as const)(
-  'formats only supplied non-null boolean criteria',
+  'formats only supplied boolean criteria',
   async ({ criteria, expected }) => {
     const { model, fetch } = setup();
     await model.doDecide({
@@ -493,6 +503,88 @@ it.each(['department', 'severity', 'refund'] as const)(
     expect(fetch).toHaveBeenCalledTimes(1);
   },
 );
+
+it.each(['iVBORw==', new Uint8Array([0x89, 0x50, 0x4e, 0x47])])(
+  'maps ordered state parts to native text and inline images',
+  async data => {
+    const { model, fetch } = setup();
+    await model.doDecide({
+      ...options,
+      state: [
+        { type: 'text', text: 'Inspect this package.' },
+        { type: 'json', value: ['glass vase', null] },
+        { type: 'file', mediaType: 'image/png', data: { type: 'data', data } },
+        { type: 'text', text: 'Look for cracks.' },
+      ],
+    });
+    expect(JSON.parse(fetch.mock.calls[0][1]?.body as string).input).toEqual([
+      {
+        role: 'user',
+        content: [
+          { type: 'input_text', text: 'Inspect this package.' },
+          { type: 'input_text', text: '["glass vase",null]' },
+          { type: 'input_image', image_url: 'data:image/png;base64,iVBORw==' },
+          { type: 'input_text', text: 'Look for cracks.' },
+        ],
+      },
+    ]);
+  },
+);
+
+it.each(['low', 'high', 'auto', 'original'])(
+  'sends %s image detail from file part provider options',
+  async imageDetail => {
+    const { model, fetch } = setup();
+    await model.doDecide({
+      ...options,
+      state: [
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: { type: 'data', data: 'iVBORw==' },
+          providerOptions: { openai: { imageDetail } },
+        },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: { type: 'data', data: 'iVBORw==' },
+        },
+      ],
+    });
+    expect(
+      JSON.parse(fetch.mock.calls[0][1]?.body as string).input[0].content,
+    ).toEqual([
+      {
+        type: 'input_image',
+        image_url: 'data:image/png;base64,iVBORw==',
+        detail: imageDetail,
+      },
+      { type: 'input_image', image_url: 'data:image/png;base64,iVBORw==' },
+    ]);
+  },
+);
+
+it.each([
+  { mediaType: 'audio/wav', data: { type: 'data' as const, data: 'AAAA' } },
+  { mediaType: 'image/svg+xml', data: { type: 'data' as const, data: 'AAAA' } },
+  {
+    mediaType: 'image/png',
+    data: { type: 'reference' as const, reference: { openai: 'file-123' } },
+  },
+  {
+    mediaType: 'image/png',
+    data: {
+      type: 'url' as const,
+      url: new URL('https://example.com/image.png'),
+    },
+  },
+])('rejects unsupported decision files before the API call: %j', async part => {
+  const { model, fetch } = setup();
+  await expect(
+    model.doDecide({ ...options, state: [{ type: 'file', ...part }] }),
+  ).rejects.toMatchObject({ name: 'AI_UnsupportedFunctionalityError' });
+  expect(fetch).not.toHaveBeenCalled();
+});
 
 it('fails the decision when an unnamed question is refused', async () => {
   const answers = fixture.answers.map((answer: { name: string }) =>

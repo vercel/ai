@@ -243,6 +243,26 @@ describe('prepareTools', () => {
       `);
     });
 
+    it('should omit strict without warning when strict is false and strict tools are unsupported', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+            strict: false,
+          },
+        ],
+        toolChoice: undefined,
+        supportsStructuredOutput: false,
+        supportsStrictTools: false,
+      });
+
+      expect(result.tools?.[0]).not.toHaveProperty('strict');
+      expect(result.toolWarnings).toEqual([]);
+    });
+
     it('should include strict but not beta when supportsStructuredOutput is false but supportsStrictTools is true', async () => {
       const result = await prepareTools({
         tools: [
@@ -1475,7 +1495,7 @@ describe('prepareTools', () => {
     expect(result.toolChoice).toEqual({ type: 'any' });
   });
 
-  it('should handle tool choice "none"', async () => {
+  it('should preserve tools with tool choice "none"', async () => {
     const result = await prepareTools({
       tools: [
         {
@@ -1489,8 +1509,15 @@ describe('prepareTools', () => {
       supportsStructuredOutput: true,
       supportsStrictTools: true,
     });
-    expect(result.tools).toBeUndefined();
-    expect(result.toolChoice).toBeUndefined();
+    expect(result.tools).toEqual([
+      {
+        cache_control: undefined,
+        name: 'testFunction',
+        description: 'Test',
+        input_schema: {},
+      },
+    ]);
+    expect(result.toolChoice).toEqual({ type: 'none' });
   });
 
   it('should handle tool choice "tool"', async () => {
@@ -2173,7 +2200,8 @@ describe('rejectsForcedToolUse', () => {
       supportsStrictTools: true,
       rejectsForcedToolUse: true,
     });
-    expect(none.tools).toBeUndefined();
+    expect(none.tools).toHaveLength(2);
+    expect(none.toolChoice).toEqual({ type: 'none' });
     expect(none.toolWarnings).toEqual([]);
   });
 });

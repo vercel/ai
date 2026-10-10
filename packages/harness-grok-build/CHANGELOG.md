@@ -1,5 +1,68 @@
 # @ai-sdk/harness-grok-build
 
+## 1.0.86
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.148
+- @ai-sdk/harness-acp@1.0.87
+
+## 1.0.85
+
+### Patch Changes
+
+- c357e52: chore(harness): update primary harness SDKs to their latest versions
+- Updated dependencies [c357e52]
+  - @ai-sdk/harness-acp@1.0.86
+  - @ai-sdk/harness@1.0.147
+
+## 1.0.84
+
+### Patch Changes
+
+- Updated dependencies [0637573]
+- Updated dependencies [4dbc902]
+  - @ai-sdk/harness-acp@1.0.85
+  - @ai-sdk/provider@4.0.26
+  - @ai-sdk/harness@1.0.146
+  - @ai-sdk/provider-utils@5.0.58
+
+## 1.0.83
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.145
+- @ai-sdk/harness-acp@1.0.84
+
+## 1.0.82
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider@4.0.25
+  - @ai-sdk/provider-utils@5.0.57
+  - @ai-sdk/harness@1.0.144
+  - @ai-sdk/harness-acp@1.0.83
+
+## 1.0.81
+
+### Patch Changes
+
+- 9d84fad: chore(harness): ensure ACP and MCP dependencies use the latest version and are aligned across adapters
+- Updated dependencies [c4a5c8d]
+- Updated dependencies [50ac48b]
+- Updated dependencies [e8af189]
+- Updated dependencies [9d84fad]
+  - @ai-sdk/harness@1.0.143
+  - @ai-sdk/harness-acp@1.0.82
+
+## 1.0.80
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.142
+- @ai-sdk/harness-acp@1.0.81
+
 ## 1.0.79
 
 ### Patch Changes

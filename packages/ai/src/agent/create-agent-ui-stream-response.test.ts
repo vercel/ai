@@ -7,7 +7,7 @@ import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mockSandboxSessionFileStubs } from '../test/mock-sandbox';
 import { z } from 'zod/v4';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
@@ -266,6 +266,7 @@ describe('createAgentUIStreamResponse', () => {
     it('should call onFinish callback and complete stream without errors', async () => {
       let onFinishCalled = false;
       let finishMessages: unknown[] | undefined;
+      const onUIMessageStepEnd = vi.fn();
 
       const agent = new ToolLoopAgent({
         model: new MockLanguageModelV4({
@@ -343,6 +344,7 @@ describe('createAgentUIStreamResponse', () => {
           onFinishCalled = true;
           finishMessages = messages;
         },
+        onUIMessageStepEnd,
       });
 
       // Consume the response to trigger onFinish
@@ -360,6 +362,16 @@ describe('createAgentUIStreamResponse', () => {
       expect(onFinishCalled).toBe(true);
       expect(finishMessages).toBeDefined();
       expect(finishMessages!.length).toBe(2);
+      expect(onUIMessageStepEnd).toHaveBeenCalledTimes(1);
+      expect(onUIMessageStepEnd.mock.calls[0][0].responseMessage).toMatchObject(
+        {
+          id: 'msg-2',
+          role: 'assistant',
+          parts: expect.arrayContaining([
+            expect.objectContaining({ type: 'text', text: 'Done!' }),
+          ]),
+        },
+      );
     });
   });
 

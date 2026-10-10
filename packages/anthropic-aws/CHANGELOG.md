@@ -1,5 +1,43 @@
 # @ai-sdk/anthropic-aws
 
+## 2.0.71
+
+### Patch Changes
+
+- Updated dependencies [4dbc902]
+  - @ai-sdk/provider@4.0.26
+  - @ai-sdk/anthropic@4.0.78
+  - @ai-sdk/provider-utils@5.0.58
+
+## 2.0.70
+
+### Patch Changes
+
+- Updated dependencies [c01cbb8]
+  - @ai-sdk/anthropic@4.0.77
+
+## 2.0.69
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider@4.0.25
+  - @ai-sdk/provider-utils@5.0.57
+  - @ai-sdk/anthropic@4.0.76
+
+## 2.0.68
+
+### Patch Changes
+
+- 5d42987: fix(amazon-bedrock,anthropic-aws): skip SigV4 signing for non-ASCII header values
+
+## 2.0.67
+
+### Patch Changes
+
+- Updated dependencies [866e884]
+  - @ai-sdk/anthropic@4.0.75
+
 ## 2.0.66
 
 ### Patch Changes

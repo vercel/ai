@@ -821,6 +821,8 @@ describe('prepareTools', () => {
     });
 
     it.each([
+      'us.anthropic.claude-opus-6-v1:0',
+      'global.anthropic.claude-future-v1:0',
       'us.anthropic.claude-opus-4-7',
       'anthropic.claude-opus-4-8',
       'us.anthropic.claude-opus-5',
@@ -853,6 +855,26 @@ describe('prepareTools', () => {
             "Tool 'testFunction' has strict: true, but strict mode is not supported by this model on Amazon Bedrock. The strict property will be ignored.",
         },
       ]);
+    });
+
+    it('should omit strict without warning when strict is false and strict mode is unsupported', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+            strict: false,
+          },
+        ],
+        modelId: 'us.anthropic.claude-opus-4-7',
+      });
+
+      expect((result.toolConfig.tools![0] as any).toolSpec).not.toHaveProperty(
+        'strict',
+      );
+      expect(result.toolWarnings).toEqual([]);
     });
   });
 });

@@ -33,7 +33,9 @@ import {
   type LanguageModelV4Usage,
 } from '@ai-sdk/provider';
 import {
+  addLanguageModelUsage,
   asLanguageModelUsage,
+  createNullLanguageModelUsage,
   parseToolCall,
   validateToolContext,
 } from 'ai/internal';
@@ -342,7 +344,6 @@ export function runPrompt<
     let pendingStopBoundary:
       | {
           finishReason: LanguageModelV4FinishReason;
-          usage: LanguageModelV4Usage;
           releaseCheckpoint: (() => void) | undefined;
         }
       | undefined;
@@ -866,6 +867,14 @@ export function runPrompt<
         }
         if (value == null) continue;
 
+        // `raw` is out-of-band adapter data: it must not open a step (span),
+        // become part of one, or trigger a pending stop-condition check, so
+        // pass it straight through.
+        if (value.type === 'raw') {
+          result.enqueueRaw(value.rawValue);
+          continue;
+        }
+
         if (pendingStopBoundary != null) {
           if (value.type === 'finish') {
             releasePendingStopBoundary();
@@ -879,11 +888,13 @@ export function runPrompt<
             ).some(Boolean)
           ) {
             await input.onStopConditionMet?.();
-            const { usage } = pendingStopBoundary;
             releasePendingStopBoundary();
             await lifecycle.end({
               steps: completedSteps,
-              usage: asLanguageModelUsage(usage),
+              usage: completedSteps.reduce(
+                (total, step) => addLanguageModelUsage(total, step.usage),
+                createNullLanguageModelUsage(),
+              ),
             });
             await result.finish();
             return;
@@ -1046,9 +1057,28 @@ export function runPrompt<
                 toolName: value.toolName,
               })
             );
+          /*
+           * An MCP tool named `read` can take different input from a builtin
+           * `read` that is disabled for this session. The builtin's schema
+           * remains in input.tools, so validating a provider-executed dynamic
+           * MCP call against it would reject valid MCP input. Skip that schema
+           * only when no active host tool owns the same name.
+           */
+          const isFilteredBuiltinDynamicCall =
+            displayValue.providerExecuted === true &&
+            displayValue.dynamic === true &&
+            hasTool({
+              tools: input.harness.builtinTools,
+              toolName: displayValue.toolName,
+            }) &&
+            !isHarnessV1BuiltinToolIncluded({
+              toolName: displayValue.toolName,
+              toolFiltering: input.builtinToolFiltering,
+            }) &&
+            !hasTool({ tools: activeTools, toolName: displayValue.toolName });
           const parsed = await validateToolCall<TOOLS>({
             event: isHostTool ? value : displayValue,
-            tools: input.tools,
+            tools: isFilteredBuiltinDynamicCall ? undefined : input.tools,
           });
           const parsedToolCall = asToolCallTextStreamPart({ part: parsed });
           validatedHostToolCall = isHostTool ? parsedToolCall : undefined;
@@ -1186,7 +1216,6 @@ export function runPrompt<
           if (input.stopConditions != null && input.stopConditions.length > 0) {
             pendingStopBoundary = {
               finishReason: value.finishReason,
-              usage: value.usage,
               releaseCheckpoint: pinSandboxChannelEventCheckpoint(value),
             };
           }
@@ -1692,7 +1721,7 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
  */
 export async function validateToolCall<TOOLS extends ToolSet>(args: {
   event: Extract<HarnessV1StreamPart, { type: 'tool-call' }>;
-  tools: TOOLS;
+  tools: TOOLS | undefined;
 }): Promise<TextStreamPart<TOOLS>> {
   const { event, tools } = args;
   const toolCall: LanguageModelV4ToolCall = {

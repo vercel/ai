@@ -7,7 +7,9 @@ const fixture = JSON.parse(
   readFileSync('src/__fixtures__/decision.json', 'utf8'),
 );
 const options = {
-  state: { message: 'A billing issue with a workaround.' },
+  state: [
+    { type: 'json', value: { message: 'A billing issue with a workaround.' } },
+  ],
   questions: {
     department: {
       type: 'choice',
@@ -16,7 +18,7 @@ const options = {
     },
     severity: {
       type: 'score',
-      instructions: ['Rate severity.'],
+      instructions: '["Rate severity."]',
       criteria: ['Low', 'Medium', 'High'],
     },
   },

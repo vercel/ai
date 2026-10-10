@@ -26,6 +26,7 @@ export interface PiPathMapper {
   assertReadableSandboxPath(inputPath: string): string;
   /** Translate any path to its POSIX-relative form under `sandboxWorkDir`. */
   toRelativePath(inputPath: string): string;
+  relativeDeniedRootsUnder(sandboxDir: string): string[];
 }
 
 export interface PiReadablePathRoot {
@@ -36,13 +37,17 @@ export interface CreatePiPathMapperOptions {
   readonly hostWorkDir: string;
   readonly sandboxWorkDir: string;
   readonly readableRoots?: ReadonlyArray<PiReadablePathRoot>;
+  readonly deniedRoots?: ReadonlyArray<string>;
+  readonly homeDir?: string;
 }
 
 function isInsidePath(parent: string, candidate: string): boolean {
   const relative = path.relative(parent, candidate);
   return (
     relative === '' ||
-    (!relative.startsWith('..') && !path.isAbsolute(relative))
+    (relative !== '..' &&
+      !relative.startsWith(`..${path.sep}`) &&
+      !path.isAbsolute(relative))
   );
 }
 
@@ -50,7 +55,9 @@ function isInsidePosixPath(parent: string, candidate: string): boolean {
   const relative = path.posix.relative(parent, candidate);
   return (
     relative === '' ||
-    (!relative.startsWith('..') && !path.posix.isAbsolute(relative))
+    (relative !== '..' &&
+      !relative.startsWith('../') &&
+      !path.posix.isAbsolute(relative))
   );
 }
 
@@ -79,6 +86,20 @@ export function createPiPathMapper(
     options.readableRoots?.map(root => ({
       sandboxDir: path.posix.normalize(root.sandboxDir),
     })) ?? [];
+  const deniedRoots =
+    options.deniedRoots?.map(root => path.posix.normalize(root)) ?? [];
+
+  const assertNotDenied = (sandboxPath: string, inputPath: string): string => {
+    if (deniedRoots.some(root => isInsidePosixPath(root, sandboxPath))) {
+      throw new Error(`Pi path is inside a denied root: ${inputPath}`);
+    }
+    return sandboxPath;
+  };
+
+  const expandHome = (inputPath: string): string =>
+    options.homeDir != null && (inputPath === '~' || inputPath.startsWith('~/'))
+      ? path.posix.join(options.homeDir, inputPath.slice(1))
+      : inputPath;
 
   const assertWorkspaceSandboxPath = (inputPath: string): string => {
     const normalizedInput = path.posix.normalize(inputPath);
@@ -131,29 +152,39 @@ export function createPiPathMapper(
       : normalizedSandbox;
   };
 
+  const toReadableSandboxPath = (inputPath: string): string => {
+    if (path.posix.isAbsolute(inputPath)) {
+      const normalizedInput = path.posix.normalize(inputPath);
+      try {
+        return assertReadableSandboxPath(normalizedInput);
+      } catch {
+        // Absolute host paths are handled by workspace mapping below.
+      }
+    }
+
+    return toWorkspaceSandboxPath(inputPath);
+  };
+
   return {
     hostWorkDir: normalizedHost,
     sandboxWorkDir: normalizedSandbox,
     toSandboxPath(inputPath: string) {
-      return toWorkspaceSandboxPath(inputPath);
+      return assertNotDenied(
+        toWorkspaceSandboxPath(expandHome(inputPath)),
+        inputPath,
+      );
     },
     toReadableSandboxPath(inputPath: string) {
-      if (path.posix.isAbsolute(inputPath)) {
-        const normalizedInput = path.posix.normalize(inputPath);
-        try {
-          return assertReadableSandboxPath(normalizedInput);
-        } catch {
-          // Absolute host paths are handled by workspace mapping below.
-        }
-      }
-
-      return toWorkspaceSandboxPath(inputPath);
+      return assertNotDenied(
+        toReadableSandboxPath(expandHome(inputPath)),
+        inputPath,
+      );
     },
     assertSandboxPath(inputPath: string) {
-      return assertWorkspaceSandboxPath(inputPath);
+      return assertNotDenied(assertWorkspaceSandboxPath(inputPath), inputPath);
     },
     assertReadableSandboxPath(inputPath: string) {
-      return assertReadableSandboxPath(inputPath);
+      return assertNotDenied(assertReadableSandboxPath(inputPath), inputPath);
     },
     toRelativePath(inputPath: string) {
       const sandboxPath = path.posix.isAbsolute(inputPath)
@@ -164,6 +195,11 @@ export function createPiPathMapper(
           );
       const relative = path.posix.relative(normalizedSandbox, sandboxPath);
       return relative || '.';
+    },
+    relativeDeniedRootsUnder(sandboxDir: string) {
+      return deniedRoots
+        .filter(root => isInsidePosixPath(sandboxDir, root))
+        .map(root => path.posix.relative(sandboxDir, root));
     },
   };
 }

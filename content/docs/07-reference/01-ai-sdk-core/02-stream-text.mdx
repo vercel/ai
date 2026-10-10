@@ -487,7 +487,7 @@ To see `streamText` in action, check out [these examples](#examples).
       type: 'number | { totalMs?: number; stepMs?: number; firstChunkMs?: number; chunkMs?: number; toolMs?: number; tools?: Partial<Record<`${toolName}Ms`, number>> }',
       isOptional: true,
       description:
-        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, firstChunkMs, chunkMs, toolMs, and/or tools properties. totalMs sets the total timeout for the entire call. stepMs sets the timeout for each individual step (LLM call). firstChunkMs sets the timeout until the first content-bearing output in each step; metadata, stream starts, empty deltas, raw chunks, and transport activity do not satisfy it. chunkMs sets the timeout between content-bearing output chunks after output has started; non-content chunks do not reset it. toolMs sets the default timeout for all tool executions. tools sets per-tool timeout overrides using the pattern {toolName}Ms (e.g. weatherMs, slowApiMs) that take precedence over toolMs - tool names are type-checked for autocomplete. If a tool takes longer than its timeout, it aborts and returns a tool-error so the model can respond or retry. Can be used alongside abortSignal.',
+        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, firstChunkMs, chunkMs, toolMs, and/or tools properties. totalMs sets the total timeout for the entire call. stepMs sets the timeout for each complete step, including model generation, retries, and local tool execution. firstChunkMs sets the timeout until the first content-bearing output in each step; metadata, stream starts, empty deltas, raw chunks, and transport activity do not satisfy it. chunkMs starts with the first meaningful model output and limits gaps between subsequent meaningful model output chunks. Both output timers stop when the model response finishes and start fresh for each retry or later model call. Local tool results, including preliminary results, do not reset them; local tool execution is outside their scope. Provider-executed tools remain within the model response. toolMs sets the default timeout for all tool executions. tools sets per-tool timeout overrides using the pattern {toolName}Ms (e.g. weatherMs, slowApiMs) that take precedence over toolMs - tool names are type-checked for autocomplete. If a tool takes longer than its timeout, it aborts and returns a tool-error so the model can respond or retry. Can be used alongside abortSignal.',
     },
     {
       name: 'headers',
@@ -2265,7 +2265,7 @@ To see `streamText` in action, check out [these examples](#examples).
       type: '(event: GenerateTextStepStartEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
-        'Callback that is called when a step (LLM call) begins, before the provider is called. Errors thrown in this callback are silently caught and do not break the generation flow.',
+        'Callback that is called when a step begins, before the provider is called. Errors thrown in this callback are silently caught and do not break the generation flow.',
       properties: [
         {
           type: 'GenerateTextStepStartEvent',
@@ -2650,7 +2650,7 @@ To see `streamText` in action, check out [these examples](#examples).
       name: 'content',
       type: 'Promise<Array<ContentPart<TOOLS>>>',
       description:
-        'The content that was generated in all steps. Automatically consumes the stream.',
+        'The content that was generated in all steps. Text parts can include an optional citations array of references supporting that text. Automatically consumes the stream.',
     },
     {
       name: 'finishReason',
@@ -3352,6 +3352,16 @@ To see `streamText` in action, check out [these examples](#examples).
       description:
         'A stream with all events, including text deltas, tool calls, tool results, and errors. Well-formed mid-stream provider failures are emitted in error parts as StreamProviderError instances. You can use it as either an AsyncIterable or a ReadableStream. Only errors that stop the stream, such as network errors, are thrown.',
       properties: [
+        {
+          type: 'TextStreamTextEndPart',
+          description: 'End of a text block, including optional citations supporting that block.',
+          parameters: [
+            { name: 'type', type: "'text-end'", description: 'The event type.' },
+            { name: 'id', type: 'string', description: 'The text block ID.' },
+            { name: 'citations', type: 'Array<Citation>', isOptional: true, description: 'References supporting this text block. Each citation contains a URL or document source, optional startIndex/endIndex offsets in this block, and an optional citedText passage from the source.' },
+            { name: 'providerMetadata', type: 'ProviderMetadata', isOptional: true, description: 'Additional provider metadata, including raw annotations.' },
+          ],
+        },
         {
           type: 'TextStreamPart',
           description: 'Text content part from ContentPart<TOOLS>',
@@ -4081,6 +4091,19 @@ To see `streamText` in action, check out [these examples](#examples).
               type: 'UIMessage[]',
               isOptional: true,
               description: 'The original messages.',
+            },
+            {
+              name: 'onStepEnd',
+              type: '(event: { messages: UIMessage[]; isContinuation: boolean; responseMessage: UIMessage; }) => PromiseLike<void> | void',
+              isOptional: true,
+              description:
+                'Called after each step is converted to UI message parts. Receives the accumulated response message, including step metadata, for inspection or persistence. This UI conversion callback is separate from the generation callback passed to streamText.',
+            },
+            {
+              name: 'onStepFinish',
+              type: '(event: { messages: UIMessage[]; isContinuation: boolean; responseMessage: UIMessage; }) => PromiseLike<void> | void',
+              isOptional: true,
+              description: 'Deprecated alias for onStepEnd.',
             },
             {
               name: 'onEnd',

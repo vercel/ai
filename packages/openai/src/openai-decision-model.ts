@@ -1,11 +1,15 @@
 import {
   InvalidResponseDataError,
+  UnsupportedFunctionalityError,
   type Experimental_DecisionModelV4 as DecisionModelV4,
   type Experimental_DecisionModelV4Answer as DecisionModelV4Answer,
   type Experimental_DecisionModelV4Input as DecisionModelV4Input,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
+  convertUint8ArrayToBase64,
+  detectMediaType,
+  isFullMediaType,
   createJsonResponseHandler,
   postJsonToApi,
   parseProviderOptions,
@@ -72,10 +76,6 @@ const responseSchema = z.object({
   ),
 });
 
-function toText(input: DecisionModelV4Input): string {
-  return typeof input === 'string' ? input : JSON.stringify(input);
-}
-
 export class DecisionOpenAIModel implements DecisionModelV4 {
   readonly specificationVersion = 'v4';
   readonly supportedQuestionTypes = ['choice', 'score', 'boolean'] as const;
@@ -135,7 +135,50 @@ export class DecisionOpenAIModel implements DecisionModelV4 {
       body: {
         model: this.modelId,
         safety_identifier: openaiOptions?.safetyIdentifier,
-        input: toText(state),
+        input: [
+          {
+            role: 'user',
+            content: state.map(part => {
+              if (part.type === 'text')
+                return { type: 'input_text', text: part.text };
+              if (part.type === 'json')
+                return {
+                  type: 'input_text',
+                  text: JSON.stringify(part.value),
+                };
+              if (part.data.type !== 'data') {
+                throw new UnsupportedFunctionalityError({
+                  functionality: `OpenAI decision file input: ${part.mediaType} (${part.data.type})`,
+                });
+              }
+              // Direct doDecide calls can bypass Core's media type detection.
+              const mediaType = isFullMediaType(part.mediaType)
+                ? part.mediaType
+                : detectMediaType({
+                    data: part.data.data,
+                    topLevelType: 'image',
+                  });
+              if (
+                ![
+                  'image/png',
+                  'image/jpeg',
+                  'image/webp',
+                  'image/gif',
+                ].includes(mediaType ?? '')
+              ) {
+                throw new UnsupportedFunctionalityError({
+                  functionality: `OpenAI decision image media type: ${part.mediaType}`,
+                });
+              }
+              const detail = part.providerOptions?.openai?.imageDetail;
+              return {
+                type: 'input_image',
+                image_url: `data:${mediaType};base64,${typeof part.data.data === 'string' ? part.data.data : convertUint8ArrayToBase64(part.data.data)}`,
+                ...(detail != null && { detail }),
+              };
+            }),
+          },
+        ],
         questions: Object.entries(questions).map(([name, question]) => {
           const instructions = toText(question.instructions);
           switch (question.type) {
@@ -282,4 +325,8 @@ export class DecisionOpenAIModel implements DecisionModelV4 {
       },
     };
   }
+}
+
+function toText(input: DecisionModelV4Input): string {
+  return typeof input === 'string' ? input : JSON.stringify(input);
 }

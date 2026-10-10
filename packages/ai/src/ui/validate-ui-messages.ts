@@ -1,3 +1,4 @@
+import { citationSchema } from '../types/citation';
 import { TypeValidationError, type JSONObject } from '@ai-sdk/provider';
 import {
   lazySchema,
@@ -95,6 +96,7 @@ const uiMessagesSchema = lazySchema(() => {
                 z.object({
                   type: z.literal('text'),
                   text: z.string(),
+                  citations: z.array(citationSchema).optional(),
                   state: z.enum(['streaming', 'done']).optional(),
                   providerMetadata: providerMetadataSchema.optional(),
                 }),

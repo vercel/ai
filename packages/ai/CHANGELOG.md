@@ -1,5 +1,75 @@
 # ai
 
+## 7.0.137
+
+### Patch Changes
+
+- e27cc64: fix(ai): discard unrelated message state when reading resumed streams
+
+## 7.0.136
+
+### Patch Changes
+
+- 7b5497c: Fix streaming output timeouts: stop `chunkMs` and `firstChunkMs` when the model response ends, so long-running local tools do not trigger model output timeouts. Give each retry fresh output timeout budgets. `stepMs` continues to cover the complete step, including local tools.
+- Updated dependencies [e280aa1]
+  - @ai-sdk/gateway@4.0.110
+
+## 7.0.135
+
+### Patch Changes
+
+- 5ddbb70: fix(ai): prevent duplicate continuation requests for repeated tool approval responses
+- 7c40a09: feat(ai): log warning when default step limit stops a tool loop
+- 4dbc902: feat(ai): add a top level 'dimensions' setting for embeddding functions
+- ff18b73: fix(ai): wait for chat stream cleanup when stopping
+- 9be846c: feat(ai): add a persistent WebSocket chat transport with correlated streaming, serialized backpressure, cancellation, validated protocol frames, explicit lifecycle, and sequence-based resume support
+- Updated dependencies [5cf13d2]
+- Updated dependencies [4dbc902]
+- Updated dependencies [908fd12]
+  - @ai-sdk/gateway@4.0.109
+  - @ai-sdk/provider@4.0.26
+  - @ai-sdk/provider-utils@5.0.58
+
+## 7.0.134
+
+### Patch Changes
+
+- 8281ec4: fix(ai): propagate async sendAutomaticallyWhen failures from tool updates
+- 46c2b05: fix(ai): preserve provider-executed tool calls when resuming streams
+
+## 7.0.133
+
+### Patch Changes
+
+- 9184a35: Add ordered text, file, and JSON parts to experimental decision state. Support image input in OpenAI Decisions and language model adapters. Gateway retains its existing string and JSON request format and rejects files, as does TypeSafe AI.
+
+  Arrays passed directly as state now contain decision state parts. Wrap JSON arrays in an object or a json part.
+
+  Normalize all public state forms into an array of parts before calling decision providers. Providers receive text and JSON objects as text and json parts.
+
+  Serialize decision file bytes as base64 in OpenTelemetry state attributes. Model-call spans record normalized state parts, while outer spans retain public state inputs.
+
+  Preserve native JSON state in TypeSafe AI when state contains one JSON part. Label shared state in language-model decision prompts.
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider@4.0.25
+  - @ai-sdk/provider-utils@5.0.57
+  - @ai-sdk/gateway@4.0.108
+
+## 7.0.132
+
+### Patch Changes
+
+- 3ebefff: feat(ai): introduce 'onUIMessageStepEnd' callback to persist messages
+
+## 7.0.131
+
+### Patch Changes
+
+- Updated dependencies [866e884]
+- Updated dependencies [04fdf5e]
+  - @ai-sdk/gateway@4.0.107
+
 ## 7.0.130
 
 ### Patch Changes

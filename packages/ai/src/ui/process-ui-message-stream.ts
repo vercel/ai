@@ -121,6 +121,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   onToolCall,
   onData,
   resetStateOnMessageIdChange = false,
+  resetStateOnFirstMessageStart = false,
 }: {
   // input stream is not fully typed yet:
   stream: ReadableStream<UIMessageChunk>;
@@ -139,6 +140,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   onError: ErrorHandler;
   // During resume, a different message ID identifies a separate response.
   resetStateOnMessageIdChange?: boolean;
+  // A transport can replay a response from the beginning using the same ID.
+  resetStateOnFirstMessageStart?: boolean;
 }): ReadableStream<InferUIMessageChunk<UI_MESSAGE>> {
   return stream.pipeThrough(
     new TransformStream<UIMessageChunk, InferUIMessageChunk<UI_MESSAGE>>({
@@ -505,6 +508,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 });
               }
               textPart.state = 'done';
+              if (chunk.citations != null) {
+                textPart.citations = chunk.citations;
+              }
               textPart.providerMetadata =
                 chunk.providerMetadata ?? textPart.providerMetadata;
               delete state.activeTextParts[chunk.id];
@@ -957,9 +963,10 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
             case 'start': {
               if (
-                resetStateOnMessageIdChange &&
                 chunk.messageId != null &&
-                chunk.messageId !== state.message.id
+                (resetStateOnFirstMessageStart ||
+                  (resetStateOnMessageIdChange &&
+                    chunk.messageId !== state.message.id))
               ) {
                 // Start the separate response with empty parts and metadata.
                 // Reset the active-part maps too, so earlier chunks stay with
