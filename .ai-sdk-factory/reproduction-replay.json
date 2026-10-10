@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22687,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22687-retry-abort-reason.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22687-retry-abort-reason.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22687_REPRODUCED: retry backoff replaced caller TimeoutError with AbortError: Delay was aborted"
+  }
+}
