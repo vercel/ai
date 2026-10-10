@@ -57,12 +57,57 @@ export type UseChatOptions<UI_MESSAGE extends UIMessage> = (
   experimental_throttle?: number;
 
   /**
-   * Whether to resume an ongoing chat generation stream.
+   * Whether to automatically resume an ongoing chat generation stream.
    */
   resume?: boolean;
 };
 
-const automaticResumeRegistrations = new WeakMap<object, Set<object>>();
+type AutomaticResumeState = {
+  registrations: Set<object>;
+  cleanupVisibilityListener?: () => void;
+  pendingVisibilityResume?: Promise<void>;
+};
+
+const automaticResumeStates = new WeakMap<object, AutomaticResumeState>();
+
+type AutomaticallyResumableChat = {
+  '~resumeStreamIfDisconnected': (options: {
+    shouldResume: () => boolean;
+  }) => Promise<void>;
+};
+
+/**
+ * When the document becomes visible again, resume the chat stream if it was
+ * interrupted by a network disconnect while the page was in the background.
+ */
+function resumeOnVisible<UI_MESSAGE extends UIMessage>({
+  chat,
+  state,
+}: {
+  chat: Chat<UI_MESSAGE>;
+  state: AutomaticResumeState;
+}) {
+  if (
+    document.visibilityState !== 'visible' ||
+    state.pendingVisibilityResume != null
+  ) {
+    return;
+  }
+
+  const isRegistered = () =>
+    automaticResumeStates.get(chat) === state && state.registrations.size > 0;
+
+  const clearPendingResume = () => {
+    state.pendingVisibilityResume = undefined;
+  };
+
+  const resumableChat = chat as Chat<UI_MESSAGE> & AutomaticallyResumableChat;
+
+  state.pendingVisibilityResume = resumableChat['~resumeStreamIfDisconnected']({
+    shouldResume: () =>
+      isRegistered() && document.visibilityState === 'visible',
+  }).then(clearPendingResume, clearPendingResume);
+}
 
 function registerAutomaticResume<UI_MESSAGE extends UIMessage>({
   chat,
@@ -71,17 +116,33 @@ function registerAutomaticResume<UI_MESSAGE extends UIMessage>({
   chat: Chat<UI_MESSAGE>;
   registration: object;
 }) {
-  let registrations = automaticResumeRegistrations.get(chat);
+  let state = automaticResumeStates.get(chat);
 
-  if (registrations == null) {
-    registrations = new Set();
-    automaticResumeRegistrations.set(chat, registrations);
+  if (state == null) {
+    const newState: AutomaticResumeState = { registrations: new Set() };
+    automaticResumeStates.set(chat, newState);
+    state = newState;
+
+    if (typeof document !== 'undefined') {
+      const onVisibilityChange = () =>
+        resumeOnVisible({ chat, state: newState });
+
+      document.addEventListener('visibilitychange', onVisibilityChange);
+      newState.cleanupVisibilityListener = () => {
+        document.removeEventListener('visibilitychange', onVisibilityChange);
+      };
+    }
   }
 
+  const { registrations } = state;
   const shouldResume = registrations.size === 0;
   registrations.add(registration);
 
-  if (shouldResume) {
+  if (
+    shouldResume &&
+    chat.status !== 'submitted' &&
+    chat.status !== 'streaming'
+  ) {
     void chat.resumeStream();
   }
 
@@ -89,7 +150,8 @@ function registerAutomaticResume<UI_MESSAGE extends UIMessage>({
     registrations.delete(registration);
 
     if (registrations.size === 0) {
-      automaticResumeRegistrations.delete(chat);
+      state.cleanupVisibilityListener?.();
+      automaticResumeStates.delete(chat);
     }
   };
 }
