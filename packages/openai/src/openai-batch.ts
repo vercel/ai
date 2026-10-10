@@ -24,6 +24,7 @@ import {
   createJsonLinesResponseHandler,
   createJsonResponseHandler,
   getFromApi,
+  generateId,
   lazySchema,
   normalizeBatchRequestCounts,
   parseProviderOptions,
@@ -41,6 +42,10 @@ import {
 import type { OpenAIConfig } from './openai-config';
 import { openaiFilesResponseSchema } from './files/openai-files-api';
 import { convertOpenAIResponsesUsage } from './responses/convert-openai-responses-usage';
+import {
+  mapOpenAIResponsesAnnotationSource,
+  mapOpenAIResponsesCitations,
+} from './responses/map-openai-responses-annotation';
 import { mapOpenAIResponseFinishReason } from './responses/map-openai-responses-finish-reason';
 import {
   openaiResponsesResponseSchema,
@@ -52,7 +57,10 @@ import {
   openaiResponsesSupportedUrls,
 } from './responses/openai-responses-language-model';
 import type { OpenAIResponsesModelId } from './responses/openai-responses-language-model-options';
-import type { ResponsesReasoningProviderMetadata } from './responses/openai-responses-provider-metadata';
+import type {
+  ResponsesReasoningProviderMetadata,
+  ResponsesTextProviderMetadata,
+} from './responses/openai-responses-provider-metadata';
 
 const openaiBatchEndpoint = '/v1/responses';
 const openaiBatchInputFileDefaultExpiresAfterSeconds = 48 * 60 * 60;
@@ -731,6 +739,15 @@ async function convertOpenAIBatchResult(
 
   const content: LanguageModelV4GenerateResult['content'] = [];
   const logprobs: Array<NonNullable<OpenAIResponsesLogprobs>> = [];
+  const hasWebSearchActionSources = response.output.some(
+    part =>
+      part.type === 'web_search_call' &&
+      part.action?.type === 'search' &&
+      part.action.sources?.some(source => source.type === 'url'),
+  );
+  const hasFileSearchResults = response.output.some(
+    part => part.type === 'file_search_call' && (part.results?.length ?? 0) > 0,
+  );
   let hasFunctionCall = false;
 
   for (const part of response.output) {
@@ -758,7 +775,46 @@ async function convertOpenAIBatchResult(
 
       case 'message': {
         for (const contentPart of part.content) {
-          content.push({ type: 'text', text: contentPart.text });
+          content.push({
+            type: 'text',
+            text: contentPart.text,
+            ...(contentPart.annotations.some(
+              annotation => annotation.type !== 'file_path',
+            ) && {
+              citations: mapOpenAIResponsesCitations(
+                contentPart.annotations,
+                'openai',
+              ),
+            }),
+            providerMetadata: {
+              openai: {
+                itemId: part.id,
+                ...(part.phase != null && { phase: part.phase }),
+                ...(contentPart.annotations.length > 0 && {
+                  annotations: contentPart.annotations,
+                }),
+              } satisfies ResponsesTextProviderMetadata,
+            },
+          });
+
+          for (const annotation of contentPart.annotations) {
+            if (
+              (annotation.type === 'url_citation' &&
+                hasWebSearchActionSources) ||
+              (annotation.type === 'file_citation' && hasFileSearchResults)
+            ) {
+              continue;
+            }
+
+            content.push(
+              mapOpenAIResponsesAnnotationSource(
+                annotation,
+                'openai',
+                generateId(),
+              ),
+            );
+          }
+
           if (contentPart.logprobs != null) {
             logprobs.push(contentPart.logprobs);
           }
