@@ -432,6 +432,10 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                     case 'output-error':
                     case 'output-available': {
                       const toolName = getToolName(toolPart);
+                      const resultProviderMetadata =
+                        toolPart.resultProviderMetadata ??
+                        toolPart.callProviderMetadata;
+
                       content.push({
                         type: 'tool-result',
                         toolCallId: toolPart.toolCallId,
@@ -446,8 +450,8 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                           errorMode:
                             toolPart.state === 'output-error' ? 'text' : 'none',
                         }),
-                        ...(toolPart.callProviderMetadata != null
-                          ? { providerOptions: toolPart.callProviderMetadata }
+                        ...(resultProviderMetadata != null
+                          ? { providerOptions: resultProviderMetadata }
                           : {}),
                       });
                       break;
