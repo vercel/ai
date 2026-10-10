@@ -42,6 +42,7 @@ import {
   type Experimental_TextBatchRequest as TextBatchRequest,
   type Experimental_ImageBatchRequest as ImageBatchRequest,
   type Experimental_ImageBatchItemResult as ImageBatchItemResult,
+  type Warning,
 } from '../index';
 import type { AsyncIterableStream } from '../util/async-iterable-stream';
 import type { ContentPart } from '../generate-text/content-part';
@@ -160,9 +161,12 @@ it('uses serializable response timestamps', () => {
   >().toEqualTypeOf<string | undefined>();
 });
 
-it('exposes Core content in successful batch results', () => {
+it('exposes Core content and warnings in successful batch results', () => {
   expectTypeOf<TextBatchGenerationResult['content']>().toEqualTypeOf<
     Array<ContentPart<ToolSet>>
+  >();
+  expectTypeOf<TextBatchGenerationResult['warnings']>().toEqualTypeOf<
+    Array<Warning>
   >();
 });
 

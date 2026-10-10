@@ -656,6 +656,7 @@ async function convertGenerateResult<TOOLS extends ToolSet>({
     finishReason: result.finishReason.unified,
     rawFinishReason: result.finishReason.raw,
     usage: asLanguageModelUsage(result.usage),
+    warnings: result.warnings,
     ...(result.response != null
       ? {
           response: {

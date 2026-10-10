@@ -214,6 +214,7 @@ export type TextBatchGenerationResult<TOOLS extends ToolSet = ToolSet> = {
   readonly finishReason: FinishReason;
   readonly rawFinishReason?: string;
   readonly usage: LanguageModelUsage;
+  readonly warnings: Array<Warning>;
   readonly response?: {
     readonly id?: string;
     readonly timestamp?: string;
