@@ -101,7 +101,7 @@ export interface ModelCallIteratorYieldValue {
   runtimeContext?: Context;
   /** The current per-tool context, keyed by tool name */
   toolsContext?: Record<string, Context | undefined>;
-  /** Provider-executed tool results (keyed by tool call ID) */
+  /** Provider-executed tool results, with duplicate IDs stored separately. */
   providerExecutedToolResults?: Map<string, ProviderExecutedToolResult>;
   /** Original positions of provider-executed results in assistant content. */
   providerExecutedToolResultPositions?: ProviderExecutedToolResultPosition[];
@@ -118,6 +118,10 @@ export interface ModelCallIteratorErrorValue {
   error: unknown;
   messages: LanguageModelV4Prompt;
 }
+
+export type ModelCallToolResults = LanguageModelV4ToolResultPart[] & {
+  providerExecutedToolResultIndexes?: ReadonlySet<number>;
+};
 
 // This runs in the workflow context
 export async function* modelCallIterator({
@@ -180,7 +184,7 @@ export async function* modelCallIterator({
   | LanguageModelV4Prompt
   | ModelCallIteratorAbortedValue
   | ModelCallIteratorErrorValue,
-  LanguageModelV4ToolResultPart[]
+  ModelCallToolResults
 > {
   let conversationPrompt = [...prompt]; // Create a mutable copy
   let currentModel: LanguageModel = model;
@@ -482,13 +486,15 @@ export async function* modelCallIterator({
         if (
           toolCall.providerExecuted &&
           serializedTools[toolCall.toolName]?.supportsDeferredResults &&
-          !providerExecutedToolResults.has(toolCall.toolCallId)
+          ![...providerExecutedToolResults.values()].some(
+            result => result.toolCallId === toolCall.toolCallId,
+          )
         ) {
           pendingDeferredToolCallIds.add(toolCall.toolCallId);
         }
       }
-      for (const toolCallId of providerExecutedToolResults.keys()) {
-        pendingDeferredToolCallIds.delete(toolCallId);
+      for (const providerResult of providerExecutedToolResults.values()) {
+        pendingDeferredToolCallIds.delete(providerResult.toolCallId);
       }
 
       const shouldProcessTools =
@@ -558,8 +564,12 @@ export async function* modelCallIterator({
             ...processableToolCalls.flatMap(toolCall =>
               toolCall.providerExecuted ? [toolCall.toolCallId] : [],
             ),
-            ...providerExecutedToolResults.keys(),
+            ...[...providerExecutedToolResults.values()].map(
+              result => result.toolCallId,
+            ),
           ]),
+          providerExecutedToolResultIndexes:
+            toolResults.providerExecutedToolResultIndexes,
           providerExecutedToolResultPositions,
         });
         step.response.messages.push(

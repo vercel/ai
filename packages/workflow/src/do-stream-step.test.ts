@@ -291,6 +291,160 @@ describe('doStreamStep', () => {
     });
   });
 
+  it('keeps duplicate provider-executed results and errors distinct', async () => {
+    const model = new MockLanguageModelV4({
+      doStream: async () => ({
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start' as const, warnings: [] },
+          {
+            type: 'tool-call' as const,
+            toolCallId: 'duplicate-call',
+            toolName: 'providerTool',
+            input: '{"value":"first"}',
+            providerExecuted: true,
+          },
+          {
+            type: 'tool-call' as const,
+            toolCallId: 'duplicate-call',
+            toolName: 'providerTool',
+            input: '{"value":"second"}',
+            providerExecuted: true,
+          },
+          {
+            type: 'tool-result' as const,
+            toolCallId: 'duplicate-call',
+            toolName: 'providerTool',
+            result: 'first result',
+            providerExecuted: true,
+          },
+          {
+            type: 'tool-result' as const,
+            toolCallId: 'duplicate-call',
+            toolName: 'providerTool',
+            result: 'second error',
+            isError: true,
+            providerExecuted: true,
+          },
+          {
+            type: 'finish' as const,
+            finishReason: { unified: 'tool-calls' as const, raw: undefined },
+            usage: {
+              inputTokens: {
+                total: 1,
+                noCache: 1,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 1,
+                text: 1,
+                reasoning: undefined,
+              },
+            },
+          },
+        ]),
+      }),
+    });
+
+    const result = await doStreamStep(prompt, model);
+    if (result.aborted) {
+      throw new Error('Expected the model call to complete.');
+    }
+
+    expect([...result.providerExecutedToolResults.entries()]).toMatchObject([
+      [
+        'duplicate-call',
+        {
+          result: 'first result',
+          isError: false,
+          toolCallIndex: 0,
+        },
+      ],
+      [
+        'duplicate-call:1',
+        {
+          result: 'second error',
+          isError: true,
+          toolCallIndex: 1,
+        },
+      ],
+    ]);
+    expect(
+      result.raw.content.filter(part => part.type === 'provider-tool-result'),
+    ).toEqual([
+      {
+        type: 'provider-tool-result',
+        toolCallId: 'duplicate-call',
+        providerResultKey: 'duplicate-call',
+      },
+      {
+        type: 'provider-tool-result',
+        toolCallId: 'duplicate-call',
+        providerResultKey: 'duplicate-call:1',
+      },
+    ]);
+  });
+
+  it('replaces repeated results for one provider-executed call', async () => {
+    const model = new MockLanguageModelV4({
+      doStream: async () => ({
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start' as const, warnings: [] },
+          {
+            type: 'tool-call' as const,
+            toolCallId: 'provider-call',
+            toolName: 'providerTool',
+            input: '{}',
+            providerExecuted: true,
+          },
+          {
+            type: 'tool-result' as const,
+            toolCallId: 'provider-call',
+            toolName: 'providerTool',
+            result: 'preview',
+            providerExecuted: true,
+          },
+          {
+            type: 'tool-result' as const,
+            toolCallId: 'provider-call',
+            toolName: 'providerTool',
+            result: 'final',
+            providerExecuted: true,
+          },
+          {
+            type: 'finish' as const,
+            finishReason: { unified: 'tool-calls' as const, raw: undefined },
+            usage: {
+              inputTokens: {
+                total: 1,
+                noCache: 1,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 1,
+                text: 1,
+                reasoning: undefined,
+              },
+            },
+          },
+        ]),
+      }),
+    });
+
+    const result = await doStreamStep(prompt, model);
+    if (result.aborted) {
+      throw new Error('Expected the model call to complete.');
+    }
+
+    expect([...result.providerExecutedToolResults.values()]).toMatchObject([
+      { result: 'final', toolCallIndex: 0 },
+    ]);
+    expect(
+      result.raw.content.filter(part => part.type === 'provider-tool-result'),
+    ).toHaveLength(1);
+  });
+
   it.each([
     { setting: 'zero retries', maxRetries: 0, expectedAttempts: 1 },
     { setting: 'two retries', maxRetries: 2, expectedAttempts: 3 },

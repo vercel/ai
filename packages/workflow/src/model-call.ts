@@ -39,6 +39,8 @@ export interface ProviderExecutedToolResult {
   isError?: boolean;
   dynamic?: boolean;
   providerMetadata?: SharedV4ProviderMetadata;
+  /** Stable position of the matching tool call in this model response. */
+  toolCallIndex?: number;
 }
 
 /**
@@ -154,6 +156,11 @@ export type ModelCallRawContentPart =
   | {
       type: 'provider-tool-result';
       toolCallId: string;
+      /**
+       * Unique key for this result in providerExecutedToolResults. Older
+       * persisted payloads omit it and remain keyed by toolCallId.
+       */
+      providerResultKey?: string;
     };
 
 /**

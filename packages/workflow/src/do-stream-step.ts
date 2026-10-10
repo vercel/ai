@@ -235,6 +235,7 @@ async function streamModelStep(
     string,
     ProviderExecutedToolResult
   >();
+  const matchedProviderResultToolCallIndexes = new Set<number>();
   let finish: StreamFinish | undefined;
 
   // Minimal aggregation — only what buildStepResult needs outside the step.
@@ -400,18 +401,48 @@ async function streamModelStep(
         }
         case 'tool-result':
           if (part.providerExecuted) {
-            providerExecutedToolResults.set(part.toolCallId, {
+            let toolCallIndex = toolCalls.findIndex(
+              (toolCall, index) =>
+                toolCall.providerExecuted &&
+                toolCall.toolCallId === part.toolCallId &&
+                !matchedProviderResultToolCallIndexes.has(index),
+            );
+            if (toolCallIndex >= 0) {
+              matchedProviderResultToolCallIndexes.add(toolCallIndex);
+            } else {
+              toolCallIndex = findLastProviderToolCallIndex(
+                toolCalls,
+                part.toolCallId,
+              );
+            }
+            const existingProviderResultKey =
+              toolCallIndex < 0
+                ? undefined
+                : [...providerExecutedToolResults.entries()].find(
+                    ([, result]) => result.toolCallIndex === toolCallIndex,
+                  )?.[0];
+            const providerResultKey =
+              existingProviderResultKey ??
+              createProviderResultKey(
+                providerExecutedToolResults,
+                part.toolCallId,
+              );
+            providerExecutedToolResults.set(providerResultKey, {
               toolCallId: part.toolCallId,
               toolName: part.toolName,
               result: part.output,
               isError: false,
               dynamic: part.dynamic,
               providerMetadata: part.providerMetadata,
+              ...(toolCallIndex >= 0 ? { toolCallIndex } : {}),
             });
-            content.push({
-              type: 'provider-tool-result',
-              toolCallId: part.toolCallId,
-            });
+            if (existingProviderResultKey == null) {
+              content.push({
+                type: 'provider-tool-result',
+                toolCallId: part.toolCallId,
+                providerResultKey,
+              });
+            }
           }
           break;
         case 'tool-error': {
@@ -419,18 +450,48 @@ async function streamModelStep(
             providerExecuted?: boolean;
           };
           if (errorPart.providerExecuted) {
-            providerExecutedToolResults.set(errorPart.toolCallId, {
+            let toolCallIndex = toolCalls.findIndex(
+              (toolCall, index) =>
+                toolCall.providerExecuted &&
+                toolCall.toolCallId === errorPart.toolCallId &&
+                !matchedProviderResultToolCallIndexes.has(index),
+            );
+            if (toolCallIndex >= 0) {
+              matchedProviderResultToolCallIndexes.add(toolCallIndex);
+            } else {
+              toolCallIndex = findLastProviderToolCallIndex(
+                toolCalls,
+                errorPart.toolCallId,
+              );
+            }
+            const existingProviderResultKey =
+              toolCallIndex < 0
+                ? undefined
+                : [...providerExecutedToolResults.entries()].find(
+                    ([, result]) => result.toolCallIndex === toolCallIndex,
+                  )?.[0];
+            const providerResultKey =
+              existingProviderResultKey ??
+              createProviderResultKey(
+                providerExecutedToolResults,
+                errorPart.toolCallId,
+              );
+            providerExecutedToolResults.set(providerResultKey, {
               toolCallId: errorPart.toolCallId,
               toolName: errorPart.toolName,
               result: errorPart.error,
               isError: true,
               dynamic: errorPart.dynamic,
               providerMetadata: errorPart.providerMetadata,
+              ...(toolCallIndex >= 0 ? { toolCallIndex } : {}),
             });
-            content.push({
-              type: 'provider-tool-result',
-              toolCallId: errorPart.toolCallId,
-            });
+            if (existingProviderResultKey == null) {
+              content.push({
+                type: 'provider-tool-result',
+                toolCallId: errorPart.toolCallId,
+                providerResultKey,
+              });
+            }
           }
           break;
         }
@@ -515,6 +576,34 @@ async function streamModelStep(
     toolInputLifecycleEvents,
     ...(hasTerminalError ? { terminalError } : {}),
   };
+}
+
+function findLastProviderToolCallIndex(
+  toolCalls: ParsedToolCall[],
+  toolCallId: string,
+): number {
+  for (let index = toolCalls.length - 1; index >= 0; index--) {
+    const toolCall = toolCalls[index];
+    if (toolCall.providerExecuted && toolCall.toolCallId === toolCallId) {
+      return index;
+    }
+  }
+  return -1;
+}
+
+function createProviderResultKey(
+  results: Map<string, ProviderExecutedToolResult>,
+  toolCallId: string,
+): string {
+  if (!results.has(toolCallId)) {
+    return toolCallId;
+  }
+
+  let occurrence = 1;
+  while (results.has(`${toolCallId}:${occurrence}`)) {
+    occurrence++;
+  }
+  return `${toolCallId}:${occurrence}`;
 }
 
 function applyStreamTransforms({

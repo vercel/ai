@@ -121,6 +121,114 @@ describe('WorkflowAgent.generate', () => {
     ]);
   });
 
+  it('preserves duplicate tool call results by call position', async () => {
+    const duplicateCalls = [
+      {
+        type: 'tool-call' as const,
+        toolCallId: 'duplicate',
+        toolName: 'lookup',
+        input: '{"city":"London"}',
+      },
+      {
+        type: 'tool-call' as const,
+        toolCallId: 'duplicate',
+        toolName: 'lookup',
+        input: '{"city":"Paris"}',
+      },
+    ];
+    const generated = await new WorkflowAgent({
+      model: model([
+        response(duplicateCalls, 'tool-calls'),
+        response([{ type: 'text', text: 'Done.' }]),
+      ]),
+      tools: tools(),
+    }).generate({ prompt });
+
+    expect(generated.steps[0].toolResults).toMatchObject([
+      {
+        toolCallId: 'duplicate',
+        input: { city: 'London' },
+        output: 'weather in London',
+      },
+      {
+        toolCallId: 'duplicate',
+        input: { city: 'Paris' },
+        output: 'weather in Paris',
+      },
+    ]);
+    expect(
+      generated.responseMessages
+        .filter(message => message.role === 'tool')
+        .flatMap(message => message.content)
+        .flatMap(part =>
+          part.type === 'tool-result' && 'value' in part.output
+            ? [part.output.value]
+            : [],
+        ),
+    ).toEqual(['weather in London', 'weather in Paris']);
+  });
+
+  it('preserves duplicate provider-executed results by call position', async () => {
+    const generated = await new WorkflowAgent({
+      model: model([
+        response(
+          [
+            {
+              type: 'tool-call',
+              toolCallId: 'duplicate-provider-call',
+              toolName: 'lookup',
+              input: '{"city":"London"}',
+              providerExecuted: true,
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'duplicate-provider-call',
+              toolName: 'lookup',
+              input: '{"city":"Paris"}',
+              providerExecuted: true,
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'duplicate-provider-call',
+              toolName: 'lookup',
+              result: 'provider result for London',
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'duplicate-provider-call',
+              toolName: 'lookup',
+              result: 'provider failed for Paris',
+              isError: true,
+            },
+          ],
+          'tool-calls',
+        ),
+      ]),
+      tools: tools(),
+    }).generate({ prompt });
+
+    expect(
+      generated.steps[0].content
+        .filter(
+          part => part.type === 'tool-result' || part.type === 'tool-error',
+        )
+        .map(part =>
+          part.type === 'tool-result'
+            ? { input: part.input, output: part.output }
+            : { input: part.input, error: part.error },
+        ),
+    ).toEqual([
+      {
+        input: { city: 'London' },
+        output: 'provider result for London',
+      },
+      {
+        input: { city: 'Paris' },
+        error: 'provider failed for Paris',
+      },
+    ]);
+  });
+
   it('preserves ordered files, sources, reasoning and provider-executed results', async () => {
     const responses = [
       response([
