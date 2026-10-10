@@ -1,5 +1,6 @@
 import {
   isAbortError,
+  normalizeHeaders,
   safeValidateTypes,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
@@ -152,7 +153,7 @@ export function useObject<
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(headers as any),
+          ...normalizeHeaders(headers),
         },
         credentials: credentials ?? 'same-origin',
         signal: abortController.signal,

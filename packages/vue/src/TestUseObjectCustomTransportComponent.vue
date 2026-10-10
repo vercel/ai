@@ -6,10 +6,10 @@ import { ref, reactive } from 'vue';
 const { object, error, submit, isLoading, stop, clear } = useObject({
   api: '/api/use-object',
   schema: z.object({ content: z.string() }),
-  headers: {
+  headers: new Headers({
     Authorization: 'Bearer TEST_TOKEN',
     'X-Custom-Header': 'CustomValue',
-  },
+  }),
   credentials: 'include',
 });
 </script>
