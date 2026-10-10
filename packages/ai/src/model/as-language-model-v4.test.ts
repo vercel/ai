@@ -198,7 +198,7 @@ describe('asLanguageModelV4', () => {
       });
     });
 
-    it('should convert v4 file tool result content to v3 for doGenerate', async () => {
+    it('should convert v4 file tool result content to matching v3 file and image types for doGenerate', async () => {
       const v3Model = new MockLanguageModelV3({
         doGenerate: async options => {
           expect(options.prompt).toEqual([
@@ -227,6 +227,22 @@ describe('asLanguageModelV4', () => {
                       {
                         type: 'file-id',
                         fileId: { test: 'file-1' },
+                        providerOptions: undefined,
+                      },
+                      {
+                        type: 'image-data',
+                        data: 'AQID',
+                        mediaType: 'image/png',
+                        providerOptions: undefined,
+                      },
+                      {
+                        type: 'image-url',
+                        url: 'https://example.com/image.png',
+                        providerOptions: undefined,
+                      },
+                      {
+                        type: 'image-file-id',
+                        fileId: { test: 'image-1' },
                         providerOptions: undefined,
                       },
                     ],
@@ -293,6 +309,31 @@ describe('asLanguageModelV4', () => {
                         reference: { test: 'file-1' },
                       },
                       mediaType: 'application/pdf',
+                    },
+                    {
+                      type: 'file',
+                      data: {
+                        type: 'data',
+                        data: new Uint8Array([1, 2, 3]),
+                      },
+                      mediaType: 'image/png',
+                      filename: 'image.png',
+                    },
+                    {
+                      type: 'file',
+                      data: {
+                        type: 'url',
+                        url: new URL('https://example.com/image.png'),
+                      },
+                      mediaType: 'image/*',
+                    },
+                    {
+                      type: 'file',
+                      data: {
+                        type: 'reference',
+                        reference: { test: 'image-1' },
+                      },
+                      mediaType: 'image',
                     },
                   ],
                 },
