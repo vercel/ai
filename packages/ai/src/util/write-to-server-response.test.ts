@@ -30,6 +30,7 @@ describe('writeToServerResponse', () => {
     expect(mockResponse.statusMessage).toBe('OK');
     expect(mockResponse.writtenChunks).toHaveLength(2);
     expect(mockResponse.ended).toBe(true);
+    expect(stream.locked).toBe(false);
   });
 
   it('should reject when reading the stream fails', async () => {
@@ -49,7 +50,46 @@ describe('writeToServerResponse', () => {
     ).rejects.toBe(error);
 
     expect(mockResponse.ended).toBe(true);
+    expect(stream.locked).toBe(false);
   });
+
+  it.each(['write', 'flush'] as const)(
+    'should cancel and unlock the stream when response.%s throws',
+    async failurePoint => {
+      const mockResponse = createMockServerResponse();
+      const error = new Error(`response.${failurePoint} failed`);
+      const cancel = vi.fn();
+      const stream = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode('chunk1'));
+        },
+        cancel,
+      });
+
+      if (failurePoint === 'write') {
+        vi.spyOn(mockResponse, 'write').mockImplementation(() => {
+          throw error;
+        });
+      } else {
+        Object.assign(mockResponse, {
+          flush() {
+            throw error;
+          },
+        });
+      }
+
+      await expect(
+        writeToServerResponse({
+          response: mockResponse,
+          stream,
+        }),
+      ).rejects.toBe(error);
+
+      expect(cancel).toHaveBeenCalledWith(error);
+      expect(stream.locked).toBe(false);
+      expect(mockResponse.ended).toBe(true);
+    },
+  );
 
   describe('client disconnect handling', () => {
     it('should cancel the stream when the client disconnects before the stream ends', async () => {
@@ -248,6 +288,7 @@ describe('writeToServerResponse', () => {
 
       expect(cancel).toHaveBeenCalledOnce();
       expect(mockResponse.writeCallCount).toBe(2);
+      expect(mockResponse.listenerCount('drain')).toBe(0);
     });
   });
 
