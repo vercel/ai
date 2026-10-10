@@ -83,11 +83,14 @@ The model supplies the following input to the search tool:
 ```
 
 `query` is a required, nonempty string. By default, search is local and
-case-insensitive, matching words in tool names and descriptions. Camel-case names
-are split into words. Name matches rank above description matches; equal scores
-preserve registration order. Function descriptions are resolved with the current
-tool context and sandbox. The default search uses no embedding service or
-additional model call. A custom callback can use either.
+case-insensitive, matching words in tool names and descriptions. Camel-case and
+acronym-to-word boundaries are split into words: `getHTTPStatus` matches `get`,
+`HTTP`, and `status`, while `HTTPRequest` matches `request`. Underscores, hyphens,
+and other non-alphanumeric separators also form word boundaries. Name matches rank
+above description matches; equal scores preserve registration order. Function
+descriptions are resolved with the current tool context and sandbox. The default
+search uses no embedding service or additional model call. A custom callback can
+use either.
 
 ## Output
 

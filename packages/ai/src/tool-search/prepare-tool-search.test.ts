@@ -331,6 +331,80 @@ describe('deferred tool search', () => {
     },
   );
 
+  it.each([
+    { query: 'request', expected: ['HTTPRequest', 'getRequest'] },
+    { query: 'HTTP', expected: ['HTTPRequest', 'getHTTPStatus'] },
+    { query: 'status', expected: ['getHTTPStatus'] },
+    { query: 'get', expected: ['getHTTPStatus', 'getRequest'] },
+    { query: 'httprequest', expected: ['HTTPRequest'] },
+    { query: 'httpstatus', expected: ['getHTTPStatus'] },
+  ])(
+    'matches $query across acronym and camel-case boundaries',
+    async ({ query, expected }) => {
+      const deferred = tool({
+        deferLoading: true,
+        inputSchema: z.object({}),
+      });
+      const registry = {
+        search: toolSearch(),
+        HTTPRequest: deferred,
+        getHTTPStatus: deferred,
+        getRequest: deferred,
+      };
+      const prepare = createToolSearchState({
+        tools: registry,
+        toolCallers: undefined,
+      });
+
+      expect(
+        (await search(prepare(registry)!, query)).tools.map(
+          (tool: { name: string }) => tool.name,
+        ),
+      ).toEqual(expected);
+    },
+  );
+
+  it.each([
+    { query: 'response', expected: 'read_HTTPResponse' },
+    { query: 'profile', expected: 'get-user_profile' },
+    { query: 'language', expected: 'lookup' },
+  ])(
+    'preserves separator and description matching for $query',
+    async ({ query, expected }) => {
+      const registry = {
+        search: toolSearch(),
+        read_HTTPResponse: tool({
+          deferLoading: true,
+          inputSchema: z.object({}),
+        }),
+        'get-user_profile': tool({
+          deferLoading: true,
+          inputSchema: z.object({}),
+        }),
+        lookup: tool({
+          deferLoading: true,
+          description: 'Find a natural language phrase.',
+          inputSchema: z.object({}),
+        }),
+      };
+      const prepare = createToolSearchState({
+        tools: registry,
+        toolCallers: undefined,
+      });
+
+      expect(await search(prepare(registry)!, query)).toEqual({
+        tools: [
+          {
+            name: expected,
+            ...(expected === 'lookup'
+              ? { description: 'Find a natural language phrase.' }
+              : {}),
+          },
+        ],
+      });
+    },
+  );
+
   it('ranks names above descriptions and caps discovery at five tools', async () => {
     const candidates = Object.fromEntries(
       Array.from({ length: 8 }, (_, i) => [`candidate${i}`, weather]),

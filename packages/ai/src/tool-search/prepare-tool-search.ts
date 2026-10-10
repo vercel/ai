@@ -154,10 +154,24 @@ export function createToolSearchState({
 }
 
 function tokenize(text: string): string[] {
-  return (
-    text
-      .replace(/([a-z\d])([A-Z])/g, '$1 $2')
-      .toLowerCase()
-      .match(/[\p{L}\p{N}]+/gu) ?? []
+  const camelCaseText = text.replace(/([a-z\d])([A-Z])/g, '$1 $2');
+  const legacyTerms =
+    camelCaseText.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
+  const acronymSeparatedText = camelCaseText.replace(
+    /([A-Z]+)([A-Z][a-z])/g,
+    '$1 $2',
   );
+
+  if (acronymSeparatedText === camelCaseText) {
+    return legacyTerms;
+  }
+
+  // Keep the previously searchable compound term while adding acronym and word
+  // terms, e.g. "HTTPStatus" remains searchable as "httpstatus" and "status".
+  return [
+    ...new Set([
+      ...legacyTerms,
+      ...(acronymSeparatedText.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []),
+    ]),
+  ];
 }

@@ -80,6 +80,12 @@ generation.
 MCP client tools work too: add `deferLoading: true` to the tools returned by
 `client.tools()`.
 
+Default search is case-insensitive and matches words in tool names and
+descriptions. Tool-name tokenization recognizes camel-case and acronym
+boundaries, so `getHTTPStatus` can match `get`, `HTTP`, or `status`, and
+`HTTPRequest` can match `request`. Separators such as underscores and hyphens
+also form word boundaries.
+
 Set `maxResults` to change the number of matching tools loaded per search:
 
 ```ts
