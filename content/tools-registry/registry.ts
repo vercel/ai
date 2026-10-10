@@ -720,4 +720,37 @@ console.log(text);`,
     websiteUrl: 'https://pexafy.com',
     npmUrl: 'https://www.npmjs.com/package/pexafy-ai-sdk',
   },
+  {
+    slug: 'call4me',
+    name: 'call4me',
+    description:
+      'Give your agent a phone: call4me calls a business and has a natural conversation to book, reschedule, cancel, ask questions, wait on hold and get through phone menus, then returns the outcome and transcript. Mid-call questions come back to your agent to answer.',
+    packageName: 'call4me-ai-sdk',
+    tags: ['phone', 'voice', 'calls', 'mcp', 'automation'],
+    apiKeyEnvName: 'CALL4ME_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add call4me-ai-sdk ai zod @ai-sdk/openai',
+      npm: 'npm install call4me-ai-sdk ai zod @ai-sdk/openai',
+      yarn: 'yarn add call4me-ai-sdk ai zod @ai-sdk/openai',
+      bun: 'bun add call4me-ai-sdk ai zod @ai-sdk/openai',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { call4meTools } from 'call4me-ai-sdk';
+
+const { text } = await generateText({
+  model: openai('gpt-5-mini'),
+  prompt:
+    'Call Pottery Barn customer service at 1-888-779-5176 and ask how long furniture delivery ' +
+    'usually takes and whether returns have a shipping fee. General questions only, no order.',
+  tools: call4meTools(),
+  stopWhen: isStepCount(8),
+});
+
+console.log(text);`,
+    docsUrl: 'https://call4.me/blog/vercel-ai-sdk-phone-calls',
+    apiKeyUrl: 'https://call4.me/account',
+    websiteUrl: 'https://call4.me',
+    npmUrl: 'https://www.npmjs.com/package/call4me-ai-sdk',
+  },
 ];
