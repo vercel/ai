@@ -2335,6 +2335,49 @@ describe('MCPClient', () => {
     `);
   });
 
+  it.each([
+    {
+      name: 'schema-valued',
+      additionalProperties: { type: 'string' },
+    },
+    {
+      name: 'unrestricted',
+      additionalProperties: true,
+    },
+    {
+      name: 'closed',
+      additionalProperties: false,
+    },
+  ])(
+    'should preserve $name additionalProperties in automatic tool schemas',
+    async ({ additionalProperties }) => {
+      client = await createMCPClient({
+        transport: new MockMCPTransport(),
+      });
+
+      const tools = client.toolsFromDefinitions({
+        tools: [
+          {
+            name: 'labels',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+              additionalProperties,
+            },
+          },
+        ],
+      });
+
+      expect(tools.labels.inputSchema).toMatchObject({
+        jsonSchema: {
+          type: 'object',
+          properties: {},
+          additionalProperties,
+        },
+      });
+    },
+  );
+
   it('should use custom client version when provided', async () => {
     const mockTransport = new MockMCPTransport();
     let capturedClientInfo: { name: string; version: string } | undefined;
