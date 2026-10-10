@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22711,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/openai-whisper-json-response-format.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/openai-whisper-json-response-format.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "BUG: whisper-1 ignored explicit responseFormat \"json\"; sent \"verbose_json\""
+  }
+}

@@ -113,6 +113,25 @@ describe('doGenerate', () => {
     expect(result.durationInSeconds).toBe(36.709999084472656);
   });
 
+  it('should honor an explicit json response format for whisper-1', async () => {
+    prepareJsonFixtureResponse('openai-transcription-json');
+
+    await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        openai: {
+          responseFormat: 'json',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyMultipart).toMatchObject({
+      model: 'whisper-1',
+      response_format: 'json',
+    });
+  });
+
   it('should pass headers', async () => {
     prepareJsonFixtureResponse('openai-transcription');
 
