@@ -1368,6 +1368,104 @@ describe('extractReasoningMiddleware', () => {
       },
     );
 
+    it.each([
+      {
+        name: 'unterminated reasoning',
+        delta: '<think>Still thinking',
+        startWithReasoning: false,
+        expectedReasoningText: 'Still thinking',
+      },
+      {
+        name: 'reasoning with a partial closing delimiter',
+        delta: '<think>Still thinking</th',
+        startWithReasoning: false,
+        expectedReasoningText: 'Still thinking</th',
+      },
+      {
+        name: 'unterminated reasoning that starts immediately',
+        delta: 'Still thinking',
+        startWithReasoning: true,
+        expectedReasoningText: 'Still thinking',
+      },
+    ])(
+      'should end $name when the text part ends',
+      async ({ delta, startWithReasoning, expectedReasoningText }) => {
+        const mockModel = new MockLanguageModelV4({
+          async doStream() {
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'length', raw: 'length' },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        });
+
+        const result = streamText({
+          model: wrapLanguageModel({
+            model: mockModel,
+            middleware: extractReasoningMiddleware({
+              tagName: 'think',
+              startWithReasoning,
+            }),
+          }),
+          prompt: 'Test prompt',
+        });
+
+        const parts = await convertAsyncIterableToArray(result.fullStream);
+        const starts = parts.filter(part => part.type === 'reasoning-start');
+        const ends = parts.filter(part => part.type === 'reasoning-end');
+
+        expect(await result.reasoningText).toBe(expectedReasoningText);
+        expect(starts).toHaveLength(1);
+        expect(ends.map(part => part.id)).toEqual(starts.map(part => part.id));
+      },
+    );
+
+    it('should end unterminated reasoning independently for overlapping text parts', async () => {
+      const mockModel = new MockLanguageModelV4({
+        async doStream() {
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: 'a' },
+              { type: 'text-start', id: 'b' },
+              { type: 'text-delta', id: 'a', delta: '<think>Alpha' },
+              { type: 'text-delta', id: 'b', delta: '<think>Beta' },
+              { type: 'text-end', id: 'a' },
+              { type: 'text-end', id: 'b' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'length', raw: 'length' },
+                usage: testUsage,
+              },
+            ]),
+          };
+        },
+      });
+
+      const result = streamText({
+        model: wrapLanguageModel({
+          model: mockModel,
+          middleware: extractReasoningMiddleware({ tagName: 'think' }),
+        }),
+        prompt: 'Test prompt',
+      });
+
+      const parts = await convertAsyncIterableToArray(result.fullStream);
+      const starts = parts.filter(part => part.type === 'reasoning-start');
+      const ends = parts.filter(part => part.type === 'reasoning-end');
+
+      expect(await result.reasoningText).toBe('AlphaBeta');
+      expect(starts).toHaveLength(2);
+      expect(ends.map(part => part.id)).toEqual(starts.map(part => part.id));
+    });
+
     it('should preserve overlapping text parts', async () => {
       const mockModel = new MockLanguageModelV4({
         async doStream() {
