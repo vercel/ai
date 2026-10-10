@@ -223,6 +223,7 @@ describe('WorkflowAgent', () => {
       vi.mocked(modelCallIterator).mockReturnValue({
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       } as unknown as MockIterator);
+      const download = vi.fn(async requests => requests.map(() => null));
       const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(() => {
         throw new Error('fetch is unavailable in workflow functions');
       });
@@ -230,7 +231,10 @@ describe('WorkflowAgent', () => {
       const fileUrl = new URL('https://example.com/file.pdf');
 
       try {
-        const agent = new WorkflowAgent({ model: createMockModel() });
+        const agent = new WorkflowAgent({
+          model: createMockModel(),
+          experimental_download: download,
+        });
         await agent.stream({
           messages: [
             {
@@ -274,6 +278,10 @@ describe('WorkflowAgent', () => {
             ],
           },
         ]);
+        expect(download).not.toHaveBeenCalled();
+        expect(modelCallIterator).toHaveBeenLastCalledWith(
+          expect.objectContaining({ download }),
+        );
         expect(fetchSpy).not.toHaveBeenCalled();
       } finally {
         fetchSpy.mockRestore();

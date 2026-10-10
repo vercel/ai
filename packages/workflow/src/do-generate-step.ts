@@ -1,11 +1,10 @@
 import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { generateId, convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import {
-  InvalidToolInputError,
-  NoSuchToolError,
   ToolChoiceViolationError,
   type LanguageModel,
   type ModelMessage,
+  type ToolSet,
 } from 'ai';
 import {
   asLanguageModelUsage,
@@ -32,6 +31,10 @@ import {
   runModelCallWithTelemetry,
   type LanguageModelCallTelemetry,
 } from './model-call-telemetry.js';
+
+type ParseToolCallRepairFunction = Parameters<
+  typeof parseToolCall<ToolSet>
+>[0]['repairToolCall'];
 
 /** A single durable provider call; orchestration and callbacks stay in the workflow. */
 export async function doGenerateStep(
@@ -113,7 +116,7 @@ async function generateModelCall(
       ) as unknown as ModelMessage[],
     },
     supportedUrls: await model.supportedUrls,
-    download: undefined,
+    download: options.download,
     abortSignal,
     provider: model.provider.split('.')[0],
   });
@@ -185,30 +188,18 @@ async function generateModelCall(
         parseToolCall({
           toolCall,
           tools,
-          repairToolCall:
-            repairToolCall == null
-              ? undefined
-              : repairOptions => {
-                  const { error } = repairOptions;
-
-                  if (
-                    !NoSuchToolError.isInstance(error) &&
-                    !InvalidToolInputError.isInstance(error)
-                  ) {
-                    throw error;
-                  }
-
-                  return repairToolCall({
-                    ...repairOptions,
-                    error,
-                  });
-                },
+          // `ai` and `ai/internal` expose the same callback contract through
+          // separate declaration entrypoints. Bridge that type-only boundary
+          // without wrapping the callback or changing its runtime semantics.
+          repairToolCall: repairToolCall as
+            | ParseToolCallRepairFunction
+            | undefined,
           instructions:
             modelPrompt
               .filter(message => message.role === 'system')
               .map(message => message.content)
               .join('\n') || undefined,
-          messages: modelPrompt.filter(
+          messages: prompt.filter(
             message => message.role !== 'system',
           ) as unknown as ModelMessage[],
         }),

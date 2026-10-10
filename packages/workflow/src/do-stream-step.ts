@@ -211,6 +211,7 @@ async function streamModelStep(
           stopSequences: options?.stopSequences,
           seed: options?.seed,
           repairToolCall: options?.repairToolCall,
+          download: options?.download,
           ...languageModelCallTelemetry,
         }),
       );

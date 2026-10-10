@@ -325,6 +325,57 @@ describe('WorkflowAgent.generate', () => {
     }
   });
 
+  it('honors a custom pass-through decision for unsupported URLs', async () => {
+    const fileUrl = new URL('https://example.com/file.pdf');
+    const download = vi.fn(async () => [null]);
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(() => {
+      throw new Error('default download must not override custom pass-through');
+    });
+    const m = model([response([{ type: 'text', text: 'Done' }])]);
+
+    try {
+      await new WorkflowAgent({
+        model: m,
+        experimental_download: download,
+      }).generate({
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: fileUrl,
+                mediaType: 'application/pdf',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(download).toHaveBeenCalledOnce();
+      expect(download).toHaveBeenCalledWith([
+        { url: fileUrl, isUrlSupportedByModel: false },
+      ]);
+      expect(fetchSpy).not.toHaveBeenCalled();
+      expect(m.doGenerateCalls[0].prompt).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: { type: 'url', url: fileUrl },
+              mediaType: 'application/pdf',
+              filename: undefined,
+              providerOptions: undefined,
+            },
+          ],
+        },
+      ]);
+    } finally {
+      fetchSpy.mockRestore();
+    }
+  });
+
   it('preserves generated history when prepareStep replaces the conversation', async () => {
     const generated = await new WorkflowAgent({
       model: model([
