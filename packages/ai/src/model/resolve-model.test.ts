@@ -10,6 +10,7 @@ import { MockRerankingModelV3 } from '../test/mock-reranking-model-v3';
 import { MockRerankingModelV4 } from '../test/mock-reranking-model-v4';
 import { MockSpeechModelV3 } from '../test/mock-speech-model-v3';
 import { MockSpeechModelV4 } from '../test/mock-speech-model-v4';
+import { MockSpeechTranslationModelV4 } from '../test/mock-speech-translation-model-v4';
 import { MockTranscriptionModelV3 } from '../test/mock-transcription-model-v3';
 import { MockTranscriptionModelV4 } from '../test/mock-transcription-model-v4';
 import { MockVideoModelV3 } from '../test/mock-video-model-v3';
@@ -22,11 +23,50 @@ import {
   resolveLanguageModel,
   resolveRerankingModel,
   resolveSpeechModel,
+  resolveSpeechTranslationModel,
   resolveTranscriptionModel,
   resolveVideoModel,
 } from './resolve-model';
 
 let mockProcessEmitWarning: ReturnType<typeof vi.spyOn>;
+
+class ReceiverDependentProvider {
+  readonly specificationVersion = 'v4' as const;
+  readonly #provider = 'stateful-provider';
+
+  languageModel(): never {
+    throw new Error('not implemented');
+  }
+
+  embeddingModel(): never {
+    throw new Error('not implemented');
+  }
+
+  imageModel(): never {
+    throw new Error('not implemented');
+  }
+
+  speechTranslationModel(modelId: string) {
+    return new MockSpeechTranslationModelV4({
+      provider: this.#provider,
+      modelId,
+    });
+  }
+
+  videoModel(modelId: string) {
+    return new MockVideoModelV4({
+      provider: this.#provider,
+      modelId,
+    });
+  }
+
+  rerankingModel(modelId: string) {
+    return new MockRerankingModelV4({
+      provider: this.#provider,
+      modelId,
+    });
+  }
+}
 
 beforeEach(() => {
   mockProcessEmitWarning = vi
@@ -36,6 +76,37 @@ beforeEach(() => {
 
 afterEach(() => {
   mockProcessEmitWarning.mockRestore();
+});
+
+describe('string model resolution with a receiver-dependent provider', () => {
+  beforeEach(() => {
+    globalThis.AI_SDK_DEFAULT_PROVIDER = new ReceiverDependentProvider();
+  });
+
+  afterEach(() => {
+    delete globalThis.AI_SDK_DEFAULT_PROVIDER;
+  });
+
+  it('should preserve the speech translation model factory receiver', () => {
+    const resolvedModel = resolveSpeechTranslationModel('test-model-id');
+
+    expect(resolvedModel.provider).toBe('stateful-provider');
+    expect(resolvedModel.modelId).toBe('test-model-id');
+  });
+
+  it('should preserve the video model factory receiver', () => {
+    const resolvedModel = resolveVideoModel('test-model-id');
+
+    expect(resolvedModel.provider).toBe('stateful-provider');
+    expect(resolvedModel.modelId).toBe('test-model-id');
+  });
+
+  it('should preserve the reranking model factory receiver', () => {
+    const resolvedModel = resolveRerankingModel('test-model-id');
+
+    expect(resolvedModel.provider).toBe('stateful-provider');
+    expect(resolvedModel.modelId).toBe('test-model-id');
+  });
 });
 
 describe('resolveLanguageModel', () => {
