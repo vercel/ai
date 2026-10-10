@@ -695,6 +695,7 @@ class DefaultStreamObjectResult<
       let latestObject: PARTIAL | undefined = undefined;
       let isFirstChunk = true;
       let isFirstDelta = true;
+      let hasProcessedFinalDelta = false;
 
       const transformedStream = stream
         .pipeThrough(new TransformStream(transformer))
@@ -721,9 +722,13 @@ class DefaultStreamObjectResult<
                 const { value: currentObjectJson, state: parseState } =
                   await parsePartialJson(accumulatedText);
 
+                const isFinalDelta = parseState === 'successful-parse';
+                const isNewFinalDelta = isFinalDelta && !hasProcessedFinalDelta;
+
                 if (
                   currentObjectJson !== undefined &&
-                  !isDeepEqualData(latestObjectJson, currentObjectJson)
+                  (!isDeepEqualData(latestObjectJson, currentObjectJson) ||
+                    isNewFinalDelta)
                 ) {
                   const validationResult =
                     await outputStrategy.validatePartialResult({
@@ -731,31 +736,35 @@ class DefaultStreamObjectResult<
                       textDelta,
                       latestObject,
                       isFirstDelta,
-                      isFinalDelta: parseState === 'successful-parse',
+                      isFinalDelta,
                     });
 
-                  if (
-                    validationResult.success &&
-                    !isDeepEqualData(
+                  if (validationResult.success) {
+                    const isNewObject = !isDeepEqualData(
                       latestObject,
                       validationResult.value.partial,
-                    )
-                  ) {
-                    latestObjectJson = currentObjectJson;
-                    latestObject = validationResult.value.partial;
+                    );
 
-                    controller.enqueue({
-                      type: 'object',
-                      object: latestObject,
-                    });
+                    if (isNewObject || isNewFinalDelta) {
+                      latestObjectJson = currentObjectJson;
+                      latestObject = validationResult.value.partial;
 
-                    controller.enqueue({
-                      type: 'text-delta',
-                      textDelta: validationResult.value.textDelta,
-                    });
+                      if (isNewObject) {
+                        controller.enqueue({
+                          type: 'object',
+                          object: latestObject,
+                        });
+                      }
 
-                    textDelta = '';
-                    isFirstDelta = false;
+                      controller.enqueue({
+                        type: 'text-delta',
+                        textDelta: validationResult.value.textDelta,
+                      });
+
+                      textDelta = '';
+                      isFirstDelta = false;
+                      hasProcessedFinalDelta ||= isFinalDelta;
+                    }
                   }
                 }
 
