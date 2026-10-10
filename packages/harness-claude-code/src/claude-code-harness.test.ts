@@ -1142,6 +1142,32 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
+  it('sends configured allowedTools and disallowedTools to the bridge', async () => {
+    const allowedTools = ['Bash', 'Read'];
+    const disallowedTools = ['Write'];
+    const harness = createClaudeCode({ allowedTools, disallowedTools });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+    const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Run bash.',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({ allowedTools, disallowedTools });
+
+    await session.doDestroy();
+  });
+
   it('defaults to summarized adaptive thinking', async () => {
     const harness = createClaudeCode();
     const session = await harness.doStart({

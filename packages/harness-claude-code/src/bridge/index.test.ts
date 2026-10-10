@@ -765,6 +765,37 @@ describe('Claude Code bridge configuration', () => {
     expect(state.queryArgs[0]?.options).not.toHaveProperty('canUseTool');
   });
 
+  test('forwards allowedTools and disallowedTools to query options and merges disallowedTools with inactive tools', async () => {
+    state.start = {
+      ...state.start,
+      allowedTools: ['Read', 'WebSearch'],
+      disallowedTools: ['Write', 'Bash'],
+      builtinToolFiltering: { mode: 'deny', toolNames: ['bash'] },
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({
+      allowedTools: ['Read', 'WebSearch'],
+      disallowedTools: ['Bash', 'Write'],
+    });
+  });
+
+  test('forwards allowedTools and disallowedTools when no inactive tools exist', async () => {
+    state.start = {
+      ...state.start,
+      allowedTools: ['Read'],
+      disallowedTools: ['CustomTool'],
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({
+      allowedTools: ['Read'],
+      disallowedTools: ['CustomTool'],
+    });
+  });
+
   test('marks approval-gated external MCP tool calls as dynamic', async () => {
     state.start = {
       ...state.start,
