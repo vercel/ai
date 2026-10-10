@@ -3,6 +3,7 @@ import {
   type RerankingModelV4CallOptions,
 } from '@ai-sdk/provider';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { InvalidArgumentError } from '../error/invalid-argument-error';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockRerankingModelV4 } from '../test/mock-reranking-model-v4';
 import { rerank } from './rerank';
@@ -11,6 +12,35 @@ import type { RerankResult } from './rerank-result';
 
 describe('rerank', () => {
   describe('error handling', () => {
+    it.each([
+      ['text', { title: 'object' }],
+      [{ title: 'object' }, 'text'],
+    ])(
+      'should reject mixed string and object documents',
+      async (...documents) => {
+        const doRerank = vi.fn();
+        const onStart = vi.fn();
+
+        const result = rerank({
+          model: new MockRerankingModelV4({ doRerank }),
+          documents: documents as never,
+          query: 'query',
+          onStart,
+        });
+
+        await expect(result).rejects.toSatisfy(InvalidArgumentError.isInstance);
+        await expect(result).rejects.toMatchObject({
+          name: 'AI_InvalidArgumentError',
+          message:
+            'Invalid argument for parameter documents: documents must be an array of strings or an array of JSON objects',
+          parameter: 'documents',
+          value: documents,
+        });
+        expect(doRerank).not.toHaveBeenCalled();
+        expect(onStart).not.toHaveBeenCalled();
+      },
+    );
+
     it.each([3, -1, 5, 1.5])(
       'should reject invalid provider ranking index %s',
       async index => {
