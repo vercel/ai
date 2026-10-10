@@ -2042,13 +2042,17 @@ describe('MCPClient', () => {
   ])('should reject a request at its %s', async (_, options) => {
     vi.useFakeTimers();
     const transport = new HangingToolCallTransport();
-    client = await createMCPClient({ transport });
+    const onUncaughtError = vi.fn();
+    client = await createMCPClient({ transport, onUncaughtError });
     const requestPromise = client.listTools({ options });
     const rejection = expect(requestPromise).rejects.toSatisfy(
       error =>
         MCPClientError.isInstance(error) &&
         error.message === 'Request timed out after 100ms',
     );
+    const request = transport.sentMessages.find(
+      message => 'method' in message && message.method === 'tools/list',
+    ) as JSONRPCRequest;
 
     await vi.advanceTimersByTimeAsync(100);
 
@@ -2060,6 +2064,20 @@ describe('MCPClient', () => {
         }
       ).responseHandlers.size,
     ).toBe(0);
+    expect(() =>
+      transport.onmessage?.({
+        jsonrpc: '2.0',
+        id: request.id,
+        result: { tools: [] },
+      }),
+    ).not.toThrow();
+    expect(onUncaughtError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: expect.stringContaining(
+          'Protocol error: Received a response for an unknown message ID',
+        ),
+      }),
+    );
   });
 
   it('should pass request deadline signals to custom transports', async () => {
@@ -2107,7 +2125,8 @@ describe('MCPClient', () => {
 
   it('should reject in-flight tool call request when aborted', async () => {
     const transport = new HangingToolCallTransport();
-    client = await createMCPClient({ transport });
+    const onUncaughtError = vi.fn();
+    client = await createMCPClient({ transport, onUncaughtError });
 
     const abortController = new AbortController();
     const abortReason = new Error('abort after send');
@@ -2117,11 +2136,10 @@ describe('MCPClient', () => {
       options: { signal: abortController.signal },
     });
 
-    expect(
-      transport.sentMessages.some(
-        message => 'method' in message && message.method === 'tools/call',
-      ),
-    ).toBe(true);
+    const request = transport.sentMessages.find(
+      message => 'method' in message && message.method === 'tools/call',
+    ) as JSONRPCRequest;
+    expect(request).toBeDefined();
 
     abortController.abort(abortReason);
 
@@ -2138,6 +2156,22 @@ describe('MCPClient', () => {
         }
       ).responseHandlers.size,
     ).toBe(0);
+    expect(() =>
+      transport.onmessage?.({
+        jsonrpc: '2.0',
+        id: request.id,
+        result: {
+          content: [{ type: 'text', text: 'late result' }],
+        },
+      }),
+    ).not.toThrow();
+    expect(onUncaughtError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: expect.stringContaining(
+          'Protocol error: Received a response for an unknown message ID',
+        ),
+      }),
+    );
   });
 
   describe('elicitation support', () => {
@@ -2253,6 +2287,30 @@ describe('MCPClient', () => {
       onUncaughtError,
     });
     expect(onUncaughtError).toHaveBeenCalled();
+  });
+
+  it('should report responses with unknown message IDs without throwing', async () => {
+    const onUncaughtError = vi.fn();
+    const mockTransport = new MockMCPTransport();
+    client = await createMCPClient({
+      transport: mockTransport,
+      onUncaughtError,
+    });
+
+    expect(() =>
+      mockTransport.onmessage?.({
+        jsonrpc: '2.0',
+        id: 999,
+        result: {},
+      }),
+    ).not.toThrow();
+    expect(onUncaughtError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: expect.stringContaining(
+          'Protocol error: Received a response for an unknown message ID',
+        ),
+      }),
+    );
   });
 
   it('should support custom transports', async () => {
