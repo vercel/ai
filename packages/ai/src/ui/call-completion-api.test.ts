@@ -261,6 +261,58 @@ describe('callCompletionApi', () => {
     });
   });
 
+  it.each(['text', 'data'] as const)(
+    'should cancel the %s response when setCompletion throws',
+    async streamProtocol => {
+      const error = new Error('completion update failed');
+      const cancel = vi.fn();
+      const setError = vi.fn();
+      let sent = false;
+      const body = new ReadableStream<Uint8Array>({
+        pull(controller) {
+          if (sent) {
+            return;
+          }
+          sent = true;
+          controller.enqueue(
+            new TextEncoder().encode(
+              streamProtocol === 'text'
+                ? 'hello'
+                : 'data: {"type":"text-delta","id":"0","delta":"hello"}\n\n',
+            ),
+          );
+        },
+        cancel,
+      });
+
+      await callCompletionApi({
+        api: '/api/completion',
+        prompt: 'hello',
+        credentials: undefined,
+        headers: undefined,
+        body: {},
+        streamProtocol,
+        setCompletion(completion) {
+          if (completion !== '') {
+            throw error;
+          }
+        },
+        setLoading: vi.fn(),
+        setError,
+        setAbortController: vi.fn(),
+        onFinish: undefined,
+        onError: undefined,
+        fetch: async () => new Response(body),
+      });
+
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      expect(setError).toHaveBeenLastCalledWith(error);
+      expect(cancel).toHaveBeenCalledOnce();
+      expect(body.locked).toBe(false);
+    },
+  );
+
   it('should set UIMessageStreamError for an error stream chunk', async () => {
     const setError = vi.fn();
 

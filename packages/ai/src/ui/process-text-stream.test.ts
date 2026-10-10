@@ -35,4 +35,70 @@ describe('processTextStream', () => {
 
     expect(onChunk).not.toHaveBeenCalled();
   });
+
+  it('should cancel the stream when the callback throws', async () => {
+    const error = new Error('callback failed');
+    const cancel = vi.fn();
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('Hello'));
+      },
+      cancel,
+    });
+
+    await expect(
+      processTextStream({
+        stream,
+        onTextPart() {
+          throw error;
+        },
+      }),
+    ).rejects.toBe(error);
+
+    expect(cancel).toHaveBeenCalledOnce();
+    expect(stream.locked).toBe(false);
+  });
+
+  it('should preserve the callback error when cancellation fails', async () => {
+    const callbackError = new Error('callback failed');
+    const cancelError = new Error('cancel failed');
+    const cancel = vi.fn(() => {
+      throw cancelError;
+    });
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('Hello'));
+      },
+      cancel,
+    });
+
+    await expect(
+      processTextStream({
+        stream,
+        onTextPart() {
+          throw callbackError;
+        },
+      }),
+    ).rejects.toBe(callbackError);
+
+    expect(cancel).toHaveBeenCalledOnce();
+    expect(stream.locked).toBe(false);
+  });
+
+  it('should preserve upstream read errors and release the stream', async () => {
+    const error = new Error('read failed');
+    const onChunk = vi.fn();
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.error(error);
+      },
+    });
+
+    await expect(
+      processTextStream({ stream, onTextPart: onChunk }),
+    ).rejects.toBe(error);
+
+    expect(onChunk).not.toHaveBeenCalled();
+    expect(stream.locked).toBe(false);
+  });
 });
