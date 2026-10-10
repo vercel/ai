@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22582,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22582-empty-middleware-identity.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22582-empty-middleware-identity.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22582_REPRODUCED: empty middleware ignored explicit modelId and providerId overrides"
+  }
+}
