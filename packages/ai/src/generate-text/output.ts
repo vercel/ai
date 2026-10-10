@@ -1,6 +1,5 @@
 import {
   TypeValidationError,
-  type JSONSchema7,
   type JSONValue,
   type LanguageModelV4CallOptions,
 } from '@ai-sdk/provider';
@@ -18,6 +17,7 @@ import type { LanguageModelResponseMetadata } from '../types/language-model-resp
 import type { LanguageModelUsage } from '../types/usage';
 import type { DeepPartial } from '../util/deep-partial';
 import { parsePartialJson } from '../util/parse-partial-json';
+import { createArrayOutputSchema } from '../util/create-array-output-schema';
 import type { EnrichedStreamPart } from './stream-text';
 
 export interface Output<OUTPUT = any, PARTIAL = any, ELEMENT = any> {
@@ -241,39 +241,16 @@ export const array = <ELEMENT>({
     name: 'array',
 
     // JSON schema that describes an array of elements:
-    responseFormat: resolve(elementSchema.jsonSchema).then(jsonSchema => {
-      // keep root-level definitions available to root-relative references:
-      const {
-        $schema: _$schema,
-        definitions,
-        $defs,
-        ...itemSchema
-      } = jsonSchema as JSONSchema7 & {
-        $defs?: JSONSchema7['definitions'];
-      };
-
-      return {
-        type: 'json' as const,
-        schema: {
-          $schema: 'http://json-schema.org/draft-07/schema#',
-          ...(definitions != null && { definitions }),
-          ...($defs != null && { $defs }),
-          type: 'object',
-          properties: {
-            elements: {
-              type: 'array',
-              items: itemSchema,
-              ...(minItems != null && { minItems }),
-              ...(maxItems != null && { maxItems }),
-            },
-          },
-          required: ['elements'],
-          additionalProperties: false,
-        },
-        ...(name != null && { name }),
-        ...(description != null && { description }),
-      };
-    }),
+    responseFormat: resolve(elementSchema.jsonSchema).then(jsonSchema => ({
+      type: 'json' as const,
+      schema: createArrayOutputSchema({
+        elementSchema: jsonSchema,
+        minItems,
+        maxItems,
+      }),
+      ...(name != null && { name }),
+      ...(description != null && { description }),
+    })),
 
     async parseCompleteOutput(
       { text }: { text: string },

@@ -25,6 +25,7 @@ import {
   type AsyncIterableStream,
 } from '../util/async-iterable-stream';
 import type { DeepPartial } from '../util/deep-partial';
+import { createArrayOutputSchema } from '../util/create-array-output-schema';
 import type { ObjectStreamPart } from './stream-object-result';
 
 export interface OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM> {
@@ -139,29 +140,8 @@ const arrayOutputStrategy = <ELEMENT>(
     // wrap in object that contains array of elements, since most LLMs will not
     // be able to generate an array directly:
     // possible future optimization: use arrays directly when model supports grammar-guided generation
-    jsonSchema: async () => {
-      // keep root-level definitions available to root-relative references:
-      const {
-        $schema: _$schema,
-        definitions,
-        $defs,
-        ...itemSchema
-      } = (await schema.jsonSchema) as JSONSchema7 & {
-        $defs?: JSONSchema7['definitions'];
-      };
-
-      return {
-        $schema: 'http://json-schema.org/draft-07/schema#',
-        ...(definitions != null && { definitions }),
-        ...($defs != null && { $defs }),
-        type: 'object',
-        properties: {
-          elements: { type: 'array', items: itemSchema },
-        },
-        required: ['elements'],
-        additionalProperties: false,
-      };
-    },
+    jsonSchema: async () =>
+      createArrayOutputSchema({ elementSchema: await schema.jsonSchema }),
 
     async validatePartialResult({
       value,
