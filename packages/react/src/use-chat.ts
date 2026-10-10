@@ -57,8 +57,6 @@ export type UseChatOptions<UI_MESSAGE extends UIMessage> = (
   resume?: boolean;
 };
 
-<<<<<<< HEAD
-=======
 type AutomaticResumeState = {
   registrations: Set<object>;
   cleanupVisibilityListener?: () => void;
@@ -152,43 +150,13 @@ function registerAutomaticResume<UI_MESSAGE extends UIMessage>({
     }
   };
 }
-
-type ChatSnapshot<UI_MESSAGE extends UIMessage> = {
-  chat: Chat<UI_MESSAGE>;
-  messages: UI_MESSAGE[];
-  status: Chat<UI_MESSAGE>['status'];
-  error: Error | undefined;
-};
-
-function readChatSnapshot<UI_MESSAGE extends UIMessage>(
-  chat: Chat<UI_MESSAGE>,
-): ChatSnapshot<UI_MESSAGE> {
-  return {
-    chat,
-    messages: chat.messages,
-    status: chat.status,
-    error: chat.error,
-  };
-}
-
-function equalChatSnapshots<UI_MESSAGE extends UIMessage>(
-  current: ChatSnapshot<UI_MESSAGE>,
-  next: ChatSnapshot<UI_MESSAGE>,
-) {
-  return (
-    current.chat === next.chat &&
-    current.messages === next.messages &&
-    current.status === next.status &&
-    current.error === next.error
-  );
-}
-
->>>>>>> eab278a61c (fix: resume interrupted chat streams after returning to a backgrounded page (#22035))
 export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
   experimental_throttle: throttleWaitMs,
   resume = false,
   ...options
 }: UseChatOptions<UI_MESSAGE> = {}): UseChatHelpers<UI_MESSAGE> {
+  const automaticResumeRegistration = useRef({});
+
   // the Chat instance is created once and not recreated when options change,
   // so it would normally keep the callbacks/transport from the first render forever
 
@@ -352,9 +320,12 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
 
   useEffect(() => {
     if (resume) {
-      chatRef.current.resumeStream();
+      return registerAutomaticResume({
+        chat,
+        registration: automaticResumeRegistration.current,
+      });
     }
-  }, [resume, chatRef]);
+  }, [resume, chat]);
 
   return {
     id: chatRef.current.id,
