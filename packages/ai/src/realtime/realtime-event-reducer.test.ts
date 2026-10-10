@@ -194,4 +194,146 @@ describe('RealtimeEventReducer', () => {
       parts: [{ type: 'text', text: 'Yes, I can hear you.', state: 'done' }],
     });
   });
+
+  it.each([
+    {
+      completionOrder: ['user-item-1', 'user-item-2'],
+      name: 'commit order',
+    },
+    {
+      completionOrder: ['user-item-2', 'user-item-1'],
+      name: 'reverse order',
+    },
+  ])(
+    'preserves audio commit order when transcriptions complete in $name',
+    async ({ completionOrder }) => {
+      const reducer = new RealtimeEventReducer();
+      let state = createInitialRealtimeState();
+
+      for (const itemId of ['user-item-1', 'user-item-2']) {
+        ({ state } = await reducer.reduceServerEvent(state, {
+          type: 'audio-committed',
+          itemId,
+          raw: {},
+        }));
+      }
+
+      for (const itemId of completionOrder) {
+        ({ state } = await reducer.reduceServerEvent(state, {
+          type: 'input-transcription-completed',
+          itemId,
+          transcript: itemId === 'user-item-1' ? 'First turn' : 'Second turn',
+          raw: {},
+        }));
+      }
+
+      expect(state.messages.map(message => message.id)).toEqual([
+        'user-user-item-1',
+        'user-user-item-2',
+      ]);
+    },
+  );
+
+  it.each([
+    {
+      completionOrder: ['user-item-1', 'user-item-2'],
+      name: 'commit order',
+    },
+    {
+      completionOrder: ['user-item-2', 'user-item-1'],
+      name: 'reverse order',
+    },
+  ])(
+    'preserves the assistant message between audio commits when transcriptions complete in $name',
+    async ({ completionOrder }) => {
+      const reducer = new RealtimeEventReducer();
+      let state = createInitialRealtimeState();
+
+      ({ state } = await reducer.reduceServerEvent(state, {
+        type: 'audio-committed',
+        itemId: 'user-item-1',
+        raw: {},
+      }));
+      ({ state } = await reducer.reduceServerEvent(state, {
+        type: 'text-delta',
+        responseId: 'response-1',
+        itemId: 'assistant-item-1',
+        delta: 'Assistant turn',
+        raw: {},
+      }));
+      ({ state } = await reducer.reduceServerEvent(state, {
+        type: 'audio-committed',
+        itemId: 'user-item-2',
+        raw: {},
+      }));
+
+      for (const itemId of completionOrder) {
+        ({ state } = await reducer.reduceServerEvent(state, {
+          type: 'input-transcription-completed',
+          itemId,
+          transcript: itemId === 'user-item-1' ? 'First turn' : 'Second turn',
+          raw: {},
+        }));
+      }
+
+      expect(
+        state.messages.map(message => ({
+          role: message.role,
+          text: message.parts.find(part => part.type === 'text')?.text,
+        })),
+      ).toEqual([
+        { role: 'user', text: 'First turn' },
+        { role: 'assistant', text: 'Assistant turn' },
+        { role: 'user', text: 'Second turn' },
+      ]);
+    },
+  );
+
+  it('updates a completed input transcription without duplicating it', async () => {
+    const reducer = new RealtimeEventReducer();
+    let state = createInitialRealtimeState();
+
+    for (const event of [
+      {
+        type: 'audio-committed',
+        itemId: 'user-item-1',
+        raw: {},
+      },
+      {
+        type: 'audio-committed',
+        itemId: 'user-item-2',
+        raw: {},
+      },
+      {
+        type: 'input-transcription-completed',
+        itemId: 'user-item-1',
+        transcript: 'First draft',
+        raw: {},
+      },
+      {
+        type: 'input-transcription-completed',
+        itemId: 'user-item-1',
+        transcript: 'First turn',
+        raw: {},
+      },
+      {
+        type: 'input-transcription-completed',
+        itemId: 'user-item-2',
+        transcript: 'Second turn',
+        raw: {},
+      },
+    ] satisfies RealtimeServerEvent[]) {
+      ({ state } = await reducer.reduceServerEvent(state, event));
+    }
+
+    expect(
+      state.messages.map(message => ({
+        id: message.id,
+        text: message.parts.find(part => part.type === 'text')?.text,
+      })),
+    ).toEqual([
+      { id: 'user-user-item-1', text: 'First turn' },
+      { id: 'user-user-item-2', text: 'Second turn' },
+    ]);
+  });
 });
