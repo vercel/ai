@@ -301,13 +301,14 @@ describe('asEmbeddingModelV3', () => {
         readonly modelId = 'test-model-id';
         readonly maxEmbeddingsPerCall = 1;
         readonly supportsParallelCalls = false;
+        readonly #embedding = [0.1, 0.2, 0.3];
 
         customMethod() {
           return 'custom-value';
         }
 
         async doEmbed() {
-          return { embeddings: [[0.1, 0.2, 0.3]] };
+          return { embeddings: [this.#embedding] };
         }
       }
 
@@ -315,6 +316,9 @@ describe('asEmbeddingModelV3', () => {
       const result = asEmbeddingModelV3(v2Model) as any;
 
       expect(result.customMethod()).toBe('custom-value');
+      expect(await result.doEmbed({ values: ['test text'] })).toMatchObject({
+        embeddings: [[0.1, 0.2, 0.3]],
+      });
       expect(result.specificationVersion).toBe('v3');
     });
   });

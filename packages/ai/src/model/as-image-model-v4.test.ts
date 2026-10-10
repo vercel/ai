@@ -109,6 +109,43 @@ describe('asImageModelV4', () => {
 
       expect(response.images).toHaveLength(1);
     });
+
+    it('should preserve the receiver for prototype methods', async () => {
+      class TestImageModelV3 {
+        readonly specificationVersion = 'v3' as const;
+        readonly provider = 'test-provider';
+        readonly modelId = 'test-model-id';
+        readonly maxImagesPerCall = 1;
+        readonly #image = 'base64image';
+
+        async doGenerate() {
+          return {
+            images: [this.#image],
+            warnings: [],
+            response: {
+              timestamp: new Date(),
+              modelId: this.modelId,
+              headers: undefined,
+            },
+          };
+        }
+      }
+
+      const result = asImageModelV4(new TestImageModelV3());
+
+      await expect(
+        result.doGenerate({
+          prompt: 'a test image',
+          files: undefined,
+          mask: undefined,
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        }),
+      ).resolves.toMatchObject({ images: ['base64image'] });
+    });
   });
 
   describe('when an image model v2 is provided', () => {
@@ -123,6 +160,43 @@ describe('asImageModelV4', () => {
       expect(result.specificationVersion).toBe('v4');
       expect(result.provider).toBe('test-provider');
       expect(result.modelId).toBe('test-model-id');
+    });
+
+    it('should preserve the receiver through stacked adapters', async () => {
+      class TestImageModelV2 {
+        readonly specificationVersion = 'v2' as const;
+        readonly provider = 'test-provider';
+        readonly modelId = 'test-model-id';
+        readonly maxImagesPerCall = 1;
+        readonly #image = 'base64image';
+
+        async doGenerate() {
+          return {
+            images: [this.#image],
+            warnings: [],
+            response: {
+              timestamp: new Date(),
+              modelId: this.modelId,
+              headers: undefined,
+            },
+          };
+        }
+      }
+
+      const result = asImageModelV4(new TestImageModelV2());
+
+      await expect(
+        result.doGenerate({
+          prompt: 'a test image',
+          files: undefined,
+          mask: undefined,
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        }),
+      ).resolves.toMatchObject({ images: ['base64image'] });
     });
   });
 });

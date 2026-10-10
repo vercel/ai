@@ -87,6 +87,29 @@ describe('asEmbeddingModelV4', () => {
       expect(response.embeddings).toHaveLength(1);
       expect(response.embeddings[0]).toEqual([0.1, 0.2, 0.3]);
     });
+
+    it('should preserve the receiver for prototype methods', async () => {
+      class TestEmbeddingModelV3 {
+        readonly specificationVersion = 'v3' as const;
+        readonly provider = 'test-provider';
+        readonly modelId = 'test-model-id';
+        readonly maxEmbeddingsPerCall = 1;
+        readonly supportsParallelCalls = false;
+        readonly #embedding = [0.1, 0.2, 0.3];
+
+        async doEmbed() {
+          return { embeddings: [this.#embedding], warnings: [] };
+        }
+      }
+
+      const result = asEmbeddingModelV4(new TestEmbeddingModelV3());
+
+      await expect(
+        result.doEmbed({ values: ['test text'] }),
+      ).resolves.toMatchObject({
+        embeddings: [[0.1, 0.2, 0.3]],
+      });
+    });
   });
 
   describe('when an embedding model v2 is provided', () => {
@@ -118,6 +141,29 @@ describe('asEmbeddingModelV4', () => {
 
       expect(response.embeddings).toHaveLength(1);
       expect(response.embeddings[0]).toEqual([0.4, 0.5, 0.6]);
+    });
+
+    it('should preserve the receiver through stacked adapters', async () => {
+      class TestEmbeddingModelV2 {
+        readonly specificationVersion = 'v2' as const;
+        readonly provider = 'test-provider';
+        readonly modelId = 'test-model-id';
+        readonly maxEmbeddingsPerCall = 1;
+        readonly supportsParallelCalls = false;
+        readonly #embedding = [0.4, 0.5, 0.6];
+
+        async doEmbed() {
+          return { embeddings: [this.#embedding] };
+        }
+      }
+
+      const result = asEmbeddingModelV4(new TestEmbeddingModelV2());
+
+      await expect(
+        result.doEmbed({ values: ['test text'] }),
+      ).resolves.toMatchObject({
+        embeddings: [[0.4, 0.5, 0.6]],
+      });
     });
   });
 });

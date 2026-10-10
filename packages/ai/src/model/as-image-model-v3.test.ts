@@ -383,6 +383,7 @@ describe('asImageModelV3', () => {
         readonly provider = 'test-provider';
         readonly modelId = 'test-model-id';
         readonly maxImagesPerCall = 1;
+        readonly #image = 'image1';
 
         customMethod() {
           return 'custom-value';
@@ -390,7 +391,7 @@ describe('asImageModelV3', () => {
 
         async doGenerate() {
           return {
-            images: ['image1'],
+            images: [this.#image],
             warnings: [],
             response: {
               timestamp: new Date(),
@@ -405,6 +406,18 @@ describe('asImageModelV3', () => {
       const result = asImageModelV3(v2Model) as any;
 
       expect(result.customMethod()).toBe('custom-value');
+      expect(
+        await result.doGenerate({
+          prompt: 'a test image',
+          files: undefined,
+          mask: undefined,
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        }),
+      ).toMatchObject({ images: ['image1'] });
       expect(result.specificationVersion).toBe('v3');
     });
   });
