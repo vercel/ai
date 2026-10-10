@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22639,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22639-mcp-late-response-after-cancellation.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22639-mcp-late-response-after-cancellation.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22639_REPRODUCED: a late response after cancellation escaped transport.onmessage and bypassed onUncaughtError"
+  }
+}
