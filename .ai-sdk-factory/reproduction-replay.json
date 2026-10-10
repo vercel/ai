@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22549,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22549-claude-code-rerun-approval.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22549-claude-code-rerun-approval.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22549_REPRODUCED: approved resumed tool continuation restarted the turn instead of resolving the pending approval"
+  }
+}
