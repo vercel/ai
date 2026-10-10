@@ -221,6 +221,41 @@ const transport = new DirectChatTransport({
 });
 ```
 
+Custom UI data parts are omitted from the model prompt by default. Provide
+`convertDataPart` when a data part contains context that the agent should
+receive:
+
+```tsx
+import { DirectChatTransport, type UIMessage } from 'ai';
+
+type ReportMessage = UIMessage<
+  unknown,
+  {
+    report: { text: string };
+  },
+  {}
+>;
+
+const transport = new DirectChatTransport<
+  never,
+  {},
+  Record<string, unknown>,
+  never,
+  ReportMessage
+>({
+  agent,
+  convertDataPart: part => {
+    if (part.type === 'data-report') {
+      return { type: 'text', text: part.data.text };
+    }
+  },
+});
+```
+
+The callback may return a text part, a file part, or `undefined` to omit the
+data part. Validate untrusted data before returning it because converted content
+is sent to the model provider.
+
 <Note>
   `DirectChatTransport` does not support stream reconnection since there is no
   persistent server-side stream. The `reconnectToStream()` method always returns

@@ -57,6 +57,13 @@ export default function Chat() {
         'Options to pass to the agent when calling it. These are agent-specific options defined when creating the agent.',
     },
     {
+      name: 'convertDataPart',
+      type: '(part: DataUIPart) => TextPart | FilePart | undefined',
+      isOptional: true,
+      description:
+        'Converts custom UI data parts into text or file parts before sending the conversation history to the agent. Data parts are ignored when omitted or when the callback returns undefined.',
+    },
+    {
       name: 'originalMessages',
       type: 'UIMessage[]',
       isOptional: true,
@@ -301,6 +308,55 @@ export default function Chat({ userId }: { userId: string }) {
   // ... render chat UI
 }
 ```
+
+### Converting Custom Data Parts
+
+Use `convertDataPart` to include model-relevant custom UI data in the agent
+prompt. The callback can return a text part, a file part, or `undefined` to
+leave a data part out of the model prompt.
+
+```tsx
+import { useChat } from '@ai-sdk/react';
+import { DirectChatTransport, ToolLoopAgent, type UIMessage } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+type ReportMessage = UIMessage<
+  unknown,
+  {
+    report: { text: string };
+  },
+  {}
+>;
+
+const agent = new ToolLoopAgent({
+  model: openai('gpt-6-astra'),
+});
+
+const transport = new DirectChatTransport<
+  never,
+  {},
+  Record<string, unknown>,
+  never,
+  ReportMessage
+>({
+  agent,
+  convertDataPart: part => {
+    if (part.type === 'data-report') {
+      return { type: 'text', text: part.data.text };
+    }
+  },
+});
+
+export default function Chat() {
+  const { messages, sendMessage } = useChat<ReportMessage>({ transport });
+
+  // ... render chat UI
+}
+```
+
+Validate custom data before converting it. Anything returned by
+`convertDataPart` becomes part of the prompt sent to the model provider. File
+parts are subject to the selected model's media support.
 
 ### With Reasoning
 

@@ -7,7 +7,9 @@ import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { ToolLoopAgent } from '../agent/tool-loop-agent';
+import type { ChatTransport } from './chat-transport';
 import { DirectChatTransport } from './direct-chat-transport';
+import type { UIMessage } from './ui-messages';
 
 describe('DirectChatTransport', () => {
   describe('sendMessages', () => {
@@ -442,6 +444,124 @@ describe('DirectChatTransport', () => {
         {
           role: 'user',
           content: [{ type: 'text', text: 'Second message' }],
+        },
+      ]);
+    });
+
+    it('should convert custom data parts before sending messages to the agent', async () => {
+      type Message = UIMessage<
+        unknown,
+        {
+          report: { text: string };
+          attachment: {
+            mediaType: string;
+            filename: string;
+            data: string;
+          };
+          selection: { id: string };
+        },
+        {}
+      >;
+
+      const transport: ChatTransport<Message> = new DirectChatTransport({
+        agent: new ToolLoopAgent({ model: mockModel }),
+        convertDataPart: part => {
+          switch (part.type) {
+            case 'data-report':
+              return { type: 'text', text: part.data.text };
+            case 'data-attachment':
+              return {
+                type: 'file',
+                mediaType: part.data.mediaType,
+                filename: part.data.filename,
+                data: part.data.data,
+              };
+            case 'data-selection':
+              return undefined;
+          }
+        },
+      });
+
+      await convertReadableStreamToArray(
+        await transport.sendMessages({
+          chatId: 'chat-1',
+          messageId: undefined,
+          trigger: 'submit-message',
+          messages: [
+            {
+              id: 'user-1',
+              role: 'user',
+              parts: [
+                { type: 'text', text: 'Summarize' },
+                {
+                  type: 'data-report',
+                  data: { text: 'Report content' },
+                },
+                {
+                  type: 'data-attachment',
+                  data: {
+                    mediaType: 'text/plain',
+                    filename: 'notes.txt',
+                    data: 'bm90ZXM=',
+                  },
+                },
+                { type: 'data-selection', data: { id: 'ui-only' } },
+              ],
+            },
+          ],
+          abortSignal: undefined,
+        }),
+      );
+
+      expect(mockModel.doStreamCalls[0].prompt).toMatchObject([
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Summarize' },
+            { type: 'text', text: 'Report content' },
+            {
+              type: 'file',
+              mediaType: 'text/plain',
+              filename: 'notes.txt',
+              data: { type: 'data', data: 'bm90ZXM=' },
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should ignore custom data parts when no converter is provided', async () => {
+      type Message = UIMessage<unknown, { report: { text: string } }, {}>;
+      const transport: ChatTransport<Message> = new DirectChatTransport({
+        agent: new ToolLoopAgent({ model: mockModel }),
+      });
+
+      await convertReadableStreamToArray(
+        await transport.sendMessages({
+          chatId: 'chat-1',
+          messageId: undefined,
+          trigger: 'submit-message',
+          messages: [
+            {
+              id: 'user-1',
+              role: 'user',
+              parts: [
+                { type: 'text', text: 'Summarize' },
+                {
+                  type: 'data-report',
+                  data: { text: 'Report content' },
+                },
+              ],
+            },
+          ],
+          abortSignal: undefined,
+        }),
+      );
+
+      expect(mockModel.doStreamCalls[0].prompt).toEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Summarize' }],
         },
       ]);
     });

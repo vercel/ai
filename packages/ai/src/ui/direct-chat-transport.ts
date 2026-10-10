@@ -10,8 +10,13 @@ import type {
   InferUIMessageTools,
   InferUITools,
   UIMessage,
+  UIDataTypes,
 } from './ui-messages';
 import { validateUIMessagesForAgent } from './validate-ui-messages';
+
+type ConvertDataPart<UI_MESSAGE extends UIMessage> = NonNullable<
+  Parameters<typeof convertToModelMessages<UI_MESSAGE>>[1]
+>['convertDataPart'];
 
 /**
  * Options for the `DirectChatTransport` class.
@@ -21,7 +26,7 @@ export type DirectChatTransportOptions<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context,
   OUTPUT extends Output,
-  UI_MESSAGE extends UIMessage<unknown, never, InferUITools<TOOLS>>,
+  UI_MESSAGE extends UIMessage<unknown, UIDataTypes, InferUITools<TOOLS>>,
 > = {
   /**
    * The agent to use for generating responses.
@@ -32,6 +37,12 @@ export type DirectChatTransportOptions<
    * Options to pass to the agent when calling it.
    */
   options?: CALL_OPTIONS;
+
+  /**
+   * Converts custom UI data parts to text or file model message parts.
+   * Data parts are ignored when omitted or when the callback returns undefined.
+   */
+  convertDataPart?: ConvertDataPart<UI_MESSAGE>;
 } & Omit<UIMessageStreamOptions<UI_MESSAGE>, 'onFinish'>;
 
 /**
@@ -57,14 +68,12 @@ export class DirectChatTransport<
   TOOLS extends ToolSet = {},
   RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = never,
-  UI_MESSAGE extends UIMessage<unknown, never, InferUITools<TOOLS>> = UIMessage<
-    unknown,
-    never,
-    InferUITools<TOOLS>
-  >,
+  UI_MESSAGE extends UIMessage<unknown, UIDataTypes, InferUITools<TOOLS>> =
+    UIMessage<unknown, never, InferUITools<TOOLS>>,
 > implements ChatTransport<UI_MESSAGE> {
   private readonly agent: Agent<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT, OUTPUT>;
   private readonly agentOptions: CALL_OPTIONS | undefined;
+  private readonly convertDataPart: ConvertDataPart<UI_MESSAGE>;
   private readonly uiMessageStreamOptions: Omit<
     UIMessageStreamOptions<UI_MESSAGE>,
     'onFinish'
@@ -73,6 +82,7 @@ export class DirectChatTransport<
   constructor({
     agent,
     options,
+    convertDataPart,
     ...uiMessageStreamOptions
   }: DirectChatTransportOptions<
     CALL_OPTIONS,
@@ -83,6 +93,7 @@ export class DirectChatTransport<
   >) {
     this.agent = agent;
     this.agentOptions = options;
+    this.convertDataPart = convertDataPart;
     this.uiMessageStreamOptions = uiMessageStreamOptions;
   }
 
@@ -108,6 +119,7 @@ export class DirectChatTransport<
     // Convert UI messages to model messages
     const modelMessages = await convertToModelMessages(validatedMessages, {
       tools: this.agent.tools,
+      convertDataPart: this.convertDataPart,
     });
 
     // Stream from the agent
