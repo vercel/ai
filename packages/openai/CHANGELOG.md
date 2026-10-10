@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.134
+
+### Patch Changes
+
+- b399a1d: fix(openai): replay web search results, including tools with custom names, when response storage is disabled
+
 ## 2.0.133
 
 ### Patch Changes

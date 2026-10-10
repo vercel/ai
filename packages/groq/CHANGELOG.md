@@ -1,5 +1,11 @@
 # @ai-sdk/groq
 
+## 2.0.58
+
+### Patch Changes
+
+- a55a6d3: Keep browser search tools for unknown model IDs instead of dropping them with a warning. Known models without browser search remain excluded.
+
 ## 2.0.57
 
 ### Patch Changes
