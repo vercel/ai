@@ -565,6 +565,11 @@ const result = streamText({
 });
 ```
 
+When using `Intl.Segmenter`, enable `bufferUnfinishedSegments` to avoid emitting
+a trailing word or grapheme before a later provider delta can complete it. This
+improves display-boundary stability but delays the newest segment until the next
+segment or stream boundary.
+
 #### Custom transformations
 
 You can also implement your own custom transformations.

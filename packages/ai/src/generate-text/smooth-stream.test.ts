@@ -1922,6 +1922,189 @@ describe('smoothStream', () => {
   });
 
   describe('Intl.Segmenter chunking', () => {
+    async function smoothIntlParts({
+      parts,
+      segmenter,
+      bufferUnfinishedSegments = true,
+    }: {
+      parts: TextStreamPart<ToolSet>[];
+      segmenter: Intl.Segmenter;
+      bufferUnfinishedSegments?: boolean;
+    }) {
+      const stream = convertArrayToReadableStream(parts).pipeThrough(
+        smoothStream({
+          chunking: segmenter,
+          bufferUnfinishedSegments,
+          delayInMs: null,
+        })({ tools: {} }),
+      );
+      const output: TextStreamPart<ToolSet>[] = [];
+      const reader = stream.getReader();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          return output;
+        }
+        output.push(value);
+      }
+    }
+
+    async function collectTextSegments({
+      chunks,
+      granularity,
+      bufferUnfinishedSegments = true,
+    }: {
+      chunks: string[];
+      granularity: 'word' | 'grapheme';
+      bufferUnfinishedSegments?: boolean;
+    }) {
+      const output = await smoothIntlParts({
+        parts: [
+          { type: 'text-start', id: '1' },
+          ...chunks.map(
+            text =>
+              ({
+                type: 'text-delta',
+                id: '1',
+                text,
+              }) satisfies TextStreamPart<ToolSet>,
+          ),
+          { type: 'text-end', id: '1' },
+        ],
+        segmenter: new Intl.Segmenter('en', { granularity }),
+        bufferUnfinishedSegments,
+      });
+
+      return output
+        .filter(part => part.type === 'text-delta')
+        .map(part => part.text);
+    }
+
+    it('should preserve eager segment emission by default', async () => {
+      expect(
+        await collectTextSegments({
+          chunks: ['hel', 'lo world'],
+          granularity: 'word',
+          bufferUnfinishedSegments: false,
+        }),
+      ).toEqual(['hel', 'lo', ' ', 'world']);
+    });
+
+    it('should produce stable word segments across input delta boundaries when unfinished segment buffering is enabled', async () => {
+      const wholeInput = await collectTextSegments({
+        chunks: ['hello world'],
+        granularity: 'word',
+      });
+      const splitInput = await collectTextSegments({
+        chunks: ['hel', 'lo world'],
+        granularity: 'word',
+      });
+
+      expect(splitInput).toEqual(wholeInput);
+      expect(splitInput).toEqual(['hello', ' ', 'world']);
+    });
+
+    it.each([
+      {
+        name: 'combining mark',
+        whole: 'e\u0301',
+        chunks: ['e', '\u0301'],
+      },
+      {
+        name: 'ZWJ emoji',
+        whole: '👩‍💻',
+        chunks: ['👩', '‍', '💻'],
+      },
+    ])(
+      'should produce stable grapheme segments for a $name across input delta boundaries',
+      async ({ whole, chunks }) => {
+        const wholeInput = await collectTextSegments({
+          chunks: [whole],
+          granularity: 'grapheme',
+        });
+        const splitInput = await collectTextSegments({
+          chunks,
+          granularity: 'grapheme',
+        });
+
+        expect(splitInput).toEqual(wholeInput);
+        expect(splitInput).toEqual([whole]);
+      },
+    );
+
+    it('should flush retained segments at text and reasoning ends', async () => {
+      const output = await smoothIntlParts({
+        parts: [
+          { type: 'text-start', id: 'text' },
+          { type: 'text-delta', id: 'text', text: 'hello' },
+          { type: 'text-end', id: 'text' },
+          { type: 'reasoning-start', id: 'reasoning' },
+          {
+            type: 'reasoning-delta',
+            id: 'reasoning',
+            text: 'thinking',
+          },
+          { type: 'reasoning-end', id: 'reasoning' },
+        ],
+        segmenter: new Intl.Segmenter('en', { granularity: 'word' }),
+      });
+
+      expect(output).toEqual([
+        { type: 'text-start', id: 'text' },
+        { type: 'text-delta', id: 'text', text: 'hello' },
+        { type: 'text-end', id: 'text' },
+        { type: 'reasoning-start', id: 'reasoning' },
+        {
+          type: 'reasoning-delta',
+          id: 'reasoning',
+          text: 'thinking',
+        },
+        { type: 'reasoning-end', id: 'reasoning' },
+      ]);
+    });
+
+    it('should flush retained segments at part ID and metadata boundaries', async () => {
+      const providerMetadata = {
+        testProvider: { signature: 'signature' },
+      };
+      const output = await smoothIntlParts({
+        parts: [
+          { type: 'text-delta', id: 'first', text: 'hel' },
+          {
+            type: 'text-delta',
+            id: 'first',
+            text: 'lo',
+            providerMetadata,
+          },
+          { type: 'text-delta', id: 'second', text: 'world' },
+        ],
+        segmenter: new Intl.Segmenter('en', { granularity: 'word' }),
+      });
+
+      expect(output).toEqual([
+        { type: 'text-delta', id: 'first', text: 'hel' },
+        {
+          type: 'text-delta',
+          id: 'first',
+          text: 'lo',
+          providerMetadata,
+        },
+        { type: 'text-delta', id: 'second', text: 'world' },
+      ]);
+    });
+
+    it('should flush a retained segment when the source stream closes without an end part', async () => {
+      const output = await smoothIntlParts({
+        parts: [{ type: 'text-delta', id: '1', text: 'e\u0301' }],
+        segmenter: new Intl.Segmenter('en', { granularity: 'grapheme' }),
+      });
+
+      expect(output).toEqual([
+        { type: 'text-delta', id: '1', text: 'e\u0301' },
+      ]);
+    });
+
     it('should segment English text using Intl.Segmenter', async () => {
       const segmenter = new Intl.Segmenter('en', { granularity: 'word' });
       const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([

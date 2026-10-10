@@ -33,16 +33,19 @@ export type ChunkDetector = (buffer: string) => string | undefined | null;
  *
  * @param delayInMs - The delay in milliseconds between each chunk. Defaults to 10ms. Can be set to `null` to skip the delay. The delay is skipped while the document is hidden (e.g. browser background tabs), where timer throttling would otherwise stall the stream.
  * @param chunking - Controls how the text is chunked for streaming. Use "word" to stream word by word (default), "line" to stream line by line, provide a custom RegExp pattern that does not match the empty string for custom chunking, provide an Intl.Segmenter for locale-aware word segmentation (recommended for CJK languages), or provide a custom ChunkDetector function.
+ * @param bufferUnfinishedSegments - When using an Intl.Segmenter, retain its trailing segment until another segment or a stream boundary confirms it. Defaults to false.
  *
  * @returns A transform stream that smooths text streaming output.
  */
 export function smoothStream<TOOLS extends ToolSet>({
   delayInMs = 10,
   chunking = 'word',
+  bufferUnfinishedSegments = false,
   _internal: { delay = originalDelay } = {},
 }: {
   delayInMs?: number | null;
   chunking?: 'word' | 'line' | RegExp | ChunkDetector | Intl.Segmenter;
+  bufferUnfinishedSegments?: boolean;
   /**
    * Internal. For test use only. May change without notice.
    */
@@ -66,6 +69,14 @@ export function smoothStream<TOOLS extends ToolSet>({
       if (buffer.length === 0) return null;
       const iterator = segmenter.segment(buffer)[Symbol.iterator]();
       const first = iterator.next().value;
+
+      // Intl.Segmenter always treats the end of its input as a segment
+      // boundary. With buffering enabled, a sole trailing segment is retained
+      // so it can be re-segmented when more input arrives.
+      if (bufferUnfinishedSegments && iterator.next().done) {
+        return null;
+      }
+
       return first?.segment || null;
     };
   } else if (typeof chunking === 'function') {
@@ -199,6 +210,9 @@ export function smoothStream<TOOLS extends ToolSet>({
         if (buffer.length === 0) {
           providerMetadata = undefined;
         }
+      },
+      flush(controller) {
+        flushBuffer(controller);
       },
     });
   };

@@ -47,6 +47,13 @@ const result = streamText({
       description:
         'Controls how text and reasoning content is chunked for streaming. Use "word" to stream word by word (default), "line" to stream line by line, an Intl.Segmenter for locale-aware word segmentation (recommended for CJK languages), or provide a custom callback or RegExp pattern that does not match the empty string for custom chunking.',
     },
+    {
+      name: 'bufferUnfinishedSegments',
+      type: 'boolean',
+      isOptional: true,
+      description:
+        'When chunking with Intl.Segmenter, retains the trailing segment until another segment or a stream boundary confirms it. Defaults to false. This makes segment boundaries more consistent across provider deltas at the cost of delaying the newest segment.',
+    },
   ]}
 />
 
@@ -81,6 +88,7 @@ const result = streamText({
   prompt: 'Your prompt here',
   experimental_transform: smoothStream({
     chunking: segmenter,
+    bufferUnfinishedSegments: true,
   }),
 });
 ```
@@ -96,9 +104,25 @@ const result = streamText({
   prompt: 'Your prompt here',
   experimental_transform: smoothStream({
     chunking: segmenter,
+    bufferUnfinishedSegments: true,
   }),
 });
 ```
+
+`bufferUnfinishedSegments` is opt-in to preserve the existing low-latency
+behavior. When enabled, `smoothStream` retains the current trailing segment and
+flushes it at text or reasoning boundaries, metadata boundaries, other
+non-smoothable parts, or stream close. This prevents split input deltas such as
+`"hel"` followed by `"lo"` or a base character followed by a combining mark
+from producing extra display updates.
+
+<Note>
+  `Intl.Segmenter` segments complete strings and does not report whether its
+  final segment may change when more text arrives. The option therefore uses
+  one-segment lookahead. It improves word and grapheme stability, but it cannot
+  guarantee incremental boundaries for every dictionary-based language or
+  runtime locale implementation.
+</Note>
 
 #### Regex based chunking
 
