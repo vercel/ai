@@ -2215,6 +2215,108 @@ describe('resume with server error should set error status without flashing subm
   });
 });
 
+describe('resume after document becomes visible', () => {
+  const controller = new TestResponseController();
+
+  setupTestComponent(
+    () => {
+      const { messages, status } = useChat({
+        id: '123',
+        messages: [
+          {
+            id: 'msg_123',
+            role: 'user',
+            parts: [{ type: 'text', text: 'hi' }],
+          },
+        ],
+        generateId: mockId(),
+        resume: true,
+      });
+
+      return (
+        <div>
+          {messages.map((message, index) => (
+            <div data-testid={`message-${index}`} key={message.id}>
+              {message.role === 'user' ? 'User: ' : 'AI: '}
+              {message.parts
+                .map(part => (part.type === 'text' ? part.text : ''))
+                .join('')}
+            </div>
+          ))}
+          <div data-testid="status">{status}</div>
+        </div>
+      );
+    },
+    {
+      init: TestComponent => {
+        server.urls['/api/chat/123/stream'].response = ({ callNumber }) =>
+          callNumber === 0
+            ? {
+                type: 'controlled-stream',
+                controller,
+              }
+            : {
+                type: 'stream-chunks',
+                chunks: [
+                  formatChunk({
+                    type: 'text-delta',
+                    id: '0',
+                    delta: ', world.',
+                  }),
+                  formatChunk({ type: 'text-end', id: '0' }),
+                ],
+              };
+
+        return <TestComponent />;
+      },
+    },
+  );
+
+  it('resumes a disconnected stream when document becomes visible', async () => {
+    const visibilityState = vi
+      .spyOn(document, 'visibilityState', 'get')
+      .mockReturnValue('visible');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('status')).toHaveTextContent('submitted');
+    });
+
+    await controller.write(formatChunk({ type: 'text-start', id: '0' }));
+    await controller.write(
+      formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hello');
+    });
+
+    visibilityState.mockReturnValue('hidden');
+    fireEvent(document, new Event('visibilitychange'));
+    await controller.error(new TypeError('network connection lost'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('status')).toHaveTextContent('error');
+    });
+
+    visibilityState.mockReturnValue('visible');
+    fireEvent(document, new Event('visibilitychange'));
+
+    await waitFor(
+      () => {
+        const resumed =
+          screen.getByTestId('message-1').textContent === 'AI: Hello, world.' &&
+          screen.getByTestId('status').textContent === 'ready';
+
+        expect(
+          resumed,
+          'ISSUE_11865: stream did not automatically resume after the document became visible',
+        ).toBe(true);
+      },
+      { timeout: 1000 },
+    );
+  });
+});
+
 describe('stop', () => {
   setupTestComponent(() => {
     const { messages, sendMessage, stop, status } = useChat({
