@@ -603,9 +603,6 @@ importers:
       mathjs:
         specifier: ^15.2.0
         version: 15.2.0
-      openai-v3:
-        specifier: npm:@ai-sdk/openai@3.0.125
-        version: '@ai-sdk/openai@3.0.125(zod@3.25.76)'
       sharp:
         specifier: ^0.35.4
         version: 0.35.5(@types/node@22.19.19)
@@ -4780,12 +4777,6 @@ packages:
   '@ai-sdk/openai-compatible@3.0.66':
     resolution: {integrity: sha512-w7hO8Zff6LyRBav3xs2YAnjSNh/fW7ymBsDuGRSjsD40/wiLWbbn9Hub11obLcjrxs2x1lXSFqKt8ZI5vX8u8Q==}
     engines: {node: '>=22'}
-    peerDependencies:
-      zod: ^3.25.76 || ^4.1.8
-
-  '@ai-sdk/openai@3.0.125':
-    resolution: {integrity: sha512-nTpvcroTmK+XPOHQ3qq4VkRuzP7AOHU2o909JkjRFEJ9SxZZ9UtMPyefm9SLh7G/8A1fjp7lormr6ReUHXqixw==}
-    engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
 
@@ -24736,12 +24727,6 @@ snapshots:
       '@ai-sdk/provider-utils': 5.0.57(zod@4.5.4)
       zod: 4.5.4
 
-  '@ai-sdk/openai@3.0.125(zod@3.25.76)':
-    dependencies:
-      '@ai-sdk/provider': 3.0.18
-      '@ai-sdk/provider-utils': 4.0.57(zod@3.25.76)
-      zod: 3.25.76
-
   '@ai-sdk/openai@4.0.90(zod@4.5.4)':
     dependencies:
       '@ai-sdk/provider': 4.0.25
@@ -24786,14 +24771,6 @@ snapshots:
       '@standard-schema/spec': 1.1.0
       eventsource-parser: 3.1.1
       zod: 4.6.5
-
-  '@ai-sdk/provider-utils@4.0.57(zod@3.25.76)':
-    dependencies:
-      '@ai-sdk/provider': 3.0.18
-      '@standard-schema/spec': 1.1.0
-      eventsource-parser: 3.1.1
-      undici: 6.29.0
-      zod: 3.25.76
 
   '@ai-sdk/provider-utils@4.0.57(zod@4.5.4)':
     dependencies:

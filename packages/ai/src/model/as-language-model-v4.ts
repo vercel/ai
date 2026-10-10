@@ -14,7 +14,10 @@ import {
   type LanguageModelV4ToolResultOutput,
   type SharedV4FileData,
 } from '@ai-sdk/provider';
-import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
+import {
+  convertUint8ArrayToBase64,
+  getTopLevelMediaType,
+} from '@ai-sdk/provider-utils';
 import { asLanguageModelV3 } from './as-language-model-v3';
 
 export function asLanguageModelV4(
@@ -124,24 +127,52 @@ function convertV4ToolResultOutputToV3(
       }
 
       switch (part.data.type) {
-        case 'data':
+        case 'data': {
+          const data =
+            typeof part.data.data === 'string'
+              ? part.data.data
+              : convertUint8ArrayToBase64(part.data.data);
+
+          if (getTopLevelMediaType(part.mediaType) === 'image') {
+            return {
+              type: 'image-data' as const,
+              data,
+              mediaType: part.mediaType,
+              providerOptions: part.providerOptions,
+            };
+          }
+
           return {
             type: 'file-data' as const,
-            data:
-              typeof part.data.data === 'string'
-                ? part.data.data
-                : convertUint8ArrayToBase64(part.data.data),
+            data,
             mediaType: part.mediaType,
             filename: part.filename,
             providerOptions: part.providerOptions,
           };
+        }
         case 'url':
+          if (getTopLevelMediaType(part.mediaType) === 'image') {
+            return {
+              type: 'image-url' as const,
+              url: part.data.url.toString(),
+              providerOptions: part.providerOptions,
+            };
+          }
+
           return {
             type: 'file-url' as const,
             url: part.data.url.toString(),
             providerOptions: part.providerOptions,
           };
         case 'reference':
+          if (getTopLevelMediaType(part.mediaType) === 'image') {
+            return {
+              type: 'image-file-id' as const,
+              fileId: part.data.reference,
+              providerOptions: part.providerOptions,
+            };
+          }
+
           return {
             type: 'file-id' as const,
             fileId: part.data.reference,
