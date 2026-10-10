@@ -212,6 +212,26 @@ describe('defaultSettingsMiddleware', () => {
   });
 
   describe('other settings', () => {
+    it('should apply default reasoning and prioritize param reasoning', async () => {
+      const middleware = defaultSettingsMiddleware({
+        settings: { reasoning: 'high' },
+      });
+
+      const withDefault = await middleware.transformParams!({
+        type: 'generate',
+        params: BASE_PARAMS,
+        model: MOCK_MODEL,
+      });
+      const withOverride = await middleware.transformParams!({
+        type: 'generate',
+        params: { ...BASE_PARAMS, reasoning: 'low' },
+        model: MOCK_MODEL,
+      });
+
+      expect(withDefault.reasoning).toBe('high');
+      expect(withOverride.reasoning).toBe('low');
+    });
+
     it('should apply default maxOutputTokens', async () => {
       const middleware = defaultSettingsMiddleware({
         settings: { maxOutputTokens: 100 },
