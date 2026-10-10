@@ -1830,6 +1830,97 @@ describe('Chat', () => {
     expect(chat.status).toBe('ready');
   });
 
+  it.each([
+    {
+      outcome: 'completes',
+      settleOlderRequest: (
+        controller: ReadableStreamDefaultController<UIMessageChunk>,
+      ) => {
+        controller.enqueue({ type: 'finish' });
+        controller.close();
+      },
+      olderRequestIsError: false,
+    },
+    {
+      outcome: 'fails',
+      settleOlderRequest: (
+        controller: ReadableStreamDefaultController<UIMessageChunk>,
+      ) => {
+        controller.error(new Error('older request failed'));
+      },
+      olderRequestIsError: true,
+    },
+  ])(
+    'should preserve the newer request state when an older request $outcome',
+    async ({ settleOlderRequest, olderRequestIsError }) => {
+      const controllers: ReadableStreamDefaultController<UIMessageChunk>[] = [];
+      const onError = vi.fn();
+      const onFinish = vi.fn();
+      const sendAutomaticallyWhen = vi.fn(() => false);
+      const chat = new TestChat({
+        id: '123',
+        generateId: mockId(),
+        transport: {
+          sendMessages: async () =>
+            new ReadableStream<UIMessageChunk>({
+              start(controller) {
+                controllers.push(controller);
+              },
+            }),
+          reconnectToStream: async () => null,
+        },
+        onError,
+        onFinish,
+        sendAutomaticallyWhen,
+      });
+
+      const olderRequest = chat.sendMessage({ text: 'older' });
+      while (controllers.length < 1) {
+        await vi.advanceTimersByTimeAsync(0);
+      }
+
+      const newerRequest = chat.sendMessage({ text: 'newer' });
+      while (controllers.length < 2) {
+        await vi.advanceTimersByTimeAsync(0);
+      }
+
+      controllers[1].enqueue({
+        type: 'start',
+        messageId: 'newer-response',
+      });
+      controllers[1].enqueue({ type: 'text-start', id: 'newer-text' });
+      controllers[1].enqueue({
+        type: 'text-delta',
+        id: 'newer-text',
+        delta: 'still generating',
+      });
+      while (chat.status !== 'streaming') {
+        await vi.advanceTimersByTimeAsync(0);
+      }
+
+      settleOlderRequest(controllers[0]);
+      await olderRequest;
+
+      expect(chat.status).toBe('streaming');
+      expect(chat.error).toBeUndefined();
+      expect(onFinish).toHaveBeenCalledTimes(1);
+      expect(onFinish).toHaveBeenLastCalledWith(
+        expect.objectContaining({ isError: olderRequestIsError }),
+      );
+      expect(onError).toHaveBeenCalledTimes(olderRequestIsError ? 1 : 0);
+      expect(sendAutomaticallyWhen).not.toHaveBeenCalled();
+
+      controllers[1].enqueue({ type: 'text-end', id: 'newer-text' });
+      controllers[1].enqueue({ type: 'finish' });
+      controllers[1].close();
+      await newerRequest;
+
+      expect(chat.status).toBe('ready');
+      expect(onFinish).toHaveBeenCalledTimes(2);
+      expect(sendAutomaticallyWhen).toHaveBeenCalledTimes(1);
+    },
+  );
+
   it('should publish the latest error after repeated failed resume attempts', async () => {
     const reconnectErrors = [
       new Error('first reconnect failure'),
