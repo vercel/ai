@@ -1,4 +1,5 @@
 import { APICallError } from '@ai-sdk/provider';
+import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { mockId } from '@ai-sdk/provider-utils/test';
 import {
   createTestServer,
@@ -867,6 +868,127 @@ describe('Chat', () => {
           ],
         ]
       `);
+    });
+  });
+
+  describe('DefaultChatTransport resume after disconnect', () => {
+    const prefix: UIMessageChunk[] = [
+      { type: 'start', messageId: 'answer-1' },
+      { type: 'start-step' },
+      { type: 'reasoning-start', id: 'reasoning-1' },
+      { type: 'reasoning-delta', id: 'reasoning-1', delta: 'Thinking' },
+      { type: 'text-start', id: 'text-1' },
+      { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+    ];
+    const suffix: UIMessageChunk[] = [
+      { type: 'reasoning-delta', id: 'reasoning-1', delta: ' done.' },
+      { type: 'reasoning-end', id: 'reasoning-1' },
+      { type: 'text-delta', id: 'text-1', delta: ' world!' },
+      { type: 'text-end', id: 'text-1' },
+      { type: 'finish-step' },
+      { type: 'finish' },
+    ];
+
+    async function disconnectAndResume(
+      resumedChunks: UIMessageChunk[],
+      resumeStreamIsReplay?: boolean,
+    ) {
+      const received = createResolvablePromise<void>();
+      const onFinish = vi.fn();
+      const fetch = vi.fn<FetchFunction>(async (_url, init) => {
+        if (init?.method !== 'POST') {
+          return new Response(resumedChunks.map(formatChunk).join(''));
+        }
+
+        return new Response(
+          new ReadableStream<Uint8Array>({
+            start(controller) {
+              controller.enqueue(
+                new TextEncoder().encode(
+                  [
+                    ...prefix,
+                    {
+                      type: 'data-checkpoint',
+                      data: null,
+                      transient: true,
+                    } satisfies UIMessageChunk,
+                  ]
+                    .map(formatChunk)
+                    .join(''),
+                ),
+              );
+              void received.promise.then(() => {
+                controller.error(new TypeError('network connection lost'));
+              });
+            },
+          }),
+        );
+      });
+      const chat = new TestChat({
+        transport: new DefaultChatTransport({ fetch, resumeStreamIsReplay }),
+        onData: () => received.resolve(),
+        onFinish,
+      });
+
+      await chat.sendMessage({ text: 'Hello' });
+      expect(chat.status).toBe('error');
+      expect(onFinish).toHaveBeenCalledWith(
+        expect.objectContaining({ isDisconnect: true }),
+      );
+      expect(chat.lastMessage?.parts).toHaveLength(3);
+
+      await chat.resumeStream();
+
+      expect(fetch.mock.calls.map(([, init]) => init?.method)).toEqual([
+        'POST',
+        'GET',
+      ]);
+      expect(chat.error).toBeUndefined();
+      expect(chat.status).toBe('ready');
+      expect(chat.messages).toHaveLength(2);
+      expect(chat.lastMessage).toEqual({
+        id: 'answer-1',
+        role: 'assistant',
+        metadata: undefined,
+        parts: [
+          { type: 'step-start' },
+          {
+            type: 'reasoning',
+            id: 'reasoning-1',
+            text: 'Thinking done.',
+            state: 'done',
+            providerMetadata: undefined,
+          },
+          {
+            type: 'text',
+            text: 'Hello world!',
+            state: 'done',
+            providerMetadata: undefined,
+          },
+        ],
+      });
+    }
+
+    it.each(['answer-1', undefined])(
+      'rebuilds replayed parts with start message ID %s',
+      async messageId => {
+        await disconnectAndResume([
+          { type: 'start', messageId },
+          ...prefix.slice(1),
+          ...suffix,
+        ]);
+      },
+    );
+
+    it('preserves active parts when resuming with only remaining chunks', async () => {
+      await disconnectAndResume(suffix);
+    });
+
+    it('allows a continuation endpoint to send a start without resetting parts', async () => {
+      await disconnectAndResume(
+        [{ type: 'start', messageId: 'answer-1' }, ...suffix],
+        false,
+      );
     });
   });
 
