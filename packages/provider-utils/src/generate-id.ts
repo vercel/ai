@@ -21,6 +21,20 @@ export const createIdGenerator = ({
   size?: number;
   alphabet?: string;
 } = {}): IdGenerator => {
+  if (alphabet.length === 0) {
+    throw new InvalidArgumentError({
+      argument: 'alphabet',
+      message: 'alphabet must be a non-empty string.',
+    });
+  }
+
+  if (!Number.isSafeInteger(size) || size <= 0) {
+    throw new InvalidArgumentError({
+      argument: 'size',
+      message: 'size must be a positive safe integer.',
+    });
+  }
+
   const generator = () => {
     const alphabetLength = alphabet.length;
     const chars = new Array(size);
