@@ -221,7 +221,7 @@ describe('text stream', () => {
   describe('custom transport', () => {
     setupTestComponent(TestUseObjectCustomTransportComponent);
 
-    it('should send custom headers', async () => {
+    it('should send custom headers from a Headers instance', async () => {
       server.urls['/api/use-object'].response = {
         type: 'stream-chunks',
         chunks: ['{ ', '"content": "Hello, ', 'world', '!"', '}'],
