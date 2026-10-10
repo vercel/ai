@@ -18,6 +18,7 @@ export function defaultSettingsMiddleware({
     frequencyPenalty?: LanguageModelV4CallOptions['frequencyPenalty'];
     responseFormat?: LanguageModelV4CallOptions['responseFormat'];
     seed?: LanguageModelV4CallOptions['seed'];
+    reasoning?: LanguageModelV4CallOptions['reasoning'];
     tools?: LanguageModelV4CallOptions['tools'];
     toolChoice?: LanguageModelV4CallOptions['toolChoice'];
     headers?: LanguageModelV4CallOptions['headers'];
