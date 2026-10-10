@@ -270,7 +270,7 @@ class DefaultProviderRegistry<
     )?.bind(provider);
 
     const registeredProvider =
-      videoModel == null
+      videoModel == null || providerV4 === provider
         ? providerV4
         : Object.assign(Object.create(Object.getPrototypeOf(providerV4)), {
             ...providerV4,
