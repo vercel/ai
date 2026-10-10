@@ -3256,6 +3256,10 @@ describe('OpenTelemetry integration with decide', () => {
             answers: { refund: { type: 'boolean', probability: 0.9 } },
             usage: { inputTokens: 12, outputTokens: 2 },
             warnings: [],
+            response: {
+              id: 'test-response-id',
+              modelId: 'mock-model-resolved',
+            },
           }),
         }),
         state: { message: 'Please refund me' },
@@ -3300,6 +3304,8 @@ describe('OpenTelemetry integration with decide', () => {
             "name": "decide mock-model-id",
             "runtimeAttributes": {
               "ai.decision.answers": "{"refund":{"type":"boolean","probability":0.9}}",
+              "gen_ai.response.id": "test-response-id",
+              "gen_ai.response.model": "mock-model-resolved",
               "gen_ai.usage.input_tokens": 12,
               "gen_ai.usage.output_tokens": 2,
             },
