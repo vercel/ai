@@ -1334,7 +1334,7 @@ describe('Chat', () => {
     expect(chat.status).toBe('ready');
   });
 
-  it('should wait for a pending tool callback and its message update before stop resolves', async () => {
+  it('should wait for a pending tool callback and queued executor work before an external stop resolves', async () => {
     const callbackStarted = createResolvablePromise<void>();
     const callbackCanFinish = createResolvablePromise<void>();
     const toolOutputFinished = createResolvablePromise<void>();
@@ -1399,12 +1399,10 @@ describe('Chat', () => {
 
     await vi.advanceTimersByTimeAsync(0);
     expect(stopSettled).toBe(false);
+    expect(events).toEqual(['tool-callback-started']);
 
     callbackCanFinish.resolve();
-    await stopPromise;
-
-    chat.messages = [];
-    await Promise.all([sendPromise, toolOutputFinished.promise]);
+    await Promise.all([stopPromise, sendPromise, toolOutputFinished.promise]);
     await vi.advanceTimersByTimeAsync(0);
 
     expect(toolOutputError).toBeUndefined();
@@ -1413,7 +1411,62 @@ describe('Chat', () => {
       'tool-output-finished',
       'stop-finished',
     ]);
-    expect(chat.messages).toEqual([]);
+    expect(chat.messages[1]?.parts).toContainEqual({
+      type: 'tool-test-tool',
+      toolCallId: 'tool-call-0',
+      state: 'output-available',
+      input: { testArg: 'test-value' },
+      output: 'test-output',
+    });
+  });
+
+  it('should allow a tool callback to await stop during its invocation', async () => {
+    const callbackStarted = createResolvablePromise<void>();
+    const callbackReturned = createResolvablePromise<void>();
+    let chat: TestChat;
+
+    const responseStream = new ReadableStream<UIMessageChunk>({
+      start(controller) {
+        controller.enqueue({ type: 'start' });
+        controller.enqueue({ type: 'start-step' });
+        controller.enqueue({
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          input: { testArg: 'test-value' },
+        });
+      },
+    });
+
+    chat = new TestChat({
+      id: '123',
+      generateId: mockId(),
+      transport: {
+        sendMessages: async () => responseStream,
+        reconnectToStream: () => {
+          throw new Error('not implemented');
+        },
+      },
+      onToolCall: async () => {
+        callbackStarted.resolve();
+        await chat.stop();
+        callbackReturned.resolve();
+      },
+    });
+
+    const sendPromise = chat.sendMessage({ text: 'Hello, world!' });
+    await callbackStarted.promise;
+
+    const outcomePromise = Promise.race([
+      callbackReturned.promise.then(() => 'returned'),
+      new Promise(resolve => setTimeout(() => resolve('timed-out'), 1)),
+    ]);
+
+    await vi.advanceTimersByTimeAsync(1);
+
+    expect(await outcomePromise).toBe('returned');
+    await sendPromise;
+    expect(chat.status).toBe('ready');
   });
 
   it('should not restart the chat from a tool output queued while stopping', async () => {
@@ -3153,6 +3206,61 @@ describe('Chat', () => {
   });
 
   describe('sendAutomaticallyWhen', () => {
+    it('should allow the async predicate to await stop during its invocation', async () => {
+      const predicateStarted = createResolvablePromise<void>();
+      const predicateReturned = createResolvablePromise<void>();
+      const sendMessages = vi.fn(
+        async () => new ReadableStream<UIMessageChunk>(),
+      );
+      let chat: TestChat;
+
+      chat = new TestChat({
+        id: '123',
+        messages: [
+          {
+            id: 'id-0',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-test-tool',
+                toolCallId: 'tool-call-0',
+                state: 'input-available',
+                input: { testArg: 'test-value' },
+              },
+            ],
+          },
+        ],
+        transport: {
+          sendMessages,
+          reconnectToStream: async () => null,
+        },
+        sendAutomaticallyWhen: async () => {
+          predicateStarted.resolve();
+          await chat.stop();
+          predicateReturned.resolve();
+          return true;
+        },
+      });
+
+      const addToolOutputPromise = chat.addToolOutput({
+        tool: 'test-tool',
+        toolCallId: 'tool-call-0',
+        output: 'test-output',
+      });
+      await predicateStarted.promise;
+
+      const outcomePromise = Promise.race([
+        predicateReturned.promise.then(() => 'returned'),
+        new Promise(resolve => setTimeout(() => resolve('timed-out'), 1)),
+      ]);
+
+      await vi.advanceTimersByTimeAsync(1);
+
+      expect(await outcomePromise).toBe('returned');
+      await addToolOutputPromise;
+      expect(sendMessages).not.toHaveBeenCalled();
+    });
+
     it('should reject addToolOutput when the async predicate rejects', async () => {
       const chat = new TestChat({
         id: '123',

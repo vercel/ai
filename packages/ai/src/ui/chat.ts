@@ -275,6 +275,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     | StreamingUIMessageState<UI_MESSAGE>
     | undefined = undefined;
   private jobExecutor = new SerialJobExecutor();
+  private processingCallbackInvocationCount = 0;
   private activeStopCount = 0;
   private stopGeneration = 0;
 
@@ -752,22 +753,26 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
   /**
    * Abort the current request, keep the generated tokens if any, and wait for
-   * the request pipeline to finish.
+   * the request pipeline to finish. When called reentrantly during the
+   * invocation of a blocking processing callback, remaining work is drained in
+   * the background to avoid waiting for the callback that called stop.
    */
   stop = async () => {
     this.activeStopCount++;
     this.stopGeneration++;
 
-    try {
-      const activeResumeRequest = this.activeResumeRequest;
-      const activeResponse = this.activeResponse;
+    const isProcessingCallbackInvocation =
+      this.processingCallbackInvocationCount > 0;
+    const activeResumeRequest = this.activeResumeRequest;
+    const activeResponse = this.activeResponse;
 
-      for (const controller of this.pendingMessagePreparations) {
-        controller.abort();
-      }
-      activeResumeRequest?.abortController.abort();
-      activeResponse?.abortController.abort();
+    for (const controller of this.pendingMessagePreparations) {
+      controller.abort();
+    }
+    activeResumeRequest?.abortController.abort();
+    activeResponse?.abortController.abort();
 
+    const finishStopping = async () => {
       await Promise.all([
         activeResumeRequest?.completionPromise,
         activeResponse?.completionPromise,
@@ -776,6 +781,21 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       // Stream cancellation can complete while a processing job is still
       // blocked in onToolCall. Drain that job and any message update it queued.
       await this.jobExecutor.waitForIdle();
+    };
+
+    // Awaiting executor quiescence while invoking a blocking callback can make
+    // stop and that callback wait for each other. Abort synchronously, let the
+    // callback continue, and finish draining in the background while keeping
+    // automatic requests disabled.
+    if (isProcessingCallbackInvocation) {
+      void finishStopping().finally(() => {
+        this.activeStopCount--;
+      });
+      return;
+    }
+
+    try {
+      await finishStopping();
     } finally {
       this.activeStopCount--;
     }
@@ -790,18 +810,26 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   };
 
   private async shouldSendAutomatically(): Promise<boolean> {
-    if (!this.sendAutomaticallyWhen) return false;
+    const sendAutomaticallyWhen = this.sendAutomaticallyWhen;
+    if (!sendAutomaticallyWhen) return false;
 
-    const result = this.sendAutomaticallyWhen({
-      messages: this.state.messages,
-    });
+    return this.runProcessingCallback(() =>
+      sendAutomaticallyWhen({
+        messages: this.state.messages,
+      }),
+    );
+  }
 
-    // Check if result is a promise
-    if (result && typeof result === 'object' && 'then' in result) {
-      return await result;
+  private runProcessingCallback<T>(
+    callback: () => T | PromiseLike<T>,
+  ): T | PromiseLike<T> {
+    this.processingCallbackInvocationCount++;
+
+    try {
+      return callback();
+    } finally {
+      this.processingCallbackInvocationCount--;
     }
-
-    return result as boolean;
   }
 
   private async runAutomaticRequest(
@@ -1095,13 +1123,19 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           });
         });
 
+      const onToolCall = this.onToolCall;
+
       await consumeStream({
         stream: processUIMessageStream({
           stream,
           resetStateOnMessageIdChange: trigger === 'resume-stream',
           resetStateOnFirstMessageStart:
             trigger === 'resume-stream' && this.transport.resumeStreamIsReplay,
-          onToolCall: this.onToolCall,
+          onToolCall:
+            onToolCall == null
+              ? undefined
+              : options =>
+                  this.runProcessingCallback(() => onToolCall(options)),
           onData: this.onData,
           messageMetadataSchema: this.messageMetadataSchema,
           dataPartSchemas: this.dataPartSchemas,
