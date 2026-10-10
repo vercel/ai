@@ -718,6 +718,168 @@ describe('OpenAI batch service', () => {
     ]);
   });
 
+  it('preserves citation annotations, normalized citations, and fallback sources', async () => {
+    server.urls[urls.batch].response = {
+      type: 'json-value',
+      body: batchResponse({ output_file_id: 'file-output' }),
+    };
+    const annotations = [
+      {
+        type: 'url_citation',
+        start_index: 0,
+        end_index: 7,
+        url: 'https://example.com',
+        title: 'Example',
+      },
+      {
+        type: 'file_citation',
+        file_id: 'file-123',
+        filename: 'reference.txt',
+        index: 12,
+      },
+    ];
+    server.urls[urls.output].response = {
+      type: 'stream-chunks',
+      chunks: [
+        resultLine({
+          id: 'citations',
+          body: {
+            ...responsesResultBody('Example'),
+            output: [
+              {
+                type: 'message',
+                role: 'assistant',
+                id: 'msg-citations',
+                phase: 'final_answer',
+                content: [
+                  {
+                    type: 'output_text',
+                    text: 'Example',
+                    logprobs: null,
+                    annotations,
+                  },
+                ],
+              },
+            ],
+          },
+        }),
+      ],
+    };
+    const batch = createOpenAI({ apiKey: 'test-api-key' }).experimental_batch();
+
+    const stream = await batch.doGetBatchResults({
+      batchId: 'batch_123',
+    });
+    const results = await convertReadableStreamToArray(stream);
+
+    expect(results).toEqual([
+      {
+        type: 'text',
+        id: 'citations',
+        status: 'succeeded',
+        result: {
+          content: [
+            {
+              type: 'text',
+              text: 'Example',
+              citations: [
+                {
+                  source: {
+                    type: 'source',
+                    sourceType: 'url',
+                    id: 'https://example.com',
+                    url: 'https://example.com',
+                    title: 'Example',
+                  },
+                  startIndex: 0,
+                  endIndex: 7,
+                },
+                {
+                  source: {
+                    type: 'source',
+                    sourceType: 'document',
+                    id: 'file-123',
+                    mediaType: 'text/plain',
+                    title: 'reference.txt',
+                    filename: 'reference.txt',
+                    providerMetadata: {
+                      openai: {
+                        type: 'file_citation',
+                        fileId: 'file-123',
+                        index: 12,
+                      },
+                    },
+                  },
+                },
+              ],
+              providerMetadata: {
+                openai: {
+                  itemId: 'msg-citations',
+                  phase: 'final_answer',
+                  annotations,
+                },
+              },
+            },
+            {
+              type: 'source',
+              sourceType: 'url',
+              id: expect.any(String),
+              url: 'https://example.com',
+              title: 'Example',
+            },
+            {
+              type: 'source',
+              sourceType: 'document',
+              id: expect.any(String),
+              mediaType: 'text/plain',
+              title: 'reference.txt',
+              filename: 'reference.txt',
+              providerMetadata: {
+                openai: {
+                  type: 'file_citation',
+                  fileId: 'file-123',
+                  index: 12,
+                },
+              },
+            },
+          ],
+          finishReason: { unified: 'stop', raw: undefined },
+          usage: {
+            inputTokens: {
+              total: 10,
+              noCache: 8,
+              cacheRead: 2,
+              cacheWrite: undefined,
+            },
+            outputTokens: {
+              total: 3,
+              text: 2,
+              reasoning: 1,
+            },
+            raw: {
+              input_tokens: 10,
+              input_tokens_details: { cached_tokens: 2 },
+              output_tokens: 3,
+              output_tokens_details: { reasoning_tokens: 1 },
+            },
+          },
+          response: {
+            id: 'resp_123',
+            timestamp: new Date('2023-11-14T22:13:20.000Z'),
+            modelId: 'gpt-5.6',
+          },
+          providerMetadata: {
+            openai: {
+              responseId: 'resp_123',
+              serviceTier: 'default',
+            },
+          },
+          warnings: [],
+        },
+      },
+    ]);
+  });
+
   it('preserves reasoning output and its provider metadata', async () => {
     server.urls[urls.batch].response = {
       type: 'json-value',
