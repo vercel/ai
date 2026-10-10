@@ -1404,6 +1404,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   id: value.item.call_id,
                   toolName,
                 });
+
+                // Custom tool input is a string, so stream its JSON encoding
+                // consistently with the final tool call input.
+                controller.enqueue({
+                  type: 'tool-input-delta',
+                  id: value.item.call_id,
+                  delta: '"',
+                });
               } else if (value.item.type === 'web_search_call') {
                 ongoingToolCalls[value.output_index] = {
                   toolName: toolNameMapping.toCustomToolName(
@@ -1738,6 +1746,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 const toolName = toolNameMapping.toCustomToolName(
                   value.item.name,
                 );
+
+                controller.enqueue({
+                  type: 'tool-input-delta',
+                  id: value.item.call_id,
+                  delta: '"',
+                });
 
                 controller.enqueue({
                   type: 'tool-input-end',
@@ -2151,7 +2165,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'tool-input-delta',
                   id: toolCall.toolCallId,
-                  delta: value.delta,
+                  delta: escapeJSONDelta(value.delta),
                 });
               }
             } else if (isResponseApplyPatchCallOperationDiffDeltaChunk(value)) {
