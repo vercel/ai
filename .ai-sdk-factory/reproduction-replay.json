@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22724,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22724-schema-without-validator.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22724-schema-without-validator.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22724_REPRODUCED: asSchema and safeValidateTypes reject a valid Schema when the optional validate property is omitted"
+  }
+}
