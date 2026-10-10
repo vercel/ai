@@ -224,6 +224,16 @@ export function extractReasoningMiddleware({
                 publish(activeExtraction.buffer);
                 activeExtraction.buffer = '';
 
+                if (activeExtraction.reasoningId != null) {
+                  controller.enqueue({
+                    type: 'reasoning-end',
+                    id: activeExtraction.reasoningId,
+                  });
+                  activeExtraction.reasoningId = undefined;
+                }
+
+                delete reasoningExtractions[chunk.id];
+
                 if (delayedTextStarts[chunk.id] != null) {
                   controller.enqueue(delayedTextStarts[chunk.id]);
                   delete delayedTextStarts[chunk.id];
