@@ -272,4 +272,57 @@ describe('cancellation', () => {
     expect(result.isLoading.value).toBe(false);
     scope.stop();
   });
+
+  it('keeps a newer submission stoppable when an older stream closes', async () => {
+    const requests: Array<{
+      controller: ReadableStreamDefaultController<Uint8Array>;
+      signal: AbortSignal;
+    }> = [];
+    const fetch = vi.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
+      const signal = init?.signal as AbortSignal;
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          requests.push({ controller, signal });
+          signal.addEventListener('abort', () => {
+            controller.error(new DOMException('Aborted', 'AbortError'));
+          });
+        },
+      });
+      return new Response(body);
+    });
+    const scope = effectScope();
+    const result = scope.run(() =>
+      useObject({
+        api: '/api/use-object',
+        schema: z.object({ content: z.string() }),
+        fetch,
+      }),
+    )!;
+
+    const firstSubmission = result.submit(
+      'first-input',
+    ) as unknown as Promise<void>;
+    await waitFor(() => expect(requests).toHaveLength(1));
+
+    const secondSubmission = result.submit(
+      'second-input',
+    ) as unknown as Promise<void>;
+    requests[0].controller.close();
+    await waitFor(() => expect(requests).toHaveLength(2));
+
+    await result.stop();
+
+    if (!requests[1].signal.aborted) {
+      requests[1].controller.enqueue(
+        new TextEncoder().encode('{"content":"unexpected"}'),
+      );
+      requests[1].controller.close();
+    }
+
+    await Promise.all([firstSubmission, secondSubmission]);
+    expect(requests[1].signal.aborted).toBe(true);
+    expect(result.object.value).toBeUndefined();
+    expect(result.isLoading.value).toBe(false);
+    scope.stop();
+  });
 });

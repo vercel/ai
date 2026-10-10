@@ -190,8 +190,10 @@ export function useObject<
             }
           },
           async close() {
-            await mutateLoading(() => false);
-            abortController = null;
+            if (abortController === currentAbortController) {
+              abortController = null;
+              await mutateLoading(() => false);
+            }
 
             if (onFinish) {
               const validationResult = await safeValidateTypes({
