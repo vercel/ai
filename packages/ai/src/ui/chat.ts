@@ -269,6 +269,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
   private pendingMessagePreparations = new Set<AbortController>();
   private pendingApprovalMessageId: string | undefined;
+  private latestRequest: object | undefined;
   private activeResponse: ActiveResponse<UI_MESSAGE> | undefined = undefined;
   private activeResumeRequest: ActiveResumeRequest | undefined = undefined;
   private resumableStreamState:
@@ -807,9 +808,14 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   private async runAutomaticRequest(
     request: () => Promise<void>,
     shouldSend?: boolean,
+    isCurrentRequest?: () => boolean,
   ): Promise<void> {
     const stopGeneration = this.stopGeneration;
     const startedWhileStopping = this.activeStopCount > 0;
+
+    if (isCurrentRequest?.() === false) {
+      return;
+    }
 
     if (!(shouldSend ?? (await this.shouldSendAutomatically()))) {
       return;
@@ -818,6 +824,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     // A stop invalidates automatic requests that were pending when it started,
     // including requests queued by callback-driven tool updates.
     if (
+      isCurrentRequest?.() === false ||
       startedWhileStopping ||
       stopGeneration !== this.stopGeneration ||
       this.activeStopCount > 0
@@ -885,6 +892,9 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       this.resumableStreamState = undefined;
     }
 
+    const request = {};
+    this.latestRequest = request;
+
     const abortController = new AbortController();
     const activeResumeRequest =
       trigger === 'resume-stream'
@@ -896,9 +906,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       this.activeResumeRequest = activeResumeRequest;
     }
 
-    const isCurrentRequest = () =>
-      activeResumeRequest == null ||
-      this.activeResumeRequest === activeResumeRequest;
+    const isCurrentRequest = () => this.latestRequest === request;
 
     const clearActiveResumeRequest = () => {
       if (this.activeResumeRequest === activeResumeRequest) {
@@ -1062,7 +1070,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
                 return;
               }
 
-              if (updateStatus) {
+              if (updateStatus && isCurrentRequest()) {
                 this.setStatus({ status: 'streaming' });
               }
 
@@ -1145,10 +1153,6 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         return null;
       }
 
-      if (!isCurrentRequest()) {
-        return null;
-      }
-
       isError = true;
 
       if (err instanceof TypeError) {
@@ -1161,6 +1165,13 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           message.includes('network') ||
           // Safari/WebKit request and response-body failures.
           message === 'load failed';
+      }
+
+      if (!isCurrentRequest()) {
+        if (this.onError && err instanceof Error) {
+          this.onError(err);
+        }
+        return null;
       }
 
       if (isDisconnect) {
@@ -1197,14 +1208,17 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
     // automatically send the message if the sendAutomaticallyWhen function returns true
     if (!isAbort && !isError) {
-      await this.runAutomaticRequest(() =>
-        this.makeRequest({
-          trigger: 'submit-message',
-          messageId: this.lastMessage?.id,
-          metadata,
-          headers,
-          body,
-        }),
+      await this.runAutomaticRequest(
+        () =>
+          this.makeRequest({
+            trigger: 'submit-message',
+            messageId: this.lastMessage?.id,
+            metadata,
+            headers,
+            body,
+          }),
+        undefined,
+        isCurrentRequest,
       );
     }
   }
