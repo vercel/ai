@@ -11,6 +11,21 @@ import { describe, it, expect, vi } from 'vitest';
 import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
 
 describe('wrapEmbeddingModel', () => {
+  it('should use identity parameters with an empty middleware array', () => {
+    const wrappedModel = wrapEmbeddingModel({
+      model: new MockEmbeddingModelV4({
+        modelId: 'test-model',
+        provider: 'test-provider',
+      }),
+      middleware: [],
+      modelId: 'override-model',
+      providerId: 'override-provider',
+    });
+
+    expect(wrappedModel.modelId).toBe('override-model');
+    expect(wrappedModel.provider).toBe('override-provider');
+  });
+
   describe('model property', () => {
     it('should pass through by default', () => {
       const wrappedModel = wrapEmbeddingModel({

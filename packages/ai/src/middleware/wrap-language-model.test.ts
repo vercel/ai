@@ -8,6 +8,21 @@ import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { describe, it, expect, vi } from 'vitest';
 
 describe('wrapLanguageModel', () => {
+  it('should use identity parameters with an empty middleware array', () => {
+    const wrappedModel = wrapLanguageModel({
+      model: new MockLanguageModelV4({
+        modelId: 'test-model',
+        provider: 'test-provider',
+      }),
+      middleware: [],
+      modelId: 'override-model',
+      providerId: 'override-provider',
+    });
+
+    expect(wrappedModel.modelId).toBe('override-model');
+    expect(wrappedModel.provider).toBe('override-provider');
+  });
+
   describe('model property', () => {
     it('should pass through by default', () => {
       const wrappedModel = wrapLanguageModel({
