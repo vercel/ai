@@ -66,7 +66,11 @@ export class RealtimeEventReducer {
   private toolArgAccumulators = new Map<string, string>();
   private toolCallIdToMessageId = new Map<string, string>();
   private toolCallIdToName = new Map<string, string>();
-  private inputAudioMessageInsertIndex = new Map<string, number>();
+  private inputAudioMessageInsertPositions = new Map<
+    string,
+    { index: number; commitOrder: number }
+  >();
+  private nextInputAudioCommitOrder = 0;
   private itemIdToPartLocation = new Map<
     string,
     { messageId: string; partIndex: number }
@@ -142,10 +146,10 @@ export class RealtimeEventReducer {
 
       case 'audio-committed': {
         if (event.itemId != null) {
-          this.inputAudioMessageInsertIndex.set(
-            event.itemId,
-            nextState.messages.length,
-          );
+          this.inputAudioMessageInsertPositions.set(event.itemId, {
+            index: nextState.messages.length,
+            commitOrder: this.nextInputAudioCommitOrder++,
+          });
         }
         break;
       }
@@ -323,10 +327,25 @@ export class RealtimeEventReducer {
       };
     }
 
+    const insertPosition = this.inputAudioMessageInsertPositions.get(itemId);
     const insertIndex = Math.min(
-      this.inputAudioMessageInsertIndex.get(itemId) ?? state.messages.length,
+      insertPosition?.index ?? state.messages.length,
       state.messages.length,
     );
+
+    if (insertPosition != null) {
+      this.inputAudioMessageInsertPositions.delete(itemId);
+
+      for (const position of this.inputAudioMessageInsertPositions.values()) {
+        if (
+          position.index > insertIndex ||
+          (position.index === insertIndex &&
+            position.commitOrder > insertPosition.commitOrder)
+        ) {
+          position.index++;
+        }
+      }
+    }
 
     const messages = [...state.messages];
     messages.splice(insertIndex, 0, {
