@@ -33,11 +33,18 @@ export const wrapImageModel = ({
   providerId?: string;
 }): ImageModelV4 => {
   const model = asImageModelV4(inputModel);
-  return [...asArray(middlewareArg)]
-    .reverse()
-    .reduce((wrappedModel, middleware) => {
-      return doWrap({ model: wrappedModel, middleware, modelId, providerId });
-    }, model);
+  const middleware = asArray(middlewareArg);
+
+  if (
+    middleware.length === 0 &&
+    (modelId !== undefined || providerId !== undefined)
+  ) {
+    return doWrap({ model, middleware: {}, modelId, providerId });
+  }
+
+  return [...middleware].reverse().reduce((wrappedModel, middleware) => {
+    return doWrap({ model: wrappedModel, middleware, modelId, providerId });
+  }, model);
 };
 
 const doWrap = ({
