@@ -516,6 +516,14 @@ export const choice = <CHOICE extends string>({
    */
   description?: string;
 }): Output<CHOICE, CHOICE, never> => {
+  if (choiceOptions.length === 0) {
+    throw new InvalidArgumentError({
+      parameter: 'options',
+      value: choiceOptions,
+      message: 'options must contain at least one choice',
+    });
+  }
+
   return {
     name: 'choice',
 
