@@ -629,6 +629,40 @@ describe('rerankingModel', () => {
 });
 
 describe('videoModel', () => {
+  it('preserves v4 provider method receivers', () => {
+    const languageModel = new MockLanguageModelV4();
+    const videoModel = new MockVideoModelV4();
+
+    class Provider {
+      readonly specificationVersion = 'v4';
+      readonly #languageModel = languageModel;
+      readonly #videoModel = videoModel;
+
+      languageModel(modelId: string) {
+        expect(modelId).toBe('language');
+        return this.#languageModel;
+      }
+
+      embeddingModel(): never {
+        throw new Error('unused');
+      }
+
+      imageModel(): never {
+        throw new Error('unused');
+      }
+
+      videoModel(modelId: string) {
+        expect(modelId).toBe('video');
+        return this.#videoModel;
+      }
+    }
+
+    const registry = createProviderRegistry({ provider: new Provider() });
+
+    expect(registry.languageModel('provider:language')).toBe(languageModel);
+    expect(registry.videoModel('provider:video')).toBe(videoModel);
+  });
+
   it('should return video model from provider', () => {
     const model = new MockVideoModelV4();
 
