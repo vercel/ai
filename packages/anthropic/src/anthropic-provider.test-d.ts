@@ -7,6 +7,7 @@ import type {
   AnthropicLanguageModelOptions,
   AnthropicModelId,
 } from './anthropic-language-model-options';
+import type { AnthropicCitation, AnthropicTextProviderMetadata } from './index';
 import { anthropic } from './anthropic-provider';
 
 it('types batch support on the provider', () => {
@@ -35,4 +36,10 @@ it('types on-demand compaction provider options', () => {
       }
     | undefined
   >();
+});
+
+it('exports typed text citation metadata', () => {
+  expectTypeOf<
+    AnthropicTextProviderMetadata['anthropic']['citations'][number]
+  >().toEqualTypeOf<AnthropicCitation>();
 });

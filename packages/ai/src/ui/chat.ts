@@ -542,6 +542,33 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   };
 
   /**
+   * Resume the stream if the latest response ended with a resumable network
+   * disconnect. If a response is still active, wait for it to settle first so
+   * disconnects reported shortly after the caller's trigger are handled.
+   *
+   * @internal
+   */
+  '~resumeStreamIfDisconnected' = async ({
+    shouldResume = () => true,
+  }: {
+    shouldResume?: () => boolean;
+  } = {}): Promise<void> => {
+    const activeResponse = this.activeResponse;
+
+    if (this.resumableStreamState == null && activeResponse != null) {
+      await activeResponse.completionPromise;
+
+      if (this.resumableStreamState !== activeResponse.state) {
+        return;
+      }
+    }
+
+    if (this.resumableStreamState != null && shouldResume()) {
+      await this.resumeStream();
+    }
+  };
+
+  /**
    * Clear the error state and set the status to ready if the chat is in an error state.
    */
   clearError = () => {
@@ -948,6 +975,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       responseMessageIndex === -1
         ? lastMessage
         : this.state.messages[responseMessageIndex];
+    const originalResponseMessageId = responseMessage?.id;
     // The continued stream can start with input deltas or a tool result.
     // Keep unfinished tool parts so result chunks can find their tool call.
     const resumableResponseMessage =
@@ -1038,16 +1066,28 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
                 this.setStatus({ status: 'streaming' });
               }
 
-              if (usesEarlierAssistantMessage) {
+              const existingMessageIndex = this.state.messages.findLastIndex(
+                message => message.id === response.state.message.id,
+              );
+
+              if (existingMessageIndex !== -1) {
                 this.state.replaceMessage(
-                  responseMessageIndex,
+                  existingMessageIndex,
                   response.state.message,
                 );
-              } else if (response.state.message.id === this.lastMessage?.id) {
-                this.state.replaceMessage(
-                  this.state.messages.length - 1,
-                  response.state.message,
+              } else if (usesEarlierAssistantMessage) {
+                const originalMessageIndex = this.state.messages.findLastIndex(
+                  message => message.id === originalResponseMessageId,
                 );
+
+                if (originalMessageIndex !== -1) {
+                  this.state.replaceMessage(
+                    originalMessageIndex,
+                    response.state.message,
+                  );
+                } else {
+                  this.state.pushMessage(response.state.message);
+                }
               } else {
                 this.state.pushMessage(response.state.message);
               }

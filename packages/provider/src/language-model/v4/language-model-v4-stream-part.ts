@@ -1,5 +1,6 @@
 import type { SharedV4ProviderMetadata } from '../../shared/v4/shared-v4-provider-metadata';
 import type { SharedV4Warning } from '../../shared/v4/shared-v4-warning';
+import type { LanguageModelV4Citation } from './language-model-v4-citation';
 import type { LanguageModelV4CustomContent } from './language-model-v4-custom-content';
 import type { LanguageModelV4File } from './language-model-v4-file';
 import type { LanguageModelV4FinishReason } from './language-model-v4-finish-reason';
@@ -26,6 +27,8 @@ export type LanguageModelV4StreamPart =
     }
   | {
       type: 'text-end';
+      /** References supporting the text block with this ID. */
+      citations?: Array<LanguageModelV4Citation>;
       providerMetadata?: SharedV4ProviderMetadata;
       id: string;
     }

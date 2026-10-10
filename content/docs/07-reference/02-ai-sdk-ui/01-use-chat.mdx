@@ -70,6 +70,13 @@ Allows you to easily create a conversational user interface for your chatbot app
               description: 'The API endpoint for chat requests.',
             },
             {
+              name: 'resumeStreamIsReplay',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Defaults to true. Resets the interrupted response on the first resumed start chunk and rebuilds it from the replay. Set to false for endpoints that only send the remaining chunks of the same response.',
+            },
+            {
               name: 'credentials',
               type: 'RequestCredentials',
               isOptional: true,
@@ -345,7 +352,7 @@ Allows you to easily create a conversational user interface for your chatbot app
       type: 'boolean',
       isOptional: true,
       description:
-        'Whether to resume an ongoing chat generation stream. Defaults to false.',
+        'Whether to automatically resume an ongoing chat generation stream on mount and after the page becomes visible again following a network disconnect. Defaults to false.',
     },
   ]}
 />
