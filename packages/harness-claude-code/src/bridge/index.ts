@@ -186,21 +186,14 @@ function createPermissionOptions(input: {
     ...(permissionSettings ? { settings: permissionSettings } : {}),
   };
 
-  if (permissionMode === 'allow-all') {
-    return {
-      ...baseOptions,
-      /*
-       * Claude Code exposes AskUserQuestion in headless SDK sessions only
-       * when a permission prompt tool is configured. The stdio prompt tool
-       * preserves that tool surface without supplying the canUseTool callback
-       * that bypassPermissions guarantees it will never invoke.
-       */
-      permissionPromptToolName: 'stdio',
-    };
-  }
-
   return {
     ...baseOptions,
+    /*
+     * bypassPermissions normally resolves tool permissions before this
+     * callback, but Claude Code still requests host approval when leaving plan
+     * mode. Keep the callback available so ExitPlanMode is allowed and
+     * explicit requests still honor the configured inactive-tool filtering.
+     */
     canUseTool: async (
       toolName: string,
       toolInput: Record<string, unknown>,
