@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "issueId": 22576,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22576.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22576.ts",
+    "packages/svelte/src/reproduction/issue-22576.svelte.test.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22576_REPRODUCED: async onFinish is neither awaited nor routed to the StructuredObject error path"
+  }
+}
