@@ -71,6 +71,10 @@ import {
   expandParallelToolCall,
   isUndeclaredParallelToolCall,
 } from './expand-parallel-tool-call';
+import {
+  mapOpenAIResponsesAnnotationSource,
+  mapOpenAIResponsesCitations,
+} from './map-openai-responses-annotation';
 import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
 import {
   openaiResponsesChunkSchema,
@@ -95,7 +99,6 @@ import type {
   ResponsesCompactionProviderMetadata,
   ResponsesProviderMetadata,
   ResponsesReasoningProviderMetadata,
-  ResponsesSourceDocumentProviderMetadata,
   ResponsesTextProviderMetadata,
   ResponsesToolCallProviderMetadata,
 } from './openai-responses-provider-metadata';
@@ -905,6 +908,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       options.tools?.filter(
         (tool): tool is LanguageModelV4FunctionTool => tool.type === 'function',
       ) ?? [];
+    const hasWebSearchActionSources = response.output.some(
+      part =>
+        part.type === 'web_search_call' &&
+        part.action?.type === 'search' &&
+        part.action.sources?.some(source => source.type === 'url'),
+    );
+
+    const hasFileSearchResults = response.output.some(
+      part =>
+        part.type === 'file_search_call' && (part.results?.length ?? 0) > 0,
+    );
+    const retrievedFileIds = new Set<string>();
 
     // flag that checks if there have been client-side tool calls (not executed by openai)
     let hasFunctionCall = false;
@@ -1084,78 +1099,35 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             content.push({
               type: 'text',
               text: contentPart.text,
+              ...(contentPart.annotations.some(
+                annotation => annotation.type !== 'file_path',
+              ) && {
+                citations: mapOpenAIResponsesCitations(
+                  contentPart.annotations,
+                  providerOptionsName,
+                ),
+              }),
               providerMetadata: {
                 [providerOptionsName]: providerMetadata,
               },
             });
 
             for (const annotation of contentPart.annotations) {
-              if (annotation.type === 'url_citation') {
-                content.push({
-                  type: 'source',
-                  sourceType: 'url',
-                  id: this.config.generateId?.() ?? generateId(),
-                  url: annotation.url,
-                  title: annotation.title,
-                });
-              } else if (annotation.type === 'file_citation') {
-                content.push({
-                  type: 'source',
-                  sourceType: 'document',
-                  id: this.config.generateId?.() ?? generateId(),
-                  mediaType: 'text/plain',
-                  title: annotation.filename,
-                  filename: annotation.filename,
-                  providerMetadata: {
-                    [providerOptionsName]: {
-                      type: annotation.type,
-                      fileId: annotation.file_id,
-                      index: annotation.index,
-                    } satisfies Extract<
-                      ResponsesSourceDocumentProviderMetadata,
-                      { type: 'file_citation' }
-                    >,
-                  },
-                });
-              } else if (annotation.type === 'container_file_citation') {
-                content.push({
-                  type: 'source',
-                  sourceType: 'document',
-                  id: this.config.generateId?.() ?? generateId(),
-                  mediaType: 'text/plain',
-                  title: annotation.filename,
-                  filename: annotation.filename,
-                  providerMetadata: {
-                    [providerOptionsName]: {
-                      type: annotation.type,
-                      fileId: annotation.file_id,
-                      containerId: annotation.container_id,
-                    } satisfies Extract<
-                      ResponsesSourceDocumentProviderMetadata,
-                      { type: 'container_file_citation' }
-                    >,
-                  },
-                });
-              } else if (annotation.type === 'file_path') {
-                content.push({
-                  type: 'source',
-                  sourceType: 'document',
-                  id: this.config.generateId?.() ?? generateId(),
-                  mediaType: 'application/octet-stream',
-                  title: annotation.file_id,
-                  filename: annotation.file_id,
-                  providerMetadata: {
-                    [providerOptionsName]: {
-                      type: annotation.type,
-                      fileId: annotation.file_id,
-                      index: annotation.index,
-                    } satisfies Extract<
-                      ResponsesSourceDocumentProviderMetadata,
-                      { type: 'file_path' }
-                    >,
-                  },
-                });
+              // Use citation-derived sources only when retrieval data is unavailable.
+              if (
+                (annotation.type === 'url_citation' &&
+                  hasWebSearchActionSources) ||
+                (annotation.type === 'file_citation' && hasFileSearchResults)
+              ) {
+                continue;
               }
+              content.push(
+                mapOpenAIResponsesAnnotationSource(
+                  annotation,
+                  providerOptionsName,
+                  this.config.generateId?.() ?? generateId(),
+                ),
+              );
             }
           }
 
@@ -1287,6 +1259,19 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
               ? { isError: true, result: { status: part.status } }
               : { result: mapWebSearchOutput(part.action) }),
           });
+
+          if (part.action?.type === 'search') {
+            for (const source of part.action.sources ?? []) {
+              if (source.type === 'url') {
+                content.push({
+                  type: 'source',
+                  sourceType: 'url',
+                  id: this.config.generateId?.() ?? generateId(),
+                  url: source.url,
+                });
+              }
+            }
+          }
 
           break;
         }
@@ -1424,6 +1409,26 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 })) ?? null,
             } satisfies InferSchema<typeof fileSearchOutputSchema>,
           });
+          for (const result of part.results ?? []) {
+            if (retrievedFileIds.has(result.file_id)) {
+              continue;
+            }
+            retrievedFileIds.add(result.file_id);
+            content.push({
+              type: 'source',
+              sourceType: 'document',
+              id: this.config.generateId?.() ?? generateId(),
+              mediaType: 'text/plain',
+              title: result.filename,
+              filename: result.filename,
+              providerMetadata: {
+                [providerOptionsName]: {
+                  type: 'file_search',
+                  fileId: result.file_id,
+                },
+              },
+            });
+          }
           break;
         }
 
@@ -1617,12 +1622,16 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     > = {};
 
     // set annotations in 'text-end' part providerMetadata.
-    const ongoingAnnotations: Array<
+    let ongoingAnnotations: Array<
       Extract<
         OpenAIResponsesChunk,
         { type: 'response.output_text.annotation.added' }
       >['annotation']
     > = [];
+    let hasWebSearchActionSources = false;
+    let hasFileSearchResults = false;
+    const retrievedFileIds = new Set<string>();
+    const fallbackAnnotations: typeof ongoingAnnotations = [];
 
     // track the phase of the current message being streamed
     let activeMessagePhase: 'commentary' | 'final_answer' | undefined;
@@ -1729,6 +1738,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   type: 'tool-input-start',
                   id: value.item.call_id,
                   toolName,
+                });
+
+                // Custom tool input is a string, so stream its JSON encoding
+                // consistently with the final tool call input.
+                controller.enqueue({
+                  type: 'tool-input-delta',
+                  id: value.item.call_id,
+                  delta: '"',
                 });
               } else if (value.item.type === 'web_search_call') {
                 ongoingToolCalls[value.output_index] = {
@@ -1894,7 +1911,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 // shell_call_output is handled in output_item.done
               } else if (value.item.type === 'message') {
                 activeOutputItemIds[value.output_index] = value.item.id;
-                ongoingAnnotations.splice(0);
+                ongoingAnnotations = [];
                 activeMessagePhase = value.item.phase ?? undefined;
                 controller.enqueue({
                   type: 'text-start',
@@ -1941,6 +1958,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 controller.enqueue({
                   type: 'text-end',
                   id: itemId,
+                  ...(ongoingAnnotations.some(
+                    annotation => annotation.type !== 'file_path',
+                  ) && {
+                    citations: mapOpenAIResponsesCitations(
+                      ongoingAnnotations,
+                      providerOptionsName,
+                    ),
+                  }),
                   providerMetadata: {
                     [providerOptionsName]: {
                       itemId,
@@ -2121,6 +2146,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 );
 
                 controller.enqueue({
+                  type: 'tool-input-delta',
+                  id: value.item.call_id,
+                  delta: '"',
+                });
+
+                controller.enqueue({
                   type: 'tool-input-end',
                   id: value.item.call_id,
                 });
@@ -2155,6 +2186,20 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                     ? { isError: true, result: { status: value.item.status } }
                     : { result: mapWebSearchOutput(value.item.action) }),
                 });
+
+                if (value.item.action?.type === 'search') {
+                  for (const source of value.item.action.sources ?? []) {
+                    if (source.type === 'url') {
+                      hasWebSearchActionSources = true;
+                      controller.enqueue({
+                        type: 'source',
+                        sourceType: 'url',
+                        id: self.config.generateId?.() ?? generateId(),
+                        url: source.url,
+                      });
+                    }
+                  }
+                }
               } else if (value.item.type === 'computer_call') {
                 ongoingToolCalls[value.output_index] = undefined;
 
@@ -2227,6 +2272,27 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                       })) ?? null,
                   } satisfies InferSchema<typeof fileSearchOutputSchema>,
                 });
+                for (const result of value.item.results ?? []) {
+                  hasFileSearchResults = true;
+                  if (retrievedFileIds.has(result.file_id)) {
+                    continue;
+                  }
+                  retrievedFileIds.add(result.file_id);
+                  controller.enqueue({
+                    type: 'source',
+                    sourceType: 'document',
+                    id: self.config.generateId?.() ?? generateId(),
+                    mediaType: 'text/plain',
+                    title: result.filename,
+                    filename: result.filename,
+                    providerMetadata: {
+                      [providerOptionsName]: {
+                        type: 'file_search',
+                        fileId: result.file_id,
+                      },
+                    },
+                  });
+                }
               } else if (value.item.type === 'code_interpreter_call') {
                 ongoingToolCalls[value.output_index] = undefined;
 
@@ -2582,7 +2648,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 controller.enqueue({
                   type: 'tool-input-delta',
                   id: toolCall.toolCallId,
-                  delta: value.delta,
+                  delta: escapeJSONDelta(value.delta),
                 });
               }
             } else if (isResponseApplyPatchCallOperationDiffDeltaChunk(value)) {
@@ -2843,71 +2909,21 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
               }
             } else if (isResponseAnnotationAddedChunk(value)) {
               ongoingAnnotations.push(value.annotation);
-              if (value.annotation.type === 'url_citation') {
-                controller.enqueue({
-                  type: 'source',
-                  sourceType: 'url',
-                  id: self.config.generateId?.() ?? generateId(),
-                  url: value.annotation.url,
-                  title: value.annotation.title,
-                });
-              } else if (value.annotation.type === 'file_citation') {
-                controller.enqueue({
-                  type: 'source',
-                  sourceType: 'document',
-                  id: self.config.generateId?.() ?? generateId(),
-                  mediaType: 'text/plain',
-                  title: value.annotation.filename,
-                  filename: value.annotation.filename,
-                  providerMetadata: {
-                    [providerOptionsName]: {
-                      type: value.annotation.type,
-                      fileId: value.annotation.file_id,
-                      index: value.annotation.index,
-                    } satisfies Extract<
-                      ResponsesSourceDocumentProviderMetadata,
-                      { type: 'file_citation' }
-                    >,
-                  },
-                });
-              } else if (value.annotation.type === 'container_file_citation') {
-                controller.enqueue({
-                  type: 'source',
-                  sourceType: 'document',
-                  id: self.config.generateId?.() ?? generateId(),
-                  mediaType: 'text/plain',
-                  title: value.annotation.filename,
-                  filename: value.annotation.filename,
-                  providerMetadata: {
-                    [providerOptionsName]: {
-                      type: value.annotation.type,
-                      fileId: value.annotation.file_id,
-                      containerId: value.annotation.container_id,
-                    } satisfies Extract<
-                      ResponsesSourceDocumentProviderMetadata,
-                      { type: 'container_file_citation' }
-                    >,
-                  },
-                });
-              } else if (value.annotation.type === 'file_path') {
-                controller.enqueue({
-                  type: 'source',
-                  sourceType: 'document',
-                  id: self.config.generateId?.() ?? generateId(),
-                  mediaType: 'application/octet-stream',
-                  title: value.annotation.file_id,
-                  filename: value.annotation.file_id,
-                  providerMetadata: {
-                    [providerOptionsName]: {
-                      type: value.annotation.type,
-                      fileId: value.annotation.file_id,
-                      index: value.annotation.index,
-                    } satisfies Extract<
-                      ResponsesSourceDocumentProviderMetadata,
-                      { type: 'file_path' }
-                    >,
-                  },
-                });
+              if (
+                value.annotation.type === 'url_citation' ||
+                value.annotation.type === 'file_citation'
+              ) {
+                // Retrieval events may arrive after the annotation. Decide the
+                // compatibility fallback once the complete source set is known.
+                fallbackAnnotations.push(value.annotation);
+              } else {
+                controller.enqueue(
+                  mapOpenAIResponsesAnnotationSource(
+                    value.annotation,
+                    providerOptionsName,
+                    self.config.generateId?.() ?? generateId(),
+                  ),
+                );
               }
             } else if (isErrorChunk(value)) {
               encounteredStreamError = true;
@@ -2920,6 +2936,23 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
           },
 
           flush(controller) {
+            for (const annotation of fallbackAnnotations) {
+              if (
+                (annotation.type === 'url_citation' &&
+                  hasWebSearchActionSources) ||
+                (annotation.type === 'file_citation' && hasFileSearchResults)
+              ) {
+                continue;
+              }
+              controller.enqueue(
+                mapOpenAIResponsesAnnotationSource(
+                  annotation,
+                  providerOptionsName,
+                  self.config.generateId?.() ?? generateId(),
+                ),
+              );
+            }
+
             for (const toolCall of Object.values(ongoingToolCalls)) {
               if (!toolCall?.suppressInputStreaming) {
                 continue;

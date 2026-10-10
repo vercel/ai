@@ -24,7 +24,7 @@ export function simulateStreamingMiddleware(): LanguageModelMiddleware {
           for (const part of result.content) {
             switch (part.type) {
               case 'text': {
-                if (part.text.length > 0) {
+                if (part.text.length > 0 || (part.citations?.length ?? 0) > 0) {
                   controller.enqueue({
                     type: 'text-start',
                     id: String(id),
@@ -37,7 +37,13 @@ export function simulateStreamingMiddleware(): LanguageModelMiddleware {
                     id: String(id),
                     delta: part.text,
                   });
-                  controller.enqueue({ type: 'text-end', id: String(id) });
+                  controller.enqueue({
+                    type: 'text-end',
+                    id: String(id),
+                    ...(part.citations != null
+                      ? { citations: part.citations }
+                      : {}),
+                  });
                   id++;
                 }
                 break;

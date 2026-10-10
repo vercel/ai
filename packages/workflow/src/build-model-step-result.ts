@@ -25,6 +25,7 @@ export async function buildModelStepResult(
   finish: ModelCallFinish | undefined,
   providerExecutedToolResults: Map<string, ProviderExecutedToolResult>,
   opts: {
+    callId?: string;
     tools?: ToolSet;
     requestMessages?: ModelMessage[];
     stepNumber: number;
@@ -125,7 +126,7 @@ export async function buildModelStepResult(
     const rate = (tokens: number | undefined) =>
       calculateTokensPerSecond({ tokens, durationMs: duration });
     return new DefaultStepResult({
-      callId: 'workflow-agent',
+      callId: opts.callId ?? 'workflow-agent',
       stepNumber: opts.stepNumber,
       provider: raw.generation.provider,
       modelId: raw.generation.modelId,
@@ -316,7 +317,7 @@ export async function buildModelStepResult(
   ) as StepResult<ToolSet, any>['toolResults'];
 
   return {
-    callId: 'workflow-agent',
+    callId: opts.callId ?? 'workflow-agent',
     stepNumber: opts.stepNumber,
     model: {
       provider: responseMetadata?.modelId?.split(':')[0] ?? 'unknown',

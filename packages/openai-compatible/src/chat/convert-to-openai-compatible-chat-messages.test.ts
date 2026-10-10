@@ -1,3 +1,4 @@
+import { NoSuchProviderReferenceError } from '@ai-sdk/provider';
 import { convertToOpenAICompatibleChatMessages } from './convert-to-openai-compatible-chat-messages';
 import { describe, it, expect } from 'vitest';
 
@@ -559,25 +560,74 @@ describe('user messages', () => {
     );
   });
 
-  it('should throw error for file parts with provider references', async () => {
-    expect(() =>
-      convertToOpenAICompatibleChatMessages([
+  it.each(['application/pdf', 'image/png'])(
+    'should convert %s provider references to file IDs',
+    mediaType => {
+      const result = convertToOpenAICompatibleChatMessages(
+        [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: {
+                  type: 'reference',
+                  reference: {
+                    'custom-provider': 'file-123',
+                    openai: 'file-other',
+                  },
+                },
+                mediaType,
+                filename: 'document.pdf',
+                providerOptions: {
+                  openaiCompatible: { customOption: 'value' },
+                },
+              },
+            ],
+          },
+        ],
+        { provider: 'custom-provider' },
+      );
+
+      expect(result).toEqual([
         {
           role: 'user',
           content: [
             {
               type: 'file',
-              data: {
-                type: 'reference' as const,
-                reference: { openaiCompatible: 'file-123' },
-              },
-              mediaType: 'image/png',
+              file: { file_id: 'file-123' },
+              customOption: 'value',
             },
           ],
         },
-      ]),
+      ]);
+    },
+  );
+
+  it('should reject a reference without an ID for the configured provider', () => {
+    const reference = { openai: 'file-other' };
+
+    expect(() =>
+      convertToOpenAICompatibleChatMessages(
+        [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: { type: 'reference', reference },
+                mediaType: 'application/pdf',
+              },
+            ],
+          },
+        ],
+        { provider: 'custom-provider' },
+      ),
     ).toThrow(
-      "'file parts with provider references' functionality not supported",
+      new NoSuchProviderReferenceError({
+        provider: 'custom-provider',
+        reference,
+      }),
     );
   });
 });
@@ -749,6 +799,14 @@ describe('tool calls', () => {
                   { type: 'text', text: 'image result' },
                   {
                     type: 'file',
+                    data: {
+                      type: 'reference',
+                      reference: { 'custom-provider': 'file-123' },
+                    },
+                    mediaType: 'application/pdf',
+                  },
+                  {
+                    type: 'file',
                     data: { type: 'data', data: 'iVBORw0KGgo=' },
                     mediaType: 'image/png',
                   },
@@ -766,7 +824,7 @@ describe('tool calls', () => {
           ],
         },
       ],
-      { supportsMultiPartToolContent: true },
+      { provider: 'custom-provider', supportsMultiPartToolContent: true },
     );
 
     expect(result).toEqual([
@@ -775,6 +833,7 @@ describe('tool calls', () => {
         tool_call_id: 'call-1',
         content: [
           { type: 'text', text: 'image result' },
+          { type: 'file', file: { file_id: 'file-123' } },
           {
             type: 'image_url',
             image_url: {

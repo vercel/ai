@@ -54,6 +54,7 @@ import type {
   LanguageModel,
   ToolChoice,
 } from '../types/language-model';
+import type { Citation } from '../types/citation';
 import type { ProviderMetadata } from '../types/provider-metadata';
 import {
   addLanguageModelUsage,
@@ -1407,6 +1408,7 @@ class DefaultStreamTextResult<
       {
         type: 'text';
         text: string;
+        citations?: Array<Citation>;
         providerMetadata: ProviderMetadata | undefined;
       }
     > = createIdMap();
@@ -1526,6 +1528,10 @@ class DefaultStreamTextResult<
 
           activeText.providerMetadata =
             part.providerMetadata ?? activeText.providerMetadata;
+
+          if (part.citations != null) {
+            activeText.citations = part.citations;
+          }
 
           delete activeTextContent[part.id];
         }

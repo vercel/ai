@@ -703,8 +703,12 @@ const result = streamText({
 Some providers such as [Perplexity](/providers/ai-sdk-providers/perplexity#sources) and
 [Google](/providers/ai-sdk-providers/google#sources) include sources in the response.
 
-Currently sources are limited to web pages that ground the response.
-You can access them using the `sources` property of the result.
+Sources can reference URLs or documents. You can access them using the `sources`
+property of the result. For OpenAI Responses and Anthropic web search, sources
+contain the retrieved references, which can include more references than the
+model cites in its answer. OpenAI file-search results are also exposed as document
+sources when the API returns those results. If retrieval data is unavailable,
+citation-derived references remain available as sources for compatibility.
 
 Each `url` source contains the following properties:
 
@@ -758,6 +762,70 @@ for await (const part of result.stream) {
 ```
 
 The sources are also available in the `result.sources` promise.
+
+### Citations
+
+OpenAI Responses and Anthropic attach an optional `citations` array to each
+`text` content part. A citation is a reference supporting that text, independently
+of the complete retrieved source set. Use citations to render inline references;
+use `result.sources` to list retrieved sources.
+
+Each `Citation` (exported from `ai`) contains:
+
+- `source`: A URL or document source, including its title when available. Its ID
+  identifies the cited resource and does not necessarily match an ID in
+  `result.sources`.
+- `startIndex` and `endIndex`: Optional provider-supplied offsets within the
+  containing generated text; the end is exclusive. Providers can use different
+  character indexing conventions. The SDK preserves their offsets.
+- `citedText`: An optional supporting passage from the source. This is source
+  text, rather than an offset in the generated answer.
+
+For inline rendering, use the offsets within the containing text part and follow
+the provider's character indexing convention. JavaScript's `slice()` uses UTF-16
+code units, so provider offsets may need conversion when the text contains emoji
+or other characters outside the basic multilingual plane. When offsets are
+absent or cannot be interpreted reliably, render the references alongside the
+containing text block instead of guessing a range.
+
+`citedText` and provider-specific document locations identify the supporting
+evidence in the source; they do not locate the claim in the generated answer.
+Preserve query parameters and fragments in source URLs, since they can identify a
+particular version, page, or passage. Multiple citations can reference the same
+source at different locations in the generated text.
+
+Anthropic supplies supporting passages and document locations instead of output
+text offsets. Provider-specific location details remain in provider metadata.
+OpenAI file-search citation `index` values are retained in provider metadata;
+they are not interpreted as output text ranges.
+
+```ts
+for (const part of result.content) {
+  if (part.type === 'text') {
+    for (const citation of part.citations ?? []) {
+      console.log(citation.source, citation.startIndex, citation.endIndex);
+    }
+  }
+}
+```
+
+For `streamText`, citations are available on `text-end` events, associated with
+the text block's `id`, and on text parts in the completed `result.content`.
+They also survive `toUIMessageStream` as `TextUIPart.citations`, including when
+source events are disabled. Citation fallback source events can arrive at the
+end of the provider stream, after the SDK knows whether retrieval data exists.
+
+```ts
+for await (const part of result.stream) {
+  if (part.type === 'text-end') {
+    console.log(part.id, part.citations);
+  }
+}
+```
+
+Raw OpenAI annotations and Anthropic citations remain in text provider metadata.
+Other providers may omit `citations`; an omitted field does not imply that their
+sources are a complete retrieval set.
 
 ## Examples
 

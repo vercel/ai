@@ -73,6 +73,21 @@ export interface ModelCallOptions {
   experimental_transform?:
     | StreamTextTransform<ToolSet>
     | Array<StreamTextTransform<ToolSet>>;
+  /**
+   * Set when the model step dispatches telemetry to globally registered
+   * integrations, which are not available in the workflow body.
+   */
+  telemetry?: ModelCallTelemetry;
+}
+
+/**
+ * Serializable telemetry settings for a durable model call.
+ */
+export interface ModelCallTelemetry {
+  functionId?: string;
+  recordInputs?: boolean;
+  recordOutputs?: boolean;
+  stepNumber: number;
 }
 
 /**
