@@ -225,7 +225,9 @@ export async function transcribe({
   }
 
   const mediaType =
-    downloadedMediaType ??
+    (downloadedMediaType === 'application/octet-stream'
+      ? undefined
+      : downloadedMediaType) ??
     detectMediaType({
       data: audioData,
       topLevelType: 'audio',
