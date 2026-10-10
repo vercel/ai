@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22616,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/openai-batch-citation-annotations.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/openai-batch-citation-annotations.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22616_REPRODUCED: OpenAI batch text discarded citation annotations or normalized citations."
+  }
+}
