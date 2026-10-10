@@ -1,4 +1,5 @@
 import {
+  type LanguageModelV2CallWarning,
   type LanguageModelV2Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
@@ -7,11 +8,68 @@ import type {
   GoogleGenerativeAIContentPart,
   GoogleGenerativeAIFunctionResponsePart,
   GoogleGenerativeAIPrompt,
+  GoogleGenerativeAIVideoPartFields,
 } from './google-generative-ai-prompt';
 import { convertToBase64 } from '@ai-sdk/provider-utils';
 
 export const SKIP_THOUGHT_SIGNATURE_VALIDATOR =
   'skip_thought_signature_validator';
+
+/**
+ * Maps `providerOptions.google.processing` on a video file part to the
+ * generateContent part fields.
+ */
+function getVideoPartFields({
+  mediaType,
+  processing,
+  onWarning,
+}: {
+  mediaType: string;
+  processing: unknown;
+  onWarning?: (warning: LanguageModelV2CallWarning) => void;
+}): GoogleGenerativeAIVideoPartFields {
+  if (processing == null || !mediaType.startsWith('video/')) {
+    return {};
+  }
+
+  if (processing === 'agentic') {
+    return { mediaProcessing: 'AGENTIC' };
+  }
+
+  if (processing === 'static') {
+    return { mediaProcessing: 'STATIC' };
+  }
+
+  if (
+    typeof processing === 'object' &&
+    !Array.isArray(processing) &&
+    (processing as { type?: unknown }).type === 'static'
+  ) {
+    const { startOffset, endOffset, fps } = processing as {
+      startOffset?: unknown;
+      endOffset?: unknown;
+      fps?: unknown;
+    };
+    const videoMetadata = {
+      ...(typeof startOffset === 'number'
+        ? { startOffset: `${startOffset}s` }
+        : {}),
+      ...(typeof endOffset === 'number' ? { endOffset: `${endOffset}s` } : {}),
+      ...(typeof fps === 'number' ? { fps } : {}),
+    };
+    return {
+      mediaProcessing: 'STATIC',
+      ...(Object.keys(videoMetadata).length > 0 ? { videoMetadata } : {}),
+    };
+  }
+
+  onWarning?.({
+    type: 'other',
+    message:
+      'invalid providerOptions.google.processing on video file part; expected "agentic", "static", or a static processing configuration. Option dropped.',
+  });
+  return {};
+}
 
 export function convertToGoogleGenerativeAIMessages(
   prompt: LanguageModelV2Prompt,
@@ -19,6 +77,7 @@ export function convertToGoogleGenerativeAIMessages(
     isGemmaModel?: boolean;
     isGemini3Model?: boolean;
     supportsFunctionResponseParts?: boolean;
+    onWarning?: (warning: LanguageModelV2CallWarning) => void;
   },
 ): GoogleGenerativeAIPrompt {
   const systemInstructionParts: Array<{ text: string }> = [];
@@ -60,6 +119,16 @@ export function convertToGoogleGenerativeAIMessages(
               const mediaType =
                 part.mediaType === 'image/*' ? 'image/jpeg' : part.mediaType;
 
+              const videoFields = getVideoPartFields({
+                mediaType,
+                processing: (
+                  part.providerOptions?.google as
+                    | { processing?: unknown }
+                    | undefined
+                )?.processing,
+                onWarning: options?.onWarning,
+              });
+
               parts.push(
                 part.data instanceof URL
                   ? {
@@ -71,12 +140,14 @@ export function convertToGoogleGenerativeAIMessages(
                             ? part.originalUrl
                             : part.data.toString(),
                       },
+                      ...videoFields,
                     }
                   : {
                       inlineData: {
                         mimeType: mediaType,
                         data: convertToBase64(part.data),
                       },
+                      ...videoFields,
                     },
               );
 

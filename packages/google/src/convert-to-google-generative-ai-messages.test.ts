@@ -1,5 +1,5 @@
 import { convertToGoogleGenerativeAIMessages } from './convert-to-google-generative-ai-messages';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
 describe('system messages', () => {
   it('should store system message in system instruction', async () => {
@@ -288,6 +288,139 @@ describe('user messages', () => {
           ],
         },
       ],
+    });
+  });
+});
+
+describe('video processing', () => {
+  const youtubeUrl = new URL('https://www.youtube.com/watch?v=9hE5-98ZeCg');
+
+  it('should set agentic media processing on url and inline video parts', async () => {
+    const providerOptions = { google: { processing: 'agentic' } };
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: youtubeUrl,
+            mediaType: 'video/mp4',
+            providerOptions,
+          },
+          {
+            type: 'file',
+            data: 'AAECAw==',
+            mediaType: 'video/mp4',
+            providerOptions,
+          },
+          { type: 'text', text: 'Summarize the videos.' },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts).toEqual([
+      {
+        fileData: { mimeType: 'video/mp4', fileUri: youtubeUrl.toString() },
+        mediaProcessing: 'AGENTIC',
+      },
+      {
+        inlineData: { mimeType: 'video/mp4', data: 'AAECAw==' },
+        mediaProcessing: 'AGENTIC',
+      },
+      { text: 'Summarize the videos.' },
+    ]);
+  });
+
+  it('should map static processing configuration to videoMetadata', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: 'AAECAw==',
+            mediaType: 'video/mp4',
+            providerOptions: {
+              google: {
+                processing: {
+                  type: 'static',
+                  startOffset: 0,
+                  endOffset: 10.5,
+                  fps: 0.5,
+                },
+              },
+            },
+          },
+          {
+            type: 'file',
+            data: youtubeUrl,
+            mediaType: 'video/mp4',
+            providerOptions: { google: { processing: 'static' } },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts).toEqual([
+      {
+        inlineData: { mimeType: 'video/mp4', data: 'AAECAw==' },
+        mediaProcessing: 'STATIC',
+        videoMetadata: { startOffset: '0s', endOffset: '10.5s', fps: 0.5 },
+      },
+      {
+        fileData: { mimeType: 'video/mp4', fileUri: youtubeUrl.toString() },
+        mediaProcessing: 'STATIC',
+      },
+    ]);
+  });
+
+  it('should ignore processing on non-video parts and leave unset video parts unchanged', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: 'AAECAw==',
+            mediaType: 'image/png',
+            providerOptions: { google: { processing: 'agentic' } },
+          },
+          { type: 'file', data: 'AAECAw==', mediaType: 'video/mp4' },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts).toEqual([
+      { inlineData: { mimeType: 'image/png', data: 'AAECAw==' } },
+      { inlineData: { mimeType: 'video/mp4', data: 'AAECAw==' } },
+    ]);
+  });
+
+  it('should warn and drop invalid processing values', async () => {
+    const onWarning = vi.fn();
+    const result = convertToGoogleGenerativeAIMessages(
+      [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: 'AAECAw==',
+              mediaType: 'video/mp4',
+              providerOptions: { google: { processing: 'dynamic' } },
+            },
+          ],
+        },
+      ],
+      { onWarning },
+    );
+
+    expect(result.contents[0].parts[0]).toEqual({
+      inlineData: { mimeType: 'video/mp4', data: 'AAECAw==' },
+    });
+    expect(onWarning).toHaveBeenCalledWith({
+      type: 'other',
+      message: expect.stringContaining('providerOptions.google.processing'),
     });
   });
 });
