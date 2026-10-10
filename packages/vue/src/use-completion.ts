@@ -3,6 +3,7 @@ import {
   type CompletionRequestOptions,
   type UseCompletionOptions,
 } from 'ai';
+import { normalizeHeaders } from '@ai-sdk/provider-utils';
 import type * as SwrvModule from 'swrv';
 import swrv from 'swrv';
 import { ref, unref, type Ref } from 'vue';
@@ -103,8 +104,8 @@ export function useCompletion<BODY extends object = object>({
       prompt,
       credentials,
       headers: {
-        ...headers,
-        ...options?.headers,
+        ...normalizeHeaders(headers),
+        ...normalizeHeaders(options?.headers),
       },
       body: {
         ...unref(body),
