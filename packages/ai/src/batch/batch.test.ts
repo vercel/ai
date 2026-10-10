@@ -682,7 +682,12 @@ describe('getBatchResults', () => {
       content: [{ type: 'text', text: 'Paris' }],
       finishReason: { unified: 'stop', raw: 'stop' },
       usage: testUsage,
-      warnings: [],
+      warnings: [
+        {
+          type: 'other',
+          message: 'Provider returned a fallback result',
+        },
+      ],
       response: {
         id: 'response-1',
         timestamp: new Date('2026-08-03T12:00:00.000Z'),
@@ -738,6 +743,12 @@ describe('getBatchResults', () => {
           outputTokens: 5,
           totalTokens: 8,
         },
+        warnings: [
+          {
+            type: 'other',
+            message: 'Provider returned a fallback result',
+          },
+        ],
         response: {
           id: 'response-1',
           timestamp: '2026-08-03T12:00:00.000Z',
@@ -843,6 +854,7 @@ describe('getBatchResults', () => {
           raw: undefined,
           totalTokens: 8,
         },
+        warnings: [],
       },
     ]);
   });
