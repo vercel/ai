@@ -72,10 +72,42 @@ const automaticResumeStates = new WeakMap<object, AutomaticResumeState>();
 
 type AutomaticallyResumableChat = {
   '~resumeStreamIfDisconnected': (options: {
-    waitForCurrentResponse: boolean;
     shouldResume: () => boolean;
   }) => Promise<void>;
 };
+
+/**
+ * When the document becomes visible again, resume the chat stream if it was
+ * interrupted by a network disconnect while the page was in the background.
+ */
+function resumeOnVisible<UI_MESSAGE extends UIMessage>({
+  chat,
+  state,
+}: {
+  chat: Chat<UI_MESSAGE>;
+  state: AutomaticResumeState;
+}) {
+  if (
+    document.visibilityState !== 'visible' ||
+    state.pendingVisibilityResume != null
+  ) {
+    return;
+  }
+
+  const isRegistered = () =>
+    automaticResumeStates.get(chat) === state && state.registrations.size > 0;
+
+  const clearPendingResume = () => {
+    state.pendingVisibilityResume = undefined;
+  };
+
+  const resumableChat = chat as Chat<UI_MESSAGE> & AutomaticallyResumableChat;
+
+  state.pendingVisibilityResume = resumableChat['~resumeStreamIfDisconnected']({
+    shouldResume: () =>
+      isRegistered() && document.visibilityState === 'visible',
+  }).then(clearPendingResume, clearPendingResume);
+}
 
 function registerAutomaticResume<UI_MESSAGE extends UIMessage>({
   chat,
@@ -87,42 +119,16 @@ function registerAutomaticResume<UI_MESSAGE extends UIMessage>({
   let state = automaticResumeStates.get(chat);
 
   if (state == null) {
-    state = {
-      registrations: new Set(),
-    };
-    automaticResumeStates.set(chat, state);
+    const newState: AutomaticResumeState = { registrations: new Set() };
+    automaticResumeStates.set(chat, newState);
+    state = newState;
 
     if (typeof document !== 'undefined') {
-      const automaticResumeState = state;
-      const onVisibilityChange = () => {
-        if (
-          document.visibilityState === 'visible' &&
-          automaticResumeState.pendingVisibilityResume == null
-        ) {
-          const resumePromise = (
-            chat as Chat<UI_MESSAGE> & AutomaticallyResumableChat
-          )['~resumeStreamIfDisconnected']({
-            waitForCurrentResponse: true,
-            shouldResume: () =>
-              automaticResumeStates.get(chat) === automaticResumeState &&
-              automaticResumeState.registrations.size > 0 &&
-              document.visibilityState === 'visible',
-          });
-          automaticResumeState.pendingVisibilityResume = resumePromise;
-
-          const clearPendingResume = () => {
-            if (
-              automaticResumeState.pendingVisibilityResume === resumePromise
-            ) {
-              automaticResumeState.pendingVisibilityResume = undefined;
-            }
-          };
-          void resumePromise.then(clearPendingResume, clearPendingResume);
-        }
-      };
+      const onVisibilityChange = () =>
+        resumeOnVisible({ chat, state: newState });
 
       document.addEventListener('visibilitychange', onVisibilityChange);
-      state.cleanupVisibilityListener = () => {
+      newState.cleanupVisibilityListener = () => {
         document.removeEventListener('visibilitychange', onVisibilityChange);
       };
     }

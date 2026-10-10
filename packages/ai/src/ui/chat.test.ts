@@ -999,9 +999,7 @@ describe('Chat', () => {
     });
     await vi.waitUntil(() => chat.status === 'streaming');
 
-    const resumePromise = chat['~resumeStreamIfDisconnected']({
-      waitForCurrentResponse: true,
-    });
+    const resumePromise = chat['~resumeStreamIfDisconnected']();
     expect(reconnectToStream).not.toHaveBeenCalled();
 
     responseController.error(new TypeError('network connection lost'));
@@ -1038,9 +1036,7 @@ describe('Chat', () => {
 
     const sendPromise = chat.sendMessage({ text: 'hi' });
     await vi.waitUntil(() => responseController != null);
-    const resumePromise = chat['~resumeStreamIfDisconnected']({
-      waitForCurrentResponse: true,
-    });
+    const resumePromise = chat['~resumeStreamIfDisconnected']();
 
     responseController.error(applicationError);
     await Promise.all([sendPromise, resumePromise]);

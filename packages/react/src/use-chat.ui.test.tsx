@@ -34,7 +34,6 @@ function formatChunk(part: UIMessageChunk) {
 
 type AutomaticallyResumableChat = Chat<UIMessage> & {
   '~resumeStreamIfDisconnected': (options: {
-    waitForCurrentResponse: boolean;
     shouldResume: () => boolean;
   }) => Promise<void>;
 };
