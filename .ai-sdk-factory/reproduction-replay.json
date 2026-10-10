@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "issueId": 22543,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/vue-use-object-headers-instance.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/vue-use-object-headers-instance.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "BUG: Vue useObject dropped x-repro-header supplied via Headers instance"
+  }
+}
