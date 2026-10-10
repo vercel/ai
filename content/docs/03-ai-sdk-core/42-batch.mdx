@@ -124,6 +124,43 @@ at a later time. When retrieving a batch, pass the same provider. The AI SDK
 uses the reference to ensure that a batch is not read through an incompatible
 provider.
 
+### Structured output requests
+
+Text requests can use an [`Output`](/docs/reference/ai-sdk-core/output)
+specification to send a structured response format to the provider. The schema,
+name, and description are resolved independently for each request.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { experimental_startBatch as startBatch, Output } from 'ai';
+import { z } from 'zod';
+
+const batch = await startBatch({
+  provider: openai,
+  requests: [
+    {
+      id: 'count-animals',
+      type: 'text',
+      model: 'gpt-5.4-nano',
+      prompt: 'Count the cats and dogs in this sentence: two cats, one dog.',
+      output: Output.object({
+        name: 'animal_count',
+        description: 'The number of cats and dogs in the input.',
+        schema: z.object({
+          cats: z.number(),
+          dogs: z.number(),
+        }),
+      }),
+    },
+  ],
+});
+```
+
+Structured output support is provider- and model-specific. `output` affects
+batch submission only: `getBatchResults` continues to return the persisted
+model response as `text` and `content` and does not automatically parse or
+validate it against the output schema.
+
 ### Image requests
 
 Image requests use the same prompt and generation settings as `generateImage`:

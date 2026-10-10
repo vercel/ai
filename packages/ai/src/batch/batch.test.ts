@@ -12,6 +12,7 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { InvalidArgumentError } from '../error/invalid-argument-error';
+import * as Output from '../generate-text/output';
 import { MockProviderV4 } from '../test/mock-provider-v4';
 import {
   cancelBatch,
@@ -397,6 +398,67 @@ describe('startBatch', () => {
         'x-test': 'test-value',
       },
     });
+  });
+
+  it('forwards each text request output as its provider response format', async () => {
+    const calls: Array<Parameters<BatchV4['doStartBatch']>[0]> = [];
+    const batchApi = createMockBatchApi({
+      doStartBatch: async options => {
+        calls.push(options);
+        return { batchId: 'batch-123', status: 'pending', warnings: [] };
+      },
+    });
+    const schema = {
+      type: 'object' as const,
+      properties: { count: { type: 'number' as const } },
+      required: ['count'],
+      additionalProperties: false,
+    };
+
+    await startBatch({
+      provider: batchApi,
+      requests: [
+        {
+          id: 'structured-request',
+          type: 'text',
+          model: 'mock-model-id',
+          prompt: 'Return a count.',
+          output: Output.object({
+            schema: jsonSchema(Promise.resolve(schema)),
+            name: 'count_result',
+            description: 'A counted result.',
+          }),
+        },
+        {
+          id: 'text-request',
+          type: 'text',
+          model: 'mock-model-id',
+          prompt: 'Return text.',
+          output: Output.text(),
+        },
+        {
+          id: 'default-request',
+          type: 'text',
+          model: 'mock-model-id',
+          prompt: 'Return default text.',
+        },
+      ],
+    });
+
+    expect(
+      calls[0].requests.map(request =>
+        request.type === 'text' ? request.options.responseFormat : undefined,
+      ),
+    ).toEqual([
+      {
+        type: 'json',
+        schema,
+        name: 'count_result',
+        description: 'A counted result.',
+      },
+      { type: 'text' },
+      undefined,
+    ]);
   });
 
   it('rejects empty and duplicate request IDs', async () => {

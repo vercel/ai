@@ -207,6 +207,7 @@ export async function startBatch<
             }),
             tools: preparedTools,
             toolChoice: prepareToolChoice({ toolChoice: request.toolChoice }),
+            responseFormat: await request.output?.responseFormat,
             providerOptions: request.providerOptions,
           },
         });

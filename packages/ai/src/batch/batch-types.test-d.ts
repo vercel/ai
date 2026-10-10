@@ -25,6 +25,7 @@ import {
   experimental_getBatchStatus as getBatchStatus,
   experimental_startBatch as startBatch,
   experimental_listBatches as listBatches,
+  Output,
   type GatewayProviderMetadata,
   type Experimental_BatchError as BatchError,
   type Experimental_BatchProvider as BatchProvider,
@@ -42,6 +43,7 @@ import {
   type Experimental_TextBatchRequest as TextBatchRequest,
   type Experimental_ImageBatchRequest as ImageBatchRequest,
   type Experimental_ImageBatchItemResult as ImageBatchItemResult,
+  type OutputInterface,
 } from '../index';
 import type { AsyncIterableStream } from '../util/async-iterable-stream';
 import type { ContentPart } from '../generate-text/content-part';
@@ -76,7 +78,34 @@ it('keeps text-specific options on text batch requests', () => {
   expectTypeOf<TextBatchRequest['tools']>().toEqualTypeOf<
     ToolSet | undefined
   >();
+  expectTypeOf<TextBatchRequest['output']>().toEqualTypeOf<
+    OutputInterface | undefined
+  >();
   expectTypeOf<'stopWhen'>().not.toMatchTypeOf<keyof TextBatchRequest>();
+});
+
+it('accepts output specifications on text batch requests', () => {
+  startBatch({
+    provider: {} as BatchV4,
+    requests: [
+      {
+        id: 'request-1',
+        type: 'text',
+        model: 'model-a',
+        prompt: 'Return a count.',
+        output: Output.object({
+          schema: jsonSchema<{ count: number }>({
+            type: 'object',
+            properties: { count: { type: 'number' } },
+            required: ['count'],
+            additionalProperties: false,
+          }),
+          name: 'count_result',
+          description: 'A counted result.',
+        }),
+      },
+    ],
+  });
 });
 
 it('accepts shared definition-only tools when starting and reading a batch', () => {

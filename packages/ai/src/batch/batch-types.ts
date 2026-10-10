@@ -14,6 +14,7 @@ import type {
 } from '@ai-sdk/provider-utils';
 import type { ContentPart } from '../generate-text/content-part';
 import type { ToolOrder } from '../generate-text/tool-order';
+import type { Output } from '../generate-text/output';
 import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import type { Prompt } from '../prompt/prompt';
 import type { FinishReason, ToolChoice } from '../types/language-model';
@@ -75,6 +76,11 @@ export type TextBatchRequest<
     toolChoice?: ToolChoice<NoInfer<TOOLS>>;
     toolOrder?: ToolOrder<TOOLS>;
     toolsContext?: InferToolSetContext<TOOLS>;
+    /**
+     * Optional output specification that determines the response format sent
+     * to the provider. Batch results are not automatically parsed or validated.
+     */
+    output?: Output;
     providerOptions?: ProviderOptions;
   };
 

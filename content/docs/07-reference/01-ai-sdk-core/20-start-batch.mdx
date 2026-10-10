@@ -85,6 +85,40 @@ const batch = await startBatch({
   ]}
 />
 
+### Structured text outputs
+
+Each text request can include an `output` property with an
+[`Output`](/docs/reference/ai-sdk-core/output) specification. The resolved
+response format, including its schema, name, and description, is sent to the
+provider for that request.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { experimental_startBatch as startBatch, Output } from 'ai';
+import { z } from 'zod';
+
+const batch = await startBatch({
+  provider: openai,
+  requests: [
+    {
+      id: 'extract-count',
+      type: 'text',
+      model: 'gpt-5.4-nano',
+      prompt: 'There are three apples. Return the count.',
+      output: Output.object({
+        name: 'count_result',
+        description: 'A count extracted from the prompt.',
+        schema: z.object({ count: z.number() }),
+      }),
+    },
+  ],
+});
+```
+
+This option controls submission only. Results returned by
+`experimental_getBatchResults` are not automatically parsed or validated with
+the output specification.
+
 ### Returns
 
 <PropertiesTable

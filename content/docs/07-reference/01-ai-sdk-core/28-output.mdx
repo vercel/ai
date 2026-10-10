@@ -5,7 +5,13 @@ description: API Reference for Output.
 
 # `Output`
 
-The `Output` object provides output specifications for structured data generation with [`generateText`](/docs/reference/ai-sdk-core/generate-text) and [`streamText`](/docs/reference/ai-sdk-core/stream-text). It allows you to specify the expected shape of the generated data and handles validation automatically.
+The `Output` object provides output specifications for structured data
+generation with [`generateText`](/docs/reference/ai-sdk-core/generate-text),
+[`streamText`](/docs/reference/ai-sdk-core/stream-text), and text requests in
+[`experimental_startBatch`](/docs/reference/ai-sdk-core/start-batch).
+`generateText` and `streamText` parse and validate generated data
+automatically. Batch requests use the specification to submit the response
+format, but persisted batch results are not automatically parsed or validated.
 
 ```ts
 import { generateText, Output } from 'ai';
