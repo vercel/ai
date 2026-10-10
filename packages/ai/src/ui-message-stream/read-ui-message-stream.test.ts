@@ -93,6 +93,114 @@ describe('readUIMessageStream', () => {
     });
   });
 
+  it('should keep independent continuations from the same seeded message isolated', async () => {
+    const message: UIMessage = {
+      id: 'assistant',
+      role: 'assistant',
+      parts: [{ type: 'text', text: 'Prefix', state: 'done' }],
+    };
+    const originalMessage = structuredClone(message);
+
+    async function continueWith(text: string) {
+      const messages = await convertAsyncIterableToArray(
+        readUIMessageStream({
+          message,
+          stream: createUIMessageStream([
+            { type: 'start', messageId: 'assistant' },
+            { type: 'text-start', id: text },
+            { type: 'text-delta', id: text, delta: text },
+            { type: 'text-end', id: text },
+            { type: 'finish' },
+          ]),
+        }),
+      );
+
+      return messages
+        .at(-1)!
+        .parts.filter(part => part.type === 'text')
+        .map(part => part.text);
+    }
+
+    await expect(continueWith('A')).resolves.toEqual(['Prefix', 'A']);
+    expect(message).toEqual(originalMessage);
+
+    await expect(continueWith('B')).resolves.toEqual(['Prefix', 'B']);
+    expect(message).toEqual(originalMessage);
+  });
+
+  it('should not mutate nested values in a seeded message', async () => {
+    type TestUIMessage = UIMessage<
+      { nested: { value: string } },
+      { status: { nested: { value: string } } },
+      {
+        weather: {
+          input: { location: { city: string } };
+          output: { nested: { value: string } };
+        };
+      }
+    >;
+
+    const message: TestUIMessage = {
+      id: 'assistant',
+      role: 'assistant',
+      metadata: { nested: { value: 'seed metadata' } },
+      parts: [
+        {
+          type: 'data-status',
+          id: 'status',
+          data: { nested: { value: 'seed data' } },
+        },
+        {
+          type: 'tool-weather',
+          toolCallId: 'weather',
+          state: 'input-available',
+          input: { location: { city: 'Berlin' } },
+        },
+      ],
+    };
+    const originalMessage = structuredClone(message);
+
+    const messages = await convertAsyncIterableToArray(
+      readUIMessageStream({
+        message,
+        stream: createUIMessageStream([
+          {
+            type: 'start',
+            messageId: 'assistant',
+            messageMetadata: { nested: { value: 'updated metadata' } },
+          },
+          {
+            type: 'data-status',
+            id: 'status',
+            data: { nested: { value: 'updated data' } },
+          },
+          {
+            type: 'tool-output-available',
+            toolCallId: 'weather',
+            output: { nested: { value: 'sunny' } },
+          },
+        ]),
+      }),
+    );
+
+    expect(messages.at(-1)).toMatchObject({
+      metadata: { nested: { value: 'updated metadata' } },
+      parts: [
+        {
+          type: 'data-status',
+          data: { nested: { value: 'updated data' } },
+        },
+        {
+          type: 'tool-weather',
+          state: 'output-available',
+          input: { location: { city: 'Berlin' } },
+          output: { nested: { value: 'sunny' } },
+        },
+      ],
+    });
+    expect(message).toEqual(originalMessage);
+  });
+
   it('should continue a hydrated partial static tool call', async () => {
     const message: UIMessage = {
       id: 'msg-123',
