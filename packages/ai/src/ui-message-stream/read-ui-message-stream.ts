@@ -80,7 +80,7 @@ export function readUIMessageStream<UI_MESSAGE extends UIMessage>({
 
   const state = createStreamingUIMessageState<UI_MESSAGE>({
     messageId: message?.id ?? '',
-    lastMessage: message,
+    lastMessage: message == null ? undefined : createUIMessageSnapshot(message),
   });
 
   const handleError = (error: unknown) => {
