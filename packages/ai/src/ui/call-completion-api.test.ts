@@ -217,7 +217,14 @@ describe('callCompletionApi', () => {
       setAbortController: vi.fn(),
       onFinish: undefined,
       onError,
-      fetch: async () => new Response(null, { status: 502 }),
+      fetch: async () =>
+        new Response(null, {
+          status: 502,
+          headers: {
+            'Retry-After': '15',
+            'X-Request-ID': 'completion-request',
+          },
+        }),
     });
 
     const error = setError.mock.calls[1][0];
@@ -228,6 +235,10 @@ describe('callCompletionApi', () => {
       url: '/api/completion',
       requestBodyValues: undefined,
       statusCode: 502,
+      responseHeaders: {
+        'retry-after': '15',
+        'x-request-id': 'completion-request',
+      },
       responseBody: '',
       isRetryable: true,
     });

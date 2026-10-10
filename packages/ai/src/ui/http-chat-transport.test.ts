@@ -242,7 +242,14 @@ describe('HttpChatTransport', () => {
   describe('error response', () => {
     it('should throw APICallError when sending messages returns a non-OK response', async () => {
       const transport = new MockHttpChatTransport({
-        fetch: async () => new Response(null, { status: 502 }),
+        fetch: async () =>
+          new Response(null, {
+            status: 502,
+            headers: {
+              'Retry-After': '15',
+              'X-Request-ID': 'send-request',
+            },
+          }),
       });
 
       const error = await transport
@@ -262,6 +269,10 @@ describe('HttpChatTransport', () => {
         url: '/api/chat',
         requestBodyValues: undefined,
         statusCode: 502,
+        responseHeaders: {
+          'retry-after': '15',
+          'x-request-id': 'send-request',
+        },
         responseBody: '',
         isRetryable: true,
       });
@@ -442,6 +453,10 @@ describe('HttpChatTransport', () => {
         fetch: async () =>
           new Response('Reconnect failed', {
             status: 409,
+            headers: {
+              'Retry-After': '15',
+              'X-Request-ID': 'reconnect-request',
+            },
           }),
       });
 
@@ -459,6 +474,10 @@ describe('HttpChatTransport', () => {
         url: '/api/chat/c123/stream',
         requestBodyValues: undefined,
         statusCode: 409,
+        responseHeaders: {
+          'retry-after': '15',
+          'x-request-id': 'reconnect-request',
+        },
         responseBody: 'Reconnect failed',
         isRetryable: true,
       });
