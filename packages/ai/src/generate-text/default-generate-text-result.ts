@@ -118,7 +118,7 @@ export class DefaultGenerateTextResult<
   }
 
   get output() {
-    if (this._output == null) {
+    if (this._output === undefined) {
       throw new NoOutputGeneratedError();
     }
 
