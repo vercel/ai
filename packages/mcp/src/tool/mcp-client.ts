@@ -1331,7 +1331,7 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
               inputSchema: jsonSchema({
                 ...inputSchema,
                 properties: inputSchema.properties ?? {},
-                additionalProperties: false,
+                additionalProperties: inputSchema.additionalProperties ?? false,
               } as JSONSchema7),
               execute,
               toModelOutput: mcpToModelOutput,
