@@ -281,6 +281,92 @@ describe('defaultSettingsMiddleware', () => {
     });
   });
 
+  describe('responseFormat', () => {
+    it('should replace the default JSON schema with the param JSON schema', async () => {
+      const middleware = defaultSettingsMiddleware({
+        settings: {
+          responseFormat: {
+            type: 'json',
+            schema: {
+              type: 'object',
+              properties: {
+                value: {
+                  type: 'string',
+                  enum: ['ready'],
+                  const: 'ready',
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const responseFormat = {
+        type: 'json' as const,
+        schema: {
+          type: 'object' as const,
+          properties: {
+            value: { type: 'number' as const },
+          },
+        },
+      };
+
+      const result = await middleware.transformParams!({
+        type: 'generate',
+        params: { ...BASE_PARAMS, responseFormat },
+        model: MOCK_MODEL,
+      });
+
+      expect(result.responseFormat).toEqual(responseFormat);
+    });
+
+    it('should replace the default JSON response format with text', async () => {
+      const middleware = defaultSettingsMiddleware({
+        settings: {
+          responseFormat: {
+            type: 'json',
+            schema: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+            },
+          },
+        },
+      });
+
+      const result = await middleware.transformParams!({
+        type: 'generate',
+        params: {
+          ...BASE_PARAMS,
+          responseFormat: { type: 'text' },
+        },
+        model: MOCK_MODEL,
+      });
+
+      expect(result.responseFormat).toEqual({ type: 'text' });
+    });
+
+    it('should use the default response format when the param is undefined', async () => {
+      const responseFormat = {
+        type: 'json' as const,
+        schema: {
+          type: 'object' as const,
+          properties: { value: { type: 'string' as const } },
+        },
+      };
+      const middleware = defaultSettingsMiddleware({
+        settings: { responseFormat },
+      });
+
+      const result = await middleware.transformParams!({
+        type: 'generate',
+        params: { ...BASE_PARAMS, responseFormat: undefined },
+        model: MOCK_MODEL,
+      });
+
+      expect(result.responseFormat).toEqual(responseFormat);
+    });
+  });
+
   describe('headers', () => {
     it('should merge headers', async () => {
       const middleware = defaultSettingsMiddleware({
