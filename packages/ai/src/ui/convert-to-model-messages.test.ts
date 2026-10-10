@@ -780,6 +780,110 @@ describe('convertToModelMessages', () => {
       `);
     });
 
+    it.each([
+      {
+        name: 'static tool output',
+        part: {
+          type: 'tool-calculator',
+          state: 'output-available',
+          toolCallId: 'call1',
+          input: { operation: 'add', numbers: [1, 2] },
+          output: '3',
+          callProviderMetadata: {
+            testProvider: { phase: 'call' },
+          },
+          resultProviderMetadata: {
+            testProvider: { phase: 'result' },
+          },
+        },
+      },
+      {
+        name: 'static tool error',
+        part: {
+          type: 'tool-calculator',
+          state: 'output-error',
+          toolCallId: 'call1',
+          input: { operation: 'add', numbers: [1, 2] },
+          errorText: 'Error: Invalid input',
+          callProviderMetadata: {
+            testProvider: { phase: 'call' },
+          },
+          resultProviderMetadata: {
+            testProvider: { phase: 'result' },
+          },
+        },
+      },
+      {
+        name: 'dynamic tool output',
+        part: {
+          type: 'dynamic-tool',
+          toolName: 'calculator',
+          state: 'output-available',
+          toolCallId: 'call1',
+          input: { operation: 'add', numbers: [1, 2] },
+          output: '3',
+          callProviderMetadata: {
+            testProvider: { phase: 'call' },
+          },
+          resultProviderMetadata: {
+            testProvider: { phase: 'result' },
+          },
+        },
+      },
+      {
+        name: 'dynamic tool error',
+        part: {
+          type: 'dynamic-tool',
+          toolName: 'calculator',
+          state: 'output-error',
+          toolCallId: 'call1',
+          input: { operation: 'add', numbers: [1, 2] },
+          errorText: 'Error: Invalid input',
+          callProviderMetadata: {
+            testProvider: { phase: 'call' },
+          },
+          resultProviderMetadata: {
+            testProvider: { phase: 'result' },
+          },
+        },
+      },
+    ] as const)(
+      'should keep call and result provider metadata separate for $name',
+      async ({ part }) => {
+        const result = await convertToModelMessages([
+          {
+            role: 'assistant',
+            parts: [part],
+          },
+        ]);
+
+        expect(result).toMatchObject([
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                providerOptions: {
+                  testProvider: { phase: 'call' },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                providerOptions: {
+                  testProvider: { phase: 'result' },
+                },
+              },
+            ],
+          },
+        ]);
+      },
+    );
+
     it('should omit persisted output when a static tool is no longer available', async () => {
       const historicalTool = tool({
         inputSchema: z.object({ query: z.string() }),
@@ -882,7 +986,7 @@ describe('convertToModelMessages', () => {
     });
 
     describe('tool output error', () => {
-      it('should preserve result provider metadata on a failed tool call when call metadata is unavailable', async () => {
+      it('should preserve result provider metadata on a failed tool call and result when call metadata is unavailable', async () => {
         const result = await convertToModelMessages([
           {
             role: 'assistant',
@@ -932,6 +1036,11 @@ describe('convertToModelMessages', () => {
                 output: {
                   type: 'error-text',
                   value: 'Invalid input',
+                },
+                providerOptions: {
+                  openai: {
+                    namespace: 'widget_tools',
+                  },
                 },
               },
             ],
