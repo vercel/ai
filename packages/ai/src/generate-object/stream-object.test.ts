@@ -1240,6 +1240,72 @@ describe('streamObject', () => {
   });
 
   describe('output = "array"', () => {
+    it.each([
+      {
+        description: 'the response arrives in one chunk',
+        chunks: ['{"elements":[]}'],
+      },
+      {
+        description: 'the closing bracket arrives separately',
+        chunks: ['{"elements":[', ']}'],
+      },
+      {
+        description: 'the response arrives character by character',
+        chunks: [...'{"elements":[]}'],
+      },
+    ])('should stream an empty array when $description', async ({ chunks }) => {
+      const result = streamObject({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            ...chunks.map(delta => ({
+              type: 'text-delta' as const,
+              id: '1',
+              delta,
+            })),
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop' as const, raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        schema: z.string(),
+        output: 'array',
+        prompt: 'prompt',
+      });
+
+      expect(
+        (await convertAsyncIterableToArray(result.textStream)).join(''),
+      ).toBe('[]');
+      expect(await result.object).toStrictEqual([]);
+    });
+
+    it('should create a text stream response for a split empty array', async () => {
+      const result = streamObject({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: '{"elements":[' },
+            { type: 'text-delta', id: '1', delta: ']}' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        schema: z.string(),
+        output: 'array',
+        prompt: 'prompt',
+      });
+
+      expect(await result.toTextStreamResponse().text()).toBe('[]');
+      expect(await result.object).toStrictEqual([]);
+    });
+
     describe('array with 3 elements', () => {
       let result: StreamObjectResult<
         { content: string }[],
