@@ -213,16 +213,21 @@ export class RealtimeEventReducer {
           ? (parseResult.value as Record<string, unknown>)
           : {};
 
-        const messageId = this.toolCallIdToMessageId.get(event.callId);
-        if (messageId != null) {
-          nextState = this.markToolInputAvailable(
-            nextState,
-            messageId,
-            event.callId,
-            event.name,
-            parsedInput,
-          );
+        let messageId = this.toolCallIdToMessageId.get(event.callId);
+        if (messageId == null) {
+          const result = this.getOrCreateAssistantMessage(nextState);
+          nextState = result.state;
+          messageId = result.messageId;
+          this.toolCallIdToMessageId.set(event.callId, messageId);
+          nextState = this.ensureToolPart(nextState, messageId, event.callId);
         }
+        nextState = this.markToolInputAvailable(
+          nextState,
+          messageId,
+          event.callId,
+          event.name,
+          parsedInput,
+        );
 
         if (!parseResult.success) {
           effects.push({
