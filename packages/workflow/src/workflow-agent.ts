@@ -15,6 +15,7 @@ import {
   type InferToolInput,
   type InferToolOutput,
   type InferToolSetContext,
+  type ToolExecutionApproval,
 } from '@ai-sdk/provider-utils';
 import {
   Output,
@@ -2078,6 +2079,11 @@ export class WorkflowAgent<
             effectiveToolsContext,
             0,
             sandbox,
+            {
+              approvalId: approval.collected.approvalResponse.approvalId,
+              approved: true,
+              ...(approval.reason != null ? { reason: approval.reason } : {}),
+            },
           );
           toolResultContent.push(result.modelResult);
           approvedRawResults.push({
@@ -2323,6 +2329,7 @@ export class WorkflowAgent<
       perToolContexts: Record<string, Context | undefined>,
       currentStepNumber: number = 0,
       stepSandbox?: SandboxSession,
+      approval?: ToolExecutionApproval,
     ): Promise<WorkflowToolExecutionResult> {
       const toolCallEvent: ToolCall = {
         type: 'tool-call',
@@ -2370,6 +2377,7 @@ export class WorkflowAgent<
             effectiveAbortSignal,
             download,
             stepSandbox,
+            approval,
           );
         result =
           telemetryDispatcher.executeTool != null
@@ -3590,6 +3598,7 @@ async function executeTool(
   abortSignal?: AbortSignal,
   download?: DownloadFunction,
   sandbox?: SandboxSession,
+  approval?: ToolExecutionApproval,
 ): Promise<WorkflowToolExecutionResult> {
   const tool = tools[toolCall.toolName];
   if (!tool) throw new Error(`Tool "${toolCall.toolName}" not found`);
@@ -3619,6 +3628,7 @@ async function executeTool(
       // Pass per-tool context to the tool (resolved from `toolsContext`)
       context,
       experimental_sandbox: sandbox,
+      ...(approval != null ? { approval } : {}),
     });
   } catch (error) {
     // Convert tool errors to error-text results sent back to the model,

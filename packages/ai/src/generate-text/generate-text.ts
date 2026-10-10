@@ -13,6 +13,7 @@ import {
   type IdGenerator,
   type InferToolSetContext,
   type ProviderOptions,
+  type ToolExecutionApproval,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import { ToolChoiceViolationError } from '../error';
@@ -745,6 +746,18 @@ export async function generateText<
           toolCalls: localApprovedToolApprovals.map(
             toolApproval => toolApproval.toolCall,
           ),
+          approvalsByToolCallId: new Map(
+            localApprovedToolApprovals.map(toolApproval => [
+              toolApproval.toolCall.toolCallId,
+              {
+                approvalId: toolApproval.approvalResponse.approvalId,
+                approved: true as const,
+                ...(toolApproval.approvalResponse.reason != null
+                  ? { reason: toolApproval.approvalResponse.reason }
+                  : {}),
+              },
+            ]),
+          ),
           tools: tools as TOOLS,
           callId,
           messages: initialMessages,
@@ -1345,6 +1358,20 @@ export async function generateText<
                       !toolCall.invalid &&
                       !blockedToolCallIds.has(toolCall.toolCallId),
                   ),
+                  approvalsByToolCallId: new Map(
+                    toolApprovalResponses
+                      .filter(response => response.approved)
+                      .map(response => [
+                        response.toolCall.toolCallId,
+                        {
+                          approvalId: response.approvalId,
+                          approved: true as const,
+                          ...(response.reason != null
+                            ? { reason: response.reason }
+                            : {}),
+                        },
+                      ]),
+                  ),
                   tools: stepExecutionTools as TOOLS,
                   callId,
                   messages: stepMessages,
@@ -1632,6 +1659,7 @@ export async function generateText<
 
 async function executeTools<TOOLS extends ToolSet>({
   toolCalls,
+  approvalsByToolCallId,
   tools,
   callId,
   messages,
@@ -1645,6 +1673,7 @@ async function executeTools<TOOLS extends ToolSet>({
   runInTracingChannelSpan,
 }: {
   toolCalls: Array<TypedToolCall<TOOLS>>;
+  approvalsByToolCallId?: ReadonlyMap<string, ToolExecutionApproval>;
   tools: TOOLS;
   callId: string;
   messages: ModelMessage[];
@@ -1675,6 +1704,7 @@ async function executeTools<TOOLS extends ToolSet>({
           abortSignal,
           timeout,
           experimental_sandbox: sandbox,
+          approval: approvalsByToolCallId?.get(toolCall.toolCallId),
           toolsContext,
           onToolExecutionStart,
           onToolExecutionEnd,

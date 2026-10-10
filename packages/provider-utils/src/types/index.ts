@@ -56,6 +56,7 @@ export {
 } from './tool-caller';
 export type {
   ToolExecuteFunction,
+  ToolExecutionApproval,
   ToolExecutionOptions,
 } from './tool-execute-function';
 export type { ToolContent, ToolModelMessage } from './tool-model-message';

@@ -5,6 +5,7 @@ import type {
   InferToolSetContext,
   ModelMessage,
   Experimental_SandboxSession as SandboxSession,
+  ToolExecutionApproval,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import type { TimeoutConfiguration } from '../prompt/request-options';
@@ -84,6 +85,7 @@ export function executeToolsFromStream<
   >;
 }): ReadableStream<ExecuteToolsStreamPart<TOOLS>> {
   const toolCallsToExecute: Array<TypedToolCall<TOOLS>> = [];
+  const approvalsByToolCallId = new Map<string, ToolExecutionApproval>();
 
   // forward stream
   return stream.pipeThrough(
@@ -102,6 +104,7 @@ export function executeToolsFromStream<
 
         if (isStreamRetryAttemptBoundaryPart(chunk)) {
           toolCallsToExecute.length = 0;
+          approvalsByToolCallId.clear();
           return;
         }
 
@@ -207,6 +210,13 @@ export function executeToolsFromStream<
                   reason: toolApprovalStatus.reason,
                   providerExecuted: chunk.providerExecuted,
                 });
+                approvalsByToolCallId.set(chunk.toolCallId, {
+                  approvalId,
+                  approved: true,
+                  ...(toolApprovalStatus.reason != null
+                    ? { reason: toolApprovalStatus.reason }
+                    : {}),
+                });
 
                 break; // continue with tool execution
               }
@@ -240,6 +250,7 @@ export function executeToolsFromStream<
                     abortSignal,
                     timeout,
                     experimental_sandbox: sandbox,
+                    approval: approvalsByToolCallId.get(toolCall.toolCallId),
                     toolsContext,
                     onToolExecutionStart,
                     onToolExecutionEnd,

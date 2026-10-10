@@ -3997,12 +3997,14 @@ describe('WorkflowAgent', () => {
       toolName = 'getWeather',
       input = { city: 'London' },
       signature,
+      reason,
     }: {
       approvalId?: string;
       toolCallId?: string;
       toolName?: string;
       input?: unknown;
       signature?: string;
+      reason?: string;
     }) {
       return [
         { role: 'user', content: "What's the weather in London?" },
@@ -4030,6 +4032,7 @@ describe('WorkflowAgent', () => {
               type: 'tool-approval-response',
               approvalId,
               approved: true,
+              ...(reason != null ? { reason } : {}),
             },
           ],
         },
@@ -4076,7 +4079,9 @@ describe('WorkflowAgent', () => {
         mockIterator as unknown as MockIterator,
       );
 
-      const messages = createApprovalMessages({});
+      const messages = createApprovalMessages({
+        reason: 'use corrected city',
+      });
 
       await agent.stream({
         messages,
@@ -4097,6 +4102,11 @@ describe('WorkflowAgent', () => {
           toolCallId: 'call-1',
           abortSignal: abortController.signal,
           messages,
+          approval: {
+            approvalId: 'approval-call-1',
+            approved: true,
+            reason: 'use corrected city',
+          },
         }),
       );
       expect(lifecycleCallbacks).toEqual([

@@ -15,6 +15,7 @@ import { TypeValidationError } from '../error';
 import { asLanguageModelUsage } from '../types/usage';
 import { now } from '../util/now';
 import { executeToolsFromStream } from './execute-tools-from-stream';
+import { createStreamRetryAttemptBoundaryPart } from './stream-retry-attempt-boundary';
 import type { LanguageModelStreamPart } from './stream-language-model-call';
 import type {
   ToolExecutionEndEvent,
@@ -516,6 +517,66 @@ describe('executeToolsFromStream', () => {
       `);
 
     expect(execute).toHaveBeenCalledTimes(1);
+    expect(execute).toHaveBeenCalledWith(
+      { value: 'test' },
+      expect.objectContaining({
+        approval: {
+          approvalId: 'id-0',
+          approved: true,
+          reason: 'trusted internal tool',
+        },
+      }),
+    );
+  });
+
+  it('should discard approval metadata from a failed stream attempt', async () => {
+    const execute = vi.fn(async (_input: {}, _options: unknown) => 'result');
+    const toolApproval = vi
+      .fn()
+      .mockReturnValueOnce({
+        type: 'approved' as const,
+        reason: 'failed attempt approval',
+      })
+      .mockReturnValueOnce('not-applicable' as const);
+    const tools = {
+      testTool: tool({
+        inputSchema: z.object({}),
+        execute,
+      }),
+    };
+
+    const transformedStream = executeToolsFromStream({
+      stream: convertArrayToReadableStream([
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: {},
+        },
+        createStreamRetryAttemptBoundaryPart({ warnings: [] }),
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: {},
+        },
+        finishChunk,
+      ]),
+      generateId: mockId({ prefix: 'id' }),
+      tools,
+      callId: 'test-telemetry-call-id',
+      messages: [],
+      abortSignal: undefined,
+      timeout: undefined,
+      toolsContext: {},
+      runtimeContext: {},
+      toolApproval,
+    });
+
+    await convertReadableStreamToArray(transformedStream);
+
+    expect(execute).toHaveBeenCalledTimes(1);
+    expect(execute.mock.calls[0][1]).not.toHaveProperty('approval');
   });
 
   it('should emit denied output after the approval response without executing auto-denied tools', async () => {
