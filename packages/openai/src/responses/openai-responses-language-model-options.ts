@@ -1,3 +1,4 @@
+import type { JSONSchema7 } from '@ai-sdk/provider';
 import {
   lazySchema,
   zodSchema,
@@ -439,6 +440,34 @@ export type OpenAILanguageModelResponsesOptions = InferSchema<
 export const openaiResponsesSystemMessageOptionsSchema = lazySchema(() =>
   zodSchema(
     z.object({
+      /**
+       * Add function tools at this position in Responses history.
+       * Requires empty system message content. Preserve this message on replay.
+       *
+       * @see https://developers.openai.com/api/docs/guides/tools-tool-search#add-tools-at-a-specific-point-in-the-input
+       */
+      additionalTools: z
+        .array(
+          z.strictObject({
+            type: z.literal('function'),
+            name: z.string(),
+            description: z.string().optional(),
+            inputSchema: z.record(
+              z.string(),
+              z.json(),
+            ) as z.ZodType<JSONSchema7>,
+            strict: z.boolean().optional(),
+            inputExamples: z
+              .array(z.object({ input: z.record(z.string(), z.json()) }))
+              .optional(),
+            providerOptions: z
+              .record(z.string(), z.record(z.string(), z.json().optional()))
+              .optional(),
+          }),
+        )
+        .min(1)
+        .optional(),
+
       /**
        * Emit a configuration update at this position in Responses history.
        * Requires empty system message content and the same supported

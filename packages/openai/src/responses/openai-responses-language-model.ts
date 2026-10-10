@@ -432,6 +432,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             : modelCapabilities.systemMessageMode),
         providerOptionsName,
         configurationUpdateUnsupportedReason,
+        supportsAsyncToolCalling: modelCapabilities.supportsAsyncToolCalling,
         explicitMessageItemType: config.explicitMessageItemType,
         fileIdPrefixes: config.fileIdPrefixes,
         passThroughUnsupportedFiles:
@@ -448,8 +449,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
           customProviderToolNames.size > 0
             ? customProviderToolNames
             : undefined,
-        outputSchemaToolNames:
-          outputSchemaToolNames.size > 0 ? outputSchemaToolNames : undefined,
+        outputSchemaToolNames,
       });
 
     warnings.push(...inputWarnings);
