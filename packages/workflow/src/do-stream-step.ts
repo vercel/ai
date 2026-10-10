@@ -169,7 +169,9 @@ async function streamModelStep(
   // model.doStream(), and stream part transformation. The retry boundary
   // includes stream consumption so retryable failures after the response opens
   // use the same model-call retry budget as dispatch failures.
-  const terminalResults = new Map<unknown, DoStreamStepResult>();
+  let retryableTerminalError: unknown;
+  let retryableTerminalResult: DoStreamStepResult | undefined;
+  let deferredTerminalParts: ModelCallStreamPart<ToolSet>[] = [];
   const { retry } = prepareRetries({
     maxRetries: options?.maxRetries,
     abortSignal,
@@ -221,7 +223,7 @@ async function streamModelStep(
         ...languageModelCallTelemetry,
       });
 
-      const result = await consumeModelStream({
+      const { result, deferredParts } = await consumeModelStream({
         modelStream: stream,
         writer,
         serializedTools,
@@ -235,7 +237,9 @@ async function streamModelStep(
         StreamProviderError.isInstance(result.terminalError) &&
         result.terminalError.isRetryable
       ) {
-        terminalResults.set(result.terminalError, result);
+        retryableTerminalError = result.terminalError;
+        retryableTerminalResult = result;
+        deferredTerminalParts = deferredParts;
         throw result.terminalError;
       }
 
@@ -246,11 +250,15 @@ async function streamModelStep(
       return { aborted: true };
     }
 
-    const terminalResult = terminalResults.get(
-      RetryError.isInstance(error) ? error.lastError : error,
-    );
-    if (terminalResult != null) {
-      return terminalResult;
+    const finalError = RetryError.isInstance(error) ? error.lastError : error;
+    if (
+      retryableTerminalResult != null &&
+      finalError === retryableTerminalError
+    ) {
+      for (const part of deferredTerminalParts) {
+        await writer?.write(part);
+      }
+      return retryableTerminalResult;
     }
 
     throw error;
@@ -271,7 +279,10 @@ async function consumeModelStream({
   serializedTools: Record<string, SerializableToolDef> | undefined;
   abortSignal: AbortSignal | undefined;
   timeoutAt: number | undefined;
-}): Promise<DoStreamStepResult> {
+}): Promise<{
+  result: DoStreamStepResult;
+  deferredParts: ModelCallStreamPart<ToolSet>[];
+}> {
   // Consume the stream: capture data and write to writable in real-time
   const toolCalls: ParsedToolCall[] = [];
   const providerExecutedToolResults = new Map<
@@ -295,6 +306,8 @@ async function consumeModelStream({
   let performance: ModelCallPerformance | undefined;
   let terminalError: unknown;
   let hasTerminalError = false;
+  let deferWritableParts = false;
+  const deferredParts: ModelCallStreamPart<ToolSet>[] = [];
   let hasReceivedOutputChunk = false;
   const ongoingToolCallToolNames = new Map<string, string>();
   const toolInputLifecycleEvents: ToolInputLifecycleEvent[] = [];
@@ -493,20 +506,6 @@ async function consumeModelStream({
           break;
       }
 
-      // Write to writable in real-time
-      if (writer) {
-        if (part.type === 'tool-approval-request') {
-          await writer.write({
-            type: 'tool-approval-request',
-            approvalId: part.approvalId,
-            toolCallId: part.toolCall.toolCallId,
-            ...(part.signature != null ? { signature: part.signature } : {}),
-          });
-        } else {
-          await writer.write(part);
-        }
-      }
-
       if (part.type === 'error' && !hasTerminalError) {
         // Retain the first model error as step data. Throwing here would make
         // the durable workflow runtime retry the model step and normalize the
@@ -514,18 +513,45 @@ async function consumeModelStream({
         // consuming so the existing finish reason and usage are preserved.
         terminalError = part.error;
         hasTerminalError = true;
+        deferWritableParts =
+          StreamProviderError.isInstance(terminalError) &&
+          terminalError.isRetryable;
+      }
+
+      // Write to writable in real-time
+      if (writer) {
+        const writablePart =
+          part.type === 'tool-approval-request'
+            ? {
+                type: 'tool-approval-request' as const,
+                approvalId: part.approvalId,
+                toolCallId: part.toolCall.toolCallId,
+                ...(part.signature != null
+                  ? { signature: part.signature }
+                  : {}),
+              }
+            : part;
+
+        if (deferWritableParts) {
+          // A reset can invalidate rendered output, but it cannot undo client
+          // callbacks triggered by an error chunk. Hold the terminal suffix
+          // until the retry operation is known to be exhausted.
+          deferredParts.push(writablePart);
+        } else {
+          await writer.write(writablePart);
+        }
       }
     }
   } catch (error) {
     if (abortSignal?.aborted && isAbortError(error)) {
-      return { aborted: true };
+      return { result: { aborted: true }, deferredParts: [] };
     }
 
     throw error;
   }
 
   if (abortSignal?.aborted || (timeoutAt != null && timeoutAt <= Date.now())) {
-    return { aborted: true };
+    return { result: { aborted: true }, deferredParts: [] };
   }
 
   if (finish == null && !hasReceivedOutputChunk && !hasTerminalError) {
@@ -537,18 +563,21 @@ async function consumeModelStream({
   }
 
   return {
-    toolCalls,
-    finish,
-    raw: {
-      content,
-      reasoning: reasoningParts,
-      responseMetadata,
-      performance,
-      warnings,
+    result: {
+      toolCalls,
+      finish,
+      raw: {
+        content,
+        reasoning: reasoningParts,
+        responseMetadata,
+        performance,
+        warnings,
+      },
+      providerExecutedToolResults,
+      toolInputLifecycleEvents,
+      ...(hasTerminalError ? { terminalError } : {}),
     },
-    providerExecutedToolResults,
-    toolInputLifecycleEvents,
-    ...(hasTerminalError ? { terminalError } : {}),
+    deferredParts,
   };
 }
 

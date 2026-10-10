@@ -4,7 +4,7 @@
 import { tool, type ModelMessage, type LanguageModelUsage } from 'ai';
 import { WorkflowAgent } from '../workflow-agent.js';
 import { mockTextModel, mockSequenceModel } from '../providers/mock.js';
-import { retryingModel } from './retrying-model.js';
+import { retryingModel, retryingStreamReadModel } from './retrying-model.js';
 import { createTestSandbox } from './test-sandbox.js';
 import { FatalError, getWritable } from 'workflow';
 import { z } from 'zod/v4';
@@ -63,6 +63,19 @@ export async function agentModelRetriesE2e() {
   });
   const result = await agent.stream({
     messages: [{ role: 'user', content: 'retry the model call' }],
+    writable: getWritable(),
+  });
+  return result.steps.at(-1)?.text;
+}
+
+export async function agentStreamReadRetriesE2e() {
+  'use workflow';
+  const agent = new WorkflowAgent({
+    model: retryingStreamReadModel(),
+    maxRetries: 1,
+  });
+  const result = await agent.stream({
+    messages: [{ role: 'user', content: 'retry the opened model stream' }],
     writable: getWritable(),
   });
   return result.steps.at(-1)?.text;

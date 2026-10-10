@@ -489,6 +489,7 @@ describe('doStreamStep', () => {
 
   it('retries retryable provider error parts', async () => {
     vi.useFakeTimers();
+    const writtenParts: Array<{ type: string }> = [];
     let attempt = 0;
     const model = new MockLanguageModelV4({
       doStream: async () => {
@@ -529,9 +530,19 @@ describe('doStreamStep', () => {
       },
     });
 
-    const result = doStreamStep(prompt, model, undefined, undefined, {
-      maxRetries: 1,
-    });
+    const result = doStreamStep(
+      prompt,
+      model,
+      new WritableStream({
+        write(part) {
+          writtenParts.push(part);
+        },
+      }),
+      undefined,
+      {
+        maxRetries: 1,
+      },
+    );
 
     await vi.runAllTimersAsync();
 
@@ -542,10 +553,12 @@ describe('doStreamStep', () => {
       finish: { finishReason: 'stop' },
     });
     expect(model.doStreamCalls).toHaveLength(2);
+    expect(writtenParts.filter(part => part.type === 'error')).toHaveLength(0);
   });
 
   it('returns the final retryable provider error part after retries are exhausted', async () => {
     vi.useFakeTimers();
+    const writtenParts: Array<{ type: string }> = [];
     const model = new MockLanguageModelV4({
       doStream: async () => ({
         stream: convertArrayToReadableStream([
@@ -578,9 +591,19 @@ describe('doStreamStep', () => {
       }),
     });
 
-    const result = doStreamStep(prompt, model, undefined, undefined, {
-      maxRetries: 1,
-    });
+    const result = doStreamStep(
+      prompt,
+      model,
+      new WritableStream({
+        write(part) {
+          writtenParts.push(part);
+        },
+      }),
+      undefined,
+      {
+        maxRetries: 1,
+      },
+    );
 
     await vi.runAllTimersAsync();
 
@@ -592,6 +615,7 @@ describe('doStreamStep', () => {
       finish: { finishReason: 'error' },
     });
     expect(model.doStreamCalls).toHaveLength(2);
+    expect(writtenParts.filter(part => part.type === 'error')).toHaveLength(1);
   });
 
   it('disables workflow step retries to avoid stacking retry layers', () => {
