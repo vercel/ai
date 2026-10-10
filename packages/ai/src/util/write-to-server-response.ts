@@ -40,17 +40,26 @@ export function writeToServerResponse({
   // Detect client disconnects. `close` also fires after a regular `end()`;
   // `writableFinished` distinguishes the two cases.
   let clientDisconnected = false;
-  let onDisconnect: (() => void) | undefined;
+  let onDrain: (() => void) | undefined;
+  let cancelPromise: Promise<void> | undefined;
+  const cancelReader = (reason?: unknown) => {
+    cancelPromise ??= reader.cancel(reason).catch(() => {});
+    return cancelPromise;
+  };
   const handleClose = () => {
     if (response.writableFinished) {
       return;
     }
 
     clientDisconnected = true;
-    onDisconnect?.();
+    if (onDrain != null) {
+      response.off('drain', onDrain);
+      onDrain();
+      onDrain = undefined;
+    }
 
     // cancelling the reader resolves a pending read with `done: true`:
-    reader.cancel(new Error('Client disconnected.')).catch(() => {});
+    void cancelReader(new Error('Client disconnected.'));
   };
   response.once('close', handleClose);
 
@@ -62,10 +71,16 @@ export function writeToServerResponse({
   }
 
   const read = async () => {
+    let streamFinished = false;
+
     try {
       while (true) {
         const { done, value } = await reader.read();
-        if (done || clientDisconnected || response.destroyed) break;
+        if (done) {
+          streamFinished = true;
+          break;
+        }
+        if (clientDisconnected || response.destroyed) break;
 
         // Respect backpressure: if write() returns false, wait for 'drain' event
         const canContinue = response.write(value);
@@ -74,23 +89,37 @@ export function writeToServerResponse({
           flush.call(response);
         }
 
-        if (!canContinue) {
+        if (!canContinue && !clientDisconnected && !response.destroyed) {
           await new Promise<void>(resolve => {
             // don't wait for `drain` on a disconnected response:
-            onDisconnect = resolve;
+            onDrain = resolve;
             response.once('drain', resolve);
           });
-          onDisconnect = undefined;
+          onDrain = undefined;
         }
       }
+    } catch (error) {
+      if (!streamFinished) {
+        await cancelReader(error);
+      }
+      throw error;
     } finally {
       response.off('close', handleClose);
 
-      if (clientDisconnected || response.destroyed) {
-        // release the stream; ending a destroyed response is not possible:
-        reader.cancel().catch(() => {});
-      } else {
-        response.end();
+      if (onDrain != null) {
+        response.off('drain', onDrain);
+        onDrain = undefined;
+      }
+
+      try {
+        if (clientDisconnected || response.destroyed) {
+          // release the stream; ending a destroyed response is not possible:
+          await cancelReader();
+        } else {
+          response.end();
+        }
+      } finally {
+        reader.releaseLock();
       }
     }
   };
