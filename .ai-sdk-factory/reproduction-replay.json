@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22715,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22715-stop-condition-short-circuit.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22715-stop-condition-short-circuit.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22715: generateText waited for a pending stop condition after isStepCount(1) returned true"
+  }
+}
