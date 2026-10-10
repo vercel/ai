@@ -91,15 +91,15 @@ export function useObject<
   credentials,
 }: UseObjectOptions<SCHEMA, RESULT>): UseObjectHelpers<RESULT, INPUT> {
   // Generate an unique id for the object if not provided.
-  const completionId = id || `completion-${uniqueId++}`;
+  const objectId = id || `object-${uniqueId++}`;
 
-  const key = `${api}|${completionId}`;
+  const key = `object|${api}|${objectId}`;
   const { data, mutate: originalMutate } = useSWRV<
     DeepPartial<RESULT> | undefined
   >(key, () => (key in store ? store[key] : initialValue));
 
   const { data: isLoading, mutate: mutateLoading } = useSWRV<boolean>(
-    `${completionId}-loading`,
+    `object|${objectId}|loading`,
     null,
   );
 

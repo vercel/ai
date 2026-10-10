@@ -66,14 +66,14 @@ export function useCompletion<BODY extends object = object>({
   // Generate an unique id for the completion if not provided.
   const completionId = id || `completion-${uniqueId++}`;
 
-  const key = `${api}|${completionId}`;
+  const key = `completion|${api}|${completionId}`;
   const { data, mutate: originalMutate } = useSWRV<string>(
     key,
     () => store[key] ?? initialCompletion,
   );
 
   const { data: isLoading, mutate: mutateLoading } = useSWRV<boolean>(
-    `${completionId}-loading`,
+    `completion|${completionId}|loading`,
     null,
   );
 
