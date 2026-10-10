@@ -64,6 +64,34 @@ describe('isJSONSerializable', () => {
     ).toBe(false);
   });
 
+  it('returns false for cyclic arrays and plain objects', () => {
+    const objectCycle: Record<string, unknown> = {};
+    objectCycle.self = objectCycle;
+
+    const arrayCycle: unknown[] = [];
+    arrayCycle.push(arrayCycle);
+
+    const indirectCycleA: Record<string, unknown> = {};
+    const indirectCycleB: Record<string, unknown> = {};
+    indirectCycleA.next = indirectCycleB;
+    indirectCycleB.next = indirectCycleA;
+
+    expect(isJSONSerializable(objectCycle)).toBe(false);
+    expect(isJSONSerializable(arrayCycle)).toBe(false);
+    expect(isJSONSerializable(indirectCycleA)).toBe(false);
+  });
+
+  it('returns true for shared references without cycles', () => {
+    const shared = { value: 1 };
+
+    expect(
+      isJSONSerializable({
+        left: shared,
+        right: shared,
+      }),
+    ).toBe(true);
+  });
+
   it('returns false for non-plain objects', () => {
     expect(isJSONSerializable(new Date())).toBe(false);
     expect(isJSONSerializable(/test/u)).toBe(false);

@@ -77,6 +77,25 @@ describe('serializeModelOptions', () => {
     });
   });
 
+  it('filters out cyclic values without dropping serializable config', () => {
+    const cyclic: Record<string, unknown> = {};
+    cyclic.self = cyclic;
+    const config: TestConfig = {
+      provider: 'test',
+      cyclic,
+    };
+
+    const result = serializeModelOptions({
+      modelId: 'model',
+      config,
+    });
+
+    expect(result).toEqual({
+      modelId: 'model',
+      config: { provider: 'test' },
+    });
+  });
+
   it('keeps arrays of primitives', () => {
     const config: TestConfig = {
       provider: 'test',
