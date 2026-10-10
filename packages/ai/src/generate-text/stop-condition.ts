@@ -1,4 +1,5 @@
 import type { Context, ToolSet } from '@ai-sdk/provider-utils';
+import { InvalidArgumentError } from '../error/invalid-argument-error';
 import type { StepResult } from './step-result';
 
 /**
@@ -23,8 +24,17 @@ export type StopCondition<
  * steps equals `stepCount`.
  *
  * @param stepCount - The number of steps to allow before stopping.
+ * @throws {InvalidArgumentError} If `stepCount` is not a positive safe integer.
  */
 export function isStepCount(stepCount: number): StopCondition<any, any> {
+  if (!Number.isSafeInteger(stepCount) || stepCount < 1) {
+    throw new InvalidArgumentError({
+      parameter: 'stepCount',
+      value: stepCount,
+      message: 'stepCount must be a positive safe integer.',
+    });
+  }
+
   return ({ steps }) => steps.length === stepCount;
 }
 
