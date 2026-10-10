@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "issueId": 8992,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-8992-required-tool-choice.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/issue-8992-required-tool-choice.ts",
+    "packages/gateway/src/__fixtures__/issue-8992-deepinfra-required-tool-choice.json",
+    "pnpm-lock.yaml"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Reproduced issue #8992: generateText returned text/reasoning with zero tool calls even though toolChoice was required."
+  }
+}
