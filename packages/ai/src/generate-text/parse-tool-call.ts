@@ -45,6 +45,7 @@ export async function parseToolCall<TOOLS extends ToolSet>({
         return await refineParsedToolCallInput({
           toolCall: await parseProviderExecutedDynamicToolCall(toolCall),
           refineToolInput,
+          abortSignal,
         });
       }
 
@@ -55,6 +56,7 @@ export async function parseToolCall<TOOLS extends ToolSet>({
       return await refineParsedToolCallInput({
         toolCall: await doParseToolCall({ toolCall, tools }),
         refineToolInput,
+        abortSignal,
       });
     } catch (error) {
       if (
@@ -103,6 +105,7 @@ export async function parseToolCall<TOOLS extends ToolSet>({
       const parsedRepairedToolCall = await refineParsedToolCallInput({
         toolCall: await doParseToolCall({ toolCall: repairedToolCall, tools }),
         refineToolInput,
+        abortSignal,
       });
 
       abortSignal?.throwIfAborted();
@@ -175,9 +178,11 @@ async function waitForPromiseWithAbortSignal<T>({
 export async function refineParsedToolCallInput<TOOLS extends ToolSet>({
   toolCall,
   refineToolInput,
+  abortSignal,
 }: {
   toolCall: TypedToolCall<TOOLS>;
   refineToolInput: ToolInputRefinement<TOOLS> | undefined;
+  abortSignal?: AbortSignal;
 }): Promise<TypedToolCall<TOOLS>> {
   const refine = getOwn(refineToolInput, toolCall.toolName);
 
@@ -185,9 +190,16 @@ export async function refineParsedToolCallInput<TOOLS extends ToolSet>({
     return toolCall;
   }
 
+  abortSignal?.throwIfAborted();
+
   const refinedToolCall = {
     ...toolCall,
-    input: await refine(toolCall.input as InferToolInput<TOOLS[keyof TOOLS]>),
+    input: await waitForPromiseWithAbortSignal({
+      promise: Promise.resolve(
+        refine(toolCall.input as InferToolInput<TOOLS[keyof TOOLS]>),
+      ),
+      abortSignal,
+    }),
   } as TypedToolCall<TOOLS>;
 
   const inputSchemaInput = getToolCallInputSchemaInput(toolCall);

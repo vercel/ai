@@ -726,6 +726,7 @@ export async function generateText<
         runtimeContext,
         toolApprovalSecret: experimental_toolApprovalSecret,
         refineToolInput,
+        abortSignal: mergedAbortSignal,
       });
 
       const deniedToolApprovals = [
