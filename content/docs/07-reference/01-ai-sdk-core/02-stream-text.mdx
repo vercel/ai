@@ -648,7 +648,14 @@ To see `streamText` in action, check out [these examples](#examples).
       type: 'StopCondition<TOOLS> | Array<StopCondition<TOOLS>>',
       isOptional: true,
       description:
-        'Condition for stopping the generation when there are tool results in the last step. When the condition is an array, any of the conditions can be met to stop the generation. Default: isStepCount(1).',
+        'Condition for stopping the generation before another step starts. When the condition is an array, any of the conditions can be met to stop the generation. When continueWhen is configured, stop conditions are also evaluated at natural completion before continueWhen. Default: isStepCount(1).',
+    },
+    {
+      name: 'continueWhen',
+      type: 'ContinueCondition<TOOLS, RUNTIME_CONTEXT>',
+      isOptional: true,
+      description:
+        'Optional condition for requesting another model step when generation would otherwise finish naturally. Normal tool-result continuation does not call this condition, and stopWhen takes precedence. Configure stopWhen above its default isStepCount(1) to allow continuation. Previously streamed text is not retracted.',
     },
     {
       name: 'prepareStep',
@@ -2346,6 +2353,12 @@ To see `streamText` in action, check out [these examples](#examples).
               name: 'stopWhen',
               type: 'StopCondition<TOOLS> | Array<StopCondition<TOOLS>> | undefined',
               description: 'Condition(s) for stopping the generation.',
+            },
+            {
+              name: 'continueWhen',
+              type: 'ContinueCondition<TOOLS, RUNTIME_CONTEXT> | undefined',
+              description:
+                'Condition for requesting another model step after natural completion.',
             },
             {
               name: 'output',

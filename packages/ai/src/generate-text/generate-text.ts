@@ -64,6 +64,7 @@ import { calculateTokensPerSecond } from './calculate-tokens-per-second';
 import { collectToolApprovals } from './collect-tool-approvals';
 import { convertLanguageModelContent } from './convert-language-model-content';
 import { createToolSearchState } from '../tool-search/prepare-tool-search';
+import type { ContinueCondition } from './continue-condition';
 import { executeToolCall } from './execute-tool-call';
 import {
   filterActiveTools,
@@ -201,6 +202,7 @@ export type GenerateTextInclude = {
  * @param abortSignal - An optional abort signal that can be used to cancel the call.
  * @param timeout - An optional timeout in milliseconds. The call will be aborted if it takes longer than the specified timeout.
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
+ * @param continueWhen - Optional condition for requesting another model step after natural completion.
  *
  * @param experimental_sandbox - The sandbox environment that is passed through to tool execution.
  * @param runtimeContext - User-defined runtime context that flows through the entire generation lifecycle.
@@ -245,6 +247,7 @@ export async function generateText<
   timeout,
   headers,
   stopWhen = isStepCount(1),
+  continueWhen,
   experimental_sandbox: sandbox,
   output,
   toolApproval,
@@ -301,12 +304,21 @@ export async function generateText<
     toolChoice?: ToolChoice<NoInfer<TOOLS>>;
 
     /**
-     * Condition for stopping the generation when there are tool results in the last step.
+     * Condition for stopping the generation before another step starts.
      * When the condition is an array, any of the conditions can be met to stop the generation.
+     * When `continueWhen` is configured, stop conditions are also evaluated at
+     * natural completion before `continueWhen`.
      *
      * @default isStepCount(1)
      */
     stopWhen?: Arrayable<StopCondition<NoInfer<TOOLS>, RUNTIME_CONTEXT>>;
+
+    /**
+     * Optional condition for requesting another model step when the loop would
+     * otherwise finish naturally. Existing tool continuation rules still apply,
+     * and `stopWhen` takes precedence over `continueWhen`.
+     */
+    continueWhen?: ContinueCondition<NoInfer<TOOLS>, RUNTIME_CONTEXT>;
 
     /**
      * Optional telemetry configuration.
@@ -863,7 +875,7 @@ export async function generateText<
       // These tools may not return their results in the same turn as their call.
       const pendingDeferredToolCalls = new Map<string, { toolName: string }>();
 
-      do {
+      while (true) {
         if (steps.length > 0) {
           mergedAbortSignal?.throwIfAborted();
         }
@@ -1512,15 +1524,36 @@ export async function generateText<
             clearTimeout(stepTimeoutId);
           }
         }
-      } while (
-        // Continue only after all client tool calls have been executed or denied,
-        // and if there are client results or pending deferred provider results.
-        clientToolOutputs.length + deniedToolApprovalResponses.length ===
-          clientToolCalls.length &&
-        (clientToolCalls.length > 0 || pendingDeferredToolCalls.size > 0) &&
-        // continue until a stop condition is met:
-        !(await isStopConditionMet({ stopConditions, steps }))
-      );
+        const hasToolContinuation =
+          clientToolCalls.length > 0 || pendingDeferredToolCalls.size > 0;
+
+        if (
+          // Tool approvals and tools without executors still end the loop.
+          clientToolOutputs.length + deniedToolApprovalResponses.length !==
+            clientToolCalls.length ||
+          // Preserve the existing natural completion path when no continuation
+          // condition is configured, including not evaluating stop conditions.
+          (!hasToolContinuation && continueWhen == null)
+        ) {
+          break;
+        }
+
+        // Explicit stop conditions always take precedence.
+        if (await isStopConditionMet({ stopConditions, steps })) {
+          break;
+        }
+
+        if (!hasToolContinuation) {
+          // Cancellation and timeouts take precedence over continuation.
+          mergedAbortSignal?.throwIfAborted();
+
+          // Tool results continue automatically. The continuation condition is
+          // only consulted at a natural completion boundary.
+          if (!(await continueWhen!({ steps }))) {
+            break;
+          }
+        }
+      }
 
       const lastStep = steps[steps.length - 1];
 

@@ -116,6 +116,7 @@ import type {
   InferElementOutput,
   InferPartialOutput,
 } from './output-utils';
+import type { ContinueCondition } from './continue-condition';
 import type { PrepareStepFunction } from './prepare-step';
 import { prepareStepCallSettings } from './prepare-step-call-settings';
 import { convertToReasoningOutputs } from './reasoning-output';
@@ -320,6 +321,7 @@ export type StreamTextOnAbortCallback<
  * @param abortSignal - An optional abort signal that can be used to cancel the call.
  * @param timeout - An optional timeout in milliseconds. The call will be aborted if it takes longer than the specified timeout.
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
+ * @param continueWhen - Optional condition for requesting another model step after natural completion.
  *
  * @param experimental_sandbox - The sandbox environment that is passed through to tool execution.
  * @param runtimeContext - User-defined runtime context that flows through the entire generation lifecycle.
@@ -366,6 +368,7 @@ export function streamText<
   timeout,
   headers,
   stopWhen = isStepCount(1),
+  continueWhen,
   experimental_sandbox: sandbox,
   output,
   toolApproval,
@@ -427,12 +430,21 @@ export function streamText<
     toolChoice?: ToolChoice<TOOLS>;
 
     /**
-     * Condition for stopping the generation when there are tool results in the last step.
+     * Condition for stopping the generation before another step starts.
      * When the condition is an array, any of the conditions can be met to stop the generation.
+     * When `continueWhen` is configured, stop conditions are also evaluated at
+     * natural completion before `continueWhen`.
      *
      * @default isStepCount(1)
      */
     stopWhen?: Arrayable<StopCondition<NoInfer<TOOLS>, RUNTIME_CONTEXT>>;
+
+    /**
+     * Optional condition for requesting another model step when the loop would
+     * otherwise finish naturally. Existing tool continuation rules still apply,
+     * and `stopWhen` takes precedence over `continueWhen`.
+     */
+    continueWhen?: ContinueCondition<NoInfer<TOOLS>, RUNTIME_CONTEXT>;
 
     /**
      * Optional telemetry configuration.
@@ -831,6 +843,7 @@ export function streamText<
     repairToolCall,
     refineToolInput,
     stopConditions: asArray(stopWhen),
+    continueWhen,
     output,
     toolApproval,
     experimental_toolCallers,
@@ -1215,6 +1228,7 @@ class DefaultStreamTextResult<
     repairToolCall,
     refineToolInput,
     stopConditions,
+    continueWhen,
     output,
     toolApproval,
     experimental_toolCallers,
@@ -1273,6 +1287,9 @@ class DefaultStreamTextResult<
     stopConditions: Array<
       StopCondition<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>
     >;
+    continueWhen:
+      | ContinueCondition<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>
+      | undefined;
     output: OUTPUT | undefined;
     toolApproval: ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT> | undefined;
     experimental_toolCallers: Experimental_ToolCallers<TOOLS> | undefined;
@@ -3073,20 +3090,42 @@ class DefaultStreamTextResult<
                   // Clear this step's timeouts before the next step is started.
                   cleanupStepTimeouts();
 
-                  if (
-                    // Continue only after all client tool calls have been executed or denied,
-                    // and if there are client results or pending deferred provider results.
+                  const hasToolContinuation =
+                    clientToolCalls.length > 0 ||
+                    pendingDeferredToolCalls.size > 0;
+
+                  let shouldContinue =
+                    // Tool approvals and tools without executors still end the loop.
                     clientToolCalls.length ===
                       clientToolOutputs.length +
                         deniedToolApprovalResponses.length &&
-                    (clientToolCalls.length > 0 ||
-                      pendingDeferredToolCalls.size > 0) &&
-                    // continue until a stop condition is met:
-                    !(await isStopConditionMet({
+                    // Preserve the existing natural completion path when no
+                    // continuation condition is configured.
+                    (hasToolContinuation || continueWhen != null);
+
+                  if (
+                    shouldContinue &&
+                    // Explicit stop conditions always take precedence.
+                    (await isStopConditionMet({
                       stopConditions,
                       steps: recordedSteps,
                     }))
                   ) {
+                    shouldContinue = false;
+                  }
+
+                  if (shouldContinue && !hasToolContinuation) {
+                    // Cancellation and timeouts take precedence over continuation.
+                    abortSignal?.throwIfAborted();
+
+                    // Tool results continue automatically. The continuation
+                    // condition is only consulted at natural completion.
+                    shouldContinue = await continueWhen!({
+                      steps: recordedSteps,
+                    });
+                  }
+
+                  if (shouldContinue) {
                     try {
                       await runInStreamTextTracingChannelContext(() =>
                         streamStep({
