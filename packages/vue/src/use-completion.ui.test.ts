@@ -207,3 +207,37 @@ describe('stream data stream', () => {
     expect(screen.getByTestId('completion')).toHaveTextContent('Hello, world.');
   });
 });
+
+describe('headers', () => {
+  it('sends and merges Headers instances from hook and request options', async () => {
+    let sentHeaders: Headers | undefined;
+    const scope = effectScope();
+
+    const completion = scope.run(() =>
+      useCompletion({
+        headers: new Headers({
+          'x-hook-header': 'hook',
+          'x-shared-header': 'hook',
+        }),
+        streamProtocol: 'text',
+        fetch: async (_input, init) => {
+          sentHeaders = new Headers(init?.headers);
+          return new Response('ok');
+        },
+      }),
+    )!;
+
+    await completion.complete('hi', {
+      headers: new Headers({
+        'x-request-header': 'request',
+        'x-shared-header': 'request',
+      }),
+    });
+
+    expect(sentHeaders?.get('x-hook-header')).toBe('hook');
+    expect(sentHeaders?.get('x-request-header')).toBe('request');
+    expect(sentHeaders?.get('x-shared-header')).toBe('request');
+
+    scope.stop();
+  });
+});
