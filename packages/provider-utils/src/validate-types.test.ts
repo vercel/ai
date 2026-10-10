@@ -1,7 +1,7 @@
 import { TypeValidationError } from '@ai-sdk/provider';
 import { describe, expect, it } from 'vitest';
 import { safeValidateTypes, validateTypes } from './validate-types';
-import type { StandardSchema } from './schema';
+import { jsonSchema, type StandardSchema } from './schema';
 
 const customSchema: StandardSchema<{ name: string; age: number }> = {
   '~standard': {
@@ -74,6 +74,23 @@ describe('validateTypes', () => {
 });
 
 describe('safeValidateTypes', () => {
+  it('should accept values when the schema omits an optional validator', async () => {
+    const originalSchema = jsonSchema<number>({ type: 'number' });
+    const { validate, ...schemaWithoutValidator } = originalSchema;
+
+    expect(validate).toBeUndefined();
+    await expect(
+      safeValidateTypes({
+        value: 42,
+        schema: schemaWithoutValidator,
+      }),
+    ).resolves.toStrictEqual({
+      success: true,
+      value: 42,
+      rawValue: 42,
+    });
+  });
+
   it('should return validated object for valid input', async () => {
     const input = { name: 'John', age: 30 };
     const result = await safeValidateTypes({

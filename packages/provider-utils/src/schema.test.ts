@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import * as z4 from 'zod/v4';
 import { safeParseJSON } from './parse-json';
-import { asSchema, zodSchema, type StandardSchema } from './schema';
+import { asSchema, jsonSchema, zodSchema, type StandardSchema } from './schema';
 
 describe('asSchema', () => {
   it('should create an object schema when no schema is provided', async () => {
@@ -12,6 +12,14 @@ describe('asSchema', () => {
       properties: {},
       additionalProperties: false,
     });
+  });
+
+  it('should accept schemas without an optional validator', () => {
+    const originalSchema = jsonSchema<number>({ type: 'number' });
+    const { validate, ...schemaWithoutValidator } = originalSchema;
+
+    expect(validate).toBeUndefined();
+    expect(asSchema(schemaWithoutValidator)).toBe(schemaWithoutValidator);
   });
 
   it('should validate with callable standard schemas', async () => {
