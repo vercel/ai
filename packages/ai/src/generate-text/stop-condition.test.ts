@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { InvalidArgumentError } from '../error/invalid-argument-error';
 import type { StepResult } from './step-result';
 import {
   hasToolCall,
@@ -38,6 +39,33 @@ describe('stop conditions', () => {
           steps: [createStepResult(), createStepResult(), createStepResult()],
         }),
       ).toBe(false);
+    });
+
+    it.each([
+      0,
+      -1,
+      1.5,
+      NaN,
+      Infinity,
+      -Infinity,
+      Number.MAX_SAFE_INTEGER + 1,
+      Number.MIN_SAFE_INTEGER - 1,
+    ])('should reject an unreachable step count of %s', stepCount => {
+      let error: unknown;
+
+      try {
+        isStepCount(stepCount);
+      } catch (caughtError) {
+        error = caughtError;
+      }
+
+      expect(InvalidArgumentError.isInstance(error)).toBe(true);
+      expect(error).toMatchObject({
+        parameter: 'stepCount',
+        value: stepCount,
+        message:
+          'Invalid argument for parameter stepCount: stepCount must be a positive safe integer.',
+      });
     });
   });
 
