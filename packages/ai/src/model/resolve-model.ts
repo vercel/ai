@@ -103,7 +103,7 @@ export function resolveSpeechTranslationModel(
       );
     }
 
-    return speechTranslationModel(model);
+    return speechTranslationModel.call(provider, model);
   }
 
   if (model.specificationVersion !== 'v4') {
@@ -172,7 +172,7 @@ export function resolveVideoModel(
       );
     }
 
-    return videoModel(model);
+    return videoModel.call(provider, model);
   }
 
   if (!['v4', 'v3'].includes(model.specificationVersion)) {
@@ -199,7 +199,7 @@ export function resolveRerankingModel(model: RerankingModel): RerankingModelV4 {
       );
     }
 
-    return rerankingModel(model);
+    return rerankingModel.call(provider, model);
   }
 
   if (
