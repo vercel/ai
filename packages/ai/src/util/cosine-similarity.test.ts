@@ -55,3 +55,41 @@ it('should handle vectors with very small magnitudes', () => {
   const result2 = cosineSimilarity(vector3, vector4);
   expect(result2).toBe(-1);
 });
+
+it.each([
+  {
+    description: 'identical vectors with very large components',
+    vector1: [1e200, 1e200],
+    vector2: [1e200, 1e200],
+    expected: 1,
+  },
+  {
+    description: 'identical vectors with very small components',
+    vector1: [1e-200, 1e-200],
+    vector2: [1e-200, 1e-200],
+    expected: 1,
+  },
+  {
+    description: 'identical vectors at different scales',
+    vector1: [1e200, 1e200],
+    vector2: [1e-200, 1e-200],
+    expected: 1,
+  },
+  {
+    description: 'opposite vectors with very large components',
+    vector1: [1e200, 1e200],
+    vector2: [-1e200, -1e200],
+    expected: -1,
+  },
+  {
+    description: 'orthogonal vectors with very small components',
+    vector1: [1e-200, 0],
+    vector2: [0, 1e-200],
+    expected: 0,
+  },
+])(
+  'should remain stable for $description',
+  ({ vector1, vector2, expected }) => {
+    expect(cosineSimilarity(vector1, vector2)).toBeCloseTo(expected, 12);
+  },
+);
