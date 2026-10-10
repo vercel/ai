@@ -16,9 +16,21 @@ import {
   type Experimental_MCPEventsConfig,
   type Experimental_ManagedSubscribeInput,
   type Experimental_ManagedSubscription,
+  type CallToolResult,
   type MCPClient,
   type MCPClientConfig,
 } from './index';
+
+it('exposes audio MCP tool result content', () => {
+  type Content = Extract<
+    CallToolResult,
+    { content: Array<unknown> }
+  >['content'][number];
+  type AudioContent = Extract<Content, { type: 'audio' }>;
+
+  expectTypeOf<AudioContent['data']>().toEqualTypeOf<string>();
+  expectTypeOf<AudioContent['mimeType']>().toEqualTypeOf<string>();
+});
 
 it('exposes events on the existing client and types webhook callbacks', async () => {
   const store = {} as Experimental_MCPEventStore;

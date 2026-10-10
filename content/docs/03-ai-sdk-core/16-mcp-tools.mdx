@@ -552,6 +552,25 @@ If a server returns `structuredContent` without the backwards-compatible `conten
   containing `content` and optional `isError` fields.
 </Note>
 
+### Binary Tool Results
+
+MCP tools can return image, audio, and embedded binary resource content. The
+MCP client preserves these blocks when it sends tool results back to a model:
+
+- Image and audio blocks become AI SDK file parts with their base64 data and
+  MIME type.
+- Embedded resources containing `blob` data become file parts. If the resource
+  has a `name`, it is used as the filename. If it omits `mimeType`, the client
+  uses `application/octet-stream`.
+- Content part order and base64 data are preserved.
+- Other MCP content types that do not have a dedicated AI SDK conversion,
+  including embedded text resources and unknown future types, use a JSON text
+  fallback.
+
+Conversion to a file part does not guarantee that every model or provider
+supports that media type in a tool result. Provider-specific media support and
+size limits still apply.
+
 ## Using MCP Resources
 
 According to the [MCP specification](https://modelcontextprotocol.io/docs/learn/server-concepts#resources), resources are **application-driven** data sources that provide context to the model. Unlike tools (which are model-controlled), your application decides when to fetch and pass resources as context.

@@ -935,7 +935,37 @@ describe('MCPClient', () => {
     `);
   });
 
-  it('should convert mixed MCP content to AI SDK format via toModelOutput', async () => {
+  it('should preserve mixed MCP text and binary content order via toModelOutput', async () => {
+    const content = [
+      { type: 'text', text: 'Binary results:' },
+      { type: 'image', data: 'AAECAw==', mimeType: 'image/png' },
+      { type: 'audio', data: 'AAECAw==', mimeType: 'audio/wav' },
+      {
+        type: 'resource',
+        resource: {
+          uri: 'file:///recording.wav',
+          name: 'recording.wav',
+          mimeType: 'audio/wav',
+          blob: 'AAECAw==',
+        },
+      },
+      {
+        type: 'resource',
+        resource: {
+          uri: 'file:///unknown.bin',
+          blob: 'BAUGBw==',
+        },
+      },
+      {
+        type: 'resource',
+        resource: {
+          uri: 'file:///notes.txt',
+          mimeType: 'text/plain',
+          text: 'Keep this envelope',
+        },
+      },
+    ];
+
     createMockTransport.mockImplementation(
       () =>
         new MockMCPTransport({
@@ -948,10 +978,7 @@ describe('MCPClient', () => {
           ],
           toolCallResults: {
             'get-mixed': {
-              content: [
-                { type: 'text', text: 'Here is an image:' },
-                { type: 'image', data: 'aGVsbG8=', mimeType: 'image/png' },
-              ],
+              content,
               isError: false,
             },
           },
@@ -965,57 +992,61 @@ describe('MCPClient', () => {
     const tools = await client.tools();
     const tool = tools['get-mixed'];
 
-    expect(
-      await tool.execute!({}, { messages: [], toolCallId: '1', context: {} }),
-    ).toMatchInlineSnapshot(`
-        {
-          "content": [
-            {
-              "text": "Here is an image:",
-              "type": "text",
-            },
-            {
-              "data": "aGVsbG8=",
-              "mimeType": "image/png",
-              "type": "image",
-            },
-          ],
-          "isError": false,
-        }
-      `);
+    const output = (await tool.execute!(
+      {},
+      { messages: [], toolCallId: '1', context: {} },
+    )) as CallToolResult;
+
+    expect(output).toEqual({ content, isError: false });
 
     expect(tool.toModelOutput).toBeDefined();
     expect(
       tool.toModelOutput!({
         toolCallId: '1',
         input: {},
-        output: {
-          content: [
-            { type: 'text', text: 'Here is an image:' },
-            { type: 'image', data: 'aGVsbG8=', mimeType: 'image/png' },
-          ],
-          isError: false,
-        },
+        output,
       }),
-    ).toMatchInlineSnapshot(`
-      {
-        "type": "content",
-        "value": [
-          {
-            "text": "Here is an image:",
-            "type": "text",
-          },
-          {
-            "data": {
-              "data": "aGVsbG8=",
-              "type": "data",
+    ).toEqual({
+      type: 'content',
+      value: [
+        {
+          type: 'text',
+          text: 'Binary results:',
+        },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: { type: 'data', data: 'AAECAw==' },
+        },
+        {
+          type: 'file',
+          mediaType: 'audio/wav',
+          data: { type: 'data', data: 'AAECAw==' },
+        },
+        {
+          type: 'file',
+          mediaType: 'audio/wav',
+          filename: 'recording.wav',
+          data: { type: 'data', data: 'AAECAw==' },
+        },
+        {
+          type: 'file',
+          mediaType: 'application/octet-stream',
+          data: { type: 'data', data: 'BAUGBw==' },
+        },
+        {
+          type: 'text',
+          text: JSON.stringify({
+            type: 'resource',
+            resource: {
+              uri: 'file:///notes.txt',
+              mimeType: 'text/plain',
+              text: 'Keep this envelope',
             },
-            "mediaType": "image/png",
-            "type": "file",
-          },
-        ],
-      }
-    `);
+          }),
+        },
+      ],
+    });
   });
 
   it('should fallback to JSON for unknown content types via toModelOutput', async () => {

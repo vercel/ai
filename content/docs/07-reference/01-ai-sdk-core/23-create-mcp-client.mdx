@@ -297,7 +297,8 @@ Returns a Promise that resolves to an `MCPClient` with the following properties 
       type: `async (options?: {
         schemas?: TOOL_SCHEMAS
       }) => Promise<McpToolSet<TOOL_SCHEMAS>>`,
-      description: 'Gets the tools available from the MCP server.',
+      description:
+        'Gets the tools available from the MCP server. When tool results are sent back to a model, MCP image and audio content and embedded blob resources are converted to AI SDK file parts. Blob resources without a MIME type use application/octet-stream; unsupported content types use a JSON text fallback.',
       properties: [
         {
           type: 'options',
@@ -401,7 +402,7 @@ Returns a Promise that resolves to an `MCPClient` with the following properties 
         schemas?: TOOL_SCHEMAS
       }) => McpToolSet<TOOL_SCHEMAS>`,
       description:
-        'Converts existing MCP tool definitions into AI SDK tools without listing tools again.',
+        'Converts existing MCP tool definitions into AI SDK tools without listing tools again. The converted tools preserve image, audio, and embedded blob tool results as AI SDK file parts for model input.',
       properties: [
         {
           type: 'parameters',

@@ -235,6 +235,35 @@ function mcpToModelOutput({
           data: { type: 'data' as const, data: part.data as string },
         };
       }
+      if (part.type === 'audio' && 'data' in part && 'mimeType' in part) {
+        return {
+          type: 'file' as const,
+          mediaType: part.mimeType as string,
+          data: { type: 'data' as const, data: part.data as string },
+        };
+      }
+      if (
+        part.type === 'resource' &&
+        'resource' in part &&
+        part.resource != null &&
+        typeof part.resource === 'object' &&
+        'blob' in part.resource
+      ) {
+        const resource = part.resource as {
+          blob: string;
+          mimeType?: string;
+          name?: string;
+        };
+
+        return {
+          type: 'file' as const,
+          // MCP blob resources can omit their media type, but AI SDK file
+          // parts require one.
+          mediaType: resource.mimeType ?? 'application/octet-stream',
+          data: { type: 'data' as const, data: resource.blob },
+          ...(resource.name != null ? { filename: resource.name } : {}),
+        };
+      }
       return { type: 'text' as const, text: JSON.stringify(part) };
     },
   );

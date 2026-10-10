@@ -42,6 +42,31 @@ describe('CallToolResultSchema', () => {
     });
   });
 
+  it('accepts audio and embedded blob content', () => {
+    const result = {
+      content: [
+        {
+          type: 'audio',
+          data: 'AAECAw==',
+          mimeType: 'audio/wav',
+        },
+        {
+          type: 'resource',
+          resource: {
+            uri: 'file:///fixture.wav',
+            mimeType: 'audio/wav',
+            blob: 'AAECAw==',
+          },
+        },
+      ],
+    };
+
+    expect(CallToolResultSchema.parse(result)).toEqual({
+      ...result,
+      isError: false,
+    });
+  });
+
   it.each([{}, { _meta: {} }, { value: 42 }, { toolResult: undefined }])(
     'rejects results without content, structuredContent, or toolResult',
     result => {
@@ -59,6 +84,20 @@ describe('CallToolResultSchema', () => {
     { content: [{ type: 'text' }] },
     {
       content: [{ type: 'image', data: 'not-base64', mimeType: 'image/png' }],
+    },
+    {
+      content: [{ type: 'audio', data: 'not-base64', mimeType: 'audio/wav' }],
+    },
+    {
+      content: [{ type: 'audio', data: 'AAECAw==' }],
+    },
+    {
+      content: [
+        {
+          type: 'resource',
+          resource: { uri: 'file:///fixture.bin', blob: 'not-base64' },
+        },
+      ],
     },
   ])('rejects malformed known content types', result => {
     expect(CallToolResultSchema.safeParse(result).success).toBe(false);

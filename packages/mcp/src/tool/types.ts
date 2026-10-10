@@ -232,6 +232,13 @@ const ImageContentSchema = z
     mimeType: z.string(),
   })
   .loose();
+const AudioContentSchema = z
+  .object({
+    type: z.literal('audio'),
+    data: z.base64(),
+    mimeType: z.string(),
+  })
+  .loose();
 export const ResourceSchema = z
   .object({
     uri: z.string(),
@@ -295,7 +302,9 @@ const UnknownContentSchema = z
   .loose()
   .refine(
     content =>
-      !['text', 'image', 'resource', 'resource_link'].includes(content.type),
+      !['text', 'image', 'audio', 'resource', 'resource_link'].includes(
+        content.type,
+      ),
     { message: 'Known content types must match their schema' },
   );
 
@@ -304,6 +313,7 @@ const CallToolResultWithContentSchema = ResultSchema.extend({
     z.union([
       TextContentSchema,
       ImageContentSchema,
+      AudioContentSchema,
       EmbeddedResourceSchema,
       ResourceLinkContentSchema,
       UnknownContentSchema,
