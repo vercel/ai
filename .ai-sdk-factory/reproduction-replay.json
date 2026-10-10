@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22624,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22624-realtime-tool-error-state.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22624-realtime-tool-error-state.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #22624 REPRODUCED: failed realtime tool execution remained non-terminal (sync=input-available, async=input-available) instead of output-error with its error text"
+  }
+}
