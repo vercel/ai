@@ -24,10 +24,27 @@ export function defaultSettingsMiddleware({
     providerOptions?: LanguageModelV4CallOptions['providerOptions'];
   }>;
 }): LanguageModelMiddleware {
+  const {
+    responseFormat: defaultResponseFormat,
+    ...settingsWithoutResponseFormat
+  } = settings;
+
   return {
     specificationVersion: 'v4',
     transformParams: async ({ params }) => {
-      return mergeObjects(settings, params) as LanguageModelV4CallOptions;
+      const mergedParams = mergeObjects(
+        settingsWithoutResponseFormat,
+        params,
+      ) as LanguageModelV4CallOptions;
+
+      if (
+        params.responseFormat === undefined &&
+        defaultResponseFormat !== undefined
+      ) {
+        mergedParams.responseFormat = defaultResponseFormat;
+      }
+
+      return mergedParams;
     },
   };
 }
