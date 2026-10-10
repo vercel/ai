@@ -57,6 +57,10 @@ class TestSession extends AbstractRealtimeSession {
   protected setState(): void {
     // no-op for tests
   }
+
+  get messages() {
+    return this.state.messages;
+  }
 }
 
 const flush = () => new Promise(resolve => setTimeout(resolve, 0));
@@ -68,6 +72,15 @@ const functionCallDone = (callId: string, name: string) => ({
   callId,
   name,
   arguments: '{}',
+  raw: {},
+});
+
+const functionCallDelta = (callId: string) => ({
+  type: 'function-call-arguments-delta',
+  responseId: 'resp-1',
+  itemId: `item-${callId}`,
+  callId,
+  delta: '{}',
   raw: {},
 });
 
@@ -244,6 +257,109 @@ describe('AbstractRealtimeSession', () => {
     expect(onError.mock.calls[0][0].message).toContain(
       'No handler provided for tool',
     );
+  });
+
+  it.each(['synchronously', 'asynchronously'] as const)(
+    'records tool execution that fails %s as output-error',
+    async mode => {
+      const errorText = `${mode} failed`;
+      const onError = vi.fn();
+      const session = new TestSession({
+        model: createModel(),
+        api: { token: 'token' },
+        onToolCall:
+          mode === 'synchronously'
+            ? () => {
+                throw new Error(errorText);
+              }
+            : async () => {
+                throw new Error(errorText);
+              },
+        onError,
+      });
+      await session.connect();
+
+      const transport = transportInstances.at(-1)!;
+      await transport.emitServerEvent({
+        type: 'session-created',
+        sessionId: 'session',
+        raw: {},
+      });
+      await transport.emitServerEvent(functionCallDelta('call-1'));
+      await transport.emitServerEvent(functionCallDone('call-1', 'getWeather'));
+      await flush();
+
+      expect(onError).toHaveBeenCalledExactlyOnceWith(new Error(errorText));
+      expect(session.messages[0].parts).toEqual([
+        {
+          type: 'dynamic-tool',
+          toolName: 'getWeather',
+          toolCallId: 'call-1',
+          state: 'output-error',
+          input: {},
+          errorText,
+        },
+      ]);
+
+      session.addToolOutput('call-1', { temperature: 22 });
+
+      expect(session.messages[0].parts).toEqual([
+        {
+          type: 'dynamic-tool',
+          toolName: 'getWeather',
+          toolCallId: 'call-1',
+          state: 'output-available',
+          input: {},
+          output: { temperature: 22 },
+        },
+      ]);
+    },
+  );
+
+  it('ignores a tool rejection from a previous connection attempt', async () => {
+    let rejectTool!: (error: Error) => void;
+    const toolResult = new Promise<never>((_resolve, reject) => {
+      rejectTool = reject;
+    });
+    const onError = vi.fn();
+    const session = new TestSession({
+      model: createModel({
+        conversation: 'turn-based',
+        transports: ['websocket'],
+        connections: ['server-websocket'],
+      }),
+      api: { websocket: 'wss://example.com/realtime' },
+      onToolCall: () => toolResult,
+      onError,
+    });
+    await session.connect();
+
+    const firstTransport = transportInstances.at(-1)!;
+    await firstTransport.emitServerEvent({
+      type: 'session-created',
+      sessionId: 'first-session',
+      raw: {},
+    });
+    await firstTransport.emitServerEvent(functionCallDelta('call-1'));
+    await firstTransport.emitServerEvent(
+      functionCallDone('call-1', 'getWeather'),
+    );
+
+    session.disconnect();
+    await session.connect();
+    const secondTransport = transportInstances.at(-1)!;
+    await secondTransport.emitServerEvent({
+      type: 'session-created',
+      sessionId: 'second-session',
+      raw: {},
+    });
+    const messagesBeforeRejection = structuredClone(session.messages);
+
+    rejectTool(new Error('stale failure'));
+    await flush();
+
+    expect(session.messages).toEqual(messagesBeforeRejection);
+    expect(onError).not.toHaveBeenCalled();
   });
 
   it('requests a single response after all tool outputs are submitted', async () => {
