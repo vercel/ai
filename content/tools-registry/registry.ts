@@ -686,7 +686,7 @@ const { text } = await generateText({
 console.log(text);`,
     docsUrl: 'https://pushary.com/docs/agents/build/vercel-ai-sdk',
     apiKeyUrl: 'https://pushary.com/onboarding/partner',
-    websiteUrl: 'https://pushary.com/human-in-the-loop',
+    websiteUrl: 'https://pushary.com/human-in-the-loop-vercel-ai-sdk',
     npmUrl: 'https://www.npmjs.com/package/@pushary/ai-sdk',
   },
   {
