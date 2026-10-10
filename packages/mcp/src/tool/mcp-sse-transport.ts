@@ -196,6 +196,14 @@ export class SseMCPTransport implements MCPTransport {
 
                   if (this.connected) {
                     this.connected = false;
+                    // The server ended the long-lived stream without the client
+                    // asking. `onclose` is how the client learns the transport
+                    // is gone, and it is what rejects the requests that are
+                    // still in flight — without it they never settle. The stdio
+                    // transport fires the same callback when its child process
+                    // exits. The throw below is picked up by the surrounding
+                    // `catch`, which reports it through `onerror`.
+                    this.onclose?.();
                     throw new MCPClientError({
                       message:
                         'MCP SSE Transport Error: Connection closed unexpectedly',
