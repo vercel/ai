@@ -13,13 +13,20 @@ export class NoTranslationGeneratedError extends AISDKError {
 
   readonly response: SpeechTranslationModelResponseMetadata;
 
-  constructor(options: { response: SpeechTranslationModelResponseMetadata }) {
+  constructor({
+    cause,
+    response,
+  }: {
+    cause?: unknown;
+    response: SpeechTranslationModelResponseMetadata;
+  }) {
     super({
       name,
       message: 'No translation generated.',
+      cause,
     });
 
-    this.response = options.response;
+    this.response = response;
   }
 
   static isInstance(error: unknown): error is NoTranslationGeneratedError {

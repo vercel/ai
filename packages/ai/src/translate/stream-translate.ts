@@ -175,6 +175,13 @@ export function streamTranslate({
   // final `outputText` is non-empty (audio-only providers may report an empty
   // `outputText`).
   let hasAudioOutput = false;
+  let providerError: unknown;
+  let hasProviderError = false;
+  const createNoTranslationGeneratedError = () =>
+    new NoTranslationGeneratedError({
+      cause: hasProviderError ? providerError : undefined,
+      response: currentResponseMetadata(),
+    });
 
   // `Transformer.cancel` is part of the Streams spec (and supported at runtime),
   // but not yet reflected in the ambient `Transformer` type, so widen it here.
@@ -209,8 +216,14 @@ export function streamTranslate({
         case 'source-transcript-delta':
         case 'source-transcript-partial':
         case 'source-transcript-final':
-        case 'raw':
+        case 'raw': {
+          controller.enqueue(value);
+          break;
+        }
+
         case 'error': {
+          hasProviderError = true;
+          providerError = value.error;
           controller.enqueue(value);
           break;
         }
@@ -221,9 +234,7 @@ export function streamTranslate({
           }
 
           if (!hasAudioOutput && !value.outputText) {
-            throw new NoTranslationGeneratedError({
-              response: currentResponseMetadata(),
-            });
+            throw createNoTranslationGeneratedError();
           }
 
           sourceTextPromise.resolve(value.sourceText);
@@ -244,9 +255,7 @@ export function streamTranslate({
 
     flush() {
       if (translationTextPromise.isPending()) {
-        throw new NoTranslationGeneratedError({
-          response: currentResponseMetadata(),
-        });
+        throw createNoTranslationGeneratedError();
       }
     },
 

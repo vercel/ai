@@ -13,15 +13,20 @@ export class NoTranscriptGeneratedError extends AISDKError {
 
   readonly responses: Array<TranscriptionModelResponseMetadata>;
 
-  constructor(options: {
+  constructor({
+    cause,
+    responses,
+  }: {
+    cause?: unknown;
     responses: Array<TranscriptionModelResponseMetadata>;
   }) {
     super({
       name,
       message: 'No transcript generated.',
+      cause,
     });
 
-    this.responses = options.responses;
+    this.responses = responses;
   }
 
   static isInstance(error: unknown): error is NoTranscriptGeneratedError {

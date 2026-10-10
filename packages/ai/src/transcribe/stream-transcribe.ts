@@ -215,6 +215,14 @@ export function streamTranscribe({
     });
   };
 
+  let providerError: unknown;
+  let hasProviderError = false;
+  const createNoTranscriptGeneratedError = () =>
+    new NoTranscriptGeneratedError({
+      cause: hasProviderError ? providerError : undefined,
+      responses: [currentResponseMetadata()],
+    });
+
   // When the consumer cancels `fullStream` early, we abort the model pipe below
   // with a defined reason via this controller. Relying on the default cancel
   // cascade aborts the pipe with an `undefined` reason, which surfaces as a
@@ -246,8 +254,14 @@ export function streamTranscribe({
         case 'transcript-delta':
         case 'transcript-partial':
         case 'transcript-final':
-        case 'raw':
+        case 'raw': {
+          controller.enqueue(value);
+          break;
+        }
+
         case 'error': {
+          hasProviderError = true;
+          providerError = value.error;
           controller.enqueue(value);
           break;
         }
@@ -258,9 +272,7 @@ export function streamTranscribe({
           }
 
           if (!value.text) {
-            throw new NoTranscriptGeneratedError({
-              responses: [currentResponseMetadata()],
-            });
+            throw createNoTranscriptGeneratedError();
           }
 
           textPromise.resolve(value.text);
@@ -307,9 +319,7 @@ export function streamTranscribe({
 
     flush() {
       if (textPromise.isPending()) {
-        throw new NoTranscriptGeneratedError({
-          responses: [currentResponseMetadata()],
-        });
+        throw createNoTranscriptGeneratedError();
       }
     },
 
