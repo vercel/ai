@@ -1018,6 +1018,51 @@ describe('MCPClient', () => {
     `);
   });
 
+  it.each([
+    {
+      name: 'text',
+      content: [{ type: 'text' as const, text: 'Job did not run' }],
+    },
+    {
+      name: 'mixed',
+      content: [
+        { type: 'text' as const, text: 'Job did not run' },
+        {
+          type: 'image' as const,
+          data: 'aGVsbG8=',
+          mimeType: 'image/png',
+        },
+      ],
+    },
+  ])(
+    'should preserve MCP error status for $name content via toModelOutput',
+    async ({ content }) => {
+      client = await createMCPClient({
+        transport: new MockMCPTransport(),
+      });
+
+      const tools = await client.tools();
+      const tool = tools['mock-tool'];
+      const successfulOutput = await tool.toModelOutput!({
+        toolCallId: 'success',
+        input: {},
+        output: { content, isError: false },
+      });
+      const errorOutput = await tool.toModelOutput!({
+        toolCallId: 'error',
+        input: {},
+        output: { content, isError: true },
+      });
+
+      expect(successfulOutput.type).toBe('content');
+      expect(errorOutput).toEqual({
+        type: 'error-json',
+        value: { content, isError: true },
+      });
+      expect(errorOutput).not.toEqual(successfulOutput);
+    },
+  );
+
   it('should fallback to JSON for unknown content types via toModelOutput', async () => {
     createMockTransport.mockImplementation(
       () =>
@@ -2911,6 +2956,24 @@ describe('MCPClient', () => {
           },
         ],
         isError: true,
+      });
+      expect(
+        await (tools['error-tool'].toModelOutput as Function)({
+          toolCallId: '1',
+          input: { name: 'test' },
+          output: result,
+        }),
+      ).toEqual({
+        type: 'error-json',
+        value: {
+          content: [
+            {
+              type: 'text',
+              text: 'Workflow with name "test" already exists',
+            },
+          ],
+          isError: true,
+        },
       });
     });
 
