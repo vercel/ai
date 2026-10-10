@@ -14,6 +14,7 @@ import {
   type DataContent,
   type ProviderOptions,
 } from '@ai-sdk/provider-utils';
+import { InvalidArgumentError } from '../error/invalid-argument-error';
 import { NoImageGeneratedError } from '../error/no-image-generated-error';
 import {
   DefaultGeneratedFile,
@@ -73,6 +74,8 @@ export type GenerateImagePrompt =
  * @param prompt - The prompt that should be used to generate the image.
  * @param n - Number of images to generate. Default: 1.
  * @param maxImagesPerCall - Maximum number of images to generate in a single API call.
+ * @param maxParallelCalls - Maximum number of concurrent model calls when the request is split.
+ * Must be a positive integer or Infinity. Default: Infinity.
  * @param size - Size of the images to generate. Must have the format `{width}x{height}`.
  * @param aspectRatio - Aspect ratio of the images to generate. Must have the format `{width}:{height}`.
  * @param seed - Seed for the image generation.
@@ -89,6 +92,7 @@ export async function generateImage({
   prompt: promptArg,
   n = 1,
   maxImagesPerCall,
+  maxParallelCalls = Infinity,
   size,
   aspectRatio,
   seed,
@@ -116,6 +120,14 @@ export async function generateImage({
    * Maximum number of images to generate in a single API call. If not provided, the model's default will be used.
    */
   maxImagesPerCall?: number;
+
+  /**
+   * Maximum number of concurrent model calls when the request is split.
+   * Must be a positive integer or Infinity.
+   *
+   * @default Infinity
+   */
+  maxParallelCalls?: number;
 
   /**
    * Size of the images to generate. Must have the format `{width}x{height}`. If not provided, the default size will be used.
@@ -168,6 +180,17 @@ export async function generateImage({
    */
   headers?: Record<string, string>;
 }): Promise<GenerateImageResult> {
+  if (
+    maxParallelCalls !== Infinity &&
+    (!Number.isInteger(maxParallelCalls) || maxParallelCalls <= 0)
+  ) {
+    throw new InvalidArgumentError({
+      parameter: 'maxParallelCalls',
+      value: maxParallelCalls,
+      message: 'maxParallelCalls must be a positive integer or Infinity',
+    });
+  }
+
   const model = resolveImageModel(modelArg);
 
   const headersWithUserAgent = withUserAgentSuffix(
@@ -187,7 +210,7 @@ export async function generateImage({
   const maxImagesPerCallWithDefault =
     maxImagesPerCall ?? (await invokeModelMaxImagesPerCall(model)) ?? 1;
 
-  // parallelize calls to the model:
+  // Split the request into logical model calls:
   const callCount = Math.ceil(n / maxImagesPerCallWithDefault);
   const callImageCounts = Array.from({ length: callCount }, (_, i) => {
     if (i < callCount - 1) {
@@ -198,8 +221,11 @@ export async function generateImage({
     return remainder === 0 ? maxImagesPerCallWithDefault : remainder;
   });
 
-  const resultGroups = await Promise.all(
-    callImageCounts.map(async callImageCount => {
+  const resultGroups = await executeWithConcurrency({
+    values: callImageCounts,
+    maxConcurrency: maxParallelCalls,
+    abortSignal,
+    execute: async callImageCount => {
       const callResults: Array<ImageModelV4Result> = [];
 
       try {
@@ -244,8 +270,8 @@ export async function generateImage({
 
         throw error;
       }
-    }),
-  );
+    },
+  });
   const results = resultGroups.flat();
 
   // collect result images, warnings, and response metadata
@@ -352,6 +378,51 @@ export async function generateImage({
     providerMetadata,
     usage: totalUsage,
   });
+}
+
+async function executeWithConcurrency<T, RESULT>({
+  values,
+  maxConcurrency,
+  abortSignal,
+  execute,
+}: {
+  values: Array<T>;
+  maxConcurrency: number;
+  abortSignal: AbortSignal | undefined;
+  execute: (value: T) => Promise<RESULT>;
+}): Promise<Array<RESULT>> {
+  const results = new Array<RESULT>(values.length);
+  let nextIndex = 0;
+  let stopped = false;
+
+  const worker = async () => {
+    while (!stopped) {
+      abortSignal?.throwIfAborted();
+
+      const index = nextIndex++;
+      if (index >= values.length) {
+        return;
+      }
+
+      try {
+        results[index] = await execute(values[index]);
+      } catch (error) {
+        stopped = true;
+        throw error;
+      }
+    }
+  };
+
+  await Promise.all(
+    Array.from(
+      {
+        length: Math.min(values.length, maxConcurrency),
+      },
+      worker,
+    ),
+  );
+
+  return results;
 }
 
 class DefaultGenerateImageResult implements GenerateImageResult {

@@ -110,6 +110,13 @@ console.log(images);
         'Maximum number of images to generate per API call. When n exceeds this value, multiple API calls will be made.',
     },
     {
+      name: 'maxParallelCalls',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Maximum number of concurrent model calls when n is split across multiple calls. Must be a positive integer or Infinity. Retries remain in the same concurrency slot. Default: Infinity.',
+    },
+    {
       name: 'maxRetries',
       type: 'number',
       isOptional: true,

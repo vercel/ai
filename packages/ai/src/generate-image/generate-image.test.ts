@@ -18,6 +18,7 @@ import {
   vi,
   vitest,
 } from 'vitest';
+import { InvalidArgumentError } from '../error/invalid-argument-error';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockImageModelV4 } from '../test/mock-image-model-v4';
 import type { Warning } from '../types/warning';
@@ -351,6 +352,263 @@ describe('generateImage', () => {
   });
 
   describe('when several calls are required', () => {
+    it('should limit parallel calls and preserve logical result order', async () => {
+      const images = [pngBase64, jpegBase64, gifBase64, 'aGVsbG8='];
+      const timestamps = images.map(
+        (_, index) => new Date(`2024-01-0${index + 1}T00:00:00.000Z`),
+      );
+      const gates = images.map(() => Promise.withResolvers<void>());
+      const startedCalls: Array<number> = [];
+      let nextCall = 0;
+      let activeCalls = 0;
+      let peakActiveCalls = 0;
+
+      const resultPromise = generateImage({
+        model: new MockImageModelV4({
+          maxImagesPerCall: 1,
+          doGenerate: async () => {
+            const callIndex = nextCall++;
+            startedCalls.push(callIndex);
+            activeCalls++;
+            peakActiveCalls = Math.max(peakActiveCalls, activeCalls);
+
+            await gates[callIndex].promise;
+            activeCalls--;
+
+            return createMockResponse({
+              images: [images[callIndex]],
+              warnings: [
+                {
+                  type: 'other',
+                  message: `warning-${callIndex}`,
+                },
+              ],
+              timestamp: timestamps[callIndex],
+              modelId: `model-${callIndex}`,
+              providerMetaData: {
+                testProvider: {
+                  images: [{ callIndex }],
+                },
+              },
+              usage: {
+                inputTokens: callIndex + 1,
+                outputTokens: callIndex + 2,
+                totalTokens: callIndex * 2 + 3,
+              },
+            });
+          },
+        }),
+        prompt,
+        n: images.length,
+        maxParallelCalls: 2,
+      });
+
+      await vi.waitFor(() => {
+        expect(startedCalls).toStrictEqual([0, 1]);
+      });
+
+      gates[1].resolve();
+      await vi.waitFor(() => {
+        expect(startedCalls).toStrictEqual([0, 1, 2]);
+      });
+
+      gates[2].resolve();
+      await vi.waitFor(() => {
+        expect(startedCalls).toStrictEqual([0, 1, 2, 3]);
+      });
+
+      gates[3].resolve();
+      gates[0].resolve();
+
+      const result = await resultPromise;
+
+      expect(peakActiveCalls).toBe(2);
+      expect(result.images.map(image => image.base64)).toStrictEqual(images);
+      expect(result.warnings).toStrictEqual(
+        images.map((_, index) => ({
+          type: 'other',
+          message: `warning-${index}`,
+        })),
+      );
+      expect(result.responses).toStrictEqual(
+        images.map((_, index) => ({
+          timestamp: timestamps[index],
+          modelId: `model-${index}`,
+          headers: {},
+        })),
+      );
+      expect(result.calls.map(call => call.response.modelId)).toStrictEqual(
+        images.map((_, index) => `model-${index}`),
+      );
+      expect(result.providerMetadata).toStrictEqual({
+        testProvider: {
+          images: images.map((_, callIndex) => ({ callIndex })),
+        },
+      });
+      expect(result.usage).toStrictEqual({
+        inputTokens: 10,
+        outputTokens: 14,
+        totalTokens: 24,
+      });
+    });
+
+    it('should run all split calls in parallel by default', async () => {
+      const gate = Promise.withResolvers<void>();
+      let activeCalls = 0;
+      let peakActiveCalls = 0;
+      let callCount = 0;
+
+      const resultPromise = generateImage({
+        model: new MockImageModelV4({
+          maxImagesPerCall: 1,
+          doGenerate: async () => {
+            callCount++;
+            activeCalls++;
+            peakActiveCalls = Math.max(peakActiveCalls, activeCalls);
+
+            await gate.promise;
+            activeCalls--;
+
+            return createMockResponse({
+              images: [pngBase64],
+            });
+          },
+        }),
+        prompt,
+        n: 4,
+      });
+
+      await vi.waitFor(() => {
+        expect(callCount).toBe(4);
+      });
+
+      gate.resolve();
+      const result = await resultPromise;
+
+      expect(peakActiveCalls).toBe(4);
+      expect(result.images).toHaveLength(4);
+    });
+
+    it('should keep retries within the same parallel call slot', async () => {
+      vi.useFakeTimers();
+
+      try {
+        let callCount = 0;
+
+        const resultPromise = generateImage({
+          model: new MockImageModelV4({
+            maxImagesPerCall: 1,
+            doGenerate: async () => {
+              const attempt = callCount++;
+
+              if (attempt === 0) {
+                return createMockResponse({
+                  images: [],
+                  modelId: 'first-call-empty',
+                });
+              }
+
+              return createMockResponse({
+                images: [attempt === 1 ? pngBase64 : jpegBase64],
+                modelId:
+                  attempt === 1 ? 'first-call-retry' : 'second-call-success',
+              });
+            },
+          }),
+          prompt,
+          n: 2,
+          maxParallelCalls: 1,
+          maxRetries: 1,
+        });
+
+        await vi.waitFor(() => {
+          expect(callCount).toBe(1);
+        });
+        await vi.runAllTimersAsync();
+
+        const result = await resultPromise;
+
+        expect(callCount).toBe(3);
+        expect(result.images.map(image => image.base64)).toStrictEqual([
+          pngBase64,
+          jpegBase64,
+        ]);
+        expect(result.calls.map(call => call.response.modelId)).toStrictEqual([
+          'first-call-empty',
+          'first-call-retry',
+          'second-call-success',
+        ]);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('should not start queued calls after cancellation', async () => {
+      const abortController = new AbortController();
+      const activeCall = Promise.withResolvers<void>();
+      const abortReason = new DOMException('cancelled', 'AbortError');
+      let callCount = 0;
+
+      const resultPromise = generateImage({
+        model: new MockImageModelV4({
+          maxImagesPerCall: 1,
+          doGenerate: async () => {
+            callCount++;
+            await activeCall.promise;
+
+            return createMockResponse({
+              images: [pngBase64],
+            });
+          },
+        }),
+        prompt,
+        n: 3,
+        maxParallelCalls: 1,
+        maxRetries: 0,
+        abortSignal: abortController.signal,
+      });
+
+      await vi.waitFor(() => {
+        expect(callCount).toBe(1);
+      });
+
+      abortController.abort(abortReason);
+      activeCall.resolve();
+
+      await expect(resultPromise).rejects.toBe(abortReason);
+      expect(callCount).toBe(1);
+    });
+
+    it.each([0, -1, 0.5, Number.NaN, Number.NEGATIVE_INFINITY])(
+      'should reject invalid maxParallelCalls value %s',
+      async maxParallelCalls => {
+        let error: unknown;
+
+        try {
+          await generateImage({
+            model: new MockImageModelV4({
+              doGenerate: async () =>
+                createMockResponse({
+                  images: [pngBase64],
+                }),
+            }),
+            prompt,
+            maxParallelCalls,
+          });
+        } catch (caughtError) {
+          error = caughtError;
+        }
+
+        expect(InvalidArgumentError.isInstance(error)).toBe(true);
+        expect(error).toMatchObject({
+          parameter: 'maxParallelCalls',
+          value: maxParallelCalls,
+          message:
+            'Invalid argument for parameter maxParallelCalls: maxParallelCalls must be a positive integer or Infinity',
+        });
+      },
+    );
+
     it('should generate images', async () => {
       const base64Images = [pngBase64, jpegBase64, gifBase64];
 

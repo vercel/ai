@@ -80,7 +80,8 @@ const { images } = await generateImage({
 
 <Note>
   `generateImage` will automatically call the model as often as needed (in
-  parallel) to generate the requested number of images.
+  parallel) to generate the requested number of images. Use `maxParallelCalls`
+  to limit how many of these calls run at the same time.
 </Note>
 
 Each image model has an internal limit on how many images it can generate in a single API call. The AI SDK manages this automatically by batching requests appropriately when you request multiple images using the `n` parameter. By default, the SDK uses provider-documented limits (for example, DALL-E 3 can only generate 1 image per call, while DALL-E 2 supports up to 10).
@@ -95,6 +96,24 @@ const { images } = await generateImage({
   n: 10, // Will make 2 calls of 5 images each
 });
 ```
+
+To limit concurrent provider work when `generateImage` splits a request, set
+`maxParallelCalls` to a positive integer:
+
+```tsx
+const { images } = await generateImage({
+  model: __IMAGE_MODEL__,
+  prompt: 'Santa Claus driving a Cadillac',
+  maxImagesPerCall: 1,
+  maxParallelCalls: 2, // Run at most 2 model calls concurrently
+  n: 6,
+});
+```
+
+The default is `Infinity`, which preserves fully parallel execution. The limit
+applies only to model calls created by one `generateImage` invocation. Retries
+remain in the same concurrency slot, and aborting the operation prevents queued
+calls from starting.
 
 ### Checking Image Editing Support
 
