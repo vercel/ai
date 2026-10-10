@@ -477,9 +477,33 @@ describe('experimental_streamTranslate', () => {
       targetLanguage,
     });
 
-    await expect(result.translationText).rejects.toThrow(
-      'No translation generated.',
-    );
+    await expect(result.translationText).rejects.toMatchObject({
+      name: 'AI_NoTranslationGeneratedError',
+      message: 'No translation generated.',
+      cause: undefined,
+    });
+  });
+
+  it('should preserve the provider error when no translation is produced', async () => {
+    const providerError = new Error('provider error');
+    const result = streamTranslate({
+      model: new MockSpeechTranslationModelV4({
+        doStream: async () =>
+          createStreamResponse([
+            { type: 'stream-start', warnings: [] },
+            { type: 'error', error: providerError },
+          ]),
+      }),
+      audio,
+      inputAudioFormat,
+      targetLanguage,
+    });
+
+    await expect(result.translationText).rejects.toMatchObject({
+      name: 'AI_NoTranslationGeneratedError',
+      message: 'No translation generated.',
+      cause: providerError,
+    });
   });
 
   it('should reject fullStream access after a result promise claimed the stream', async () => {

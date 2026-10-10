@@ -511,7 +511,32 @@ describe('experimental_streamTranscribe', () => {
       inputAudioFormat,
     });
 
-    await expect(result.text).rejects.toThrow('No transcript generated.');
+    await expect(result.text).rejects.toMatchObject({
+      name: 'AI_NoTranscriptGeneratedError',
+      message: 'No transcript generated.',
+      cause: undefined,
+    });
+  });
+
+  it('should preserve the provider error when no transcript is produced', async () => {
+    const providerError = new Error('provider error');
+    const result = streamTranscribe({
+      model: new MockTranscriptionModelV4({
+        doStream: async () =>
+          createStreamResponse([
+            { type: 'stream-start', warnings: [] },
+            { type: 'error', error: providerError },
+          ]),
+      }),
+      audio,
+      inputAudioFormat,
+    });
+
+    await expect(result.text).rejects.toMatchObject({
+      name: 'AI_NoTranscriptGeneratedError',
+      message: 'No transcript generated.',
+      cause: providerError,
+    });
   });
 
   it('should reject fullStream access after a result promise claimed the stream', async () => {
