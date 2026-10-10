@@ -10,11 +10,21 @@ export async function processTextStream({
       new TextDecoderStream() as ReadableWritablePair<string, Uint8Array>,
     )
     .getReader();
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) {
-      break;
+  let finished = false;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        finished = true;
+        break;
+      }
+      await onTextPart(value);
     }
-    await onTextPart(value);
+  } finally {
+    if (!finished) {
+      await reader.cancel().catch(() => {});
+    }
+    reader.releaseLock();
   }
 }
