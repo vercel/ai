@@ -1,0 +1,78 @@
+---
+title: WebWright
+description: Use the WebWright OpenAI compatible API with the AI SDK.
+---
+
+# WebWright Provider
+
+[WebWright](https://webwright.ai/) serves open-weight language models through an OpenAI-compatible API. You can use its Chat Completions endpoint with the AI SDK through the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+Install the OpenAI Compatible provider:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+Create a WebWright API key and set it as a server-side environment variable:
+
+```bash
+export WEBWRIGHT_API_KEY=your-api-key
+```
+
+See the [WebWright API documentation](https://webwright.ai/v1) for instructions on creating an API key.
+
+## Provider Instance
+
+Create a WebWright provider instance with `createOpenAICompatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const webwright = createOpenAICompatible({
+  name: 'webwright',
+  apiKey: process.env.WEBWRIGHT_API_KEY,
+  baseURL: 'https://webwright.ai/v1',
+});
+```
+
+## Language Models
+
+Create a chat model with the `.chatModel()` factory method and a WebWright model ID:
+
+```ts
+const model = webwright.chatModel('wren-r1');
+```
+
+### Example
+
+Use `generateText` to generate text with the model:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const webwright = createOpenAICompatible({
+  name: 'webwright',
+  apiKey: process.env.WEBWRIGHT_API_KEY,
+  baseURL: 'https://webwright.ai/v1',
+});
+
+const { text } = await generateText({
+  model: webwright.chatModel('wren-r1'),
+  prompt: 'Explain what an API gateway does in one sentence.',
+});
+
+console.log(text);
+```
+
+## Supported Models and Capabilities
+
+This integration uses WebWright's OpenAI-compatible Chat Completions endpoint for text generation. The production chat model is `wren-r1`, which accepts text messages and returns text, with a 200K token context window.
+
+The documented request body for `POST /v1/chat/completions` accepts `model`, `messages`, `max_tokens`, `temperature`, and `stream`. Client-side tool calling, multimodal inputs, and a separate reasoning field are not part of the documented public contract. WebWright also exposes a separate `POST /v1/audio/transcriptions` endpoint for audio transcription, which is outside the scope of this chat integration.
+
+## Resources
+
+- [WebWright API documentation](https://webwright.ai/v1)
+- [WebWright website](https://webwright.ai/)
+- [AI SDK OpenAI Compatible provider](/providers/openai-compatible-providers)
