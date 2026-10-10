@@ -610,6 +610,18 @@ describe('Output.choice', () => {
     options: ['aaa', 'aab', 'ccc'],
   });
 
+  describe('options validation', () => {
+    it('should reject an empty options array', () => {
+      expect(() => choice({ options: [] })).toThrow(
+        new InvalidArgumentError({
+          parameter: 'options',
+          value: [],
+          message: 'options must contain at least one choice',
+        }),
+      );
+    });
+  });
+
   describe('responseFormat', () => {
     it('should return the JSON schema for the choice', async () => {
       const result = await choice1.responseFormat;
