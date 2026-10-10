@@ -1,12 +1,15 @@
 import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { generateId, convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import {
+  InvalidToolInputError,
+  NoSuchToolError,
   ToolChoiceViolationError,
   type LanguageModel,
   type ModelMessage,
 } from 'ai';
 import {
   asLanguageModelUsage,
+  convertToLanguageModelPrompt,
   parseToolCall,
   prepareLanguageModelCallOptions,
   prepareRetries,
@@ -90,6 +93,30 @@ async function generateModelCall(
           AbortSignal.timeout(remaining),
         ]);
   const model = resolveLanguageModel(modelInit);
+  const modelPrompt = await convertToLanguageModelPrompt({
+    prompt: {
+      instructions: undefined,
+      messages: prompt.map(message =>
+        message.role !== 'tool'
+          ? message
+          : {
+              ...message,
+              // Provider prompt approval responses have already been filtered by
+              // the workflow-side conversion. Restore the marker expected when
+              // converting the prompt again with the model's URL capabilities.
+              content: message.content.map(part =>
+                part.type === 'tool-approval-response'
+                  ? { ...part, providerExecuted: true }
+                  : part,
+              ),
+            },
+      ) as unknown as ModelMessage[],
+    },
+    supportedUrls: await model.supportedUrls,
+    download: undefined,
+    abortSignal,
+    provider: model.provider.split('.')[0],
+  });
   const tools = resolveSerializableTools(serializedTools);
   const toolChoice = prepareToolChoice({ toolChoice: options.toolChoice });
   const modelTools = await prepareTools({ tools });
@@ -125,7 +152,7 @@ async function generateModelCall(
       execute: () =>
         model.doGenerate({
           ...settings,
-          prompt: [...prompt],
+          prompt: modelPrompt,
           tools: modelTools,
           toolChoice,
           responseFormat: options.responseFormat,
@@ -150,6 +177,7 @@ async function generateModelCall(
     performance: { responseTimeMs },
   });
   abortSignal?.throwIfAborted();
+  const repairToolCall = options.repairToolCall;
   const toolCalls = await Promise.all(
     response.content
       .filter(part => part.type === 'tool-call')
@@ -157,13 +185,30 @@ async function generateModelCall(
         parseToolCall({
           toolCall,
           tools,
-          repairToolCall: options.repairToolCall,
+          repairToolCall:
+            repairToolCall == null
+              ? undefined
+              : repairOptions => {
+                  const { error } = repairOptions;
+
+                  if (
+                    !NoSuchToolError.isInstance(error) &&
+                    !InvalidToolInputError.isInstance(error)
+                  ) {
+                    throw error;
+                  }
+
+                  return repairToolCall({
+                    ...repairOptions,
+                    error,
+                  });
+                },
           instructions:
-            prompt
+            modelPrompt
               .filter(message => message.role === 'system')
               .map(message => message.content)
               .join('\n') || undefined,
-          messages: prompt.filter(
+          messages: modelPrompt.filter(
             message => message.role !== 'system',
           ) as unknown as ModelMessage[],
         }),

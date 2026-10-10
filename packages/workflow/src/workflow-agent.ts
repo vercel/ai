@@ -1834,7 +1834,9 @@ export class WorkflowAgent<
         ? { prompt: effectivePrompt }
         : { messages: effectiveMessages! }),
     } as Prompt);
-    const download = effectiveDownloadFromPrepare;
+    const download: DownloadFunction =
+      effectiveDownloadFromPrepare ??
+      (async requests => requests.map(() => null));
     const sandbox = options.experimental_sandbox ?? this.experimentalSandbox;
     // Model steps enforce the absolute deadline below. Avoid creating a native
     // timeout signal in the workflow VM, where timer APIs are unavailable.
