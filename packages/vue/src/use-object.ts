@@ -152,7 +152,7 @@ export function useObject<
       const response = await actualFetch(api, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'content-type': 'application/json',
           ...normalizeHeaders(headers),
         },
         credentials: credentials ?? 'same-origin',
