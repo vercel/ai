@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22647,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22647.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22647.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22647: text completion callback failure did not cancel the response stream"
+  }
+}
