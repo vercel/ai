@@ -7,10 +7,7 @@ import {
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
-import {
-  experimental_streamTextSingleConsumer as streamTextWithMinimalRetention,
-  Output,
-} from './index';
+import { Output } from './index';
 import { isStepCount } from './stop-condition';
 import { streamText } from './stream-text';
 
@@ -50,7 +47,7 @@ function modelWithSteps(...steps: LanguageModelV4StreamPart[][]) {
 // The same behavioral checks run against both facades of the execution engine.
 describe.each([
   ['streamText', streamText],
-  ['experimental_streamTextSingleConsumer', streamTextWithMinimalRetention],
+  ['experimental_streamTextSingleConsumer', streamText],
 ] as const)('%s behavior', (_name, generate) => {
   it('executes tools and sends complete history into the next step', async () => {
     const execute = vi.fn(
@@ -71,6 +68,7 @@ describe.each([
     );
     const onStepEnd = vi.fn();
     const result = generate({
+      experimental_lowMemory: _name !== 'streamText',
       model,
       prompt: 'Weather?',
       tools: {
@@ -112,6 +110,7 @@ describe.each([
   it('preserves approval requests and does not execute an unapproved tool', async () => {
     const execute = vi.fn(async () => 'done');
     const result = generate({
+      experimental_lowMemory: _name !== 'streamText',
       model: modelWithSteps([
         {
           type: 'tool-call',
@@ -143,6 +142,7 @@ describe.each([
   it('delivers complete lifecycle callback content in order', async () => {
     const events: string[] = [];
     const result = generate({
+      experimental_lowMemory: _name !== 'streamText',
       model: modelWithSteps([...textParts(), finish()]),
       prompt: 'test',
       onStart: () => {
@@ -182,6 +182,7 @@ describe.each([
     const onEnd = vi.fn();
     const onLanguageModelCallEnd = vi.fn();
     const result = generate({
+      experimental_lowMemory: _name !== 'streamText',
       model: modelWithSteps([...textParts(), finish()]),
       prompt: 'test',
       telemetry: { integrations: { onEnd, onLanguageModelCallEnd } },
@@ -202,6 +203,7 @@ describe.each([
   it('supports structured partial output and parsed output in onEnd', async () => {
     const onEnd = vi.fn();
     const result = generate({
+      experimental_lowMemory: _name !== 'streamText',
       model: modelWithSteps([...textParts('{"answer":42}'), finish()]),
       prompt: 'test',
       output: Output.object({ schema: z.object({ answer: z.number() }) }),
@@ -220,6 +222,7 @@ describe.each([
 
   it('supports element streams', async () => {
     const result = generate({
+      experimental_lowMemory: _name !== 'streamText',
       model: modelWithSteps([
         ...textParts('{"elements":[{"value":1},{"value":2}]}'),
         finish(),
@@ -235,6 +238,7 @@ describe.each([
 
   it('supports stream transforms and text responses', async () => {
     const result = generate({
+      experimental_lowMemory: _name !== 'streamText',
       model: modelWithSteps([...textParts(), finish()]),
       prompt: 'test',
       experimental_transform: () =>
@@ -254,6 +258,7 @@ describe.each([
   it('supports UI message conversion and completion callbacks', async () => {
     const onEnd = vi.fn();
     const result = generate({
+      experimental_lowMemory: _name !== 'streamText',
       model: modelWithSteps([...textParts(), finish()]),
       prompt: 'test',
     });
@@ -278,6 +283,7 @@ describe.each([
     const error = new Error('provider failed');
     const onError = vi.fn();
     const result = generate({
+      experimental_lowMemory: _name !== 'streamText',
       model: modelWithSteps([...textParts(), { type: 'error', error }]),
       prompt: 'test',
       onError,
@@ -298,6 +304,7 @@ describe.each([
       [...textParts('recovered'), finish()],
     );
     const result = generate({
+      experimental_lowMemory: _name !== 'streamText',
       model,
       prompt: 'test',
       streamRetries: 1,
@@ -312,7 +319,8 @@ describe.each([
 
 describe('streaming-only contract', () => {
   it('rejects a duplicate consumeStream without corrupting metadata', async () => {
-    const result = streamTextWithMinimalRetention({
+    const result = streamText({
+      experimental_lowMemory: true,
       model: modelWithSteps([...textParts(), finish()]),
       prompt: 'test',
     });
@@ -341,7 +349,11 @@ describe('streaming-only contract', () => {
         }),
       }),
     });
-    const result = streamTextWithMinimalRetention({ model, prompt: 'test' });
+    const result = streamText({
+      model,
+      prompt: 'test',
+      experimental_lowMemory: true,
+    });
     const assertion = expect(result.totalUsage).rejects.toMatchObject({
       name: 'AbortError',
     });
@@ -372,7 +384,8 @@ describe('streaming-only contract', () => {
         }),
       }),
     });
-    const result = streamTextWithMinimalRetention({
+    const result = streamText({
+      experimental_lowMemory: true,
       model,
       prompt: 'test',
       abortSignal: abort.signal,
@@ -411,7 +424,11 @@ describe('streaming-only contract', () => {
         }),
       }),
     });
-    const result = streamTextWithMinimalRetention({ model, prompt: 'test' });
+    const result = streamText({
+      model,
+      prompt: 'test',
+      experimental_lowMemory: true,
+    });
     const reader = result.textStream.getReader();
     await reader.read();
     await new Promise(resolve => setTimeout(resolve, 10));
@@ -421,7 +438,8 @@ describe('streaming-only contract', () => {
     reader.releaseLock();
   });
   it('allows metadata to be requested before, during, and after consumption without claiming a stream', async () => {
-    const result = streamTextWithMinimalRetention({
+    const result = streamText({
+      experimental_lowMemory: true,
       model: modelWithSteps([...textParts(), finish()]),
       prompt: 'test',
     });
@@ -443,7 +461,8 @@ describe('streaming-only contract', () => {
   });
 
   it('rejects a second projection without affecting the first', async () => {
-    const result = streamTextWithMinimalRetention({
+    const result = streamText({
+      experimental_lowMemory: true,
       model: modelWithSteps([...textParts(), finish()]),
       prompt: 'test',
     });
@@ -455,7 +474,8 @@ describe('streaming-only contract', () => {
   });
 
   it('requires an explicit output specification for cumulative partial output', async () => {
-    const result = streamTextWithMinimalRetention({
+    const result = streamText({
+      experimental_lowMemory: true,
       model: modelWithSteps([...textParts(), finish()]),
       prompt: 'test',
     });
@@ -468,7 +488,8 @@ describe('streaming-only contract', () => {
   });
 
   it('supports cumulative text partials when explicitly requested', async () => {
-    const result = streamTextWithMinimalRetention({
+    const result = streamText({
+      experimental_lowMemory: true,
       model: modelWithSteps([
         { type: 'text-start', id: 'text' },
         { type: 'text-delta', id: 'text', delta: 'a' },
@@ -489,7 +510,8 @@ describe('streaming-only contract', () => {
     const onEnd = vi.fn();
     globalThis.AI_SDK_TELEMETRY_INTEGRATIONS = [{ onEnd }];
     try {
-      const result = streamTextWithMinimalRetention({
+      const result = streamText({
+        experimental_lowMemory: true,
         model: modelWithSteps([...textParts(), finish()]),
         prompt: 'test',
       });

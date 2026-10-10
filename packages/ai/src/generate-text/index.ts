@@ -64,10 +64,6 @@ export {
   type LanguageModelStreamPart as Experimental_LanguageModelStreamPart,
 } from './stream-language-model-call';
 export {
-  streamTextWithMinimalRetention as experimental_streamTextSingleConsumer,
-  type StreamingTextResult as Experimental_StreamTextSingleConsumerResult,
-} from './stream-text-with-minimal-retention';
-export {
   streamText,
   type StreamTextEndEvent,
   type StreamTextInclude,

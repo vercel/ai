@@ -45,6 +45,7 @@ import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import type { TelemetryDispatcher } from '../telemetry/telemetry';
 import type { TelemetryOptions } from '../telemetry/telemetry-options';
+import { getGlobalTelemetryIntegrations } from '../telemetry/telemetry-registry';
 import { createTextStreamResponse } from '../text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../text-stream/pipe-text-stream-to-response';
 import { toTextStream } from '../text-stream/to-text-stream';
@@ -112,6 +113,10 @@ import type {
   OnLanguageModelCallStartCallback,
 } from './language-model-events';
 import { text, type Output } from './output';
+import {
+  createSingleConsumerStreamTextResult,
+  type StreamTextSingleConsumerResult,
+} from './stream-text-single-consumer-result';
 import type {
   InferCompleteOutput,
   InferElementOutput,
@@ -289,6 +294,21 @@ export type StreamTextOnAbortCallback<
   RUNTIME_CONTEXT extends Context,
 > = Callback<GenerateTextAbortEvent<TOOLS, RUNTIME_CONTEXT>>;
 
+type StreamTextOptions<
+  TOOLS extends ToolSet,
+  RUNTIME_CONTEXT extends Context,
+  OUTPUT extends Output,
+> = Parameters<typeof streamTextInternal<TOOLS, RUNTIME_CONTEXT, OUTPUT>>[0] & {
+  /**
+   * Consume the stream once without replay or final-content getters.
+   * Content is collected only when required by tools, output parsing,
+   * full-content callbacks, or telemetry integrations.
+   *
+   * @default false
+   */
+  experimental_lowMemory?: boolean;
+};
+
 /**
  * Generate a text and call tools for a given prompt using a language model.
  *
@@ -334,6 +354,8 @@ export type StreamTextOnAbortCallback<
  * @param runtimeContext - User-defined runtime context that flows through the entire generation lifecycle.
  * @param experimental_refineToolInput - Optional mapping of tool names to functions that refine parsed tool inputs before tools are executed and before outputs, callbacks, and telemetry are recorded.
  *
+ * @param experimental_lowMemory - Consume the stream once without replay or final-content getters. Default: false.
+ *
  * @param onChunk - Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.
  * @param onError - Callback that is called when an error occurs during streaming. You can use it to log errors.
  * @param onStart - Callback invoked when generation begins, before any LLM calls.
@@ -357,6 +379,80 @@ export type StreamTextOnAbortCallback<
  * A result object for accessing different stream types and additional information.
  */
 export function streamText<
+  TOOLS extends ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+  OUTPUT extends Output = Output<string, string, never>,
+>(
+  options: StreamTextOptions<TOOLS, RUNTIME_CONTEXT, OUTPUT> & {
+    experimental_lowMemory?: false;
+  },
+): StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
+export function streamText<
+  TOOLS extends ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+  OUTPUT extends Output = Output<string, string, never>,
+>(
+  options: StreamTextOptions<TOOLS, RUNTIME_CONTEXT, OUTPUT> & {
+    experimental_lowMemory: true;
+  },
+): StreamTextSingleConsumerResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
+export function streamText<
+  TOOLS extends ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+  OUTPUT extends Output = Output<string, string, never>,
+>(
+  options: StreamTextOptions<TOOLS, RUNTIME_CONTEXT, OUTPUT>,
+):
+  | StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>
+  | StreamTextSingleConsumerResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
+export function streamText<
+  TOOLS extends ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+  OUTPUT extends Output = Output<string, string, never>,
+>({
+  experimental_lowMemory = false,
+  ...options
+}: StreamTextOptions<TOOLS, RUNTIME_CONTEXT, OUTPUT>):
+  | StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>
+  | StreamTextSingleConsumerResult<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
+  if (!experimental_lowMemory) {
+    return streamTextInternal<TOOLS, RUNTIME_CONTEXT, OUTPUT>({ ...options });
+  }
+
+  const telemetry = options.telemetry ?? options.experimental_telemetry;
+  const integrations =
+    telemetry?.integrations != null
+      ? asArray(telemetry.integrations)
+      : getGlobalTelemetryIntegrations();
+
+  // Decide before execution so getter access cannot change collection.
+  const collectContent =
+    (options.tools != null && Object.keys(options.tools).length > 0) ||
+    options.toolChoice != null ||
+    options.output != null ||
+    options.prepareStep != null ||
+    options.stopWhen != null ||
+    options.onEnd != null ||
+    options.onFinish != null ||
+    options.onStepEnd != null ||
+    options.onStepFinish != null ||
+    options.onAbort != null ||
+    options.onLanguageModelCallEnd != null ||
+    options.experimental_onLanguageModelCallEnd != null ||
+    (telemetry?.isEnabled !== false && integrations.length > 0);
+
+  return createSingleConsumerStreamTextResult(
+    streamTextInternal<TOOLS, RUNTIME_CONTEXT, OUTPUT>({
+      ...options,
+      _internal: {
+        ...options._internal,
+        retention: { replay: false, collectContent },
+      },
+    }),
+  );
+}
+
+function streamTextInternal<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output<string, string, never>,
@@ -3464,7 +3560,7 @@ class DefaultStreamTextResult<
     if (!this.retention.replay && this.outputSpecification == null) {
       throw new UnsupportedFunctionalityError({
         functionality:
-          'partialOutputStream without an explicit output specification in experimental_streamTextSingleConsumer',
+          'partialOutputStream without an explicit output specification with experimental_lowMemory enabled',
       });
     }
     return this.asIterableStream(
