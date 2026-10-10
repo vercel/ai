@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "issueId": 11865,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-11865-use-chat-visibility-resume.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/issue-11865-use-chat-visibility-resume.ts",
+    "packages/react/src/use-chat.ui.test.tsx",
+    "pnpm-lock.yaml"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_11865: interrupted stream was not resumed after the document became visible"
+  }
+}
