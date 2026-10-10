@@ -335,6 +335,63 @@ describe('Output.array', () => {
       `);
     });
 
+    it('should preserve root recursion in the element schema', async () => {
+      const treeSchema = z.object({
+        value: z.string(),
+        get children(): ReturnType<typeof z.array<typeof treeSchema>> {
+          return z.array(treeSchema);
+        },
+      });
+
+      const result = await array({ element: treeSchema }).responseFormat;
+
+      expect(result).toMatchObject({
+        schema: {
+          properties: {
+            elements: {
+              items: {
+                properties: {
+                  children: {
+                    items: {
+                      $ref: '#/properties/elements/items',
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+    });
+
+    it('should rebase root-relative property references', async () => {
+      const result = await array({
+        element: jsonSchema({
+          type: 'object',
+          properties: {
+            value: { type: 'string' },
+            copy: { $ref: '#/properties/value' },
+          },
+        }),
+      }).responseFormat;
+
+      expect(result).toMatchObject({
+        schema: {
+          properties: {
+            elements: {
+              items: {
+                properties: {
+                  copy: {
+                    $ref: '#/properties/elements/items/properties/value',
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+    });
+
     it.each(['definitions', '$defs'] as const)(
       'should preserve root-level %s when wrapping the element schema',
       async keyword => {

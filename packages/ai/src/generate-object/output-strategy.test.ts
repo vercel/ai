@@ -4,6 +4,39 @@ import { describe, expect, it } from 'vitest';
 import { getOutputStrategy } from './output-strategy';
 
 describe('array output strategy', () => {
+  it('should preserve root recursion in the element schema', async () => {
+    const strategy = getOutputStrategy({
+      output: 'array',
+      schema: jsonSchema({
+        type: 'object',
+        properties: {
+          children: {
+            type: 'array',
+            items: { $ref: '#' },
+          },
+        },
+      }),
+    });
+
+    const result = await strategy.jsonSchema();
+
+    expect(result).toMatchObject({
+      properties: {
+        elements: {
+          items: {
+            properties: {
+              children: {
+                items: {
+                  $ref: '#/properties/elements/items',
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+  });
+
   it.each(['definitions', '$defs'] as const)(
     'should preserve root-level %s when wrapping the element schema',
     async keyword => {
