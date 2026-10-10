@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22652,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22652-simulate-readable-stream-cancellation.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22652-simulate-readable-stream-cancellation.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22652_REPRODUCED: cancellation left pending delay timer(s)"
+  }
+}
