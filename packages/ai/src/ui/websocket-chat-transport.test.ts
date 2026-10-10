@@ -989,6 +989,88 @@ describe('WebSocketChatTransport', () => {
     MockWebSocket.instances[1].open();
     await secondPromise;
   });
+
+  it('close invalidates a send request waiting for request options', async () => {
+    let resolveBody!: (body: object) => void;
+    const pendingBody = new Promise<object>(resolve => {
+      resolveBody = resolve;
+    });
+    let bodyCallCount = 0;
+    const transport = new WebSocketChatTransport<UIMessage>({
+      url: 'wss://example.com/chat',
+      webSocket,
+      body: () => {
+        bodyCallCount++;
+        return bodyCallCount === 1 ? pendingBody : {};
+      },
+    });
+
+    const pendingRequest = transport.sendMessages({
+      chatId: 'before-close',
+      messageId: 'message-1',
+      trigger: 'submit-message',
+      messages: [],
+      abortSignal: undefined,
+    });
+    await vi.waitFor(() => {
+      expect(bodyCallCount).toBe(1);
+    });
+
+    transport.close();
+    resolveBody({});
+
+    await expect(pendingRequest).rejects.toThrow(
+      'WebSocket chat transport was closed.',
+    );
+    expect(MockWebSocket.instances).toHaveLength(0);
+
+    const nextRequest = transport.sendMessages({
+      chatId: 'after-close',
+      messageId: 'message-2',
+      trigger: 'submit-message',
+      messages: [],
+      abortSignal: undefined,
+    });
+    const socket = await openPendingConnection();
+    await nextRequest;
+
+    expect(readFrame(socket)).toMatchObject({
+      type: 'send',
+      id: 'after-close',
+    });
+  });
+
+  it('close invalidates a reconnect waiting for request preparation', async () => {
+    let resolvePreparation!: () => void;
+    const pendingPreparation = new Promise<void>(resolve => {
+      resolvePreparation = resolve;
+    });
+    const preparationStarted = vi.fn();
+    const transport = new WebSocketChatTransport<UIMessage>({
+      url: 'wss://example.com/chat',
+      webSocket,
+      prepareReconnectToStreamRequest: async () => {
+        preparationStarted();
+        await pendingPreparation;
+        return {};
+      },
+    });
+
+    const reconnectPromise = transport.reconnectToStream({
+      chatId: 'chat-1',
+    });
+    await vi.waitFor(() => {
+      expect(preparationStarted).toHaveBeenCalledOnce();
+    });
+
+    transport.close();
+    resolvePreparation();
+
+    await expect(reconnectPromise).rejects.toThrow(
+      'WebSocket chat transport was closed.',
+    );
+    expect(MockWebSocket.instances).toHaveLength(0);
+  });
 });
 
 describe('safeValidateWebSocketChatTransportRequest', () => {
