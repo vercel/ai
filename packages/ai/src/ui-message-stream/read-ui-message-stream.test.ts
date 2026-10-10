@@ -526,13 +526,17 @@ describe('readUIMessageStream', () => {
     expect(chunkData).toEqual({ value: 'chunk' });
   });
 
-  it('should throw an error when encountering an error UI stream part', async () => {
-    const stream = createUIMessageStream([
-      { type: 'start', messageId: 'msg-123' },
-      { type: 'text-start', id: 'text-1' },
-      { type: 'text-delta', id: 'text-1', delta: 'Hello' },
-      { type: 'error', errorText: 'Test error message' },
-    ]);
+  it('should cancel and unlock the input stream when terminating on an error', async () => {
+    const cancel = vi.fn();
+    const stream = new ReadableStream<UIMessageChunk>({
+      start(controller) {
+        controller.enqueue({
+          type: 'error',
+          errorText: 'Test error message',
+        });
+      },
+      cancel,
+    });
 
     const uiMessages = readUIMessageStream({
       stream,
@@ -542,6 +546,11 @@ describe('readUIMessageStream', () => {
     await expect(convertAsyncIterableToArray(uiMessages)).rejects.toThrow(
       'Test error message',
     );
+
+    await vi.waitFor(() => {
+      expect(cancel).toHaveBeenCalledOnce();
+      expect(stream.locked).toBe(false);
+    });
   });
 
   it('should cancel the input stream when iteration exits early', async () => {
