@@ -231,18 +231,19 @@ describe('model.supportsParallelCalls', () => {
     expect(embeddings).toStrictEqual(dummyEmbeddings);
   });
 
-  it.each([0, -1])(
+  it.each([NaN, 0, -1, 1.5, -Infinity])(
     'should throw InvalidArgumentError when maxParallelCalls is %s',
     async maxParallelCalls => {
+      const model = new MockEmbeddingModelV4({
+        supportsParallelCalls: true,
+        maxEmbeddingsPerCall: 1,
+      });
       let error: unknown;
 
       try {
         await embedMany({
           maxParallelCalls,
-          model: new MockEmbeddingModelV4({
-            supportsParallelCalls: true,
-            maxEmbeddingsPerCall: 1,
-          }),
+          model,
           values: testValues,
         });
       } catch (caughtError) {
@@ -251,11 +252,12 @@ describe('model.supportsParallelCalls', () => {
 
       expect(InvalidArgumentError.isInstance(error)).toBe(true);
       expect(error).toMatchObject({
-        parameter: 'chunkSize',
+        parameter: 'maxParallelCalls',
         value: maxParallelCalls,
         message:
-          'Invalid argument for parameter chunkSize: chunkSize must be greater than 0',
+          'Invalid argument for parameter maxParallelCalls: maxParallelCalls must be a positive integer or Infinity',
       });
+      expect(model.doEmbedCalls).toHaveLength(0);
     },
   );
 });

@@ -37,7 +37,7 @@ it('should handle chunk size of 1 correctly', () => {
   expect(result).toEqual([[1], [2], [3]]);
 });
 
-it.each([0, -1])(
+it.each([NaN, 0, -1])(
   'should throw InvalidArgumentError for chunk size %s',
   size => {
     const array = [1, 2, 3];
