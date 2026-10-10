@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22636,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22636-mcp-additional-properties.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22636-mcp-additional-properties.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22636: automatic MCP tools reject valid dictionary inputs"
+  }
+}
