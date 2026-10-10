@@ -122,6 +122,14 @@ export type ToolLoopAgentSettings<
     toolOrder?: ToolOrder<NoInfer<TOOLS>>;
 
     /**
+     * Maximum number of tool calls that may execute concurrently within a step.
+     *
+     * Set to `1` to execute tool calls sequentially in the order they were
+     * generated. By default, all tool calls execute concurrently.
+     */
+    toolCallConcurrency?: number;
+
+    /**
      * Optional specification for generating structured outputs.
      */
     output?: OUTPUT;
@@ -370,6 +378,7 @@ export type ToolLoopAgentSettings<
           | 'experimental_telemetry'
           | 'activeTools'
           | 'toolOrder'
+          | 'toolCallConcurrency'
           | 'toolApproval'
           | 'experimental_toolCallers'
           | 'experimental_toolApprovalSecret'
@@ -412,6 +421,7 @@ export type ToolLoopAgentSettings<
         | 'experimental_telemetry'
         | 'activeTools'
         | 'toolOrder'
+        | 'toolCallConcurrency'
         | 'toolApproval'
         | 'experimental_toolCallers'
         | 'experimental_toolApprovalSecret'

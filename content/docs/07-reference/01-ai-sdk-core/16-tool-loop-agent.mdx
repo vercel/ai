@@ -105,6 +105,13 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
         'Controls the order in which tools are sent to the provider. The list can be partial. Tools not listed in `toolOrder` are sent after the listed tools, sorted alphabetically. Tool names are restricted to the string keys of the tool set.',
     },
     {
+      name: 'toolCallConcurrency',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Maximum number of tool calls that the SDK executes concurrently within an agent step. Set to `1` to execute calls sequentially in model-generated order. Must be a positive integer. By default, all tool calls execute concurrently.',
+    },
+    {
       name: 'toolApproval',
       type: 'ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>',
       isOptional: true,

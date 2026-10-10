@@ -498,6 +498,35 @@ const result = await generateText({
 });
 ```
 
+### Tool call execution concurrency
+
+By default, when a model generates multiple tool calls in one step,
+`generateText`, `streamText`, and `ToolLoopAgent` execute those calls
+concurrently. Set `toolCallConcurrency` to a positive integer to limit how many
+SDK-executed tool calls run at once.
+
+Use `toolCallConcurrency: 1` when later calls need to observe side effects from
+earlier calls. The SDK starts calls sequentially in the order the model
+generated them:
+
+```ts highlight="5"
+const result = await generateText({
+  model: __MODEL__,
+  tools,
+  prompt: 'Update the file, then read it.',
+  toolCallConcurrency: 1,
+});
+```
+
+This option controls execution of tool calls that the SDK runs locally. It does
+not change how many tool calls the model may generate, and it does not schedule
+provider-executed tools or client-side tools. Provider options such as
+`parallelToolCalls` control model generation instead.
+
+When the operation is aborted, active tools receive the abort signal and queued
+tool calls are not started. A streaming tool holds its concurrency slot until
+its final output or error.
+
 ### Tool execution lifecycle callbacks
 
 You can use `onToolExecutionStart` and `onToolExecutionEnd` to observe tool execution.
