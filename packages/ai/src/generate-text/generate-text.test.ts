@@ -8542,6 +8542,23 @@ describe('generateText', () => {
         expect(result.output).toEqual({ value: 'test-value' });
       });
 
+      it('should return null when the schema accepts null', async () => {
+        const result = await generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => ({
+              ...dummyResponseValues,
+              content: [{ type: 'text', text: 'null' }],
+            }),
+          }),
+          prompt: 'prompt',
+          output: Output.object({
+            schema: z.object({ value: z.string() }).nullable(),
+          }),
+        });
+
+        expect(result.output).toBeNull();
+      });
+
       it('should expose parse diagnostics when output is truncated', async () => {
         const truncatedText = '{"value":"test';
 
@@ -8821,6 +8838,23 @@ describe('generateText', () => {
           "type": "json",
         }
       `);
+      });
+    });
+
+    describe('json output', () => {
+      it('should return null', async () => {
+        const result = await generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => ({
+              ...dummyResponseValues,
+              content: [{ type: 'text', text: 'null' }],
+            }),
+          }),
+          prompt: 'prompt',
+          output: Output.json(),
+        });
+
+        expect(result.output).toBeNull();
       });
     });
 
