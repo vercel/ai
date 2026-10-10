@@ -2490,6 +2490,45 @@ describe('MCPClient', () => {
       });
     });
 
+    it('should convert typed output values to JSON model output', async () => {
+      client = await createMCPClient({
+        transport: new MockMCPTransport(),
+      });
+
+      const tools = client.toolsFromDefinitions(
+        {
+          tools: [
+            {
+              name: 'typed-tool',
+              inputSchema: { type: 'object', properties: {} },
+            },
+          ],
+        },
+        {
+          schemas: {
+            'typed-tool': {
+              inputSchema: z.object({}),
+              outputSchema: z.unknown(),
+            },
+          },
+        },
+      );
+      const tool = tools['typed-tool'];
+
+      for (const output of [{ content: [], total: 7 }, { total: 7 }, 7, null]) {
+        expect(
+          await tool.toModelOutput!({
+            toolCallId: '1',
+            input: {},
+            output,
+          }),
+        ).toEqual({
+          type: 'json',
+          value: output,
+        });
+      }
+    });
+
     it('should fallback to parsing text content when structuredContent is not present', async () => {
       const mockTransport = new MockMCPTransport({
         overrideTools: [
@@ -2911,6 +2950,22 @@ describe('MCPClient', () => {
           },
         ],
         isError: true,
+      });
+
+      expect(
+        await (tools['error-tool'].toModelOutput as Function)({
+          toolCallId: '1',
+          input: { name: 'test' },
+          output: result,
+        }),
+      ).toEqual({
+        type: 'content',
+        value: [
+          {
+            type: 'text',
+            text: 'Workflow with name "test" already exists',
+          },
+        ],
       });
     });
 
