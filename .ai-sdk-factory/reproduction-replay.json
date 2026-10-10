@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22568,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22568-google-vertex-quota-header.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22568-google-vertex-quota-header.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "BUG: auth-client quota header was not propagated to all Vertex transports"
+  }
+}
