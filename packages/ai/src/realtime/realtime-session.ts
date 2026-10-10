@@ -789,7 +789,13 @@ export abstract class AbstractRealtimeSession {
       )
         this.addToolOutput(callId, result);
     } catch (error) {
-      if (attempt.active) void this.reportError(error, attempt);
+      if (this.attempt !== attempt || !attempt.active) return;
+      const toolError =
+        error instanceof Error ? error : new Error(String(error));
+      this.applyState(
+        this.reducer.addToolError(this.state, callId, toolError.message),
+      );
+      void this.reportError(toolError, attempt);
     }
   }
 

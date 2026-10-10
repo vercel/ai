@@ -106,13 +106,37 @@ export class RealtimeEventReducer {
     result: unknown,
   ): { state: RealtimeState; output: RealtimeToolOutput } {
     return {
-      state: this.updateToolPartState(state, callId, result),
+      state: this.updateToolPartState(state, callId, toolPart => {
+        const updatedPart = { ...toolPart };
+        delete updatedPart.errorText;
+        return {
+          ...updatedPart,
+          state: 'output-available',
+          output: result,
+        } as DynamicToolUIPart;
+      }),
       output: {
         callId,
         name: this.toolCallIdToName.get(callId),
         output: JSON.stringify(result),
       },
     };
+  }
+
+  addToolError(
+    state: RealtimeState,
+    callId: string,
+    errorText: string,
+  ): RealtimeState {
+    return this.updateToolPartState(state, callId, toolPart => {
+      const updatedPart = { ...toolPart };
+      delete updatedPart.output;
+      return {
+        ...updatedPart,
+        state: 'output-error',
+        errorText,
+      } as DynamicToolUIPart;
+    });
   }
 
   async reduceServerEvent(
@@ -477,7 +501,7 @@ export class RealtimeEventReducer {
   private updateToolPartState(
     state: RealtimeState,
     callId: string,
-    result: unknown,
+    update: (toolPart: DynamicToolUIPart) => DynamicToolUIPart,
   ): RealtimeState {
     const messageId = this.toolCallIdToMessageId.get(callId);
     if (messageId == null) return state;
@@ -494,11 +518,7 @@ export class RealtimeEventReducer {
             const toolPart = part as DynamicToolUIPart;
             if (toolPart.toolCallId !== callId) return part;
 
-            return {
-              ...toolPart,
-              state: 'output-available',
-              output: result,
-            } as DynamicToolUIPart;
+            return update(toolPart);
           }),
         };
       }),
