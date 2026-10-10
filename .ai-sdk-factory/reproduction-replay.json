@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22572,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22572-output-array-root-recursion.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22572-output-array-root-recursion.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #22572: Output.array response schema rejects a valid root-recursive element"
+  }
+}
