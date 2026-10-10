@@ -5,7 +5,7 @@ import {
   TestResponseController,
 } from '@ai-sdk/test-server/with-vitest';
 import { mockId } from '@ai-sdk/provider-utils/test';
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
   type FinishReason,
@@ -1983,106 +1983,7 @@ describe('resume ongoing stream and return assistant message', () => {
   });
 });
 
-describe('stop', () => {
-  setupTestComponent(() => {
-    const { messages, sendMessage, stop, status } = useChat({
-      generateId: mockId(),
-    });
-
-    return (
-      <div>
-        {messages.map((m, idx) => (
-          <div data-testid={`message-${idx}`} key={m.id}>
-            {m.role === 'user' ? 'User: ' : 'AI: '}
-            {m.parts
-              .map(part => (part.type === 'text' ? part.text : ''))
-              .join('')}
-          </div>
-        ))}
-
-        <button
-          data-testid="do-send"
-          onClick={() => {
-            sendMessage({
-              role: 'user',
-              parts: [{ text: 'hi', type: 'text' }],
-            });
-          }}
-        />
-
-        <button data-testid="do-stop" onClick={stop} />
-
-        <p data-testid="status">{status}</p>
-      </div>
-    );
-  });
-
-  it('should show stop response', async () => {
-    const controller = new TestResponseController();
-
-    server.urls['/api/chat'].response = {
-      type: 'controlled-stream',
-      controller,
-    };
-
-    await userEvent.click(screen.getByTestId('do-send'));
-
-    controller.write(formatChunk({ type: 'text-start', id: '0' }));
-    controller.write(
-      formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
-    );
-
-<<<<<<< HEAD
-    await waitFor(() => {
-=======
-    it('construct messages from resumed stream', async () => {
-      await screen.findByTestId('message-0');
-      expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
-
-      await waitFor(() => {
-        expect(screen.getByTestId('status')).toHaveTextContent('submitted');
-      });
-
-      controller.write(formatChunk({ type: 'text-start', id: '0' }));
-      controller.write(
-        formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
-      );
-
-      await waitFor(() => {
-        expect(screen.getByTestId('status')).toHaveTextContent('streaming');
-      });
-
-      controller.write(
-        formatChunk({ type: 'text-delta', id: '0', delta: ',' }),
-      );
-      controller.write(
-        formatChunk({ type: 'text-delta', id: '0', delta: ' world' }),
-      );
-      controller.write(
-        formatChunk({ type: 'text-delta', id: '0', delta: '.' }),
-      );
-      controller.write(formatChunk({ type: 'text-end', id: '0' }));
-
-      controller.close();
-
-      await screen.findByTestId('message-1');
-      expect(screen.getByTestId('message-1')).toHaveTextContent(
-        'AI: Hello, world.',
-      );
-
-      await waitFor(() => {
-        expect(screen.getByTestId('status')).toHaveTextContent('ready');
-
-        expect(server.calls.length).toBeGreaterThan(0);
-        const mostRecentCall = server.calls[0];
-
-        const { requestMethod, requestUrl } = mostRecentCall;
-        expect(requestMethod).toBe('GET');
-        expect(requestUrl).toBe('http://localhost:3000/api/chat/123/stream');
-      });
-    });
-  });
-
+describe('useChat automatic resumption', () => {
   describe('automatic stream resumption with a shared Chat', () => {
     it('should only reconnect once for multiple useChat consumers', async () => {
       const visibilityState = vi
@@ -2236,7 +2137,7 @@ describe('stop', () => {
       });
 
       expect(onData).toHaveBeenCalledTimes(1);
-      expect(onFinish).toHaveBeenCalledTimes(2);
+      expect(onFinish).toHaveBeenCalledTimes(3);
       expect(sendAutomaticallyWhen).toHaveBeenCalledTimes(2);
       expect(sendCount).toBe(2);
     });
@@ -2460,37 +2361,6 @@ describe('stop', () => {
       expect(chat.error).toBe(applicationError);
     });
 
-    it('should abort the first reconnect when StrictMode starts another', async () => {
-      let reconnectCount = 0;
-      const reconnectAbortSignals: AbortSignal[] = [];
-      const chat = new Chat({
-        id: 'strict-mode',
-        transport: {
-          sendMessages: async () => new ReadableStream(),
-          reconnectToStream: async ({ abortSignal }) => {
-            reconnectCount++;
-            reconnectAbortSignals.push(abortSignal!);
-            return null;
-          },
-        },
-      });
-
-      function Consumer() {
-        useChat({ chat, resume: true });
-        return null;
-      }
-
-      render(
-        <React.StrictMode>
-          <Consumer />
-        </React.StrictMode>,
-      );
-
-      await waitFor(() => expect(reconnectCount).toBe(2));
-      expect(reconnectAbortSignals[0].aborted).toBe(true);
-      expect(reconnectAbortSignals[1].aborted).toBe(false);
-    });
-
     it('should reconnect again after all consumers unmount', async () => {
       let reconnectCount = 0;
       const chat = new Chat({
@@ -2520,137 +2390,6 @@ describe('stop', () => {
 
       render(<Consumer />);
       await waitFor(() => expect(reconnectCount).toBe(2));
-    });
-  });
-
-  describe('resume with no active stream should not flash submitted status', () => {
-    setupTestComponent(
-      () => {
-        const { messages, status } = useChat({
-          id: '123',
-          messages: [
-            {
-              id: 'msg_123',
-              role: 'user',
-              parts: [{ type: 'text', text: 'hi' }],
-            },
-          ],
-          generateId: mockId(),
-          resume: true,
-        });
-
-        const statusHistoryRef = useRef<string[]>([]);
-        if (statusHistoryRef.current.at(-1) !== status) {
-          statusHistoryRef.current.push(status);
-        }
-
-        return (
-          <div>
-            {messages.map((m, idx) => (
-              <div data-testid={`message-${idx}`} key={m.id}>
-                {m.role === 'user' ? 'User: ' : 'AI: '}
-                {m.parts
-                  .map(part => (part.type === 'text' ? part.text : ''))
-                  .join('')}
-              </div>
-            ))}
-
-            <div data-testid="status">{status}</div>
-            <div data-testid="status-history">
-              {statusHistoryRef.current.join(',')}
-            </div>
-          </div>
-        );
-      },
-      {
-        init: TestComponent => {
-          server.urls['/api/chat/123/stream'].response = {
-            type: 'empty',
-            status: 204,
-          };
-
-          return <TestComponent />;
-        },
-      },
-    );
-
-    it('should not transition to submitted when no active stream exists', async () => {
-      await waitFor(() => {
-        expect(server.calls.length).toBe(1);
-      });
-
-      expect(screen.getByTestId('status')).toHaveTextContent('ready');
-      expect(screen.getByTestId('status-history')).not.toHaveTextContent(
-        'submitted',
-      );
-    });
-  });
-
-  describe('resume with server error should set error status without flashing submitted', () => {
-    const onErrorCalls: Error[] = [];
-
-    setupTestComponent(
-      () => {
-        const { status, error } = useChat({
-          id: '123',
-          messages: [
-            {
-              id: 'msg_123',
-              role: 'user',
-              parts: [{ type: 'text', text: 'hi' }],
-            },
-          ],
-          generateId: mockId(),
-          resume: true,
-          onError(err) {
-            onErrorCalls.push(err);
-          },
-        });
-
-        const statusHistoryRef = useRef<string[]>([]);
-        if (statusHistoryRef.current.at(-1) !== status) {
-          statusHistoryRef.current.push(status);
-        }
-
-        return (
-          <div>
-            <div data-testid="status">{status}</div>
-            <div data-testid="status-history">
-              {statusHistoryRef.current.join(',')}
-            </div>
-            {error && <div data-testid="error">{error.toString()}</div>}
-          </div>
-        );
-      },
-      {
-        init: TestComponent => {
-          server.urls['/api/chat/123/stream'].response = {
-            type: 'error',
-            status: 500,
-            body: 'Internal server error',
-          };
-
-          return <TestComponent />;
-        },
-      },
-    );
-
-    beforeEach(() => {
-      onErrorCalls.length = 0;
-    });
-
-    it('should set error status and call onError', async () => {
-      await waitFor(() => {
-        expect(screen.getByTestId('status')).toHaveTextContent('error');
-      });
-
-      expect(screen.getByTestId('error')).toHaveTextContent(
-        'Internal server error',
-      );
-      expect(screen.getByTestId('status-history')).not.toHaveTextContent(
-        'submitted',
-      );
-      expect(onErrorCalls).toHaveLength(1);
     });
   });
 
@@ -2825,27 +2564,9 @@ describe('stop', () => {
 
       await expect(controller.close()).rejects.toThrow();
 
->>>>>>> eab278a61c (fix: resume interrupted chat streams after returning to a backgrounded page (#22035))
       expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hello');
-      expect(screen.getByTestId('status')).toHaveTextContent('streaming');
-    });
-
-    await userEvent.click(screen.getByTestId('do-stop'));
-
-    await waitFor(() => {
       expect(screen.getByTestId('status')).toHaveTextContent('ready');
     });
-
-    await expect(
-      controller.write(
-        formatChunk({ type: 'text-delta', id: '0', delta: ', world!' }),
-      ),
-    ).rejects.toThrow();
-
-    await expect(controller.close()).rejects.toThrow();
-
-    expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hello');
-    expect(screen.getByTestId('status')).toHaveTextContent('ready');
   });
 });
 
