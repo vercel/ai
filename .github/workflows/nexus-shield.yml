@@ -1,0 +1,24 @@
+name: Nexus Shield Security Gatekeeper
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  nexus-shield:
+    name: PII & Secret Leak Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Nexus Shield Gatekeeper
+        uses: baturhantasdelen-sudo/nexus-shield-action@78cb976dc3608d4539ad58270361b04e2328f450
+        with:
+          fail-on-detection: true
