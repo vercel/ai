@@ -1,0 +1,85 @@
+---
+title: telemetry.dev
+description: Monitor and trace your AI SDK application with telemetry.dev
+---
+
+# telemetry.dev Observability
+
+[telemetry.dev](https://telemetry.dev) is an OpenTelemetry-native observability platform for AI and LLM applications. It integrates with the AI SDK through `@telemetry-dev/ai-sdk`.
+
+## Setup
+
+Install the telemetry.dev integration and the AI SDK:
+
+```bash
+npm install @telemetry-dev/ai-sdk ai
+```
+
+The integration requires `ai` version 6.0.111 or later and earlier than version 8. Use the package root with AI SDK v7 and the `/v6` export with AI SDK v6.
+
+Configure your API key and any optional settings:
+
+```bash filename=".env"
+TELEMETRY_DEV_API_KEY="td_live_..."
+TELEMETRY_DEV_BASE_URL="https://ingest.telemetry.dev" # optional
+TELEMETRY_DEV_ENVIRONMENT="production" # optional
+OTEL_SERVICE_NAME="my-ai-service" # optional
+```
+
+Without `TELEMETRY_DEV_API_KEY`, the integration is a no-op.
+
+## Usage
+
+### AI SDK v7
+
+Add telemetry.dev to an individual call with the `telemetry` option:
+
+```ts
+import { generateText } from 'ai';
+import { telemetryDev } from '@telemetry-dev/ai-sdk';
+
+const { text } = await generateText({
+  model,
+  prompt: 'Summarize the incident report.',
+  telemetry: {
+    functionId: 'my-function',
+    integrations: [telemetryDev()],
+  },
+});
+```
+
+You can also register the integration globally:
+
+```ts
+import { registerTelemetry } from 'ai';
+import { telemetryDev } from '@telemetry-dev/ai-sdk';
+
+registerTelemetry(telemetryDev());
+```
+
+AI SDK v7 support covers `generateText`, `streamText`, `Agent`, `generateObject`, `streamObject`, `embed`, `embedMany`, and `rerank`.
+
+### AI SDK v6
+
+Import the v6 entry point and use `experimental_telemetry`:
+
+```ts
+import { generateText } from 'ai';
+import { telemetryDev } from '@telemetry-dev/ai-sdk/v6';
+
+const { text } = await generateText({
+  model,
+  prompt: 'Summarize the incident report.',
+  experimental_telemetry: {
+    functionId: 'my-function',
+    integrations: [telemetryDev()],
+  },
+});
+```
+
+Each call becomes an OpenTelemetry trace with `gen_ai.*` semantic conventions and spans for each model step and tool call. Traces include token usage, latency, and errors; telemetry.dev computes cost server-side from the recorded token usage.
+
+## Resources
+
+- [telemetry.dev AI SDK integration guide](https://telemetry.dev/integrations/vercel-ai-sdk)
+- [`@telemetry-dev/ai-sdk` on npm](https://www.npmjs.com/package/@telemetry-dev/ai-sdk)
