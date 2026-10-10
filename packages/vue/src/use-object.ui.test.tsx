@@ -4,7 +4,7 @@ import {
 } from '@ai-sdk/test-server/with-vitest';
 import { cleanup, screen, waitFor } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
-import { effectScope } from 'vue';
+import { effectScope, watch } from 'vue';
 import { z } from 'zod/v4';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { setupTestComponent } from './setup-test-component';
@@ -267,6 +267,42 @@ describe('cancellation', () => {
     await result.stop();
     await request;
 
+    expect(fetch).not.toHaveBeenCalled();
+    expect(result.object.value).toBeUndefined();
+    expect(result.isLoading.value).toBe(false);
+    scope.stop();
+  });
+
+  it('stops a submission synchronously when loading starts', async () => {
+    const fetch = vi.fn(async () => new Response('{"content":"unexpected"}'));
+    let stopRequest: Promise<void> | undefined;
+    const scope = effectScope();
+    const result = scope.run(() => {
+      const result = useObject({
+        api: '/api/use-object',
+        schema: z.object({ content: z.string() }),
+        fetch,
+      });
+
+      watch(
+        result.isLoading,
+        isLoading => {
+          if (isLoading) {
+            stopRequest = result.stop() as unknown as Promise<void>;
+          }
+        },
+        { flush: 'sync' },
+      );
+
+      return result;
+    })!;
+
+    const request = result.submit('test-input') as unknown as Promise<void>;
+    await waitFor(() => expect(stopRequest).toBeDefined());
+    await stopRequest;
+
+    expect(result.isLoading.value).toBe(false);
+    await request;
     expect(fetch).not.toHaveBeenCalled();
     expect(result.object.value).toBeUndefined();
     expect(result.isLoading.value).toBe(false);

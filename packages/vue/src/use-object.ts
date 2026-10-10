@@ -153,6 +153,13 @@ export function useObject<
 
       await mutateLoading(() => true);
 
+      if (currentAbortController.signal.aborted) {
+        if (abortController === null) {
+          await mutateLoading(() => false);
+        }
+        return;
+      }
+
       const actualFetch = fetch ?? getOriginalFetch();
       const response = await actualFetch(api, {
         method: 'POST',
