@@ -141,11 +141,17 @@ export function useObject<
   };
 
   const submit = async (input: INPUT) => {
+    const currentAbortController = new AbortController();
+    abortController = currentAbortController;
+
     try {
       await clearObject();
-      await mutateLoading(() => true);
 
-      abortController = new AbortController();
+      if (currentAbortController.signal.aborted) {
+        return;
+      }
+
+      await mutateLoading(() => true);
 
       const actualFetch = fetch ?? getOriginalFetch();
       const response = await actualFetch(api, {
@@ -155,7 +161,7 @@ export function useObject<
           ...(headers as any),
         },
         credentials: credentials ?? 'same-origin',
-        signal: abortController.signal,
+        signal: currentAbortController.signal,
         body: JSON.stringify(input),
       });
 

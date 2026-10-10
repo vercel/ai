@@ -4,10 +4,13 @@ import {
 } from '@ai-sdk/test-server/with-vitest';
 import { cleanup, screen, waitFor } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
+import { effectScope } from 'vue';
+import { z } from 'zod/v4';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { setupTestComponent } from './setup-test-component';
 import TestUseObjectComponent from './TestUseObjectComponent.vue';
 import TestUseObjectCustomTransportComponent from './TestUseObjectCustomTransportComponent.vue';
+import { useObject } from './use-object';
 
 const server = createTestServer({
   '/api/use-object': {},
@@ -245,5 +248,28 @@ describe('text stream', () => {
       await userEvent.click(screen.getByTestId('submit-button'));
       expect(server.calls[0].requestCredentials).toBe('include');
     });
+  });
+});
+
+describe('cancellation', () => {
+  it('stops a submission before its request starts', async () => {
+    const fetch = vi.fn(async () => new Response('{"content":"unexpected"}'));
+    const scope = effectScope();
+    const result = scope.run(() =>
+      useObject({
+        api: '/api/use-object',
+        schema: z.object({ content: z.string() }),
+        fetch,
+      }),
+    )!;
+
+    const request = result.submit('test-input') as unknown as Promise<void>;
+    await result.stop();
+    await request;
+
+    expect(fetch).not.toHaveBeenCalled();
+    expect(result.object.value).toBeUndefined();
+    expect(result.isLoading.value).toBe(false);
+    scope.stop();
   });
 });
