@@ -106,7 +106,8 @@ and support structured data generation with [`Output`](/docs/reference/ai-sdk-co
 
 During streaming, each Anthropic `message_start` event is exposed as an
 `anthropic.message_start` custom stream part containing the message ID, model,
-and raw initial token usage. No provider option is required.
+and raw initial token usage when the `includeMessageStart` provider option is
+enabled.
 
 ```ts
 import { anthropic } from '@ai-sdk/anthropic';
@@ -115,6 +116,11 @@ import { streamText } from 'ai';
 const result = streamText({
   model: anthropic('claude-haiku-5-5'),
   prompt: 'Say hi in one word.',
+  providerOptions: {
+    anthropic: {
+      includeMessageStart: true,
+    },
+  },
 });
 
 for await (const part of result.fullStream) {
@@ -131,6 +137,11 @@ to UI message streams. It is ignored when replaying conversation history to Anth
 ### Provider options
 
 The following optional provider options are available for Anthropic models:
+
+- `includeMessageStart` _boolean_
+
+  Optional. Includes Anthropic `message_start` events as custom stream parts.
+  Defaults to `false`.
 
 - `disableParallelToolUse` _boolean_
 

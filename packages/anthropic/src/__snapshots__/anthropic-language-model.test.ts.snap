@@ -1674,27 +1674,6 @@ exports[`AnthropicLanguageModel > doStream > agent skills > should stream code e
     "type": "response-metadata",
   },
   {
-    "kind": "anthropic.message_start",
-    "providerMetadata": {
-      "anthropic": {
-        "id": "msg_01Bu3u6DZfwcuhDWUQMQJz39",
-        "model": "claude-sonnet-4-5-20250929",
-        "usage": {
-          "cache_creation": {
-            "ephemeral_1h_input_tokens": 0,
-            "ephemeral_5m_input_tokens": 0,
-          },
-          "cache_creation_input_tokens": 0,
-          "cache_read_input_tokens": 0,
-          "input_tokens": 2751,
-          "output_tokens": 2,
-          "service_tier": "standard",
-        },
-      },
-    },
-    "type": "custom",
-  },
-  {
     "id": "0",
     "type": "text-start",
   },
@@ -5427,27 +5406,6 @@ exports[`AnthropicLanguageModel > doStream > code execution 20250825 tool > shou
     "id": "msg_01ER9WDtM4ZYgPLrGMbiNZu6",
     "modelId": "claude-sonnet-4-5-20250929",
     "type": "response-metadata",
-  },
-  {
-    "kind": "anthropic.message_start",
-    "providerMetadata": {
-      "anthropic": {
-        "id": "msg_01ER9WDtM4ZYgPLrGMbiNZu6",
-        "model": "claude-sonnet-4-5-20250929",
-        "usage": {
-          "cache_creation": {
-            "ephemeral_1h_input_tokens": 0,
-            "ephemeral_5m_input_tokens": 0,
-          },
-          "cache_creation_input_tokens": 0,
-          "cache_read_input_tokens": 0,
-          "input_tokens": 2273,
-          "output_tokens": 3,
-          "service_tier": "standard",
-        },
-      },
-    },
-    "type": "custom",
   },
   {
     "id": "0",
@@ -10524,27 +10482,6 @@ exports[`AnthropicLanguageModel > doStream > code execution 20250825 tool > shou
     "type": "response-metadata",
   },
   {
-    "kind": "anthropic.message_start",
-    "providerMetadata": {
-      "anthropic": {
-        "id": "msg_01LEsrXVCLpf7xHaFdFTZNEJ",
-        "model": "claude-sonnet-4-5-20250929",
-        "usage": {
-          "cache_creation": {
-            "ephemeral_1h_input_tokens": 0,
-            "ephemeral_5m_input_tokens": 0,
-          },
-          "cache_creation_input_tokens": 0,
-          "cache_read_input_tokens": 0,
-          "input_tokens": 2263,
-          "output_tokens": 8,
-          "service_tier": "standard",
-        },
-      },
-    },
-    "type": "custom",
-  },
-  {
     "id": "0",
     "type": "text-start",
   },
@@ -11861,27 +11798,6 @@ exports[`AnthropicLanguageModel > doStream > code execution 20260120 tool > shou
     "id": "msg_01LEsrXVCLpf7xHaFdFTZNEJ",
     "modelId": "claude-sonnet-4-5-20250929",
     "type": "response-metadata",
-  },
-  {
-    "kind": "anthropic.message_start",
-    "providerMetadata": {
-      "anthropic": {
-        "id": "msg_01LEsrXVCLpf7xHaFdFTZNEJ",
-        "model": "claude-sonnet-4-5-20250929",
-        "usage": {
-          "cache_creation": {
-            "ephemeral_1h_input_tokens": 0,
-            "ephemeral_5m_input_tokens": 0,
-          },
-          "cache_creation_input_tokens": 0,
-          "cache_read_input_tokens": 0,
-          "input_tokens": 2263,
-          "output_tokens": 8,
-          "service_tier": "standard",
-        },
-      },
-    },
-    "type": "custom",
   },
   {
     "id": "0",
@@ -13202,27 +13118,6 @@ exports[`AnthropicLanguageModel > doStream > json schema response format with ou
     "type": "response-metadata",
   },
   {
-    "kind": "anthropic.message_start",
-    "providerMetadata": {
-      "anthropic": {
-        "id": "msg_01KbeodbKEyjf2fLb2Jnkr5s",
-        "model": "claude-sonnet-4-5-20250929",
-        "usage": {
-          "cache_creation": {
-            "ephemeral_1h_input_tokens": 0,
-            "ephemeral_5m_input_tokens": 0,
-          },
-          "cache_creation_input_tokens": 0,
-          "cache_read_input_tokens": 0,
-          "input_tokens": 313,
-          "output_tokens": 1,
-          "service_tier": "standard",
-        },
-      },
-    },
-    "type": "custom",
-  },
-  {
     "id": "0",
     "type": "text-start",
   },
@@ -13865,27 +13760,6 @@ exports[`AnthropicLanguageModel > doStream > mcp servers > should stream code ex
     "type": "response-metadata",
   },
   {
-    "kind": "anthropic.message_start",
-    "providerMetadata": {
-      "anthropic": {
-        "id": "msg_01RNdvgjHoLmx2THF9AVj3KK",
-        "model": "claude-sonnet-4-5-20250929",
-        "usage": {
-          "cache_creation": {
-            "ephemeral_1h_input_tokens": 0,
-            "ephemeral_5m_input_tokens": 0,
-          },
-          "cache_creation_input_tokens": 0,
-          "cache_read_input_tokens": 0,
-          "input_tokens": 589,
-          "output_tokens": 1,
-          "service_tier": "standard",
-        },
-      },
-    },
-    "type": "custom",
-  },
-  {
     "dynamic": true,
     "input": "{}",
     "providerExecuted": true,
@@ -14014,27 +13888,6 @@ exports[`AnthropicLanguageModel > doStream > programmatic tool calling > with fi
     "id": "msg_01ERcBqAvLTHWQDk9c9qJLWC",
     "modelId": "claude-sonnet-4-5-20250929",
     "type": "response-metadata",
-  },
-  {
-    "kind": "anthropic.message_start",
-    "providerMetadata": {
-      "anthropic": {
-        "id": "msg_01ERcBqAvLTHWQDk9c9qJLWC",
-        "model": "claude-sonnet-4-5-20250929",
-        "usage": {
-          "cache_creation": {
-            "ephemeral_1h_input_tokens": 0,
-            "ephemeral_5m_input_tokens": 0,
-          },
-          "cache_creation_input_tokens": 0,
-          "cache_read_input_tokens": 0,
-          "input_tokens": 3369,
-          "output_tokens": 5,
-          "service_tier": "standard",
-        },
-      },
-    },
-    "type": "custom",
   },
   {
     "id": "0",
@@ -14939,23 +14792,6 @@ exports[`AnthropicLanguageModel > doStream > programmatic tool calling > with fi
     "type": "response-metadata",
   },
   {
-    "kind": "anthropic.message_start",
-    "providerMetadata": {
-      "anthropic": {
-        "id": "msg_01KSVw3xmXbMNJPNMt46BC5W",
-        "model": "claude-sonnet-4-5-20250929",
-        "usage": {
-          "input_tokens": 0,
-          "output_tokens": 0,
-          "server_tool_use": {
-            "web_search_requests": 0,
-          },
-        },
-      },
-    },
-    "type": "custom",
-  },
-  {
     "id": "toolu_015dGLMbwBKv1ZRQr6KdJzeH",
     "toolName": "rollDie",
     "type": "tool-input-start",
@@ -15033,23 +14869,6 @@ exports[`AnthropicLanguageModel > doStream > programmatic tool calling > with fi
     "id": "msg_016fLapHzDx8DG2SUcsGKyPA",
     "modelId": "claude-sonnet-4-5-20250929",
     "type": "response-metadata",
-  },
-  {
-    "kind": "anthropic.message_start",
-    "providerMetadata": {
-      "anthropic": {
-        "id": "msg_016fLapHzDx8DG2SUcsGKyPA",
-        "model": "claude-sonnet-4-5-20250929",
-        "usage": {
-          "input_tokens": 0,
-          "output_tokens": 0,
-          "server_tool_use": {
-            "web_search_requests": 0,
-          },
-        },
-      },
-    },
-    "type": "custom",
   },
   {
     "id": "toolu_01YYqBNq5mk1wMtv3PAqY44m",
@@ -15131,23 +14950,6 @@ exports[`AnthropicLanguageModel > doStream > programmatic tool calling > with fi
     "type": "response-metadata",
   },
   {
-    "kind": "anthropic.message_start",
-    "providerMetadata": {
-      "anthropic": {
-        "id": "msg_01MQHz6AzmwmZoTry5nk5EQC",
-        "model": "claude-sonnet-4-5-20250929",
-        "usage": {
-          "input_tokens": 0,
-          "output_tokens": 0,
-          "server_tool_use": {
-            "web_search_requests": 0,
-          },
-        },
-      },
-    },
-    "type": "custom",
-  },
-  {
     "id": "toolu_018WxjDkQG8h7i63poySGT2x",
     "toolName": "rollDie",
     "type": "tool-input-start",
@@ -15225,23 +15027,6 @@ exports[`AnthropicLanguageModel > doStream > programmatic tool calling > with fi
     "id": "msg_01WCXNc8kDU1jBuaza6uUZ8k",
     "modelId": "claude-sonnet-4-5-20250929",
     "type": "response-metadata",
-  },
-  {
-    "kind": "anthropic.message_start",
-    "providerMetadata": {
-      "anthropic": {
-        "id": "msg_01WCXNc8kDU1jBuaza6uUZ8k",
-        "model": "claude-sonnet-4-5-20250929",
-        "usage": {
-          "input_tokens": 0,
-          "output_tokens": 0,
-          "server_tool_use": {
-            "web_search_requests": 0,
-          },
-        },
-      },
-    },
-    "type": "custom",
   },
   {
     "id": "toolu_014ch4D3vbx928ddwxMvMvF1",
@@ -15323,23 +15108,6 @@ exports[`AnthropicLanguageModel > doStream > programmatic tool calling > with fi
     "type": "response-metadata",
   },
   {
-    "kind": "anthropic.message_start",
-    "providerMetadata": {
-      "anthropic": {
-        "id": "msg_01Hoo8fVNFQyUpbagnajQ4BF",
-        "model": "claude-sonnet-4-5-20250929",
-        "usage": {
-          "input_tokens": 0,
-          "output_tokens": 0,
-          "server_tool_use": {
-            "web_search_requests": 0,
-          },
-        },
-      },
-    },
-    "type": "custom",
-  },
-  {
     "id": "toolu_01QtZ46GWS93Z5ZaSifgGNnq",
     "toolName": "rollDie",
     "type": "tool-input-start",
@@ -15417,23 +15185,6 @@ exports[`AnthropicLanguageModel > doStream > programmatic tool calling > with fi
     "id": "msg_014eWUw8H2P9bDMyXcSpe1ss",
     "modelId": "claude-sonnet-4-5-20250929",
     "type": "response-metadata",
-  },
-  {
-    "kind": "anthropic.message_start",
-    "providerMetadata": {
-      "anthropic": {
-        "id": "msg_014eWUw8H2P9bDMyXcSpe1ss",
-        "model": "claude-sonnet-4-5-20250929",
-        "usage": {
-          "input_tokens": 0,
-          "output_tokens": 0,
-          "server_tool_use": {
-            "web_search_requests": 0,
-          },
-        },
-      },
-    },
-    "type": "custom",
   },
   {
     "id": "toolu_012Zvp8FdgvjVGkmbHSU4EZk",
@@ -15515,23 +15266,6 @@ exports[`AnthropicLanguageModel > doStream > programmatic tool calling > with fi
     "type": "response-metadata",
   },
   {
-    "kind": "anthropic.message_start",
-    "providerMetadata": {
-      "anthropic": {
-        "id": "msg_015ecR3hog8LhtqDLdysH8p1",
-        "model": "claude-sonnet-4-5-20250929",
-        "usage": {
-          "input_tokens": 0,
-          "output_tokens": 0,
-          "server_tool_use": {
-            "web_search_requests": 0,
-          },
-        },
-      },
-    },
-    "type": "custom",
-  },
-  {
     "id": "toolu_01CMz8Jhv6EfnzHQzEMdpHut",
     "toolName": "rollDie",
     "type": "tool-input-start",
@@ -15609,23 +15343,6 @@ exports[`AnthropicLanguageModel > doStream > programmatic tool calling > with fi
     "id": "msg_01CHzXfYTqEJ9HV3Kic1Uz5q",
     "modelId": "claude-sonnet-4-5-20250929",
     "type": "response-metadata",
-  },
-  {
-    "kind": "anthropic.message_start",
-    "providerMetadata": {
-      "anthropic": {
-        "id": "msg_01CHzXfYTqEJ9HV3Kic1Uz5q",
-        "model": "claude-sonnet-4-5-20250929",
-        "usage": {
-          "input_tokens": 0,
-          "output_tokens": 0,
-          "server_tool_use": {
-            "web_search_requests": 0,
-          },
-        },
-      },
-    },
-    "type": "custom",
   },
   {
     "id": "toolu_01PfH6ADzq8Yct5jeRY9QkS2",
@@ -15707,23 +15424,6 @@ exports[`AnthropicLanguageModel > doStream > programmatic tool calling > with fi
     "type": "response-metadata",
   },
   {
-    "kind": "anthropic.message_start",
-    "providerMetadata": {
-      "anthropic": {
-        "id": "msg_014nyoTPq6LG3UwHW1zvMTH3",
-        "model": "claude-sonnet-4-5-20250929",
-        "usage": {
-          "input_tokens": 0,
-          "output_tokens": 0,
-          "server_tool_use": {
-            "web_search_requests": 0,
-          },
-        },
-      },
-    },
-    "type": "custom",
-  },
-  {
     "id": "toolu_013DE3qaKvBMheZXUhwkvpdF",
     "toolName": "rollDie",
     "type": "tool-input-start",
@@ -15801,23 +15501,6 @@ exports[`AnthropicLanguageModel > doStream > programmatic tool calling > with fi
     "id": "msg_01HLQ2uhM6N45SyR39CddV55",
     "modelId": "claude-sonnet-4-5-20250929",
     "type": "response-metadata",
-  },
-  {
-    "kind": "anthropic.message_start",
-    "providerMetadata": {
-      "anthropic": {
-        "id": "msg_01HLQ2uhM6N45SyR39CddV55",
-        "model": "claude-sonnet-4-5-20250929",
-        "usage": {
-          "input_tokens": 0,
-          "output_tokens": 0,
-          "server_tool_use": {
-            "web_search_requests": 0,
-          },
-        },
-      },
-    },
-    "type": "custom",
   },
   {
     "id": "toolu_01MTRMy9BEvFHWR7hpCWc4nJ",
@@ -15899,23 +15582,6 @@ exports[`AnthropicLanguageModel > doStream > programmatic tool calling > with fi
     "type": "response-metadata",
   },
   {
-    "kind": "anthropic.message_start",
-    "providerMetadata": {
-      "anthropic": {
-        "id": "msg_01TdKL1d8pQ9hLtyzbPUNGNf",
-        "model": "claude-sonnet-4-5-20250929",
-        "usage": {
-          "input_tokens": 0,
-          "output_tokens": 0,
-          "server_tool_use": {
-            "web_search_requests": 0,
-          },
-        },
-      },
-    },
-    "type": "custom",
-  },
-  {
     "id": "toolu_01CXqv27ozPihE5nj6eA3Joc",
     "toolName": "rollDie",
     "type": "tool-input-start",
@@ -15993,23 +15659,6 @@ exports[`AnthropicLanguageModel > doStream > programmatic tool calling > with fi
     "id": "msg_01Q5bmB7EBDZYRnY5A78n34S",
     "modelId": "claude-sonnet-4-5-20250929",
     "type": "response-metadata",
-  },
-  {
-    "kind": "anthropic.message_start",
-    "providerMetadata": {
-      "anthropic": {
-        "id": "msg_01Q5bmB7EBDZYRnY5A78n34S",
-        "model": "claude-sonnet-4-5-20250929",
-        "usage": {
-          "input_tokens": 0,
-          "output_tokens": 0,
-          "server_tool_use": {
-            "web_search_requests": 0,
-          },
-        },
-      },
-    },
-    "type": "custom",
   },
   {
     "id": "toolu_01K6ST6orjmPHHwM8rwLj1n9",
@@ -16091,23 +15740,6 @@ exports[`AnthropicLanguageModel > doStream > programmatic tool calling > with fi
     "type": "response-metadata",
   },
   {
-    "kind": "anthropic.message_start",
-    "providerMetadata": {
-      "anthropic": {
-        "id": "msg_01E9RpqZHoGBsPDB9P3r1aBA",
-        "model": "claude-sonnet-4-5-20250929",
-        "usage": {
-          "input_tokens": 0,
-          "output_tokens": 0,
-          "server_tool_use": {
-            "web_search_requests": 0,
-          },
-        },
-      },
-    },
-    "type": "custom",
-  },
-  {
     "id": "toolu_01QcWWQcQ1pd7nx9xohX4zAr",
     "toolName": "rollDie",
     "type": "tool-input-start",
@@ -16185,27 +15817,6 @@ exports[`AnthropicLanguageModel > doStream > programmatic tool calling > with fi
     "id": "msg_01CfmDducyrt61n4Q7QS8VFK",
     "modelId": "claude-sonnet-4-5-20250929",
     "type": "response-metadata",
-  },
-  {
-    "kind": "anthropic.message_start",
-    "providerMetadata": {
-      "anthropic": {
-        "id": "msg_01CfmDducyrt61n4Q7QS8VFK",
-        "model": "claude-sonnet-4-5-20250929",
-        "usage": {
-          "cache_creation": {
-            "ephemeral_1h_input_tokens": 0,
-            "ephemeral_5m_input_tokens": 0,
-          },
-          "cache_creation_input_tokens": 0,
-          "cache_read_input_tokens": 0,
-          "input_tokens": 4551,
-          "output_tokens": 1,
-          "service_tier": "standard",
-        },
-      },
-    },
-    "type": "custom",
   },
   {
     "result": {
@@ -16745,27 +16356,6 @@ exports[`AnthropicLanguageModel > doStream > tool search tool > bm25 variant > s
     "type": "response-metadata",
   },
   {
-    "kind": "anthropic.message_start",
-    "providerMetadata": {
-      "anthropic": {
-        "id": "msg_011bqgzot9grwdetCByUmXRP",
-        "model": "claude-sonnet-4-5-20250929",
-        "usage": {
-          "cache_creation": {
-            "ephemeral_1h_input_tokens": 0,
-            "ephemeral_5m_input_tokens": 0,
-          },
-          "cache_creation_input_tokens": 0,
-          "cache_read_input_tokens": 0,
-          "input_tokens": 699,
-          "output_tokens": 5,
-          "service_tier": "standard",
-        },
-      },
-    },
-    "type": "custom",
-  },
-  {
     "id": "0",
     "type": "text-start",
   },
@@ -16988,27 +16578,6 @@ exports[`AnthropicLanguageModel > doStream > tool search tool > bm25 variant > s
     "type": "response-metadata",
   },
   {
-    "kind": "anthropic.message_start",
-    "providerMetadata": {
-      "anthropic": {
-        "id": "msg_0132hQ7tpsGJhdPtEBhmKA2R",
-        "model": "claude-sonnet-4-5-20250929",
-        "usage": {
-          "cache_creation": {
-            "ephemeral_1h_input_tokens": 0,
-            "ephemeral_5m_input_tokens": 0,
-          },
-          "cache_creation_input_tokens": 0,
-          "cache_read_input_tokens": 0,
-          "input_tokens": 1040,
-          "output_tokens": 1,
-          "service_tier": "standard",
-        },
-      },
-    },
-    "type": "custom",
-  },
-  {
     "id": "0",
     "type": "text-start",
   },
@@ -17122,27 +16691,6 @@ exports[`AnthropicLanguageModel > doStream > tool search tool > regex variant > 
     "id": "msg_01A4vjL51mNRof8JMvA9CFph",
     "modelId": "claude-sonnet-4-5-20250929",
     "type": "response-metadata",
-  },
-  {
-    "kind": "anthropic.message_start",
-    "providerMetadata": {
-      "anthropic": {
-        "id": "msg_01A4vjL51mNRof8JMvA9CFph",
-        "model": "claude-sonnet-4-5-20250929",
-        "usage": {
-          "cache_creation": {
-            "ephemeral_1h_input_tokens": 0,
-            "ephemeral_5m_input_tokens": 0,
-          },
-          "cache_creation_input_tokens": 0,
-          "cache_read_input_tokens": 0,
-          "input_tokens": 722,
-          "output_tokens": 1,
-          "service_tier": "standard",
-        },
-      },
-    },
-    "type": "custom",
   },
   {
     "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
@@ -17369,27 +16917,6 @@ exports[`AnthropicLanguageModel > doStream > tool search tool > regex variant > 
     "type": "response-metadata",
   },
   {
-    "kind": "anthropic.message_start",
-    "providerMetadata": {
-      "anthropic": {
-        "id": "msg_01L42mFXxzijtGwwfiLdKoUn",
-        "model": "claude-sonnet-4-5-20250929",
-        "usage": {
-          "cache_creation": {
-            "ephemeral_1h_input_tokens": 0,
-            "ephemeral_5m_input_tokens": 0,
-          },
-          "cache_creation_input_tokens": 0,
-          "cache_read_input_tokens": 0,
-          "input_tokens": 1071,
-          "output_tokens": 1,
-          "service_tier": "standard",
-        },
-      },
-    },
-    "type": "custom",
-  },
-  {
     "id": "0",
     "type": "text-start",
   },
@@ -17532,28 +17059,6 @@ exports[`AnthropicLanguageModel > doStream > web fetch 20260209 tool > input pro
     "id": "msg_01VYExUoD2gEMU8ZX5j5XBEZ",
     "modelId": "claude-sonnet-4-6",
     "type": "response-metadata",
-  },
-  {
-    "kind": "anthropic.message_start",
-    "providerMetadata": {
-      "anthropic": {
-        "id": "msg_01VYExUoD2gEMU8ZX5j5XBEZ",
-        "model": "claude-sonnet-4-6",
-        "usage": {
-          "cache_creation": {
-            "ephemeral_1h_input_tokens": 0,
-            "ephemeral_5m_input_tokens": 0,
-          },
-          "cache_creation_input_tokens": 0,
-          "cache_read_input_tokens": 0,
-          "inference_geo": "global",
-          "input_tokens": 3456,
-          "output_tokens": 21,
-          "service_tier": "standard",
-        },
-      },
-    },
-    "type": "custom",
   },
   {
     "id": "srvtoolu_01LKcA5qc1HwvLQSe3cLKmcK",
@@ -17912,27 +17417,6 @@ exports[`AnthropicLanguageModel > doStream > web fetch tool > txt response > sho
     "id": "msg_01GpfwV1W5Ase72fzb8F45bX",
     "modelId": "claude-sonnet-4-20250514",
     "type": "response-metadata",
-  },
-  {
-    "kind": "anthropic.message_start",
-    "providerMetadata": {
-      "anthropic": {
-        "id": "msg_01GpfwV1W5Ase72fzb8F45bX",
-        "model": "claude-sonnet-4-20250514",
-        "usage": {
-          "cache_creation": {
-            "ephemeral_1h_input_tokens": 0,
-            "ephemeral_5m_input_tokens": 0,
-          },
-          "cache_creation_input_tokens": 0,
-          "cache_read_input_tokens": 0,
-          "input_tokens": 868,
-          "output_tokens": 5,
-          "service_tier": "standard",
-        },
-      },
-    },
-    "type": "custom",
   },
   {
     "id": "0",
@@ -18358,27 +17842,6 @@ exports[`AnthropicLanguageModel > doStream > web search tool > should stream web
     "id": "msg_01LHpEgU4KbfgXGVi3UtHQY1",
     "modelId": "claude-sonnet-4-20250514",
     "type": "response-metadata",
-  },
-  {
-    "kind": "anthropic.message_start",
-    "providerMetadata": {
-      "anthropic": {
-        "id": "msg_01LHpEgU4KbfgXGVi3UtHQY1",
-        "model": "claude-sonnet-4-20250514",
-        "usage": {
-          "cache_creation": {
-            "ephemeral_1h_input_tokens": 0,
-            "ephemeral_5m_input_tokens": 0,
-          },
-          "cache_creation_input_tokens": 0,
-          "cache_read_input_tokens": 0,
-          "input_tokens": 2037,
-          "output_tokens": 1,
-          "service_tier": "standard",
-        },
-      },
-    },
-    "type": "custom",
   },
   {
     "id": "srvtoolu_01Bj5uzzLcYG5hfueSLcDH8k",
