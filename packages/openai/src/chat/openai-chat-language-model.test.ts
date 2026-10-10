@@ -1093,6 +1093,49 @@ describe('doGenerate', () => {
       });
     });
 
+    it('should fall back to "json_object" when the schema root is not an object', async () => {
+      prepareJsonFixtureResponse('openai-text');
+
+      const model = provider.chat('gpt-4o-2024-08-06');
+
+      const { warnings } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: { word: { type: 'string' } },
+              required: ['word'],
+              additionalProperties: false,
+            },
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+
+      // OpenAI rejects an array root for `json_schema` with
+      // `invalid_json_schema`, so the request must not send one:
+      expect(body.response_format).toStrictEqual({ type: 'json_object' });
+
+      // the schema is passed through the prompt instead:
+      expect(body.messages[0].role).toBe('system');
+      expect(body.messages[0].content).toContain('"type":"array"');
+      expect(body.messages[0].content).toContain(
+        'You MUST answer with JSON that matches the JSON schema above.',
+      );
+
+      expect(warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'responseFormat schema root',
+        details: expect.stringContaining(
+          'require a JSON schema with an object at the root',
+        ),
+      });
+    });
+
     it('should forward json response format as "json_object" and include schema', async () => {
       prepareJsonFixtureResponse('openai-text');
 
