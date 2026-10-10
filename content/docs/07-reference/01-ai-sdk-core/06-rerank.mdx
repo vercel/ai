@@ -204,6 +204,12 @@ const { ranking } = await rerank({
       ],
     },
     {
+      name: 'warnings',
+      type: 'Array<Warning>',
+      description:
+        'Warnings from the reranking model, such as unsupported settings or compatibility behavior.',
+    },
+    {
       name: 'response',
       type: 'Response',
       description: 'Response data.',

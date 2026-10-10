@@ -5,6 +5,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockRerankingModelV4 } from '../test/mock-reranking-model-v4';
+import type { Warning } from '../types/warning';
 import { rerank } from './rerank';
 import type { RerankStartEvent, RerankEndEvent } from './rerank-events';
 import type { RerankResult } from './rerank-result';
@@ -381,6 +382,80 @@ describe('rerank', () => {
           "timestamp": 2025-01-01T00:00:00.000Z,
         }
       `);
+    });
+  });
+
+  describe('warnings', () => {
+    let logWarningsSpy: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      logWarningsSpy = vi
+        .spyOn(logWarningsModule, 'logWarnings')
+        .mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      logWarningsSpy.mockRestore();
+    });
+
+    it('should return provider warnings and preserve warning callbacks and logging', async () => {
+      const warnings: Warning[] = [
+        {
+          type: 'compatibility',
+          feature: 'object documents',
+          details: 'Object documents are converted to strings.',
+        },
+      ];
+      let eventWarnings: Warning[] | undefined;
+
+      const result = await rerank({
+        model: new MockRerankingModelV4({
+          doRerank: async () => ({
+            ranking: [{ index: 0, relevanceScore: 1 }],
+            warnings,
+          }),
+        }),
+        documents: [{ title: 'hello' }],
+        query: 'hello',
+        onEnd: event => {
+          eventWarnings = event.warnings;
+        },
+      });
+
+      expect(result.warnings).toEqual(warnings);
+      expect(eventWarnings).toEqual(warnings);
+      expect(logWarningsSpy).toHaveBeenCalledWith({
+        warnings,
+        provider: 'mock-provider',
+        model: 'mock-model-id',
+      });
+    });
+
+    it('should return an empty array when the provider returns no warnings', async () => {
+      const result = await rerank({
+        model: new MockRerankingModelV4({
+          doRerank: async () => ({
+            ranking: [{ index: 0, relevanceScore: 1 }],
+          }),
+        }),
+        documents: ['hello'],
+        query: 'hello',
+      });
+
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('should return an empty array when documents are empty', async () => {
+      const doRerank = vi.fn();
+
+      const result = await rerank({
+        model: new MockRerankingModelV4({ doRerank }),
+        documents: [] as string[],
+        query: 'hello',
+      });
+
+      expect(result.warnings).toEqual([]);
+      expect(doRerank).not.toHaveBeenCalled();
     });
   });
 

@@ -1,6 +1,7 @@
 import type { Context } from '@ai-sdk/provider-utils';
 import { describe, it, expectTypeOf } from 'vitest';
 import { MockRerankingModelV4 } from '../test/mock-reranking-model-v4';
+import type { Warning } from '../types/warning';
 import { rerank } from './rerank';
 
 describe('runtimeContext', () => {
@@ -94,6 +95,7 @@ it('preserves document inference alongside runtime context', async () => {
   expectTypeOf(result.originalDocuments).toEqualTypeOf<
     Array<{ title: string }>
   >();
+  expectTypeOf(result.warnings).toEqualTypeOf<Array<Warning>>();
 
   const explicit = await rerank<string>({
     model: new MockRerankingModelV4(),

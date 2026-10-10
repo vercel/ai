@@ -215,6 +215,7 @@ export async function rerank<
     return new DefaultRerankResult({
       originalDocuments: [],
       ranking: [],
+      warnings: [],
       providerMetadata: undefined,
       response: {
         timestamp: new Date(),
@@ -347,6 +348,7 @@ export async function rerank<
             score: ranking.relevanceScore,
             document: documents[ranking.index],
           })),
+          warnings: warnings ?? [],
           providerMetadata,
           response: {
             id: response?.id,
@@ -384,17 +386,20 @@ function validateRankingIndices<VALUE>({
 class DefaultRerankResult<VALUE> implements RerankResult<VALUE> {
   readonly originalDocuments: RerankResult<VALUE>['originalDocuments'];
   readonly ranking: RerankResult<VALUE>['ranking'];
+  readonly warnings: RerankResult<VALUE>['warnings'];
   readonly response: RerankResult<VALUE>['response'];
   readonly providerMetadata: RerankResult<VALUE>['providerMetadata'];
 
   constructor(options: {
     originalDocuments: RerankResult<VALUE>['originalDocuments'];
     ranking: RerankResult<VALUE>['ranking'];
+    warnings: RerankResult<VALUE>['warnings'];
     providerMetadata?: RerankResult<VALUE>['providerMetadata'];
     response: RerankResult<VALUE>['response'];
   }) {
     this.originalDocuments = options.originalDocuments;
     this.ranking = options.ranking;
+    this.warnings = options.warnings;
     this.response = options.response;
     this.providerMetadata = options.providerMetadata;
   }

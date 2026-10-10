@@ -1,4 +1,5 @@
 import type { ProviderMetadata } from '../types/provider-metadata';
+import type { Warning } from '../types/warning';
 
 /**
  * The result of a `rerank` call.
@@ -32,6 +33,11 @@ export interface RerankResult<VALUE> {
     score: number;
     document: VALUE;
   }>;
+
+  /**
+   * Warnings for the call, e.g. unsupported settings.
+   */
+  readonly warnings: Array<Warning>;
 
   /**
    * Optional provider-specific metadata.

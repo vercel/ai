@@ -78,15 +78,17 @@ The `rerank` function returns a comprehensive result object:
 import { cohere } from '@ai-sdk/cohere';
 import { rerank } from 'ai';
 
-const { ranking, rerankedDocuments, originalDocuments } = await rerank({
-  model: cohere.reranking('rerank-v4.0-pro'),
-  documents: ['sunny day at the beach', 'rainy afternoon in the city'],
-  query: 'talk about rain',
-});
+const { ranking, rerankedDocuments, originalDocuments, warnings } =
+  await rerank({
+    model: cohere.reranking('rerank-v4.0-pro'),
+    documents: ['sunny day at the beach', 'rainy afternoon in the city'],
+    query: 'talk about rain',
+  });
 
 // ranking: sorted array of { originalIndex, score, document }
 // rerankedDocuments: documents sorted by relevance (convenience property)
 // originalDocuments: original documents array
+// warnings: provider warnings for this rerank operation
 ```
 
 Each item in the `ranking` array contains:
@@ -94,6 +96,10 @@ Each item in the `ranking` array contains:
 - `originalIndex`: Position in the original documents array
 - `score`: Relevance score (typically 0-1, where higher is more relevant)
 - `document`: The original document
+
+The `warnings` array contains provider warnings for the operation, such as
+unsupported settings or compatibility behavior. It is empty when there are no
+warnings, including when `documents` is empty.
 
 ## Settings
 
