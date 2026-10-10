@@ -320,6 +320,7 @@ describe('transcribe', () => {
 
     expect(result).toEqual({
       ...sampleTranscript,
+      usage: undefined,
       warnings: [],
       responses: [
         {
@@ -330,6 +331,30 @@ describe('transcribe', () => {
       ],
       providerMetadata: {},
     });
+  });
+
+  it('should return provider usage unchanged without telemetry', async () => {
+    const usage = {
+      inputTokens: 12,
+      details: {
+        audioTokens: 8,
+        textTokens: 4,
+      },
+    };
+
+    const result = await transcribe({
+      model: new MockTranscriptionModelV4({
+        doGenerate: async () => ({
+          ...createMockResponse({
+            ...sampleTranscript,
+          }),
+          usage,
+        }),
+      }),
+      audio: audioData,
+    });
+
+    expect(result.usage).toBe(usage);
   });
 
   it('should return an empty transcript', async () => {
@@ -539,8 +564,9 @@ describe('transcribe', () => {
 
   it('should emit telemetry start and end events with audio metadata', async () => {
     const events: Array<{ type: string; event: unknown }> = [];
+    const usage = { inputTokens: 12 };
 
-    await transcribe({
+    const result = await transcribe({
       model: new MockTranscriptionModelV4({
         doGenerate: async () => ({
           ...createMockResponse({
@@ -548,7 +574,7 @@ describe('transcribe', () => {
             timestamp: testDate,
             providerMetadata: { mock: { traceId: 'trace-1' } },
           }),
-          usage: { inputTokens: 12 },
+          usage,
         }),
       }),
       audio: audioData,
@@ -598,6 +624,7 @@ describe('transcribe', () => {
         },
       },
     ]);
+    expect(result.usage).toBe(usage);
   });
 
   it('should emit a telemetry error event when transcription fails', async () => {

@@ -44,6 +44,12 @@ export interface TranscriptionResult {
   readonly durationInSeconds: number | undefined;
 
   /**
+   * Usage information reported by the provider, in the provider's native
+   * JSON-compatible shape.
+   */
+  readonly usage?: JSONObject;
+
+  /**
    * Warnings for the call, e.g. unsupported settings.
    */
   readonly warnings: Array<Warning>;

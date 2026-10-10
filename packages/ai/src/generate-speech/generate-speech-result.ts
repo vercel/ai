@@ -14,6 +14,12 @@ export interface SpeechResult {
   readonly audio: GeneratedAudioFile;
 
   /**
+   * Usage information reported by the provider, in the provider's native
+   * JSON-compatible shape.
+   */
+  readonly usage?: JSONObject;
+
+  /**
    * Warnings for the call, e.g. unsupported settings.
    */
   readonly warnings: Array<Warning>;

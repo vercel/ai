@@ -10,8 +10,10 @@ import type {
   transcribe,
   GenerateSpeechEndEvent,
   GenerateSpeechStartEvent,
+  SpeechResult,
   TelemetryOptions,
   TranscriptionEndEvent,
+  TranscriptionResult,
   TranscriptionStartEvent,
   Experimental_StreamTranscriptionEndEvent,
   Experimental_StreamTranscriptionStartEvent,
@@ -44,6 +46,16 @@ expectTypeOf<TranscriptionEndEvent['text']>().toEqualTypeOf<string>();
 expectTypeOf<TranscriptionEndEvent['usage']>().toEqualTypeOf<
   JSONObject | undefined
 >();
+expectTypeOf<SpeechResult['usage']>().toEqualTypeOf<JSONObject | undefined>();
+expectTypeOf<TranscriptionResult['usage']>().toEqualTypeOf<
+  JSONObject | undefined
+>();
+expectTypeOf<Pick<SpeechResult, 'usage'>>().toEqualTypeOf<{
+  readonly usage?: JSONObject;
+}>();
+expectTypeOf<Pick<TranscriptionResult, 'usage'>>().toEqualTypeOf<{
+  readonly usage?: JSONObject;
+}>();
 expectTypeOf<
   Experimental_StreamTranscriptionStartEvent['operationId']
 >().toEqualTypeOf<'ai.streamTranscribe'>();

@@ -48,6 +48,25 @@ const audioData = result.audio.uint8Array; // audio data as Uint8Array
 const audioBase64 = result.audio.base64; // audio data as base64 string
 ```
 
+## Provider Usage
+
+When the speech provider reports usage, it is available on the `usage`
+property in the provider's native JSON-compatible shape:
+
+```ts
+const result = await generateSpeech({
+  model: openai.speech('gpt-4o-mini-tts'),
+  text: 'Hello, world!',
+  voice: 'alloy',
+});
+
+console.log(result.usage);
+```
+
+Usage fields and availability vary by provider and model. The AI SDK does not
+normalize or add default values; `usage` is `undefined` when the provider does
+not report it.
+
 ## Settings
 
 ### Provider-Specific settings

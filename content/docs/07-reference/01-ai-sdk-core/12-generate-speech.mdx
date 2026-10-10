@@ -171,6 +171,13 @@ const { audio } = await generateSpeech({
       ],
     },
     {
+      name: 'usage',
+      type: 'JSONObject | undefined',
+      isOptional: true,
+      description:
+        'Usage information reported by the provider in its native JSON-compatible shape. The value is undefined when the provider does not report usage.',
+    },
+    {
       name: 'warnings',
       type: 'Warning[]',
       description:

@@ -30,6 +30,24 @@ const language = transcript.language; // language of the transcript e.g. "en", i
 const durationInSeconds = transcript.durationInSeconds; // duration of the transcript in seconds, if available
 ```
 
+## Provider Usage
+
+When the transcription provider reports usage, it is available on the
+`usage` property in the provider's native JSON-compatible shape:
+
+```ts
+const transcript = await transcribe({
+  model: openai.transcription('gpt-4o-transcribe'),
+  audio: await readFile('audio.mp3'),
+});
+
+console.log(transcript.usage);
+```
+
+Usage fields and availability vary by provider and model. The AI SDK does not
+normalize or add default values; `usage` is `undefined` when the provider does
+not report it.
+
 ## Telemetry
 
 `transcribe` and `experimental_streamTranscribe` accept the standard

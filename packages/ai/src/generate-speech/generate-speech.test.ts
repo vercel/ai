@@ -197,6 +197,7 @@ describe('generateSpeech', () => {
 
     expect(result).toEqual({
       audio: mockFile,
+      usage: undefined,
       warnings: [],
       responses: [
         {
@@ -207,6 +208,29 @@ describe('generateSpeech', () => {
       ],
       providerMetadata: {},
     });
+  });
+
+  it('should return provider usage unchanged without telemetry', async () => {
+    const usage = {
+      characters: sampleText.length,
+      details: {
+        billableCharacters: sampleText.length,
+      },
+    };
+
+    const result = await generateSpeech({
+      model: new MockSpeechModelV4({
+        doGenerate: async () => ({
+          ...createMockResponse({
+            audio: mockFile,
+          }),
+          usage,
+        }),
+      }),
+      text: sampleText,
+    });
+
+    expect(result.usage).toBe(usage);
   });
 
   it('should return ADTS AAC audio with AAC metadata', async () => {
@@ -434,13 +458,14 @@ describe('generateSpeech', () => {
   it('should emit telemetry start and end events without raw audio', async () => {
     const events: Array<{ type: string; event: unknown }> = [];
     const rawAudio = 'AQIDBA==';
+    const usage = { characters: sampleText.length };
 
-    await generateSpeech({
+    const result = await generateSpeech({
       model: new MockSpeechModelV4({
         doGenerate: async () => ({
           audio: rawAudio,
           warnings: [],
-          usage: { characters: sampleText.length },
+          usage,
           providerMetadata: { mock: { traceId: 'trace-1' } },
           response: {
             timestamp: testDate,
@@ -504,6 +529,7 @@ describe('generateSpeech', () => {
     ]);
     expect(events[1]).not.toHaveProperty('event.audio.data');
     expect(events[1]).not.toHaveProperty('event.response.body');
+    expect(result.usage).toBe(usage);
   });
 
   it('should not measure output bytes when no telemetry integration is configured', async () => {

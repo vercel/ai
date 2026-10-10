@@ -256,6 +256,7 @@ export async function generateSpeech({
 
         return new DefaultSpeechResult({
           audio,
+          usage: result.usage,
           warnings: result.warnings,
           responses: [result.response],
           providerMetadata: result.providerMetadata,
@@ -348,17 +349,20 @@ function getOutputFormatMediaType(outputFormat: string | undefined) {
 
 class DefaultSpeechResult implements SpeechResult {
   readonly audio: GeneratedAudioFile;
+  readonly usage: JSONObject | undefined;
   readonly warnings: Array<Warning>;
   readonly responses: Array<SpeechModelResponseMetadata>;
   readonly providerMetadata: Record<string, JSONObject>;
 
   constructor(options: {
     audio: GeneratedAudioFile;
+    usage: JSONObject | undefined;
     warnings: Array<Warning>;
     responses: Array<SpeechModelResponseMetadata>;
     providerMetadata: Record<string, JSONObject> | undefined;
   }) {
     this.audio = options.audio;
+    this.usage = options.usage;
     this.warnings = options.warnings;
     this.responses = options.responses;
     this.providerMetadata = options.providerMetadata ?? {};
