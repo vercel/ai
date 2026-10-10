@@ -1919,13 +1919,13 @@ class DefaultStreamTextResult<
       defaultMaxRetries: 0,
     });
 
-    const callSettings = prepareLanguageModelCallOptions(settings);
-
     const self = this;
 
     const callId = generateCallId();
 
     (async () => {
+      const callSettings = prepareLanguageModelCallOptions(settings);
+
       const initialPrompt = await standardizePrompt({
         instructions,
         system,

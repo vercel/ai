@@ -34,7 +34,7 @@ export function prepareLanguageModelCallOptions({
   }
 
   if (temperature != null) {
-    if (typeof temperature !== 'number') {
+    if (typeof temperature !== 'number' || !Number.isFinite(temperature)) {
       throw new InvalidArgumentError({
         parameter: 'temperature',
         value: temperature,
@@ -44,7 +44,7 @@ export function prepareLanguageModelCallOptions({
   }
 
   if (topP != null) {
-    if (typeof topP !== 'number') {
+    if (typeof topP !== 'number' || !Number.isFinite(topP)) {
       throw new InvalidArgumentError({
         parameter: 'topP',
         value: topP,
@@ -54,7 +54,7 @@ export function prepareLanguageModelCallOptions({
   }
 
   if (topK != null) {
-    if (typeof topK !== 'number') {
+    if (typeof topK !== 'number' || !Number.isFinite(topK)) {
       throw new InvalidArgumentError({
         parameter: 'topK',
         value: topK,
@@ -64,7 +64,10 @@ export function prepareLanguageModelCallOptions({
   }
 
   if (presencePenalty != null) {
-    if (typeof presencePenalty !== 'number') {
+    if (
+      typeof presencePenalty !== 'number' ||
+      !Number.isFinite(presencePenalty)
+    ) {
       throw new InvalidArgumentError({
         parameter: 'presencePenalty',
         value: presencePenalty,
@@ -74,7 +77,10 @@ export function prepareLanguageModelCallOptions({
   }
 
   if (frequencyPenalty != null) {
-    if (typeof frequencyPenalty !== 'number') {
+    if (
+      typeof frequencyPenalty !== 'number' ||
+      !Number.isFinite(frequencyPenalty)
+    ) {
       throw new InvalidArgumentError({
         parameter: 'frequencyPenalty',
         value: frequencyPenalty,
