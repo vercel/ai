@@ -140,6 +140,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   // During resume, a different message ID identifies a separate response.
   resetStateOnMessageIdChange?: boolean;
 }): ReadableStream<InferUIMessageChunk<UI_MESSAGE>> {
+  let isFirstMessageStart = true;
+
   return stream.pipeThrough(
     new TransformStream<UIMessageChunk, InferUIMessageChunk<UI_MESSAGE>>({
       async transform(chunk, controller) {
@@ -881,6 +883,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'start': {
+<<<<<<< HEAD
               if (
                 resetStateOnMessageIdChange &&
                 chunk.messageId != null &&
@@ -889,11 +892,25 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 // Start the separate response with empty parts and metadata.
                 // Reset the active-part maps too, so earlier chunks stay with
                 // the previous response. Keep the state object for its callers.
+=======
+              const shouldReset =
+                (resetStateOnFirstMessageStart && isFirstMessageStart) ||
+                (resetStateOnMessageIdChange &&
+                  chunk.messageId != null &&
+                  chunk.messageId !== state.message.id);
+              isFirstMessageStart = false;
+
+              if (shouldReset) {
+                // Rebuild a replay or separate response from empty state. Only
+                // reset a replay once: merged streams can emit more starts.
+                // Keep the state object for its callers and preserve the ID
+                // when the replay does not include one.
+>>>>>>> 75b3ea281b (fix(ai): prevent duplicate message parts when resuming replayed streams (#22560))
                 Object.assign(
                   state,
                   createStreamingUIMessageState({
                     lastMessage: undefined,
-                    messageId: chunk.messageId,
+                    messageId: chunk.messageId ?? state.message.id,
                   }),
                   { finishReason: undefined },
                 );
@@ -905,7 +922,11 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
               await updateMessageMetadata(chunk.messageMetadata);
 
-              if (chunk.messageId != null || chunk.messageMetadata != null) {
+              if (
+                shouldReset ||
+                chunk.messageId != null ||
+                chunk.messageMetadata != null
+              ) {
                 write({ updateStatus: false });
               }
               break;
