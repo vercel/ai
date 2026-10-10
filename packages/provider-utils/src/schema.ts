@@ -134,8 +134,7 @@ function isSchema(value: unknown): value is Schema {
     value !== null &&
     schemaSymbol in value &&
     value[schemaSymbol] === true &&
-    'jsonSchema' in value &&
-    'validate' in value
+    'jsonSchema' in value
   );
 }
 
