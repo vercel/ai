@@ -8,7 +8,10 @@ import {
   experimental_streamLanguageModelCall as streamModelCall,
   gateway,
   NoOutputGeneratedError,
+  RetryError,
+  StreamProviderError,
   wrapLanguageModel,
+  type Experimental_LanguageModelStreamPart,
   type LanguageModel,
   type ModelMessage,
   type ToolSet,
@@ -115,7 +118,6 @@ async function streamModelStep(
   // Reconstruct tools from serializable definitions with Ajv validation.
   // Tools are serialized before crossing the step boundary because zod schemas
   // contain functions that can't be serialized by the workflow runtime.
-  const toolInputLifecycleEvents: ToolInputLifecycleEvent[] = [];
   const tools = serializedTools
     ? resolveSerializableTools(serializedTools)
     : undefined;
@@ -164,71 +166,112 @@ async function streamModelStep(
         };
 
   // streamModelCall handles prompt standardization, tool preparation,
-  // model.doStream(), and stream part transformation. Retries are applied
-  // around the model dispatch because streamModelCall itself does not retry.
+  // model.doStream(), and stream part transformation. The retry boundary
+  // includes stream consumption so retryable failures after the response opens
+  // use the same model-call retry budget as dispatch failures.
+  const terminalResults = new Map<unknown, DoStreamStepResult>();
   const { retry } = prepareRetries({
     maxRetries: options?.maxRetries,
     abortSignal,
+    additionalRetryableError: error =>
+      StreamProviderError.isInstance(error) && error.isRetryable,
   });
-  const modelStream = await (async () => {
-    try {
-      const { stream } = await retry(() =>
-        streamModelCall({
-          model: modelWithTransforms,
-          // streamModelCall expects Prompt (ModelMessage[]) but we pass the
-          // pre-converted LanguageModelV4Prompt. standardizePrompt inside
-          // streamModelCall handles both formats.
-          messages: conversationPrompt.map(message =>
-            message.role !== 'tool'
-              ? message
-              : {
-                  ...message,
-                  // Provider prompt approval responses have already been filtered by
-                  // convertToLanguageModelPrompt. Restore the marker expected by the
-                  // model-call helper when it converts these messages again.
-                  content: message.content.map(part =>
-                    part.type === 'tool-approval-response'
-                      ? { ...part, providerExecuted: true }
-                      : part,
-                  ),
-                },
-          ) as unknown as ModelMessage[],
-          allowSystemInMessages: true,
-          tools,
-          toolChoice: options?.toolChoice,
-          includeRawChunks: options?.includeRawChunks,
-          providerOptions: options?.providerOptions,
-          abortSignal,
-          headers: options?.headers,
-          reasoning: options?.reasoning,
-          output,
-          maxOutputTokens: options?.maxOutputTokens,
-          temperature: options?.temperature,
-          topP: options?.topP,
-          topK: options?.topK,
-          presencePenalty: options?.presencePenalty,
-          frequencyPenalty: options?.frequencyPenalty,
-          stopSequences: options?.stopSequences,
-          seed: options?.seed,
-          repairToolCall: options?.repairToolCall,
-          ...languageModelCallTelemetry,
-        }),
-      );
+  const writer = writable?.getWriter();
 
-      return stream;
-    } catch (error) {
-      if (abortSignal?.aborted && isAbortError(error)) {
-        return undefined;
+  try {
+    return await retry(async () => {
+      const { stream } = await streamModelCall({
+        model: modelWithTransforms,
+        // streamModelCall expects Prompt (ModelMessage[]) but we pass the
+        // pre-converted LanguageModelV4Prompt. standardizePrompt inside
+        // streamModelCall handles both formats.
+        messages: conversationPrompt.map(message =>
+          message.role !== 'tool'
+            ? message
+            : {
+                ...message,
+                // Provider prompt approval responses have already been filtered by
+                // convertToLanguageModelPrompt. Restore the marker expected by the
+                // model-call helper when it converts these messages again.
+                content: message.content.map(part =>
+                  part.type === 'tool-approval-response'
+                    ? { ...part, providerExecuted: true }
+                    : part,
+                ),
+              },
+        ) as unknown as ModelMessage[],
+        allowSystemInMessages: true,
+        tools,
+        toolChoice: options?.toolChoice,
+        includeRawChunks: options?.includeRawChunks,
+        providerOptions: options?.providerOptions,
+        abortSignal,
+        headers: options?.headers,
+        reasoning: options?.reasoning,
+        output,
+        maxOutputTokens: options?.maxOutputTokens,
+        temperature: options?.temperature,
+        topP: options?.topP,
+        topK: options?.topK,
+        presencePenalty: options?.presencePenalty,
+        frequencyPenalty: options?.frequencyPenalty,
+        stopSequences: options?.stopSequences,
+        seed: options?.seed,
+        repairToolCall: options?.repairToolCall,
+        ...languageModelCallTelemetry,
+      });
+
+      const result = await consumeModelStream({
+        modelStream: stream,
+        writer,
+        serializedTools,
+        abortSignal,
+        timeoutAt: options?.timeoutAt,
+      });
+
+      if (
+        !result.aborted &&
+        'terminalError' in result &&
+        StreamProviderError.isInstance(result.terminalError) &&
+        result.terminalError.isRetryable
+      ) {
+        terminalResults.set(result.terminalError, result);
+        throw result.terminalError;
       }
 
-      throw error;
+      return result;
+    });
+  } catch (error) {
+    if (abortSignal?.aborted && isAbortError(error)) {
+      return { aborted: true };
     }
-  })();
 
-  if (modelStream == null) {
-    return { aborted: true };
+    const terminalResult = terminalResults.get(
+      RetryError.isInstance(error) ? error.lastError : error,
+    );
+    if (terminalResult != null) {
+      return terminalResult;
+    }
+
+    throw error;
+  } finally {
+    writer?.releaseLock();
   }
+}
 
+async function consumeModelStream({
+  modelStream,
+  writer,
+  serializedTools,
+  abortSignal,
+  timeoutAt,
+}: {
+  modelStream: ReadableStream<Experimental_LanguageModelStreamPart<ToolSet>>;
+  writer: WritableStreamDefaultWriter<ModelCallStreamPart<ToolSet>> | undefined;
+  serializedTools: Record<string, SerializableToolDef> | undefined;
+  abortSignal: AbortSignal | undefined;
+  timeoutAt: number | undefined;
+}): Promise<DoStreamStepResult> {
   // Consume the stream: capture data and write to writable in real-time
   const toolCalls: ParsedToolCall[] = [];
   const providerExecutedToolResults = new Map<
@@ -254,14 +297,11 @@ async function streamModelStep(
   let hasTerminalError = false;
   let hasReceivedOutputChunk = false;
   const ongoingToolCallToolNames = new Map<string, string>();
-
-  // Acquire writer once before the loop to avoid per-chunk lock overhead
-  const writer = writable?.getWriter();
+  const toolInputLifecycleEvents: ToolInputLifecycleEvent[] = [];
 
   try {
-    // A workflow step can be retried after already writing partial output.
-    // Reset the current UI step before every attempt so a retry invalidates
-    // chunks left behind by an earlier execution.
+    // Reset before consuming every opened stream so a retry invalidates chunks
+    // left behind by an earlier attempt.
     await writer?.write({ type: 'reset-step' });
 
     for await (const part of modelStream) {
@@ -482,14 +522,9 @@ async function streamModelStep(
     }
 
     throw error;
-  } finally {
-    writer?.releaseLock();
   }
 
-  if (
-    abortSignal?.aborted ||
-    (options?.timeoutAt != null && options.timeoutAt <= Date.now())
-  ) {
+  if (abortSignal?.aborted || (timeoutAt != null && timeoutAt <= Date.now())) {
     return { aborted: true };
   }
 
