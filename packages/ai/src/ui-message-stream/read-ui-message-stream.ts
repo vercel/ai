@@ -89,6 +89,7 @@ export function readUIMessageStream<UI_MESSAGE extends UIMessage>({
     if (!hasErrored && terminateOnError) {
       hasErrored = true;
       controller?.error(error);
+      abortController.abort();
     }
   };
 
@@ -105,7 +106,7 @@ export function readUIMessageStream<UI_MESSAGE extends UIMessage>({
         return job({
           state,
           write: () => {
-            if (!isCancelled) {
+            if (!hasErrored && !isCancelled) {
               controller?.enqueue(createUIMessageSnapshot(state.message));
             }
           },
