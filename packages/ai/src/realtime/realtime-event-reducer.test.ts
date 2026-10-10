@@ -141,6 +141,7 @@ describe('RealtimeEventReducer', () => {
       name: 'getWeather',
       output: '{"temperature":22}',
     });
+    expect(output.state.messages[0].parts).toHaveLength(1);
     expect(output.state.messages[0].parts).toMatchObject([
       {
         type: 'dynamic-tool',
@@ -152,6 +153,58 @@ describe('RealtimeEventReducer', () => {
       },
     ]);
   });
+
+  it.each([
+    {
+      arguments: '{"city":"Paris"}',
+      input: { city: 'Paris' },
+    },
+    {
+      arguments: '{}',
+      input: {},
+    },
+  ])(
+    'creates a tool part from final-only arguments $arguments',
+    async ({ arguments: toolArguments, input }) => {
+      const reducer = new RealtimeEventReducer();
+      const result = await reducer.reduceServerEvent(
+        createInitialRealtimeState(),
+        {
+          type: 'function-call-arguments-done',
+          responseId: 'response-1',
+          itemId: 'item-1',
+          callId: 'call-1',
+          name: 'getWeather',
+          arguments: toolArguments,
+          raw: {},
+        },
+      );
+
+      expect(result.effects).toContainEqual({
+        type: 'tool-call',
+        callId: 'call-1',
+        name: 'getWeather',
+        args: input,
+        rawArguments: toolArguments,
+      });
+
+      const output = reducer.addToolOutput(result.state, 'call-1', {
+        temperature: 22,
+      });
+
+      expect(output.state.messages).toHaveLength(1);
+      expect(output.state.messages[0].parts).toEqual([
+        {
+          type: 'dynamic-tool',
+          toolName: 'getWeather',
+          toolCallId: 'call-1',
+          state: 'output-available',
+          input,
+          output: { temperature: 22 },
+        },
+      ]);
+    },
+  );
 
   it('inserts delayed input transcriptions before the assistant response', async () => {
     const reducer = new RealtimeEventReducer();
