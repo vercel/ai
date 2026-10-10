@@ -3261,6 +3261,179 @@ describe('ToolLoopAgent', () => {
     });
   });
 
+  describe('deprecated tool execution callbacks', () => {
+    const dummyResponseValues = {
+      usage: {
+        cachedInputTokens: undefined,
+        inputTokens: {
+          total: 3,
+          noCache: 3,
+          cacheRead: undefined,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: 10,
+          text: 10,
+          reasoning: undefined,
+        },
+      },
+      warnings: [],
+    };
+
+    function createToolCallMockModel() {
+      return new MockLanguageModelV4({
+        doGenerate: async () => ({
+          ...dummyResponseValues,
+          content: [
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'testTool',
+              input: '{ "value": "test" }',
+            },
+          ],
+          finishReason: {
+            unified: 'tool-calls',
+            raw: undefined,
+          },
+        }),
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'stream-start', warnings: [] },
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'testTool',
+              input: '{ "value": "test" }',
+            },
+            {
+              type: 'finish',
+              finishReason: {
+                unified: 'tool-calls',
+                raw: undefined,
+              },
+              usage: dummyResponseValues.usage,
+            },
+          ]),
+        }),
+      });
+    }
+
+    function createAgent({
+      onToolExecutionStart,
+      onToolExecutionEnd,
+    }: {
+      onToolExecutionStart?: () => void;
+      onToolExecutionEnd?: () => void;
+    } = {}) {
+      return new ToolLoopAgent({
+        model: createToolCallMockModel(),
+        stopWhen: () => true,
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }: { value: string }) => `${value}-result`,
+          }),
+        },
+        onToolExecutionStart,
+        onToolExecutionEnd,
+      });
+    }
+
+    it('should invoke deprecated generate callbacks alongside settings callbacks', async () => {
+      const settingsStart = vi.fn();
+      const settingsEnd = vi.fn();
+      const legacyStart = vi.fn();
+      const legacyEnd = vi.fn();
+
+      const agent = createAgent({
+        onToolExecutionStart: settingsStart,
+        onToolExecutionEnd: settingsEnd,
+      });
+
+      await agent.generate({
+        prompt: 'test',
+        experimental_onToolCallStart: legacyStart,
+        experimental_onToolCallFinish: legacyEnd,
+      });
+
+      expect(settingsStart).toHaveBeenCalledOnce();
+      expect(settingsEnd).toHaveBeenCalledOnce();
+      expect(legacyStart).toHaveBeenCalledOnce();
+      expect(legacyEnd).toHaveBeenCalledOnce();
+    });
+
+    it('should prefer stable generate callbacks over deprecated aliases', async () => {
+      const stableStart = vi.fn();
+      const stableEnd = vi.fn();
+      const legacyStart = vi.fn();
+      const legacyEnd = vi.fn();
+
+      const agent = createAgent();
+
+      await agent.generate({
+        prompt: 'test',
+        onToolExecutionStart: stableStart,
+        experimental_onToolCallStart: legacyStart,
+        onToolExecutionEnd: stableEnd,
+        experimental_onToolCallFinish: legacyEnd,
+      });
+
+      expect(stableStart).toHaveBeenCalledOnce();
+      expect(stableEnd).toHaveBeenCalledOnce();
+      expect(legacyStart).not.toHaveBeenCalled();
+      expect(legacyEnd).not.toHaveBeenCalled();
+    });
+
+    it('should invoke deprecated stream callbacks alongside settings callbacks', async () => {
+      const settingsStart = vi.fn();
+      const settingsEnd = vi.fn();
+      const legacyStart = vi.fn();
+      const legacyEnd = vi.fn();
+
+      const agent = createAgent({
+        onToolExecutionStart: settingsStart,
+        onToolExecutionEnd: settingsEnd,
+      });
+
+      const result = await agent.stream({
+        prompt: 'test',
+        experimental_onToolCallStart: legacyStart,
+        experimental_onToolCallFinish: legacyEnd,
+      });
+      await result.consumeStream();
+
+      expect(settingsStart).toHaveBeenCalledOnce();
+      expect(settingsEnd).toHaveBeenCalledOnce();
+      expect(legacyStart).toHaveBeenCalledOnce();
+      expect(legacyEnd).toHaveBeenCalledOnce();
+    });
+
+    it('should prefer stable stream callbacks over deprecated aliases', async () => {
+      const stableStart = vi.fn();
+      const stableEnd = vi.fn();
+      const legacyStart = vi.fn();
+      const legacyEnd = vi.fn();
+
+      const agent = createAgent();
+
+      const result = await agent.stream({
+        prompt: 'test',
+        onToolExecutionStart: stableStart,
+        experimental_onToolCallStart: legacyStart,
+        onToolExecutionEnd: stableEnd,
+        experimental_onToolCallFinish: legacyEnd,
+      });
+      await result.consumeStream();
+
+      expect(stableStart).toHaveBeenCalledOnce();
+      expect(stableEnd).toHaveBeenCalledOnce();
+      expect(legacyStart).not.toHaveBeenCalled();
+      expect(legacyEnd).not.toHaveBeenCalled();
+    });
+  });
+
   describe('onEnd', () => {
     describe('generate', () => {
       let mockModel: MockLanguageModelV4;
