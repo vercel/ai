@@ -1,0 +1,124 @@
+---
+title: Lanseq
+description: Learn how to use Lanseq with the AI SDK.
+---
+
+# Lanseq Provider
+
+The [Lanseq](https://api.lanseq.cloud/docs) provider connects the AI SDK to Lanseq's OpenAI-compatible inference API. The provider package is a thin wrapper around the official `@ai-sdk/openai-compatible` provider.
+
+The initial qualified production model is `qwen3.8-27b-int4`.
+
+## Setup
+
+The Lanseq provider is available in the `@lanseq/ai-sdk-provider` module. Install it with:
+
+<InstallPackages packages="@lanseq/ai-sdk-provider" />
+
+Set `LANSEQ_API_KEY` in your server environment.
+
+## Provider Instance
+
+You can use the default provider:
+
+```ts
+import { lanseq } from '@lanseq/ai-sdk-provider';
+
+const model = lanseq('qwen3.8-27b-int4');
+```
+
+Or create an explicit provider instance:
+
+```ts
+import { createLanseq } from '@lanseq/ai-sdk-provider';
+
+const lanseq = createLanseq({
+  apiKey: process.env.LANSEQ_API_KEY,
+});
+```
+
+The default production endpoint is `https://api.lanseq.cloud/v1`.
+
+## Text Generation
+
+```ts
+import { generateText } from 'ai';
+import { lanseq } from '@lanseq/ai-sdk-provider';
+
+const { text } = await generateText({
+  model: lanseq('qwen3.8-27b-int4'),
+  prompt: 'Explain prefix caching in two paragraphs.',
+});
+```
+
+## Streaming
+
+```ts
+import { streamText } from 'ai';
+import { lanseq } from '@lanseq/ai-sdk-provider';
+
+const result = streamText({
+  model: lanseq('qwen3.8-27b-int4'),
+  prompt: 'Write a short TypeScript example.',
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+## Tool Calling
+
+```ts
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+import { lanseq } from '@lanseq/ai-sdk-provider';
+
+const result = await generateText({
+  model: lanseq('qwen3.8-27b-int4'),
+  prompt: 'What is the weather in Paris?',
+  tools: {
+    getWeather: tool({
+      description: 'Get the weather for a city',
+      inputSchema: z.object({ city: z.string() }),
+      execute: async ({ city }) => ({ city, temperatureCelsius: 18 }),
+    }),
+  },
+});
+```
+
+## Structured Output
+
+Lanseq has qualified schema-backed structured output using OpenAI-compatible `json_schema`.
+
+```ts
+import { generateText, Output } from 'ai';
+import { z } from 'zod';
+import { lanseq } from '@lanseq/ai-sdk-provider';
+
+const { output } = await generateText({
+  model: lanseq('qwen3.8-27b-int4'),
+  prompt: 'List three benefits of inference batching.',
+  output: Output.object({
+    schema: z.object({
+      benefits: z.array(z.string()).length(3),
+    }),
+  }),
+});
+```
+
+The provider does not claim generic `json_object` support; use schema-backed structured output.
+
+## Model Capabilities
+
+| Model | Context | Maximum output | Modalities |
+| --- | ---: | ---: | --- |
+| `qwen3.8-27b-int4` | 70,000 tokens | 8,192 tokens | Text input and output only |
+
+The qualified endpoint supports streaming, usage accounting, tool/function calling, and `json_schema` requests. Do not send images or attachments to `qwen3.8-27b-int4`.
+
+## Additional Resources
+
+- [Lanseq API documentation](https://api.lanseq.cloud/docs)
+- [Lanseq AI SDK provider](https://github.com/CHYYX/ai-sdk-provider-lanseq)
+- [npm package](https://www.npmjs.com/package/@lanseq/ai-sdk-provider)
