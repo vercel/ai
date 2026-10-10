@@ -19,6 +19,7 @@ import { setOwn } from '../util/set-own';
 import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
 import { splitArray } from '../util/split-array';
+import { InvalidArgumentError } from '../error/invalid-argument-error';
 import type { EmbedEndEvent, EmbedStartEvent } from './embed-events';
 import { validateEmbeddingDimensions } from './validate-embedding-dimensions';
 import type { EmbedManyResult } from './embed-many-result';
@@ -47,8 +48,7 @@ const originalGenerateCallId = createIdGenerator({
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  *
  * @param maxParallelCalls - Maximum number of concurrent requests when a request is split into
- * multiple model calls. Must be greater than 0 when the model supports parallel calls.
- * Default: Infinity.
+ * multiple model calls. Must be a positive integer or Infinity. Default: Infinity.
  *
  * @param telemetry - Optional telemetry configuration.
  * @param runtimeContext - User-defined runtime context passed to callbacks and, when explicitly included, telemetry.
@@ -138,7 +138,7 @@ export async function embedMany<RUNTIME_CONTEXT extends Context = Context>({
 
   /**
    * Maximum number of concurrent requests when a request is split into multiple model calls.
-   * Must be greater than 0 when the model supports parallel calls.
+   * Must be a positive integer or Infinity.
    *
    * @default Infinity
    */
@@ -180,6 +180,17 @@ export async function embedMany<RUNTIME_CONTEXT extends Context = Context>({
   };
 }): Promise<EmbedManyResult> {
   validateEmbeddingDimensions(dimensions);
+
+  if (
+    maxParallelCalls !== Infinity &&
+    (!Number.isInteger(maxParallelCalls) || maxParallelCalls <= 0)
+  ) {
+    throw new InvalidArgumentError({
+      parameter: 'maxParallelCalls',
+      value: maxParallelCalls,
+      message: 'maxParallelCalls must be a positive integer or Infinity',
+    });
+  }
 
   const model = resolveEmbeddingModel(modelArg);
 

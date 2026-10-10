@@ -10,7 +10,7 @@ import { InvalidArgumentError } from '../error/invalid-argument-error';
  * @throws {InvalidArgumentError} If the chunk size is not greater than 0.
  */
 export function splitArray<T>(array: T[], chunkSize: number): T[][] {
-  if (chunkSize <= 0) {
+  if (Number.isNaN(chunkSize) || chunkSize <= 0) {
     throw new InvalidArgumentError({
       parameter: 'chunkSize',
       value: chunkSize,
