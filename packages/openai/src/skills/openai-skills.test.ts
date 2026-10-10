@@ -1,6 +1,9 @@
 import fs from 'node:fs';
 
-import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import {
+  createTestServer,
+  TestResponseController,
+} from '@ai-sdk/test-server/with-vitest';
 import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import { describe, it, expect, vi } from 'vitest';
 import { createOpenAI } from '../openai-provider';
@@ -178,6 +181,80 @@ describe('OpenAISkills', () => {
       expect(result.providerReference).toEqual({
         openai: 'skill_699fc58f408c8191825d8d06ae75fd5c06de7b381a5db7f5',
       });
+    });
+
+    it('should not make a request when already aborted', async () => {
+      const controller = new AbortController();
+      const abortReason = new Error('upload cancelled');
+      controller.abort(abortReason);
+
+      await expect(
+        provider.skills().uploadSkill({
+          files: [
+            {
+              path: 'index.ts',
+              data: { type: 'data', data: testFileContentBase64 },
+            },
+          ],
+          abortSignal: controller.signal,
+        }),
+      ).rejects.toBe(abortReason);
+
+      expect(server.calls).toHaveLength(0);
+    });
+
+    it('should cancel an active request without affecting another upload', async () => {
+      const firstResponse = new TestResponseController();
+      const secondResponse = new TestResponseController();
+      server.urls['https://api.openai.com/v1/skills'].response = ({
+        callNumber,
+      }) => ({
+        type: 'controlled-stream',
+        headers: { 'content-type': 'application/json' },
+        controller: callNumber === 0 ? firstResponse : secondResponse,
+      });
+
+      const firstController = new AbortController();
+      const secondController = new AbortController();
+      const skills = provider.skills();
+
+      const firstUpload = skills.uploadSkill({
+        files: [
+          {
+            path: 'first/SKILL.md',
+            data: { type: 'data', data: testFileContentBase64 },
+          },
+        ],
+        abortSignal: firstController.signal,
+      });
+      const secondUpload = skills.uploadSkill({
+        files: [
+          {
+            path: 'second/SKILL.md',
+            data: { type: 'data', data: testFileContentBase64 },
+          },
+        ],
+        abortSignal: secondController.signal,
+      });
+
+      await vi.waitFor(() => expect(server.calls).toHaveLength(2));
+      firstController.abort();
+
+      await secondResponse.write(
+        fs.readFileSync(
+          'src/skills/__fixtures__/openai-skill-create.json',
+          'utf8',
+        ),
+      );
+      await secondResponse.close();
+
+      await expect(firstUpload).rejects.toMatchObject({ name: 'AbortError' });
+      await expect(secondUpload).resolves.toMatchObject({
+        providerReference: {
+          openai: 'skill_699fc58f408c8191825d8d06ae75fd5c06de7b381a5db7f5',
+        },
+      });
+      expect(secondController.signal.aborted).toBe(false);
     });
   });
 });

@@ -30,6 +30,7 @@ describe('uploadSkill', () => {
     expect(skills.uploadSkill).toHaveBeenCalledWith({
       files,
       displayTitle: 'My Skill',
+      abortSignal: undefined,
       providerOptions: undefined,
     });
   });
@@ -119,7 +120,46 @@ describe('uploadSkill', () => {
         { path: 'test.ts', data: { type: 'data' as const, data: 'hello' } },
       ],
       displayTitle: undefined,
+      abortSignal: undefined,
       providerOptions: { openai: { custom: 'value' } },
     });
+  });
+
+  it('should forward abortSignal to the skills', async () => {
+    const skills = createMockSkills();
+    const controller = new AbortController();
+
+    await uploadSkill({
+      api: skills,
+      files: [
+        { path: 'test.ts', data: { type: 'data' as const, data: 'hello' } },
+      ],
+      abortSignal: controller.signal,
+    });
+
+    expect(skills.uploadSkill).toHaveBeenCalledWith(
+      expect.objectContaining({
+        abortSignal: controller.signal,
+      }),
+    );
+  });
+
+  it('should not call the skills API when already aborted', async () => {
+    const skills = createMockSkills();
+    const controller = new AbortController();
+    const abortReason = new Error('upload cancelled');
+    controller.abort(abortReason);
+
+    await expect(
+      uploadSkill({
+        api: skills,
+        files: [
+          { path: 'test.ts', data: { type: 'data' as const, data: 'hello' } },
+        ],
+        abortSignal: controller.signal,
+      }),
+    ).rejects.toBe(abortReason);
+
+    expect(skills.uploadSkill).not.toHaveBeenCalled();
   });
 });

@@ -467,6 +467,61 @@ describe('anthropicAws provider - model identity', () => {
     expect(typeof skills.uploadSkill).toBe('function');
   });
 
+  it('forwards the skill upload abort signal to creation and metadata requests', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            id: 'skill_123',
+            latest_version: '1',
+            source: 'custom',
+            created_at: '2026-10-10T00:00:00Z',
+            updated_at: '2026-10-10T00:00:00Z',
+          }),
+          {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            type: 'skill_version',
+            skill_id: 'skill_123',
+            name: 'test-skill',
+            description: 'test skill',
+          }),
+          {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          },
+        ),
+      );
+    const provider = createAnthropicAws({
+      region: 'us-west-2',
+      workspaceId: 'wrkspc_test',
+      apiKey: 'test-api-key',
+      fetch: fetchMock,
+    });
+    const controller = new AbortController();
+
+    await provider.skills().uploadSkill({
+      files: [
+        {
+          path: 'SKILL.md',
+          data: { type: 'text', text: '# Example' },
+        },
+      ],
+      abortSignal: controller.signal,
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[0]?.[1]?.signal).toBe(controller.signal);
+    expect(fetchMock.mock.calls[1]?.[1]?.signal).toBe(controller.signal);
+  });
+
   it('throws if the provider function is called with new', () => {
     const provider = createAnthropicAws({
       region: 'us-west-2',

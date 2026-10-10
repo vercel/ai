@@ -28,6 +28,8 @@ export class OpenAISkills implements SkillsV4 {
   async uploadSkill(
     params: Parameters<SkillsV4['uploadSkill']>[0],
   ): Promise<Awaited<ReturnType<SkillsV4['uploadSkill']>>> {
+    params.abortSignal?.throwIfAborted();
+
     const warnings: SharedV4Warning[] = [];
 
     if (params.displayTitle != null) {
@@ -56,6 +58,7 @@ export class OpenAISkills implements SkillsV4 {
       successfulResponseHandler: createJsonResponseHandler(
         openaiSkillResponseSchema,
       ),
+      abortSignal: params.abortSignal,
       fetch: this.config.fetch,
     });
 

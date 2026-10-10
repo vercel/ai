@@ -18,12 +18,15 @@ export async function uploadSkill({
   api,
   files,
   displayTitle,
+  abortSignal,
   providerOptions,
 }: {
   api: SkillsV4 | ProviderV4;
 } & Omit<SkillsV4UploadSkillCallOptions, 'files'> & {
     files: UploadSkillFile[];
   }): Promise<UploadSkillResult> {
+  abortSignal?.throwIfAborted();
+
   const skillsApi: SkillsV4 =
     'uploadSkill' in api
       ? api
@@ -46,6 +49,7 @@ export async function uploadSkill({
   const result = await skillsApi.uploadSkill({
     files: normalizedFiles,
     displayTitle,
+    abortSignal,
     providerOptions,
   });
 

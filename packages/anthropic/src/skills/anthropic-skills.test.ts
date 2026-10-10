@@ -286,5 +286,74 @@ describe('AnthropicSkills', () => {
 
       expect(result.warnings).toMatchInlineSnapshot(`[]`);
     });
+
+    it('should not make a request when already aborted', async () => {
+      const controller = new AbortController();
+      const abortReason = new Error('upload cancelled');
+      controller.abort(abortReason);
+
+      await expect(
+        provider.skills().uploadSkill({
+          files: [
+            {
+              path: 'index.ts',
+              data: { type: 'data', data: testFileContentBase64 },
+            },
+          ],
+          abortSignal: controller.signal,
+        }),
+      ).rejects.toBe(abortReason);
+
+      expect(server.calls).toHaveLength(0);
+    });
+
+    it('should cancel version metadata retrieval with the upload signal', async () => {
+      const requestSignals: Array<AbortSignal | null | undefined> = [];
+      const anthropic = createAnthropic({
+        apiKey: 'test-api-key',
+        baseURL: 'https://api.anthropic.com/v1',
+        fetch: vi.fn(async (_input, init) => {
+          requestSignals.push(init?.signal);
+
+          if (requestSignals.length === 1) {
+            return new Response(
+              fs.readFileSync(
+                'src/skills/__fixtures__/anthropic-skill-create.json',
+                'utf8',
+              ),
+              {
+                status: 200,
+                headers: { 'content-type': 'application/json' },
+              },
+            );
+          }
+
+          return new Promise<Response>((_resolve, reject) => {
+            init?.signal?.addEventListener(
+              'abort',
+              () => reject(init.signal?.reason),
+              { once: true },
+            );
+          });
+        }),
+      });
+      const controller = new AbortController();
+
+      const upload = anthropic.skills().uploadSkill({
+        files: [
+          {
+            path: 'index.ts',
+            data: { type: 'data', data: testFileContentBase64 },
+          },
+        ],
+        abortSignal: controller.signal,
+      });
+
+      await vi.waitFor(() => expect(requestSignals).toHaveLength(2));
+      controller.abort();
+
+      await expect(upload).rejects.toMatchObject({ name: 'AbortError' });
+      expect(requestSignals).toEqual([controller.signal, controller.signal]);
+    });
   });
 });

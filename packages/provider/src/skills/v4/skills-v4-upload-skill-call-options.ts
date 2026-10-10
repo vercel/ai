@@ -31,6 +31,11 @@ export interface SkillsV4UploadSkillCallOptions {
   displayTitle?: string;
 
   /**
+   * Abort signal for cancelling the operation.
+   */
+  abortSignal?: AbortSignal;
+
+  /**
    * Additional provider-specific options.
    */
   providerOptions?: SharedV4ProviderOptions;

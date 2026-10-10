@@ -52,11 +52,15 @@ export class AnthropicSkills implements SkillsV4 {
     skillId,
     version,
     headers,
+    abortSignal,
   }: {
     skillId: string;
     version: string;
     headers: Record<string, string | undefined>;
+    abortSignal?: AbortSignal;
   }): Promise<{ name?: string; description?: string }> {
+    abortSignal?.throwIfAborted();
+
     const { value: versionResponse } = await getFromApi({
       url: `${this.config.baseURL}/skills/${encodePathSegment(skillId)}/versions/${encodePathSegment(version)}`,
       validateUrl: false,
@@ -65,6 +69,7 @@ export class AnthropicSkills implements SkillsV4 {
       successfulResponseHandler: createJsonResponseHandler(
         anthropicSkillVersionResponseSchema,
       ),
+      abortSignal,
       fetch: this.config.fetch,
     });
 
@@ -79,6 +84,8 @@ export class AnthropicSkills implements SkillsV4 {
   async uploadSkill(
     params: Parameters<SkillsV4['uploadSkill']>[0],
   ): Promise<Awaited<ReturnType<SkillsV4['uploadSkill']>>> {
+    params.abortSignal?.throwIfAborted();
+
     const warnings: SharedV4Warning[] = [];
 
     const formData = new FormData();
@@ -97,6 +104,7 @@ export class AnthropicSkills implements SkillsV4 {
     }
 
     const headers = await this.getHeaders();
+    params.abortSignal?.throwIfAborted();
 
     const { value: response } = await postFormDataToApi({
       url: `${this.config.baseURL}/skills`,
@@ -106,6 +114,7 @@ export class AnthropicSkills implements SkillsV4 {
       successfulResponseHandler: createJsonResponseHandler(
         anthropicSkillResponseSchema,
       ),
+      abortSignal: params.abortSignal,
       fetch: this.config.fetch,
     });
 
@@ -115,6 +124,7 @@ export class AnthropicSkills implements SkillsV4 {
             skillId: response.id,
             version: response.latest_version,
             headers,
+            abortSignal: params.abortSignal,
           })
         : {};
 
