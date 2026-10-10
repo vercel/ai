@@ -1,5 +1,15 @@
 # @ai-sdk/mistral
 
+## 4.0.63
+
+### Patch Changes
+
+- 2f95240: Forward reasoning configuration for unknown model IDs instead of silently stripping it. Known models without reasoning-effort support retain their previous handling.
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider@4.0.27
+  - @ai-sdk/provider-utils@5.0.59
+
 ## 4.0.62
 
 ### Patch Changes

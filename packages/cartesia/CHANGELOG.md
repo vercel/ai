@@ -1,5 +1,15 @@
 # @ai-sdk/cartesia
 
+## 3.0.54
+
+### Patch Changes
+
+- caeee59: Default unknown transcription model IDs to the current streaming protocol, while retaining batch-only handling for Ink Whisper. New streaming models are no longer rejected or sent to the batch endpoint.
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider@4.0.27
+  - @ai-sdk/provider-utils@5.0.59
+
 ## 3.0.53
 
 ### Patch Changes

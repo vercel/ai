@@ -1,5 +1,15 @@
 # @ai-sdk/mcp
 
+## 2.0.74
+
+### Patch Changes
+
+- 2913c8c: fix(mcp): allow MCP tools to execute without options
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider@4.0.27
+  - @ai-sdk/provider-utils@5.0.59
+
 ## 2.0.73
 
 ### Patch Changes

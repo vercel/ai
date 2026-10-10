@@ -1,5 +1,17 @@
 # @ai-sdk/harness-opencode
 
+## 1.0.151
+
+### Patch Changes
+
+- 4affc19: fix(harness-opencode): pass host tool schemas by file to avoid OpenCode spawn failures
+- 409da36: fix(harness-opencode): keep observation metadata out of native tool arguments
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider@4.0.27
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/harness@1.0.149
+
 ## 1.0.150
 
 ### Patch Changes

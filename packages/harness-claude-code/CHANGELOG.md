@@ -1,5 +1,16 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.153
+
+### Patch Changes
+
+- 40c10e0: fix(harness-claude-code): register the native ListAgents tool
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider@4.0.27
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/harness@1.0.149
+
 ## 1.0.152
 
 ### Patch Changes

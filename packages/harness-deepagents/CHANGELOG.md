@@ -1,5 +1,14 @@
 # @ai-sdk/harness-deepagents
 
+## 1.0.149
+
+### Patch Changes
+
+- 748b86d: fix(harness-deepagents): keep native MCP tool errors in the agent loop and settle their harness calls
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/harness@1.0.149
+
 ## 1.0.148
 
 ### Patch Changes
