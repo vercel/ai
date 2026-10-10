@@ -2,6 +2,26 @@ import type { Context } from '@ai-sdk/provider-utils';
 import { describe, it, expectTypeOf } from 'vitest';
 import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
 import { embedMany } from './embed-many';
+import type { EmbedManyCall } from './embed-many-result';
+
+describe('result.calls', () => {
+  it('exposes typed per-call results', async () => {
+    const result = await embedMany({
+      model: new MockEmbeddingModelV4(),
+      values: ['hello'],
+    });
+
+    expectTypeOf(result.calls).toEqualTypeOf<Array<EmbedManyCall>>();
+    expectTypeOf(result.calls[0].startIndex).toEqualTypeOf<number>();
+    expectTypeOf(result.calls[0].endIndex).toEqualTypeOf<number>();
+    expectTypeOf(result.calls[0].providerMetadata).toEqualTypeOf<
+      EmbedManyCall['providerMetadata']
+    >();
+    expectTypeOf(result.calls[0].response).toEqualTypeOf<
+      EmbedManyCall['response']
+    >();
+  });
+});
 
 describe('runtimeContext', () => {
   it('defaults to Context when omitted', async () => {

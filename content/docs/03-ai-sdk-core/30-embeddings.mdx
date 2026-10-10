@@ -48,6 +48,33 @@ const { embeddings } = await embedMany({
 });
 ```
 
+### Underlying Calls
+
+When `embedMany` splits values into multiple provider calls, `calls` preserves
+the provider metadata, usage, warnings, optional raw response, and embeddings
+for every successful call. Call records remain in input order even when the
+provider supports parallel calls. `startIndex` is inclusive and `endIndex` is
+exclusive, so you can associate each call with its original values.
+
+```ts
+const result = await embedMany({
+  model: 'openai/text-embedding-3-small',
+  values: ['first document', 'second document'],
+});
+
+for (const call of result.calls) {
+  const values = result.values.slice(call.startIndex, call.endIndex);
+
+  console.log({ values, providerMetadata: call.providerMetadata });
+}
+```
+
+The top-level `usage`, `warnings`, `providerMetadata`, and `responses` fields
+remain aggregate or flattened views for backwards compatibility. Use `calls`
+when metadata from every underlying request must be retained. Provider metadata
+may contain request identifiers or other sensitive values, so avoid logging or
+serializing it indiscriminately.
+
 ## Embedding Similarity
 
 After embedding values, you can calculate the similarity between them using the [`cosineSimilarity`](/docs/reference/ai-sdk-core/cosine-similarity) function.

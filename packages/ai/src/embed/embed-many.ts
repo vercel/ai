@@ -21,7 +21,7 @@ import { prepareRetries } from '../util/prepare-retries';
 import { splitArray } from '../util/split-array';
 import type { EmbedEndEvent, EmbedStartEvent } from './embed-events';
 import { validateEmbeddingDimensions } from './validate-embedding-dimensions';
-import type { EmbedManyResult } from './embed-many-result';
+import type { EmbedManyCall, EmbedManyResult } from './embed-many-result';
 import { VERSION } from '../version';
 
 const originalGenerateCallId = createIdGenerator({
@@ -324,6 +324,17 @@ export async function embedMany<RUNTIME_CONTEXT extends Context = Context>({
           return new DefaultEmbedManyResult({
             values,
             embeddings,
+            calls: [
+              {
+                startIndex: 0,
+                endIndex: values.length,
+                embeddings,
+                usage,
+                warnings,
+                providerMetadata,
+                response,
+              },
+            ],
             usage,
             warnings,
             providerMetadata,
@@ -344,14 +355,9 @@ export async function embedMany<RUNTIME_CONTEXT extends Context = Context>({
           getEmbeddingModelProviderOptionsTransformer(model);
 
         const embeddings: Array<Embedding> = [];
+        const calls: Array<EmbedManyCall> = [];
         const warnings: Array<Warning> = [];
-        const responses: Array<
-          | {
-              headers?: Record<string, string>;
-              body?: unknown;
-            }
-          | undefined
-        > = [];
+        const responses: Array<EmbedManyCall['response']> = [];
         let tokens = 0;
         let providerMetadata: ProviderMetadata | undefined;
 
@@ -431,12 +437,25 @@ export async function embedMany<RUNTIME_CONTEXT extends Context = Context>({
                 values: chunk,
               });
 
-              return result;
+              return {
+                ...result,
+                startIndex,
+                endIndex: startIndex + chunk.length,
+              };
             }),
           );
 
           for (const result of results) {
             embeddings.push(...result.embeddings);
+            calls.push({
+              startIndex: result.startIndex,
+              endIndex: result.endIndex,
+              embeddings: result.embeddings,
+              usage: result.usage,
+              warnings: result.warnings,
+              providerMetadata: result.providerMetadata,
+              response: result.response,
+            });
             warnings.push(...result.warnings);
             responses.push(result.response);
             tokens += result.usage.tokens;
@@ -483,6 +502,7 @@ export async function embedMany<RUNTIME_CONTEXT extends Context = Context>({
         return new DefaultEmbedManyResult({
           values,
           embeddings,
+          calls,
           usage: { tokens },
           warnings,
           providerMetadata: providerMetadata,
@@ -563,6 +583,7 @@ function splitByEmbeddingLimits({
 class DefaultEmbedManyResult implements EmbedManyResult {
   readonly values: EmbedManyResult['values'];
   readonly embeddings: EmbedManyResult['embeddings'];
+  readonly calls: EmbedManyResult['calls'];
   readonly usage: EmbedManyResult['usage'];
   readonly warnings: EmbedManyResult['warnings'];
   readonly providerMetadata: EmbedManyResult['providerMetadata'];
@@ -571,6 +592,7 @@ class DefaultEmbedManyResult implements EmbedManyResult {
   constructor(options: {
     values: EmbedManyResult['values'];
     embeddings: EmbedManyResult['embeddings'];
+    calls: EmbedManyResult['calls'];
     usage: EmbedManyResult['usage'];
     warnings: EmbedManyResult['warnings'];
     providerMetadata?: EmbedManyResult['providerMetadata'];
@@ -578,6 +600,7 @@ class DefaultEmbedManyResult implements EmbedManyResult {
   }) {
     this.values = options.values;
     this.embeddings = options.embeddings;
+    this.calls = options.calls;
     this.usage = options.usage;
     this.warnings = options.warnings;
     this.providerMetadata = options.providerMetadata;

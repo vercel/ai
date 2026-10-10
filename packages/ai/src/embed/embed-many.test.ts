@@ -452,6 +452,184 @@ describe('result.responses', () => {
   });
 });
 
+describe('result.calls', () => {
+  it('should include details for a single underlying call without a raw response', async () => {
+    const providerMetadata = {
+      mock: { requestId: 'request-1' },
+    };
+
+    const result = await embedMany({
+      model: new MockEmbeddingModelV4({
+        maxEmbeddingsPerCall: null,
+        doEmbed: async () => ({
+          embeddings: dummyEmbeddings,
+          usage: { tokens: 3 },
+          providerMetadata,
+          warnings: [],
+        }),
+      }),
+      values: testValues,
+    });
+
+    expect(result.calls).toStrictEqual([
+      {
+        startIndex: 0,
+        endIndex: 3,
+        embeddings: dummyEmbeddings,
+        usage: { tokens: 3 },
+        warnings: [],
+        providerMetadata,
+        response: undefined,
+      },
+    ]);
+  });
+
+  it('should retain input ranges and details for every sequential chunk', async () => {
+    const logWarningsSpy = vitest
+      .spyOn(logWarningsModule, 'logWarnings')
+      .mockImplementation(() => {});
+    let callCount = 0;
+
+    try {
+      const result = await embedMany({
+        model: new MockEmbeddingModelV4({
+          maxEmbeddingsPerCall: 1,
+          supportsParallelCalls: false,
+          doEmbed: async ({ values }) => {
+            const index = callCount++;
+            return {
+              embeddings: [[index]],
+              usage: { tokens: index + 1 },
+              warnings: [
+                {
+                  type: 'other',
+                  message: `warning-${index + 1}`,
+                },
+              ],
+              providerMetadata: {
+                mock: { requestId: `request-${index + 1}` },
+              },
+              response:
+                index === 0
+                  ? { headers: { 'x-request-id': 'request-1' } }
+                  : undefined,
+            };
+          },
+        }),
+        values: ['first', 'second'],
+      });
+
+      expect(result.calls).toStrictEqual([
+        {
+          startIndex: 0,
+          endIndex: 1,
+          embeddings: [[0]],
+          usage: { tokens: 1 },
+          warnings: [{ type: 'other', message: 'warning-1' }],
+          providerMetadata: { mock: { requestId: 'request-1' } },
+          response: { headers: { 'x-request-id': 'request-1' } },
+        },
+        {
+          startIndex: 1,
+          endIndex: 2,
+          embeddings: [[1]],
+          usage: { tokens: 2 },
+          warnings: [{ type: 'other', message: 'warning-2' }],
+          providerMetadata: { mock: { requestId: 'request-2' } },
+          response: undefined,
+        },
+      ]);
+      expect(result.providerMetadata).toStrictEqual({
+        mock: { requestId: 'request-2' },
+      });
+      expect(result.usage).toStrictEqual({ tokens: 3 });
+      expect(result.warnings).toStrictEqual([
+        { type: 'other', message: 'warning-1' },
+        { type: 'other', message: 'warning-2' },
+      ]);
+      expect(result.responses).toStrictEqual([
+        { headers: { 'x-request-id': 'request-1' } },
+        undefined,
+      ]);
+    } finally {
+      logWarningsSpy.mockRestore();
+    }
+  });
+
+  it('should keep parallel call details in input order when calls complete out of order', async () => {
+    const completionOrder: number[] = [];
+    let callCount = 0;
+    const resolvables = [
+      createResolvablePromise<void>(),
+      createResolvablePromise<void>(),
+      createResolvablePromise<void>(),
+    ];
+
+    const resultPromise = embedMany({
+      model: new MockEmbeddingModelV4({
+        maxEmbeddingsPerCall: 1,
+        supportsParallelCalls: true,
+        doEmbed: async () => {
+          const index = callCount++;
+          await resolvables[index].promise;
+          completionOrder.push(index);
+
+          return {
+            embeddings: [[index]],
+            usage: { tokens: index + 1 },
+            providerMetadata: {
+              mock: { requestId: `request-${index + 1}` },
+            },
+            warnings: [],
+          };
+        },
+      }),
+      values: ['first', 'second', 'third'],
+    });
+
+    await vi.waitFor(() => {
+      expect(callCount).toBe(3);
+    });
+
+    resolvables[2].resolve();
+    await vi.waitFor(() => {
+      expect(completionOrder).toStrictEqual([2]);
+    });
+    resolvables[1].resolve();
+    await vi.waitFor(() => {
+      expect(completionOrder).toStrictEqual([2, 1]);
+    });
+    resolvables[0].resolve();
+
+    const result = await resultPromise;
+
+    expect(completionOrder).toStrictEqual([2, 1, 0]);
+    expect(
+      result.calls.map(({ startIndex, endIndex, providerMetadata }) => ({
+        startIndex,
+        endIndex,
+        providerMetadata,
+      })),
+    ).toStrictEqual([
+      {
+        startIndex: 0,
+        endIndex: 1,
+        providerMetadata: { mock: { requestId: 'request-1' } },
+      },
+      {
+        startIndex: 1,
+        endIndex: 2,
+        providerMetadata: { mock: { requestId: 'request-2' } },
+      },
+      {
+        startIndex: 2,
+        endIndex: 3,
+        providerMetadata: { mock: { requestId: 'request-3' } },
+      },
+    ]);
+  });
+});
+
 describe('result.values', () => {
   it('should include values in the result', async () => {
     const result = await embedMany({
