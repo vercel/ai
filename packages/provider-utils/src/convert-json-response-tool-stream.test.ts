@@ -70,6 +70,37 @@ describe('convertJsonResponseToolStream', () => {
     ]);
   });
 
+  it('starts text before converting a complete response tool call', async () => {
+    expect(
+      await convert([
+        {
+          type: 'tool-call',
+          toolCallId: 'response',
+          toolName: 'json',
+          input: '{}',
+          providerMetadata: metadata,
+        },
+      ]),
+    ).toEqual([
+      {
+        type: 'text-start',
+        id: 'response',
+        providerMetadata: metadata,
+      },
+      {
+        type: 'text-delta',
+        id: 'response',
+        delta: '{}',
+        providerMetadata: metadata,
+      },
+      {
+        type: 'text-end',
+        id: 'response',
+        providerMetadata: metadata,
+      },
+    ]);
+  });
+
   it.each(['before', 'after'])(
     'preserves an application call %s the response call',
     async order => {
