@@ -28,3 +28,20 @@ const videoPrompt = {
 } satisfies LanguageModelV4CallOptions;
 
 provider('video-model').doGenerate(videoPrompt);
+
+const createdVideo = provider.videos.create({
+  model: 'video-model',
+  prompt: 'A city at sunset',
+});
+
+provider.videos.create({ prompt: 'A city at sunset' }).then(video => video.id);
+
+createdVideo.then(video => {
+  const id: string = video.id;
+  const status: string = video.status;
+  const providerError: unknown = video.error;
+  return provider.videos.retrieve(id).then(result => {
+    const resultStatus: string = result.status;
+    return [status, providerError, resultStatus];
+  });
+});
