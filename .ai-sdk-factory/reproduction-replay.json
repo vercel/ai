@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22733,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22733-empty-tool-async-iterable.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22733-empty-tool-async-iterable.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22733: empty AsyncIterable produced a successful undefined output and JSON null tool response"
+  }
+}
