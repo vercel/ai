@@ -150,6 +150,11 @@ const { embeddings, usage } = await embedMany({
 });
 ```
 
+When inputs are split into more chunks than `maxParallelCalls`, `embedMany`
+starts the next queued chunk as soon as an in-flight request finishes. This
+keeps the available request slots utilized while returning embeddings in the
+same order as the input values.
+
 ### Retries
 
 Both `embed` and `embedMany` accept an optional `maxRetries` parameter of type `number`

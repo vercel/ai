@@ -181,9 +181,11 @@ describe('model.supportsParallelCalls', () => {
     expect(embeddings).toStrictEqual(dummyEmbeddings);
   });
 
-  it('should support maxParallelCalls', async () => {
+  it('should refill available maxParallelCalls slots while preserving input order', async () => {
     const events: string[] = [];
     let callCount = 0;
+    let activeCallCount = 0;
+    let peakCallCount = 0;
 
     const resolvables = [
       createResolvablePromise<void>(),
@@ -199,13 +201,19 @@ describe('model.supportsParallelCalls', () => {
         doEmbed: async () => {
           const index = callCount++;
           events.push(`start-${index}`);
+          activeCallCount++;
+          peakCallCount = Math.max(peakCallCount, activeCallCount);
 
           await resolvables[index].promise;
+          activeCallCount--;
           events.push(`end-${index}`);
 
           return {
             embeddings: [dummyEmbeddings[index]],
-            response: { headers: {}, body: {} },
+            providerMetadata: {
+              mock: { completedChunkIndex: index },
+            },
+            response: { headers: {}, body: { chunkIndex: index } },
             warnings: [],
           };
         },
@@ -213,22 +221,103 @@ describe('model.supportsParallelCalls', () => {
       values: testValues,
     });
 
+    resolvables[1].resolve();
+    await new Promise(resolve => setImmediate(resolve));
+    const eventsBeforeFirstCallCompletes = [...events];
+
     resolvables.forEach(resolvable => {
       resolvable.resolve();
     });
 
-    const { embeddings } = await embedManyPromise;
+    const { embeddings, providerMetadata, responses } = await embedManyPromise;
 
-    expect(events).toStrictEqual([
+    expect(eventsBeforeFirstCallCompletes).toStrictEqual([
       'start-0',
       'start-1',
-      'end-0',
       'end-1',
       'start-2',
-      'end-2',
     ]);
-
+    expect(peakCallCount).toBe(2);
     expect(embeddings).toStrictEqual(dummyEmbeddings);
+    expect(responses).toStrictEqual([
+      { headers: {}, body: { chunkIndex: 0 } },
+      { headers: {}, body: { chunkIndex: 1 } },
+      { headers: {}, body: { chunkIndex: 2 } },
+    ]);
+    expect(providerMetadata).toStrictEqual({
+      mock: { completedChunkIndex: 2 },
+    });
+  });
+
+  it('should not start queued chunks after a chunk fails', async () => {
+    const started: string[] = [];
+    const releaseActiveCall = createResolvablePromise<void>();
+
+    const result = embedMany({
+      maxParallelCalls: 2,
+      maxRetries: 0,
+      model: new MockEmbeddingModelV4({
+        supportsParallelCalls: true,
+        maxEmbeddingsPerCall: 1,
+        doEmbed: async ({ values: [value] }) => {
+          started.push(value);
+
+          if (value === 'fail') {
+            throw new Error('failed');
+          }
+
+          await releaseActiveCall.promise;
+          return {
+            embeddings: [[value.length]],
+            warnings: [],
+          };
+        },
+      }),
+      values: ['active', 'fail', 'queued'],
+    });
+    const rejection = expect(result).rejects.toThrow('failed');
+
+    await new Promise(resolve => setImmediate(resolve));
+    releaseActiveCall.resolve();
+
+    await rejection;
+    expect(started).toStrictEqual(['active', 'fail']);
+  });
+
+  it('should not start queued chunks after cancellation', async () => {
+    const started: string[] = [];
+    const abortController = new AbortController();
+    const releaseActiveCalls = createResolvablePromise<void>();
+
+    const result = embedMany({
+      abortSignal: abortController.signal,
+      maxParallelCalls: 2,
+      maxRetries: 0,
+      model: new MockEmbeddingModelV4({
+        supportsParallelCalls: true,
+        maxEmbeddingsPerCall: 1,
+        doEmbed: async ({ values: [value] }) => {
+          started.push(value);
+          await releaseActiveCalls.promise;
+          return {
+            embeddings: [[value.length]],
+            warnings: [],
+          };
+        },
+      }),
+      values: ['first', 'second', 'queued'],
+    });
+    const rejection = expect(result).rejects.toHaveProperty(
+      'name',
+      'AbortError',
+    );
+
+    await new Promise(resolve => setImmediate(resolve));
+    abortController.abort();
+    releaseActiveCalls.resolve();
+
+    await rejection;
+    expect(started).toStrictEqual(['first', 'second']);
   });
 
   it.each([0, -1])(

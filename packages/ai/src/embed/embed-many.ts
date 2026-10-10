@@ -5,6 +5,7 @@ import {
   withUserAgentSuffix,
   type ProviderOptions,
 } from '@ai-sdk/provider-utils';
+import { InvalidArgumentError } from '../error/invalid-argument-error';
 import { logWarnings } from '../logger/log-warnings';
 import { getEmbeddingModelMaxInputBytesPerCall } from '../model/get-embedding-model-max-input-bytes-per-call';
 import { getEmbeddingModelProviderOptionsTransformer } from '../model/get-embedding-model-provider-options-transformer';
@@ -18,7 +19,6 @@ import { getOwn } from '../util/get-own';
 import { setOwn } from '../util/set-own';
 import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
-import { splitArray } from '../util/split-array';
 import type { EmbedEndEvent, EmbedStartEvent } from './embed-events';
 import { validateEmbeddingDimensions } from './validate-embedding-dimensions';
 import type { EmbedManyResult } from './embed-many-result';
@@ -355,103 +355,105 @@ export async function embedMany<RUNTIME_CONTEXT extends Context = Context>({
         let tokens = 0;
         let providerMetadata: ProviderMetadata | undefined;
 
-        const parallelChunks = splitArray(
-          valueChunks,
-          supportsParallelCalls ? maxParallelCalls : 1,
-        );
-
         let nextChunkStartIndex = 0;
-        for (const parallelChunk of parallelChunks) {
-          const results = await Promise.all(
-            parallelChunk.map(async chunk => {
-              // Capture the range before awaiting transformations or retrying.
-              const startIndex = nextChunkStartIndex;
-              nextChunkStartIndex += chunk.length;
-              const chunkProviderOptions = providerOptionsTransformer
-                ? await providerOptionsTransformer({
-                    providerOptions,
-                    values,
-                    startIndex,
-                    endIndex: startIndex + chunk.length,
-                  })
-                : providerOptions;
+        const chunksWithStartIndex = valueChunks.map(chunk => {
+          const startIndex = nextChunkStartIndex;
+          nextChunkStartIndex += chunk.length;
+          return { chunk, startIndex };
+        });
 
-              const result = await retry(async () => {
-                const embedCallId = generateCallId();
+        const results = await runWithConcurrency({
+          items: chunksWithStartIndex,
+          concurrency: supportsParallelCalls ? maxParallelCalls : 1,
+          execute: async ({ chunk, startIndex }) => {
+            abortSignal?.throwIfAborted();
 
-                await notify({
-                  event: {
-                    callId,
-                    embedCallId,
-                    operationId: 'ai.embedMany.doEmbed',
-                    provider: model.provider,
-                    modelId: model.modelId,
-                    values: chunk,
-                    dimensions,
-                  },
-                  callbacks: [telemetryDispatcher.onEmbedStart],
-                });
+            const chunkProviderOptions = providerOptionsTransformer
+              ? await providerOptionsTransformer({
+                  providerOptions,
+                  values,
+                  startIndex,
+                  endIndex: startIndex + chunk.length,
+                })
+              : providerOptions;
 
-                const modelResponse = await model.doEmbed({
+            abortSignal?.throwIfAborted();
+
+            const result = await retry(async () => {
+              const embedCallId = generateCallId();
+
+              await notify({
+                event: {
+                  callId,
+                  embedCallId,
+                  operationId: 'ai.embedMany.doEmbed',
+                  provider: model.provider,
+                  modelId: model.modelId,
                   values: chunk,
                   dimensions,
-                  abortSignal,
-                  headers: headersWithUserAgent,
-                  providerOptions: chunkProviderOptions,
-                });
+                },
+                callbacks: [telemetryDispatcher.onEmbedStart],
+              });
 
-                const chunkEmbeddings = modelResponse.embeddings;
-                const usage = modelResponse.usage ?? { tokens: NaN };
+              const modelResponse = await model.doEmbed({
+                values: chunk,
+                dimensions,
+                abortSignal,
+                headers: headersWithUserAgent,
+                providerOptions: chunkProviderOptions,
+              });
 
-                await notify({
-                  event: {
-                    callId,
-                    embedCallId,
-                    operationId: 'ai.embedMany.doEmbed',
-                    provider: model.provider,
-                    modelId: model.modelId,
-                    values: chunk,
-                    embeddings: chunkEmbeddings,
-                    usage,
-                  },
-                  callbacks: [telemetryDispatcher.onEmbedEnd],
-                });
+              const chunkEmbeddings = modelResponse.embeddings;
+              const usage = modelResponse.usage ?? { tokens: NaN };
 
-                return {
+              await notify({
+                event: {
+                  callId,
+                  embedCallId,
+                  operationId: 'ai.embedMany.doEmbed',
+                  provider: model.provider,
+                  modelId: model.modelId,
+                  values: chunk,
                   embeddings: chunkEmbeddings,
                   usage,
-                  warnings: modelResponse.warnings ?? [],
-                  providerMetadata: modelResponse.providerMetadata,
-                  response: modelResponse.response,
-                };
+                },
+                callbacks: [telemetryDispatcher.onEmbedEnd],
               });
 
-              validateEmbeddingCount({
-                embeddings: result.embeddings,
-                values: chunk,
-              });
+              return {
+                embeddings: chunkEmbeddings,
+                usage,
+                warnings: modelResponse.warnings ?? [],
+                providerMetadata: modelResponse.providerMetadata,
+                response: modelResponse.response,
+              };
+            });
 
-              return result;
-            }),
-          );
+            validateEmbeddingCount({
+              embeddings: result.embeddings,
+              values: chunk,
+            });
 
-          for (const result of results) {
-            embeddings.push(...result.embeddings);
-            warnings.push(...result.warnings);
-            responses.push(result.response);
-            tokens += result.usage.tokens;
-            if (result.providerMetadata) {
-              if (!providerMetadata) {
-                providerMetadata = { ...result.providerMetadata };
-              } else {
-                for (const [providerName, metadata] of Object.entries(
-                  result.providerMetadata,
-                )) {
-                  setOwn(providerMetadata, providerName, {
-                    ...getOwn(providerMetadata, providerName),
-                    ...metadata,
-                  });
-                }
+            return result;
+          },
+        });
+
+        for (const result of results) {
+          embeddings.push(...result.embeddings);
+          warnings.push(...result.warnings);
+          responses.push(result.response);
+          tokens += result.usage.tokens;
+          if (result.providerMetadata) {
+            if (!providerMetadata) {
+              providerMetadata = { ...result.providerMetadata };
+            } else {
+              for (const [providerName, metadata] of Object.entries(
+                result.providerMetadata,
+              )) {
+                setOwn(providerMetadata, providerName, {
+                  ...getOwn(providerMetadata, providerName),
+                  ...metadata,
+                });
               }
             }
           }
@@ -494,6 +496,53 @@ export async function embedMany<RUNTIME_CONTEXT extends Context = Context>({
       }
     },
   });
+}
+
+async function runWithConcurrency<ITEM, RESULT>({
+  items,
+  concurrency,
+  execute,
+}: {
+  items: Array<ITEM>;
+  concurrency: number;
+  execute: (item: ITEM) => Promise<RESULT>;
+}): Promise<Array<RESULT>> {
+  if (!(concurrency > 0)) {
+    throw new InvalidArgumentError({
+      parameter: 'chunkSize',
+      value: concurrency,
+      message: 'chunkSize must be greater than 0',
+    });
+  }
+
+  const workerCount =
+    concurrency === Infinity
+      ? items.length
+      : Math.min(Math.ceil(concurrency), items.length);
+  const results = new Array<RESULT>(items.length);
+  let nextIndex = 0;
+  let stopped = false;
+
+  const worker = async () => {
+    while (!stopped) {
+      const index = nextIndex++;
+
+      if (index >= items.length) {
+        return;
+      }
+
+      try {
+        results[index] = await execute(items[index]);
+      } catch (error) {
+        stopped = true;
+        throw error;
+      }
+    }
+  };
+
+  await Promise.all(Array.from({ length: workerCount }, worker));
+
+  return results;
 }
 
 function validateEmbeddingCount({
