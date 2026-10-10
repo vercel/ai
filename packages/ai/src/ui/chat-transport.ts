@@ -14,6 +14,14 @@ import type { UIMessage } from './ui-messages';
  */
 export interface ChatTransport<UI_MESSAGE extends UIMessage> {
   /**
+   * Whether `reconnectToStream` replays the response from the beginning.
+   *
+   * Defaults to `true`. Set to `false` when reconnection only returns chunks
+   * that were not received before the disconnect.
+   */
+  readonly resumeStreamIsReplay?: boolean;
+
+  /**
    * Sends messages to the chat API endpoint and returns a streaming response.
    *
    * This method handles both new message submission and message regeneration.

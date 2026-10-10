@@ -96,6 +96,22 @@ const { messages, sendMessage } = useChat({
 });
 ```
 
+## Stream Resumption
+
+The optional `ChatTransport.resumeStreamIsReplay` property declares whether
+`reconnectToStream()` returns a complete replay or only a continuation.
+Transports default this property to `true` for buffered replay endpoints. The
+first resumed `start` chunk resets the interrupted response so replayed parts
+are not duplicated. Later `start` chunks do not reset it again.
+
+For an endpoint that only sends remaining chunks, set
+`resumeStreamIsReplay: false` on the transport. This preserves active parts and
+metadata when a continuation includes a same-message `start` chunk. This
+property only affects reconnection, not new message submissions or regeneration.
+
+See [Chatbot Resume Streams](/docs/ai-sdk-ui/chatbot-resume-streams) for setup
+instructions.
+
 ## Direct Agent Transport
 
 For scenarios where you want to communicate directly with an [Agent](/docs/reference/ai-sdk-core/agent) without going through HTTP, you can use `DirectChatTransport`. This transport invokes the agent's `stream()` method directly in-process.

@@ -24,6 +24,19 @@ const server = createTestServer({
 });
 
 describe('HttpChatTransport', () => {
+  describe('resume stream behavior', () => {
+    it('should treat resumed streams as complete replays by default', () => {
+      expect(new MockHttpChatTransport().resumeStreamIsReplay).toBe(true);
+    });
+
+    it('should allow continuation-only endpoints to opt out', () => {
+      expect(
+        new MockHttpChatTransport({ resumeStreamIsReplay: false })
+          .resumeStreamIsReplay,
+      ).toBe(false);
+    });
+  });
+
   describe('body', () => {
     it('should include the body in the request by default', async () => {
       server.urls['http://localhost/api/chat'].response = {
