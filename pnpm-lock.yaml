@@ -92,8 +92,8 @@ importers:
         specifier: ^2.0.1
         version: 2.0.1(08986ece71ea6f7a3c10aab0a2500903)
       '@vercel/geistdocs':
-        specifier: 2.9.1
-        version: 2.9.1(3db7c4b7d33a639ee48ff418a47bf8bd)
+        specifier: 2.9.3
+        version: 2.9.3(3db7c4b7d33a639ee48ff418a47bf8bd)
       fumadocs-core:
         specifier: 16.2.2
         version: 16.2.2(@types/react@18.3.28)(algoliasearch@5.48.1)(lucide-react@0.555.0(react@19.2.6))(next@16.3.6(@babel/core@7.29.7(supports-color@10.2.2))(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(@types/node@22.19.19)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.97.3))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(supports-color@10.2.2)
@@ -14326,8 +14326,8 @@ packages:
       ws:
         optional: true
 
-  '@vercel/geistdocs@2.9.1':
-    resolution: {integrity: sha512-fTclqVAD/5Or1QLhm7HFpF7N5dfTTvj248Au4Ehji2LY755By/ElKmt0PzfjQxwQvA9RaQuNQO+XJ0znvK3Uyg==}
+  '@vercel/geistdocs@2.9.3':
+    resolution: {integrity: sha512-f7ljUkPqef8RFjyCcXx6qMiePa6aM1f/kEj5xvbyEDzFkbSQ7AUjvnVm+VZNWUUldynyccid0X/4XYWoeHu5PA==}
     hasBin: true
     peerDependencies:
       next: ^16.3.3
@@ -30786,7 +30786,7 @@ snapshots:
       agent-base: 7.1.4
       http-proxy-agent: 7.0.2(supports-color@10.2.2)
       https-proxy-agent: 7.0.6(supports-color@10.2.2)
-      lru-cache: 11.5.2
+      lru-cache: 11.5.3
       socks-proxy-agent: 8.0.5(supports-color@10.2.2)
     transitivePeerDependencies:
       - supports-color
@@ -36898,7 +36898,7 @@ snapshots:
       ws: 8.21.3
     optional: true
 
-  '@vercel/geistdocs@2.9.1(3db7c4b7d33a639ee48ff418a47bf8bd)':
+  '@vercel/geistdocs@2.9.3(3db7c4b7d33a639ee48ff418a47bf8bd)':
     dependencies:
       '@ai-sdk/react': 3.0.223(react@19.2.6)(zod@4.6.5)
       '@clack/prompts': 0.11.0
