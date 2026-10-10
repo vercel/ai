@@ -63,6 +63,76 @@ describe('processUIMessageStream', () => {
     });
   };
 
+  describe('replay start', () => {
+    it.each(['msg-123', undefined])(
+      'resets existing state only on the first start with message ID %s',
+      async messageId => {
+        state = createStreamingUIMessageState({
+          messageId: 'msg-123',
+          lastMessage: {
+            id: 'msg-123',
+            role: 'assistant',
+            metadata: { stale: true },
+            parts: [{ type: 'text', text: 'old text', state: 'streaming' }],
+          },
+        });
+        state.activeTextParts.old = { type: 'text', text: 'old text' };
+        state.activeReasoningParts.old = {
+          type: 'reasoning',
+          text: 'old reasoning',
+        };
+        state.partialToolCalls.old = { text: '{', index: 0, toolName: 'old' };
+        state.finishReason = 'length';
+
+        await consumeStream({
+          stream: processUIMessageStream({
+            stream: createUIMessageStream([
+              { type: 'start', messageId },
+              { type: 'start-step' },
+              { type: 'text-start', id: 'text-1' },
+              { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+              // Merged streams can emit another start for the same message.
+              { type: 'start', messageId, messageMetadata: { fresh: true } },
+              { type: 'text-delta', id: 'text-1', delta: ' world!' },
+              { type: 'text-end', id: 'text-1' },
+            ]),
+            resetStateOnFirstMessageStart: true,
+            resetStateOnMessageIdChange: true,
+            runUpdateMessageJob,
+            onError: error => {
+              throw error;
+            },
+          }),
+        });
+
+        expect(writeCalls[0].message).toEqual({
+          id: 'msg-123',
+          role: 'assistant',
+          metadata: undefined,
+          parts: [],
+        });
+        expect(state.message).toEqual({
+          id: 'msg-123',
+          role: 'assistant',
+          metadata: { fresh: true },
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'text',
+              text: 'Hello world!',
+              state: 'done',
+              providerMetadata: undefined,
+            },
+          ],
+        });
+        expect(state.activeTextParts).toEqual({});
+        expect(state.activeReasoningParts).toEqual({});
+        expect(state.partialToolCalls).toEqual({});
+        expect(state.finishReason).toBeUndefined();
+      },
+    );
+  });
+
   describe('finish-step', () => {
     it('preserves active text and reasoning parts across interleaved step boundaries', async () => {
       const stream = createUIMessageStream([
