@@ -27,6 +27,20 @@ describe('prepareLanguageModelCallOptions', () => {
       ).not.toThrow();
     });
 
+    it('should preserve finite generation settings including zero', () => {
+      const validSettings = {
+        temperature: 0,
+        topP: 0.9,
+        topK: 1,
+        presencePenalty: 0,
+        frequencyPenalty: -0.5,
+      };
+
+      expect(prepareLanguageModelCallOptions(validSettings)).toMatchObject(
+        validSettings,
+      );
+    });
+
     it('should allow undefined values for optional settings', () => {
       const validSettings = {
         maxOutputTokens: undefined,
@@ -143,6 +157,26 @@ describe('prepareLanguageModelCallOptions', () => {
           }),
         );
       });
+    });
+
+    it.each([
+      'temperature',
+      'topP',
+      'topK',
+      'presencePenalty',
+      'frequencyPenalty',
+    ] as const)('should reject non-finite %s values', parameter => {
+      for (const value of [NaN, Infinity, -Infinity]) {
+        expect(() =>
+          prepareLanguageModelCallOptions({ [parameter]: value }),
+        ).toThrow(
+          new InvalidArgumentError({
+            parameter,
+            value,
+            message: `${parameter} must be a number`,
+          }),
+        );
+      }
     });
 
     describe('seed', () => {

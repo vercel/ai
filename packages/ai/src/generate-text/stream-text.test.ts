@@ -9849,6 +9849,37 @@ describe('streamText', () => {
       });
     });
 
+    it.each([
+      'temperature',
+      'topP',
+      'topK',
+      'presencePenalty',
+      'frequencyPenalty',
+    ] as const)(
+      'should reject non-finite initial %s values before calling the provider',
+      async parameter => {
+        const model = new MockLanguageModelV4();
+        let validationError: unknown;
+        const result = streamText({
+          model,
+          prompt: 'test-input',
+          [parameter]: NaN,
+          onError: ({ error }) => {
+            validationError = error;
+          },
+        });
+
+        await result.consumeStream();
+
+        expect(validationError).toMatchObject({
+          name: 'AI_InvalidArgumentError',
+          parameter,
+          value: NaN,
+        });
+        expect(model.doStreamCalls).toHaveLength(0);
+      },
+    );
+
     it('should expose providerOptions and runtimeContext', async () => {
       let stepStartEvent!: Parameters<
         GenerateTextOnStepStartCallback<any, any>
