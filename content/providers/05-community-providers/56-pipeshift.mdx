@@ -1,0 +1,267 @@
+---
+title: Pipeshift
+description: Learn how to use the Pipeshift provider for the AI SDK.
+---
+
+# Pipeshift Provider
+
+[@pipeshift-org/ai-sdk-provider](https://github.com/pipeshift-org/ai-sdk-provider) contains language model and embedding model support for [Pipeshift](https://pipeshift.com/), which runs open-weight models such as GLM, DeepSeek, Qwen and Kimi through an OpenAI-compatible API, on serverless endpoints or on dedicated deployments.
+
+The package wraps `@ai-sdk/openai-compatible`. It sets the Pipeshift base URL and API key for you, builds the URL for dedicated deployments, and turns Pipeshift error responses into readable error messages.
+
+API keys can be obtained from the [Pipeshift dashboard](https://dashboard.pipeshift.com).
+
+## Setup
+
+The Pipeshift provider is available via the `@pipeshift-org/ai-sdk-provider` module. You can install it with:
+
+<InstallPackages packages="@pipeshift-org/ai-sdk-provider" />
+
+### Environment variables
+
+Create a `.env` file with a `PIPESHIFT_API_KEY` variable.
+
+## Provider Instance
+
+You can import the default provider instance `pipeshift` from `@pipeshift-org/ai-sdk-provider`:
+
+```ts
+import { pipeshift } from '@pipeshift-org/ai-sdk-provider';
+```
+
+If you need a customized setup, you can import `createPipeshift` from `@pipeshift-org/ai-sdk-provider` and create a provider instance with your settings:
+
+```ts
+import { createPipeshift } from '@pipeshift-org/ai-sdk-provider';
+
+const pipeshift = createPipeshift({
+  // Optional settings
+});
+```
+
+You can use the following optional settings to customize the Pipeshift provider instance:
+
+- **apiKey** _string_
+
+  API key that is being sent using the `Authorization` header as a Bearer token.
+  It defaults to the `PIPESHIFT_API_KEY` environment variable.
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls, e.g. to use proxy servers.
+  The default prefix is `https://api.pipeshift.com/api/v0`.
+
+- **modelURL** _string_
+
+  Host of a dedicated deployment, e.g. `https://my-model-us-east-1-a1b2c3-private.pipeshift.com`.
+  When set, requests go to this host under `/v1` instead of the serverless API.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  Defaults to the global `fetch` function.
+  You can use it as a middleware to intercept requests,
+  or to provide a custom fetch implementation for e.g. testing.
+
+- **supportsStructuredOutputs** _boolean_
+
+  Send `response_format: json_schema` for structured output.
+  Defaults to `false`, because the Pipeshift serverless API does not accept `json_schema` yet.
+  Set it to `true` for a dedicated deployment whose engine accepts JSON schema.
+
+## Language Models
+
+You can create language models using a provider instance:
+
+```ts
+import { pipeshift } from '@pipeshift-org/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: pipeshift('zai-org/GLM-5.3'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+Pipeshift language models can also be used in the `streamText` function:
+
+```ts
+import { pipeshift } from '@pipeshift-org/ai-sdk-provider';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: pipeshift('Qwen/Qwen3.8-Max'),
+  prompt: 'Write a haiku about GPU memory.',
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+### Tool Calling
+
+Pipeshift models support tool calling and multi-step tool use:
+
+```ts
+import { pipeshift } from '@pipeshift-org/ai-sdk-provider';
+import { generateText, stepCountIs, tool } from 'ai';
+import { z } from 'zod';
+
+const { text } = await generateText({
+  model: pipeshift('zai-org/GLM-5.3'),
+  tools: {
+    weather: tool({
+      description: 'Get the weather in a location',
+      inputSchema: z.object({
+        location: z.string().describe('The location to get the weather for'),
+      }),
+      execute: async ({ location }) => ({
+        location,
+        temperature: 72,
+      }),
+    }),
+  },
+  stopWhen: stepCountIs(5),
+  prompt: 'What is the weather in San Francisco?',
+});
+```
+
+### Reasoning
+
+All Pipeshift serverless models return reasoning content. The AI SDK exposes it as reasoning on the result:
+
+```ts
+import { pipeshift } from '@pipeshift-org/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text, reasoningText } = await generateText({
+  model: pipeshift('deepseek-ai/DeepSeek-V4.1-Flash'),
+  prompt: 'How many prime numbers are there between 10 and 30?',
+});
+
+console.log(reasoningText);
+console.log(text);
+```
+
+Reasoning tokens count toward `maxOutputTokens`, so leave room for them when you set a limit.
+
+### Image Input
+
+The models marked with image input in the [capabilities table](#model-capabilities) accept images in the message content:
+
+```ts
+import { pipeshift } from '@pipeshift-org/ai-sdk-provider';
+import { generateText } from 'ai';
+import { readFileSync } from 'node:fs';
+
+const { text } = await generateText({
+  model: pipeshift('Qwen/Qwen3.8-Flash'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'What is in this picture?' },
+        {
+          type: 'image',
+          image: readFileSync('./photo.png'),
+          mediaType: 'image/png',
+        },
+      ],
+    },
+  ],
+});
+```
+
+### Structured Output
+
+Pipeshift accepts JSON mode (`response_format: json_object`). It does not accept `response_format: json_schema` yet, so leave `supportsStructuredOutputs` unset and name the expected fields in the prompt:
+
+```ts
+import { pipeshift } from '@pipeshift-org/ai-sdk-provider';
+import { generateText, Output } from 'ai';
+import { z } from 'zod';
+
+const { output } = await generateText({
+  model: pipeshift('Qwen/Qwen3.8-Max'),
+  output: Output.object({
+    schema: z.object({
+      name: z.string(),
+      ingredients: z.array(z.string()),
+    }),
+  }),
+  prompt:
+    'Return a lasagna recipe as JSON with the fields "name" and "ingredients".',
+});
+```
+
+## Dedicated Deployments
+
+Each Pipeshift dedicated deployment has its own host. Pass that host as `modelURL`. The provider appends `/v1`. Use the deployment's served model name as the model ID:
+
+```ts
+import { createPipeshift } from '@pipeshift-org/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const pipeshift = createPipeshift({
+  modelURL: 'https://my-model-us-east-1-a1b2c3-private.pipeshift.com',
+});
+
+const { text } = await generateText({
+  model: pipeshift('your-served-model-name'),
+  prompt: 'Hello',
+});
+```
+
+## Embedding Models
+
+You can create embedding models with the `.embeddingModel()` factory method.
+
+<Note>
+  Embedding models require a dedicated deployment with a `modelURL`. The
+  Pipeshift serverless API has no embedding models.
+</Note>
+
+```ts
+import { createPipeshift } from '@pipeshift-org/ai-sdk-provider';
+import { embed } from 'ai';
+
+const pipeshift = createPipeshift({
+  modelURL: 'https://my-embedder-us-east-1-a1b2c3-private.pipeshift.com',
+});
+
+const { embedding } = await embed({
+  model: pipeshift.embeddingModel('your-served-model-name'),
+  value: 'sunny day at the beach',
+});
+```
+
+## Model Capabilities
+
+| Model                             | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      | Reasoning           |
+| --------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `Qwen/Qwen3.8-Flash`              | <Check />           | <Check />           | <Check />           | <Check />           | <Check />           |
+| `Qwen/Qwen3.8-Max`                | <Check />           | <Check />           | <Check />           | <Check />           | <Check />           |
+| `deepseek-ai/DeepSeek-V4.1-Flash` | <Check />           | <Check />           | <Check />           | <Check />           | <Check />           |
+| `deepseek-ai/DeepSeek-V4-Flash`   | <Cross />           | <Check />           | <Check />           | <Check />           | <Check />           |
+| `deepseek-ai/DeepSeek-V4-Pro`     | <Cross />           | <Check />           | <Check />           | <Check />           | <Check />           |
+| `moonshotai/Kimi-K3`              | <Check />           | <Check />           | <Check />           | <Check />           | <Check />           |
+| `zai-org/GLM-5.3`                 | <Cross />           | <Check />           | <Check />           | <Check />           | <Check />           |
+| `zai-org/GLM-5.2`                 | <Cross />           | <Check />           | <Check />           | <Check />           | <Check />           |
+
+<Note>
+  The table above lists the serverless chat models available today. Pipeshift
+  does not expose a `/models` endpoint, so see the [Pipeshift
+  dashboard](https://dashboard.pipeshift.com) for the current list. Any model
+  ID available on Pipeshift can be passed as a plain string. Object generation
+  uses JSON mode, see [Structured Output](#structured-output).
+</Note>
+
+## Additional Resources
+
+- [Pipeshift Provider Repository](https://github.com/pipeshift-org/ai-sdk-provider)
+- [Pipeshift dashboard](https://dashboard.pipeshift.com)
