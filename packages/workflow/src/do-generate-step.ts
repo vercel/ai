@@ -157,7 +157,9 @@ async function generateModelCall(
         parseToolCall({
           toolCall,
           tools,
-          repairToolCall: options.repairToolCall,
+          repairToolCall: options.repairToolCall as Parameters<
+            typeof parseToolCall
+          >[0]['repairToolCall'],
           instructions:
             prompt
               .filter(message => message.role === 'system')

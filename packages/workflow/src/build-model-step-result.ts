@@ -42,7 +42,12 @@ export async function buildModelStepResult(
           break;
         case 'tool-call': {
           const call = toolCalls[part.toolCallIndex];
-          providerContent.push({ ...call, input: '', type: 'tool-call' });
+          const { inputSchemaInput: _inputSchemaInput, ...publicCall } = call;
+          providerContent.push({
+            ...publicCall,
+            input: '',
+            type: 'tool-call',
+          });
           break;
         }
         case 'provider-tool-result':

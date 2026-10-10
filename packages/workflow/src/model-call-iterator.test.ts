@@ -173,6 +173,213 @@ describe('modelCallIterator', () => {
     ]);
   });
 
+  it('validates and normalizes tool input with the original schema', async () => {
+    const onInputAvailable = vi.fn();
+    vi.mocked(doStreamStep).mockResolvedValue(
+      createMockDoStreamStepResult({
+        finishReason: 'tool-calls',
+        toolCalls: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'search',
+            input: { query: 'docs', limit: '5', extra: true },
+          },
+        ],
+        toolInputLifecycleEvents: [
+          ['start', 'call-1', 'search'],
+          ['available', 'call-1'],
+        ],
+      }),
+    );
+
+    const iterator = modelCallIterator({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'search' }] }],
+      tools: {
+        search: tool({
+          inputSchema: z.object({
+            query: z.string().transform(value => value.toUpperCase()),
+            limit: z.coerce.number().default(10),
+          }),
+          onInputAvailable,
+        }),
+      },
+      model: vi.fn() as any,
+    });
+
+    const result = await iterator.next();
+
+    expect(result).toMatchObject({
+      done: false,
+      value: {
+        toolCalls: [
+          {
+            input: { query: 'DOCS', limit: 5 },
+            inputSchemaInput: {
+              query: 'docs',
+              limit: '5',
+              extra: true,
+            },
+          },
+        ],
+        step: {
+          toolCalls: [{ input: { query: 'DOCS', limit: 5 } }],
+        },
+      },
+    });
+    expect(onInputAvailable).toHaveBeenCalledWith(
+      expect.objectContaining({
+        input: { query: 'DOCS', limit: 5 },
+      }),
+    );
+  });
+
+  it('marks tool input rejected by the original schema as invalid', async () => {
+    vi.mocked(doStreamStep).mockResolvedValue(
+      createMockDoStreamStepResult({
+        finishReason: 'tool-calls',
+        toolCalls: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'readFile',
+            input: { path: 'etc/hosts' },
+          },
+        ],
+      }),
+    );
+
+    const iterator = modelCallIterator({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'read' }] }],
+      tools: {
+        readFile: tool({
+          inputSchema: z.object({
+            path: z
+              .string()
+              .refine(value => value.startsWith('/'), 'path must be absolute'),
+          }),
+        }),
+      },
+      model: vi.fn() as any,
+    });
+
+    const result = await iterator.next();
+
+    expect(result).toMatchObject({
+      done: false,
+      value: {
+        toolCalls: [
+          {
+            invalid: true,
+            error: { name: 'AI_InvalidToolInputError' },
+          },
+        ],
+        step: {
+          toolCalls: [],
+        },
+      },
+    });
+  });
+
+  it('repairs tool input rejected by the original schema', async () => {
+    const repairToolCall = vi.fn(async ({ toolCall }) => ({
+      ...toolCall,
+      input: JSON.stringify({ path: '/etc/hosts' }),
+    }));
+    vi.mocked(doStreamStep).mockResolvedValue(
+      createMockDoStreamStepResult({
+        finishReason: 'tool-calls',
+        toolCalls: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'readFile',
+            input: { path: 'etc/hosts' },
+          },
+        ],
+      }),
+    );
+
+    const iterator = modelCallIterator({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'read' }] }],
+      tools: {
+        readFile: tool({
+          inputSchema: z.object({
+            path: z
+              .string()
+              .refine(value => value.startsWith('/'), 'path must be absolute'),
+          }),
+        }),
+      },
+      model: vi.fn() as any,
+      repairToolCall,
+    });
+
+    const result = await iterator.next();
+
+    expect(repairToolCall).toHaveBeenCalledOnce();
+    expect(repairToolCall).toHaveBeenCalledWith(
+      expect.objectContaining({
+        error: expect.objectContaining({
+          name: 'AI_InvalidToolInputError',
+        }),
+      }),
+    );
+    expect(result).toMatchObject({
+      done: false,
+      value: {
+        toolCalls: [
+          {
+            input: { path: '/etc/hosts' },
+          },
+        ],
+        step: {
+          toolCalls: [{ input: { path: '/etc/hosts' } }],
+        },
+      },
+    });
+  });
+
+  it('does not make rejected tool input available to lifecycle callbacks', async () => {
+    const onInputAvailable = vi.fn();
+    vi.mocked(doStreamStep).mockResolvedValue(
+      createMockDoStreamStepResult({
+        finishReason: 'tool-calls',
+        toolCalls: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'readFile',
+            input: { path: 'etc/hosts' },
+          },
+        ],
+        toolInputLifecycleEvents: [
+          ['start', 'call-1', 'readFile'],
+          ['available', 'call-1'],
+        ],
+      }),
+    );
+
+    const iterator = modelCallIterator({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'read' }] }],
+      tools: {
+        readFile: tool({
+          inputSchema: z.object({
+            path: z
+              .string()
+              .refine(value => value.startsWith('/'), 'path must be absolute'),
+          }),
+          onInputAvailable,
+        }),
+      },
+      model: vi.fn() as any,
+    });
+
+    await iterator.next();
+
+    expect(onInputAvailable).not.toHaveBeenCalled();
+  });
+
   it('validates and normalizes tool context before input callbacks', async () => {
     const callback = vi.fn();
     vi.mocked(doStreamStep).mockResolvedValue(

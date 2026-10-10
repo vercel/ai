@@ -1,12 +1,14 @@
 import type {
   LanguageModelV4CallOptions,
   LanguageModelV4Prompt,
+  LanguageModelV4ToolCall,
   LanguageModelV4ToolResultPart,
   SharedV4ProviderOptions,
 } from '@ai-sdk/provider';
-import type { Context } from '@ai-sdk/provider-utils';
+import { asSchema, safeParseJSON, type Context } from '@ai-sdk/provider-utils';
 import {
   experimental_filterActiveTools as filterActiveTools,
+  isDeepEqualData,
   type ActiveTools,
   type Experimental_SandboxSession as SandboxSession,
   type Instructions,
@@ -20,6 +22,7 @@ import {
 import {
   createRestrictedTelemetryDispatcher,
   createToolSearchState,
+  parseToolCall,
 } from 'ai/internal';
 import { buildModelStepResult } from './build-model-step-result.js';
 import { doGenerateStep } from './do-generate-step.js';
@@ -420,12 +423,38 @@ export async function* modelCallIterator({
       }
 
       const {
-        toolCalls,
+        toolCalls: serializedToolCalls,
         finish,
         raw,
         providerExecutedToolResults,
         toolInputLifecycleEvents,
       } = modelCallResult;
+      const toolCalls = await validateToolCallInputs({
+        toolCalls: serializedToolCalls,
+        tools: effectiveTools,
+        repairToolCall,
+        instructions:
+          conversationPrompt
+            .filter(message => message.role === 'system')
+            .map(message => message.content)
+            .join('\n') || initialInstructions,
+        messages: stepInputMessages.filter(
+          message => message.role !== 'system',
+        ),
+        abortSignal: currentGenerationSettings.abortSignal,
+      });
+      if (mode === 'stream' && writable != null) {
+        // Replace the tool-call chunk deferred inside the model step with the
+        // original schema's validated, normalized, or repaired result.
+        await writeDeferredToolCalls(
+          writable,
+          toolCalls.filter(
+            (_, index) =>
+              serializedTools[serializedToolCalls[index].toolName]
+                ?.hasOwnValidator,
+          ),
+        );
+      }
       await invokeToolInputLifecycleCallbacks({
         events: toolInputLifecycleEvents ?? [],
         toolCalls,
@@ -661,6 +690,102 @@ export async function* modelCallIterator({
   return conversationPrompt;
 }
 
+async function validateToolCallInputs({
+  toolCalls,
+  tools,
+  repairToolCall,
+  instructions,
+  messages,
+  abortSignal,
+}: {
+  toolCalls: ParsedToolCall[];
+  tools: ToolSet;
+  repairToolCall?: ToolCallRepairFunction<ToolSet>;
+  instructions?: Instructions;
+  messages: ModelMessage[];
+  abortSignal?: AbortSignal;
+}): Promise<ParsedToolCall[]> {
+  return Promise.all(
+    toolCalls.map(async toolCall => {
+      if (toolCall.invalid || toolCall.providerExecuted) {
+        return toolCall;
+      }
+
+      const tool = tools[toolCall.toolName];
+      if (tool == null) {
+        return toolCall;
+      }
+
+      const inputSchema = asSchema(tool.inputSchema);
+      if (inputSchema.validate == null) {
+        return toolCall;
+      }
+
+      let repairedInput: { value: unknown } | undefined;
+      const parsedToolCall = await parseToolCall({
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: toolCall.toolCallId,
+          toolName: toolCall.toolName,
+          input:
+            JSON.stringify(toolCall.input) ??
+            (toolCall.input == null ? '' : String(toolCall.input)),
+          providerExecuted: toolCall.providerExecuted,
+          providerMetadata: toolCall.providerMetadata,
+        } satisfies LanguageModelV4ToolCall,
+        tools,
+        repairToolCall:
+          repairToolCall == null
+            ? undefined
+            : async options => {
+                const repairedToolCall = await repairToolCall(options);
+                if (repairedToolCall != null) {
+                  const parsedRepairedInput =
+                    repairedToolCall.input.trim() === ''
+                      ? { success: true as const, value: {} }
+                      : await safeParseJSON({
+                          text: repairedToolCall.input,
+                        });
+                  if (parsedRepairedInput.success) {
+                    repairedInput = { value: parsedRepairedInput.value };
+                  }
+                }
+                return repairedToolCall;
+              },
+        instructions,
+        messages,
+        abortSignal,
+      });
+
+      const inputSchemaInput = repairedInput ?? { value: toolCall.input };
+
+      return {
+        ...toolCall,
+        ...parsedToolCall,
+        ...(!parsedToolCall.invalid &&
+        !isDeepEqualData(inputSchemaInput.value, parsedToolCall.input)
+          ? { inputSchemaInput: inputSchemaInput.value }
+          : {}),
+      };
+    }),
+  );
+}
+
+async function writeDeferredToolCalls(
+  writable: WritableStream<ModelCallStreamPart<ToolSet>>,
+  toolCalls: ParsedToolCall[],
+) {
+  'use step';
+  const writer = writable.getWriter();
+  try {
+    for (const toolCall of toolCalls) {
+      await writer.write(toolCall as ModelCallStreamPart<ToolSet>);
+    }
+  } finally {
+    writer.releaseLock();
+  }
+}
+
 async function invokeToolInputLifecycleCallbacks({
   events,
   toolCalls,
@@ -731,7 +856,7 @@ async function invokeToolInputLifecycleCallbacks({
         break;
       case 'available': {
         const toolCall = toolCallsById.get(toolCallId);
-        if (toolCall == null) {
+        if (toolCall == null || toolCall.invalid) {
           break;
         }
         await tool.onInputAvailable?.({
