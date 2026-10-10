@@ -75,6 +75,209 @@ describe('createUIMessageStream', () => {
     `);
   });
 
+  it('should preserve eager merged-stream consumption by default', async () => {
+    let pulls = 0;
+    const totalChunks = 20;
+
+    const stream = createUIMessageStream({
+      execute: ({ writer }) => {
+        writer.merge(
+          new ReadableStream({
+            pull(controller) {
+              if (pulls === totalChunks) {
+                controller.close();
+                return;
+              }
+
+              pulls++;
+              controller.enqueue({
+                type: 'text-delta',
+                id: 'eager',
+                delta: String(pulls),
+              });
+            },
+          }),
+        );
+      },
+    });
+
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(pulls).toBe(totalChunks);
+    await stream.cancel();
+  });
+
+  it('should pause merged streams when the bounded merge queue is full and resume in order', async () => {
+    let pulls = 0;
+    const totalChunks = 20;
+
+    const stream = createUIMessageStream({
+      maxBufferedChunks: 2,
+      execute: ({ writer }) => {
+        writer.merge(
+          new ReadableStream({
+            pull(controller) {
+              if (pulls === totalChunks) {
+                controller.close();
+                return;
+              }
+
+              pulls++;
+              controller.enqueue({
+                type: 'text-delta',
+                id: 'bounded',
+                delta: String(pulls),
+              });
+            },
+          }),
+        );
+      },
+    });
+
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(pulls).toBeLessThan(totalChunks);
+
+    const chunks = await convertReadableStreamToArray(stream);
+
+    expect(chunks).toHaveLength(totalChunks);
+    expect(
+      chunks.map(chunk =>
+        chunk.type === 'text-delta' ? Number(chunk.delta) : undefined,
+      ),
+    ).toEqual(Array.from({ length: totalChunks }, (_, index) => index + 1));
+  });
+
+  it('should read bounded merged streams fairly while preserving per-source order', async () => {
+    function createSource(id: string) {
+      let value = 0;
+
+      return new ReadableStream<UIMessageChunk>({
+        pull(controller) {
+          if (value === 3) {
+            controller.close();
+            return;
+          }
+
+          value++;
+          controller.enqueue({
+            type: 'text-delta',
+            id,
+            delta: `${id}${value}`,
+          });
+        },
+      });
+    }
+
+    const stream = createUIMessageStream({
+      maxBufferedChunks: 1,
+      execute: ({ writer }) => {
+        writer.merge(createSource('a'));
+        writer.merge(createSource('b'));
+      },
+    });
+
+    const chunks = await convertReadableStreamToArray(stream);
+
+    expect(
+      chunks.map(chunk =>
+        chunk.type === 'text-delta' ? chunk.delta : undefined,
+      ),
+    ).toEqual(['a1', 'b1', 'a2', 'b2', 'a3', 'b3']);
+  });
+
+  it('should cancel every bounded merged stream while reads are paused', async () => {
+    const cancellationReasons: unknown[] = [];
+    const cancelReason = new Error('client disconnected');
+    const onEnd = vi.fn();
+
+    function createSource(id: string) {
+      let value = 0;
+
+      return new ReadableStream<UIMessageChunk>({
+        pull(controller) {
+          value++;
+          controller.enqueue({
+            type: 'data-value',
+            id,
+            data: value,
+          });
+        },
+        cancel(reason) {
+          cancellationReasons.push(reason);
+        },
+      });
+    }
+
+    const stream = createUIMessageStream({
+      maxBufferedChunks: 1,
+      execute: ({ writer }) => {
+        writer.merge(createSource('a'));
+        writer.merge(createSource('b'));
+      },
+      onEnd,
+    });
+
+    const reader = stream.getReader();
+    await reader.read();
+    await reader.cancel(cancelReason);
+
+    expect(cancellationReasons).toEqual([cancelReason, cancelReason]);
+    expect(onEnd).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        isCancelled: true,
+        outcome: { status: 'unknown' },
+      }),
+    );
+  });
+
+  it('should yield to the event loop for an infinite synchronous bounded source', async () => {
+    vi.useRealTimers();
+
+    let value = 0;
+    let timerFired = false;
+    const stream = createUIMessageStream({
+      maxBufferedChunks: 1,
+      execute: ({ writer }) => {
+        writer.merge(
+          new ReadableStream({
+            pull(controller) {
+              value++;
+              controller.enqueue({
+                type: 'text-delta',
+                id: 'infinite',
+                delta: String(value),
+              });
+            },
+          }),
+        );
+      },
+    });
+    const reader = stream.getReader();
+    setTimeout(() => {
+      timerFired = true;
+    }, 0);
+
+    for (let i = 0; i < 100; i++) {
+      await reader.read();
+    }
+
+    expect(timerFired).toBe(true);
+    await reader.cancel();
+  });
+
+  it.each([0, -1, 1.5, Number.POSITIVE_INFINITY])(
+    'should reject invalid maxBufferedChunks values: %s',
+    maxBufferedChunks => {
+      expect(() =>
+        createUIMessageStream({
+          maxBufferedChunks,
+          execute: () => {},
+        }),
+      ).toThrow('maxBufferedChunks must be a positive safe integer.');
+    },
+  );
+
   it('should cancel merged streams when the consumer cancels', async () => {
     const pullStarted = new DelayedPromise<void>();
     const pullRelease = new DelayedPromise<void>();

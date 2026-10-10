@@ -171,3 +171,30 @@ If you used the eager `for await (...)` approach, then the connection is still r
 {/* When we started writing the streaming code for the AI SDK, we confirm aborting a fetch will end a streamed response from Next.js */}
 
 With the lazy approach, this is taken care of for you. Because the stream will only request new data from AIBot when the consumer requests it, navigating away from the page naturally frees all resources. The fetch connection aborts and the server can clean up the response. The `ReadableStream` tied to that response can now be garbage collected. When that happens, the connection it holds to AIBot can then be freed.
+
+## Bounding merged UI message streams
+
+`createUIMessageStream` preserves its historical eager behavior by default.
+When composing long-running streams with `writer.merge`, you can opt into a
+bounded merge queue with `maxBufferedChunks`:
+
+```ts
+const stream = createUIMessageStream({
+  maxBufferedChunks: 16,
+  execute({ writer }) {
+    writer.merge(modelResult.toUIMessageStream());
+    writer.merge(progressStream);
+  },
+});
+```
+
+The value is a positive safe integer and represents a chunk-count high-water
+mark, not a byte limit. When the queue is full, reads from merged sources pause
+until the consumer reads from `stream`. Multiple sources are serviced in
+round-robin order while each source's order is preserved. Cancelling `stream`
+cancels all active merged sources, including sources waiting for queue space.
+
+The bound applies to the merge queue only. `writer.write` is synchronous and
+does not provide backpressure, and a source stream can maintain its own
+internal buffer. Keep direct writes bounded and configure source streams
+appropriately when strict memory control is required.

@@ -30,6 +30,14 @@ describe('UIMessageStreamWriter', () => {
     >();
   });
 
+  it('accepts a bounded merged-stream queue size', () => {
+    type Options = Parameters<typeof createUIMessageStream>[0];
+
+    expectTypeOf<Options['maxBufferedChunks']>().toEqualTypeOf<
+      number | undefined
+    >();
+  });
+
   it('adds consumer cancellation without expanding the outcome union', () => {
     type EndEvent = Parameters<UIMessageStreamOnEndCallback<any>>[0];
 

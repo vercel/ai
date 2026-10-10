@@ -79,6 +79,17 @@ the final `onEnd` outcome `failed`. Individual `error` chunks do not change the
 outcome by themselves. When merging multiple child streams, aggregate their
 outcomes and call `setOutcome` once.
 
+By default, `writer.merge` consumes merged streams eagerly. Set
+`maxBufferedChunks` to a positive safe integer to use a bounded merge queue.
+When the queue reaches its high-water mark, `createUIMessageStream` pauses
+merged-stream reads until the returned stream is consumed. Concurrent merged
+streams are serviced in round-robin order while preserving each source's chunk
+order, and cancelling the returned stream cancels every active merged source.
+
+The limit counts chunks rather than bytes and applies only to the merge queue.
+It does not limit synchronous `writer.write` calls or chunks already buffered
+inside a source stream.
+
 ## API Signature
 
 ### Parameters
@@ -126,6 +137,12 @@ outcomes and call `setOutcome` once.
       type: '(error: unknown) => string',
       description:
         'A function that handles errors and returns an error message string. By default, it returns `"An error occurred."` so server-side error details are not sent to the client.',
+    },
+    {
+      name: 'maxBufferedChunks',
+      type: 'number | undefined',
+      description:
+        'A positive safe integer that sets the high-water mark for chunks read from merged streams. When set, merged sources pause while the queue is full, resume as the returned stream is consumed, are serviced in round-robin order, and are all cancelled when the consumer cancels. The limit does not apply to writer.write calls or buffering performed by source streams. When omitted, merged streams are consumed eagerly.',
     },
     {
       name: 'originalMessages',
