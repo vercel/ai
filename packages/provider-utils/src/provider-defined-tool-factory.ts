@@ -13,6 +13,7 @@ export type ProviderDefinedToolFactory<
 > = <OUTPUT>(
   options: ARGS & {
     execute?: ToolExecuteFunction<INPUT, OUTPUT, CONTEXT>;
+    outputSchema?: FlexibleSchema<OUTPUT>;
     needsApproval?: Tool<INPUT, OUTPUT, CONTEXT>['needsApproval'];
     toModelOutput?: Tool<INPUT, OUTPUT, CONTEXT>['toModelOutput'];
     onInputStart?: Tool<INPUT, OUTPUT, CONTEXT>['onInputStart'];
