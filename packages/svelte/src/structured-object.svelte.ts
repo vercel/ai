@@ -209,7 +209,7 @@ export class StructuredObject<
                 schema: asSchema(this.#options.schema),
               });
 
-              this.#options.onFinish(
+              await this.#options.onFinish(
                 validationResult.success
                   ? { object: validationResult.value, error: undefined }
                   : { object: undefined, error: validationResult.error },
