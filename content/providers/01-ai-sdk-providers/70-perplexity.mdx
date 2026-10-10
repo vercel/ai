@@ -134,8 +134,9 @@ const { text, sources } = await generateText({
 });
 ```
 
-Supported native tools are `web_search`, `fetch_url`, `people_search`,
-`finance_search`, `sandbox`, `mcp`, and `connector`. Agent API presets include
+Supported native tools are `web_search`, `image_search`, `fetch_url`,
+`people_search`, `finance_search`, `sandbox`, `mcp`, and `connector`.
+`web_search` accepts `search_type` of `web` or `fast`. Agent API presets include
 preconfigured tools that remain enabled; the `tools` option can add explicit
 tools or supply tools when using a direct model ID.
 
@@ -256,6 +257,40 @@ The following Agent API options are available:
   documentation](https://docs.perplexity.ai/docs/agent-api/quickstart) for
   details about native request fields.
 </Note>
+
+Chat completion parameters are camelCase on `PerplexityLanguageModelOptions`
+and are sent with Perplexity's field names. On the Agent API, prefer `tools`
+for search configuration.
+
+```ts
+providerOptions: {
+  perplexity: {
+    searchMode: 'academic', // search_mode
+    webSearchOptions: {
+      searchContextSize: 'low', // web_search_options.search_context_size
+      searchType: 'pro', // web_search_options.search_type: 'fast' | 'pro' | 'auto'
+      userLocation: { country: 'US', city: 'San Francisco' },
+    },
+    searchDomainFilter: ['arxiv.org'],
+    searchRecencyFilter: 'month',
+    returnImages: false,
+  } satisfies PerplexityLanguageModelOptions,
+}
+```
+
+- **searchMode**: `'web' | 'academic' | 'sec'` (`search_mode`)
+- **webSearchOptions.searchContextSize**: `'low' | 'medium' | 'high'`
+- **webSearchOptions.searchType**: `'fast' | 'pro' | 'auto'`
+- **webSearchOptions.userLocation**: `country`, `city`, `region`, `latitude`, `longitude`
+- **webSearchOptions.imageResultsEnhancedRelevance** _boolean_
+- **returnImages** / **returnRelatedQuestions** _boolean_
+- **enableSearchClassifier** / **disableSearch** _boolean_
+- **searchDomainFilter** / **searchLanguageFilter** _string[]_
+- **searchRecencyFilter**: `'hour' | 'day' | 'week' | 'month' | 'year'`
+- **searchAfterDateFilter** / **searchBeforeDateFilter** / **lastUpdatedAfterFilter** / **lastUpdatedBeforeFilter**: `MM/DD/YYYY`
+- **imageFormatFilter** / **imageDomainFilter** _string[]_
+- **streamMode**: `'full' | 'concise'`
+- **reasoningEffort**: `'minimal' | 'low' | 'medium' | 'high'` (`reasoning_effort`)
 
 #### Provider Metadata
 

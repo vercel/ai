@@ -40,7 +40,10 @@ import {
   type perplexitySearchResultSchema,
   type perplexityUsageSchema,
 } from './perplexity-agent-api';
-import { perplexityLanguageModelOptions } from './perplexity-language-model-options';
+import {
+  perplexityLanguageModelOptions,
+  splitPerplexityLanguageModelOptions,
+} from './perplexity-language-model-options';
 import type {
   PerplexityAgentPreset,
   PerplexityLanguageModelId,
@@ -247,7 +250,11 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
       warnings.push({ type: 'unsupported', feature: 'seed' });
     }
 
-    const { tools: nativeTools, ...agentOptions } = perplexityOptions;
+    const {
+      agentOptions,
+      nativeTools,
+      chatCompletion: chatCompletionOptions,
+    } = splitPerplexityLanguageModelOptions(perplexityOptions);
 
     const modelSelection = getModelSelection(this.modelId);
 
@@ -289,6 +296,7 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
 
     const body: Record<string, unknown> = {
       ...agentOptions,
+      ...chatCompletionOptions,
       ...modelSelection,
       input,
       max_output_tokens: maxOutputTokens,
