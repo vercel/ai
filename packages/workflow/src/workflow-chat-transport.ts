@@ -10,10 +10,40 @@ import {
 } from 'ai';
 import {
   convertAsyncIteratorToReadableStream,
+  delay,
   getErrorMessage,
 } from '@ai-sdk/provider-utils';
 import { createAsyncIterableStream } from 'ai/internal';
 import { normalizeUIMessageStreamParts } from './normalize-ui-message-stream.js';
+
+const MAX_RETRY_DELAY_MS = 2_147_483_647;
+
+function validateRetryDelayMs(retryDelayMs: number): number {
+  if (
+    !Number.isFinite(retryDelayMs) ||
+    retryDelayMs < 0 ||
+    retryDelayMs > MAX_RETRY_DELAY_MS
+  ) {
+    throw new RangeError(
+      `retryDelayMs must be between 0 and ${MAX_RETRY_DELAY_MS}.`,
+    );
+  }
+
+  return retryDelayMs;
+}
+
+function createCancellableAsyncIterator<T>(
+  iterator: AsyncIterator<T>,
+  abortController: AbortController,
+): AsyncIterator<T> {
+  return {
+    next: () => iterator.next(),
+    return: async value => {
+      abortController.abort(value);
+      return iterator.return?.(value) ?? { done: true, value };
+    },
+  };
+}
 
 /**
  * Tracks `*-start` chunks the client has accepted so we can drop deltas/ends
@@ -178,6 +208,23 @@ export interface WorkflowChatTransportOptions<UI_MESSAGE extends UIMessage> {
   maxConsecutiveErrors?: number;
 
   /**
+   * Delay in milliseconds before each automatic reconnection retry, or a
+   * function that computes the delay from the current consecutive error count.
+   *
+   * The callback receives `0` after an incomplete reconnect stream made
+   * progress and a positive count after an empty or invalid stream. The count
+   * resets to `0` whenever a reconnect stream receives UI message chunks.
+   *
+   * The initial reconnect is immediate. No delay is scheduled after a finish
+   * chunk or after reaching `maxConsecutiveErrors`. Delays are cancelled when
+   * the operation's abort signal is aborted or its returned stream is
+   * cancelled.
+   *
+   * Defaults to no delay.
+   */
+  retryDelayMs?: number | ((options: { consecutiveErrors: number }) => number);
+
+  /**
    * Default `startIndex` to use when reconnecting to a stream without a known
    * chunk position (i.e. the initial reconnection, not a retry).
    * Negative values read from the end of a durable UIMessageChunk stream (e.g.
@@ -225,6 +272,9 @@ export class WorkflowChatTransport<
   private readonly onChatSendMessage?: OnChatSendMessage<UI_MESSAGE>;
   private readonly onChatEnd?: OnChatEnd;
   private readonly maxConsecutiveErrors: number;
+  private readonly retryDelayMs?:
+    | number
+    | ((options: { consecutiveErrors: number }) => number);
   private readonly initialStartIndex: number;
   private readonly prepareSendMessagesRequest?: PrepareSendMessagesRequest<UI_MESSAGE>;
   private readonly prepareReconnectToStreamRequest?: PrepareReconnectToStreamRequest;
@@ -238,6 +288,7 @@ export class WorkflowChatTransport<
    * @param options.onChatSendMessage - Callback after sending messages
    * @param options.onChatEnd - Callback when chat stream ends
    * @param options.maxConsecutiveErrors - Maximum consecutive errors for reconnection
+   * @param options.retryDelayMs - Delay before automatic reconnection retries
    * @param options.prepareSendMessagesRequest - Function to prepare send messages request
    * @param options.prepareReconnectToStreamRequest - Function to prepare reconnect request
    */
@@ -247,6 +298,10 @@ export class WorkflowChatTransport<
     this.onChatSendMessage = options.onChatSendMessage;
     this.onChatEnd = options.onChatEnd;
     this.maxConsecutiveErrors = options.maxConsecutiveErrors ?? 3;
+    this.retryDelayMs =
+      typeof options.retryDelayMs === 'number'
+        ? validateRetryDelayMs(options.retryDelayMs)
+        : options.retryDelayMs;
     this.initialStartIndex = options.initialStartIndex ?? 0;
     this.prepareSendMessagesRequest = options.prepareSendMessagesRequest;
     this.prepareReconnectToStreamRequest =
@@ -274,13 +329,18 @@ export class WorkflowChatTransport<
   async sendMessages(
     options: SendMessagesOptions<UI_MESSAGE> & ChatRequestOptions,
   ): Promise<ReadableStream<UIMessageChunk>> {
-    return convertAsyncIteratorToReadableStream(
-      normalizeUIMessageStreamParts(this.sendMessagesIterator(options)),
+    return this.createCancellableReadableStream(
+      options.abortSignal,
+      retryAbortSignal =>
+        normalizeUIMessageStreamParts(
+          this.sendMessagesIterator(options, retryAbortSignal),
+        ),
     );
   }
 
   private async *sendMessagesIterator(
     options: SendMessagesOptions<UI_MESSAGE> & ChatRequestOptions,
+    retryAbortSignal?: AbortSignal,
   ): AsyncGenerator<UIMessageChunk> {
     const { chatId, messages, abortSignal, trigger, messageId } = options;
 
@@ -362,7 +422,12 @@ export class WorkflowChatTransport<
       // If the initial POST request did not include the "finish" chunk,
       // we need to reconnect to the stream. This could indicate that a
       // network error occurred or the Vercel Function timed out.
-      yield* this.reconnectToStreamIterator(options, workflowRunId, chunkIndex);
+      yield* this.reconnectToStreamIterator(
+        options,
+        workflowRunId,
+        chunkIndex,
+        retryAbortSignal,
+      );
     }
   }
 
@@ -381,16 +446,25 @@ export class WorkflowChatTransport<
   async reconnectToStream(
     options: ReconnectToStreamOptions & ChatRequestOptions,
   ): Promise<ReadableStream<UIMessageChunk> | null> {
-    const reconnectIterator = normalizeUIMessageStreamParts(
-      this.reconnectToStreamIterator(options),
+    return this.createCancellableReadableStream(
+      options.abortSignal,
+      retryAbortSignal =>
+        normalizeUIMessageStreamParts(
+          this.reconnectToStreamIterator(
+            options,
+            undefined,
+            undefined,
+            retryAbortSignal,
+          ),
+        ),
     );
-    return convertAsyncIteratorToReadableStream(reconnectIterator);
   }
 
   private async *reconnectToStreamIterator(
     options: ReconnectToStreamOptions & ChatRequestOptions,
     workflowRunId?: string,
     initialChunkIndex = 0,
+    retryAbortSignal?: AbortSignal,
   ): AsyncGenerator<UIMessageChunk> {
     let chunkIndex = initialChunkIndex;
 
@@ -527,9 +601,37 @@ export class WorkflowChatTransport<
           );
         }
       }
+
+      if (!gotFinish && this.retryDelayMs != null) {
+        const retryDelayMs = validateRetryDelayMs(
+          typeof this.retryDelayMs === 'function'
+            ? this.retryDelayMs({ consecutiveErrors })
+            : this.retryDelayMs,
+        );
+
+        if (retryDelayMs > 0) {
+          await delay(retryDelayMs, { abortSignal: retryAbortSignal });
+        }
+      }
     }
 
     await this.onFinish(gotFinish, { chatId: options.chatId, chunkIndex });
+  }
+
+  private createCancellableReadableStream<T>(
+    abortSignal: AbortSignal | undefined,
+    createIterator: (abortSignal: AbortSignal) => AsyncIterator<T>,
+  ): ReadableStream<T> {
+    const cancellationController = new AbortController();
+    const operationAbortSignal =
+      abortSignal == null
+        ? cancellationController.signal
+        : AbortSignal.any([abortSignal, cancellationController.signal]);
+    const iterator = createIterator(operationAbortSignal);
+
+    return convertAsyncIteratorToReadableStream(
+      createCancellableAsyncIterator(iterator, cancellationController),
+    );
   }
 
   private async onFinish(
