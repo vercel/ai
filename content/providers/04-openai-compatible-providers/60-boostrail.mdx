@@ -1,0 +1,86 @@
+---
+title: BoostRail
+description: Use the BoostRail OpenAI compatible API with the AI SDK.
+---
+
+# BoostRail Provider
+
+[BoostRail](https://www.boostrail.com/) provides an OpenAI- and Anthropic-compatible API for text, image and video models from multiple labs, including Anthropic, OpenAI, Google and DeepSeek. One API key and one prepaid USD balance cover the catalog. You can use its Chat Completions endpoint with the AI SDK through the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+Install the OpenAI Compatible provider:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+Create a BoostRail API key and set it as a server-side environment variable:
+
+```bash
+export BOOSTRAIL_API_KEY=your-api-key
+```
+
+You can create an API key at the [BoostRail app](https://app.boostrail.com). Keys start with `br_`.
+
+## Provider Instance
+
+Create a BoostRail provider instance with `createOpenAICompatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const boostrail = createOpenAICompatible({
+  name: 'boostrail',
+  apiKey: process.env.BOOSTRAIL_API_KEY,
+  baseURL: 'https://api.boostrail.com/v1',
+});
+```
+
+## Language Models
+
+Create a chat model with the `.chatModel()` factory method and a BoostRail model ID:
+
+```ts
+const model = boostrail.chatModel('deepseek-v4.1-flash');
+```
+
+### Example
+
+Use `generateText` to generate text with the model:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText, streamText } from 'ai';
+
+const boostrail = createOpenAICompatible({
+  name: 'boostrail',
+  apiKey: process.env.BOOSTRAIL_API_KEY,
+  baseURL: 'https://api.boostrail.com/v1',
+  includeUsage: true,
+});
+
+const { text, usage } = await generateText({
+  model: boostrail('deepseek-v4.1-flash'),
+  prompt: 'Reply with the single word: ready',
+});
+
+console.log(text, usage.totalTokens);
+
+const result = streamText({
+  model: boostrail('deepseek-v4.1-flash'),
+  prompt: 'Count from 1 to 5, separated by spaces.',
+});
+for await (const part of result.textStream) process.stdout.write(part);
+console.log((await result.usage).totalTokens);
+```
+
+## Supported Models and Capabilities
+
+This integration uses BoostRail's OpenAI-compatible Chat Completions endpoint for text generation. 
+
+Use the [BoostRail models catalog](https://www.boostrail.com/models/) or the `GET https://api.boostrail.com/v1/models` endpoint to find current model IDs and model-specific capabilities and limits.
+
+## Resources
+
+- [BoostRail AI SDK documentation](https://www.boostrail.com/docs/frameworks/#ai-sdk)
+- [BoostRail AI SDK example](https://github.com/boostrail/examples/tree/main/ai-sdk)
+- [AI SDK OpenAI Compatible provider](/providers/openai-compatible-providers)
