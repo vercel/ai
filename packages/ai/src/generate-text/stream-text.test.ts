@@ -32812,6 +32812,63 @@ describe('streamText', () => {
       expect(events).toEqual(['first', 'second']);
     });
   });
+
+  describe('total usage when the stream ends early', () => {
+    // An abort tears the stream down before the last step emits its `finish`
+    // part, so `totalUsage` used to reject even though the steps that ran were
+    // already on the books with real counts. Billing code that awaits it in a
+    // try/catch then charges nothing for tokens the provider already billed.
+    const stepUsage: LanguageModelV4Usage = {
+      inputTokens: {
+        total: 3,
+        noCache: 3,
+        cacheRead: undefined,
+        cacheWrite: undefined,
+      },
+      outputTokens: { total: 10, text: 10, reasoning: undefined },
+    };
+
+    it('should report the usage of the steps that ran when the stream is aborted', async () => {
+      const abortController = new AbortController();
+      const model = new MockLanguageModelV4({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              input: '{ "value": "value" }',
+            },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: stepUsage,
+            },
+          ]),
+        }),
+      });
+
+      const result = streamText({
+        model,
+        tools: {
+          tool1: tool({ inputSchema: z.object({ value: z.string() }) }),
+        },
+        stopWhen: isStepCount(3),
+        prompt: 'test-input',
+        abortSignal: abortController.signal,
+        // Abort once the first step is on the books, so the continuation is
+        // the thing that gets cut short.
+        onStepFinish: () => {
+          abortController.abort();
+        },
+      });
+
+      const totalUsage = await result.totalUsage;
+
+      expect(totalUsage.totalTokens).toBe(13);
+      expect(totalUsage.inputTokens).toBe(3);
+    });
+  });
 });
 
 async function expectUndefinedUnhandledRejections({
