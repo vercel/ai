@@ -107,8 +107,43 @@ describe('inboundMessageSchema', () => {
         skills: ['weather-forecast', 'weather-codes'],
         permissionMode: 'allow-edits',
         builtinToolFiltering: { mode: 'deny', toolNames: ['bash'] },
+        allowedTools: ['Bash', 'Read'],
+        disallowedTools: ['Write'],
       }),
     ).not.toThrow();
+  });
+
+  it('accepts start message with allowedTools and disallowedTools', () => {
+    const parsed = inboundMessageSchema.parse({
+      type: 'start',
+      prompt: 'hi',
+      thinking: { type: 'disabled' },
+      allowedTools: ['Bash'],
+      disallowedTools: ['Write', 'Edit'],
+    });
+    expect(parsed).toMatchObject({
+      allowedTools: ['Bash'],
+      disallowedTools: ['Write', 'Edit'],
+    });
+  });
+
+  it('rejects non-array allowedTools or disallowedTools', () => {
+    expect(() =>
+      inboundMessageSchema.parse({
+        type: 'start',
+        prompt: 'hi',
+        thinking: { type: 'disabled' },
+        allowedTools: 'Bash',
+      }),
+    ).toThrow();
+    expect(() =>
+      inboundMessageSchema.parse({
+        type: 'start',
+        prompt: 'hi',
+        thinking: { type: 'disabled' },
+        disallowedTools: 123,
+      }),
+    ).toThrow();
   });
 
   it('accepts a start message naming the exact conversation to resume', () => {

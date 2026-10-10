@@ -510,9 +510,19 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         : {}),
       ...(start.env !== undefined ? { env: { ...procEnv, ...start.env } } : {}),
       ...(skillsOption ? { skills: skillsOption } : {}),
+      ...(start.allowedTools !== undefined
+        ? { allowedTools: start.allowedTools }
+        : {}),
       ...(nativeTools !== undefined ? { tools: nativeTools } : {}),
-      ...(inactiveNativeTools.length > 0
-        ? { disallowedTools: inactiveNativeTools }
+      ...(inactiveNativeTools.length > 0 || start.disallowedTools !== undefined
+        ? {
+            disallowedTools: [
+              ...inactiveNativeTools,
+              ...(start.disallowedTools ?? []).filter(
+                tool => !inactiveNativeTools.includes(tool),
+              ),
+            ],
+          }
         : {}),
       systemPrompt: createClaudeCodeSystemPrompt(start.instructions),
       thinking: start.thinking,

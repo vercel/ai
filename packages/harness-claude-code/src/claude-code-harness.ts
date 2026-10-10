@@ -123,6 +123,16 @@ export type ClaudeCodeHarnessSettings = {
    */
   readonly thinking?: ClaudeCodeThinkingConfig;
   /**
+   * Tools that are automatically allowed without confirmation.
+   * Forwarded directly to the Claude Agent SDK options.
+   */
+  readonly allowedTools?: readonly string[];
+  /**
+   * Tools that are disallowed and cannot be used by Claude Code.
+   * Forwarded directly to the Claude Agent SDK options, merged with any inactive native tools.
+   */
+  readonly disallowedTools?: readonly string[];
+  /**
    * Controls how much effort Claude applies when adaptive thinking is enabled.
    * Unset uses the Claude Agent SDK default.
    */
@@ -1071,6 +1081,8 @@ export function createClaudeCode(
             forwardSubagentText: settings.forwardSubagentText,
             env: sandboxClaudeEnvironment,
             thinking,
+            allowedTools: settings.allowedTools,
+            disallowedTools: settings.disallowedTools,
             effort: settings.effort,
             isResume: true,
             continueOnFirstPrompt: false,
@@ -1234,6 +1246,8 @@ export function createClaudeCode(
         forwardSubagentText: settings.forwardSubagentText,
         env: sandboxClaudeEnvironment,
         thinking,
+        allowedTools: settings.allowedTools,
+        disallowedTools: settings.disallowedTools,
         effort: settings.effort,
         isResume: respawnStrategy !== undefined,
         continueOnFirstPrompt: respawnStrategy !== undefined,
@@ -1552,6 +1566,8 @@ function createSession({
   forwardSubagentText,
   env,
   thinking,
+  allowedTools,
+  disallowedTools,
   effort,
   isResume,
   continueOnFirstPrompt,
@@ -1579,6 +1595,8 @@ function createSession({
   forwardSubagentText: boolean | undefined;
   env: Readonly<Record<string, string>> | undefined;
   thinking: ClaudeCodeThinkingConfig;
+  allowedTools: readonly string[] | undefined;
+  disallowedTools: readonly string[] | undefined;
   effort: 'low' | 'medium' | 'high' | 'xhigh' | 'max' | undefined;
   isResume: boolean;
   continueOnFirstPrompt: boolean;
@@ -1857,6 +1875,12 @@ function createSession({
         ...(env !== undefined ? { env } : {}),
         thinking,
         ...(effort !== undefined ? { effort } : {}),
+        ...(allowedTools !== undefined
+          ? { allowedTools: [...allowedTools] }
+          : {}),
+        ...(disallowedTools !== undefined
+          ? { disallowedTools: [...disallowedTools] }
+          : {}),
         ...(promptOpts.skills.length > 0
           ? { skills: promptOpts.skills.map(skill => skill.name) }
           : {}),
@@ -1925,6 +1949,12 @@ function createSession({
           ...(env !== undefined ? { env } : {}),
           thinking,
           ...(effort !== undefined ? { effort } : {}),
+          ...(allowedTools !== undefined
+            ? { allowedTools: [...allowedTools] }
+            : {}),
+          ...(disallowedTools !== undefined
+            ? { disallowedTools: [...disallowedTools] }
+            : {}),
           ...(continueOpts.skills.length > 0
             ? { skills: continueOpts.skills.map(skill => skill.name) }
             : {}),
