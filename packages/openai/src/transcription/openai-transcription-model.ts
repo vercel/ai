@@ -192,7 +192,10 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
     );
 
     if (this.modelId === 'whisper-1') {
-      formData.append('response_format', 'verbose_json');
+      formData.append(
+        'response_format',
+        openAIOptions?.responseFormat ?? 'verbose_json',
+      );
     }
 
     const isDiarizationModel = this.modelId === 'gpt-4o-transcribe-diarize';
