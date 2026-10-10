@@ -1,0 +1,107 @@
+---
+title: GenMagic
+description: Use the GenMagic OpenAI compatible API with the AI SDK.
+---
+
+# GenMagic Provider
+
+[GenMagic](https://genmagic.co/) provides an OpenAI-compatible API for 450+ models from every major lab, including text, vision, and image models, on one API key and one pay-as-you-go balance. You can use its endpoints with the AI SDK through the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+Install the OpenAI Compatible provider:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+Create a GenMagic API key and set it as a server-side environment variable:
+
+```bash
+export GENMAGIC_API_KEY=your-api-key
+```
+
+Keys start with `gm_live_`.
+
+## Provider Instance
+
+Create a GenMagic provider instance with `createOpenAICompatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const genmagic = createOpenAICompatible({
+  name: 'genmagic',
+  apiKey: process.env.GENMAGIC_API_KEY,
+  baseURL: 'https://genmagic.co/api/v1',
+});
+```
+
+## Language Models
+
+Create a chat model with the `.chatModel()` factory method and a GenMagic model ID:
+
+```ts
+const model = genmagic.chatModel('google/gemini-3.5-flash-lite');
+```
+
+### Example
+
+Use `generateText` to generate text with the model:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText, streamText } from 'ai';
+
+const genmagic = createOpenAICompatible({
+  name: 'genmagic',
+  apiKey: process.env.GENMAGIC_API_KEY,
+  baseURL: 'https://genmagic.co/api/v1',
+  includeUsage: true,
+});
+
+const { text } = await generateText({
+  model: genmagic('google/gemini-3.5-flash-lite'),
+  prompt: 'Reply with the single word: ready',
+});
+
+console.log(text);
+
+const result = streamText({
+  model: genmagic('google/gemini-3.5-flash-lite'),
+  prompt: 'Count from 1 to 5, separated by spaces.',
+});
+for await (const part of result.textStream) process.stdout.write(part);
+```
+
+## Image Models
+
+Create an image model with the `.imageModel()` factory method and a GenMagic image model ID. Make sure to pass the `response_format: 'b64_json'` provider option.
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateImage } from 'ai';
+
+const genmagic = createOpenAICompatible({
+  name: 'genmagic',
+  apiKey: process.env.GENMAGIC_API_KEY,
+  baseURL: 'https://genmagic.co/api/v1',
+});
+
+const { image } = await generateImage({
+  model: genmagic.imageModel('recraft/recraft-v4.1-flash'),
+  prompt: 'A watercolor fox reading a book under a tree',
+  providerOptions: { genmagic: { response_format: 'b64_json' } },
+});
+
+console.log(image.mediaType);
+```
+
+## Supported Models and Capabilities
+
+This integration uses GenMagic's OpenAI-compatible Chat Completions and Images endpoints.
+
+Use the `GET https://genmagic.co/api/v1/models` endpoint to find current model IDs and model-specific capabilities and limits.
+
+## Resources
+
+- [GenMagic developers documentation](https://genmagic.co/developers)
+- [AI SDK OpenAI Compatible provider](/providers/openai-compatible-providers)
