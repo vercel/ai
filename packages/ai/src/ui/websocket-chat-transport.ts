@@ -333,6 +333,7 @@ export class WebSocketChatTransport<
   private connection?: ConnectionState;
   private readonly activeRequests = new Map<string, ActiveRequest>();
   private sendQueue: Promise<void> = Promise.resolve();
+  private lifecycleGeneration = 0;
 
   constructor(options: WebSocketChatTransportInitOptions<UI_MESSAGE>) {
     this.url = options.url;
@@ -352,6 +353,7 @@ export class WebSocketChatTransport<
   }: Parameters<ChatTransport<UI_MESSAGE>['sendMessages']>[0]): Promise<
     ReadableStream<UIMessageChunk>
   > {
+    const lifecycleGeneration = this.lifecycleGeneration;
     this.throwIfAborted(abortSignal);
 
     const [resolvedHeaders, resolvedBody] = await Promise.all([
@@ -359,6 +361,7 @@ export class WebSocketChatTransport<
       resolve(this.body),
     ]);
     this.throwIfAborted(abortSignal);
+    this.throwIfInvalidated(lifecycleGeneration);
 
     const headers = {
       ...normalizeHeaders(resolvedHeaders),
@@ -376,8 +379,10 @@ export class WebSocketChatTransport<
       messageId: options.messageId,
     });
     this.throwIfAborted(abortSignal);
+    this.throwIfInvalidated(lifecycleGeneration);
 
     const socket = await this.getSocket(abortSignal);
+    this.throwIfInvalidated(lifecycleGeneration);
     const requestId = generateId();
     const request = this.createActiveRequest({
       requestId,
@@ -414,6 +419,7 @@ export class WebSocketChatTransport<
   async reconnectToStream(
     options: Parameters<ChatTransport<UI_MESSAGE>['reconnectToStream']>[0],
   ): Promise<ReadableStream<UIMessageChunk> | null> {
+    const lifecycleGeneration = this.lifecycleGeneration;
     this.throwIfAborted(options.abortSignal);
 
     const [resolvedHeaders, resolvedBody] = await Promise.all([
@@ -421,6 +427,7 @@ export class WebSocketChatTransport<
       resolve(this.body),
     ]);
     this.throwIfAborted(options.abortSignal);
+    this.throwIfInvalidated(lifecycleGeneration);
 
     const headers = {
       ...normalizeHeaders(resolvedHeaders),
@@ -435,8 +442,10 @@ export class WebSocketChatTransport<
       headers,
     });
     this.throwIfAborted(options.abortSignal);
+    this.throwIfInvalidated(lifecycleGeneration);
 
     const socket = await this.getSocket(options.abortSignal);
+    this.throwIfInvalidated(lifecycleGeneration);
     const requestId = generateId();
 
     let resolveResponse:
@@ -496,6 +505,7 @@ export class WebSocketChatTransport<
    * A later request opens a new connection.
    */
   close(): void {
+    this.lifecycleGeneration++;
     const error = new Error('WebSocket chat transport was closed.');
     const connection = this.connection;
     this.connection = undefined;
@@ -514,6 +524,12 @@ export class WebSocketChatTransport<
   private throwIfAborted(abortSignal: AbortSignal | undefined): void {
     if (abortSignal?.aborted) {
       throw createAbortError(abortSignal);
+    }
+  }
+
+  private throwIfInvalidated(lifecycleGeneration: number): void {
+    if (lifecycleGeneration !== this.lifecycleGeneration) {
+      throw new Error('WebSocket chat transport was closed.');
     }
   }
 
