@@ -126,6 +126,8 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
       body.iab_categories = assemblyaiOptions.iabCategories ?? undefined;
       body.language_code =
         (assemblyaiOptions.languageCode as never) ?? undefined;
+      body.language_codes =
+        (assemblyaiOptions.languageCodes as never) ?? undefined;
       body.language_confidence_threshold =
         assemblyaiOptions.languageConfidenceThreshold ?? undefined;
       body.language_detection =
@@ -473,6 +475,7 @@ const assemblyaiTranscriptionResponseSchema = z.object({
   status: z.enum(['queued', 'processing', 'completed', 'error']),
   text: z.string().nullish(),
   language_code: z.string().nullish(),
+  language_codes: z.array(z.string()).nullish(),
   speech_model_used: z.string().nullish(),
   words: z.array(assemblyaiWordSchema).nullish(),
   // Speaker-diarized utterances (present when `speaker_labels` is enabled).
