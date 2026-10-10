@@ -3,6 +3,7 @@ import {
   type ToolSet,
   type InferToolSetContext,
   type Experimental_SandboxSession as SandboxSession,
+  type ToolExecutionOptions,
 } from '@ai-sdk/provider-utils';
 import { InvalidArgumentError } from '../error/invalid-argument-error';
 import {
@@ -94,7 +95,10 @@ export function createToolSearchState({
             searchName,
             {
               ...tool,
-              execute: async ({ query }: { query: string }) => {
+              execute: async (
+                { query }: { query: string },
+                { abortSignal }: ToolExecutionOptions<unknown>,
+              ) => {
                 const availableTools = candidates.map(([name, candidate]) => {
                   const description = resolveToolDescription({
                     tool: candidate,
@@ -116,6 +120,7 @@ export function createToolSearchState({
                   ? await customSearch({
                       query,
                       tools: availableTools.map(tool => ({ ...tool })),
+                      abortSignal,
                     })
                   : availableTools
                       .map(({ name, description }) => {

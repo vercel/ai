@@ -114,5 +114,30 @@ remain unavailable.
 Discovery still takes effect on the next model step. Without a callback, search
 keeps its default keyword matching and ranking.
 
+### Cancelling Custom Search
+
+Custom search callbacks receive the current tool execution's optional
+`abortSignal`. Pass it to `fetch` or another cancellable search client so work
+stops when the caller cancels the generation or the search tool reaches its
+configured timeout:
+
+```ts
+const search = toolSearch({
+  search: async ({ query, tools, abortSignal }) => {
+    const response = await fetch('/api/tool-search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, tools }),
+      signal: abortSignal,
+    });
+
+    return (await response.json()) as string[];
+  },
+});
+```
+
+Cancellation is cooperative. The SDK aborts the signal but cannot stop callback
+work that does not observe or forward it.
+
 See the [`toolSearch()` reference](/docs/reference/ai-sdk-core/tool-search) for
 input, output, and matching details.

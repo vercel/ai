@@ -10,6 +10,11 @@ const toolSearchMaxResultsSymbol = Symbol.for(
 type ToolSearchFunction = (options: {
   query: string;
   tools: Array<{ name: string; description?: string }>;
+  /**
+   * An optional abort signal that indicates that the tool execution should be
+   * aborted.
+   */
+  abortSignal?: AbortSignal;
 }) => string[] | PromiseLike<string[]>;
 
 type ToolSearchInput = { query: string };
@@ -29,7 +34,8 @@ export function toolSearch({
   /**
    * Search eligible deferred tools and return their names in ranked order.
    * Supports synchronous and asynchronous callbacks. Unknown names and
-   * duplicates are ignored before applying the result limit.
+   * duplicates are ignored before applying the result limit. The callback
+   * receives the current tool execution's abort signal.
    */
   search?: ToolSearchFunction;
   /**

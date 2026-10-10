@@ -24,11 +24,12 @@ expectTypeOf<InferToolInput<typeof tools.search>>().toEqualTypeOf<{
 }>();
 
 const customSearch = toolSearch({
-  search: ({ query, tools }) => {
+  search: ({ query, tools, abortSignal }) => {
     expectTypeOf(query).toEqualTypeOf<string>();
     expectTypeOf(tools).toEqualTypeOf<
       Array<{ name: string; description?: string }>
     >();
+    expectTypeOf(abortSignal).toEqualTypeOf<AbortSignal | undefined>();
     return tools.map(tool => tool.name);
   },
 });

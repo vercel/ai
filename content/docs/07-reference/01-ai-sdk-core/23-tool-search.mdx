@@ -58,12 +58,18 @@ The callback has this signature:
 search?: (options: {
   query: string;
   tools: Array<{ name: string; description?: string }>;
+  abortSignal?: AbortSignal;
 }) => string[] | PromiseLike<string[]>;
 ```
 
 `tools` contains all eligible deferred tools, before keyword matching or ranking.
 Eligibility respects `activeTools` and caller routing. Descriptions are resolved
 using the current tool context and sandbox; schemas are not included.
+
+`abortSignal` is the current search tool execution's signal. It becomes aborted
+when the generation is cancelled or the tool execution times out. Custom search
+callbacks can pass it to `fetch` or another cancellable client. Cancellation is
+cooperative, so callbacks must observe or forward the signal to stop their work.
 
 Return tool names in ranked order. The SDK ignores unknown or ineligible names,
 removes duplicates while preserving order, and keeps the first `maxResults` valid

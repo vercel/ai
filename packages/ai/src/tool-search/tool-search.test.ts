@@ -24,6 +24,24 @@ const usage: LanguageModelV4Usage = {
   outputTokens: { total: 1, text: 1, reasoning: undefined },
 };
 
+function createSearchModel(query: string) {
+  return new MockLanguageModelV4({
+    doGenerate: async () => ({
+      content: [
+        {
+          type: 'tool-call',
+          toolCallId: `search-${query}`,
+          toolName: 'search',
+          input: JSON.stringify({ query }),
+        },
+      ],
+      usage,
+      warnings: [],
+      finishReason: { unified: 'tool-calls', raw: undefined },
+    }),
+  });
+}
+
 describe('toolSearch options', () => {
   it.each([undefined, {}, { maxResults: undefined }, { maxResults: 5 }])(
     'describes the default five-result limit for %j',
@@ -61,6 +79,140 @@ describe('toolSearch options', () => {
       );
     },
   );
+});
+
+describe('toolSearch custom search cancellation', () => {
+  it('receives a signal that aborts when the caller cancels generation', async () => {
+    const abortController = new AbortController();
+    const cancellationReason = new Error('user stopped');
+    let receivedSignal: AbortSignal | undefined;
+    let searchStarted!: () => void;
+    let releaseSearch!: (names: string[]) => void;
+    const started = new Promise<void>(resolve => {
+      searchStarted = resolve;
+    });
+    const waiting = new Promise<string[]>(resolve => {
+      releaseSearch = resolve;
+    });
+
+    const generation = generateText({
+      model: createSearchModel('weather'),
+      prompt: 'Find a weather tool.',
+      abortSignal: abortController.signal,
+      tools: {
+        search: toolSearch({
+          search: async ({ abortSignal }) => {
+            receivedSignal = abortSignal;
+            searchStarted();
+            return await waiting;
+          },
+        }),
+        weather: tool({
+          deferLoading: true,
+          inputSchema: z.object({}),
+        }),
+      },
+    });
+
+    await started;
+    abortController.abort(cancellationReason);
+
+    expect(receivedSignal).toBeInstanceOf(AbortSignal);
+    expect(receivedSignal?.aborted).toBe(true);
+    expect(receivedSignal?.reason).toBe(cancellationReason);
+
+    releaseSearch([]);
+    await generation.catch(() => undefined);
+  });
+
+  it('receives a signal that aborts when the search tool times out', async () => {
+    let receivedSignal: AbortSignal | undefined;
+
+    const generation = generateText({
+      model: createSearchModel('weather'),
+      prompt: 'Find a weather tool.',
+      timeout: { tools: { searchMs: 20 } },
+      tools: {
+        search: toolSearch({
+          search: async ({ abortSignal }) => {
+            if (abortSignal == null) {
+              throw new Error('Expected a tool timeout signal.');
+            }
+
+            receivedSignal = abortSignal;
+            await new Promise<void>(resolve => {
+              abortSignal.addEventListener('abort', () => resolve(), {
+                once: true,
+              });
+            });
+            return [];
+          },
+        }),
+        weather: tool({
+          deferLoading: true,
+          inputSchema: z.object({}),
+        }),
+      },
+    });
+
+    await generation;
+
+    expect(receivedSignal).toBeDefined();
+    expect(receivedSignal!.aborted).toBe(true);
+    expect((receivedSignal!.reason as Error).name).toBe('TimeoutError');
+  });
+
+  it('keeps signals isolated between concurrent generations that share a search tool', async () => {
+    const signals = new Map<string, AbortSignal | undefined>();
+    const releases = new Map<string, (names: string[]) => void>();
+    let bothStarted!: () => void;
+    const started = new Promise<void>(resolve => {
+      bothStarted = resolve;
+    });
+    const sharedSearch = toolSearch({
+      search: async ({ query, abortSignal }) => {
+        signals.set(query, abortSignal);
+        if (signals.size === 2) {
+          bothStarted();
+        }
+        return await new Promise<string[]>(resolve => {
+          releases.set(query, resolve);
+        });
+      },
+    });
+    const sharedWeather = tool({
+      deferLoading: true,
+      inputSchema: z.object({}),
+    });
+    const firstController = new AbortController();
+    const secondController = new AbortController();
+    const startGeneration = (query: string, abortSignal: AbortSignal) =>
+      generateText({
+        model: createSearchModel(query),
+        prompt: `Find ${query}.`,
+        abortSignal,
+        tools: {
+          search: sharedSearch,
+          weather: sharedWeather,
+        },
+      });
+
+    const first = startGeneration('first', firstController.signal);
+    const second = startGeneration('second', secondController.signal);
+
+    await started;
+    firstController.abort(new Error('stop first'));
+
+    expect(signals.get('first')).toBeInstanceOf(AbortSignal);
+    expect(signals.get('second')).toBeInstanceOf(AbortSignal);
+    expect(signals.get('first')).not.toBe(signals.get('second'));
+    expect(signals.get('first')?.aborted).toBe(true);
+    expect(signals.get('second')?.aborted).toBe(false);
+
+    releases.get('first')?.([]);
+    releases.get('second')?.([]);
+    await Promise.allSettled([first, second]);
+  });
 });
 
 describe.each([

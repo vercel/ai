@@ -64,6 +64,7 @@ describe('deferred tool search', () => {
           name: `candidate${i}`,
           description: 'Weather forecast.',
         })),
+        abortSignal: undefined,
       });
       const expected = Array.from({ length: 8 }, (_, i) => `candidate${i}`)
         .reverse()
@@ -125,6 +126,7 @@ describe('deferred tool search', () => {
         name: `candidate${i}`,
         description: 'Weather forecast.',
       })),
+      abortSignal: undefined,
     });
     expect(result.tools.map((tool: { name: string }) => tool.name)).toEqual([
       'candidate0',
@@ -175,6 +177,31 @@ describe('deferred tool search', () => {
     expect(rank).toHaveBeenCalledWith({
       query: 'forecast',
       tools: [{ name: 'getWeather', description: 'Meteorology' }],
+      abortSignal: undefined,
+    });
+  });
+
+  it('forwards the tool execution abort signal to custom search', async () => {
+    const abortController = new AbortController();
+    const customSearch = vi.fn(() => ['getWeather']);
+    const registry = {
+      search: toolSearch({ search: customSearch }),
+      getWeather: weather,
+    };
+    const prepared = createToolSearchState({
+      tools: registry,
+      toolCallers: undefined,
+    })(registry)!;
+
+    await prepared.search.execute!(
+      { query: 'weather' },
+      { ...executionOptions, abortSignal: abortController.signal },
+    );
+
+    expect(customSearch).toHaveBeenCalledWith({
+      query: 'weather',
+      tools: [{ name: 'getWeather', description: 'Weather forecast.' }],
+      abortSignal: abortController.signal,
     });
   });
 
