@@ -184,12 +184,14 @@ type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
         state: 'output-available';
         input: TOOLS[NAME]['input'];
         output: TOOLS[NAME]['output'];
+        resultPosition?: { partIndex: number; resultIndex: number };
         errorText?: never;
         providerExecuted?: boolean;
       }
     | {
         state: 'output-error';
         input: TOOLS[NAME]['input'];
+        resultPosition?: { partIndex: number; resultIndex: number };
         output?: never;
         errorText: string;
         providerExecuted?: boolean;
@@ -197,6 +199,23 @@ type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
   );
 }>;
 ```
+
+`resultPosition` is an optional field on static and dynamic tool parts in the
+`output-available` and `output-error` states. The SDK records it when a final
+provider-executed result arrives. `convertToModelMessages` uses it to restore the
+result's original position, including when the result arrives in a later step
+than its call.
+
+- `partIndex` is the UI part boundary where the result arrived: the result
+  goes before `message.parts[partIndex]`, or after the last part when the index
+  equals `message.parts.length`. Step boundaries are included.
+- `resultIndex` is the zero-based arrival order among provider results at the
+  same part boundary. It preserves the order when several results arrive
+  without a new UI part between them.
+
+Preserve this field when saving messages. If you edit or remove parts, update
+the affected positions or remove the fields. Messages without this field keep
+the previous behavior, which places provider results beside their calls.
 
 `approval.descriptor` contains optional opaque metadata supplied as
 `approvalDescriptor` on the approval request stream chunk. It is preserved when

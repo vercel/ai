@@ -33,6 +33,11 @@ const toolMetadataSchema: ZodType<JSONObject> = z.record(
 
 const providerReferenceSchema = z.record(z.string(), z.string());
 
+const toolResultPositionSchema = z.object({
+  partIndex: z.number().int().nonnegative(),
+  resultIndex: z.number().int().nonnegative(),
+});
+
 function isEmptyObject(value: unknown): value is Record<string, never> {
   return (
     value != null &&
@@ -224,6 +229,7 @@ const uiMessagesSchema = lazySchema(() => {
                   errorText: z.never().optional(),
                   callProviderMetadata: providerMetadataSchema.optional(),
                   resultProviderMetadata: providerMetadataSchema.optional(),
+                  resultPosition: toolResultPositionSchema.optional(),
                   preliminary: z.boolean().optional(),
                   approval: approvalGrantedSchema.optional(),
                 }),
@@ -242,6 +248,7 @@ const uiMessagesSchema = lazySchema(() => {
                   errorText: z.string(),
                   callProviderMetadata: providerMetadataSchema.optional(),
                   resultProviderMetadata: providerMetadataSchema.optional(),
+                  resultPosition: toolResultPositionSchema.optional(),
                   approval: approvalGrantedSchema.optional(),
                 }),
                 z.object({
@@ -324,6 +331,7 @@ const uiMessagesSchema = lazySchema(() => {
                   errorText: z.never().optional(),
                   callProviderMetadata: providerMetadataSchema.optional(),
                   resultProviderMetadata: providerMetadataSchema.optional(),
+                  resultPosition: toolResultPositionSchema.optional(),
                   preliminary: z.boolean().optional(),
                   approval: approvalGrantedSchema.optional(),
                 }),
@@ -340,6 +348,7 @@ const uiMessagesSchema = lazySchema(() => {
                   errorText: z.string(),
                   callProviderMetadata: providerMetadataSchema.optional(),
                   resultProviderMetadata: providerMetadataSchema.optional(),
+                  resultPosition: toolResultPositionSchema.optional(),
                   approval: approvalGrantedSchema.optional(),
                 }),
                 z.object({

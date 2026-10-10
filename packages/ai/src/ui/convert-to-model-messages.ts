@@ -68,22 +68,19 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
     -1,
   );
 
-  if (options?.ignoreIncompleteToolCalls || lastUserMessageIndex > 0) {
-    messages = messages.map((message, messageIndex) => ({
-      ...message,
-      parts: message.parts.filter(
-        part =>
-          !isToolUIPart(part) ||
-          ((part.state !== 'approval-requested' ||
-            messageIndex >= lastUserMessageIndex) &&
-            (!options?.ignoreIncompleteToolCalls ||
-              part.state === 'approval-responded' ||
-              (part.state === 'output-available' &&
-                part.preliminary !== true) ||
-              part.state === 'output-error' ||
-              part.state === 'output-denied')),
-      ),
-    }));
+  function ignoreToolPart(
+    part: ToolUIPart | DynamicToolUIPart,
+    messageIndex: number,
+  ) {
+    return (
+      (part.state === 'approval-requested' &&
+        messageIndex < lastUserMessageIndex) ||
+      (options?.ignoreIncompleteToolCalls &&
+        part.state !== 'approval-responded' &&
+        !(part.state === 'output-available' && part.preliminary !== true) &&
+        part.state !== 'output-error' &&
+        part.state !== 'output-denied')
+    );
   }
 
   async function createModelOutput({
@@ -119,7 +116,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
     });
   }
 
-  for (const message of messages) {
+  for (const [messageIndex, message] of messages.entries()) {
     switch (message.role) {
       case 'system': {
         const textParts = message.parts.filter(
@@ -193,25 +190,58 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
 
       case 'assistant': {
         if (message.parts != null) {
-          let block: Array<
-            | CustomContentUIPart
-            | TextUIPart
-            | ToolUIPart<InferUIMessageTools<UI_MESSAGE>>
-            | ReasoningUIPart
-            | FileUIPart
-            | ReasoningFileUIPart
-            | DynamicToolUIPart
-            | DataUIPart<InferUIMessageData<UI_MESSAGE>>
-          > = [];
+          // Positions refer to the original UI parts, before SDK filtering or
+          // data-part conversion. Invalid positions retain call-adjacent results.
+          const results = message.parts
+            .flatMap((part, callIndex) => {
+              if (
+                !isToolUIPart(part) ||
+                part.providerExecuted !== true ||
+                (part.state !== 'output-error' &&
+                  !(
+                    part.state === 'output-available' &&
+                    part.preliminary !== true
+                  ))
+              )
+                return [];
+              const position = part.resultPosition;
+              return position != null &&
+                Number.isInteger(position.partIndex) &&
+                position.partIndex > callIndex &&
+                position.partIndex <= message.parts.length &&
+                Number.isInteger(position.resultIndex) &&
+                position.resultIndex >= 0
+                ? [{ toolPart: part, position }]
+                : [];
+            })
+            .sort(
+              (a, b) =>
+                a.position.partIndex - b.position.partIndex ||
+                a.position.resultIndex - b.position.resultIndex,
+            );
+          const positionedParts = new Set(
+            results.map(result => result.toolPart),
+          );
+          let nextResult = 0;
+
+          let block: Array<{
+            resultOnly?: boolean;
+            part:
+              | CustomContentUIPart
+              | TextUIPart
+              | ToolUIPart<InferUIMessageTools<UI_MESSAGE>>
+              | ReasoningUIPart
+              | FileUIPart
+              | ReasoningFileUIPart
+              | DynamicToolUIPart
+              | DataUIPart<InferUIMessageData<UI_MESSAGE>>;
+          }> = [];
 
           async function processBlock() {
-            if (block.length === 0) {
-              return;
-            }
-
+            if (block.length === 0) return;
             const content: AssistantContent = [];
 
-            for (const part of block) {
+            for (const { part, resultOnly } of block) {
               if (isTextUIPart(part)) {
                 content.push({
                   type: 'text' as const,
@@ -259,8 +289,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                 });
               } else if (isToolUIPart(part)) {
                 const toolName = getToolName(part);
-
-                if (part.state !== 'input-streaming') {
+                if (!resultOnly && part.state !== 'input-streaming') {
                   const callProviderMetadata =
                     part.callProviderMetadata ??
                     (part.state === 'output-error'
@@ -304,35 +333,35 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                         : {}),
                     });
                   }
-
-                  if (
-                    part.providerExecuted === true &&
-                    part.state !== 'approval-responded' &&
-                    (part.state === 'output-available' ||
-                      part.state === 'output-error')
-                  ) {
-                    const resultProviderMetadata =
-                      part.resultProviderMetadata ?? part.callProviderMetadata;
-
-                    content.push({
-                      type: 'tool-result',
-                      toolCallId: part.toolCallId,
+                }
+                if (
+                  part.providerExecuted === true &&
+                  (part.state === 'output-error' ||
+                    (part.state === 'output-available' &&
+                      part.preliminary !== true)) &&
+                  (resultOnly || !positionedParts.has(part))
+                ) {
+                  const resultProviderMetadata =
+                    part.resultProviderMetadata ?? part.callProviderMetadata;
+                  const result: ToolResultPart = {
+                    type: 'tool-result',
+                    toolCallId: part.toolCallId,
+                    toolName,
+                    output: await createModelOutput({
+                      toolPart: part,
                       toolName,
-                      output: await createModelOutput({
-                        toolPart: part,
-                        toolName,
-                        output:
-                          part.state === 'output-error'
-                            ? part.errorText
-                            : part.output,
-                        errorMode:
-                          part.state === 'output-error' ? 'json' : 'none',
-                      }),
-                      ...(resultProviderMetadata != null
-                        ? { providerOptions: resultProviderMetadata }
-                        : {}),
-                    });
-                  }
+                      output:
+                        part.state === 'output-error'
+                          ? part.errorText
+                          : part.output,
+                      errorMode:
+                        part.state === 'output-error' ? 'json' : 'none',
+                    }),
+                    ...(resultProviderMetadata != null
+                      ? { providerOptions: resultProviderMetadata }
+                      : {}),
+                  };
+                  content.push(result);
                 }
               } else if (isDataUIPart(part)) {
                 const dataPart = options?.convertDataPart?.(
@@ -348,21 +377,20 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
               }
             }
 
-            if (content.length > 0) {
-              modelMessages.push({
-                role: 'assistant',
-                content,
-              });
-            }
+            if (content.length > 0)
+              modelMessages.push({ role: 'assistant', content });
 
             // check if there are tool invocations with results in the block
             // Include non-provider-executed tools, OR provider-executed tools with approval responses
-            const toolParts = block.filter(
-              part =>
-                isToolUIPart(part) &&
-                (part.providerExecuted !== true ||
-                  part.approval?.approved != null),
-            ) as (
+            const toolParts = block
+              .filter(entry => !entry.resultOnly)
+              .map(entry => entry.part)
+              .filter(
+                part =>
+                  isToolUIPart(part) &&
+                  (part.providerExecuted !== true ||
+                    part.approval?.approved != null),
+              ) as (
               | ToolUIPart<InferUIMessageTools<UI_MESSAGE>>
               | DynamicToolUIPart
             )[];
@@ -468,7 +496,21 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
             block = [];
           }
 
-          for (const part of message.parts) {
+          for (
+            let partIndex = 0;
+            partIndex <= message.parts.length;
+            partIndex++
+          ) {
+            while (results[nextResult]?.position.partIndex === partIndex) {
+              block.push({
+                resultOnly: true,
+                part: results[nextResult++].toolPart,
+              });
+            }
+            const part = message.parts[partIndex];
+            if (part == null) break;
+            if (isToolUIPart(part) && ignoreToolPart(part, messageIndex))
+              continue;
             if (
               isCustomContentUIPart(part) ||
               isTextUIPart(part) ||
@@ -478,12 +520,11 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
               isToolUIPart(part) ||
               isDataUIPart(part)
             ) {
-              block.push(part as (typeof block)[number]);
+              block.push({ part: part as (typeof block)[number]['part'] });
             } else if (part.type === 'step-start') {
               await processBlock();
             }
           }
-
           await processBlock();
 
           break;
