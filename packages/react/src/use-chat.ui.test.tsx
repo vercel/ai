@@ -25,6 +25,12 @@ function formatChunk(part: UIMessageChunk) {
   return `data: ${JSON.stringify(part)}\n\n`;
 }
 
+type AutomaticallyResumableChat = Chat<UIMessage> & {
+  '~resumeStreamIfDisconnected': (options: {
+    shouldResume: () => boolean;
+  }) => Promise<void>;
+};
+
 const server = createTestServer({
   '/api/chat': {},
   '/api/chat/123/stream': {},
@@ -2026,7 +2032,800 @@ describe('stop', () => {
       formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
     );
 
+<<<<<<< HEAD
     await waitFor(() => {
+=======
+    it('construct messages from resumed stream', async () => {
+      await screen.findByTestId('message-0');
+      expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('status')).toHaveTextContent('submitted');
+      });
+
+      controller.write(formatChunk({ type: 'text-start', id: '0' }));
+      controller.write(
+        formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('status')).toHaveTextContent('streaming');
+      });
+
+      controller.write(
+        formatChunk({ type: 'text-delta', id: '0', delta: ',' }),
+      );
+      controller.write(
+        formatChunk({ type: 'text-delta', id: '0', delta: ' world' }),
+      );
+      controller.write(
+        formatChunk({ type: 'text-delta', id: '0', delta: '.' }),
+      );
+      controller.write(formatChunk({ type: 'text-end', id: '0' }));
+
+      controller.close();
+
+      await screen.findByTestId('message-1');
+      expect(screen.getByTestId('message-1')).toHaveTextContent(
+        'AI: Hello, world.',
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('status')).toHaveTextContent('ready');
+
+        expect(server.calls.length).toBeGreaterThan(0);
+        const mostRecentCall = server.calls[0];
+
+        const { requestMethod, requestUrl } = mostRecentCall;
+        expect(requestMethod).toBe('GET');
+        expect(requestUrl).toBe('http://localhost:3000/api/chat/123/stream');
+      });
+    });
+  });
+
+  describe('automatic stream resumption with a shared Chat', () => {
+    it('should only reconnect once for multiple useChat consumers', async () => {
+      const visibilityState = vi
+        .spyOn(document, 'visibilityState', 'get')
+        .mockReturnValue('visible');
+      let reconnectCount = 0;
+      const chat = new Chat({
+        id: 'shared',
+        transport: {
+          sendMessages: async () =>
+            new ReadableStream({
+              start(controller) {
+                controller.error(new TypeError('network connection lost'));
+              },
+            }),
+          reconnectToStream: async () => {
+            reconnectCount++;
+            return null;
+          },
+        },
+      });
+
+      function Consumer() {
+        useChat({ chat, resume: true });
+        return null;
+      }
+
+      render(
+        <>
+          <Consumer />
+          <Consumer />
+          <Consumer />
+        </>,
+      );
+
+      await waitFor(() => expect(reconnectCount).toBe(1));
+
+      await act(async () => {
+        await chat.sendMessage({ text: 'hi' });
+      });
+      expect(chat.status).toBe('error');
+
+      visibilityState.mockReturnValue('hidden');
+      fireEvent(document, new Event('visibilitychange'));
+      visibilityState.mockReturnValue('visible');
+      fireEvent(document, new Event('visibilitychange'));
+
+      await waitFor(() => expect(reconnectCount).toBe(2));
+    });
+
+    it('should not reconnect while the original stream is healthy', async () => {
+      const visibilityState = vi
+        .spyOn(document, 'visibilityState', 'get')
+        .mockReturnValue('visible');
+      let originalController!: ReadableStreamDefaultController<UIMessageChunk>;
+      let reconnectCount = 0;
+      let sendCount = 0;
+      const onData = vi.fn();
+      const onFinish = vi.fn();
+      const sendAutomaticallyWhen = vi
+        .fn()
+        .mockReturnValueOnce(true)
+        .mockReturnValue(false);
+      const chat = new Chat({
+        id: 'healthy-stream',
+        generateId: mockId(),
+        transport: {
+          sendMessages: async () => {
+            sendCount++;
+
+            if (sendCount > 1) {
+              return new ReadableStream<UIMessageChunk>({
+                start(controller) {
+                  controller.enqueue({ type: 'start' });
+                  controller.enqueue({ type: 'finish' });
+                  controller.close();
+                },
+              });
+            }
+
+            return new ReadableStream<UIMessageChunk>({
+              start(controller) {
+                originalController = controller;
+              },
+            });
+          },
+          reconnectToStream: async () => {
+            reconnectCount++;
+
+            if (reconnectCount === 1) {
+              return null;
+            }
+
+            return new ReadableStream<UIMessageChunk>({
+              start(controller) {
+                controller.enqueue({
+                  type: 'data-progress',
+                  data: 'duplicate',
+                });
+                controller.enqueue({ type: 'finish' });
+                controller.close();
+              },
+            });
+          },
+        },
+        onData,
+        onFinish,
+        sendAutomaticallyWhen,
+      });
+
+      function Consumer() {
+        useChat({ chat, resume: true });
+        return null;
+      }
+
+      render(<Consumer />);
+      await waitFor(() => expect(reconnectCount).toBe(1));
+
+      let sendPromise!: Promise<void>;
+      await act(async () => {
+        sendPromise = chat.sendMessage({ text: 'hi' });
+      });
+      await act(async () => {
+        originalController.enqueue({ type: 'start' });
+        originalController.enqueue({
+          type: 'data-progress',
+          data: 'original',
+        });
+        originalController.enqueue({ type: 'text-start', id: 'text' });
+        originalController.enqueue({
+          type: 'text-delta',
+          id: 'text',
+          delta: 'Hello',
+        });
+      });
+      await waitFor(() => expect(chat.status).toBe('streaming'));
+
+      visibilityState.mockReturnValue('hidden');
+      fireEvent(document, new Event('visibilitychange'));
+      visibilityState.mockReturnValue('visible');
+      fireEvent(document, new Event('visibilitychange'));
+
+      await act(async () => {});
+      expect(reconnectCount).toBe(1);
+
+      await act(async () => {
+        originalController.enqueue({ type: 'text-end', id: 'text' });
+        originalController.enqueue({ type: 'finish' });
+        originalController.close();
+        await sendPromise;
+      });
+
+      expect(onData).toHaveBeenCalledTimes(1);
+      expect(onFinish).toHaveBeenCalledTimes(2);
+      expect(sendAutomaticallyWhen).toHaveBeenCalledTimes(2);
+      expect(sendCount).toBe(2);
+    });
+
+    it('should reconnect when visibility changes before the network error', async () => {
+      const visibilityState = vi
+        .spyOn(document, 'visibilityState', 'get')
+        .mockReturnValue('visible');
+      let originalController!: ReadableStreamDefaultController<UIMessageChunk>;
+      let reconnectCount = 0;
+      const chat = new Chat({
+        id: 'delayed-disconnect',
+        generateId: mockId(),
+        transport: {
+          sendMessages: async () =>
+            new ReadableStream<UIMessageChunk>({
+              start(controller) {
+                originalController = controller;
+              },
+            }),
+          reconnectToStream: async () => {
+            reconnectCount++;
+
+            if (reconnectCount === 1) {
+              return null;
+            }
+
+            return new ReadableStream<UIMessageChunk>({
+              start(controller) {
+                controller.enqueue({
+                  type: 'text-delta',
+                  id: 'text',
+                  delta: ', world.',
+                });
+                controller.enqueue({ type: 'text-end', id: 'text' });
+                controller.enqueue({ type: 'finish' });
+                controller.close();
+              },
+            });
+          },
+        },
+      });
+      const resumeIfDisconnected = vi.spyOn(
+        chat as AutomaticallyResumableChat,
+        '~resumeStreamIfDisconnected',
+      );
+
+      function Consumer() {
+        useChat({ chat, resume: true });
+        return null;
+      }
+
+      render(<Consumer />);
+      await waitFor(() => expect(reconnectCount).toBe(1));
+
+      let sendPromise!: Promise<void>;
+      await act(async () => {
+        sendPromise = chat.sendMessage({ text: 'hi' });
+      });
+      await vi.waitUntil(() => originalController != null);
+      await act(async () => {
+        originalController.enqueue({
+          type: 'start',
+          messageId: 'assistant',
+        });
+        originalController.enqueue({ type: 'text-start', id: 'text' });
+        originalController.enqueue({
+          type: 'text-delta',
+          id: 'text',
+          delta: 'Hello',
+        });
+      });
+      await waitFor(() => expect(chat.status).toBe('streaming'));
+
+      visibilityState.mockReturnValue('hidden');
+      fireEvent(document, new Event('visibilitychange'));
+      visibilityState.mockReturnValue('visible');
+      fireEvent(document, new Event('visibilitychange'));
+      fireEvent(document, new Event('visibilitychange'));
+      fireEvent(document, new Event('visibilitychange'));
+
+      expect(resumeIfDisconnected).toHaveBeenCalledOnce();
+
+      await act(async () => {
+        originalController.error(new TypeError('network connection lost'));
+        await sendPromise;
+      });
+
+      await waitFor(() => {
+        expect(reconnectCount).toBe(2);
+        expect(chat.status).toBe('ready');
+        expect(chat.messages.at(-1)?.parts).toEqual([
+          {
+            type: 'text',
+            text: 'Hello, world.',
+            state: 'done',
+            providerMetadata: undefined,
+          },
+        ]);
+      });
+    });
+
+    it.each(['unmounts', 'disables automatic resumption'] as const)(
+      'should not reconnect after the last consumer %s while recovery is pending',
+      async cleanupMode => {
+        const visibilityState = vi
+          .spyOn(document, 'visibilityState', 'get')
+          .mockReturnValue('visible');
+        let originalController!: ReadableStreamDefaultController<UIMessageChunk>;
+        let reconnectCount = 0;
+        const chat = new Chat({
+          id: `cancelled-${cleanupMode}`,
+          transport: {
+            sendMessages: async () =>
+              new ReadableStream<UIMessageChunk>({
+                start(controller) {
+                  originalController = controller;
+                },
+              }),
+            reconnectToStream: async () => {
+              reconnectCount++;
+              return null;
+            },
+          },
+        });
+        const resumeIfDisconnected = vi.spyOn(
+          chat as AutomaticallyResumableChat,
+          '~resumeStreamIfDisconnected',
+        );
+
+        function Consumer({ resume }: { resume: boolean }) {
+          useChat({ chat, resume });
+          return null;
+        }
+
+        const view = render(<Consumer resume />);
+        await waitFor(() => expect(reconnectCount).toBe(1));
+
+        let sendPromise!: Promise<void>;
+        await act(async () => {
+          sendPromise = chat.sendMessage({ text: 'hi' });
+        });
+        await vi.waitUntil(() => originalController != null);
+        await waitFor(() => expect(chat.status).toBe('submitted'));
+
+        visibilityState.mockReturnValue('hidden');
+        fireEvent(document, new Event('visibilitychange'));
+        visibilityState.mockReturnValue('visible');
+        fireEvent(document, new Event('visibilitychange'));
+        expect(resumeIfDisconnected).toHaveBeenCalledOnce();
+
+        if (cleanupMode === 'unmounts') {
+          view.unmount();
+        } else {
+          view.rerender(<Consumer resume={false} />);
+        }
+
+        await act(async () => {
+          originalController.error(new TypeError('network connection lost'));
+          await sendPromise;
+        });
+        await act(async () => {});
+
+        expect(reconnectCount).toBe(1);
+        expect(chat.status).toBe('error');
+      },
+    );
+
+    it('should preserve non-network errors when document becomes visible', async () => {
+      const visibilityState = vi
+        .spyOn(document, 'visibilityState', 'get')
+        .mockReturnValue('visible');
+      const applicationError = new Error('application failed');
+      let originalController!: ReadableStreamDefaultController<UIMessageChunk>;
+      let reconnectCount = 0;
+      const chat = new Chat({
+        id: 'application-error',
+        transport: {
+          sendMessages: async () =>
+            new ReadableStream<UIMessageChunk>({
+              start(controller) {
+                originalController = controller;
+              },
+            }),
+          reconnectToStream: async () => {
+            reconnectCount++;
+            return null;
+          },
+        },
+      });
+
+      function Consumer() {
+        useChat({ chat, resume: true });
+        return null;
+      }
+
+      render(<Consumer />);
+      await waitFor(() => expect(reconnectCount).toBe(1));
+
+      let sendPromise!: Promise<void>;
+      await act(async () => {
+        sendPromise = chat.sendMessage({ text: 'hi' });
+      });
+      await vi.waitUntil(() => originalController != null);
+      await act(async () => {
+        originalController.error(applicationError);
+        await sendPromise;
+      });
+
+      expect(chat.status).toBe('error');
+      expect(chat.error).toBe(applicationError);
+
+      visibilityState.mockReturnValue('hidden');
+      fireEvent(document, new Event('visibilitychange'));
+      visibilityState.mockReturnValue('visible');
+      fireEvent(document, new Event('visibilitychange'));
+
+      await act(async () => {});
+      expect(reconnectCount).toBe(1);
+      expect(chat.status).toBe('error');
+      expect(chat.error).toBe(applicationError);
+    });
+
+    it('should abort the first reconnect when StrictMode starts another', async () => {
+      let reconnectCount = 0;
+      const reconnectAbortSignals: AbortSignal[] = [];
+      const chat = new Chat({
+        id: 'strict-mode',
+        transport: {
+          sendMessages: async () => new ReadableStream(),
+          reconnectToStream: async ({ abortSignal }) => {
+            reconnectCount++;
+            reconnectAbortSignals.push(abortSignal!);
+            return null;
+          },
+        },
+      });
+
+      function Consumer() {
+        useChat({ chat, resume: true });
+        return null;
+      }
+
+      render(
+        <React.StrictMode>
+          <Consumer />
+        </React.StrictMode>,
+      );
+
+      await waitFor(() => expect(reconnectCount).toBe(2));
+      expect(reconnectAbortSignals[0].aborted).toBe(true);
+      expect(reconnectAbortSignals[1].aborted).toBe(false);
+    });
+
+    it('should reconnect again after all consumers unmount', async () => {
+      let reconnectCount = 0;
+      const chat = new Chat({
+        id: 'remounted',
+        transport: {
+          sendMessages: async () => new ReadableStream(),
+          reconnectToStream: async () => {
+            reconnectCount++;
+            return null;
+          },
+        },
+      });
+
+      function Consumer() {
+        useChat({ chat, resume: true });
+        return null;
+      }
+
+      const firstRender = render(<Consumer />);
+      await waitFor(() => expect(reconnectCount).toBe(1));
+
+      firstRender.unmount();
+      await act(async () => {});
+
+      fireEvent(document, new Event('visibilitychange'));
+      expect(reconnectCount).toBe(1);
+
+      render(<Consumer />);
+      await waitFor(() => expect(reconnectCount).toBe(2));
+    });
+  });
+
+  describe('resume with no active stream should not flash submitted status', () => {
+    setupTestComponent(
+      () => {
+        const { messages, status } = useChat({
+          id: '123',
+          messages: [
+            {
+              id: 'msg_123',
+              role: 'user',
+              parts: [{ type: 'text', text: 'hi' }],
+            },
+          ],
+          generateId: mockId(),
+          resume: true,
+        });
+
+        const statusHistoryRef = useRef<string[]>([]);
+        if (statusHistoryRef.current.at(-1) !== status) {
+          statusHistoryRef.current.push(status);
+        }
+
+        return (
+          <div>
+            {messages.map((m, idx) => (
+              <div data-testid={`message-${idx}`} key={m.id}>
+                {m.role === 'user' ? 'User: ' : 'AI: '}
+                {m.parts
+                  .map(part => (part.type === 'text' ? part.text : ''))
+                  .join('')}
+              </div>
+            ))}
+
+            <div data-testid="status">{status}</div>
+            <div data-testid="status-history">
+              {statusHistoryRef.current.join(',')}
+            </div>
+          </div>
+        );
+      },
+      {
+        init: TestComponent => {
+          server.urls['/api/chat/123/stream'].response = {
+            type: 'empty',
+            status: 204,
+          };
+
+          return <TestComponent />;
+        },
+      },
+    );
+
+    it('should not transition to submitted when no active stream exists', async () => {
+      await waitFor(() => {
+        expect(server.calls.length).toBe(1);
+      });
+
+      expect(screen.getByTestId('status')).toHaveTextContent('ready');
+      expect(screen.getByTestId('status-history')).not.toHaveTextContent(
+        'submitted',
+      );
+    });
+  });
+
+  describe('resume with server error should set error status without flashing submitted', () => {
+    const onErrorCalls: Error[] = [];
+
+    setupTestComponent(
+      () => {
+        const { status, error } = useChat({
+          id: '123',
+          messages: [
+            {
+              id: 'msg_123',
+              role: 'user',
+              parts: [{ type: 'text', text: 'hi' }],
+            },
+          ],
+          generateId: mockId(),
+          resume: true,
+          onError(err) {
+            onErrorCalls.push(err);
+          },
+        });
+
+        const statusHistoryRef = useRef<string[]>([]);
+        if (statusHistoryRef.current.at(-1) !== status) {
+          statusHistoryRef.current.push(status);
+        }
+
+        return (
+          <div>
+            <div data-testid="status">{status}</div>
+            <div data-testid="status-history">
+              {statusHistoryRef.current.join(',')}
+            </div>
+            {error && <div data-testid="error">{error.toString()}</div>}
+          </div>
+        );
+      },
+      {
+        init: TestComponent => {
+          server.urls['/api/chat/123/stream'].response = {
+            type: 'error',
+            status: 500,
+            body: 'Internal server error',
+          };
+
+          return <TestComponent />;
+        },
+      },
+    );
+
+    beforeEach(() => {
+      onErrorCalls.length = 0;
+    });
+
+    it('should set error status and call onError', async () => {
+      await waitFor(() => {
+        expect(screen.getByTestId('status')).toHaveTextContent('error');
+      });
+
+      expect(screen.getByTestId('error')).toHaveTextContent(
+        'Internal server error',
+      );
+      expect(screen.getByTestId('status-history')).not.toHaveTextContent(
+        'submitted',
+      );
+      expect(onErrorCalls).toHaveLength(1);
+    });
+  });
+
+  describe('automatic resumption after document becomes visible', () => {
+    const controller = new TestResponseController();
+
+    setupTestComponent(
+      () => {
+        const { messages, status } = useChat({
+          id: '123',
+          messages: [
+            {
+              id: 'msg_123',
+              role: 'user',
+              parts: [{ type: 'text', text: 'hi' }],
+            },
+          ],
+          generateId: mockId(),
+          resume: true,
+        });
+
+        return (
+          <div>
+            {messages.map((message, index) => (
+              <div data-testid={`message-${index}`} key={message.id}>
+                {message.role === 'user' ? 'User: ' : 'AI: '}
+                {message.parts
+                  .map(part => (part.type === 'text' ? part.text : ''))
+                  .join('')}
+              </div>
+            ))}
+            <div data-testid="status">{status}</div>
+          </div>
+        );
+      },
+      {
+        init: TestComponent => {
+          server.urls['/api/chat/123/stream'].response = ({ callNumber }) =>
+            callNumber === 0
+              ? {
+                  type: 'controlled-stream',
+                  controller,
+                }
+              : {
+                  type: 'stream-chunks',
+                  chunks: [
+                    formatChunk({
+                      type: 'text-delta',
+                      id: '0',
+                      delta: ', world.',
+                    }),
+                    formatChunk({ type: 'text-end', id: '0' }),
+                  ],
+                };
+
+          return <TestComponent />;
+        },
+      },
+    );
+
+    it('resumes a disconnected stream when document becomes visible', async () => {
+      const visibilityState = vi
+        .spyOn(document, 'visibilityState', 'get')
+        .mockReturnValue('visible');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('status')).toHaveTextContent('submitted');
+      });
+
+      await controller.write(formatChunk({ type: 'text-start', id: '0' }));
+      await controller.write(
+        formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hello');
+      });
+
+      visibilityState.mockReturnValue('hidden');
+      fireEvent(document, new Event('visibilitychange'));
+      await controller.error(new TypeError('network connection lost'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('status')).toHaveTextContent('error');
+      });
+
+      visibilityState.mockReturnValue('visible');
+      fireEvent(document, new Event('visibilitychange'));
+
+      await waitFor(
+        () => {
+          const resumed =
+            screen.getByTestId('message-1').textContent ===
+              'AI: Hello, world.' &&
+            screen.getByTestId('status').textContent === 'ready';
+
+          expect(
+            resumed,
+            'stream did not automatically resume after the document became visible',
+          ).toBe(true);
+        },
+        { timeout: 1000 },
+      );
+    });
+  });
+
+  describe('stop', () => {
+    setupTestComponent(() => {
+      const { messages, sendMessage, stop, status } = useChat({
+        generateId: mockId(),
+      });
+
+      return (
+        <div>
+          {messages.map((m, idx) => (
+            <div data-testid={`message-${idx}`} key={m.id}>
+              {m.role === 'user' ? 'User: ' : 'AI: '}
+              {m.parts
+                .map(part => (part.type === 'text' ? part.text : ''))
+                .join('')}
+            </div>
+          ))}
+
+          <button
+            data-testid="do-send"
+            onClick={() => {
+              sendMessage({
+                role: 'user',
+                parts: [{ text: 'hi', type: 'text' }],
+              });
+            }}
+          />
+
+          <button data-testid="do-stop" onClick={stop} />
+
+          <p data-testid="status">{status}</p>
+        </div>
+      );
+    });
+
+    it('should show stop response', async () => {
+      const controller = new TestResponseController();
+
+      server.urls['/api/chat'].response = {
+        type: 'controlled-stream',
+        controller,
+      };
+
+      await userEvent.click(screen.getByTestId('do-send'));
+
+      controller.write(formatChunk({ type: 'text-start', id: '0' }));
+      controller.write(
+        formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hello');
+        expect(screen.getByTestId('status')).toHaveTextContent('streaming');
+      });
+
+      await userEvent.click(screen.getByTestId('do-stop'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('status')).toHaveTextContent('ready');
+      });
+
+      await expect(
+        controller.write(
+          formatChunk({ type: 'text-delta', id: '0', delta: ', world!' }),
+        ),
+      ).rejects.toThrow();
+
+      await expect(controller.close()).rejects.toThrow();
+
+>>>>>>> eab278a61c (fix: resume interrupted chat streams after returning to a backgrounded page (#22035))
       expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hello');
       expect(screen.getByTestId('status')).toHaveTextContent('streaming');
     });
