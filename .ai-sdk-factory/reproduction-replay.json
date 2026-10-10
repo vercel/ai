@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22644,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22644.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22644.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Issue #22644 reproduced: result promises discarded provider error causes for transcription.text and translation.translationText."
+  }
+}
