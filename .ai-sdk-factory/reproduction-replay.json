@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22699,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22699-response-headers.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22699-response-headers.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22699_RESPONSE_HEADERS_MISSING: chat send, chat reconnect, completion, empty-header response"
+  }
+}
