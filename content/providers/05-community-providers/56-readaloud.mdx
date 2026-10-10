@@ -1,0 +1,120 @@
+---
+title: ReadAloud
+description: Learn how to use the ReadAloud provider for the AI SDK.
+---
+
+# ReadAloud Provider
+
+The [ReadAloud provider](https://github.com/tsushanth/ai-sdk-provider-readaloud) adds [ReadAloud](https://readaloudai.org) text-to-speech to the AI SDK.
+It supports `generateSpeech()` and returns audio as `mp3`, `opus`, `wav` or `pcm`.
+The package is written and maintained by the author of ReadAloud.
+
+## Setup
+
+The ReadAloud provider is available in the `ai-sdk-provider-readaloud` module. You can install it with
+
+<InstallPackages packages="ai-sdk-provider-readaloud" />
+
+It implements the Speech Model V4 specification and requires AI SDK 7.
+
+## Provider Instance
+
+You can import the default provider instance `readaloud` from `ai-sdk-provider-readaloud`:
+
+```ts
+import { readaloud } from 'ai-sdk-provider-readaloud';
+```
+
+If you need a customized setup, you can import `createReadAloud` and create a provider instance with your settings:
+
+```ts
+import { createReadAloud } from 'ai-sdk-provider-readaloud';
+
+const readaloud = createReadAloud({
+  apiKey: process.env.READALOUD_API_KEY,
+});
+```
+
+You can use the following optional settings to customize the ReadAloud provider instance:
+
+- **apiKey** _string_
+
+  API key that is sent as a Bearer token.
+  It defaults to the `READALOUD_API_KEY` environment variable.
+  You can get one at [readaloudai.org](https://readaloudai.org).
+
+- **baseURL** _string_
+
+  API base URL. Defaults to `https://api.readaloudai.org`.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  Defaults to the global `fetch` function.
+
+## Speech Models
+
+You can create speech models using the `.speech()` factory method:
+
+```ts
+import { writeFile } from 'node:fs/promises';
+import { generateSpeech } from 'ai';
+import { readaloud } from 'ai-sdk-provider-readaloud';
+
+const { audio } = await generateSpeech({
+  model: readaloud.speech(),
+  text: 'Hello from ReadAloud and the AI SDK.',
+  voice: 'piper-default',
+});
+
+await writeFile('speech.mp3', audio.uint8Array);
+```
+
+The model id is forwarded to the API but does not select a voice; use the `voice` option for that.
+
+### Supported Parameters
+
+- **text** _string_ (required)
+
+  The text to convert to speech, up to 5000 characters.
+
+- **voice** _string_
+
+  The ReadAloud voice id. Defaults to `'piper-default'`. OpenAI stock voice names such as `'alloy'` are accepted and map to the same default voice.
+
+- **outputFormat** _string_
+
+  `'mp3'` (default), `'opus'`, `'wav'` or `'pcm'` (24 kHz, 16-bit mono). Other formats produce a warning and fall back to `'mp3'`.
+
+- **speed** _number_
+
+  Speech rate from 0.25 to 4. Values outside the range are clamped with a warning.
+
+<Note>
+  The `instructions` and `language` parameters are not supported and are
+  ignored with a warning.
+</Note>
+
+### Provider Metadata
+
+Every result includes the character count, sample rate and audio format reported by the API under `providerMetadata.readaloud`:
+
+```ts
+const { characterCount, sampleRate, audioFormat } = result.providerMetadata
+  .readaloud as { characterCount?: number; sampleRate?: number; audioFormat?: string };
+```
+
+### Error Handling
+
+Failed requests throw an `APICallError` with the status code and the error message returned by ReadAloud.
+Rate limit and server errors (429 and 5xx) are marked retryable, so the `maxRetries` setting of `generateSpeech` applies.
+
+## Resources
+
+- [Provider repository](https://github.com/tsushanth/ai-sdk-provider-readaloud)
+- [npm package](https://www.npmjs.com/package/ai-sdk-provider-readaloud)
+- [ReadAloud](https://readaloudai.org)
