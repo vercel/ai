@@ -29,6 +29,12 @@ Context](/docs/ai-sdk-core/runtime-and-tool-context).
 
 To see `streamText` in action, check out [these examples](#examples).
 
+For outputs that you only need to consume once, consider
+[low-memory streaming](/docs/reference/ai-sdk-core/stream-text-low-memory) with `streamText`.
+It uses the same execution engine with one stream consumer and no replay buffer.
+Plain streaming avoids text accumulation; tools, structured output, and callbacks
+retain the content their contracts require.
+
 ## Import
 
 <Snippet text={`import { streamText } from "ai"`} prompt={false} />
