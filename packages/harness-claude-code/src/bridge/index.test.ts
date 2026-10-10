@@ -492,6 +492,22 @@ describe('Claude Code bridge configuration', () => {
     expect(state.queryArgs[0]?.options).toMatchObject({ effort: 'max' });
   });
 
+  test('passes the configured fallback model to the Agent SDK', async () => {
+    state.start = { ...state.start, fallbackModel: 'claude-haiku-4-5' };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({
+      fallbackModel: 'claude-haiku-4-5',
+    });
+  });
+
+  test('omits the fallback model when none is configured', async () => {
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).not.toHaveProperty('fallbackModel');
+  });
+
   test('passes subagent activity options to the Agent SDK', async () => {
     state.start = {
       ...state.start,

@@ -103,6 +103,13 @@ export type ClaudeCodeHarnessSettings = {
    */
   readonly maxTurns?: number;
   /**
+   * Model the Claude Agent SDK falls back to when the primary model is
+   * overloaded or unavailable. Accepts a comma-separated list to try each in
+   * order. Must differ from the turn's model; the Claude Agent SDK rejects a
+   * fallback that equals the primary model. Unset means the CLI's default.
+   */
+  readonly fallbackModel?: string;
+  /**
    * Enables periodic AI-generated progress summaries for running subagents.
    * The summaries are forwarded in raw `task_progress` stream parts.
    */
@@ -1067,6 +1074,7 @@ export function createClaudeCode(
             // sandbox is left running, stopped, or destroyed.
             proc: undefined,
             maxTurns: settings.maxTurns,
+            fallbackModel: settings.fallbackModel,
             agentProgressSummaries: settings.agentProgressSummaries,
             forwardSubagentText: settings.forwardSubagentText,
             env: sandboxClaudeEnvironment,
@@ -1230,6 +1238,7 @@ export function createClaudeCode(
         finishListenerAttachment,
         proc,
         maxTurns: settings.maxTurns,
+        fallbackModel: settings.fallbackModel,
         agentProgressSummaries: settings.agentProgressSummaries,
         forwardSubagentText: settings.forwardSubagentText,
         env: sandboxClaudeEnvironment,
@@ -1548,6 +1557,7 @@ function createSession({
   finishListenerAttachment,
   proc,
   maxTurns,
+  fallbackModel,
   agentProgressSummaries,
   forwardSubagentText,
   env,
@@ -1575,6 +1585,7 @@ function createSession({
   /** Undefined on `attach` — the live bridge was spawned by another process. */
   proc: Experimental_SandboxProcess | undefined;
   maxTurns: number | undefined;
+  fallbackModel: string | undefined;
   agentProgressSummaries: boolean | undefined;
   forwardSubagentText: boolean | undefined;
   env: Readonly<Record<string, string>> | undefined;
@@ -1850,6 +1861,7 @@ function createSession({
           : {}),
         model: promptOpts.model,
         maxTurns,
+        ...(fallbackModel !== undefined ? { fallbackModel } : {}),
         ...(agentProgressSummaries !== undefined
           ? { agentProgressSummaries }
           : {}),
@@ -1918,6 +1930,7 @@ function createSession({
             : {}),
           model: continueOpts.model,
           maxTurns,
+          ...(fallbackModel !== undefined ? { fallbackModel } : {}),
           ...(agentProgressSummaries !== undefined
             ? { agentProgressSummaries }
             : {}),
