@@ -14,6 +14,7 @@ import {
   type DataContent,
   type ProviderOptions,
 } from '@ai-sdk/provider-utils';
+import { InvalidArgumentError } from '../error/invalid-argument-error';
 import { NoImageGeneratedError } from '../error/no-image-generated-error';
 import {
   DefaultGeneratedFile,
@@ -71,8 +72,8 @@ export type GenerateImagePrompt =
  *
  * @param model - The image model to use.
  * @param prompt - The prompt that should be used to generate the image.
- * @param n - Number of images to generate. Default: 1.
- * @param maxImagesPerCall - Maximum number of images to generate in a single API call.
+ * @param n - Number of images to generate. Must be a positive integer. Default: 1.
+ * @param maxImagesPerCall - Maximum number of images to generate in a single API call. Must be a positive integer.
  * @param size - Size of the images to generate. Must have the format `{width}x{height}`.
  * @param aspectRatio - Aspect ratio of the images to generate. Must have the format `{width}:{height}`.
  * @param seed - Seed for the image generation.
@@ -108,12 +109,13 @@ export async function generateImage({
   prompt: GenerateImagePrompt;
 
   /**
-   * Number of images to generate.
+   * Number of images to generate. Must be a positive integer.
    */
   n?: number;
 
   /**
-   * Maximum number of images to generate in a single API call. If not provided, the model's default will be used.
+   * Maximum number of images to generate in a single API call. Must be a positive integer.
+   * If not provided, the model's default will be used.
    */
   maxImagesPerCall?: number;
 
@@ -170,6 +172,8 @@ export async function generateImage({
 }): Promise<GenerateImageResult> {
   const model = resolveImageModel(modelArg);
 
+  validateImageCount({ parameter: 'n', value: n });
+
   const headersWithUserAgent = withUserAgentSuffix(
     headers ?? {},
     `ai/${VERSION}`,
@@ -186,6 +190,11 @@ export async function generateImage({
   // how many images can be generated in a single call
   const maxImagesPerCallWithDefault =
     maxImagesPerCall ?? (await invokeModelMaxImagesPerCall(model)) ?? 1;
+
+  validateImageCount({
+    parameter: 'maxImagesPerCall',
+    value: maxImagesPerCallWithDefault,
+  });
 
   // parallelize calls to the model:
   const callCount = Math.ceil(n / maxImagesPerCallWithDefault);
@@ -405,6 +414,22 @@ export function getImageProviderMetadata(
   }
 
   return imageMetadata;
+}
+
+function validateImageCount({
+  parameter,
+  value,
+}: {
+  parameter: 'n' | 'maxImagesPerCall';
+  value: number;
+}) {
+  if (!Number.isInteger(value) || value <= 0) {
+    throw new InvalidArgumentError({
+      parameter,
+      value,
+      message: `${parameter} must be a positive integer`,
+    });
+  }
 }
 
 async function invokeModelMaxImagesPerCall(model: ImageModelV4) {
