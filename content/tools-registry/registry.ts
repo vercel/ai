@@ -720,4 +720,38 @@ console.log(text);`,
     websiteUrl: 'https://pexafy.com',
     npmUrl: 'https://www.npmjs.com/package/pexafy-ai-sdk',
   },
+  {
+    slug: 'databazaar',
+    name: 'DataBazaar',
+    description:
+      'Search datasets, inspect public samples, browse data bounties, and retrieve bounded records with account authentication. Full data requires an account, including free datasets. Purchasing and bounty posting are opt-in.',
+    packageName: 'databazaar-agent-tools',
+    tags: ['data', 'search'],
+    installCommand: {
+      pnpm: 'pnpm add databazaar-agent-tools',
+      npm: 'npm install databazaar-agent-tools',
+      yarn: 'yarn add databazaar-agent-tools',
+      bun: 'bun add databazaar-agent-tools',
+    },
+    codeExample: `import { generateText, gateway, isStepCount } from 'ai';
+import { databazaarTools } from 'databazaar-agent-tools/ai-sdk';
+
+// Set AI_GATEWAY_API_KEY for model calls. Public data discovery needs no
+// DataBazaar key. Pass apiKey to databazaarTools for authenticated retrieval.
+const { text } = await generateText({
+  model: gateway('openai/gpt-5-mini'),
+  tools: databazaarTools(),
+  stopWhen: isStepCount(3),
+  prompt: 'Find DeepSearchQA, inspect its sample schema, and link to the dataset.',
+});
+
+console.log(text);`,
+    docsUrl:
+      'https://databazaar.io/integrations?utm_source=ai-sdk&utm_campaign=tools-registry#ai-sdk',
+    apiKeyUrl:
+      'https://databazaar.io/signup?returnTo=%2Foperator%2Fkeys&utm_source=ai-sdk&utm_campaign=tools-registry',
+    websiteUrl:
+      'https://databazaar.io/?utm_source=ai-sdk&utm_campaign=tools-registry',
+    npmUrl: 'https://www.npmjs.com/package/databazaar-agent-tools',
+  },
 ];
