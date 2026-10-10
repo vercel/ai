@@ -1,5 +1,6 @@
 import {
   InvalidResponseDataError,
+  isJSONObject,
   type JSONObject,
   type RerankingModelV4CallOptions,
   type RerankingModelV4Result,
@@ -10,6 +11,7 @@ import {
   type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { prepareRetries } from '../../src/util/prepare-retries';
+import { InvalidArgumentError } from '../error/invalid-argument-error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveRerankingModel } from '../model/resolve-model';
 import { createRestrictedTelemetryDispatcher } from './restricted-telemetry-dispatcher';
@@ -24,6 +26,13 @@ const originalGenerateCallId = createIdGenerator({
   prefix: 'call',
   size: 24,
 });
+
+type RerankDocuments<VALUE extends JSONObject | string> = Array<VALUE> &
+  ([VALUE] extends [string]
+    ? unknown
+    : [VALUE] extends [JSONObject]
+      ? unknown
+      : never);
 
 /**
  * Rerank documents using a reranking model. The type of the value is defined by the reranking model.
@@ -71,7 +80,7 @@ export async function rerank<
   /**
    * The documents that should be reranked.
    */
-  documents: Array<VALUE>;
+  documents: RerankDocuments<VALUE>;
 
   /**
    * The query to rerank the documents against.
@@ -223,15 +232,31 @@ export async function rerank<
     });
   }
 
+  const areStringDocuments = documents.every(
+    document => typeof document === 'string',
+  );
+  const areObjectDocuments = documents.every(
+    document => isJSONObject(document) && !Array.isArray(document),
+  );
+
+  if (!areStringDocuments && !areObjectDocuments) {
+    throw new InvalidArgumentError({
+      parameter: 'documents',
+      value: documents,
+      message:
+        'documents must be an array of strings or an array of JSON objects',
+    });
+  }
+
+  const documentsToSend: RerankingModelV4CallOptions['documents'] =
+    areStringDocuments
+      ? { type: 'text', values: documents as string[] }
+      : { type: 'object', values: documents as JSONObject[] };
+
   const { maxRetries, retry } = prepareRetries({
     maxRetries: maxRetriesArg,
     abortSignal,
   });
-
-  const documentsToSend: RerankingModelV4CallOptions['documents'] =
-    typeof documents[0] === 'string'
-      ? { type: 'text', values: documents as string[] }
-      : { type: 'object', values: documents as JSONObject[] };
 
   const startEvent = {
     callId,

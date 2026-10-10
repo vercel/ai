@@ -102,3 +102,19 @@ it('preserves document inference alongside runtime context', async () => {
   });
   expectTypeOf(explicit.originalDocuments).toEqualTypeOf<Array<string>>();
 });
+
+it('requires documents to use a single representation', async () => {
+  await rerank({
+    model: new MockRerankingModelV4(),
+    // @ts-expect-error string and object documents cannot be mixed
+    documents: ['text', { title: 'object' }],
+    query: 'query',
+  });
+
+  await rerank({
+    model: new MockRerankingModelV4(),
+    // @ts-expect-error object and string documents cannot be mixed
+    documents: [{ title: 'object' }, 'text'],
+    query: 'query',
+  });
+});
