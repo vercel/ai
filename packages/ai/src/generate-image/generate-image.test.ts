@@ -18,6 +18,7 @@ import {
   vi,
   vitest,
 } from 'vitest';
+import { InvalidArgumentError } from '../error/invalid-argument-error';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockImageModelV4 } from '../test/mock-image-model-v4';
 import type { Warning } from '../types/warning';
@@ -348,6 +349,100 @@ describe('generateImage', () => {
         },
       ]);
     });
+  });
+
+  describe('image count validation', () => {
+    it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])(
+      'should reject invalid n %s before invoking the model',
+      async n => {
+        const maxImagesPerCall = vi.fn(() => 1);
+        const doGenerate = vi.fn();
+        let error: unknown;
+
+        try {
+          await generateImage({
+            model: new MockImageModelV4({
+              maxImagesPerCall,
+              doGenerate,
+            }),
+            prompt,
+            n,
+          });
+        } catch (caughtError) {
+          error = caughtError;
+        }
+
+        expect(InvalidArgumentError.isInstance(error)).toBe(true);
+        expect(error).toMatchObject({
+          parameter: 'n',
+          value: n,
+          message:
+            'Invalid argument for parameter n: n must be a positive integer',
+        });
+        expect(maxImagesPerCall).not.toHaveBeenCalled();
+        expect(doGenerate).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([0, -1, 0.5, Number.NaN, Number.POSITIVE_INFINITY])(
+      'should reject invalid maxImagesPerCall %s before invoking the model',
+      async maxImagesPerCall => {
+        const doGenerate = vi.fn();
+        let error: unknown;
+
+        try {
+          await generateImage({
+            model: new MockImageModelV4({ doGenerate }),
+            prompt,
+            maxImagesPerCall,
+          });
+        } catch (caughtError) {
+          error = caughtError;
+        }
+
+        expect(InvalidArgumentError.isInstance(error)).toBe(true);
+        expect(error).toMatchObject({
+          parameter: 'maxImagesPerCall',
+          value: maxImagesPerCall,
+          message:
+            'Invalid argument for parameter maxImagesPerCall: maxImagesPerCall must be a positive integer',
+        });
+        expect(doGenerate).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([
+      ['property', 0.5],
+      ['sync method', () => 0.5],
+      ['async method', async () => 0.5],
+    ])(
+      'should reject invalid maxImagesPerCall from a model %s before generation',
+      async (_, maxImagesPerCall) => {
+        const doGenerate = vi.fn();
+        let error: unknown;
+
+        try {
+          await generateImage({
+            model: new MockImageModelV4({
+              maxImagesPerCall,
+              doGenerate,
+            }),
+            prompt,
+          });
+        } catch (caughtError) {
+          error = caughtError;
+        }
+
+        expect(InvalidArgumentError.isInstance(error)).toBe(true);
+        expect(error).toMatchObject({
+          parameter: 'maxImagesPerCall',
+          value: 0.5,
+          message:
+            'Invalid argument for parameter maxImagesPerCall: maxImagesPerCall must be a positive integer',
+        });
+        expect(doGenerate).not.toHaveBeenCalled();
+      },
+    );
   });
 
   describe('when several calls are required', () => {
