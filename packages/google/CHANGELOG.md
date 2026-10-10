@@ -1,5 +1,15 @@
 # @ai-sdk/google
 
+## 4.0.94
+
+### Patch Changes
+
+- 2060ab9: fix(google): handle regional Gemini model IDs and valid thinking configurations
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider@4.0.27
+  - @ai-sdk/provider-utils@5.0.59
+
 ## 4.0.93
 
 ### Patch Changes

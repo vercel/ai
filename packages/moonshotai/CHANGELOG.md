@@ -1,5 +1,15 @@
 # @ai-sdk/moonshotai
 
+## 3.0.68
+
+### Patch Changes
+
+- c3b03a2: Enable structured output for unknown model IDs so future Moonshot models retain JSON schemas instead of silently falling back to JSON object mode.
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider@4.0.27
+  - @ai-sdk/provider-utils@5.0.59
+
 ## 3.0.67
 
 ### Patch Changes

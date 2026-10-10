@@ -1,5 +1,27 @@
 # ai
 
+## 7.0.138
+
+### Patch Changes
+
+- eab278a: fix: resume interrupted chat streams when the page becomes visible again
+
+  `useChat` with `resume: true` no longer starts a second resume request on mount when the chat is already submitted or streaming, e.g. when remounting with a shared `Chat` instance mid-stream.
+
+- 26d64e9: fix(ai): update tool outputs in the message containing the matching tool call
+- 75b3ea2: fix(ai): prevent duplicate message parts when resuming replayed streams
+- 69f4b82: fix(ai): prevent global type conflicts across SDK versions
+- e57803c: Add an optional shared citation representation to generated text and text-end stream events, separate from retrieved sources. Preserve citations in core result content and UI message text parts, including validation and persistence, without changing content or stream event discriminants.
+- 4c705d9: Fix validation of rounded choice probabilities in `experimental_decide`.
+- 5150d50: fix(ai): update streaming chat messages by stable ID
+- 9aef724: fix(workflow): report incomplete no-output model streams as errors
+- 7d0458b: fix(ai): reject approved tool calls without results before sending later context to providers
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider@4.0.27
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/gateway@4.0.111
+
 ## 7.0.137
 
 ### Patch Changes

@@ -1,5 +1,15 @@
 # @ai-sdk/deepseek
 
+## 3.0.64
+
+### Patch Changes
+
+- 7b33cb0: Preserve reasoning content on all assistant turns for future DeepSeek models, using the current reasoning-enabled defaults. Known pre-V4 versions and legacy chat/reasoner aliases retain their previous handling.
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider@4.0.27
+  - @ai-sdk/provider-utils@5.0.59
+
 ## 3.0.63
 
 ### Patch Changes

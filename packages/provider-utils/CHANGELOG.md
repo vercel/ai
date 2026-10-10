@@ -1,5 +1,13 @@
 # @ai-sdk/provider-utils
 
+## 5.0.59
+
+### Patch Changes
+
+- 81663cc: fix(provider-utils): accept exact criteria labels in decision choice responses
+- Updated dependencies [e57803c]
+  - @ai-sdk/provider@4.0.27
+
 ## 5.0.58
 
 ### Patch Changes

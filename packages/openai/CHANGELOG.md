@@ -1,5 +1,17 @@
 # @ai-sdk/openai
 
+## 4.0.92
+
+### Patch Changes
+
+- 6aedb07: fix(openai): replay web search results when response storage is disabled
+- e57803c: Expose complete retrieved web-search URLs and file-search documents as sources, and normalize inline references separately as citations on text parts and text-end events. Preserve citation-derived sources when retrieval data is unavailable, including web-search-preview and Azure responses. Keep raw annotations, citation titles, and text locations available. Deduplicate file-search passages by file ID.
+- 1f7e5ad: fix(openai): JSON-encode custom tool input deltas for progressive UI updates
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider@4.0.27
+  - @ai-sdk/provider-utils@5.0.59
+
 ## 4.0.91
 
 ### Patch Changes

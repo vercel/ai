@@ -1,5 +1,15 @@
 # @ai-sdk/alibaba
 
+## 2.0.66
+
+### Patch Changes
+
+- d74acd6: Select Wan video request protocols by version. Later Wan 2 minors retain the Wan 2.7 wire format, and future majors or unknown IDs use the current all-in-one media protocol instead of legacy size and reference fields.
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider@4.0.27
+  - @ai-sdk/provider-utils@5.0.59
+
 ## 2.0.65
 
 ### Patch Changes
