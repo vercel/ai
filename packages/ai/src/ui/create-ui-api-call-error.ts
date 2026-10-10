@@ -1,4 +1,5 @@
 import { APICallError } from '@ai-sdk/provider';
+import { extractResponseHeaders } from '@ai-sdk/provider-utils';
 
 export async function createUIApiCallError({
   response,
@@ -18,6 +19,7 @@ export async function createUIApiCallError({
     // Keep them out of client-facing error objects.
     requestBodyValues: undefined,
     statusCode: response.status,
+    responseHeaders: extractResponseHeaders(response),
     responseBody,
   });
 }
