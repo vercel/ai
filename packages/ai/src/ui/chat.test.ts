@@ -831,6 +831,98 @@ describe('Chat', () => {
     ]);
   });
 
+  it('should wait for an active response to disconnect before resuming', async () => {
+    let responseController!: ReadableStreamDefaultController<UIMessageChunk>;
+    const reconnectToStream = vi.fn(
+      async () =>
+        new ReadableStream<UIMessageChunk>({
+          start(controller) {
+            controller.enqueue({
+              type: 'text-delta',
+              id: 'text-1',
+              delta: ', world.',
+            });
+            controller.enqueue({ type: 'text-end', id: 'text-1' });
+            controller.enqueue({ type: 'finish' });
+            controller.close();
+          },
+        }),
+    );
+    const chat = new TestChat({
+      id: '123',
+      generateId: mockId(),
+      transport: {
+        sendMessages: async () =>
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              responseController = controller;
+            },
+          }),
+        reconnectToStream,
+      },
+    });
+
+    const sendPromise = chat.sendMessage({ text: 'hi' });
+    await vi.waitUntil(() => responseController != null);
+    responseController.enqueue({
+      type: 'start',
+      messageId: 'assistant-1',
+    });
+    responseController.enqueue({ type: 'text-start', id: 'text-1' });
+    responseController.enqueue({
+      type: 'text-delta',
+      id: 'text-1',
+      delta: 'Hello',
+    });
+    await vi.waitUntil(() => chat.status === 'streaming');
+
+    const resumePromise = chat['~resumeStreamIfDisconnected']();
+    expect(reconnectToStream).not.toHaveBeenCalled();
+
+    responseController.error(new TypeError('network connection lost'));
+    await Promise.all([sendPromise, resumePromise]);
+
+    expect(reconnectToStream).toHaveBeenCalledOnce();
+    expect(chat.status).toBe('ready');
+    expect(chat.messages.at(-1)?.parts).toEqual([
+      {
+        type: 'text',
+        text: 'Hello, world.',
+        state: 'done',
+        providerMetadata: undefined,
+      },
+    ]);
+  });
+
+  it('should not resume an active response after a non-network error', async () => {
+    let responseController!: ReadableStreamDefaultController<UIMessageChunk>;
+    const reconnectToStream = vi.fn(async () => null);
+    const applicationError = new Error('application failed');
+    const chat = new TestChat({
+      id: '123',
+      transport: {
+        sendMessages: async () =>
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              responseController = controller;
+            },
+          }),
+        reconnectToStream,
+      },
+    });
+
+    const sendPromise = chat.sendMessage({ text: 'hi' });
+    await vi.waitUntil(() => responseController != null);
+    const resumePromise = chat['~resumeStreamIfDisconnected']();
+
+    responseController.error(applicationError);
+    await Promise.all([sendPromise, resumePromise]);
+
+    expect(reconnectToStream).not.toHaveBeenCalled();
+    expect(chat.status).toBe('error');
+    expect(chat.error).toBe(applicationError);
+  });
+
   describe('send handle a stop and an aborted response stream', () => {
     let chat: TestChat;
     let letOnFinishArgs: any[] = [];
