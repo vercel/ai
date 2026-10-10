@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22599,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/realtime-final-only-tool-arguments.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/realtime-final-only-tool-arguments.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22599_FINAL_ONLY_TOOL_PART_MISSING: nonEmpty=[] empty=[]"
+  }
+}
