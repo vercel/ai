@@ -90,6 +90,8 @@ export function Chat({
 
 When you enable `resume`, the `useChat` hook makes a `GET` request to `/api/chat/[id]/stream` on mount to check for and resume any active streams.
 
+The hook also reconnects when the page becomes visible again after being in the background (for example, after switching browser tabs or returning to a mobile app). This only happens when the stream was interrupted by a network disconnect. Healthy streams and other errors are left untouched.
+
 The default transport URL-encodes the chat ID as a single path segment. IDs equal
 to `.` or `..` are rejected with an `InvalidArgumentError` because URL parsers
 interpret them as path traversal segments.
@@ -211,7 +213,7 @@ The diagram above shows the complete lifecycle of a resumable stream:
 
 1. **Stream creation**: When you send a new message, the POST handler uses `streamText` to generate the response. The `consumeSseStream` callback creates a resumable stream with a unique ID and stores it in Redis through the `resumable-stream` package
 2. **Stream tracking**: Your persistence layer saves the `activeStreamId` in the chat data
-3. **Client reconnection**: When the client reconnects (page reload), the `resume` option triggers a GET request to `/api/chat/[id]/stream`
+3. **Client reconnection**: When the client reconnects (page reload, or returning to a backgrounded page after a network disconnect), the `resume` option triggers a GET request to `/api/chat/[id]/stream`
 4. **Stream recovery**: The GET handler checks for an `activeStreamId` and uses `resumeExistingStream` to reconnect. If no active stream exists, it returns a 204 (No Content) response
 5. **Completion cleanup**: When the stream finishes, the `onFinish` callback clears the `activeStreamId` by setting it to `null`
 
