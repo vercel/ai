@@ -1,0 +1,8 @@
+{
+  "error": {
+    "message": "response_format 'verbose_json' is not compatible with model 'gpt-4o-mini-transcribe-2025-03-20-api-ev3'. Use 'json' or 'text' instead.",
+    "type": "invalid_request_error",
+    "param": "response_format",
+    "code": "unsupported_value"
+  }
+}
