@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22591,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22591-realtime-duplicate-message-ids.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22591-realtime-duplicate-message-ids.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #22591 reproduced: distinct text messages received duplicate IDs: [\"user-1700000000000\",\"user-1700000000000\"]"
+  }
+}
