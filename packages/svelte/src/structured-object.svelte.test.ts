@@ -207,6 +207,62 @@ describe('text stream', () => {
         error: expect.any(Error),
       });
     });
+
+    it('should wait for an async callback before submit resolves', async () => {
+      server.urls['/api/object'].response = {
+        type: 'stream-chunks',
+        chunks: ['{ ', '"content": "Hello, ', 'world', '!"', '}'],
+      };
+
+      const callbackStarted = Promise.withResolvers<void>();
+      const callbackCanFinish = Promise.withResolvers<void>();
+      let submitFinished = false;
+      const structuredObjectWithOnFinish = new StructuredObject({
+        api: '/api/object',
+        schema: z.object({ content: z.string() }),
+        onFinish: async () => {
+          callbackStarted.resolve();
+          await callbackCanFinish.promise;
+        },
+      });
+
+      const submitOperation = structuredObjectWithOnFinish
+        .submit('test-input')
+        .then(() => {
+          submitFinished = true;
+        });
+
+      await callbackStarted.promise;
+      await new Promise(resolve => setTimeout(resolve, 0));
+      expect(submitFinished).toBe(false);
+
+      callbackCanFinish.resolve();
+      await submitOperation;
+      expect(submitFinished).toBe(true);
+    });
+
+    it('should handle rejected async callbacks as errors', async () => {
+      server.urls['/api/object'].response = {
+        type: 'stream-chunks',
+        chunks: ['{ ', '"content": "Hello, ', 'world', '!"', '}'],
+      };
+
+      const failure = new Error('save failed');
+      const rejection = Promise.reject(failure);
+      void rejection.catch(() => {});
+      const onError = vi.fn();
+      const structuredObjectWithOnFinish = new StructuredObject({
+        api: '/api/object',
+        schema: z.object({ content: z.string() }),
+        onFinish: () => rejection,
+        onError,
+      });
+
+      await structuredObjectWithOnFinish.submit('test-input');
+
+      expect(onError).toHaveBeenCalledExactlyOnceWith(failure);
+      expect(structuredObjectWithOnFinish.error).toBe(failure);
+    });
   });
 
   it('should send custom headers', async () => {
