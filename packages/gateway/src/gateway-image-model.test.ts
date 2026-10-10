@@ -72,7 +72,10 @@ describe('GatewayImageModel', () => {
     }: {
       images?: string[];
       isRetryable?: boolean;
-      warnings?: Array<{ type: 'other'; message: string }>;
+      warnings?: Array<
+        | { type: 'deprecated'; setting: string; message: string }
+        | { type: 'other'; message: string }
+      >;
       providerMetadata?: Record<string, unknown>;
     } = {}) {
       server.urls['https://api.test.com/image-model'].response = {
@@ -301,6 +304,32 @@ describe('GatewayImageModel', () => {
       });
 
       expect(result.warnings).toEqual(mockWarnings);
+    });
+
+    it('should map deprecated warnings to other warnings', async () => {
+      prepareJsonResponse({
+        images: ['base64-1'],
+        warnings: [
+          {
+            type: 'deprecated' as const,
+            setting: 'size',
+            message: 'Use `aspectRatio` instead.',
+          },
+        ],
+      });
+
+      const result = await createTestModel().doGenerate({
+        prompt: 'Test prompt',
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.warnings).toEqual([
+        { type: 'other', message: 'Use `aspectRatio` instead.' },
+      ]);
     });
 
     it('should return empty warnings array when not provided', async () => {
