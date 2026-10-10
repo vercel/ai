@@ -144,6 +144,11 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   // A transport can replay a response from the beginning using the same ID.
   resetStateOnFirstMessageStart?: boolean;
 }): ReadableStream<InferUIMessageChunk<UI_MESSAGE>> {
+  // Keep pre-attempt values for results that update calls in earlier steps.
+  const toolResultSnapshots = new Map<
+    ToolUIPart | DynamicToolUIPart,
+    ToolUIPart | DynamicToolUIPart
+  >();
   return stream.pipeThrough(
     new TransformStream<UIMessageChunk, InferUIMessageChunk<UI_MESSAGE>>({
       async transform(chunk, controller) {
@@ -166,25 +171,6 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             return getCurrentStepParts().filter(isToolUIPart);
           }
 
-          function getCurrentStepIndex() {
-            const parts = state.message.parts;
-            const firstStepStart = parts.findIndex(
-              part => part.type === 'step-start',
-            );
-            const hasPrelude = parts
-              .slice(0, Math.max(firstStepStart, 0))
-              .some(
-                part =>
-                  part.type !== 'source-url' && part.type !== 'source-document',
-              );
-            return Math.max(
-              parts.filter(part => part.type === 'step-start').length -
-                1 +
-                (hasPrelude ? 1 : 0),
-              0,
-            );
-          }
-
           function getToolResultPosition(
             toolInvocation: ToolUIPart | DynamicToolUIPart,
           ) {
@@ -192,56 +178,20 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               (toolInvocation.state === 'output-available' ||
                 toolInvocation.state === 'output-error') &&
               toolInvocation.resultPosition != null
-            ) {
+            )
               return toolInvocation.resultPosition;
-            }
-
-            const stepIndex = getCurrentStepIndex();
-            let contentIndex = 0;
-            for (const part of getCurrentStepParts()) {
-              switch (part.type) {
-                case 'text':
-                case 'reasoning':
-                case 'custom':
-                case 'file':
-                case 'reasoning-file':
-                  contentIndex++;
-                  break;
-                default:
-                  if (isToolUIPart(part) && part.state !== 'input-streaming') {
-                    contentIndex++;
-                    if (part.approval != null) {
-                      contentIndex++;
-                    }
-                    // Older messages place results beside their calls.
-                    if (
-                      part.providerExecuted === true &&
-                      (part.state === 'output-error' ||
-                        (part.state === 'output-available' &&
-                          part.preliminary !== true)) &&
-                      part.resultPosition == null &&
-                      part !== toolInvocation
-                    ) {
-                      contentIndex++;
-                    }
-                  }
-              }
-            }
-
-            // Results may be stored on calls from an earlier step.
-            for (const part of state.message.parts) {
-              if (
+            const partIndex = state.message.parts.length;
+            const resultIndex = state.message.parts.reduce(
+              (nextIndex, part) =>
                 isToolUIPart(part) &&
-                part.providerExecuted === true &&
-                (part.state === 'output-error' ||
-                  (part.state === 'output-available' &&
-                    part.preliminary !== true)) &&
-                part.resultPosition?.stepIndex === stepIndex
-              ) {
-                contentIndex++;
-              }
-            }
-            return { stepIndex, contentIndex };
+                (part.state === 'output-available' ||
+                  part.state === 'output-error') &&
+                part.resultPosition?.partIndex === partIndex
+                  ? Math.max(nextIndex, part.resultPosition.resultIndex + 1)
+                  : nextIndex,
+              0,
+            );
+            return { partIndex, resultIndex };
           }
 
           function getToolInvocation(toolCallId: string) {
@@ -345,6 +295,21 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 : 'callProviderMetadata';
 
             if (part != null) {
+              if (
+                (options.state === 'output-available' ||
+                  options.state === 'output-error') &&
+                (options.providerExecuted ?? part.providerExecuted) === true &&
+                !getCurrentStepParts().includes(part) &&
+                !toolResultSnapshots.has(part)
+              ) {
+                toolResultSnapshots.set(part, { ...part });
+              }
+              if (
+                options.state !== 'output-available' &&
+                options.state !== 'output-error' &&
+                'resultPosition' in part
+              )
+                delete part.resultPosition;
               Object.assign(part, updates);
               if (part.type === 'dynamic-tool') {
                 part.toolName = options.toolName;
@@ -368,11 +333,12 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               // parts receive it when their streaming input is updated.
               const { rawInput, ...initialValues } = updates;
               state.message.parts.push({
-                ...initialValues,
                 ...(options.dynamic
                   ? { type: 'dynamic-tool', toolName: options.toolName }
-                  : { type: `tool-${options.toolName}`, rawInput }),
+                  : { type: `tool-${options.toolName}` }),
                 toolCallId: options.toolCallId,
+                ...initialValues,
+                ...(!options.dynamic ? { rawInput } : {}),
                 providerExecuted: options.providerExecuted,
                 title: options.title,
                 ...(options.toolMetadata !== undefined
@@ -687,6 +653,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
             case 'tool-approval-request': {
               const toolInvocation = getToolInvocation(chunk.toolCallId);
+              if ('resultPosition' in toolInvocation)
+                delete toolInvocation.resultPosition;
               toolInvocation.state = 'approval-requested';
               toolInvocation.approval = {
                 id: chunk.approvalId,
@@ -720,6 +688,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   ? { id: chunk.approvalId }
                   : toolInvocation.approval;
 
+              if ('resultPosition' in toolInvocation)
+                delete toolInvocation.resultPosition;
               toolInvocation.state = 'approval-responded';
               toolInvocation.approval = {
                 ...approval,
@@ -739,6 +709,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
             case 'tool-output-denied': {
               const toolInvocation = getToolInvocation(chunk.toolCallId);
+              if ('resultPosition' in toolInvocation)
+                delete toolInvocation.resultPosition;
               toolInvocation.state = 'output-denied';
               write();
               break;
@@ -821,6 +793,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'start-step': {
+              toolResultSnapshots.clear();
               // add a step boundary part to the message
               state.message.parts.push({ type: 'step-start' });
               break;
@@ -834,33 +807,50 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
             case 'reset-step': {
               const currentStepParts = getCurrentStepParts();
-              const stepIndex = getCurrentStepIndex();
+              const stepStartIndex =
+                state.message.parts.length - currentStepParts.length - 1;
               let resetDeferredResult = false;
 
-              // Deferred results updated calls outside the reset step.
-              for (const part of state.message.parts) {
+              for (const part of state.message.parts.slice(0, stepStartIndex)) {
+                if (!isToolUIPart(part)) continue;
+                let snapshot = toolResultSnapshots.get(part);
                 if (
-                  !isToolUIPart(part) ||
-                  (part.state !== 'output-available' &&
-                    part.state !== 'output-error') ||
-                  part.resultPosition?.stepIndex !== stepIndex ||
-                  currentStepParts.includes(part)
+                  snapshot == null &&
+                  (part.state === 'output-available' ||
+                    part.state === 'output-error') &&
+                  part.resultPosition != null &&
+                  part.resultPosition.partIndex > stepStartIndex
                 ) {
-                  continue;
+                  // A persisted result can be reset in a later stream. Preserve
+                  // its approval when returning to the pre-result state.
+                  const inputPart = { ...part };
+                  for (const key of [
+                    'resultPosition',
+                    'resultProviderMetadata',
+                    'output',
+                    'errorText',
+                    'preliminary',
+                  ]) {
+                    Reflect.deleteProperty(inputPart, key);
+                  }
+                  snapshot = {
+                    ...inputPart,
+                    state:
+                      part.approval == null
+                        ? 'input-available'
+                        : part.approval.approved == null
+                          ? 'approval-requested'
+                          : 'approval-responded',
+                  } as ToolUIPart | DynamicToolUIPart;
                 }
-                delete part.resultPosition;
-                delete part.resultProviderMetadata;
-                updateToolPart(
-                  {
-                    state: 'input-available',
-                    toolCallId: part.toolCallId,
-                    toolName: getToolName(part),
-                    input: part.input,
-                  },
-                  part,
-                );
+                if (snapshot == null) continue;
+                for (const key of Object.keys(part)) {
+                  if (!(key in snapshot)) Reflect.deleteProperty(part, key);
+                }
+                Object.assign(part, snapshot);
                 resetDeferredResult = true;
               }
+              toolResultSnapshots.clear();
 
               state.activeTextParts = createIdMap();
               state.activeReasoningParts = createIdMap();
@@ -888,6 +878,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 // Start the separate response with empty parts and metadata.
                 // Reset the active-part maps too, so earlier chunks stay with
                 // the previous response. Keep the state object for its callers.
+                toolResultSnapshots.clear();
                 Object.assign(
                   state,
                   createStreamingUIMessageState({

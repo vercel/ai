@@ -21,7 +21,7 @@ type AssertAssignable<Target, Source extends Target> = Source;
 
 describe('UIMessagePart', () => {
   it('exposes optional result positions on static and dynamic output parts', () => {
-    type Position = { stepIndex: number; contentIndex: number } | undefined;
+    type Position = { partIndex: number; resultIndex: number } | undefined;
     expectTypeOf<
       Extract<
         ToolUIPart<TestTools>,

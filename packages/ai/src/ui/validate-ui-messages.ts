@@ -33,8 +33,8 @@ const toolMetadataSchema: ZodType<JSONObject> = z.record(
 const providerReferenceSchema = z.record(z.string(), z.string());
 
 const toolResultPositionSchema = z.object({
-  stepIndex: z.number().int().nonnegative(),
-  contentIndex: z.number().int().nonnegative(),
+  partIndex: z.number().int().nonnegative(),
+  resultIndex: z.number().int().nonnegative(),
 });
 
 function isEmptyObject(value: unknown): value is Record<string, never> {
