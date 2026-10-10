@@ -519,11 +519,26 @@ export async function* modelCallIterator({
           content: assistantContent,
           providerExecutedToolResultPositions,
         } = getAssistantMessageContent(step, mode);
-        const includedToolCallIds = new Set(
-          assistantContent.flatMap(part =>
-            part.type === 'tool-call' ? [part.toolCallId] : [],
-          ),
-        );
+        const includedToolCallIndexes = new Set<number>();
+        let nextToolCallIndex = 0;
+        for (const part of assistantContent) {
+          if (part.type !== 'tool-call') {
+            continue;
+          }
+
+          while (nextToolCallIndex < toolCalls.length) {
+            const toolCallIndex = nextToolCallIndex++;
+            const toolCall = toolCalls[toolCallIndex];
+            if (
+              toolCall.toolCallId === part.toolCallId &&
+              toolCall.toolName === part.toolName &&
+              (mode !== 'stream' || !toolCall.invalid)
+            ) {
+              includedToolCallIndexes.add(toolCallIndex);
+              break;
+            }
+          }
+        }
 
         // Add assistant message content in provider emission order. Invalid
         // tool calls are not part of StepResult.content, so retain the previous
@@ -537,7 +552,10 @@ export async function* modelCallIterator({
           content: [
             ...assistantContent,
             ...toolCalls
-              .filter(toolCall => !includedToolCallIds.has(toolCall.toolCallId))
+              .filter(
+                (_toolCall, toolCallIndex) =>
+                  !includedToolCallIndexes.has(toolCallIndex),
+              )
               .map(toAssistantToolCallContent),
           ],
         });

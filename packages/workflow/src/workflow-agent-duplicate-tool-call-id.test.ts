@@ -53,6 +53,23 @@ function toolMessageOutputs(messages: unknown[]) {
     .map(part => part.output?.value);
 }
 
+function assistantToolCalls(messages: unknown[]) {
+  return (
+    messages as Array<{
+      role: string;
+      content: Array<{
+        type: string;
+        toolCallId?: string;
+        toolName?: string;
+        input?: unknown;
+      }>;
+    }>
+  )
+    .filter(message => message.role === 'assistant')
+    .flatMap(message => message.content)
+    .filter(part => part.type === 'tool-call');
+}
+
 function duplicateToolCallStream(): LanguageModelV4StreamPart[] {
   return [
     { type: 'stream-start', warnings: [] },
@@ -447,6 +464,57 @@ describe('WorkflowAgent duplicate tool call IDs', () => {
         input: { q: 'valid' },
         output: 'result for valid',
       },
+    ]);
+  });
+
+  it('keeps invalid and valid calls that share an ID in the next prompt', async () => {
+    const { model, prompts } = createScriptedModel([
+      [
+        { type: 'stream-start', warnings: [] },
+        {
+          type: 'tool-call',
+          toolCallId: 'call_0',
+          toolName: 'lookup',
+          input: '{"wrong":true}',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'call_0',
+          toolName: 'lookup',
+          input: '{"q":"valid"}',
+        },
+        finish('tool-calls'),
+      ],
+      done,
+    ]);
+
+    await new WorkflowAgent({
+      model,
+      tools: {
+        lookup: tool({
+          inputSchema: z.object({ q: z.string() }),
+          execute: async ({ q }) => `result for ${q}`,
+        }),
+      },
+    }).stream({ prompt: 'go' });
+
+    expect(assistantToolCalls(prompts[1])).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'call_0',
+        toolName: 'lookup',
+        input: { q: 'valid' },
+      },
+      {
+        type: 'tool-call',
+        toolCallId: 'call_0',
+        toolName: 'lookup',
+        input: { wrong: true },
+      },
+    ]);
+    expect(toolMessageOutputs(prompts[1])).toEqual([
+      expect.stringContaining('Invalid input for tool lookup'),
+      'result for valid',
     ]);
   });
 });
