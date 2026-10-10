@@ -242,6 +242,16 @@ function mcpToModelOutput({
   return { type: 'content', value: convertedContent };
 }
 
+function typedMcpToModelOutput({
+  output,
+}: {
+  toolCallId: string;
+  input: unknown;
+  output: unknown;
+}): ToolResultOutput {
+  return { type: 'json', value: output as JSONValue };
+}
+
 export interface MCPClientConfig {
   /** Experimental events: choose a private durable store or a managed adapter. */
   experimental_events?: MCPEventsConfig;
@@ -1264,6 +1274,7 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
       const self = this;
       const outputSchema =
         schemas !== 'automatic' ? schemas[name]?.outputSchema : undefined;
+      const rawMcpErrorResults = new WeakSet<CallToolResult>();
       const appMeta = getMCPAppToolMeta({ _meta });
       const metadata = {
         clientName: this.clientInfo.name,
@@ -1312,6 +1323,7 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
         });
 
         if (result.isError) {
+          rawMcpErrorResults.add(result);
           return result;
         }
 
@@ -1321,6 +1333,16 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
 
         return result;
       };
+
+      const toModelOutput =
+        outputSchema == null
+          ? mcpToModelOutput
+          : (options: Parameters<typeof mcpToModelOutput>[0]) =>
+              options.output != null &&
+              typeof options.output === 'object' &&
+              rawMcpErrorResults.has(options.output as CallToolResult)
+                ? mcpToModelOutput(options)
+                : typedMcpToModelOutput(options);
 
       const toolWithExecute =
         schemas === 'automatic'
@@ -1334,7 +1356,7 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
                 additionalProperties: false,
               } as JSONSchema7),
               execute,
-              toModelOutput: mcpToModelOutput,
+              toModelOutput,
             })
           : tool({
               description,
@@ -1343,7 +1365,7 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
               inputSchema: schemas[name].inputSchema,
               ...(outputSchema != null ? { outputSchema } : {}),
               execute,
-              toModelOutput: mcpToModelOutput,
+              toModelOutput,
             });
 
       tools[name] = { ...toolWithExecute, _meta };
