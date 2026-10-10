@@ -55,6 +55,74 @@ export interface GatewayGenerationInfo {
   billableWebSearchCalls: number;
 }
 
+/** The raw generation record returned by the AI Gateway REST API. */
+export interface GatewayRestGenerationInfo {
+  id: string;
+  total_cost: number;
+  upstream_inference_cost: number;
+  usage: number;
+  created_at: string;
+  model: string;
+  is_byok: boolean;
+  provider_name: string;
+  streamed: boolean;
+  finish_reason: string;
+  latency: number;
+  generation_time: number;
+  native_tokens_prompt: number;
+  native_tokens_completion: number;
+  native_tokens_reasoning: number;
+  native_tokens_cached: number;
+  native_tokens_cache_creation: number;
+  billable_web_search_calls: number;
+
+  /** Additional service-owned metadata. */
+  [key: string]: unknown;
+}
+
+/** The raw response from the AI Gateway `GET /v1/generation` REST endpoint. */
+export interface GatewayRestGenerationInfoResponse {
+  data: GatewayRestGenerationInfo;
+}
+
+export function convertGatewayRestGenerationInfoResponse({
+  data,
+}: GatewayRestGenerationInfoResponse): GatewayGenerationInfo {
+  const {
+    total_cost,
+    upstream_inference_cost,
+    created_at,
+    is_byok,
+    provider_name,
+    finish_reason,
+    generation_time,
+    native_tokens_prompt,
+    native_tokens_completion,
+    native_tokens_reasoning,
+    native_tokens_cached,
+    native_tokens_cache_creation,
+    billable_web_search_calls,
+    ...rest
+  } = data;
+
+  return {
+    ...rest,
+    totalCost: total_cost,
+    upstreamInferenceCost: upstream_inference_cost,
+    createdAt: created_at,
+    isByok: is_byok,
+    providerName: provider_name,
+    finishReason: finish_reason,
+    generationTime: generation_time,
+    promptTokens: native_tokens_prompt,
+    completionTokens: native_tokens_completion,
+    reasoningTokens: native_tokens_reasoning,
+    cachedTokens: native_tokens_cached,
+    cacheCreationTokens: native_tokens_cache_creation,
+    billableWebSearchCalls: billable_web_search_calls,
+  };
+}
+
 export class GatewayGenerationInfoFetcher {
   constructor(private readonly config: GatewayConfig) {}
 

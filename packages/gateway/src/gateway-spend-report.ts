@@ -70,6 +70,73 @@ export interface GatewaySpendReportResponse {
   results: GatewaySpendReportRow[];
 }
 
+/** A raw row returned by the AI Gateway `GET /v1/report` REST endpoint. */
+export interface GatewayRestSpendReportRow {
+  day?: string;
+  hour?: string;
+  user?: string;
+  model?: string;
+  tag?: string;
+  provider?: string;
+  credential_type?: 'byok' | 'system';
+  total_cost: number;
+  market_cost?: number;
+  input_tokens?: number;
+  output_tokens?: number;
+  cached_input_tokens?: number;
+  cache_creation_input_tokens?: number;
+  reasoning_tokens?: number;
+  request_count?: number;
+
+  /** Additional service-owned report fields. */
+  [key: string]: unknown;
+}
+
+/** The raw response from the AI Gateway `GET /v1/report` REST endpoint. */
+export interface GatewayRestSpendReportResponse {
+  results: GatewayRestSpendReportRow[];
+}
+
+export function convertGatewayRestSpendReportResponse(
+  response: GatewayRestSpendReportResponse,
+): GatewaySpendReportResponse {
+  return {
+    results: response.results.map(
+      ({
+        credential_type,
+        total_cost,
+        market_cost,
+        input_tokens,
+        output_tokens,
+        cached_input_tokens,
+        cache_creation_input_tokens,
+        reasoning_tokens,
+        request_count,
+        ...rest
+      }) => ({
+        ...rest,
+        ...(credential_type !== undefined
+          ? { credentialType: credential_type }
+          : {}),
+        totalCost: total_cost,
+        ...(market_cost !== undefined ? { marketCost: market_cost } : {}),
+        ...(input_tokens !== undefined ? { inputTokens: input_tokens } : {}),
+        ...(output_tokens !== undefined ? { outputTokens: output_tokens } : {}),
+        ...(cached_input_tokens !== undefined
+          ? { cachedInputTokens: cached_input_tokens }
+          : {}),
+        ...(cache_creation_input_tokens !== undefined
+          ? { cacheCreationInputTokens: cache_creation_input_tokens }
+          : {}),
+        ...(reasoning_tokens !== undefined
+          ? { reasoningTokens: reasoning_tokens }
+          : {}),
+        ...(request_count !== undefined ? { requestCount: request_count } : {}),
+      }),
+    ),
+  };
+}
+
 export class GatewaySpendReport {
   constructor(private readonly config: GatewayConfig) {}
 

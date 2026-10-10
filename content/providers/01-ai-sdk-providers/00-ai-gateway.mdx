@@ -600,6 +600,38 @@ const { text } = await generateText({
 });
 ```
 
+### REST API requests
+
+Use `gateway.request()` to call supported AI Gateway REST endpoints with type-safe routes, parameters, and responses. Its raw REST responses are distinct from the normalized results returned by the dedicated Gateway methods.
+
+```ts
+import { gateway } from 'ai';
+
+const { data: models } = await gateway.request('GET /v1/models');
+
+models.forEach(model => {
+  console.log(`${model.id}: ${model.context_window ?? 'unknown'} tokens`);
+});
+```
+
+To inspect the providers serving a particular model, use the typed path parameters for `GET /v1/models/{creator}/{model}/endpoints`:
+
+```ts
+const { data: model } = await gateway.request(
+  'GET /v1/models/{creator}/{model}/endpoints',
+  {
+    creator: 'anthropic',
+    model: 'claude-sonnet-4.5',
+  },
+);
+
+model.endpoints.forEach(endpoint => {
+  console.log(`${endpoint.provider_name}: ${endpoint.context_length} tokens`);
+});
+```
+
+`gateway.request()` also supports the raw `GET /v1/credits`, `GET /v1/generation`, and `GET /v1/report` routes. Prefer `getCredits()`, `getGenerationInfo()`, and `getSpendReport()` when you want their normalized SDK response types.
+
 ## Credit Usage
 
 You can check your team's current credit balance and usage:

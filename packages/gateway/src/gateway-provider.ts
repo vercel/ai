@@ -18,19 +18,26 @@ import {
 import { parseAuthMethod } from './errors/parse-auth-method';
 import {
   GatewayFetchMetadata,
+  convertGatewayRestCreditsResponse,
   type GatewayFetchMetadataResponse,
   type GatewayCreditsResponse,
 } from './gateway-fetch-metadata';
 import {
-  GatewaySpendReport,
+  convertGatewayRestSpendReportResponse,
   type GatewaySpendReportParams,
   type GatewaySpendReportResponse,
 } from './gateway-spend-report';
 import {
-  GatewayGenerationInfoFetcher,
+  convertGatewayRestGenerationInfoResponse,
   type GatewayGenerationInfoParams,
   type GatewayGenerationInfo,
 } from './gateway-generation-info';
+import {
+  GatewayRequest,
+  type GatewayRequestArguments,
+  type GatewayRequestRoute,
+  type GatewayRequestResponse,
+} from './gateway-request';
 import { GatewayBatch } from './gateway-batch';
 import { GatewayLanguageModel } from './gateway-language-model';
 import { GatewayEmbeddingModel } from './gateway-embedding-model';
@@ -112,6 +119,12 @@ export interface GatewayProvider extends ProviderV4 {
   getGenerationInfo(
     params: GatewayGenerationInfoParams,
   ): Promise<GatewayGenerationInfo>;
+
+  /** Sends a supported request to an AI Gateway REST endpoint. */
+  request<ROUTE extends GatewayRequestRoute>(
+    route: ROUTE,
+    ...args: GatewayRequestArguments<ROUTE>
+  ): Promise<GatewayRequestResponse<ROUTE>>;
 
   /**
    * Creates a model for generating text embeddings.
@@ -496,49 +509,31 @@ export function createGateway(
     return metadataCache ? Promise.resolve(metadataCache) : pendingMetadata;
   };
 
+  const gatewayRequest = new GatewayRequest({
+    baseURL,
+    headers: getHeaders,
+    fetch: options.fetch,
+  });
+
+  const request = <ROUTE extends GatewayRequestRoute>(
+    route: ROUTE,
+    ...args: GatewayRequestArguments<ROUTE>
+  ) => gatewayRequest.request(route, ...args);
+
   const getCredits = async () => {
-    return new GatewayFetchMetadata({
-      baseURL,
-      headers: getHeaders,
-      fetch: options.fetch,
-    })
-      .getCredits()
-      .catch(async (error: unknown) => {
-        throw await asGatewayError(
-          error,
-          await parseAuthMethod(await getHeaders()),
-        );
-      });
+    return convertGatewayRestCreditsResponse(await request('GET /v1/credits'));
   };
 
   const getSpendReport = async (params: GatewaySpendReportParams) => {
-    return new GatewaySpendReport({
-      baseURL,
-      headers: getHeaders,
-      fetch: options.fetch,
-    })
-      .getSpendReport(params)
-      .catch(async (error: unknown) => {
-        throw await asGatewayError(
-          error,
-          await parseAuthMethod(await getHeaders()),
-        );
-      });
+    return convertGatewayRestSpendReportResponse(
+      await request('GET /v1/report', params),
+    );
   };
 
   const getGenerationInfo = async (params: GatewayGenerationInfoParams) => {
-    return new GatewayGenerationInfoFetcher({
-      baseURL,
-      headers: getHeaders,
-      fetch: options.fetch,
-    })
-      .getGenerationInfo(params)
-      .catch(async (error: unknown) => {
-        throw await asGatewayError(
-          error,
-          await parseAuthMethod(await getHeaders()),
-        );
-      });
+    return convertGatewayRestGenerationInfoResponse(
+      await request('GET /v1/generation', params),
+    );
   };
 
   const provider = function (modelId: GatewayModelId) {
@@ -556,6 +551,8 @@ export function createGateway(
   provider.getCredits = getCredits;
   provider.getSpendReport = getSpendReport;
   provider.getGenerationInfo = getGenerationInfo;
+  provider.request = request;
+
   provider.imageModel = (modelId: GatewayImageModelId) => {
     return new GatewayImageModel(modelId, {
       provider: 'gateway',
