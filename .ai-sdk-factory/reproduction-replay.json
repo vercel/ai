@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22584,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22584-extract-json-leading-whitespace.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22584-extract-json-leading-whitespace.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22584_REPRODUCED: generateText and streamText rejected valid fenced JSON with leading whitespace"
+  }
+}
