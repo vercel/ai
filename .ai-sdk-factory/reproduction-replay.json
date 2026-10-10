@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "issueId": 22623,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/v3-image-tool-result-compatibility.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/v3-image-tool-result-compatibility.ts",
+    "examples/ai-functions/package.json",
+    "pnpm-lock.yaml"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "V3 compatibility regression: adapted PNG tool output serialized as input_file instead of input_image"
+  }
+}

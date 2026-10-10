@@ -96,6 +96,7 @@
     "image-type": "^5.2.0",
     "just-bash": "^2.14.5",
     "mathjs": "^15.2.0",
+    "openai-v3": "npm:@ai-sdk/openai@3.0.125",
     "sharp": "^0.35.4",
     "terminal-image": "^2.0.0",
     "undici": "^8.9.0",
