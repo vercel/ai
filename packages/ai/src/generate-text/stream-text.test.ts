@@ -23289,6 +23289,146 @@ describe('streamText', () => {
         expect(output).toStrictEqual([{ value: 'done' }]);
       });
 
+      it('should validate completed array elements incrementally', async () => {
+        const elementCount = 100;
+        let validations = 0;
+
+        const result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: '{"elements":[' },
+              ...Array.from({ length: elementCount }, (_, index) => ({
+                type: 'text-delta' as const,
+                id: '1',
+                delta: `${index > 0 ? ',' : ''}${JSON.stringify({ value: index })}`,
+              })),
+              { type: 'text-delta', id: '1', delta: ']}' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop' as const, raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+          output: Output.array({
+            element: z
+              .object({ value: z.number() })
+              .superRefine(async () => {
+                await Promise.resolve();
+                validations++;
+              })
+              .transform(({ value }) => value * 2),
+          }),
+          prompt: 'prompt',
+        });
+
+        const elements = await convertAsyncIterableToArray(
+          result.elementStream,
+        );
+        const output = await result.output;
+
+        expect(elements).toStrictEqual(
+          Array.from({ length: elementCount }, (_, index) => index * 2),
+        );
+        expect(output).toStrictEqual(elements);
+        expect(validations).toBeGreaterThanOrEqual(elementCount * 2);
+        expect(validations).toBeLessThanOrEqual(elementCount * 3);
+      });
+
+      it('should isolate incremental array validation between concurrent streams', async () => {
+        const sharedOutput = Output.array({
+          element: z.object({ value: z.number() }),
+        });
+
+        const createResult = (offset: number) =>
+          streamText({
+            model: createTestModel({
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: '{"elements":[' },
+                {
+                  type: 'text-delta',
+                  id: '1',
+                  delta: JSON.stringify({ value: offset }),
+                },
+                {
+                  type: 'text-delta',
+                  id: '1',
+                  delta: `,${JSON.stringify({ value: offset + 1 })}`,
+                },
+                { type: 'text-delta', id: '1', delta: ']}' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop' as const, raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            }),
+            output: sharedOutput,
+            prompt: 'prompt',
+          });
+
+        const firstResult = createResult(0);
+        const secondResult = createResult(10);
+
+        const [firstElements, secondElements] = await Promise.all([
+          convertAsyncIterableToArray(firstResult.elementStream),
+          convertAsyncIterableToArray(secondResult.elementStream),
+        ]);
+
+        expect(firstElements).toStrictEqual([{ value: 0 }, { value: 1 }]);
+        expect(secondElements).toStrictEqual([{ value: 10 }, { value: 11 }]);
+        await expect(firstResult.output).resolves.toStrictEqual(firstElements);
+        await expect(secondResult.output).resolves.toStrictEqual(
+          secondElements,
+        );
+      });
+
+      it('should continue incremental array validation after an invalid element', async () => {
+        const result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: '{"elements":[' },
+              {
+                type: 'text-delta',
+                id: '1',
+                delta: '{"value":"invalid"}',
+              },
+              {
+                type: 'text-delta',
+                id: '1',
+                delta: ',{"value":1}',
+              },
+              { type: 'text-delta', id: '1', delta: ']}' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop' as const, raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+          output: Output.array({
+            element: z.object({ value: z.number() }),
+          }),
+          prompt: 'prompt',
+        });
+
+        await expect(
+          convertAsyncIterableToArray(result.elementStream),
+        ).resolves.toStrictEqual([{ value: 1 }]);
+        await expect(result.output).rejects.toMatchObject({
+          name: 'AI_NoObjectGeneratedError',
+          cause: {
+            name: 'AI_TypeValidationError',
+          },
+        });
+      });
+
       it('should error elementStream when the model exceeds maxItems', async () => {
         const result = streamText({
           model: createTestModel({

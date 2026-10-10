@@ -116,6 +116,7 @@ import type {
   InferElementOutput,
   InferPartialOutput,
 } from './output-utils';
+import { createPartialOutputParser } from './output-parsing';
 import type { PrepareStepFunction } from './prepare-step';
 import { prepareStepCallSettings } from './prepare-step-call-settings';
 import { convertToReasoningOutputs } from './reasoning-output';
@@ -915,6 +916,10 @@ function createOutputTransformStream<
   let textProviderMetadata: ProviderMetadata | undefined = undefined;
   let lastPublishedValue: string | undefined = undefined;
   let hasPublishedValue = false;
+  let parsePartialOutput = createPartialOutputParser({
+    output,
+    fallback: options => output.parsePartialOutput(options),
+  });
 
   function resetOutputState() {
     firstTextChunkId = undefined;
@@ -923,6 +928,10 @@ function createOutputTransformStream<
     textProviderMetadata = undefined;
     lastPublishedValue = undefined;
     hasPublishedValue = false;
+    parsePartialOutput = createPartialOutputParser({
+      output,
+      fallback: options => output.parsePartialOutput(options),
+    });
   }
 
   function enqueueChunk({
@@ -1037,7 +1046,7 @@ function createOutputTransformStream<
       }
 
       // only publish if partial json can be parsed:
-      const result = await output.parsePartialOutput({ text });
+      const result = await parsePartialOutput({ text });
 
       // null should be allowed (valid JSON value) but undefined should not:
       if (result !== undefined) {

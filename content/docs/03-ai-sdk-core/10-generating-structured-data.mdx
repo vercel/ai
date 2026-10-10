@@ -233,6 +233,9 @@ for await (const hero of elementStream) {
 }
 ```
 
+Completed elements are validated incrementally as the array streams, while the
+final array is validated independently before the `output` promise resolves.
+
 <Note>
   Each element emitted by `elementStream` is complete and validated against your
   element schema. This differs from `partialOutputStream`, which streams the

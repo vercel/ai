@@ -192,6 +192,10 @@ An `Output<Array<ELEMENT>, Array<ELEMENT>>` specification where:
 - Complete output is validated against `minItems` and `maxItems`
 - Partial output contains only fully validated elements (incomplete elements are excluded)
 
+During streaming, each completed element is validated incrementally instead of
+revalidating previously completed elements on every text chunk. The completed
+output is still validated independently before the `output` promise resolves.
+
 Set `minItems` and `maxItems` to the same value to require an exact number of
 elements. The bounds are included in the provider-facing schema when the
 provider supports them. The AI SDK also validates the completed output, so

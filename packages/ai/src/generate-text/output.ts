@@ -18,6 +18,7 @@ import type { LanguageModelResponseMetadata } from '../types/language-model-resp
 import type { LanguageModelUsage } from '../types/usage';
 import type { DeepPartial } from '../util/deep-partial';
 import { parsePartialJson } from '../util/parse-partial-json';
+import { registerPartialOutputParserFactory } from './output-parsing';
 import type { EnrichedStreamPart } from './stream-text';
 
 export interface Output<OUTPUT = any, PARTIAL = any, ELEMENT = any> {
@@ -237,7 +238,7 @@ export const array = <ELEMENT>({
 
   const elementSchema = asSchema(inputElementSchema);
 
-  return {
+  const output: Output<Array<ELEMENT>, Array<ELEMENT>, ELEMENT> = {
     name: 'array',
 
     // JSON schema that describes an array of elements:
@@ -435,6 +436,73 @@ export const array = <ELEMENT>({
       });
     },
   };
+
+  registerPartialOutputParserFactory({
+    output,
+    factory: () => {
+      let processedRawElements = 0;
+      const parsedElements: Array<ELEMENT> = [];
+
+      return async ({ text }: { text: string }) => {
+        const result = await parsePartialJson(text);
+
+        switch (result.state) {
+          case 'failed-parse':
+          case 'undefined-input': {
+            return undefined;
+          }
+
+          case 'repaired-parse':
+          case 'successful-parse': {
+            const outerValue = result.value;
+
+            if (
+              outerValue == null ||
+              typeof outerValue !== 'object' ||
+              !('elements' in outerValue) ||
+              !Array.isArray(outerValue.elements)
+            ) {
+              return undefined;
+            }
+
+            const rawElements =
+              result.state === 'repaired-parse' &&
+              outerValue.elements.length > 0
+                ? outerValue.elements.slice(0, -1)
+                : outerValue.elements;
+
+            // Stream retries and new steps receive a fresh parser. This
+            // fallback handles a parser repair that unexpectedly shrinks the
+            // completed prefix within the same stream.
+            if (rawElements.length < processedRawElements) {
+              processedRawElements = 0;
+              parsedElements.length = 0;
+            }
+
+            for (
+              ;
+              processedRawElements < rawElements.length;
+              processedRawElements++
+            ) {
+              const validationResult = await safeValidateTypes({
+                value: rawElements[processedRawElements],
+                schema: elementSchema,
+              });
+
+              if (validationResult.success) {
+                parsedElements.push(validationResult.value);
+              }
+            }
+
+            // Do not expose the mutable cache to previously emitted chunks.
+            return { partial: [...parsedElements] };
+          }
+        }
+      };
+    },
+  });
+
+  return output;
 };
 
 function validateArrayBound({
