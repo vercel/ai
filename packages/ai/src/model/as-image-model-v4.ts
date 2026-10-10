@@ -4,6 +4,7 @@ import type {
   ImageModelV4,
 } from '@ai-sdk/provider';
 import { asImageModelV3 } from './as-image-model-v3';
+import { createModelCompatibilityProxy } from './create-model-compatibility-proxy';
 
 export function asImageModelV4(
   model: ImageModelV2 | ImageModelV3 | ImageModelV4,
@@ -16,10 +17,7 @@ export function asImageModelV4(
   const v3Model =
     model.specificationVersion === 'v2' ? asImageModelV3(model) : model;
 
-  return new Proxy(v3Model, {
-    get(target, prop: keyof ImageModelV3) {
-      if (prop === 'specificationVersion') return 'v4';
-      return target[prop];
-    },
-  }) as unknown as ImageModelV4;
+  return createModelCompatibilityProxy(v3Model, 'v4', [
+    'doGenerate',
+  ]) as unknown as ImageModelV4;
 }

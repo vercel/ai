@@ -4,6 +4,7 @@ import type {
   EmbeddingModelV4,
 } from '@ai-sdk/provider';
 import { asEmbeddingModelV3 } from './as-embedding-model-v3';
+import { createModelCompatibilityProxy } from './create-model-compatibility-proxy';
 
 export function asEmbeddingModelV4(
   model: EmbeddingModelV2<string> | EmbeddingModelV3 | EmbeddingModelV4,
@@ -16,10 +17,7 @@ export function asEmbeddingModelV4(
   const v3Model =
     model.specificationVersion === 'v2' ? asEmbeddingModelV3(model) : model;
 
-  return new Proxy(v3Model, {
-    get(target, prop: keyof EmbeddingModelV3) {
-      if (prop === 'specificationVersion') return 'v4';
-      return target[prop];
-    },
-  }) as unknown as EmbeddingModelV4;
+  return createModelCompatibilityProxy(v3Model, 'v4', [
+    'doEmbed',
+  ]) as unknown as EmbeddingModelV4;
 }
