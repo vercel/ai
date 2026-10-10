@@ -429,6 +429,33 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   };
 
   /**
+   * Resume the stream if the latest response ended with a resumable network
+   * disconnect. If a response is still active, wait for it to settle first so
+   * disconnects reported shortly after the caller's trigger are handled.
+   *
+   * @internal
+   */
+  '~resumeStreamIfDisconnected' = async ({
+    shouldResume = () => true,
+  }: {
+    shouldResume?: () => boolean;
+  } = {}): Promise<void> => {
+    const activeResponse = this.activeResponse;
+
+    if (this.resumableStreamState == null && activeResponse != null) {
+      await activeResponse.completionPromise;
+
+      if (this.resumableStreamState !== activeResponse.state) {
+        return;
+      }
+    }
+
+    if (this.resumableStreamState != null && shouldResume()) {
+      await this.resumeStream();
+    }
+  };
+
+  /**
    * Clear the error state and set the status to ready if the chat is in an error state.
    */
   clearError = () => {
