@@ -26,21 +26,33 @@ export function cosineSimilarity(vector1: number[], vector2: number[]): number {
     return 0; // Return 0 for empty vectors if no error is thrown
   }
 
+  let maxAbsValue1 = 0;
+  let maxAbsValue2 = 0;
+
+  // Scale each vector independently to keep the accumulated values finite.
+  for (let i = 0; i < n; i++) {
+    maxAbsValue1 = Math.max(maxAbsValue1, Math.abs(vector1[i]));
+    maxAbsValue2 = Math.max(maxAbsValue2, Math.abs(vector2[i]));
+  }
+
+  if (maxAbsValue1 === 0 || maxAbsValue2 === 0) {
+    return 0;
+  }
+
   let magnitudeSquared1 = 0;
   let magnitudeSquared2 = 0;
   let dotProduct = 0;
 
   for (let i = 0; i < n; i++) {
-    const value1 = vector1[i];
-    const value2 = vector2[i];
+    const value1 = vector1[i] / maxAbsValue1;
+    const value2 = vector2[i] / maxAbsValue2;
 
     magnitudeSquared1 += value1 * value1;
     magnitudeSquared2 += value2 * value2;
     dotProduct += value1 * value2;
   }
 
-  return magnitudeSquared1 === 0 || magnitudeSquared2 === 0
-    ? 0
-    : dotProduct /
-        (Math.sqrt(magnitudeSquared1) * Math.sqrt(magnitudeSquared2));
+  return (
+    dotProduct / (Math.sqrt(magnitudeSquared1) * Math.sqrt(magnitudeSquared2))
+  );
 }
