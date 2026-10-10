@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22625,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22625-cosine-similarity-extreme-scales.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22625-cosine-similarity-extreme-scales.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22625: identical finite nonzero vectors must have cosine similarity approximately 1 at every tested scale"
+  }
+}
