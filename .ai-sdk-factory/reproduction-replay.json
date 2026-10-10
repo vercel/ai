@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22723,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22723-provider-defined-tool-factory.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22723-provider-defined-tool-factory.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22723: TypeScript rejects outputSchema in ProviderDefinedToolFactory options"
+  }
+}
