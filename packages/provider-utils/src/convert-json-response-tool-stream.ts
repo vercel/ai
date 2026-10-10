@@ -58,6 +58,16 @@ export function convertJsonResponseToolStream(toolName: string) {
           break;
         case 'tool-call':
           if (part.toolName === toolName) {
+            if (!responseToolIds.has(part.toolCallId)) {
+              responseToolIds.add(part.toolCallId);
+              controller.enqueue({
+                type: 'text-start',
+                id: part.toolCallId,
+                ...(part.providerMetadata && {
+                  providerMetadata: part.providerMetadata,
+                }),
+              });
+            }
             if (!responseToolsWithDeltas.has(part.toolCallId)) {
               controller.enqueue({
                 type: 'text-delta',
