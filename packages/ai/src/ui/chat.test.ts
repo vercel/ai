@@ -4436,6 +4436,149 @@ describe('Chat', () => {
       });
       expect(chat.messages.slice(1)).toEqual(laterMessages);
     });
+
+    for (const dynamic of [false, true]) {
+      for (const state of ['output-available', 'output-error'] as const) {
+        it(`should clear preliminary state for a stored ${dynamic ? 'dynamic' : 'static'} ${state} output`, async () => {
+          const chat = new TestChat({
+            messages: [
+              {
+                id: 'message-1',
+                role: 'assistant',
+                parts: [
+                  {
+                    ...(dynamic
+                      ? {
+                          type: 'dynamic-tool' as const,
+                          toolName: 'test-tool',
+                        }
+                      : { type: 'tool-test-tool' as const }),
+                    toolCallId: 'tool-call-0',
+                    state: 'output-available',
+                    input: { testArg: 'test-value' },
+                    output: 'preliminary-output',
+                    preliminary: true,
+                  },
+                ],
+              },
+            ],
+          });
+
+          await chat.addToolOutput({
+            tool: 'test-tool',
+            toolCallId: 'tool-call-0',
+            ...(state === 'output-error'
+              ? { state, errorText: 'client-side error' }
+              : { output: 'final-output' }),
+          });
+
+          const part = chat.messages[0].parts[0];
+          expect(part).toMatchObject({ state });
+          expect(
+            'preliminary' in part ? part.preliminary : undefined,
+          ).toBeUndefined();
+          expect(
+            lastAssistantMessageIsCompleteWithToolCalls({
+              messages: chat.messages,
+            }),
+          ).toBe(true);
+        });
+      }
+    }
+
+    for (const dynamic of [false, true]) {
+      for (const state of ['output-available', 'output-error'] as const) {
+        it(`should clear preliminary state in an active ${dynamic ? 'dynamic' : 'static'} ${state} output before automatically continuing`, async () => {
+          const controller = new TestResponseController();
+          server.urls['http://localhost:3000/api/chat'].response = [
+            { type: 'controlled-stream', controller },
+            {
+              type: 'stream-chunks',
+              chunks: [
+                formatChunk({ type: 'start' }),
+                formatChunk({ type: 'start-step' }),
+                formatChunk({ type: 'finish-step' }),
+                formatChunk({ type: 'finish' }),
+              ],
+            },
+          ];
+
+          const finishedMessages: UIMessage[] = [];
+          const automaticRequestFinished = createResolvablePromise<void>();
+          const chat = new TestChat({
+            generateId: mockId(),
+            transport: new DefaultChatTransport({
+              api: 'http://localhost:3000/api/chat',
+            }),
+            sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+            onFinish: ({ message }) => {
+              finishedMessages.push(structuredClone(message));
+              if (finishedMessages.length === 2) {
+                automaticRequestFinished.resolve();
+              }
+            },
+          });
+
+          const request = chat.sendMessage({ text: 'Run the tool' });
+          controller.write(formatChunk({ type: 'start' }));
+          controller.write(formatChunk({ type: 'start-step' }));
+          controller.write(
+            formatChunk({
+              type: 'tool-input-available',
+              toolName: 'test-tool',
+              toolCallId: 'tool-call-0',
+              input: { testArg: 'test-value' },
+              dynamic,
+            }),
+          );
+          controller.write(
+            formatChunk({
+              type: 'tool-output-available',
+              toolCallId: 'tool-call-0',
+              output: 'preliminary-output',
+              preliminary: true,
+            }),
+          );
+          await vi.waitFor(() => {
+            expect(chat.messages.at(-1)?.parts.at(-1)).toMatchObject({
+              state: 'output-available',
+              preliminary: true,
+            });
+          });
+
+          await chat.addToolOutput({
+            tool: 'test-tool',
+            toolCallId: 'tool-call-0',
+            ...(state === 'output-error'
+              ? { state, errorText: 'client-side error' }
+              : { output: 'final-output' }),
+          });
+
+          const storedPart = chat.messages.at(-1)?.parts.at(-1);
+          expect(storedPart).toMatchObject({ state });
+          expect(
+            storedPart != null && 'preliminary' in storedPart
+              ? storedPart.preliminary
+              : undefined,
+          ).toBeUndefined();
+
+          controller.write(formatChunk({ type: 'finish-step' }));
+          controller.write(formatChunk({ type: 'finish' }));
+          await controller.close();
+          await request;
+          await automaticRequestFinished.promise;
+
+          const activePart = finishedMessages[0].parts.at(-1);
+          expect(activePart).toMatchObject({ state });
+          expect(
+            activePart != null && 'preliminary' in activePart
+              ? activePart.preliminary
+              : undefined,
+          ).toBeUndefined();
+          expect(server.calls).toHaveLength(2);
+        });
+      }
+    }
   });
 
   describe('addToolOutput approval metadata', () => {
