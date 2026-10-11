@@ -492,15 +492,67 @@ export function toUIMessageStream<TState = unknown>(
      * For ReadableStream without Symbol.asyncIterator
      */
     const reader = (stream as ReadableStream).getReader();
+    let readerReleased = false;
+    const releaseReader = () => {
+      if (!readerReleased) {
+        reader.releaseLock();
+        readerReleased = true;
+      }
+    };
+
     return {
       async next() {
-        const { done, value } = await reader.read();
-        return { done, value };
+        try {
+          const { done, value } = await reader.read();
+          if (done) {
+            releaseReader();
+          }
+          return { done, value };
+        } catch (error) {
+          releaseReader();
+          throw error;
+        }
+      },
+      async return(reason) {
+        try {
+          await reader.cancel(reason);
+        } finally {
+          releaseReader();
+        }
+        return { done: true, value: undefined };
       },
     };
   };
 
   const iterator = getAsyncIterator();
+  let cancelled = false;
+  let iteratorClosed = false;
+  let onFinalPromise: Promise<void> | undefined;
+  let onAbortPromise: Promise<void> | undefined;
+
+  const closeIterator = async (reason?: unknown) => {
+    if (iteratorClosed) return;
+    iteratorClosed = true;
+
+    try {
+      await iterator.return?.(reason);
+    } catch {
+      // Ignore source cleanup errors during cancellation.
+    }
+  };
+
+  const callOnFinal = () => {
+    onFinalPromise ??= Promise.resolve(options?.onFinal?.(textChunks.join('')));
+    return onFinalPromise;
+  };
+
+  const callOnAbort = () => {
+    onAbortPromise ??= (async () => {
+      await callOnFinal();
+      await options?.onAbort?.();
+    })();
+    return onAbortPromise;
+  };
 
   /**
    * Create a wrapper around the controller to intercept text chunks for callbacks
@@ -534,6 +586,8 @@ export function toUIMessageStream<TState = unknown>(
     async start(controller) {
       await options?.onStart?.();
 
+      if (cancelled) return;
+
       const wrappedController = createCallbackController(controller);
       if (sendStart) {
         controller.enqueue({ type: 'start' });
@@ -542,6 +596,7 @@ export function toUIMessageStream<TState = unknown>(
       try {
         while (true) {
           const { done, value } = await iterator.next();
+          if (cancelled) return;
           if (done) break;
 
           /**
@@ -655,27 +710,47 @@ export function toUIMessageStream<TState = unknown>(
         /**
          * Call onFinal callback with aggregated text
          */
-        await options?.onFinal?.(textChunks.join(''));
+        await callOnFinal();
+        if (cancelled) return;
         await options?.onFinish?.(lastValuesData);
       } catch (error) {
+        if (cancelled) {
+          await callOnAbort();
+          return;
+        }
+
         const errorObj =
           error instanceof Error ? error : new Error(String(error));
 
-        await options?.onFinal?.(textChunks.join(''));
+        await callOnFinal();
+        if (cancelled) {
+          await callOnAbort();
+          return;
+        }
 
         if (isAbortError(error)) {
-          await options?.onAbort?.();
+          await callOnAbort();
         } else {
           await options?.onError?.(errorObj);
         }
+
+        if (cancelled) return;
 
         controller.enqueue({
           type: 'error',
           errorText: errorObj.message,
         });
       } finally {
-        controller.close();
+        if (!cancelled) {
+          controller.close();
+        }
       }
+    },
+
+    async cancel(reason) {
+      cancelled = true;
+      await closeIterator(reason);
+      await callOnAbort();
     },
   });
 }
