@@ -111,5 +111,47 @@ describe('getErrorMessage', () => {
     it('should JSON.stringify arrays', () => {
       expect(getErrorMessage(['a', 'b'])).toBe('["a","b"]');
     });
+
+    it('should fall back to string coercion for cyclic objects', () => {
+      const error: { message: string; self?: unknown } = {
+        message: 'lookup failed',
+      };
+      error.self = error;
+
+      expect(getErrorMessage(error)).toBe('[object Object]');
+    });
+
+    it('should fall back to string coercion for BigInt values', () => {
+      expect(getErrorMessage(1n)).toBe('1');
+    });
+
+    it('should fall back to string coercion when JSON.stringify returns undefined', () => {
+      expect(getErrorMessage(Symbol('failure'))).toBe('Symbol(failure)');
+    });
+
+    it('should fall back when an Error toString override throws', () => {
+      const error = new Error('failure');
+      error.toString = () => {
+        throw new Error('formatting failed');
+      };
+
+      expect(getErrorMessage(error)).toBe('{}');
+    });
+
+    it('should return "unknown error" when every formatting strategy throws', () => {
+      const error = new Proxy(
+        {},
+        {
+          get() {
+            throw new Error('property access failed');
+          },
+          getPrototypeOf() {
+            throw new Error('prototype access failed');
+          },
+        },
+      );
+
+      expect(getErrorMessage(error)).toBe('unknown error');
+    });
   });
 });
