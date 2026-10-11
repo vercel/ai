@@ -1,4 +1,4 @@
-export function getErrorMessage(error: unknown | undefined) {
+export function getErrorMessage(error: unknown | undefined): string {
   if (error == null) {
     return 'unknown error';
   }
@@ -7,9 +7,31 @@ export function getErrorMessage(error: unknown | undefined) {
     return error;
   }
 
-  if (error instanceof Error) {
-    return error.toString();
+  try {
+    if (error instanceof Error) {
+      const message = error.toString();
+
+      if (typeof message === 'string') {
+        return message;
+      }
+    }
+  } catch {
+    // fall through to alternative formatting
   }
 
-  return JSON.stringify(error);
+  try {
+    const message = JSON.stringify(error);
+
+    if (typeof message === 'string') {
+      return message;
+    }
+  } catch {
+    // fall through to string coercion
+  }
+
+  try {
+    return String(error);
+  } catch {
+    return 'unknown error';
+  }
 }
