@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { RealtimeModel } from '../types/realtime-model';
+import type { RealtimeState } from './realtime-event-reducer';
 
 // Capture transport instances created lazily by connect().
 const sentEvents: Array<{ type: string; [key: string]: unknown }> = [];
@@ -56,6 +57,10 @@ const { AbstractRealtimeSession } = await import('./realtime-session');
 class TestSession extends AbstractRealtimeSession {
   protected setState(): void {
     // no-op for tests
+  }
+
+  get snapshot(): RealtimeState {
+    return this.state;
   }
 }
 
@@ -206,6 +211,39 @@ describe('AbstractRealtimeSession', () => {
     expect(onError).toHaveBeenCalledExactlyOnceWith(
       new Error('Realtime WebSocket closed unexpectedly (code 1011)'),
     );
+  });
+
+  it('finalizes partial text when disconnecting', async () => {
+    const session = new TestSession({
+      model: createModel(),
+      api: { token: '/api/token' },
+    });
+
+    await session.connect();
+    const transport = transportInstances[0];
+    await transport.emitServerEvent({
+      type: 'session-created',
+      sessionId: 'session',
+      raw: {},
+    });
+    await transport.emitServerEvent({
+      type: 'text-delta',
+      responseId: 'response',
+      itemId: 'text',
+      delta: 'Partial answer',
+      raw: {},
+    });
+
+    expect(session.snapshot.messages[0].parts).toEqual([
+      { type: 'text', text: 'Partial answer', state: 'streaming' },
+    ]);
+
+    session.disconnect();
+
+    expect(session.snapshot.status).toBe('disconnected');
+    expect(session.snapshot.messages[0].parts).toEqual([
+      { type: 'text', text: 'Partial answer', state: 'done' },
+    ]);
   });
 
   it('does not error when onToolCall returns undefined (manual flow)', async () => {
