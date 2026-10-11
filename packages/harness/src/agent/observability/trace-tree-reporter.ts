@@ -2,10 +2,11 @@ import type { Telemetry } from 'ai';
 
 /**
  * A harness observability reporter that renders an ASCII trace tree of a
- * turn's span lifecycle (turn → steps → tools) to a stream at turn end. It is a
- * `Telemetry` integration — register it in `telemetry.integrations`. Useful for
- * zero-setup local debugging when no OTel collector is wired up; a real OTel
- * backend (via `@ai-sdk/otel`) is a strict superset.
+ * turn's span lifecycle (turn → steps → tools) to a stream when the turn
+ * completes, errors, or aborts. It is a `Telemetry` integration — register it
+ * in `telemetry.integrations`. Useful for zero-setup local debugging when no
+ * OTel collector is wired up; a real OTel backend (via `@ai-sdk/otel`) is a
+ * strict superset.
  */
 export interface TraceTreeReporterOptions {
   /** Where to write the rendered tree. Default `process.stderr.write`. */
@@ -41,6 +42,28 @@ export function createTraceTreeReporter(
     let out = `${indent}- ${node.label} ${dur}\n`;
     for (const child of node.children) out += render(child, depth + 1);
     return out;
+  };
+
+  const finishTurn = (callId: string, status?: 'error' | 'aborted'): void => {
+    const turn = turns.get(callId);
+    if (!turn) return;
+
+    turns.delete(callId);
+
+    const endMs = Date.now();
+    const finishNode = (node: Node): void => {
+      node.endMs ??= endMs;
+      for (const child of node.children) finishNode(child);
+    };
+    finishNode(turn.root);
+
+    if (status != null) turn.root.label += ` [${status}]`;
+
+    try {
+      write(`\n${render(turn.root, 0)}`);
+    } catch {
+      // Never let rendering break the turn.
+    }
   };
 
   return {
@@ -108,15 +131,15 @@ export function createTraceTreeReporter(
     },
     onEnd(event) {
       const e = event as { callId: string };
-      const turn = turns.get(e.callId);
-      if (!turn) return;
-      turn.root.endMs = Date.now();
-      turns.delete(e.callId);
-      try {
-        write(`\n${render(turn.root, 0)}`);
-      } catch {
-        // Never let rendering break the turn.
-      }
+      finishTurn(e.callId);
+    },
+    onError(event) {
+      const e = event as { callId: string };
+      finishTurn(e.callId, 'error');
+    },
+    onAbort(event) {
+      const e = event as { callId: string };
+      finishTurn(e.callId, 'aborted');
     },
   };
 }
