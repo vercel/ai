@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22786,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/langchain-tool-error-status.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/langchain-tool-error-status.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #22786: error-text and error-json must convert to ToolMessage status \"error\""
+  }
+}
