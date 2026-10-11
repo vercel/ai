@@ -51,6 +51,9 @@ export interface ToUIMessageStreamOptions<
  *
  * This function transforms the AI SDK's message format into LangChain's message
  * format, enabling seamless integration between the two frameworks.
+ * The first converted message retains the UI message ID. When one UI message
+ * expands into multiple LangChain messages, later IDs append their zero-based
+ * conversion index (for example, `message-1` and `message-1-1`).
  *
  * @param messages - Array of AI SDK UIMessage objects to convert.
  * @returns Promise resolving to an array of LangChain BaseMessage objects.
@@ -68,8 +71,56 @@ export interface ToUIMessageStreamOptions<
 export async function toBaseMessages(
   messages: UIMessage[],
 ): Promise<BaseMessage[]> {
-  const modelMessages = await convertToModelMessages(messages);
-  return convertModelMessages(modelMessages);
+  const boundaryProvider = 'ai-sdk-langchain-message-boundary';
+  const boundaryMarker = {};
+
+  // Insert removable boundaries so convertToModelMessages can retain its
+  // whole-history behavior while each converted group stays associated with
+  // the UI message ID that produced it.
+  const messagesWithBoundaries = messages.flatMap(message => [
+    message,
+    {
+      id: '',
+      role: 'system' as const,
+      parts: [
+        {
+          type: 'text' as const,
+          text: '',
+          providerMetadata: {
+            [boundaryProvider]: boundaryMarker,
+          },
+        },
+      ],
+    },
+  ]);
+
+  const modelMessages = await convertToModelMessages(messagesWithBoundaries);
+  const result: BaseMessage[] = [];
+  let currentModelMessages: ModelMessage[] = [];
+  let sourceMessageIndex = 0;
+
+  for (const modelMessage of modelMessages) {
+    if (
+      modelMessage.role === 'system' &&
+      modelMessage.providerOptions?.[boundaryProvider] === boundaryMarker
+    ) {
+      const baseMessages = convertModelMessages(currentModelMessages);
+      const sourceMessageId = messages[sourceMessageIndex].id;
+
+      for (let index = 0; index < baseMessages.length; index++) {
+        baseMessages[index].id =
+          index === 0 ? sourceMessageId : `${sourceMessageId}-${index}`;
+      }
+
+      result.push(...baseMessages);
+      currentModelMessages = [];
+      sourceMessageIndex++;
+    } else {
+      currentModelMessages.push(modelMessage);
+    }
+  }
+
+  return result;
 }
 
 /**
