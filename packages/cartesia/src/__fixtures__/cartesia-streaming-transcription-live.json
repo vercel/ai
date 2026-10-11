@@ -1,0 +1,15 @@
+{
+  "input": {
+    "model": "ink-2",
+    "encoding": "pcm_s16le",
+    "sampleRate": 24000,
+    "audio": "one second of PCM silence",
+    "turnDetection": true
+  },
+  "events": [
+    {
+      "type": "connected",
+      "request_id": "2dcc1333-f362-4daa-85d3-8135a1e4f9cf"
+    }
+  ]
+}

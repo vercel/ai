@@ -54,9 +54,9 @@ class MockWebSocket {
     this.onmessage?.({ data: JSON.stringify(value) });
   }
 
-  serverClose() {
+  serverClose({ code, reason }: { code?: number; reason?: string } = {}) {
     this.readyState = 3;
-    this.onclose?.({});
+    this.onclose?.({ code, reason });
   }
 }
 
@@ -335,6 +335,64 @@ describe('doStream', () => {
     expect(result.response).toEqual({
       timestamp: testDate,
       modelId: 'ink-2',
+    });
+  });
+
+  it.each([
+    { code: 1011, reason: 'backend failed' },
+    { code: 1006, reason: '' },
+  ])(
+    'errors after a partial transcript when the WebSocket closes abnormally with $code',
+    async ({ code, reason }) => {
+      const provider = createCartesia({
+        apiKey: 'test-api-key',
+        webSocket: MockWebSocket,
+      });
+      const result = await provider.transcription('ink-2').doStream!({
+        audio: new ReadableStream(),
+        inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+      });
+      const partsPromise = convertReadableStreamToArray(result.stream);
+      const ws = MockWebSocket.instances[0];
+
+      ws.open();
+      ws.message({
+        type: 'turn.end',
+        request_id: 'turn-1',
+        transcript: 'First sentence.',
+      });
+      ws.serverClose({ code, reason });
+
+      await expect(partsPromise).rejects.toBeInstanceOf(Error);
+    },
+  );
+
+  it('keeps an explicit done frame successful when followed by an abnormal close', async () => {
+    const provider = createCartesia({
+      apiKey: 'test-api-key',
+      webSocket: MockWebSocket,
+    });
+    const result = await provider.transcription('ink-2').doStream!({
+      audio: new ReadableStream(),
+      inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+    });
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+
+    ws.open();
+    ws.message({
+      type: 'turn.end',
+      request_id: 'turn-1',
+      transcript: 'First sentence.',
+    });
+    ws.message({ type: 'done', request_id: 'turn-1' });
+    ws.serverClose({ code: 1011, reason: 'late close after done' });
+
+    await expect(partsPromise).resolves.toContainEqual({
+      type: 'finish',
+      text: 'First sentence.',
+      segments: [],
+      language: 'en',
     });
   });
 
