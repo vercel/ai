@@ -420,8 +420,9 @@ export abstract class AbstractRealtimeSession {
     rtc?.dispose();
     if (this.attempt !== attempt) return;
     const session = this.state.session;
+    const finalizedState = this.reducer.finalizeTextParts(this.state);
     this.applyState({
-      ...this.state,
+      ...finalizedState,
       status: attempt?.cause != null ? 'error' : 'disconnected',
       isCapturing: false,
       isPlaying: false,

@@ -86,6 +86,14 @@ export class RealtimeEventReducer {
     return { ...state, isPlaying };
   }
 
+  finalizeTextParts(state: RealtimeState): RealtimeState {
+    let nextState = state;
+    for (const itemId of this.itemIdToPartLocation.keys()) {
+      nextState = this.finalizeText(nextState, itemId);
+    }
+    return nextState;
+  }
+
   addUserTextMessage(state: RealtimeState, text: string): RealtimeState {
     return {
       ...state,
