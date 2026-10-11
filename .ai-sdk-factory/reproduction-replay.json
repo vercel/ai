@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22808,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22808-llamaindex-whitespace.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22808-llamaindex-whitespace.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22808: whitespace-preserving mode did not preserve exact source text"
+  }
+}
