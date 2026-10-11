@@ -128,12 +128,14 @@ The following provider options are available:
 
 - **callback** _string_
 
-  URL to which Deepgram will make a callback request with the audio.
+  URL to which Deepgram will make a callback request with the audio. Callback
+  delivery is asynchronous and is not supported by `generateSpeech`.
   Optional.
 
 - **callbackMethod** _enum_
 
-  HTTP method for the callback request.
+  HTTP method for the callback request. Callback delivery is not supported by
+  `generateSpeech`.
   Allowed values: `'POST'`, `'PUT'`.
   Optional.
 

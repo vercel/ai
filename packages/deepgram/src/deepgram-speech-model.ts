@@ -1,4 +1,8 @@
-import type { SpeechModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import {
+  type SpeechModelV4,
+  type SharedV4Warning,
+  UnsupportedFunctionalityError,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
@@ -67,6 +71,12 @@ export class DeepgramSpeechModel implements SpeechModelV4 {
       providerOptions,
       schema: deepgramSpeechModelOptionsSchema,
     });
+
+    if (deepgramOptions?.callback != null) {
+      throw new UnsupportedFunctionalityError({
+        functionality: 'Deepgram speech callbacks',
+      });
+    }
 
     // Compose the upstream model ID from voice/language when a bare voice
     // family ID is used; full voice IDs (e.g. `aura-2-thalia-en`) pass through.
@@ -410,9 +420,6 @@ export class DeepgramSpeechModel implements SpeechModelV4 {
         }
       }
 
-      if (deepgramOptions.callback) {
-        queryParams.callback = deepgramOptions.callback;
-      }
       if (deepgramOptions.callbackMethod) {
         queryParams.callback_method = deepgramOptions.callbackMethod;
       }
