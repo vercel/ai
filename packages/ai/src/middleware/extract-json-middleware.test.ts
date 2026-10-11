@@ -26,6 +26,14 @@ const testUsage: LanguageModelV4Usage = {
   },
 };
 
+const citationSource = {
+  type: 'source',
+  sourceType: 'url',
+  id: 'source',
+  url: 'https://example.com',
+  title: 'Synthetic source',
+} as const;
+
 type ObjectPrototypeState = {
   buffer?: unknown;
   providerMetadata?: unknown;
@@ -69,6 +77,76 @@ describe('extractJsonMiddleware', () => {
       expect(result.text).toBe('{"value": "test"}');
     });
 
+    it('should remap citations when stripping markdown fences', async () => {
+      const text = '```json\n{"name":"Paris"}\n```';
+      const parisStartIndex = text.indexOf('Paris');
+      const mockModel = new MockLanguageModelV4({
+        async doGenerate() {
+          return {
+            content: [
+              {
+                type: 'text',
+                text,
+                citations: [
+                  {
+                    source: citationSource,
+                    startIndex: parisStartIndex,
+                    endIndex: parisStartIndex + 'Paris'.length,
+                  },
+                  {
+                    source: citationSource,
+                    startIndex: 0,
+                    endIndex: 3,
+                  },
+                  {
+                    source: citationSource,
+                    startIndex: 5,
+                    endIndex: text.indexOf('{') + 1,
+                  },
+                ],
+              },
+            ],
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: testUsage,
+            warnings: [],
+          };
+        },
+      });
+
+      const result = await generateText({
+        model: wrapLanguageModel({
+          model: mockModel,
+          middleware: extractJsonMiddleware(),
+        }),
+        prompt: 'Generate JSON',
+      });
+
+      expect(result.content.find(part => part.type === 'text')).toMatchObject({
+        text: '{"name":"Paris"}',
+        citations: [
+          {
+            source: citationSource,
+            startIndex: 9,
+            endIndex: 14,
+          },
+          {
+            source: citationSource,
+          },
+          {
+            source: citationSource,
+            startIndex: 0,
+            endIndex: 1,
+          },
+        ],
+      });
+      expect(
+        result.content.find(part => part.type === 'text')?.citations?.[1],
+      ).not.toHaveProperty('startIndex');
+      expect(
+        result.content.find(part => part.type === 'text')?.citations?.[1],
+      ).not.toHaveProperty('endIndex');
+    });
+
     it('should strip markdown fence without json tag', async () => {
       const mockModel = new MockLanguageModelV4({
         async doGenerate() {
@@ -105,6 +183,13 @@ describe('extractJsonMiddleware', () => {
               {
                 type: 'text',
                 text: '{"value": "test"}',
+                citations: [
+                  {
+                    source: citationSource,
+                    startIndex: 11,
+                    endIndex: 15,
+                  },
+                ],
               },
             ],
             finishReason: { unified: 'stop', raw: 'stop' },
@@ -123,9 +208,18 @@ describe('extractJsonMiddleware', () => {
       });
 
       expect(result.text).toBe('{"value": "test"}');
+      expect(
+        result.content.find(part => part.type === 'text')?.citations,
+      ).toEqual([
+        {
+          source: citationSource,
+          startIndex: 11,
+          endIndex: 15,
+        },
+      ]);
     });
 
-    it('should use custom transform function when provided', async () => {
+    it('should omit citation offsets when a custom transform changes text', async () => {
       const mockModel = new MockLanguageModelV4({
         async doGenerate() {
           return {
@@ -133,6 +227,14 @@ describe('extractJsonMiddleware', () => {
               {
                 type: 'text',
                 text: 'PREFIX{"value": "test"}SUFFIX',
+                citations: [
+                  {
+                    source: citationSource,
+                    startIndex: 17,
+                    endIndex: 21,
+                    citedText: 'test',
+                  },
+                ],
               },
             ],
             finishReason: { unified: 'stop', raw: 'stop' },
@@ -153,6 +255,14 @@ describe('extractJsonMiddleware', () => {
       });
 
       expect(result.text).toBe('{"value": "test"}');
+      expect(
+        result.content.find(part => part.type === 'text')?.citations,
+      ).toEqual([
+        {
+          source: citationSource,
+          citedText: 'test',
+        },
+      ]);
     });
 
     it('should preserve non-text content parts', async () => {
@@ -242,6 +352,9 @@ describe('extractJsonMiddleware', () => {
     });
 
     it('should strip markdown json fence from streamed text', async () => {
+      const text = '```json\n{"value": "test"}\n```';
+      const citedText = 'test';
+      const citationStartIndex = text.indexOf(citedText);
       const mockModel = new MockLanguageModelV4({
         async doStream() {
           return {
@@ -256,7 +369,17 @@ describe('extractJsonMiddleware', () => {
               { type: 'text-delta', id: '1', delta: '```json\n' },
               { type: 'text-delta', id: '1', delta: '{"value": "test"}' },
               { type: 'text-delta', id: '1', delta: '\n```' },
-              { type: 'text-end', id: '1' },
+              {
+                type: 'text-end',
+                id: '1',
+                citations: [
+                  {
+                    source: citationSource,
+                    startIndex: citationStartIndex,
+                    endIndex: citationStartIndex + citedText.length,
+                  },
+                ],
+              },
               {
                 type: 'finish',
                 finishReason: { unified: 'stop', raw: 'stop' },
@@ -276,6 +399,15 @@ describe('extractJsonMiddleware', () => {
       });
 
       expect(await result.text).toBe('{"value": "test"}');
+      expect(
+        (await result.content).find(part => part.type === 'text')?.citations,
+      ).toEqual([
+        {
+          source: citationSource,
+          startIndex: 11,
+          endIndex: 15,
+        },
+      ]);
     });
 
     it('should strip markdown fence without json tag from streamed text', async () => {
@@ -635,7 +767,7 @@ describe('extractJsonMiddleware', () => {
       expect(textEnds.length).toBe(1);
     });
 
-    it('should apply custom transform to streamed content', async () => {
+    it('should apply custom transform to streamed content and omit citation offsets', async () => {
       const mockModel = new MockLanguageModelV4({
         async doStream() {
           return {
@@ -650,7 +782,18 @@ describe('extractJsonMiddleware', () => {
               { type: 'text-delta', id: '1', delta: 'PREFIX' },
               { type: 'text-delta', id: '1', delta: '{"value": "test"}' },
               { type: 'text-delta', id: '1', delta: 'SUFFIX' },
-              { type: 'text-end', id: '1' },
+              {
+                type: 'text-end',
+                id: '1',
+                citations: [
+                  {
+                    source: citationSource,
+                    startIndex: 17,
+                    endIndex: 21,
+                    citedText: 'test',
+                  },
+                ],
+              },
               {
                 type: 'finish',
                 finishReason: { unified: 'stop', raw: 'stop' },
@@ -672,6 +815,14 @@ describe('extractJsonMiddleware', () => {
       });
 
       expect(await result.text).toBe('{"value": "test"}');
+      expect(
+        (await result.content).find(part => part.type === 'text')?.citations,
+      ).toEqual([
+        {
+          source: citationSource,
+          citedText: 'test',
+        },
+      ]);
     });
 
     it('should handle large content exceeding suffix buffer', async () => {
