@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22694,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/realtime-capture-resampling-phase.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/realtime-capture-resampling-phase.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Realtime capture resampling accumulated 279 samples of chunk-boundary drift; expected at most 1 sample"
+  }
+}
