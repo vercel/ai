@@ -96,7 +96,9 @@ export class HumeSpeechModel implements SpeechModelV4 {
       const speechModelOptions: Omit<
         HumeSpeechAPITypes,
         'utterances' | 'format'
-      > = {};
+      > = {
+        version: humeOptions.version,
+      };
 
       if (humeOptions.context) {
         if ('generationId' in humeOptions.context) {

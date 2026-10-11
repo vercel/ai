@@ -112,6 +112,54 @@ describe('doGenerate', () => {
     });
   });
 
+  it.each(['1', '2'] as const)(
+    'should pass Octave version %s',
+    async version => {
+      prepareAudioResponse();
+
+      const result = await model.doGenerate({
+        text: 'Hello from the AI SDK!',
+        providerOptions: {
+          hume: {
+            version,
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        version,
+      });
+      expect(result.warnings).toEqual([]);
+    },
+  );
+
+  it('should omit the Octave version when it is not specified', async () => {
+    prepareAudioResponse();
+
+    await model.doGenerate({
+      text: 'Hello from the AI SDK!',
+    });
+
+    expect(await server.calls[0].requestBodyJson).not.toHaveProperty('version');
+  });
+
+  it('should reject an invalid Octave version before fetching', async () => {
+    await expect(
+      model.doGenerate({
+        text: 'Hello from the AI SDK!',
+        providerOptions: {
+          hume: {
+            version: '3',
+          },
+        },
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_InvalidArgumentError',
+      argument: 'providerOptions',
+    });
+    expect(server.calls).toHaveLength(0);
+  });
+
   it('should return audio data with correct content type', async () => {
     const audio = new Uint8Array(100); // Mock audio data
     prepareAudioResponse({

@@ -3,6 +3,12 @@ import { z } from 'zod/v4';
 // https://dev.hume.ai/reference/text-to-speech-tts/synthesize-file
 export const humeSpeechModelOptionsSchema = z.object({
   /**
+   * Octave model version to use for speech synthesis.
+   * When omitted, Hume automatically selects the version.
+   */
+  version: z.enum(['1', '2']).optional(),
+
+  /**
    * Context for the speech synthesis request.
    * Can be either a generationId for retrieving a previous generation,
    * or a list of utterances to synthesize.

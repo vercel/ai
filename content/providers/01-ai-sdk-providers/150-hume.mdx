@@ -118,6 +118,7 @@ const result = await generateSpeech({
   text: 'Hello, world!',
   providerOptions: {
     hume: {
+      version: '2',
       context: {
         generationId: 'previous-generation-id',
       },
@@ -127,6 +128,11 @@ const result = await generateSpeech({
 ```
 
 The following provider options are available:
+
+- **version** _'1' | '2'_
+
+  The Octave model version to use for speech synthesis. When omitted, Hume
+  automatically selects the version.
 
 - **context** _object_
 

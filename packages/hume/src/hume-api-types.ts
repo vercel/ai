@@ -15,6 +15,7 @@ type HumeSpeechAPIUtterances = Array<{
 }>;
 
 export type HumeSpeechAPITypes = {
+  version?: '1' | '2';
   utterances: HumeSpeechAPIUtterances;
   context?:
     | {
