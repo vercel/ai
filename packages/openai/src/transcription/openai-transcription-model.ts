@@ -200,6 +200,18 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
       openAIOptions?.chunkingStrategy ??
       (isDiarizationModel ? 'auto' : undefined);
 
+    if (
+      isDiarizationModel &&
+      providerOptions?.openai?.timestampGranularities != null
+    ) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'providerOptions.openai.timestampGranularities',
+        details:
+          'OpenAI diarization transcription does not support timestampGranularities.',
+      });
+    }
+
     // Add provider-specific options
     if (openAIOptions) {
       const isGpt4oTranscribeModel = [
@@ -223,7 +235,9 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
                 : 'verbose_json'),
         }),
         temperature: openAIOptions.temperature,
-        timestamp_granularities: openAIOptions.timestampGranularities,
+        timestamp_granularities: isDiarizationModel
+          ? undefined
+          : openAIOptions.timestampGranularities,
       };
 
       for (const [key, value] of Object.entries(transcriptionModelOptions)) {
