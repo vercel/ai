@@ -129,6 +129,53 @@ describe('toUIMessageStream', () => {
     },
   );
 
+  describe.each([
+    {
+      name: 'async iterable',
+      createInput: () =>
+        (async function* (): AsyncGenerator<AIMessageChunk> {})(),
+    },
+    {
+      name: 'ReadableStream',
+      createInput: () =>
+        new ReadableStream<AIMessageChunk>({
+          start(controller) {
+            controller.close();
+          },
+        }),
+    },
+  ])('lifecycle chunk options for an empty $name', ({ createInput }) => {
+    it.each([
+      {
+        sendFinish: undefined,
+        expectedFinish: true,
+      },
+      {
+        sendFinish: true,
+        expectedFinish: true,
+      },
+      {
+        sendFinish: false,
+        expectedFinish: false,
+      },
+    ])(
+      'emits the requested finish chunk with sendFinish=$sendFinish',
+      async ({ sendFinish, expectedFinish }) => {
+        const onFinish = vi.fn();
+
+        const result = await convertReadableStreamToArray(
+          toUIMessageStream(createInput(), { sendFinish, onFinish }),
+        );
+
+        expect(result).toEqual([
+          { type: 'start' },
+          ...(expectedFinish ? [{ type: 'finish' as const }] : []),
+        ]);
+        expect(onFinish).toHaveBeenCalledWith(undefined);
+      },
+    );
+  });
+
   it('can suppress both lifecycle chunks for a minimal LangGraph values stream', async () => {
     const inputStream = convertArrayToReadableStream([['values', {}]]);
 
