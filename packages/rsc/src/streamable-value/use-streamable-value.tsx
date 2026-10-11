@@ -51,12 +51,13 @@ export function useStreamableValue<T = unknown, Error = unknown>(
     let cancelled = false;
 
     const iterator = readStreamableValue(streamableValue);
-    if (streamableValue.next) {
-      startTransition(() => {
-        if (cancelled) return;
+    startTransition(() => {
+      if (cancelled) return;
+      setError(streamableValue.error);
+      if (streamableValue.next) {
         setPending(true);
-      });
-    }
+      }
+    });
 
     (async () => {
       try {
