@@ -9,6 +9,7 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
+import { InvalidToolInputError } from '../error/invalid-tool-input-error';
 import { NoSuchToolError } from '../error/no-such-tool-error';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import type {
@@ -1376,6 +1377,106 @@ describe('streamLanguageModelCall', () => {
           },
         ]
       `);
+    });
+
+    it('should expose length-truncated tool input to repairToolCall', async () => {
+      const tools = {
+        testTool: tool({
+          inputSchema: z.object({ value: z.string() }),
+        }),
+      };
+      let repairError: InvalidToolInputError | undefined;
+
+      const result = await streamLanguageModelCallResult({
+        streamParts: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'testTool',
+            input: '{"value":"incomplete',
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'length', raw: 'length' },
+            usage: testUsage,
+          },
+        ],
+        tools,
+        repairToolCall: async ({ error }) => {
+          if (InvalidToolInputError.isInstance(error)) {
+            repairError = error;
+          }
+          return null;
+        },
+      });
+
+      expect(repairError?.truncated).toBe(true);
+      expect(result[0]).toMatchObject({
+        type: 'tool-call',
+        invalid: true,
+        error: expect.objectContaining({ truncated: true }),
+      });
+      expect(result.at(-1)).toMatchObject({
+        type: 'model-call-end',
+        finishReason: 'length',
+      });
+    });
+
+    it('should not mark unfinished input as truncated when the stream ends without a finish part', async () => {
+      const tools = {
+        testTool: tool({
+          inputSchema: z.object({ value: z.string() }),
+        }),
+      };
+
+      const result = await streamLanguageModelCallResult({
+        streamParts: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'testTool',
+            input: '{"value":"incomplete',
+          },
+        ],
+        tools,
+      });
+
+      expect(result[0]).toMatchObject({
+        type: 'tool-call',
+        invalid: true,
+        error: expect.objectContaining({ truncated: false }),
+      });
+    });
+
+    it('should not mark unfinished input as truncated for a non-length finish reason', async () => {
+      const tools = {
+        testTool: tool({
+          inputSchema: z.object({ value: z.string() }),
+        }),
+      };
+
+      const result = await streamLanguageModelCallResult({
+        streamParts: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'testTool',
+            input: '{"value":"incomplete',
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: testUsage,
+          },
+        ],
+        tools,
+      });
+
+      expect(result[0]).toMatchObject({
+        type: 'tool-call',
+        invalid: true,
+        error: expect.objectContaining({ truncated: false }),
+      });
     });
   });
 

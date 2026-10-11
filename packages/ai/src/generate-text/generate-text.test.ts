@@ -32,6 +32,7 @@ import {
   vi,
   vitest,
 } from 'vitest';
+import { InvalidToolInputError } from '../error/invalid-tool-input-error';
 import { NoObjectGeneratedError } from '../error/no-object-generated-error';
 import { ToolChoiceViolationError } from '../error/tool-choice-violation-error';
 import { mockSandboxSessionFileStubs } from '../test/mock-sandbox';
@@ -10907,6 +10908,41 @@ describe('generateText', () => {
   });
 
   describe('invalid tool calls', () => {
+    it('should mark unfinished tool input as truncated when the step finishes for length', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            warnings: [],
+            usage: testUsage,
+            finishReason: { unified: 'length', raw: 'length' },
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'cityAttractions',
+                input: '{"city":"San Francisco',
+              },
+            ],
+          }),
+        }),
+        tools: {
+          cityAttractions: tool({
+            inputSchema: z.object({ city: z.string() }),
+          }),
+        },
+        prompt: 'What are the tourist attractions in San Francisco?',
+      });
+
+      const toolCall = result.content.find(part => part.type === 'tool-call');
+
+      expect(toolCall?.invalid).toBe(true);
+      expect(
+        toolCall?.error != null &&
+          InvalidToolInputError.isInstance(toolCall.error) &&
+          toolCall.error.truncated,
+      ).toBe(true);
+    });
+
     describe('single invalid tool call', () => {
       let result: GenerateTextResult<any, any, any>;
       let executeFunction: ToolExecuteFunction<any, any, any>;

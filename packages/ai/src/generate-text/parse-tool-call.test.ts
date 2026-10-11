@@ -7,6 +7,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { InvalidToolInputError } from '../error/invalid-tool-input-error';
+import { ToolCallRepairError } from '../error/tool-call-repair-error';
 import { isNodeRuntime } from '../util/is-node-runtime';
 import { parseToolCall } from './parse-tool-call';
 
@@ -375,6 +376,141 @@ describe('parseToolCall', () => {
         "type": "tool-call",
       }
     `);
+  });
+
+  describe('truncated tool input', () => {
+    const tools = {
+      testTool: tool({
+        inputSchema: z.object({
+          value: z.string(),
+        }),
+      }),
+    } as const;
+
+    it('marks structurally unfinished input as truncated when generation ends for length', async () => {
+      const result = await parseToolCall({
+        toolCall: {
+          type: 'tool-call',
+          toolName: 'testTool',
+          toolCallId: '123',
+          input: '{"value":"incomplete',
+        },
+        tools,
+        repairToolCall: undefined,
+        messages: [],
+        instructions: undefined,
+        finishReason: 'length',
+      });
+
+      expect(InvalidToolInputError.isInstance(result.error)).toBe(true);
+      expect((result.error as InvalidToolInputError).truncated).toBe(true);
+    });
+
+    it.each([
+      {
+        name: 'the finish reason is not length',
+        input: '{"value":"incomplete',
+        finishReason: 'stop' as const,
+      },
+      {
+        name: 'the JSON structure is complete but malformed',
+        input: '{"value":]}',
+        finishReason: 'length' as const,
+      },
+      {
+        name: 'the parsed input does not match the schema',
+        input: '{"other":"value"}',
+        finishReason: 'length' as const,
+      },
+    ])('does not mark input as truncated when $name', async options => {
+      const result = await parseToolCall({
+        toolCall: {
+          type: 'tool-call',
+          toolName: 'testTool',
+          toolCallId: '123',
+          input: options.input,
+        },
+        tools,
+        repairToolCall: undefined,
+        messages: [],
+        instructions: undefined,
+        finishReason: options.finishReason,
+      });
+
+      expect(InvalidToolInputError.isInstance(result.error)).toBe(true);
+      expect((result.error as InvalidToolInputError).truncated).toBe(false);
+    });
+
+    it('exposes truncation metadata to repairToolCall', async () => {
+      const repairToolCall = vi.fn().mockResolvedValue(null);
+
+      await parseToolCall({
+        toolCall: {
+          type: 'tool-call',
+          toolName: 'testTool',
+          toolCallId: '123',
+          input: '{"value":"incomplete',
+        },
+        tools,
+        repairToolCall,
+        messages: [],
+        instructions: undefined,
+        finishReason: 'length',
+      });
+
+      expect(repairToolCall).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: expect.objectContaining({ truncated: true }),
+        }),
+      );
+    });
+
+    it('preserves truncation metadata when repair throws', async () => {
+      const result = await parseToolCall({
+        toolCall: {
+          type: 'tool-call',
+          toolName: 'testTool',
+          toolCallId: '123',
+          input: '{"value":"incomplete',
+        },
+        tools,
+        repairToolCall: async () => {
+          throw new Error('repair failed');
+        },
+        messages: [],
+        instructions: undefined,
+        finishReason: 'length',
+      });
+
+      expect(ToolCallRepairError.isInstance(result.error)).toBe(true);
+      const originalError = (result.error as ToolCallRepairError).originalError;
+      expect(InvalidToolInputError.isInstance(originalError)).toBe(true);
+      expect(
+        InvalidToolInputError.isInstance(originalError) &&
+          originalError.truncated,
+      ).toBe(true);
+    });
+
+    it('marks unfinished provider-executed dynamic tool input as truncated', async () => {
+      const result = await parseToolCall({
+        toolCall: {
+          type: 'tool-call',
+          toolName: 'providerTool',
+          toolCallId: '123',
+          input: '{"value":"incomplete',
+          providerExecuted: true,
+          dynamic: true,
+        },
+        tools: undefined,
+        repairToolCall: undefined,
+        messages: [],
+        instructions: undefined,
+        finishReason: 'length',
+      });
+
+      expect(InvalidToolInputError.isInstance(result.error)).toBe(true);
+      expect((result.error as InvalidToolInputError).truncated).toBe(true);
+    });
   });
 
   describe('tool call repair', () => {

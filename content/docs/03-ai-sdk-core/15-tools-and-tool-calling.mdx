@@ -1226,9 +1226,32 @@ with a custom function.
 
 You can use different strategies to repair the tool call:
 
+- Check `InvalidToolInputError.truncated` to handle unfinished JSON caused by
+  the model reaching its output limit without matching parser error messages.
 - Use a model with structured outputs to generate the inputs.
 - Send the messages, instructions, and tool schema to a stronger model to generate the inputs.
 - Provide more specific repair instructions based on which tool was called.
+
+For example, you can decline normal repair and retry a generation step with a
+higher output limit when the tool input was truncated:
+
+```ts
+import { InvalidToolInputError } from 'ai';
+
+const result = await generateText({
+  model,
+  tools,
+  prompt,
+  repairToolCall: async ({ error }) => {
+    if (InvalidToolInputError.isInstance(error) && error.truncated) {
+      return null;
+    }
+
+    // Apply your normal repair strategy for other tool input errors.
+    return null;
+  },
+});
+```
 
 ### Example: Use a model with structured outputs for repair
 

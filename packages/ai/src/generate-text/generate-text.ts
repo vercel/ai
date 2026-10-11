@@ -1085,6 +1085,7 @@ export async function generateText<
                       instructions: stepInstructions,
                       messages: stepMessages,
                       abortSignal: mergedAbortSignal,
+                      finishReason: currentModelResponse.finishReason.unified,
                     }),
                   ),
               );
