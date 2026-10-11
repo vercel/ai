@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "issueId": 23012,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-23012-deepgram-punctuated-segments.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-23012-deepgram-punctuated-segments.ts",
+    "packages/deepgram/src/__fixtures__/deepgram-transcription-punctuated.json",
+    "packages/deepgram/src/deepgram-transcription-model.test.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_23012: Deepgram timestamped segments lost punctuated_word formatting"
+  }
+}
