@@ -2,6 +2,7 @@ import {
   APICallError,
   InvalidArgumentError,
   InvalidResponseDataError,
+  UnsupportedFunctionalityError,
   type Experimental_DecisionModelV4CallOptions as DecisionModelV4CallOptions,
   type LanguageModelV4,
   type LanguageModelV4GenerateResult,
@@ -445,19 +446,61 @@ it('sends images as files and preserves state part order in the prompt', async (
   ]);
 });
 
-it('rejects unsupported media before generating a decision', async () => {
+it('forwards document files unchanged and validates the decision result', async () => {
   const { model, doGenerate } = setup();
+  const document = {
+    type: 'file' as const,
+    filename: 'report.pdf',
+    mediaType: 'application/pdf',
+    data: {
+      type: 'data' as const,
+      data: new TextEncoder().encode('%PDF-1.4 synthetic fixture'),
+    },
+    providerOptions: { test: { cacheControl: 'ephemeral' } },
+  };
+
+  const result = await model.doDecide({
+    state: [
+      { type: 'text', text: 'Classify this document.' },
+      document,
+      { type: 'json', value: { source: 'upload' } },
+    ],
+    questions,
+  });
+
+  expect(result.answers).toEqual({
+    category: { type: 'choice', choice: 'Needs review' },
+    severity: { type: 'score', score: 1.25 },
+  });
+  const message = doGenerate.mock.calls[0][0].prompt[1];
+  if (message.role !== 'user') throw new Error('Expected user message');
+  expect(message.content).toEqual([
+    { type: 'text', text: expect.stringContaining('"questions"') },
+    { type: 'text', text: 'Shared state:' },
+    { type: 'text', text: 'Classify this document.' },
+    document,
+    { type: 'text', text: '{"source":"upload"}' },
+  ]);
+});
+
+it('propagates unsupported document errors from the wrapped model', async () => {
+  const { model, doGenerate } = setup();
+  const error = new UnsupportedFunctionalityError({
+    functionality: 'PDF input',
+  });
+  doGenerate.mockRejectedValue(error);
+
   await expect(
     model.doDecide({
       questions,
       state: [
         {
           type: 'file',
-          mediaType: 'audio/wav',
-          data: { type: 'data', data: 'AAAA' },
+          mediaType: 'application/pdf',
+          data: { type: 'data', data: 'JVBERi0xLjQ=' },
         },
       ],
     }),
-  ).rejects.toMatchObject({ name: 'AI_UnsupportedFunctionalityError' });
-  expect(doGenerate).not.toHaveBeenCalled();
+  ).rejects.toBe(error);
+  expect(doGenerate).toHaveBeenCalledTimes(1);
 });

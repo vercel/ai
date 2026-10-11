@@ -48,6 +48,10 @@ Returns `Promise<Experimental_DecisionResult<QUESTIONS>>`:
 `specificationVersion: 'v4'`, `provider`, `modelId`, `supportedQuestionTypes`, and
 `doDecide(options)`. Decision models are isolated from stable `ProviderV4`.
 
+Language-model-backed decision models forward file state parts to the wrapped
+language model. Supported media types and data forms therefore depend on that
+model, and unsupported files produce the wrapped model's normal error.
+
 The public core types are `Experimental_DecisionModel`,
 `Experimental_DecisionState`, `Experimental_DecisionStatePart`,
 `Experimental_DecisionQuestion`,

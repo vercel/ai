@@ -47,6 +47,7 @@ All paths below are relative to this directory. Run any script with
 | Example                                                                  | Demonstrates                                                                                            |
 | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
 | [mock/basic.ts](./mock/basic.ts)                                         | Return a fixed boolean probability with a mock decision model.                                          |
+| [mock/pdf-document.ts](./mock/pdf-document.ts)                           | Forward a PDF file through a language-model-backed decision model without provider credentials.         |
 | [gateway/basic.ts](./gateway/basic.ts)                                   | Decide answers to Choice, Score, and Boolean questions with Jev through AI Gateway.                     |
 | [typesafe-ai/basic.ts](./typesafe-ai/basic.ts)                           | Call Jev directly through the TypeSafe AI provider and inspect answers, usage, and provider metadata.   |
 | [typesafe-ai/structured-rubrics.ts](./typesafe-ai/structured-rubrics.ts) | Use JSON objects and arrays in state, instructions, and criteria.                                       |

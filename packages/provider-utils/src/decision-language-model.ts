@@ -2,7 +2,6 @@ import {
   Experimental_DecisionUnsupportedQuestionTypeError as DecisionUnsupportedQuestionTypeError,
   InvalidArgumentError,
   InvalidResponseDataError,
-  UnsupportedFunctionalityError,
   type Experimental_DecisionModelV4 as DecisionModelV4,
   type Experimental_DecisionModelV4Answer as DecisionModelV4Answer,
   type Experimental_DecisionModelV4CallOptions as DecisionModelV4CallOptions,
@@ -11,7 +10,6 @@ import {
   type LanguageModelV4,
 } from '@ai-sdk/provider';
 import { WORKFLOW_DESERIALIZE, WORKFLOW_SERIALIZE } from '@workflow/serde';
-import { getTopLevelMediaType } from './detect-media-type';
 import { safeParseJSON } from './parse-json';
 
 /** Adapts structured language-model output to Choice, Score, and Boolean decisions. */
@@ -67,16 +65,6 @@ export class DecisionLanguageModel implements DecisionModelV4 {
     providerOptions,
   }: DecisionModelV4CallOptions): Promise<DecisionModelV4Result> {
     abortSignal?.throwIfAborted();
-    for (const part of state) {
-      if (
-        part.type === 'file' &&
-        getTopLevelMediaType(part.mediaType) !== 'image'
-      ) {
-        throw new UnsupportedFunctionalityError({
-          functionality: `Decision file media type: ${part.mediaType}`,
-        });
-      }
-    }
     const entries = Object.entries(questions).map(([id, question]) => {
       if (!this.supportedQuestionTypes.includes(question.type)) {
         throw new DecisionUnsupportedQuestionTypeError({
@@ -147,6 +135,8 @@ export class DecisionLanguageModel implements DecisionModelV4 {
           : { id, ...question },
       ]),
     );
+    // File support is model-dependent, so preserve every file part and let the
+    // wrapped language model validate its media type and data form.
     const result = await this.model.doGenerate({
       reasoning: 'none',
       prompt: [

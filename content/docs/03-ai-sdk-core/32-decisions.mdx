@@ -46,7 +46,7 @@ async function triage(model: Experimental_DecisionModel, message: string) {
 
 ## Multimodal state
 
-Combine text, structured data, and images in one state:
+Combine text, structured data, and files in one state:
 
 ```ts
 import { openai } from '@ai-sdk/openai';
@@ -77,14 +77,18 @@ from `ai`. A part has one of these shapes:
 
 - `TextPart`: `{ type: 'text', text: string }`.
 - `FilePart`: `{ type: 'file', mediaType: string, data: ... }`, using the SDK's
-  file conventions. For images, use bytes, a base64 string, or a URL. Tagged file
-  data is also supported. URLs are downloaded before the model call.
+  file conventions. Use bytes, a base64 string, or a URL. Tagged file data is
+  also supported. URLs are downloaded before the model call.
 - JSON: `{ type: 'json', value: JSONValue }`.
 
-Language-model decision adapters accept image files only. The underlying model
-must support the file data form. Gateway forwards image files to the routed
-decision model, which must support image input. TypeSafe AI accepts text and
-JSON state only.
+Language-model-backed decision models forward file parts, including documents
+such as PDFs, to the underlying language model without changing their media
+type, filename, data, or provider options. The selected language model must
+support the file media type and data form. If it does not, its normal
+unsupported-input error is returned. Native decision providers and routed
+models can have different file limitations. For example, Gateway forwards image
+files to the routed decision model, which must support image input, while
+TypeSafe AI accepts text and JSON state only.
 
 Arrays passed directly as `state` contain parts. To send a JSON array, put it
 inside an object (`state: { records }`) or a JSON part

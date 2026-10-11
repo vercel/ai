@@ -138,6 +138,13 @@ it('accepts public file conventions and keeps question JSON input separate', asy
       mediaType: 'image/png',
       data: { type: 'data', data: new Uint8Array(4) },
     },
+    {
+      type: 'file',
+      filename: 'report.pdf',
+      mediaType: 'application/pdf',
+      data: { type: 'data', data: new Uint8Array(4) },
+      providerOptions: { test: { documentMode: 'native' } },
+    },
   ] as const satisfies readonly DecisionStatePart[];
   expectTypeOf(state).toExtend<DecisionState>();
   await decide({
