@@ -1,5 +1,5 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
-import { APICallError } from '@ai-sdk/provider';
+import { APICallError, UnsupportedFunctionalityError } from '@ai-sdk/provider';
 import { createDeepgram } from './deepgram-provider';
 import { DeepgramSpeechModel } from './deepgram-speech-model';
 import { describe, it, expect, vi } from 'vitest';
@@ -248,7 +248,6 @@ describe('doGenerate', () => {
           encoding: 'mp3',
           bitRate: 48000,
           container: 'wav',
-          callback: 'https://example.com/callback',
           callbackMethod: 'POST',
           mipOptOut: true,
           tag: 'test-tag',
@@ -261,12 +260,34 @@ describe('doGenerate', () => {
     expect(url.searchParams.get('bit_rate')).toBe('48000');
     // mp3 doesn't support container, so it should be removed
     expect(url.searchParams.get('container')).toBeNull();
-    expect(url.searchParams.get('callback')).toBe(
-      'https://example.com/callback',
-    );
     expect(url.searchParams.get('callback_method')).toBe('POST');
     expect(url.searchParams.get('mip_opt_out')).toBe('true');
     expect(url.searchParams.get('tag')).toBe('test-tag');
+  });
+
+  it('should reject callback delivery before fetching', async () => {
+    const fetch = vi.fn();
+    const callbackModel = createDeepgram({
+      apiKey: 'test-api-key',
+      fetch,
+    }).speech('aura-2-helena-en');
+
+    await expect(
+      callbackModel.doGenerate({
+        text: 'Hello, welcome to Deepgram!',
+        providerOptions: {
+          deepgram: {
+            callback: 'https://example.com/callback',
+          },
+        },
+      }),
+    ).rejects.toSatisfy(
+      error =>
+        UnsupportedFunctionalityError.isInstance(error) &&
+        error.functionality === 'Deepgram speech callbacks',
+    );
+
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it('should handle array tag', async () => {
