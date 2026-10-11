@@ -2633,6 +2633,77 @@ describe('convertModelMessages', () => {
     ]);
   });
 
+  it.each([
+    ['ASCII text', 'hello world', 'aGVsbG8gd29ybGQ='],
+    ['Unicode text', 'こんにちは 🌍', '44GT44KT44Gr44Gh44GvIPCfjI0='],
+    ['empty text', '', ''],
+    [
+      'URL-looking text',
+      'https://example.com/note.txt',
+      'aHR0cHM6Ly9leGFtcGxlLmNvbS9ub3RlLnR4dA==',
+    ],
+    [
+      'data-URL-looking text',
+      'data:text/plain;base64,aGVsbG8=',
+      'ZGF0YTp0ZXh0L3BsYWluO2Jhc2U2NCxhR1ZzYkc4PQ==',
+    ],
+  ])(
+    'should encode tagged file content containing %s as UTF-8 base64',
+    (_, text, expectedData) => {
+      const result = convertModelMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: { type: 'text', text },
+              mediaType: 'text/plain',
+              filename: 'note.txt',
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toBeInstanceOf(HumanMessage);
+      expect(result[0].content).toEqual([
+        {
+          type: 'file',
+          data: expectedData,
+          mimeType: 'text/plain',
+          filename: 'note.txt',
+        },
+      ]);
+    },
+  );
+
+  it('should preserve tagged base64 file content', () => {
+    const result = convertModelMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: { type: 'data', data: 'YWxyZWFkeSBlbmNvZGVk' },
+            mediaType: 'text/plain',
+            filename: 'encoded.txt',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBeInstanceOf(HumanMessage);
+    expect(result[0].content).toEqual([
+      {
+        type: 'file',
+        data: 'YWxyZWFkeSBlbmNvZGVk',
+        mimeType: 'text/plain',
+        filename: 'encoded.txt',
+      },
+    ]);
+  });
+
   it('should convert user messages with mixed multimodal content', () => {
     const modelMessages: ModelMessage[] = [
       {
