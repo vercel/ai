@@ -137,12 +137,13 @@ export class StructuredObject<
    * Calls the API with the provided input as JSON body.
    */
   submit = async (input: INPUT) => {
+    const abortController = new AbortController();
+
     try {
       this.#object.set(undefined); // reset the data
       this.#loading.set(true);
       this.#error.set(undefined);
 
-      const abortController = new AbortController();
       this.#abortController = abortController;
 
       const actualFetch = this.options.fetch ?? fetch;
@@ -184,13 +185,16 @@ export class StructuredObject<
             if (!isDeepEqualData(latestObject, currentObject)) {
               latestObject = currentObject;
 
-              this.#object.set(currentObject);
+              if (this.#abortController === abortController) {
+                this.#object.set(currentObject);
+              }
             }
           },
 
           close: async () => {
-            this.#loading.set(false);
-            this.#abortController = undefined;
+            if (this.#abortController === abortController) {
+              this.#loading.set(false);
+            }
 
             if (this.options.onFinish != null) {
               const validationResult = await safeValidateTypes({
@@ -210,6 +214,10 @@ export class StructuredObject<
                 });
               }
             }
+
+            if (this.#abortController === abortController) {
+              this.#abortController = undefined;
+            }
           },
         }),
       );
@@ -224,8 +232,11 @@ export class StructuredObject<
         this.options.onError(coalescedError);
       }
 
-      this.#loading.set(false);
-      this.#error.set(coalescedError);
+      if (this.#abortController === abortController) {
+        this.#loading.set(false);
+        this.#abortController = undefined;
+        this.#error.set(coalescedError);
+      }
     }
   };
 }
