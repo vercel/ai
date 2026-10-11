@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22804,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22804-output-response-format-unhandled-rejection.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22804-output-response-format-unhandled-rejection.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "AI_SDK_ISSUE_22804: constructing Output.object or Output.array emitted an unhandledRejection before responseFormat was used"
+  }
+}
