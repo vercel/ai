@@ -4255,6 +4255,72 @@ describe('toUIMessageStream callbacks', () => {
     expect(callOrder).toEqual(['onFinal', 'onError']);
   });
 
+  it.each([
+    {
+      name: 'synchronous',
+      onFinish: () => {
+        throw new Error('Finish failed');
+      },
+    },
+    {
+      name: 'asynchronous',
+      onFinish: async () => {
+        throw new Error('Finish failed');
+      },
+    },
+  ])(
+    'should call onFinal once when onFinish fails $name',
+    async ({ onFinish }) => {
+      const onFinal = vi.fn();
+      const onError = vi.fn();
+      const inputStream = convertArrayToReadableStream([
+        new AIMessageChunk({ content: 'Hello', id: 'test-1' }),
+      ]);
+
+      await convertReadableStreamToArray(
+        toUIMessageStream(inputStream, { onFinal, onFinish, onError }),
+      );
+
+      expect(onFinal).toHaveBeenCalledTimes(1);
+      expect(onFinal).toHaveBeenCalledWith('Hello');
+      expect(onError).toHaveBeenCalledTimes(1);
+      expect(onError).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Finish failed' }),
+      );
+    },
+  );
+
+  it.each([
+    {
+      name: 'synchronous',
+      onFinal: () => {
+        throw new Error('Final failed');
+      },
+    },
+    {
+      name: 'asynchronous',
+      onFinal: async () => {
+        throw new Error('Final failed');
+      },
+    },
+  ])('should not retry onFinal when it fails $name', async ({ onFinal }) => {
+    const onFinalSpy = vi.fn(onFinal);
+    const onError = vi.fn();
+    const inputStream = convertArrayToReadableStream([
+      new AIMessageChunk({ content: 'Hello', id: 'test-1' }),
+    ]);
+
+    await convertReadableStreamToArray(
+      toUIMessageStream(inputStream, { onFinal: onFinalSpy, onError }),
+    );
+
+    expect(onFinalSpy).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'Final failed' }),
+    );
+  });
+
   it('should call onFinal before onAbort on abort', async () => {
     const callOrder: string[] = [];
 
