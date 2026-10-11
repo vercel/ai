@@ -1355,6 +1355,92 @@ describe('experimental_generateVideo', () => {
       ).toHaveLength(0);
     });
 
+    it('should derive stable idempotency keys for split start calls', async () => {
+      const seenStarts: Array<Array<{ key: string; n: number }>> = [[], []];
+      const failedKeys = new Set<string>();
+      let invocationIndex = 0;
+
+      const model = new MockVideoModelV4({
+        maxVideosPerCall: 2,
+        doGenerate: undefined,
+        doStart: async options => {
+          const key = options.headers?.['idempotency-key'];
+          expect(key).toBeDefined();
+          seenStarts[invocationIndex].push({ key: key!, n: options.n });
+
+          if (!failedKeys.has(key!)) {
+            failedKeys.add(key!);
+            throw new APICallError({
+              message: 'lost response',
+              url: 'https://example.com/start',
+              requestBodyValues: {},
+              statusCode: 500,
+              responseHeaders: { 'retry-after-ms': '0' },
+            });
+          }
+
+          return {
+            operation: { key: key!, n: options.n },
+            warnings: [],
+            response: {
+              timestamp: new Date(),
+              modelId: 'test-model-id',
+              headers: {},
+            },
+          };
+        },
+        doStatus: async ({ operation }) => {
+          const { n } = operation as { key: string; n: number };
+          return {
+            status: 'completed' as const,
+            videos: Array.from({ length: n }, () => ({
+              type: 'base64' as const,
+              data: mp4Base64,
+              mediaType: 'video/mp4',
+            })),
+            warnings: [],
+            response: {
+              timestamp: new Date(),
+              modelId: 'test-model-id',
+              headers: {},
+            },
+          };
+        },
+      });
+
+      const generate = () =>
+        experimental_generateVideo({
+          model,
+          prompt,
+          n: 5,
+          headers: { 'Idempotency-Key': 'caller-key-1' },
+          maxRetries: 1,
+          poll: { intervalMs: 0 },
+        });
+
+      const firstResult = await generate();
+      invocationIndex = 1;
+      const secondResult = await generate();
+
+      const firstKeys = [...new Set(seenStarts[0].map(({ key }) => key))];
+      const secondKeys = [...new Set(seenStarts[1].map(({ key }) => key))];
+
+      expect(firstResult.videos).toHaveLength(5);
+      expect(secondResult.videos).toHaveLength(5);
+      expect(firstKeys).toHaveLength(3);
+      expect(secondKeys.sort()).toEqual(firstKeys.sort());
+      expect(seenStarts[0].map(({ n }) => n).sort()).toEqual([
+        1, 1, 2, 2, 2, 2,
+      ]);
+      expect(seenStarts[1].map(({ n }) => n).sort()).toEqual([1, 2, 2]);
+
+      for (const key of firstKeys) {
+        expect(seenStarts[0].filter(start => start.key === key)).toHaveLength(
+          2,
+        );
+      }
+    });
+
     it('should fall back to doGenerate when poll is provided but model lacks doStart/doStatus', async () => {
       const result = await experimental_generateVideo({
         model: new MockVideoModelV4({
