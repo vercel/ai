@@ -20,6 +20,10 @@ export {
 } from '@ai-sdk/provider';
 
 export { InvalidArgumentError } from './invalid-argument-error';
+export {
+  ImageGenerationError,
+  type ImageGenerationFailedCall,
+} from './image-generation-error';
 export { InvalidStreamPartError } from './invalid-stream-part-error';
 export { InvalidToolApprovalError } from './invalid-tool-approval-error';
 export { InvalidToolApprovalSignatureError } from './invalid-tool-approval-signature-error';

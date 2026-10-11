@@ -257,6 +257,55 @@ for (const call of calls) {
 }
 ```
 
+### Recovering Successful Split Calls
+
+When `generateImage` splits a request into multiple provider calls and one or
+more calls fail, it waits for all split calls to settle and throws an
+[`AI_ImageGenerationError`](/docs/reference/ai-sdk-errors/ai-image-generation-error).
+The error preserves completed work so you can use the successful images without
+generating them again:
+
+```ts
+import { generateImage, ImageGenerationError } from 'ai';
+
+try {
+  await generateImage({
+    model,
+    prompt: 'Santa Claus driving a Cadillac',
+    n: 4,
+    maxImagesPerCall: 1,
+  });
+} catch (error) {
+  if (ImageGenerationError.isInstance(error)) {
+    for (const image of error.images) {
+      await saveImage(image);
+    }
+
+    for (const call of error.calls) {
+      console.log(call.response, call.providerMetadata, call.usage);
+    }
+
+    for (const failedCall of error.failedCalls) {
+      console.error(failedCall.callIndex, failedCall.error);
+    }
+  }
+}
+```
+
+`failedCalls` contains the zero-based split call index and error for every
+failed call. `calls` contains successful provider responses in their original
+request order, including responses from empty attempts that were retried.
+`images` is a flattened view of the images in `calls`.
+
+For a request that uses only one underlying provider call, `generateImage`
+continues to throw the provider or retry error directly.
+
+<Note>
+  `ImageGenerationError` retains generated image bytes, response headers,
+  provider metadata, warnings, and usage from successful calls. Avoid logging or
+  serializing the complete error when those values contain sensitive data.
+</Note>
+
 ### Error Handling
 
 When `generateImage` cannot generate a valid image, it throws a [`AI_NoImageGeneratedError`](/docs/reference/ai-sdk-errors/ai-no-image-generated-error).

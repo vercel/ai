@@ -66,6 +66,7 @@ versions are loaded.
 | A provider request fails because of a network error or non-success response            | [`APICallError`](/docs/reference/ai-sdk-errors/ai-api-call-error)                                                                                                                                                                                                                           |
 | Automatic retries are exhausted                                                        | [`RetryError`](/docs/reference/ai-sdk-errors/ai-retry-error)                                                                                                                                                                                                                                |
 | A provider reports an error after a response stream has started                        | [`StreamProviderError`](/docs/reference/ai-sdk-errors/ai-stream-provider-error)                                                                                                                                                                                                             |
+| One or more split image generation calls fail                                          | [`ImageGenerationError`](/docs/reference/ai-sdk-errors/ai-image-generation-error); recover successful images and call metadata from its `images` and `calls` properties                                                                                                                     |
 | A structured output cannot be parsed or validated                                      | [`NoObjectGeneratedError`](/docs/reference/ai-sdk-errors/ai-no-object-generated-error); inspect its `cause` for [`JSONParseError`](/docs/reference/ai-sdk-errors/ai-json-parse-error) or [`TypeValidationError`](/docs/reference/ai-sdk-errors/ai-type-validation-error)                    |
 | A generation call returns no usable output                                             | [`NoOutputGeneratedError`](/docs/reference/ai-sdk-errors/ai-no-output-generated-error) or the modality-specific `No*GeneratedError`                                                                                                                                                         |
 | A model calls a missing tool or supplies invalid tool input                            | [`NoSuchToolError`](/docs/reference/ai-sdk-errors/ai-no-such-tool-error) or [`InvalidToolInputError`](/docs/reference/ai-sdk-errors/ai-invalid-tool-input-error)                                                                                                                            |
@@ -113,6 +114,7 @@ versions are loaded.
 
 ### Generated Output
 
+- [`ImageGenerationError`](/docs/reference/ai-sdk-errors/ai-image-generation-error)
 - [`NoImageGeneratedError`](/docs/reference/ai-sdk-errors/ai-no-image-generated-error)
 - [`NoObjectGeneratedError`](/docs/reference/ai-sdk-errors/ai-no-object-generated-error)
 - [`NoOutputGeneratedError`](/docs/reference/ai-sdk-errors/ai-no-output-generated-error)

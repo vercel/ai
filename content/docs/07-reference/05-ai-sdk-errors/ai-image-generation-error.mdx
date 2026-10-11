@@ -1,0 +1,57 @@
+---
+title: AI_ImageGenerationError
+description: Learn how to recover successful split image generation calls from AI_ImageGenerationError
+---
+
+# AI_ImageGenerationError
+
+This error occurs when `generateImage` splits a request into multiple underlying
+provider calls and one or more calls fail. The function waits for every split
+call to settle before throwing the error, which makes successful sibling calls
+recoverable.
+
+Requests that use only one underlying provider call continue to throw the
+provider or retry error directly.
+
+## Properties
+
+- `message`: A message containing the number of failed split calls.
+- `images`: A flattened array of images returned by successful calls.
+- `calls`: Successful underlying call results in request order. Each call preserves its images, provider metadata, response metadata, warnings, and usage.
+- `failedCalls`: The failed calls in request order. Each entry contains:
+  - `callIndex`: The zero-based index of the split call.
+  - `error`: The error thrown by that call.
+- `cause`: The error from the first failed call.
+
+## Checking for this Error
+
+```typescript
+import { generateImage, ImageGenerationError } from 'ai';
+
+try {
+  await generateImage({
+    model,
+    prompt: 'A futuristic cityscape at sunset',
+    n: 4,
+    maxImagesPerCall: 1,
+  });
+} catch (error) {
+  if (ImageGenerationError.isInstance(error)) {
+    for (const image of error.images) {
+      await saveImage(image);
+    }
+
+    for (const call of error.calls) {
+      console.log(call.response, call.providerMetadata, call.usage);
+    }
+
+    for (const failedCall of error.failedCalls) {
+      console.error(failedCall.callIndex, failedCall.error);
+    }
+  }
+}
+```
+
+`AI_ImageGenerationError` retains generated image bytes and metadata. Avoid
+logging or serializing the complete error when these values contain sensitive
+data.

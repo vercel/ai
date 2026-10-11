@@ -14,6 +14,10 @@ import {
   type DataContent,
   type ProviderOptions,
 } from '@ai-sdk/provider-utils';
+import {
+  ImageGenerationError,
+  type ImageGenerationFailedCall,
+} from '../error/image-generation-error';
 import { NoImageGeneratedError } from '../error/no-image-generated-error';
 import {
   DefaultGeneratedFile,
@@ -198,8 +202,8 @@ export async function generateImage({
     return remainder === 0 ? maxImagesPerCallWithDefault : remainder;
   });
 
-  const resultGroups = await Promise.all(
-    callImageCounts.map(async callImageCount => {
+  const callOutcomes = await Promise.all(
+    callImageCounts.map(async (callImageCount, callIndex) => {
       const callResults: Array<ImageModelV4Result> = [];
 
       try {
@@ -228,7 +232,7 @@ export async function generateImage({
           return result;
         });
 
-        return callResults;
+        return { callResults };
       } catch (error) {
         const noImageResultError =
           error instanceof RetryableNoImageResultError
@@ -239,14 +243,23 @@ export async function generateImage({
               : undefined;
 
         if (noImageResultError != null) {
-          return callResults;
+          return { callResults };
         }
 
-        throw error;
+        return {
+          callResults,
+          failedCall: {
+            callIndex,
+            error,
+          } satisfies ImageGenerationFailedCall,
+        };
       }
     }),
   );
-  const results = resultGroups.flat();
+  const results = callOutcomes.flatMap(outcome => outcome.callResults);
+  const failedCalls = callOutcomes.flatMap(outcome =>
+    outcome.failedCall == null ? [] : [outcome.failedCall],
+  );
 
   // collect result images, warnings, and response metadata
   const images: Array<GeneratedFile> = [];
@@ -260,29 +273,10 @@ export async function generateImage({
     totalTokens: undefined,
   };
   for (const result of results) {
-    const callImages = result.images.map(
-      (image, index) =>
-        new DefaultGeneratedFile({
-          data: image,
-          mediaType:
-            detectMediaType({
-              data: image,
-              topLevelType: 'image',
-            }) ?? 'image/png',
-          providerMetadata: getImageProviderMetadata(
-            result.providerMetadata,
-            index,
-          ),
-        }),
-    );
+    const call = createGenerateImageCall(result);
+    const callImages = call.images;
     images.push(...callImages);
-    calls.push({
-      images: callImages,
-      providerMetadata: result.providerMetadata,
-      response: result.response,
-      warnings: result.warnings,
-      usage: result.usage,
-    });
+    calls.push(call);
     warnings.push(...result.warnings);
 
     if (result.usage != null) {
@@ -338,6 +332,20 @@ export async function generateImage({
     responses.push(result.response);
   }
 
+  if (failedCalls.length > 0) {
+    // Preserve the existing direct error behavior when no request splitting
+    // took place. Split calls use an aggregate error so completed sibling
+    // results remain recoverable.
+    if (callCount === 1) {
+      throw failedCalls[0].error;
+    }
+
+    throw new ImageGenerationError({
+      calls,
+      failedCalls,
+    });
+  }
+
   logWarnings({ warnings, provider: model.provider, model: model.modelId });
 
   if (!images.length) {
@@ -352,6 +360,32 @@ export async function generateImage({
     providerMetadata,
     usage: totalUsage,
   });
+}
+
+function createGenerateImageCall(
+  result: ImageModelV4Result,
+): GenerateImageCall {
+  return {
+    images: result.images.map(
+      (image, index) =>
+        new DefaultGeneratedFile({
+          data: image,
+          mediaType:
+            detectMediaType({
+              data: image,
+              topLevelType: 'image',
+            }) ?? 'image/png',
+          providerMetadata: getImageProviderMetadata(
+            result.providerMetadata,
+            index,
+          ),
+        }),
+    ),
+    providerMetadata: result.providerMetadata,
+    response: result.response,
+    warnings: result.warnings,
+    usage: result.usage,
+  };
 }
 
 class DefaultGenerateImageResult implements GenerateImageResult {

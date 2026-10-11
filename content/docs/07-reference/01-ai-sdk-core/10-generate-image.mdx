@@ -131,6 +131,17 @@ console.log(images);
   ]}
 />
 
+### Split Call Failures
+
+When a request uses multiple underlying provider calls and at least one call
+fails, `generateImage` waits for every split call to settle and rejects with
+[`ImageGenerationError`](/docs/reference/ai-sdk-errors/ai-image-generation-error).
+Use its `images` and `calls` properties to recover successful work, and inspect
+`failedCalls` for each zero-based split call index and its error.
+
+Requests that use a single underlying provider call continue to reject with the
+provider or retry error directly.
+
 ### Returns
 
 <PropertiesTable

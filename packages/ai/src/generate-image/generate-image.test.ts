@@ -18,6 +18,7 @@ import {
   vi,
   vitest,
 } from 'vitest';
+import { ImageGenerationError } from '../error/image-generation-error';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockImageModelV4 } from '../test/mock-image-model-v4';
 import type { Warning } from '../types/warning';
@@ -578,6 +579,211 @@ describe('generateImage', () => {
   });
 
   describe('error handling', () => {
+    it('should preserve successful split calls when another call fails', async () => {
+      const failure = new Error('second image request failed');
+      let callCount = 0;
+
+      const resultPromise = generateImage({
+        model: new MockImageModelV4({
+          maxImagesPerCall: 1,
+          doGenerate: async () => {
+            const call = callCount++;
+
+            if (call === 1) {
+              throw failure;
+            }
+
+            return createMockResponse({
+              images: [pngBase64],
+              timestamp: testDate,
+              modelId: 'successful-model',
+              headers: { 'x-request-id': 'successful-call' },
+              warnings: [{ type: 'other', message: 'successful warning' }],
+              providerMetaData: {
+                testProvider: {
+                  images: [{ revisedPrompt: 'successful prompt' }],
+                  requestId: 'successful-call',
+                },
+              },
+              usage: {
+                inputTokens: 10,
+                outputTokens: 1,
+                totalTokens: 11,
+              },
+            });
+          },
+        }),
+        prompt,
+        n: 2,
+        maxRetries: 0,
+      });
+
+      await expect(resultPromise).rejects.toMatchObject({
+        name: 'AI_ImageGenerationError',
+        message: 'Image generation failed for 1 call.',
+        cause: failure,
+        images: [
+          {
+            mediaType: 'image/png',
+            providerMetadata: {
+              testProvider: {
+                revisedPrompt: 'successful prompt',
+              },
+            },
+          },
+        ],
+        calls: [
+          {
+            images: [
+              {
+                mediaType: 'image/png',
+                providerMetadata: {
+                  testProvider: {
+                    revisedPrompt: 'successful prompt',
+                  },
+                },
+              },
+            ],
+            providerMetadata: {
+              testProvider: {
+                images: [{ revisedPrompt: 'successful prompt' }],
+                requestId: 'successful-call',
+              },
+            },
+            response: {
+              timestamp: testDate,
+              modelId: 'successful-model',
+              headers: { 'x-request-id': 'successful-call' },
+            },
+            warnings: [{ type: 'other', message: 'successful warning' }],
+            usage: {
+              inputTokens: 10,
+              outputTokens: 1,
+              totalTokens: 11,
+            },
+          },
+        ],
+        failedCalls: [{ callIndex: 1, error: failure }],
+      });
+    });
+
+    it('should wait for all split calls and preserve successful call order', async () => {
+      let resolveFirstCall!: (result: ImageModelV4Result) => void;
+      const firstCall = new Promise<ImageModelV4Result>(resolve => {
+        resolveFirstCall = resolve;
+      });
+      let callCount = 0;
+
+      const resultPromise = generateImage({
+        model: new MockImageModelV4({
+          maxImagesPerCall: 1,
+          doGenerate: async () => {
+            const call = callCount++;
+
+            if (call === 0) {
+              return firstCall;
+            }
+
+            if (call === 1) {
+              throw new Error('middle call failed');
+            }
+
+            return createMockResponse({
+              images: [gifBase64],
+              modelId: 'third-call',
+            });
+          },
+        }),
+        prompt,
+        n: 3,
+        maxRetries: 0,
+      });
+
+      let settled = false;
+      void resultPromise.catch(() => {
+        settled = true;
+      });
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(settled).toBe(false);
+
+      resolveFirstCall(
+        createMockResponse({
+          images: [pngBase64],
+          modelId: 'first-call',
+        }),
+      );
+
+      try {
+        await resultPromise;
+        expect.fail('Expected generateImage to reject');
+      } catch (error) {
+        expect(ImageGenerationError.isInstance(error)).toBe(true);
+        if (!ImageGenerationError.isInstance(error)) {
+          return;
+        }
+
+        expect(error.calls.map(call => call.response.modelId)).toStrictEqual([
+          'first-call',
+          'third-call',
+        ]);
+        expect(error.images.map(image => image.base64)).toStrictEqual([
+          pngBase64,
+          gifBase64,
+        ]);
+        expect(error.failedCalls).toMatchObject([
+          { callIndex: 1, error: { message: 'middle call failed' } },
+        ]);
+      }
+    });
+
+    it('should report every failed split call', async () => {
+      let callCount = 0;
+
+      try {
+        await generateImage({
+          model: new MockImageModelV4({
+            maxImagesPerCall: 1,
+            doGenerate: async () => {
+              throw new Error(`call ${callCount++} failed`);
+            },
+          }),
+          prompt,
+          n: 2,
+          maxRetries: 0,
+        });
+        expect.fail('Expected generateImage to reject');
+      } catch (error) {
+        expect(ImageGenerationError.isInstance(error)).toBe(true);
+        if (!ImageGenerationError.isInstance(error)) {
+          return;
+        }
+
+        expect(error.images).toStrictEqual([]);
+        expect(error.calls).toStrictEqual([]);
+        expect(error.failedCalls).toMatchObject([
+          { callIndex: 0, error: { message: 'call 0 failed' } },
+          { callIndex: 1, error: { message: 'call 1 failed' } },
+        ]);
+      }
+    });
+
+    it('should preserve direct errors for a single underlying call', async () => {
+      const failure = new Error('image request failed');
+
+      await expect(
+        generateImage({
+          model: new MockImageModelV4({
+            doGenerate: async () => {
+              throw failure;
+            },
+          }),
+          prompt,
+          maxRetries: 0,
+        }),
+      ).rejects.toBe(failure);
+    });
+
     it('should retry when no images are returned and a later attempt succeeds', async () => {
       vi.useFakeTimers();
 
