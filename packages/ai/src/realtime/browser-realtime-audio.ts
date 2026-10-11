@@ -1,7 +1,7 @@
 import {
   decodeRealtimeAudio,
   encodeRealtimeAudio,
-  resampleAudio,
+  StreamingAudioResampler,
 } from './audio-utils';
 
 export type BrowserRealtimeAudioOptions = {
@@ -25,6 +25,7 @@ export class BrowserRealtimeAudio {
   private captureProcessor: ScriptProcessorNode | null = null;
   private captureSource: MediaStreamAudioSourceNode | null = null;
   private captureStream: MediaStream | null = null;
+  private captureResampler: StreamingAudioResampler | null = null;
   private ownsCaptureStream = true;
   private captureCleanup: Array<() => void> = [];
   private captureGeneration = 0;
@@ -98,22 +99,17 @@ export class BrowserRealtimeAudio {
 
     const processor = ctx.createScriptProcessor(1024, 1, 1);
     this.captureProcessor = processor;
+    const resampler = new StreamingAudioResampler(
+      ctx.sampleRate,
+      this.captureSampleRate,
+    );
+    this.captureResampler = resampler;
 
     processor.onaudioprocess = event => {
       if (this.captureContext !== ctx) return;
       const inputData = event.inputBuffer.getChannelData(0);
-      const samples = resampleAudio(
-        new Float32Array(inputData),
-        ctx.sampleRate,
-        this.captureSampleRate,
-      );
-      try {
-        this.onAudio(encodeRealtimeAudio(samples));
-      } catch (error) {
-        this.onError?.(
-          error instanceof Error ? error : new Error(String(error)),
-        );
-      }
+      const samples = resampler.process(new Float32Array(inputData));
+      this.emitCapturedAudio(samples);
     };
 
     source.connect(processor);
@@ -142,6 +138,11 @@ export class BrowserRealtimeAudio {
     this.captureGeneration++;
     if (this.captureProcessor != null)
       this.captureProcessor.onaudioprocess = null;
+    const remainingSamples = this.captureResampler?.finish();
+    this.captureResampler = null;
+    if (remainingSamples != null && remainingSamples.length > 0) {
+      this.emitCapturedAudio(remainingSamples);
+    }
     for (const cleanup of this.captureCleanup) cleanup();
     this.captureCleanup = [];
     this.captureProcessor?.disconnect();
@@ -155,6 +156,14 @@ export class BrowserRealtimeAudio {
     this.captureContext = null;
     this.captureStream = null;
     this.onCapturingChange(false);
+  }
+
+  private emitCapturedAudio(samples: Float32Array): void {
+    try {
+      this.onAudio(encodeRealtimeAudio(samples));
+    } catch (error) {
+      this.onError?.(error instanceof Error ? error : new Error(String(error)));
+    }
   }
 
   playAudio(base64Audio: string): void {

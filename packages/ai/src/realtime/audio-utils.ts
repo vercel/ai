@@ -80,3 +80,81 @@ export function resampleAudio(
 
   return output;
 }
+
+/**
+ * Resamples consecutive chunks while retaining the interpolation position
+ * between them.
+ */
+export class StreamingAudioResampler {
+  private nextInputPosition = 0;
+  private previousSample: number | undefined;
+  private inputLength = 0;
+  private outputLength = 0;
+
+  constructor(
+    private readonly inputRate: number,
+    private readonly outputRate: number,
+  ) {}
+
+  process(input: Float32Array): Float32Array {
+    if (this.inputRate === this.outputRate) {
+      return input;
+    }
+    if (input.length === 0) {
+      return input;
+    }
+
+    const maximumInputPosition = (input.length - 1) * this.outputRate;
+    const availableOutputLength =
+      this.nextInputPosition > maximumInputPosition
+        ? 0
+        : Math.floor(
+            (maximumInputPosition - this.nextInputPosition) / this.inputRate,
+          ) + 1;
+    const targetOutputLength = Math.round(
+      ((this.inputLength + input.length) * this.outputRate) / this.inputRate,
+    );
+    const outputLength = Math.min(
+      availableOutputLength,
+      targetOutputLength - this.outputLength,
+    );
+    const output = new Float32Array(outputLength);
+
+    for (let index = 0; index < outputLength; index++) {
+      const inputIndex = Math.floor(this.nextInputPosition / this.outputRate);
+      const fraction =
+        (this.nextInputPosition - inputIndex * this.outputRate) /
+        this.outputRate;
+      const lowerSample =
+        inputIndex === -1 ? this.previousSample! : input[inputIndex];
+      const upperSample = fraction === 0 ? lowerSample : input[inputIndex + 1];
+
+      output[index] = lowerSample * (1 - fraction) + upperSample * fraction;
+      this.nextInputPosition += this.inputRate;
+    }
+
+    this.nextInputPosition -= input.length * this.outputRate;
+    this.previousSample = input[input.length - 1];
+    this.inputLength += input.length;
+    this.outputLength += output.length;
+
+    return output;
+  }
+
+  finish(): Float32Array {
+    if (
+      this.inputRate === this.outputRate ||
+      this.previousSample === undefined
+    ) {
+      return new Float32Array();
+    }
+
+    const remainingOutputLength =
+      Math.round((this.inputLength * this.outputRate) / this.inputRate) -
+      this.outputLength;
+    const output = new Float32Array(remainingOutputLength);
+    output.fill(this.previousSample);
+    this.outputLength += output.length;
+    return output;
+  }
+}
