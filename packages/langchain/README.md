@@ -177,6 +177,14 @@ function Chat() {
       new LangSmithDeploymentTransport({
         url: 'https://your-deployment.us.langgraph.app',
         apiKey: process.env.LANGSMITH_API_KEY,
+        prepareRemoteGraphConfig: ({ chatId, body }) => ({
+          configurable: {
+            thread_id:
+              (body as { threadId?: string } | undefined)?.threadId ?? chatId,
+          },
+          metadata: { chatId },
+          tags: ['ai-sdk-chat'],
+        }),
       }),
     [],
   );
@@ -297,6 +305,16 @@ A `ChatTransport` implementation for LangSmith/LangGraph deployments.
   - `url`: `string` - LangSmith deployment URL or local server URL
   - `apiKey?`: `string` - API key for authentication (optional for local development)
   - `graphId?`: `string` - The ID of the graph to connect to (defaults to `'agent'`)
+  - `prepareRemoteGraphConfig?`: A synchronous or asynchronous callback that
+    returns LangChain `RunnableConfig` for each `sendMessages` call. Use it to
+    explicitly map request context to values such as `configurable`,
+    `metadata`, and `tags`.
+
+`prepareRemoteGraphConfig` receives the complete `sendMessages` context,
+including `chatId`, `messages`, `trigger`, `messageId`, `body`, `metadata`,
+`headers`, and `abortSignal`. Request body and metadata fields are not forwarded
+automatically. The transport always uses the `values` and `messages` stream
+modes required by the adapter.
 
 **Implements:** `ChatTransport`
 

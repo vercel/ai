@@ -8,6 +8,7 @@ export {
 export {
   LangSmithDeploymentTransport,
   type LangSmithDeploymentTransportOptions,
+  type PrepareRemoteGraphConfig,
 } from './transport';
 
 export { type StreamCallbacks } from './stream-callbacks';

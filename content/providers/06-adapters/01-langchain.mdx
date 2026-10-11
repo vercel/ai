@@ -387,6 +387,14 @@ export default function LangSmithChat() {
         // Or for LangSmith deployment:
         // url: 'https://your-deployment.us.langgraph.app',
         // apiKey: process.env.NEXT_PUBLIC_LANGSMITH_API_KEY,
+        prepareRemoteGraphConfig: ({ chatId, body }) => ({
+          configurable: {
+            thread_id:
+              (body as { threadId?: string } | undefined)?.threadId ?? chatId,
+          },
+          metadata: { chatId },
+          tags: ['ai-sdk-chat'],
+        }),
       }),
     [],
   );
@@ -427,6 +435,45 @@ The `LangSmithDeploymentTransport` constructor accepts the following options:
 - `url`: The LangSmith deployment URL or local server URL (required)
 - `apiKey`: API key for authentication (optional for local development)
 - `graphId`: The ID of the graph to connect to (defaults to `'agent'`)
+- `prepareRemoteGraphConfig`: A synchronous or asynchronous callback that
+  returns LangChain runnable configuration for each message request. Use it to
+  map request-specific values to `configurable`, `metadata`, or `tags`.
+
+The callback receives the complete `sendMessages` context, including `chatId`,
+`messages`, `trigger`, `messageId`, `body`, `metadata`, `headers`, and
+`abortSignal`. The transport does not automatically treat the AI SDK chat ID as
+a LangGraph thread ID or forward arbitrary body and metadata fields. This keeps
+the mapping explicit:
+
+```ts
+const transport = new LangSmithDeploymentTransport({
+  url: 'https://your-deployment.us.langgraph.app',
+  prepareRemoteGraphConfig: async ({ chatId, body }) => {
+    const request = body as { threadId?: string; caseId?: string } | undefined;
+
+    return {
+      configurable: {
+        thread_id: request?.threadId ?? chatId,
+      },
+      metadata: {
+        chatId,
+        caseId: request?.caseId,
+      },
+      tags: ['ai-sdk-chat'],
+    };
+  },
+});
+```
+
+The transport always overrides `streamMode` with `['values', 'messages']`
+because both modes are required to produce an AI SDK UI message stream.
+
+<Note>
+  When the transport runs in the browser, callback inputs and returned
+  configuration are client-controlled. Do not include secrets, rely on thread
+  IDs for authorization, or attach sensitive tracing metadata without
+  server-side access controls.
+</Note>
 
 ## API Reference
 
@@ -551,6 +598,9 @@ const transport = useMemo(
     new LangSmithDeploymentTransport({
       url: 'https://your-deployment.us.langgraph.app',
       apiKey: 'your-api-key',
+      prepareRemoteGraphConfig: ({ chatId }) => ({
+        configurable: { thread_id: chatId },
+      }),
     }),
   [],
 );
@@ -566,6 +616,9 @@ const { messages, sendMessage } = useChat({
   - `url`: `string` - LangSmith deployment URL or local server URL (required)
   - `apiKey?`: `string` - API key for authentication (optional)
   - `graphId?`: `string` - The ID of the graph to connect to (defaults to `'agent'`)
+  - `prepareRemoteGraphConfig?`: `(options) => RunnableConfig | PromiseLike<RunnableConfig>` -
+    Prepares request-specific LangGraph configuration. The transport preserves
+    its required `values` and `messages` stream modes.
 
 **Implements:** `ChatTransport`
 

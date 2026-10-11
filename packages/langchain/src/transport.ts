@@ -1,4 +1,5 @@
 import type { AIMessageChunk } from '@langchain/core/messages';
+import type { RunnableConfig } from '@langchain/core/runnables';
 import type {
   UIMessage,
   UIMessageChunk,
@@ -12,18 +13,33 @@ import {
 import { toBaseMessages, toUIMessageStream } from './adapter';
 
 /**
+ * Prepares the LangChain runnable configuration for a single
+ * `sendMessages` call.
+ */
+export type PrepareRemoteGraphConfig<UI_MESSAGE extends UIMessage> = (
+  options: Parameters<ChatTransport<UI_MESSAGE>['sendMessages']>[0],
+) => RunnableConfig | PromiseLike<RunnableConfig>;
+
+/**
  * Options for configuring a LangSmith deployment transport.
  * Extends RemoteGraphParams but makes graphId optional (defaults to 'agent').
  */
-export type LangSmithDeploymentTransportOptions = Omit<
-  RemoteGraphParams,
-  'graphId'
-> & {
+export type LangSmithDeploymentTransportOptions<
+  UI_MESSAGE extends UIMessage = UIMessage,
+> = Omit<RemoteGraphParams, 'graphId'> & {
   /**
    * The ID of the graph to connect to.
    * @default 'agent'
    */
   graphId?: string;
+
+  /**
+   * Prepares LangChain runnable configuration for each `sendMessages` call.
+   *
+   * Use this to map request-specific chat context to LangGraph configuration,
+   * such as a thread ID, tracing metadata, or tags.
+   */
+  prepareRemoteGraphConfig?: PrepareRemoteGraphConfig<UI_MESSAGE>;
 };
 
 /**
@@ -49,11 +65,16 @@ export class LangSmithDeploymentTransport<
   UI_MESSAGE extends UIMessage,
 > implements ChatTransport<UI_MESSAGE> {
   protected graph: RemoteGraph;
+  private readonly prepareRemoteGraphConfig?: PrepareRemoteGraphConfig<UI_MESSAGE>;
 
-  constructor(options: LangSmithDeploymentTransportOptions) {
+  constructor(options: LangSmithDeploymentTransportOptions<UI_MESSAGE>) {
+    const { graphId, prepareRemoteGraphConfig, ...remoteGraphOptions } =
+      options;
+
+    this.prepareRemoteGraphConfig = prepareRemoteGraphConfig;
     this.graph = new RemoteGraph({
-      ...options,
-      graphId: options.graphId ?? 'agent',
+      ...remoteGraphOptions,
+      graphId: graphId ?? 'agent',
     });
   }
 
@@ -67,10 +88,15 @@ export class LangSmithDeploymentTransport<
     } & ChatRequestOptions,
   ): Promise<ReadableStream<UIMessageChunk>> {
     const baseMessages = await toBaseMessages(options.messages);
+    const config = await this.prepareRemoteGraphConfig?.(options);
 
     const stream = await this.graph.stream(
       { messages: baseMessages },
-      { streamMode: ['values', 'messages'] },
+      {
+        ...config,
+        // These modes are required by toUIMessageStream.
+        streamMode: ['values', 'messages'],
+      },
     );
 
     return toUIMessageStream(
