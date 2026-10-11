@@ -45,8 +45,10 @@ export function asAsyncIterableStream<T>(
    */
   (stream as unknown as AsyncIterable<T>)[Symbol.asyncIterator] = function (
     this: ReadableStream<T>,
+    options?: ReadableStreamIteratorOptions,
   ): AsyncIterator<T> {
     const reader = this.getReader();
+    const preventCancel = options?.preventCancel ?? false;
 
     let finished = false;
 
@@ -102,7 +104,7 @@ export function asAsyncIterableStream<T>(
        * @returns A promise resolving to a completed IteratorResult.
        */
       async return(): Promise<IteratorResult<T>> {
-        await cleanup(true);
+        await cleanup(!preventCancel);
         return { done: true, value: undefined };
       },
 
