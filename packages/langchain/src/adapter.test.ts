@@ -4324,6 +4324,90 @@ describe('toUIMessageStream callbacks', () => {
     expect(results).toEqual(['start', 'final', 'finish']);
   });
 
+  it('should await async text callbacks before final callbacks', async () => {
+    const callOrder: string[] = [];
+    const waitForTimeout = () =>
+      new Promise<void>(resolve => setTimeout(resolve, 0));
+
+    const inputStream = convertArrayToReadableStream([
+      new AIMessageChunk({ content: 'Hello', id: 'test-1' }),
+    ]);
+    await convertReadableStreamToArray(
+      toUIMessageStream(inputStream, {
+        onToken: async token => {
+          callOrder.push(`onToken:start:${token}`);
+          await waitForTimeout();
+          callOrder.push(`onToken:end:${token}`);
+        },
+        onText: async text => {
+          callOrder.push(`onText:start:${text}`);
+          await waitForTimeout();
+          callOrder.push(`onText:end:${text}`);
+        },
+        onFinal: completion => {
+          callOrder.push(`onFinal:${completion}`);
+        },
+        onFinish: () => {
+          callOrder.push('onFinish');
+        },
+      }),
+    );
+
+    expect(callOrder).toEqual([
+      'onToken:start:Hello',
+      'onToken:end:Hello',
+      'onText:start:Hello',
+      'onText:end:Hello',
+      'onFinal:Hello',
+      'onFinish',
+    ]);
+  });
+
+  it.each(['onToken', 'onText'] as const)(
+    'should route rejected async %s callbacks through stream error handling',
+    async callbackName => {
+      const failure = new Error(`${callbackName} failed`);
+      const callOrder: string[] = [];
+      const onError = vi.fn(() => {
+        callOrder.push('onError');
+      });
+      const onFinish = vi.fn();
+
+      const inputStream = convertArrayToReadableStream([
+        new AIMessageChunk({ content: 'Hello', id: 'test-1' }),
+      ]);
+      const chunks = await convertReadableStreamToArray(
+        toUIMessageStream(inputStream, {
+          [callbackName]: async () => {
+            callOrder.push(`${callbackName}:start`);
+            await new Promise<void>(resolve => setTimeout(resolve, 0));
+            callOrder.push(`${callbackName}:reject`);
+            throw failure;
+          },
+          onFinal: () => {
+            callOrder.push('onFinal');
+          },
+          onFinish,
+          onError,
+        }),
+      );
+
+      expect(callOrder).toEqual([
+        `${callbackName}:start`,
+        `${callbackName}:reject`,
+        'onFinal',
+        'onError',
+      ]);
+      expect(onError).toHaveBeenCalledWith(failure);
+      expect(onFinish).not.toHaveBeenCalled();
+      expect(chunks).toContainEqual({
+        type: 'error',
+        errorText: failure.message,
+      });
+      expect(chunks).not.toContainEqual({ type: 'finish' });
+    },
+  );
+
   it('should pass accumulated text to onFinal even on error', async () => {
     const onFinal = vi.fn();
 
