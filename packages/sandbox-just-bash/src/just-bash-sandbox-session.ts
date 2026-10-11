@@ -233,11 +233,17 @@ function createSandboxProcess(
     start(controller) {
       controllers.stdout = controller;
     },
+    cancel() {
+      controllers.stdout = undefined;
+    },
   });
 
   const stderr = new ReadableStream<Uint8Array>({
     start(controller) {
       controllers.stderr = controller;
+    },
+    cancel() {
+      controllers.stderr = undefined;
     },
   });
 
