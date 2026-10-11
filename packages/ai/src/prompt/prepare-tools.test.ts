@@ -1,11 +1,12 @@
 import { z } from 'zod/v4';
 import {
+  jsonSchema,
   tool,
   type Experimental_SandboxSession as SandboxSession,
   type Tool,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { mockSandboxSessionFileStubs } from '../test/mock-sandbox';
 import { prepareTools } from './prepare-tools';
 
@@ -342,5 +343,59 @@ describe('prepareTools', () => {
         description: 'Env: test-sandbox',
       }),
     ]);
+  });
+
+  it('normalizes tool context before resolving a function description', async () => {
+    const validate = vi.fn(async (value: unknown) => ({
+      success: true as const,
+      value: {
+        locale: (value as { locale: string }).locale.toUpperCase(),
+      },
+    }));
+
+    const result = await prepareTools({
+      tools: {
+        lookup: tool({
+          inputSchema: z.object({}),
+          contextSchema: jsonSchema<{ locale: string }>(
+            {
+              type: 'object',
+              properties: { locale: { type: 'string' } },
+              required: ['locale'],
+            },
+            { validate },
+          ),
+          description: ({ context }) => `Look up entries for ${context.locale}`,
+        }),
+      },
+      toolsContext: { lookup: { locale: 'en-us' } },
+    });
+
+    expect(validate).toHaveBeenCalledOnce();
+    expect(result?.[0]).toEqual(
+      expect.objectContaining({
+        description: 'Look up entries for EN-US',
+      }),
+    );
+  });
+
+  it('does not validate context for a fixed description', async () => {
+    const validate = vi.fn();
+
+    await prepareTools({
+      tools: {
+        lookup: tool({
+          inputSchema: z.object({}),
+          contextSchema: jsonSchema<{ locale: string }>(
+            { type: 'object' },
+            { validate },
+          ),
+          description: 'Look up entries',
+        }),
+      },
+      toolsContext: { lookup: { locale: 'en-us' } },
+    });
+
+    expect(validate).not.toHaveBeenCalled();
   });
 });

@@ -8016,6 +8016,79 @@ describe('generateText', () => {
   });
 
   describe('tool callbacks', () => {
+    it('shares normalized context between dynamic descriptions, approval, and execution', async () => {
+      const validate = vi.fn(async (value: unknown) => ({
+        success: true as const,
+        value: {
+          locale: (value as { locale: string }).locale.toUpperCase(),
+        },
+      }));
+      let describedContext: { locale: string } | undefined;
+      let approvalContext: { locale: string } | undefined;
+      let executedContext: { locale: string } | undefined;
+      let sentDescription: string | undefined;
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async ({ tools }) => {
+            const lookupTool = tools?.find(
+              tool => tool.type === 'function' && tool.name === 'lookup',
+            );
+            sentDescription =
+              lookupTool?.type === 'function'
+                ? lookupTool.description
+                : undefined;
+
+            return {
+              ...dummyResponseValues,
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallType: 'function',
+                  toolCallId: 'call-1',
+                  toolName: 'lookup',
+                  input: '{}',
+                },
+              ],
+            };
+          },
+        }),
+        tools: {
+          lookup: tool({
+            inputSchema: z.object({}),
+            contextSchema: jsonSchema<{ locale: string }>(
+              {
+                type: 'object',
+                properties: { locale: { type: 'string' } },
+                required: ['locale'],
+              },
+              { validate },
+            ),
+            description: ({ context }) => {
+              describedContext = context;
+              return `Look up entries for ${context.locale}`;
+            },
+            needsApproval: (_input, { context }) => {
+              approvalContext = context;
+              return false;
+            },
+            execute: async (_input, { context }) => {
+              executedContext = context;
+              return 'ok';
+            },
+          }),
+        },
+        toolsContext: { lookup: { locale: 'en-us' } },
+        prompt: 'test-input',
+      });
+
+      expect(validate).toHaveBeenCalledOnce();
+      expect(approvalContext).toBe(describedContext);
+      expect(describedContext).toBe(executedContext);
+      expect(describedContext).toEqual({ locale: 'EN-US' });
+      expect(sentDescription).toBe('Look up entries for EN-US');
+    });
+
     it('should invoke callbacks in the correct order with the step tool context', async () => {
       const recordedCalls: unknown[] = [];
 
