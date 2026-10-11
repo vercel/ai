@@ -662,6 +662,13 @@ export class WebSocketChatTransport<
     promise: Promise<WebSocketLike>,
     abortSignal: AbortSignal | undefined,
   ): Promise<WebSocketLike> {
+    return this.waitForAbort(promise, abortSignal);
+  }
+
+  private waitForAbort<T>(
+    promise: Promise<T>,
+    abortSignal: AbortSignal | undefined,
+  ): Promise<T> {
     if (abortSignal == null) {
       return promise;
     }
@@ -669,8 +676,9 @@ export class WebSocketChatTransport<
       return Promise.reject(createAbortError(abortSignal));
     }
 
-    return new Promise<WebSocketLike>((resolve, reject) => {
+    return new Promise<T>((resolve, reject) => {
       const onAbort = () => {
+        abortSignal.removeEventListener('abort', onAbort);
         reject(createAbortError(abortSignal));
       };
       abortSignal.addEventListener('abort', onAbort, { once: true });
@@ -982,6 +990,6 @@ export class WebSocketChatTransport<
       socket.send(JSON.stringify(frame));
     });
     this.sendQueue = send.catch(() => {});
-    return send;
+    return this.waitForAbort(send, abortSignal);
   }
 }
