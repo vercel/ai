@@ -21,6 +21,44 @@ function appendPathToUrl(url: string, path: string): string {
   return `${urlPath.endsWith('/') && path.startsWith('/') ? urlPath.slice(0, -1) : urlPath}${path}${suffix}`;
 }
 
+async function waitForPromiseWithAbortSignal<T>({
+  promise,
+  abortSignal,
+}: {
+  promise: PromiseLike<T>;
+  abortSignal: AbortSignal | undefined;
+}): Promise<T> {
+  if (abortSignal == null) {
+    return await promise;
+  }
+
+  return await new Promise<T>((resolve, reject) => {
+    const cleanup = () => {
+      abortSignal.removeEventListener('abort', onAbort);
+    };
+    const onAbort = () => {
+      cleanup();
+      reject(abortSignal.reason);
+    };
+
+    Promise.resolve(promise)
+      .then(value => {
+        cleanup();
+        resolve(value);
+      })
+      .catch(error => {
+        cleanup();
+        reject(error);
+      });
+
+    abortSignal.addEventListener('abort', onAbort, { once: true });
+
+    if (abortSignal.aborted) {
+      onAbort();
+    }
+  });
+}
+
 export type PrepareSendMessagesRequest<UI_MESSAGE extends UIMessage> = (
   options: {
     id: string;
@@ -159,25 +197,41 @@ export abstract class HttpChatTransport<
     abortSignal,
     ...options
   }: Parameters<ChatTransport<UI_MESSAGE>['sendMessages']>[0]) {
-    const resolvedBody = await resolve(this.body);
-    const resolvedHeaders = await resolve(this.headers);
-    const resolvedCredentials = await resolve(this.credentials);
+    abortSignal?.throwIfAborted();
+
+    const resolvedBody = await waitForPromiseWithAbortSignal({
+      promise: resolve(this.body),
+      abortSignal,
+    });
+    const resolvedHeaders = await waitForPromiseWithAbortSignal({
+      promise: resolve(this.headers),
+      abortSignal,
+    });
+    const resolvedCredentials = await waitForPromiseWithAbortSignal({
+      promise: resolve(this.credentials),
+      abortSignal,
+    });
 
     const baseHeaders = {
       ...normalizeHeaders(resolvedHeaders),
       ...normalizeHeaders(options.headers),
     };
 
-    const preparedRequest = await this.prepareSendMessagesRequest?.({
-      api: this.api,
-      id: options.chatId,
-      messages: options.messages,
-      body: { ...resolvedBody, ...options.body },
-      headers: baseHeaders,
-      credentials: resolvedCredentials,
-      requestMetadata: options.metadata,
-      trigger: options.trigger,
-      messageId: options.messageId,
+    const preparedRequest = await waitForPromiseWithAbortSignal({
+      promise: Promise.resolve(
+        this.prepareSendMessagesRequest?.({
+          api: this.api,
+          id: options.chatId,
+          messages: options.messages,
+          body: { ...resolvedBody, ...options.body },
+          headers: baseHeaders,
+          credentials: resolvedCredentials,
+          requestMetadata: options.metadata,
+          trigger: options.trigger,
+          messageId: options.messageId,
+        }),
+      ),
+      abortSignal,
     });
 
     const api = preparedRequest?.api ?? this.api;
@@ -200,6 +254,8 @@ export abstract class HttpChatTransport<
 
     // avoid caching globalThis.fetch in case it is patched by other libraries
     const fetch = this.fetch ?? globalThis.fetch;
+
+    abortSignal?.throwIfAborted();
 
     const response = await fetch(api, {
       method: 'POST',
