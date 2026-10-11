@@ -54,11 +54,19 @@ function resolveSync<T>(value: Resolvable<T>): T {
     next = (value as () => unknown)();
   }
 
-  if (next instanceof Promise) {
+  if (isPromiseLike(next)) {
     throw new SerializationError({
       message: 'Cannot serialize asynchronous model options.',
     });
   }
 
   return next as T;
+}
+
+function isPromiseLike(value: unknown): value is PromiseLike<unknown> {
+  return (
+    value != null &&
+    (typeof value === 'object' || typeof value === 'function') &&
+    typeof (value as { then?: unknown }).then === 'function'
+  );
 }
