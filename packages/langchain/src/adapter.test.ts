@@ -4207,6 +4207,128 @@ describe('toUIMessageStream callbacks', () => {
     expect(onFinish).not.toHaveBeenCalled();
   });
 
+  it('should close a pending source iterator when cancelled', async () => {
+    let resolveNext!: (result: IteratorResult<AIMessageChunk>) => void;
+    let resolveStarted!: () => void;
+    const nextStarted = new Promise<void>(resolve => {
+      resolveStarted = resolve;
+    });
+    const pendingNext = new Promise<IteratorResult<AIMessageChunk>>(resolve => {
+      resolveNext = resolve;
+    });
+    const returnIterator = vi.fn(
+      async (): Promise<IteratorResult<AIMessageChunk>> => {
+        resolveNext({ done: true, value: undefined });
+        return { done: true, value: undefined };
+      },
+    );
+    const source: AsyncIterable<AIMessageChunk> &
+      AsyncIterator<AIMessageChunk> = {
+      [Symbol.asyncIterator]() {
+        return this;
+      },
+      async next() {
+        resolveStarted();
+        return pendingNext;
+      },
+      return: returnIterator,
+    };
+    const callbackOrder: string[] = [];
+    const onFinish = vi.fn();
+    const onError = vi.fn();
+
+    const output = toUIMessageStream(source, {
+      onFinal: () => {
+        callbackOrder.push('onFinal');
+      },
+      onAbort: () => {
+        callbackOrder.push('onAbort');
+      },
+      onFinish,
+      onError,
+    });
+
+    await nextStarted;
+    await output.cancel('consumer stopped');
+
+    expect(returnIterator).toHaveBeenCalledExactlyOnceWith('consumer stopped');
+    expect(callbackOrder).toEqual(['onFinal', 'onAbort']);
+    expect(onFinish).not.toHaveBeenCalled();
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it('should not process a source value that resolves after cancellation', async () => {
+    let resolveNext!: (result: IteratorResult<AIMessageChunk>) => void;
+    let resolveStarted!: () => void;
+    const nextStarted = new Promise<void>(resolve => {
+      resolveStarted = resolve;
+    });
+    const pendingNext = new Promise<IteratorResult<AIMessageChunk>>(resolve => {
+      resolveNext = resolve;
+    });
+    const source: AsyncIterable<AIMessageChunk> &
+      AsyncIterator<AIMessageChunk> = {
+      [Symbol.asyncIterator]() {
+        return this;
+      },
+      async next() {
+        resolveStarted();
+        return pendingNext;
+      },
+      async return() {
+        return { done: true, value: undefined };
+      },
+    };
+    const onText = vi.fn();
+    const onAbort = vi.fn();
+    const output = toUIMessageStream(source, { onText, onAbort });
+
+    await nextStarted;
+    await output.cancel();
+    resolveNext({
+      done: false,
+      value: new AIMessageChunk({ content: 'late value', id: 'message-1' }),
+    });
+    await Promise.resolve();
+
+    expect(onText).not.toHaveBeenCalled();
+    expect(onAbort).toHaveBeenCalledOnce();
+  });
+
+  it('should cancel and release a ReadableStream fallback reader', async () => {
+    let resolveStarted!: () => void;
+    let resolveRead!: (result: ReadableStreamReadResult<unknown>) => void;
+    const nextStarted = new Promise<void>(resolve => {
+      resolveStarted = resolve;
+    });
+    const pendingRead = new Promise<ReadableStreamReadResult<unknown>>(
+      resolve => {
+        resolveRead = resolve;
+      },
+    );
+    const cancelReader = vi.fn(async () => {
+      resolveRead({ done: true, value: undefined });
+    });
+    const releaseLock = vi.fn();
+    const fallbackStream = {
+      getReader: () => ({
+        read: async () => {
+          resolveStarted();
+          return pendingRead;
+        },
+        cancel: cancelReader,
+        releaseLock,
+      }),
+    } as unknown as ReadableStream;
+    const output = toUIMessageStream(fallbackStream);
+
+    await nextStarted;
+    await output.cancel('consumer stopped');
+
+    expect(cancelReader).toHaveBeenCalledExactlyOnceWith('consumer stopped');
+    expect(releaseLock).toHaveBeenCalledOnce();
+  });
+
   it('should call onFinal before onFinish on success', async () => {
     const callOrder: string[] = [];
 
