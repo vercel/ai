@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 23015,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-23015-codemod-computed-properties.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-23015-codemod-computed-properties.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_23015: rename-system-to-instructions breaks computed variable property lookups"
+  }
+}
