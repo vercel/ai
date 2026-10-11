@@ -98,8 +98,10 @@ export type SandboxSession = {
    * Read one text file from the sandbox, decoded using the requested encoding.
    * Resolves to `null` when the file does not exist.
    *
-   * Line ranges are 1-based and inclusive. When `endLine` is past EOF the read
-   * returns through EOF without error.
+   * Line ranges are 1-based and inclusive. CRLF, LF, and CR are treated as
+   * logical line endings, including when mixed in the same file. Original line
+   * endings within the selected range are preserved. When `endLine` is past
+   * EOF the read returns through EOF without error.
    */
   readonly readTextFile: (
     options: ReadFileOptions & {

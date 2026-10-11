@@ -210,6 +210,20 @@ describe('VercelSandboxSession', () => {
       expect(out).toBe('b\nc');
     });
 
+    it('readTextFile handles mixed line endings as logical lines', async () => {
+      const { sandbox, spies } = makeMockSandbox();
+      spies.readFileToBuffer.mockResolvedValueOnce(
+        Buffer.from('first\r\nsecond\nthird\rfourth'),
+      );
+
+      const out = await new VercelSandboxSession(sandbox).readTextFile({
+        path: '/x',
+        startLine: 2,
+        endLine: 2,
+      });
+      expect(out).toBe('second');
+    });
+
     it('readFile/writeFile round-trip through Web streams', async () => {
       const { sandbox, spies } = makeMockSandbox();
       spies.runCommand.mockResolvedValue(

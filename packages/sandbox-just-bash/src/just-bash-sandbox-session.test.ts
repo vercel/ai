@@ -108,6 +108,21 @@ describe('JustBashSandboxSession', () => {
       expect(slice).toBe('line 2\nline 3');
     });
 
+    it('reads logical line ranges from files with mixed line endings', async () => {
+      await sandbox.writeTextFile({
+        path: '/work/mixed-lines.txt',
+        content: 'first\r\nsecond\nthird\rfourth',
+      });
+
+      await expect(
+        sandbox.readTextFile({
+          path: '/work/mixed-lines.txt',
+          startLine: 2,
+          endLine: 2,
+        }),
+      ).resolves.toBe('second');
+    });
+
     it('resolves relative paths against the sandbox cwd', async () => {
       await sandbox.writeTextFile({
         path: 'relative.txt',

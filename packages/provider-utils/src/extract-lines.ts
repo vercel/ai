@@ -1,10 +1,9 @@
 /**
- * Extracts a 1-based inclusive line range from `text`, auto-detecting the
- * file's line ending (`\r\n`, `\n`, or `\r`, in that priority).
+ * Extracts a 1-based inclusive line range from `text`.
  *
- * Mixed line endings are not supported: detection picks one and uses it for
- * both the split and the rejoin, so files that mix conventions will not slice
- * cleanly. When neither `startLine` nor `endLine` is provided, the input is
+ * CRLF, LF, and CR are recognized as logical line endings, including when a
+ * file mixes them. Original line endings within the selected range are
+ * preserved. When neither `startLine` nor `endLine` is provided, the input is
  * returned unchanged. `endLine` past EOF clamps to the last line.
  */
 export function extractLines({
@@ -17,15 +16,38 @@ export function extractLines({
   endLine?: number;
 }): string {
   if (startLine == null && endLine == null) return text;
-  const lineEnding = text.includes('\r\n')
-    ? '\r\n'
-    : text.includes('\n')
-      ? '\n'
-      : text.includes('\r')
-        ? '\r'
-        : '\n';
-  const lines = text.split(lineEnding);
+
+  const lines: Array<{ start: number; end: number }> = [];
+  let lineStart = 0;
+
+  for (let index = 0; index < text.length; index++) {
+    const character = text[index];
+
+    if (character !== '\r' && character !== '\n') {
+      continue;
+    }
+
+    lines.push({ start: lineStart, end: index });
+
+    if (character === '\r' && text[index + 1] === '\n') {
+      index++;
+    }
+
+    lineStart = index + 1;
+  }
+
+  lines.push({ start: lineStart, end: text.length });
+
   const start = Math.max(1, startLine ?? 1) - 1;
   const end = Math.min(lines.length, endLine ?? lines.length);
-  return lines.slice(start, end).join(lineEnding);
+  const selectedLines = lines.slice(start, end);
+
+  if (selectedLines.length === 0) {
+    return '';
+  }
+
+  return text.slice(
+    selectedLines[0].start,
+    selectedLines[selectedLines.length - 1].end,
+  );
 }

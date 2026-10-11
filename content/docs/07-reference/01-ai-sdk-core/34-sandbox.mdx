@@ -30,6 +30,13 @@ make it available to tool description functions and tool execution.
 ```ts
 type Experimental_SandboxSession = {
   readonly description: string;
+  readonly readTextFile: (options: {
+    path: string;
+    encoding?: string;
+    startLine?: number;
+    endLine?: number;
+    abortSignal?: AbortSignal;
+  }) => PromiseLike<string | null>;
   readonly run: (options: {
     command: string;
     workingDirectory?: string;
@@ -52,6 +59,48 @@ type Experimental_SandboxSession = {
       type: 'string',
       description:
         'Description of the experimental sandbox environment. Include this in your prompt or instructions when the model needs to know details such as the root directory, exposed ports, public hostname, or other environment constraints. The AI SDK does not add it to the prompt automatically.',
+    },
+    {
+      name: 'readTextFile',
+      type: '(options: { path: string; encoding?: string; startLine?: number; endLine?: number; abortSignal?: AbortSignal }) => PromiseLike<string | null>',
+      description:
+        'Reads and decodes a text file, or resolves to `null` when the file does not exist. Optional line ranges are 1-based and inclusive. CRLF, LF, and CR delimit logical lines even when mixed in one file, and original separators within the selected range are preserved.',
+      properties: [
+        {
+          type: 'options',
+          parameters: [
+            {
+              name: 'path',
+              type: 'string',
+              description: 'Path of the text file to read.',
+            },
+            {
+              name: 'encoding',
+              type: 'string | undefined',
+              description:
+                'Text encoding used to decode the file bytes. Defaults to `utf-8`.',
+            },
+            {
+              name: 'startLine',
+              type: 'number | undefined',
+              description:
+                'Optional 1-based inclusive start line. Defaults to 1.',
+            },
+            {
+              name: 'endLine',
+              type: 'number | undefined',
+              description:
+                'Optional 1-based inclusive end line. Values past EOF read through the end of the file.',
+            },
+            {
+              name: 'abortSignal',
+              type: 'AbortSignal | undefined',
+              description:
+                'Optional abort signal that the experimental sandbox implementation can use to cancel the read.',
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'run',

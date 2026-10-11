@@ -234,6 +234,20 @@ const inspectFile = tool({
 });
 ```
 
+`readTextFile` also accepts 1-based, inclusive `startLine` and `endLine`
+options. CRLF (`\r\n`), LF (`\n`), and CR (`\r`) each delimit a logical line,
+even when the same file mixes line-ending styles. The returned range preserves
+the original separators between its selected lines, and an `endLine` past EOF
+reads through the end of the file.
+
+```ts
+const content = await experimental_sandbox?.readTextFile({
+  path: '/workspace/generated.txt',
+  startLine: 10,
+  endLine: 20,
+});
+```
+
 ## Tool Approvals
 
 Harnesses distinguish built-in tool permissions from host-executed tool

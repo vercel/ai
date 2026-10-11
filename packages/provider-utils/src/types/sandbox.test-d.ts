@@ -14,6 +14,21 @@ test('SandboxSession exposes spawn returning a process handle', () => {
   >().toEqualTypeOf<SandboxProcess>();
 });
 
+test('SandboxSession exposes text reads with optional line ranges', () => {
+  type Options = Parameters<SandboxSession['readTextFile']>[0];
+
+  expectTypeOf<Options['path']>().toEqualTypeOf<string>();
+  expectTypeOf<Options['abortSignal']>().toEqualTypeOf<
+    AbortSignal | undefined
+  >();
+  expectTypeOf<Options['encoding']>().toEqualTypeOf<string | undefined>();
+  expectTypeOf<Options['startLine']>().toEqualTypeOf<number | undefined>();
+  expectTypeOf<Options['endLine']>().toEqualTypeOf<number | undefined>();
+  expectTypeOf<
+    Awaited<ReturnType<SandboxSession['readTextFile']>>
+  >().toEqualTypeOf<string | null>();
+});
+
 test('SandboxProcess exposes the expected handle shape', () => {
   expectTypeOf<SandboxProcess['pid']>().toEqualTypeOf<number | undefined>();
   expectTypeOf<SandboxProcess['stdout']>().toEqualTypeOf<
