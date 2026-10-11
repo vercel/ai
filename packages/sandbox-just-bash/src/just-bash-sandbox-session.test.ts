@@ -145,19 +145,53 @@ describe('JustBashSandboxSession', () => {
 
     it('writeFile and readFile stream through the VFS', async () => {
       const bytes = new TextEncoder().encode('streamed');
+      const content = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(bytes);
+          controller.close();
+        },
+      });
+
       await sandbox.writeFile({
         path: '/work/streamed.txt',
-        content: new ReadableStream<Uint8Array>({
-          start(controller) {
-            controller.enqueue(bytes);
-            controller.close();
-          },
-        }),
+        content,
       });
 
       const stream = await sandbox.readFile({ path: '/work/streamed.txt' });
       expect(stream).not.toBeNull();
       expect(await collect(stream!)).toBe('streamed');
+      expect(content.locked).toBe(false);
+    });
+
+    it('cancels an in-progress streamed write when aborted', async () => {
+      const abortController = new AbortController();
+      const abortReason = new DOMException('Cancelled write', 'AbortError');
+      let cancelledWith: unknown;
+
+      const content = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(new Uint8Array([1]));
+        },
+        cancel(reason) {
+          cancelledWith = reason;
+        },
+      });
+
+      const write = sandbox.writeFile({
+        path: '/work/aborted.bin',
+        content,
+        abortSignal: abortController.signal,
+      });
+
+      await Promise.resolve();
+      abortController.abort(abortReason);
+
+      await expect(write).rejects.toBe(abortReason);
+      expect(cancelledWith).toBe(abortReason);
+      expect(content.locked).toBe(false);
+      expect(
+        await sandbox.readBinaryFile({ path: '/work/aborted.bin' }),
+      ).toBeNull();
     });
   });
 
