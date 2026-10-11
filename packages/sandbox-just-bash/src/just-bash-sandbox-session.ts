@@ -153,7 +153,7 @@ export class JustBashSandboxSession implements SandboxSession {
     content: ReadableStream<Uint8Array>;
     abortSignal?: AbortSignal;
   }): Promise<void> {
-    const bytes = await collectStream(content);
+    const bytes = await collectStream(content, abortSignal);
     await this.writeBinaryFile({ path, content: bytes, abortSignal });
   }
 
@@ -284,25 +284,40 @@ function bytesToStream(bytes: Uint8Array): ReadableStream<Uint8Array> {
 
 async function collectStream(
   stream: ReadableStream<Uint8Array>,
+  abortSignal?: AbortSignal,
 ): Promise<Uint8Array> {
+  abortSignal?.throwIfAborted();
   const reader = stream.getReader();
+  const cancelReader = () => {
+    void reader.cancel(abortSignal?.reason).catch(() => {});
+  };
   const chunks: Uint8Array[] = [];
   let total = 0;
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    if (value) {
-      chunks.push(value);
-      total += value.byteLength;
+
+  abortSignal?.addEventListener('abort', cancelReader, { once: true });
+
+  try {
+    abortSignal?.throwIfAborted();
+    while (true) {
+      const { value, done } = await reader.read();
+      abortSignal?.throwIfAborted();
+      if (done) break;
+      if (value) {
+        chunks.push(value);
+        total += value.byteLength;
+      }
     }
+    const out = new Uint8Array(total);
+    let offset = 0;
+    for (const chunk of chunks) {
+      out.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    return out;
+  } finally {
+    abortSignal?.removeEventListener('abort', cancelReader);
+    reader.releaseLock();
   }
-  const out = new Uint8Array(total);
-  let offset = 0;
-  for (const chunk of chunks) {
-    out.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  return out;
 }
 
 function isFileNotFoundError(error: unknown): boolean {
