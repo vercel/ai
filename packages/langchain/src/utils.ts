@@ -302,7 +302,8 @@ export function convertUserContent(content: UserContent): HumanMessage {
         filename?: string;
       };
 
-      // Normalize tagged data shape into the legacy bare value this code expects.
+      // Normalize tagged data shapes into the legacy bare values this code
+      // expects while preserving literal text as bytes.
       const normalizedData: string | Uint8Array | URL | ArrayBuffer = (() => {
         const data = rawFilePart.data;
         if (
@@ -319,7 +320,7 @@ export function convertUserContent(content: UserContent): HumanMessage {
             case 'url':
               return data.url;
             case 'text':
-              return data.text;
+              return new TextEncoder().encode(data.text);
             default:
               return '';
           }
