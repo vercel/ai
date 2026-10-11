@@ -88,15 +88,12 @@ export function createTraceTreeReporter(
       parent.children.push(node);
     },
     onToolExecutionEnd(event) {
-      const e = event as {
-        callId: string;
-        toolCall: { toolCallId: string };
-        toolOutput: { type: string };
-      };
-      const node = turns.get(e.callId)?.tools.get(e.toolCall.toolCallId);
+      const node = turns
+        .get(event.callId)
+        ?.tools.get(event.toolCall.toolCallId);
       if (!node) return;
       node.endMs = Date.now();
-      if (e.toolOutput.type === 'error') node.label += ' [error]';
+      if (event.toolOutput.type === 'tool-error') node.label += ' [error]';
     },
     onStepFinish(event) {
       const e = event as { callId: string };

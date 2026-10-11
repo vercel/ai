@@ -137,20 +137,17 @@ export function createFileReporter(options: FileReporterOptions): FileReporter {
       });
     },
     onToolExecutionEnd(event) {
-      const e = event as {
-        callId: string;
-        toolCall: { toolCallId: string };
-        toolOutput: { type: string; output?: unknown; error?: unknown };
-      };
-      const isError = e.toolOutput.type === 'error';
-      if (isError) bucketFor(e.callId).errored = true;
-      record(e.callId, {
+      const isError = event.toolOutput.type === 'tool-error';
+      if (isError) bucketFor(event.callId).errored = true;
+      record(event.callId, {
         ts: Date.now(),
         kind: 'tool-end',
-        callId: e.callId,
-        toolCallId: e.toolCall.toolCallId,
+        callId: event.callId,
+        toolCallId: event.toolCall.toolCallId,
         isError,
-        output: isError ? e.toolOutput.error : e.toolOutput.output,
+        output: isError
+          ? serializeError(event.toolOutput.error)
+          : event.toolOutput.output,
       });
     },
     onStepFinish(event) {
