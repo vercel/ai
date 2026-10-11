@@ -243,6 +243,9 @@ describe('Chat', () => {
                 "role": "assistant",
               },
             ],
+            "outcome": {
+              "status": "completed",
+            },
           },
         ]
       `);
@@ -501,6 +504,39 @@ describe('Chat', () => {
     });
   });
 
+  it('should report output-limit truncation through onFinish', async () => {
+    const onFinish = vi.fn();
+    const chat = new TestChat({
+      transport: {
+        sendMessages: async () =>
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              controller.enqueue({
+                type: 'finish',
+                finishReason: 'length',
+              });
+              controller.close();
+            },
+          }),
+        reconnectToStream: async () => null,
+      },
+      onFinish,
+    });
+
+    await chat.sendMessage({ text: 'Write a long story.' });
+
+    expect(chat.status).toBe('ready');
+    expect(onFinish).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        finishReason: 'length',
+        isAbort: false,
+        isDisconnect: false,
+        isError: false,
+        outcome: { status: 'truncated' },
+      }),
+    );
+  });
+
   describe('regenerate', () => {
     it('throws InvalidArgumentError when the message is not found', async () => {
       const chat = new TestChat({
@@ -752,6 +788,9 @@ describe('Chat', () => {
                 "role": "assistant",
               },
             ],
+            "outcome": {
+              "status": "failed",
+            },
           },
         ]
       `);
@@ -1294,6 +1333,9 @@ describe('Chat', () => {
                 "role": "assistant",
               },
             ],
+            "outcome": {
+              "status": "aborted",
+            },
           },
         ]
       `);

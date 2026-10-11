@@ -7,6 +7,7 @@ import {
 import { InvalidArgumentError } from '../error/invalid-argument-error';
 import type { FinishReason } from '../types/language-model';
 import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
+import type { UIMessageStreamOutcome } from '../ui-message-stream/ui-message-stream-outcome';
 import { consumeStream } from '../util/consume-stream';
 import { createResolvablePromise } from '../util/create-resolvable-promise';
 import { SerialJobExecutor } from '../util/serial-job-executor';
@@ -133,6 +134,14 @@ export type ChatAddToolOutputFunction<UI_MESSAGE extends UIMessage> = <
 
 export type ChatStatus = 'submitted' | 'streaming' | 'ready' | 'error';
 
+/**
+ * The outcome of a finished assistant response.
+ */
+export type ChatFinishOutcome = Exclude<
+  UIMessageStreamOutcome,
+  { status: 'unknown' }
+>;
+
 type ActiveResponse<UI_MESSAGE extends UIMessage> = {
   state: StreamingUIMessageState<UI_MESSAGE>;
   abortController: AbortController;
@@ -182,6 +191,7 @@ export type ChatOnDataCallback<UI_MESSAGE extends UIMessage> = (
  * @param isAbort Indicates whether the request has been aborted.
  * @param isDisconnect Indicates whether the request has been ended by a network error.
  * @param isError Indicates whether the request has been ended by an error.
+ * @param outcome The outcome of the assistant response.
  * @param finishReason The reason why the generation finished.
  */
 export type ChatOnFinishCallback<UI_MESSAGE extends UIMessage> = (options: {
@@ -190,6 +200,7 @@ export type ChatOnFinishCallback<UI_MESSAGE extends UIMessage> = (options: {
   isAbort: boolean;
   isDisconnect: boolean;
   isError: boolean;
+  outcome: ChatFinishOutcome;
   finishReason?: FinishReason;
 }) => void;
 
@@ -1177,12 +1188,21 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     } finally {
       try {
         if (activeResponse) {
+          const outcome: ChatFinishOutcome = isAbort
+            ? { status: 'aborted' }
+            : isError
+              ? { status: 'failed' }
+              : activeResponse.state.finishReason === 'length'
+                ? { status: 'truncated' }
+                : { status: 'completed' };
+
           this.onFinish?.({
             message: activeResponse.state.message,
             messages: this.state.messages,
             isAbort,
             isDisconnect,
             isError,
+            outcome,
             finishReason: activeResponse.state.finishReason,
           });
         }

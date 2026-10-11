@@ -23,6 +23,18 @@ type ToolCallArgument<TOOLS extends ToolSet | UITools> = Parameters<
   ToolCallCallback<TOOLS>
 >[0]['toolCall'];
 
+describe('onFinish', () => {
+  it('exposes the UI message stream outcome', () => {
+    type OnFinishEvent = Parameters<
+      NonNullable<ChatInit<UIMessage>['onFinish']>
+    >[0];
+
+    expectTypeOf<OnFinishEvent['outcome']['status']>().toEqualTypeOf<
+      'completed' | 'truncated' | 'failed' | 'aborted'
+    >();
+  });
+});
+
 describe('onToolCall', () => {
   describe('no helpers', () => {
     it('single tool with output schema', () => {

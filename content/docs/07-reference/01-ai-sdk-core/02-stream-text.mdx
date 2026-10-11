@@ -4109,7 +4109,7 @@ To see `streamText` in action, check out [these examples](#examples).
               name: 'onEnd',
               type: '(options: { messages: UIMessage[]; isContinuation: boolean; responseMessage: UIMessage; isAborted: boolean; isCancelled?: true; outcome: UIMessageStreamOutcome; finishReason?: FinishReason; }) => PromiseLike<void> | void',
               isOptional: true,
-              description: 'Callback function called when the stream ends. Provides the updated messages, continuation, abort and consumer-cancellation state, model finish reason, and operation-level outcome.',
+              description: "Callback function called when the stream ends. Provides the updated messages, continuation, abort and consumer-cancellation state, model finish reason, and operation-level outcome. The outcome status is 'truncated' when the final finish reason is 'length'.",
             },
             {
               name: 'onFinish',

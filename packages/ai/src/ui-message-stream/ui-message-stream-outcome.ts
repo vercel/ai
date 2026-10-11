@@ -5,12 +5,17 @@
  * Fatal stream-processing failures override outcomes declared by the stream
  * owner.
  *
+ * A `truncated` outcome indicates that generation stopped because the model
+ * reached its output-token limit. The partial response remains available to
+ * consumers.
+ *
  * Consumer cancellation before an outcome is declared keeps the `unknown`
  * status and is reported separately through the end callback's `isCancelled`
  * property.
  */
 export type UIMessageStreamOutcome =
   | { status: 'completed' }
+  | { status: 'truncated' }
   | { status: 'failed'; error?: unknown }
   | { status: 'aborted' }
   | { status: 'unknown' };

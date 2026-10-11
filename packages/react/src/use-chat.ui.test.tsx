@@ -668,7 +668,7 @@ describe('use-chat', () => {
       });
     });
 
-    it('should invoke onFinish when the stream finishes', async () => {
+    it('should report output-limit truncation through onFinish', async () => {
       const controller = new TestResponseController();
 
       server.urls['/api/chat'].response = {
@@ -695,7 +695,7 @@ describe('use-chat', () => {
       controller.write(
         formatChunk({
           type: 'finish',
-          finishReason: 'stop',
+          finishReason: 'length',
           messageMetadata: {
             example: 'metadata',
           },
@@ -738,7 +738,7 @@ describe('use-chat', () => {
       expect(onFinishCalls).toMatchInlineSnapshot(`
       [
         {
-          "finishReason": "stop",
+          "finishReason": "length",
           "isAbort": false,
           "isDisconnect": false,
           "isError": false,
@@ -785,6 +785,9 @@ describe('use-chat', () => {
               "role": "assistant",
             },
           ],
+          "outcome": {
+            "status": "truncated",
+          },
         },
       ]
     `);
@@ -992,6 +995,9 @@ describe('use-chat', () => {
               "role": "assistant",
             },
           ],
+          "outcome": {
+            "status": "completed",
+          },
         },
       ]
     `);

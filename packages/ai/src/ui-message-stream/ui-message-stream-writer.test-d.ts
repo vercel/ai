@@ -26,7 +26,7 @@ describe('UIMessageStreamWriter', () => {
     expectTypeOf<ExecuteWriter>().toMatchTypeOf<UIMessageStreamWriterWithOutcome>();
     expectTypeOf<ExecuteWriter['setOutcome']>().toBeFunction();
     expectTypeOf<UIMessageStreamOutcome['status']>().toEqualTypeOf<
-      'completed' | 'failed' | 'aborted' | 'unknown'
+      'completed' | 'truncated' | 'failed' | 'aborted' | 'unknown'
     >();
   });
 
