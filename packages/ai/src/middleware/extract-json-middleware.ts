@@ -1,22 +1,95 @@
 import type {
+  LanguageModelV4Citation,
   LanguageModelV4Content,
   LanguageModelV4StreamPart,
 } from '@ai-sdk/provider';
 import type { LanguageModelMiddleware } from '../types/language-model-middleware';
 import { createIdMap } from '../util/create-id-map';
 
+type CitationMapping = {
+  originalStartIndex: number;
+  transformedLength: number;
+};
+
 /**
  * Default transform function that strips markdown code fences from text.
  */
-function defaultTransform(text: string): string {
-  return text
-    .replace(/^```(?:json)?\s*\n?/, '')
-    .replace(/\n?```\s*$/, '')
-    .trim();
+function defaultTransform(text: string): {
+  text: string;
+  originalStartIndex: number;
+} {
+  let transformed = text;
+  let originalStartIndex = 0;
+
+  const prefixMatch = transformed.match(/^```(?:json)?\s*\n?/);
+  if (prefixMatch) {
+    transformed = transformed.slice(prefixMatch[0].length);
+    originalStartIndex += prefixMatch[0].length;
+  }
+
+  transformed = transformed.replace(/\n?```\s*$/, '');
+
+  const trimmedStart = transformed.trimStart();
+  originalStartIndex += transformed.length - trimmedStart.length;
+
+  return {
+    text: trimmedStart.trimEnd(),
+    originalStartIndex,
+  };
 }
 
 function stripMarkdownCodeFenceSuffix(text: string): string {
   return text.replace(/\n?```\s*$/, '').trimEnd();
+}
+
+function remapCitations(
+  citations: Array<LanguageModelV4Citation>,
+  mapping: CitationMapping | undefined,
+): Array<LanguageModelV4Citation> {
+  return citations.map(citation => {
+    const { startIndex, endIndex } = citation;
+
+    if (startIndex == null && endIndex == null) {
+      return citation;
+    }
+
+    if (mapping == null) {
+      const {
+        startIndex: _startIndex,
+        endIndex: _endIndex,
+        ...citationWithoutOffsets
+      } = citation;
+      return citationWithoutOffsets;
+    }
+
+    const originalEndIndex =
+      mapping.originalStartIndex + mapping.transformedLength;
+
+    if (
+      startIndex != null &&
+      endIndex != null &&
+      (endIndex <= mapping.originalStartIndex || startIndex >= originalEndIndex)
+    ) {
+      const {
+        startIndex: _startIndex,
+        endIndex: _endIndex,
+        ...citationWithoutOffsets
+      } = citation;
+      return citationWithoutOffsets;
+    }
+
+    const remapIndex = (index: number) =>
+      Math.min(
+        Math.max(index - mapping.originalStartIndex, 0),
+        mapping.transformedLength,
+      );
+
+    return {
+      ...citation,
+      ...(startIndex != null ? { startIndex: remapIndex(startIndex) } : {}),
+      ...(endIndex != null ? { endIndex: remapIndex(endIndex) } : {}),
+    };
+  });
 }
 
 function getPotentialSuffixStart(text: string): number {
@@ -60,7 +133,7 @@ export function extractJsonMiddleware(options?: {
    */
   transform?: (text: string) => string;
 }): LanguageModelMiddleware {
-  const transform = options?.transform ?? defaultTransform;
+  const transform = options?.transform;
   const hasCustomTransform = options?.transform !== undefined;
 
   return {
@@ -76,9 +149,30 @@ export function extractJsonMiddleware(options?: {
           continue;
         }
 
+        const transformed = hasCustomTransform
+          ? {
+              text: transform!(part.text),
+              originalStartIndex: undefined,
+            }
+          : defaultTransform(part.text);
+        const citationMapping =
+          transformed.text === part.text
+            ? { originalStartIndex: 0, transformedLength: part.text.length }
+            : transformed.originalStartIndex != null
+              ? {
+                  originalStartIndex: transformed.originalStartIndex,
+                  transformedLength: transformed.text.length,
+                }
+              : undefined;
+
         transformedContent.push({
           ...part,
-          text: transform(part.text),
+          text: transformed.text,
+          ...(part.citations != null
+            ? {
+                citations: remapCitations(part.citations, citationMapping),
+              }
+            : {}),
         });
       }
 
@@ -94,6 +188,8 @@ export function extractJsonMiddleware(options?: {
           phase: 'prefix' | 'streaming' | 'buffering';
           buffer: string;
           prefixStripped: boolean;
+          originalStartIndex: number;
+          transformedTextLength: number;
         }
       > = createIdMap();
 
@@ -111,6 +207,8 @@ export function extractJsonMiddleware(options?: {
                   phase: hasCustomTransform ? 'buffering' : 'prefix',
                   buffer: '',
                   prefixStripped: false,
+                  originalStartIndex: 0,
+                  transformedTextLength: 0,
                 };
                 return;
               }
@@ -146,6 +244,7 @@ export function extractJsonMiddleware(options?: {
                         block.buffer = block.buffer.slice(
                           prefixMatch[0].length,
                         );
+                        block.originalStartIndex = prefixMatch[0].length;
                         block.prefixStripped = true;
                         block.phase = 'streaming';
                         controller.enqueue(block.startEvent);
@@ -178,6 +277,7 @@ export function extractJsonMiddleware(options?: {
                     return;
                   }
 
+                  block.transformedTextLength += toStream.length;
                   controller.enqueue({
                     type: 'text-delta',
                     id: chunk.id,
@@ -195,19 +295,43 @@ export function extractJsonMiddleware(options?: {
                   }
 
                   let remaining = block.buffer;
+                  let citationMapping: CitationMapping | undefined;
                   if (block.phase === 'buffering') {
-                    remaining = transform(remaining);
+                    const originalText = remaining;
+                    remaining = transform!(remaining);
+                    citationMapping =
+                      remaining === originalText
+                        ? {
+                            originalStartIndex: 0,
+                            transformedLength: originalText.length,
+                          }
+                        : undefined;
                   } else if (block.prefixStripped) {
                     // strip suffix since prefix already handled
                     remaining = stripMarkdownCodeFenceSuffix(remaining);
+                    block.transformedTextLength += remaining.length;
+                    citationMapping = {
+                      originalStartIndex: block.originalStartIndex,
+                      transformedLength: block.transformedTextLength,
+                    };
                   } else if (block.phase === 'prefix') {
                     // No text has streamed yet, so the full transform is safe.
-                    remaining = transform(remaining);
+                    const transformed = defaultTransform(remaining);
+                    remaining = transformed.text;
+                    citationMapping = {
+                      originalStartIndex: transformed.originalStartIndex,
+                      transformedLength: transformed.text.length,
+                    };
                   } else {
                     // Only strip the suffix. Since earlier text may already have
                     // streamed, trimming the remaining suffix would remove valid
                     // leading whitespace at the stream boundary.
                     remaining = stripMarkdownCodeFenceSuffix(remaining);
+                    block.transformedTextLength += remaining.length;
+                    citationMapping = {
+                      originalStartIndex: block.originalStartIndex,
+                      transformedLength: block.transformedTextLength,
+                    };
                   }
 
                   if (remaining.length > 0) {
@@ -217,7 +341,17 @@ export function extractJsonMiddleware(options?: {
                       delta: remaining,
                     });
                   }
-                  controller.enqueue(chunk);
+                  controller.enqueue({
+                    ...chunk,
+                    ...(chunk.citations != null
+                      ? {
+                          citations: remapCitations(
+                            chunk.citations,
+                            citationMapping,
+                          ),
+                        }
+                      : {}),
+                  });
                   delete textBlocks[chunk.id];
                   return;
                 }
