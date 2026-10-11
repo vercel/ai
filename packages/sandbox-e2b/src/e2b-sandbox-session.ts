@@ -197,7 +197,7 @@ export class E2BSandboxSession implements SandboxSession {
     abortSignal?.throwIfAborted();
     await this.sandbox.files.write(
       this.resolvePath(path),
-      new Blob([content]),
+      new Blob([content as Uint8Array<ArrayBuffer>]),
       abortSignal ? { signal: abortSignal } : undefined,
     );
   }

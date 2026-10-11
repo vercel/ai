@@ -4166,10 +4166,10 @@ importers:
         version: link:../../tools/tsconfig
       tsdown:
         specifier: ^0.23.0
-        version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@5.8.3)
+        version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
       typescript:
-        specifier: 5.8.3
-        version: 5.8.3
+        specifier: 6.0.3
+        version: 6.0.3
 
   packages/sandbox-just-bash:
     dependencies:
