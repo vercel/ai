@@ -3,6 +3,7 @@ import {
   type RerankingModelV4CallOptions,
 } from '@ai-sdk/provider';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { InvalidArgumentError } from '../error/invalid-argument-error';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockRerankingModelV4 } from '../test/mock-reranking-model-v4';
 import { rerank } from './rerank';
@@ -11,6 +12,47 @@ import type { RerankResult } from './rerank-result';
 
 describe('rerank', () => {
   describe('error handling', () => {
+    it.each([NaN, Infinity, -Infinity, -1, 1.5])(
+      'should reject invalid topN %s before callbacks or the model call',
+      async topN => {
+        const doRerank = vi.fn();
+        const onStart = vi.fn();
+
+        const result = rerank({
+          model: new MockRerankingModelV4({ doRerank }),
+          documents: ['a', 'b'],
+          query: 'q',
+          topN,
+          onStart,
+        });
+
+        await expect(result).rejects.toSatisfy(InvalidArgumentError.isInstance);
+        await expect(result).rejects.toMatchObject({
+          parameter: 'topN',
+          value: topN,
+          message:
+            'Invalid argument for parameter topN: topN must be a non-negative integer',
+        });
+        expect(onStart).not.toHaveBeenCalled();
+        expect(doRerank).not.toHaveBeenCalled();
+      },
+    );
+
+    it('should reject invalid topN before callbacks when documents are empty', async () => {
+      const onStart = vi.fn();
+
+      const result = rerank({
+        model: new MockRerankingModelV4({}),
+        documents: [],
+        query: 'q',
+        topN: NaN,
+        onStart,
+      });
+
+      await expect(result).rejects.toSatisfy(InvalidArgumentError.isInstance);
+      expect(onStart).not.toHaveBeenCalled();
+    });
+
     it.each([3, -1, 5, 1.5])(
       'should reject invalid provider ranking index %s',
       async index => {
