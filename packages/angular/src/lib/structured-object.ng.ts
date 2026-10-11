@@ -101,7 +101,7 @@ export class StructuredObject<
     return this.#object();
   }
 
-  /** The error object of the API request */
+  /** The error from the API request or final schema validation. */
   get error(): Error | undefined {
     return this.#error();
   }
@@ -192,12 +192,16 @@ export class StructuredObject<
             this.#loading.set(false);
             this.#abortController = undefined;
 
-            if (this.options.onFinish != null) {
-              const validationResult = await safeValidateTypes({
-                value: latestObject,
-                schema: asSchema(this.options.schema),
-              });
+            const validationResult = await safeValidateTypes({
+              value: latestObject,
+              schema: asSchema(this.options.schema),
+            });
 
+            if (!validationResult.success) {
+              this.#error.set(validationResult.error);
+            }
+
+            if (this.options.onFinish != null) {
               if (validationResult.success) {
                 this.options.onFinish({
                   object: validationResult.value,
@@ -206,7 +210,7 @@ export class StructuredObject<
               } else {
                 this.options.onFinish({
                   object: undefined,
-                  error: (validationResult as { error: Error }).error,
+                  error: validationResult.error,
                 });
               }
             }
