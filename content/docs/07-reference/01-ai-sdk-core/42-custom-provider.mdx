@@ -10,7 +10,9 @@ This allows you to set up custom model configurations, alias names, and more.
 The custom provider also supports a fallback provider, which is useful for
 wrapping existing providers and adding additional functionality. Custom
 providers can expose language, embedding, image, transcription, speech,
-reranking, video, files, and skills capabilities.
+reranking, video, files, and skills capabilities. When the fallback provider
+supports the experimental batch API, the custom provider inherits that
+capability as well.
 
 ### Example: custom model settings
 
@@ -199,8 +201,25 @@ The `customProvider` function returns a `Provider` instance. It has the followin
       description:
         'A function that returns the custom provider skills API interface, when configured directly or inherited from the fallback provider.',
     },
+    {
+      name: 'experimental_batch',
+      type: '() => Experimental_BatchV4',
+      isOptional: true,
+      description:
+        'The fallback provider batch factory, when the fallback provider supports experimental batch processing.',
+    },
   ]}
 />
+
+## Experimental batch fallback
+
+If `fallbackProvider` exposes `experimental_batch()`, the returned custom
+provider exposes the same batch API. You can pass the custom provider to the
+[batch functions](/docs/ai-sdk-core/batch) without keeping a separate
+reference to the fallback provider.
+
+Batch requests use the fallback provider's original model IDs. Entries in
+`languageModels` and `imageModels` are not translated into batch model IDs.
 
 ## Experimental decision models
 

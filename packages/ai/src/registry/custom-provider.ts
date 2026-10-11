@@ -1,4 +1,5 @@
 import {
+  type Experimental_BatchV4 as BatchV4,
   type Experimental_DecisionModelV4 as DecisionModelV4,
   type EmbeddingModelV4,
   type Experimental_VideoModelV3,
@@ -45,6 +46,7 @@ type ProviderWithOptionalVideoModel = {
 
 /**
  * Creates a custom provider with specified language models, text embedding models, image models, transcription models, speech models, file APIs, skill APIs, and an optional fallback provider.
+ * Experimental batch support is inherited when the fallback provider exposes it.
  *
  * @param {Object} options - The options for creating the custom provider.
  * @param {Record<string, LanguageModel>} [options.languageModels] - A record of language models, where keys are model IDs and values are language model instances.
@@ -58,7 +60,7 @@ type ProviderWithOptionalVideoModel = {
  * @param {FilesV4} [options.files] - A files interface for uploading files.
  * @param {SkillsV4} [options.skills] - A skills interface for uploading skills.
  * @param {ProviderV2 | ProviderV3 | ProviderV4} [options.fallbackProvider] - An optional fallback provider to use when a requested model is not found in the custom provider.
- * @returns {ProviderV4} A ProviderV4 object with languageModel, embeddingModel, imageModel, transcriptionModel, speechModel, rerankingModel, and videoModel methods.
+ * @returns {ProviderV4} A ProviderV4 object with languageModel, embeddingModel, imageModel, transcriptionModel, speechModel, rerankingModel, and videoModel methods. The fallback provider's experimental batch factory is also exposed when available.
  *
  * @throws {NoSuchModelError} Throws when a requested model is not found and no fallback provider is available.
  */
@@ -128,7 +130,8 @@ export function customProvider<
     ? { skills(): SkillsV4 }
     : [FALLBACK] extends [{ skills: () => SkillsV4 }]
       ? { skills(): SkillsV4 }
-      : { skills?(): SkillsV4 }) {
+      : { skills?(): SkillsV4 }) &
+  BatchCapability<FALLBACK> {
   const decisionModels = decisionModelsArg ?? evaluationModels;
   const fallbackProvider =
     fallbackProviderArg == null ? undefined : asProviderV4(fallbackProviderArg);
@@ -304,10 +307,32 @@ export function customProvider<
         ? { skills(): SkillsV4 }
         : { skills?(): SkillsV4 });
 
-  return Object.assign(baseProvider, filesAndSkills);
+  const fallbackProviderWithBatch = fallbackProviderArg as
+    | ((ProviderV2 | ProviderV3 | ProviderV4) & {
+        experimental_batch?: () => BatchV4;
+      })
+    | undefined;
+  const batchFactory = fallbackProviderWithBatch?.experimental_batch;
+  const batchCapability = {
+    ...(typeof batchFactory === 'function'
+      ? {
+          experimental_batch(): BatchV4 {
+            return batchFactory.call(fallbackProviderWithBatch);
+          },
+        }
+      : {}),
+  } as BatchCapability<FALLBACK>;
+
+  return Object.assign(baseProvider, filesAndSkills, batchCapability);
 }
 
 type ExtractModelId<MODELS extends Record<string, unknown>> = Extract<
   keyof MODELS,
   string
 >;
+
+type BatchCapability<FALLBACK> = [FALLBACK] extends [
+  { experimental_batch(): BatchV4 },
+]
+  ? Pick<FALLBACK, Extract<'experimental_batch', keyof FALLBACK>>
+  : {};

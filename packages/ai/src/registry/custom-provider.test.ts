@@ -2,10 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
 import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
 import {
+  type Experimental_BatchV4 as BatchV4,
   NoSuchModelError,
   type FilesV4,
   type SkillsV4,
 } from '@ai-sdk/provider';
+import { listBatches } from '../batch/batch';
 import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
 import { MockImageModelV2 } from '../test/mock-image-model-v2';
 import { MockImageModelV3 } from '../test/mock-image-model-v3';
@@ -15,6 +17,7 @@ import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { MockProviderV2 } from '../test/mock-provider-v2';
 import { MockProviderV3 } from '../test/mock-provider-v3';
+import { MockProviderV4 } from '../test/mock-provider-v4';
 import { MockRerankingModelV3 } from '../test/mock-reranking-model-v3';
 import { MockRerankingModelV4 } from '../test/mock-reranking-model-v4';
 import { MockSpeechModelV2 } from '../test/mock-speech-model-v2';
@@ -490,5 +493,54 @@ describe('skills', () => {
     const provider = customProvider({});
 
     expect(provider.skills).toBeUndefined();
+  });
+});
+
+describe('experimental_batch', () => {
+  it('should forward the fallback batch factory with its original receiver', async () => {
+    const batchApi: BatchV4<{ text: 'fallback-model' }> = {
+      specificationVersion: 'v4',
+      provider: 'mock-provider',
+      supportedUrls: {},
+      async doStartBatch() {
+        throw new Error('unused');
+      },
+      async doGetBatchStatus() {
+        throw new Error('unused');
+      },
+      async doGetBatchResults() {
+        throw new Error('unused');
+      },
+      async doListBatches() {
+        return { batches: [] };
+      },
+    };
+
+    class BatchFallbackProvider extends MockProviderV4 {
+      experimental_batch() {
+        expect(this).toBe(fallbackProvider);
+        return batchApi;
+      }
+    }
+
+    const fallbackProvider = new BatchFallbackProvider();
+    const provider = customProvider({ fallbackProvider });
+
+    expect(provider.experimental_batch()).toBe(batchApi);
+    await expect(
+      listBatches({ provider, maxRetries: 0 }),
+    ).resolves.toStrictEqual({
+      batches: [],
+    });
+  });
+
+  it('should not expose a batch factory when the fallback does not support batches', () => {
+    const provider = customProvider({
+      fallbackProvider: new MockProviderV4(),
+    });
+
+    expect(
+      (provider as { experimental_batch?: unknown }).experimental_batch,
+    ).toBeUndefined();
   });
 });

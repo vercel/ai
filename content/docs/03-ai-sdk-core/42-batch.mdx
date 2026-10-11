@@ -68,6 +68,39 @@ See the provider documentation for the supported models, limits, and native
 batch behavior. For example, OpenAI batch support is available through the
 Responses API, not `openai.chat()`.
 
+### Custom providers
+
+[`customProvider`](/docs/reference/ai-sdk-core/custom-provider) preserves batch
+support from its fallback provider:
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { customProvider, experimental_startBatch as startBatch } from 'ai';
+
+const provider = customProvider({
+  languageModels: {
+    fast: openai.responses('gpt-5.4-mini'),
+  },
+  fallbackProvider: openai,
+});
+
+const batch = await startBatch({
+  provider,
+  requests: [
+    {
+      id: 'summary',
+      type: 'text',
+      model: 'gpt-5.4-mini',
+      prompt: 'Summarize the benefits of batch processing.',
+    },
+  ],
+});
+```
+
+Batch model IDs are forwarded unchanged to the fallback provider. Custom
+language and image model aliases, such as `fast` above, are not resolved for
+batch requests.
+
 ## Starting a batch
 
 Pass a provider and one or more uniquely identified requests to `startBatch`.

@@ -1,5 +1,6 @@
 import type {
   EmbeddingModelV4,
+  Experimental_BatchV4 as BatchV4,
   Experimental_VideoModelV4,
   FilesV4,
   ImageModelV4,
@@ -34,6 +35,7 @@ import { MockTranscriptionModelV3 } from '../test/mock-transcription-model-v3';
 import { MockTranscriptionModelV4 } from '../test/mock-transcription-model-v4';
 import { MockVideoModelV3 } from '../test/mock-video-model-v3';
 import { MockVideoModelV4 } from '../test/mock-video-model-v4';
+import { startBatch } from '../batch/batch';
 
 /**
  * Type-level tests for `customProvider`. Literal model identifiers follow the private
@@ -407,6 +409,68 @@ describe('customProvider with files and skills', () => {
 
     expectTypeOf(provider.files).toEqualTypeOf<() => FilesV4>();
     expectTypeOf(provider.skills).toEqualTypeOf<() => SkillsV4>();
+  });
+});
+
+describe('customProvider with batch fallback', () => {
+  it('preserves the fallback batch API and its model ID types', () => {
+    type BatchModelIds = {
+      text: 'fallback-text-model';
+      image: 'fallback-image-model';
+    };
+    const batchApi = {} as BatchV4<BatchModelIds>;
+    const fallbackProvider = Object.assign(new MockProviderV4(), {
+      experimental_batch: () => batchApi,
+    });
+    const provider = customProvider({
+      languageModels: {
+        alias: new MockLanguageModelV4(),
+      },
+      fallbackProvider,
+    });
+
+    expectTypeOf(provider.experimental_batch).toEqualTypeOf<
+      () => BatchV4<BatchModelIds>
+    >();
+    expectTypeOf(provider.experimental_batch()).toEqualTypeOf<
+      BatchV4<BatchModelIds>
+    >();
+
+    startBatch({
+      provider,
+      requests: [
+        {
+          id: 'text-request',
+          type: 'text',
+          model: 'fallback-text-model',
+          prompt: 'hello',
+        },
+        {
+          id: 'image-request',
+          type: 'image',
+          model: 'fallback-image-model',
+          prompt: 'hello',
+        },
+      ],
+    });
+
+    startBatch({
+      provider,
+      requests: [
+        // @ts-expect-error custom language model aliases are not batch model IDs
+        { id: 'request', type: 'text', model: 'alias', prompt: 'hello' },
+      ],
+    });
+  });
+
+  it('omits the batch API when the fallback does not declare it', () => {
+    const provider = customProvider({
+      fallbackProvider: new MockProviderV4(),
+    });
+
+    expectTypeOf<'experimental_batch'>().not.toMatchTypeOf<
+      keyof typeof provider
+    >();
   });
 });
 
