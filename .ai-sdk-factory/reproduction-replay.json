@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 23013,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-23013-image-message-codemod.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-23013-image-message-codemod.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #23013: transformed shorthand image part did not preserve the image binding"
+  }
+}
