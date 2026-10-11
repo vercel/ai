@@ -32,6 +32,9 @@ import {
 
 const createMockTransport = vi.fn(config => new MockMCPTransport(config));
 
+const isEdgeRuntime =
+  (globalThis as { EdgeRuntime?: unknown }).EdgeRuntime !== undefined;
+
 class GetterOnlyProtocolVersionTransport implements MCPTransport {
   private readonly transport: MockMCPTransport;
   private negotiatedProtocolVersion?: string;
@@ -476,6 +479,44 @@ class HangingInitializationTransport implements MCPTransport {
   async send(_message: JSONRPCMessage): Promise<void> {}
 }
 
+class RequestSendFailureTransport implements MCPTransport {
+  private readonly transport: MockMCPTransport;
+
+  onmessage?: (message: JSONRPCMessage) => void;
+  onclose?: () => void;
+  onerror?: (error: Error) => void;
+
+  constructor(private readonly failSend: () => Promise<void>) {
+    this.transport = new MockMCPTransport();
+  }
+
+  // Non-async on purpose: a synchronous throw from `failSend` must reach the
+  // client as a synchronous failure of transport.send.
+  send(message: JSONRPCMessage): Promise<void> {
+    this.transport.onmessage = this.onmessage;
+    this.transport.onclose = this.onclose;
+    this.transport.onerror = this.onerror;
+
+    if (
+      'id' in message &&
+      'method' in message &&
+      message.method !== 'initialize'
+    ) {
+      return this.failSend();
+    }
+
+    return this.transport.send(message);
+  }
+
+  async start(): Promise<void> {
+    await this.transport.start();
+  }
+
+  async close(): Promise<void> {
+    await this.transport.close();
+  }
+}
+
 vi.mock('./mcp-transport.ts', async importOriginal => {
   const actual = await importOriginal<typeof McpTransportModule>();
   return {
@@ -568,6 +609,56 @@ describe('MCPClient', () => {
       ],
       structuredContent,
       isError: false,
+    });
+  });
+
+  // process.getActiveResourcesInfo is Node-only, so these cleanup tests are
+  // skipped in the edge runtime.
+  describe.skipIf(isEdgeRuntime)('request cleanup on send failure', () => {
+    const countActiveTimeouts = () =>
+      process.getActiveResourcesInfo().filter(type => type === 'Timeout')
+        .length;
+
+    it('should clean up the request timer and handler when transport.send throws synchronously', async () => {
+      const failure = new Error('sync send failure');
+      client = await createMCPClient({
+        transport: new RequestSendFailureTransport(() => {
+          throw failure;
+        }),
+      });
+
+      const timersBefore = countActiveTimeouts();
+
+      await expect(
+        client.callTool({
+          name: 'mock-tool',
+          arguments: { foo: 'bar' },
+          options: { timeout: 60_000 },
+        }),
+      ).rejects.toBe(failure);
+
+      expect(countActiveTimeouts()).toBe(timersBefore);
+    });
+
+    it('should clean up the request timer and handler when transport.send returns a rejected promise', async () => {
+      const failure = new Error('async send failure');
+      client = await createMCPClient({
+        transport: new RequestSendFailureTransport(() =>
+          Promise.reject(failure),
+        ),
+      });
+
+      const timersBefore = countActiveTimeouts();
+
+      await expect(
+        client.callTool({
+          name: 'mock-tool',
+          arguments: { foo: 'bar' },
+          options: { timeout: 60_000 },
+        }),
+      ).rejects.toBe(failure);
+
+      expect(countActiveTimeouts()).toBe(timersBefore);
     });
   });
 

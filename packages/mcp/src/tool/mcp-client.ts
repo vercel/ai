@@ -969,10 +969,16 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
         ...(transportSignal == null ? {} : { signal: transportSignal }),
         ...(headers == null ? {} : { headers }),
       };
-      const sendPromise =
-        Object.keys(sendOptions).length === 0
-          ? this.send(jsonrpcRequest)
-          : this.send(jsonrpcRequest, sendOptions);
+      let sendPromise: Promise<void>;
+      try {
+        sendPromise =
+          Object.keys(sendOptions).length === 0
+            ? this.send(jsonrpcRequest)
+            : this.send(jsonrpcRequest, sendOptions);
+      } catch (error) {
+        rejectAndCleanup(error);
+        return;
+      }
 
       sendPromise.catch(error => {
         rejectAndCleanup(error);
