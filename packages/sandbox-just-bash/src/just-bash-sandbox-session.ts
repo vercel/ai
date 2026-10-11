@@ -5,6 +5,7 @@ import {
   type Experimental_SandboxProcess as SandboxProcess,
 } from '@ai-sdk/provider-utils';
 import type { Sandbox, SandboxCommand } from 'just-bash';
+import { createSandboxProcessOutput } from './sandbox-process-output';
 import { ensureRealpath } from './utils';
 
 /**
@@ -224,41 +225,26 @@ function createSandboxProcess(
   abortSignal: AbortSignal | undefined,
 ): SandboxProcess {
   const encoder = new TextEncoder();
-  const controllers: {
-    stdout?: ReadableStreamDefaultController<Uint8Array>;
-    stderr?: ReadableStreamDefaultController<Uint8Array>;
-  } = {};
-
-  const stdout = new ReadableStream<Uint8Array>({
-    start(controller) {
-      controllers.stdout = controller;
-    },
-  });
-
-  const stderr = new ReadableStream<Uint8Array>({
-    start(controller) {
-      controllers.stderr = controller;
-    },
-  });
+  const stdout = createSandboxProcessOutput();
+  const stderr = createSandboxProcessOutput();
 
   const drained = (async () => {
     try {
       for await (const message of command.logs()) {
-        const target =
-          message.type === 'stdout' ? controllers.stdout : controllers.stderr;
-        target?.enqueue(encoder.encode(message.data));
+        const target = message.type === 'stdout' ? stdout : stderr;
+        await target.write(encoder.encode(message.data));
       }
-      controllers.stdout?.close();
-      controllers.stderr?.close();
+      stdout.close();
+      stderr.close();
     } catch (error) {
-      controllers.stdout?.error(error);
-      controllers.stderr?.error(error);
+      stdout.error(error);
+      stderr.error(error);
     }
   })();
 
   return {
-    stdout,
-    stderr,
+    stdout: stdout.stream,
+    stderr: stderr.stream,
     async wait(): Promise<{ exitCode: number }> {
       const finished = await command.wait();
       await drained;
