@@ -148,14 +148,13 @@ export function convertToolResultPart(block: ToolResultPart): ToolMessage {
     }
 
     if (block.output.type === 'content') {
-      return block.output.value
-        .map(outputBlock => {
-          if (outputBlock.type === 'text') {
-            return outputBlock.text;
-          }
-          return '';
-        })
-        .join('');
+      if (
+        block.output.value.every(outputBlock => outputBlock.type === 'text')
+      ) {
+        return block.output.value.map(outputBlock => outputBlock.text).join('');
+      }
+
+      return block.output.value.map(convertToolResultContentBlock);
     }
 
     return '';
@@ -252,6 +251,161 @@ function convertImageToContentBlock(
     data: btoa(String.fromCharCode(...bytes)),
     mimeType: mediaType,
   };
+}
+
+type ToolResultContentBlock = Extract<
+  ToolResultPart['output'],
+  { type: 'content' }
+>['value'][number];
+
+function convertToolResultContentBlock(
+  block: ToolResultContentBlock,
+): ContentBlock.Standard {
+  switch (block.type) {
+    case 'text':
+      return { type: 'text', text: block.text };
+
+    case 'file': {
+      switch (block.data.type) {
+        case 'data':
+          return convertFileToContentBlock(
+            block.data.data,
+            block.mediaType,
+            block.filename,
+          );
+        case 'url':
+          return convertFileToContentBlock(
+            block.data.url,
+            block.mediaType,
+            block.filename,
+          );
+        case 'text':
+          return {
+            type: 'text',
+            text: block.data.text,
+          };
+        case 'reference':
+          throw new Error(
+            'Cannot convert provider file references in tool results to LangChain content blocks.',
+          );
+      }
+    }
+
+    case 'file-data':
+      return convertFileToContentBlock(
+        block.data,
+        block.mediaType,
+        block.filename,
+      );
+
+    case 'file-url':
+      return convertFileToContentBlock(
+        block.url,
+        block.mediaType ?? 'application/octet-stream',
+      );
+
+    case 'file-id':
+      if (typeof block.fileId !== 'string') {
+        throw new Error(
+          'Cannot convert provider-specific file IDs in tool results to LangChain content blocks.',
+        );
+      }
+      return { type: 'file', fileId: block.fileId };
+
+    case 'file-reference':
+      throw new Error(
+        'Cannot convert provider file references in tool results to LangChain content blocks.',
+      );
+
+    case 'image-data':
+      return convertImageToContentBlock(block.data, block.mediaType);
+
+    case 'image-url':
+      return convertImageToContentBlock(block.url);
+
+    case 'image-file-id':
+      if (typeof block.fileId !== 'string') {
+        throw new Error(
+          'Cannot convert provider-specific image file IDs in tool results to LangChain content blocks.',
+        );
+      }
+      return { type: 'image', fileId: block.fileId };
+
+    case 'image-file-reference':
+      throw new Error(
+        'Cannot convert provider image references in tool results to LangChain content blocks.',
+      );
+
+    case 'custom':
+      throw new Error(
+        'Cannot convert custom tool result content to a LangChain content block.',
+      );
+  }
+}
+
+function convertFileToContentBlock(
+  data: string | Uint8Array | URL | ArrayBuffer,
+  mediaType: string,
+  filename?: string,
+): ContentBlock.Multimodal.Standard {
+  const type =
+    mediaType === 'image' || mediaType.startsWith('image/')
+      ? 'image'
+      : mediaType === 'audio' || mediaType.startsWith('audio/')
+        ? 'audio'
+        : mediaType === 'video' || mediaType.startsWith('video/')
+          ? 'video'
+          : 'file';
+  const fileProperties = type === 'file' && filename ? { filename } : {};
+
+  if (data instanceof URL) {
+    data = data.toString();
+  }
+
+  if (typeof data === 'string') {
+    if (data.startsWith('http://') || data.startsWith('https://')) {
+      return {
+        type,
+        url: data,
+        mimeType: mediaType,
+        ...fileProperties,
+      } as ContentBlock.Multimodal.Standard;
+    }
+
+    if (data.startsWith('data:')) {
+      const matches = data.match(/^data:([^;]+);base64,(.+)$/);
+      if (matches) {
+        return {
+          type,
+          data: matches[2],
+          mimeType: matches[1],
+          ...fileProperties,
+        } as ContentBlock.Multimodal.Standard;
+      }
+
+      return {
+        type,
+        url: data,
+        mimeType: mediaType,
+        ...fileProperties,
+      } as ContentBlock.Multimodal.Standard;
+    }
+
+    return {
+      type,
+      data,
+      mimeType: mediaType,
+      ...fileProperties,
+    } as ContentBlock.Multimodal.Standard;
+  }
+
+  const bytes = data instanceof ArrayBuffer ? new Uint8Array(data) : data;
+  return {
+    type,
+    data: btoa(String.fromCharCode(...bytes)),
+    mimeType: mediaType,
+    ...fileProperties,
+  } as ContentBlock.Multimodal.Standard;
 }
 
 /**
