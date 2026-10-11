@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22984,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22984-trace-tree-terminal-error.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22984-trace-tree-terminal-error.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22984: failed generateText turn emitted no trace tree"
+  }
+}
