@@ -3229,6 +3229,184 @@ describe('toUIMessageStream', () => {
 });
 
 describe('toUIMessageStream with streamEvents', () => {
+  it('should keep text from overlapping model runs in separate parts', async () => {
+    const inputStream = convertArrayToReadableStream([
+      {
+        event: 'on_chat_model_start',
+        run_id: 'run-a',
+        data: { input: {} },
+      },
+      {
+        event: 'on_chat_model_start',
+        run_id: 'run-b',
+        data: { input: {} },
+      },
+      {
+        event: 'on_chat_model_stream',
+        run_id: 'run-a',
+        data: {
+          chunk: new AIMessageChunk({ id: 'run-a', content: 'A' }),
+        },
+      },
+      {
+        event: 'on_chat_model_stream',
+        run_id: 'run-b',
+        data: {
+          chunk: new AIMessageChunk({ id: 'run-b', content: 'B' }),
+        },
+      },
+      {
+        event: 'on_chat_model_stream',
+        run_id: 'run-a',
+        data: {
+          chunk: new AIMessageChunk({ id: 'run-a', content: 'a' }),
+        },
+      },
+      {
+        event: 'on_chat_model_stream',
+        run_id: 'run-b',
+        data: {
+          chunk: new AIMessageChunk({ id: 'run-b', content: 'b' }),
+        },
+      },
+      {
+        event: 'on_chat_model_end',
+        run_id: 'run-a',
+        data: { output: new AIMessageChunk({ id: 'run-a', content: '' }) },
+      },
+      {
+        event: 'on_chat_model_end',
+        run_id: 'run-b',
+        data: { output: new AIMessageChunk({ id: 'run-b', content: '' }) },
+      },
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(result).toEqual([
+      { type: 'start' },
+      { type: 'text-start', id: 'run-a' },
+      { type: 'text-delta', id: 'run-a', delta: 'A' },
+      { type: 'text-start', id: 'run-b' },
+      { type: 'text-delta', id: 'run-b', delta: 'B' },
+      { type: 'text-delta', id: 'run-a', delta: 'a' },
+      { type: 'text-delta', id: 'run-b', delta: 'b' },
+      { type: 'text-end', id: 'run-a' },
+      { type: 'text-end', id: 'run-b' },
+      { type: 'finish' },
+    ]);
+  });
+
+  it('should keep reasoning lifecycles independent for nested model runs', async () => {
+    const inputStream = convertArrayToReadableStream([
+      {
+        event: 'on_chat_model_start',
+        run_id: 'parent-run',
+        parent_ids: [],
+        data: { input: {} },
+      },
+      {
+        event: 'on_chat_model_start',
+        run_id: 'child-run',
+        parent_ids: ['parent-run'],
+        data: { input: {} },
+      },
+      {
+        event: 'on_chat_model_stream',
+        run_id: 'parent-run',
+        parent_ids: [],
+        data: {
+          chunk: {
+            content: '',
+            contentBlocks: [
+              { type: 'reasoning', reasoning: 'parent reasoning' },
+            ],
+          },
+        },
+      },
+      {
+        event: 'on_chat_model_stream',
+        run_id: 'child-run',
+        parent_ids: ['parent-run'],
+        data: {
+          chunk: {
+            content: '',
+            contentBlocks: [
+              { type: 'reasoning', reasoning: 'child reasoning' },
+            ],
+          },
+        },
+      },
+      {
+        event: 'on_chat_model_stream',
+        run_id: 'parent-run',
+        parent_ids: [],
+        data: {
+          chunk: { id: 'parent-message', content: 'parent answer' },
+        },
+      },
+      {
+        event: 'on_chat_model_stream',
+        run_id: 'child-run',
+        parent_ids: ['parent-run'],
+        data: {
+          chunk: { id: 'child-message', content: 'child answer' },
+        },
+      },
+      {
+        event: 'on_chat_model_end',
+        run_id: 'child-run',
+        parent_ids: ['parent-run'],
+        data: { output: { id: 'child-message', content: '' } },
+      },
+      {
+        event: 'on_chat_model_end',
+        run_id: 'parent-run',
+        parent_ids: [],
+        data: { output: { id: 'parent-message', content: '' } },
+      },
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(result).toEqual([
+      { type: 'start' },
+      { type: 'reasoning-start', id: 'parent-run' },
+      {
+        type: 'reasoning-delta',
+        id: 'parent-run',
+        delta: 'parent reasoning',
+      },
+      { type: 'reasoning-start', id: 'child-run' },
+      {
+        type: 'reasoning-delta',
+        id: 'child-run',
+        delta: 'child reasoning',
+      },
+      { type: 'reasoning-end', id: 'parent-run' },
+      { type: 'text-start', id: 'parent-message' },
+      {
+        type: 'text-delta',
+        id: 'parent-message',
+        delta: 'parent answer',
+      },
+      { type: 'reasoning-end', id: 'child-run' },
+      { type: 'text-start', id: 'child-message' },
+      {
+        type: 'text-delta',
+        id: 'child-message',
+        delta: 'child answer',
+      },
+      { type: 'text-end', id: 'child-message' },
+      { type: 'text-end', id: 'parent-message' },
+      { type: 'finish' },
+    ]);
+  });
+
   it('should detect and handle streamEvents format', async () => {
     // Simulate streamEvents output from agent.streamEvents()
     const inputStream = convertArrayToReadableStream([
