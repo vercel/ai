@@ -159,7 +159,7 @@ describe('convertToolResultPart', () => {
     expect(result.content).toBe('First part Second part');
   });
 
-  it('should handle content output with non-text blocks', () => {
+  it('should preserve legacy image blocks in content output', () => {
     const part: ToolResultPart = {
       type: 'tool-result',
       toolCallId: 'call-1',
@@ -175,7 +175,74 @@ describe('convertToolResultPart', () => {
 
     const result = convertToolResultPart(part);
 
-    expect(result.content).toBe('Hello');
+    expect(result.content).toEqual([
+      { type: 'text', text: 'Hello' },
+      {
+        type: 'image',
+        data: 'base64data',
+        mimeType: 'image/png',
+      },
+    ]);
+  });
+
+  it('should preserve file URLs in content output', () => {
+    const part: ToolResultPart = {
+      type: 'tool-result',
+      toolCallId: 'call-1',
+      toolName: 'document_lookup',
+      output: {
+        type: 'content',
+        value: [
+          { type: 'text', text: 'Document attached' },
+          {
+            type: 'file',
+            data: {
+              type: 'url',
+              url: new URL('https://example.com/document.pdf'),
+            },
+            mediaType: 'application/pdf',
+            filename: 'document.pdf',
+          },
+        ],
+      },
+    };
+
+    const result = convertToolResultPart(part);
+
+    expect(result.content).toEqual([
+      { type: 'text', text: 'Document attached' },
+      {
+        type: 'file',
+        url: 'https://example.com/document.pdf',
+        mimeType: 'application/pdf',
+        filename: 'document.pdf',
+      },
+    ]);
+  });
+
+  it('should reject provider file references in content output', () => {
+    const part: ToolResultPart = {
+      type: 'tool-result',
+      toolCallId: 'call-1',
+      toolName: 'document_lookup',
+      output: {
+        type: 'content',
+        value: [
+          {
+            type: 'file',
+            data: {
+              type: 'reference',
+              reference: { openai: 'file-123' },
+            },
+            mediaType: 'application/pdf',
+          },
+        ],
+      },
+    };
+
+    expect(() => convertToolResultPart(part)).toThrow(
+      'Cannot convert provider file references in tool results to LangChain content blocks.',
+    );
   });
 });
 

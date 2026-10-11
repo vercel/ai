@@ -2815,6 +2815,45 @@ describe('convertModelMessages', () => {
     expect(toolMsg.content).toBe('{"temperature":72,"unit":"F"}');
   });
 
+  it('should preserve multimodal tool message output', () => {
+    const modelMessages: ModelMessage[] = [
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'lookup',
+            output: {
+              type: 'content',
+              value: [
+                { type: 'text', text: 'image attached' },
+                {
+                  type: 'file',
+                  mediaType: 'image/png',
+                  data: { type: 'data', data: 'iVBORw0KGgo=' },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ];
+
+    const result = convertModelMessages(modelMessages);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBeInstanceOf(ToolMessage);
+    expect(result[0].content).toEqual([
+      { type: 'text', text: 'image attached' },
+      {
+        type: 'image',
+        data: 'iVBORw0KGgo=',
+        mimeType: 'image/png',
+      },
+    ]);
+  });
+
   it('should handle multiple messages in sequence', () => {
     const modelMessages: ModelMessage[] = [
       { role: 'system', content: 'You are helpful.' },
