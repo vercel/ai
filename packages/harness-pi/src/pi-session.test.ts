@@ -77,6 +77,14 @@ const piMock = vi.hoisted(() => {
     resourceLoaderOptions: [] as ResourceLoaderOptions[],
     registerProvider: vi.fn(),
     session: undefined as AgentSession | undefined,
+    sessionManagerCreate: vi.fn(
+      (
+        _cwd?: string,
+        _sessionDir?: string,
+      ): { getSessionFile: () => string | undefined } => ({
+        getSessionFile: () => undefined,
+      }),
+    ),
     sessionManagerOpen: vi.fn(),
   };
 });
@@ -152,9 +160,7 @@ vi.mock('@earendil-works/pi-coding-agent', async importOriginal => {
       })),
     },
     SessionManager: {
-      create: vi.fn(() => ({
-        getSessionFile: () => undefined,
-      })),
+      create: piMock.sessionManagerCreate,
       open: piMock.sessionManagerOpen,
     },
     SettingsManager: {
@@ -185,6 +191,12 @@ describe('createPiSession', () => {
       piMock.customTools = options.customTools;
       return { session: piMock.session };
     });
+    piMock.sessionManagerCreate.mockReset();
+    piMock.sessionManagerCreate.mockImplementation(
+      (_cwd?: string, _sessionDir?: string) => ({
+        getSessionFile: () => undefined,
+      }),
+    );
     piMock.sessionManagerOpen.mockReset();
     piMock.sessionManagerOpen.mockImplementation(() => ({
       getSessionFile: () => undefined,
@@ -1630,6 +1642,78 @@ describe('createPiSession', () => {
       expect(existsSync(hostRoot)).toBe(false);
     },
   );
+
+  it('persists a pending host tool call as dangling before releasing a suspended turn', async () => {
+    const toolStarted = createDeferred<void>();
+    const pendingJournal =
+      '{"role":"assistant","content":[{"type":"toolCall","id":"tool-suspended","name":"weather"}],"stopReason":"toolUse"}\n';
+    const settledJournal = `${pendingJournal}{"role":"toolResult","toolCallId":"tool-suspended","toolName":"weather","content":[{"type":"text","text":"{\\"error\\":\\"Pi session suspended\\"}"}]}\n`;
+    let sessionFilePath: string | undefined;
+
+    piMock.sessionManagerCreate.mockImplementation(
+      (_cwd?: string, sessionDir?: string) => {
+        if (sessionDir == null) {
+          throw new Error('Expected a Pi session directory.');
+        }
+        const filePath = path.join(sessionDir, 'pi-session.jsonl');
+        sessionFilePath = filePath;
+        mkdirSync(sessionDir, { recursive: true });
+        writeFileSync(filePath, pendingJournal);
+        return {
+          getSessionFile: () => filePath,
+        };
+      },
+    );
+
+    const { session: fakePiSession } = createFakePiSession({
+      promptImplementation: async () => {
+        const tool = piMock.customTools.find(tool => tool.name === 'weather');
+        if (!tool) throw new Error('Expected weather tool.');
+        const toolResult = tool.execute(
+          'tool-suspended',
+          {},
+          undefined,
+          undefined,
+          undefined as never,
+        );
+        toolStarted.resolve();
+        await toolResult;
+        if (sessionFilePath == null) {
+          throw new Error('Expected a Pi session file.');
+        }
+        writeFileSync(sessionFilePath, settledJournal);
+      },
+    });
+    piMock.session = fakePiSession;
+
+    const sandboxSession = createSandboxSession();
+    const session = await createPiSession({
+      sessionId: 'session-persist-dangling-tool',
+      sandboxSession,
+      sessionWorkDir: '/sandbox/work',
+      settings: { reattachInProcess: false },
+      clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+      isResume: false,
+    });
+    const control = await session.doPromptTurn({
+      skills: [],
+      prompt: 'go',
+      tools: [{ name: 'weather' }],
+      emit: vi.fn(),
+    });
+    await toolStarted.promise;
+
+    await session.doSuspendTurn();
+    await control.done;
+
+    expect(sandboxSession.writeBinaryFile).toHaveBeenCalledOnce();
+    const persistedFile = vi.mocked(sandboxSession.writeBinaryFile).mock
+      .calls[0]![0];
+    expect(persistedFile.path).toContain('/pi-session.jsonl');
+    expect(Buffer.from(persistedFile.content).toString('utf8')).toBe(
+      pendingJournal,
+    );
+  });
 
   it.each([
     {
