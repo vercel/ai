@@ -209,6 +209,63 @@ describe('abort signal handling', () => {
     );
     expect(modelCallCount).toBe(1);
   });
+
+  it('should reject promptly with the original abort reason during asynchronous output validation', async () => {
+    const abortController = new AbortController();
+    const cancellationReason = new Error('cancelled');
+    const validationStarted = new DelayedPromise<void>();
+    const validationFinished = new DelayedPromise<void>();
+    const validationCompleted = new DelayedPromise<void>();
+    let settled = false;
+
+    const outcome = generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async () => ({
+          ...dummyResponseValues,
+          content: [{ type: 'text', text: '{}' }],
+        }),
+      }),
+      prompt: 'test-input',
+      abortSignal: abortController.signal,
+      output: Output.object({
+        schema: jsonSchema(
+          { type: 'object' },
+          {
+            validate: async value => {
+              validationStarted.resolve(undefined);
+              await validationFinished.promise;
+              validationCompleted.resolve(undefined);
+              return { success: true, value };
+            },
+          },
+        ),
+      }),
+    }).then(
+      () => {
+        settled = true;
+        return { status: 'resolved' as const };
+      },
+      error => {
+        settled = true;
+        return { status: 'rejected' as const, error };
+      },
+    );
+
+    await validationStarted.promise;
+    abortController.abort(cancellationReason);
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    expect(settled).toBe(true);
+
+    validationFinished.resolve(undefined);
+    await validationCompleted.promise;
+
+    const result = await outcome;
+    expect(result.status).toBe('rejected');
+    if (result.status === 'rejected') {
+      expect(result.error).toBe(cancellationReason);
+    }
+  });
 });
 
 describe('experimental_toolCallers', () => {
@@ -7391,7 +7448,9 @@ describe('generateText', () => {
       // Abort the operation
       abortController.abort();
 
-      await generateTextPromise;
+      await expect(generateTextPromise).rejects.toMatchObject({
+        name: 'AbortError',
+      });
 
       expect(toolExecuteMock).toHaveBeenCalledWith(
         { value: 'value' },
