@@ -710,6 +710,232 @@ describe('WebSocketChatTransport', () => {
     expect(socket.sent).toHaveLength(2);
   });
 
+  it('rejects an aborted queued send without waiting for an earlier send to drain', async () => {
+    const transport = new WebSocketChatTransport<UIMessage>({
+      url: 'wss://example.com/chat',
+      webSocket,
+    });
+
+    let firstSettled = false;
+    const firstPromise = transport
+      .sendMessages({
+        chatId: 'chat-1',
+        messageId: 'message-1',
+        trigger: 'submit-message',
+        messages: [],
+        abortSignal: undefined,
+      })
+      .then(stream => {
+        firstSettled = true;
+        return stream;
+      });
+    await vi.waitFor(() => {
+      expect(MockWebSocket.instances).toHaveLength(1);
+    });
+    const socket = MockWebSocket.instances[0];
+    socket.bufferedAmount = 2 * 1024 * 1024;
+    socket.open();
+
+    const abortController = new AbortController();
+    let secondSettled = false;
+    const secondResult = transport
+      .sendMessages({
+        chatId: 'chat-2',
+        messageId: 'message-2',
+        trigger: 'submit-message',
+        messages: [],
+        abortSignal: abortController.signal,
+      })
+      .then(
+        stream => ({ status: 'resolved' as const, stream }),
+        error => ({ status: 'rejected' as const, error }),
+      )
+      .then(result => {
+        secondSettled = true;
+        return result;
+      });
+    await vi.waitFor(() => {
+      expect(
+        (
+          transport as unknown as {
+            activeRequests: Map<string, unknown>;
+          }
+        ).activeRequests,
+      ).toHaveLength(2);
+    });
+
+    abortController.abort();
+    await new Promise(resolve => setTimeout(resolve, 0));
+    const settledBeforeDrain = secondSettled;
+    const firstSettledBeforeDrain = firstSettled;
+    const socketStateBeforeDrain = socket.readyState;
+
+    socket.bufferedAmount = 0;
+    const firstStream = await firstPromise;
+    const result = await secondResult;
+    await vi.waitFor(() => {
+      expect(socket.sent.map(frame => JSON.parse(frame).type)).toContain(
+        'abort',
+      );
+    });
+
+    expect(settledBeforeDrain).toBe(true);
+    expect(firstSettledBeforeDrain).toBe(false);
+    expect(socketStateBeforeDrain).toBe(1);
+    expect(result.status).toBe('rejected');
+    if (result.status === 'rejected') {
+      expect(result.error).toMatchObject({ name: 'AbortError' });
+    }
+    expect(
+      socket.sent
+        .map(frame => JSON.parse(frame) as WebSocketChatTransportRequest)
+        .filter(frame => frame.type === 'send')
+        .map(frame => frame.id),
+    ).toEqual(['chat-1']);
+
+    await firstStream.cancel();
+    transport.close();
+  });
+
+  it('rejects an aborted queued resume without waiting for an earlier send to drain', async () => {
+    const transport = new WebSocketChatTransport<UIMessage>({
+      url: 'wss://example.com/chat',
+      webSocket,
+    });
+
+    const firstPromise = transport.sendMessages({
+      chatId: 'chat-1',
+      messageId: 'message-1',
+      trigger: 'submit-message',
+      messages: [],
+      abortSignal: undefined,
+    });
+    await vi.waitFor(() => {
+      expect(MockWebSocket.instances).toHaveLength(1);
+    });
+    const socket = MockWebSocket.instances[0];
+    socket.bufferedAmount = 2 * 1024 * 1024;
+    socket.open();
+
+    const abortController = new AbortController();
+    let resumeSettled = false;
+    const resumeResult = transport
+      .reconnectToStream({
+        chatId: 'chat-2',
+        abortSignal: abortController.signal,
+      })
+      .then(
+        stream => ({ status: 'resolved' as const, stream }),
+        error => ({ status: 'rejected' as const, error }),
+      )
+      .then(result => {
+        resumeSettled = true;
+        return result;
+      });
+    await vi.waitFor(() => {
+      expect(
+        (
+          transport as unknown as {
+            activeRequests: Map<string, unknown>;
+          }
+        ).activeRequests,
+      ).toHaveLength(2);
+    });
+
+    abortController.abort();
+    await new Promise(resolve => setTimeout(resolve, 0));
+    const settledBeforeDrain = resumeSettled;
+
+    socket.bufferedAmount = 0;
+    const firstStream = await firstPromise;
+    const result = await resumeResult;
+    await vi.waitFor(() => {
+      expect(socket.sent.map(frame => JSON.parse(frame).type)).toContain(
+        'abort',
+      );
+    });
+
+    expect(settledBeforeDrain).toBe(true);
+    expect(result.status).toBe('rejected');
+    if (result.status === 'rejected') {
+      expect(result.error).toMatchObject({ name: 'AbortError' });
+    }
+    expect(
+      socket.sent
+        .map(frame => JSON.parse(frame) as WebSocketChatTransportRequest)
+        .filter(frame => frame.type === 'resume'),
+    ).toEqual([]);
+
+    await firstStream.cancel();
+    transport.close();
+  });
+
+  it('rejects an aborted send while its own frame waits for buffer drain', async () => {
+    const abortController = new AbortController();
+    const transport = new WebSocketChatTransport<UIMessage>({
+      url: 'wss://example.com/chat',
+      webSocket,
+    });
+
+    let sendSettled = false;
+    const sendResult = transport
+      .sendMessages({
+        chatId: 'chat-1',
+        messageId: 'message-1',
+        trigger: 'submit-message',
+        messages: [],
+        abortSignal: abortController.signal,
+      })
+      .then(
+        stream => ({ status: 'resolved' as const, stream }),
+        error => ({ status: 'rejected' as const, error }),
+      )
+      .then(result => {
+        sendSettled = true;
+        return result;
+      });
+    await vi.waitFor(() => {
+      expect(MockWebSocket.instances).toHaveLength(1);
+    });
+    const socket = MockWebSocket.instances[0];
+    socket.bufferedAmount = 2 * 1024 * 1024;
+    socket.open();
+    await vi.waitFor(() => {
+      expect(
+        (
+          transport as unknown as {
+            activeRequests: Map<string, unknown>;
+          }
+        ).activeRequests,
+      ).toHaveLength(1);
+    });
+
+    abortController.abort();
+    await new Promise(resolve => setTimeout(resolve, 0));
+    const settledBeforeDrain = sendSettled;
+
+    socket.bufferedAmount = 0;
+    const result = await sendResult;
+    await vi.waitFor(() => {
+      expect(socket.sent.map(frame => JSON.parse(frame).type)).toContain(
+        'abort',
+      );
+    });
+
+    expect(settledBeforeDrain).toBe(true);
+    expect(result.status).toBe('rejected');
+    if (result.status === 'rejected') {
+      expect(result.error).toMatchObject({ name: 'AbortError' });
+    }
+    expect(
+      socket.sent
+        .map(frame => JSON.parse(frame) as WebSocketChatTransportRequest)
+        .filter(frame => frame.type === 'send'),
+    ).toEqual([]);
+
+    transport.close();
+  });
+
   it('decodes Blob response frames', async () => {
     const transport = new WebSocketChatTransport<UIMessage>({
       url: 'wss://example.com/chat',
