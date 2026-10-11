@@ -35,6 +35,7 @@ export class DefaultChatTransport<
     return parseJsonEventStream({
       stream,
       schema: uiMessageChunkSchema,
+      terminateOnDone: true,
     }).pipeThrough(
       new TransformStream<ParseResult<UIMessageChunk>, UIMessageChunk>({
         async transform(chunk, controller) {
