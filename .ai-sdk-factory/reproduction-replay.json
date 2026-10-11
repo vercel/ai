@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22951,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22951-async-iterator-prevent-cancel.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22951-async-iterator-prevent-cancel.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22951: preventCancel=true discarded the unread batch result"
+  }
+}
