@@ -58,6 +58,7 @@ import { now as originalNow } from '../util/now';
 import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
 import { setAbortTimeout } from '../util/set-abort-timeout';
+import { waitForPromiseWithAbortSignal } from '../util/wait-for-promise-with-abort-signal';
 import { VERSION } from '../version';
 import type { ActiveTools } from './active-tools';
 import { calculateTokensPerSecond } from './calculate-tokens-per-second';
@@ -1601,14 +1602,17 @@ export async function generateText<
         (lastStep.finishReason !== 'tool-calls' && lastStep.text.length > 0)
       ) {
         const outputSpecification = output ?? text();
-        resolvedOutput = await outputSpecification.parseCompleteOutput(
-          { text: lastStep.text },
-          {
-            response: lastStep.response,
-            usage: lastStep.usage,
-            finishReason: lastStep.finishReason,
-          },
-        );
+        resolvedOutput = await waitForPromiseWithAbortSignal({
+          promise: outputSpecification.parseCompleteOutput(
+            { text: lastStep.text },
+            {
+              response: lastStep.response,
+              usage: lastStep.usage,
+              finishReason: lastStep.finishReason,
+            },
+          ),
+          abortSignal: mergedAbortSignal,
+        });
       }
 
       return new DefaultGenerateTextResult({

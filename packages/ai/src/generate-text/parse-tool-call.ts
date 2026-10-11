@@ -12,6 +12,7 @@ import { NoSuchToolError } from '../error/no-such-tool-error';
 import { ToolCallRepairError } from '../error/tool-call-repair-error';
 import type { Instructions } from '../prompt';
 import { getOwn } from '../util/get-own';
+import { waitForPromiseWithAbortSignal } from '../util/wait-for-promise-with-abort-signal';
 import {
   getToolCallInputSchemaInput,
   setToolCallInputSchemaInput,
@@ -132,44 +133,6 @@ export async function parseToolCall<TOOLS extends ToolSet>({
       ...(tool?.metadata != null ? { toolMetadata: tool.metadata } : {}),
     };
   }
-}
-
-async function waitForPromiseWithAbortSignal<T>({
-  promise,
-  abortSignal,
-}: {
-  promise: PromiseLike<T>;
-  abortSignal: AbortSignal | undefined;
-}): Promise<T> {
-  if (abortSignal == null) {
-    return await promise;
-  }
-
-  return await new Promise<T>((resolve, reject) => {
-    const cleanup = () => {
-      abortSignal.removeEventListener('abort', onAbort);
-    };
-    const onAbort = () => {
-      cleanup();
-      reject(abortSignal.reason);
-    };
-
-    Promise.resolve(promise)
-      .then(value => {
-        cleanup();
-        resolve(value);
-      })
-      .catch(error => {
-        cleanup();
-        reject(error);
-      });
-
-    abortSignal.addEventListener('abort', onAbort, { once: true });
-
-    if (abortSignal.aborted) {
-      onAbort();
-    }
-  });
 }
 
 export async function refineParsedToolCallInput<TOOLS extends ToolSet>({
