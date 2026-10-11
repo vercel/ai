@@ -3349,6 +3349,100 @@ describe('toUIMessageStream with streamEvents', () => {
     `);
   });
 
+  it('should preserve complete streamEvents tool inputs in UI messages', async () => {
+    const inputStream = convertArrayToReadableStream([
+      {
+        event: 'on_tool_start',
+        run_id: 'object-call',
+        name: 'lookup',
+        data: { input: { city: 'Paris' } },
+      },
+      {
+        event: 'on_tool_start',
+        run_id: 'scalar-call',
+        name: 'lookupById',
+        data: { input: 42 },
+      },
+      {
+        event: 'on_tool_start',
+        run_id: 'absent-call',
+        name: 'refresh',
+        data: {},
+      },
+      {
+        event: 'on_tool_end',
+        run_id: 'scalar-call',
+        data: { output: 'record 42' },
+      },
+      {
+        event: 'on_tool_end',
+        run_id: 'object-call',
+        data: { output: 'sunny' },
+      },
+      {
+        event: 'on_tool_end',
+        run_id: 'absent-call',
+        data: { output: 'done' },
+      },
+    ]);
+
+    const [rawStream, messageStream] = toUIMessageStream(inputStream).tee();
+    const rawChunks = await convertReadableStreamToArray(rawStream);
+
+    let finalMessage: UIMessage | undefined;
+    for await (const message of readUIMessageStream({
+      stream: messageStream,
+    })) {
+      finalMessage = message;
+    }
+
+    expect(
+      rawChunks
+        .filter(chunk => chunk.type === 'tool-input-available')
+        .map(chunk => ({
+          toolCallId: chunk.toolCallId,
+          toolName: chunk.toolName,
+          input: chunk.input,
+        })),
+    ).toEqual([
+      {
+        toolCallId: 'object-call',
+        toolName: 'lookup',
+        input: { city: 'Paris' },
+      },
+      {
+        toolCallId: 'scalar-call',
+        toolName: 'lookupById',
+        input: 42,
+      },
+    ]);
+    expect(
+      finalMessage?.parts
+        .filter(part => part.type === 'dynamic-tool')
+        .map(part => ({
+          toolCallId: part.toolCallId,
+          input: part.input,
+          output: 'output' in part ? part.output : undefined,
+        })),
+    ).toEqual([
+      {
+        toolCallId: 'object-call',
+        input: { city: 'Paris' },
+        output: 'sunny',
+      },
+      {
+        toolCallId: 'scalar-call',
+        input: 42,
+        output: 'record 42',
+      },
+      {
+        toolCallId: 'absent-call',
+        input: undefined,
+        output: 'done',
+      },
+    ]);
+  });
+
   it('should handle streamEvents with reasoning content', async () => {
     const inputStream = convertArrayToReadableStream([
       {
