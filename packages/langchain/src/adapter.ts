@@ -503,6 +503,11 @@ export function toUIMessageStream<TState = unknown>(
   const iterator = getAsyncIterator();
 
   /**
+   * Queue text callbacks so async handlers run in stream order.
+   */
+  let pendingTextCallbacks = Promise.resolve();
+
+  /**
    * Create a wrapper around the controller to intercept text chunks for callbacks
    */
   const createCallbackController = (
@@ -522,8 +527,12 @@ export function toUIMessageStream<TState = unknown>(
           if (options?.onFinal) {
             textChunks.push(chunk.delta);
           }
-          options?.onToken?.(chunk.delta);
-          options?.onText?.(chunk.delta);
+          if (options?.onToken || options?.onText) {
+            pendingTextCallbacks = pendingTextCallbacks.then(async () => {
+              await options?.onToken?.(chunk.delta);
+              await options?.onText?.(chunk.delta);
+            });
+          }
         }
         originalController.enqueue(chunk);
       },
@@ -591,6 +600,8 @@ export function toUIMessageStream<TState = unknown>(
               wrappedController,
             );
           }
+
+          await pendingTextCallbacks;
         }
 
         /**
