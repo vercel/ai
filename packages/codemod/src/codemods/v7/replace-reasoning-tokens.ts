@@ -8,6 +8,15 @@ export default createTransformer((fileInfo, api, options, context) => {
       property: { type: 'Identifier', name: 'reasoningTokens' },
     })
     .forEach(path => {
+      if (
+        j.MemberExpression.check(path.node.object) &&
+        !path.node.object.computed &&
+        j.Identifier.check(path.node.object.property) &&
+        path.node.object.property.name === 'outputTokenDetails'
+      ) {
+        return;
+      }
+
       j(path).replaceWith(
         j.memberExpression(
           j.memberExpression(

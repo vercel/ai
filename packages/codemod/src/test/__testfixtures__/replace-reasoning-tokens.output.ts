@@ -8,5 +8,6 @@ const result = await generateText({
 });
 
 console.log((result.usage as any).outputTokenDetails.reasoningTokens);
+console.log((result.usage as any).outputTokenDetails.reasoningTokens);
 
 export {};
