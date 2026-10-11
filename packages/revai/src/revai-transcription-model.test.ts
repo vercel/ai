@@ -102,6 +102,21 @@ describe('doGenerate', () => {
         `"Hello from the Sal, A-I-S-D-K."`,
       );
     });
+
+    it('should attach punctuation to the preceding timed segment', async () => {
+      const result = await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+      expect(result.segments).toEqual([
+        { text: 'Hello', startSecond: 0.075, endSecond: 0.425 },
+        { text: 'from', startSecond: 0.425, endSecond: 0.665 },
+        { text: 'the', startSecond: 0.665, endSecond: 0.785 },
+        { text: 'Sal,', startSecond: 0.945, endSecond: 1.105 },
+        { text: 'A-I-S-D-K.', startSecond: 1.185, endSecond: 2.145 },
+      ]);
+    });
   });
 
   describe('response headers', () => {
