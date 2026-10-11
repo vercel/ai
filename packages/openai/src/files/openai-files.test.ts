@@ -351,6 +351,35 @@ describe('OpenAI Files - uploadFile (pre-request rejection)', () => {
     expect(cancelSpy).toHaveBeenCalled();
     expect(server.calls.length).toBe(0);
   });
+
+  it('should cancel stream data when request header preparation fails', async () => {
+    const failure = new Error('header preparation failed');
+    const cancelSpy = vi.fn();
+    const stream = new ReadableStream<Uint8Array>({ cancel: cancelSpy });
+    const fetchSpy = vi.fn();
+
+    const provider = createOpenAI({
+      apiKey: 'test-api-key',
+      headers: {
+        get 'x-test'(): string {
+          throw failure;
+        },
+      },
+      fetch: fetchSpy,
+    });
+    const files = provider.files();
+
+    await expect(
+      files.uploadFile({
+        data: { type: 'stream', stream },
+        mediaType: 'application/jsonl',
+      }),
+    ).rejects.toBe(failure);
+
+    expect(cancelSpy).toHaveBeenCalledOnce();
+    expect(cancelSpy).toHaveBeenCalledWith(failure);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
 });
 
 describe('OpenAI Files - getFileMetadata', () => {
