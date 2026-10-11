@@ -3,7 +3,6 @@ import {
   HarnessCapabilityUnsupportedError,
   type HarnessV1NetworkSandboxSession,
   type HarnessV1PortEndpoint,
-  type HarnessV1SandboxProvider,
 } from '@ai-sdk/harness';
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
@@ -349,19 +348,6 @@ function fakeSandbox({
     ...(addRequestTransformations == null ? {} : { addRequestTransformations }),
     ...restricted,
   } as unknown as HarnessV1NetworkSandboxSession;
-}
-
-function sandboxProvider({
-  session,
-}: {
-  session: HarnessV1NetworkSandboxSession;
-}): HarnessV1SandboxProvider {
-  return {
-    specificationVersion: 'harness-sandbox-v1',
-    providerId: 'acp-test-sandbox',
-    createSession: async () => session,
-    resumeSession: async () => session,
-  };
 }
 
 async function collectStream({
@@ -3783,11 +3769,11 @@ describe('createACP', () => {
     });
     const firstAgent = new HarnessAgent({
       harness,
-      sandbox: sandboxProvider({ session: sandboxSession }),
       tools: { clientTool },
     });
     const firstSession = await firstAgent.createSession({
       sessionId: 'session-1',
+      sandboxSession,
     });
     const firstChannel = harnessUtilsMocks.channels[0]!;
     const first = await firstAgent.stream({
@@ -3817,12 +3803,12 @@ describe('createACP', () => {
 
     const secondAgent = new HarnessAgent({
       harness,
-      sandbox: sandboxProvider({ session: sandboxSession }),
       tools: { clientTool },
     });
     const secondSession = await secondAgent.createSession({
       sessionId: 'session-1',
       continueFrom,
+      sandboxSession,
     });
     const secondChannel = harnessUtilsMocks.channels[1]!;
     const continued = await secondAgent.continueStream({
@@ -3889,11 +3875,11 @@ describe('createACP', () => {
     });
     const firstAgent = new HarnessAgent({
       harness,
-      sandbox: sandboxProvider({ session: sandboxSession }),
       permissionMode: 'allow-edits',
     });
     const firstSession = await firstAgent.createSession({
       sessionId: 'session-1',
+      sandboxSession,
     });
     const firstChannel = harnessUtilsMocks.channels[0]!;
     const first = await firstAgent.stream({
@@ -3931,12 +3917,12 @@ describe('createACP', () => {
 
     const secondAgent = new HarnessAgent({
       harness,
-      sandbox: sandboxProvider({ session: sandboxSession }),
       permissionMode: 'allow-edits',
     });
     const secondSession = await secondAgent.createSession({
       sessionId: 'session-1',
       continueFrom,
+      sandboxSession,
     });
     const secondChannel = harnessUtilsMocks.channels[1]!;
     const continued = await secondAgent.continueStream({
@@ -4322,10 +4308,9 @@ describe('createACP', () => {
         harnessId: 'codex-acp',
         ...agentSettings,
       }),
-      sandbox: sandboxProvider({ session: sandboxSession }),
       tools: { weather },
     });
-    const session = await agent.createSession();
+    const session = await agent.createSession({ sandboxSession });
     const channel = harnessUtilsMocks.channels[0]!;
     const result = await agent.stream({
       session,
@@ -4398,10 +4383,9 @@ describe('createACP', () => {
         harnessId: 'codex-acp',
         ...agentSettings,
       }),
-      sandbox: sandboxProvider({ session: sandboxSession }),
       tools: { clientTool },
     });
-    const session = await agent.createSession();
+    const session = await agent.createSession({ sandboxSession });
     const channel = harnessUtilsMocks.channels[0]!;
     const first = await agent.stream({
       session,

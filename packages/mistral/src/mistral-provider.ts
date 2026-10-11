@@ -13,6 +13,7 @@ import {
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { MistralChatLanguageModel } from './mistral-chat-language-model';
+import { MistralConversationLanguageModel } from './mistral-conversation-language-model';
 import type { MistralChatModelId } from './mistral-chat-language-model-options';
 import { MistralEmbeddingModel } from './mistral-embedding-model';
 import type { MistralEmbeddingModelId } from './mistral-embedding-model-options';
@@ -21,8 +22,10 @@ import type { MistralSpeechModelId } from './mistral-speech-model-options';
 import { MistralTranscriptionModel } from './mistral-transcription-model';
 import type { MistralTranscriptionModelId } from './mistral-transcription-model-options';
 import { VERSION } from './version';
+import { mistralTools } from './tool';
 
 export interface MistralProvider extends ProviderV4 {
+  tools: typeof mistralTools;
   (modelId: MistralChatModelId): LanguageModelV4;
 
   /**
@@ -34,6 +37,11 @@ export interface MistralProvider extends ProviderV4 {
    * Creates a model for text generation.
    */
   chat(modelId: MistralChatModelId): LanguageModelV4;
+
+  /**
+   * Creates a model using the Conversations API, with support for web search.
+   */
+  conversation(modelId: MistralChatModelId): LanguageModelV4;
 
   /**
    * Creates a model for text embeddings.
@@ -144,6 +152,15 @@ export function createMistral(
       fetch: options.fetch,
     });
 
+  const createConversationModel = (modelId: MistralChatModelId) =>
+    new MistralConversationLanguageModel(modelId, {
+      provider: 'mistral.conversation',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+      generateId: options.generateId,
+    });
+
   const createSpeechModel = (modelId: MistralSpeechModelId) =>
     new MistralSpeechModel(modelId, {
       provider: 'mistral.speech',
@@ -173,6 +190,8 @@ export function createMistral(
   provider.specificationVersion = 'v4' as const;
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
+  provider.conversation = createConversationModel;
+  provider.tools = mistralTools;
   provider.embedding = createEmbeddingModel;
   provider.embeddingModel = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;

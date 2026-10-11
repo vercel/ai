@@ -12,6 +12,87 @@ function createUIMessageStream(parts: UIMessageChunk[]) {
 }
 
 describe('readUIMessageStream', () => {
+  it('should discard a seeded assistant message when the stream starts with a different message id', async () => {
+    const messages = await convertAsyncIterableToArray(
+      readUIMessageStream({
+        message: {
+          id: 'previous-response',
+          role: 'assistant',
+          metadata: { source: 'previous' },
+          parts: [{ type: 'text', text: 'Previous response' }],
+        },
+        stream: createUIMessageStream([
+          { type: 'start', messageId: 'resumed-response' },
+          { type: 'text-start', id: 'text-1' },
+          { type: 'text-delta', id: 'text-1', delta: 'Resumed response' },
+          { type: 'text-end', id: 'text-1' },
+          { type: 'finish' },
+        ]),
+      }),
+    );
+
+    expect(messages.at(-1)).toEqual({
+      id: 'resumed-response',
+      role: 'assistant',
+      metadata: undefined,
+      parts: [
+        {
+          type: 'text',
+          text: 'Resumed response',
+          state: 'done',
+          providerMetadata: undefined,
+        },
+      ],
+    });
+  });
+
+  it.each([
+    {
+      name: 'the same message id',
+      startChunk: {
+        type: 'start' as const,
+        messageId: 'resumed-response',
+      },
+    },
+    {
+      name: 'no message id',
+      startChunk: undefined,
+    },
+  ])('should preserve a seeded assistant message with $name', async options => {
+    const messages = await convertAsyncIterableToArray(
+      readUIMessageStream({
+        message: {
+          id: 'resumed-response',
+          role: 'assistant',
+          metadata: { source: 'seed' },
+          parts: [{ type: 'text', text: 'Partial response' }],
+        },
+        stream: createUIMessageStream([
+          ...(options.startChunk == null ? [] : [options.startChunk]),
+          { type: 'text-start', id: 'text-1' },
+          { type: 'text-delta', id: 'text-1', delta: ' continued' },
+          { type: 'text-end', id: 'text-1' },
+          { type: 'finish' },
+        ]),
+      }),
+    );
+
+    expect(messages.at(-1)).toEqual({
+      id: 'resumed-response',
+      role: 'assistant',
+      metadata: { source: 'seed' },
+      parts: [
+        { type: 'text', text: 'Partial response' },
+        {
+          type: 'text',
+          text: ' continued',
+          state: 'done',
+          providerMetadata: undefined,
+        },
+      ],
+    });
+  });
+
   it('should continue a hydrated partial static tool call', async () => {
     const message: UIMessage = {
       id: 'msg-123',

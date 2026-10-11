@@ -37,6 +37,7 @@ export { createTelemetryDispatcher } from '../src/telemetry/create-telemetry-dis
 export { createRestrictedTelemetryDispatcher } from '../src/generate-text/restricted-telemetry-dispatcher';
 export { DefaultStepResult } from '../src/generate-text/step-result';
 export { parseToolCall } from '../src/generate-text/parse-tool-call';
+export { isOutputChunk } from '../src/generate-text/is-output-chunk';
 export type { ToolsContextSettings } from '../src/generate-text/tools-context-parameter';
 export { validateToolContext } from '../src/generate-text/validate-tool-context';
 export { createToolSearchState } from '../src/tool-search/prepare-tool-search';
@@ -50,3 +51,7 @@ export {
 } from '../src/generate-text/tool-approval-signature';
 export { validateApprovedToolApprovals } from '../src/generate-text/validate-tool-approvals';
 export { toResponseMessages } from '../src/generate-text/to-response-messages';
+
+export { DefaultGenerateTextResult } from '../src/generate-text/default-generate-text-result';
+export { convertLanguageModelContent } from '../src/generate-text/convert-language-model-content';
+export { calculateTokensPerSecond } from '../src/generate-text/calculate-tokens-per-second';

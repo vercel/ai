@@ -35,7 +35,9 @@ export class GatewayBatch implements BatchV4<{ text: GatewayModelId }> {
   readonly provider: string;
   readonly supportedUrls = { '*/*': [/.*/] };
 
-  constructor(private readonly config: GatewayChatConfig) {
+  constructor(
+    private readonly config: GatewayChatConfig & { maxLineBytes?: number },
+  ) {
     this.provider = `${config.provider}.batch`;
   }
 
@@ -191,6 +193,7 @@ export class GatewayBatch implements BatchV4<{ text: GatewayModelId }> {
         body: { batchId },
         successfulResponseHandler: createJsonLinesResponseHandler(
           gatewayBatchItemResultLineSchema,
+          { maxLineBytes: this.config.maxLineBytes },
         ),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),

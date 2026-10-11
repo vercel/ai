@@ -36,6 +36,7 @@ import {
   type UIMessage,
   type UIMessageStreamOptions,
 } from 'ai';
+import type { HarnessV1CallWarning } from '../../v1';
 
 type StreamProp<
   TOOLS extends ToolSet,
@@ -233,6 +234,10 @@ export class HarnessStreamTextResult<
     }
   }
 
+  addWarnings(warnings: ReadonlyArray<HarnessV1CallWarning>): void {
+    this.currentStepWarnings.push(...warnings);
+  }
+
   /**
    * Push a continuation input into the consumer stream without attributing it
    * to the next model step. Approval responses and client tool results arrive
@@ -240,6 +245,14 @@ export class HarnessStreamTextResult<
    */
   enqueueContinuation(part: TextStreamPart<TOOLS>): void {
     this.fullStreamController.enqueue(part);
+  }
+
+  /**
+   * Push adapter-specific raw data to `fullStream` without attributing it to a
+   * model step.
+   */
+  enqueueRaw(rawValue: unknown): void {
+    this.fullStreamController.enqueue({ type: 'raw', rawValue });
   }
 
   /**
@@ -262,7 +275,6 @@ export class HarnessStreamTextResult<
     finishReason: LanguageModelV4FinishReason;
     usage: LanguageModelV4Usage;
     providerMetadata: ProviderMetadata | undefined;
-    warnings: CallWarning[];
   }): StepResult<TOOLS, RUNTIME_CONTEXT> {
     this.startStep();
 
@@ -282,7 +294,10 @@ export class HarnessStreamTextResult<
       rawFinishReason,
       usage: normalizedUsage,
       performance: createEmptyPerformance(),
-      warnings: input.warnings.length > 0 ? input.warnings : undefined,
+      warnings:
+        this.currentStepWarnings.length > 0
+          ? this.currentStepWarnings
+          : undefined,
       request: {},
       response: {
         id: `${this.callId}-${this.stepNumber}`,
@@ -313,8 +328,9 @@ export class HarnessStreamTextResult<
     this.finalFinishReason = finishReason;
     this.finalRawFinishReason = rawFinishReason;
     this.finalProviderMetadata = input.providerMetadata;
-    if (input.warnings.length > 0)
-      this.aggregateWarnings.push(...input.warnings);
+    if (this.currentStepWarnings.length > 0) {
+      this.aggregateWarnings.push(...this.currentStepWarnings);
+    }
 
     this.stepNumber += 1;
     this.currentStepContent = [];

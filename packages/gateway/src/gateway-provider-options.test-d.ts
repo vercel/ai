@@ -1,33 +1,33 @@
 import { expectTypeOf, it } from 'vitest';
 import type {
-  EvaluationFallbackCondition,
+  DecisionFallbackCondition,
   GatewayModelFallback,
   GatewayProviderOptions,
 } from './index';
 
-it('types conditional evaluation model fallbacks', () => {
+it('types conditional decision model fallbacks', () => {
   type QuestionId = 'department' | 'requestsRefund' | 'severity';
 
   const confidence = {
     question: 'department',
     confidenceBelow: 0.6,
-  } satisfies EvaluationFallbackCondition<QuestionId>;
+  } satisfies DecisionFallbackCondition<QuestionId>;
   const probability = {
     question: 'requestsRefund',
     probabilityBetween: [0.4, 0.6],
-  } satisfies EvaluationFallbackCondition<QuestionId>;
+  } satisfies DecisionFallbackCondition<QuestionId>;
   const any = {
     any: [confidence, probability],
-  } satisfies EvaluationFallbackCondition<QuestionId>;
+  } satisfies DecisionFallbackCondition<QuestionId>;
   const all = {
     all: [confidence, probability],
-  } satisfies EvaluationFallbackCondition<QuestionId>;
+  } satisfies DecisionFallbackCondition<QuestionId>;
   const atLeast = {
     atLeast: {
       count: 2,
       conditions: [confidence, probability],
     },
-  } satisfies EvaluationFallbackCondition<QuestionId>;
+  } satisfies DecisionFallbackCondition<QuestionId>;
   const maximumDepth = {
     any: [
       {
@@ -45,7 +45,7 @@ it('types conditional evaluation model fallbacks', () => {
         ],
       },
     ],
-  } satisfies EvaluationFallbackCondition<QuestionId>;
+  } satisfies DecisionFallbackCondition<QuestionId>;
 
   expectTypeOf({
     model: 'openai/gpt-5.6-sol',
@@ -114,28 +114,28 @@ it('types conditional evaluation model fallbacks', () => {
   const missingModel: GatewayModelFallback = {
     when: confidence,
   };
-  const malformedBounds: EvaluationFallbackCondition = {
+  const malformedBounds: DecisionFallbackCondition = {
     question: 'requestsRefund',
     // @ts-expect-error Probability bounds require exactly two values.
     probabilityBetween: [0.4],
   };
-  const invalidField: EvaluationFallbackCondition = {
+  const invalidField: DecisionFallbackCondition = {
     question: 'department',
     // @ts-expect-error Conditions use confidenceBelow, not confidenceAbove.
     confidenceAbove: 0.6,
   };
   // @ts-expect-error Combinators require at least one condition.
-  const emptyAny: EvaluationFallbackCondition = { any: [] };
-  const incompleteAtLeast: EvaluationFallbackCondition = {
+  const emptyAny: DecisionFallbackCondition = { any: [] };
+  const incompleteAtLeast: DecisionFallbackCondition = {
     // @ts-expect-error atLeast requires conditions.
     atLeast: { count: 1 },
   };
   // @ts-expect-error Conditions cannot mix combinators.
-  const mixedCombinators: EvaluationFallbackCondition = {
+  const mixedCombinators: DecisionFallbackCondition = {
     all: [confidence],
     any: [confidence],
   };
-  const mixedDirectAndCombinator: EvaluationFallbackCondition = {
+  const mixedDirectAndCombinator: DecisionFallbackCondition = {
     question: 'department',
     confidenceBelow: 0.6,
     // @ts-expect-error Direct conditions cannot include combinators.
@@ -143,22 +143,22 @@ it('types conditional evaluation model fallbacks', () => {
   };
   const anyChoiceOrScore = {
     confidenceBelow: 0.6,
-  } satisfies EvaluationFallbackCondition<QuestionId>;
+  } satisfies DecisionFallbackCondition<QuestionId>;
   const anyBoolean = {
     probabilityBetween: [0.4, 0.6],
-  } satisfies EvaluationFallbackCondition<QuestionId>;
+  } satisfies DecisionFallbackCondition<QuestionId>;
   const anyUnsure = {
     any: [anyChoiceOrScore, anyBoolean],
-  } satisfies EvaluationFallbackCondition<QuestionId>;
+  } satisfies DecisionFallbackCondition<QuestionId>;
   expectTypeOf({
     model: 'openai/gpt-5.6-sol',
     when: anyUnsure,
   }).toMatchTypeOf<GatewayModelFallback<QuestionId>>();
 
   // @ts-expect-error A condition needs a check, not only a question.
-  const questionOnly: EvaluationFallbackCondition = { question: 'department' };
+  const questionOnly: DecisionFallbackCondition = { question: 'department' };
 
-  const unknownQuestion: EvaluationFallbackCondition<QuestionId> = {
+  const unknownQuestion: DecisionFallbackCondition<QuestionId> = {
     // @ts-expect-error The question ID must come from the configured question set.
     question: 'missing',
     confidenceBelow: 0.6,

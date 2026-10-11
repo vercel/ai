@@ -139,6 +139,20 @@ You can use the following optional settings to customize the OpenAI provider ins
   Defaults to `https://{resourceName}.cognitiveservices.azure.com`.
   Speech requests do not use `baseURL` or `apiVersion`.
 
+- **maiBaseURL** _string_
+
+  URL prefix for MAI requests (MAI-Image and MAI-Transcribe-2-Streaming).
+  Defaults to `https://{resourceName}.services.ai.azure.com/mai/v1`.
+
+- **webSocket** _WebSocketConstructor_
+
+  Custom WebSocket implementation for MAI streaming transcription, for example
+  the `WebSocket` export of the `ws` package in Node.js. With a custom
+  implementation the API key is sent in the `api-key` header; with the native
+  `WebSocket` it is sent as the `api-key` query parameter. Microsoft Entra ID
+  (`tokenProvider`) authentication requires a custom implementation; without one,
+  streaming fails with an `InvalidArgumentError` before connecting.
+
 ## Language Models
 
 The Azure OpenAI provider instance is a function that you can invoke to create a language model:
@@ -1035,7 +1049,8 @@ The following optional provider options are available for Azure OpenAI embedding
 
 ## Image Models
 
-You can create models that call the Azure OpenAI image generation API (DALL-E) using the `.image()` factory method. The first argument is your deployment name for the DALL-E model.
+You can create models that call the Azure OpenAI image generation API using the `.image()` factory method. The first argument is your deployment name.
+MAI-Image models use the [MAI image API](#mai-image) instead.
 
 ```ts
 const model = azure.image('your-dalle-deployment-name');
@@ -1104,6 +1119,67 @@ capabilities of a deployment, you can advertise them with the
   version you want to use.
 </Note>
 
+### MAI-Image
+
+MAI-Image models (`MAI-Image-2.6`, `MAI-Image-2.6-Flash`, `MAI-Image-2.5`,
+`MAI-Image-2.5-Flash`, `MAI-Image-2.5-Pro`) use the MAI image API at
+`https://{resourceName}.services.ai.azure.com/mai/v1` (override with
+`maiBaseURL`). Deployments named after the model are detected automatically,
+case-insensitively. For other deployment names, set
+`providerOptions.azure.api` to `'mai'`.
+
+```ts
+import { azure, type AzureImageModelOptions } from '@ai-sdk/azure';
+import { generateImage } from 'ai';
+
+const { image, usage } = await generateImage({
+  model: azure.image('MAI-Image-2.6'),
+  prompt: 'A watercolor of three flowers on a blue background',
+  size: '1536x1024',
+  providerOptions: {
+    azure: {
+      webGrounding: true,
+    } satisfies AzureImageModelOptions,
+  },
+});
+```
+
+Pass reference images to edit or combine them (up to five JPEG or PNG
+images). Masks are not supported.
+
+```ts
+const { image } = await generateImage({
+  model: azure.image('MAI-Image-2.6-Flash'),
+  prompt: {
+    text: 'Put the product from the first image into the scene from the second',
+    images: [productImage, sceneImage],
+  },
+});
+```
+
+Each request returns one PNG image; `generateImage` sends one request per image.
+`size` is sent as `width` and `height`. Each side must be at least 768 pixels,
+and the total pixel count at most 2,359,296 for MAI-Image-2.6 models and
+1,048,576 for MAI-Image-2.5 models. Without `size`, `aspectRatio` is mapped to
+dimensions of about one megapixel; without either, the model returns 1024x1024.
+`seed` is not supported. Token usage is returned in `usage`, with the input
+text and image token split in `providerMetadata.azure.images`.
+
+The following provider options are available:
+
+- **api** _'mai' | 'openai'_
+
+  API to use. Defaults to `'mai'` for MAI-Image models, `'openai'` otherwise.
+
+- **autoAspectRatio** _boolean_
+
+  Let the model choose the output aspect ratio from the prompt and reference
+  images. MAI-Image-2.6 models only.
+
+- **webGrounding** _boolean_
+
+  Ground generation in Bing web search results. MAI-Image-2.6 models only.
+
 ## Transcription Models
 
 You can create models that call the Azure OpenAI or Azure Speech transcription API using the `.transcription()` factory method.
@@ -1125,7 +1201,9 @@ and sent to Azure under their Azure model names:
 | `mai-transcribe-2`   | `MAI-Transcribe-2`   | Supports every option below.         |
 | `mai-transcribe-1.5` | `MAI-Transcribe-1.5` | Supports `locales` and `phraseList`. |
 
-All other IDs use the OpenAI API by default, including custom deployment names.
+`mai-transcribe-2-streaming` uses the MAI realtime API; see
+[MAI-Transcribe-2-Streaming](#mai-transcribe-2-streaming). All other IDs use the
+OpenAI API by default, including custom deployment names.
 
 ```ts
 import { azure, type AzureTranscriptionModelOptions } from '@ai-sdk/azure';
@@ -1216,11 +1294,72 @@ milliseconds in metadata and seconds in normalized `segments`.
 
 MAI-Transcribe models are file transcription models: they accept WAV, MP3, or FLAC files
 shorter than 2 hours and smaller than 250 MB, and do not support streaming
-transcription. The models are in public preview. See
+transcription; use [MAI-Transcribe-2-Streaming](#mai-transcribe-2-streaming) to stream.
+The models are in public preview. See
 [Azure's MAI-Transcribe guide](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/mai-transcribe)
 for supported languages and diarization limits.
 
 AI Gateway forwards these provider options, including `azure.api`.
+
+### MAI-Transcribe-2-Streaming
+
+MAI-Transcribe-2-Streaming is a low-latency streaming speech-to-text model from Microsoft AI.
+`azure.transcription('mai-transcribe-2-streaming')` streams audio to the MAI realtime API
+(`wss://{resourceName}.services.ai.azure.com/mai/v1/realtime`) with
+[`experimental_streamTranscribe`](/docs/ai-sdk-core/transcription#streaming-transcription).
+The model ID is sent to Azure as the Foundry deployment name, so deploy the model
+as `mai-transcribe-2-streaming`, or set `api: 'mai'` for other deployment names.
+
+```ts
+import {
+  createAzure,
+  type AzureOpenAIProviderSettings,
+  type AzureTranscriptionModelOptions,
+} from '@ai-sdk/azure';
+import { experimental_streamTranscribe as streamTranscribe } from 'ai';
+import { WebSocket } from 'ws';
+
+const azure = createAzure({
+  // `ws`'s WebSocket type differs from the DOM-style WebSocketConstructor.
+  webSocket: WebSocket as unknown as AzureOpenAIProviderSettings['webSocket'],
+});
+
+const result = streamTranscribe({
+  model: azure.transcription('mai-transcribe-2-streaming'),
+  audio, // ReadableStream of 16-bit mono PCM chunks
+  inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+  providerOptions: {
+    azure: { language: 'en' } satisfies AzureTranscriptionModelOptions,
+  },
+});
+
+for await (const part of result.fullStream) {
+  if (part.type === 'transcript-delta') {
+    process.stdout.write(part.delta);
+  }
+}
+```
+
+The model requires a Microsoft Foundry resource with a MAI-Transcribe-2-Streaming
+deployment in a supported region, such as `centralus`.
+Input audio must be 16-bit mono PCM (`audio/pcm`) at 16000 or 24000 Hz; the default is 24000 Hz.
+
+The stream emits `transcript-delta` parts for finalized text and `transcript-partial`
+parts for the provisional text that follows the latest delta. MAI does not detect
+pauses on the server, so the stream commits once when the input audio ends and then
+emits a `transcript-final` part and the finished transcript. `durationInSeconds` is
+computed from the streamed audio.
+
+The following options are available through `providerOptions.azure`:
+
+- **api** _'openai' | 'speech' | 'mai'_
+  Set `mai` to stream with a deployment that has a different name.
+
+- **language** _string_
+  Language hint such as `en`. Omit for automatic language detection.
+
+File transcription options such as `timestamps` produce warnings when streaming.
+MAI-Transcribe-2-Streaming does not support file transcription.
 
 ### OpenAI transcription
 
@@ -1284,13 +1423,14 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model                    | Transcription | Duration  | Segments  | Language  |
-| ------------------------ | ------------- | --------- | --------- | --------- |
-| `whisper-1`              | <Check />     | <Check /> | <Check /> | <Check /> |
-| `gpt-4o-mini-transcribe` | <Check />     | <Cross /> | <Cross /> | <Cross /> |
-| `gpt-4o-transcribe`      | <Check />     | <Cross /> | <Cross /> | <Cross /> |
-| `mai-transcribe-2`       | <Check />     | <Check /> | <Check /> | <Check /> |
-| `mai-transcribe-1.5`     | <Check />     | <Check /> | <Check /> | <Check /> |
+| Model                        | Transcription         | Duration  | Segments  | Language  |
+| ---------------------------- | --------------------- | --------- | --------- | --------- |
+| `whisper-1`                  | <Check />             | <Check /> | <Check /> | <Check /> |
+| `gpt-4o-mini-transcribe`     | <Check />             | <Cross /> | <Cross /> | <Cross /> |
+| `gpt-4o-transcribe`          | <Check />             | <Cross /> | <Cross /> | <Cross /> |
+| `mai-transcribe-2`           | <Check />             | <Check /> | <Check /> | <Check /> |
+| `mai-transcribe-1.5`         | <Check />             | <Check /> | <Check /> | <Check /> |
+| `mai-transcribe-2-streaming` | <Check /> (streaming) | <Check /> | <Cross /> | <Cross /> |
 
 ## Speech Models
 
@@ -1362,10 +1502,12 @@ Azure OpenAI supports TTS models through deployments. The capabilities depend on
 MAI-Voice models are multilingual text-to-speech models from Microsoft AI, served through Azure.
 The following model IDs use the Azure Speech API:
 
-| Model ID            | Notes                                         |
-| ------------------- | --------------------------------------------- |
-| `mai-voice-2-flash` | Low latency, for voice agents and assistants. |
-| `mai-voice-2`       | Highest fidelity, for long-form narration.    |
+| Model ID              | Notes                                         |
+| --------------------- | --------------------------------------------- |
+| `mai-voice-2.1-flash` | Low latency, for voice agents and assistants. |
+| `mai-voice-2.1`       | Highest fidelity, for long-form narration.    |
+| `mai-voice-2-flash`   | Low latency, for voice agents and assistants. |
+| `mai-voice-2`         | Highest fidelity, for long-form narration.    |
 
 All other IDs use the OpenAI API by default, including custom deployment names.
 

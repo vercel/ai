@@ -549,6 +549,30 @@ describe('stopped Modal sandbox sessions', () => {
     expect(spies.create).toHaveBeenCalledTimes(3);
   });
 
+  it('stops retrying a reserved name once the signal is aborted', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    const { client, spies } = makeStoppedFixture();
+    spies.create.mockRejectedValue(makeModalError('AlreadyExistsError'));
+    const controller = new AbortController();
+    const reason = new Error('stop restoring');
+
+    const resumed = resumeModalNetworkSandboxSession({
+      client,
+      sandboxId: 'live-session',
+      blockNetwork: true,
+      abortSignal: controller.signal,
+    }).catch(error => error);
+    while (spies.create.mock.calls.length < 2) {
+      await vi.advanceTimersByTimeAsync(500);
+      await new Promise(resolve => setImmediate(resolve));
+    }
+    controller.abort(reason);
+    await vi.advanceTimersByTimeAsync(20 * 500);
+
+    expect(await resumed).toBe(reason);
+    expect(spies.create).toHaveBeenCalledTimes(2);
+  });
+
   it('reattaches when another caller restored the sandbox first', async () => {
     const { client, spies } = makeStoppedFixture();
     const running = makeMockSandbox({

@@ -26,6 +26,37 @@
   animation: blink 1s steps(1, start) infinite;
 }
 
+/* Landing page hero demo animations (ported from the ai-sdk.dev home page). */
+@keyframes fadein-inplace {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUpFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes barPulse {
+  0%,
+  100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(0.4);
+  }
+}
+
 /* Step counters for the <Steps> MDX component (ported from ai-sdk.dev). */
 .docs-steps {
   counter-reset: step;

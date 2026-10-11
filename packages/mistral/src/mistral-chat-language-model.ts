@@ -50,25 +50,23 @@ type MistralChatConfig = {
   generateId?: () => string;
 };
 
-// https://api.mistral.ai/v1/models (2026-09-10)
-const reasoningEffortModelIds = new Set<MistralChatModelId>([
-  'glm-5-2',
-  'labs-leanstral-1-5',
-  'labs-leanstral-1-5-1',
-  'magistral-medium-latest',
-  'magistral-small-latest',
-  'mistral-medium',
-  'mistral-medium-2604',
-  'mistral-medium-3',
-  'mistral-medium-3-5',
-  'mistral-medium-3.5',
-  'mistral-medium-latest',
-  'mistral-small-2603',
-  'mistral-small-latest',
-  'mistral-vibe-cli-fast',
-  'mistral-vibe-cli-latest',
-  'mistral-vibe-cli-with-tools',
-  'zai-glm-5-2',
+// Known non-reasoning models from https://api.mistral.ai/v1/models
+// (2026-10-06). Unknown IDs inherit current reasoning configuration support.
+const modelsWithoutReasoningEffort = new Set<MistralChatModelId>([
+  'codestral-2508',
+  'codestral-latest',
+  'ministral-14b-2512',
+  'ministral-14b-latest',
+  'ministral-3b-2512',
+  'ministral-3b-latest',
+  'ministral-8b-2512',
+  'ministral-8b-latest',
+  'mistral-code-fim-latest',
+  'mistral-code-latest',
+  'mistral-large-latest',
+  'mistral-large-2512',
+  'voxtral-small-2507',
+  'voxtral-small-latest',
 ]);
 
 export class MistralChatLanguageModel implements LanguageModelV4 {
@@ -136,7 +134,9 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
       warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
-    const supportsReasoningEffort = reasoningEffortModelIds.has(this.modelId);
+    const supportsReasoningEffort = !modelsWithoutReasoningEffort.has(
+      this.modelId,
+    );
 
     let resolvedReasoningEffort: string | undefined;
     if (supportsReasoningEffort) {
@@ -153,6 +153,7 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
                   medium: 'high',
                   high: 'high',
                   xhigh: 'high',
+                  max: 'high',
                 },
                 warnings,
               })

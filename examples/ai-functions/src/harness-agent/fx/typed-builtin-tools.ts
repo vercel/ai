@@ -10,7 +10,7 @@ const fx = createFx();
 
 /*
  * Demonstrates that a HarnessAgent's `fullStream` exposes both the harness's
- * built-in tool calls (such as `terminal` and `read_file`) and user-defined tool
+ * built-in tool calls (such as `shell` and `read_file`) and user-defined tool
  * calls under a single, fully-typed union. The `toolName` field narrows to
  * the known names; the `input` field narrows per tool to the declared
  * schema. No casts.

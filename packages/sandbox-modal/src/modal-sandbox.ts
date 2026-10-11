@@ -372,6 +372,7 @@ export async function resumeModalNetworkSandboxSession(
       const createParams = withDefaultSandboxSettings(nativeOptions);
       let sandbox: Sandbox;
       for (let attempt = 0; ; attempt++) {
+        abortSignal?.throwIfAborted();
         try {
           sandbox = await client.sandboxes.create(app, image, {
             ...(requestTransformations

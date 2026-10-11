@@ -235,6 +235,228 @@ describe('Claude Code bridge configuration', () => {
     vi.resetModules();
   });
 
+  test.each(['hook-first', 'boundary-first'] as const)(
+    'closes a compaction-only turn when the %s event arrives first',
+    async order => {
+      state.start = { ...state.start, prompt: '/compact' };
+      state.requestToolResult = vi.fn(async () => ({ output: {} }));
+      state.createQuery = args =>
+        (async function* () {
+          const hooks = args.options.hooks as {
+            PostCompact: {
+              hooks: ((input: unknown) => Promise<unknown>)[];
+            }[];
+          };
+          const postCompact = () =>
+            hooks.PostCompact[0]!.hooks[0]!({
+              compact_summary: 'Compacted context',
+            });
+          if (order === 'hook-first') await postCompact();
+          yield {
+            type: 'system',
+            subtype: 'compact_boundary',
+            compact_metadata: { trigger: 'manual', pre_tokens: 1234 },
+          };
+          if (order === 'boundary-first') await postCompact();
+          yield {
+            type: 'result',
+            subtype: 'success',
+            result: '',
+            usage: { input_tokens: 30, output_tokens: 5 },
+          };
+        })();
+
+      await import('./index');
+
+      expect(
+        state.emitted.filter(event => event.type === 'compaction'),
+      ).toEqual([
+        {
+          type: 'compaction',
+          trigger: 'manual',
+          summary: 'Compacted context',
+          tokensBefore: 1234,
+        },
+      ]);
+      expect(state.requestToolResult).not.toHaveBeenCalled();
+      expect(state.emitted.map(event => event.type)).toEqual([
+        'stream-start',
+        'compaction',
+        'finish-step',
+        'finish',
+      ]);
+      expect(
+        state.emitted.find(event => event.type === 'finish-step'),
+      ).toMatchObject({
+        usage: {
+          inputTokens: {
+            total: 0,
+            noCache: 0,
+            cacheRead: 0,
+            cacheWrite: 0,
+          },
+          outputTokens: { total: 0, text: 0 },
+        },
+      });
+      expect(
+        state.emitted.find(event => event.type === 'finish'),
+      ).toMatchObject({
+        totalUsage: {
+          inputTokens: {
+            total: 30,
+            noCache: 30,
+            cacheRead: 0,
+            cacheWrite: 0,
+          },
+          outputTokens: { total: 5, text: 5 },
+        },
+      });
+    },
+  );
+
+  test('leaves compaction inside an open model step for that step to close', async () => {
+    state.createQuery = args =>
+      (async function* () {
+        const hooks = args.options.hooks as {
+          PostCompact: {
+            hooks: ((input: unknown) => Promise<unknown>)[];
+          }[];
+        };
+        yield {
+          type: 'assistant',
+          message: {
+            content: [{ type: 'text', text: 'Before compaction' }],
+            usage: { input_tokens: 10, output_tokens: 2 },
+          },
+        };
+        await hooks.PostCompact[0]!.hooks[0]!({
+          compact_summary: 'Compacted context',
+        });
+        yield {
+          type: 'system',
+          subtype: 'compact_boundary',
+          compact_metadata: { trigger: 'auto', pre_tokens: 1234 },
+        };
+        yield {
+          type: 'result',
+          subtype: 'success',
+          result: 'done',
+          usage: { input_tokens: 30, output_tokens: 5 },
+        };
+      })();
+
+    await import('./index');
+
+    expect(state.emitted.map(event => event.type)).toEqual([
+      'stream-start',
+      'compaction',
+      'finish-step',
+      'finish',
+    ]);
+    expect(
+      state.emitted.find(event => event.type === 'finish-step'),
+    ).toMatchObject({
+      usage: {
+        inputTokens: {
+          total: 10,
+          noCache: 10,
+          cacheRead: 0,
+          cacheWrite: 0,
+        },
+        outputTokens: { total: 2, text: 2 },
+      },
+    });
+  });
+
+  test('closes compaction after a completed model step in a separate step', async () => {
+    state.createQuery = args =>
+      (async function* () {
+        const hooks = args.options.hooks as {
+          PostCompact: {
+            hooks: ((input: unknown) => Promise<unknown>)[];
+          }[];
+        };
+        yield {
+          type: 'assistant',
+          message: {
+            content: [
+              {
+                type: 'tool_use',
+                id: 'bash-1',
+                name: 'Bash',
+                input: { command: 'pwd' },
+              },
+            ],
+            usage: { input_tokens: 10, output_tokens: 2 },
+          },
+        };
+        yield {
+          type: 'user',
+          message: {
+            content: [
+              {
+                type: 'tool_result',
+                tool_use_id: 'bash-1',
+                content: '/tmp',
+              },
+            ],
+          },
+        };
+        yield {
+          type: 'system',
+          subtype: 'compact_boundary',
+          compact_metadata: { trigger: 'auto', pre_tokens: 1234 },
+        };
+        await hooks.PostCompact[0]!.hooks[0]!({
+          compact_summary: 'Compacted context',
+        });
+        yield {
+          type: 'result',
+          subtype: 'success',
+          result: 'done',
+          usage: { input_tokens: 30, output_tokens: 5 },
+        };
+      })();
+
+    await import('./index');
+
+    expect(state.emitted.map(event => event.type)).toEqual([
+      'stream-start',
+      'tool-call',
+      'tool-result',
+      'finish-step',
+      'compaction',
+      'finish-step',
+      'finish',
+    ]);
+    const finishSteps = state.emitted.filter(
+      event => event.type === 'finish-step',
+    );
+    expect(finishSteps).toHaveLength(2);
+    expect(finishSteps[0]).toMatchObject({
+      usage: {
+        inputTokens: {
+          total: 10,
+          noCache: 10,
+          cacheRead: 0,
+          cacheWrite: 0,
+        },
+        outputTokens: { total: 2, text: 2 },
+      },
+    });
+    expect(finishSteps[1]).toMatchObject({
+      usage: {
+        inputTokens: {
+          total: 0,
+          noCache: 0,
+          cacheRead: 0,
+          cacheWrite: 0,
+        },
+        outputTokens: { total: 0, text: 0 },
+      },
+    });
+  });
+
   test('merges the configured environment', async () => {
     process.env.CLAUDE_CODE_BRIDGE_INHERITED_TEST = 'inherited';
     process.env.CLAUDE_CODE_BRIDGE_OVERRIDE_TEST = 'inherited';
@@ -360,6 +582,133 @@ describe('Claude Code bridge configuration', () => {
     expect(state.onStop?.()).toEqual({ claudeSessionId: 'claude-session-2' });
   });
 
+  test('reports the latest cumulative cost when one bridge turn receives multiple results', async () => {
+    state.steering = true;
+    state.createQuery = args =>
+      (async function* () {
+        const input = args.prompt[Symbol.asyncIterator]();
+        await input.next();
+        const steering = await input.next();
+        yield {
+          type: 'result',
+          subtype: 'success',
+          result: 'first',
+          total_cost_usd: 0.05,
+          usage: {
+            input_tokens: 2,
+            cache_creation_input_tokens: 3,
+            cache_read_input_tokens: 5,
+            output_tokens: 7,
+          },
+        };
+        yield {
+          type: 'result',
+          subtype: 'success',
+          result: 'second',
+          total_cost_usd: 0.06,
+          usage: {
+            input_tokens: 11,
+            cache_creation_input_tokens: 13,
+            cache_read_input_tokens: 17,
+            output_tokens: 19,
+          },
+        };
+        yield {
+          type: 'command_lifecycle',
+          command_uuid: Reflect.get(steering.value as object, 'uuid'),
+          state: 'completed',
+        };
+      })();
+
+    await import('./index');
+
+    const finish = state.emitted.find(message => message.type === 'finish');
+    expect(finish?.harnessMetadata).toMatchObject({
+      'claude-code': { costUsd: 0.06 },
+    });
+    expect(finish?.totalUsage).toMatchObject({
+      inputTokens: {
+        total: 51,
+        noCache: 13,
+        cacheRead: 22,
+        cacheWrite: 16,
+      },
+      outputTokens: { total: 26 },
+    });
+  });
+
+  test.each([
+    { name: 'a single result', costs: [0.0494524], expected: 0.0494524 },
+    { name: 'a zero-cost result', costs: [0], expected: 0 },
+    { name: 'no reported cost', costs: [undefined], expected: undefined },
+    {
+      name: 'a resumed query with repeated cumulative totals',
+      costs: [0.1573332, 0.1573332],
+      expected: 0.1573332,
+    },
+    {
+      name: 'a resumed query with an increased cumulative total',
+      costs: [0.0298164, 0.05730615],
+      expected: 0.05730615,
+    },
+    {
+      name: 'a later result without a cost',
+      costs: [0.0494524, undefined],
+      expected: 0.0494524,
+    },
+    {
+      name: 'a later result reporting zero cost',
+      costs: [0.0494524, 0],
+      expected: 0,
+    },
+  ])(
+    'reports the latest available cost for $name',
+    async ({ costs, expected }) => {
+      state.start = { ...state.start, resumeSessionId: 'claude-session-1' };
+      state.firstTurn = false;
+      state.steering = costs.length > 1;
+      state.createQuery = args =>
+        (async function* () {
+          const input = args.prompt[Symbol.asyncIterator]();
+          await input.next();
+          const steering = state.steering ? await input.next() : undefined;
+
+          for (const cost of costs) {
+            yield {
+              type: 'result',
+              subtype: 'success',
+              result: 'done',
+              session_id: 'claude-session-1',
+              total_cost_usd: cost,
+            };
+          }
+          if (steering != null) {
+            yield {
+              type: 'command_lifecycle',
+              command_uuid: Reflect.get(steering.value as object, 'uuid'),
+              state: 'completed',
+            };
+          }
+        })();
+
+      await import('./index');
+
+      expect(state.queryArgs[0]?.options).toMatchObject({
+        resume: 'claude-session-1',
+      });
+      const finishes = state.emitted.filter(
+        message => message.type === 'finish',
+      );
+      expect(finishes).toHaveLength(1);
+      expect(finishes[0]?.harnessMetadata).toEqual({
+        'claude-code': {
+          sessionId: 'claude-session-1',
+          ...(expected !== undefined ? { costUsd: expected } : {}),
+        },
+      });
+    },
+  );
+
   test('reports an empty stop payload when no session id was observed', async () => {
     await import('./index');
 
@@ -452,6 +801,30 @@ describe('Claude Code bridge configuration', () => {
       providerExecuted: true,
       dynamic: true,
     });
+  });
+
+  test('allows ListAgents without approval in allow-reads mode', async () => {
+    state.start = {
+      ...state.start,
+      permissionMode: 'allow-reads',
+    };
+
+    await import('./index');
+
+    const canUseTool = state.queryArgs[0]?.options.canUseTool as
+      | ((
+          toolName: string,
+          toolInput: Record<string, unknown>,
+          options: { toolUseID: string },
+        ) => Promise<unknown>)
+      | undefined;
+    expect(canUseTool).toBeTypeOf('function');
+    await expect(
+      canUseTool!('ListAgents', {}, { toolUseID: 'list-agents' }),
+    ).resolves.toEqual({ behavior: 'allow', updatedInput: {} });
+    expect(
+      state.emitted.some(event => event.type === 'tool-approval-request'),
+    ).toBe(false);
   });
 
   test('routes questions through a PreToolUse hook in allow-all mode', async () => {
@@ -745,6 +1118,164 @@ describe('Claude Code bridge configuration', () => {
       },
     ]);
   });
+
+  test.each([
+    {
+      label: 'rejected before handler',
+      input: {},
+      reachedHandler: false,
+      isError: true,
+    },
+    {
+      label: 'normal success',
+      input: { city: 'Tokyo' },
+      reachedHandler: true,
+      isError: false,
+    },
+    {
+      label: 'host execution error',
+      input: { city: 'Tokyo' },
+      reachedHandler: true,
+      isError: true,
+    },
+  ])(
+    'reports exactly one completed host-tool attempt: $label',
+    async ({ input, reachedHandler, isError }) => {
+      state.start.tools = [
+        {
+          name: 'weather',
+          inputSchema: {
+            type: 'object',
+            properties: { city: { type: 'string' } },
+            required: ['city'],
+          },
+        },
+      ];
+      const requestToolResult = vi.fn(async () => ({
+        output: 'host result',
+        isError,
+      }));
+      state.requestToolResult = requestToolResult;
+      state.createQuery = () =>
+        (async function* () {
+          yield {
+            type: 'stream_event',
+            event: {
+              type: 'content_block_start',
+              index: 0,
+              content_block: {
+                type: 'tool_use',
+                id: 'host-1',
+                name: 'mcp__harness-tools__weather',
+              },
+            },
+          };
+          yield {
+            type: 'stream_event',
+            event: {
+              type: 'content_block_delta',
+              index: 0,
+              delta: {
+                type: 'input_json_delta',
+                partial_json: JSON.stringify(input),
+              },
+            },
+          };
+          yield {
+            type: 'stream_event',
+            event: { type: 'content_block_stop', index: 0 },
+          };
+          yield {
+            type: 'assistant',
+            message: {
+              content: [
+                {
+                  type: 'tool_use',
+                  id: 'host-1',
+                  name: 'mcp__harness-tools__weather',
+                  input,
+                },
+              ],
+            },
+          };
+          const handler = state.toolHandlers.get('weather')!;
+          const invocation = handler(input, {
+            requestId: 'request-1',
+            _meta: { 'claudecode/toolUseId': 'host-1' },
+          });
+          if (reachedHandler) {
+            await invocation;
+          } else {
+            await expect(invocation).rejects.toThrow();
+          }
+          yield {
+            type: 'user',
+            message: {
+              content: [
+                {
+                  type: 'tool_result',
+                  tool_use_id: 'host-1',
+                  is_error: isError,
+                  content: reachedHandler
+                    ? 'host result'
+                    : 'Input validation error: city is required',
+                },
+              ],
+            },
+          };
+          yield { type: 'result', subtype: 'success', result: 'done' };
+        })();
+
+      await import('./index');
+
+      expect(requestToolResult).toHaveBeenCalledTimes(reachedHandler ? 1 : 0);
+      expect(
+        state.emitted.filter(
+          event =>
+            typeof event.type === 'string' &&
+            event.type.startsWith('tool-input-'),
+        ),
+      ).toEqual([
+        {
+          type: 'tool-input-start',
+          id: 'host-1',
+          toolName: 'weather',
+          providerExecuted: false,
+        },
+        {
+          type: 'tool-input-delta',
+          id: 'host-1',
+          delta: JSON.stringify(input),
+        },
+        { type: 'tool-input-end', id: 'host-1' },
+      ]);
+
+      const completedCalls = state.emitted.filter(
+        event => event.type === 'tool-call',
+      );
+      const results = state.emitted.filter(
+        event => event.type === 'tool-result',
+      );
+      expect(completedCalls).toHaveLength(1);
+      expect(results).toHaveLength(1);
+      expect(completedCalls[0]).toMatchObject({
+        toolCallId: 'host-1',
+        toolName: 'weather',
+        providerExecuted: reachedHandler ? false : true,
+      });
+      expect(results[0]).toMatchObject({
+        toolCallId: 'host-1',
+        toolName: 'weather',
+        isError,
+        result: reachedHandler
+          ? 'host result'
+          : 'Input validation error: city is required',
+      });
+      expect(state.emitted.some(event => event.type === 'finish-step')).toBe(
+        true,
+      );
+    },
+  );
 
   test('reports only the final model call usage for the final step', async () => {
     state.messages = [

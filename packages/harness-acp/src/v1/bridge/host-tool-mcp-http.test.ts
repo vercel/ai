@@ -7,6 +7,7 @@ import {
   type HostToolRelay,
   type HostToolRelayTurn,
 } from './host-tool-relay';
+import { createHostToolRelayAuthorization } from './host-tool-relay-authorization';
 
 const cleanups: Array<() => Promise<void>> = [];
 
@@ -102,6 +103,59 @@ describe('host tool MCP HTTP transport', () => {
       input: { city: 'Paris' },
       order: 1,
     });
+  });
+
+  it('requires an ACP tool call for the HTTP MCP transport as well', async () => {
+    const relay = await createRelay({
+      tools: [{ name: 'weather', inputSchema: { type: 'object' } }],
+    });
+    const authorization = createHostToolRelayAuthorization({
+      serverName: 'ai-sdk-harness-tools',
+      toolNames: ['weather'],
+      ttlMs: 20,
+    });
+    cleanups.push(async () => authorization.close());
+    let notifyAuthorizationRequest: (() => void) | undefined;
+    const turn = createTurn({
+      waitForToolCallAuthorization: options => {
+        const pending = authorization.waitForToolCallAuthorization(options);
+        notifyAuthorizationRequest?.();
+        return pending;
+      },
+      requestToolResult: vi.fn(async () => ({ output: { celsius: 12 } })),
+    });
+    relay.bindTurn({ turn });
+    const client = await connect({ relay });
+
+    await expect(
+      client.callTool({ name: 'weather', arguments: { city: 'Paris' } }),
+    ).rejects.toThrow(/Unauthorized host tool relay request/);
+    expect(turn.emitToolCall).not.toHaveBeenCalled();
+    expect(turn.requestToolResult).not.toHaveBeenCalled();
+
+    const authorizationRequested = new Promise<void>(resolve => {
+      notifyAuthorizationRequest = resolve;
+    });
+    const authorizedCall = client.callTool({
+      name: 'weather',
+      arguments: { city: 'Paris' },
+    });
+    await authorizationRequested;
+    authorization.observeUpdate({
+      update: {
+        sessionUpdate: 'tool_call',
+        toolCallId: 'model-call',
+        title: 'Weather',
+        name: 'mcp__ai-sdk-harness-tools__weather',
+        rawInput: { city: 'Paris' },
+        status: 'in_progress',
+      },
+    });
+    await expect(authorizedCall).resolves.toMatchObject({
+      content: [{ type: 'text', text: '{"celsius":12}' }],
+    });
+    expect(turn.emitToolCall).toHaveBeenCalledTimes(1);
+    expect(turn.requestToolResult).toHaveBeenCalledTimes(1);
   });
 
   it('notifies the connected session when the catalog changes', async () => {
@@ -254,12 +308,14 @@ async function connect({ relay }: { relay: HostToolRelay }): Promise<Client> {
 }
 
 function createTurn({
+  waitForToolCallAuthorization = async () => true,
   emitToolCall = vi.fn(),
   emitToolResult = vi.fn(),
   registerCorrelationInvocation = vi.fn(),
   removeCorrelationInvocation = vi.fn(),
   requestToolResult,
 }: {
+  waitForToolCallAuthorization?: HostToolRelayTurn['waitForToolCallAuthorization'];
   emitToolCall?: HostToolRelayTurn['emitToolCall'];
   emitToolResult?: HostToolRelayTurn['emitToolResult'];
   registerCorrelationInvocation?: HostToolRelayTurn['registerCorrelationInvocation'];
@@ -267,6 +323,7 @@ function createTurn({
   requestToolResult: HostToolRelayTurn['requestToolResult'];
 }): HostToolRelayTurn {
   return {
+    waitForToolCallAuthorization,
     emitToolCall,
     emitToolResult,
     registerCorrelationInvocation,
