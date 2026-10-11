@@ -469,6 +469,35 @@ interface StructuredObjectOptions<SCHEMA, RESULT> {
 }
 ```
 
+### Sharing State Across Components
+
+Each `StructuredObject` instance owns its state. Creating multiple instances
+with the same `id` does not connect their state. To share generated objects,
+provide one instance through an Angular service and inject that service into
+each component:
+
+```typescript
+import { Component, Injectable, inject } from '@angular/core';
+import { StructuredObject } from '@ai-sdk/angular';
+import { schema } from './schema';
+
+@Injectable({ providedIn: 'root' })
+export class AnalysisService {
+  readonly structuredObject = new StructuredObject({
+    api: '/api/analyze',
+    schema,
+  });
+}
+
+@Component({
+  selector: 'app-results',
+  template: `...`,
+})
+export class ResultsComponent {
+  readonly structuredObject = inject(AnalysisService).structuredObject;
+}
+```
+
 ### Properties (Reactive)
 
 - `object: DeepPartial<RESULT> | undefined` - Generated object

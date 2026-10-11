@@ -29,9 +29,12 @@ export type StructuredObjectOptions<
   schema: SCHEMA;
 
   /**
-   * A unique identifier. If not provided, a random one will be
-   * generated. When provided, the `useObject` hook with the same `id` will
-   * have shared states across components.
+   * A unique identifier for this structured object. If not provided, a random
+   * one will be generated.
+   *
+   * State is scoped to this `StructuredObject` instance, so using the same
+   * `id` for another instance does not share state. To share state across
+   * components, provide the same instance through an Angular service.
    */
   id?: string;
 
