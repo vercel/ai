@@ -64,6 +64,54 @@ describe('doGenerate', () => {
       });
     });
 
+    it('should reject immediately when aborted during a polling wait', async () => {
+      vi.useFakeTimers();
+
+      try {
+        const controller = new AbortController();
+        let statusPolls = 0;
+        const customModel = createGladia({
+          apiKey: 'test-api-key',
+          fetch: async (url, init) => {
+            init?.signal?.throwIfAborted();
+
+            if (init?.method === 'POST') {
+              return Response.json(
+                String(url).endsWith('/upload')
+                  ? { audio_url: 'https://api.gladia.io/audio' }
+                  : {
+                      result_url: 'https://api.gladia.io/v2/pre-recorded/job',
+                    },
+              );
+            }
+
+            statusPolls++;
+            setTimeout(() => controller.abort(), 10);
+            return Response.json({ status: 'processing' });
+          },
+        }).transcription();
+
+        let rejection: unknown;
+        void Promise.resolve(
+          customModel.doGenerate({
+            audio: new Uint8Array([0]),
+            mediaType: 'audio/wav',
+            abortSignal: controller.signal,
+          }),
+        ).catch((error: unknown) => {
+          rejection = error;
+        });
+
+        await vi.advanceTimersByTimeAsync(10);
+
+        expect(rejection).toMatchObject({ name: 'AbortError' });
+        expect(statusPolls).toBe(1);
+        expect(vi.getTimerCount()).toBe(0);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     it('does not send the API key when the result URL is on a foreign origin', async () => {
       const foreignResultUrl =
         'https://cdn.evil.example/v2/pre-recorded/result';

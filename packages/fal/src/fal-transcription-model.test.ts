@@ -4,7 +4,7 @@ import { FalTranscriptionModel } from './fal-transcription-model';
 import { readFile } from 'node:fs/promises';
 import fs from 'node:fs';
 import path from 'node:path';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 const audioData = await readFile(path.join(__dirname, 'transcript-test.mp3'));
 const provider = createFal({ apiKey: 'test-api-key' });
@@ -52,6 +52,51 @@ describe('doGenerate', () => {
         diarize: true,
         chunk_level: 'word',
       });
+    });
+
+    it('should reject immediately when aborted during a polling wait', async () => {
+      vi.useFakeTimers();
+
+      try {
+        const controller = new AbortController();
+        let statusPolls = 0;
+        const customModel = createFal({
+          apiKey: 'test-api-key',
+          fetch: async (_url, init) => {
+            init?.signal?.throwIfAborted();
+
+            if (init?.method === 'POST') {
+              return Response.json({ request_id: 'job' });
+            }
+
+            statusPolls++;
+            setTimeout(() => controller.abort(), 10);
+            return Response.json(
+              { detail: 'Request is still in progress' },
+              { status: 400 },
+            );
+          },
+        }).transcription('whisper');
+
+        let rejection: unknown;
+        void Promise.resolve(
+          customModel.doGenerate({
+            audio: new Uint8Array([0]),
+            mediaType: 'audio/wav',
+            abortSignal: controller.signal,
+          }),
+        ).catch((error: unknown) => {
+          rejection = error;
+        });
+
+        await vi.advanceTimersByTimeAsync(10);
+
+        expect(rejection).toMatchObject({ name: 'AbortError' });
+        expect(statusPolls).toBe(1);
+        expect(vi.getTimerCount()).toBe(0);
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     it('should pass headers', async () => {

@@ -294,6 +294,52 @@ describe('doGenerate', () => {
     );
   });
 
+  it('should reject immediately when aborted during a polling wait', async () => {
+    vi.useFakeTimers();
+
+    try {
+      const controller = new AbortController();
+      let statusPolls = 0;
+      const customModel = createAssemblyAI({
+        apiKey: 'test-api-key',
+        fetch: async (url, init) => {
+          init?.signal?.throwIfAborted();
+
+          if (init?.method === 'POST') {
+            return Response.json(
+              String(url).endsWith('/upload')
+                ? { upload_url: 'https://example.com/audio' }
+                : { id: 'job', status: 'queued' },
+            );
+          }
+
+          statusPolls++;
+          setTimeout(() => controller.abort(), 10);
+          return Response.json({ id: 'job', status: 'processing' });
+        },
+      }).transcription('universal-3-5-pro');
+
+      let rejection: unknown;
+      void Promise.resolve(
+        customModel.doGenerate({
+          audio: new Uint8Array([0]),
+          mediaType: 'audio/wav',
+          abortSignal: controller.signal,
+        }),
+      ).catch((error: unknown) => {
+        rejection = error;
+      });
+
+      await vi.advanceTimersByTimeAsync(10);
+
+      expect(rejection).toMatchObject({ name: 'AbortError' });
+      expect(statusPolls).toBe(1);
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('should pass newer models via the speech_models parameter', async () => {
     prepareJsonResponse();
 

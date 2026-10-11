@@ -62,6 +62,48 @@ describe('doGenerate', () => {
       });
     });
 
+    it('should reject immediately when aborted during a polling wait', async () => {
+      vi.useFakeTimers();
+
+      try {
+        const controller = new AbortController();
+        let statusPolls = 0;
+        const customModel = createRevai({
+          apiKey: 'test-api-key',
+          fetch: async (_url, init) => {
+            init?.signal?.throwIfAborted();
+
+            if (init?.method === 'POST') {
+              return Response.json({ id: 'job', status: 'in_progress' });
+            }
+
+            statusPolls++;
+            setTimeout(() => controller.abort(), 10);
+            return Response.json({ id: 'job', status: 'in_progress' });
+          },
+        }).transcription('machine');
+
+        let rejection: unknown;
+        void Promise.resolve(
+          customModel.doGenerate({
+            audio: new Uint8Array([0]),
+            mediaType: 'audio/wav',
+            abortSignal: controller.signal,
+          }),
+        ).catch((error: unknown) => {
+          rejection = error;
+        });
+
+        await vi.advanceTimersByTimeAsync(10);
+
+        expect(rejection).toMatchObject({ name: 'AbortError' });
+        expect(statusPolls).toBe(1);
+        expect(vi.getTimerCount()).toBe(0);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     it('should pass headers', async () => {
       const provider = createRevai({
         apiKey: 'test-api-key',
