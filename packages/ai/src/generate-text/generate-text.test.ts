@@ -1,4 +1,5 @@
 import {
+  APICallError,
   InvalidPromptError,
   JSONParseError,
   type LanguageModelV4CallOptions,
@@ -207,6 +208,38 @@ describe('abort signal handling', () => {
     await expect(result).rejects.toMatchInlineSnapshot(
       `[AbortError: tool execution aborted]`,
     );
+    expect(modelCallCount).toBe(1);
+  });
+
+  it('should preserve the abort reason while waiting to retry', async () => {
+    const abortController = new AbortController();
+    const abortReason = new DOMException(
+      'Application deadline expired',
+      'TimeoutError',
+    );
+    let modelCallCount = 0;
+
+    const result = generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async () => {
+          modelCallCount++;
+          setTimeout(() => abortController.abort(abortReason), 10);
+
+          throw new APICallError({
+            message: 'Retry me',
+            url: 'https://example.invalid',
+            requestBodyValues: {},
+            statusCode: 429,
+            isRetryable: true,
+          });
+        },
+      }),
+      prompt: 'test-input',
+      abortSignal: abortController.signal,
+      maxRetries: 1,
+    });
+
+    await expect(result).rejects.toBe(abortReason);
     expect(modelCallCount).toBe(1);
   });
 });

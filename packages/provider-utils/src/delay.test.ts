@@ -54,27 +54,32 @@ describe('delay', () => {
   });
 
   describe('abort signal functionality', () => {
-    it('should reject immediately if signal is already aborted', async () => {
+    it('should reject with the reason if signal is already aborted', async () => {
       const controller = new AbortController();
-      controller.abort();
+      const reason = new Error('custom abort reason');
+      controller.abort(reason);
 
       const delayPromise = delay(1000, { abortSignal: controller.signal });
 
-      await expect(delayPromise).rejects.toThrow('Delay was aborted');
+      await expect(delayPromise).rejects.toBe(reason);
       expect(vi.getTimerCount()).toBe(0); // No timer should be set
     });
 
-    it('should reject when signal is aborted during delay', async () => {
+    it('should reject with the reason when signal is aborted during delay', async () => {
       const controller = new AbortController();
+      const reason = new DOMException(
+        'Application deadline expired',
+        'TimeoutError',
+      );
       const delayPromise = delay(1000, { abortSignal: controller.signal });
 
       // Advance time partially
       await vi.advanceTimersByTimeAsync(500);
 
       // Abort the signal
-      controller.abort();
+      controller.abort(reason);
 
-      await expect(delayPromise).rejects.toThrow('Delay was aborted');
+      await expect(delayPromise).rejects.toBe(reason);
     });
 
     it('should clean up timeout when aborted', async () => {
@@ -130,20 +135,31 @@ describe('delay', () => {
   });
 
   describe('error handling', () => {
-    it('should create proper DOMException for abort', async () => {
+    it('should preserve the default abort reason', async () => {
       const controller = new AbortController();
       controller.abort();
 
       const delayPromise = delay(1000, { abortSignal: controller.signal });
 
-      try {
-        await delayPromise;
-        expect.fail('Should have thrown');
-      } catch (error) {
-        expect(error).toBeInstanceOf(DOMException);
-        expect((error as DOMException).message).toBe('Delay was aborted');
-        expect((error as DOMException).name).toBe('AbortError');
-      }
+      await expect(delayPromise).rejects.toBe(controller.signal.reason);
+      expect(controller.signal.reason).toBeInstanceOf(DOMException);
+      expect((controller.signal.reason as DOMException).name).toBe(
+        'AbortError',
+      );
+    });
+
+    it('should create an AbortError when the signal has no reason', async () => {
+      const signal = {
+        aborted: true,
+        reason: undefined,
+      } as AbortSignal;
+
+      const delayPromise = delay(1000, { abortSignal: signal });
+
+      await expect(delayPromise).rejects.toMatchObject({
+        name: 'AbortError',
+        message: 'Delay was aborted',
+      });
     });
   });
 
