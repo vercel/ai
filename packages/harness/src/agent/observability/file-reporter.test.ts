@@ -1,9 +1,12 @@
 import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { generateText, jsonSchema } from 'ai';
+import { MockLanguageModelV4 } from 'ai/test';
 import { describe, expect, test } from 'vitest';
 import type { HarnessDiagnostic } from './types';
 import { createFileReporter } from './file-reporter';
+import { createTraceTreeReporter } from './trace-tree-reporter';
 
 function tmp(): string {
   return mkdtempSync(join(tmpdir(), 'harness-file-reporter-'));
@@ -58,7 +61,100 @@ const endEvent = {
   totalUsage: {},
 } as never;
 
+function toolCallModel(toolName: string) {
+  return new MockLanguageModelV4({
+    doGenerate: {
+      content: [
+        {
+          type: 'tool-call',
+          toolCallId: 'tool-call-1',
+          toolName,
+          input: '{}',
+        },
+      ],
+      finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+      warnings: [],
+      usage: {
+        inputTokens: {
+          total: 1,
+          noCache: 1,
+          cacheRead: 0,
+          cacheWrite: 0,
+        },
+        outputTokens: { total: 1, text: 1, reasoning: 0 },
+      },
+    },
+  });
+}
+
 describe('createFileReporter', () => {
+  test('retains failed tool turns and marks tool errors in trace trees', async () => {
+    const dir = tmp();
+    let trace = '';
+
+    await generateText({
+      model: toolCallModel('fail'),
+      prompt: 'Run the failing tool',
+      maxRetries: 0,
+      tools: {
+        fail: {
+          inputSchema: jsonSchema({
+            type: 'object',
+            properties: {},
+          }),
+          execute: () => {
+            throw new Error('synthetic tool failure');
+          },
+        },
+      },
+      telemetry: {
+        integrations: [
+          createFileReporter({ dir, failOnly: true }),
+          createTraceTreeReporter({
+            write: chunk => {
+              trace += chunk;
+            },
+          }),
+        ],
+      },
+    });
+
+    expect(readLines(dir).find(line => line.kind === 'tool-end')).toMatchObject(
+      {
+        isError: true,
+        output: {
+          name: 'Error',
+          message: 'synthetic tool failure',
+        },
+      },
+    );
+    expect(trace).toContain('tool fail [error]');
+  });
+
+  test('failOnly omits turns with successful tool executions', async () => {
+    const dir = tmp();
+
+    await generateText({
+      model: toolCallModel('succeed'),
+      prompt: 'Run the successful tool',
+      maxRetries: 0,
+      tools: {
+        succeed: {
+          inputSchema: jsonSchema({
+            type: 'object',
+            properties: {},
+          }),
+          execute: () => ({ ok: true }),
+        },
+      },
+      telemetry: {
+        integrations: [createFileReporter({ dir, failOnly: true })],
+      },
+    });
+
+    expect(existsSync(join(dir, 'events.jsonl'))).toBe(false);
+  });
+
   test('records error details and flushes the failed turn without onEnd', () => {
     const dir = tmp();
     const reporter = createFileReporter({ dir, failOnly: true });
