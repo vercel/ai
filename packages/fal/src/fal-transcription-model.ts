@@ -216,7 +216,10 @@ export class FalTranscriptionModel implements TranscriptionModelV4 {
           startSecond: chunk.timestamp?.at(0) ?? 0,
           endSecond: chunk.timestamp?.at(1) ?? 0,
         })) ?? [],
-      language: response.inferred_languages?.at(0) ?? undefined,
+      language:
+        response.languages?.at(0) ??
+        response.inferred_languages?.at(0) ??
+        undefined,
       durationInSeconds: response.chunks?.at(-1)?.timestamp?.at(1) ?? undefined,
       warnings,
       response: {
@@ -243,5 +246,6 @@ const falTranscriptionResponseSchema = z.object({
       }),
     )
     .nullish(),
+  languages: z.array(z.string()).nullish(),
   inferred_languages: z.array(z.string()).nullish(),
 });
