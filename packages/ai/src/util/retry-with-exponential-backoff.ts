@@ -81,9 +81,8 @@ export const retryWithExponentialBackoffRespectingRetryHeaders = ({
     backoffFactor,
     abortSignal,
     shouldRetry: async error =>
-      (error instanceof Error &&
-        ((APICallError.isInstance(error) && error.isRetryable === true) ||
-          (GatewayError.isInstance(error) && error.isRetryable === true))) ||
+      (APICallError.isInstance(error) && error.isRetryable === true) ||
+      (GatewayError.isInstance(error) && error.isRetryable === true) ||
       (additionalRetryableError != null &&
         (await additionalRetryableError(error))),
     getDelayInMs: ({ error, exponentialBackoffDelay }) =>
