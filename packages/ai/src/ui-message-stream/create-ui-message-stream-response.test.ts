@@ -302,22 +302,21 @@ describe('createUIMessageStreamResponse', () => {
     `);
   });
 
-  it('should handle consumeSseStream errors gracefully', async () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-    const consumeSseStream = vi.fn(async () => {
-      throw new Error('consumeSseStream error');
-    });
+  it('should report consumeSseStream rejections without blocking the response', async () => {
+    const error = new Error('consumeSseStream error');
+    const onConsumeSseStreamError = vi.fn();
 
     const response = createUIMessageStreamResponse({
       status: 200,
       stream: convertArrayToReadableStream([
         { type: 'text-delta', id: '1', delta: 'error-test' },
       ]),
-      consumeSseStream,
+      consumeSseStream: async () => {
+        throw error;
+      },
+      onConsumeSseStreamError,
     });
 
-    // The response should still work even if consumeSseStream fails
     const responseData = await convertReadableStreamToArray(
       response.body!.pipeThrough(new TextDecoderStream()),
     );
@@ -333,8 +332,26 @@ describe('createUIMessageStreamResponse', () => {
       ]
     `);
 
-    expect(consumeSseStream).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => {
+      expect(onConsumeSseStreamError).toHaveBeenCalledWith(error);
+    });
+  });
 
-    consoleSpy.mockRestore();
+  it('should report synchronous consumeSseStream errors without blocking the response', async () => {
+    const error = new Error('synchronous consumeSseStream error');
+    const onConsumeSseStreamError = vi.fn();
+
+    const response = createUIMessageStreamResponse({
+      stream: convertArrayToReadableStream([
+        { type: 'text-delta', id: '1', delta: 'error-test' },
+      ]),
+      consumeSseStream: () => {
+        throw error;
+      },
+      onConsumeSseStreamError,
+    });
+
+    await expect(response.text()).resolves.toContain('data: [DONE]');
+    expect(onConsumeSseStreamError).toHaveBeenCalledWith(error);
   });
 });

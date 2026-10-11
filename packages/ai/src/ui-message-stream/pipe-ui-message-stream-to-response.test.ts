@@ -3,7 +3,7 @@ import { createMockServerResponse } from '../test/mock-server-response';
 import type { TextStreamPart } from '../generate-text/stream-text-result';
 import { pipeUIMessageStreamToResponse } from './pipe-ui-message-stream-to-response';
 import { toUIMessageStream } from './to-ui-message-stream';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
 const cookies = [
   'theme=light; Expires=Wed, 21 Oct 2030 07:28:00 GMT; Path=/',
@@ -182,5 +182,27 @@ describe('pipeUIMessageStreamToResponse', () => {
       ",
       ]
     `);
+  });
+
+  it('should report consumeSseStream rejections without blocking the response', async () => {
+    const mockResponse = createMockServerResponse();
+    const error = new Error('consumeSseStream error');
+    const onConsumeSseStreamError = vi.fn();
+
+    pipeUIMessageStreamToResponse({
+      response: mockResponse,
+      stream: convertArrayToReadableStream([
+        { type: 'text-delta', id: '1', delta: 'test-data' },
+      ]),
+      consumeSseStream: () => Promise.reject(error),
+      onConsumeSseStreamError,
+    });
+
+    await mockResponse.waitForEnd();
+
+    expect(mockResponse.getDecodedChunks()).toContain('data: [DONE]\n\n');
+    await vi.waitFor(() => {
+      expect(onConsumeSseStreamError).toHaveBeenCalledWith(error);
+    });
   });
 });
