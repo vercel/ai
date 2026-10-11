@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22876,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22876-angular-structured-object-validation.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22876-angular-structured-object-validation.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22876_REPRODUCED: completed invalid object has no observable validation error without onFinish"
+  }
+}
