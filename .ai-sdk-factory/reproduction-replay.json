@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22784,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22784-langchain-on-final-twice.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22784-langchain-on-final-twice.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22784_REPRODUCED: onFinish failures caused onFinal counts sync=2 async=2; expected 1 each"
+  }
+}
