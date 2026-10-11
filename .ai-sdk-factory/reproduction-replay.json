@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22810,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/angular-structured-object-async-on-finish.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/angular-structured-object-async-on-finish.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22810_REPRODUCED: rejected async onFinish escaped as an unhandled rejection instead of reaching onError and error state"
+  }
+}
