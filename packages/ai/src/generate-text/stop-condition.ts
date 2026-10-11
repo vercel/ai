@@ -71,7 +71,37 @@ export async function isStopConditionMet<
   stopConditions: Array<StopCondition<TOOLS, RUNTIME_CONTEXT>>;
   steps: Array<StepResult<TOOLS, RUNTIME_CONTEXT>>;
 }): Promise<boolean> {
-  return (
-    await Promise.all(stopConditions.map(condition => condition({ steps })))
-  ).some(result => result);
+  if (stopConditions.length === 0) {
+    return false;
+  }
+
+  return new Promise<boolean>((resolve, reject) => {
+    let remainingConditions = stopConditions.length;
+
+    for (const condition of stopConditions) {
+      let result: PromiseLike<boolean> | boolean;
+
+      try {
+        result = condition({ steps });
+      } catch (error) {
+        reject(error);
+        return;
+      }
+
+      Promise.resolve(result)
+        .then(result => {
+          if (result) {
+            resolve(true);
+            return;
+          }
+
+          remainingConditions--;
+
+          if (remainingConditions === 0) {
+            resolve(false);
+          }
+        })
+        .catch(reject);
+    }
+  });
 }
