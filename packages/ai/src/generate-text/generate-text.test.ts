@@ -33,6 +33,7 @@ import {
   vitest,
 } from 'vitest';
 import { NoObjectGeneratedError } from '../error/no-object-generated-error';
+import { ToolCallNotExecutedError } from '../error/tool-call-not-executed-error';
 import { ToolChoiceViolationError } from '../error/tool-choice-violation-error';
 import { mockSandboxSessionFileStubs } from '../test/mock-sandbox';
 import { signToolApproval } from './tool-approval-signature';
@@ -805,6 +806,22 @@ describe('generateText', () => {
 
       expect(result.toolCalls).toHaveLength(1);
       expect(execute).not.toHaveBeenCalled();
+      const toolErrors = result.content.filter(
+        part => part.type === 'tool-error',
+      );
+      expect(toolErrors).toHaveLength(1);
+      expect(result.response.messages.map(message => message.role)).toEqual([
+        'assistant',
+        'tool',
+      ]);
+
+      const error = toolErrors[0].error;
+      expect(ToolCallNotExecutedError.isInstance(error)).toBe(true);
+      expect(error).toMatchObject({
+        toolName: 'testTool',
+        toolCallId: 'call-1',
+        finishReason,
+      });
     },
   );
 
