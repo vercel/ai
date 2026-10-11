@@ -130,6 +130,28 @@ describe('stop conditions', () => {
       ).resolves.toBe(true);
     });
 
+    it('should return true without waiting for pending stop conditions', async () => {
+      let releasePendingCondition!: (value: boolean) => void;
+      const pendingCondition = new Promise<boolean>(resolve => {
+        releasePendingCondition = resolve;
+      });
+      let settled = false;
+
+      const result = isStopConditionMet({
+        stopConditions: [() => true, () => pendingCondition],
+        steps: [createStepResult()],
+      }).then(value => {
+        settled = true;
+        return value;
+      });
+
+      await new Promise<void>(resolve => setImmediate(resolve));
+      expect(settled).toBe(true);
+
+      releasePendingCondition(false);
+      await expect(result).resolves.toBe(true);
+    });
+
     it('should return false when all stop conditions return false', async () => {
       await expect(
         isStopConditionMet({
@@ -137,6 +159,28 @@ describe('stop conditions', () => {
           steps: [createStepResult()],
         }),
       ).resolves.toBe(false);
+    });
+
+    it('should wait for all stop conditions before returning false', async () => {
+      let releasePendingCondition!: (value: boolean) => void;
+      const pendingCondition = new Promise<boolean>(resolve => {
+        releasePendingCondition = resolve;
+      });
+      let settled = false;
+
+      const result = isStopConditionMet({
+        stopConditions: [() => false, () => pendingCondition],
+        steps: [createStepResult()],
+      }).then(value => {
+        settled = true;
+        return value;
+      });
+
+      await new Promise<void>(resolve => setImmediate(resolve));
+      expect(settled).toBe(false);
+
+      releasePendingCondition(false);
+      await expect(result).resolves.toBe(false);
     });
 
     it('should support asynchronous stop conditions', async () => {
@@ -163,6 +207,61 @@ describe('stop conditions', () => {
           steps: [createStepResult()],
         }),
       ).rejects.toThrow('stop condition failed');
+    });
+
+    it('should reject without waiting for pending stop conditions', async () => {
+      let releasePendingCondition!: (value: boolean) => void;
+      const pendingCondition = new Promise<boolean>(resolve => {
+        releasePendingCondition = resolve;
+      });
+      const error = new Error('stop condition failed');
+      let rejection: unknown;
+
+      const result = isStopConditionMet({
+        stopConditions: [
+          () => pendingCondition,
+          async () => {
+            throw error;
+          },
+        ],
+        steps: [createStepResult()],
+      }).catch(cause => {
+        rejection = cause;
+      });
+
+      await new Promise<void>(resolve => setImmediate(resolve));
+      expect(rejection).toBe(error);
+
+      releasePendingCondition(false);
+      await result;
+    });
+
+    it('should handle rejections after a stop condition returns true', async () => {
+      let rejectPendingCondition!: (error: Error) => void;
+      const pendingCondition = new Promise<boolean>((_, reject) => {
+        rejectPendingCondition = reject;
+      });
+      let outcome: boolean | Error | undefined;
+
+      const result = isStopConditionMet({
+        stopConditions: [() => true, () => pendingCondition],
+        steps: [createStepResult()],
+      })
+        .then(value => {
+          outcome = value;
+        })
+        .catch(error => {
+          outcome = error;
+        });
+
+      await new Promise<void>(resolve => setImmediate(resolve));
+      const settledBeforeRejection = outcome === true;
+      rejectPendingCondition(new Error('late stop condition failure'));
+      await result;
+      await new Promise<void>(resolve => setImmediate(resolve));
+
+      expect(settledBeforeRejection).toBe(true);
+      expect(outcome).toBe(true);
     });
   });
 });
