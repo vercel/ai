@@ -1420,7 +1420,11 @@ describe('streamText', () => {
             "file": DefaultGeneratedFileWithType {
               "base64Data": "Hello World",
               "mediaType": "text/plain",
-              "providerMetadata": undefined,
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "sig-1",
+                },
+              },
               "type": "file",
               "uint8ArrayData": undefined,
             },
@@ -1444,6 +1448,11 @@ describe('streamText', () => {
           },
         ]
       `);
+
+      expect((await result.files).map(file => file.providerMetadata)).toEqual([
+        { testProvider: { signature: 'sig-1' } },
+        undefined,
+      ]);
     });
 
     it('should send reasoning-files', async () => {
@@ -1495,7 +1504,11 @@ describe('streamText', () => {
               "file": DefaultGeneratedFileWithType {
                 "base64Data": "reasoning-file-data-2",
                 "mediaType": "image/jpeg",
-                "providerMetadata": undefined,
+                "providerMetadata": {
+                  "testProvider": {
+                    "signature": "rf-sig-1",
+                  },
+                },
                 "type": "file",
                 "uint8ArrayData": undefined,
               },
@@ -8497,7 +8510,11 @@ describe('streamText', () => {
                 "file": DefaultGeneratedFileWithType {
                   "base64Data": "reasoning-file-data-2",
                   "mediaType": "image/jpeg",
-                  "providerMetadata": undefined,
+                  "providerMetadata": {
+                    "testProvider": {
+                      "signature": "rf-sig-1",
+                    },
+                  },
                   "type": "file",
                   "uint8ArrayData": undefined,
                 },

@@ -928,7 +928,11 @@ describe('streamLanguageModelCall', () => {
             "file": DefaultGeneratedFileWithType {
               "base64Data": undefined,
               "mediaType": "text/plain",
-              "providerMetadata": undefined,
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "test-signature",
+                },
+              },
               "type": "file",
               "uint8ArrayData": Uint8Array [
                 72,

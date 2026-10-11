@@ -1109,7 +1109,7 @@ describe('generateText', () => {
       ]);
     });
 
-    it('should include reasoning-file in content and exclude from files', async () => {
+    it('should preserve provider metadata on generated files', async () => {
       const result = await generateText({
         model: new MockLanguageModelV4({
           doGenerate: {
@@ -1128,6 +1128,9 @@ describe('generateText', () => {
                 type: 'file',
                 data: { type: 'data', data: new Uint8Array([40, 50, 60]) },
                 mediaType: 'image/jpeg',
+                providerMetadata: {
+                  testProvider: { fileId: 'file-1' },
+                },
               },
             ],
           },
@@ -1145,7 +1148,11 @@ describe('generateText', () => {
             "file": DefaultGeneratedFile {
               "base64Data": "ChQe",
               "mediaType": "image/png",
-              "providerMetadata": undefined,
+              "providerMetadata": {
+                "google": {
+                  "thoughtSignature": "sig123",
+                },
+              },
               "uint8ArrayData": Uint8Array [
                 10,
                 20,
@@ -1163,12 +1170,21 @@ describe('generateText', () => {
             "file": DefaultGeneratedFile {
               "base64Data": "KDI8",
               "mediaType": "image/jpeg",
-              "providerMetadata": undefined,
+              "providerMetadata": {
+                "testProvider": {
+                  "fileId": "file-1",
+                },
+              },
               "uint8ArrayData": Uint8Array [
                 40,
                 50,
                 60,
               ],
+            },
+            "providerMetadata": {
+              "testProvider": {
+                "fileId": "file-1",
+              },
             },
             "type": "file",
           },
@@ -1180,7 +1196,11 @@ describe('generateText', () => {
           DefaultGeneratedFile {
             "base64Data": "KDI8",
             "mediaType": "image/jpeg",
-            "providerMetadata": undefined,
+            "providerMetadata": {
+              "testProvider": {
+                "fileId": "file-1",
+              },
+            },
             "uint8ArrayData": Uint8Array [
               40,
               50,
