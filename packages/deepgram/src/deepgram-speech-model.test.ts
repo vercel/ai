@@ -237,6 +237,33 @@ describe('doGenerate', () => {
     expect(url.searchParams.get('encoding')).toBe('linear16');
   });
 
+  it.each([
+    { outputFormat: 'mulaw', container: 'none' },
+    { outputFormat: 'alaw', container: 'none' },
+    { outputFormat: 'mulaw', container: 'wav' },
+  ])(
+    'should preserve $outputFormat encoding with a $container container override',
+    async ({ outputFormat, container }) => {
+      prepareAudioResponse();
+
+      const result = await model.doGenerate({
+        text: 'Hello, welcome to Deepgram!',
+        voice: 'helena',
+        outputFormat,
+        providerOptions: {
+          deepgram: {
+            container,
+          },
+        },
+      });
+
+      const url = new URL(server.calls.at(-1)!.requestUrl);
+      expect(url.searchParams.get('encoding')).toBe(outputFormat);
+      expect(url.searchParams.get('container')).toBe(container);
+      expect(result.warnings).toEqual([]);
+    },
+  );
+
   it('should pass provider options', async () => {
     prepareAudioResponse();
 
