@@ -2,6 +2,7 @@ import {
   createTestServer,
   TestResponseController,
 } from '@ai-sdk/test-server/with-vitest';
+import { jsonSchema } from 'ai';
 import { z } from 'zod/v4';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { StructuredObject } from './structured-object.ng';
@@ -173,6 +174,43 @@ describe('text stream', () => {
         error: expect.any(Error),
       });
     });
+  });
+
+  it('should await final schema validation and expose errors without an onFinish callback', async () => {
+    server.urls['/api/object'].response = {
+      type: 'stream-chunks',
+      chunks: ['{ ', '"content-wrong": "Hello, ', 'world', '!"', '}'],
+    };
+
+    const validate = vi.fn(async () => ({
+      success: false as const,
+      error: new Error('content is required'),
+    }));
+    const structuredObjectWithoutOnFinish = new StructuredObject({
+      api: '/api/object',
+      schema: jsonSchema<{ content: string }>(
+        {
+          type: 'object',
+          properties: { content: { type: 'string' } },
+          required: ['content'],
+          additionalProperties: false,
+        },
+        { validate },
+      ),
+    });
+
+    await structuredObjectWithoutOnFinish.submit('test-input');
+
+    expect(validate).toHaveBeenCalledExactlyOnceWith({
+      'content-wrong': 'Hello, world!',
+    });
+    expect(structuredObjectWithoutOnFinish.object).toEqual({
+      'content-wrong': 'Hello, world!',
+    });
+    expect(structuredObjectWithoutOnFinish.error).toMatchObject({
+      name: 'AI_TypeValidationError',
+    });
+    expect(structuredObjectWithoutOnFinish.loading).toBe(false);
   });
 
   it('should send custom headers', async () => {
