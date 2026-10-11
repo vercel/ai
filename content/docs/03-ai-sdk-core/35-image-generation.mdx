@@ -150,6 +150,30 @@ const { image } = await generateImage({
 });
 ```
 
+By default, when `generateImage` splits a request into multiple provider calls,
+it sends the same seed to every call. Set `seedStrategy: 'increment'` to add the
+zero-based provider call index to the seed:
+
+```tsx highlight={"8"}
+import { generateImage } from 'ai';
+__PROVIDER_IMPORT__;
+
+const { images } = await generateImage({
+  model: __IMAGE_MODEL__,
+  prompt: 'Santa Claus driving a Cadillac',
+  n: 3,
+  seed: 42,
+  seedStrategy: 'increment', // split calls use seeds 42, 43, 44
+});
+```
+
+The increment applies per provider call, not per image. As a result,
+`maxImagesPerCall` determines the number of seeds used. Each retry reuses the
+seed selected for its original call. If `seed` is omitted, `seedStrategy` has no
+effect. Make sure every derived seed is within the range supported by your
+provider. Different seeds do not guarantee different images; output behavior
+depends on the provider and model.
+
 ### Provider-specific Settings
 
 Image models often have provider- or even model-specific settings.

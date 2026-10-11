@@ -422,6 +422,107 @@ describe('generateImage', () => {
       );
     });
 
+    it('should increment the seed for each split call when requested', async () => {
+      const seeds: Array<number | undefined> = [];
+
+      await generateImage({
+        model: new MockImageModelV4({
+          maxImagesPerCall: 1,
+          doGenerate: async ({ seed }) => {
+            seeds.push(seed);
+            return createMockResponse({
+              images: [pngBase64],
+            });
+          },
+        }),
+        prompt,
+        n: 3,
+        seed: 42,
+        seedStrategy: 'increment',
+      });
+
+      expect(seeds).toStrictEqual([42, 43, 44]);
+    });
+
+    it('should reuse the seed for each split call by default', async () => {
+      const seeds: Array<number | undefined> = [];
+
+      await generateImage({
+        model: new MockImageModelV4({
+          maxImagesPerCall: 1,
+          doGenerate: async ({ seed }) => {
+            seeds.push(seed);
+            return createMockResponse({
+              images: [pngBase64],
+            });
+          },
+        }),
+        prompt,
+        n: 3,
+        seed: 42,
+      });
+
+      expect(seeds).toStrictEqual([42, 42, 42]);
+    });
+
+    it('should leave the seed undefined when incrementing without a seed', async () => {
+      const seeds: Array<number | undefined> = [];
+
+      await generateImage({
+        model: new MockImageModelV4({
+          maxImagesPerCall: 1,
+          doGenerate: async ({ seed }) => {
+            seeds.push(seed);
+            return createMockResponse({
+              images: [pngBase64],
+            });
+          },
+        }),
+        prompt,
+        n: 2,
+        seedStrategy: 'increment',
+      });
+
+      expect(seeds).toStrictEqual([undefined, undefined]);
+    });
+
+    it('should reuse each incremented seed when retrying a split call', async () => {
+      vi.useFakeTimers();
+
+      try {
+        const attemptsBySeed = new Map<number | undefined, number>();
+        const seeds: Array<number | undefined> = [];
+
+        const resultPromise = generateImage({
+          model: new MockImageModelV4({
+            maxImagesPerCall: 1,
+            doGenerate: async ({ seed }) => {
+              seeds.push(seed);
+
+              const attempt = (attemptsBySeed.get(seed) ?? 0) + 1;
+              attemptsBySeed.set(seed, attempt);
+
+              return createMockResponse({
+                images: attempt === 1 ? [] : [pngBase64],
+              });
+            },
+          }),
+          prompt,
+          n: 2,
+          seed: 42,
+          seedStrategy: 'increment',
+          maxRetries: 1,
+        });
+
+        await vi.runAllTimersAsync();
+        await resultPromise;
+
+        expect(seeds.toSorted()).toStrictEqual([42, 42, 43, 43]);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     it('should aggregate warnings', async () => {
       const base64Images = [pngBase64, jpegBase64, gifBase64];
 

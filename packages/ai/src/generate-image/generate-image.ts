@@ -76,6 +76,7 @@ export type GenerateImagePrompt =
  * @param size - Size of the images to generate. Must have the format `{width}x{height}`.
  * @param aspectRatio - Aspect ratio of the images to generate. Must have the format `{width}:{height}`.
  * @param seed - Seed for the image generation.
+ * @param seedStrategy - Strategy for assigning seeds when the request is split into multiple model calls. Default: 'fixed'.
  * @param providerOptions - Additional provider-specific options that are passed through to the provider
  * as body parameters.
  * @param maxRetries - Maximum number of retries per image model call, including retries after unclassified empty responses. Empty responses marked as not retryable by the provider are not retried. Set to 0 to disable retries. Default: 2.
@@ -92,6 +93,7 @@ export async function generateImage({
   size,
   aspectRatio,
   seed,
+  seedStrategy = 'fixed',
   providerOptions,
   maxRetries: maxRetriesArg,
   abortSignal,
@@ -131,6 +133,18 @@ export async function generateImage({
    * Seed for the image generation. If not provided, the default seed will be used.
    */
   seed?: number;
+
+  /**
+   * Strategy for assigning seeds when the request is split into multiple model
+   * calls. `'fixed'` reuses the provided seed for every call. `'increment'`
+   * adds the zero-based call index to the provided seed. Retries reuse the seed
+   * selected for their model call.
+   *
+   * Has no effect when `seed` is not provided.
+   *
+   * @default 'fixed'
+   */
+  seedStrategy?: 'fixed' | 'increment';
 
   /**
    * Additional provider-specific options that are passed through to the provider
@@ -199,8 +213,10 @@ export async function generateImage({
   });
 
   const resultGroups = await Promise.all(
-    callImageCounts.map(async callImageCount => {
+    callImageCounts.map(async (callImageCount, callIndex) => {
       const callResults: Array<ImageModelV4Result> = [];
+      const callSeed =
+        seedStrategy === 'increment' && seed != null ? seed + callIndex : seed;
 
       try {
         await retry(async () => {
@@ -215,7 +231,7 @@ export async function generateImage({
             headers: headersWithUserAgent,
             size,
             aspectRatio,
-            seed,
+            seed: callSeed,
             providerOptions: providerOptions ?? {},
           });
 

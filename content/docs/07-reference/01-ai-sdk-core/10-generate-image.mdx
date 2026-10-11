@@ -97,6 +97,13 @@ console.log(images);
       description: 'Seed for the image generation.',
     },
     {
+      name: 'seedStrategy',
+      type: "'fixed' | 'increment'",
+      isOptional: true,
+      description:
+        "Strategy for assigning seeds when the request is split into multiple model calls. 'fixed' reuses the seed for every call (default). 'increment' adds the zero-based call index to the seed. Retries reuse the seed selected for their call. Has no effect when seed is omitted.",
+    },
+    {
       name: 'providerOptions',
       type: 'ProviderOptions',
       isOptional: true,
