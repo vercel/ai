@@ -63,6 +63,7 @@ export async function convertLanguageModelContent<TOOLS extends ToolSet>({
               cache: generatedFileDataCache,
             }),
             mediaType: part.mediaType,
+            providerMetadata: part.providerMetadata,
           }),
           ...(part.providerMetadata != null
             ? { providerMetadata: part.providerMetadata }

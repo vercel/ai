@@ -571,6 +571,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
               abortSignal,
             }),
             mediaType: chunk.mediaType,
+            providerMetadata: chunk.providerMetadata,
           });
 
           modelCallContent.push({
