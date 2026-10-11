@@ -23,7 +23,10 @@ import {
   defaultOpenAICompatibleErrorStructure,
   type ProviderErrorStructure,
 } from '../openai-compatible-error';
-import { warnIfDeprecatedProviderOptionsKey } from '../utils/to-camel-case';
+import {
+  toCamelCase,
+  warnIfDeprecatedProviderOptionsKey,
+} from '../utils/to-camel-case';
 
 type OpenAICompatibleEmbeddingConfig = {
   /**
@@ -129,6 +132,11 @@ export class OpenAICompatibleEmbeddingModel implements EmbeddingModelV4 {
       })) ?? {},
       (await parseProviderOptions({
         provider: this.providerOptionsName,
+        providerOptions,
+        schema: openaiCompatibleEmbeddingModelOptions,
+      })) ?? {},
+      (await parseProviderOptions({
+        provider: toCamelCase(this.providerOptionsName),
         providerOptions,
         schema: openaiCompatibleEmbeddingModelOptions,
       })) ?? {},
