@@ -66,11 +66,16 @@ export class LangSmithDeploymentTransport<
       abortSignal: AbortSignal | undefined;
     } & ChatRequestOptions,
   ): Promise<ReadableStream<UIMessageChunk>> {
+    options.abortSignal?.throwIfAborted();
+
     const baseMessages = await toBaseMessages(options.messages);
 
     const stream = await this.graph.stream(
       { messages: baseMessages },
-      { streamMode: ['values', 'messages'] },
+      {
+        streamMode: ['values', 'messages'],
+        signal: options.abortSignal,
+      },
     );
 
     return toUIMessageStream(
