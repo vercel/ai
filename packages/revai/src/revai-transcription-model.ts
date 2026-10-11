@@ -243,9 +243,38 @@ export class RevaiTranscriptionModel implements TranscriptionModelV4 {
       // Process each monologue to extract segments with timing information
       let currentSegmentText = '';
       let segmentStartSecond = 0;
+      let segmentEndSecond: number | undefined;
       let hasStartedSegment = false;
 
+      const finishSegment = () => {
+        if (!hasStartedSegment) {
+          return;
+        }
+
+        if (currentSegmentText.trim()) {
+          segments.push({
+            text: currentSegmentText.trim(),
+            startSecond: segmentStartSecond,
+            endSecond:
+              segmentEndSecond ??
+              (durationInSeconds > segmentStartSecond
+                ? durationInSeconds
+                : segmentStartSecond + 1),
+          });
+        }
+
+        currentSegmentText = '';
+        segmentEndSecond = undefined;
+        hasStartedSegment = false;
+      };
+
       for (const element of monologue?.elements ?? []) {
+        // A following text element marks the end of the previous timed
+        // segment, after any untimed punctuation has been appended.
+        if (element.type === 'text' && segmentEndSecond !== undefined) {
+          finishSegment();
+        }
+
         // Add the element value to the current segment text
         currentSegmentText += element.value;
 
@@ -262,36 +291,16 @@ export class RevaiTranscriptionModel implements TranscriptionModelV4 {
             hasStartedSegment = true;
           }
 
-          // If we have an end timestamp, we can complete a segment
+          // Store the end timestamp so following punctuation can be included
+          // before completing the segment.
           if (typeof element.end_ts === 'number' && hasStartedSegment) {
-            // Only add non-empty segments
-            if (currentSegmentText.trim()) {
-              segments.push({
-                text: currentSegmentText.trim(),
-                startSecond: segmentStartSecond,
-                endSecond: element.end_ts,
-              });
-            }
-
-            // Reset for the next segment
-            currentSegmentText = '';
-            hasStartedSegment = false;
+            segmentEndSecond = element.end_ts;
           }
         }
       }
 
       // Handle any remaining segment text that wasn't added
-      if (hasStartedSegment && currentSegmentText.trim()) {
-        const endSecond =
-          durationInSeconds > segmentStartSecond
-            ? durationInSeconds
-            : segmentStartSecond + 1;
-        segments.push({
-          text: currentSegmentText.trim(),
-          startSecond: segmentStartSecond,
-          endSecond: endSecond,
-        });
-      }
+      finishSegment();
     }
 
     return {
