@@ -1,4 +1,5 @@
 import {
+  APICallError,
   InvalidArgumentError,
   InvalidResponseDataError,
   UnsupportedFunctionalityError,
@@ -23,6 +24,7 @@ import {
   convertAsyncIteratorToReadableStream,
   createJsonLinesResponseHandler,
   createJsonResponseHandler,
+  deleteFromApi,
   getFromApi,
   lazySchema,
   normalizeBatchRequestCounts,
@@ -39,7 +41,10 @@ import {
   openaiFailedResponseHandler,
 } from './openai-error';
 import type { OpenAIConfig } from './openai-config';
-import { openaiFilesResponseSchema } from './files/openai-files-api';
+import {
+  openaiFileDeleteResponseSchema,
+  openaiFilesResponseSchema,
+} from './files/openai-files-api';
 import { convertOpenAIResponsesUsage } from './responses/convert-openai-responses-usage';
 import { mapOpenAIResponseFinishReason } from './responses/map-openai-responses-finish-reason';
 import {
@@ -56,6 +61,7 @@ import type { ResponsesReasoningProviderMetadata } from './responses/openai-resp
 
 const openaiBatchEndpoint = '/v1/responses';
 const openaiBatchInputFileDefaultExpiresAfterSeconds = 48 * 60 * 60;
+const openaiBatchInputFileCleanupTimeoutMs = 10_000;
 
 const openaiBatchProviderOptionsSchema = lazySchema(() =>
   zodSchema(
@@ -289,21 +295,39 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
       fetch: this.options.config.fetch,
     });
 
-    const { value: batch } = await postJsonToApi({
-      url: this.getUrl('/batches'),
-      headers: combineHeaders(this.options.config.headers?.(), options.headers),
-      body: {
-        input_file_id: uploadedFile.id,
-        endpoint: openaiBatchEndpoint,
-        completion_window: '24h',
-      },
-      failedResponseHandler: openaiFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(
-        openaiBatchResponseSchema,
-      ),
-      abortSignal: options.abortSignal,
-      fetch: this.options.config.fetch,
-    });
+    let batch: OpenAIBatchResponse;
+    try {
+      const response = await postJsonToApi({
+        url: this.getUrl('/batches'),
+        headers: combineHeaders(
+          this.options.config.headers?.(),
+          options.headers,
+        ),
+        body: {
+          input_file_id: uploadedFile.id,
+          endpoint: openaiBatchEndpoint,
+          completion_window: '24h',
+        },
+        failedResponseHandler: openaiFailedResponseHandler,
+        successfulResponseHandler: createJsonResponseHandler(
+          openaiBatchResponseSchema,
+        ),
+        abortSignal: options.abortSignal,
+        fetch: this.options.config.fetch,
+      });
+      batch = response.value;
+    } catch (error) {
+      // A non-retryable 4xx proves that OpenAI rejected batch creation.
+      // Transport, retryable, and malformed-success failures are ambiguous
+      // because the provider may have accepted the batch.
+      if (isDefinitiveBatchCreationRejection(error)) {
+        await this.deleteRejectedBatchInputFile({
+          inputFileId: uploadedFile.id,
+          headers: options.headers,
+        });
+      }
+      throw error;
+    }
 
     const inputFileExpiresAt = convertUnixTimestamp(uploadedFile.expires_at);
 
@@ -556,9 +580,55 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
     return { body, warnings };
   }
 
+  private async deleteRejectedBatchInputFile({
+    inputFileId,
+    headers,
+  }: {
+    inputFileId: string;
+    headers?: Record<string, string | undefined>;
+  }): Promise<void> {
+    try {
+      await deleteFromApi({
+        url: this.getUrl(`/files/${encodePathSegment(inputFileId)}`),
+        headers: combineHeaders(this.options.config.headers?.(), headers),
+        failedResponseHandler: openaiFailedResponseHandler,
+        successfulResponseHandler: createJsonResponseHandler(
+          openaiFileDeleteResponseSchema,
+        ),
+        abortSignal: AbortSignal.timeout(openaiBatchInputFileCleanupTimeoutMs),
+        fetch: this.options.config.fetch,
+      });
+    } catch {
+      // Cleanup is best-effort. Preserve the original batch creation error.
+    }
+  }
+
   private getUrl(path: string) {
     return this.options.config.url({ path, modelId: '' });
   }
+}
+
+function isDefinitiveBatchCreationRejection(
+  error: unknown,
+): error is APICallError {
+  return (
+    APICallError.isInstance(error) &&
+    error.statusCode != null &&
+    error.statusCode >= 400 &&
+    error.statusCode < 500 &&
+    !error.isRetryable
+  );
+}
+
+function encodePathSegment(value: string): string {
+  const encodedValue = encodeURIComponent(value);
+
+  // URL parsing normalizes both literal and percent-encoded dot segments.
+  return encodedValue === '.'
+    ? '%252E'
+    : encodedValue === '..'
+      ? '%252E%252E'
+      : encodedValue;
 }
 
 function validateSingleModel(requests: ReadonlyArray<OpenAIBatchRequest>) {

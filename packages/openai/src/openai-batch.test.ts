@@ -1,4 +1,4 @@
-import { JSONParseError } from '@ai-sdk/provider';
+import { APICallError, JSONParseError } from '@ai-sdk/provider';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it, vi } from 'vitest';
@@ -10,6 +10,7 @@ vi.mock('./version', () => ({
 
 const urls = {
   files: 'https://api.openai.com/v1/files',
+  inputFile: 'https://api.openai.com/v1/files/file-input',
   batches: 'https://api.openai.com/v1/batches',
   batch: 'https://api.openai.com/v1/batches/batch_123',
   cancel: 'https://api.openai.com/v1/batches/batch_123/cancel',
@@ -19,6 +20,7 @@ const urls = {
 
 const server = createTestServer({
   [urls.files]: {},
+  [urls.inputFile]: {},
   [urls.batches]: {},
   [urls.batch]: {},
   [urls.cancel]: {},
@@ -122,6 +124,15 @@ function resultLine({ id, body }: { id: string; body: unknown }) {
     },
     error: null,
   });
+}
+
+async function captureError(promise: PromiseLike<unknown>): Promise<unknown> {
+  try {
+    await promise;
+  } catch (error) {
+    return error;
+  }
+  throw new Error('Expected promise to reject.');
 }
 
 describe('OpenAI batch service', () => {
@@ -247,6 +258,264 @@ describe('OpenAI batch service', () => {
       'provider-header': 'provider',
       'operation-header': 'operation',
     });
+    expect(server.calls).toHaveLength(2);
+  });
+
+  it('deletes the uploaded input file after a definitive batch creation rejection', async () => {
+    prepareCreateResponse();
+    server.urls[urls.batches].response = {
+      type: 'error',
+      status: 400,
+      body: JSON.stringify({
+        error: {
+          message: 'Invalid batch',
+          type: 'invalid_request_error',
+          code: 'invalid_request',
+        },
+      }),
+    };
+    server.urls[urls.inputFile].response = {
+      type: 'json-value',
+      body: { id: 'file-input', object: 'file', deleted: true },
+    };
+    const batch = createOpenAI({
+      apiKey: 'test-api-key',
+      headers: { 'Provider-Header': 'provider' },
+    }).experimental_batch();
+
+    await expect(
+      batch.doStartBatch({
+        requests: [
+          { id: 'france', ...request('What is the capital of France?') },
+        ],
+        headers: { 'Operation-Header': 'operation' },
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_APICallError',
+      message: 'Invalid batch',
+      statusCode: 400,
+    });
+
+    expect(
+      server.calls.map(call => [call.requestMethod, call.requestUrl]),
+    ).toEqual([
+      ['POST', urls.files],
+      ['POST', urls.batches],
+      ['DELETE', urls.inputFile],
+    ]);
+    expect(server.calls[2].requestHeaders).toMatchObject({
+      authorization: 'Bearer test-api-key',
+      'provider-header': 'provider',
+      'operation-header': 'operation',
+    });
+  });
+
+  it('preserves the batch creation error when input file cleanup fails', async () => {
+    prepareCreateResponse();
+    server.urls[urls.batches].response = {
+      type: 'error',
+      status: 400,
+      body: JSON.stringify({
+        error: { message: 'Invalid batch', type: 'invalid_request_error' },
+      }),
+    };
+    server.urls[urls.inputFile].response = {
+      type: 'error',
+      status: 500,
+      body: JSON.stringify({
+        error: { message: 'Cleanup failed', type: 'server_error' },
+      }),
+    };
+    const batch = createOpenAI({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
+
+    const error = await captureError(
+      batch.doStartBatch({
+        requests: [
+          { id: 'france', ...request('What is the capital of France?') },
+        ],
+      }),
+    );
+
+    expect(error).toMatchObject({
+      name: 'AI_APICallError',
+      message: 'Invalid batch',
+      statusCode: 400,
+    });
+    expect(server.calls.at(-1)?.requestMethod).toBe('DELETE');
+  });
+
+  it.each([408, 409, 429, 500])(
+    'does not delete the input file after retryable HTTP %s failures',
+    async status => {
+      prepareCreateResponse();
+      server.urls[urls.batches].response = {
+        type: 'error',
+        status,
+        body: JSON.stringify({
+          error: { message: 'Try again', type: 'server_error' },
+        }),
+      };
+      const batch = createOpenAI({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
+
+      await expect(
+        batch.doStartBatch({
+          requests: [
+            { id: 'france', ...request('What is the capital of France?') },
+          ],
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_APICallError',
+        statusCode: status,
+        isRetryable: true,
+      });
+
+      expect(server.calls).toHaveLength(2);
+    },
+  );
+
+  it('does not delete the input file after an ambiguous transport failure', async () => {
+    const networkError = new TypeError('fetch failed') as TypeError & {
+      cause?: unknown;
+    };
+    networkError.cause = Object.assign(new Error('connection reset'), {
+      code: 'ECONNRESET',
+    });
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        Response.json({
+          id: 'file-input',
+          object: 'file',
+          filename: 'batch.jsonl',
+          purpose: 'batch',
+        }),
+      )
+      .mockRejectedValueOnce(networkError);
+    const batch = createOpenAI({
+      apiKey: 'test-api-key',
+      fetch: fetchMock,
+    }).experimental_batch();
+
+    const error = await captureError(
+      batch.doStartBatch({
+        requests: [
+          { id: 'france', ...request('What is the capital of France?') },
+        ],
+      }),
+    );
+
+    expect(APICallError.isInstance(error)).toBe(true);
+    expect(error).toMatchObject({ isRetryable: true });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls.map(([, init]) => init?.method)).toEqual([
+      'POST',
+      'POST',
+    ]);
+  });
+
+  it('does not delete the input file after an aborted batch creation request', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        Response.json({
+          id: 'file-input',
+          object: 'file',
+          filename: 'batch.jsonl',
+          purpose: 'batch',
+        }),
+      )
+      .mockRejectedValueOnce(new DOMException('Aborted', 'AbortError'));
+    const batch = createOpenAI({
+      apiKey: 'test-api-key',
+      fetch: fetchMock,
+    }).experimental_batch();
+
+    await expect(
+      batch.doStartBatch({
+        requests: [
+          { id: 'france', ...request('What is the capital of France?') },
+        ],
+      }),
+    ).rejects.toMatchObject({ name: 'AbortError' });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls.map(([, init]) => init?.method)).toEqual([
+      'POST',
+      'POST',
+    ]);
+  });
+
+  it('does not delete the input file after a malformed successful batch response', async () => {
+    prepareCreateResponse();
+    server.urls[urls.batches].response = {
+      type: 'json-value',
+      body: { status: 'validating' },
+    };
+    const batch = createOpenAI({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
+
+    await expect(
+      batch.doStartBatch({
+        requests: [
+          { id: 'france', ...request('What is the capital of France?') },
+        ],
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_APICallError',
+      message: 'Invalid JSON response',
+      statusCode: 200,
+    });
+
+    expect(server.calls).toHaveLength(2);
+  });
+
+  it('safely encodes the input file ID in the cleanup URL', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        Response.json({
+          id: '..',
+          object: 'file',
+          filename: 'batch.jsonl',
+          purpose: 'batch',
+        }),
+      )
+      .mockResolvedValueOnce(
+        Response.json(
+          {
+            error: {
+              message: 'Invalid batch',
+              type: 'invalid_request_error',
+            },
+          },
+          { status: 400 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        Response.json({ id: '..', object: 'file', deleted: true }),
+      );
+    const batch = createOpenAI({
+      apiKey: 'test-api-key',
+      fetch: fetchMock,
+    }).experimental_batch();
+
+    await expect(
+      batch.doStartBatch({
+        requests: [
+          { id: 'france', ...request('What is the capital of France?') },
+        ],
+      }),
+    ).rejects.toThrow('Invalid batch');
+
+    expect(fetchMock.mock.calls[2][0]).toBe(
+      'https://api.openai.com/v1/files/%252E%252E',
+    );
+    expect(fetchMock.mock.calls[2][1]?.method).toBe('DELETE');
   });
 
   it('rejects mixed models before uploading the batch input file', async () => {

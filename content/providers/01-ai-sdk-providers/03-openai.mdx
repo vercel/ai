@@ -2190,6 +2190,19 @@ Each request specifies its `type` and `model`. OpenAI requires every text
 request in a batch to use the same model and throws before submission when the
 models differ.
 
+#### Input file cleanup
+
+Starting an OpenAI batch first uploads a JSONL input file. If OpenAI
+definitively rejects batch creation with a non-retryable 4xx response, the
+provider makes a best-effort request to delete the unused input file before
+rethrowing the original creation error. Cleanup failures do not replace that
+error.
+
+The provider does not delete the input file after an ambiguous failure, such as
+a transport error, timeout, retryable response, server error, or malformed
+successful response, because OpenAI may have accepted the batch. OpenAI's
+configured file expiration remains the fallback in those cases.
+
 #### Webhooks
 
 <Note>
