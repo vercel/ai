@@ -302,7 +302,7 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
       }
 
       // Wait for the configured polling interval before checking again
-      await delay(pollingInterval);
+      await delay(pollingInterval, { abortSignal: options.abortSignal });
     }
 
     if (!transcriptionResult.result) {

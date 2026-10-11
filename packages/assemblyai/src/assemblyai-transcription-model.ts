@@ -6,6 +6,7 @@ import type {
 import {
   combineHeaders,
   createJsonResponseHandler,
+  delay,
   extractResponseHeaders,
   parseProviderOptions,
   postJsonToApi,
@@ -330,7 +331,7 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
         );
       }
 
-      await new Promise(resolve => setTimeout(resolve, pollingInterval));
+      await delay(pollingInterval, { abortSignal });
     }
   }
 

@@ -205,7 +205,7 @@ export class FalTranscriptionModel implements TranscriptionModelV4 {
       }
 
       // Wait before polling again
-      await delay(pollIntervalMs);
+      await delay(pollIntervalMs, { abortSignal: options.abortSignal });
     }
 
     return {

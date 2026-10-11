@@ -209,7 +209,7 @@ export class RevaiTranscriptionModel implements TranscriptionModelV4 {
 
       // Wait before polling again (only if we need to continue polling)
       if (jobResponse.status !== 'transcribed') {
-        await delay(pollingInterval);
+        await delay(pollingInterval, { abortSignal: options.abortSignal });
       }
     }
 
