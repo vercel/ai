@@ -1,5 +1,6 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { APICallError } from '@ai-sdk/provider';
+import fs from 'node:fs';
 import { createDeepgram } from './deepgram-provider';
 import { DeepgramSpeechModel } from './deepgram-speech-model';
 import { describe, it, expect, vi } from 'vitest';
@@ -14,6 +15,19 @@ const model = provider.speech('aura-2');
 const server = createTestServer({
   'https://api.deepgram.com/v1/speak': {},
 });
+
+const mulawNoneFixture = JSON.parse(
+  fs.readFileSync('src/__fixtures__/deepgram-speech-mulaw-none.json', 'utf8'),
+) as {
+  request: {
+    encoding: string;
+    container: string;
+  };
+  response: {
+    contentType: string;
+    bodyBase64: string;
+  };
+};
 
 describe('doGenerate', () => {
   function prepareAudioResponse({
@@ -235,6 +249,52 @@ describe('doGenerate', () => {
     const url = new URL(server.calls[0].requestUrl);
     expect(url.searchParams.get('container')).toBe('wav');
     expect(url.searchParams.get('encoding')).toBe('linear16');
+  });
+
+  it('should preserve a compatible outputFormat encoding when only container is overridden', async () => {
+    let requestUrl: string | undefined;
+    const provider = createDeepgram({
+      apiKey: 'test-api-key',
+      fetch: async input => {
+        requestUrl = String(input);
+        const encoding = new URL(requestUrl).searchParams.get('encoding');
+
+        return new Response(
+          Buffer.from(mulawNoneFixture.response.bodyBase64, 'base64'),
+          {
+            headers: {
+              'content-type':
+                encoding === mulawNoneFixture.request.encoding
+                  ? mulawNoneFixture.response.contentType
+                  : 'audio/l16;rate=24000',
+            },
+          },
+        );
+      },
+    });
+
+    const result = await provider.speech('aura-2-thalia-en').doGenerate({
+      text: 'Hello',
+      outputFormat: 'mulaw',
+      providerOptions: {
+        deepgram: {
+          container: 'none',
+        },
+      },
+    });
+
+    expect(result.response?.headers?.['content-type']).toBe(
+      mulawNoneFixture.response.contentType,
+    );
+    expect(requestUrl).toBeDefined();
+    const url = new URL(requestUrl!);
+    expect(url.searchParams.get('encoding')).toBe(
+      mulawNoneFixture.request.encoding,
+    );
+    expect(url.searchParams.get('container')).toBe(
+      mulawNoneFixture.request.container,
+    );
+    expect(result.warnings).toEqual([]);
   });
 
   it('should pass provider options', async () => {

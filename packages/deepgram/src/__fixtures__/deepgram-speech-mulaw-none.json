@@ -1,0 +1,16 @@
+{
+  "recordedAt": "2026-10-11",
+  "request": {
+    "model": "aura-2-thalia-en",
+    "encoding": "mulaw",
+    "container": "none",
+    "text": "Hello"
+  },
+  "response": {
+    "status": 200,
+    "contentType": "audio/mulaw;rate=8000",
+    "originalByteLength": 5760,
+    "bodyBase64": "c21ubW5ubm1tbW1tbGxsbGxsbGtra2tr",
+    "bodyTruncated": true
+  }
+}
