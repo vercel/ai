@@ -135,11 +135,92 @@ function isStreamEventsEvent(
   return obj.data === null || typeof obj.data === 'object';
 }
 
+type ModelStreamState = {
+  started: boolean;
+  messageId: string;
+  reasoningStarted: boolean;
+  textStarted: boolean;
+  textMessageId: string | null;
+  reasoningMessageId: string | null;
+  emittedSourceIds: Set<string>;
+};
+
+function createModelStreamState({
+  messageId = 'langchain-msg-1',
+  emittedSourceIds = new Set<string>(),
+}: {
+  messageId?: string;
+  emittedSourceIds?: Set<string>;
+} = {}): ModelStreamState {
+  return {
+    started: false,
+    messageId,
+    reasoningStarted: false,
+    textStarted: false,
+    textMessageId: null,
+    reasoningMessageId: null,
+    emittedSourceIds,
+  };
+}
+
+function finishModelStreamState(
+  state: ModelStreamState,
+  controller: ReadableStreamDefaultController<UIMessageChunk>,
+): void {
+  if (state.reasoningStarted) {
+    controller.enqueue({
+      type: 'reasoning-end',
+      id: state.reasoningMessageId ?? state.messageId,
+    });
+    state.reasoningStarted = false;
+    state.reasoningMessageId = null;
+  }
+
+  if (state.textStarted) {
+    controller.enqueue({
+      type: 'text-end',
+      id: state.textMessageId ?? state.messageId,
+    });
+    state.textStarted = false;
+    state.textMessageId = null;
+  }
+}
+
+function getStreamEventsRunId(event: {
+  event: string;
+  data: Record<string, unknown> | null;
+  run_id?: string;
+}): string | undefined {
+  if (event.run_id) {
+    return event.run_id;
+  }
+
+  const dataRunId = event.data?.run_id;
+  if (typeof dataRunId === 'string') {
+    return dataRunId;
+  }
+
+  const message =
+    event.event === 'on_chat_model_end'
+      ? event.data?.output
+      : event.data?.chunk;
+
+  if (message && typeof message === 'object') {
+    const messageId = (message as { id?: unknown }).id;
+    if (typeof messageId === 'string') {
+      return messageId;
+    }
+  }
+
+  return undefined;
+}
+
 /**
  * Processes a streamEvents event and emits UI message chunks.
  *
  * @param event - The streamEvents event to process.
- * @param state - The state for tracking stream progress.
+ * @param modelStates - Model stream state keyed by LangChain run ID.
+ * @param emittedSourceIds - Source IDs emitted across all model runs.
  * @param controller - The controller to emit UI message chunks.
  */
 function processStreamEventsEvent(
@@ -149,24 +230,10 @@ function processStreamEventsEvent(
     run_id?: string;
     name?: string;
   },
-  state: {
-    started: boolean;
-    messageId: string;
-    reasoningStarted: boolean;
-    textStarted: boolean;
-    textMessageId: string | null;
-    reasoningMessageId: string | null;
-    emittedSourceIds: Set<string>;
-  },
+  modelStates: Map<string, ModelStreamState>,
+  emittedSourceIds: Set<string>,
   controller: ReadableStreamDefaultController<UIMessageChunk>,
 ): void {
-  /**
-   * Capture run_id from event level if available (streamEvents v2 format)
-   */
-  if (event.run_id && !state.started) {
-    state.messageId = event.run_id;
-  }
-
   /**
    * Skip events with null/undefined data
    */
@@ -175,50 +242,32 @@ function processStreamEventsEvent(
   switch (event.event) {
     case 'on_chat_model_start': {
       /**
-       * End the previous model turn's reasoning stream before a new LLM invocation.
-       * Without this, reasoning-delta chunks from the next turn could attach to the
-       * wrong reasoning part in the UI message stream.
-       */
-      if (state.reasoningStarted) {
-        controller.enqueue({
-          type: 'reasoning-end',
-          id:
-            state.reasoningMessageId != null
-              ? state.reasoningMessageId
-              : state.messageId,
-        });
-        state.reasoningStarted = false;
-        state.reasoningMessageId = null;
-      }
-
-      /**
-       * End the previous model turn's text stream before a new LLM invocation.
-       * The streamEvents adapter otherwise leaves `textStarted` true, so all later
-       * text-delta chunks append to the first text part — tools still grow the parts
-       * array, which breaks chronological order in the assistant message.
-       */
-      if (state.textStarted) {
-        controller.enqueue({
-          type: 'text-end',
-          id:
-            state.textMessageId != null ? state.textMessageId : state.messageId,
-        });
-        state.textStarted = false;
-        state.textMessageId = null;
-      }
-
-      /**
        * Handle model start — capture message metadata if available.
        * `run_id` is on the event in streamEvents v2; fall back to `data` for compatibility.
        */
-      const runId = event.run_id || (event.data.run_id as string | undefined);
-      if (runId) {
-        state.messageId = runId;
+      const runId = getStreamEventsRunId(event) ?? 'langchain-msg-1';
+      const existingState = modelStates.get(runId);
+      if (existingState) {
+        finishModelStreamState(existingState, controller);
       }
+      modelStates.set(
+        runId,
+        createModelStreamState({ messageId: runId, emittedSourceIds }),
+      );
       break;
     }
 
     case 'on_chat_model_stream': {
+      const runId = getStreamEventsRunId(event) ?? 'langchain-msg-1';
+      let state = modelStates.get(runId);
+      if (!state) {
+        state = createModelStreamState({
+          messageId: runId,
+          emittedSourceIds,
+        });
+        modelStates.set(runId, state);
+      }
+
       /**
        * Handle streaming token chunks
        */
@@ -308,6 +357,26 @@ function processStreamEventsEvent(
             state.emittedSourceIds,
             controller,
           );
+        }
+      }
+      break;
+    }
+
+    case 'on_chat_model_end': {
+      const runId = getStreamEventsRunId(event);
+      const state =
+        runId != null
+          ? modelStates.get(runId)
+          : modelStates.size === 1
+            ? modelStates.values().next().value
+            : undefined;
+
+      if (state) {
+        finishModelStreamState(state, controller);
+        if (runId != null) {
+          modelStates.delete(runId);
+        } else {
+          modelStates.clear();
         }
       }
       break;
@@ -439,17 +508,14 @@ export function toUIMessageStream<TState = unknown>(
   /**
    * State for model stream handling
    */
-  const modelState = {
-    started: false,
-    messageId: 'langchain-msg-1',
-    reasoningStarted: false,
-    textStarted: false,
-    /** Track the ID used for text-start to ensure text-end uses the same ID */
-    textMessageId: null as string | null,
-    /** Track the ID used for reasoning-start to ensure reasoning-end uses the same ID */
-    reasoningMessageId: null as string | null,
-    emittedSourceIds: new Set<string>(),
-  };
+  const modelState = createModelStreamState();
+
+  /**
+   * State for streamEvents model runs. Multiple runs can overlap, so their text
+   * and reasoning lifecycles must be tracked independently.
+   */
+  const streamEventsModelStates = new Map<string, ModelStreamState>();
+  const streamEventsEmittedSourceIds = new Set<string>();
 
   /**
    * State for LangGraph stream handling
@@ -574,7 +640,8 @@ export function toUIMessageStream<TState = unknown>(
                 run_id?: string;
                 name?: string;
               },
-              modelState,
+              streamEventsModelStates,
+              streamEventsEmittedSourceIds,
               wrappedController,
             );
           } else {
@@ -596,21 +663,14 @@ export function toUIMessageStream<TState = unknown>(
         /**
          * Finalize based on stream type
          */
-        if (streamType === 'model' || streamType === 'streamEvents') {
-          if (modelState.reasoningStarted) {
-            controller.enqueue({
-              type: 'reasoning-end',
-              id: modelState.reasoningMessageId ?? modelState.messageId,
-            });
+        if (streamType === 'model') {
+          finishModelStreamState(modelState, controller);
+          if (sendFinish) {
+            controller.enqueue({ type: 'finish' });
           }
-          if (modelState.textStarted) {
-            /**
-             * Use the same ID that was used for text-start
-             */
-            controller.enqueue({
-              type: 'text-end',
-              id: modelState.textMessageId ?? modelState.messageId,
-            });
+        } else if (streamType === 'streamEvents') {
+          for (const state of streamEventsModelStates.values()) {
+            finishModelStreamState(state, controller);
           }
           if (sendFinish) {
             controller.enqueue({ type: 'finish' });
