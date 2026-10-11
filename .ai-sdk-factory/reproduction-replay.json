@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22945,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/deepgram-base64-transcription-body.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/deepgram-base64-transcription-body.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22945: base64 input was sent as ASCII instead of decoded audio bytes"
+  }
+}
