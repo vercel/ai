@@ -65,13 +65,32 @@ export class FalSpeechModel implements SpeechModelV4 {
       schema: falSpeechModelOptionsSchema,
     });
 
-    const requestBody = {
-      text,
-      output_format: outputFormat === 'hex' ? 'hex' : 'url',
-      voice,
-      speed,
-      ...falOptions,
+    const usesMiniMaxVoiceSetting =
+      this.modelId === 'fal-ai/minimax/speech-02-hd' ||
+      this.modelId === 'fal-ai/minimax/speech-02-turbo';
+
+    const miniMaxVoiceSetting = {
+      ...(voice != null ? { voice_id: voice } : {}),
+      ...(speed != null ? { speed } : {}),
+      ...falOptions?.voice_setting,
     };
+
+    const requestBody = usesMiniMaxVoiceSetting
+      ? {
+          text,
+          output_format: outputFormat === 'hex' ? 'hex' : 'url',
+          ...falOptions,
+          ...(Object.keys(miniMaxVoiceSetting).length > 0
+            ? { voice_setting: miniMaxVoiceSetting }
+            : {}),
+        }
+      : {
+          text,
+          output_format: outputFormat === 'hex' ? 'hex' : 'url',
+          voice,
+          speed,
+          ...falOptions,
+        };
 
     // Language is not directly supported; warn and ignore
     if (language) {
