@@ -173,6 +173,129 @@ describe('text stream', () => {
         error: expect.any(Error),
       });
     });
+
+    it('should wait for an async callback before submit resolves', async () => {
+      server.urls['/api/object'].response = {
+        type: 'stream-chunks',
+        chunks: ['{"content":"Hello, world!"}'],
+      };
+
+      let resolveOnFinish!: () => void;
+      const onFinishPromise = new Promise<void>(resolve => {
+        resolveOnFinish = resolve;
+      });
+      const onFinish = vi.fn(() => onFinishPromise);
+      const structuredObjectWithOnFinish = new StructuredObject({
+        api: '/api/object',
+        schema: z.object({ content: z.string() }),
+        onFinish,
+      });
+
+      let submitResolved = false;
+      const submitOperation = structuredObjectWithOnFinish
+        .submit('test-input')
+        .then(() => {
+          submitResolved = true;
+        });
+
+      await vi.waitFor(() => {
+        expect(onFinish).toHaveBeenCalledOnce();
+      });
+      expect(submitResolved).toBe(false);
+
+      resolveOnFinish();
+      await submitOperation;
+
+      expect(submitResolved).toBe(true);
+      expect(structuredObjectWithOnFinish.error).toBeUndefined();
+    });
+
+    it.each([
+      {
+        name: 'a matching object',
+        chunks: ['{"content":"Hello, world!"}'],
+        expectedEvent: {
+          object: { content: 'Hello, world!' },
+          error: undefined,
+        },
+      },
+      {
+        name: 'an object that fails validation',
+        chunks: ['{"wrong":"value"}'],
+        expectedEvent: {
+          object: undefined,
+          error: expect.any(Error),
+        },
+      },
+    ])(
+      'should route a rejected async callback for $name through error handling',
+      async ({ chunks, expectedEvent }) => {
+        server.urls['/api/object'].response = {
+          type: 'stream-chunks',
+          chunks,
+        };
+
+        const callbackError = new Error('callback failed');
+        const onFinish = vi.fn(async () => {
+          throw callbackError;
+        });
+        const onError = vi.fn();
+        const structuredObjectWithOnFinish = new StructuredObject({
+          api: '/api/object',
+          schema: z.object({ content: z.string() }),
+          onFinish,
+          onError,
+        });
+
+        await structuredObjectWithOnFinish.submit('test-input');
+
+        expect(onFinish).toHaveBeenCalledExactlyOnceWith(expectedEvent);
+        expect(onError).toHaveBeenCalledExactlyOnceWith(callbackError);
+        expect(structuredObjectWithOnFinish.error).toBe(callbackError);
+        expect(structuredObjectWithOnFinish.loading).toBe(false);
+      },
+    );
+
+    it('should not replace newer state when an older async callback rejects', async () => {
+      let rejectOlderCallback!: (reason: unknown) => void;
+      const olderCallback = new Promise<void>((_, reject) => {
+        rejectOlderCallback = reject;
+      });
+      let markOlderCallbackStarted!: () => void;
+      const olderCallbackStarted = new Promise<void>(resolve => {
+        markOlderCallbackStarted = resolve;
+      });
+      const callbackError = new Error('older callback failed');
+      const onError = vi.fn();
+      const structuredObjectWithOnFinish = new StructuredObject({
+        api: '/api/object',
+        schema: z.object({ content: z.string() }),
+        fetch: async (_input, init) => new Response(init?.body),
+        onFinish: async ({ object }) => {
+          if (object?.content === 'older') {
+            markOlderCallbackStarted();
+            await olderCallback;
+          }
+        },
+        onError,
+      });
+
+      const olderSubmission = structuredObjectWithOnFinish.submit({
+        content: 'older',
+      });
+      await olderCallbackStarted;
+
+      await structuredObjectWithOnFinish.submit({ content: 'newer' });
+      rejectOlderCallback(callbackError);
+      await olderSubmission;
+
+      expect(onError).toHaveBeenCalledExactlyOnceWith(callbackError);
+      expect(structuredObjectWithOnFinish.object).toEqual({
+        content: 'newer',
+      });
+      expect(structuredObjectWithOnFinish.error).toBeUndefined();
+      expect(structuredObjectWithOnFinish.loading).toBe(false);
+    });
   });
 
   it('should send custom headers', async () => {
