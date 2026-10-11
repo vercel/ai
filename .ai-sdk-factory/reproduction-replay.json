@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22877,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/is-deep-equal-data-wide-object.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/is-deep-equal-data-wide-object.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Quadratic key membership scans reproduced: doubling keys increased probes from 500500 to 2001000"
+  }
+}
