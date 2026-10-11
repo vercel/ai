@@ -371,6 +371,55 @@ describe.each(streamFactories)('%s read error cleanup', (_, createStream) => {
   });
 });
 
+describe.each(streamFactories)(
+  '%s async iterator cancellation',
+  (_, createStream) => {
+    it.each([
+      ['by default', undefined],
+      ['when preventCancel is false', { preventCancel: false }],
+    ])('should cancel the stream on return %s', async (_, options) => {
+      const stream = createStream(
+        convertArrayToReadableStream(['chunk1', 'chunk2', 'chunk3']),
+      );
+      const iterator = stream[Symbol.asyncIterator](options);
+
+      expect(await iterator.next()).toEqual({
+        done: false,
+        value: 'chunk1',
+      });
+      expect(await iterator.return?.()).toEqual({
+        done: true,
+        value: undefined,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toEqual([]);
+    });
+
+    it('should preserve unread chunks on return when preventCancel is true', async () => {
+      const stream = createStream(
+        convertArrayToReadableStream(['chunk1', 'chunk2', 'chunk3']),
+      );
+      const iterator = stream[Symbol.asyncIterator]({
+        preventCancel: true,
+      });
+
+      expect(await iterator.next()).toEqual({
+        done: false,
+        value: 'chunk1',
+      });
+      expect(await iterator.return?.()).toEqual({
+        done: true,
+        value: undefined,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toEqual([
+        'chunk2',
+        'chunk3',
+      ]);
+    });
+  },
+);
+
 async function expectUndefinedUnhandledRejections(
   fn: () => Promise<void>,
 ): Promise<void> {
