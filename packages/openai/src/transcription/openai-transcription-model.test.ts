@@ -339,6 +339,58 @@ describe('doGenerate', () => {
     });
   });
 
+  it.each([
+    { name: 'empty options', openaiOptions: {} },
+    { name: 'language option', openaiOptions: { language: 'en' } },
+  ])(
+    'should omit timestamp granularities for diarization with $name',
+    async ({ openaiOptions }) => {
+      prepareJsonFixtureResponse('openai-diarized-transcription');
+
+      const model = provider.transcription('gpt-4o-transcribe-diarize');
+      await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/mpeg',
+        providerOptions: {
+          openai: openaiOptions,
+        },
+      });
+
+      const body = await server.calls[0].requestBodyMultipart;
+      expect(body).toMatchObject({
+        model: 'gpt-4o-transcribe-diarize',
+        response_format: 'diarized_json',
+      });
+      expect(body).not.toHaveProperty('timestamp_granularities[]');
+    },
+  );
+
+  it('should omit and warn about explicit timestamp granularities for diarization', async () => {
+    prepareJsonFixtureResponse('openai-diarized-transcription');
+
+    const model = provider.transcription('gpt-4o-transcribe-diarize');
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/mpeg',
+      providerOptions: {
+        openai: {
+          timestampGranularities: ['word'],
+        },
+      },
+    });
+
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body).not.toHaveProperty('timestamp_granularities[]');
+    expect(result.warnings).toEqual([
+      {
+        type: 'unsupported',
+        feature: 'providerOptions.openai.timestampGranularities',
+        details:
+          'OpenAI diarization transcription does not support timestampGranularities.',
+      },
+    ]);
+  });
+
   it('should pass diarization response format and chunking strategy provider options', async () => {
     prepareJsonFixtureResponse('openai-transcription');
 
@@ -363,7 +415,6 @@ describe('doGenerate', () => {
         "model": "gpt-4o-transcribe-diarize",
         "response_format": "json",
         "temperature": "0",
-        "timestamp_granularities[]": "segment",
       }
     `);
   });
@@ -417,6 +468,23 @@ describe('doGenerate', () => {
         "timestamp_granularities[]": "segment",
       }
     `);
+  });
+
+  it('should default timestamp granularities for whisper provider options', async () => {
+    prepareJsonFixtureResponse('openai-transcription');
+
+    await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        openai: {},
+      },
+    });
+
+    expect(await server.calls[0].requestBodyMultipart).toMatchObject({
+      model: 'whisper-1',
+      'timestamp_granularities[]': 'segment',
+    });
   });
 
   it('should work when no words, language, or duration are returned', async () => {
