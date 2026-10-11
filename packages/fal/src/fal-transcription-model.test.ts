@@ -54,6 +54,31 @@ describe('doGenerate', () => {
       });
     });
 
+    it.each([
+      ['absent provider options', undefined, 'word'],
+      ['empty fal options', { fal: {} }, 'word'],
+      ['unrelated fal options', { fal: { diarize: false } }, 'word'],
+      ['an explicit word chunk level', { fal: { chunkLevel: 'word' } }, 'word'],
+      [
+        'an explicit segment chunk level',
+        { fal: { chunkLevel: 'segment' } },
+        'segment',
+      ],
+    ] as const)(
+      'should use the expected chunk level with %s',
+      async (_name, providerOptions, expectedChunkLevel) => {
+        await model.doGenerate({
+          audio: audioData,
+          mediaType: 'audio/wav',
+          ...(providerOptions == null ? {} : { providerOptions }),
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          chunk_level: expectedChunkLevel,
+        });
+      },
+    );
+
     it('should pass headers', async () => {
       const provider = createFal({
         apiKey: 'test-api-key',
