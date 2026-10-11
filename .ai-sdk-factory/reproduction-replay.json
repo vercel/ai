@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22956,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22956-use-streamable-value-stale-error.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22956-use-streamable-value-stale-error.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22956_REPRODUCED: successful replacement retained previous stream error \"first failed\""
+  }
+}
