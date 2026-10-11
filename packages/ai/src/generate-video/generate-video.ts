@@ -342,7 +342,19 @@ export async function experimental_generateVideo({
   });
 
   const results = await Promise.all(
-    callVideoCounts.map(async callVideoCount => {
+    callVideoCounts.map(async (callVideoCount, callIndex) => {
+      // A caller idempotency key represents the complete generateVideo call.
+      // Split provider calls need deterministic child keys so providers do not
+      // deduplicate independent jobs. Keep the original key for unsplit calls.
+      const callerIdempotencyKey = headersWithUserAgent['idempotency-key'];
+      const callHeaders =
+        callCount > 1 && callerIdempotencyKey != null
+          ? {
+              ...headersWithUserAgent,
+              'idempotency-key': `${callerIdempotencyKey}:split-${callIndex}`,
+            }
+          : headersWithUserAgent;
+
       const callOptions: Experimental_VideoModelV4CallOptions = {
         prompt,
         n: callVideoCount,
@@ -356,7 +368,7 @@ export async function experimental_generateVideo({
         inputReferences: effectiveInputReferences,
         generateAudio,
         providerOptions: providerOptions ?? {},
-        headers: headersWithUserAgent,
+        headers: callHeaders,
         abortSignal,
       };
 
