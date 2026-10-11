@@ -46,9 +46,22 @@ export function decodeRealtimeAudio(base64Audio: string): Float32Array {
   return float32;
 }
 
+const LOW_PASS_FILTER_HALF_LENGTH = 16;
+
+function sinc(value: number): number {
+  if (value === 0) {
+    return 1;
+  }
+
+  const piValue = Math.PI * value;
+  return Math.sin(piValue) / piValue;
+}
+
 /**
- * Resamples audio from one sample rate to another using linear
- * interpolation. Suitable for voice audio.
+ * Resamples audio from one sample rate to another. Downsampling uses a
+ * windowed-sinc low-pass filter to prevent frequencies above the output
+ * Nyquist frequency from aliasing into the output. Upsampling uses linear
+ * interpolation.
  *
  * @param input - Float32 audio samples at the input sample rate.
  * @param inputRate - The sample rate of the input audio (e.g. 48000).
@@ -67,6 +80,39 @@ export function resampleAudio(
   const ratio = inputRate / outputRate;
   const outputLength = Math.round(input.length / ratio);
   const output = new Float32Array(outputLength);
+
+  if (inputRate > outputRate) {
+    const cutoff = outputRate / inputRate;
+    const filterRadius = Math.ceil(LOW_PASS_FILTER_HALF_LENGTH / cutoff);
+
+    for (let i = 0; i < outputLength; i++) {
+      const srcIndex = i * ratio;
+      const startIndex = Math.max(0, Math.ceil(srcIndex - filterRadius));
+      const endIndex = Math.min(
+        input.length - 1,
+        Math.floor(srcIndex + filterRadius),
+      );
+      let value = 0;
+      let weightSum = 0;
+
+      for (let inputIndex = startIndex; inputIndex <= endIndex; inputIndex++) {
+        const distance = srcIndex - inputIndex;
+        const normalizedDistance = distance / filterRadius;
+        const window =
+          0.42 +
+          0.5 * Math.cos(Math.PI * normalizedDistance) +
+          0.08 * Math.cos(2 * Math.PI * normalizedDistance);
+        const weight = cutoff * sinc(cutoff * distance) * window;
+
+        value += input[inputIndex] * weight;
+        weightSum += weight;
+      }
+
+      output[i] = weightSum === 0 ? 0 : value / weightSum;
+    }
+
+    return output;
+  }
 
   for (let i = 0; i < outputLength; i++) {
     const srcIndex = i * ratio;
