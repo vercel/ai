@@ -476,8 +476,20 @@ function createCartesiaStreamingTranscriptionStream({
         onSocketError: () => {
           finishWithError(new Error('Cartesia streaming transcription error'));
         },
-        onClose: () => {
-          if (!finished) finish();
+        onClose: ({ code, reason }) => {
+          if (finished) return;
+
+          if (code == null || code === 1000) {
+            finish();
+            return;
+          }
+
+          finishWithError(
+            new Error(
+              `Cartesia streaming transcription WebSocket closed unexpectedly before finishing` +
+                ` (code ${code}${reason ? `, reason: ${reason}` : ''}).`,
+            ),
+          );
         },
       });
     },
