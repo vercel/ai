@@ -243,11 +243,30 @@ function decodePrefix(data: Uint8Array | string, maxBytes: number): Uint8Array {
     return data.length > maxBytes ? data.subarray(0, maxBytes) : data;
   }
   // base64: 4 chars -> 3 bytes. Decode whole 4-char groups, then trim the 0-2
-  // extra bytes so the result matches the raw-byte path exactly.
+  // extra bytes so the result matches the raw-byte path exactly. ASCII
+  // whitespace is ignored by the base64 decoder, so exclude it from the
+  // character limit while keeping the gathered prefix bounded.
   const maxChars = Math.ceil(maxBytes / 3) * 4;
-  const bytes = convertBase64ToUint8Array(
-    data.substring(0, Math.min(data.length, maxChars)),
-  );
+  let prefix = '';
+
+  for (
+    let index = 0;
+    index < data.length && prefix.length < maxChars;
+    index++
+  ) {
+    const character = data[index];
+    if (
+      character !== '\t' &&
+      character !== '\n' &&
+      character !== '\f' &&
+      character !== '\r' &&
+      character !== ' '
+    ) {
+      prefix += character;
+    }
+  }
+
+  const bytes = convertBase64ToUint8Array(prefix);
   return bytes.length > maxBytes ? bytes.subarray(0, maxBytes) : bytes;
 }
 
