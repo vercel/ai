@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
 import type { RealtimeModel } from '../types/realtime-model';
 
 // Capture transport instances created lazily by connect().
@@ -182,6 +183,78 @@ describe('AbstractRealtimeSession', () => {
       ]);
     },
   );
+
+  it.each([
+    ['inputAudioFormat', 'audio/pcmu'],
+    ['inputAudioFormat', 'audio/pcma'],
+    ['outputAudioFormat', 'audio/pcmu'],
+    ['outputAudioFormat', 'audio/pcma'],
+  ] as const)(
+    'rejects unsupported turn-based %s codec %s before requesting a token',
+    async (key, type) => {
+      const fetch = vi.spyOn(globalThis, 'fetch');
+      const onError = vi.fn();
+
+      await new TestSession({
+        model: createModel(),
+        api: { token: '/api/token' },
+        sessionConfig: { [key]: { type } },
+        onError,
+      }).connect();
+
+      expect(onError).toHaveBeenCalledExactlyOnceWith(
+        new UnsupportedFunctionalityError({
+          functionality:
+            'Turn-based browser WebSocket audio supports PCM16 only',
+        }),
+      );
+      expect(fetch).not.toHaveBeenCalled();
+      expect(transportInstances).toHaveLength(0);
+    },
+  );
+
+  it('accepts explicit PCM formats for turn-based browser audio', async () => {
+    const sessionConfig = {
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      outputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+    };
+    const onError = vi.fn();
+
+    await new TestSession({
+      model: createModel(),
+      api: { token: '/api/token' },
+      sessionConfig,
+      onError,
+    }).connect();
+
+    expect(onError).not.toHaveBeenCalled();
+    expect(globalThis.fetch).toHaveBeenCalledExactlyOnceWith('/api/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionConfig }),
+      signal: expect.any(AbortSignal),
+    });
+  });
+
+  it('rejects unsupported turn-based audio codec updates', async () => {
+    const session = new TestSession({
+      model: createModel(),
+      api: { token: '/api/token' },
+    });
+    await session.connect();
+
+    expect(() =>
+      session.sendEvent({
+        type: 'session-update',
+        config: { outputAudioFormat: { type: 'audio/pcmu' } },
+      }),
+    ).toThrow(
+      new UnsupportedFunctionalityError({
+        functionality: 'Turn-based browser WebSocket audio supports PCM16 only',
+      }),
+    );
+    expect(sentEvents).toHaveLength(0);
+  });
 
   it('reports an abnormal close after a legacy session becomes ready', async () => {
     const onError = vi.fn();
