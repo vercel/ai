@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "issueId": 22619,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22619.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22619.ts",
+    "packages/openai/src/transcription/openai-transcription-model.issue-22619.test.ts",
+    "packages/openai/src/transcription/__fixtures__/gpt-4o-mini-transcribe-2025-03-20-verbose-json-error.json",
+    "packages/openai/src/transcription/__fixtures__/gpt-4o-mini-transcribe-2025-12-15-verbose-json-error.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Issue #22619: every gpt-4o-mini-transcribe snapshot must default to json when ordinary provider options are set"
+  }
+}
