@@ -2851,6 +2851,7 @@ describe('toBaseMessages', () => {
     expect(result).toHaveLength(2);
     expect(result[0]).toBeInstanceOf(HumanMessage);
     expect(result[1]).toBeInstanceOf(AIMessage);
+    expect(result.map(message => message.id)).toEqual(['msg-1', 'msg-2']);
   });
 
   it('should handle system messages', async () => {
@@ -2897,6 +2898,84 @@ describe('toBaseMessages', () => {
         mimeType: 'image/png',
       },
     ]);
+  });
+
+  it('should derive stable IDs when one UI message expands into multiple messages', async () => {
+    const uiMessages = [
+      {
+        id: 'assistant-1',
+        role: 'assistant',
+        parts: [
+          { type: 'text', text: 'Checking the weather.' },
+          {
+            type: 'tool-weather',
+            toolCallId: 'weather-1',
+            state: 'output-available',
+            input: { city: 'Berlin' },
+            output: { temperature: 20 },
+          },
+          { type: 'step-start' },
+          { type: 'text', text: 'It is 20°C.' },
+        ],
+      },
+    ] as UIMessage[];
+
+    const first = await toBaseMessages(uiMessages);
+    const second = await toBaseMessages(uiMessages);
+
+    expect(first).toHaveLength(3);
+    expect(first.map(message => message.id)).toEqual([
+      'assistant-1',
+      'assistant-1-1',
+      'assistant-1-2',
+    ]);
+    expect(second.map(message => message.id)).toEqual(
+      first.map(message => message.id),
+    );
+  });
+
+  it('should preserve distinct IDs for UI messages with equal content', async () => {
+    const result = await toBaseMessages([
+      {
+        id: 'user-1',
+        role: 'user',
+        parts: [{ type: 'text', text: 'same text' }],
+      },
+      {
+        id: 'user-2',
+        role: 'user',
+        parts: [{ type: 'text', text: 'same text' }],
+      },
+    ]);
+
+    expect(result.map(message => message.id)).toEqual(['user-1', 'user-2']);
+  });
+
+  it('should keep whole-history filtering for pending tool approvals', async () => {
+    const result = await toBaseMessages([
+      {
+        id: 'assistant-1',
+        role: 'assistant',
+        parts: [
+          {
+            type: 'tool-weather',
+            state: 'approval-requested',
+            toolCallId: 'call-awaiting-approval',
+            input: { city: 'Tokyo' },
+            approval: { id: 'approval-1' },
+          },
+        ],
+      },
+      {
+        id: 'user-1',
+        role: 'user',
+        parts: [{ type: 'text', text: 'Use a different city instead.' }],
+      },
+    ]);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBeInstanceOf(HumanMessage);
+    expect(result[0].id).toBe('user-1');
   });
 });
 
