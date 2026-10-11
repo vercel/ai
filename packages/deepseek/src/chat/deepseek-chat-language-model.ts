@@ -359,6 +359,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
                 medium: 'high',
                 high: 'high',
                 xhigh: 'max',
+                max: 'max',
               },
               warnings: allWarnings,
             })

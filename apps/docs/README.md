@@ -77,3 +77,33 @@ logos (all ported from the previous ai-sdk.dev app). The marks belong to
 their respective owners and are not covered by this repository's license.
 The public-domain paintings in `public/images/*.jpg` illustrate the
 generative UI demos.
+
+## Landing page
+
+`components/home/` restores the landing page from `vercel/ai-studio`
+(`8bf26cccd9d29f65460435388b25f170bbbb0fb1`), using the public Geistdocs
+controls in a full-width layout that aligns with the navbar (following
+flags-sdk.dev and vercel.com/ai-sdk). The existing site layout supplies
+navigation, search, Ask AI, analytics, and the footer. Framework and model
+provider marks come from the Geistdocs logo assets (vendored from
+`@vercel/geistcn-assets`); the testimonial wordmarks in
+`components/home/company-logos.tsx` are copied from the same package. All are
+third-party logos covered by the notice above.
+
+The demos display example code and prerecorded media; they do not make AI
+generation requests. The hero demo in `components/home/hero-interactive/` is
+the original interactive section (simulated generation progress, custom audio
+player, animated transcription and provider carousel) and uses `motion`.
+The Core/UI section in `components/home/code-examples/` mirrors the one on
+vercel.com/ai-sdk, with a live preview for each example and a Code view.
+Image/video previews and the social card use the existing public Blob store,
+and speech uses the original ElevenLabs audio sample.
+Stats are cached hourly and fall back to conservative counts if public npm or
+GitHub requests fail. Starter prompts live in `lib/home/prompt-templates.ts`.
+
+After updating examples, validate the displayed strings against the current
+workspace SDK (in addition to the normal site validation):
+
+```bash
+pnpm --filter ai-sdk-docs exec node scripts/home-examples.typecheck.mjs
+```

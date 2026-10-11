@@ -14,6 +14,7 @@ import type { StreamTextTransform } from '../generate-text/stream-text';
 import type { UIMessageStreamOptions } from '../generate-text/stream-text-result';
 import type { TimeoutConfiguration } from '../prompt/request-options';
 import type { InferUIMessageChunk } from '../ui-message-stream';
+import type { UIMessageStreamOnStepEndCallback } from '../ui-message-stream/ui-message-stream-on-step-end-callback';
 import { toUIMessageStream } from '../ui-message-stream/to-ui-message-stream';
 import { convertToModelMessages } from '../ui/convert-to-model-messages';
 import type {
@@ -30,6 +31,23 @@ import {
 import type { Agent } from './agent';
 
 /**
+ * UI stream options with separate generation and UI message step callbacks.
+ */
+export type AgentUIMessageStreamOptions<
+  TOOLS extends ToolSet,
+  UI_MESSAGE extends UIMessage,
+> = Omit<UIMessageStreamOptions<UI_MESSAGE>, 'onStepEnd' | 'onStepFinish'> & {
+  onStepEnd?: GenerateTextOnStepEndCallback<TOOLS>;
+  /** @deprecated Use `onStepEnd` instead. */
+  onStepFinish?: GenerateTextOnStepFinishCallback<TOOLS>;
+  /**
+   * Called after each step is converted to UI message parts.
+   * Receives the accumulated UI message for inspection or persistence.
+   */
+  onUIMessageStepEnd?: UIMessageStreamOnStepEndCallback<UI_MESSAGE>;
+};
+
+/**
  * Runs the agent and stream the output as a UI message stream.
  *
  * @param agent - The agent to run.
@@ -42,6 +60,7 @@ import type { Agent } from './agent';
  * @param experimental_transform - The stream transformations. Optional.
  * @param onStepEnd - Callback that is called when each step ends. Optional.
  * @param onStepFinish - Deprecated alias for `onStepEnd`. Optional.
+ * @param onUIMessageStepEnd - Callback with the accumulated UI message after each step. Optional.
  *
  * @returns The UI message stream.
  */
@@ -67,6 +86,7 @@ export async function createAgentUIStream<
   experimental_transform,
   onStepEnd,
   onStepFinish,
+  onUIMessageStepEnd,
   ...uiMessageStreamOptions
 }: {
   agent: Agent<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT, OUTPUT>;
@@ -83,11 +103,8 @@ export async function createAgentUIStream<
   experimental_sandbox?: SandboxSession;
   options?: CALL_OPTIONS;
   experimental_transform?: Arrayable<StreamTextTransform<TOOLS>>;
-  onStepEnd?: GenerateTextOnStepEndCallback<TOOLS>;
-  /** @deprecated Use `onStepEnd` instead. */
-  onStepFinish?: GenerateTextOnStepFinishCallback<TOOLS>;
   // TODO `originalMessages` is part of this for bc, omit in v7
-} & UIMessageStreamOptions<UI_MESSAGE>): Promise<
+} & AgentUIMessageStreamOptions<TOOLS, UI_MESSAGE>): Promise<
   AsyncIterableStream<InferUIMessageChunk<UI_MESSAGE>>
 > {
   const validatedMessages = await validateUIMessagesForAgent<UI_MESSAGE>({
@@ -125,6 +142,7 @@ export async function createAgentUIStream<
     toUIMessageStream({
       ...uiMessageStreamOptions,
       originalMessages,
+      onStepEnd: onUIMessageStepEnd,
       stream: result.stream,
       tools: agent.tools,
     }),

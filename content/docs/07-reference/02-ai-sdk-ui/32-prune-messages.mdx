@@ -60,7 +60,7 @@ export async function POST(req: Request) {
     },
     {
       name: 'toolCalls',
-      type: `'all' | 'before-last-message' | 'before-last-\${number}-messages' | 'none' | Array<{ type: 'all' | 'before-last-message' | 'before-last-\${number}-messages'; tools?: string[] }>`,
+      type: `'all' | 'before-last-message' | \`before-last-\${number}-messages\` | 'none' | Array<{ type: 'all' | 'before-last-message' | \`before-last-\${number}-messages\`; tools?: string[] }>`,
       description:
         'How to prune tool call/results/approval content. Can specify a strategy string or an array for per-tool fine control. Default: [] (empty array, equivalent to "none").',
     },

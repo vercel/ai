@@ -103,8 +103,9 @@ export interface OpenAICompatibleProviderSettings {
    * Optional function to transform the request body before sending it to the API.
    * This is useful for proxy providers that may require a different request format
    * than the official OpenAI API.
+   * The optional warnings array can be used to report request transformations.
    */
-  transformRequestBody?: (args: Record<string, any>) => Record<string, any>;
+  transformRequestBody?: OpenAICompatibleChatConfig['transformRequestBody'];
 
   /**
    * Optional metadata extractor to capture provider-specific metadata from API responses.

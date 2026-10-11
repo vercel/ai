@@ -29,6 +29,7 @@ import {
 } from './create-emit-stream-event';
 import { jsonSchemaToZodObject } from './json-schema-to-zod';
 import { createLocalShellBackend } from './local-shell-backend';
+import { createMcpToolErrorMiddleware } from './mcp-tool-errors';
 import {
   loadMemorySaver,
   removeMemorySaverSnapshot,
@@ -278,6 +279,10 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       },
     );
     const middleware = [
+      createMcpToolErrorMiddleware({
+        mcpToolNames: () => mcpToolNames,
+        abortSignal: () => currentTurn?.abortSignal,
+      }),
       responseFormatMiddleware,
       modelMiddleware,
       ...(builtinToolFilteringMiddleware
@@ -318,6 +323,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   const streamEventState = createDeepAgentsStreamEventState();
   const emitStreamEvent = createEmitStreamEvent({
     state: streamEventState,
+    abortSignal: turn.abortSignal,
     configuredModel: activeModel,
     hostToolNames,
     mcpToolNames,

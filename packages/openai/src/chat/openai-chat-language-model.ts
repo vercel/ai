@@ -146,6 +146,17 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
       warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
+    // reasoningSummary is a Responses API option that the chat options schema strips,
+    // so check the raw provider options to avoid silently ignoring it:
+    if (providerOptions?.openai?.reasoningSummary != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'reasoningSummary',
+        details:
+          'reasoningSummary is only supported by the Responses API, not the Chat Completions API',
+      });
+    }
+
     const { messages, warnings: messageWarnings } = convertToOpenAIChatMessages(
       {
         prompt,
@@ -248,7 +259,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     // remove unsupported settings for reasoning models
     // see https://platform.openai.com/docs/guides/reasoning#limitations
     if (isReasoningModel) {
-      // when reasoning effort is none, gpt-5.1 models allow temperature, topP, logprobs
+      // supported models allow temperature, topP, and logprobs when reasoning effort is none
       //  https://platform.openai.com/docs/guides/latest-model#gpt-5-1-parameter-compatibility
       if (
         resolvedReasoningEffort !== 'none' ||

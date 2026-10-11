@@ -24,6 +24,8 @@ export type AzureSpeechModelOptions = InferSchema<
 
 // Azure voice-name suffixes by lowercase model ID.
 const maiVoiceModels = new Map([
+  ['mai-voice-2.1-flash', 'MAI-Voice-2.1-Flash'],
+  ['mai-voice-2.1', 'MAI-Voice-2.1'],
   ['mai-voice-2-flash', 'MAI-Voice-2-Flash'],
   ['mai-voice-2', 'MAI-Voice-2'],
 ]);

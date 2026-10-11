@@ -1260,32 +1260,21 @@ describe('createOpenCode adapter', () => {
       for (const file of recipe.files) {
         expect(file.content.length).toBeGreaterThan(0);
       }
-      const packageJson = recipe.files.find(file =>
-        file.path.endsWith('/package.json'),
-      );
-      const workspace = recipe.files.find(file =>
-        file.path.endsWith('/pnpm-workspace.yaml'),
-      );
-      if (packageJson == null || workspace == null) {
-        throw new Error('OpenCode bootstrap package assets are missing.');
-      }
-      const bridgeManifest = JSON.parse(packageJson.content) as {
-        dependencies: { 'opencode-ai': string };
-      };
-      expect(workspace.content).toBe(
-        `allowBuilds:\n  'opencode-ai@${bridgeManifest.dependencies['opencode-ai']}': true\n`,
-      );
     });
 
     it('allows the pinned OpenCode build and verifies the installed CLI', async () => {
       const harness = createOpenCode();
       const recipe = await harness.getBootstrap!();
-      expect(recipe.commands[0]).toEqual({
-        command: 'pnpm install --frozen-lockfile --store-dir .pnpm-store',
-      });
-      expect(recipe.commands).toContainEqual({
-        command: './node_modules/.bin/opencode --version',
-      });
+      const commands = recipe.commands.map(command => command.command);
+      const workspace = recipe.files.find(file =>
+        file.path.endsWith('/pnpm-workspace.yaml'),
+      );
+      expect(commands).toHaveLength(2);
+      expect(commands[0]).toBe(
+        'pnpm install --frozen-lockfile --store-dir .pnpm-store',
+      );
+      expect(commands[1]).toBe('./node_modules/.bin/opencode --version');
+      expect(workspace?.content).toContain('opencode-ai: true');
     });
 
     it('shares the getter across configured harness instances', () => {

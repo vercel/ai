@@ -5,6 +5,7 @@ export type AnthropicModelId =
   | 'claude-3-haiku-20240307'
   | 'claude-haiku-4-5-20251001'
   | 'claude-haiku-4-5'
+  | 'claude-haiku-5-5'
   | 'claude-opus-4-0'
   | 'claude-opus-4-20250514'
   | 'claude-opus-4-1-20250805'

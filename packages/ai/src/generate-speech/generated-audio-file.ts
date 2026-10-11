@@ -1,3 +1,4 @@
+import { InvalidResponseDataError } from '@ai-sdk/provider';
 import {
   DefaultGeneratedFile,
   type GeneratedFile,
@@ -41,10 +42,10 @@ export class DefaultGeneratedAudioFile
     }
 
     if (!format) {
-      // TODO this should be an AI SDK error
-      throw new Error(
-        'Audio format must be provided or determinable from media type',
-      );
+      throw new InvalidResponseDataError({
+        data: mediaType,
+        message: `Could not determine audio format from media type: ${mediaType}`,
+      });
     }
 
     this.format = format;

@@ -18,8 +18,8 @@ import type { AzureSpeechModelSpeechOptions } from './azure-speech-speech-model-
 
 const DEFAULT_VOICE = 'en-US-Harper';
 
-// Default voice per ISO 639-1 language; available on MAI-Voice-2 and
-// MAI-Voice-2-Flash.
+// Default voice per ISO 639-1 language; available on MAI-Voice-2,
+// MAI-Voice-2.1, and their Flash variants.
 const DEFAULT_VOICES = new Map([
   ['de', 'de-DE-Mia'],
   ['en', DEFAULT_VOICE],
@@ -248,8 +248,10 @@ const errorSchema = z.object({
   error: z.object({ message: z.string() }),
 });
 
-// Azure Speech answers invalid requests (unknown voice, style, or output
-// format) with an empty 400 body.
+// Azure Speech answers invalid requests (style or output format) with an empty
+// 400 body. Unknown voices or styles reset the connection with an Envoy 502
+// whose reason is `protocol error`; that is a client input error, so it is
+// reported as a non-retryable 400. Other 502s stay retryable.
 const failedResponseHandler: ResponseHandler<APICallError> = async ({
   response,
   url,
@@ -261,12 +263,17 @@ const failedResponseHandler: ResponseHandler<APICallError> = async ({
     text: responseBody,
     schema: errorSchema,
   });
+  const isVoiceReset =
+    response.status === 502 &&
+    responseBody.includes('reset reason: protocol error');
 
   const message = parsed.success
     ? parsed.value.error.message
-    : response.status === 400
-      ? 'Azure Speech request failed with status 400. Check the voice name, style, and output format.'
-      : `Azure Speech request failed with status ${response.status}.`;
+    : isVoiceReset
+      ? 'Azure Speech could not synthesize the request. Check that the voice is available for this model and that the style is supported by the voice.'
+      : response.status === 400
+        ? 'Azure Speech request failed with status 400. Check the voice name, style, and output format.'
+        : `Azure Speech request failed with status ${response.status}.`;
 
   return {
     responseHeaders,
@@ -274,9 +281,10 @@ const failedResponseHandler: ResponseHandler<APICallError> = async ({
       message,
       url,
       requestBodyValues,
-      statusCode: response.status,
+      statusCode: isVoiceReset ? 400 : response.status,
       responseHeaders,
       responseBody,
+      isRetryable: isVoiceReset ? false : undefined,
     }),
   };
 };

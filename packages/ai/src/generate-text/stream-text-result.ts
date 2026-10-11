@@ -1,3 +1,4 @@
+import type { Citation } from '../types/citation';
 import type { JSONObject } from '@ai-sdk/provider';
 import type { Context, IdGenerator, ToolSet } from '@ai-sdk/provider-utils';
 import type { ServerResponse } from 'node:http';
@@ -12,6 +13,8 @@ import type { LanguageModelResponseMetadata } from '../types/language-model-resp
 import type { LanguageModelUsage } from '../types/usage';
 import type { InferUIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import type { UIMessageStreamOnEndCallback } from '../ui-message-stream/ui-message-stream-on-end-callback';
+import type { UIMessageStreamOnStepEndCallback } from '../ui-message-stream/ui-message-stream-on-step-end-callback';
+import type { UIMessageStreamOnStepFinishCallback } from '../ui-message-stream/ui-message-stream-on-step-finish-callback';
 import type { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
 import type { InferUIMessageMetadata, UIMessage } from '../ui/ui-messages';
 import type { AsyncIterableStream } from '../util/async-iterable-stream';
@@ -56,6 +59,15 @@ export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
    * the original messages are provided and the last message is an assistant message).
    */
   generateMessageId?: IdGenerator;
+
+  /**
+   * Called after each step is converted to UI message parts.
+   * Receives the accumulated UI message for inspection or persistence.
+   */
+  onStepEnd?: UIMessageStreamOnStepEndCallback<UI_MESSAGE>;
+
+  /** @deprecated Use `onStepEnd` instead. */
+  onStepFinish?: UIMessageStreamOnStepFinishCallback<UI_MESSAGE>;
 
   onEnd?: UIMessageStreamOnEndCallback<UI_MESSAGE>;
 
@@ -447,6 +459,7 @@ export type TextStreamTextStartPart = {
 
 export type TextStreamTextEndPart = {
   type: 'text-end';
+  citations?: Array<Citation>;
   id: string;
   providerMetadata?: ProviderMetadata;
 };

@@ -245,17 +245,6 @@ function makeSandboxSession(
   return sandboxSession;
 }
 
-function makeSandboxProvider(
-  sandboxSession = makeSandboxSession(),
-): HarnessV1SandboxProvider {
-  return {
-    specificationVersion: 'harness-sandbox-v1',
-    providerId: 'mock-sandbox',
-    createSession: async () => sandboxSession,
-    resumeSession: async () => sandboxSession,
-  };
-}
-
 function zeroUsage() {
   return {
     inputTokens: {
@@ -414,7 +403,6 @@ describe('HarnessAgent', () => {
       { requestId: string }
     >({
       harness,
-      sandbox: makeSandboxProvider(),
       runtimeContext: configuredContext,
       callOptionsSchema: z.object({ requestId: z.string() }),
       prepareCall: ({ options, runtimeContext, ...rest }) => {
@@ -449,7 +437,9 @@ describe('HarnessAgent', () => {
         ],
       },
     });
-    const session = await agent.createSession();
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
 
     const generated = await agent.generate({
       session,
@@ -487,11 +477,12 @@ describe('HarnessAgent', () => {
     const { harness } = mockHarness({ script: () => finishEvents() });
     const agent = new HarnessAgent<typeof harness, {}, { requestId: string }>({
       harness,
-      sandbox: makeSandboxProvider(),
       runtimeContext: { requestId: 'configured' },
       prepareCall: call => ({ ...call, runtimeContext: undefined }),
     });
-    const session = await agent.createSession();
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
     const result = await agent.generate({ session, prompt: 'go' });
 
     expect(result.finalStep.runtimeContext).toEqual({});
@@ -525,7 +516,6 @@ describe('HarnessAgent', () => {
     const prepareCallSpy = vi.fn();
     const agent = new HarnessAgent<typeof harness, {}, RuntimeContext>({
       harness,
-      sandbox: makeSandboxProvider(),
       runtimeContext: { requestId: 'default' },
       prepareCall: call => {
         prepareCallSpy();
@@ -533,7 +523,9 @@ describe('HarnessAgent', () => {
       },
       stopWhen: isStepCount(1),
     });
-    const session = await agent.createSession();
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
 
     const first = await agent.generate({ session, prompt: 'go' });
     expect(session.hasUnfinishedTurn()).toBe(true);
@@ -581,7 +573,6 @@ describe('HarnessAgent', () => {
       const prepareCallSpy = vi.fn();
       const agent = new HarnessAgent<typeof harness, {}, RuntimeContext>({
         harness,
-        sandbox: makeSandboxProvider(),
         runtimeContext: { requestId: 'default' },
         prepareCall: call => {
           prepareCallSpy();
@@ -589,7 +580,8 @@ describe('HarnessAgent', () => {
         },
         stopWhen: isStepCount(1),
       });
-      let session = await agent.createSession();
+      const sandboxSession = makeSandboxSession();
+      let session = await agent.createSession({ sandboxSession });
 
       const first = await agent.generate({ session, prompt: 'go' });
       expect(first.finalStep.runtimeContext).toBe(preparedContext);
@@ -601,6 +593,7 @@ describe('HarnessAgent', () => {
       session = await agent.createSession({
         sessionId,
         continueFrom: structuredClone(continueFrom),
+        sandboxSession,
         ...(rebind ? { runtimeContext: preparedContext } : {}),
       });
       const continued = await agent.continueGenerate({ session });
@@ -643,7 +636,6 @@ describe('HarnessAgent', () => {
     });
     const agent = new HarnessAgent<typeof harness, {}, RuntimeContext>({
       harness,
-      sandbox: makeSandboxProvider(),
       runtimeContext,
       telemetry: {
         includeRuntimeContext: { conversationId: true },
@@ -663,7 +655,9 @@ describe('HarnessAgent', () => {
       },
     });
 
-    const generateSession = await agent.createSession();
+    const generateSession = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
     const generated = await agent.generate({
       session: generateSession,
       prompt: 'generate',
@@ -671,7 +665,9 @@ describe('HarnessAgent', () => {
     expect(generated.finalStep.runtimeContext).toBe(runtimeContext);
     await generateSession.destroy();
 
-    const streamSession = await agent.createSession();
+    const streamSession = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
     const streamed = await agent.stream({
       session: streamSession,
       prompt: 'stream',
@@ -688,6 +684,7 @@ describe('HarnessAgent', () => {
     };
     const continueGenerateSession = await agent.createSession({
       continueFrom: continueState,
+      sandboxSession: makeSandboxSession(),
     });
     const continuedGeneration = await agent.continueGenerate({
       session: continueGenerateSession,
@@ -697,6 +694,7 @@ describe('HarnessAgent', () => {
 
     const continueStreamSession = await agent.createSession({
       continueFrom: continueState,
+      sandboxSession: makeSandboxSession(),
     });
     const continuedStream = await agent.continueStream({
       session: continueStreamSession,
@@ -767,7 +765,6 @@ describe('HarnessAgent', () => {
     const agent = new HarnessAgent({
       harness,
       model: 'requested-model',
-      sandbox: makeSandboxProvider(),
       onStart: record('settings:start'),
       onStepStart: record('settings:step-start'),
       onLanguageModelCallStart: event => {
@@ -794,7 +791,9 @@ describe('HarnessAgent', () => {
         finalStepFromCallback = event.finalStep;
       },
     });
-    const session = await agent.createSession();
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
 
     const result = await agent.generate({
       session,
@@ -854,7 +853,6 @@ describe('HarnessAgent', () => {
     };
     const agent = new HarnessAgent({
       harness,
-      sandbox: makeSandboxProvider(),
       onStart: fail,
       onStepStart: fail,
       onLanguageModelCallStart: fail,
@@ -862,7 +860,9 @@ describe('HarnessAgent', () => {
       onStepEnd: fail,
       onEnd: fail,
     });
-    const session = await agent.createSession();
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
 
     await expect(
       agent.generate({ session, prompt: 'go' }),
@@ -877,7 +877,6 @@ describe('HarnessAgent', () => {
     const agent = new HarnessAgent({
       harness,
       id: 'a1',
-      sandbox: makeSandboxProvider(),
     });
     expect(agent.version).toBe('agent-v1');
     expect(agent.id).toBe('a1');
@@ -904,7 +903,6 @@ describe('HarnessAgent', () => {
               inputSchema: z.object({}),
             }),
           },
-          sandbox: makeSandboxProvider(),
         }),
     ).toThrow(
       "HarnessAgent tool name 'askUserQuestions' is reserved for harness question requests.",
@@ -923,7 +921,6 @@ describe('HarnessAgent', () => {
               inputSchema: z.object({}),
             }),
           },
-          sandbox: makeSandboxProvider(),
         }),
     ).not.toThrow();
   });
@@ -937,10 +934,11 @@ describe('HarnessAgent', () => {
     const agent = new HarnessAgent({
       harness,
       model: 'harness-specific-model',
-      sandbox: makeSandboxProvider(),
     });
 
-    const session = await agent.createSession();
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
     await agent.generate({ session, prompt: 'Hello' });
 
     expect(doStart.mock.calls[0]?.[0]).not.toHaveProperty('model');
@@ -958,10 +956,11 @@ describe('HarnessAgent', () => {
     });
     const agent = new HarnessAgent({
       harness,
-      sandbox: makeSandboxProvider(),
     });
 
-    const session = await agent.createSession();
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
     await agent.generate({ session, prompt: 'Hello' });
 
     expect(doStart.mock.calls[0]?.[0]).not.toHaveProperty('model');
@@ -980,11 +979,12 @@ describe('HarnessAgent', () => {
     const agent = new HarnessAgent({
       harness,
       headers,
-      sandbox: makeSandboxProvider(),
     });
     headers['X-Tenant'] = 'mutated';
 
-    const session = await agent.createSession();
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
 
     expect(doStart.mock.calls[0]?.[0]).toMatchObject({
       headers: { 'x-tenant': 'acme' },
@@ -1011,7 +1011,6 @@ describe('HarnessAgent', () => {
         new HarnessAgent({
           harness,
           headers: { [header]: 'caller-value' },
-          sandbox: makeSandboxProvider(),
         }),
     ).toThrow(
       `HarnessAgent: \`headers\` must not include the managed header \`${header.toLowerCase()}\`.`,
@@ -1028,7 +1027,6 @@ describe('HarnessAgent', () => {
         new HarnessAgent({
           harness,
           headers: { Authorization: undefined },
-          sandbox: makeSandboxProvider(),
         }),
     ).toThrow(
       'HarnessAgent: `headers` must not include the managed header `authorization`.',
@@ -1043,14 +1041,17 @@ describe('HarnessAgent', () => {
     const agent = new HarnessAgent({
       harness,
       headers: { 'x-tenant': 'acme' },
-      sandbox: makeSandboxProvider(sandboxSession),
     });
-    const session = await agent.createSession({ sessionId: 'session-1' });
+    const session = await agent.createSession({
+      sessionId: 'session-1',
+      sandboxSession,
+    });
     const resumeFrom = await session.stop();
 
     const resumedSession = await agent.createSession({
       sessionId: 'session-1',
       resumeFrom,
+      sandboxSession,
     });
 
     expect(doStart).toHaveBeenNthCalledWith(
@@ -1077,7 +1078,6 @@ describe('HarnessAgent', () => {
     const onPrepareCall = vi.fn();
     const agent = new HarnessAgent({
       harness,
-      sandbox: makeSandboxProvider(),
       tools: { echo },
       callOptionsSchema: z.object({ tenant: z.string() }),
       prepareCall: ({ options, ...rest }) => {
@@ -1102,7 +1102,9 @@ describe('HarnessAgent', () => {
         };
       },
     });
-    const session = await agent.createSession();
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
 
     await agent.generate({
       session,
@@ -1142,14 +1144,15 @@ describe('HarnessAgent', () => {
     const { harness } = mockHarness({ script: () => finishEvents() });
     const agent = new HarnessAgent({
       harness,
-      sandbox: makeSandboxProvider(),
       callOptionsSchema: z.object({ tenant: z.string() }),
       prepareCall: ({ options, ...rest }) => ({
         ...rest,
         prompt: `${rest.prompt} for ${options.tenant}`,
       }),
     });
-    const session = await agent.createSession();
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
 
     await expect(
       agent.generate({
@@ -1173,9 +1176,10 @@ describe('HarnessAgent', () => {
     });
     const agent = new HarnessAgent({
       harness,
-      sandbox: makeSandboxProvider(),
     });
-    const session = await agent.createSession();
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
     const result = await agent.stream({ session, prompt: 'Start.' });
 
     await agent.experimental_steer({ session, text: 'Change course.' });
@@ -1198,9 +1202,10 @@ describe('HarnessAgent', () => {
     });
     const agent = new HarnessAgent({
       harness,
-      sandbox: makeSandboxProvider(),
     });
-    const session = await agent.createSession();
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
     const result = await agent.stream({ session, prompt: 'Start.' });
 
     await session.experimental_steerTurn('Change course.');
@@ -1222,9 +1227,10 @@ describe('HarnessAgent', () => {
     });
     const agent = new HarnessAgent({
       harness,
-      sandbox: makeSandboxProvider(),
     });
-    const session = await agent.createSession();
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
     const result = await agent.stream({ session, prompt: 'Start.' });
 
     await expect(
@@ -1240,9 +1246,10 @@ describe('HarnessAgent', () => {
     const { harness } = mockHarness({ script: () => [] });
     const agent = new HarnessAgent({
       harness,
-      sandbox: makeSandboxProvider(),
     });
-    const session = await agent.createSession();
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
 
     await expect(
       agent.experimental_steer({ session, text: 'Change course.' }),
@@ -1269,11 +1276,12 @@ describe('HarnessAgent', () => {
     });
     const agent = new HarnessAgent({
       harness,
-      sandbox: makeSandboxProvider(),
       tools: { weather },
       toolApproval: { weather: 'user-approval' },
     });
-    const session = await agent.createSession();
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
     const result = await agent.stream({ session, prompt: 'Start.' });
     await result.consumeStream();
 
@@ -1298,9 +1306,10 @@ describe('HarnessAgent', () => {
     });
     const agent = new HarnessAgent({
       harness,
-      sandbox: makeSandboxProvider(),
     });
-    const session = await agent.createSession();
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
     const result = await agent.stream({ session, prompt: 'Start.' });
 
     await session.suspendTurn();
@@ -1325,9 +1334,10 @@ describe('HarnessAgent', () => {
     });
     const agent = new HarnessAgent({
       harness,
-      sandbox: makeSandboxProvider(),
     });
-    const session = await agent.createSession();
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
 
     const first = await agent.stream({ session, prompt: 'First.' });
     await agent.experimental_steer({ session, text: 'Steer first.' });
@@ -1353,9 +1363,10 @@ describe('HarnessAgent', () => {
     });
     const agent = new HarnessAgent({
       harness,
-      sandbox: makeSandboxProvider(),
     });
-    const session = await agent.createSession();
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
 
     const result = await agent.generate({ session, prompt: 'keep going' });
 
@@ -1376,7 +1387,6 @@ describe('HarnessAgent', () => {
     });
     const agent = new HarnessAgent({
       harness,
-      sandbox: makeSandboxProvider(),
       stopWhen: [
         ({ steps }) => {
           predicateStepCounts.push(steps.length);
@@ -1385,7 +1395,9 @@ describe('HarnessAgent', () => {
         async ({ steps }) => steps.length === 1,
       ],
     });
-    const session = await agent.createSession();
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
 
     const result = await agent.generate({ session, prompt: 'one step' });
 
@@ -1419,11 +1431,11 @@ describe('HarnessAgent', () => {
     });
     const agent = new HarnessAgent({
       harness,
-      sandbox: makeSandboxProvider(),
       stopWhen: isStepCount(1),
     });
 
-    let session = await agent.createSession();
+    const sandboxSession = makeSandboxSession();
+    let session = await agent.createSession({ sandboxSession });
     const first = await agent.stream({ session, prompt: 'one step at a time' });
     await first.consumeStream();
     await expect(first.steps).resolves.toHaveLength(1);
@@ -1432,6 +1444,7 @@ describe('HarnessAgent', () => {
     session = await agent.createSession({
       sessionId: session.sessionId,
       continueFrom,
+      sandboxSession,
     });
     const second = await agent.continueStream({ session });
     await second.consumeStream();
@@ -1441,6 +1454,7 @@ describe('HarnessAgent', () => {
     session = await agent.createSession({
       sessionId: session.sessionId,
       continueFrom,
+      sandboxSession,
     });
     const third = await agent.continueGenerate({ session });
     expect(third.steps).toHaveLength(1);
@@ -1449,6 +1463,7 @@ describe('HarnessAgent', () => {
     session = await agent.createSession({
       sessionId: session.sessionId,
       continueFrom,
+      sandboxSession,
     });
     const terminal = await agent.continueGenerate({ session });
 
@@ -1476,10 +1491,11 @@ describe('HarnessAgent', () => {
     });
     const agent = new HarnessAgent({
       harness,
-      sandbox: makeSandboxProvider(),
       stopWhen: isStepCount(1),
     });
-    const session = await agent.createSession();
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
 
     const result = await agent.generate({ session, prompt: 'finish' });
 
@@ -1528,8 +1544,10 @@ describe('HarnessAgent', () => {
       ],
     });
 
-    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
-    const session = await agent.createSession();
+    const agent = new HarnessAgent({ harness });
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
     const result = await agent.generate({ session, prompt: 'hi' });
 
     expect(result.text).toBe('Hello, world.');
@@ -1552,11 +1570,9 @@ describe('HarnessAgent', () => {
     const { harness } = mockHarness({ script: () => [] });
     const textAgent = new HarnessAgent({
       harness,
-      sandbox: makeSandboxProvider(),
     });
     const outputAgent = new HarnessAgent({
       harness,
-      sandbox: makeSandboxProvider(),
       output: Output.object({ schema: z.object({ answer: z.string() }) }),
     });
 
@@ -1592,14 +1608,15 @@ describe('HarnessAgent', () => {
     });
     const agent = new HarnessAgent({
       harness,
-      sandbox: makeSandboxProvider(),
       output: Output.object({
         name: 'answer',
         description: 'A yes or no answer.',
         schema: z.object({ answer: z.string() }),
       }),
     });
-    const session = await agent.createSession();
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
 
     const first = await agent.generate({ session, prompt: 'answer' });
     const second = await agent.generate({ session, prompt: 'answer again' });
@@ -1648,12 +1665,13 @@ describe('HarnessAgent', () => {
     });
     const agent = new HarnessAgent({
       harness,
-      sandbox: makeSandboxProvider(),
       output: Output.object({
         schema: z.object({ answer: z.string() }),
       }),
     });
-    const session = await agent.createSession();
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
 
     const result = await agent.stream({ session, prompt: 'answer' });
     const partialOutputs = [];
@@ -1690,12 +1708,13 @@ describe('HarnessAgent', () => {
     });
     const agent = new HarnessAgent({
       harness,
-      sandbox: makeSandboxProvider(),
       output: Output.array({
         element: z.object({ answer: z.string() }),
       }),
     });
-    const session = await agent.createSession();
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
 
     const result = await agent.stream({ session, prompt: 'answer twice' });
     const elements = [];
@@ -1749,8 +1768,10 @@ describe('HarnessAgent', () => {
       ],
     });
 
-    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
-    const session = await agent.createSession();
+    const agent = new HarnessAgent({ harness });
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
     const result = await agent.stream({ session, prompt: 'hi' });
 
     const types: string[] = [];
@@ -1780,8 +1801,10 @@ describe('HarnessAgent', () => {
         }
       },
     });
-    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
-    const session = await agent.createSession();
+    const agent = new HarnessAgent({ harness });
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
 
     const failed = await agent.stream({ session, prompt: 'fail' });
     await expect(failed.text).rejects.toThrow('failed to start turn');
@@ -1801,8 +1824,9 @@ describe('HarnessAgent', () => {
         { type: 'error', error: new Error('continued turn failed') },
       ],
     });
-    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+    const agent = new HarnessAgent({ harness });
     const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
       continueFrom: {
         type: 'continue-turn',
         harnessId: 'mock',
@@ -1843,8 +1867,10 @@ describe('HarnessAgent', () => {
       },
       script: () => (promptTurnCount === 1 ? [] : finishEvents()),
     });
-    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
-    const session = await agent.createSession();
+    const agent = new HarnessAgent({ harness });
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
 
     const aborted = await agent.stream({
       session,
@@ -1931,7 +1957,6 @@ describe('HarnessAgent', () => {
       });
       const agent = new HarnessAgent({
         harness,
-        sandbox: makeSandboxProvider(),
         tools: {
           research: tool({
             inputSchema: z.object({ query: z.string() }).refine(async () => {
@@ -1945,7 +1970,8 @@ describe('HarnessAgent', () => {
           }),
         },
       });
-      const session = await agent.createSession();
+      const sandboxSession = makeSandboxSession();
+      const session = await agent.createSession({ sandboxSession });
       const first = await agent.stream({ session, prompt: 'research' });
       const firstParts: string[] = [];
       const firstRead = (async () => {
@@ -1972,6 +1998,7 @@ describe('HarnessAgent', () => {
       const resumed = await agent.createSession({
         sessionId: session.sessionId,
         continueFrom: structuredClone(continueFrom),
+        sandboxSession,
       });
       const second = await agent.continueStream({ session: resumed });
       const secondParts: string[] = [];
@@ -2050,12 +2077,13 @@ describe('HarnessAgent', () => {
     });
     const agent = new HarnessAgent({
       harness,
-      sandbox: makeSandboxProvider(),
       tools: {
         research: tool({ inputSchema: z.object({}), execute }),
       },
     });
+    const sandboxSession = makeSandboxSession();
     const session = await agent.createSession({
+      sandboxSession,
       continueFrom: {
         type: 'continue-turn',
         harnessId: 'mock',
@@ -2102,6 +2130,7 @@ describe('HarnessAgent', () => {
     const resumed = await agent.createSession({
       sessionId: session.sessionId,
       continueFrom: structuredClone(continueFrom),
+      sandboxSession,
     });
     const second = await agent.continueStream({ session: resumed });
     await second.consumeStream();
@@ -2170,12 +2199,12 @@ describe('HarnessAgent', () => {
       });
       const agent = new HarnessAgent({
         harness,
-        sandbox: makeSandboxProvider(),
         tools: {
           research: tool({ inputSchema: z.object({}), execute }),
         },
       });
-      const session = await agent.createSession();
+      const sandboxSession = makeSandboxSession();
+      const session = await agent.createSession({ sandboxSession });
       const first = await agent.stream({ session, prompt: 'research' });
       const firstRead = first.consumeStream();
       await started;
@@ -2200,6 +2229,7 @@ describe('HarnessAgent', () => {
       const resumed = await agent.createSession({
         sessionId: session.sessionId,
         resumeFrom: structuredClone(resumeFrom),
+        sandboxSession,
       });
       const second = await agent.continueStream({ session: resumed });
       await second.consumeStream();
@@ -2231,8 +2261,10 @@ describe('HarnessAgent', () => {
         resolvePromptDone();
       },
     });
-    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
-    const session = await agent.createSession();
+    const agent = new HarnessAgent({ harness });
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
     const result = await agent.stream({ session, prompt: 'work' });
 
     const continueFrom = await session.suspendTurn();
@@ -2267,8 +2299,10 @@ describe('HarnessAgent', () => {
             ]
           : finishEvents(),
     });
-    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
-    const session = await agent.createSession();
+    const agent = new HarnessAgent({ harness });
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
 
     const aborted = await agent.stream({
       session,
@@ -2305,8 +2339,10 @@ describe('HarnessAgent', () => {
         },
       ],
     });
-    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
-    const session = await agent.createSession();
+    const agent = new HarnessAgent({ harness });
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
 
     const stderrSpy = vi
       .spyOn(process.stderr, 'write')
@@ -2377,7 +2413,6 @@ describe('HarnessAgent', () => {
 
     const agent = new HarnessAgent({
       harness,
-      sandbox: makeSandboxProvider(),
       instructions: {
         role: 'system',
         content: 'Be concise.',
@@ -2385,6 +2420,7 @@ describe('HarnessAgent', () => {
       },
     });
     const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
       continueFrom: {
         type: 'continue-turn',
         harnessId: 'mock',
@@ -2447,8 +2483,9 @@ describe('HarnessAgent', () => {
       ],
     });
 
-    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+    const agent = new HarnessAgent({ harness });
     const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
       continueFrom: {
         type: 'continue-turn',
         harnessId: 'mock',
@@ -2534,9 +2571,9 @@ describe('HarnessAgent', () => {
           tools: { weather },
         };
       },
-      sandbox: makeSandboxProvider(),
     });
-    let session = await agent.createSession();
+    const sandboxSession = makeSandboxSession();
+    let session = await agent.createSession({ sandboxSession });
 
     const first = await agent.stream({
       session,
@@ -2565,7 +2602,11 @@ describe('HarnessAgent', () => {
       tools: [{ name: 'weather', description: 'Get weather' }],
     });
 
-    session = await agent.createSession({ sessionId, continueFrom });
+    session = await agent.createSession({
+      sessionId,
+      continueFrom,
+      sandboxSession,
+    });
     expect(session.hasUnfinishedTurn()).toBe(true);
     const continued = await agent.continueStream({
       session,
@@ -2644,9 +2685,10 @@ describe('HarnessAgent', () => {
     const agent = new HarnessAgent({
       harness,
       tools: { weather },
-      sandbox: makeSandboxProvider(),
     });
-    const session = await agent.createSession();
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
 
     const first = await agent.stream({ session, prompt: 'Check Lima weather' });
     await first.consumeStream();
@@ -2694,8 +2736,10 @@ describe('HarnessAgent', () => {
 
   test('continueStream() rejects when there is no unfinished turn', async () => {
     const { harness } = mockHarness({ script: () => [] });
-    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
-    const session = await agent.createSession();
+    const agent = new HarnessAgent({ harness });
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
 
     await expect(agent.continueStream({ session })).rejects.toThrow(
       /no unfinished turn to continue/,
@@ -2782,9 +2826,10 @@ describe('HarnessAgent', () => {
       ],
     });
 
-    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+    const agent = new HarnessAgent({ harness });
     const session = await agent.createSession({
       sessionId: 's1',
+      sandboxSession: makeSandboxSession(),
       resumeFrom: {
         type: 'resume-session',
         harnessId: 'mock',
@@ -2825,11 +2870,13 @@ describe('HarnessAgent', () => {
     const onSandboxSession = vi.fn(async () => {});
     const agent = new HarnessAgent({
       harness,
-      sandbox: makeSandboxProvider(sandboxSession),
       sandboxConfig: { onSession: onSandboxSession },
     });
 
-    const session = await agent.createSession({ sessionId: 's1' });
+    const session = await agent.createSession({
+      sessionId: 's1',
+      sandboxSession,
+    });
 
     expect(run).toHaveBeenCalledWith({
       command: 'mkdir -p "$WORK_DIR"',
@@ -2862,11 +2909,13 @@ describe('HarnessAgent', () => {
     const onSandboxSession = vi.fn(async () => {});
     const agent = new HarnessAgent({
       harness,
-      sandbox: makeSandboxProvider(sandboxSession),
       sandboxConfig: { workDir: '.', onSession: onSandboxSession },
     });
 
-    const session = await agent.createSession({ sessionId: 's1' });
+    const session = await agent.createSession({
+      sessionId: 's1',
+      sandboxSession,
+    });
 
     expect(run).toHaveBeenCalledWith({
       command: 'mkdir -p "$WORK_DIR"',
@@ -2892,11 +2941,13 @@ describe('HarnessAgent', () => {
       const onSandboxSession = vi.fn(async () => {});
       const agent = new HarnessAgent({
         harness,
-        sandbox: makeSandboxProvider(),
         onSandboxSession,
       });
 
-      const session = await agent.createSession({ sessionId: 's1' });
+      const session = await agent.createSession({
+        sessionId: 's1',
+        sandboxSession: makeSandboxSession(),
+      });
 
       expect(warn).toHaveBeenCalledWith(
         'HarnessAgent: `onSandboxSession` is deprecated. Use `sandboxConfig.onSession` instead.',
@@ -2920,7 +2971,6 @@ describe('HarnessAgent', () => {
       () =>
         new HarnessAgent({
           harness,
-          sandbox: makeSandboxProvider(),
           sandboxConfig: { onBootstrap: async () => {} },
         }),
     ).toThrow(/must be provided together/);
@@ -2929,7 +2979,6 @@ describe('HarnessAgent', () => {
       () =>
         new HarnessAgent({
           harness,
-          sandbox: makeSandboxProvider(),
           sandboxConfig: { bootstrapHash: 'hash' },
         }),
     ).toThrow(/must be provided together/);
@@ -2938,7 +2987,6 @@ describe('HarnessAgent', () => {
       () =>
         new HarnessAgent({
           harness,
-          sandbox: makeSandboxProvider(),
           sandboxConfig: { workDir: '../repo' },
         }),
     ).toThrow(/workDir/);
@@ -2951,6 +2999,41 @@ describe('HarnessAgent', () => {
     await expect(agent.createSession()).rejects.toThrow(
       'HarnessAgent.createSession: configure `sandbox` on HarnessAgent or pass `sandboxSession` to createSession().',
     );
+  });
+
+  test('deprecated constructor sandbox provider creates and resumes sessions and warns', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const { harness } = mockHarness({ script: () => [] });
+      const sandboxSession = makeSandboxSession();
+      const createSession = vi.fn(async () => sandboxSession);
+      const resumeSession = vi.fn(async () => sandboxSession);
+      const agent = new HarnessAgent({
+        harness,
+        sandbox: {
+          specificationVersion: 'harness-sandbox-v1',
+          providerId: 'mock-sandbox',
+          createSession,
+          resumeSession,
+        },
+      });
+
+      const first = await agent.createSession({ sessionId: 's1' });
+      const resumeFrom = await first.stop();
+      const resumed = await agent.createSession({
+        sessionId: 's1',
+        resumeFrom,
+      });
+
+      expect(warn).toHaveBeenCalledWith(
+        'HarnessAgent: `sandbox` is deprecated. Supply `sandboxSession` to createSession() instead.',
+      );
+      expect(createSession).toHaveBeenCalledOnce();
+      expect(resumeSession).toHaveBeenCalledOnce();
+      await resumed.destroy();
+    } finally {
+      warn.mockRestore();
+    }
   });
 
   test('uses a provided basic sandbox session, resolves its working directory, and applies the harness bootstrap recipe', async () => {
@@ -3013,7 +3096,7 @@ describe('HarnessAgent', () => {
     await session.destroy();
   });
 
-  test('prefers a provided sandbox session over a configured provider', async () => {
+  test('deprecated constructor sandbox provider is ignored when a sandbox session is provided', async () => {
     const { harness } = mockHarness({ script: () => [] });
     const createSession = vi.fn(async () => makeSandboxSession());
     const resumeSession = vi.fn(async () => makeSandboxSession());
@@ -3059,7 +3142,7 @@ describe('HarnessAgent', () => {
     expect(sandboxDestroy).not.toHaveBeenCalled();
   });
 
-  test('sandboxConfig.onBootstrap runs during onFirstCreate and workDir becomes the session work dir', async () => {
+  test('deprecated constructor sandbox provider runs sandboxConfig.onBootstrap during onFirstCreate', async () => {
     const { harness } = mockHarness({ script: () => [] });
     const run = vi.fn(async (args: { command: string }) => {
       if (args.command === 'pwd') {
@@ -3140,7 +3223,6 @@ describe('HarnessAgent', () => {
     const onSandboxSession = vi.fn(async () => {});
     const agent = new HarnessAgent({
       harness,
-      sandbox: makeSandboxProvider(),
       sandboxConfig: {
         workDir: 'ai-sdk',
         bootstrapHash: 'repo-v1',
@@ -3151,6 +3233,7 @@ describe('HarnessAgent', () => {
 
     const session = await agent.createSession({
       sessionId: 's1',
+      sandboxSession: makeSandboxSession(),
       resumeFrom: {
         type: 'resume-session',
         harnessId: 'mock',
@@ -3169,7 +3252,7 @@ describe('HarnessAgent', () => {
     await session.destroy();
   });
 
-  test('built-in bootstrap uses recipe identity while snapshot identity includes workDir', async () => {
+  test('deprecated constructor sandbox provider uses separate bootstrap and snapshot identities', async () => {
     const base = mockHarness({ script: () => [] });
     const recipe: HarnessV1Bootstrap = {
       harnessId: 'mock',
@@ -3276,8 +3359,10 @@ describe('HarnessAgent', () => {
     };
     const doReadHistory = vi.fn(async () => history);
     const { harness } = mockHarness({ script: () => [], doReadHistory });
-    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
-    const session = await agent.createSession();
+    const agent = new HarnessAgent({ harness });
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
 
     await expect(session.readHistory()).resolves.toEqual(history);
     await session.readHistory({ since: 'cursor-1' });
@@ -3288,8 +3373,10 @@ describe('HarnessAgent', () => {
 
   test('readHistory() throws HarnessCapabilityUnsupportedError when the adapter lacks it', async () => {
     const { harness } = mockHarness({ script: () => [] });
-    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
-    const session = await agent.createSession();
+    const agent = new HarnessAgent({ harness });
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
 
     await expect(session.readHistory()).rejects.toSatisfy(error =>
       HarnessCapabilityUnsupportedError.isInstance(error),
@@ -3303,8 +3390,10 @@ describe('HarnessAgent', () => {
       script: () => [],
       doReadHistory: async () => ({ messages: [], cursor: 'c' }),
     });
-    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
-    const session = await agent.createSession();
+    const agent = new HarnessAgent({ harness });
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
     await session.destroy();
 
     await expect(session.readHistory()).rejects.toThrow(
@@ -3344,12 +3433,12 @@ describe('HarnessAgent', () => {
     });
     const agent = new HarnessAgent({
       harness,
-      sandbox: makeSandboxProvider(sandboxSession),
       sandboxConfig: { workDir: 'ai-sdk' },
     });
 
     const session = await agent.createSession({
       sessionId: 's1',
+      sandboxSession,
       resumeFrom: {
         type: 'resume-session',
         harnessId: 'mock',
@@ -3383,12 +3472,12 @@ describe('HarnessAgent', () => {
     });
     const agent = new HarnessAgent({
       harness,
-      sandbox: makeSandboxProvider(),
       sandboxConfig: { onSession: onSandboxSession },
     });
 
     const session = await agent.createSession({
       sessionId: 's1',
+      sandboxSession: makeSandboxSession(),
       resumeFrom: {
         type: 'resume-session',
         harnessId: 'mock',
@@ -3405,7 +3494,7 @@ describe('HarnessAgent', () => {
 
   test('createSession() rejects resume state with top-level pending tool approvals', async () => {
     const { harness } = mockHarness({ script: () => [] });
-    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+    const agent = new HarnessAgent({ harness });
 
     await expect(
       agent.createSession({
@@ -3422,7 +3511,7 @@ describe('HarnessAgent', () => {
 
   test('createSession() rejects resume state with top-level pending tool results', async () => {
     const { harness } = mockHarness({ script: () => [] });
-    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+    const agent = new HarnessAgent({ harness });
 
     await expect(
       agent.createSession({
@@ -3492,9 +3581,10 @@ describe('HarnessAgent', () => {
     const agent = new HarnessAgent({
       harness,
       tools: { echo },
-      sandbox: makeSandboxProvider(),
     });
-    const session = await agent.createSession();
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
     const result = await agent.generate({ session, prompt: 'go' });
 
     expect(toolResults).toEqual([
@@ -3535,7 +3625,6 @@ describe('HarnessAgent', () => {
       toolsContext: {
         lookupAccount: { userId: 'initial-user' },
       },
-      sandbox: makeSandboxProvider(),
       callOptionsSchema: z.object({ userId: z.string() }),
       prepareCall: ({ options, ...rest }) => ({
         ...rest,
@@ -3544,7 +3633,9 @@ describe('HarnessAgent', () => {
         },
       }),
     });
-    const session = await agent.createSession();
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
 
     const result = await agent.generate({
       session,
@@ -3604,7 +3695,6 @@ describe('HarnessAgent', () => {
       toolsContext: {
         lookupAccount: { userId: 'initial-user' },
       },
-      sandbox: makeSandboxProvider(),
       callOptionsSchema: z.object({ userId: z.string() }),
       prepareCall: ({ options, ...rest }) => ({
         ...rest,
@@ -3613,7 +3703,8 @@ describe('HarnessAgent', () => {
         },
       }),
     });
-    let session = await agent.createSession();
+    const sandboxSession = makeSandboxSession();
+    let session = await agent.createSession({ sandboxSession });
     const first = await agent.stream({
       session,
       prompt: 'go',
@@ -3630,6 +3721,7 @@ describe('HarnessAgent', () => {
     session = await agent.createSession({
       sessionId,
       continueFrom: structuredClone(continueFrom),
+      sandboxSession,
       toolsContext: {
         lookupAccount: { userId: 'user-123' },
       },
@@ -3668,10 +3760,11 @@ describe('HarnessAgent', () => {
     const agent = new HarnessAgent({
       harness,
       tools: { lookupAccount },
-      sandbox: makeSandboxProvider(),
       toolsContext: {} as never,
     });
-    const session = await agent.createSession();
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
 
     await agent.generate({ session, prompt: 'go' });
 
@@ -3712,14 +3805,15 @@ describe('HarnessAgent', () => {
       toolsContext: {
         lookupAccount: { userId: 123, apiKey: 'host-secret' },
       } as never,
-      sandbox: makeSandboxProvider(),
       onToolExecutionEnd: event => {
         if (event.toolOutput.type === 'tool-error') {
           hostValidationError = event.toolOutput.error;
         }
       },
     });
-    const session = await agent.createSession();
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
 
     await agent.generate({ session, prompt: 'go' });
 
@@ -3746,7 +3840,6 @@ describe('HarnessAgent', () => {
           harness,
           activeTools: [],
           inactiveTools: [],
-          sandbox: makeSandboxProvider(),
         } as never),
     ).toThrow(/either `activeTools` or `inactiveTools`/);
   });
@@ -3759,7 +3852,6 @@ describe('HarnessAgent', () => {
         new HarnessAgent({
           harness,
           activeTools: ['missing'],
-          sandbox: makeSandboxProvider(),
         }),
     ).toThrow(NoSuchToolError);
   });
@@ -3792,9 +3884,10 @@ describe('HarnessAgent', () => {
       harness,
       tools: { echo, hidden },
       activeTools: ['echo'],
-      sandbox: makeSandboxProvider(),
     });
-    const session = await agent.createSession();
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
 
     await agent.generate({ session, prompt: 'go' });
 
@@ -3840,9 +3933,10 @@ describe('HarnessAgent', () => {
       harness,
       tools: { echo, hidden },
       inactiveTools: ['hidden'],
-      sandbox: makeSandboxProvider(),
     });
-    const session = await agent.createSession();
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
 
     await agent.generate({ session, prompt: 'go' });
 
@@ -3868,7 +3962,6 @@ describe('HarnessAgent', () => {
         new HarnessAgent({
           harness,
           activeTools: [],
-          sandbox: makeSandboxProvider(),
         }),
     ).toThrow(HarnessCapabilityUnsupportedError);
   });
@@ -3892,9 +3985,10 @@ describe('HarnessAgent', () => {
     const agent = new HarnessAgent({
       harness,
       activeTools: [],
-      sandbox: makeSandboxProvider(),
     });
-    const session = await agent.createSession();
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
 
     expect(startBuiltinFiltering).toEqual({ mode: 'allow', toolNames: [] });
     await session.destroy();
@@ -3927,9 +4021,10 @@ describe('HarnessAgent', () => {
     const agent = new HarnessAgent({
       harness,
       inactiveTools: ['bash'],
-      sandbox: makeSandboxProvider(),
     });
-    const session = await agent.createSession();
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
     const result = await agent.stream({ session, prompt: 'go' });
     const parts: string[] = [];
 
@@ -3970,9 +4065,10 @@ describe('HarnessAgent', () => {
       harness,
       tools: { weather },
       toolApproval: { weather: 'user-approval' },
-      sandbox: makeSandboxProvider(),
     });
-    const session = await agent.createSession();
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
     const result = await agent.stream({ session, prompt: 'go' });
 
     const parts: string[] = [];
@@ -4050,8 +4146,10 @@ describe('HarnessAgent', () => {
         },
       ],
     });
-    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
-    const session = await agent.createSession();
+    const agent = new HarnessAgent({ harness });
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
     const result = await agent.stream({ session, prompt: 'go' });
     let detachState: HarnessV1ResumeSessionState | undefined;
 
@@ -4116,8 +4214,10 @@ describe('HarnessAgent', () => {
         },
       ],
     });
-    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
-    const session = await agent.createSession();
+    const agent = new HarnessAgent({ harness });
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
     const result = await agent.stream({ session, prompt: 'ping' });
 
     // Persistence mode injects the server-generated message id into the
@@ -4181,8 +4281,10 @@ describe('HarnessAgent', () => {
       ],
     });
 
-    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
-    const session = await agent.createSession();
+    const agent = new HarnessAgent({ harness });
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
     await agent.generate({ session, prompt: 'one' });
     await agent.generate({ session, prompt: 'two' });
 
@@ -4195,8 +4297,10 @@ describe('HarnessAgent', () => {
 
   test('session.destroy() is idempotent and rejects further turns', async () => {
     const { harness, doDestroy } = mockHarness({ script: () => [] });
-    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
-    const session = await agent.createSession();
+    const agent = new HarnessAgent({ harness });
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
 
     await session.destroy();
     await session.destroy();
@@ -4248,8 +4352,10 @@ describe('HarnessAgent', () => {
     }
 
     const { harness, prompts } = mockHarness({ script: finishOnly });
-    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
-    const session = await agent.createSession();
+    const agent = new HarnessAgent({ harness });
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
 
     await agent.generate({ session, prompt: 'plain string' });
     await agent.generate({
@@ -4435,8 +4541,10 @@ describe('HarnessAgent', () => {
 
   test('session.compact() forwards to the harness session doCompact, then throws once ended', async () => {
     const { harness, doCompact } = mockHarness({ script: () => [] });
-    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
-    const session = await agent.createSession();
+    const agent = new HarnessAgent({ harness });
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
 
     await session.compact();
     await session.compact('keep the error trace');
@@ -4499,8 +4607,10 @@ describe('HarnessAgent', () => {
       doStart: async () => underlying,
     };
 
-    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
-    const session = await agent.createSession();
+    const agent = new HarnessAgent({ harness });
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
     expect(session.isResume).toBe(true);
 
     const handle = await session.detach();
@@ -4558,8 +4668,10 @@ describe('HarnessAgent', () => {
       doStart: async () => underlying,
     };
 
-    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
-    const session = await agent.createSession();
+    const agent = new HarnessAgent({ harness });
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
     await expect(session.stop()).resolves.toEqual(resumeState);
     expect(doStop).toHaveBeenCalledTimes(1);
     expect(doDestroy).not.toHaveBeenCalled();
