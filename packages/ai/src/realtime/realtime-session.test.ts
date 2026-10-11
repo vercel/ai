@@ -46,7 +46,7 @@ vi.mock('./browser-realtime-audio', () => ({
     stopCapture = vi.fn();
     stopPlayback = vi.fn();
     playAudio = vi.fn();
-    getPlaybackOffsetMs = vi.fn(() => 0);
+    getPlaybackPosition = vi.fn(() => null);
     dispose = vi.fn();
   },
 }));
