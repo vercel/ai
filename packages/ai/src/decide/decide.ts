@@ -1,6 +1,7 @@
 import {
   Experimental_DecisionRefusalError as DecisionRefusalError,
   Experimental_DecisionUnsupportedQuestionTypeError as DecisionUnsupportedQuestionTypeError,
+  type Experimental_DecisionModelV4Answer as DecisionModelV4Answer,
   type Experimental_DecisionModelV4Question as DecisionQuestion,
 } from '@ai-sdk/provider';
 import {
@@ -154,11 +155,43 @@ export async function decide<
         const refusedQuestionIds = Object.keys(questions).filter(
           id => result.answers[id]?.type === 'refusal',
         );
+
+        const inputTokens = result.usage?.inputTokens;
+        const outputTokens = result.usage?.outputTokens;
+        const usage = {
+          inputTokens,
+          outputTokens,
+          totalTokens:
+            inputTokens != null && outputTokens != null
+              ? inputTokens + outputTokens
+              : undefined,
+        };
+        const response = {
+          ...result.response,
+          timestamp: result.response?.timestamp ?? new Date(),
+          modelId: result.response?.modelId ?? model.modelId,
+        };
+
         if (refusedQuestionIds.length > 0) {
+          const answers = Object.fromEntries(
+            Object.entries(result.answers).filter(
+              ([, answer]) => answer.type !== 'refusal',
+            ),
+          ) as Record<
+            string,
+            Exclude<DecisionModelV4Answer, { type: 'refusal' }>
+          >;
+
           throw new DecisionRefusalError({
             questionIds: refusedQuestionIds,
             provider: model.provider,
             modelId: model.modelId,
+            answers,
+            usage,
+            warnings: result.warnings,
+            rounding: result.rounding,
+            providerMetadata: result.providerMetadata,
+            response,
           });
         }
         await notify({
@@ -172,26 +205,13 @@ export async function decide<
           model: model.modelId,
         });
 
-        const inputTokens = result.usage?.inputTokens;
-        const outputTokens = result.usage?.outputTokens;
         const decisionResult: DecisionResult<QUESTIONS> = {
           answers: result.answers as DecisionResult<QUESTIONS>['answers'],
-          usage: {
-            inputTokens,
-            outputTokens,
-            totalTokens:
-              inputTokens != null && outputTokens != null
-                ? inputTokens + outputTokens
-                : undefined,
-          },
+          usage,
           warnings: result.warnings,
           rounding: result.rounding,
           providerMetadata: result.providerMetadata,
-          response: {
-            ...result.response,
-            timestamp: result.response?.timestamp ?? new Date(),
-            modelId: result.response?.modelId ?? model.modelId,
-          },
+          response,
         };
 
         await notify({

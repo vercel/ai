@@ -186,6 +186,94 @@ it.each([['topic'], ['severity'], ['refund'], ['topic', 'refund']])(
   },
 );
 
+it('preserves validated answers and normalized call metadata on a refusal error', async () => {
+  const warning = { type: 'other', message: 'Provider note' } as const;
+  const timestamp = new Date('2026-10-11T12:00:00Z');
+  const providerMetadata = { test: { requestId: 'request-1' } };
+  const rounding = { probabilityDecimals: 2, scoreDecimals: 3 };
+  const { model } = setup({
+    answers: {
+      ...answers,
+      severity: { type: 'refusal' },
+    },
+    warnings: [warning],
+    usage: { inputTokens: 30, outputTokens: 4 },
+    rounding,
+    providerMetadata,
+    response: {
+      id: 'response-1',
+      timestamp,
+      modelId: 'actual-model',
+      headers: { 'x-request-id': 'request-1' },
+      body: { status: 'partial' },
+    },
+  });
+
+  const error = await decide({ model, state: '', questions }).catch(
+    (caught: unknown) => caught,
+  );
+
+  expect(DecisionRefusalError.isInstance(error)).toBe(true);
+  if (!DecisionRefusalError.isInstance(error)) {
+    throw error;
+  }
+  expect(error).toMatchObject({
+    questionIds: ['severity'],
+    answers: {
+      refund: answers.refund,
+      topic: answers.topic,
+    },
+    usage: {
+      inputTokens: 30,
+      outputTokens: 4,
+      totalTokens: 34,
+    },
+    warnings: [warning],
+    rounding,
+    providerMetadata,
+    response: {
+      id: 'response-1',
+      timestamp,
+      modelId: 'actual-model',
+      headers: { 'x-request-id': 'request-1' },
+      body: { status: 'partial' },
+    },
+  });
+  expect(Object.keys(error.answers!)).toEqual(['refund', 'topic']);
+});
+
+it('preserves an empty answer map and unknown metadata on an all-refused result', async () => {
+  const { model } = setup({
+    answers: Object.fromEntries(
+      Object.keys(questions).map(id => [id, { type: 'refusal' }]),
+    ),
+    warnings: [],
+  });
+
+  const error = await decide({ model, state: '', questions }).catch(
+    (caught: unknown) => caught,
+  );
+
+  expect(DecisionRefusalError.isInstance(error)).toBe(true);
+  if (!DecisionRefusalError.isInstance(error)) {
+    throw error;
+  }
+  expect(error).toMatchObject({
+    questionIds: ['topic', 'severity', 'refund'],
+    answers: {},
+    usage: {
+      inputTokens: undefined,
+      outputTokens: undefined,
+      totalTokens: undefined,
+    },
+    warnings: [],
+    response: {
+      timestamp: expect.any(Date),
+      modelId: model.modelId,
+    },
+  });
+});
+
 it('rejects an unsupported model version', async () => {
   const { model, doDecide } = setup();
   Object.assign(model, { specificationVersion: 'v99' });
@@ -434,6 +522,26 @@ describe('response validation', () => {
       decide({ model, state: 'text', questions }),
     ).rejects.toBeInstanceOf(InvalidResponseDataError);
     expect(doDecide).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects malformed non-refused answers before creating partial refusal data', async () => {
+    const { model } = setup({
+      answers: {
+        ...answers,
+        severity: { type: 'refusal' },
+        refund: { type: 'boolean', probability: 2 },
+      },
+      warnings: [],
+    });
+
+    const error = await decide({
+      model,
+      state: 'text',
+      questions,
+    }).catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(InvalidResponseDataError);
+    expect(DecisionRefusalError.isInstance(error)).toBe(false);
   });
 
   it('accepts rounding within tolerance without modifying the distribution', async () => {

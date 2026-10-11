@@ -36,6 +36,48 @@ describe('DecisionRefusalError', () => {
     );
   });
 
+  it('preserves partial result data when provided', () => {
+    const timestamp = new Date('2026-10-11T12:00:00Z');
+    const error = new DecisionRefusalError({
+      ...options,
+      answers: {
+        known: { type: 'boolean', probability: 0.9 },
+      },
+      usage: {
+        inputTokens: 4,
+        outputTokens: 2,
+        totalTokens: 6,
+      },
+      warnings: [{ type: 'other', message: 'Provider note' }],
+      rounding: { probabilityDecimals: 2 },
+      providerMetadata: { test: { requestId: 'request-1' } },
+      response: {
+        id: 'response-1',
+        timestamp,
+        modelId: 'actual-model',
+      },
+    });
+
+    expect(error).toMatchObject({
+      answers: {
+        known: { type: 'boolean', probability: 0.9 },
+      },
+      usage: {
+        inputTokens: 4,
+        outputTokens: 2,
+        totalTokens: 6,
+      },
+      warnings: [{ type: 'other', message: 'Provider note' }],
+      rounding: { probabilityDecimals: 2 },
+      providerMetadata: { test: { requestId: 'request-1' } },
+      response: {
+        id: 'response-1',
+        timestamp,
+        modelId: 'actual-model',
+      },
+    });
+  });
+
   it('recognizes the marker across package copies', () => {
     expect(
       DecisionRefusalError.isInstance({

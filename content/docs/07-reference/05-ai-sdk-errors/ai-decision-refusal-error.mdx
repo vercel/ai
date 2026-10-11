@@ -18,7 +18,20 @@ provider call and without retrying it.
 - `questionIds`: The IDs of the refused questions.
 - `provider`: The provider of the decision model.
 - `modelId`: The decision model ID.
+- `answers`: Validated answers for questions that were not refused. This is an
+  empty object when every question was refused.
+- `usage`: Normalized token usage, including `totalTokens` when both input and
+  output token counts are available.
+- `warnings`: Warnings returned by the decision model.
+- `rounding`: Optional provider-declared decimal precision.
+- `providerMetadata`: Optional provider-specific metadata.
+- `response`: Normalized response metadata, including a timestamp and model ID.
 - `message`: A description of the refused questions and model.
+
+The partial result properties are populated when the error is thrown by
+`experimental_decide`. They can be `undefined` when the error is constructed
+directly without that data. Response bodies and provider metadata can contain
+sensitive data; redact them before logging.
 
 ## Checking for this Error
 
@@ -28,6 +41,11 @@ Use the marker-based `isInstance` check, which works across package copies:
 import { Experimental_DecisionRefusalError as DecisionRefusalError } from 'ai';
 
 if (DecisionRefusalError.isInstance(error)) {
-  console.log(error.questionIds, error.modelId);
+  console.log({
+    refusedQuestionIds: error.questionIds,
+    completedAnswers: error.answers,
+    usage: error.usage,
+    response: error.response,
+  });
 }
 ```

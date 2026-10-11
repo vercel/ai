@@ -1,5 +1,7 @@
 import {
+  Experimental_DecisionRefusalError as DecisionRefusalError,
   NoSuchModelError,
+  type Experimental_DecisionModelV4Answer,
   type Experimental_DecisionModelV4CallOptions,
   type Experimental_DecisionModelV4StatePart,
   type Experimental_DecisionModelV4Question,
@@ -121,6 +123,32 @@ it('preserves inference through deprecated API and provider aliases', async () =
 
 it('accepts legacy model error construction', () => {
   new NoSuchModelError({ modelId: 'legacy', modelType: 'evaluationModel' });
+});
+
+it('exposes successful answers and normalized metadata on refusal errors', () => {
+  const error = new DecisionRefusalError({
+    questionIds: ['unknown'],
+    provider: 'test',
+    modelId: 'decision-model',
+  });
+  type SuccessfulAnswer = Exclude<
+    Experimental_DecisionModelV4Answer,
+    { type: 'refusal' }
+  >;
+
+  expectTypeOf(error.answers).toEqualTypeOf<
+    Record<string, SuccessfulAnswer> | undefined
+  >();
+  expectTypeOf(error.usage).toEqualTypeOf<
+    | {
+        inputTokens: number | undefined;
+        outputTokens: number | undefined;
+        totalTokens: number | undefined;
+      }
+    | undefined
+  >();
+  expectTypeOf(error.response?.timestamp).toEqualTypeOf<Date | undefined>();
+  expectTypeOf(error.response?.modelId).toEqualTypeOf<string | undefined>();
 });
 
 it('accepts public file conventions and keeps question JSON input separate', async () => {
