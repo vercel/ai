@@ -612,9 +612,6 @@ export function toUIMessageStream<TState = unknown>(
               id: modelState.textMessageId ?? modelState.messageId,
             });
           }
-          if (sendFinish) {
-            controller.enqueue({ type: 'finish' });
-          }
         } else if (streamType === 'langgraph') {
           /**
            * Close any open text/reasoning parts before finishing.
@@ -647,9 +644,10 @@ export function toUIMessageStream<TState = unknown>(
           if (langGraphState.currentStepsByNamespace.size > 0) {
             controller.enqueue({ type: 'finish-step' });
           }
-          if (sendFinish) {
-            controller.enqueue({ type: 'finish' });
-          }
+        }
+
+        if (sendFinish) {
+          controller.enqueue({ type: 'finish' });
         }
 
         /**
