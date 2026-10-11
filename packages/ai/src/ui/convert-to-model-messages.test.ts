@@ -428,6 +428,31 @@ describe('convertToModelMessages', () => {
       ]);
     });
 
+    it('should omit tool calls that the SDK did not run', async () => {
+      const result = await convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            { type: 'text', text: 'Partial response', state: 'done' },
+            {
+              type: 'tool-weather',
+              toolCallId: 'call-1',
+              state: 'output-not-run',
+              input: { city: 'Tokyo' },
+              finishReason: 'length',
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'Partial response' }],
+        },
+      ]);
+    });
+
     it('should convert a simple assistant text message with provider metadata', async () => {
       const result = await convertToModelMessages([
         {

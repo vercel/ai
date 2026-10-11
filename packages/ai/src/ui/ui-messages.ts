@@ -9,6 +9,7 @@ import type {
 } from '@ai-sdk/provider-utils';
 import type { ProviderMetadata } from '../types/provider-metadata';
 import type { ProviderReference } from '../types/provider-reference';
+import type { FinishReason } from '../types/language-model';
 import type { DeepPartial } from '../util/deep-partial';
 import type { ValueOf } from '../util/value-of';
 
@@ -414,6 +415,28 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         inputSchemaInput?: unknown;
       };
     }
+  | {
+      /**
+       * The SDK deliberately did not execute the tool because the containing
+       * model step ended with a finish reason that does not allow execution.
+       */
+      state: 'output-not-run';
+      input: asUITool<TOOL>['input'];
+      output?: never;
+      errorText?: never;
+      finishReason: FinishReason;
+      callProviderMetadata?: ProviderMetadata;
+      approval?: {
+        id: string;
+        approved: true;
+        descriptor?: unknown;
+        requestReason?: string;
+        reason?: string;
+        isAutomatic?: boolean;
+        signature?: string;
+        inputSchemaInput?: unknown;
+      };
+    }
 );
 
 export type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
@@ -553,6 +576,28 @@ export type DynamicToolUIPart = {
       approval: {
         id: string;
         approved: false;
+        descriptor?: unknown;
+        requestReason?: string;
+        reason?: string;
+        isAutomatic?: boolean;
+        signature?: string;
+        inputSchemaInput?: unknown;
+      };
+    }
+  | {
+      /**
+       * The SDK deliberately did not execute the tool because the containing
+       * model step ended with a finish reason that does not allow execution.
+       */
+      state: 'output-not-run';
+      input: unknown;
+      output?: never;
+      errorText?: never;
+      finishReason: FinishReason;
+      callProviderMetadata?: ProviderMetadata;
+      approval?: {
+        id: string;
+        approved: true;
         descriptor?: unknown;
         requestReason?: string;
         reason?: string;

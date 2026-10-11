@@ -5099,6 +5099,58 @@ describe('streamText', () => {
       `);
     });
 
+    it('should represent SDK-suppressed tool calls as not run', async () => {
+      const execute = vi.fn(async () => 'result');
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'test-tool',
+              input: `{ "value": "value" }`,
+            },
+            {
+              type: 'finish',
+              finishReason: { unified: 'length', raw: 'max_tokens' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        tools: {
+          'test-tool': tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute,
+          }),
+        },
+        prompt: 'test-input',
+      });
+
+      const [chunkStream, messageStream] = result.toUIMessageStream().tee();
+      const [chunks, messages] = await Promise.all([
+        convertReadableStreamToArray(chunkStream),
+        convertReadableStreamToArray(
+          readUIMessageStream({ stream: messageStream }),
+        ),
+      ]);
+
+      expect(execute).not.toHaveBeenCalled();
+      expect(chunks).toContainEqual({
+        type: 'tool-output-not-run',
+        toolCallId: 'call-1',
+        finishReason: 'length',
+      });
+      expect(
+        messages.at(-1)?.parts.find(part => part.type === 'tool-test-tool'),
+      ).toMatchObject({
+        type: 'tool-test-tool',
+        toolCallId: 'call-1',
+        state: 'output-not-run',
+        input: { value: 'value' },
+        finishReason: 'length',
+      });
+    });
+
     it('should create a ui message stream', async () => {
       const result = streamText({
         model: createTestModel(),

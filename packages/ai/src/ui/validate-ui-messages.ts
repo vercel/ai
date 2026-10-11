@@ -14,6 +14,7 @@ import { jsonValueSchema } from '../types/json-value';
 import { getOwn } from '../util/get-own';
 import { isDeepEqualData } from '../util/is-deep-equal-data';
 import { providerMetadataSchema } from '../types/provider-metadata';
+import type { FinishReason } from '../types/language-model';
 import { z, type ZodType } from '../util/zod';
 import type {
   DataUIPart,
@@ -32,6 +33,15 @@ const toolMetadataSchema: ZodType<JSONObject> = z.record(
 );
 
 const providerReferenceSchema = z.record(z.string(), z.string());
+
+const finishReasonSchema = z.enum([
+  'stop',
+  'length',
+  'content-filter',
+  'tool-calls',
+  'error',
+  'other',
+] as const satisfies readonly FinishReason[]);
 
 function isEmptyObject(value: unknown): value is Record<string, never> {
   return (
@@ -260,6 +270,22 @@ const uiMessagesSchema = lazySchema(() => {
                   approval: approvalDeniedSchema,
                 }),
                 z.object({
+                  type: z.literal('dynamic-tool'),
+                  dynamic: z.literal(false).optional(),
+                  toolName: z.string(),
+                  toolCallId: z.string(),
+                  title: z.string().optional(),
+                  toolMetadata: toolMetadataSchema.optional(),
+                  state: z.literal('output-not-run'),
+                  input: z.unknown(),
+                  providerExecuted: z.boolean().optional(),
+                  output: z.never().optional(),
+                  errorText: z.never().optional(),
+                  finishReason: finishReasonSchema,
+                  callProviderMetadata: providerMetadataSchema.optional(),
+                  approval: approvalGrantedSchema.optional(),
+                }),
+                z.object({
                   type: z.string().startsWith('tool-'),
                   toolCallId: z.string(),
                   title: z.string().optional(),
@@ -354,6 +380,20 @@ const uiMessagesSchema = lazySchema(() => {
                   errorText: z.never().optional(),
                   callProviderMetadata: providerMetadataSchema.optional(),
                   approval: approvalDeniedSchema,
+                }),
+                z.object({
+                  type: z.string().startsWith('tool-'),
+                  toolCallId: z.string(),
+                  title: z.string().optional(),
+                  toolMetadata: toolMetadataSchema.optional(),
+                  state: z.literal('output-not-run'),
+                  providerExecuted: z.boolean().optional(),
+                  input: z.unknown(),
+                  output: z.never().optional(),
+                  errorText: z.never().optional(),
+                  finishReason: finishReasonSchema,
+                  callProviderMetadata: providerMetadataSchema.optional(),
+                  approval: approvalGrantedSchema.optional(),
                 }),
               ]),
             ),
@@ -510,7 +550,8 @@ async function safeValidateUIMessagesInternal<UI_MESSAGE extends UIMessage>(
             const isTerminal =
               toolPart.state === 'output-available' ||
               toolPart.state === 'output-error' ||
-              toolPart.state === 'output-denied';
+              toolPart.state === 'output-denied' ||
+              toolPart.state === 'output-not-run';
 
             if (!tool && isTerminal) {
               if (tools != null || convertMissingTerminalToolsToDynamic) {

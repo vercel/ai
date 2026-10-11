@@ -543,6 +543,17 @@ export type TextStreamToolOutputDeniedPart<TOOLS extends ToolSet> = {
   type: 'tool-output-denied';
 } & StaticToolOutputDenied<TOOLS>;
 
+/**
+ * Indicates that the SDK deliberately did not execute a tool call because the
+ * containing model step ended with a finish reason that does not allow tool
+ * execution.
+ */
+export type TextStreamToolOutputNotRunPart = {
+  type: 'tool-output-not-run';
+  toolCallId: string;
+  finishReason: FinishReason;
+};
+
 export type TextStreamToolApprovalRequestPart<TOOLS extends ToolSet> =
   ToolApprovalRequestOutput<TOOLS>;
 
@@ -609,6 +620,7 @@ export type TextStreamPart<TOOLS extends ToolSet> =
   | TextStreamToolResultPart<TOOLS>
   | TextStreamToolErrorPart<TOOLS>
   | TextStreamToolOutputDeniedPart<TOOLS>
+  | TextStreamToolOutputNotRunPart
   | TextStreamToolApprovalRequestPart<TOOLS>
   | TextStreamToolApprovalResponsePart<TOOLS>
   | TextStreamStartStepPart

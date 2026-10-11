@@ -9,6 +9,7 @@ import type {
 } from '@ai-sdk/provider-utils';
 import type { TimeoutConfiguration } from '../prompt/request-options';
 import type { Telemetry, TelemetryDispatcher } from '../telemetry/telemetry';
+import type { FinishReason } from '../types/language-model';
 import { getOwn } from '../util/get-own';
 import { executeToolCall } from './execute-tool-call';
 import { isToolExecutionAllowedFinishReason } from './is-tool-execution-allowed-finish-reason';
@@ -33,9 +34,16 @@ export type ToolExecutionEndStreamPart = {
   toolExecutionMs: number;
 };
 
+export type ToolOutputNotRunStreamPart = {
+  type: 'tool-output-not-run';
+  toolCallId: string;
+  finishReason: FinishReason;
+};
+
 export type ExecuteToolsStreamPart<TOOLS extends ToolSet = ToolSet> =
   | LanguageModelStreamPart<TOOLS>
   | StaticToolOutputDenied<TOOLS>
+  | ToolOutputNotRunStreamPart
   | ToolExecutionEndStreamPart
   | StreamRetryAttemptBoundaryPart;
 
@@ -223,6 +231,13 @@ export function executeToolsFromStream<
 
           case 'model-call-end': {
             if (!isToolExecutionAllowedFinishReason(chunk.finishReason)) {
+              for (const toolCall of toolCallsToExecute) {
+                controller.enqueue({
+                  type: 'tool-output-not-run',
+                  toolCallId: toolCall.toolCallId,
+                  finishReason: chunk.finishReason,
+                });
+              }
               return;
             }
 

@@ -418,6 +418,21 @@ data: {"type":"tool-output-denied","toolCallId":"call_fJdQDqnXeGxTmr4E3YPSR7Ar"}
 
 ```
 
+### Tool Output Not Run Part
+
+Indicates that the SDK deliberately did not execute a tool call because the
+containing model step ended with a finish reason that does not allow tool
+execution. The `finishReason` is normalized to an AI SDK finish reason.
+
+Format: Server-Sent Event with JSON object
+
+Example:
+
+```
+data: {"type":"tool-output-not-run","toolCallId":"call_fJdQDqnXeGxTmr4E3YPSR7Ar","finishReason":"length"}
+
+```
+
 ### Start Step Part
 
 A part indicating the start of a step.

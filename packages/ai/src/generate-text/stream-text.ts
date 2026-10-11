@@ -2840,7 +2840,8 @@ class DefaultStreamTextResult<
                     case 'tool-input-end':
                     case 'tool-input-delta':
                     case 'tool-approval-request':
-                    case 'tool-output-denied': {
+                    case 'tool-output-denied':
+                    case 'tool-output-not-run': {
                       enqueueStepPart(controller, chunk);
                       break;
                     }

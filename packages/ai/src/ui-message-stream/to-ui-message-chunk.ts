@@ -342,6 +342,14 @@ export function toUIMessageChunk<
       };
     }
 
+    case 'tool-output-not-run': {
+      return {
+        type: 'tool-output-not-run',
+        toolCallId: part.toolCallId,
+        finishReason: part.finishReason,
+      };
+    }
+
     case 'error': {
       return {
         type: 'error',

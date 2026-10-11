@@ -260,7 +260,13 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
               } else if (isToolUIPart(part)) {
                 const toolName = getToolName(part);
 
-                if (part.state !== 'input-streaming') {
+                // Calls suppressed after an unsafe model finish are retained in
+                // UI history for rendering, but must not be replayed to the
+                // model as an unmatched tool call.
+                if (
+                  part.state !== 'input-streaming' &&
+                  part.state !== 'output-not-run'
+                ) {
                   const callProviderMetadata =
                     part.callProviderMetadata ??
                     (part.state === 'output-error'
