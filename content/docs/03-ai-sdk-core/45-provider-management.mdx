@@ -246,6 +246,38 @@ const { embedding } = await embed({
 });
 ```
 
+### Example: Apply middleware to all embedding models
+
+Use the `embeddingModelMiddleware` registry option to apply shared normalization,
+caching, default settings, or instrumentation to every embedding model resolved
+through the registry. You can pass one middleware or an array. When using an
+array, the first middleware transforms the input first.
+
+```ts filename={"registry.ts"}
+import {
+  createProviderRegistry,
+  gateway,
+  type EmbeddingModelMiddleware,
+} from 'ai';
+
+const normalizeEmbeddingInput: EmbeddingModelMiddleware = {
+  transformParams: async ({ params }) => ({
+    ...params,
+    values: params.values.map(value => value.trim()),
+  }),
+};
+
+export const registry = createProviderRegistry(
+  { gateway },
+  {
+    embeddingModelMiddleware: normalizeEmbeddingInput,
+  },
+);
+```
+
+The middleware is applied when you call `registry.embeddingModel(...)`, so the
+same configuration is shared across registered providers and model aliases.
+
 ### Example: Use image models
 
 You can access image models by using the `imageModel` method on the registry.

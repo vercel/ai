@@ -223,6 +223,13 @@ You can access a provider's files and skills interfaces by calling
                 'Middleware to wrap all language models obtained from the registry.',
             },
             {
+              name: 'embeddingModelMiddleware',
+              type: 'EmbeddingModelMiddleware | EmbeddingModelMiddleware[]',
+              isOptional: true,
+              description:
+                'Middleware to wrap all embedding models obtained from the registry.',
+            },
+            {
               name: 'imageModelMiddleware',
               type: 'ImageModelMiddleware | ImageModelMiddleware[]',
               isOptional: true,

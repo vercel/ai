@@ -20,11 +20,16 @@ import {
   resolveDecisionModel,
   asEvaluationModel,
 } from '../model/resolve-model';
+import { wrapEmbeddingModel } from '../middleware/wrap-embedding-model';
 import { wrapImageModel } from '../middleware/wrap-image-model';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
 import { asProviderV4 } from '../model/as-provider-v4';
 import { asVideoModelV4 } from '../model/as-video-model-v4';
-import type { ImageModelMiddleware, LanguageModelMiddleware } from '../types';
+import type {
+  EmbeddingModelMiddleware,
+  ImageModelMiddleware,
+  LanguageModelMiddleware,
+} from '../types';
 import type { ExtractLiteralUnion } from '../util/extract-literal-union';
 import { NoSuchProviderError } from './no-such-provider-error';
 
@@ -168,15 +173,15 @@ export interface ProviderRegistryProvider<
 /**
  * Creates a registry for the given providers with optional middleware functionality.
  * This function allows you to register multiple providers and optionally apply middleware
- * to all language models from the registry, enabling you to transform parameters, wrap generate
- * operations, and wrap stream operations for every language model accessed through the registry.
+ * to all language, embedding, or image models accessed through the registry.
  *
  * @param providers - A record of provider instances to be registered in the registry.
  * @param options - Configuration options for the provider registry.
  * @param options.separator - The separator used between provider ID and model ID in the combined identifier. Defaults to ':'.
  * @param options.languageModelMiddleware - Optional middleware to be applied to all language models from the registry. When multiple middlewares are provided, the first middleware will transform the input first, and the last middleware will be wrapped directly around the model.
+ * @param options.embeddingModelMiddleware - Optional middleware to be applied to all embedding models from the registry. When multiple middlewares are provided, the first middleware will transform the input first, and the last middleware will be wrapped directly around the model.
  * @param options.imageModelMiddleware - Optional middleware to be applied to all image models from the registry. When multiple middlewares are provided, the first middleware will transform the input first, and the last middleware will be wrapped directly around the model.
- * @returns A new ProviderRegistryProvider instance that provides access to all registered providers with optional middleware applied to language and image models.
+ * @returns A new ProviderRegistryProvider instance that provides access to all registered providers with optional middleware applied to language, embedding, and image models.
  */
 export function createProviderRegistry<
   PROVIDERS extends Record<string, ProviderV4 | ProviderV3>,
@@ -186,18 +191,23 @@ export function createProviderRegistry<
   {
     separator = ':' as SEPARATOR,
     languageModelMiddleware,
+    embeddingModelMiddleware,
     imageModelMiddleware,
   }: {
     separator?: SEPARATOR;
     languageModelMiddleware?:
       | LanguageModelMiddleware
       | LanguageModelMiddleware[];
+    embeddingModelMiddleware?:
+      | EmbeddingModelMiddleware
+      | EmbeddingModelMiddleware[];
     imageModelMiddleware?: ImageModelMiddleware | ImageModelMiddleware[];
   } = {},
 ): DecisionProviderRegistry<PROVIDERS, SEPARATOR> {
   const registry = new DefaultProviderRegistry<PROVIDERS, SEPARATOR>({
     separator,
     languageModelMiddleware,
+    embeddingModelMiddleware,
     imageModelMiddleware,
   });
 
@@ -234,21 +244,29 @@ class DefaultProviderRegistry<
   private languageModelMiddleware?:
     | LanguageModelMiddleware
     | LanguageModelMiddleware[];
+  private embeddingModelMiddleware?:
+    | EmbeddingModelMiddleware
+    | EmbeddingModelMiddleware[];
   private imageModelMiddleware?: ImageModelMiddleware | ImageModelMiddleware[];
 
   constructor({
     separator,
     languageModelMiddleware,
+    embeddingModelMiddleware,
     imageModelMiddleware,
   }: {
     separator: SEPARATOR;
     languageModelMiddleware?:
       | LanguageModelMiddleware
       | LanguageModelMiddleware[];
+    embeddingModelMiddleware?:
+      | EmbeddingModelMiddleware
+      | EmbeddingModelMiddleware[];
     imageModelMiddleware?: ImageModelMiddleware | ImageModelMiddleware[];
   }) {
     this.separator = separator;
     this.languageModelMiddleware = languageModelMiddleware;
+    this.embeddingModelMiddleware = embeddingModelMiddleware;
     this.imageModelMiddleware = imageModelMiddleware;
   }
 
@@ -347,12 +365,19 @@ class DefaultProviderRegistry<
     const [providerId, modelId] = this.splitId(id, 'embeddingModel');
     const provider = this.getProvider(providerId, 'embeddingModel');
 
-    const model = provider.embeddingModel?.(modelId);
+    let model = provider.embeddingModel?.(modelId);
 
     if (model == null) {
       throw new NoSuchModelError({
         modelId: id,
         modelType: 'embeddingModel',
+      });
+    }
+
+    if (this.embeddingModelMiddleware != null) {
+      model = wrapEmbeddingModel({
+        model,
+        middleware: this.embeddingModelMiddleware,
       });
     }
 

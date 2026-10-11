@@ -12,6 +12,7 @@ import type {
   TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import { describe, expectTypeOf, it } from 'vitest';
+import type { EmbeddingModelMiddleware } from '../types';
 import type { ExtractLiteralUnion } from '../util/extract-literal-union';
 import { customProvider } from './custom-provider';
 import {
@@ -365,6 +366,47 @@ describe('createProviderRegistry files and skills typing', () => {
     registry.files('mistral');
     // @ts-expect-error provider key must exist in the registry
     registry.skills('mistral');
+  });
+});
+
+describe('createProviderRegistry embedding middleware typing', () => {
+  const registeredProviders = {
+    provider: customProvider({
+      embeddingModels: {
+        embedding: new MockEmbeddingModelV4(),
+      },
+    }),
+  };
+
+  const middleware: EmbeddingModelMiddleware = {
+    specificationVersion: 'v4',
+    transformParams: async ({ params }) => ({
+      ...params,
+      values: params.values.map(value => value.toUpperCase()),
+    }),
+  };
+
+  it('accepts one embedding middleware without weakening model id inference', () => {
+    const registry = createProviderRegistry(registeredProviders, {
+      embeddingModelMiddleware: middleware,
+    });
+
+    expectTypeOf(
+      registry.embeddingModel('provider:embedding'),
+    ).toEqualTypeOf<EmbeddingModelV4>();
+
+    // @ts-expect-error provider key must exist in the registry
+    registry.embeddingModel('unknown:embedding');
+  });
+
+  it('accepts an array of embedding middleware', () => {
+    const registry = createProviderRegistry(registeredProviders, {
+      embeddingModelMiddleware: [middleware, middleware],
+    });
+
+    expectTypeOf(
+      registry.embeddingModel('provider:embedding'),
+    ).toEqualTypeOf<EmbeddingModelV4>();
   });
 });
 

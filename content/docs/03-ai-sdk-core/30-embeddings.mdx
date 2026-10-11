@@ -242,6 +242,11 @@ const embeddingModelWithDefaults = wrapEmbeddingModel({
 });
 ```
 
+To apply embedding middleware to every embedding model resolved from a
+provider registry, pass it as the
+[`embeddingModelMiddleware`](/docs/reference/ai-sdk-core/provider-registry)
+option to `createProviderRegistry`.
+
 ## Embedding Providers & Models
 
 Several providers offer embedding models:

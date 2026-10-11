@@ -962,4 +962,97 @@ describe('middleware functionality', () => {
     expect(overrideModelId).toHaveBeenCalledWith({ model: model2 });
     expect(overrideModelId).toHaveBeenCalledWith({ model: model3 });
   });
+
+  it('should wrap all embedding models accessed through the provider registry', () => {
+    const model1 = new MockEmbeddingModelV4({ modelId: 'model-1' });
+    const model2 = new MockEmbeddingModelV4({ modelId: 'model-2' });
+    const model3 = new MockEmbeddingModelV4({ modelId: 'model-3' });
+
+    const provider1 = new MockProviderV4({
+      embeddingModels: {
+        'model-1': model1,
+        'model-2': model2,
+      },
+    });
+
+    const provider2 = new MockProviderV4({
+      embeddingModels: {
+        'model-3': model3,
+      },
+    });
+
+    const overrideModelId = vi
+      .fn()
+      .mockImplementation(({ model }) => `override-${model.modelId}`);
+
+    const registry = createProviderRegistry(
+      {
+        provider1,
+        provider2,
+      },
+      {
+        embeddingModelMiddleware: {
+          specificationVersion: 'v4',
+          overrideModelId,
+        },
+      },
+    );
+
+    expect(registry.embeddingModel('provider1:model-1').modelId).toBe(
+      'override-model-1',
+    );
+    expect(registry.embeddingModel('provider1:model-2').modelId).toBe(
+      'override-model-2',
+    );
+    expect(registry.embeddingModel('provider2:model-3').modelId).toBe(
+      'override-model-3',
+    );
+
+    expect(overrideModelId).toHaveBeenCalledTimes(3);
+    expect(overrideModelId).toHaveBeenCalledWith({ model: model1 });
+    expect(overrideModelId).toHaveBeenCalledWith({ model: model2 });
+    expect(overrideModelId).toHaveBeenCalledWith({ model: model3 });
+  });
+
+  it('should apply embedding middleware arrays in order', async () => {
+    const model = new MockEmbeddingModelV4({
+      doEmbed: async ({ values }) => ({
+        embeddings: values.map(() => [1, 2, 3]),
+        usage: { tokens: values.length },
+        warnings: [],
+      }),
+    });
+
+    const registry = createProviderRegistry(
+      {
+        provider: new MockProviderV4({
+          embeddingModels: { model },
+        }),
+      },
+      {
+        embeddingModelMiddleware: [
+          {
+            specificationVersion: 'v4',
+            transformParams: async ({ params }) => ({
+              ...params,
+              values: params.values.map(value => `${value}-first`),
+            }),
+          },
+          {
+            specificationVersion: 'v4',
+            transformParams: async ({ params }) => ({
+              ...params,
+              values: params.values.map(value => `${value}-second`),
+            }),
+          },
+        ],
+      },
+    );
+
+    await registry.embeddingModel('provider:model').doEmbed({
+      values: ['input'],
+    });
+
+    expect(model.doEmbedCalls[0].values).toEqual(['input-first-second']);
+  });
 });
