@@ -99,6 +99,7 @@ describe('convertToolResultPart', () => {
     expect(result).toBeInstanceOf(ToolMessage);
     expect(result.tool_call_id).toBe('call-1');
     expect(result.content).toBe('Sunny, 72°F');
+    expect(result.status).not.toBe('error');
   });
 
   it('should convert error-text output', () => {
@@ -112,6 +113,7 @@ describe('convertToolResultPart', () => {
     const result = convertToolResultPart(part);
 
     expect(result.content).toBe('Something went wrong');
+    expect(result.status).toBe('error');
   });
 
   it('should convert json output', () => {
@@ -125,6 +127,7 @@ describe('convertToolResultPart', () => {
     const result = convertToolResultPart(part);
 
     expect(result.content).toBe('{"temperature":72}');
+    expect(result.status).not.toBe('error');
   });
 
   it('should convert error-json output', () => {
@@ -138,6 +141,21 @@ describe('convertToolResultPart', () => {
     const result = convertToolResultPart(part);
 
     expect(result.content).toBe('{"error":"Failed"}');
+    expect(result.status).toBe('error');
+  });
+
+  it('should not classify successful output containing error text as an error', () => {
+    const part: ToolResultPart = {
+      type: 'tool-result',
+      toolCallId: 'call-1',
+      toolName: 'successful_tool',
+      output: { type: 'text', value: 'No error was found' },
+    };
+
+    const result = convertToolResultPart(part);
+
+    expect(result.content).toBe('No error was found');
+    expect(result.status).not.toBe('error');
   });
 
   it('should convert content output with text blocks', () => {
