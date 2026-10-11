@@ -433,6 +433,18 @@ export function toUIMessageStream<TState = unknown>(
    */
   const textChunks: string[] = [];
 
+  /** Whether the onFinal callback has already been invoked */
+  let onFinalCalled = false;
+
+  const callOnFinal = async (): Promise<void> => {
+    if (onFinalCalled) {
+      return;
+    }
+
+    onFinalCalled = true;
+    await options?.onFinal?.(textChunks.join(''));
+  };
+
   /** Last LangGraph values event data for onFinish callback */
   let lastValuesData: TState | undefined;
 
@@ -655,13 +667,13 @@ export function toUIMessageStream<TState = unknown>(
         /**
          * Call onFinal callback with aggregated text
          */
-        await options?.onFinal?.(textChunks.join(''));
+        await callOnFinal();
         await options?.onFinish?.(lastValuesData);
       } catch (error) {
         const errorObj =
           error instanceof Error ? error : new Error(String(error));
 
-        await options?.onFinal?.(textChunks.join(''));
+        await callOnFinal();
 
         if (isAbortError(error)) {
           await options?.onAbort?.();
