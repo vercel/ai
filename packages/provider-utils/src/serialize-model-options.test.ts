@@ -119,6 +119,52 @@ describe('serializeModelOptions', () => {
     ).toThrow('Cannot serialize asynchronous model options.');
   });
 
+  it('throws when headers is a Promise', () => {
+    expect(() =>
+      serializeModelOptions({
+        modelId: 'model',
+        config: {
+          provider: 'test',
+          headers: Promise.resolve({ 'x-api-key': 'sk-test' }),
+        },
+      }),
+    ).toThrow(SerializationError);
+  });
+
+  it('throws when headers is a thenable', () => {
+    const headers = {
+      // oxlint-disable-next-line unicorn/no-thenable -- Test PromiseLike header handling.
+      then() {},
+    } as unknown as PromiseLike<Record<string, string | undefined>>;
+
+    expect(() =>
+      serializeModelOptions({
+        modelId: 'model',
+        config: {
+          provider: 'test',
+          headers,
+        },
+      }),
+    ).toThrow(SerializationError);
+  });
+
+  it('throws when headers is a function returning a thenable', () => {
+    const headers = {
+      // oxlint-disable-next-line unicorn/no-thenable -- Test PromiseLike header handling.
+      then() {},
+    } as unknown as PromiseLike<Record<string, string | undefined>>;
+
+    expect(() =>
+      serializeModelOptions({
+        modelId: 'model',
+        config: {
+          provider: 'test',
+          headers: () => headers,
+        },
+      }),
+    ).toThrow(SerializationError);
+  });
+
   it('marks serialization errors for cross-realm detection', () => {
     let serializationError: unknown;
 
