@@ -1,14 +1,22 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import fs from 'node:fs';
 import { createFal } from './fal-provider';
 import { FalSpeechModel } from './fal-speech-model';
 import { describe, it, expect } from 'vitest';
 
+const liveFixture = JSON.parse(
+  fs.readFileSync(
+    'src/__fixtures__/fal-minimax-speech-02-hd-live.json',
+    'utf8',
+  ),
+);
 const provider = createFal({ apiKey: 'test-api-key' });
 const model = provider.speech('fal-ai/minimax/speech-02-hd');
 
 const server = createTestServer({
   'https://fal.run/fal-ai/minimax/speech-02-hd': {},
   'https://fal.media/files/test.mp3': {},
+  [liveFixture.standardOptions.response.audio.url]: {},
 });
 
 describe('FalSpeechModel.doGenerate', () => {
@@ -53,6 +61,36 @@ describe('FalSpeechModel.doGenerate', () => {
       text: 'Hello from the AI SDK!',
       output_format: 'url',
     });
+  });
+
+  it('should map standard voice and speed to MiniMax voice_setting', async () => {
+    server.urls['https://fal.run/fal-ai/minimax/speech-02-hd'].response = {
+      type: 'json-value',
+      body: liveFixture.standardOptions.response,
+    };
+    server.urls[liveFixture.standardOptions.response.audio.url].response = {
+      type: 'binary',
+      headers: {
+        'content-type': 'audio/mpeg',
+      },
+      body: Buffer.from(new Uint8Array(100)),
+    };
+
+    const result = await model.doGenerate({
+      text: 'Hello',
+      voice: 'Friendly_Person',
+      speed: 1.5,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      text: 'Hello',
+      output_format: 'url',
+      voice_setting: {
+        voice_id: 'Friendly_Person',
+        speed: 1.5,
+      },
+    });
+    expect(result.warnings).toStrictEqual([]);
   });
 
   it('should pass headers', async () => {
