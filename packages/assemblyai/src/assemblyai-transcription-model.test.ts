@@ -1,4 +1,5 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import { InvalidArgumentError } from '@ai-sdk/provider';
 import { AssemblyAITranscriptionModel } from './assemblyai-transcription-model';
 import { createAssemblyAI } from './assemblyai-provider';
 import { readFile } from 'node:fs/promises';
@@ -266,6 +267,28 @@ describe('doGenerate', () => {
     };
   }
 
+  it('should reject invalid provider options before uploading audio', async () => {
+    const fetch = vi.fn();
+    const model = createAssemblyAI({
+      apiKey: 'test-api-key',
+      fetch,
+    }).transcription('universal-3-5-pro');
+
+    await expect(
+      model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: {
+          assemblyai: {
+            speakerLabels: 'invalid',
+          },
+        },
+      }),
+    ).rejects.toSatisfy(InvalidArgumentError.isInstance);
+
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it('should pass the legacy model via the speech_model parameter', async () => {
     prepareJsonResponse();
 
@@ -273,6 +296,12 @@ describe('doGenerate', () => {
       audio: audioData,
       mediaType: 'audio/wav',
     });
+
+    expect(server.calls.map(call => call.requestUrl)).toEqual([
+      'https://api.assemblyai.com/v2/upload',
+      'https://api.assemblyai.com/v2/transcript',
+      'https://api.assemblyai.com/v2/transcript/9ea68fd3-f953-42c1-9742-976c447fb463',
+    ]);
 
     const requestBody = await server.calls[1].requestBodyJson;
     expect(requestBody).toMatchObject({

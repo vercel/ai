@@ -1,4 +1,5 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import { InvalidArgumentError } from '@ai-sdk/provider';
 import { GladiaTranscriptionModel } from './gladia-transcription-model';
 import { createGladia } from './gladia-provider';
 import { readFile } from 'node:fs/promises';
@@ -53,11 +54,39 @@ describe('doGenerate', () => {
   describe('transcription', () => {
     beforeEach(() => prepareJsonFixtureResponse());
 
+    it('should reject invalid provider options before uploading audio', async () => {
+      const fetch = vi.fn();
+      const model = createGladia({
+        apiKey: 'test-api-key',
+        fetch,
+      }).transcription();
+
+      await expect(
+        model.doGenerate({
+          audio: audioData,
+          mediaType: 'audio/wav',
+          providerOptions: {
+            gladia: {
+              diarization: 'invalid',
+            },
+          },
+        }),
+      ).rejects.toSatisfy(InvalidArgumentError.isInstance);
+
+      expect(fetch).not.toHaveBeenCalled();
+    });
+
     it('should pass audio_url to pre-recorded endpoint', async () => {
       await model.doGenerate({
         audio: audioData,
         mediaType: 'audio/wav',
       });
+
+      expect(server.calls.map(call => call.requestUrl)).toEqual([
+        'https://api.gladia.io/v2/upload',
+        'https://api.gladia.io/v2/pre-recorded',
+        initiateFixture.result_url,
+      ]);
 
       expect(await server.calls[1].requestBodyJson).toMatchObject({
         audio_url: uploadFixture.audio_url,

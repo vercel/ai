@@ -91,6 +91,10 @@ const result = await transcribe({
 });
 ```
 
+AssemblyAI provider options are validated before the audio is uploaded. If the
+options are invalid, transcription fails with an `InvalidArgumentError` without
+sending the audio to AssemblyAI.
+
 The following provider options are available:
 
 - **audioEndAt** _number_

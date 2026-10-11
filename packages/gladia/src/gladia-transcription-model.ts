@@ -200,6 +200,7 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
     options: Parameters<TranscriptionModelV4['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { body, warnings } = await this.getArgs(options);
 
     // Create form data with base fields
     const formData = new FormData();
@@ -229,8 +230,6 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
-
-    const { body, warnings } = await this.getArgs(options);
 
     const { value: transcriptionInitResponse } = await postJsonToApi({
       url: this.config.url({
