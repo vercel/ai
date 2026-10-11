@@ -19,21 +19,45 @@ export function simulateReadableStream<T>({
   initialDelayInMs?: number | null;
   chunkDelayInMs?: number | null;
   _internal?: {
-    delay?: (ms: number | null) => Promise<void>;
+    delay?: (
+      ms: number | null,
+      options?: {
+        abortSignal?: AbortSignal;
+      },
+    ) => Promise<void>;
   };
 }): ReadableStream<T> {
   const delay = _internal?.delay ?? delayFunction;
+  const abortController = new AbortController();
 
   let index = 0;
 
   return new ReadableStream({
     async pull(controller) {
       if (index < chunks.length) {
-        await delay(index === 0 ? initialDelayInMs : chunkDelayInMs);
+        try {
+          await delay(index === 0 ? initialDelayInMs : chunkDelayInMs, {
+            abortSignal: abortController.signal,
+          });
+        } catch (error) {
+          if (abortController.signal.aborted) {
+            return;
+          }
+
+          throw error;
+        }
+
+        if (abortController.signal.aborted) {
+          return;
+        }
+
         controller.enqueue(chunks[index++]);
       } else {
         controller.close();
       }
+    },
+    cancel() {
+      abortController.abort();
     },
   });
 }
