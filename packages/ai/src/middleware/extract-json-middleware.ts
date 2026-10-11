@@ -1,6 +1,7 @@
 import type {
   LanguageModelV4Content,
   LanguageModelV4StreamPart,
+  SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import type { LanguageModelMiddleware } from '../types/language-model-middleware';
 import { createIdMap } from '../util/create-id-map';
@@ -39,6 +40,38 @@ function getPotentialSuffixStart(text: string): number {
   }
 
   return index;
+}
+
+function enqueueTextDelta({
+  controller,
+  id,
+  delta,
+  pendingProviderMetadata,
+}: {
+  controller: TransformStreamDefaultController<LanguageModelV4StreamPart>;
+  id: string;
+  delta: string;
+  pendingProviderMetadata: Array<SharedV4ProviderMetadata>;
+}) {
+  while (pendingProviderMetadata.length > 1) {
+    controller.enqueue({
+      type: 'text-delta',
+      id,
+      delta: '',
+      providerMetadata: pendingProviderMetadata.shift()!,
+    });
+  }
+
+  const providerMetadata = pendingProviderMetadata.shift();
+
+  if (delta.length > 0 || providerMetadata != null) {
+    controller.enqueue({
+      type: 'text-delta',
+      id,
+      delta,
+      ...(providerMetadata != null ? { providerMetadata } : {}),
+    });
+  }
 }
 
 /**
@@ -94,6 +127,7 @@ export function extractJsonMiddleware(options?: {
           phase: 'prefix' | 'streaming' | 'buffering';
           buffer: string;
           prefixStripped: boolean;
+          pendingProviderMetadata: Array<SharedV4ProviderMetadata>;
         }
       > = createIdMap();
 
@@ -111,6 +145,7 @@ export function extractJsonMiddleware(options?: {
                   phase: hasCustomTransform ? 'buffering' : 'prefix',
                   buffer: '',
                   prefixStripped: false,
+                  pendingProviderMetadata: [],
                 };
                 return;
               }
@@ -123,6 +158,9 @@ export function extractJsonMiddleware(options?: {
                 }
 
                 block.buffer += chunk.delta;
+                if (chunk.providerMetadata != null) {
+                  block.pendingProviderMetadata.push(chunk.providerMetadata);
+                }
 
                 // Custom transform: buffer everything, transform at end
                 if (block.phase === 'buffering') {
@@ -174,14 +212,11 @@ export function extractJsonMiddleware(options?: {
                   const toStream = block.buffer.slice(0, potentialSuffixStart);
                   block.buffer = block.buffer.slice(potentialSuffixStart);
 
-                  if (toStream.length === 0) {
-                    return;
-                  }
-
-                  controller.enqueue({
-                    type: 'text-delta',
+                  enqueueTextDelta({
+                    controller,
                     id: chunk.id,
                     delta: toStream,
+                    pendingProviderMetadata: block.pendingProviderMetadata,
                   });
                 }
                 return;
@@ -210,13 +245,12 @@ export function extractJsonMiddleware(options?: {
                     remaining = stripMarkdownCodeFenceSuffix(remaining);
                   }
 
-                  if (remaining.length > 0) {
-                    controller.enqueue({
-                      type: 'text-delta',
-                      id: chunk.id,
-                      delta: remaining,
-                    });
-                  }
+                  enqueueTextDelta({
+                    controller,
+                    id: chunk.id,
+                    delta: remaining,
+                    pendingProviderMetadata: block.pendingProviderMetadata,
+                  });
                   controller.enqueue(chunk);
                   delete textBlocks[chunk.id];
                   return;
