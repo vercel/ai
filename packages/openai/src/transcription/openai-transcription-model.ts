@@ -205,6 +205,8 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
       const isGpt4oTranscribeModel = [
         'gpt-4o-transcribe',
         'gpt-4o-mini-transcribe',
+        'gpt-4o-mini-transcribe-2025-03-20',
+        'gpt-4o-mini-transcribe-2025-12-15',
       ].includes(this.modelId);
 
       const transcriptionModelOptions = {
