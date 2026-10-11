@@ -109,16 +109,23 @@ export const object = <OBJECT>({
   description?: string;
 }): Output<OBJECT, DeepPartial<OBJECT>, never> => {
   const schema = asSchema(inputSchema);
+  let responseFormat:
+    | Promise<LanguageModelV4CallOptions['responseFormat']>
+    | undefined;
 
   return {
     name: 'object',
 
-    responseFormat: resolve(schema.jsonSchema).then(jsonSchema => ({
-      type: 'json' as const,
-      schema: jsonSchema,
-      ...(name != null && { name }),
-      ...(description != null && { description }),
-    })),
+    get responseFormat() {
+      return (responseFormat ??= resolve(schema.jsonSchema).then(
+        jsonSchema => ({
+          type: 'json' as const,
+          schema: jsonSchema,
+          ...(name != null && { name }),
+          ...(description != null && { description }),
+        }),
+      ));
+    },
 
     async parseCompleteOutput(
       { text }: { text: string },
@@ -236,44 +243,51 @@ export const array = <ELEMENT>({
   }
 
   const elementSchema = asSchema(inputElementSchema);
+  let responseFormat:
+    | Promise<LanguageModelV4CallOptions['responseFormat']>
+    | undefined;
 
   return {
     name: 'array',
 
     // JSON schema that describes an array of elements:
-    responseFormat: resolve(elementSchema.jsonSchema).then(jsonSchema => {
-      // keep root-level definitions available to root-relative references:
-      const {
-        $schema: _$schema,
-        definitions,
-        $defs,
-        ...itemSchema
-      } = jsonSchema as JSONSchema7 & {
-        $defs?: JSONSchema7['definitions'];
-      };
+    get responseFormat() {
+      return (responseFormat ??= resolve(elementSchema.jsonSchema).then(
+        jsonSchema => {
+          // keep root-level definitions available to root-relative references:
+          const {
+            $schema: _$schema,
+            definitions,
+            $defs,
+            ...itemSchema
+          } = jsonSchema as JSONSchema7 & {
+            $defs?: JSONSchema7['definitions'];
+          };
 
-      return {
-        type: 'json' as const,
-        schema: {
-          $schema: 'http://json-schema.org/draft-07/schema#',
-          ...(definitions != null && { definitions }),
-          ...($defs != null && { $defs }),
-          type: 'object',
-          properties: {
-            elements: {
-              type: 'array',
-              items: itemSchema,
-              ...(minItems != null && { minItems }),
-              ...(maxItems != null && { maxItems }),
+          return {
+            type: 'json' as const,
+            schema: {
+              $schema: 'http://json-schema.org/draft-07/schema#',
+              ...(definitions != null && { definitions }),
+              ...($defs != null && { $defs }),
+              type: 'object',
+              properties: {
+                elements: {
+                  type: 'array',
+                  items: itemSchema,
+                  ...(minItems != null && { minItems }),
+                  ...(maxItems != null && { maxItems }),
+                },
+              },
+              required: ['elements'],
+              additionalProperties: false,
             },
-          },
-          required: ['elements'],
-          additionalProperties: false,
+            ...(name != null && { name }),
+            ...(description != null && { description }),
+          };
         },
-        ...(name != null && { name }),
-        ...(description != null && { description }),
-      };
-    }),
+      ));
+    },
 
     async parseCompleteOutput(
       { text }: { text: string },
