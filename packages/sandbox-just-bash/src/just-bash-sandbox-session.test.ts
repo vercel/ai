@@ -1,5 +1,6 @@
 import { Sandbox } from 'just-bash';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { createJustBashSandboxSessionFromNativeSandbox } from './just-bash-sandbox';
 import { JustBashSandboxSession } from './just-bash-sandbox-session';
 
 const decoder = new TextDecoder();
@@ -14,6 +15,43 @@ async function collect(stream: ReadableStream<Uint8Array>): Promise<string> {
   }
   text += decoder.decode();
   return text;
+}
+
+async function spawnSyntheticProcess(
+  messages: Array<{ type: 'stdout' | 'stderr'; data: string }>,
+) {
+  let release!: () => void;
+  const gate = new Promise<void>(resolve => {
+    release = resolve;
+  });
+  let logsDrained = false;
+
+  const command = {
+    async *logs() {
+      await gate;
+      yield* messages;
+      logsDrained = true;
+    },
+    async wait() {
+      await gate;
+      return { exitCode: 0 };
+    },
+    async kill() {},
+  };
+
+  const session = createJustBashSandboxSessionFromNativeSandbox({
+    bashEnvInstance: {
+      getCwd: () => '/',
+      exec: async () => ({ exitCode: 0 }),
+    },
+    runCommand: async () => command,
+  } as never);
+
+  return {
+    process: await session.spawn({ command: 'synthetic' }),
+    release,
+    logsDrained: () => logsDrained,
+  };
 }
 
 describe('JustBashSandboxSession', () => {
@@ -187,6 +225,45 @@ describe('JustBashSandboxSession', () => {
       expect(stdout).toBe('out\n');
       expect(stderr).toBe('err\n');
       expect(exitCode).toBe(0);
+    });
+
+    it('continues streaming stderr after stdout is cancelled', async () => {
+      const { process, release } = await spawnSyntheticProcess([
+        { type: 'stdout', data: 'ignored output' },
+        { type: 'stderr', data: 'needed diagnostic' },
+      ]);
+
+      await process.stdout.cancel();
+      release();
+
+      await expect(collect(process.stderr)).resolves.toBe('needed diagnostic');
+      await expect(process.wait()).resolves.toEqual({ exitCode: 0 });
+    });
+
+    it('continues streaming stdout after stderr is cancelled', async () => {
+      const { process, release } = await spawnSyntheticProcess([
+        { type: 'stderr', data: 'ignored diagnostic' },
+        { type: 'stdout', data: 'needed output' },
+      ]);
+
+      await process.stderr.cancel();
+      release();
+
+      await expect(collect(process.stdout)).resolves.toBe('needed output');
+      await expect(process.wait()).resolves.toEqual({ exitCode: 0 });
+    });
+
+    it('drains process logs after both output streams are cancelled', async () => {
+      const { process, release, logsDrained } = await spawnSyntheticProcess([
+        { type: 'stdout', data: 'ignored output' },
+        { type: 'stderr', data: 'ignored diagnostic' },
+      ]);
+
+      await Promise.all([process.stdout.cancel(), process.stderr.cancel()]);
+      release();
+
+      await expect(process.wait()).resolves.toEqual({ exitCode: 0 });
+      expect(logsDrained()).toBe(true);
     });
 
     it('makes per-command environment variables available', async () => {
