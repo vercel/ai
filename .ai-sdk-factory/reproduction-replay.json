@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22781,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22781-langsmith-abort-signal.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22781-langsmith-abort-signal.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #22781 reproduced: aborting sendMessages does not cancel the pending RemoteGraph.stream request"
+  }
+}
