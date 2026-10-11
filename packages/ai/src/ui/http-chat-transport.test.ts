@@ -25,6 +25,115 @@ const server = createTestServer({
 });
 
 describe('HttpChatTransport', () => {
+  describe('cancellation', () => {
+    it.each([
+      {
+        name: 'body resolution',
+        createOptions: (waitForRelease: () => Promise<void>) => ({
+          body: async () => {
+            await waitForRelease();
+            return {};
+          },
+        }),
+      },
+      {
+        name: 'header resolution',
+        createOptions: (waitForRelease: () => Promise<void>) => ({
+          headers: async () => {
+            await waitForRelease();
+            return {};
+          },
+        }),
+      },
+      {
+        name: 'credential resolution',
+        createOptions: (waitForRelease: () => Promise<void>) => ({
+          credentials: async () => {
+            await waitForRelease();
+            return 'same-origin' as const;
+          },
+        }),
+      },
+      {
+        name: 'request preparation',
+        createOptions: (waitForRelease: () => Promise<void>) => ({
+          prepareSendMessagesRequest: async () => {
+            await waitForRelease();
+            return { body: {} };
+          },
+        }),
+      },
+    ])(
+      'should settle without fetching when aborted during $name',
+      async ({ createOptions }) => {
+        let markPreparationStarted!: () => void;
+        let releasePreparation!: () => void;
+        const preparationStarted = new Promise<void>(resolve => {
+          markPreparationStarted = resolve;
+        });
+        const preparationPending = new Promise<void>(resolve => {
+          releasePreparation = resolve;
+        });
+        const waitForRelease = vi.fn(async () => {
+          markPreparationStarted();
+          await preparationPending;
+        });
+        const fetch = vi.fn();
+        const transport = new MockHttpChatTransport({
+          ...createOptions(waitForRelease),
+          fetch,
+        });
+        const abortController = new AbortController();
+        const abortReason = new Error('user stopped');
+
+        const request = transport.sendMessages({
+          chatId: 'c123',
+          messageId: 'm123',
+          trigger: 'submit-message',
+          messages: [],
+          abortSignal: abortController.signal,
+        });
+
+        await preparationStarted;
+        abortController.abort(abortReason);
+
+        await expect(request).rejects.toBe(abortReason);
+        releasePreparation();
+        await new Promise<void>(resolve => setImmediate(resolve));
+
+        expect(fetch).not.toHaveBeenCalled();
+      },
+    );
+
+    it('should reject an already-aborted request before preparing or fetching', async () => {
+      const body = vi.fn(() => ({}));
+      const prepareSendMessagesRequest = vi.fn(() => ({ body: {} }));
+      const fetch = vi.fn();
+      const transport = new MockHttpChatTransport({
+        body,
+        prepareSendMessagesRequest,
+        fetch,
+      });
+      const abortController = new AbortController();
+      const abortReason = new Error('user stopped');
+      abortController.abort(abortReason);
+
+      await expect(
+        transport.sendMessages({
+          chatId: 'c123',
+          messageId: 'm123',
+          trigger: 'submit-message',
+          messages: [],
+          abortSignal: abortController.signal,
+        }),
+      ).rejects.toBe(abortReason);
+
+      expect(body).not.toHaveBeenCalled();
+      expect(prepareSendMessagesRequest).not.toHaveBeenCalled();
+      expect(fetch).not.toHaveBeenCalled();
+    });
+  });
+
   describe('body', () => {
     it('should include the body in the request by default', async () => {
       server.urls['http://localhost/api/chat'].response = {
