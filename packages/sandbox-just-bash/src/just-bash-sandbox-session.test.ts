@@ -162,6 +162,22 @@ describe('JustBashSandboxSession', () => {
   });
 
   describe('spawn', () => {
+    function createSessionWithLogs(
+      logs: () => AsyncIterable<{ type: 'stdout' | 'stderr'; data: string }>,
+    ) {
+      return new JustBashSandboxSession({
+        bashEnvInstance: {
+          getCwd: () => '/',
+          exec: async () => ({ exitCode: 0, stdout: '', stderr: '' }),
+        },
+        runCommand: async () => ({
+          logs,
+          wait: async () => ({ exitCode: 0 }),
+          kill: async () => {},
+        }),
+      } as never);
+    }
+
     it('installs realpath before starting the first process', async () => {
       const proc = await sandbox.spawn({ command: 'realpath /work' });
       const [stdout, { exitCode }] = await Promise.all([
@@ -186,6 +202,59 @@ describe('JustBashSandboxSession', () => {
 
       expect(stdout).toBe('out\n');
       expect(stderr).toBe('err\n');
+      expect(exitCode).toBe(0);
+    });
+
+    it('pauses native log iteration while stdout is not being read', async () => {
+      const totalItems = 200;
+      let produced = 0;
+      const session = createSessionWithLogs(async function* () {
+        for (let index = 0; index < totalItems; index++) {
+          produced++;
+          yield { type: 'stdout', data: 'x'.repeat(1024) };
+        }
+      });
+
+      const proc = await session.spawn({ command: 'synthetic' });
+      await new Promise(resolve => setTimeout(resolve, 0));
+      const producedBeforeRead = produced;
+
+      const [stdout, stderr, { exitCode }] = await Promise.all([
+        collect(proc.stdout),
+        collect(proc.stderr),
+        proc.wait(),
+      ]);
+
+      expect(producedBeforeRead).toBeLessThan(totalItems);
+      expect(stdout).toHaveLength(totalItems * 1024);
+      expect(stderr).toBe('');
+      expect(exitCode).toBe(0);
+    });
+
+    it('continues log iteration after a blocked output is cancelled', async () => {
+      const stderrItems = 200;
+      let produced = 0;
+      const session = createSessionWithLogs(async function* () {
+        for (let index = 0; index < stderrItems; index++) {
+          produced++;
+          yield { type: 'stderr', data: 'x'.repeat(1024) };
+        }
+        produced++;
+        yield { type: 'stdout', data: 'done' };
+      });
+
+      const proc = await session.spawn({ command: 'synthetic' });
+      await new Promise(resolve => setTimeout(resolve, 0));
+      expect(produced).toBeLessThan(stderrItems + 1);
+
+      await proc.stderr.cancel();
+      const [stdout, { exitCode }] = await Promise.all([
+        collect(proc.stdout),
+        proc.wait(),
+      ]);
+
+      expect(produced).toBe(stderrItems + 1);
+      expect(stdout).toBe('done');
       expect(exitCode).toBe(0);
     });
 

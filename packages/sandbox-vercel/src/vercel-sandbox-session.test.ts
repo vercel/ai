@@ -245,6 +245,17 @@ describe('VercelSandboxSession', () => {
       baseSandbox = makeMockSandbox();
     });
 
+    function createStreamingCommand(logs: () => AsyncIterable<MockLogEntry>) {
+      return {
+        logs,
+        wait: async () => ({ exitCode: 0 }),
+        kill: async () => {},
+        stdout: async () => '',
+        stderr: async () => '',
+        exitCode: 0,
+      };
+    }
+
     it('streams stdout and stderr from logs() and resolves wait()', async () => {
       const { handle } = makeMockCommand({
         logs: [
@@ -271,6 +282,67 @@ describe('VercelSandboxSession', () => {
 
       expect(stdout).toBe('out\n');
       expect(stderr).toBe('err\n');
+      expect(exitCode).toBe(0);
+    });
+
+    it('pauses native log iteration while stdout is not being read', async () => {
+      const totalItems = 200;
+      let produced = 0;
+      baseSandbox.spies.runCommand.mockResolvedValueOnce(
+        createStreamingCommand(async function* () {
+          for (let index = 0; index < totalItems; index++) {
+            produced++;
+            yield { stream: 'stdout', data: 'x'.repeat(1024) };
+          }
+        }),
+      );
+
+      const proc = await new VercelSandboxSession(baseSandbox.sandbox).spawn({
+        command: 'synthetic',
+      });
+      await new Promise(resolve => setTimeout(resolve, 0));
+      const producedBeforeRead = produced;
+
+      const [stdout, stderr, { exitCode }] = await Promise.all([
+        collect(proc.stdout),
+        collect(proc.stderr),
+        proc.wait(),
+      ]);
+
+      expect(producedBeforeRead).toBeLessThan(totalItems);
+      expect(stdout).toHaveLength(totalItems * 1024);
+      expect(stderr).toBe('');
+      expect(exitCode).toBe(0);
+    });
+
+    it('continues log iteration after a blocked output is cancelled', async () => {
+      const stderrItems = 200;
+      let produced = 0;
+      baseSandbox.spies.runCommand.mockResolvedValueOnce(
+        createStreamingCommand(async function* () {
+          for (let index = 0; index < stderrItems; index++) {
+            produced++;
+            yield { stream: 'stderr', data: 'x'.repeat(1024) };
+          }
+          produced++;
+          yield { stream: 'stdout', data: 'done' };
+        }),
+      );
+
+      const proc = await new VercelSandboxSession(baseSandbox.sandbox).spawn({
+        command: 'synthetic',
+      });
+      await new Promise(resolve => setTimeout(resolve, 0));
+      expect(produced).toBeLessThan(stderrItems + 1);
+
+      await proc.stderr.cancel();
+      const [stdout, { exitCode }] = await Promise.all([
+        collect(proc.stdout),
+        proc.wait(),
+      ]);
+
+      expect(produced).toBe(stderrItems + 1);
+      expect(stdout).toBe('done');
       expect(exitCode).toBe(0);
     });
 
