@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22981,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/harness-tool-error-reporters.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/harness-tool-error-reporters.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "HARNESS_TOOL_ERROR_REPORTER_BUG: failOnly discarded the turn containing a failed tool; trace tree omitted the failed-tool [error] marker"
+  }
+}
