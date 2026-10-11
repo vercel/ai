@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "issueId": 23010,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/fal-minimax-speech-voice-setting.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/fal-minimax-speech-voice-setting.ts",
+    "packages/fal/src/fal-speech-model.test.ts",
+    "packages/fal/src/__fixtures__/fal-minimax-speech-02-hd-live.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "fal MiniMax standard voice/speed were not mapped to voice_setting"
+  }
+}
