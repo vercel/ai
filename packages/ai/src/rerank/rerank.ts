@@ -10,6 +10,7 @@ import {
   type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { prepareRetries } from '../../src/util/prepare-retries';
+import { InvalidArgumentError } from '../error/invalid-argument-error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveRerankingModel } from '../model/resolve-model';
 import { createRestrictedTelemetryDispatcher } from './restricted-telemetry-dispatcher';
@@ -160,6 +161,14 @@ export async function rerank<
     generateCallId?: () => string;
   };
 }): Promise<RerankResult<VALUE>> {
+  if (topN !== undefined && (!Number.isInteger(topN) || topN < 0)) {
+    throw new InvalidArgumentError({
+      parameter: 'topN',
+      value: topN,
+      message: 'topN must be a non-negative integer',
+    });
+  }
+
   const model = resolveRerankingModel(modelArg);
   const callId = generateCallId();
   const resolvedOnStart = onStart ?? experimental_onStart;
