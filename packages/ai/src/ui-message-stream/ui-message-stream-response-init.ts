@@ -18,4 +18,10 @@ export type UIMessageStreamResponseInit = ResponseInit & {
   consumeSseStream?: (options: {
     stream: ReadableStream<string>;
   }) => PromiseLike<void> | void;
+
+  /**
+   * Optional callback that is called when `consumeSseStream` throws or rejects.
+   * The callback does not block the response.
+   */
+  onConsumeSseStreamError?: (error: unknown) => PromiseLike<void> | void;
 };

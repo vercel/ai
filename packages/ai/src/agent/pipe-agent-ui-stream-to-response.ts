@@ -38,6 +38,7 @@ import {
  * @param statusText - The status text for the response. Optional.
  * @param keepAliveMs - Optional interval for sending SSE keep-alive comments.
  * @param consumeSseStream - Whether to consume the SSE stream. Optional.
+ * @param onConsumeSseStreamError - Callback for consumeSseStream errors. Optional.
  */
 export async function pipeAgentUIStreamToResponse<
   CALL_OPTIONS = never,
@@ -57,6 +58,7 @@ export async function pipeAgentUIStreamToResponse<
   statusText,
   keepAliveMs,
   consumeSseStream,
+  onConsumeSseStreamError,
   ...options
 }: {
   response: ServerResponse;
@@ -83,6 +85,7 @@ export async function pipeAgentUIStreamToResponse<
     statusText,
     keepAliveMs,
     consumeSseStream,
+    onConsumeSseStreamError,
     stream: await createAgentUIStream(options),
   });
 }

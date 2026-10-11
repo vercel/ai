@@ -4165,6 +4165,13 @@ To see `streamText` in action, check out [these examples](#examples).
               description:
                 'Function to consume the SSE stream. Required for proper abort handling in UI message streams. Use the `consumeStream` function from the AI SDK.',
             },
+            {
+              name: 'onConsumeSseStreamError',
+              type: '(error: unknown) => PromiseLike<void> | void',
+              isOptional: true,
+              description:
+                'Optional callback for errors thrown by consumeSseStream. It does not block the response.',
+            },
           ],
         },
       ],

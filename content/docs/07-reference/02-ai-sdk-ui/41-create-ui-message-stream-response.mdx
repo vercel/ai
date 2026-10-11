@@ -122,6 +122,13 @@ const response = createUIMessageStreamResponse({
       description:
         'Optional callback to consume the Server-Sent Events stream.',
     },
+    {
+      name: 'onConsumeSseStreamError',
+      type: '(error: unknown) => PromiseLike<void> | void',
+      isOptional: true,
+      description:
+        'Optional callback for errors thrown by consumeSseStream. It does not block the response.',
+    },
   ]}
 />
 

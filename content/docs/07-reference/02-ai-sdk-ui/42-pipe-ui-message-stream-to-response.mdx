@@ -80,6 +80,13 @@ await pipeUIMessageStreamToResponse({
       description:
         'Optional function to consume the SSE stream independently. The stream is teed and this function receives a copy.',
     },
+    {
+      name: 'onConsumeSseStreamError',
+      type: '(error: unknown) => PromiseLike<void> | void',
+      isOptional: true,
+      description:
+        'Optional callback for errors thrown by consumeSseStream. It does not block the response.',
+    },
   ]}
 />
 

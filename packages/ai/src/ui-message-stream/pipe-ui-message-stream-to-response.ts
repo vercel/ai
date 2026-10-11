@@ -3,6 +3,7 @@ import { prepareHeaders } from '../util/prepare-headers';
 import { writeToServerResponse } from '../util/write-to-server-response';
 import { createSseStreamWithKeepAlive } from './create-sse-stream-with-keep-alive';
 import { JsonToSseTransformStream } from './json-to-sse-transform-stream';
+import { runConsumeSseStream } from './run-consume-sse-stream';
 import { UI_MESSAGE_STREAM_HEADERS } from './ui-message-stream-headers';
 import type { UIMessageChunk } from './ui-message-chunks';
 import type { UIMessageStreamResponseInit } from './ui-message-stream-response-init';
@@ -18,6 +19,7 @@ import type { UIMessageStreamResponseInit } from './ui-message-stream-response-i
  * @param options.stream - The UI message chunk stream to send.
  * @param options.keepAliveMs - Optional interval for sending SSE keep-alive comments.
  * @param options.consumeSseStream - Optional callback to consume a copy of the SSE stream independently.
+ * @param options.onConsumeSseStreamError - Optional callback for errors thrown by consumeSseStream.
  * @returns A promise that resolves when the stream has been written.
  */
 export function pipeUIMessageStreamToResponse({
@@ -28,6 +30,7 @@ export function pipeUIMessageStreamToResponse({
   stream,
   keepAliveMs,
   consumeSseStream,
+  onConsumeSseStreamError,
 }: {
   response: ServerResponse;
   stream: ReadableStream<UIMessageChunk>;
@@ -43,7 +46,11 @@ export function pipeUIMessageStreamToResponse({
   if (consumeSseStream) {
     const [stream1, stream2] = sseStream.tee();
     sseStream = stream1;
-    consumeSseStream({ stream: stream2 }); // no await (do not block the response)
+    runConsumeSseStream({
+      stream: stream2,
+      consumeSseStream,
+      onError: onConsumeSseStreamError,
+    });
   }
 
   return writeToServerResponse({
