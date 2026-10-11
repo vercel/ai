@@ -328,6 +328,16 @@ function processStreamEventsEvent(
           toolName: name,
           dynamic: true,
         });
+
+        if ('input' in event.data) {
+          controller.enqueue({
+            type: 'tool-input-available',
+            toolCallId: runId,
+            toolName: name,
+            input: event.data.input,
+            dynamic: true,
+          });
+        }
       }
       break;
     }
