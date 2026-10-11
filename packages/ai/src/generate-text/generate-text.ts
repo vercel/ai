@@ -112,6 +112,10 @@ import {
   type Experimental_ToolCallers,
 } from './tool-caller-configuration';
 import type { TypedToolCall } from './tool-call';
+import {
+  createToolCallNotExecutedError,
+  hasToolCallNotExecutedError,
+} from './tool-call-not-executed';
 import type { ToolCallRepairFunction } from './tool-call-repair-function';
 import type {
   OnToolExecutionEndCallback,
@@ -1378,6 +1382,24 @@ export async function generateText<
                     result.toolExecutionMs;
                   clientToolOutputs.push(result.output);
                 }
+              } else if (stepExecutionTools != null) {
+                // resolve the skipped tool calls so that they are not left pending:
+                for (const toolCall of clientToolCalls) {
+                  if (
+                    !toolCall.invalid &&
+                    !blockedToolCallIds.has(toolCall.toolCallId) &&
+                    getOwn(stepExecutionTools, toolCall.toolName)?.execute !=
+                      null
+                  ) {
+                    clientToolOutputs.push(
+                      createToolCallNotExecutedError({
+                        toolCall,
+                        tools: stepExecutionTools as TOOLS,
+                        finishReason: currentModelResponse.finishReason.unified,
+                      }),
+                    );
+                  }
+                }
               }
 
               const stepTimeMs = now() - stepStartTimestampMs;
@@ -1518,6 +1540,8 @@ export async function generateText<
         clientToolOutputs.length + deniedToolApprovalResponses.length ===
           clientToolCalls.length &&
         (clientToolCalls.length > 0 || pendingDeferredToolCalls.size > 0) &&
+        // do not continue after tool calls that were skipped for the finish reason:
+        !hasToolCallNotExecutedError(clientToolOutputs) &&
         // continue until a stop condition is met:
         !(await isStopConditionMet({ stopConditions, steps }))
       );
