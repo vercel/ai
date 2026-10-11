@@ -137,12 +137,13 @@ export class StructuredObject<
    * Calls the API with the provided input as JSON body.
    */
   submit = async (input: INPUT) => {
+    const abortController = new AbortController();
+
     try {
       this.#object.set(undefined); // reset the data
       this.#loading.set(true);
       this.#error.set(undefined);
 
-      const abortController = new AbortController();
       this.#abortController = abortController;
 
       const actualFetch = this.options.fetch ?? fetch;
@@ -189,8 +190,9 @@ export class StructuredObject<
           },
 
           close: async () => {
-            this.#loading.set(false);
-            this.#abortController = undefined;
+            if (this.#abortController === abortController) {
+              this.#loading.set(false);
+            }
 
             if (this.options.onFinish != null) {
               const validationResult = await safeValidateTypes({
@@ -199,16 +201,20 @@ export class StructuredObject<
               });
 
               if (validationResult.success) {
-                this.options.onFinish({
+                await this.options.onFinish({
                   object: validationResult.value,
                   error: undefined,
                 });
               } else {
-                this.options.onFinish({
+                await this.options.onFinish({
                   object: undefined,
                   error: (validationResult as { error: Error }).error,
                 });
               }
+            }
+
+            if (this.#abortController === abortController) {
+              this.#abortController = undefined;
             }
           },
         }),
@@ -224,8 +230,11 @@ export class StructuredObject<
         this.options.onError(coalescedError);
       }
 
-      this.#loading.set(false);
-      this.#error.set(coalescedError);
+      if (this.#abortController === abortController) {
+        this.#loading.set(false);
+        this.#abortController = undefined;
+        this.#error.set(coalescedError);
+      }
     }
   };
 }
