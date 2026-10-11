@@ -71,6 +71,39 @@ describe('doGenerate', () => {
       );
     });
 
+    it('should send equivalent bytes for Uint8Array and base64 audio', async () => {
+      const requestBodies: Uint8Array[] = [];
+      const provider = createDeepgram({
+        apiKey: 'test-api-key',
+        fetch: async (_url, init) => {
+          requestBodies.push(
+            new Uint8Array(await new Response(init?.body).arrayBuffer()),
+          );
+          return Response.json(
+            JSON.parse(
+              fs.readFileSync(
+                'src/__fixtures__/deepgram-transcription.json',
+                'utf8',
+              ),
+            ),
+          );
+        },
+      });
+      const model = provider.transcription('nova-3');
+      const audio = new Uint8Array([0x52, 0x49, 0x46, 0x46, 0, 1, 2, 3]);
+
+      await model.doGenerate({
+        audio,
+        mediaType: 'audio/wav',
+      });
+      await model.doGenerate({
+        audio: 'UklGRgABAgM=',
+        mediaType: 'audio/wav',
+      });
+
+      expect(requestBodies).toEqual([audio, audio]);
+    });
+
     it('should extract the transcription text', async () => {
       const result = await model.doGenerate({
         audio: audioData,
