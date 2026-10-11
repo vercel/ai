@@ -386,6 +386,7 @@ function normalizeItem({
       server: typeof item.server === 'string' ? item.server : undefined,
       tool: typeof item.tool === 'string' ? item.tool : undefined,
       arguments: item.arguments,
+      status: normalizeMcpStatus(item.status),
       result:
         result == null
           ? item.result
@@ -434,6 +435,14 @@ function normalizeCommandStatus(
   if (value === 'completed') return 'completed';
   if (value === 'inProgress') return 'in_progress';
   return 'failed';
+}
+
+function normalizeMcpStatus(
+  value: unknown,
+): 'in_progress' | 'completed' | 'failed' | undefined {
+  if (value === 'inProgress') return 'in_progress';
+  if (value === 'completed' || value === 'failed') return value;
+  return undefined;
 }
 
 function matchesActiveTurn({

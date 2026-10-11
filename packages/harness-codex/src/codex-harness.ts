@@ -817,10 +817,12 @@ function createSession({
       instructions,
       tools,
     });
+    // Legacy fingerprints used order-sensitive JSON, so replace them once
+    // instead of restarting a thread during the fingerprint format upgrade.
     const restartThread =
       latestThreadId != null &&
       (skillsResult.changed ||
-        (latestTurnConfigurationFingerprint != null &&
+        (latestTurnConfigurationFingerprint?.startsWith('v2:') === true &&
           latestTurnConfigurationFingerprint !== nextFingerprint));
     latestTurnConfigurationFingerprint = nextFingerprint;
     if (restartThread) {
@@ -1048,6 +1050,8 @@ function createSession({
         ...(debug ? { debug } : {}),
       };
       pendingResumeThreadId = undefined;
+      // Recovery starts a native turn once. Later continuations attach to it.
+      rerunContinue = false;
       turn.sendStart(() => channel.send(startMessage));
 
       return turn.control;
@@ -1092,6 +1096,7 @@ function createSession({
        * fallback; the common slice path is `attach`.
        */
       if (rerunContinue) {
+        rerunContinue = false;
         const threadId = pendingResumeThreadId ?? latestThreadId;
         pendingResumeThreadId = undefined;
         turn.sendStart(() =>
@@ -1351,9 +1356,20 @@ function fingerprintCodexTurnConfiguration({
     inputSchema: unknown;
   }>;
 }): string {
-  return createHash('sha256')
-    .update(JSON.stringify({ instructions: instructions ?? null, tools }))
-    .digest('hex');
+  const canonical = JSON.stringify(
+    { instructions: instructions ?? null, tools },
+    (_key, value) => {
+      if (value == null || typeof value !== 'object' || Array.isArray(value)) {
+        return value;
+      }
+      return Object.fromEntries(
+        Object.entries(value).sort(([left], [right]) =>
+          left < right ? -1 : left > right ? 1 : 0,
+        ),
+      );
+    },
+  );
+  return `v2:${createHash('sha256').update(canonical).digest('hex')}`;
 }
 
 /*

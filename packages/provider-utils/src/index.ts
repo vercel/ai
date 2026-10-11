@@ -8,6 +8,7 @@ export {
 export { convertAsyncIteratorToReadableStream } from './convert-async-iterator-to-readable-stream';
 export { convertInlineFileDataToUint8Array } from './convert-inline-file-data-to-uint8-array';
 export { convertImageModelFileToDataUri } from './convert-image-model-file-to-data-uri';
+export { convertJsonResponseToolStream } from './convert-json-response-tool-stream';
 export { convertToFormData } from './convert-to-form-data';
 export { createLanguageModelResponseMetadata } from './create-language-model-response-metadata';
 export { createNullLanguageModelUsage } from './create-null-language-model-usage';

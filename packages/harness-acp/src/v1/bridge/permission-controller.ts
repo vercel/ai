@@ -5,6 +5,7 @@ import type {
   RequestPermissionResponse,
   ToolCallUpdate,
 } from '@agentclientprotocol/sdk';
+import type { HostToolCall } from './resolve-host-tool-call';
 
 type PendingPermission = {
   cancel(): void;
@@ -19,13 +20,20 @@ export function createACPPermissionController({
   hasPermissionModeMapping,
   emitToolCall,
   claimHostToolPermission,
+  onHostToolPermissionAllowed,
 }: {
   turn: BridgeTurn;
   sessionId: string;
   permissionMode: HarnessV1PermissionMode;
   hasPermissionModeMapping: boolean;
   emitToolCall: (options: { toolCall: ToolCallUpdate }) => void;
-  claimHostToolPermission: (options: { toolCall: ToolCallUpdate }) => boolean;
+  claimHostToolPermission: (options: {
+    toolCall: ToolCallUpdate;
+  }) => HostToolCall | undefined;
+  onHostToolPermissionAllowed?: (options: {
+    toolCallId: string;
+    call: HostToolCall;
+  }) => void;
 }): {
   requestPermission(
     request: RequestPermissionRequest,
@@ -62,7 +70,12 @@ export function createACPPermissionController({
         });
         return cancelled();
       }
-      if (claimHostToolPermission({ toolCall: request.toolCall })) {
+      const call = claimHostToolPermission({ toolCall: request.toolCall });
+      if (call != null) {
+        onHostToolPermissionAllowed?.({
+          toolCallId: request.toolCall.toolCallId,
+          call,
+        });
         return {
           outcome: {
             outcome: 'selected',

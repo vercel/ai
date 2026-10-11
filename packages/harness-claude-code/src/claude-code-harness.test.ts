@@ -2,9 +2,11 @@ import {
   HarnessCapabilityUnsupportedError,
   type HarnessV1NetworkSandboxSession,
 } from '@ai-sdk/harness';
+import { HarnessAgent } from '@ai-sdk/harness/agent';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
 import type * as NodeFsPromises from 'node:fs/promises';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { z } from 'zod/v4';
 
 const sentMessages: Array<Record<string, unknown>> = [];
 const openCalls: Array<{ resume?: boolean } | undefined> = [];
@@ -173,7 +175,7 @@ vi.mock('node:fs/promises', async importOriginal => {
       if (path.endsWith('/bridge/pnpm-lock.yaml'))
         return 'lockfileVersion: "9.0"\n';
       if (path.endsWith('/bridge/pnpm-workspace.yaml'))
-        return "allowBuilds:\n  '@anthropic-ai/claude-code@2.1.213': true\n";
+        return "allowBuilds:\n  '@anthropic-ai/claude-code': true\n";
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (actual.readFile as any)(input, ...rest);
     }),
@@ -361,6 +363,7 @@ describe('createClaudeCode adapter', () => {
       'TaskStop',
       'TaskOutput',
       'Monitor',
+      'ListAgents',
       'ListMcpResources',
       'ListMcpResourcesTool',
       'ReadMcpResource',
@@ -397,6 +400,7 @@ describe('createClaudeCode adapter', () => {
     expect(harness.builtinTools.write.toolUseKind).toBe('edit');
     expect(harness.builtinTools.bash.toolUseKind).toBe('bash');
     expect(harness.builtinTools.Skill.toolUseKind).toBe('readonly');
+    expect(harness.builtinTools.ListAgents.toolUseKind).toBe('readonly');
     expect(harness.builtinTools.ListMcpResourcesTool.toolUseKind).toBe(
       'readonly',
     );
@@ -405,6 +409,27 @@ describe('createClaudeCode adapter', () => {
     // native name directly, so the entry intentionally omits both
     // `nativeName` and `commonName`.
     expect(harness.builtinTools.WebFetch).toBeDefined();
+
+    const listAgentsInputSchema = harness.builtinTools.ListAgents
+      .inputSchema as z.ZodType;
+    expect(listAgentsInputSchema.parse({})).toEqual({});
+    expect(
+      listAgentsInputSchema.parse({ channel: 'reviewers', q: 'available' }),
+    ).toEqual({ channel: 'reviewers', q: 'available' });
+    expect(() =>
+      listAgentsInputSchema.parse({ channel: 'a'.repeat(257) }),
+    ).toThrow();
+    expect(() => listAgentsInputSchema.parse({ unsupported: true })).toThrow();
+  });
+
+  it('allows callers to disable native agent discovery', () => {
+    expect(
+      () =>
+        new HarnessAgent({
+          harness: createClaudeCode(),
+          inactiveTools: ['ListAgents'],
+        }),
+    ).not.toThrow();
   });
 
   it('throws HarnessCapabilityUnsupportedError when the network sandbox session exposes no ports', async () => {
@@ -1688,9 +1713,7 @@ describe('createClaudeCode adapter', () => {
         'pnpm install --frozen-lockfile --store-dir .pnpm-store',
       );
       expect(commands[1]).toBe('./node_modules/.bin/claude --version');
-      expect(workspace?.content).toContain(
-        "'@anthropic-ai/claude-code@2.1.213': true",
-      );
+      expect(workspace?.content).toContain("'@anthropic-ai/claude-code': true");
     });
 
     it('caches the recipe across calls', async () => {

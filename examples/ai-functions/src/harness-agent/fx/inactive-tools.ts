@@ -27,7 +27,7 @@ run(async () => {
     tools: { weather },
     inactiveTools: [
       'read_file',
-      'terminal',
+      'shell',
       'list_files',
       'grep',
       'mcp_search_tools',

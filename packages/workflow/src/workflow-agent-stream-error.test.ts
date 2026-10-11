@@ -7,10 +7,25 @@ async function runAgentWithStreamError(
   onError?: (event: { error: unknown }) => void | Promise<void>,
 ) {
   const streamedParts: unknown[] = [];
+  const onEnd = vi.fn();
   const model = new MockLanguageModelV4({
     doStream: async () => ({
       stream: convertArrayToReadableStream([
         { type: 'stream-start' as const, warnings: [] },
+        { type: 'reasoning-start' as const, id: 'reasoning-1' },
+        {
+          type: 'reasoning-delta' as const,
+          id: 'reasoning-1',
+          delta: 'Thinking.',
+        },
+        { type: 'reasoning-end' as const, id: 'reasoning-1' },
+        { type: 'text-start' as const, id: 'text-1' },
+        {
+          type: 'text-delta' as const,
+          id: 'text-1',
+          delta: 'A partial answer.',
+        },
+        { type: 'text-end' as const, id: 'text-1' },
         { type: 'error' as const, error: terminal },
         {
           type: 'finish' as const,
@@ -47,13 +62,14 @@ async function runAgentWithStreamError(
         },
       }),
       onError,
+      onEnd,
     });
   } catch (error) {
     didReject = true;
     rejection = error;
   }
 
-  return { didReject, rejection, streamResult, streamedParts };
+  return { didReject, rejection, streamResult, streamedParts, onEnd };
 }
 
 describe('WorkflowAgent.stream error parts', () => {
@@ -72,6 +88,23 @@ describe('WorkflowAgent.stream error parts', () => {
       type: 'error',
       error: terminal,
     });
+    const assistantMessage = {
+      role: 'assistant',
+      content: [
+        { type: 'reasoning', text: 'Thinking.' },
+        { type: 'text', text: 'A partial answer.' },
+      ],
+    };
+    expect(result.streamResult?.messages.at(-1)).toEqual(assistantMessage);
+    expect(result.streamResult?.steps[0]?.response.messages).toEqual([
+      assistantMessage,
+    ]);
+    expect(result.onEnd).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messages: result.streamResult?.messages,
+        text: 'A partial answer.',
+      }),
+    );
   });
 
   it('preserves a falsy error value', async () => {
@@ -96,5 +129,37 @@ describe('WorkflowAgent.stream error parts', () => {
 
     expect(onError).toHaveBeenCalledTimes(1);
     expect(onError).toHaveBeenCalledWith({ error: terminal });
+  });
+
+  it('reports an incomplete stream without output as a no-output error', async () => {
+    const model = new MockLanguageModelV4({
+      doStream: async () => ({
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start' as const, warnings: [] },
+          {
+            type: 'response-metadata' as const,
+            id: 'response-1',
+            modelId: 'mock-model',
+          },
+        ]),
+      }),
+    });
+    const onError = vi.fn();
+
+    const result = await new WorkflowAgent({ model }).stream({
+      prompt: 'trigger an incomplete stream',
+      onError,
+    });
+
+    expect(result).toMatchObject({
+      finishReason: 'other',
+      error: {
+        name: 'AI_NoOutputGeneratedError',
+        message:
+          'No output generated. The model stream ended without a finish chunk.',
+      },
+    });
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledWith({ error: result.error });
   });
 });

@@ -6,13 +6,7 @@ import {
   type UIMessage,
   DefaultChatTransport,
 } from 'ai';
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useSyncExternalStore,
-} from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Chat } from './chat.react';
 
 export type { CreateUIMessage, UIMessage };
@@ -63,12 +57,57 @@ export type UseChatOptions<UI_MESSAGE extends UIMessage> = (
   experimental_throttle?: number;
 
   /**
-   * Whether to resume an ongoing chat generation stream.
+   * Whether to automatically resume an ongoing chat generation stream.
    */
   resume?: boolean;
 };
 
-const automaticResumeRegistrations = new WeakMap<object, Set<object>>();
+type AutomaticResumeState = {
+  registrations: Set<object>;
+  cleanupVisibilityListener?: () => void;
+  pendingVisibilityResume?: Promise<void>;
+};
+
+const automaticResumeStates = new WeakMap<object, AutomaticResumeState>();
+
+type AutomaticallyResumableChat = {
+  '~resumeStreamIfDisconnected': (options: {
+    shouldResume: () => boolean;
+  }) => Promise<void>;
+};
+
+/**
+ * When the document becomes visible again, resume the chat stream if it was
+ * interrupted by a network disconnect while the page was in the background.
+ */
+function resumeOnVisible<UI_MESSAGE extends UIMessage>({
+  chat,
+  state,
+}: {
+  chat: Chat<UI_MESSAGE>;
+  state: AutomaticResumeState;
+}) {
+  if (
+    document.visibilityState !== 'visible' ||
+    state.pendingVisibilityResume != null
+  ) {
+    return;
+  }
+
+  const isRegistered = () =>
+    automaticResumeStates.get(chat) === state && state.registrations.size > 0;
+
+  const clearPendingResume = () => {
+    state.pendingVisibilityResume = undefined;
+  };
+
+  const resumableChat = chat as Chat<UI_MESSAGE> & AutomaticallyResumableChat;
+
+  state.pendingVisibilityResume = resumableChat['~resumeStreamIfDisconnected']({
+    shouldResume: () =>
+      isRegistered() && document.visibilityState === 'visible',
+  }).then(clearPendingResume, clearPendingResume);
+}
 
 function registerAutomaticResume<UI_MESSAGE extends UIMessage>({
   chat,
@@ -77,17 +116,33 @@ function registerAutomaticResume<UI_MESSAGE extends UIMessage>({
   chat: Chat<UI_MESSAGE>;
   registration: object;
 }) {
-  let registrations = automaticResumeRegistrations.get(chat);
+  let state = automaticResumeStates.get(chat);
 
-  if (registrations == null) {
-    registrations = new Set();
-    automaticResumeRegistrations.set(chat, registrations);
+  if (state == null) {
+    const newState: AutomaticResumeState = { registrations: new Set() };
+    automaticResumeStates.set(chat, newState);
+    state = newState;
+
+    if (typeof document !== 'undefined') {
+      const onVisibilityChange = () =>
+        resumeOnVisible({ chat, state: newState });
+
+      document.addEventListener('visibilitychange', onVisibilityChange);
+      newState.cleanupVisibilityListener = () => {
+        document.removeEventListener('visibilitychange', onVisibilityChange);
+      };
+    }
   }
 
+  const { registrations } = state;
   const shouldResume = registrations.size === 0;
   registrations.add(registration);
 
-  if (shouldResume) {
+  if (
+    shouldResume &&
+    chat.status !== 'submitted' &&
+    chat.status !== 'streaming'
+  ) {
     void chat.resumeStream();
   }
 
@@ -95,9 +150,40 @@ function registerAutomaticResume<UI_MESSAGE extends UIMessage>({
     registrations.delete(registration);
 
     if (registrations.size === 0) {
-      automaticResumeRegistrations.delete(chat);
+      state.cleanupVisibilityListener?.();
+      automaticResumeStates.delete(chat);
     }
   };
+}
+
+type ChatSnapshot<UI_MESSAGE extends UIMessage> = {
+  chat: Chat<UI_MESSAGE>;
+  messages: UI_MESSAGE[];
+  status: Chat<UI_MESSAGE>['status'];
+  error: Error | undefined;
+};
+
+function readChatSnapshot<UI_MESSAGE extends UIMessage>(
+  chat: Chat<UI_MESSAGE>,
+): ChatSnapshot<UI_MESSAGE> {
+  return {
+    chat,
+    messages: chat.messages,
+    status: chat.status,
+    error: chat.error,
+  };
+}
+
+function equalChatSnapshots<UI_MESSAGE extends UIMessage>(
+  current: ChatSnapshot<UI_MESSAGE>,
+  next: ChatSnapshot<UI_MESSAGE>,
+) {
+  return (
+    current.chat === next.chat &&
+    current.messages === next.messages &&
+    current.status === next.status &&
+    current.error === next.error
+  );
 }
 
 export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
@@ -140,7 +226,7 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
 
   // resolve the latest transport and fallback to a lazily created default transport
   let defaultTransport: ChatTransport<UI_MESSAGE> | undefined;
-  const getTransport = () =>
+  const getTransport = (): ChatTransport<UI_MESSAGE> =>
     latestRef.current.transport ??
     (defaultTransport ??= new DefaultChatTransport<UI_MESSAGE>());
 
@@ -148,6 +234,9 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
   const chatOptions: typeof options = {
     ...options,
     transport: {
+      get resumeStreamIsReplay() {
+        return getTransport().resumeStreamIsReplay;
+      },
       sendMessages: sendOptions => getTransport().sendMessages(sendOptions),
       reconnectToStream: reconnectOptions =>
         getTransport().reconnectToStream(reconnectOptions),
@@ -179,76 +268,62 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     };
   }, [chat, isExternallyManaged]);
 
-  const messagesSnapshot = useMemo(() => ({ messages: chat.messages }), [chat]);
+  // Chat owns the live state; React owns the snapshot used for rendering.
+  // useSyncExternalStore would make streaming updates synchronous and can
+  // repeatedly restart navigation renders. Ordinary state updates let React
+  // schedule both. Automatically wrapping publication in startTransition can
+  // group it with a suspended navigation in the same root, holding back streamed
+  // text and local edits.
+  // Each consumer subscribes independently, so different throttle intervals can
+  // produce different rendered snapshots of the same Chat.
+  const [snapshot, setSnapshot] = useState(() => readChatSnapshot(chat));
 
-  const subscribeToMessages = useCallback(
-    (update: () => void) => {
-      let isSubscribed = true;
+  // React retries this component before rendering children, so they cannot
+  // commit the previous Chat's snapshot. Resubscribe only after the swap commits.
+  if (snapshot.chat !== chat) {
+    setSnapshot(readChatSnapshot(chat));
+  }
 
-      const updateMessages = () => {
-        if (!isSubscribed) {
-          return;
-        }
+  useEffect(() => {
+    let isSubscribed = true;
+    const publishSnapshot = () => {
+      // A trailing throttled callback can run after cleanup. Check before
+      // enqueueing; keep the state updater independent of mutable effect state.
+      if (!isSubscribed) {
+        return;
+      }
 
-        messagesSnapshot.messages = chat.messages;
-        update();
-      };
-
-      const unsubscribe = chat['~registerMessagesCallback'](
-        updateMessages,
-        throttleWaitMs,
+      const nextSnapshot = readChatSnapshot(chat);
+      setSnapshot(current =>
+        current.chat !== chat || equalChatSnapshots(current, nextSnapshot)
+          ? current
+          : nextSnapshot,
       );
+    };
 
-      // Synchronize changes that may have happened between render and
-      // subscription. useSyncExternalStore checks the snapshot after
-      // subscribing and schedules a render when it changed.
-      messagesSnapshot.messages = chat.messages;
+    // Only message notifications are throttled. Status and error notifications
+    // publish the complete snapshot, so ready/error cannot commit beside stale
+    // messages even when a throttled message notification is still pending.
+    const unsubscribes = [
+      chat['~registerMessagesCallback'](publishSnapshot, throttleWaitMs),
+      chat['~registerStatusCallback'](publishSnapshot),
+      chat['~registerErrorCallback'](publishSnapshot),
+    ];
 
-      return () => {
-        isSubscribed = false;
-        unsubscribe();
-      };
-    },
-    [chat, messagesSnapshot, throttleWaitMs],
-  );
+    // Catch changes between render and subscription, including updates that
+    // arrived before this consumer mounted or while its Chat was being replaced.
+    const nextSnapshot = readChatSnapshot(chat);
+    setSnapshot(current =>
+      equalChatSnapshots(current, nextSnapshot) ? current : nextSnapshot,
+    );
 
-  const getMessagesSnapshot = useCallback(
-    () => messagesSnapshot.messages,
-    [messagesSnapshot],
-  );
+    return () => {
+      isSubscribed = false;
+      unsubscribes.forEach(unsubscribe => unsubscribe());
+    };
+  }, [chat, throttleWaitMs]);
 
-  const messages = useSyncExternalStore(
-    subscribeToMessages,
-    getMessagesSnapshot,
-    getMessagesSnapshot,
-  );
-
-  const subscribeToStatus = useCallback(
-    (update: () => void) =>
-      chat['~registerStatusCallback'](() => {
-        if (chat.status === 'ready' || chat.status === 'error') {
-          // Publish the latest messages before the terminal status can render.
-          messagesSnapshot.messages = chat.messages;
-        }
-
-        update();
-      }),
-    [chat, messagesSnapshot],
-  );
-
-  const getStatusSnapshot = useCallback(() => chat.status, [chat]);
-
-  const status = useSyncExternalStore(
-    subscribeToStatus,
-    getStatusSnapshot,
-    getStatusSnapshot,
-  );
-
-  const error = useSyncExternalStore(
-    chat['~registerErrorCallback'],
-    () => chat.error,
-    () => chat.error,
-  );
+  const { messages, status, error } = snapshot;
 
   const setMessages = useCallback(
     (

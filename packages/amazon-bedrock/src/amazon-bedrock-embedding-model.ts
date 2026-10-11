@@ -70,6 +70,7 @@ export class AmazonBedrockEmbeddingModel implements EmbeddingModelV4 {
 
   async doEmbed({
     values,
+    dimensions,
     headers,
     abortSignal,
     providerOptions,
@@ -113,7 +114,7 @@ export class AmazonBedrockEmbeddingModel implements EmbeddingModelV4 {
               embeddingPurpose:
                 amazonBedrockOptions.embeddingPurpose ?? 'GENERIC_INDEX',
               embeddingDimension:
-                amazonBedrockOptions.embeddingDimension ?? 1024,
+                amazonBedrockOptions.embeddingDimension ?? dimensions ?? 1024,
               text: {
                 truncationMode: amazonBedrockOptions.truncate ?? 'END',
                 value: values[0],
@@ -127,11 +128,12 @@ export class AmazonBedrockEmbeddingModel implements EmbeddingModelV4 {
               input_type: amazonBedrockOptions.inputType ?? 'search_query',
               texts: values,
               truncate: amazonBedrockOptions.truncate,
-              output_dimension: amazonBedrockOptions.outputDimension,
+              output_dimension:
+                amazonBedrockOptions.outputDimension ?? dimensions,
             }
           : {
               inputText: values[0],
-              dimensions: amazonBedrockOptions.dimensions,
+              dimensions: amazonBedrockOptions.dimensions ?? dimensions,
               normalize: amazonBedrockOptions.normalize,
             };
 

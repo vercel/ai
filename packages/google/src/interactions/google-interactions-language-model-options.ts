@@ -37,6 +37,7 @@ export type GoogleInteractionsModelId =
   | 'gemini-3.6-flash'
   | 'gemini-3.7-flash'
   | 'gemini-3.8-flash'
+  | 'gemini-nano-banana-2.1'
   | 'lyria-3-clip-preview'
   | 'lyria-3-pro-preview'
   | (string & {});

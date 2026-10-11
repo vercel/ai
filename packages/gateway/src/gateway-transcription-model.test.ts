@@ -55,8 +55,9 @@ const createTestModel = (
   config: Partial<
     GatewayConfig & { o11yHeaders?: Record<string, string> }
   > = {},
+  modelId = 'openai/gpt-4o-transcribe',
 ) =>
-  new GatewayTranscriptionModel('openai/gpt-4o-transcribe', {
+  new GatewayTranscriptionModel(modelId, {
     provider: 'gateway',
     baseURL: 'https://api.test.com',
     headers: () => ({
@@ -239,6 +240,75 @@ describe('GatewayTranscriptionModel', () => {
       expect(result.language).toBeUndefined();
       expect(result.durationInSeconds).toBeUndefined();
       expect(result.warnings).toStrictEqual([]);
+    });
+
+    it.each(['xai', 'spacexai'])(
+      'should warn when xAI diarization from the %s option namespace is unavailable',
+      async provider => {
+        prepareJsonResponse();
+
+        const result = await createTestModel(
+          {},
+          'spacexai/grok-stt',
+        ).doGenerate({
+          audio: 'base64-audio',
+          mediaType: 'audio/wav',
+          providerOptions: {
+            [provider]: {
+              diarize: true,
+            },
+          },
+        });
+
+        expect(result.warnings).toContainEqual({
+          type: 'unsupported',
+          feature: 'providerOptions.xai.diarize',
+          details:
+            'AI Gateway does not currently expose xAI speaker diarization metadata.',
+        });
+      },
+    );
+
+    it('should not warn when xAI diarization metadata is available', async () => {
+      server.urls['https://api.test.com/transcription-model'].response = {
+        type: 'json-value',
+        body: {
+          text: 'Hello world',
+          providerMetadata: {
+            xai: {
+              words: [
+                {
+                  text: 'Hello',
+                  start: 0,
+                  end: 0.5,
+                  speaker: 0,
+                },
+              ],
+            },
+          },
+        },
+      };
+
+      const result = await createTestModel({}, 'spacexai/grok-stt').doGenerate({
+        audio: 'base64-audio',
+        mediaType: 'audio/wav',
+        providerOptions: {
+          xai: {
+            diarize: true,
+          },
+        },
+      });
+
+      expect(result.warnings).toStrictEqual([]);
+      expect(result.providerMetadata).toMatchObject({
+        xai: {
+          words: [
+            {
+              speaker: 0,
+            },
+          ],
+        },
+      });
     });
   });
 
