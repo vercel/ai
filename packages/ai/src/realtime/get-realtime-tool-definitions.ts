@@ -1,9 +1,9 @@
 import {
   asSchema,
   type InferToolSetContext,
-  type Tool,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
+import { resolveToolDescription } from '../prompt/prepare-tools';
 import type { RealtimeToolDefinition } from '../types/realtime-model';
 
 export async function getRealtimeToolDefinitions<TOOLS extends ToolSet>({
@@ -22,7 +22,7 @@ export async function getRealtimeToolDefinitions<TOOLS extends ToolSet>({
       case undefined:
       case 'function':
       case 'dynamic': {
-        const description = resolveRealtimeToolDescription({
+        const description = await resolveToolDescription({
           tool,
           toolName: name,
           toolsContext,
@@ -45,22 +45,4 @@ export async function getRealtimeToolDefinitions<TOOLS extends ToolSet>({
   }
 
   return definitions;
-}
-
-function resolveRealtimeToolDescription<TOOLS extends ToolSet>({
-  tool,
-  toolName,
-  toolsContext,
-}: {
-  tool: Tool;
-  toolName: string;
-  toolsContext: InferToolSetContext<TOOLS>;
-}): string | undefined {
-  return tool.description === undefined
-    ? undefined
-    : typeof tool.description === 'string'
-      ? tool.description
-      : tool.description({
-          context: toolsContext[toolName as keyof InferToolSetContext<TOOLS>],
-        });
 }

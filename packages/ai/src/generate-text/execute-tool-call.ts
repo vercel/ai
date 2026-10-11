@@ -27,7 +27,10 @@ import type {
 } from './tool-execution-events';
 import type { ToolOutput } from './tool-output';
 import type { TypedToolResult } from './tool-result';
-import { validateToolContext } from './validate-tool-context';
+import {
+  validateToolContext,
+  type ToolContextValidationCache,
+} from './validate-tool-context';
 
 /**
  * Executes a single tool call and manages its lifecycle callbacks.
@@ -48,6 +51,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   messages,
   abortSignal,
   timeout,
+  toolContextValidationCache,
   experimental_sandbox: sandbox,
   onPreliminaryToolResult,
   onToolExecutionStart,
@@ -62,6 +66,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   abortSignal: AbortSignal | undefined;
   toolsContext: InferToolSetContext<TOOLS>;
   timeout?: TimeoutConfiguration<TOOLS>;
+  toolContextValidationCache?: ToolContextValidationCache;
   experimental_sandbox?: SandboxSession;
   onPreliminaryToolResult?: (result: TypedToolResult<TOOLS>) => void;
   onToolExecutionStart?: Arrayable<OnToolExecutionStartCallback<TOOLS>>;
@@ -94,6 +99,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
     toolName,
     context: getOwn(toolsContext, toolName),
     contextSchema: tool.contextSchema,
+    cache: toolContextValidationCache,
   });
 
   const toolExecutionContext = {

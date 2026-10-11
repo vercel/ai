@@ -117,7 +117,11 @@ import type {
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
 } from './tool-execution-events';
-import { validateToolContext } from './validate-tool-context';
+import {
+  createToolContextValidationCache,
+  validateToolContext,
+  type ToolContextValidationCache,
+} from './validate-tool-context';
 import type { ToolInputRefinement } from './tool-input-refinement';
 import type { ToolOrder } from './tool-order';
 import type { ToolOutput } from './tool-output';
@@ -916,6 +920,8 @@ export async function generateText<
               runtimeContext =
                 prepareStepResult?.runtimeContext ?? runtimeContext;
               toolsContext = prepareStepResult?.toolsContext ?? toolsContext;
+              const toolContextValidationCache =
+                createToolContextValidationCache();
 
               const stepActiveTools = filterActiveTools({
                 tools,
@@ -928,6 +934,7 @@ export async function generateText<
               } = prepareToolsForToolCallers({
                 tools: prepareToolSearch(stepActiveTools, {
                   toolsContext,
+                  toolContextValidationCache,
                   experimental_sandbox: stepSandbox,
                 }),
                 toolCallers: resolvedToolCallers,
@@ -946,6 +953,7 @@ export async function generateText<
                 toolsContext: toolsContext as unknown as InferToolSetContext<
                   ActiveToolSubset<TOOLS, ActiveTools<NoInfer<TOOLS>>>
                 >,
+                toolContextValidationCache,
                 experimental_sandbox: stepSandbox,
               });
 
@@ -1198,6 +1206,7 @@ export async function generateText<
                     toolName: toolCall.toolName,
                     context: getOwn(toolsContext, toolCall.toolName),
                     contextSchema: tool.contextSchema,
+                    cache: toolContextValidationCache,
                   });
 
                   if (tool.onInputStart != null) {
@@ -1226,6 +1235,7 @@ export async function generateText<
                   toolCall,
                   messages: stepMessages,
                   toolsContext,
+                  toolContextValidationCache,
                   runtimeContext,
                 });
 
@@ -1352,6 +1362,7 @@ export async function generateText<
                   timeout,
                   experimental_sandbox: stepSandbox,
                   toolsContext,
+                  toolContextValidationCache,
                   onToolExecutionStart: event =>
                     notify({
                       event,
@@ -1639,6 +1650,7 @@ async function executeTools<TOOLS extends ToolSet>({
   timeout,
   experimental_sandbox: sandbox,
   toolsContext,
+  toolContextValidationCache,
   onToolExecutionStart,
   onToolExecutionEnd,
   executeToolInTelemetryContext,
@@ -1652,6 +1664,7 @@ async function executeTools<TOOLS extends ToolSet>({
   timeout?: TimeoutConfiguration<TOOLS>;
   experimental_sandbox?: SandboxSession;
   toolsContext: InferToolSetContext<TOOLS>;
+  toolContextValidationCache?: ToolContextValidationCache;
   onToolExecutionStart?: OnToolExecutionStartCallback<TOOLS>;
   onToolExecutionEnd?: OnToolExecutionEndCallback<TOOLS>;
   executeToolInTelemetryContext?: Telemetry['executeTool'];
@@ -1676,6 +1689,7 @@ async function executeTools<TOOLS extends ToolSet>({
           timeout,
           experimental_sandbox: sandbox,
           toolsContext,
+          toolContextValidationCache,
           onToolExecutionStart,
           onToolExecutionEnd,
           executeToolInTelemetryContext,

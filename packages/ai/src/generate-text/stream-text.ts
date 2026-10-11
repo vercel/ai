@@ -106,6 +106,7 @@ import type {
   GenerateTextOnStepStartCallback,
 } from './generate-text-events';
 import { invokeToolCallbacksFromStream } from './invoke-tool-callbacks-from-stream';
+import { createToolContextValidationCache } from './validate-tool-context';
 import type {
   OnLanguageModelCallEndCallback,
   OnLanguageModelCallStartCallback,
@@ -2315,6 +2316,7 @@ class DefaultStreamTextResult<
 
           runtimeContext = prepareStepResult?.runtimeContext ?? runtimeContext;
           toolsContext = prepareStepResult?.toolsContext ?? toolsContext;
+          const toolContextValidationCache = createToolContextValidationCache();
 
           const stepModel = resolveLanguageModel(
             prepareStepResult?.model ?? model,
@@ -2332,6 +2334,7 @@ class DefaultStreamTextResult<
           } = prepareToolsForToolCallers({
             tools: prepareToolSearch(stepActiveTools, {
               toolsContext,
+              toolContextValidationCache,
               experimental_sandbox: stepSandbox,
             }),
             toolCallers: resolvedToolCallers,
@@ -2350,6 +2353,7 @@ class DefaultStreamTextResult<
             toolsContext: toolsContext as unknown as InferToolSetContext<
               ActiveToolSubset<TOOLS, ActiveTools<NoInfer<TOOLS>>>
             >,
+            toolContextValidationCache,
             experimental_sandbox: stepSandbox,
           });
 
@@ -2406,6 +2410,7 @@ class DefaultStreamTextResult<
                   executeLanguageModelCallInTelemetryContext:
                     telemetryDispatcher.executeLanguageModelCall,
                   toolsContext,
+                  toolContextValidationCache,
                   experimental_sandbox: stepSandbox,
                   onLanguageModelCallStart: filterNullable(
                     onLanguageModelCallStart,
@@ -2665,6 +2670,7 @@ class DefaultStreamTextResult<
               stepInputMessages: stepMessages,
               abortSignal,
               toolsContext,
+              toolContextValidationCache,
             });
 
           // Create child spans under the current step context.
@@ -2691,6 +2697,7 @@ class DefaultStreamTextResult<
             timeout,
             experimental_sandbox: stepSandbox,
             toolsContext,
+            toolContextValidationCache,
             toolApproval,
             runtimeContext,
             toolApprovalSecret: experimental_toolApprovalSecret,

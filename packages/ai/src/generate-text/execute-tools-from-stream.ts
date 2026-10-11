@@ -19,6 +19,7 @@ import {
   type StreamRetryAttemptBoundaryPart,
 } from './stream-retry-attempt-boundary';
 import { maybeSignApproval } from './tool-approval-signature';
+import type { ToolContextValidationCache } from './validate-tool-context';
 import type { ToolApprovalConfiguration } from './tool-approval-configuration';
 import type { TypedToolCall } from './tool-call';
 import type {
@@ -55,6 +56,7 @@ export function executeToolsFromStream<
   timeout,
   experimental_sandbox: sandbox,
   toolsContext,
+  toolContextValidationCache,
   toolApproval,
   runtimeContext,
   toolApprovalSecret,
@@ -72,6 +74,7 @@ export function executeToolsFromStream<
   timeout?: TimeoutConfiguration<TOOLS>;
   experimental_sandbox?: SandboxSession;
   toolsContext: InferToolSetContext<TOOLS>;
+  toolContextValidationCache?: ToolContextValidationCache;
   toolApproval?: ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>;
   runtimeContext: RUNTIME_CONTEXT;
   toolApprovalSecret?: string | Uint8Array;
@@ -127,6 +130,7 @@ export function executeToolsFromStream<
               toolApproval,
               messages,
               toolsContext,
+              toolContextValidationCache,
               runtimeContext,
             });
 
@@ -241,6 +245,7 @@ export function executeToolsFromStream<
                     timeout,
                     experimental_sandbox: sandbox,
                     toolsContext,
+                    toolContextValidationCache,
                     onToolExecutionStart,
                     onToolExecutionEnd,
                     executeToolInTelemetryContext,

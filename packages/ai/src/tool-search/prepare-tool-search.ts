@@ -9,6 +9,7 @@ import {
   DIRECT_TOOL_CALL,
   type ResolvedToolCallers,
 } from '../generate-text/tool-caller-configuration';
+import type { ToolContextValidationCache } from '../generate-text/validate-tool-context';
 import { resolveToolDescription } from '../prompt/prepare-tools';
 import { getOwn } from '../util/get-own';
 import {
@@ -28,6 +29,7 @@ export function createToolSearchState({
   activeTools: ToolSet | undefined,
   options?: {
     toolsContext?: InferToolSetContext<ToolSet>;
+    toolContextValidationCache?: ToolContextValidationCache;
     experimental_sandbox?: SandboxSession;
   },
 ) => ToolSet | undefined {
@@ -63,7 +65,14 @@ export function createToolSearchState({
     }
   }
 
-  return (activeTools, { toolsContext = {}, experimental_sandbox } = {}) => {
+  return (
+    activeTools,
+    {
+      toolsContext = {},
+      toolContextValidationCache,
+      experimental_sandbox,
+    } = {},
+  ) => {
     if (activeTools == null) {
       return undefined;
     }
@@ -95,18 +104,21 @@ export function createToolSearchState({
             {
               ...tool,
               execute: async ({ query }: { query: string }) => {
-                const availableTools = candidates.map(([name, candidate]) => {
-                  const description = resolveToolDescription({
-                    tool: candidate,
-                    toolName: name,
-                    toolsContext,
-                    experimental_sandbox,
-                  });
-                  return {
-                    name,
-                    ...(description == null ? {} : { description }),
-                  };
-                });
+                const availableTools = await Promise.all(
+                  candidates.map(async ([name, candidate]) => {
+                    const description = await resolveToolDescription({
+                      tool: candidate,
+                      toolName: name,
+                      toolsContext,
+                      toolContextValidationCache,
+                      experimental_sandbox,
+                    });
+                    return {
+                      name,
+                      ...(description == null ? {} : { description }),
+                    };
+                  }),
+                );
                 const toolsByName = new Map(
                   availableTools.map(tool => [tool.name, tool]),
                 );

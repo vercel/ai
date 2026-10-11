@@ -10,17 +10,23 @@ import {
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import type { ToolOrder } from '../generate-text/tool-order';
+import {
+  validateToolContext,
+  type ToolContextValidationCache,
+} from '../generate-text/validate-tool-context';
 import { isNonEmptyObject } from '../util/is-non-empty-object';
 
 export async function prepareTools<TOOLS extends ToolSet>({
   tools,
   toolOrder,
   toolsContext = {} as InferToolSetContext<TOOLS>,
+  toolContextValidationCache,
   experimental_sandbox: sandbox,
 }: {
   tools: TOOLS | undefined;
   toolOrder?: ToolOrder<TOOLS>;
   toolsContext?: InferToolSetContext<TOOLS>;
+  toolContextValidationCache?: ToolContextValidationCache;
   experimental_sandbox?: SandboxSession;
 }): Promise<
   Array<LanguageModelV4FunctionTool | LanguageModelV4ProviderTool> | undefined
@@ -39,10 +45,11 @@ export async function prepareTools<TOOLS extends ToolSet>({
       case undefined:
       case 'dynamic':
       case 'function': {
-        const description = resolveToolDescription({
+        const description = await resolveToolDescription({
           tool,
           toolName: name,
           toolsContext,
+          toolContextValidationCache,
           experimental_sandbox: sandbox,
         });
         const providerOptions = tool.providerOptions;
@@ -105,23 +112,30 @@ function orderToolEntries<TOOLS extends ToolSet>({
   return [...orderedTools, ...unorderedTools];
 }
 
-export function resolveToolDescription<TOOLS extends ToolSet>({
+export async function resolveToolDescription<TOOLS extends ToolSet>({
   tool,
   toolName,
   toolsContext,
+  toolContextValidationCache,
   experimental_sandbox: sandbox,
 }: {
   tool: Tool;
   toolName: string;
   toolsContext: InferToolSetContext<TOOLS>;
+  toolContextValidationCache?: ToolContextValidationCache;
   experimental_sandbox?: SandboxSession;
-}): string | undefined {
+}): Promise<string | undefined> {
   return tool.description === undefined
     ? undefined
     : typeof tool.description === 'string'
       ? tool.description
       : tool.description({
-          context: toolsContext[toolName as keyof InferToolSetContext<TOOLS>],
+          context: await validateToolContext({
+            toolName,
+            context: toolsContext[toolName as keyof InferToolSetContext<TOOLS>],
+            contextSchema: tool.contextSchema,
+            cache: toolContextValidationCache,
+          }),
           experimental_sandbox: sandbox,
         });
 }

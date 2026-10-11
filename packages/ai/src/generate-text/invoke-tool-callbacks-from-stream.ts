@@ -10,7 +10,10 @@ import {
   isStreamRetryAttemptBoundaryPart,
   type StreamRetryAttemptBoundaryPart,
 } from './stream-retry-attempt-boundary';
-import { validateToolContext } from './validate-tool-context';
+import {
+  validateToolContext,
+  type ToolContextValidationCache,
+} from './validate-tool-context';
 
 type ToolCallbackStreamPart<TOOLS extends ToolSet> =
   | LanguageModelStreamPart<TOOLS>
@@ -22,12 +25,14 @@ export function invokeToolCallbacksFromStream<TOOLS extends ToolSet>({
   stepInputMessages,
   abortSignal,
   toolsContext,
+  toolContextValidationCache,
 }: {
   stream: ReadableStream<ToolCallbackStreamPart<TOOLS>>;
   tools: TOOLS | undefined;
   stepInputMessages: Array<ModelMessage>;
   abortSignal: AbortSignal | undefined;
   toolsContext: InferToolSetContext<TOOLS>;
+  toolContextValidationCache?: ToolContextValidationCache;
 }): ReadableStream<ToolCallbackStreamPart<TOOLS>> {
   if (tools == null) return stream;
 
@@ -58,6 +63,7 @@ export function invokeToolCallbacksFromStream<TOOLS extends ToolSet>({
       toolName,
       context: getOwn(toolsContext, toolName),
       contextSchema: tool?.contextSchema,
+      cache: toolContextValidationCache,
     });
 
     if (ongoingToolCall != null) {

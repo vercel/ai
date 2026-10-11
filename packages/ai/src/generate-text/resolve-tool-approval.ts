@@ -11,7 +11,10 @@ import type {
 } from './tool-approval-configuration';
 import { getOwn } from '../util/get-own';
 import type { TypedToolCall } from './tool-call';
-import { validateToolContext } from './validate-tool-context';
+import {
+  validateToolContext,
+  type ToolContextValidationCache,
+} from './validate-tool-context';
 
 /**
  * Resolves the approval state for a tool call by checking user-supplied and tool-defined
@@ -28,6 +31,7 @@ export async function resolveToolApproval<
   toolApproval,
   messages,
   toolsContext,
+  toolContextValidationCache,
   runtimeContext,
 }: {
   /**
@@ -56,6 +60,8 @@ export async function resolveToolApproval<
    * Tool context as defined by the tool's context schema.
    */
   toolsContext: InferToolSetContext<TOOLS>;
+
+  toolContextValidationCache?: ToolContextValidationCache;
 
   /**
    * User-defined runtime context (same as `runtimeContext` on `generateText` / `streamText`).
@@ -97,6 +103,7 @@ export async function resolveToolApproval<
               toolName,
               context: getOwn(toolsContext, toolName),
               contextSchema: tool?.contextSchema,
+              cache: toolContextValidationCache,
             }),
             runtimeContext,
           })
@@ -119,6 +126,7 @@ export async function resolveToolApproval<
             toolName,
             context: getOwn(toolsContext, toolName),
             contextSchema: tool?.contextSchema,
+            cache: toolContextValidationCache,
           }),
         })
       : tool.needsApproval;

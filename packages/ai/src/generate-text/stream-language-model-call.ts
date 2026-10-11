@@ -73,6 +73,7 @@ import type { TypedToolError } from './tool-error';
 import type { ToolInputRefinement } from './tool-input-refinement';
 import type { ToolOrder } from './tool-order';
 import type { TypedToolResult } from './tool-result';
+import type { ToolContextValidationCache } from './validate-tool-context';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -220,6 +221,7 @@ export async function streamLanguageModelCall<
     await execute(),
   callId,
   toolsContext,
+  toolContextValidationCache,
   experimental_sandbox: sandbox,
   _internal: {
     generateId = originalGenerateId,
@@ -250,6 +252,7 @@ export async function streamLanguageModelCall<
    * descriptions before sending tools to the model.
    */
   toolsContext?: InferToolSetContext<TOOLS>;
+  toolContextValidationCache?: ToolContextValidationCache;
   /**
    * Sandbox session passed through for resolving tool descriptions that depend on it.
    */
@@ -315,6 +318,7 @@ export async function streamLanguageModelCall<
     tools,
     toolOrder,
     toolsContext,
+    toolContextValidationCache,
     experimental_sandbox: sandbox,
   });
 
