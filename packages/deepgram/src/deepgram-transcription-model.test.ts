@@ -169,6 +169,52 @@ describe('doGenerate', () => {
       expect(url.searchParams.get('redact')).toBe('numbers');
       expect(url.searchParams.get('replace')).toBe('[redacted]');
     });
+
+    it('should pass multiple keyterms as repeated query parameters', async () => {
+      await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: {
+          deepgram: {
+            keyterm: ['AI SDK', 'C++'],
+          },
+        },
+      });
+
+      const url = new URL(server.calls[0].requestUrl);
+      expect(url.searchParams.getAll('keyterm')).toEqual(['AI SDK', 'C++']);
+    });
+
+    it('should omit keyterm when given an empty array', async () => {
+      await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: {
+          deepgram: {
+            keyterm: [],
+          },
+        },
+      });
+
+      const url = new URL(server.calls[0].requestUrl);
+      expect(url.searchParams.has('keyterm')).toBe(false);
+    });
+
+    it('should reject keyterm arrays containing non-string values', async () => {
+      await expect(
+        model.doGenerate({
+          audio: audioData,
+          mediaType: 'audio/wav',
+          providerOptions: {
+            deepgram: {
+              keyterm: ['Galileo', 42],
+            },
+          },
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_InvalidArgumentError',
+      });
+    });
   });
 
   describe('response headers', () => {

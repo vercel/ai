@@ -24,7 +24,7 @@ export type DeepgramTranscriptionAPITypes = {
 
   // Search and keywords
   search?: string;
-  keyterm?: string;
+  keyterm?: string | string[];
 
   // Speaker-related features
   diarize?: boolean;

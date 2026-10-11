@@ -28,8 +28,8 @@ export const deepgramTranscriptionModelOptionsSchema = z.object({
   replace: z.string().nullish(),
   /** Term or phrase to search for in the transcript. */
   search: z.string().nullish(),
-  /** Key term to identify in the transcript. */
-  keyterm: z.string().nullish(),
+  /** Key terms to identify in the transcript. Each term is sent as a separate query parameter. */
+  keyterm: z.union([z.string(), z.array(z.string())]).nullish(),
   /** Whether to identify different speakers in the audio. */
   diarize: z.boolean().nullish(),
   /** Whether to segment the transcript into utterances. */

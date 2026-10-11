@@ -88,7 +88,11 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
     // Convert body to URL query parameters
     const queryParams = new URLSearchParams();
     for (const [key, value] of Object.entries(body)) {
-      if (value !== undefined) {
+      if (key === 'keyterm' && Array.isArray(value)) {
+        for (const keyterm of value) {
+          queryParams.append(key, keyterm);
+        }
+      } else if (value !== undefined) {
         queryParams.append(key, String(value));
       }
     }

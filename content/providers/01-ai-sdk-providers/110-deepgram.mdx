@@ -179,7 +179,7 @@ The first argument is the model id e.g. `nova-3`.
 const model = deepgram.transcription('nova-3');
 ```
 
-You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the `summarize` option will enable summaries for sections of content.
+You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying multiple `keyterm` values improves recognition accuracy for each term.
 
 ```ts highlight="11-15"
 import { transcribe } from 'ai';
@@ -194,7 +194,7 @@ const result = await transcribe({
   audio: await readFile('audio.mp3'),
   providerOptions: {
     deepgram: {
-      summarize: 'v2',
+      keyterm: ['AI SDK', 'Vercel'],
     } satisfies DeepgramTranscriptionModelOptions,
   },
 });
@@ -287,9 +287,11 @@ The following provider options are available:
   Whether to analyze sentiment in the transcription.
   Optional.
 
-- **keyterm** _string_
+- **keyterm** _string | array of strings_
 
-  Key term to improve recognition accuracy for.
+  One or more key terms to improve recognition accuracy for. Each array item is
+  sent as a separate `keyterm` query parameter. Pass a string to send a single
+  key term.
   Optional.
 
 - **replace** _string_
