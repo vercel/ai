@@ -26,6 +26,17 @@ import {
 export type { RealtimeSessionState } from './realtime-session-state';
 export type { RealtimeState, RealtimeStatus } from './realtime-event-reducer';
 
+function validateTurnBasedBrowserAudioFormats(
+  config: Partial<RealtimeSessionConfig> | undefined,
+): void {
+  for (const format of [config?.inputAudioFormat, config?.outputAudioFormat]) {
+    if (format != null && format.type !== 'audio/pcm')
+      throw new UnsupportedFunctionalityError({
+        functionality: 'Turn-based browser WebSocket audio supports PCM16 only',
+      });
+  }
+}
+
 export type RealtimeSessionOptions = {
   model: RealtimeModel;
   /** websocket uses a raw-protocol relay; session exchanges SDP; token fetches client-secret setup. */
@@ -151,6 +162,8 @@ export abstract class AbstractRealtimeSession {
       throw new Error(
         'Realtime model does not support client-secret WebSocket configuration',
       );
+    if (!this.continuous)
+      validateTurnBasedBrowserAudioFormats(this.options.sessionConfig);
   }
 
   connect(): Promise<void>;
@@ -506,6 +519,8 @@ export abstract class AbstractRealtimeSession {
       return this.close({ eventId: event.eventId });
     if (event.type === 'session-start' && this.sessionLifecycle)
       throw new Error('Realtime session has already started');
+    if (this.audio != null && event.type === 'session-update')
+      validateTurnBasedBrowserAudioFormats(event.config);
     if (!this.sessionLifecycle && this.state.session == null) {
       const attempt = this.attempt;
       return this.sendTransport(
