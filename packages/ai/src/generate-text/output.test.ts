@@ -89,6 +89,26 @@ describe('Output.object', () => {
   const object1 = object({ schema: z.object({ content: z.string() }) });
 
   describe('responseFormat', () => {
+    it('should defer schema conversion until the response format is accessed', async () => {
+      const failure = new Error('schema conversion failed');
+      let schemaFactoryCalls = 0;
+      const output = object({
+        schema: jsonSchema(async () => {
+          schemaFactoryCalls++;
+          throw failure;
+        }),
+      });
+
+      expect(schemaFactoryCalls).toBe(0);
+
+      const responseFormat = output.responseFormat;
+
+      expect(schemaFactoryCalls).toBe(1);
+      expect(output.responseFormat).toBe(responseFormat);
+      await expect(responseFormat).rejects.toBe(failure);
+      expect(schemaFactoryCalls).toBe(1);
+    });
+
     it('should return the JSON schema for the object', async () => {
       const result = await object1.responseFormat;
       expect(result).toMatchInlineSnapshot(`
@@ -240,6 +260,26 @@ describe('Output.array', () => {
   const array1 = array({ element: z.object({ content: z.string() }) });
 
   describe('responseFormat', () => {
+    it('should defer schema conversion until the response format is accessed', async () => {
+      const failure = new Error('schema conversion failed');
+      let schemaFactoryCalls = 0;
+      const output = array({
+        element: jsonSchema(async () => {
+          schemaFactoryCalls++;
+          throw failure;
+        }),
+      });
+
+      expect(schemaFactoryCalls).toBe(0);
+
+      const responseFormat = output.responseFormat;
+
+      expect(schemaFactoryCalls).toBe(1);
+      expect(output.responseFormat).toBe(responseFormat);
+      await expect(responseFormat).rejects.toBe(failure);
+      expect(schemaFactoryCalls).toBe(1);
+    });
+
     it('should return the JSON schema for the array', async () => {
       const result = await array1.responseFormat;
       expect(result).toMatchInlineSnapshot(`
