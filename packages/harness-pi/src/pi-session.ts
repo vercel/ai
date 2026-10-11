@@ -1747,6 +1747,42 @@ export async function createPiSession(
        */
       suspending = true;
       const turnToSuspend = activeTurn;
+      const hasPendingToolResults = pendingToolResults.size > 0;
+
+      const persistSuspendState = async () => {
+        /*
+         * A suspend can land while the rerun is still held back waiting for
+         * host tool results. Whatever the framework already delivered must land
+         * in the journal now — it will not be re-delivered — while calls still
+         * awaiting results stay dangling for the next continuation to collect.
+         */
+        try {
+          appendDeliveredHostToolResults();
+        } catch {
+          // Best-effort: an unwritable journal falls back to the pre-delivery copy.
+        }
+
+        if (sessionFileName) {
+          try {
+            await persistSessionFile();
+          } catch {
+            // Best-effort: a missing/failed copy leaves the previously persisted
+            // journal in place, so the next slice resumes from a slightly older
+            // (still valid) state.
+          }
+        }
+      };
+
+      /*
+       * Resolving a pending host tool result lets Pi append the synthetic
+       * suspension result to its journal. Persist first so a cross-process
+       * continuation still sees the unanswered call and can deliver the
+       * caller's real result.
+       */
+      if (hasPendingToolResults) {
+        await persistSuspendState();
+      }
+
       const abortingTurn = turnToSuspend?.abort();
       deferredRerun?.cancel();
       settlePendingToolResults('Pi session suspended');
@@ -1754,26 +1790,8 @@ export async function createPiSession(
       await abortingTurn;
       await turnToSuspend?.done.catch(() => {});
 
-      /*
-       * A suspend can land while the rerun is still held back waiting for
-       * host tool results. Whatever the framework already delivered must land
-       * in the journal now — it will not be re-delivered — while calls still
-       * awaiting results stay dangling for the next continuation to collect.
-       */
-      try {
-        appendDeliveredHostToolResults();
-      } catch {
-        // Best-effort: an unwritable journal falls back to the pre-delivery copy.
-      }
-
-      if (sessionFileName) {
-        try {
-          await persistSessionFile();
-        } catch {
-          // Best-effort: a missing/failed copy leaves the previously persisted
-          // journal in place, so the next slice resumes from a slightly older
-          // (still valid) state.
-        }
+      if (!hasPendingToolResults) {
+        await persistSuspendState();
       }
 
       stopped = true;
