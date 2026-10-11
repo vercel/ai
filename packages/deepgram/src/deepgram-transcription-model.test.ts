@@ -11,6 +11,9 @@ vi.mock('./version', () => ({
 }));
 
 const audioData = await readFile(path.join(__dirname, 'transcript-test.mp3'));
+const deepgramTranscriptionFixture = JSON.parse(
+  fs.readFileSync('src/__fixtures__/deepgram-transcription.json', 'utf8'),
+);
 const provider = createDeepgram({ apiKey: 'test-api-key' });
 const model = provider.transcription('nova-3');
 
@@ -69,6 +72,35 @@ describe('doGenerate', () => {
       expect(server.calls[0].requestUserAgent).toContain(
         `ai-sdk-deepgram/0.0.0-test`,
       );
+    });
+
+    it('should send identical bytes for Uint8Array and base64 audio', async () => {
+      const requestBodies: Uint8Array[] = [];
+      const provider = createDeepgram({
+        apiKey: 'test-api-key',
+        fetch: async (_url, init) => {
+          expect(init?.body).toBeDefined();
+          requestBodies.push(
+            new Uint8Array(
+              await new Response(init?.body as BodyInit).arrayBuffer(),
+            ),
+          );
+          return Response.json(deepgramTranscriptionFixture);
+        },
+      });
+      const model = provider.transcription('nova-3');
+      const bytes = new Uint8Array([0x52, 0x49, 0x46, 0x46, 0, 1, 2, 3]);
+
+      await model.doGenerate({
+        audio: bytes,
+        mediaType: 'audio/wav',
+      });
+      await model.doGenerate({
+        audio: Buffer.from(bytes).toString('base64'),
+        mediaType: 'audio/wav',
+      });
+
+      expect(requestBodies).toEqual([bytes, bytes]);
     });
 
     it('should extract the transcription text', async () => {
