@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22954,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/fal-transcription-chunk-level.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/fal-transcription-chunk-level.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "BUG: empty fal options changed chunk_level from word to segment; diarize:false changed chunk_level from word to segment"
+  }
+}
