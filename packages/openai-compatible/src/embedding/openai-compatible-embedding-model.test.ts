@@ -184,9 +184,18 @@ describe('doEmbed', () => {
         providerOptions: {
           'test-provider': {
             dimensions: 64,
+            user: 'test-user',
           },
         },
       });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'text-embedding-3-large',
+      input: testValues,
+      encoding_format: 'float',
+      dimensions: 64,
+      user: 'test-user',
+    });
 
     expect(result.warnings).toMatchInlineSnapshot(`
       [
@@ -209,11 +218,58 @@ describe('doEmbed', () => {
         providerOptions: {
           testProvider: {
             dimensions: 64,
+            user: 'test-user',
           },
         },
       });
 
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'text-embedding-3-large',
+      input: testValues,
+      encoding_format: 'float',
+      dimensions: 64,
+      user: 'test-user',
+    });
+
     expect(result.warnings).toMatchInlineSnapshot(`[]`);
+  });
+
+  it('should prefer camelCase provider options over raw provider options', async () => {
+    prepareJsonResponse();
+
+    const result = await provider
+      .embeddingModel('text-embedding-3-large')
+      .doEmbed({
+        values: testValues,
+        providerOptions: {
+          'test-provider': {
+            dimensions: 64,
+            user: 'raw-user',
+          },
+          testProvider: {
+            dimensions: 128,
+            user: 'camel-case-user',
+          },
+        },
+      });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'text-embedding-3-large',
+      input: testValues,
+      encoding_format: 'float',
+      dimensions: 128,
+      user: 'camel-case-user',
+    });
+
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "message": "Use 'testProvider' instead.",
+          "setting": "providerOptions key 'test-provider'",
+          "type": "deprecated",
+        },
+      ]
+    `);
   });
 
   it('should pass headers', async () => {
