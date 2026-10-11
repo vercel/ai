@@ -40,6 +40,58 @@ describe('doGenerate', () => {
   describe('transcription', () => {
     beforeEach(() => prepareJsonFixtureResponse());
 
+    it('should not change chunk granularity for empty or unrelated provider options', async () => {
+      const liveFixture = JSON.parse(
+        fs.readFileSync(
+          'src/__fixtures__/fal-transcription-chunk-level-live.json',
+          'utf8',
+        ),
+      );
+      const requestBodies: Array<{
+        chunk_level: 'segment' | 'word';
+        diarize: boolean;
+      }> = [];
+      const chunkLevelModel = createFal({
+        apiKey: 'test-api-key',
+        fetch: async (_url, init) => {
+          if (init?.method === 'POST') {
+            requestBodies.push(JSON.parse(String(init.body)));
+            return Response.json({ request_id: 'job' });
+          }
+
+          const requestBody = requestBodies.at(-1)!;
+          return Response.json(
+            requestBody.chunk_level === 'word'
+              ? liveFixture.word
+              : requestBody.diarize
+                ? liveFixture.segment
+                : liveFixture.diarizeFalseSegment,
+          );
+        },
+      }).transcription('whisper');
+
+      const segmentCounts = [];
+      for (const providerOptions of [
+        undefined,
+        { fal: {} },
+        { fal: { diarize: false } },
+        { fal: { chunkLevel: 'word' } },
+        { fal: { chunkLevel: 'segment' } },
+      ]) {
+        const result = await chunkLevelModel.doGenerate({
+          audio: audioData,
+          mediaType: 'audio/wav',
+          ...(providerOptions == null ? {} : { providerOptions }),
+        });
+        segmentCounts.push(result.segments.length);
+      }
+
+      expect(segmentCounts[3]).toBe(liveFixture.word.chunks.length);
+      expect(segmentCounts[4]).toBe(liveFixture.segment.chunks.length);
+      expect(segmentCounts[1]).toBe(segmentCounts[0]);
+      expect(segmentCounts[2]).toBe(segmentCounts[0]);
+    });
+
     it('should pass the model', async () => {
       await model.doGenerate({
         audio: audioData,

@@ -1,0 +1,79 @@
+{
+  "model": "fal-ai/whisper",
+  "recordedAt": "2026-10-11",
+  "audioFixture": "packages/fal/src/transcript-test.mp3",
+  "word": {
+    "text": " Hello from the Versal AISDK.",
+    "chunks": [
+      {
+        "timestamp": [0.03, 0.31],
+        "text": " Hello",
+        "speaker": "SPEAKER_00"
+      },
+      {
+        "timestamp": [0.31, 0.49],
+        "text": " from",
+        "speaker": "SPEAKER_00"
+      },
+      {
+        "timestamp": [0.49, 0.67],
+        "text": " the",
+        "speaker": "SPEAKER_00"
+      },
+      {
+        "timestamp": [0.67, 0.97],
+        "text": " Versal",
+        "speaker": "SPEAKER_00"
+      },
+      {
+        "timestamp": [0.97, 2.01],
+        "text": " AISDK.",
+        "speaker": "SPEAKER_00"
+      }
+    ],
+    "inferred_languages": ["en"],
+    "diarization_segments": [
+      {
+        "timestamp": [0.031, 0.0478],
+        "speaker": "SPEAKER_00"
+      },
+      {
+        "timestamp": [0.0985, 2.3091],
+        "speaker": "SPEAKER_00"
+      }
+    ]
+  },
+  "segment": {
+    "text": " Hello from the Versal AISDK.",
+    "chunks": [
+      {
+        "timestamp": [0.03096875, 2.15096875],
+        "text": " Hello from the Versal AISDK.",
+        "speaker": "SPEAKER_00"
+      }
+    ],
+    "inferred_languages": ["en"],
+    "diarization_segments": [
+      {
+        "timestamp": [0.031, 0.0478],
+        "speaker": "SPEAKER_00"
+      },
+      {
+        "timestamp": [0.0985, 2.3091],
+        "speaker": "SPEAKER_00"
+      }
+    ]
+  },
+  "diarizeFalseSegment": {
+    "text": " Hello from the Versal AISDK.",
+    "chunks": [
+      {
+        "timestamp": [0.03096875, 2.15096875],
+        "text": " Hello from the Versal AISDK.",
+        "speaker": null
+      }
+    ],
+    "inferred_languages": ["en"],
+    "diarization_segments": []
+  }
+}
