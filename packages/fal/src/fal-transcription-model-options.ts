@@ -18,9 +18,9 @@ export const falTranscriptionModelOptionsSchema = z.object({
   diarize: z.boolean().nullish().default(true),
 
   /**
-   * Level of the chunks to return. Either segment or word. Default value: "segment"
+   * Level of the chunks to return. Either segment or word. Default value: "word"
    */
-  chunkLevel: z.enum(['segment', 'word']).nullish().default('segment'),
+  chunkLevel: z.enum(['segment', 'word']).nullish().default('word'),
 
   /**
    * Version of the model to use. All of the models are the Whisper large variant. Default value: "3"
