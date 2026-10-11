@@ -75,7 +75,6 @@ export abstract class AbstractRealtimeSession {
   private suppliedStream?: MediaStream;
   private captureGeneration = 0;
   private captureRequested = false;
-  private currentResponseItemId: string | null = null;
   private readonly toolCallsInResponse = new Set<string>();
   private readonly submittedToolOutputs = new Set<string>();
   private responseToolCallsClosed = false;
@@ -186,7 +185,6 @@ export abstract class AbstractRealtimeSession {
       }
       if (!current()) return;
       this.reducer = new RealtimeEventReducer(this.maxEvents);
-      this.currentResponseItemId = null;
       this.toolCallsInResponse.clear();
       this.submittedToolOutputs.clear();
       this.responseToolCallsClosed = false;
@@ -876,21 +874,19 @@ export abstract class AbstractRealtimeSession {
   ): void {
     switch (effect.type) {
       case 'play-audio':
-        this.currentResponseItemId = effect.itemId;
-        this.audio?.playAudio(effect.delta);
+        this.audio?.playAudio(effect.delta, effect.itemId);
         break;
       case 'speech-started':
         if (!this.continuous && this.state.isPlaying) {
-          const playedMs = this.audio?.getPlaybackOffsetMs() ?? 0;
-          const itemId = this.currentResponseItemId;
+          const playback = this.audio?.getPlaybackPosition();
           this.audio?.stopPlayback();
           if (this.attempt !== attempt || !attempt.active) return;
-          if (itemId != null && !attempt.closing && attempt.cause == null)
+          if (playback != null && !attempt.closing && attempt.cause == null)
             this.sendEvent({
               type: 'conversation-item-truncate',
-              itemId,
+              itemId: playback.itemId,
               contentIndex: 0,
-              audioEndMs: Math.round(playedMs),
+              audioEndMs: Math.round(playback.offsetMs),
             });
         }
         break;
