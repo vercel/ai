@@ -457,6 +457,51 @@ describe('createBinaryResponseHandler', () => {
     expect(result.value).toEqual(binaryData);
   });
 
+  it('should preserve abort errors while reading the response body', async () => {
+    const abortError = new DOMException('Cancelled by user', 'AbortError');
+    const response = new Response(
+      new ReadableStream({
+        start(controller) {
+          controller.enqueue(new Uint8Array([1, 2]));
+          queueMicrotask(() => controller.error(abortError));
+        },
+      }),
+    );
+    const handler = createBinaryResponseHandler();
+
+    await expect(
+      handler({
+        url: 'test-url',
+        requestBodyValues: {},
+        response,
+      }),
+    ).rejects.toBe(abortError);
+  });
+
+  it('should wrap other response body read errors in APICallError', async () => {
+    const bodyReadError = new Error('Failed to read body');
+    const response = new Response(
+      new ReadableStream({
+        start(controller) {
+          controller.enqueue(new Uint8Array([1, 2]));
+          queueMicrotask(() => controller.error(bodyReadError));
+        },
+      }),
+    );
+    const handler = createBinaryResponseHandler();
+
+    await expect(
+      handler({
+        url: 'test-url',
+        requestBodyValues: {},
+        response,
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_APICallError',
+      cause: bodyReadError,
+    });
+  });
+
   it('should throw APICallError when response body is null', async () => {
     const response = new Response(null);
     const handler = createBinaryResponseHandler();
