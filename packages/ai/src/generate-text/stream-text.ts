@@ -2216,10 +2216,37 @@ class DefaultStreamTextResult<
           }
         }
 
-        // Chunk timeout tracking starts after semantic output begins and is
-        // reset only by subsequent semantic output chunks.
+        // Chunk timeout tracking starts after semantic output begins, is
+        // reset only by subsequent semantic output chunks, and is paused
+        // while downstream backpressure prevents reading model output.
         let chunkTimeoutId: ReturnType<typeof setTimeout> | undefined =
           undefined;
+        let chunkTimeoutStartedAt: number | undefined = undefined;
+        let chunkTimeoutRemainingMs: number | undefined = undefined;
+
+        function startChunkTimeout() {
+          if (
+            chunkTimeoutId != null ||
+            chunkTimeoutRemainingMs == null ||
+            chunkTimeoutMs == null ||
+            chunkAbortController == null ||
+            abortSignal?.aborted
+          ) {
+            return;
+          }
+
+          chunkTimeoutStartedAt = now();
+          chunkTimeoutId = setTimeout(() => {
+            chunkTimeoutId = undefined;
+            chunkTimeoutStartedAt = undefined;
+            chunkAbortController.abort(
+              new DOMException(
+                `Chunk timeout of ${chunkTimeoutMs}ms exceeded`,
+                'TimeoutError',
+              ),
+            );
+          }, chunkTimeoutRemainingMs);
+        }
 
         function resetChunkTimeout() {
           if (chunkTimeoutId != null) {
@@ -2228,18 +2255,37 @@ class DefaultStreamTextResult<
           if (abortSignal?.aborted) {
             return;
           }
-          chunkTimeoutId = setAbortTimeout({
-            abortController: chunkAbortController,
-            label: 'Chunk',
-            timeoutMs: chunkTimeoutMs,
-          });
+          chunkTimeoutId = undefined;
+          chunkTimeoutStartedAt = undefined;
+          chunkTimeoutRemainingMs = chunkTimeoutMs;
+          startChunkTimeout();
+        }
+
+        function pauseChunkTimeout() {
+          if (
+            chunkTimeoutId == null ||
+            chunkTimeoutStartedAt == null ||
+            chunkTimeoutRemainingMs == null
+          ) {
+            return;
+          }
+
+          clearTimeout(chunkTimeoutId);
+          chunkTimeoutId = undefined;
+          chunkTimeoutRemainingMs = Math.max(
+            0,
+            chunkTimeoutRemainingMs - (now() - chunkTimeoutStartedAt),
+          );
+          chunkTimeoutStartedAt = undefined;
         }
 
         function clearChunkTimeout() {
           if (chunkTimeoutId != null) {
             clearTimeout(chunkTimeoutId);
-            chunkTimeoutId = undefined;
           }
+          chunkTimeoutId = undefined;
+          chunkTimeoutStartedAt = undefined;
+          chunkTimeoutRemainingMs = undefined;
         }
 
         function clearModelOutputTimeouts() {
@@ -2517,6 +2563,8 @@ class DefaultStreamTextResult<
               };
 
               while (true) {
+                startChunkTimeout();
+
                 let result: ReadableStreamReadResult<
                   LanguageModelStreamPart<TOOLS>
                 >;
@@ -2582,6 +2630,7 @@ class DefaultStreamTextResult<
 
                 if (value.type !== 'error') {
                   enqueueAttemptPart(value);
+                  pauseChunkTimeout();
                   return;
                 }
 
