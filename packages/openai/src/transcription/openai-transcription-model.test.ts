@@ -283,6 +283,33 @@ describe('doGenerate', () => {
     `);
   });
 
+  it.each([
+    'gpt-4o-mini-transcribe',
+    'gpt-4o-mini-transcribe-2025-03-20',
+    'gpt-4o-mini-transcribe-2025-12-15',
+  ] as const)(
+    'should default %s to json when provider options are set',
+    async modelId => {
+      prepareJsonFixtureResponse('openai-transcription');
+
+      const model = provider.transcription(modelId);
+      await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: {
+          openai: {
+            language: 'en',
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyMultipart).toMatchObject({
+        model: modelId,
+        response_format: 'json',
+      });
+    },
+  );
+
   it('should support gpt-4o-transcribe-diarize', async () => {
     prepareJsonFixtureResponse('openai-diarized-transcription');
 
