@@ -10,6 +10,53 @@ const server = createTestServer({
   '/api/object': {},
 });
 
+type ControlledRequest = {
+  controller: ReadableStreamDefaultController<Uint8Array>;
+  signal: AbortSignal;
+};
+
+function createControlledObject() {
+  const requests: ControlledRequest[] = [];
+
+  const object = new StructuredObject({
+    api: '/mock',
+    schema: z.object({ value: z.string() }),
+    fetch: async (_input, init) => {
+      let controller!: ReadableStreamDefaultController<Uint8Array>;
+      const signal = init?.signal as AbortSignal;
+      const body = new ReadableStream<Uint8Array>({
+        start(streamController) {
+          controller = streamController;
+        },
+      });
+
+      signal.addEventListener(
+        'abort',
+        () => {
+          try {
+            controller.error(new DOMException('Request aborted', 'AbortError'));
+          } catch {
+            // The stream may already be closed.
+          }
+        },
+        { once: true },
+      );
+
+      requests.push({ controller, signal });
+      return new Response(body);
+    },
+  });
+
+  return { object, requests };
+}
+
+function finish(request: ControlledRequest, value: string) {
+  request.controller.enqueue(
+    new TextEncoder().encode(JSON.stringify({ value })),
+  );
+  request.controller.close();
+}
+
 describe('text stream', () => {
   const schema = z.object({ content: z.string() });
   let structuredObject: StructuredObject<typeof schema>;
@@ -214,5 +261,73 @@ describe('text stream', () => {
     await structuredObjectWithCustomCredentials.submit('test-input');
 
     expect(server.calls[0].requestCredentials).toBe('include');
+  });
+});
+
+describe('overlapping requests', () => {
+  it('should keep the newer completed object when an older request finishes late', async () => {
+    const { object, requests } = createControlledObject();
+    const older = object.submit('older');
+    const newer = object.submit('newer');
+
+    await vi.waitFor(() => expect(requests).toHaveLength(2));
+
+    finish(requests[1], 'newer');
+    await newer;
+    expect(object.object).toEqual({ value: 'newer' });
+
+    finish(requests[0], 'older');
+    await older;
+
+    expect(object.object).toEqual({ value: 'newer' });
+  });
+
+  it('should keep newer request state when an older request fails while it is active', async () => {
+    const { object, requests } = createControlledObject();
+    const older = object.submit('older');
+    const newer = object.submit('newer');
+
+    await vi.waitFor(() => expect(requests).toHaveLength(2));
+
+    requests[0].controller.error(new Error('older request failed'));
+    await older;
+
+    expect(object.loading).toBe(true);
+    expect(object.error).toBeUndefined();
+
+    object.stop();
+    await newer;
+  });
+
+  it('should not surface an older failure after the newer request completes', async () => {
+    const { object, requests } = createControlledObject();
+    const older = object.submit('older');
+    const newer = object.submit('newer');
+
+    await vi.waitFor(() => expect(requests).toHaveLength(2));
+
+    finish(requests[1], 'newer');
+    await newer;
+    requests[0].controller.error(new Error('older request failed'));
+    await older;
+
+    expect(object.object).toEqual({ value: 'newer' });
+    expect(object.error).toBeUndefined();
+  });
+
+  it('should still stop the newer request after the older request completes', async () => {
+    const { object, requests } = createControlledObject();
+    const older = object.submit('older');
+    const newer = object.submit('newer');
+
+    await vi.waitFor(() => expect(requests).toHaveLength(2));
+
+    requests[0].controller.close();
+    await older;
+
+    expect(object.loading).toBe(true);
+    object.stop();
+    expect(requests[1].signal.aborted).toBe(true);
+    await newer;
   });
 });
