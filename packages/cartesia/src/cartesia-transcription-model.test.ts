@@ -54,9 +54,9 @@ class MockWebSocket {
     this.onmessage?.({ data: JSON.stringify(value) });
   }
 
-  serverClose() {
+  serverClose(code?: number, reason?: string) {
     this.readyState = 3;
-    this.onclose?.({});
+    this.onclose?.({ code, reason });
   }
 }
 
@@ -303,7 +303,7 @@ describe('doStream', () => {
       transcript: 'How are you?',
     });
     await flush();
-    ws.serverClose();
+    ws.serverClose(1000);
 
     await expect(partsPromise).resolves.toEqual([
       { type: 'stream-start', warnings: [] },
@@ -383,6 +383,8 @@ describe('doStream', () => {
     await flush();
     expect(ws.send).toHaveBeenNthCalledWith(3, 'close');
     ws.message({ type: 'done', request_id: 'request-1' });
+    await flush();
+    ws.serverClose(1011, 'late close after done');
 
     expect((await partsPromise).at(-1)).toEqual({
       type: 'finish',
@@ -392,6 +394,45 @@ describe('doStream', () => {
       durationInSeconds: 0.9,
     });
   });
+
+  it.each([
+    {
+      code: 1011,
+      reason: 'backend failed',
+      diagnostics: 'code 1011, reason: backend failed',
+    },
+    {
+      code: 1006,
+      reason: undefined,
+      diagnostics: 'code 1006',
+    },
+  ])(
+    'errors when the WebSocket closes abnormally with code $code',
+    async ({ code, reason, diagnostics }) => {
+      const provider = createCartesia({
+        apiKey: 'test-api-key',
+        webSocket: MockWebSocket,
+      });
+      const result = await provider.transcription('ink-2').doStream!({
+        audio: new ReadableStream(),
+        inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+      });
+
+      const partsPromise = convertReadableStreamToArray(result.stream);
+      const ws = MockWebSocket.instances[0];
+      ws.open();
+      ws.message({
+        type: 'turn.end',
+        request_id: 'turn-1',
+        transcript: 'First sentence.',
+      });
+      ws.serverClose(code, reason);
+
+      await expect(partsPromise).rejects.toThrow(
+        `Cartesia streaming transcription WebSocket closed unexpectedly before finishing (${diagnostics}).`,
+      );
+    },
+  );
 
   it.each(['pcm_f16le', 'pcm_f32le', 'pcm_s32le'] as const)(
     'supports the %s streaming PCM encoding without a warning',
