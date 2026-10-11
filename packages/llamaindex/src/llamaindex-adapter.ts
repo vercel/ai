@@ -8,11 +8,21 @@ type EngineResponse = {
   delta: string;
 };
 
+export interface ToUIMessageStreamOptions extends StreamCallbacks {
+  /**
+   * Whether to remove leading whitespace from the start of the stream.
+   *
+   * @default true
+   */
+  trimStart?: boolean;
+}
+
 export function toUIMessageStream(
   stream: AsyncIterable<EngineResponse>,
-  callbacks?: StreamCallbacks,
+  options?: ToUIMessageStreamOptions,
 ) {
-  const trimStart = trimStartOfStream();
+  const trimStart =
+    options?.trimStart === false ? (text: string) => text : trimStartOfStream();
 
   return convertAsyncIteratorToReadableStream(stream[Symbol.asyncIterator]())
     .pipeThrough(
@@ -22,7 +32,7 @@ export function toUIMessageStream(
         },
       }),
     )
-    .pipeThrough(createCallbacksTransformer(callbacks))
+    .pipeThrough(createCallbacksTransformer(options))
     .pipeThrough(
       new TransformStream<string, UIMessageChunk>({
         start: async controller => {
