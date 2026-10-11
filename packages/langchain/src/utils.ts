@@ -164,6 +164,10 @@ export function convertToolResultPart(block: ToolResultPart): ToolMessage {
   return new ToolMessage({
     tool_call_id: block.toolCallId,
     content,
+    status:
+      block.output.type === 'error-text' || block.output.type === 'error-json'
+        ? 'error'
+        : undefined,
   });
 }
 
