@@ -431,6 +431,48 @@ describe('streamText chunk timeout', () => {
 
     await consumePromise;
   });
+
+  it('should pause chunkMs while awaiting onChunk callbacks', async () => {
+    let receivedAbortSignal: AbortSignal | undefined;
+    let delayedFirstTextDelta = false;
+
+    const result = streamText({
+      model: new MockLanguageModelV4({
+        doStream: async ({ abortSignal }) => {
+          receivedAbortSignal = abortSignal;
+
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          };
+        },
+      }),
+      prompt: 'test-input',
+      timeout: { chunkMs: 50 },
+      onChunk: async ({ chunk }) => {
+        if (!delayedFirstTextDelta && chunk.type === 'text-delta') {
+          delayedFirstTextDelta = true;
+          await delay(100);
+        }
+      },
+    });
+
+    const consumePromise = result.consumeStream();
+
+    await vi.advanceTimersByTimeAsync(150);
+    await consumePromise;
+
+    expect(receivedAbortSignal?.aborted).toBe(false);
+    expect(await result.text).toBe('Hello');
+  });
 });
 
 describe('streamText model output timeout boundaries', () => {
