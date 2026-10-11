@@ -90,12 +90,20 @@ export class OpenAIFiles implements FilesV4 {
     providerOptions,
   }: FilesV4UploadFileCallOptions): Promise<FilesV4UploadFileResult> {
     let openaiOptions: OpenAIFilesOptions | undefined;
+    let purpose: string;
+    let requestHeaders: Record<string, string | undefined>;
+    let url: string;
+
     try {
       openaiOptions = (await parseProviderOptions({
         provider: 'openai',
         providerOptions,
         schema: openaiFilesOptionsSchema,
       })) as OpenAIFilesOptions | undefined;
+
+      purpose = openaiOptions?.purpose ?? 'assistants';
+      requestHeaders = this.getHeaders(headers);
+      url = `${this.config.baseURL}/files`;
     } catch (error) {
       // rejected before any request: release the caller's stream
       if (data.type === 'stream') {
@@ -103,10 +111,6 @@ export class OpenAIFiles implements FilesV4 {
       }
       throw error;
     }
-
-    const purpose = openaiOptions?.purpose ?? 'assistants';
-    const requestHeaders = this.getHeaders(headers);
-    const url = `${this.config.baseURL}/files`;
 
     let response: OpenAIFilesResponse;
 
