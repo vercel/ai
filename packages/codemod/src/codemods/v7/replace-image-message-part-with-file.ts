@@ -28,6 +28,10 @@ export default createTransformer((fileInfo, api, options, context) => {
     }
 
     typeProperty.value.value = 'file';
+    if (imageProperty.shorthand) {
+      imageProperty.shorthand = false;
+      imageProperty.value = j.identifier(imageProperty.key.name);
+    }
     imageProperty.key.name = 'data';
 
     if (!findProperty(path.node, 'mediaType')) {

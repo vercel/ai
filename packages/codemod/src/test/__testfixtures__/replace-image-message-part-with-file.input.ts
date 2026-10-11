@@ -2,13 +2,18 @@ import { generateText } from 'ai';
 
 declare const model: any;
 declare const bytes: Uint8Array;
+declare const image: Uint8Array;
+declare const data: Uint8Array;
 
 await generateText({
   model,
   messages: [
     {
       role: 'user',
-      content: [{ type: 'image', image: bytes }],
+      content: [
+        { type: 'image', image: bytes },
+        { type: 'image', image },
+      ],
     },
   ],
 });
