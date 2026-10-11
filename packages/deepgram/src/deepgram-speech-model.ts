@@ -285,20 +285,21 @@ export class DeepgramSpeechModel implements SpeechModelV4 {
           delete queryParams.bit_rate;
         }
       } else if (deepgramOptions.container) {
-        // Container specified without encoding - set default encoding
+        // Container specified without encoding - preserve a compatible encoding
         const container = deepgramOptions.container.toLowerCase();
         const oldEncoding = queryParams.encoding?.toLowerCase();
         let newEncoding: string | undefined;
 
-        if (container === 'wav') {
-          queryParams.container = 'wav';
-          newEncoding = 'linear16'; // Default encoding for wav
+        if (container === 'wav' || container === 'none') {
+          queryParams.container = container;
+          newEncoding =
+            oldEncoding != null &&
+            ['linear16', 'mulaw', 'alaw'].includes(oldEncoding)
+              ? oldEncoding
+              : 'linear16';
         } else if (container === 'ogg') {
           queryParams.container = 'ogg';
           newEncoding = 'opus'; // Default encoding for ogg
-        } else if (container === 'none') {
-          queryParams.container = 'none';
-          newEncoding = 'linear16'; // Default encoding for raw audio
         }
 
         // If encoding changed, clean up incompatible parameters
