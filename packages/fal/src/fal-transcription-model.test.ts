@@ -88,6 +88,15 @@ describe('doGenerate', () => {
         `"Hello from the Versal AISDK."`,
       );
     });
+
+    it('should extract the Wizper detected language', async () => {
+      const result = await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+      expect(result.language).toBe('en');
+    });
   });
 
   describe('response headers', () => {
