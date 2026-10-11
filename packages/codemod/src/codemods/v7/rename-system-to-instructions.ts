@@ -1,7 +1,12 @@
 import { createTransformer } from '../lib/create-transformer';
 
-function getName(node: any): string | undefined {
-  if (node?.type === 'Identifier') return node.name;
+function getStaticPropertyName(
+  node: any,
+  computed: boolean | undefined,
+): string | undefined {
+  if (node?.type === 'Identifier') {
+    return computed ? undefined : node.name;
+  }
   if (node?.type === 'Literal' || node?.type === 'StringLiteral') {
     return typeof node.value === 'string' ? node.value : undefined;
   }
@@ -22,7 +27,7 @@ export default createTransformer((fileInfo, api, options, context) => {
     path.node.properties.forEach(property => {
       if (
         (property.type === 'Property' || property.type === 'ObjectProperty') &&
-        getName(property.key) === 'system'
+        getStaticPropertyName(property.key, property.computed) === 'system'
       ) {
         setName(property.key, 'instructions');
         context.hasChanges = true;
@@ -34,7 +39,7 @@ export default createTransformer((fileInfo, api, options, context) => {
     path.node.properties.forEach((property: any) => {
       if (
         (property.type === 'Property' || property.type === 'ObjectProperty') &&
-        getName(property.key) === 'system'
+        getStaticPropertyName(property.key, property.computed) === 'system'
       ) {
         if (property.shorthand) {
           property.shorthand = false;
@@ -47,7 +52,9 @@ export default createTransformer((fileInfo, api, options, context) => {
   });
 
   root.find(j.MemberExpression).forEach(path => {
-    if (getName(path.node.property) === 'system') {
+    if (
+      getStaticPropertyName(path.node.property, path.node.computed) === 'system'
+    ) {
       setName(path.node.property, 'instructions');
       context.hasChanges = true;
     }
