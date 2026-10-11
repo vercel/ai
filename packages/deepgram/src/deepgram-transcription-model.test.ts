@@ -82,6 +82,90 @@ describe('doGenerate', () => {
       );
     });
 
+    it('should retain provider formatting in timestamped segments', async () => {
+      prepareJsonFixtureResponse('deepgram-transcription-punctuated');
+
+      const result = await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: {
+          deepgram: {
+            punctuate: true,
+            smartFormat: true,
+          },
+        },
+      });
+
+      expect(result.text).toContain('Galileo');
+      expect(result.segments.slice(0, 4)).toStrictEqual([
+        { text: 'Galileo', startSecond: 0.16, endSecond: 0.79999995 },
+        { text: 'was', startSecond: 0.79999995, endSecond: 0.96 },
+        { text: 'an', startSecond: 0.96, endSecond: 1.1999999 },
+        { text: 'American', startSecond: 1.1999999, endSecond: 1.52 },
+      ]);
+      expect(result.segments[14]).toStrictEqual({
+        text: 'moons,',
+        startSecond: 5.04,
+        endSecond: 5.68,
+      });
+      expect(result.segments.at(-1)).toStrictEqual({
+        text: 'bodies.',
+        startSecond: 7.68,
+        endSecond: 8.4,
+      });
+    });
+
+    it('should keep plain words when provider formatting is absent', async () => {
+      const result = await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+      expect(result.segments.slice(0, 2)).toStrictEqual([
+        { text: 'galileo', startSecond: 0.16, endSecond: 0.79999995 },
+        { text: 'was', startSecond: 0.79999995, endSecond: 0.96 },
+      ]);
+    });
+
+    it('should fall back per word when provider formatting is mixed', async () => {
+      server.urls['https://api.deepgram.com/v1/listen'].response = {
+        type: 'json-value',
+        body: {
+          metadata: { duration: 1 },
+          results: {
+            channels: [
+              {
+                alternatives: [
+                  {
+                    transcript: 'Hello, world',
+                    words: [
+                      {
+                        word: 'hello',
+                        punctuated_word: 'Hello,',
+                        start: 0,
+                        end: 0.4,
+                      },
+                      { word: 'world', start: 0.5, end: 1 },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      };
+
+      const result = await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+      expect(result.segments).toStrictEqual([
+        { text: 'Hello,', startSecond: 0, endSecond: 0.4 },
+        { text: 'world', startSecond: 0.5, endSecond: 1 },
+      ]);
+    });
+
     it('should return audio duration as usage in seconds', async () => {
       const result = await model.doGenerate({
         audio: audioData,
