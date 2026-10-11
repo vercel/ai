@@ -1,4 +1,4 @@
-import type { UIMessageChunk } from 'ai';
+import { generateId, type UIMessageChunk } from 'ai';
 import { convertAsyncIteratorToReadableStream } from 'ai/internal';
 import {
   createCallbacksTransformer,
@@ -13,6 +13,7 @@ export function toUIMessageStream(
   callbacks?: StreamCallbacks,
 ) {
   const trimStart = trimStartOfStream();
+  const textId = generateId();
 
   return convertAsyncIteratorToReadableStream(stream[Symbol.asyncIterator]())
     .pipeThrough(
@@ -26,13 +27,13 @@ export function toUIMessageStream(
     .pipeThrough(
       new TransformStream<string, UIMessageChunk>({
         start: async controller => {
-          controller.enqueue({ type: 'text-start', id: '1' });
+          controller.enqueue({ type: 'text-start', id: textId });
         },
         transform: async (chunk, controller) => {
-          controller.enqueue({ type: 'text-delta', delta: chunk, id: '1' });
+          controller.enqueue({ type: 'text-delta', delta: chunk, id: textId });
         },
         flush: async controller => {
-          controller.enqueue({ type: 'text-end', id: '1' });
+          controller.enqueue({ type: 'text-end', id: textId });
         },
       }),
     );
