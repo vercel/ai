@@ -95,4 +95,83 @@ describe('simulateReadableStream', () => {
 
     expect(delayValues).toEqual([500, null, null]);
   });
+
+  it('should abort a pending initial delay when cancelled', async () => {
+    let abortSignal: AbortSignal | undefined;
+    let notifyDelayStarted: () => void;
+    const delayStarted = new Promise<void>(resolve => {
+      notifyDelayStarted = resolve;
+    });
+
+    const stream = simulateReadableStream({
+      chunks: ['value'],
+      initialDelayInMs: 1000,
+      _internal: {
+        delay: (_ms, options) => {
+          abortSignal = options?.abortSignal;
+          notifyDelayStarted();
+
+          return new Promise((_, reject) => {
+            abortSignal?.addEventListener(
+              'abort',
+              () => reject(abortSignal?.reason),
+              { once: true },
+            );
+          });
+        },
+      },
+    });
+    const reader = stream.getReader();
+    const read = reader.read();
+
+    await delayStarted;
+    await reader.cancel();
+
+    expect(abortSignal?.aborted).toBe(true);
+    await expect(read).resolves.toEqual({ done: true, value: undefined });
+  });
+
+  it('should abort a pending chunk delay when cancelled', async () => {
+    let abortSignal: AbortSignal | undefined;
+    let notifyDelayStarted: () => void;
+    const delayStarted = new Promise<void>(resolve => {
+      notifyDelayStarted = resolve;
+    });
+
+    const stream = simulateReadableStream({
+      chunks: ['first', 'second'],
+      initialDelayInMs: null,
+      chunkDelayInMs: 1000,
+      _internal: {
+        delay: (ms, options) => {
+          if (ms == null) {
+            return Promise.resolve();
+          }
+
+          abortSignal = options?.abortSignal;
+          notifyDelayStarted();
+
+          return new Promise((_, reject) => {
+            abortSignal?.addEventListener(
+              'abort',
+              () => reject(abortSignal?.reason),
+              { once: true },
+            );
+          });
+        },
+      },
+    });
+    const reader = stream.getReader();
+
+    await expect(reader.read()).resolves.toEqual({
+      done: false,
+      value: 'first',
+    });
+    const read = reader.read();
+    await delayStarted;
+    await reader.cancel();
+
+    expect(abortSignal?.aborted).toBe(true);
+    await expect(read).resolves.toEqual({ done: true, value: undefined });
+  });
 });
