@@ -316,6 +316,9 @@ describe('extractJsonMiddleware', () => {
     });
 
     it('should leave text without fences unchanged in stream', async () => {
+      const providerMetadata = {
+        mock: { annotation: 'keep-me' },
+      };
       const mockModel = new MockLanguageModelV4({
         async doStream() {
           return {
@@ -327,7 +330,12 @@ describe('extractJsonMiddleware', () => {
                 timestamp: new Date(0),
               },
               { type: 'text-start', id: '1' },
-              { type: 'text-delta', id: '1', delta: '{"value": "test"}' },
+              {
+                type: 'text-delta',
+                id: '1',
+                delta: '{"value": "test"}',
+                providerMetadata,
+              },
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
@@ -348,6 +356,121 @@ describe('extractJsonMiddleware', () => {
       });
 
       expect(await result.text).toBe('{"value": "test"}');
+      expect(
+        (await result.content).find(part => part.type === 'text')
+          ?.providerMetadata,
+      ).toEqual(providerMetadata);
+    });
+
+    it('should preserve metadata from stripped and metadata-only deltas', async () => {
+      const metadata = Array.from({ length: 6 }, (_, index) => ({
+        mock: { annotation: `metadata-${index + 1}` },
+      }));
+      const middleware = extractJsonMiddleware();
+
+      const wrapped = await middleware.wrapStream!({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            {
+              type: 'text-delta',
+              id: '1',
+              delta: '`',
+              providerMetadata: metadata[0],
+            },
+            {
+              type: 'text-delta',
+              id: '1',
+              delta: '``json\n',
+              providerMetadata: metadata[1],
+            },
+            {
+              type: 'text-delta',
+              id: '1',
+              delta: '{"value": "test"}',
+              providerMetadata: metadata[2],
+            },
+            {
+              type: 'text-delta',
+              id: '1',
+              delta: '\n`',
+              providerMetadata: metadata[3],
+            },
+            {
+              type: 'text-delta',
+              id: '1',
+              delta: '``',
+              providerMetadata: metadata[4],
+            },
+            {
+              type: 'text-delta',
+              id: '1',
+              delta: '',
+              providerMetadata: metadata[5],
+            },
+            { type: 'text-end', id: '1' },
+          ]),
+        }),
+      } as any);
+
+      const chunks = await convertAsyncIterableToArray(wrapped.stream);
+      const textDeltas = chunks.filter(chunk => chunk.type === 'text-delta');
+
+      expect(textDeltas.map(chunk => chunk.delta).join('')).toBe(
+        '{"value": "test"}',
+      );
+      expect(textDeltas.map(chunk => chunk.providerMetadata)).toEqual(metadata);
+    });
+
+    it('should retain the latest metadata with custom transformed text', async () => {
+      const firstMetadata = {
+        mock: { annotation: 'first' },
+      };
+      const latestMetadata = {
+        mock: { annotation: 'latest' },
+      };
+      const middleware = extractJsonMiddleware({
+        transform: text => text.replace('PREFIX', '').replace('SUFFIX', ''),
+      });
+
+      const wrapped = await middleware.wrapStream!({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            {
+              type: 'text-delta',
+              id: '1',
+              delta: 'PREFIX',
+              providerMetadata: firstMetadata,
+            },
+            {
+              type: 'text-delta',
+              id: '1',
+              delta: '{"value": "test"}SUFFIX',
+              providerMetadata: latestMetadata,
+            },
+            { type: 'text-end', id: '1' },
+          ]),
+        }),
+      } as any);
+
+      const chunks = await convertAsyncIterableToArray(wrapped.stream);
+      const textDeltas = chunks.filter(chunk => chunk.type === 'text-delta');
+
+      expect(textDeltas).toEqual([
+        {
+          type: 'text-delta',
+          id: '1',
+          delta: '',
+          providerMetadata: firstMetadata,
+        },
+        {
+          type: 'text-delta',
+          id: '1',
+          delta: '{"value": "test"}',
+          providerMetadata: latestMetadata,
+        },
+      ]);
     });
 
     it('should preserve leading space in final streamed suffix without fences', async () => {
