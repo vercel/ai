@@ -139,7 +139,7 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
         response.results?.channels.at(0)?.alternatives.at(0)?.transcript ?? '',
       segments:
         response.results?.channels[0].alternatives[0].words?.map(word => ({
-          text: word.word,
+          text: word.punctuated_word ?? word.word,
           startSecond: word.start,
           endSecond: word.end,
         })) ?? [],
@@ -177,6 +177,7 @@ const deepgramTranscriptionResponseSchema = z.object({
               words: z.array(
                 z.object({
                   word: z.string(),
+                  punctuated_word: z.string().nullish(),
                   start: z.number(),
                   end: z.number(),
                 }),
