@@ -3,6 +3,7 @@ import { APICallError } from '@ai-sdk/provider';
 import { createDeepgram } from './deepgram-provider';
 import { DeepgramSpeechModel } from './deepgram-speech-model';
 import { describe, it, expect, vi } from 'vitest';
+import fs from 'node:fs';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
@@ -267,6 +268,29 @@ describe('doGenerate', () => {
     expect(url.searchParams.get('callback_method')).toBe('POST');
     expect(url.searchParams.get('mip_opt_out')).toBe('true');
     expect(url.searchParams.get('tag')).toBe('test-tag');
+  });
+
+  it('should reject callback acknowledgements instead of returning them as audio', async () => {
+    server.urls['https://api.deepgram.com/v1/speak'].response = {
+      type: 'json-value',
+      body: JSON.parse(
+        fs.readFileSync(
+          'src/__fixtures__/deepgram-speech-callback-acknowledgement.json',
+          'utf8',
+        ),
+      ),
+    };
+
+    await expect(
+      provider.speech('aura-2-thalia-en').doGenerate({
+        text: 'Hello',
+        providerOptions: {
+          deepgram: {
+            callback: 'https://example.com/callback',
+          },
+        },
+      }),
+    ).rejects.toThrow();
   });
 
   it('should handle array tag', async () => {
