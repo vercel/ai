@@ -360,6 +360,10 @@ export const createBinaryResponseHandler =
         value: new Uint8Array(buffer),
       };
     } catch (error) {
+      if (isAbortError(error)) {
+        throw error;
+      }
+
       throw new APICallError({
         message: 'Failed to read response as array buffer',
         url,
