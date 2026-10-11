@@ -150,6 +150,40 @@ describe('detectMediaType signature matching', () => {
       ).toBe('image/webp');
     });
 
+    it.each([
+      {
+        name: 'leading whitespace',
+        format: (base64: string) => `${' '.repeat(16)}${base64}`,
+      },
+      {
+        name: 'folded lines',
+        format: (base64: string) =>
+          base64.match(/.{1,4}/g)?.join('\r\n') ?? base64,
+      },
+    ])('should detect WebP from base64 with $name', ({ format }) => {
+      const webpBytes = new Uint8Array([
+        0x52,
+        0x49,
+        0x46,
+        0x46, // "RIFF"
+        0x24,
+        0x00,
+        0x00,
+        0x00, // file size
+        0x57,
+        0x45,
+        0x42,
+        0x50, // "WEBP"
+      ]);
+
+      expect(
+        detectMediaType({
+          data: format(convertUint8ArrayToBase64(webpBytes)),
+          topLevelType: 'image',
+        }),
+      ).toBe('image/webp');
+    });
+
     it('should NOT detect RIFF audio as WebP from bytes (negative riff audio uint8)', () => {
       // WAV format: RIFF + file size + WAVE (not WEBP)
       const wavBytes = new Uint8Array([
