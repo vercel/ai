@@ -5,7 +5,7 @@ import {
   type LanguageModelV4GenerateResult,
   type LanguageModelV4Usage,
 } from '@ai-sdk/provider';
-import { jsonSchema } from '@ai-sdk/provider-utils';
+import { DownloadError, jsonSchema } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
@@ -967,6 +967,29 @@ describe('getBatchResults', () => {
       },
     ]);
   });
+
+  it('keeps provider stream errors stream-wide when conversion errors are yielded', async () => {
+    const transportError = new Error('provider stream failed');
+    const batchApi = createMockBatchApi({
+      doGetBatchResults: async () =>
+        new ReadableStream({
+          start(controller) {
+            controller.error(transportError);
+          },
+        }),
+    });
+
+    await expect(
+      convertReadableStreamToArray(
+        getBatchResults({
+          provider: batchApi,
+          batch: batchReference,
+          maxRetries: 0,
+          onConversionError: 'yield',
+        }),
+      ),
+    ).rejects.toBe(transportError);
+  });
 });
 
 describe('batch generated file downloads', () => {
@@ -1028,6 +1051,167 @@ describe('batch generated file downloads', () => {
     },
   );
 
+  it('throws on a conversion error by default and does not yield later items', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('download failed', { status: 503 })),
+    );
+    const batchApi = createMockBatchApi({
+      doGetBatchResults: async () =>
+        convertArrayToReadableStream([
+          {
+            type: 'text',
+            id: 'before',
+            status: 'succeeded',
+            result: {
+              content: [{ type: 'text', text: 'first' }],
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+              warnings: [],
+            },
+          },
+          {
+            type: 'text',
+            id: 'file',
+            status: 'succeeded',
+            result: {
+              content: [
+                {
+                  type: 'file',
+                  mediaType: 'text/plain',
+                  data: {
+                    type: 'url',
+                    url: new URL('https://example.com/batch.txt'),
+                  },
+                },
+              ],
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+              warnings: [],
+            },
+          },
+          {
+            type: 'text',
+            id: 'after',
+            status: 'succeeded',
+            result: {
+              content: [{ type: 'text', text: 'last' }],
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+              warnings: [],
+            },
+          },
+        ]),
+    });
+    const seen: string[] = [];
+
+    await expect(async () => {
+      for await (const item of getBatchResults({
+        provider: batchApi,
+        batch: batchReference,
+        maxRetries: 0,
+      })) {
+        seen.push(item.id);
+      }
+    }).rejects.toBeInstanceOf(DownloadError);
+    expect(seen).toEqual(['before']);
+  });
+
+  it('yields item-local conversion failures and continues with later items', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('download failed', { status: 503 })),
+    );
+    let callCount = 0;
+    const rawResult: LanguageModelV4GenerateResult = {
+      content: [
+        {
+          type: 'file',
+          mediaType: 'text/plain',
+          data: {
+            type: 'url',
+            url: new URL('https://example.com/batch.txt'),
+          },
+        },
+      ],
+      finishReason: { unified: 'stop', raw: 'stop' },
+      usage: testUsage,
+      warnings: [],
+    };
+    const batchApi = createMockBatchApi({
+      doGetBatchResults: async () => {
+        callCount++;
+        return convertArrayToReadableStream([
+          {
+            type: 'text',
+            id: 'before',
+            status: 'succeeded',
+            result: {
+              content: [{ type: 'text', text: 'first' }],
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+              warnings: [],
+            },
+          },
+          {
+            type: 'text',
+            id: 'file',
+            status: 'succeeded',
+            result: rawResult,
+          },
+          {
+            type: 'text',
+            id: 'provider-failure',
+            status: 'failed',
+            error: { message: 'provider failed', code: 'bad_request' },
+          },
+          {
+            type: 'text',
+            id: 'after',
+            status: 'succeeded',
+            result: {
+              content: [{ type: 'text', text: 'last' }],
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+              warnings: [],
+            },
+          },
+        ]);
+      },
+    });
+
+    const results = await convertReadableStreamToArray(
+      getBatchResults({
+        provider: batchApi,
+        batch: batchReference,
+        maxRetries: 0,
+        onConversionError: 'yield',
+      }),
+    );
+
+    expect(callCount).toBe(1);
+    expect(results.map(item => [item.id, item.status])).toEqual([
+      ['before', 'succeeded'],
+      ['file', 'conversion-failed'],
+      ['provider-failure', 'failed'],
+      ['after', 'succeeded'],
+    ]);
+    const conversionFailure = results[1];
+    expect(conversionFailure).toMatchObject({
+      type: 'text',
+      id: 'file',
+      status: 'conversion-failed',
+      error: {
+        name: 'AI_DownloadError',
+        statusCode: 503,
+      },
+    });
+    if (conversionFailure.status !== 'conversion-failed') {
+      throw new Error('Expected a conversion failure.');
+    }
+    expect(conversionFailure.rawResult).toBe(rawResult);
+  });
+
   it.each(['abort', 'timeout'] as const)(
     'cancels in-flight downloads on %s',
     async mode => {
@@ -1054,6 +1238,7 @@ describe('batch generated file downloads', () => {
           batch: batchReference,
           abortSignal: abortController.signal,
           timeout: mode === 'timeout' ? { totalMs: 100 } : undefined,
+          onConversionError: 'yield',
         }),
       );
       const rejected = expect(results).rejects.toBeDefined();

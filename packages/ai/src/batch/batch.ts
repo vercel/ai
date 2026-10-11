@@ -30,13 +30,17 @@ import { getTotalTimeoutMs } from '../prompt/request-options';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { asLanguageModelUsage } from '../types/usage';
-import { asAsyncIterableStream } from '../util/async-iterable-stream';
+import {
+  asAsyncIterableStream,
+  type AsyncIterableStream,
+} from '../util/async-iterable-stream';
 import { mergeAbortSignals } from '../util/merge-abort-signals';
 import { isDeepEqualData } from '../util/is-deep-equal-data';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
 import { asProviderV4 } from '../model/as-provider-v4';
 import type {
+  BatchItemConversionFailure,
   BatchItemResult,
   BatchProvider,
   BatchReference,
@@ -347,16 +351,29 @@ export async function getBatchStatus({
 /**
  * Streams complete terminal results for the requests in a batch.
  */
-export function getBatchResults<TOOLS extends ToolSet>({
+type GetBatchResultsOutput<
+  TOOLS extends ToolSet,
+  ON_CONVERSION_ERROR extends 'throw' | 'yield',
+> = ON_CONVERSION_ERROR extends 'yield'
+  ? BatchItemResult<TOOLS> | BatchItemConversionFailure
+  : BatchItemResult<TOOLS>;
+
+export function getBatchResults<
+  TOOLS extends ToolSet,
+  ON_CONVERSION_ERROR extends 'throw' | 'yield' = 'throw',
+>({
   provider,
   batch,
   tools,
+  onConversionError,
   providerOptions,
   maxRetries,
   abortSignal,
   headers,
   timeout,
-}: GetBatchResultsOptions<TOOLS>) {
+}: GetBatchResultsOptions<TOOLS, ON_CONVERSION_ERROR>): AsyncIterableStream<
+  GetBatchResultsOutput<TOOLS, ON_CONVERSION_ERROR>
+> {
   const batchApi = resolveBatchApi(provider);
   validateBatchReference({ batchApi, batch });
 
@@ -370,17 +387,33 @@ export function getBatchResults<TOOLS extends ToolSet>({
     maxRetries,
     abortSignal: operationAbortSignal,
   });
-  const transformer: Transformer<BatchV4ItemResult, BatchItemResult<TOOLS>> & {
-    cancel?: (reason?: unknown) => void;
-  } = {
+  const transformer: Transformer<
+    BatchV4ItemResult,
+    BatchItemResult<TOOLS> | BatchItemConversionFailure
+  > & { cancel?: (reason?: unknown) => void } = {
     async transform(item, controller) {
-      controller.enqueue(
-        await convertBatchItemResult({
-          item,
-          tools,
-          abortSignal: operationAbortSignal,
-        }),
-      );
+      try {
+        controller.enqueue(
+          await convertBatchItemResult({
+            item,
+            tools,
+            abortSignal: operationAbortSignal,
+          }),
+        );
+      } catch (error) {
+        operationAbortSignal?.throwIfAborted();
+
+        if (onConversionError !== 'yield' || item.status !== 'succeeded') {
+          throw error;
+        }
+
+        controller.enqueue(
+          createBatchItemConversionFailure({
+            item,
+            error,
+          }),
+        );
+      }
     },
 
     cancel(reason) {
@@ -391,7 +424,7 @@ export function getBatchResults<TOOLS extends ToolSet>({
   };
   const transform = new TransformStream<
     BatchV4ItemResult,
-    BatchItemResult<TOOLS>
+    BatchItemResult<TOOLS> | BatchItemConversionFailure
   >(transformer);
 
   void (async () => {
@@ -413,7 +446,36 @@ export function getBatchResults<TOOLS extends ToolSet>({
     }
   })();
 
-  return asAsyncIterableStream(transform.readable);
+  return asAsyncIterableStream(transform.readable) as AsyncIterableStream<
+    GetBatchResultsOutput<TOOLS, ON_CONVERSION_ERROR>
+  >;
+}
+
+function createBatchItemConversionFailure({
+  item,
+  error,
+}: {
+  item: Extract<BatchV4ItemResult, { status: 'succeeded' }>;
+  error: unknown;
+}): BatchItemConversionFailure {
+  switch (item.type) {
+    case 'text':
+      return {
+        type: item.type,
+        id: item.id,
+        status: 'conversion-failed',
+        error,
+        rawResult: item.result,
+      };
+    case 'image':
+      return {
+        type: item.type,
+        id: item.id,
+        status: 'conversion-failed',
+        error,
+        rawResult: item.result,
+      };
+  }
 }
 
 function resolveBatchApi(provider?: BatchProvider): BatchV4 {

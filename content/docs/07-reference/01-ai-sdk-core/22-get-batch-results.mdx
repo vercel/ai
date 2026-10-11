@@ -66,6 +66,13 @@ for await (const item of getBatchResults({ provider: anthropic, batch })) {
       description: 'Additional provider-specific options for result retrieval.',
     },
     {
+      name: 'onConversionError',
+      type: "'throw' | 'yield'",
+      isOptional: true,
+      description:
+        "Controls errors raised while converting an individual successful provider result. 'throw' errors the result stream (default). 'yield' emits an item with status 'conversion-failed' and continues with later items.",
+    },
+    {
       name: 'maxRetries',
       type: 'number',
       isOptional: true,
@@ -95,9 +102,11 @@ for await (const item of getBatchResults({ provider: anthropic, batch })) {
 
 ### Returns
 
-An `AsyncIterableStream<Experimental_BatchItemResult>` of succeeded,
-failed, cancelled, or expired request results. You can consume the stream as
-either an async iterable or a `ReadableStream`.
+By default, returns an `AsyncIterableStream<Experimental_BatchItemResult>` of
+succeeded, failed, cancelled, or expired request results. With
+`onConversionError: 'yield'`, the item type also includes
+`Experimental_BatchItemConversionFailure`. You can consume the stream as either
+an async iterable or a `ReadableStream`.
 
 Successful items contain `id`, `status: 'succeeded'`, `text`, normalized
 `content` (including text, reasoning, sources, files, tool calls, and tool
@@ -107,3 +116,31 @@ the concatenation of text parts and can be an empty string when a result
 contains no text parts.
 Failed, cancelled, and expired items contain the request `id`, their terminal
 status, and optional error details.
+
+By default, an error while converting a successful provider result, such as a
+failed download for URL-backed file content, errors the whole result stream.
+Set `onConversionError: 'yield'` to receive an item-local conversion failure
+and continue reading later results:
+
+```ts
+for await (const item of getBatchResults({
+  provider: anthropic,
+  batch,
+  onConversionError: 'yield',
+})) {
+  if (item.status === 'conversion-failed') {
+    console.error(item.id, item.error);
+    continue;
+  }
+
+  // Handle provider terminal statuses.
+}
+```
+
+A conversion-failure item contains `id`, `type`,
+`status: 'conversion-failed'`, the conversion `error`, and `rawResult`, which
+is the successful provider result before AI SDK normalization. Provider-stream
+errors, result-retrieval failures, aborts, timeouts, and consumer cancellation
+remain stream-wide. Retrieval is not retried or restarted after an item
+conversion failure. Treat `error` and `rawResult` as untrusted and potentially
+sensitive; do not log them indiscriminately.

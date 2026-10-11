@@ -5,6 +5,8 @@ import type {
   Experimental_BatchV4StartResult as BatchV4StartResult,
   Experimental_BatchV4Status as BatchV4Status,
   ImageModelV4ProviderMetadata,
+  ImageModelV4Result,
+  LanguageModelV4GenerateResult,
   ProviderV4,
 } from '@ai-sdk/provider';
 import type {
@@ -193,16 +195,32 @@ export type GetBatchStatusOptions = {
 /**
  * Options for retrieving batch results.
  */
-export type GetBatchResultsOptions<TOOLS extends ToolSet = ToolSet> =
-  GetBatchStatusOptions & {
-    /**
-     * Definitions for client tools that were provided to `startBatch` requests.
-     *
-     * The definitions are used only to validate and normalize returned tool
-     * calls. Their `execute` functions are never invoked.
-     */
-    tools?: TOOLS;
-  };
+type BatchItemConversionErrorMode = 'throw' | 'yield';
+
+export type GetBatchResultsOptions<
+  TOOLS extends ToolSet = ToolSet,
+  ON_CONVERSION_ERROR extends BatchItemConversionErrorMode =
+    BatchItemConversionErrorMode,
+> = GetBatchStatusOptions & {
+  /**
+   * Definitions for client tools that were provided to `startBatch` requests.
+   *
+   * The definitions are used only to validate and normalize returned tool
+   * calls. Their `execute` functions are never invoked.
+   */
+  tools?: TOOLS;
+
+  /**
+   * Controls how errors that occur while converting an individual successful
+   * provider result are handled.
+   *
+   * `'throw'` errors the result stream. `'yield'` emits a
+   * `BatchItemConversionFailure` and continues with later items.
+   *
+   * @default 'throw'
+   */
+  onConversionError?: ON_CONVERSION_ERROR;
+};
 
 /**
  * A normalized result for a successful text batch item.
@@ -278,6 +296,26 @@ export type ImageBatchItemResult = { readonly type: 'image' } & (
       readonly providerMetadata?: ProviderMetadata;
     }
 );
+
+/**
+ * An item-local failure that occurred while converting a successful provider
+ * result into an AI SDK result.
+ */
+export type BatchItemConversionFailure =
+  | {
+      readonly type: 'text';
+      readonly id: string;
+      readonly status: 'conversion-failed';
+      readonly error: unknown;
+      readonly rawResult: LanguageModelV4GenerateResult;
+    }
+  | {
+      readonly type: 'image';
+      readonly id: string;
+      readonly status: 'conversion-failed';
+      readonly error: unknown;
+      readonly rawResult: ImageModelV4Result;
+    };
 
 /**
  * A complete terminal result for one request in a batch.

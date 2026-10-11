@@ -19,6 +19,7 @@ export type {
   StartBatchOptions as Experimental_StartBatchOptions,
   StartBatchResult as Experimental_StartBatchResult,
   Batch as Experimental_Batch,
+  BatchItemConversionFailure as Experimental_BatchItemConversionFailure,
   BatchItemResult as Experimental_BatchItemResult,
   BatchRequest as Experimental_BatchRequest,
   ImageBatchGenerationResult as Experimental_ImageBatchGenerationResult,

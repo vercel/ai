@@ -37,6 +37,7 @@ import {
   type Experimental_StartBatchOptions as StartBatchOptions,
   type Experimental_StartBatchResult as StartBatchResult,
   type Experimental_Batch as Batch,
+  type Experimental_BatchItemConversionFailure as BatchItemConversionFailure,
   type Experimental_TextBatchGenerationResult as TextBatchGenerationResult,
   type Experimental_TextBatchItemResult as TextBatchItemResult,
   type Experimental_TextBatchRequest as TextBatchRequest,
@@ -98,6 +99,9 @@ it('accepts shared definition-only tools when starting and reading a batch', () 
   >().toEqualTypeOf<typeof tools | undefined>();
   expectTypeOf<GetBatchResultsOptions<typeof tools>['tools']>().toEqualTypeOf<
     typeof tools | undefined
+  >();
+  expectTypeOf<GetBatchResultsOptions['onConversionError']>().toEqualTypeOf<
+    'throw' | 'yield' | undefined
   >();
   expectTypeOf<'tools'>().not.toMatchTypeOf<keyof GetBatchStatusOptions>();
 });
@@ -300,7 +304,25 @@ it('exports the experimental batch functions with the public result types', () =
     // @ts-expect-error tools are only used when retrieving batch results
     tools: {},
   });
-  expectTypeOf(getBatchResults).returns.toEqualTypeOf<
+  expectTypeOf(getBatchResults({ batch: {} as BatchReference })).toEqualTypeOf<
     AsyncIterableStream<TextBatchItemResult | ImageBatchItemResult>
   >();
+
+  expectTypeOf(
+    getBatchResults({
+      batch: {} as BatchReference,
+      onConversionError: 'yield',
+    }),
+  ).toEqualTypeOf<
+    AsyncIterableStream<
+      TextBatchItemResult | ImageBatchItemResult | BatchItemConversionFailure
+    >
+  >();
+
+  expectTypeOf<
+    Extract<BatchItemConversionFailure, { type: 'text' }>['status']
+  >().toEqualTypeOf<'conversion-failed'>();
+  expectTypeOf<
+    Extract<BatchItemConversionFailure, { type: 'text' }>['rawResult']
+  >().toEqualTypeOf<LanguageModelV4GenerateResult>();
 });
