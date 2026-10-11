@@ -1223,6 +1223,66 @@ describe('generateText', () => {
   });
 
   describe('result.warnings', () => {
+    it('should add a structured warning when a tool-call batch consumes most of the output budget', async () => {
+      const providerWarning = {
+        type: 'other' as const,
+        message: 'provider warning',
+      };
+
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: {
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{}',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-2',
+                toolName: 'tool1',
+                input: '{}',
+              },
+            ],
+            finishReason: { unified: 'length', raw: 'length' },
+            usage: {
+              ...testUsage,
+              outputTokens: {
+                total: 32,
+                text: 32,
+                reasoning: undefined,
+              },
+            },
+            warnings: [providerWarning],
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({}),
+          }),
+        },
+        maxOutputTokens: 32,
+        prompt: 'call the tool twice',
+      });
+
+      expect(result.warnings).toEqual([
+        providerWarning,
+        {
+          type: 'tool-call-batch-output-budget',
+          maxOutputTokens: 32,
+          outputTokens: 32,
+          outputTokenUtilization: 1,
+          toolCallCount: 2,
+          stepNumber: 0,
+          finishReason: 'length',
+        },
+      ]);
+      expect(result.finalStep.warnings).toEqual(result.warnings);
+    });
+
     it('should contain warnings from all steps', async () => {
       let responseCount = 0;
       const warning0 = { type: 'other' as const, message: 'step 0 warning' };

@@ -35,6 +35,10 @@ Language model call options (`LanguageModelCallOptions`) are settings that influ
 
 Maximum number of tokens to generate.
 
+When an explicit output limit is set, `generateText` and `streamText` also use
+it to detect tool-call batches that consume at least 80% of the available
+budget. See [Tool-Call Batch Output Budget Warnings](/docs/ai-sdk-core/tools-and-tool-calling#tool-call-batch-output-budget-warnings).
+
 ### `temperature`
 
 Temperature setting.

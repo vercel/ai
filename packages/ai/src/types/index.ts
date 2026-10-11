@@ -11,6 +11,7 @@ export type {
   CallWarningRegistry,
   FinishReason,
   LanguageModel,
+  ToolCallBatchOutputBudgetWarning,
   ToolChoice,
 } from './language-model';
 export type { LanguageModelMiddleware } from './language-model-middleware';

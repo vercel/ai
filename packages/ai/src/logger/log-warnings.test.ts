@@ -1,5 +1,6 @@
 import type { SharedV4Warning } from '@ai-sdk/provider';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { CallWarning } from '../types';
 import type { Warning } from '../types/warning';
 import {
   FIRST_WARNING_INFO_MESSAGE,
@@ -166,6 +167,30 @@ describe('logWarnings', () => {
       expect(mockProcessEmitWarning).toHaveBeenNthCalledWith(
         2,
         'AI SDK Warning (myProvider / myModel): Test warning message',
+        { type: 'Warning' },
+      );
+    });
+
+    it('should format tool-call batch output budget warnings', () => {
+      logWarnings({
+        warnings: [
+          {
+            type: 'tool-call-batch-output-budget',
+            maxOutputTokens: 32,
+            outputTokens: 32,
+            outputTokenUtilization: 1,
+            toolCallCount: 2,
+            stepNumber: 0,
+            finishReason: 'length',
+          },
+        ] satisfies CallWarning[],
+        provider: 'myProvider',
+        model: 'myModel',
+      });
+
+      expect(mockProcessEmitWarning).toHaveBeenNthCalledWith(
+        2,
+        'AI SDK Warning (myProvider / myModel): A batch of 2 tool calls consumed 32 of 32 configured output tokens in step 0, which may truncate the batch. Increase maxOutputTokens or reduce the number or size of tool calls.',
         { type: 'Warning' },
       );
     });

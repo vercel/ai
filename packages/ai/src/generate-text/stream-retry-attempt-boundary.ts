@@ -1,16 +1,16 @@
-import type { SharedV4Warning } from '@ai-sdk/provider';
+import type { CallWarning } from '../types';
 
 const streamRetryAttemptBoundarySymbol = Symbol('streamRetryAttemptBoundary');
 
 export type StreamRetryAttemptBoundaryPart = {
   [streamRetryAttemptBoundarySymbol]: true;
-  warnings: Array<SharedV4Warning>;
+  warnings: Array<CallWarning>;
 };
 
 export function createStreamRetryAttemptBoundaryPart({
   warnings,
 }: {
-  warnings: Array<SharedV4Warning>;
+  warnings: Array<CallWarning>;
 }): StreamRetryAttemptBoundaryPart {
   return {
     [streamRetryAttemptBoundarySymbol]: true,

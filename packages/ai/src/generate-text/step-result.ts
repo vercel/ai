@@ -255,7 +255,7 @@ export type StepResult<
   readonly performance: StepResultPerformance;
 
   /**
-   * Warnings from the model provider (e.g. unsupported settings).
+   * Provider warnings and AI SDK diagnostics for this step.
    */
   readonly warnings: CallWarning[] | undefined;
 

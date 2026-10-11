@@ -40,6 +40,7 @@ import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import type { Telemetry, TelemetryDispatcher } from '../telemetry/telemetry';
 import type { TelemetryOptions } from '../telemetry/telemetry-options';
 import type {
+  CallWarning,
   LanguageModel,
   LanguageModelRequestMetadata,
   ToolChoice,
@@ -76,6 +77,7 @@ import type {
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
 } from './generate-text-events';
+import { getToolCallBatchOutputBudgetWarning } from './get-tool-call-batch-output-budget-warning';
 import { DefaultGenerateTextResult } from './default-generate-text-result';
 import type { GenerateTextResult } from './generate-text-result';
 import { isToolExecutionAllowedFinishReason } from './is-tool-execution-allowed-finish-reason';
@@ -1470,6 +1472,22 @@ export async function generateText<
                   : undefined,
               };
 
+              const stepWarnings: CallWarning[] = [
+                ...(currentModelResponse.warnings ?? []),
+              ];
+              const toolCallBatchOutputBudgetWarning =
+                getToolCallBatchOutputBudgetWarning({
+                  maxOutputTokens: stepCallSettings.maxOutputTokens,
+                  outputTokens: stepUsage.outputTokens,
+                  toolCallCount: stepToolCalls.length,
+                  stepNumber,
+                  finishReason: currentModelResponse.finishReason.unified,
+                });
+
+              if (toolCallBatchOutputBudgetWarning != null) {
+                stepWarnings.push(toolCallBatchOutputBudgetWarning);
+              }
+
               const currentStepResult: StepResult<TOOLS, RUNTIME_CONTEXT> =
                 new DefaultStepResult({
                   callId,
@@ -1482,7 +1500,7 @@ export async function generateText<
                   rawFinishReason: currentModelResponse.finishReason.raw,
                   usage: stepUsage,
                   performance: stepPerformance,
-                  warnings: currentModelResponse.warnings,
+                  warnings: stepWarnings,
                   providerMetadata: currentModelResponse.providerMetadata,
                   request: stepRequest,
                   response: stepResponse,
@@ -1490,7 +1508,7 @@ export async function generateText<
                 });
 
               logWarnings({
-                warnings: currentModelResponse.warnings ?? [],
+                warnings: stepWarnings,
                 provider: stepModel.provider,
                 model: stepModel.modelId,
               });

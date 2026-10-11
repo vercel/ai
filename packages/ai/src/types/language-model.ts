@@ -81,11 +81,50 @@ export type FinishReason =
   | 'other';
 
 /**
+ * Warning that a batch of tool calls consumed most of the configured output
+ * token budget and may be at risk of truncation.
+ */
+export type ToolCallBatchOutputBudgetWarning = {
+  readonly type: 'tool-call-batch-output-budget';
+
+  /**
+   * The configured maximum number of output tokens for the model call.
+   */
+  readonly maxOutputTokens: number;
+
+  /**
+   * The number of output tokens reported by the model call.
+   */
+  readonly outputTokens: number;
+
+  /**
+   * The fraction of the configured output token budget that was consumed.
+   */
+  readonly outputTokenUtilization: number;
+
+  /**
+   * The number of tool calls in the generated batch.
+   */
+  readonly toolCallCount: number;
+
+  /**
+   * The zero-based index of the generation step.
+   */
+  readonly stepNumber: number;
+
+  /**
+   * The unified reason why the model call finished.
+   */
+  readonly finishReason: FinishReason;
+};
+
+/**
  * Registry for call warning variants. Packages that expose additional warning
  * protocols can augment this interface.
  */
 export interface CallWarningRegistry {
   sharedV4: SharedV4Warning;
+  toolCallBatchOutputBudget: ToolCallBatchOutputBudgetWarning;
 }
 
 /**
