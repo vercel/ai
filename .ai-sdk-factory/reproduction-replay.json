@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22878,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22878-tool-timeout-late-success.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22878-tool-timeout-late-success.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22878_REPRODUCED: toolMs accepted a late successful tool result"
+  }
+}
