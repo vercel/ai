@@ -48,7 +48,7 @@ import type {
 import {
   addLanguageModelUsage,
   asLanguageModelUsage,
-  type LanguageModelUsage,
+  createNullLanguageModelUsage,
 } from '../types/usage';
 import type { DownloadFunction } from '../util/download/download-function';
 import { getOwn } from '../util/get-own';
@@ -1524,25 +1524,9 @@ export async function generateText<
 
       const lastStep = steps[steps.length - 1];
 
-      const totalUsage = steps.reduce(
-        (totalUsage, step) => {
-          return addLanguageModelUsage(totalUsage, step.usage);
-        },
-        {
-          inputTokens: undefined,
-          inputTokenDetails: {
-            noCacheTokens: undefined,
-            cacheReadTokens: undefined,
-            cacheWriteTokens: undefined,
-          },
-          outputTokens: undefined,
-          outputTokenDetails: {
-            textTokens: undefined,
-            reasoningTokens: undefined,
-          },
-          totalTokens: undefined,
-        } as LanguageModelUsage,
-      );
+      const totalUsage = steps.reduce((totalUsage, step) => {
+        return addLanguageModelUsage(totalUsage, step.usage);
+      }, createNullLanguageModelUsage());
 
       const files = steps.flatMap(step => step.files);
       const sources = steps.flatMap(step => step.sources);
