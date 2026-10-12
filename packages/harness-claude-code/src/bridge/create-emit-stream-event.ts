@@ -98,6 +98,24 @@ export type ClaudeStreamEventState = {
   externalMcpToolUseIds: Set<string>;
   structuredOutputToolUseIds: Set<string>;
   observedTerminalError: string | undefined;
+  /*
+   * Tool calls of the open step whose progress depends on the host: host
+   * tools waiting for their result, permission prompts waiting for a
+   * decision, and questions waiting for an answer. When every pending call of
+   * the step is in this set, Claude cannot make progress until the host
+   * responds, so the mapper emits an early `finish-step` that lets the host
+   * pause the turn. The step stays open until the regular `finish-step`.
+   */
+  hostInputWaitingToolUseIds: Set<string>;
+  earlyFinishStepToolUseIds: Set<string>;
+  emittedToolCallIds: Set<string>;
+  /*
+   * Claude reports each `tool_use` block of a response separately, and may
+   * start executing a tool before the response finishes streaming. An early
+   * `finish-step` is held back until the response ends, so it covers every
+   * tool call of that response.
+   */
+  modelResponseStreaming: boolean;
 };
 
 type PartialBlock =
@@ -121,6 +139,10 @@ export function createClaudeStreamEventState(): ClaudeStreamEventState {
     externalMcpToolUseIds: new Set(),
     structuredOutputToolUseIds: new Set(),
     observedTerminalError: undefined,
+    hostInputWaitingToolUseIds: new Set(),
+    earlyFinishStepToolUseIds: new Set(),
+    emittedToolCallIds: new Set(),
+    modelResponseStreaming: false,
   };
 }
 
@@ -282,12 +304,24 @@ export function createEmitStreamEvent({
             continue;
           }
           if (block.name.startsWith(HOST_TOOL_PREFIX)) {
+            const hostToolName = block.name.slice(HOST_TOOL_PREFIX.length);
             state.pendingStepToolUseIds.add(block.id);
             state.mcpToolCalls.set(block.id, {
-              toolName: block.name.slice(HOST_TOOL_PREFIX.length),
+              toolName: hostToolName,
               input: block.input ?? {},
             });
+            state.hostInputWaitingToolUseIds.add(block.id);
             opensStep = true;
+            if (!state.emittedToolCallIds.has(block.id)) {
+              state.emittedToolCallIds.add(block.id);
+              emit({
+                type: 'tool-call',
+                toolCallId: block.id,
+                toolName: hostToolName,
+                input: JSON.stringify(block.input ?? {}),
+                providerExecuted: false,
+              });
+            }
             continue;
           }
           state.nativeToolCallNames.set(block.id, block.name);
@@ -320,6 +354,9 @@ export function createEmitStreamEvent({
           state.pendingStepAssistantUsage = usage;
           updatePendingStepUsage(state);
         }
+        if (state.hostInputWaitingToolUseIds.size > 0) {
+          closeStepIfReady({ state, emit });
+        }
       }
       return;
     }
@@ -348,6 +385,7 @@ export function createEmitStreamEvent({
             });
             state.mcpToolCalls.delete(block.tool_use_id);
             state.pendingStepToolUseIds.delete(block.tool_use_id);
+            state.hostInputWaitingToolUseIds.delete(block.tool_use_id);
             if (handlerReportedCall) {
               continue;
             }
@@ -362,14 +400,19 @@ export function createEmitStreamEvent({
                     isError,
                     rawContent: block.content,
                   });
-            emit({
-              type: 'tool-call',
-              toolCallId: block.tool_use_id,
-              toolName: mcpToolCall.toolName,
-              input: JSON.stringify(mcpToolCall.input),
-              // MCP rejected this call before asking the host to execute it.
-              providerExecuted: true,
-            });
+            if (!state.emittedToolCallIds.has(block.tool_use_id)) {
+              state.emittedToolCallIds.add(block.tool_use_id);
+              emit({
+                type: 'tool-call',
+                toolCallId: block.tool_use_id,
+                toolName: mcpToolCall.toolName,
+                input: JSON.stringify(mcpToolCall.input),
+                /*
+                 * MCP rejected this call before asking the host to execute it.
+                 */
+                providerExecuted: true,
+              });
+            }
             emit({
               type: 'tool-result',
               toolCallId: block.tool_use_id,
@@ -452,18 +495,59 @@ function takeMcpHandlerCall({
   return false;
 }
 
-export function finishApprovalStep({
+export function markWaitingOnHostInput({
   state,
   emit,
-  approvalId,
+  toolUseId,
 }: {
   state: ClaudeStreamEventState;
   emit: Emit;
-  approvalId: string;
+  toolUseId: string;
 }): void {
   state.stepOpen = true;
-  state.pendingStepToolUseIds.delete(approvalId);
+  state.pendingStepToolUseIds.add(toolUseId);
+  state.hostInputWaitingToolUseIds.add(toolUseId);
   closeStepIfReady({ state, emit });
+}
+
+export function clearWaitingOnHostInput({
+  state,
+  toolUseId,
+}: {
+  state: ClaudeStreamEventState;
+  toolUseId: string;
+}): void {
+  state.hostInputWaitingToolUseIds.delete(toolUseId);
+}
+
+/*
+ * Resolves the `tool_use` id of a host tool call that reached the MCP
+ * handler. Claude normally passes the id as request metadata; otherwise the
+ * handler call is matched to a reported host tool call with the same name and
+ * input that is not yet waiting on the host.
+ */
+export function resolveMcpHandlerToolUseId({
+  state,
+  metadataToolUseId,
+  toolName,
+  input,
+}: {
+  state: ClaudeStreamEventState;
+  metadataToolUseId: string | undefined;
+  toolName: string;
+  input: unknown;
+}): string | undefined {
+  if (metadataToolUseId != null) return metadataToolUseId;
+  for (const [toolUseId, toolCall] of state.mcpToolCalls) {
+    if (
+      !state.mcpHandlerCalls.has(toolUseId) &&
+      toolCall.toolName === toolName &&
+      isDeepStrictEqual(toolCall.input, input)
+    ) {
+      return toolUseId;
+    }
+  }
+  return undefined;
 }
 
 export function emitFinishStep({
@@ -485,6 +569,7 @@ export function emitFinishStep({
   state.pendingStepDeltaUsage = undefined;
   state.pendingStepUsage = undefined;
   state.pendingStepToolUseIds = new Set();
+  state.earlyFinishStepToolUseIds = new Set();
   state.stepOpen = false;
 }
 
@@ -495,14 +580,52 @@ function closeStepIfReady({
   state: ClaudeStreamEventState;
   emit: Emit;
 }): void {
+  if (!state.stepOpen || state.partialBlocks.size > 0) {
+    return;
+  }
+  if (state.pendingStepToolUseIds.size === 0) {
+    emitFinishStep({ state, emit, usage: state.pendingStepUsage });
+    return;
+  }
+  emitEarlyFinishStepIfReady({ state, emit });
+}
+
+function emitEarlyFinishStepIfReady({
+  state,
+  emit,
+}: {
+  state: ClaudeStreamEventState;
+  emit: Emit;
+}): void {
   if (
     !state.stepOpen ||
-    state.pendingStepToolUseIds.size > 0 ||
-    state.partialBlocks.size > 0
+    state.partialBlocks.size > 0 ||
+    state.modelResponseStreaming ||
+    state.pendingStepToolUseIds.size === 0
   ) {
     return;
   }
-  emitFinishStep({ state, emit, usage: state.pendingStepUsage });
+  for (const toolUseId of state.pendingStepToolUseIds) {
+    if (state.hostInputWaitingToolUseIds.has(toolUseId)) continue;
+    return;
+  }
+  const uncovered = [...state.hostInputWaitingToolUseIds].filter(
+    toolUseId =>
+      state.pendingStepToolUseIds.has(toolUseId) &&
+      !state.earlyFinishStepToolUseIds.has(toolUseId),
+  );
+  if (uncovered.length === 0) {
+    return;
+  }
+  for (const toolUseId of uncovered) {
+    state.earlyFinishStepToolUseIds.add(toolUseId);
+  }
+  emit({
+    type: 'finish-step',
+    finishReason: { unified: 'tool-calls', raw: 'host-input' },
+    usage: defaultUsage(),
+    harnessMetadata: { 'claude-code': { inferredStep: true } },
+  });
 }
 
 function formatApiRetryWarning(msg: ClaudeMessage): string {
@@ -540,6 +663,7 @@ function handleStreamEvent({
   if (!event) return;
 
   if (event.type === 'message_start') {
+    state.modelResponseStreaming = true;
     state.pendingResponseUsage = toUsageRecord(event.message?.usage);
     return;
   }
@@ -569,6 +693,8 @@ function handleStreamEvent({
       },
     });
     state.pendingResponseUsage = undefined;
+    state.modelResponseStreaming = false;
+    emitEarlyFinishStepIfReady({ state, emit: send });
     return;
   }
 

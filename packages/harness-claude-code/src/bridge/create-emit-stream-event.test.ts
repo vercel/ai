@@ -2,8 +2,10 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   type ClaudeMessage,
+  clearWaitingOnHostInput,
   createClaudeStreamEventState,
   createEmitStreamEvent,
+  markWaitingOnHostInput,
 } from './create-emit-stream-event';
 
 describe('createEmitStreamEvent', () => {
@@ -1530,5 +1532,107 @@ describe('createEmitStreamEvent', () => {
         .filter(event => event.type === 'tool-result')
         .map(event => event.result),
     ).toEqual([imageContent, '42']);
+  });
+
+  it('emits an early finish-step per host tool call that waits while later calls are queued', () => {
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emit = (event: Record<string, unknown>) => emitted.push(event);
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit,
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+    const finishSteps = () =>
+      emitted.filter(event => event.type === 'finish-step');
+
+    emitStreamEvent({ type: 'stream_event', event: { type: 'message_start' } });
+    emitStreamEvent({
+      type: 'assistant',
+      message: {
+        content: [
+          {
+            type: 'tool_use',
+            id: 'toolu_paris',
+            name: 'mcp__harness-tools__get_weather',
+            input: { city: 'Paris' },
+          },
+        ],
+      },
+    });
+    markWaitingOnHostInput({ state, emit, toolUseId: 'toolu_paris' });
+    emitStreamEvent({
+      type: 'assistant',
+      message: {
+        content: [
+          {
+            type: 'tool_use',
+            id: 'toolu_tokyo',
+            name: 'mcp__harness-tools__get_weather',
+            input: { city: 'Tokyo' },
+          },
+        ],
+      },
+    });
+
+    expect(finishSteps()).toHaveLength(0);
+
+    emitStreamEvent({ type: 'stream_event', event: { type: 'message_stop' } });
+
+    expect(finishSteps()).toHaveLength(1);
+
+    clearWaitingOnHostInput({ state, toolUseId: 'toolu_paris' });
+    state.mcpHandlerCalls.set('toolu_tokyo', {
+      toolName: 'get_weather',
+      input: { city: 'Tokyo' },
+    });
+    markWaitingOnHostInput({ state, emit, toolUseId: 'toolu_tokyo' });
+
+    expect(finishSteps().slice(1)).toMatchInlineSnapshot(`
+      [
+        {
+          "finishReason": {
+            "raw": "host-input",
+            "unified": "tool-calls",
+          },
+          "harnessMetadata": {
+            "claude-code": {
+              "inferredStep": true,
+            },
+          },
+          "type": "finish-step",
+          "usage": {
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "noCache": 0,
+              "total": 0,
+            },
+            "outputTokens": {
+              "text": 0,
+              "total": 0,
+            },
+          },
+        },
+      ]
+    `);
+
+    clearWaitingOnHostInput({ state, toolUseId: 'toolu_tokyo' });
+    emitStreamEvent({
+      type: 'user',
+      message: {
+        content: [
+          { type: 'tool_result', tool_use_id: 'toolu_paris', content: '{}' },
+          { type: 'tool_result', tool_use_id: 'toolu_tokyo', content: '{}' },
+        ],
+      },
+    });
+
+    expect(
+      finishSteps().map(event => (event.finishReason as { raw: string }).raw),
+    ).toEqual(['host-input', 'host-input', 'stop']);
   });
 });

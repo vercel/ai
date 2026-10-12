@@ -157,6 +157,7 @@ export function createCodexAppServerRuntime(): {
             dynamicTools: active.dynamicTools,
             emit: active.options.emit,
             requestToolResult: active.options.turn.requestToolResult,
+            stepTracker: active.options.stepTracker,
           }).catch(error => {
             active.fail(error);
             throw error;
@@ -526,11 +527,13 @@ export async function handleAppServerRequest({
   dynamicTools,
   emit,
   requestToolResult,
+  stepTracker,
 }: {
   request: CodexAppServerRequest;
   dynamicTools: ReturnType<typeof createDynamicTools>;
   emit: Emit;
   requestToolResult: BridgeTurn['requestToolResult'];
+  stepTracker: CodexStepTracker;
 }): Promise<unknown> {
   if (request.method !== 'item/tool/call') {
     throw new Error(
@@ -558,7 +561,11 @@ export async function handleAppServerRequest({
     input: JSON.stringify(params.arguments ?? {}),
     providerExecuted: false,
   });
-  const result = await requestToolResult(params.callId);
+  const callId = params.callId;
+  stepTracker.awaitHostInput({ itemId: callId });
+  const result = await requestToolResult(callId).finally(() =>
+    stepTracker.resolveHostInput({ itemId: callId }),
+  );
   emit({
     type: 'tool-result',
     toolCallId: params.callId,

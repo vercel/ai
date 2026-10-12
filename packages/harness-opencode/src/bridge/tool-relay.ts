@@ -11,6 +11,7 @@ export async function startAuthorizedToolRelay({
   tools,
   emit,
   requestToolResult,
+  onWaitingChange,
   authorizer = new ToolRelayAuthorizer(),
 }: {
   tools: ReadonlyArray<{ name: string }>;
@@ -18,6 +19,7 @@ export async function startAuthorizedToolRelay({
   requestToolResult: (
     toolCallId: string,
   ) => Promise<{ output: unknown; isError?: boolean }>;
+  onWaitingChange?: (input: { requestId: string; waiting: boolean }) => void;
   authorizer?: ToolRelayAuthorizer;
 }): Promise<ToolRelay> {
   const toolNames = new Set(tools.map(tool => tool.name));
@@ -62,7 +64,10 @@ export async function startAuthorizedToolRelay({
         providerExecuted: false,
       });
 
-      const { output, isError } = await requestToolResult(requestId);
+      onWaitingChange?.({ requestId, waiting: true });
+      const { output, isError } = await requestToolResult(requestId).finally(
+        () => onWaitingChange?.({ requestId, waiting: false }),
+      );
       emit({
         type: 'tool-result',
         toolCallId: requestId,

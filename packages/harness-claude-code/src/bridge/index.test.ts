@@ -1080,14 +1080,14 @@ describe('Claude Code bridge configuration', () => {
     expect(state.emitted.filter(event => event.type === 'tool-call')).toEqual([
       {
         type: 'tool-call',
-        toolCallId: 'host-tool-2',
+        toolCallId: 'host-tool-1',
         toolName: 'weather',
         input: '{"city":"Chicago","unit":"C"}',
         providerExecuted: false,
       },
       {
         type: 'tool-call',
-        toolCallId: 'host-tool-1',
+        toolCallId: 'host-tool-2',
         toolName: 'weather',
         input: '{"city":"Chicago","unit":"C"}',
         providerExecuted: false,
@@ -1237,7 +1237,7 @@ describe('Claude Code bridge configuration', () => {
       expect(completedCalls[0]).toMatchObject({
         toolCallId: 'host-1',
         toolName: 'weather',
-        providerExecuted: reachedHandler ? false : true,
+        providerExecuted: false,
       });
       expect(results[0]).toMatchObject({
         toolCallId: 'host-1',
