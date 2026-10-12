@@ -89,6 +89,7 @@ export function toUIMessageChunk<
       return {
         type: 'text-end',
         id: part.id,
+        ...(part.citations != null ? { citations: part.citations } : {}),
         ...(part.providerMetadata != null
           ? { providerMetadata: part.providerMetadata }
           : {}),

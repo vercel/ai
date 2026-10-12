@@ -7,6 +7,7 @@ import {
 } from 'ai';
 import {
   asLanguageModelUsage,
+  convertToLanguageModelPrompt,
   parseToolCall,
   prepareLanguageModelCallOptions,
   prepareRetries,
@@ -14,6 +15,7 @@ import {
   prepareTools,
   resolveLanguageModel,
 } from 'ai/internal';
+import { languageModelPromptToModelMessages } from './language-model-prompt-to-model-messages.js';
 import type {
   ModelCallOptions,
   ModelCallRawContentPart,
@@ -25,6 +27,10 @@ import {
   resolveSerializableTools,
   type SerializableToolDef,
 } from './serializable-schema.js';
+import {
+  runModelCallWithTelemetry,
+  type LanguageModelCallTelemetry,
+} from './model-call-telemetry.js';
 
 /** A single durable provider call; orchestration and callbacks stay in the workflow. */
 export async function doGenerateStep(
@@ -35,19 +41,34 @@ export async function doGenerateStep(
 ): Promise<ModelCallResult> {
   'use step';
 
-  try {
-    return await generateModelCall(prompt, modelInit, serializedTools, options);
-  } catch (error) {
-    // Carry failures as data so Workflow does not normalize arbitrary thrown
-    // values (including undefined) before the agent rejects in workflow code.
-    return {
-      toolCalls: [],
-      finish: undefined,
-      raw: { content: [], reasoning: [] },
-      providerExecutedToolResults: new Map(),
-      terminalError: error,
-    };
-  }
+  return runModelCallWithTelemetry({
+    telemetry: options.telemetry,
+    modelInit,
+    prompt,
+    serializedTools,
+    options,
+    execute: async languageModelCallTelemetry => {
+      try {
+        return await generateModelCall(
+          prompt,
+          modelInit,
+          serializedTools,
+          options,
+          languageModelCallTelemetry,
+        );
+      } catch (error) {
+        // Carry failures as data so Workflow does not normalize arbitrary thrown
+        // values (including undefined) before the agent rejects in workflow code.
+        return {
+          toolCalls: [],
+          finish: undefined,
+          raw: { content: [], reasoning: [] },
+          providerExecutedToolResults: new Map(),
+          terminalError: error,
+        };
+      }
+    },
+  });
 }
 
 async function generateModelCall(
@@ -55,6 +76,7 @@ async function generateModelCall(
   modelInit: LanguageModel,
   serializedTools: Record<string, SerializableToolDef>,
   options: ModelCallOptions,
+  languageModelCallTelemetry: LanguageModelCallTelemetry | undefined,
 ): Promise<ModelCallResult> {
   const remaining =
     options.timeoutAt == null ? undefined : options.timeoutAt - Date.now();
@@ -70,6 +92,16 @@ async function generateModelCall(
           AbortSignal.timeout(remaining),
         ]);
   const model = resolveLanguageModel(modelInit);
+  const modelPrompt = await convertToLanguageModelPrompt({
+    prompt: {
+      instructions: undefined,
+      messages: languageModelPromptToModelMessages(prompt),
+    },
+    supportedUrls: await model.supportedUrls,
+    download: options.download,
+    abortSignal,
+    provider: model.provider.split('.')[0],
+  });
   const tools = resolveSerializableTools(serializedTools);
   const toolChoice = prepareToolChoice({ toolChoice: options.toolChoice });
   const modelTools = await prepareTools({ tools });
@@ -77,6 +109,20 @@ async function generateModelCall(
   const { retry } = prepareRetries({
     maxRetries: options.maxRetries,
     abortSignal,
+  });
+  const callId = languageModelCallTelemetry?.callId;
+  const executeLanguageModelCall =
+    languageModelCallTelemetry?.executeLanguageModelCallInTelemetryContext ??
+    (({ execute }) => execute());
+  await languageModelCallTelemetry?.onLanguageModelCallStart?.({
+    callId,
+    provider: model.provider,
+    modelId: model.modelId,
+    messages: prompt,
+    tools: modelTools,
+    ...settings,
+    providerOptions: options.providerOptions,
+    headers: options.headers,
   });
   const start = Date.now();
   const response = await retry(async () => {
@@ -86,19 +132,36 @@ async function generateModelCall(
         'The generation deadline expired.',
         'TimeoutError',
       );
-    return model.doGenerate({
-      ...settings,
-      prompt: [...prompt],
-      tools: modelTools,
-      toolChoice,
-      responseFormat: options.responseFormat,
-      providerOptions: options.providerOptions,
-      headers: options.headers,
-      abortSignal,
+    return executeLanguageModelCall({
+      callId: callId ?? '',
+      execute: () =>
+        model.doGenerate({
+          ...settings,
+          prompt: modelPrompt,
+          tools: modelTools,
+          toolChoice,
+          responseFormat: options.responseFormat,
+          providerOptions: options.providerOptions,
+          headers: options.headers,
+          abortSignal,
+        }),
     });
   });
-  abortSignal?.throwIfAborted();
   const responseTimeMs = Date.now() - start;
+  await languageModelCallTelemetry?.onLanguageModelCallEnd?.({
+    callId,
+    provider: model.provider,
+    modelId: response.response?.modelId ?? model.modelId,
+    finishReason: response.finishReason.unified,
+    usage: asLanguageModelUsage(response.usage),
+    content: response.content,
+    responseId: response.response?.id,
+    ...(response.providerMetadata != null
+      ? { providerMetadata: response.providerMetadata }
+      : {}),
+    performance: { responseTimeMs },
+  });
+  abortSignal?.throwIfAborted();
   const toolCalls = await Promise.all(
     response.content
       .filter(part => part.type === 'tool-call')
@@ -108,7 +171,7 @@ async function generateModelCall(
           tools,
           repairToolCall: options.repairToolCall,
           instructions:
-            prompt
+            modelPrompt
               .filter(message => message.role === 'system')
               .map(message => message.content)
               .join('\n') || undefined,

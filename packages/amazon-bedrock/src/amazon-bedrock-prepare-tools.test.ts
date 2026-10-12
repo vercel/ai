@@ -821,6 +821,8 @@ describe('prepareTools', () => {
     });
 
     it.each([
+      'us.anthropic.claude-opus-6-v1:0',
+      'global.anthropic.claude-future-v1:0',
       'us.anthropic.claude-opus-4-7',
       'anthropic.claude-opus-4-8',
       'us.anthropic.claude-opus-5',

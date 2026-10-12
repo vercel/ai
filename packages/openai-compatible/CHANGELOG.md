@@ -1,5 +1,16 @@
 # @ai-sdk/openai-compatible
 
+## 3.0.68
+
+### Patch Changes
+
+- 2c6996e: feat(openai-compatible): support uploaded file references via file_id
+- Updated dependencies [9667bf2]
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/provider@4.0.27
+
 ## 3.0.67
 
 ### Patch Changes
