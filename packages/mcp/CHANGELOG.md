@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 1.0.93
+
+### Patch Changes
+
+- d07f0d5: fix(mcp): allow MCP tools to execute without options
+
 ## 1.0.92
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.126
+
+### Patch Changes
+
+- e8ce454: fix(openai): JSON-encode custom tool input deltas for progressive UI updates
+
 ## 3.0.125
 
 ### Patch Changes
