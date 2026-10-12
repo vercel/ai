@@ -9,4 +9,8 @@ describe('move-maxsteps-to-stopwhen', () => {
   it('transforms alias correctly', () => {
     testTransform(transformer, 'move-maxsteps-to-stopwhen-alias');
   });
+
+  it('transforms the options binding visible at each call site', () => {
+    testTransform(transformer, 'move-maxsteps-to-stopwhen-scoped-bindings');
+  });
 });
