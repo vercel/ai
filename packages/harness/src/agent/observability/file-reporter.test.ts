@@ -183,6 +183,74 @@ describe('createFileReporter', () => {
     expect(stepFinish!.output).toEqual([{ type: 'text', text: '4' }]);
   });
 
+  test('serializes BigInt and circular values without discarding turn records', () => {
+    const dir = tmp();
+    const reporter = createFileReporter({ dir });
+    const cyclicValue: Record<string, unknown> = { count: 42n };
+    cyclicValue.self = cyclicValue;
+
+    reporter.onStart!(startEvent);
+    reporter.onStepStart!(stepStartEvent);
+    reporter.onToolExecutionStart!({
+      callId: 'call-1',
+      toolCall: {
+        toolName: 'lookup',
+        toolCallId: 'c1',
+        input: cyclicValue,
+      },
+    } as never);
+    reporter.onToolExecutionEnd!({
+      callId: 'call-1',
+      toolCall: { toolCallId: 'c1' },
+      toolOutput: { type: 'tool-result', output: cyclicValue },
+    } as never);
+    reporter.onStepFinish!(stepFinishEvent);
+    reporter.onEnd!(endEvent);
+
+    const lines = readLines(dir);
+    expect(lines.map(line => line.kind)).toEqual([
+      'turn-start',
+      'step-start',
+      'tool-start',
+      'tool-end',
+      'step-finish',
+      'turn-finish',
+    ]);
+    expect(lines.find(line => line.kind === 'tool-start')!.input).toEqual({
+      count: '42',
+      self: '[Circular]',
+    });
+    expect(lines.find(line => line.kind === 'tool-end')!.output).toEqual({
+      count: '42',
+      self: '[Circular]',
+    });
+  });
+
+  test('preserves other records when one record cannot be serialized', () => {
+    const dir = tmp();
+    const reporter = createFileReporter({ dir });
+
+    reporter.onStart!(startEvent);
+    reporter.onToolExecutionEnd!({
+      callId: 'call-1',
+      toolCall: { toolCallId: 'c1' },
+      toolOutput: {
+        type: 'tool-result',
+        output: {
+          toJSON() {
+            throw new Error('cannot serialize');
+          },
+        },
+      },
+    } as never);
+    reporter.onEnd!(endEvent);
+
+    expect(readLines(dir).map(line => line.kind)).toEqual([
+      'turn-start',
+      'turn-finish',
+    ]);
+  });
+
   test('recordInputs/recordOutputs: false suppress message content', () => {
     const dir = tmp();
     const reporter = createFileReporter({ dir });
