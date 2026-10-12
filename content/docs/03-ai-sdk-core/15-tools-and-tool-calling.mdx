@@ -322,7 +322,29 @@ Then call `generateText` or `streamText` again with the updated messages. If app
 The optional `reason` is handled differently depending on the decision:
 
 - **Denied**: the reason is included in the `execution-denied` tool result, so the model can see why the tool call was not executed.
-- **Approved** (tools executed by the AI SDK): the reason remains in the approval response in your messages (e.g. for rendering in the UI or for audit logs). The SDK does not include it in the model prompt, modify the tool's input, or expose it through a dedicated execution option. The model only sees the tool result. In manual `generateText` and `streamText` continuations, the approval response is available to the tool's `execute` function through `options.messages`.
+- **Approved** (tools executed by the AI SDK): the decision is available to the tool as `options.approval`, including its approval ID and optional reason. The SDK does not include the reason in the model prompt or modify the tool's input. The model only sees the tool result.
+
+```ts
+const runCommand = tool({
+  inputSchema: z.object({ command: z.string() }),
+  execute: async ({ command }, { toolCallId, approval }) => {
+    await recordActionContext({
+      toolCallId,
+      approvalId: approval?.approvalId,
+      approvalReason: approval?.reason,
+    });
+
+    return executeCommand(command);
+  },
+});
+```
+
+`approval` is present only when an approval decision authorized the execution.
+It has the shape
+`{ approvalId: string; approved: true; reason?: string }`. Direct executions
+that do not use an approval flow omit it, and denied calls do not execute.
+Automatic approvals also populate this metadata. Its presence does not prove
+that a human approved the call.
 
 <Note>
   The approval `reason` is not a channel for passing data to an approved tool.
@@ -330,6 +352,13 @@ The optional `reason` is handled differently depending on the decision:
   corrected value), use a tool without an `execute` function and provide its
   result from the client instead. See [Chatbot Tool
   Usage](/docs/ai-sdk-ui/chatbot-tool-usage).
+</Note>
+
+<Note type="warning">
+  Treat approval reasons as potentially untrusted or sensitive metadata, and do
+  not use an approval ID as an authorization token. Complete any signature or
+  policy validation before acting, and avoid recording reasons in telemetry
+  unless your application needs them.
 </Note>
 
 When the tool should execute without any approval metadata in the output, use

@@ -278,6 +278,13 @@ flows, `useChat` sends those messages for you when you add the approval result.
 In direct agent code, pass the approval response as `messages` on the next
 `stream()` or `generate()` call.
 
+When an approved host tool executes, its second `execute` argument contains
+`approval: { approvalId, approved: true, reason? }`. This applies to resumed
+user approvals and automatic `approved` statuses. Calls configured as
+`not-applicable` omit the property, and denied host tools do not execute.
+Approval metadata stays host-only: it is not added to the tool input or
+automatically shown to the model.
+
 ## Built-in Approval Support
 
 Most adapters can pause built-in tool calls for approval. Adapters that do not

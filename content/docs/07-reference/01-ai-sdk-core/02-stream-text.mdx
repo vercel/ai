@@ -384,6 +384,13 @@ To see `streamText` in action, check out [these examples](#examples).
                       description:
                         'An optional abort signal that indicates that the overall operation should be aborted.',
                     },
+                    {
+                      name: 'approval',
+                      type: '{ approvalId: string; approved: true; reason?: string }',
+                      isOptional: true,
+                      description:
+                        'Metadata about the approval decision that authorized this execution. Omitted for tool calls that did not use an approval flow.',
+                    },
                   ],
                 },
               ],

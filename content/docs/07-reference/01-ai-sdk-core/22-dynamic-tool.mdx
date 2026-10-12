@@ -111,6 +111,12 @@ export const customTool = dynamicTool({
                         description: "An optional abort signal."
                       },
                       {
+                        name: "approval",
+                        type: "{ approvalId: string; approved: true; reason?: string }",
+                        isOptional: true,
+                        description: "Metadata about the approval decision that authorized this execution."
+                      },
+                      {
                         name: "context",
                         type: "Context",
                         description: "Tool-specific context passed into tool execution. This value comes from the matching entry in `toolsContext`."

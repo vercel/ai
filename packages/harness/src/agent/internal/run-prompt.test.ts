@@ -2761,6 +2761,7 @@ describe('runPrompt host tool generator results', () => {
     const submitted: SubmittedResult[] = [];
     const settled: string[] = [];
     const telemetryEvents: string[] = [];
+    const executionOptions: unknown[] = [];
     const integration = {
       onToolExecutionStart() {
         telemetryEvents.push('tool-start');
@@ -2778,10 +2779,13 @@ describe('runPrompt host tool generator results', () => {
     const weather = tool({
       description: 'Get weather',
       inputSchema: z.object({ city: z.string() }),
-      execute: async (args: { city: string }) => ({
-        city: args.city,
-        temperature: 72,
-      }),
+      execute: async (args: { city: string }, options) => {
+        executionOptions.push(options);
+        return {
+          city: args.city,
+          temperature: 72,
+        };
+      },
     });
 
     const { result, done } = runPrompt({
@@ -2843,6 +2847,7 @@ describe('runPrompt host tool generator results', () => {
           type: 'tool-approval-response',
           approvalId: 'approval-1',
           approved: true,
+          reason: 'operator approved',
         },
       ],
       onToolApprovalSettled: approvalId => settled.push(approvalId),
@@ -2854,6 +2859,15 @@ describe('runPrompt host tool generator results', () => {
     await done;
 
     expect(settled).toEqual(['approval-1']);
+    expect(executionOptions).toEqual([
+      expect.objectContaining({
+        approval: {
+          approvalId: 'approval-1',
+          approved: true,
+          reason: 'operator approved',
+        },
+      }),
+    ]);
     expect(submitted).toEqual([
       { toolCallId: 'c1', output: { city: 'SF', temperature: 72 } },
     ]);
@@ -2889,6 +2903,56 @@ describe('runPrompt host tool generator results', () => {
     ).toBe(false);
     expect(parts.map(part => part.type)).not.toContain('error');
     await expect(result.steps).resolves.toEqual([]);
+  });
+
+  test('passes automatic approval metadata to host tool execution', async () => {
+    const executionOptions: unknown[] = [];
+    const weather = tool({
+      description: 'Get weather',
+      inputSchema: z.object({ city: z.string() }),
+      execute: async (_args, options) => {
+        executionOptions.push(options);
+        return { temperature: 72 };
+      },
+    });
+
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          input: JSON.stringify({ city: 'SF' }),
+        },
+        ...finishEvents,
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { weather } as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      toolApproval: {
+        weather: { type: 'approved', reason: 'trusted host policy' },
+      },
+    });
+
+    await result.consumeStream();
+    await done;
+
+    expect(executionOptions).toEqual([
+      expect.objectContaining({
+        toolCallId: 'c1',
+        approval: {
+          approvalId: expect.any(String),
+          approved: true,
+          reason: 'trusted host policy',
+        },
+      }),
+    ]);
   });
 
   test('emits the provider result after approved pending builtin tool execution', async () => {

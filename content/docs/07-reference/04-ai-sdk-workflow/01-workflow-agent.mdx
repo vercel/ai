@@ -1097,6 +1097,10 @@ only the environment variable name crosses workflow boundaries. Signing and
 verification steps read the raw secret from their local environment and do not
 serialize it. A stream-level reference overrides the constructor value.
 
+After a local approval passes validation, the tool's `execute` options include
+`approval: { approvalId, approved: true, reason? }`. The property is omitted
+for direct executions, and provider-executed approval behavior is unchanged.
+
 ### Agent with Lifecycle Callbacks
 
 ```ts

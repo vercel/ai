@@ -19,6 +19,7 @@ export function permissionModeNeedsBuiltinSupport(input: {
 
 export type CustomToolApprovalDecision =
   | { readonly type: 'allow'; readonly reason?: string }
+  | { readonly type: 'approve'; readonly reason?: string }
   | { readonly type: 'deny'; readonly reason?: string }
   | { readonly type: 'request' };
 
@@ -32,8 +33,9 @@ export function resolveCustomToolApproval(input: {
 
   switch (status.type) {
     case 'not-applicable':
+      return { type: 'allow' };
     case 'approved':
-      return { type: 'allow', reason: status.reason };
+      return { type: 'approve', reason: status.reason };
     case 'denied':
       return { type: 'deny', reason: status.reason };
     case 'user-approval':

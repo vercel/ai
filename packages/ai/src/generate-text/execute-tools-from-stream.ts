@@ -5,6 +5,7 @@ import type {
   InferToolSetContext,
   ModelMessage,
   Experimental_SandboxSession as SandboxSession,
+  ToolExecutionApproval,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import type { TimeoutConfiguration } from '../prompt/request-options';
@@ -83,7 +84,10 @@ export function executeToolsFromStream<
     TelemetryDispatcher['runInTracingChannelSpan']
   >;
 }): ReadableStream<ExecuteToolsStreamPart<TOOLS>> {
-  const toolCallsToExecute: Array<TypedToolCall<TOOLS>> = [];
+  const toolCallsToExecute: Array<{
+    toolCall: TypedToolCall<TOOLS>;
+    approval?: ToolExecutionApproval;
+  }> = [];
 
   // forward stream
   return stream.pipeThrough(
@@ -136,7 +140,7 @@ export function executeToolsFromStream<
             // directly (when not provider-executed).
             if (toolApprovalStatus.type === 'not-applicable') {
               if (tool.execute != null && chunk.providerExecuted !== true) {
-                toolCallsToExecute.push(chunk);
+                toolCallsToExecute.push({ toolCall: chunk });
               }
 
               return;
@@ -215,7 +219,16 @@ export function executeToolsFromStream<
             // approved tool calls continue to execution (when not
             // provider-executed):
             if (tool.execute != null && chunk.providerExecuted !== true) {
-              toolCallsToExecute.push(chunk);
+              toolCallsToExecute.push({
+                toolCall: chunk,
+                approval: {
+                  approvalId,
+                  approved: true,
+                  ...(toolApprovalStatus.reason != null
+                    ? { reason: toolApprovalStatus.reason }
+                    : {}),
+                },
+              });
             }
 
             return;
@@ -227,13 +240,14 @@ export function executeToolsFromStream<
             }
 
             await Promise.all(
-              toolCallsToExecute.map(async toolCall => {
+              toolCallsToExecute.map(async ({ toolCall, approval }) => {
                 try {
                   // Note: we don't await the tool execution here (by leaving out 'await' on recordSpan),
                   // because we want to process the next chunk as soon as possible.
                   // This is important for the case where the tool execution takes a long time.
                   const result = await executeToolCall({
                     toolCall,
+                    approval,
                     tools,
                     callId,
                     messages,

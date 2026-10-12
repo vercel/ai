@@ -23,6 +23,7 @@ import {
   type Context,
   type Experimental_SandboxSession as SandboxSession,
   type ToolApprovalResponse,
+  type ToolExecutionApproval,
   type ToolResultPart,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
@@ -779,6 +780,13 @@ export function runPrompt<
         parsedToolCall: validatedToolCall,
         tools: activeTools,
         toolsContext,
+        approval: {
+          approvalId: approval.approvalId,
+          approved: true,
+          ...(continuation.reason != null
+            ? { reason: continuation.reason }
+            : {}),
+        },
         wrappedExecuteTool: lifecycle.executeTool,
         sandboxSession: input.sandboxSession,
         abortSignal: input.abortSignal,
@@ -1344,6 +1352,16 @@ export function runPrompt<
             }
             continue;
           }
+          const automaticApproval =
+            customToolApprovalDecision.type === 'approve'
+              ? ({
+                  approvalId: generateId(),
+                  approved: true,
+                  ...(customToolApprovalDecision.reason != null
+                    ? { reason: customToolApprovalDecision.reason }
+                    : {}),
+                } satisfies ToolExecutionApproval)
+              : undefined;
           const pendingApproval =
             pendingApprovalsByToolCallId.get(toolCall.toolCallId) ??
             (customToolApprovalDecision.type === 'request'
@@ -1431,6 +1449,7 @@ export function runPrompt<
                 parsedToolCall: validatedHostToolCall,
                 tools: activeTools,
                 toolsContext,
+                approval: automaticApproval,
                 wrappedExecuteTool: lifecycle.executeTool,
                 sandboxSession: input.sandboxSession,
                 abortSignal: input.abortSignal,
@@ -1611,6 +1630,7 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
   parsedToolCall: ToolCallTextStreamPart;
   tools: TOOLS;
   toolsContext: InferToolSetContext<TOOLS>;
+  approval?: ToolExecutionApproval;
   wrappedExecuteTool: TurnLifecycle<ToolSet, Context>['executeTool'];
   sandboxSession: SandboxSession;
   abortSignal: AbortSignal | undefined;
@@ -1677,6 +1697,7 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
             toolCallId: input.event.toolCallId,
             messages: [],
             abortSignal: input.abortSignal,
+            approval: input.approval,
             context: context as never,
             experimental_sandbox: input.sandboxSession,
           },

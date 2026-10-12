@@ -16,6 +16,10 @@ import { asLanguageModelUsage } from '../types/usage';
 import { now } from '../util/now';
 import { executeToolsFromStream } from './execute-tools-from-stream';
 import type { LanguageModelStreamPart } from './stream-language-model-call';
+import {
+  createStreamRetryAttemptBoundaryPart,
+  type StreamRetryAttemptBoundaryPart,
+} from './stream-retry-attempt-boundary';
 import type {
   ToolExecutionEndEvent,
   ToolExecutionStartEvent,
@@ -516,6 +520,72 @@ describe('executeToolsFromStream', () => {
       `);
 
     expect(execute).toHaveBeenCalledTimes(1);
+    expect(execute).toHaveBeenCalledWith(
+      { value: 'test' },
+      expect.objectContaining({
+        approval: {
+          approvalId: 'id-0',
+          approved: true,
+          reason: 'trusted internal tool',
+        },
+      }),
+    );
+  });
+
+  it('should not leak approval metadata across stream retry attempts', async () => {
+    const execute = vi.fn(async ({ value }: { value: string }) => value);
+    const tools = {
+      conditionalTool: tool({
+        inputSchema: z.object({ value: z.string() }),
+        execute,
+      }),
+    };
+
+    const inputStream = convertArrayToReadableStream<
+      LanguageModelStreamPart<typeof tools> | StreamRetryAttemptBoundaryPart
+    >([
+      {
+        type: 'tool-call' as const,
+        toolCallId: 'stale-call',
+        toolName: 'conditionalTool',
+        input: { value: 'approved-attempt' },
+      },
+      createStreamRetryAttemptBoundaryPart({ warnings: [] }),
+      {
+        type: 'tool-call' as const,
+        toolCallId: 'current-call',
+        toolName: 'conditionalTool',
+        input: { value: 'direct-attempt' },
+      },
+      finishChunk,
+    ]);
+
+    await convertReadableStreamToArray(
+      executeToolsFromStream({
+        stream: inputStream,
+        generateId: mockId({ prefix: 'id' }),
+        tools,
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        abortSignal: undefined,
+        timeout: undefined,
+        toolsContext: {},
+        runtimeContext: {},
+        toolApproval: {
+          conditionalTool: ({ value }) =>
+            value === 'approved-attempt' ? 'approved' : 'not-applicable',
+        },
+      }),
+    );
+
+    expect(execute).toHaveBeenCalledTimes(1);
+    expect(execute).toHaveBeenCalledWith(
+      { value: 'direct-attempt' },
+      expect.objectContaining({
+        toolCallId: 'current-call',
+        approval: undefined,
+      }),
+    );
   });
 
   it('should emit denied output after the approval response without executing auto-denied tools', async () => {

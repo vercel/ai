@@ -15,6 +15,7 @@ import {
   type InferToolInput,
   type InferToolOutput,
   type InferToolSetContext,
+  type ToolExecutionApproval,
 } from '@ai-sdk/provider-utils';
 import {
   Output,
@@ -2078,6 +2079,13 @@ export class WorkflowAgent<
             effectiveToolsContext,
             0,
             sandbox,
+            {
+              approvalId: approval.collected.approvalResponse.approvalId,
+              approved: true,
+              ...(approval.collected.approvalResponse.reason != null
+                ? { reason: approval.collected.approvalResponse.reason }
+                : {}),
+            },
           );
           toolResultContent.push(result.modelResult);
           approvedRawResults.push({
@@ -2323,6 +2331,7 @@ export class WorkflowAgent<
       perToolContexts: Record<string, Context | undefined>,
       currentStepNumber: number = 0,
       stepSandbox?: SandboxSession,
+      approval?: ToolExecutionApproval,
     ): Promise<WorkflowToolExecutionResult> {
       const toolCallEvent: ToolCall = {
         type: 'tool-call',
@@ -2370,6 +2379,7 @@ export class WorkflowAgent<
             effectiveAbortSignal,
             download,
             stepSandbox,
+            approval,
           );
         result =
           telemetryDispatcher.executeTool != null
@@ -3590,6 +3600,7 @@ async function executeTool(
   abortSignal?: AbortSignal,
   download?: DownloadFunction,
   sandbox?: SandboxSession,
+  approval?: ToolExecutionApproval,
 ): Promise<WorkflowToolExecutionResult> {
   const tool = tools[toolCall.toolName];
   if (!tool) throw new Error(`Tool "${toolCall.toolName}" not found`);
@@ -3616,6 +3627,7 @@ async function executeTool(
       messages,
       // Pass the effective agent signal so in-flight tool work can cooperatively cancel
       abortSignal,
+      approval,
       // Pass per-tool context to the tool (resolved from `toolsContext`)
       context,
       experimental_sandbox: sandbox,
