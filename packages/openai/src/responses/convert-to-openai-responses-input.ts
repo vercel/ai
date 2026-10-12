@@ -110,6 +110,7 @@ export async function convertToOpenAIResponsesInput({
   explicitMessageItemType = false,
   fileIdPrefixes,
   store,
+  isReasoningModel = false,
   configurationUpdateUnsupportedReason,
   hasLocalShellTool = false,
   webSearchToolName,
@@ -120,6 +121,7 @@ export async function convertToOpenAIResponsesInput({
   explicitMessageItemType?: boolean;
   fileIdPrefixes?: readonly string[];
   store: boolean;
+  isReasoningModel?: boolean; // when true, stored assistant messages and function calls are only referenced together with their reasoning
   configurationUpdateUnsupportedReason?: string;
   hasLocalShellTool?: boolean;
   webSearchToolName?: string;
@@ -308,6 +310,14 @@ export async function convertToOpenAIResponsesInput({
         const reasoningMessages: Record<string, OpenAIResponsesReasoning> = {};
         const toolCallParts: Record<string, LanguageModelV2ToolCallPart> = {};
 
+        // Stored messages and function calls of reasoning models are bound to
+        // the reasoning item that produced them. When the reasoning has been
+        // removed (e.g. with `pruneMessages`), referencing them fails with
+        // "Item 'msg_...' of type 'message' was provided without its required
+        // 'reasoning' item", so they are sent with their content and without
+        // their id instead.
+        let hasPrecedingReasoning = false;
+
         for (const part of content) {
           switch (part.type) {
             case 'text': {
@@ -320,8 +330,13 @@ export async function convertToOpenAIResponsesInput({
                 | null
                 | undefined;
 
+              // stored messages of reasoning models can only be referenced by id
+              // together with their reasoning (see above):
+              const canUseItemId =
+                id != null && (!isReasoningModel || hasPrecedingReasoning);
+
               // item references reduce the payload size
-              if (store && id != null) {
+              if (store && canUseItemId) {
                 input.push({ type: 'item_reference', id });
                 break;
               }
@@ -330,7 +345,7 @@ export async function convertToOpenAIResponsesInput({
                 ...(explicitMessageItemType && { type: 'message' as const }),
                 role: 'assistant',
                 content: [{ type: 'output_text', text: part.text }],
-                id,
+                id: canUseItemId ? id : undefined,
                 ...(phase != null && { phase }),
               });
 
@@ -350,8 +365,13 @@ export async function convertToOpenAIResponsesInput({
                 | boolean
                 | undefined;
 
+              // stored function calls of reasoning models can only be referenced
+              // by id together with their reasoning (see above):
+              const canUseItemId =
+                id != null && (!isReasoningModel || hasPrecedingReasoning);
+
               // item references reduce the payload size
-              if (store && id != null) {
+              if (store && canUseItemId) {
                 input.push({ type: 'item_reference', id });
                 break;
               }
@@ -384,7 +404,7 @@ export async function convertToOpenAIResponsesInput({
                 name: part.toolName,
                 arguments: JSON.stringify(part.input),
                 ...(isAsync != null && { async: isAsync }),
-                id,
+                id: canUseItemId ? id : undefined,
               });
               break;
             }
@@ -433,6 +453,8 @@ export async function convertToOpenAIResponsesInput({
             }
 
             case 'reasoning': {
+              hasPrecedingReasoning = true;
+
               const providerOptions = await parseProviderOptions({
                 provider: 'openai',
                 providerOptions: part.providerOptions,
