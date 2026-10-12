@@ -423,8 +423,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     // `maxOutputTokens` budget remains finishes with `CONTINUATION`. Resend
     // the same request with the continuation token (the server tracks the
     // cumulative tokens) and combine the parts and usage of all requests.
+    //
+    // Usage is summed across requests (matching billing). Each request re-sends
+    // the prompt plus all output so far as input, so the first request's
+    // prompt token count is kept separately for context window checks.
     const continuedParts: ContentPartSchema[] = [];
     let continuedUsageMetadata: GoogleGenerativeAIUsageMetadata | undefined;
+    const firstPromptTokenCount = response.usageMetadata?.promptTokenCount;
 
     while (true) {
       const candidate = response.candidates?.[0];
@@ -645,6 +650,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
           ...(candidate?.continuationToken != null
             ? { continuationToken: candidate.continuationToken }
             : {}),
+          ...(continuedUsageMetadata != null && firstPromptTokenCount != null
+            ? { initialPromptTokenCount: firstPromptTokenCount }
+            : {}),
         } satisfies GoogleGenerativeAIProviderMetadata,
       },
       request: { body: args },
@@ -709,6 +717,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     let usage: GoogleGenerativeAIUsageMetadata | undefined = undefined;
     // Usage of the completed requests of an automatically continued response.
     let continuedUsage: GoogleGenerativeAIUsageMetadata | undefined = undefined;
+    // Prompt token count of the first request, for context window checks.
+    let initialPromptTokenCount: number | null | undefined = undefined;
     let promptFeedback: PromptFeedbackSchema | null = null;
     let lastGroundingMetadata: GroundingMetadataSchema | null = null;
     let lastUrlContextMetadata: UrlContextMetadataSchema | null = null;
@@ -1237,6 +1247,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
             if (candidate.finishReason === 'CONTINUATION') {
               // Usage metadata is per request. The next request reports its
               // own usage, so bank the usage of this one.
+              if (continuedUsage == null) {
+                initialPromptTokenCount = usage?.promptTokenCount;
+              }
               continuedUsage = addGoogleGenerativeAIUsageMetadata(
                 continuedUsage,
                 usage,
@@ -1284,8 +1297,16 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                   usageMetadata: usage ?? null,
                   finishMessage: lastFinishMessage,
                   serviceTier: usage?.serviceTier ?? null,
-                  ...(lastContinuationToken != null
+                  // Only surface the token when the response stopped early
+                  // (budget used up, or continuing failed), not for the
+                  // checkpoint tokens of a stream that finished normally.
+                  ...(lastContinuationToken != null &&
+                  (finishReason.raw === 'MAX_TOKENS' ||
+                    finishReason.raw === 'CONTINUATION')
                     ? { continuationToken: lastContinuationToken }
+                    : {}),
+                  ...(initialPromptTokenCount != null
+                    ? { initialPromptTokenCount }
                     : {}),
                 } satisfies GoogleGenerativeAIProviderMetadata,
               },

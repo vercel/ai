@@ -179,17 +179,6 @@ export const googleInteractionsLanguageModelOptions = lazySchema(() =>
       serviceTier: z.enum(['flex', 'standard', 'priority']).nullish(),
 
       /**
-       * Resumes an interaction that stopped as `incomplete` because it used up
-       * its `maxOutputTokens` budget (Gemini 4 long decode). Pass the
-       * `continuationToken` from the previous response's provider metadata
-       * together with the original input and a higher `maxOutputTokens` (the
-       * budget is cumulative across requests). Interactions that return
-       * `continuation_required` are continued automatically. Sent as the
-       * `continuation_token` body field.
-       */
-      continuationToken: z.string().nullish(),
-
-      /**
        * Alternative to AI SDK `system` message. If both are set, the AI SDK
        * `system` message wins and a warning is emitted.
        */

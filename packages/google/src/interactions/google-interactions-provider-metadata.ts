@@ -16,14 +16,6 @@ export type GoogleInteractionsProviderMetadata = {
   serviceTier?: string;
 
   /**
-   * Opaque token returned when an interaction stops as `incomplete` because
-   * it used up its `maxOutputTokens` budget (and the latest checkpoint while
-   * streaming). Pass back in `providerOptions.google.continuationToken` with a
-   * higher `maxOutputTokens` to resume.
-   */
-  continuationToken?: string;
-
-  /**
    * Output token counts keyed by modality (e.g. `{ video: 57920 }`), sourced
    * from the Interactions API `output_tokens_by_modality`. Present only when
    * the response reports a breakdown. Preview surface for per-modality billing;

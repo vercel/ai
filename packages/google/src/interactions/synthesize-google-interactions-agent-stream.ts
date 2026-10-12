@@ -169,9 +169,6 @@ export function synthesizeGoogleInteractionsAgentStream({
         google: {
           ...(interactionId != null ? { interactionId } : {}),
           ...(serviceTier != null ? { serviceTier } : {}),
-          ...(response.continuation_token != null
-            ? { continuationToken: response.continuation_token }
-            : {}),
         },
       };
 

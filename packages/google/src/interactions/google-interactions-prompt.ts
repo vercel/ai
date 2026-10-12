@@ -554,7 +554,6 @@ export type GoogleInteractionsRequestBody = {
   agent_config?: GoogleInteractionsAgentConfig;
   previous_interaction_id?: string;
   service_tier?: GoogleInteractionsServiceTier;
-  continuation_token?: string;
   store?: boolean;
   stream?: boolean;
   environment?: GoogleInteractionsEnvironment;
@@ -576,13 +575,7 @@ export type GoogleInteractionsStatus =
   | 'completed'
   | 'failed'
   | 'cancelled'
-  | 'incomplete'
-  /**
-   * Gemini 4 long decode: the per-request cap was reached while
-   * `max_output_tokens` budget remains. Resend the same request with the
-   * returned `continuation_token` to continue.
-   */
-  | 'continuation_required';
+  | 'incomplete';
 
 /*
  * Aliases used by the source extractor; structurally equivalent to their
