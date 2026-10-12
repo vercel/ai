@@ -14,4 +14,11 @@ describe('add-await-converttomodelmessages', () => {
   it('does not transform when imported from other package', () => {
     testTransform(transformer, 'add-await-converttomodelmessages-not-ai');
   });
+
+  it('keeps synchronous function contexts syntactically valid', () => {
+    testTransform(
+      transformer,
+      'add-await-converttomodelmessages-synchronous-contexts',
+    );
+  });
 });
