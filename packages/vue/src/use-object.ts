@@ -148,11 +148,24 @@ export const experimental_useObject = function useObject<
   };
 
   const submit = async (input: INPUT) => {
+    const currentAbortController = new AbortController();
+    abortController = currentAbortController;
+
     try {
       await clearObject();
+
+      if (currentAbortController.signal.aborted) {
+        return;
+      }
+
       await mutateLoading(() => true);
 
-      abortController = new AbortController();
+      if (currentAbortController.signal.aborted) {
+        if (abortController === null) {
+          await mutateLoading(() => false);
+        }
+        return;
+      }
 
       const actualFetch = fetch ?? getOriginalFetch();
       const response = await actualFetch(api, {
@@ -162,7 +175,7 @@ export const experimental_useObject = function useObject<
           ...(headers as any),
         },
         credentials: credentials ?? 'same-origin',
-        signal: abortController.signal,
+        signal: currentAbortController.signal,
         body: JSON.stringify(input),
       });
 
@@ -191,8 +204,10 @@ export const experimental_useObject = function useObject<
             }
           },
           async close() {
-            await mutateLoading(() => false);
-            abortController = null;
+            if (abortController === currentAbortController) {
+              abortController = null;
+              await mutateLoading(() => false);
+            }
 
             if (onFinish) {
               const validationResult = await safeValidateTypes({
