@@ -77,6 +77,132 @@ export default createTransformer((fileInfo, api, options, context) => {
     context.hasChanges = true;
   }
 
+  function isFunction(node: any): boolean {
+    return (
+      j.FunctionDeclaration.check(node) ||
+      j.FunctionExpression.check(node) ||
+      j.ArrowFunctionExpression.check(node)
+    );
+  }
+
+  function isLexicalScope(node: any): boolean {
+    return (
+      j.Program.check(node) ||
+      j.BlockStatement.check(node) ||
+      j.ForStatement.check(node) ||
+      j.ForInStatement.check(node) ||
+      j.ForOfStatement.check(node) ||
+      j.SwitchStatement.check(node) ||
+      j.CatchClause.check(node)
+    );
+  }
+
+  function getVariableBindingScope(varPath: any): any | null {
+    const declaration = varPath.parentPath?.node;
+    if (!j.VariableDeclaration.check(declaration)) return null;
+
+    let currentPath = varPath.parentPath?.parentPath;
+    while (currentPath) {
+      const node = currentPath.node;
+      if (
+        declaration.kind === 'var'
+          ? isFunction(node) || j.Program.check(node)
+          : isLexicalScope(node)
+      ) {
+        return node;
+      }
+      currentPath = currentPath.parentPath;
+    }
+
+    return null;
+  }
+
+  function getScopeChain(path: any): any[] {
+    const scopes: any[] = [];
+    let currentPath = path;
+
+    while (currentPath) {
+      const node = currentPath.node;
+      if (isLexicalScope(node) || isFunction(node)) {
+        scopes.push(node);
+      }
+      currentPath = currentPath.parentPath;
+    }
+
+    return scopes;
+  }
+
+  function patternContainsIdentifier(pattern: any, name: string): boolean {
+    if (!pattern) return false;
+    if (j.Identifier.check(pattern)) return pattern.name === name;
+    if (
+      j.AssignmentPattern.check(pattern) ||
+      j.RestElement.check(pattern) ||
+      j.SpreadElement.check(pattern)
+    ) {
+      return patternContainsIdentifier(
+        j.AssignmentPattern.check(pattern) ? pattern.left : pattern.argument,
+        name,
+      );
+    }
+    if (j.ArrayPattern.check(pattern)) {
+      return pattern.elements.some((element: any) =>
+        patternContainsIdentifier(element, name),
+      );
+    }
+    if (j.ObjectPattern.check(pattern)) {
+      return pattern.properties.some((property: any) => {
+        if (j.RestElement.check(property)) {
+          return patternContainsIdentifier(property.argument, name);
+        }
+        return patternContainsIdentifier(property.value, name);
+      });
+    }
+    return false;
+  }
+
+  function scopeHasParameterBinding(scope: any, name: string): boolean {
+    if (isFunction(scope)) {
+      return scope.params.some((param: any) =>
+        patternContainsIdentifier(param, name),
+      );
+    }
+    if (j.CatchClause.check(scope)) {
+      return patternContainsIdentifier(scope.param, name);
+    }
+    return false;
+  }
+
+  function findVariableDeclarator(
+    referencePath: any,
+    name: string,
+  ): any | null {
+    const declarations = root
+      .find(j.VariableDeclarator)
+      .filter(
+        path => j.Identifier.check(path.node.id) && path.node.id.name === name,
+      )
+      .paths();
+
+    for (const scope of getScopeChain(referencePath)) {
+      const matchingDeclarations = declarations.filter(
+        declarationPath => getVariableBindingScope(declarationPath) === scope,
+      );
+
+      if (matchingDeclarations.length === 1) {
+        return matchingDeclarations[0];
+      }
+      if (
+        matchingDeclarations.length > 1 ||
+        scopeHasParameterBinding(scope, name)
+      ) {
+        return null;
+      }
+    }
+
+    return null;
+  }
+
   root.find(j.ImportDeclaration).forEach(path => {
     const source = path.node.source.value;
     const specifiers = path.node.specifiers || [];
@@ -129,25 +255,32 @@ export default createTransformer((fileInfo, api, options, context) => {
     // If first argument is an identifier, process the variable
     if (j.Identifier.check(firstArg)) {
       const varName = firstArg.name;
-      let processed = false;
+      const varPath = findVariableDeclarator(
+        callPath.get('arguments', 0),
+        varName,
+      );
+      if (!varPath) return;
 
-      root
-        .find(j.VariableDeclarator, { id: { name: varName } })
-        .forEach(varPath => {
-          if (processed) return;
-          if (j.ObjectExpression.check(varPath.node.init)) {
-            processed = processObjectExpression(varPath.node.init, isUseChat);
-          }
-        });
-
-      if (processed) return;
+      if (
+        j.ObjectExpression.check(varPath.node.init) &&
+        processObjectExpression(varPath.node.init, isUseChat)
+      ) {
+        return;
+      }
 
       root
         .find(j.AssignmentExpression, {
           left: { type: 'Identifier', name: varName },
         })
         .forEach(assignPath => {
-          if (j.ObjectExpression.check(assignPath.node.right)) {
+          const assignedVarPath = findVariableDeclarator(
+            assignPath.get('left'),
+            varName,
+          );
+          if (
+            assignedVarPath?.node === varPath.node &&
+            j.ObjectExpression.check(assignPath.node.right)
+          ) {
             processObjectExpression(assignPath.node.right, isUseChat);
           }
         });
