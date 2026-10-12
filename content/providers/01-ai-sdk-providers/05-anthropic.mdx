@@ -1420,6 +1420,40 @@ const result = await generateText({
   settings](https://console.anthropic.com/settings/privacy).
 </Note>
 
+#### Sources and Citations
+
+`result.sources` and source stream events expose web-search results. Inline
+references are attached separately to generated text as `part.citations`, and
+to streamed text as `text-end.citations`. This shared citation representation
+includes the referenced URL or document and its supporting passage. If web-search
+results are unavailable, web citations also provide source references for
+compatibility. Indexed document references retain their existing document source
+parts when the original prompt supplies document information.
+
+Raw citations remain available as
+`text.providerMetadata.anthropic.citations`, including on streamed `text-end`
+events. Import `AnthropicTextProviderMetadata` and `AnthropicCitation` for typed
+access. `AnthropicCitation` is a union of `web_search_result_location`,
+`search_result_location`, `page_location`, `char_location`, and
+`content_block_location`. Document page, character, and block locations refer to
+the source document, rather than the generated answer.
+
+```ts
+import type { AnthropicTextProviderMetadata } from '@ai-sdk/anthropic';
+
+for (const part of result.content) {
+  if (part.type === 'text') {
+    console.log(part.citations);
+    const metadata = part.providerMetadata as
+      | AnthropicTextProviderMetadata
+      | undefined;
+    for (const citation of metadata?.anthropic.citations ?? []) {
+      console.log(citation.type, citation.cited_text);
+    }
+  }
+}
+```
+
 #### Configuration Options
 
 Use `webSearch_20260318` for dynamic filtering and response inclusion control.

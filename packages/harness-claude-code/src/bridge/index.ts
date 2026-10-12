@@ -99,6 +99,7 @@ const NATIVE_TOOL_KINDS: Readonly<
   TaskGet: 'readonly',
   TaskList: 'readonly',
   TaskOutput: 'readonly',
+  ListAgents: 'readonly',
   ListMcpResources: 'readonly',
   ReadMcpResource: 'readonly',
   Write: 'edit',

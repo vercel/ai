@@ -1302,7 +1302,7 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
 
       const execute = async (
         args: any,
-        options: ToolExecutionOptions<{}>,
+        options?: ToolExecutionOptions<{}>,
       ): Promise<unknown> => {
         options?.abortSignal?.throwIfAborted();
         const result = await self.callTool({

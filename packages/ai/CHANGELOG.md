@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.137
+
+### Patch Changes
+
+- e27cc64: fix(ai): discard unrelated message state when reading resumed streams
+
 ## 7.0.136
 
 ### Patch Changes

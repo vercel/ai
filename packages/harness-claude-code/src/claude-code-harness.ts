@@ -404,6 +404,27 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
     }),
     toolUseKind: 'bash',
   },
+  ListAgents: {
+    ...tool({
+      description: 'List agents that can receive messages',
+      inputSchema: z.strictObject({
+        channel: z
+          .string()
+          .max(256)
+          .optional()
+          .describe('Not available in this build; leave unset.'),
+        q: z
+          .string()
+          .max(256)
+          .optional()
+          .describe('Not available in this build; leave unset.'),
+      }),
+      outputSchema: z.object({
+        listing: z.string().describe('Formatted list of reachable agents'),
+      }),
+    }),
+    toolUseKind: 'readonly',
+  },
   ListMcpResources: {
     ...tool({
       description: 'List resources available from MCP servers',

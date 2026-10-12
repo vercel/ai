@@ -7,6 +7,7 @@ import type * as HarnessUtils from '@ai-sdk/harness/utils';
 import { safeValidateTypes } from '@ai-sdk/provider-utils';
 import type * as NodeFsPromises from 'node:fs/promises';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { z } from 'zod/v4';
 
 const sentMessages: Array<Record<string, unknown>> = [];
 const openCalls: Array<{ resume?: boolean } | undefined> = [];
@@ -363,6 +364,7 @@ describe('createClaudeCode adapter', () => {
       'TaskStop',
       'TaskOutput',
       'Monitor',
+      'ListAgents',
       'ListMcpResources',
       'ListMcpResourcesTool',
       'ReadMcpResource',
@@ -401,6 +403,7 @@ describe('createClaudeCode adapter', () => {
     expect(harness.builtinTools.write.toolUseKind).toBe('edit');
     expect(harness.builtinTools.bash.toolUseKind).toBe('bash');
     expect(harness.builtinTools.Skill.toolUseKind).toBe('readonly');
+    expect(harness.builtinTools.ListAgents.toolUseKind).toBe('readonly');
     expect(harness.builtinTools.ListMcpResourcesTool.toolUseKind).toBe(
       'readonly',
     );
@@ -411,6 +414,27 @@ describe('createClaudeCode adapter', () => {
     // native name directly, so the entry intentionally omits both
     // `nativeName` and `commonName`.
     expect(harness.builtinTools.WebFetch).toBeDefined();
+
+    const listAgentsInputSchema = harness.builtinTools.ListAgents
+      .inputSchema as z.ZodType;
+    expect(listAgentsInputSchema.parse({})).toEqual({});
+    expect(
+      listAgentsInputSchema.parse({ channel: 'reviewers', q: 'available' }),
+    ).toEqual({ channel: 'reviewers', q: 'available' });
+    expect(() =>
+      listAgentsInputSchema.parse({ channel: 'a'.repeat(257) }),
+    ).toThrow();
+    expect(() => listAgentsInputSchema.parse({ unsupported: true })).toThrow();
+  });
+
+  it('allows callers to disable native agent discovery', () => {
+    expect(
+      () =>
+        new HarnessAgent({
+          harness: createClaudeCode(),
+          inactiveTools: ['ListAgents'],
+        }),
+    ).not.toThrow();
   });
 
   it('accepts conditional cloud tools in HarnessAgent filtering', () => {

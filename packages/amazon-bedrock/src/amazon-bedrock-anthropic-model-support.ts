@@ -17,37 +17,31 @@ export function isAnthropicModel({
   );
 }
 
+// Bedrock validates its own Messages schema. New Claude generations currently
+// reject native structured output and strict tools, so only known supported
+// Claude models receive those fields. Non-Claude models and opaque inference
+// profile IDs retain their existing behavior.
 export function supportsStrictTools(modelId: string): boolean {
-  return !matchesModel(modelId, MODELS_WITHOUT_STRICT_TOOL_SUPPORT);
-}
-
-export function supportsNativeStructuredOutput(modelId: string): boolean {
-  return !matchesModel(
-    modelId,
-    MODELS_WITHOUT_RELIABLE_NATIVE_STRUCTURED_OUTPUT,
+  return (
+    !modelId.includes('claude-') ||
+    LEGACY_CLAUDE_PATTERN.test(modelId) ||
+    MODELS_WITH_STRICT_TOOL_SUPPORT.some(pattern => pattern.test(modelId))
   );
 }
 
-// Bedrock validates against its own copy of the Messages schema, which rejects
-// `output_config.format` and tool `strict` for the newest Claude models
-const MODELS_WITHOUT_STRICT_TOOL_SUPPORT = [
-  'claude-opus-4-7',
-  'claude-opus-4-8',
-  'claude-opus-5',
-  'claude-fable-5',
-  'claude-sonnet-5',
-  'claude-haiku-5-5',
-];
-
-// Native structured output is unreliable for additional models even though
-// their strict tool support remains available. Sonnet 4.6 can fail to adhere
-// to complex schemas, while Haiku 4.5 support varies between Bedrock accounts.
-const MODELS_WITHOUT_RELIABLE_NATIVE_STRUCTURED_OUTPUT = [
-  ...MODELS_WITHOUT_STRICT_TOOL_SUPPORT,
-  'claude-sonnet-4-6',
-  'claude-haiku-4-5',
-];
-
-function matchesModel(modelId: string, models: string[]): boolean {
-  return models.some(model => modelId.includes(model));
+export function supportsNativeStructuredOutput(modelId: string): boolean {
+  return (
+    supportsStrictTools(modelId) &&
+    !/claude-(?:sonnet-4-6|haiku-4-5)(?=[-.:]|$)/.test(modelId)
+  );
 }
+
+const LEGACY_CLAUDE_PATTERN = /claude-(?:instant|v?2|3)(?=[-.:]|$)/;
+
+const MODELS_WITH_STRICT_TOOL_SUPPORT = [
+  // Original Claude 4 IDs include a release date instead of a minor version.
+  /claude-(?:opus|sonnet)-4(?:-\d{8})?(?:-v\d+)?(?=[:.]|$)/,
+  /claude-opus-4-(?:1|5|6)(?=[-.:]|$)/,
+  /claude-sonnet-4-(?:5|6)(?=[-.:]|$)/,
+  /claude-haiku-4-5(?=[-.:]|$)/,
+];

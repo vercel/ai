@@ -8,6 +8,7 @@ type DeepAgentOptions = {
   middleware?: Array<{
     name?: string;
     wrapModelCall?: (request: any, handler: any) => Promise<unknown>;
+    wrapToolCall?: (request: any, handler: any) => Promise<unknown>;
   }>;
   model?: unknown;
   systemPrompt?: string | { suffix?: string };
@@ -197,6 +198,16 @@ describe('Deep Agents bridge instructions', () => {
     expect(state.createDeepAgentOptions[0]?.systemPrompt).toEqual({
       suffix: 'Answer every question in German.',
     });
+  });
+
+  it('installs MCP tool error recovery in the native agent', async () => {
+    await import('./index');
+
+    expect(
+      state.createDeepAgentOptions[0]?.middleware?.some(
+        middleware => middleware.name === 'harnessMcpToolErrors',
+      ),
+    ).toBe(true);
   });
 
   it('configures reasoning on the default Deep Agents model', async () => {

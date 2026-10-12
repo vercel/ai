@@ -142,6 +142,9 @@
       "path": "../../packages/harness-pi"
     },
     {
+      "path": "../../packages/heygen"
+    },
+    {
       "path": "../../packages/huggingface"
     },
     {
