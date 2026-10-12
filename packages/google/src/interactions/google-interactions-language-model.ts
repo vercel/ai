@@ -1,7 +1,6 @@
 import type {
   LanguageModelV4,
   LanguageModelV4CallOptions,
-  LanguageModelV4Content,
   LanguageModelV4FinishReason,
   LanguageModelV4GenerateResult,
   LanguageModelV4StreamResult,
@@ -22,11 +21,9 @@ import {
   type FetchFunction,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
-import { continueGoogleStream } from '../continue-google-stream';
 import { googleFailedResponseHandler } from '../google-error';
 import { buildGoogleInteractionsStreamTransform } from './build-google-interactions-stream-transform';
 import {
-  addGoogleInteractionsUsage,
   convertGoogleInteractionsUsage,
   getGoogleInteractionsOutputTokensByModality,
 } from './convert-google-interactions-usage';
@@ -34,7 +31,6 @@ import { convertToGoogleInteractionsInput } from './convert-to-google-interactio
 import {
   googleInteractionsEventSchema,
   googleInteractionsResponseSchema,
-  type GoogleInteractionsUsage,
 } from './google-interactions-api';
 import {
   googleInteractionsLanguageModelOptions,
@@ -48,7 +44,6 @@ import type {
   GoogleInteractionsNetworkConfig,
   GoogleInteractionsRequestBody,
   GoogleInteractionsResponseFormatEntry,
-  GoogleInteractionsStatus,
   GoogleInteractionsTool,
   GoogleInteractionsToolChoice,
 } from './google-interactions-prompt';
@@ -442,17 +437,6 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
       }
     }
 
-    if (
-      googleOptions?.continuationToken != null &&
-      googleOptions.background === true
-    ) {
-      warnings.push({
-        type: 'other',
-        message:
-          "google.interactions: 'continuationToken' cannot be combined with 'background: true'; the API rejects this request. Resume truncated runs with a foreground request instead.",
-      });
-    }
-
     /*
      * `background` is opt-in via `providerOptions.google.background`. Some
      * agents require it because their server-side workflow cannot complete
@@ -476,7 +460,6 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
       previous_interaction_id:
         googleOptions?.previousInteractionId ?? undefined,
       service_tier: googleOptions?.serviceTier ?? undefined,
-      continuation_token: googleOptions?.continuationToken ?? undefined,
       store: googleOptions?.store ?? undefined,
       generation_config:
         generationConfig != null && Object.keys(generationConfig).length > 0
@@ -509,32 +492,31 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
       options.headers,
     );
 
-    const createInteraction = (body: GoogleInteractionsRequestBody) =>
-      postJsonToApi({
-        url,
-        headers: mergedHeaders,
-        body,
-        failedResponseHandler: googleFailedResponseHandler,
-        successfulResponseHandler: createJsonResponseHandler(
-          googleInteractionsResponseSchema,
-        ),
-        abortSignal: options.abortSignal,
-        fetch: this.config.fetch,
-      });
+    const postResult = await postJsonToApi({
+      url,
+      headers: mergedHeaders,
+      body: args,
+      failedResponseHandler: googleFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        googleInteractionsResponseSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
 
     let {
       responseHeaders,
       value: response,
       rawValue: rawResponse,
-    } = await createInteraction(args);
+    } = postResult;
 
     /*
-     * Agent calls may return a non-terminal status (`in_progress` /
-     * `requires_action`) when invoked with `background: true`. Poll
-     * `GET /interactions/{id}` until terminal so the user-facing surface
-     * matches a synchronous call.
+     * Agent calls and `background: true` calls (e.g. Gemini 4 long decode,
+     * where the server runs every hop) may return a non-terminal status
+     * (`in_progress` / `requires_action`). Poll `GET /interactions/{id}` until
+     * terminal so the user-facing surface matches a synchronous call.
      */
-    if (isAgent && !isTerminalStatus(response.status)) {
+    if ((isAgent || isBackground) && !isTerminalStatus(response.status)) {
       const polled = await pollGoogleInteractionUntilTerminal({
         baseURL: this.config.baseURL,
         interactionId: response.id,
@@ -549,64 +531,21 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     }
 
     /*
-     * Gemini 4 long decode: an interaction that reaches the per-request cap
-     * while `max_output_tokens` budget remains returns `continuation_required`.
-     * Resend the same request with the continuation token (the server tracks
-     * the cumulative tokens) and combine the outputs of all requests.
-     */
-    const continuedContent: Array<LanguageModelV4Content> = [];
-    let continuedUsage: GoogleInteractionsUsage | undefined;
-    while (true) {
-      const continuationToken =
-        !isBackground && response.status === 'continuation_required'
-          ? response.continuation_token
-          : undefined;
-      if (continuationToken == null) {
-        break;
-      }
-
-      continuedContent.push(
-        ...parseGoogleInteractionsOutputs({
-          steps: response.steps ?? null,
-          generateId: this.config.generateId ?? defaultGenerateId,
-          interactionId: getInteractionId(response),
-        }).content,
-      );
-      continuedUsage = addGoogleInteractionsUsage(
-        continuedUsage,
-        response.usage ?? undefined,
-      );
-
-      ({
-        responseHeaders,
-        value: response,
-        rawValue: rawResponse,
-      } = await createInteraction({
-        ...args,
-        continuation_token: continuationToken,
-      }));
-    }
-
-    const usage = addGoogleInteractionsUsage(
-      continuedUsage,
-      response.usage ?? undefined,
-    );
-
-    /*
      * `response.id` is omitted when `store: false` (fully stateless mode), and
      * the stream surface returns `id: ""` (empty string) for the same case.
      * Normalize both to `undefined` so downstream stamping does not pollute
      * provider metadata with an empty/missing identifier.
      */
-    const interactionId = getInteractionId(response);
+    const interactionId =
+      typeof response.id === 'string' && response.id.length > 0
+        ? response.id
+        : undefined;
 
-    const parsedOutputs = parseGoogleInteractionsOutputs({
+    const { content, hasFunctionCall } = parseGoogleInteractionsOutputs({
       steps: response.steps ?? null,
       generateId: this.config.generateId ?? defaultGenerateId,
       interactionId,
     });
-    const content = [...continuedContent, ...parsedOutputs.content];
-    const hasFunctionCall = parsedOutputs.hasFunctionCall;
 
     const finishReason: LanguageModelV4FinishReason = {
       unified: mapGoogleInteractionsFinishReason({
@@ -636,16 +575,14 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
      * `response.id` is omitted when `store: false` (fully stateless mode), so
      * `interactionId` is only surfaced when the API actually returned one.
      */
-    const outputTokensByModality =
-      getGoogleInteractionsOutputTokensByModality(usage);
+    const outputTokensByModality = getGoogleInteractionsOutputTokensByModality(
+      response.usage,
+    );
 
     const providerMetadata: SharedV4ProviderMetadata = {
       google: {
         ...(interactionId != null ? { interactionId } : {}),
         ...(serviceTier != null ? { serviceTier } : {}),
-        ...(response.continuation_token != null
-          ? { continuationToken: response.continuation_token }
-          : {}),
         ...(outputTokensByModality != null ? { outputTokensByModality } : {}),
       },
     };
@@ -661,7 +598,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     return {
       content,
       finishReason,
-      usage: convertGoogleInteractionsUsage(usage),
+      usage: convertGoogleInteractionsUsage(response.usage),
       warnings,
       providerMetadata,
       request: { body: args },
@@ -708,50 +645,16 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
 
     const body = { ...args, stream: true };
 
-    const streamInteraction = (body: GoogleInteractionsRequestBody) =>
-      postJsonToApi({
-        url,
-        headers: mergedHeaders,
-        body,
-        failedResponseHandler: googleFailedResponseHandler,
-        successfulResponseHandler: createEventSourceResponseHandler(
-          googleInteractionsEventSchema,
-        ),
-        abortSignal: options.abortSignal,
-        fetch: this.config.fetch,
-      });
-
-    const { responseHeaders, value: firstResponse } =
-      await streamInteraction(body);
-
-    /*
-     * Gemini 4 long decode: when a stream reaches the per-request cap while
-     * `max_output_tokens` budget remains, the interaction completes with
-     * `continuation_required`. Resend the same request with the continuation
-     * token and append the new stream, which contains only newly generated
-     * content.
-     */
-    const response = continueGoogleStream({
-      stream: firstResponse,
-      getContinuationToken: event => {
-        if (event.event_type !== 'interaction.completed') {
-          return undefined;
-        }
-        const interaction = event.interaction as {
-          status?: GoogleInteractionsStatus;
-          continuation_token?: string | null;
-        };
-        return interaction?.status === 'continuation_required'
-          ? (interaction.continuation_token ?? undefined)
-          : undefined;
-      },
-      continueStream: async continuationToken =>
-        (
-          await streamInteraction({
-            ...body,
-            continuation_token: continuationToken,
-          })
-        ).value,
+    const { responseHeaders, value: response } = await postJsonToApi({
+      url,
+      headers: mergedHeaders,
+      body,
+      failedResponseHandler: googleFailedResponseHandler,
+      successfulResponseHandler: createEventSourceResponseHandler(
+        googleInteractionsEventSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
     });
 
     /*
@@ -884,14 +787,6 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
       response: { headers: postHeaders },
     };
   }
-}
-
-function getInteractionId(response: {
-  id?: string | null;
-}): string | undefined {
-  return typeof response.id === 'string' && response.id.length > 0
-    ? response.id
-    : undefined;
 }
 
 function pruneUndefined<T extends Record<string, unknown>>(obj: T): T {

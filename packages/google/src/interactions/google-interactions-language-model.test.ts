@@ -496,108 +496,6 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
     });
   });
 
-  describe('continuation token', () => {
-    it('sends continuation_token in the request body when providerOptions.google.continuationToken is set', async () => {
-      prepareJsonFixtureResponse('basic');
-      await model.doGenerate({
-        prompt: TEST_PROMPT,
-        maxOutputTokens: 600,
-        providerOptions: { google: { continuationToken: 'token-1' } },
-      });
-      const body = (await server.calls[0].requestBodyJson) as Record<
-        string,
-        any
-      >;
-      expect(body.continuation_token).toBe('token-1');
-      expect(body.generation_config.max_output_tokens).toBe(600);
-    });
-
-    it('omits continuation_token from the request body when not set', async () => {
-      prepareJsonFixtureResponse('basic');
-      await model.doGenerate({ prompt: TEST_PROMPT });
-      const body = (await server.calls[0].requestBodyJson) as Record<
-        string,
-        unknown
-      >;
-      expect(body).not.toHaveProperty('continuation_token');
-    });
-
-    it('exposes continuation_token as providerMetadata.google.continuationToken on an incomplete interaction', async () => {
-      const fixture = JSON.parse(
-        fs.readFileSync('src/interactions/__fixtures__/basic.json', 'utf8'),
-      );
-      server.urls[TEST_URL].response = {
-        type: 'json-value',
-        body: {
-          ...fixture,
-          status: 'incomplete',
-          continuation_token: 'token-2',
-        },
-      };
-
-      const { providerMetadata, finishReason } = await model.doGenerate({
-        prompt: TEST_PROMPT,
-      });
-
-      expect(finishReason.unified).toBe('length');
-      expect(providerMetadata?.google?.continuationToken).toBe('token-2');
-    });
-
-    it('omits continuationToken from providerMetadata when absent', async () => {
-      prepareJsonFixtureResponse('basic');
-      const { providerMetadata } = await model.doGenerate({
-        prompt: TEST_PROMPT,
-      });
-      expect(providerMetadata?.google).not.toHaveProperty('continuationToken');
-    });
-
-    it('resends the same request with the continuation token on continuation_required', async () => {
-      const fixture = JSON.parse(
-        fs.readFileSync('src/interactions/__fixtures__/basic.json', 'utf8'),
-      );
-      server.urls[TEST_URL].response = [
-        {
-          type: 'json-value',
-          body: {
-            ...fixture,
-            status: 'continuation_required',
-            continuation_token: 'token-1',
-          },
-        },
-        { type: 'json-value', body: fixture },
-      ];
-
-      const result = await model.doGenerate({
-        prompt: TEST_PROMPT,
-        maxOutputTokens: 100_000,
-      });
-
-      expect(server.calls.length).toBe(2);
-      const firstBody = (await server.calls[0].requestBodyJson) as Record<
-        string,
-        unknown
-      >;
-      expect(firstBody).not.toHaveProperty('continuation_token');
-      expect(await server.calls[1].requestBodyJson).toEqual({
-        ...firstBody,
-        continuation_token: 'token-1',
-      });
-
-      expect(result.content.filter(part => part.type === 'text')).toHaveLength(
-        2,
-      );
-      expect(result.finishReason).toEqual({
-        unified: 'stop',
-        raw: 'completed',
-      });
-      expect(result.usage.inputTokens.total).toBe(14);
-      expect(result.usage.outputTokens.total).toBe(102);
-      expect(result.providerMetadata?.google).not.toHaveProperty(
-        'continuationToken',
-      );
-    });
-  });
-
   describe('service tier', () => {
     it('sends service_tier in the request body when providerOptions.google.serviceTier is set', async () => {
       prepareJsonFixtureResponse('basic');
@@ -2011,41 +1909,6 @@ describe('GoogleInteractionsLanguageModel agent polling', () => {
     [POLL_URL]: {},
   });
 
-  it('warns when continuationToken is combined with background: true', async () => {
-    pollServer.urls[POST_URL].response = {
-      type: 'json-value',
-      body: {
-        id: 'v1_poll-test',
-        status: 'completed',
-        steps: [
-          { type: 'model_output', content: [{ type: 'text', text: 'ok' }] },
-        ],
-      },
-    };
-
-    const fastProvider = createGoogle({
-      apiKey: 'test-api-key',
-      generateId: () => 'test-id',
-    });
-    const result = await fastProvider
-      .interactions('gemini-4-argon')
-      .doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          google: { background: true, continuationToken: 'token-1' },
-        },
-      });
-
-    expect(result.warnings).toContainEqual(
-      expect.objectContaining({
-        type: 'other',
-        message: expect.stringContaining(
-          "'continuationToken' cannot be combined",
-        ),
-      }),
-    );
-  });
-
   it('returns the polled terminal response from doGenerate when POST returns in_progress', async () => {
     pollServer.urls[POST_URL].response = {
       type: 'json-value',
@@ -2104,6 +1967,55 @@ describe('GoogleInteractionsLanguageModel agent polling', () => {
     expect(calls[1].requestMethod).toBe('GET');
     expect(calls[2].requestMethod).toBe('GET');
     expect(getCallCount).toBe(2);
+  });
+
+  it('polls doGenerate until terminal for model calls with background: true', async () => {
+    pollServer.urls[POST_URL].response = {
+      type: 'json-value',
+      body: { id: 'v1_poll-test', status: 'in_progress' },
+    };
+    pollServer.urls[POLL_URL].response = {
+      type: 'json-value',
+      body: {
+        id: 'v1_poll-test',
+        status: 'completed',
+        steps: [
+          {
+            type: 'model_output',
+            content: [{ type: 'text', text: 'long answer' }],
+          },
+        ],
+        usage: {
+          total_input_tokens: 5,
+          total_output_tokens: 100_000,
+          total_tokens: 100_005,
+        },
+      },
+    };
+
+    const fastProvider = createGoogle({
+      apiKey: 'test-api-key',
+      generateId: () => 'test-id',
+    });
+    const result = await fastProvider
+      .interactions('gemini-4-argon')
+      .doGenerate({
+        prompt: TEST_PROMPT,
+        maxOutputTokens: 200_000,
+        providerOptions: { google: { background: true } },
+      });
+
+    expect(await pollServer.calls[0].requestBodyJson).toMatchObject({
+      model: 'gemini-4-argon',
+      background: true,
+      generation_config: { max_output_tokens: 200_000 },
+    });
+    expect(pollServer.calls[1].requestMethod).toBe('GET');
+    expect(result.finishReason.unified).toBe('stop');
+    expect(result.content).toEqual([
+      expect.objectContaining({ type: 'text', text: 'long answer' }),
+    ]);
+    expect(result.usage.outputTokens.total).toBe(100_000);
   });
 
   it('opens GET /interactions/{id}?stream=true and pipes SSE events through when POST is non-terminal', async () => {
@@ -2721,155 +2633,6 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
         unknown
       >;
       expect(body.service_tier).toBe('priority');
-    });
-
-    it('keeps the latest continuation_token checkpoint from interaction.status_update events', async () => {
-      const objs = readFixtureChunkLines('basic');
-      const completeIdx = objs.findIndex(
-        o => o.event_type === 'interaction.completed',
-      );
-      const complete = objs[completeIdx];
-      const interaction = {
-        ...(complete.interaction as Record<string, unknown>),
-      };
-      delete interaction.continuation_token;
-      objs.splice(
-        completeIdx,
-        1,
-        {
-          event_type: 'interaction.status_update',
-          interaction_id: 'v1_checkpoint',
-          status: 'in_progress',
-          continuation_token: 'checkpoint-1',
-        },
-        {
-          event_type: 'interaction.status_update',
-          interaction_id: 'v1_checkpoint',
-          status: 'in_progress',
-          continuation_token: 'checkpoint-2',
-        },
-        { ...complete, interaction: { ...interaction, status: 'incomplete' } },
-      );
-      prepareCustomChunksWithHeaders(objs);
-
-      const { stream } = await model.doStream({
-        prompt: TEST_PROMPT,
-        includeRawChunks: false,
-      });
-      const parts = await convertReadableStreamToArray(stream);
-      const finish = parts.find(p => p.type === 'finish') as
-        | { providerMetadata?: { google?: { continuationToken?: string } } }
-        | undefined;
-      expect(finish?.providerMetadata?.google?.continuationToken).toBe(
-        'checkpoint-2',
-      );
-    });
-
-    it('continues the stream automatically on continuation_required', async () => {
-      const objs = readFixtureChunkLines('basic');
-      const continuationObjs = objs.map(o =>
-        o.event_type === 'interaction.completed'
-          ? {
-              ...o,
-              interaction: {
-                ...(o.interaction as Record<string, unknown>),
-                status: 'continuation_required',
-                continuation_token: 'token-1',
-              },
-            }
-          : o,
-      );
-      server.urls[TEST_URL].response = [
-        {
-          type: 'stream-chunks',
-          chunks: continuationObjs.map(o => `data: ${JSON.stringify(o)}\n\n`),
-        },
-        {
-          type: 'stream-chunks',
-          chunks: objs.map(o => `data: ${JSON.stringify(o)}\n\n`),
-        },
-      ];
-
-      const { stream } = await model.doStream({
-        prompt: TEST_PROMPT,
-        includeRawChunks: false,
-        maxOutputTokens: 100_000,
-      });
-      const parts = await convertReadableStreamToArray(stream);
-
-      expect(server.calls.length).toBe(2);
-      const firstBody = (await server.calls[0].requestBodyJson) as Record<
-        string,
-        unknown
-      >;
-      expect(await server.calls[1].requestBodyJson).toEqual({
-        ...firstBody,
-        continuation_token: 'token-1',
-      });
-
-      const textStarts = parts.filter(p => p.type === 'text-start') as Array<{
-        id: string;
-      }>;
-      expect(textStarts).toHaveLength(2);
-      expect(textStarts[0].id).not.toBe(textStarts[1].id);
-
-      const finish = parts.find(p => p.type === 'finish') as
-        | {
-            finishReason: { unified: string };
-            usage: {
-              inputTokens: { total?: number };
-              outputTokens: { total?: number };
-            };
-          }
-        | undefined;
-      expect(finish?.finishReason.unified).toBe('stop');
-      expect(finish?.usage.inputTokens.total).toBe(
-        2 *
-          (
-            objs.find(o => o.event_type === 'interaction.completed')!
-              .interaction as { usage: { total_input_tokens: number } }
-          ).usage.total_input_tokens,
-      );
-    });
-
-    it('exposes continuation_token from interaction.completed as providerMetadata.google.continuationToken', async () => {
-      const objs = readFixtureChunkLines('basic');
-      const completeIdx = objs.findIndex(
-        o => o.event_type === 'interaction.completed',
-      );
-      const complete = objs[completeIdx];
-      const interaction = complete.interaction as Record<string, unknown>;
-      objs[completeIdx] = {
-        ...complete,
-        interaction: {
-          ...interaction,
-          status: 'incomplete',
-          continuation_token: 'token-3',
-        },
-      };
-      prepareCustomChunksWithHeaders(objs);
-
-      const { stream } = await model.doStream({
-        prompt: TEST_PROMPT,
-        includeRawChunks: false,
-        providerOptions: { google: { continuationToken: 'token-prev' } },
-      });
-      const parts = await convertReadableStreamToArray(stream);
-      const finish = parts.find(p => p.type === 'finish') as
-        | {
-            finishReason: { unified: string };
-            providerMetadata?: { google?: { continuationToken?: string } };
-          }
-        | undefined;
-      expect(finish?.finishReason.unified).toBe('length');
-      expect(finish?.providerMetadata?.google?.continuationToken).toBe(
-        'token-3',
-      );
-      const body = (await server.calls[0].requestBodyJson) as Record<
-        string,
-        unknown
-      >;
-      expect(body.continuation_token).toBe('token-prev');
     });
 
     it('reads providerMetadata.google.serviceTier from the interaction.complete event body service_tier field', async () => {

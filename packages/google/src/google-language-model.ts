@@ -515,6 +515,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     providerOptionsNames,
     toolNameMapping,
     jsonResponseToolName,
+    initialPromptTokenCount,
   }: {
     config: GoogleLanguageModelConfig;
     response: InferSchema<typeof responseSchema>;
@@ -522,6 +523,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     providerOptionsNames: readonly string[];
     toolNameMapping?: ReturnType<typeof createToolNameMapping>;
     jsonResponseToolName?: string;
+    initialPromptTokenCount?: number | null;
   }): LanguageModelV4GenerateResult {
     const wrapProviderMetadata = (payload: Record<string, unknown>) =>
       Object.fromEntries(
@@ -720,6 +722,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         ...(candidate?.continuationToken != null
           ? { continuationToken: candidate.continuationToken }
           : {}),
+        ...(initialPromptTokenCount != null ? { initialPromptTokenCount } : {}),
       } satisfies GoogleProviderMetadata),
       response: {
         // TODO timestamp, model id
@@ -769,8 +772,14 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     // `maxOutputTokens` budget remains finishes with `CONTINUATION`. Resend
     // the same request with the continuation token (the server tracks the
     // cumulative tokens) and combine the content of all requests.
+    //
+    // Usage is summed across requests (matching billing). Each request re-sends
+    // the prompt plus all output so far as input, so the first request's
+    // prompt token count is kept separately for context window checks.
     const content: LanguageModelV4Content[] = [];
     let usageMetadata: GoogleUsageMetadata | undefined;
+    const firstPromptTokenCount = response.usageMetadata?.promptTokenCount;
+    let isContinued = false;
 
     while (true) {
       const candidate = response.candidates?.[0];
@@ -799,6 +808,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         }).content,
       );
 
+      isContinued = true;
       ({
         responseHeaders,
         value: response,
@@ -813,6 +823,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       providerOptionsNames,
       toolNameMapping,
       jsonResponseToolName,
+      initialPromptTokenCount: isContinued ? firstPromptTokenCount : undefined,
     });
 
     const result = {
@@ -893,6 +904,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     let usage: GoogleUsageMetadata | undefined = undefined;
     // Usage of the completed requests of an automatically continued response.
     let continuedUsage: GoogleUsageMetadata | undefined = undefined;
+    // Prompt token count of the first request, for context window checks.
+    let initialPromptTokenCount: number | null | undefined = undefined;
     let promptFeedback: PromptFeedbackSchema | null = null;
     let lastGroundingMetadata: GroundingMetadataSchema | null = null;
     let lastUrlContextMetadata: UrlContextMetadataSchema | null = null;
@@ -1409,6 +1422,9 @@ export class GoogleLanguageModel implements LanguageModelV4 {
             if (candidate.finishReason === 'CONTINUATION') {
               // Usage metadata is per request. The next request reports its
               // own usage, so bank the usage of this one.
+              if (continuedUsage == null) {
+                initialPromptTokenCount = usage?.promptTokenCount;
+              }
               continuedUsage = addGoogleUsageMetadata(continuedUsage, usage);
               usage = undefined;
             }
@@ -1452,8 +1468,16 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                 usageMetadata: usage ?? null,
                 finishMessage: lastFinishMessage,
                 serviceTier: usage?.serviceTier ?? null,
-                ...(lastContinuationToken != null
+                // Only surface the token when the response stopped early
+                // (budget used up, or continuing failed), not for the
+                // checkpoint tokens of a stream that finished normally.
+                ...(lastContinuationToken != null &&
+                (finishReason.raw === 'MAX_TOKENS' ||
+                  finishReason.raw === 'CONTINUATION')
                   ? { continuationToken: lastContinuationToken }
+                  : {}),
+                ...(initialPromptTokenCount != null
+                  ? { initialPromptTokenCount }
                   : {}),
               } satisfies GoogleProviderMetadata),
             });

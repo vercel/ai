@@ -19,6 +19,12 @@ run(async () => {
   }
 
   console.log();
+  // Summed across all requests (matches billing).
   console.log('Token usage:', await result.usage);
+  // Prompt tokens of the first request, for context window checks.
+  console.log(
+    'Initial prompt tokens:',
+    (await result.finalStep).providerMetadata?.google?.initialPromptTokenCount,
+  );
   console.log('Finish reason:', await result.finishReason);
 });

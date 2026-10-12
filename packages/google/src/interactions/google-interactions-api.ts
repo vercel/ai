@@ -59,7 +59,6 @@ const interactionStatusSchema = () =>
     'failed',
     'cancelled',
     'incomplete',
-    'continuation_required',
   ]);
 
 const annotationSchema = () => {
@@ -296,7 +295,6 @@ export const googleInteractionsResponseSchema = lazySchema(() =>
         steps: z.array(stepSchema()).nullish(),
         usage: usageSchema().nullish(),
         service_tier: z.string().nullish(),
-        continuation_token: z.string().nullish(),
         previous_interaction_id: z.string().nullish(),
         response_modalities: z.array(z.string()).nullish(),
       })
@@ -501,7 +499,6 @@ export const googleInteractionsEventSchema = lazySchema(() =>
           event_id: z.string().nullish(),
           interaction_id: z.string().nullish(),
           status: status.nullish(),
-          continuation_token: z.string().nullish(),
         })
         .loose();
 
@@ -533,7 +530,6 @@ export const googleInteractionsEventSchema = lazySchema(() =>
               status: status.nullish(),
               usage: usageSchema().nullish(),
               service_tier: z.string().nullish(),
-              continuation_token: z.string().nullish(),
             })
             .loose(),
         })

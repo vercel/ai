@@ -21,8 +21,6 @@ export function mapGoogleInteractionsFinishReason({
     case 'failed':
       return 'error';
     case 'incomplete':
-    // Continued automatically; only surfaced if continuing fails.
-    case 'continuation_required':
       return 'length';
     case 'cancelled':
       return 'other';

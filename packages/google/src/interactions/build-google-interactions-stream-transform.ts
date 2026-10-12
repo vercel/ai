@@ -15,7 +15,6 @@ import type {
   GoogleInteractionsUsage,
 } from './google-interactions-api';
 import {
-  addGoogleInteractionsUsage,
   convertGoogleInteractionsUsage,
   getGoogleInteractionsOutputTokensByModality,
 } from './convert-google-interactions-usage';
@@ -150,16 +149,7 @@ export function buildGoogleInteractionsStreamTransform({
 > {
   let interactionId: string | undefined;
   let usage: GoogleInteractionsUsage | undefined;
-  /*
-   * Gemini 4 long decode: an interaction that reaches the per-request cap
-   * while budget remains is continued automatically with a new request whose
-   * events are appended to this stream (`continuation_required`). Usage is
-   * reported per request, and step indexes restart in every request.
-   */
-  let continuedUsage: GoogleInteractionsUsage | undefined;
-  let continuationCount = 0;
   let serviceTier: string | undefined = headerServiceTier;
-  let continuationToken: string | undefined;
   let finishStatus: GoogleInteractionsStatus | string | undefined;
   let hasFunctionCall = false;
 
@@ -270,9 +260,7 @@ export function buildGoogleInteractionsStreamTransform({
               }
             | undefined;
           const index = event.index;
-          const blockId = `${interactionId ?? 'interaction'}:${
-            continuationCount > 0 ? `${continuationCount}:` : ''
-          }${index}`;
+          const blockId = `${interactionId ?? 'interaction'}:${index}`;
           const stepType = step?.type;
 
           if (stepType === 'model_output') {
@@ -846,18 +834,6 @@ export function buildGoogleInteractionsStreamTransform({
           } else {
             finishStatus = 'in_progress';
           }
-          /*
-           * Long-running streams emit checkpoint `continuation_token`s on
-           * `interaction.status_update` (status `in_progress`) after the first
-           * 32K tokens and then every 5K tokens. Keep the latest one so a
-           * dropped stream can be resumed from it.
-           */
-          const checkpointToken = (
-            event as { continuation_token?: string | null }
-          ).continuation_token;
-          if (checkpointToken != null) {
-            continuationToken = checkpointToken;
-          }
           break;
         }
 
@@ -871,7 +847,6 @@ export function buildGoogleInteractionsStreamTransform({
             status?: GoogleInteractionsStatus;
             usage?: GoogleInteractionsUsage;
             service_tier?: string;
-            continuation_token?: string;
           };
           if (interaction?.id != null && interaction.id.length > 0) {
             interactionId = interaction.id;
@@ -890,14 +865,6 @@ export function buildGoogleInteractionsStreamTransform({
            */
           if (interaction?.service_tier != null) {
             serviceTier = interaction.service_tier;
-          }
-          if (interaction?.continuation_token != null) {
-            continuationToken = interaction.continuation_token;
-          }
-          if (interaction?.status === 'continuation_required') {
-            continuedUsage = addGoogleInteractionsUsage(continuedUsage, usage);
-            usage = undefined;
-            continuationCount++;
           }
           break;
         }
@@ -926,8 +893,6 @@ export function buildGoogleInteractionsStreamTransform({
     },
 
     flush(controller) {
-      usage = addGoogleInteractionsUsage(continuedUsage, usage);
-
       const finishReason: LanguageModelV4FinishReason = {
         unified: mapGoogleInteractionsFinishReason({
           status: finishStatus,
@@ -943,7 +908,6 @@ export function buildGoogleInteractionsStreamTransform({
         google: {
           ...(interactionId != null ? { interactionId } : {}),
           ...(serviceTier != null ? { serviceTier } : {}),
-          ...(continuationToken != null ? { continuationToken } : {}),
           ...(outputTokensByModality != null ? { outputTokensByModality } : {}),
         },
       };
