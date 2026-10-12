@@ -1,5 +1,20 @@
 # @ai-sdk/react
 
+## 3.0.307
+
+### Patch Changes
+
+- fade070: fix: resume interrupted chat streams when the page becomes visible again
+
+  `useChat` with `resume: true` no longer starts a second resume request on mount when the chat is already submitted or streaming, e.g. when remounting with a shared `Chat` instance mid-stream.
+
+- Updated dependencies [fade070]
+- Updated dependencies [8e74de0]
+- Updated dependencies [a5c9cca]
+- Updated dependencies [7888841]
+- Updated dependencies [e466fb0]
+  - ai@6.0.304
+
 ## 3.0.306
 
 ### Patch Changes

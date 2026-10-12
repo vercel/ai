@@ -1,5 +1,18 @@
 # ai
 
+## 6.0.304
+
+### Patch Changes
+
+- fade070: fix: resume interrupted chat streams when the page becomes visible again
+
+  `useChat` with `resume: true` no longer starts a second resume request on mount when the chat is already submitted or streaming, e.g. when remounting with a shared `Chat` instance mid-stream.
+
+- 8e74de0: fix(ai): update tool outputs in the message containing the matching tool call
+- a5c9cca: fix(ai): prevent duplicate message parts when resuming replayed streams
+- 7888841: fix(ai): update streaming chat messages by stable ID
+- e466fb0: fix(ai): reject approved tool calls without results before sending later context to providers
+
 ## 6.0.303
 
 ### Patch Changes
