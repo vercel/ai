@@ -291,6 +291,148 @@ describe('writeInstructions', () => {
     );
   });
 
+  it('preserves content appended after managed instructions when replacing and clearing them', async () => {
+    const state = makeSandbox();
+    state.files.set('/home/user/AGENTS.md', '# Base\n');
+
+    await writeInstructions({
+      sandbox: state.sandbox,
+      homePath: '/home/user',
+      instructionsFile: 'AGENTS.md',
+      instructions: 'First instructions.',
+    });
+
+    state.files.set(
+      '/home/user/AGENTS.md',
+      '# Base\n\nFirst instructions.\n\n# User Section\n',
+    );
+
+    await writeInstructions({
+      sandbox: state.sandbox,
+      homePath: '/home/user',
+      instructionsFile: 'AGENTS.md',
+      instructions: 'Second instructions.',
+    });
+
+    expect(state.files.get('/home/user/AGENTS.md')).toBe(
+      '# Base\n\n# User Section\n\nSecond instructions.\n',
+    );
+
+    await writeInstructions({
+      sandbox: state.sandbox,
+      homePath: '/home/user',
+      instructionsFile: 'AGENTS.md',
+      instructions: '',
+    });
+
+    expect(state.files.get('/home/user/AGENTS.md')).toBe(
+      '# Base\n\n# User Section\n',
+    );
+  });
+
+  it('preserves appended content when the instructions file was created by the harness', async () => {
+    const state = makeSandbox();
+
+    await writeInstructions({
+      sandbox: state.sandbox,
+      homePath: '/home/user',
+      instructionsFile: 'AGENTS.md',
+      instructions: 'First instructions.',
+    });
+
+    state.files.set(
+      '/home/user/AGENTS.md',
+      'First instructions.\n\n# User Section\n',
+    );
+
+    await writeInstructions({
+      sandbox: state.sandbox,
+      homePath: '/home/user',
+      instructionsFile: 'AGENTS.md',
+      instructions: 'Second instructions.',
+    });
+
+    expect(state.files.get('/home/user/AGENTS.md')).toBe(
+      '# User Section\n\nSecond instructions.\n',
+    );
+
+    await writeInstructions({
+      sandbox: state.sandbox,
+      homePath: '/home/user',
+      instructionsFile: 'AGENTS.md',
+      instructions: undefined,
+    });
+
+    expect(state.files.get('/home/user/AGENTS.md')).toBe('# User Section\n');
+  });
+
+  it('preserves content appended after managed instructions when clearing them', async () => {
+    const state = makeSandbox();
+    state.files.set('/home/user/AGENTS.md', '# Base\n');
+
+    await writeInstructions({
+      sandbox: state.sandbox,
+      homePath: '/home/user',
+      instructionsFile: 'AGENTS.md',
+      instructions: 'Temporary instructions.',
+    });
+
+    state.files.set(
+      '/home/user/AGENTS.md',
+      '# Base\n\nTemporary instructions.\n\n# User Section\n',
+    );
+
+    await writeInstructions({
+      sandbox: state.sandbox,
+      homePath: '/home/user',
+      instructionsFile: 'AGENTS.md',
+      instructions: undefined,
+    });
+
+    expect(state.files.get('/home/user/AGENTS.md')).toBe(
+      '# Base\n\n# User Section\n',
+    );
+  });
+
+  it('does not overwrite the file when the managed instructions were edited', async () => {
+    const state = makeSandbox();
+    state.files.set('/home/user/AGENTS.md', '# Base\n');
+
+    await writeInstructions({
+      sandbox: state.sandbox,
+      homePath: '/home/user',
+      instructionsFile: 'AGENTS.md',
+      instructions: 'First instructions.',
+    });
+
+    const editedContent = '# Base\n\nEdited instructions.\n';
+    state.files.set('/home/user/AGENTS.md', editedContent);
+    const writesCount = state.writes.length;
+    const runsCount = state.runs.length;
+
+    await expect(
+      writeInstructions({
+        sandbox: state.sandbox,
+        homePath: '/home/user',
+        instructionsFile: 'AGENTS.md',
+        instructions: 'Second instructions.',
+      }),
+    ).rejects.toThrow('the managed instructions');
+
+    await expect(
+      writeInstructions({
+        sandbox: state.sandbox,
+        homePath: '/home/user',
+        instructionsFile: 'AGENTS.md',
+        instructions: undefined,
+      }),
+    ).rejects.toThrow('the managed instructions');
+
+    expect(state.files.get('/home/user/AGENTS.md')).toBe(editedContent);
+    expect(state.writes).toHaveLength(writesCount);
+    expect(state.runs).toHaveLength(runsCount);
+  });
+
   it('manages multiple target files in the same directory independently', async () => {
     const state = makeSandbox();
     await writeInstructions({
