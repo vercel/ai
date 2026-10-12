@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 23049,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-23049-harness-ui-step-callbacks.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-23049-harness-ui-step-callbacks.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_23049_REPRODUCED: HarnessAgent UI stream helpers omitted step callbacks"
+  }
+}
