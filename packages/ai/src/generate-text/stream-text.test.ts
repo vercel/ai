@@ -52,6 +52,7 @@ import {
   type Telemetry,
 } from '..';
 import {
+  NoObjectGeneratedError,
   NoOutputGeneratedError,
   StreamProviderError,
   ToolChoiceViolationError,
@@ -23287,6 +23288,41 @@ describe('streamText', () => {
         expect(partials).toStrictEqual([[{ value: 'done' }]]);
         expect(elements).toStrictEqual([{ value: 'done' }]);
         expect(output).toStrictEqual([{ value: 'done' }]);
+      });
+
+      it('should stream the final element when the elements array closes before the outer object', async () => {
+        const result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              {
+                type: 'text-delta',
+                id: '1',
+                delta: '{"elements":[{"value":"done"}]',
+              },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+          output: Output.array({
+            element: z.object({ value: z.string() }),
+          }),
+          prompt: 'prompt',
+        });
+
+        const [partials, elements, outputError] = await Promise.all([
+          convertAsyncIterableToArray(result.partialOutputStream),
+          convertAsyncIterableToArray(result.elementStream),
+          Promise.resolve(result.output).catch((error: unknown) => error),
+        ]);
+
+        expect(partials).toStrictEqual([[{ value: 'done' }]]);
+        expect(elements).toStrictEqual([{ value: 'done' }]);
+        expect(NoObjectGeneratedError.isInstance(outputError)).toBe(true);
       });
 
       it('should error elementStream when the model exceeds maxItems', async () => {

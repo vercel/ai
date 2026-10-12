@@ -555,14 +555,68 @@ describe('Output.array', () => {
       });
     });
 
-    it('should parse partial output successfully for repaired-parse (returns all but last element)', async () => {
-      // Simulate an incomplete last element (at the end, missing " }")
+    it('should omit the last element while the elements array is incomplete', async () => {
       const partial = await array1.parsePartialOutput({
         text: `{ "elements": [{ "content": "a" }, { "content": "b" }`,
       });
-      // Should only return [{ content: "a" }]
       expect(partial).toEqual({
         partial: [{ content: 'a' }],
+      });
+    });
+
+    it.each([
+      {
+        name: 'number',
+        text: '{"elements":[1]',
+        expected: [1],
+      },
+      {
+        name: 'nested object',
+        text: '{"elements":[{"value":"complete"}]',
+        expected: [{ value: 'complete' }],
+      },
+      {
+        name: 'string with escaped delimiters',
+        text: String.raw`{"elements":["complete \" ] } value"]`,
+        expected: ['complete " ] } value'],
+      },
+    ])(
+      'should retain a completed $name element when only the outer object is incomplete',
+      async ({ text, expected }) => {
+        const output = array({ element: z.unknown() });
+
+        await expect(output.parsePartialOutput({ text })).resolves.toEqual({
+          partial: expected,
+        });
+      },
+    );
+
+    it.each([
+      {
+        name: 'number',
+        text: '{"elements":[1',
+      },
+      {
+        name: 'string containing an array delimiter',
+        text: '{"elements":["incomplete ]',
+      },
+      {
+        name: 'nested object',
+        text: '{"elements":[{"value":"incomplete"',
+      },
+      {
+        name: 'nested array',
+        text: '{"elements":[[1]',
+      },
+      {
+        name: 'string with an escaped quote and array delimiter',
+        text: String.raw`{"elements":["incomplete \" ]`,
+      },
+    ])('should omit an incomplete $name element', async ({ text }) => {
+      const output = array({ element: z.unknown() });
+
+      await expect(output.parsePartialOutput({ text })).resolves.toEqual({
+        partial: [],
       });
     });
 

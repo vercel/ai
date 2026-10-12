@@ -1,5 +1,5 @@
 import { safeParseJSON } from '@ai-sdk/provider-utils';
-import { fixJson } from './fix-json';
+import { fixJsonWithMetadata } from './fix-json';
 import { parsePartialJson } from './parse-partial-json';
 import { JSONParseError } from '@ai-sdk/provider';
 import { describe, it, expect, vi } from 'vitest';
@@ -48,14 +48,17 @@ describe('parsePartialJson', () => {
         value: parsedValue,
         rawValue: parsedValue,
       });
-    vi.mocked(fixJson).mockReturnValueOnce(fixedJson);
+    vi.mocked(fixJsonWithMetadata).mockReturnValueOnce({
+      value: fixedJson,
+      hasUnclosedArray: false,
+    });
 
     expect(await parsePartialJson(partialJson)).toEqual({
       value: parsedValue,
       state: 'repaired-parse',
     });
     expect(safeParseJSON).toHaveBeenCalledWith({ text: partialJson });
-    expect(fixJson).toHaveBeenCalledWith(partialJson);
+    expect(fixJsonWithMetadata).toHaveBeenCalledWith(partialJson);
     expect(safeParseJSON).toHaveBeenCalledWith({ text: fixedJson });
   });
 
@@ -67,14 +70,17 @@ describe('parsePartialJson', () => {
       error: new JSONParseError({ text: invalidJson, cause: undefined }),
       rawValue: invalidJson,
     });
-    vi.mocked(fixJson).mockReturnValueOnce(invalidJson);
+    vi.mocked(fixJsonWithMetadata).mockReturnValueOnce({
+      value: invalidJson,
+      hasUnclosedArray: false,
+    });
 
     expect(await parsePartialJson(invalidJson)).toEqual({
       value: undefined,
       state: 'failed-parse',
     });
     expect(safeParseJSON).toHaveBeenCalledWith({ text: invalidJson });
-    expect(fixJson).toHaveBeenCalledWith(invalidJson);
+    expect(fixJsonWithMetadata).toHaveBeenCalledWith(invalidJson);
     expect(safeParseJSON).toHaveBeenCalledWith({ text: invalidJson });
   });
 });
