@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 23047,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/harness-agent-response-message-order.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/harness-agent-response-message-order.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_23047_RESPONSE_MESSAGE_ORDER: expected [\"assistant\",\"tool\",\"assistant\"], observed [\"assistant\",\"tool\"]"
+  }
+}
