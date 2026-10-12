@@ -41,10 +41,10 @@ export function createFileReporter(options: FileReporterOptions): FileReporter {
   const path = `${options.dir}/${fileName}`;
   const failOnly = options.failOnly ?? false;
 
-  // Per-turn buffers, keyed by the telemetry callId. Diagnostics (which carry a
-  // sessionId, not a callId) attach to the most recently started, open turn.
+  // Per-turn buffers, keyed by the telemetry callId. Diagnostics carry a
+  // sessionId rather than a callId, so they can only be attached when exactly
+  // one turn is open.
   const turns = new Map<string, { lines: Record_[]; errored: boolean }>();
-  let lastOpenCallId: string | undefined;
   let dirReady = false;
 
   const bucketFor = (callId: string) => {
@@ -57,14 +57,16 @@ export function createFileReporter(options: FileReporterOptions): FileReporter {
   };
 
   const record = (callId: string | undefined, rec: Record_): void => {
-    const id = callId ?? lastOpenCallId;
-    if (id == null) {
-      // No active turn — write standalone (best-effort).
+    if (callId == null) {
+      // No unambiguous active turn — write standalone (best-effort).
       flushLines([rec]);
       return;
     }
-    bucketFor(id).lines.push(rec);
+    bucketFor(callId).lines.push(rec);
   };
+
+  const getOnlyOpenCallId = (): string | undefined =>
+    turns.size === 1 ? turns.keys().next().value : undefined;
 
   const flushLines = (lines: Record_[]): void => {
     if (lines.length === 0) return;
@@ -83,7 +85,6 @@ export function createFileReporter(options: FileReporterOptions): FileReporter {
     const bucket = turns.get(callId);
     if (!bucket) return;
     turns.delete(callId);
-    if (lastOpenCallId === callId) lastOpenCallId = undefined;
     if (failOnly && !bucket.errored) return;
     flushLines(bucket.lines);
   };
@@ -99,7 +100,6 @@ export function createFileReporter(options: FileReporterOptions): FileReporter {
         instructions?: unknown;
         recordInputs?: boolean;
       };
-      lastOpenCallId = e.callId;
       record(e.callId, {
         ts: Date.now(),
         kind: 'turn-start',
@@ -208,10 +208,11 @@ export function createFileReporter(options: FileReporterOptions): FileReporter {
       finishTurn(callId);
     },
     ingestDiagnostic(diagnostic: HarnessDiagnostic) {
-      if (diagnostic.level === 'error' && lastOpenCallId != null) {
-        bucketFor(lastOpenCallId).errored = true;
+      const callId = getOnlyOpenCallId();
+      if (diagnostic.level === 'error' && callId != null) {
+        bucketFor(callId).errored = true;
       }
-      record(lastOpenCallId, {
+      record(callId, {
         ts: diagnostic.timestamp,
         kind: 'diagnostic',
         diagnostic,
