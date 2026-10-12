@@ -2,7 +2,7 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 
-// Case 1: Simple identifier named 'result' - needs rename in body
+// Case 1: Simple identifier named 'result' - preserve binding with an alias
 const imageTool = tool({
   description: 'Generate an image',
   inputSchema: z.object({ prompt: z.string() }),
@@ -52,4 +52,23 @@ const funcTool = tool({
   toModelOutput: function(result) {
     return [{ type: 'text', text: result }];
   },
+});
+
+// Case 6: Existing output binding in callback body
+const collisionTool = tool({
+  description: 'Collision tool',
+  inputSchema: z.object({ input: z.string() }),
+  execute: async ({ input }) => input,
+  toModelOutput: result => {
+    const output = 'prefix:';
+    return [{ type: 'text', text: output + result }];
+  },
+});
+
+// Case 7: Typed identifier parameter
+const typedTool = tool({
+  description: 'Typed tool',
+  inputSchema: z.object({ input: z.string() }),
+  execute: async ({ input }) => input,
+  toModelOutput: (result: string) => [{ type: 'text', text: result }],
 });

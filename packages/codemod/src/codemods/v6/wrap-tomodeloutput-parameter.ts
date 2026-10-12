@@ -40,65 +40,20 @@ export default createTransformer((fileInfo, api, options, context) => {
     return false;
   }
 
-  // Helper function to rename identifiers in scope
-  function renameIdentifiersInScope(
-    body: any,
-    oldName: string,
-    newName: string,
-  ) {
-    j(body)
-      .find(j.Identifier, { name: oldName })
-      .filter((idPath: any) => {
-        const parent = idPath.parent.node;
-
-        // Don't rename property keys in object literals (unless computed)
-        if (
-          (parent.type === 'Property' || parent.type === 'ObjectProperty') &&
-          parent.key === idPath.node &&
-          !parent.computed
-        ) {
-          return false;
-        }
-
-        // Don't rename member expression properties (unless computed)
-        if (
-          parent.type === 'MemberExpression' &&
-          parent.property === idPath.node &&
-          !parent.computed
-        ) {
-          return false;
-        }
-
-        return true;
-      })
-      .forEach((idPath: any) => {
-        idPath.node.name = newName;
-      });
-  }
-
   // Helper to transform function params (shared logic)
-  function transformParams(params: any[], body: any, node: any) {
+  function transformParams(params: any[], node: any) {
     if (params.length !== 1) return false;
 
     const firstParam = params[0];
 
     if (firstParam.type === 'Identifier') {
-      const oldName = firstParam.name;
+      const outputProperty = j.objectProperty(
+        j.identifier('output'),
+        j.identifier(firstParam.name),
+      );
+      outputProperty.shorthand = firstParam.name === 'output';
 
-      // Create new object pattern: { output }
-      const newParam = j.objectPattern([
-        j.objectProperty.from({
-          key: j.identifier('output'),
-          value: j.identifier('output'),
-          shorthand: true,
-        }),
-      ]);
-
-      params[0] = newParam;
-
-      if (oldName !== 'output') {
-        renameIdentifiersInScope(body, oldName, 'output');
-      }
+      params[0] = j.objectPattern([outputProperty]);
 
       transformedNodes.add(node);
       context.hasChanges = true;
@@ -129,7 +84,7 @@ export default createTransformer((fileInfo, api, options, context) => {
     })
     .forEach(path => {
       if (!isToolContext(path)) return;
-      transformParams(path.node.params, path.node.body, path.node);
+      transformParams(path.node.params, path.node);
     });
 
   // Transform ObjectProperty (toModelOutput: output => ... or toModelOutput: function(result) { ... })
@@ -153,7 +108,7 @@ export default createTransformer((fileInfo, api, options, context) => {
         return;
       }
 
-      transformParams(value.params, value.body, path.node);
+      transformParams(value.params, path.node);
     });
 
   // Handle Property nodes (alternative AST representation)
@@ -177,6 +132,6 @@ export default createTransformer((fileInfo, api, options, context) => {
         return;
       }
 
-      transformParams(value.params, value.body, path.node);
+      transformParams(value.params, path.node);
     });
 });
