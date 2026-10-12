@@ -51,7 +51,7 @@ export default createTransformer((fileInfo, api, options, context) => {
 
   let needsUseStateImport = false;
   const inputStates: Array<{
-    inputName: string;
+    inputName: string | null;
     setterName: string;
     parentPath: any;
   }> = [];
@@ -72,8 +72,10 @@ export default createTransformer((fileInfo, api, options, context) => {
 
     const objectPattern = id;
     let inputName = '';
+    let setInputName = '';
     let handleInputChangeName = '';
     let foundInput = false;
+    let foundSetInput = false;
     let foundHandleInputChange = false;
     const filteredProperties: any[] = [];
 
@@ -86,6 +88,13 @@ export default createTransformer((fileInfo, api, options, context) => {
               inputName = prop.value.name;
             } else if (prop.shorthand) {
               inputName = 'input';
+            }
+          } else if (prop.key.name === 'setInput') {
+            foundSetInput = true;
+            if (prop.value && prop.value.type === 'Identifier') {
+              setInputName = prop.value.name;
+            } else if (prop.shorthand) {
+              setInputName = 'setInput';
             }
           } else if (prop.key.name === 'handleInputChange') {
             foundHandleInputChange = true;
@@ -105,14 +114,16 @@ export default createTransformer((fileInfo, api, options, context) => {
       }
     });
 
-    if (foundInput || foundHandleInputChange) {
+    if (foundInput || foundSetInput || foundHandleInputChange) {
       context.hasChanges = true;
 
       objectPattern.properties = filteredProperties;
 
       if (foundInput && inputName) {
         needsUseStateImport = true;
-        const setterName = `set${inputName.charAt(0).toUpperCase()}${inputName.slice(1)}`;
+        const setterName =
+          setInputName ||
+          `set${inputName.charAt(0).toUpperCase()}${inputName.slice(1)}`;
 
         inputStates.push({
           inputName,
@@ -156,10 +167,13 @@ export default createTransformer((fileInfo, api, options, context) => {
               );
             });
         }
-      } else if (foundHandleInputChange && handleInputChangeName) {
+      } else if (
+        (foundSetInput && setInputName) ||
+        (foundHandleInputChange && handleInputChangeName)
+      ) {
         needsUseStateImport = true;
-        const inputName = 'input';
-        const setterName = 'setInput';
+        const inputName = foundHandleInputChange ? 'input' : null;
+        const setterName = setInputName || 'setInput';
 
         inputStates.push({
           inputName,
@@ -167,37 +181,42 @@ export default createTransformer((fileInfo, api, options, context) => {
           parentPath: path.parent,
         });
 
-        const functionScope =
-          j(path).closest(j.FunctionDeclaration).size() > 0
-            ? j(path).closest(j.FunctionDeclaration)
-            : j(path).closest(j.FunctionExpression).size() > 0
-              ? j(path).closest(j.FunctionExpression)
-              : j(path).closest(j.ArrowFunctionExpression);
+        if (foundHandleInputChange && handleInputChangeName) {
+          const functionScope =
+            j(path).closest(j.FunctionDeclaration).size() > 0
+              ? j(path).closest(j.FunctionDeclaration)
+              : j(path).closest(j.FunctionExpression).size() > 0
+                ? j(path).closest(j.FunctionExpression)
+                : j(path).closest(j.ArrowFunctionExpression);
 
-        functionScope
-          .find(j.Identifier, { name: handleInputChangeName })
-          .filter(idPath => {
-            const parent = idPath.parent.node;
-            return !(
-              ((parent.type === 'Property' ||
-                parent.type === 'ObjectProperty') &&
-                parent.key === idPath.node) ||
-              (parent.type === 'MemberExpression' &&
-                parent.property === idPath.node &&
-                !parent.computed)
-            );
-          })
-          .replaceWith(() => {
-            return j.arrowFunctionExpression(
-              [j.identifier('e')],
-              j.callExpression(j.identifier(setterName), [
-                j.memberExpression(
-                  j.memberExpression(j.identifier('e'), j.identifier('target')),
-                  j.identifier('value'),
-                ),
-              ]),
-            );
-          });
+          functionScope
+            .find(j.Identifier, { name: handleInputChangeName })
+            .filter(idPath => {
+              const parent = idPath.parent.node;
+              return !(
+                ((parent.type === 'Property' ||
+                  parent.type === 'ObjectProperty') &&
+                  parent.key === idPath.node) ||
+                (parent.type === 'MemberExpression' &&
+                  parent.property === idPath.node &&
+                  !parent.computed)
+              );
+            })
+            .replaceWith(() => {
+              return j.arrowFunctionExpression(
+                [j.identifier('e')],
+                j.callExpression(j.identifier(setterName), [
+                  j.memberExpression(
+                    j.memberExpression(
+                      j.identifier('e'),
+                      j.identifier('target'),
+                    ),
+                    j.identifier('value'),
+                  ),
+                ]),
+              );
+            });
+        }
       }
     }
   });
@@ -205,7 +224,10 @@ export default createTransformer((fileInfo, api, options, context) => {
   inputStates.forEach(({ inputName, setterName, parentPath }) => {
     const useStateDeclaration = j.variableDeclaration('const', [
       j.variableDeclarator(
-        j.arrayPattern([j.identifier(inputName), j.identifier(setterName)]),
+        j.arrayPattern([
+          inputName ? j.identifier(inputName) : null,
+          j.identifier(setterName),
+        ]),
         j.callExpression(j.identifier('useState'), [j.literal('')]),
       ),
     ]);

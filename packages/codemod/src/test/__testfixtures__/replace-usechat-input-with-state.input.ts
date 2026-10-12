@@ -42,6 +42,41 @@ export function PartialExtraction() {
   return input;
 }
 
+export function ExistingSetter() {
+  const { messages, input, setInput, handleInputChange } = useChat();
+  return {
+    messages,
+    input,
+    reset: () => setInput(''),
+    onChange: handleInputChange,
+  };
+}
+
+export function AliasedSetter() {
+  const {
+    messages,
+    input: draft,
+    setInput: updateDraft,
+    handleInputChange: handleDraftChange
+  } = useChat();
+  return {
+    messages,
+    draft,
+    reset: () => updateDraft(''),
+    onChange: handleDraftChange,
+  };
+}
+
+export function SetterWithoutChangeHandler() {
+  const { messages, input, setInput } = useChat();
+  return { messages, input, reset: () => setInput('') };
+}
+
+export function OnlySetter() {
+  const { messages, setInput: resetInput } = useChat();
+  return { messages, reset: () => resetInput('') };
+}
+
 export function OnlyHandleInputChange() {
   const { messages, handleInputChange } = useChat();
   return handleInputChange;
