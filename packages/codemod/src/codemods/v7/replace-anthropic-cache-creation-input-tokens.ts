@@ -7,18 +7,32 @@ function getPropertyName(node: any): string | undefined {
   }
 }
 
-function getBaseBeforeProviderMetadata(node: any): any | null {
-  let current = node;
-  while (
-    current?.type === 'MemberExpression' ||
-    current?.type === 'OptionalMemberExpression'
-  ) {
-    if (getPropertyName(current.property) === 'providerMetadata') {
-      return current.object;
-    }
-    current = current.object;
-  }
-  return null;
+function isMemberExpression(node: any): boolean {
+  return (
+    node?.type === 'MemberExpression' ||
+    node?.type === 'OptionalMemberExpression'
+  );
+}
+
+function createReplacementMemberExpression({
+  j,
+  object,
+  property,
+  original,
+}: {
+  j: any;
+  object: any;
+  property: string;
+  original: any;
+}) {
+  return original.type === 'OptionalMemberExpression'
+    ? j.optionalMemberExpression(
+        object,
+        j.identifier(property),
+        false,
+        original.optional,
+      )
+    : j.memberExpression(object, j.identifier(property));
 }
 
 export default createTransformer((fileInfo, api, options, context) => {
@@ -37,17 +51,39 @@ export default createTransformer((fileInfo, api, options, context) => {
 
       if (memberExpression.property !== path.node) return;
 
-      const base = getBaseBeforeProviderMetadata(memberExpression);
-      if (!base) return;
+      const anthropicAccess = memberExpression.object;
+      if (
+        !isMemberExpression(anthropicAccess) ||
+        getPropertyName(anthropicAccess.property) !== 'anthropic'
+      ) {
+        return;
+      }
+
+      const providerMetadataAccess = anthropicAccess.object;
+      if (
+        !isMemberExpression(providerMetadataAccess) ||
+        getPropertyName(providerMetadataAccess.property) !== 'providerMetadata'
+      ) {
+        return;
+      }
 
       j(path.parent).replaceWith(
-        j.memberExpression(
-          j.memberExpression(
-            j.memberExpression(base, j.identifier('usage')),
-            j.identifier('inputTokenDetails'),
-          ),
-          j.identifier('cacheWriteTokens'),
-        ),
+        createReplacementMemberExpression({
+          j,
+          object: createReplacementMemberExpression({
+            j,
+            object: createReplacementMemberExpression({
+              j,
+              object: providerMetadataAccess.object,
+              property: 'usage',
+              original: providerMetadataAccess,
+            }),
+            property: 'inputTokenDetails',
+            original: anthropicAccess,
+          }),
+          property: 'cacheWriteTokens',
+          original: memberExpression,
+        }),
       );
       context.hasChanges = true;
     });

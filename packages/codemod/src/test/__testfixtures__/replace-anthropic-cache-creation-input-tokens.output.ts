@@ -7,6 +7,9 @@ const result: any = await generateText({
   messages: [{ role: 'user', content: 'Hello!' }],
 });
 
+console.log(result.usage?.inputTokenDetails?.cacheWriteTokens);
+console.log(result?.usage?.inputTokenDetails?.cacheWriteTokens);
+console.log(result?.usage.inputTokenDetails.cacheWriteTokens);
 console.log(result.usage.inputTokenDetails.cacheWriteTokens);
 
 export {};

@@ -8,5 +8,8 @@ const result: any = await generateText({
 });
 
 console.log(result.providerMetadata?.anthropic?.cacheCreationInputTokens);
+console.log(result?.providerMetadata?.anthropic?.cacheCreationInputTokens);
+console.log(result?.providerMetadata.anthropic.cacheCreationInputTokens);
+console.log(result.providerMetadata.anthropic.cacheCreationInputTokens);
 
 export {};
