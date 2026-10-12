@@ -14,7 +14,13 @@ import {
 import type { GoogleInteractionsStatus } from './google-interactions-prompt';
 
 const TERMINAL_STATUSES: ReadonlySet<GoogleInteractionsStatus | string> =
-  new Set(['completed', 'failed', 'cancelled', 'incomplete']);
+  new Set([
+    'completed',
+    'failed',
+    'cancelled',
+    'incomplete',
+    'continuation_required',
+  ]);
 
 export function isTerminalStatus(
   status: GoogleInteractionsStatus | string | null | undefined,

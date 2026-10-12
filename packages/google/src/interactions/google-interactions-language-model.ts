@@ -1,6 +1,7 @@
 import type {
   LanguageModelV3,
   LanguageModelV3CallOptions,
+  LanguageModelV3Content,
   LanguageModelV3FinishReason,
   LanguageModelV3GenerateResult,
   LanguageModelV3StreamResult,
@@ -18,9 +19,11 @@ import {
   type FetchFunction,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
+import { continueGoogleStream } from '../continue-google-stream';
 import { googleFailedResponseHandler } from '../google-error';
 import { buildGoogleInteractionsStreamTransform } from './build-google-interactions-stream-transform';
 import {
+  addGoogleInteractionsUsage,
   convertGoogleInteractionsUsage,
   getGoogleInteractionsOutputTokensByModality,
 } from './convert-google-interactions-usage';
@@ -28,6 +31,7 @@ import { convertToGoogleInteractionsInput } from './convert-to-google-interactio
 import {
   googleInteractionsEventSchema,
   googleInteractionsResponseSchema,
+  type GoogleInteractionsUsage,
 } from './google-interactions-api';
 import {
   googleInteractionsLanguageModelOptions,
@@ -41,6 +45,7 @@ import type {
   GoogleInteractionsNetworkConfig,
   GoogleInteractionsRequestBody,
   GoogleInteractionsResponseFormatEntry,
+  GoogleInteractionsStatus,
   GoogleInteractionsTool,
   GoogleInteractionsToolChoice,
 } from './google-interactions-prompt';
@@ -463,7 +468,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV3 {
   async doGenerate(
     options: LanguageModelV3CallOptions,
   ): Promise<LanguageModelV3GenerateResult> {
-    const { args, warnings, isAgent, pollingTimeoutMs } =
+    const { args, warnings, isAgent, isBackground, pollingTimeoutMs } =
       await this.getArgs(options);
 
     const url = `${this.config.baseURL}/interactions`;
@@ -474,23 +479,24 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV3 {
       options.headers,
     );
 
-    const postResult = await postJsonToApi({
-      url,
-      headers: mergedHeaders,
-      body: args,
-      failedResponseHandler: googleFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(
-        googleInteractionsResponseSchema,
-      ),
-      abortSignal: options.abortSignal,
-      fetch: this.config.fetch,
-    });
+    const createInteraction = (body: GoogleInteractionsRequestBody) =>
+      postJsonToApi({
+        url,
+        headers: mergedHeaders,
+        body,
+        failedResponseHandler: googleFailedResponseHandler,
+        successfulResponseHandler: createJsonResponseHandler(
+          googleInteractionsResponseSchema,
+        ),
+        abortSignal: options.abortSignal,
+        fetch: this.config.fetch,
+      });
 
     let {
       responseHeaders,
       value: response,
       rawValue: rawResponse,
-    } = postResult;
+    } = await createInteraction(args);
 
     /*
      * Agent calls may return a non-terminal status (`in_progress` /
@@ -513,21 +519,64 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV3 {
     }
 
     /*
+     * Gemini 4 long decode: an interaction that reaches the per-request cap
+     * while `max_output_tokens` budget remains returns `continuation_required`.
+     * Resend the same request with the continuation token (the server tracks
+     * the cumulative tokens) and combine the outputs of all requests.
+     */
+    const continuedContent: Array<LanguageModelV3Content> = [];
+    let continuedUsage: GoogleInteractionsUsage | undefined;
+    while (true) {
+      const continuationToken =
+        !isBackground && response.status === 'continuation_required'
+          ? response.continuation_token
+          : undefined;
+      if (continuationToken == null) {
+        break;
+      }
+
+      continuedContent.push(
+        ...parseGoogleInteractionsOutputs({
+          steps: response.steps ?? null,
+          generateId: this.config.generateId ?? defaultGenerateId,
+          interactionId: getInteractionId(response),
+        }).content,
+      );
+      continuedUsage = addGoogleInteractionsUsage(
+        continuedUsage,
+        response.usage ?? undefined,
+      );
+
+      ({
+        responseHeaders,
+        value: response,
+        rawValue: rawResponse,
+      } = await createInteraction({
+        ...args,
+        continuation_token: continuationToken,
+      }));
+    }
+
+    const usage = addGoogleInteractionsUsage(
+      continuedUsage,
+      response.usage ?? undefined,
+    );
+
+    /*
      * `response.id` is omitted when `store: false` (fully stateless mode), and
      * the stream surface returns `id: ""` (empty string) for the same case.
      * Normalize both to `undefined` so downstream stamping does not pollute
      * provider metadata with an empty/missing identifier.
      */
-    const interactionId =
-      typeof response.id === 'string' && response.id.length > 0
-        ? response.id
-        : undefined;
+    const interactionId = getInteractionId(response);
 
-    const { content, hasFunctionCall } = parseGoogleInteractionsOutputs({
+    const parsedOutputs = parseGoogleInteractionsOutputs({
       steps: response.steps ?? null,
       generateId: this.config.generateId ?? defaultGenerateId,
       interactionId,
     });
+    const content = [...continuedContent, ...parsedOutputs.content];
+    const hasFunctionCall = parsedOutputs.hasFunctionCall;
 
     const finishReason: LanguageModelV3FinishReason = {
       unified: mapGoogleInteractionsFinishReason({
@@ -557,9 +606,8 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV3 {
      * `response.id` is omitted when `store: false` (fully stateless mode), so
      * `interactionId` is only surfaced when the API actually returned one.
      */
-    const outputTokensByModality = getGoogleInteractionsOutputTokensByModality(
-      response.usage,
-    );
+    const outputTokensByModality =
+      getGoogleInteractionsOutputTokensByModality(usage);
 
     const providerMetadata: SharedV3ProviderMetadata = {
       google: {
@@ -583,7 +631,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV3 {
     return {
       content,
       finishReason,
-      usage: convertGoogleInteractionsUsage(response.usage),
+      usage: convertGoogleInteractionsUsage(usage),
       warnings,
       providerMetadata,
       request: { body: args },
@@ -631,16 +679,50 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV3 {
 
     const body = { ...args, stream: true };
 
-    const { responseHeaders, value: response } = await postJsonToApi({
-      url,
-      headers: mergedHeaders,
-      body,
-      failedResponseHandler: googleFailedResponseHandler,
-      successfulResponseHandler: createEventSourceResponseHandler(
-        googleInteractionsEventSchema,
-      ),
-      abortSignal: options.abortSignal,
-      fetch: this.config.fetch,
+    const streamInteraction = (body: GoogleInteractionsRequestBody) =>
+      postJsonToApi({
+        url,
+        headers: mergedHeaders,
+        body,
+        failedResponseHandler: googleFailedResponseHandler,
+        successfulResponseHandler: createEventSourceResponseHandler(
+          googleInteractionsEventSchema,
+        ),
+        abortSignal: options.abortSignal,
+        fetch: this.config.fetch,
+      });
+
+    const { responseHeaders, value: firstResponse } =
+      await streamInteraction(body);
+
+    /*
+     * Gemini 4 long decode: when a stream reaches the per-request cap while
+     * `max_output_tokens` budget remains, the interaction completes with
+     * `continuation_required`. Resend the same request with the continuation
+     * token and append the new stream, which contains only newly generated
+     * content.
+     */
+    const response = continueGoogleStream({
+      stream: firstResponse,
+      getContinuationToken: event => {
+        if (event.event_type !== 'interaction.completed') {
+          return undefined;
+        }
+        const interaction = event.interaction as {
+          status?: GoogleInteractionsStatus;
+          continuation_token?: string | null;
+        };
+        return interaction?.status === 'continuation_required'
+          ? (interaction.continuation_token ?? undefined)
+          : undefined;
+      },
+      continueStream: async continuationToken =>
+        (
+          await streamInteraction({
+            ...body,
+            continuation_token: continuationToken,
+          })
+        ).value,
     });
 
     /*
@@ -783,6 +865,14 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV3 {
 const INTERACTIONS_API_REVISION_HEADER: Record<string, string> = {
   'Api-Revision': '2026-05-20',
 };
+
+function getInteractionId(response: {
+  id?: string | null;
+}): string | undefined {
+  return typeof response.id === 'string' && response.id.length > 0
+    ? response.id
+    : undefined;
+}
 
 function pruneUndefined<T extends Record<string, unknown>>(obj: T): T {
   const result: Record<string, unknown> = {};

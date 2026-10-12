@@ -16,9 +16,10 @@ export type GoogleInteractionsProviderMetadata = {
   serviceTier?: string;
 
   /**
-   * Opaque token returned when an interaction stops as `incomplete` (token
-   * limit reached). Pass back in `providerOptions.google.continuationToken`
-   * with a higher `maxOutputTokens` to resume.
+   * Opaque token returned when an interaction stops as `incomplete` because
+   * it used up its `maxOutputTokens` budget (and the latest checkpoint while
+   * streaming). Pass back in `providerOptions.google.continuationToken` with a
+   * higher `maxOutputTokens` to resume.
    */
   continuationToken?: string;
 
