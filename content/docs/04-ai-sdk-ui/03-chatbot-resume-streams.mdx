@@ -92,6 +92,26 @@ When you enable `resume`, the `useChat` hook makes a `GET` request to `/api/chat
 
 The hook also reconnects when the page becomes visible again after being in the background (for example, after switching browser tabs or returning to a mobile app). This only happens when the stream was interrupted by a network disconnect. Healthy streams and other errors are left untouched.
 
+`DefaultChatTransport` treats resumed streams as full replays by default, as
+returned by the `resumable-stream` setup below. On the first `start` chunk, the
+client resets the interrupted response and rebuilds it from the replay. This
+prevents duplicate text, reasoning, and step parts after a network disconnect.
+
+If your resume endpoint sends only the remaining chunks, set
+`resumeStreamIsReplay: false`. This preserves the interrupted response even if
+the continuation includes a `start` chunk with the same message ID:
+
+```ts
+const transport = new DefaultChatTransport({
+  resumeStreamIsReplay: false,
+});
+```
+
+When a continuation omits the `start` chunk, the client preserves its interrupted
+streaming state with either setting. Continuing active text or reasoning parts
+requires the same chat instance; a page reload does not retain that streaming
+state, so use a full replay for reloads.
+
 The default transport URL-encodes the chat ID as a single path segment. IDs equal
 to `.` or `..` are rejected with an `InvalidArgumentError` because URL parsers
 interpret them as path traversal segments.
