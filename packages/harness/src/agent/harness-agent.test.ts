@@ -1566,6 +1566,144 @@ describe('HarnessAgent', () => {
     await session.destroy();
   });
 
+  test('preserves response message order across tool and text steps', async () => {
+    const harness = {
+      specificationVersion: 'harness-v1',
+      harnessId: 'mock',
+      builtinTools: {},
+      async doStart() {
+        return {
+          sessionId: 'mock-session-1',
+          isResume: false,
+          async doPromptTurn({
+            emit,
+          }: {
+            emit: (event: HarnessV1StreamPart) => void;
+          }) {
+            let resolveDone!: () => void;
+            const done = new Promise<void>(resolve => {
+              resolveDone = resolve;
+            });
+
+            queueMicrotask(() => {
+              emit({
+                type: 'tool-call',
+                toolCallId: 'lookup-call',
+                toolName: 'lookup',
+                input: '{}',
+              });
+            });
+
+            return {
+              done,
+              async submitToolApproval() {},
+              async submitToolResult({
+                toolCallId,
+                output,
+              }: {
+                toolCallId: string;
+                output: unknown;
+              }) {
+                if (typeof output !== 'number') {
+                  throw new Error('lookup must return a number');
+                }
+                for (const event of [
+                  {
+                    type: 'tool-result',
+                    toolCallId,
+                    toolName: 'lookup',
+                    result: output,
+                  },
+                  {
+                    type: 'finish-step',
+                    finishReason: {
+                      unified: 'tool-calls',
+                      raw: 'tool_calls',
+                    },
+                    usage: zeroUsage(),
+                  },
+                  {
+                    type: 'text-delta',
+                    id: 'answer',
+                    delta: 'The answer is 42.',
+                  },
+                  {
+                    type: 'finish-step',
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                    usage: zeroUsage(),
+                  },
+                  {
+                    type: 'finish',
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                    totalUsage: zeroUsage(),
+                  },
+                ] satisfies HarnessV1StreamPart[]) {
+                  emit(event);
+                }
+                resolveDone();
+              },
+            };
+          },
+          async doDestroy() {},
+        };
+      },
+    } as unknown as HarnessV1;
+    const agent = new HarnessAgent({
+      harness,
+      tools: {
+        lookup: tool({
+          inputSchema: z.object({}),
+          execute: async () => 42,
+        }),
+      },
+    });
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
+
+    const result = await agent.generate({ session, prompt: 'Look it up' });
+
+    expect(result.steps).toHaveLength(2);
+    expect(result.responseMessages).toEqual([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'lookup-call',
+            toolName: 'lookup',
+            input: {},
+            providerExecuted: undefined,
+            providerOptions: undefined,
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'lookup-call',
+            toolName: 'lookup',
+            output: { type: 'json', value: 42 },
+          },
+        ],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'text',
+            text: 'The answer is 42.',
+            providerOptions: undefined,
+          },
+        ],
+      },
+    ]);
+
+    await session.destroy();
+  });
+
   test('reports whether typed output is configured', () => {
     const { harness } = mockHarness({ script: () => [] });
     const textAgent = new HarnessAgent({
