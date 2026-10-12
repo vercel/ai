@@ -157,7 +157,7 @@ export async function callCompletionApi({
     }
 
     if (onFinish) {
-      onFinish(prompt, result);
+      await onFinish(prompt, result);
     }
 
     return result;
