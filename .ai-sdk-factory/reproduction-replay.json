@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 23064,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-23064.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-23064.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_23064_REPRODUCED: migrated useChat code cannot build because @ai-sdk/react does not export DefaultChatTransport"
+  }
+}
