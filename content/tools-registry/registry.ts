@@ -720,4 +720,37 @@ console.log(text);`,
     websiteUrl: 'https://pexafy.com',
     npmUrl: 'https://www.npmjs.com/package/pexafy-ai-sdk',
   },
+  {
+    slug: 'pink-agentic-payments',
+    name: 'Pink Agentic AI Payments',
+    description:
+      'Checks every payment an AI SDK agent requests against company spending rules (budgets, payee allow-lists, human-approval thresholds) before any payment credential is issued. Wraps request_payment, check_policy, get_budget, and check_payment_status as AI SDK tools against a sandbox with test money.',
+    packageName: 'pink-agentic-payments-ai-sdk',
+    tags: ['payments', 'finance', 'approval'],
+    installCommand: {
+      pnpm: 'pnpm add pink-agentic-payments-ai-sdk ai zod',
+      npm: 'npm install pink-agentic-payments-ai-sdk ai zod',
+      yarn: 'yarn add pink-agentic-payments-ai-sdk ai zod',
+      bun: 'bun add pink-agentic-payments-ai-sdk ai zod',
+    },
+    codeExample: `import { generateText, stepCountIs } from 'ai';
+import { google } from '@ai-sdk/google';
+import { createSandboxWorkspace } from 'pink-agentic-payments';
+import { pinkTools } from 'pink-agentic-payments-ai-sdk';
+
+const workspace = await createSandboxWorkspace({ company: 'My Test Co', template: 'startup' });
+const agentKey = workspace.agents[0].key;
+
+const { text } = await generateText({
+  model: google('gemini-3.8-flash'),
+  tools: pinkTools({ agentKey }),
+  stopWhen: stepCountIs(5),
+  prompt: 'Check the budget, then pay Figma $50 for our design tool renewal.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://pinkwallet.com/agentic/connect/vercel-ai-sdk/',
+    websiteUrl: 'https://pinkwallet.com/agentic/developers/',
+    npmUrl: 'https://www.npmjs.com/package/pink-agentic-payments-ai-sdk',
+  },
 ];
