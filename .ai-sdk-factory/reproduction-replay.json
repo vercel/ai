@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 23031,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-23031-google-codemod-import-alias.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-23031-google-codemod-import-alias.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Issue #23031 reproduced: migrated call does not reference the imported local binding"
+  }
+}
