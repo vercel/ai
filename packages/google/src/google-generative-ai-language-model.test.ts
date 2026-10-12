@@ -952,6 +952,7 @@ describe('doGenerate', () => {
     expect(result.providerMetadata?.google).not.toHaveProperty(
       'continuationToken',
     );
+    expect(result.providerMetadata?.google.initialPromptTokenCount).toBe(10);
   });
 
   it('should expose usageMetadata (incl. promptTokensDetails) in provider metadata', async () => {
@@ -3342,6 +3343,53 @@ describe('doStream', () => {
       outputTokens: 12,
       reasoningTokens: 20,
     });
+    expect(
+      finishEvent?.type === 'finish' && finishEvent.providerMetadata?.google,
+    ).toMatchObject({ initialPromptTokenCount: 10 });
+    expect(
+      finishEvent?.type === 'finish' && finishEvent.providerMetadata?.google,
+    ).not.toHaveProperty('continuationToken');
+  });
+
+  it('should not expose checkpoint tokens or initialPromptTokenCount on a stream that finishes in one request', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'Hello' }], role: 'model' },
+              index: 0,
+              continuationToken: 'checkpoint-1',
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: ', world' }], role: 'model' },
+              finishReason: 'STOP',
+              index: 0,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 10,
+            candidatesTokenCount: 40_000,
+            totalTokenCount: 40_010,
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+    const metadata =
+      finishEvent?.type === 'finish' && finishEvent.providerMetadata?.google;
+
+    expect(metadata).not.toHaveProperty('continuationToken');
+    expect(metadata).not.toHaveProperty('initialPromptTokenCount');
   });
 
   it('should finish with the last continuation token when continuing the stream fails', async () => {

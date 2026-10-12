@@ -312,10 +312,10 @@ console.log(reasoning); // Reasoning summary
 
 ### Long decode
 
-Gemini 4 models can keep thinking and writing past a single request's limits,
-up to the shared 1M token context window (input, thinking, and output tokens
-together). Use it for hard math, science, proofs, and long coding or agentic
-tasks.
+Gemini 4 models such as `gemini-4-argon` can keep thinking and writing past a
+single request's limits, up to the shared 1M token context window (input,
+thinking, and output tokens together). Use it for hard math, science, proofs,
+and long coding or agentic tasks.
 
 - A single request generates at most 32,768 tokens without streaming and 65,536
   tokens with streaming (`streamText`). Thinking tokens count towards this cap.
@@ -323,26 +323,55 @@ tasks.
   length. When a request reaches the per-request cap while budget remains, the
   provider automatically sends the same request again with a continuation token
   and combines the results into one response. Set `maxOutputTokens` above the
-  per-request cap (up to 1M) to enable this. If you do not set it, the call ends
-  after one request.
+  per-request cap (up to 1M minus the input tokens) to enable this. If you do
+  not set it, the call ends after one request.
 - A lower `maxOutputTokens` does not make the model think less, it ends the
   response early (possibly before any answer) and you are still charged for the
   tokens. Use `thinkingConfig.thinkingLevel` to control how much the model
   thinks. `thinkingBudget` is not supported by these models.
 - Complex requests can run for several minutes. Make sure your HTTP client
   allows read timeouts of at least 15 to 20 minutes.
-- Usage is the sum of all requests. Each continued request re-sends your prompt
-  plus the accumulated thinking and output as input tokens, which are billed at
-  a discount through implicit caching.
 
-When the cumulative generated tokens reach `maxOutputTokens`, the finish reason
-is `length` and the provider returns a continuation token on
-`result.providerMetadata.google.continuationToken`. To continue, send the
-**original request unchanged** (same prompt, tools, and settings; do not append
-the partial output as a message) together with the token as
-`providerOptions.google.continuationToken` and a **higher** `maxOutputTokens`.
-Resending with the same `maxOutputTokens` fails because the budget is used up.
-Each response contains only the newly generated content.
+**Usage across requests.** Each continued request re-sends the prompt plus all
+output so far as input, so its prompt token count includes everything
+generated before it. `usage` is the sum of all requests, which matches what
+Google bills (re-sent tokens are billed at a discount through implicit
+caching). Do not use the summed input tokens for context window checks or
+compaction: they can be several times larger than the real context. When a
+response spanned more than one request,
+`providerMetadata.google.initialPromptTokenCount` holds the prompt token count
+of the first request (the google-genai SDKs expose the same value as
+`initial_prompt_token_count`):
+
+```ts
+const result = await generateText({
+  model: google('gemini-4-argon'),
+  prompt,
+  maxOutputTokens: 500_000,
+});
+
+// Billing: summed across all requests
+console.log(result.usage.inputTokens);
+
+// Context window: the first request's prompt plus the generated output
+const promptTokens =
+  result.providerMetadata?.google?.initialPromptTokenCount ??
+  result.usage.inputTokens ??
+  0;
+const contextTokens =
+  promptTokens +
+  (result.usage.outputTokens ?? 0) +
+  (result.usage.reasoningTokens ?? 0);
+```
+
+**Resuming after the budget is used up.** When the cumulative generated tokens
+reach `maxOutputTokens`, the finish reason is `length` and the provider returns
+a continuation token on `result.providerMetadata.google.continuationToken`. To
+continue, send the **original request unchanged** (same prompt, tools, and
+settings; do not append the partial output as a message) together with the
+token as `providerOptions.google.continuationToken` and a **higher**
+`maxOutputTokens`. Resending with the same `maxOutputTokens` fails because the
+budget is used up. Each response contains only the newly generated content.
 
 ```ts
 import { google } from '@ai-sdk/google';
@@ -374,17 +403,15 @@ if (result.finishReason === 'length' && typeof continuationToken === 'string') {
 
 Things to keep in mind:
 
-- **Streaming checkpoints.** With `streamText`, the provider keeps the latest
-  checkpoint token on `providerMetadata.google.continuationToken`. Checkpoints
-  arrive after the first 32,768 tokens and then every 5,000 tokens (every 5,000
-  tokens from the start on a continued stream). If a stream drops after a
-  checkpoint, discard everything received after that checkpoint and resume with
-  its token. If it drops before the first checkpoint, retry the request from
-  the start.
+- **Dropped streams.** Streamed parts are forwarded as they arrive and are not
+  buffered between the server's checkpoints, so a stream that drops mid-request
+  is not resumed automatically. Retry the request from the start.
 - **Provider metadata is per call.** If you store the conversation history,
   combine the content of all calls into one model message only after the final
   call finishes. Keep thought signatures unchanged, including the ones on empty
   trailing text parts.
+- **Zero Data Retention.** Continuation works with `store: false` because the
+  state travels encrypted inside the token.
 
 ### File Inputs
 

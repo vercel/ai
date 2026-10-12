@@ -18,7 +18,10 @@ run(async () => {
       model: google('gemini-4-argon'),
       prompt,
       maxOutputTokens,
-      providerOptions: { google: { continuationToken } },
+      providerOptions:
+        continuationToken != null
+          ? { google: { continuationToken } }
+          : undefined,
     });
 
     text += result.text;
