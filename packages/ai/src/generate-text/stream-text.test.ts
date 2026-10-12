@@ -13777,6 +13777,15 @@ describe('streamText', () => {
                 "finishReason": "stop",
                 "rawFinishReason": "stop",
                 "totalUsage": {
+                  "incompleteTokenCounts": {
+                    "inputTokenDetails": {
+                      "cacheReadTokens": true,
+                      "cacheWriteTokens": true,
+                    },
+                    "outputTokenDetails": {
+                      "reasoningTokens": true,
+                    },
+                  },
                   "inputTokenDetails": {
                     "cacheReadTokens": 0,
                     "cacheWriteTokens": 0,
@@ -14259,6 +14268,15 @@ describe('streamText', () => {
               ],
               "toolsContext": {},
               "totalUsage": {
+                "incompleteTokenCounts": {
+                  "inputTokenDetails": {
+                    "cacheReadTokens": true,
+                    "cacheWriteTokens": true,
+                  },
+                  "outputTokenDetails": {
+                    "reasoningTokens": true,
+                  },
+                },
                 "inputTokenDetails": {
                   "cacheReadTokens": 0,
                   "cacheWriteTokens": 0,
@@ -14273,6 +14291,15 @@ describe('streamText', () => {
                 "totalTokens": 26,
               },
               "usage": {
+                "incompleteTokenCounts": {
+                  "inputTokenDetails": {
+                    "cacheReadTokens": true,
+                    "cacheWriteTokens": true,
+                  },
+                  "outputTokenDetails": {
+                    "reasoningTokens": true,
+                  },
+                },
                 "inputTokenDetails": {
                   "cacheReadTokens": 0,
                   "cacheWriteTokens": 0,
@@ -14510,6 +14537,15 @@ describe('streamText', () => {
         it('result.totalUsage should contain total token usage', async () => {
           expect(await result.totalUsage).toMatchInlineSnapshot(`
             {
+              "incompleteTokenCounts": {
+                "inputTokenDetails": {
+                  "cacheReadTokens": true,
+                  "cacheWriteTokens": true,
+                },
+                "outputTokenDetails": {
+                  "reasoningTokens": true,
+                },
+              },
               "inputTokenDetails": {
                 "cacheReadTokens": 0,
                 "cacheWriteTokens": 0,
@@ -14529,6 +14565,15 @@ describe('streamText', () => {
         it('result.usage should contain total token usage', async () => {
           expect(await result.usage).toMatchInlineSnapshot(`
             {
+              "incompleteTokenCounts": {
+                "inputTokenDetails": {
+                  "cacheReadTokens": true,
+                  "cacheWriteTokens": true,
+                },
+                "outputTokenDetails": {
+                  "reasoningTokens": true,
+                },
+              },
               "inputTokenDetails": {
                 "cacheReadTokens": 0,
                 "cacheWriteTokens": 0,
@@ -15921,6 +15966,15 @@ describe('streamText', () => {
                 "finishReason": "stop",
                 "rawFinishReason": "stop",
                 "totalUsage": {
+                  "incompleteTokenCounts": {
+                    "inputTokenDetails": {
+                      "cacheReadTokens": true,
+                      "cacheWriteTokens": true,
+                    },
+                    "outputTokenDetails": {
+                      "reasoningTokens": true,
+                    },
+                  },
                   "inputTokenDetails": {
                     "cacheReadTokens": 0,
                     "cacheWriteTokens": 0,
@@ -16403,6 +16457,15 @@ describe('streamText', () => {
               ],
               "toolsContext": {},
               "totalUsage": {
+                "incompleteTokenCounts": {
+                  "inputTokenDetails": {
+                    "cacheReadTokens": true,
+                    "cacheWriteTokens": true,
+                  },
+                  "outputTokenDetails": {
+                    "reasoningTokens": true,
+                  },
+                },
                 "inputTokenDetails": {
                   "cacheReadTokens": 0,
                   "cacheWriteTokens": 0,
@@ -16417,6 +16480,15 @@ describe('streamText', () => {
                 "totalTokens": 26,
               },
               "usage": {
+                "incompleteTokenCounts": {
+                  "inputTokenDetails": {
+                    "cacheReadTokens": true,
+                    "cacheWriteTokens": true,
+                  },
+                  "outputTokenDetails": {
+                    "reasoningTokens": true,
+                  },
+                },
                 "inputTokenDetails": {
                   "cacheReadTokens": 0,
                   "cacheWriteTokens": 0,
@@ -16650,6 +16722,15 @@ describe('streamText', () => {
         it('result.totalUsage should contain total token usage', async () => {
           expect(await result.totalUsage).toMatchInlineSnapshot(`
             {
+              "incompleteTokenCounts": {
+                "inputTokenDetails": {
+                  "cacheReadTokens": true,
+                  "cacheWriteTokens": true,
+                },
+                "outputTokenDetails": {
+                  "reasoningTokens": true,
+                },
+              },
               "inputTokenDetails": {
                 "cacheReadTokens": 0,
                 "cacheWriteTokens": 0,
@@ -16669,6 +16750,15 @@ describe('streamText', () => {
         it('result.usage should contain total token usage', async () => {
           expect(await result.usage).toMatchInlineSnapshot(`
             {
+              "incompleteTokenCounts": {
+                "inputTokenDetails": {
+                  "cacheReadTokens": true,
+                  "cacheWriteTokens": true,
+                },
+                "outputTokenDetails": {
+                  "reasoningTokens": true,
+                },
+              },
               "inputTokenDetails": {
                 "cacheReadTokens": 0,
                 "cacheWriteTokens": 0,
