@@ -6,6 +6,10 @@ function renameGoogleGenerativeAI(name: string) {
 
 export default createTransformer((fileInfo, api, options, context) => {
   const { j, root } = context;
+  const localRenames = new Map<
+    string,
+    { newName: string; bindingScope: unknown }
+  >();
 
   root.find(j.ImportDeclaration).forEach(path => {
     if (path.node.source.value !== '@ai-sdk/google') return;
@@ -21,19 +25,24 @@ export default createTransformer((fileInfo, api, options, context) => {
 
       const importedName = specifier.imported.name;
       const newName = renameGoogleGenerativeAI(importedName);
+      const localName = specifier.local?.name ?? importedName;
+      const bindingScope = path.scope.lookup(localName);
       specifier.imported.name = newName;
       if (!specifier.local || specifier.local.name === importedName) {
         specifier.local = null;
+        localRenames.set(localName, { newName, bindingScope });
       }
       context.hasChanges = true;
     });
   });
 
-  root.find(j.Identifier).forEach(path => {
-    if (!path.node.name.includes('GoogleGenerativeAI')) return;
-    if (path.parent?.node.type === 'ImportSpecifier') return;
+  localRenames.forEach(({ newName, bindingScope }, oldName) => {
+    root.find(j.Identifier, { name: oldName }).forEach(path => {
+      if (path.parent?.node.type === 'ImportSpecifier') return;
+      if (path.scope.lookup(oldName) !== bindingScope) return;
 
-    path.node.name = renameGoogleGenerativeAI(path.node.name);
-    context.hasChanges = true;
+      path.node.name = newName;
+      context.hasChanges = true;
+    });
   });
 });
