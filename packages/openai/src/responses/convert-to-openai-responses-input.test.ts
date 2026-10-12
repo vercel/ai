@@ -1550,6 +1550,123 @@ describe('convertToOpenAIResponsesInput', () => {
       ]);
     });
 
+    describe('reasoning models (store: true)', () => {
+      it('should use item_reference for text parts preceded by reasoning', async () => {
+        const result = await convertToOpenAIResponsesInput({
+          toolNameMapping: testToolNameMapping,
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'reasoning',
+                  text: 'Thinking...',
+                  providerOptions: { openai: { itemId: 'rs_123' } },
+                },
+                {
+                  type: 'text',
+                  text: 'Hello',
+                  providerOptions: { openai: { itemId: 'msg_123' } },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'developer',
+          providerOptionsName: 'openai',
+          store: true,
+          isReasoningModel: true,
+        });
+
+        expect(result.input).toMatchInlineSnapshot(`
+          [
+            {
+              "id": "rs_123",
+              "type": "item_reference",
+            },
+            {
+              "id": "msg_123",
+              "type": "item_reference",
+            },
+          ]
+        `);
+      });
+
+      it('should send text parts with content when their reasoning has been removed', async () => {
+        const result = await convertToOpenAIResponsesInput({
+          toolNameMapping: testToolNameMapping,
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Hello',
+                  providerOptions: { openai: { itemId: 'msg_123' } },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'developer',
+          providerOptionsName: 'openai',
+          store: true,
+          isReasoningModel: true,
+        });
+
+        expect(result.input).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "output_text",
+                },
+              ],
+              "id": undefined,
+              "role": "assistant",
+            },
+          ]
+        `);
+        expect(result.warnings).toEqual([]);
+      });
+
+      it('should send text parts without their id when their reasoning has been removed (store: false)', async () => {
+        const result = await convertToOpenAIResponsesInput({
+          toolNameMapping: testToolNameMapping,
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Hello',
+                  providerOptions: { openai: { itemId: 'msg_123' } },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'developer',
+          providerOptionsName: 'openai',
+          store: false,
+          isReasoningModel: true,
+        });
+
+        expect(result.input).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "output_text",
+                },
+              ],
+              "id": undefined,
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+    });
+
     describe('reasoning messages (store: false)', () => {
       describe('single summary part', () => {
         it('should convert single reasoning part with text', async () => {

@@ -4108,8 +4108,13 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "shell_call_output",
               },
               {
-                "id": "msg_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e52",
-                "type": "item_reference",
+                "content": [
+                  {
+                    "text": "Linux container-host 6.1.0 #1 SMP x86_64 GNU/Linux",
+                    "type": "output_text",
+                  },
+                ],
+                "role": "assistant",
               },
               {
                 "content": [
@@ -4269,8 +4274,13 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "shell_call_output",
               },
               {
-                "id": "msg_0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e52",
-                "type": "item_reference",
+                "content": [
+                  {
+                    "text": "Darwin mac-host 24.6.0 Darwin Kernel Version 24.6.0 arm64",
+                    "type": "output_text",
+                  },
+                ],
+                "role": "assistant",
               },
               {
                 "content": [
