@@ -2,15 +2,15 @@ import {
   createTestServer,
   TestResponseController,
 } from '@ai-sdk/test-server/with-vitest';
-import { cleanup, screen, waitFor } from '@testing-library/vue';
+import { cleanup, render, screen, waitFor } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
-import { effectScope, watch } from 'vue';
+import { defineComponent, watch } from 'vue';
 import { z } from 'zod/v4';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { setupTestComponent } from './setup-test-component';
 import TestUseObjectComponent from './TestUseObjectComponent.vue';
 import TestUseObjectCustomTransportComponent from './TestUseObjectCustomTransportComponent.vue';
-import { useObject } from './use-object';
+import { experimental_useObject as useObject } from './use-object';
 
 const server = createTestServer({
   '/api/use-object': {},
@@ -254,59 +254,68 @@ describe('text stream', () => {
 describe('cancellation', () => {
   it('stops a submission before its request starts', async () => {
     const fetch = vi.fn(async () => new Response('{"content":"unexpected"}'));
-    const scope = effectScope();
-    const result = scope.run(() =>
-      useObject({
-        api: '/api/use-object',
-        schema: z.object({ content: z.string() }),
-        fetch,
+    let result: ReturnType<typeof useObject>;
+    const { unmount } = render(
+      defineComponent({
+        setup() {
+          result = useObject({
+            api: '/api/use-object',
+            schema: z.object({ content: z.string() }),
+            fetch,
+          });
+          return () => null;
+        },
       }),
-    )!;
+    );
 
-    const request = result.submit('test-input') as unknown as Promise<void>;
-    await result.stop();
+    const request = result!.submit('test-input') as unknown as Promise<void>;
+    await result!.stop();
     await request;
 
     expect(fetch).not.toHaveBeenCalled();
-    expect(result.object.value).toBeUndefined();
-    expect(result.isLoading.value).toBe(false);
-    scope.stop();
+    expect(result!.object.value).toBeUndefined();
+    expect(result!.isLoading.value).toBe(false);
+    unmount();
   });
 
   it('stops a submission synchronously when loading starts', async () => {
     const fetch = vi.fn(async () => new Response('{"content":"unexpected"}'));
     let stopRequest: Promise<void> | undefined;
-    const scope = effectScope();
-    const result = scope.run(() => {
-      const result = useObject({
-        api: '/api/use-object',
-        schema: z.object({ content: z.string() }),
-        fetch,
-      });
+    let result: ReturnType<typeof useObject>;
+    const { unmount } = render(
+      defineComponent({
+        setup() {
+          result = useObject({
+            api: '/api/use-object',
+            schema: z.object({ content: z.string() }),
+            fetch,
+          });
 
-      watch(
-        result.isLoading,
-        isLoading => {
-          if (isLoading) {
-            stopRequest = result.stop() as unknown as Promise<void>;
-          }
+          watch(
+            result.isLoading,
+            isLoading => {
+              if (isLoading) {
+                stopRequest = result.stop() as unknown as Promise<void>;
+              }
+            },
+            { flush: 'sync' },
+          );
+
+          return () => null;
         },
-        { flush: 'sync' },
-      );
+      }),
+    );
 
-      return result;
-    })!;
-
-    const request = result.submit('test-input') as unknown as Promise<void>;
+    const request = result!.submit('test-input') as unknown as Promise<void>;
     await waitFor(() => expect(stopRequest).toBeDefined());
     await stopRequest;
 
-    expect(result.isLoading.value).toBe(false);
+    expect(result!.isLoading.value).toBe(false);
     await request;
     expect(fetch).not.toHaveBeenCalled();
-    expect(result.object.value).toBeUndefined();
-    expect(result.isLoading.value).toBe(false);
-    scope.stop();
+    expect(result!.object.value).toBeUndefined();
+    expect(result!.isLoading.value).toBe(false);
+    unmount();
   });
 
   it('keeps a newer submission stoppable when an older stream closes', async () => {
@@ -326,27 +335,32 @@ describe('cancellation', () => {
       });
       return new Response(body);
     });
-    const scope = effectScope();
-    const result = scope.run(() =>
-      useObject({
-        api: '/api/use-object',
-        schema: z.object({ content: z.string() }),
-        fetch,
+    let result: ReturnType<typeof useObject>;
+    const { unmount } = render(
+      defineComponent({
+        setup() {
+          result = useObject({
+            api: '/api/use-object',
+            schema: z.object({ content: z.string() }),
+            fetch,
+          });
+          return () => null;
+        },
       }),
-    )!;
+    );
 
-    const firstSubmission = result.submit(
+    const firstSubmission = result!.submit(
       'first-input',
     ) as unknown as Promise<void>;
     await waitFor(() => expect(requests).toHaveLength(1));
 
-    const secondSubmission = result.submit(
+    const secondSubmission = result!.submit(
       'second-input',
     ) as unknown as Promise<void>;
     requests[0].controller.close();
     await waitFor(() => expect(requests).toHaveLength(2));
 
-    await result.stop();
+    await result!.stop();
 
     if (!requests[1].signal.aborted) {
       requests[1].controller.enqueue(
@@ -357,8 +371,8 @@ describe('cancellation', () => {
 
     await Promise.all([firstSubmission, secondSubmission]);
     expect(requests[1].signal.aborted).toBe(true);
-    expect(result.object.value).toBeUndefined();
-    expect(result.isLoading.value).toBe(false);
-    scope.stop();
+    expect(result!.object.value).toBeUndefined();
+    expect(result!.isLoading.value).toBe(false);
+    unmount();
   });
 });
