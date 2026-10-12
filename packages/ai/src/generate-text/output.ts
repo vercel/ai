@@ -17,7 +17,10 @@ import type { FinishReason } from '../types/language-model';
 import type { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import type { LanguageModelUsage } from '../types/usage';
 import type { DeepPartial } from '../util/deep-partial';
-import { parsePartialJson } from '../util/parse-partial-json';
+import {
+  parsePartialJson,
+  parsePartialJsonWithRepairInfo,
+} from '../util/parse-partial-json';
 import type { EnrichedStreamPart } from './stream-text';
 
 export interface Output<OUTPUT = any, PARTIAL = any, ELEMENT = any> {
@@ -359,7 +362,7 @@ export const array = <ELEMENT>({
     },
 
     async parsePartialOutput({ text }: { text: string }) {
-      const result = await parsePartialJson(text);
+      const result = await parsePartialJsonWithRepairInfo(text);
 
       switch (result.state) {
         case 'failed-parse':
@@ -381,8 +384,13 @@ export const array = <ELEMENT>({
             return undefined;
           }
 
+          // Repairing an open array may complete its last element, so withhold
+          // that element until its boundary arrives. If the array was already
+          // closed, the repair only completed an enclosing structure.
           const rawElements =
-            result.state === 'repaired-parse' && outerValue.elements.length > 0
+            result.state === 'repaired-parse' &&
+            result.hasUnclosedArray &&
+            outerValue.elements.length > 0
               ? outerValue.elements.slice(0, -1)
               : outerValue.elements;
 

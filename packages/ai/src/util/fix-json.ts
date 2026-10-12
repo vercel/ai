@@ -26,6 +26,13 @@ type State =
 // is assumed that the resulting JSON will be processed by a standard
 // JSON parser that will detect any invalid JSON.
 export function fixJson(input: string): string {
+  return fixJsonWithMetadata(input).value;
+}
+
+export function fixJsonWithMetadata(input: string): {
+  value: string;
+  hasUnclosedArray: boolean;
+} {
   const stack: State[] = ['ROOT'];
   let lastValidIndex = -1;
   let literalStart: number | null = null;
@@ -426,5 +433,13 @@ export function fixJson(input: string): string {
     }
   }
 
-  return result;
+  return {
+    value: result,
+    hasUnclosedArray: stack.some(
+      state =>
+        state === 'INSIDE_ARRAY_START' ||
+        state === 'INSIDE_ARRAY_AFTER_COMMA' ||
+        state === 'INSIDE_ARRAY_AFTER_VALUE',
+    ),
+  };
 }
