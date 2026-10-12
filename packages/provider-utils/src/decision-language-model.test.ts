@@ -83,6 +83,37 @@ it('maps exact caller labels and fractional scores without inventing distributio
   });
   expect(doGenerate).toHaveBeenCalledTimes(1);
 });
+it('accepts exact choice labels when an internal option code is not returned', async () => {
+  const { model } = setup({
+    content: [{ type: 'text', text: '{"q1":1.25,"q0":"Needs review"}' }],
+  });
+  expect(await model.doDecide(options)).toMatchObject({
+    answers: {
+      category: { type: 'choice', choice: 'Needs review' },
+      severity: { type: 'score', score: 1.25 },
+    },
+  });
+});
+it('prefers internal option codes over identical choice labels', async () => {
+  const { model } = setup({
+    content: [{ type: 'text', text: '{"q0":"c1"}' }],
+  });
+  expect(
+    await model.doDecide({
+      state: options.state,
+      questions: {
+        category: {
+          ...questions.category,
+          criteria: { c1: 'first label', other: 'second label' },
+        },
+      },
+    }),
+  ).toMatchObject({
+    answers: {
+      category: { type: 'choice', choice: 'other' },
+    },
+  });
+});
 it('uses a portable flat schema with required fields and internal option codes', async () => {
   const { model, doGenerate } = setup();
   await model.doDecide(options);
@@ -297,7 +328,6 @@ it.each([
   '{"q0":"C1","q1":1}',
   '{"q0":"c01","q1":1}',
   '{"q0":"c3","q1":1}',
-  '{"q0":"Needs review","q1":1}',
   '{"q0":1,"q1":1}',
   '{"q0":"c1","q1":"1"}',
   '{"q0":"c1","q1":-0.01}',

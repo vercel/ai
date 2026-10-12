@@ -1,3 +1,4 @@
+import { citationSchema, type Citation } from '../types/citation';
 import type { JSONObject } from '@ai-sdk/provider';
 import {
   providerMetadataSchema,
@@ -37,6 +38,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
       z.looseObject({
         type: z.literal('text-end'),
         id: z.string(),
+        citations: z.array(citationSchema).optional(),
         providerMetadata: providerMetadataSchema.optional(),
       }),
       z.looseObject({
@@ -246,6 +248,7 @@ export type UIMessageChunk<
     }
   | {
       type: 'text-end';
+      citations?: Array<Citation>;
       id: string;
       providerMetadata?: ProviderMetadata;
     }

@@ -4,7 +4,7 @@ import {
   type BridgeTurn,
 } from '@ai-sdk/harness/bridge';
 import { randomUUID } from 'node:crypto';
-import { realpathSync } from 'node:fs';
+import { mkdirSync, realpathSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { argv, env as procEnv } from 'node:process';
 import { isDeepStrictEqual } from 'node:util';
@@ -224,6 +224,10 @@ async function ensureRuntime({
         requestToolResult: turn.requestToolResult,
       });
     }
+    const toolSchemasPath =
+      runtime.relay && start.tools
+        ? writeHostToolSchemas(start.tools)
+        : undefined;
 
     const serverAuthHeaders = configureOpenCodeServerAuth({ env: procEnv });
     const server = await createOpencodeServer({
@@ -233,6 +237,7 @@ async function ensureRuntime({
       config: buildOpenCodeConfig({
         start,
         relayPort: runtime.relay?.port,
+        toolSchemasPath,
       }) as never,
     });
     runtime.server = server;
@@ -273,9 +278,11 @@ function closeRuntime(): void {
 function buildOpenCodeConfig({
   start,
   relayPort,
+  toolSchemasPath,
 }: {
   start: StartMessage;
   relayPort: number | undefined;
+  toolSchemasPath: string | undefined;
 }): Record<string, unknown> {
   const config: Record<string, unknown> = {
     ...withoutAgentPolicyOverrides(start.openCodeConfig),
@@ -312,25 +319,40 @@ function buildOpenCodeConfig({
   const provider = buildProviderConfig(start);
   if (provider) config.provider = provider;
   const mcp = { ...start.mcpServers };
-  if (relayPort && start.tools && start.tools.length > 0) {
+  if (relayPort && toolSchemasPath) {
     mcp['harness-tools'] = {
       type: 'local',
       enabled: true,
       command: ['node', `${bootstrapDir}/host-tool-mcp.mjs`],
       environment: {
-        TOOL_SCHEMAS: JSON.stringify(
-          start.tools.map(t => ({
-            name: t.name,
-            description: t.description,
-            inputSchema: t.inputSchema,
-          })),
-        ),
+        TOOL_SCHEMAS_PATH: toolSchemasPath,
         TOOL_RELAY_URL: `http://127.0.0.1:${relayPort}`,
       },
     };
   }
   if (Object.keys(mcp).length > 0) config.mcp = mcp;
   return config;
+}
+
+function writeHostToolSchemas(
+  tools: NonNullable<StartMessage['tools']>,
+): string {
+  mkdirSync(bridgeStateDir, { recursive: true });
+  const toolSchemasPath = path.resolve(
+    bridgeStateDir,
+    'host-tool-schemas.json',
+  );
+  writeFileSync(
+    toolSchemasPath,
+    JSON.stringify(
+      tools.map(tool => ({
+        name: tool.name,
+        description: tool.description,
+        inputSchema: tool.inputSchema,
+      })),
+    ),
+  );
+  return toolSchemasPath;
 }
 
 function withoutAgentPolicyOverrides(

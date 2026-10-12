@@ -253,7 +253,8 @@ export function validateDecisionAnswers({
           const selected = answer.probabilities[answer.choice];
           if (
             Object.values(answer.probabilities).some(
-              probability => probability > selected + tolerance,
+              probability =>
+                probability > selected + tolerance + 2 * probabilityError,
             )
           ) {
             invalidAnswer(
