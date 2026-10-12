@@ -18,12 +18,12 @@ import { streamText } from '../generate-text/stream-text';
 import type { StreamTextResult } from '../generate-text/stream-text-result';
 import type { Prompt } from '../prompt';
 import { mergeCallbacks } from '../util/merge-callbacks';
+import type { Agent } from './agent';
 import type {
-  Agent,
-  AgentCallParameters,
-  AgentStreamParameters,
-} from './agent';
-import type { ToolLoopAgentSettings } from './tool-loop-agent-settings';
+  ToolLoopAgentCallParameters,
+  ToolLoopAgentSettings,
+  ToolLoopAgentStreamParameters,
+} from './tool-loop-agent-settings';
 import { createDefaultStopCondition } from './default-stop-condition';
 
 /**
@@ -130,8 +130,8 @@ export class ToolLoopAgent<
       ...settingsWithoutCallbacks
     } = this.settings;
 
-    // call-level context overrides agent-level context. An explicit
-    // `undefined` at call level must not clobber the agent-level value.
+    // Call-level context overrides constructor-level context. An explicit
+    // `undefined` at call level must not clobber the constructor-level value.
     const {
       runtimeContext: callRuntimeContext,
       toolsContext: callToolsContext,
@@ -226,9 +226,11 @@ export class ToolLoopAgent<
     onFinish,
     onEnd = onFinish,
     ...options
-  }: AgentCallParameters<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT>): Promise<
-    GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>
-  > {
+  }: ToolLoopAgentCallParameters<
+    CALL_OPTIONS,
+    TOOLS,
+    RUNTIME_CONTEXT
+  >): Promise<GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>> {
     const generate = generateText<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
     const preparedCall = await this.prepareCall({
       ...options,
@@ -291,9 +293,11 @@ export class ToolLoopAgent<
     onFinish,
     onEnd = onFinish,
     ...options
-  }: AgentStreamParameters<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT>): Promise<
-    StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>
-  > {
+  }: ToolLoopAgentStreamParameters<
+    CALL_OPTIONS,
+    TOOLS,
+    RUNTIME_CONTEXT
+  >): Promise<StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>> {
     const stream = streamText<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
     const preparedCall = await this.prepareCall({
       ...options,

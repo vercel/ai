@@ -20,7 +20,6 @@ import type {
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
 } from '../generate-text/tool-execution-events';
-import type { OptionalToolsContextSettings } from '../generate-text/tools-context-parameter';
 import type { TimeoutConfiguration } from '../prompt/request-options';
 
 /**
@@ -157,15 +156,7 @@ export type AgentCallParameters<
      * The sandbox environment that is passed through to tool execution.
      */
     experimental_sandbox?: SandboxSession;
-
-    /**
-     * Runtime context for this call. Treat runtime context as immutable.
-     * If you need to mutate runtime context, update it in `prepareStep`.
-     *
-     * Overrides the agent-level `runtimeContext` if provided.
-     */
-    runtimeContext?: RUNTIME_CONTEXT;
-  } & OptionalToolsContextSettings<TOOLS>;
+  };
 
 /**
  * Parameters for streaming an output from an agent.

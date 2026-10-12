@@ -4374,25 +4374,6 @@ describe('ToolLoopAgent', () => {
     }
 
     describe('generate', () => {
-      it('should pass call-level toolsContext to tool execution', async () => {
-        const receivedContexts: unknown[] = [];
-
-        const agent = new ToolLoopAgent({
-          model: createWeatherToolCallMockModel(),
-          tools: createWeatherTools(receivedContexts),
-        });
-
-        const result = await agent.generate({
-          prompt: 'test',
-          toolsContext: { weather: { weatherApiKey: 'call-key' } },
-        });
-
-        expect(receivedContexts).toStrictEqual([{ weatherApiKey: 'call-key' }]);
-        expect(result.finalStep.toolsContext).toStrictEqual({
-          weather: { weatherApiKey: 'call-key' },
-        });
-      });
-
       it('should prefer call-level toolsContext over constructor-level toolsContext', async () => {
         const receivedContexts: unknown[] = [];
 
@@ -4459,6 +4440,7 @@ describe('ToolLoopAgent', () => {
           model: createWeatherToolCallMockModel(),
           tools: createWeatherTools([]),
           runtimeContext: { requestId: 'constructor-request' },
+          toolsContext: { weather: { weatherApiKey: 'constructor-key' } },
           prepareCall: options => {
             prepareCallArgs.push({
               runtimeContext: options.runtimeContext,
@@ -4567,26 +4549,6 @@ describe('ToolLoopAgent', () => {
     });
 
     describe('stream', () => {
-      it('should pass call-level toolsContext to tool execution', async () => {
-        const receivedContexts: unknown[] = [];
-
-        const agent = new ToolLoopAgent({
-          model: createWeatherToolCallStreamMockModel(),
-          tools: createWeatherTools(receivedContexts),
-        });
-
-        const result = await agent.stream({
-          prompt: 'test',
-          toolsContext: { weather: { weatherApiKey: 'call-key' } },
-        });
-        await result.consumeStream();
-
-        expect(receivedContexts).toStrictEqual([{ weatherApiKey: 'call-key' }]);
-        expect((await result.finalStep).toolsContext).toStrictEqual({
-          weather: { weatherApiKey: 'call-key' },
-        });
-      });
-
       it('should prefer call-level toolsContext over constructor-level toolsContext', async () => {
         const receivedContexts: unknown[] = [];
 
@@ -4603,6 +4565,9 @@ describe('ToolLoopAgent', () => {
         await result.consumeStream();
 
         expect(receivedContexts).toStrictEqual([{ weatherApiKey: 'call-key' }]);
+        expect((await result.finalStep).toolsContext).toStrictEqual({
+          weather: { weatherApiKey: 'call-key' },
+        });
       });
 
       it('should prefer call-level runtimeContext over constructor-level runtimeContext', async () => {

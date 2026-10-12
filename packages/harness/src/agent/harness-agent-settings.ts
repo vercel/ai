@@ -231,8 +231,6 @@ export type HarnessAgentSettings<
       | 'onEnd'
       | 'onFinish'
       | 'experimental_sandbox'
-      | 'runtimeContext'
-      | 'toolsContext'
     > &
       Pick<
         HarnessAgentSettings<

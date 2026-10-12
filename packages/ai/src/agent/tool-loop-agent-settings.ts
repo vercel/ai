@@ -34,14 +34,17 @@ import type {
 } from '../generate-text/tool-execution-events';
 import type { ToolInputRefinement } from '../generate-text/tool-input-refinement';
 import type { ToolOrder } from '../generate-text/tool-order';
-import type { OptionalToolsContextSettings } from '../generate-text/tools-context-parameter';
+import type {
+  ToolsContextParameter,
+  ToolsContextSettings,
+} from '../generate-text/tools-context-parameter';
 import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import type { Instructions, Prompt } from '../prompt/prompt';
 import type { RequestOptions } from '../prompt/request-options';
 import type { TelemetryOptions } from '../telemetry/telemetry-options';
 import type { LanguageModel, ToolChoice } from '../types/language-model';
 import type { DownloadFunction } from '../util/download/download-function';
-import type { AgentCallParameters } from './agent';
+import type { AgentCallParameters, AgentStreamParameters } from './agent';
 
 /**
  * Configuration options for an agent.
@@ -53,16 +56,11 @@ export type ToolLoopAgentSettings<
   OUTPUT extends Output = never,
 > = LanguageModelCallOptions &
   Omit<RequestOptions<TOOLS>, 'abortSignal'> &
-  OptionalToolsContextSettings<TOOLS> & {
+  ToolsContextParameter<TOOLS> & {
     /**
      * The id of the agent.
      */
     id?: string;
-
-    /**
-     * The tools that the model can call.
-     */
-    tools?: TOOLS;
 
     /**
      * The instructions for the agent.
@@ -349,8 +347,6 @@ export type ToolLoopAgentSettings<
         | 'onStepFinish'
         | 'onEnd'
         | 'onFinish'
-        | 'runtimeContext'
-        | 'toolsContext'
       > &
         Pick<
           ToolLoopAgentSettings<
@@ -440,3 +436,48 @@ export type ToolLoopAgentSettings<
         }
     >;
   };
+
+/**
+ * Per-call context overrides for `ToolLoopAgent.generate()` and
+ * `ToolLoopAgent.stream()`.
+ */
+type ToolLoopAgentCallContext<
+  TOOLS extends ToolSet,
+  RUNTIME_CONTEXT extends Context,
+> = {
+  /**
+   * Runtime context for this call. Treat runtime context as immutable.
+   * If you need to mutate runtime context, update it in `prepareStep`.
+   *
+   * Overrides the constructor-level `runtimeContext` for this call.
+   */
+  runtimeContext?: RUNTIME_CONTEXT;
+} & Partial<ToolsContextSettings<TOOLS>>;
+
+/**
+ * Parameters for `ToolLoopAgent.generate()`.
+ *
+ * Extends the `Agent` call parameters with per-call `runtimeContext` and
+ * `toolsContext`. A call-level value overrides the constructor-level value
+ * for that call; the constructor-level value is used when the call omits it.
+ */
+export type ToolLoopAgentCallParameters<
+  CALL_OPTIONS,
+  TOOLS extends ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+> = AgentCallParameters<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT> &
+  ToolLoopAgentCallContext<TOOLS, RUNTIME_CONTEXT>;
+
+/**
+ * Parameters for `ToolLoopAgent.stream()`.
+ *
+ * Extends the `Agent` stream parameters with per-call `runtimeContext` and
+ * `toolsContext`. A call-level value overrides the constructor-level value
+ * for that call; the constructor-level value is used when the call omits it.
+ */
+export type ToolLoopAgentStreamParameters<
+  CALL_OPTIONS,
+  TOOLS extends ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+> = AgentStreamParameters<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT> &
+  ToolLoopAgentCallContext<TOOLS, RUNTIME_CONTEXT>;

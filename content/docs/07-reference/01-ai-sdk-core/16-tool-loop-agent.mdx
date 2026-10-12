@@ -537,14 +537,13 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       type: 'CONTEXT',
       isOptional: true,
       description:
-        'User-defined shared runtime context object passed to `prepareStep` and lifecycle callbacks. Can also be supplied per call to `generate()` or `stream()`, which overrides this value.',
+        'User-defined shared runtime context object passed to `prepareStep` and lifecycle callbacks. Can be overridden per call to `generate()` or `stream()`.',
     },
     {
       name: 'toolsContext',
       type: 'InferToolSetContext<TOOLS>',
-      isOptional: true,
       description:
-        'Per-tool context map keyed by tool name. Each tool that defines `contextSchema` must receive its context either here or per call to `generate()` or `stream()`; a call-level value overrides this value. Not accepted when no tools need context.',
+        'Per-tool context map keyed by tool name. Required when at least one tool defines `contextSchema`; not accepted when no tools need context. Can be overridden per call to `generate()` or `stream()`.',
     },
     {
       name: 'telemetry',
@@ -748,14 +747,14 @@ const result = await agent.generate({
       type: 'CONTEXT',
       isOptional: true,
       description:
-        'User-defined shared runtime context object for this call, passed to `prepareStep` and lifecycle callbacks. Overrides the constructor-level `runtimeContext` if provided.',
+        'User-defined shared runtime context object for this call, passed to `prepareStep` and lifecycle callbacks. Overrides the constructor-level `runtimeContext` for this call.',
     },
     {
       name: 'toolsContext',
       type: 'InferToolSetContext<TOOLS>',
       isOptional: true,
       description:
-        'Per-tool context map keyed by tool name for this call. Overrides the constructor-level `toolsContext` if provided. Not accepted when no tools need context.',
+        'Per-tool context map keyed by tool name for this call. Replaces the constructor-level `toolsContext` for this call, so it must contain an entry for every tool that defines `contextSchema`. Not accepted when no tools need context.',
     },
     {
       name: 'onStart',
@@ -878,14 +877,14 @@ for await (const chunk of stream.textStream) {
       type: 'CONTEXT',
       isOptional: true,
       description:
-        'User-defined shared runtime context object for this call, passed to `prepareStep` and lifecycle callbacks. Overrides the constructor-level `runtimeContext` if provided.',
+        'User-defined shared runtime context object for this call, passed to `prepareStep` and lifecycle callbacks. Overrides the constructor-level `runtimeContext` for this call.',
     },
     {
       name: 'toolsContext',
       type: 'InferToolSetContext<TOOLS>',
       isOptional: true,
       description:
-        'Per-tool context map keyed by tool name for this call. Overrides the constructor-level `toolsContext` if provided. Not accepted when no tools need context.',
+        'Per-tool context map keyed by tool name for this call. Replaces the constructor-level `toolsContext` for this call, so it must contain an entry for every tool that defines `contextSchema`. Not accepted when no tools need context.',
     },
     {
       name: 'experimental_transform',
