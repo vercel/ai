@@ -1,5 +1,22 @@
 # @ai-sdk/react
 
+## 2.0.277
+
+### Patch Changes
+
+- f47f8e0: fix: resume interrupted chat streams when the page becomes visible again
+
+  `useChat` with `resume: true` no longer starts a second resume request on mount when the chat is already submitted or streaming, e.g. when remounting with a shared `Chat` instance mid-stream.
+
+- 878eb71: fix(react): prevent stale useObject streams from overwriting newer results
+- Updated dependencies [f47f8e0]
+- Updated dependencies [ab0ecab]
+- Updated dependencies [dc561f0]
+- Updated dependencies [c060bd2]
+- Updated dependencies [dbf4338]
+- Updated dependencies [99c9177]
+  - ai@5.0.274
+
 ## 2.0.276
 
 ### Patch Changes
