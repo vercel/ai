@@ -17,9 +17,10 @@ export interface FileReporterOptions {
   /** Directory for `events.jsonl` (created if absent). */
   dir: string;
   /**
-   * Buffer a turn's records in memory and write them only if the turn produced
-   * an error (an `error`-level diagnostic, a failed tool, or an error finish).
-   * Default false (write everything).
+   * When `true`, buffer a turn's records in memory and write them only if the
+   * turn produced an error (an `error`-level diagnostic, a failed tool, or an
+   * error finish). When `false`, append each record synchronously as it is
+   * received so active turns can be inspected. Default `false`.
    */
   failOnly?: boolean;
   /** File name within `dir`. Default `events.jsonl`. */
@@ -41,16 +42,23 @@ export function createFileReporter(options: FileReporterOptions): FileReporter {
   const path = `${options.dir}/${fileName}`;
   const failOnly = options.failOnly ?? false;
 
-  // Per-turn buffers, keyed by the telemetry callId. Diagnostics (which carry a
-  // sessionId, not a callId) attach to the most recently started, open turn.
-  const turns = new Map<string, { lines: Record_[]; errored: boolean }>();
+  // Per-turn state, keyed by the telemetry callId. Non-filtering reporters keep
+  // no records here: they append synchronously so active turns are observable
+  // and memory use does not grow with turn length. Failure-only reporters need
+  // the buffer because the write decision cannot be made until the turn ends.
+  // Diagnostics (which carry a sessionId, not a callId) attach to the most
+  // recently started, open turn.
+  const turns = new Map<
+    string,
+    { lines: Record_[] | undefined; errored: boolean }
+  >();
   let lastOpenCallId: string | undefined;
   let dirReady = false;
 
   const bucketFor = (callId: string) => {
     let bucket = turns.get(callId);
     if (!bucket) {
-      bucket = { lines: [], errored: false };
+      bucket = { lines: failOnly ? [] : undefined, errored: false };
       turns.set(callId, bucket);
     }
     return bucket;
@@ -63,7 +71,12 @@ export function createFileReporter(options: FileReporterOptions): FileReporter {
       flushLines([rec]);
       return;
     }
-    bucketFor(id).lines.push(rec);
+    const bucket = bucketFor(id);
+    if (bucket.lines == null) {
+      flushLines([rec]);
+    } else {
+      bucket.lines.push(rec);
+    }
   };
 
   const flushLines = (lines: Record_[]): void => {
@@ -85,7 +98,7 @@ export function createFileReporter(options: FileReporterOptions): FileReporter {
     turns.delete(callId);
     if (lastOpenCallId === callId) lastOpenCallId = undefined;
     if (failOnly && !bucket.errored) return;
-    flushLines(bucket.lines);
+    flushLines(bucket.lines ?? []);
   };
 
   return {

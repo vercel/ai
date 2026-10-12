@@ -59,6 +59,36 @@ const endEvent = {
 } as never;
 
 describe('createFileReporter', () => {
+  test('writes records while a non-filtering turn is still active', () => {
+    const dir = tmp();
+    const reporter = createFileReporter({ dir, failOnly: false });
+
+    reporter.onStart!(startEvent);
+    for (let index = 0; index < 1000; index++) {
+      reporter.ingestDiagnostic!(
+        diag({ message: `progress ${index}`, timestamp: index }),
+      );
+    }
+
+    const activeLines = readLines(dir);
+    expect(activeLines).toHaveLength(1001);
+    expect(activeLines.map(line => line.kind)).toEqual([
+      'turn-start',
+      ...Array.from({ length: 1000 }, () => 'diagnostic'),
+    ]);
+    expect((activeLines.at(-1)!.diagnostic as HarnessDiagnostic).message).toBe(
+      'progress 999',
+    );
+
+    reporter.onEnd!(endEvent);
+
+    const completedLines = readLines(dir);
+    expect(completedLines).toHaveLength(1002);
+    expect(completedLines.at(-1)).toEqual(
+      expect.objectContaining({ kind: 'turn-finish', callId: 'call-1' }),
+    );
+  });
+
   test('records error details and flushes the failed turn without onEnd', () => {
     const dir = tmp();
     const reporter = createFileReporter({ dir, failOnly: true });
@@ -210,6 +240,7 @@ describe('createFileReporter', () => {
     reporter.onStart!(startEvent);
     reporter.onStepStart!(stepStartEvent);
     reporter.onStepFinish!(stepFinishEvent);
+    expect(existsSync(join(dir, 'events.jsonl'))).toBe(false);
     reporter.onEnd!(endEvent);
     expect(existsSync(join(dir, 'events.jsonl'))).toBe(false);
 
@@ -221,6 +252,7 @@ describe('createFileReporter', () => {
     } as never;
     reporter.onStart!(errCall);
     reporter.ingestDiagnostic!(diag({ level: 'error', message: 'boom' }));
+    expect(existsSync(join(dir, 'events.jsonl'))).toBe(false);
     reporter.onEnd!({
       callId: 'call-2',
       finishReason: 'error',

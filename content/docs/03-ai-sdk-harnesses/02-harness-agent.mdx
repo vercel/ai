@@ -635,6 +635,44 @@ Telemetry reports each turn's resolved model, instructions, and active
 host-defined tools. Skills are adapter context and do not have a corresponding
 AI SDK telemetry field, so they are not included in standard telemetry events.
 
+### Write Harness Events to a File
+
+Use `createFileReporter` to write telemetry lifecycle events and forwarded
+harness diagnostics to one JSON Lines file:
+
+```ts
+import { createFileReporter, HarnessAgent } from '@ai-sdk/harness/agent';
+
+const fileReporter = createFileReporter({
+  dir: '.harness-observability',
+});
+
+const agent = new HarnessAgent({
+  harness: claudeCode,
+  debug: { enabled: true },
+  telemetry: {
+    integrations: [fileReporter],
+  },
+});
+```
+
+By default, the reporter synchronously appends each record to
+`.harness-observability/events.jsonl` as it is received. This makes progress
+from a long-running turn available to tools such as `tail -f` before the turn
+finishes and avoids retaining the turn's records in memory. Records from
+overlapping turns can interleave in receipt order.
+
+Set `failOnly: true` to use failure-only reporting instead. In this mode, the
+reporter buffers each turn in memory until it finishes, writes the full turn
+only when it reports an operation error, error-level diagnostic, or failed
+tool, and discards a successful turn. Standalone diagnostics received outside
+a turn are still written immediately.
+
+The file can contain prompts, model output, tool data, and diagnostics. Use the
+telemetry `recordInputs` and `recordOutputs` options to suppress prompt or model
+output recording, and manage local file permissions and retention according to
+your application's data policy.
+
 Adapter-specific settings belong on the adapter factory, for example
 `createCodex({ reasoningEffort: 'high' })`.
 

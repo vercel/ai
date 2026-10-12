@@ -100,6 +100,28 @@ const agent = new HarnessAgent({
 });
 ```
 
+## File Observability
+
+Register `createFileReporter` as a telemetry integration to write harness
+lifecycle events and diagnostics to `events.jsonl`:
+
+```ts
+import { createFileReporter, HarnessAgent } from '@ai-sdk/harness/agent';
+
+const agent = new HarnessAgent({
+  harness: claudeCode,
+  debug: { enabled: true },
+  telemetry: {
+    integrations: [createFileReporter({ dir: '.harness-observability' })],
+  },
+});
+```
+
+The default `failOnly: false` mode synchronously appends each record as it is
+received, so an active turn can be inspected with `tail -f` without buffering
+all of its records in memory. Set `failOnly: true` to buffer each turn and write
+only failed turns.
+
 ## Documentation
 
 - [Detailed usage documentation](https://ai-sdk.dev/docs/ai-sdk-harnesses)
