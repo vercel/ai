@@ -383,8 +383,6 @@ describe('createClaudeCode adapter', () => {
       'CronDelete',
       'CronList',
       'DesignSync',
-      'ClaudeDesign',
-      'Projects',
       'LSP',
       'PowerShell',
       'PushNotification',
@@ -407,8 +405,6 @@ describe('createClaudeCode adapter', () => {
     expect(harness.builtinTools.ListMcpResourcesTool.toolUseKind).toBe(
       'readonly',
     );
-    expect(harness.builtinTools.ClaudeDesign.toolUseKind).toBe('edit');
-    expect(harness.builtinTools.Projects.toolUseKind).toBe('edit');
     expect(harness.builtinTools.PowerShell.toolUseKind).toBe('bash');
     // WebFetch has no cross-harness common equivalent — its key is the
     // native name directly, so the entry intentionally omits both
@@ -435,64 +431,6 @@ describe('createClaudeCode adapter', () => {
           inactiveTools: ['ListAgents'],
         }),
     ).not.toThrow();
-  });
-
-  it('accepts conditional cloud tools in HarnessAgent filtering', () => {
-    expect(
-      () =>
-        new HarnessAgent({
-          harness: createClaudeCode(),
-          inactiveTools: ['ClaudeDesign', 'Projects'],
-        }),
-    ).not.toThrow();
-  });
-
-  it('validates ClaudeDesign inputs', async () => {
-    const schema = createClaudeCode().builtinTools.ClaudeDesign.inputSchema;
-
-    await expect(
-      safeValidateTypes({
-        value: {
-          operation: 'list',
-          arguments: {},
-        },
-        schema,
-      }),
-    ).resolves.toMatchObject({ success: true });
-
-    await expect(
-      safeValidateTypes({
-        value: {
-          operation: 'list',
-        },
-        schema,
-      }),
-    ).resolves.toMatchObject({ success: false });
-  });
-
-  it('validates Projects inputs', async () => {
-    const schema = createClaudeCode().builtinTools.Projects.inputSchema;
-
-    await expect(
-      safeValidateTypes({
-        value: {
-          method: 'project_write',
-          path: 'notes.md',
-          content: 'Project notes',
-          present_to_user: true,
-        },
-        schema,
-      }),
-    ).resolves.toMatchObject({ success: true });
-
-    await expect(
-      safeValidateTypes({
-        value: {
-          method: 'memory_write',
-        },
-        schema,
-      }),
-    ).resolves.toMatchObject({ success: false });
   });
 
   it('throws HarnessCapabilityUnsupportedError when the network sandbox session exposes no ports', async () => {

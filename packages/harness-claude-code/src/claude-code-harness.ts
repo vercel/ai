@@ -156,11 +156,13 @@ export type ClaudeCodeHarnessSettings = {
 };
 
 /*
- * Every native tool the Claude Code CLI can invoke, declared as a `ToolSet`
- * keyed by what the bridge emits as `toolName` on the wire
- * (`commonName ?? nativeName`). Schemas are transcribed from the generated
- * `sdk-tools.d.ts` and the conditionally registered tool definitions in the
- * pinned Claude Code executable.
+ * Native tools supported by this adapter, declared as a `ToolSet` keyed by
+ * what the bridge emits as `toolName` on the wire
+ * (`commonName ?? nativeName`). This is intentionally not an inventory of
+ * every tool name present in the Claude Code executable. Schemas are
+ * transcribed from the generated `sdk-tools.d.ts` and, for supported tools
+ * without generated types, conditionally registered definitions in the
+ * pinned executable.
  *
  * `MCP` (the generic proxy tool inside the Claude Code SDK) is intentionally
  * omitted — the bridge filters out `mcp__harness-tools__*` tool names before
@@ -634,39 +636,6 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
             iterations: z.number(),
           })
           .optional(),
-      }),
-    }),
-    toolUseKind: 'edit',
-  },
-  ClaudeDesign: {
-    ...tool({
-      description: 'Run a Claude Design operation',
-      inputSchema: z.object({
-        operation: z.string(),
-        arguments: z.record(z.string(), z.unknown()),
-      }),
-    }),
-    toolUseKind: 'edit',
-  },
-  Projects: {
-    ...tool({
-      description: 'Read or update an attached claude.ai project',
-      inputSchema: z.object({
-        method: z.enum([
-          'project_info',
-          'project_read',
-          'project_search',
-          'project_write',
-          'project_delete',
-          'project_memory_list',
-          'project_memory_read',
-        ]),
-        path: z.string().optional(),
-        content: z.string().optional(),
-        local_path: z.string().optional(),
-        present_to_user: z.boolean().optional(),
-        query: z.string().optional(),
-        n: z.number().optional(),
       }),
     }),
     toolUseKind: 'edit',

@@ -13,9 +13,9 @@ describe('resolveNativeTools', () => {
     expect(
       resolveNativeTools({
         mode: 'allow',
-        toolNames: ['read', 'Projects', 'ClaudeDesign'],
+        toolNames: ['read', 'Workflow'],
       }),
-    ).toEqual(['Read', 'Projects', 'ClaudeDesign']);
+    ).toEqual(['Read', 'Workflow']);
   });
 
   it('preserves an empty allowlist', () => {
@@ -44,9 +44,9 @@ describe('resolveInactiveNativeTools', () => {
     expect(
       resolveInactiveNativeTools({
         mode: 'deny',
-        toolNames: ['bash', 'Projects', 'ClaudeDesign'],
+        toolNames: ['bash', 'Workflow'],
       }),
-    ).toEqual(['Bash', 'Projects', 'ClaudeDesign']);
+    ).toEqual(['Bash', 'Workflow']);
   });
 
   it('preserves ListAgents in the native deny-list', () => {

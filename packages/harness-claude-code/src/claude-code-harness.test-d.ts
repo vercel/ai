@@ -63,16 +63,6 @@ describe('claudeCode ↔ HarnessAgent harness setting', () => {
         feedback: 'Add a regression test.',
       },
     });
-    assertType<InferToolInput<typeof claudeCode.builtinTools.ClaudeDesign>>({
-      operation: 'list',
-      arguments: {},
-    });
-    assertType<InferToolInput<typeof claudeCode.builtinTools.Projects>>({
-      method: 'project_write',
-      path: 'summary.md',
-      content: 'Project summary',
-      present_to_user: true,
-    });
   });
 
   test('ListAgents can be disabled without a type cast', () => {
