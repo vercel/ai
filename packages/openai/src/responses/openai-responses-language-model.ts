@@ -183,6 +183,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         explicitMessageItemType: this.config.explicitMessageItemType,
         fileIdPrefixes: this.config.fileIdPrefixes,
         store: openaiOptions?.store ?? true,
+        isReasoningModel: modelCapabilities.isReasoningModel,
         hasLocalShellTool: hasOpenAITool('openai.local_shell'),
         webSearchToolName,
       });
