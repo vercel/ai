@@ -319,6 +319,101 @@ describe('WorkflowAgent duplicate tool call IDs', () => {
     ).toEqual(['provider result for a', 'provider failed for b']);
   });
 
+  it('collects duplicate deferred provider results from separate responses', async () => {
+    const { model } = createScriptedModel([
+      [
+        { type: 'stream-start', warnings: [] },
+        {
+          type: 'tool-call',
+          toolCallId: 'call_0',
+          toolName: 'lookup',
+          input: '{"q":"a"}',
+          providerExecuted: true,
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'call_0',
+          toolName: 'lookup',
+          input: '{"q":"b"}',
+          providerExecuted: true,
+        },
+        finish('tool-calls'),
+      ],
+      [
+        { type: 'stream-start', warnings: [] },
+        {
+          type: 'tool-result',
+          toolCallId: 'call_0',
+          toolName: 'lookup',
+          result: 'deferred result for a',
+          providerExecuted: true,
+        } as LanguageModelV4StreamPart & { providerExecuted: true },
+        finish('stop'),
+      ],
+      [
+        { type: 'stream-start', warnings: [] },
+        {
+          type: 'tool-result',
+          toolCallId: 'call_0',
+          toolName: 'lookup',
+          result: 'deferred result for b',
+          providerExecuted: true,
+        } as LanguageModelV4StreamPart & { providerExecuted: true },
+        finish('stop'),
+      ],
+    ]);
+    const writtenParts: ModelCallStreamPart[] = [];
+
+    const result = await new WorkflowAgent({
+      model,
+      tools: {
+        lookup: tool({
+          type: 'provider',
+          id: 'test.lookup',
+          isProviderExecuted: true,
+          supportsDeferredResults: true,
+          args: {},
+          inputSchema: z.object({ q: z.string() }),
+        }),
+      },
+    }).stream({
+      prompt: 'go',
+      writable: new WritableStream<ModelCallStreamPart>({
+        write(part) {
+          writtenParts.push(part);
+        },
+      }),
+    });
+
+    expect(model.doStreamCalls).toHaveLength(3);
+    expect(
+      result.steps.flatMap(step =>
+        step.toolResults.map(toolResult => toolResult.output),
+      ),
+    ).toEqual(['deferred result for a', 'deferred result for b']);
+    expect(
+      writtenParts
+        .filter(part => part.type === 'tool-result')
+        .map(part => part.output),
+    ).toEqual([
+      'deferred result for a',
+      'deferred result for a',
+      'deferred result for b',
+      'deferred result for b',
+    ]);
+    expect(
+      result.messages.flatMap(message =>
+        message.role === 'assistant' && Array.isArray(message.content)
+          ? message.content.flatMap(part =>
+              part.type === 'tool-result' && 'value' in part.output
+                ? [part.output.value]
+                : [],
+            )
+          : [],
+      ),
+    ).toEqual(['deferred result for a', 'deferred result for b']);
+  });
+
   it('preserves local and provider-executed results that share an ID', async () => {
     const { model, prompts } = createScriptedModel([
       [

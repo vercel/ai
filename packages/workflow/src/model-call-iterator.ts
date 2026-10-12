@@ -201,7 +201,10 @@ export async function* modelCallIterator({
   let stepNumber = 0;
   let lastStep: StepResult<any, any> | undefined;
   let lastStepWasYielded = false;
-  const pendingDeferredToolCallIds = new Set<string>();
+  const pendingDeferredToolCalls: Array<{
+    toolCallId: string;
+    toolName: string;
+  }> = [];
   let wasAborted = false;
   let terminalError: unknown;
   let hasTerminalError = false;
@@ -482,19 +485,52 @@ export async function* modelCallIterator({
       const isToolExecutionAllowed =
         finishReason === 'tool-calls' || finishReason === 'stop';
 
-      for (const toolCall of toolCalls) {
+      const providerResults = [...providerExecutedToolResults.values()];
+      const unmatchedProviderResultIndexes = new Set(
+        providerResults.map((_, index) => index),
+      );
+
+      for (const [toolCallIndex, toolCall] of toolCalls.entries()) {
         if (
           toolCall.providerExecuted &&
-          serializedTools[toolCall.toolName]?.supportsDeferredResults &&
-          ![...providerExecutedToolResults.values()].some(
-            result => result.toolCallId === toolCall.toolCallId,
-          )
+          serializedTools[toolCall.toolName]?.supportsDeferredResults
         ) {
-          pendingDeferredToolCallIds.add(toolCall.toolCallId);
+          const matchingResultIndex = providerResults.findIndex(
+            (result, resultIndex) =>
+              unmatchedProviderResultIndexes.has(resultIndex) &&
+              (result.toolCallIndex === toolCallIndex ||
+                (result.toolCallIndex == null &&
+                  result.toolCallId === toolCall.toolCallId &&
+                  result.toolName === toolCall.toolName)),
+          );
+
+          if (matchingResultIndex >= 0) {
+            unmatchedProviderResultIndexes.delete(matchingResultIndex);
+          } else {
+            pendingDeferredToolCalls.push({
+              toolCallId: toolCall.toolCallId,
+              toolName: toolCall.toolName,
+            });
+          }
         }
       }
-      for (const providerResult of providerExecutedToolResults.values()) {
-        pendingDeferredToolCallIds.delete(providerResult.toolCallId);
+
+      for (const providerResultIndex of unmatchedProviderResultIndexes) {
+        const providerResult = providerResults[providerResultIndex];
+        // Indexed results belong to calls in the current response. Only
+        // unindexed results can resolve a deferred call from an earlier step.
+        if (providerResult.toolCallIndex != null) {
+          continue;
+        }
+
+        const pendingCallIndex = pendingDeferredToolCalls.findIndex(
+          pendingCall =>
+            pendingCall.toolCallId === providerResult.toolCallId &&
+            pendingCall.toolName === providerResult.toolName,
+        );
+        if (pendingCallIndex >= 0) {
+          pendingDeferredToolCalls.splice(pendingCallIndex, 1);
+        }
       }
 
       const shouldProcessTools =
@@ -612,7 +648,7 @@ export async function* modelCallIterator({
         done =
           !isToolExecutionAllowed ||
           stopConditionMet ||
-          (!hasClientToolCalls && pendingDeferredToolCallIds.size === 0);
+          (!hasClientToolCalls && pendingDeferredToolCalls.length === 0);
       } else if (
         hasTerminalError ||
         mode === 'generate' ||
