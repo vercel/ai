@@ -206,13 +206,38 @@ function unwrapPiToolResult(event: PiSessionEvent): never {
   return (event.result ?? event.content ?? null) as never;
 }
 
-function parseMcpToolResult(content: unknown): unknown {
-  if (typeof content !== 'string') return content;
+/**
+ * Pi's native MCP attaches `details` naming the server and tool to every
+ * result, so `unwrapPiToolResult` hands back the envelope. A text-only result
+ * is still the server's payload, which is JSON for most servers.
+ */
+function parseMcpToolResult(result: unknown): unknown {
+  const text = typeof result === 'string' ? result : mcpResultText(result);
+  if (text === undefined) return result;
   try {
-    return secureJsonParse(content);
+    return secureJsonParse(text);
   } catch {
-    return content;
+    return text;
   }
+}
+
+function mcpResultText(result: unknown): string | undefined {
+  if (!result || typeof result !== 'object') return undefined;
+  const content = (result as { content?: unknown }).content;
+  if (!Array.isArray(content) || content.length === 0) return undefined;
+  const texts: string[] = [];
+  for (const part of content) {
+    if (
+      !part ||
+      typeof part !== 'object' ||
+      (part as { type?: unknown }).type !== 'text' ||
+      typeof (part as { text?: unknown }).text !== 'string'
+    ) {
+      return undefined;
+    }
+    texts.push((part as { text: string }).text);
+  }
+  return texts.join('');
 }
 
 function resolveToolName(
