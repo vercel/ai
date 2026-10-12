@@ -592,15 +592,6 @@ describe('pruneMessages', () => {
             {
               "content": [
                 {
-                  "text": "I need to get the weather in Tokyo and Busan.",
-                  "type": "reasoning",
-                },
-              ],
-              "role": "assistant",
-            },
-            {
-              "content": [
-                {
                   "text": "I have got the weather in Tokyo and Busan.",
                   "type": "reasoning",
                 },
@@ -613,6 +604,126 @@ describe('pruneMessages', () => {
             },
           ]
         `);
+      });
+
+      it('should prune reasoning whose following tool content was pruned', () => {
+        const messages: ModelMessage[] = [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'Call the first tool.',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'remove-me',
+                input: {},
+              },
+              {
+                type: 'reasoning-file',
+                mediaType: 'image/png',
+                data: 'reasoning-image',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-2',
+                toolName: 'remove-me',
+                input: {},
+              },
+            ],
+          },
+        ];
+
+        expect(
+          pruneMessages({
+            messages,
+            toolCalls: 'all',
+          }),
+        ).toEqual([]);
+        expect(
+          pruneMessages({
+            messages,
+            toolCalls: 'all',
+            emptyMessages: 'keep',
+          }),
+        ).toEqual([{ role: 'assistant', content: [] }]);
+      });
+
+      it('should retain reasoning followed by kept content', () => {
+        const messages: ModelMessage[] = [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'Only explains the removed tool.',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-removed',
+                toolName: 'remove-me',
+                input: {},
+              },
+              {
+                type: 'reasoning',
+                text: 'Explains the retained tool.',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-kept',
+                toolName: 'keep-me',
+                input: {},
+              },
+              {
+                type: 'reasoning',
+                text: 'Explains the retained text.',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-before-text',
+                toolName: 'remove-me',
+                input: {},
+              },
+              {
+                type: 'text',
+                text: 'Retained answer.',
+              },
+            ],
+          },
+        ];
+
+        expect(
+          pruneMessages({
+            messages,
+            toolCalls: [{ type: 'all', tools: ['remove-me'] }],
+          }),
+        ).toEqual([
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'Explains the retained tool.',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-kept',
+                toolName: 'keep-me',
+                input: {},
+              },
+              {
+                type: 'reasoning',
+                text: 'Explains the retained text.',
+              },
+              {
+                type: 'text',
+                text: 'Retained answer.',
+              },
+            ],
+          },
+        ]);
       });
     });
 
