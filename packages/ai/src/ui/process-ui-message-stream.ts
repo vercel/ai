@@ -121,6 +121,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   onToolCall,
   onData,
   resetStateOnMessageIdChange = false,
+  resetStateOnFirstMessageStart = false,
 }: {
   // input stream is not fully typed yet:
   stream: ReadableStream<UIMessageChunk>;
@@ -139,6 +140,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   onError: ErrorHandler;
   // During resume, a different message ID identifies a separate response.
   resetStateOnMessageIdChange?: boolean;
+  // A transport can replay a response from the beginning using the same ID.
+  resetStateOnFirstMessageStart?: boolean;
 }): ReadableStream<InferUIMessageChunk<UI_MESSAGE>> {
   let isFirstMessageStart = true;
 
@@ -883,16 +886,6 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'start': {
-<<<<<<< HEAD
-              if (
-                resetStateOnMessageIdChange &&
-                chunk.messageId != null &&
-                chunk.messageId !== state.message.id
-              ) {
-                // Start the separate response with empty parts and metadata.
-                // Reset the active-part maps too, so earlier chunks stay with
-                // the previous response. Keep the state object for its callers.
-=======
               const shouldReset =
                 (resetStateOnFirstMessageStart && isFirstMessageStart) ||
                 (resetStateOnMessageIdChange &&
@@ -905,7 +898,6 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 // reset a replay once: merged streams can emit more starts.
                 // Keep the state object for its callers and preserve the ID
                 // when the replay does not include one.
->>>>>>> 75b3ea281b (fix(ai): prevent duplicate message parts when resuming replayed streams (#22560))
                 Object.assign(
                   state,
                   createStreamingUIMessageState({

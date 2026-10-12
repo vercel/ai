@@ -1,9 +1,3 @@
-<<<<<<< HEAD
-=======
-import { APICallError } from '@ai-sdk/provider';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
-import { mockId } from '@ai-sdk/provider-utils/test';
->>>>>>> 75b3ea281b (fix(ai): prevent duplicate message parts when resuming replayed streams (#22560))
 import {
   createTestServer,
   TestResponseController,
@@ -21,7 +15,7 @@ import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { DefaultChatTransport } from './default-chat-transport';
 import { lastAssistantMessageIsCompleteWithToolCalls } from './last-assistant-message-is-complete-with-tool-calls';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { delay } from '@ai-sdk/provider-utils';
+import { delay, type FetchFunction } from '@ai-sdk/provider-utils';
 import { lastAssistantMessageIsCompleteWithApprovalResponses } from './last-assistant-message-is-complete-with-approval-responses';
 
 class TestChatState<
@@ -768,9 +762,6 @@ describe('Chat', () => {
     });
   });
 
-<<<<<<< HEAD
-  it('should continue an active text part when resuming after a disconnect', async () => {
-=======
   describe('DefaultChatTransport resume after disconnect', () => {
     const prefix: UIMessageChunk[] = [
       { type: 'start', messageId: 'answer-1' },
@@ -792,6 +783,7 @@ describe('Chat', () => {
     async function disconnectAndResume(
       resumedChunks: UIMessageChunk[],
       resumeStreamIsReplay?: boolean,
+      reload = false,
     ) {
       const received = createResolvablePromise<void>();
       const onFinish = vi.fn();
@@ -824,8 +816,13 @@ describe('Chat', () => {
           }),
         );
       });
-      const chat = new TestChat({
-        transport: new DefaultChatTransport({ fetch, resumeStreamIsReplay }),
+      const transport = new DefaultChatTransport({
+        fetch,
+        resumeStreamIsReplay,
+      });
+      let chat = new TestChatWithState({
+        state: new SnapshottingTestChatState(),
+        transport,
         onData: () => received.resolve(),
         onFinish,
       });
@@ -836,6 +833,13 @@ describe('Chat', () => {
         expect.objectContaining({ isDisconnect: true }),
       );
       expect(chat.lastMessage?.parts).toHaveLength(3);
+
+      if (reload) {
+        chat = new TestChatWithState({
+          state: new SnapshottingTestChatState(structuredClone(chat.messages)),
+          transport,
+        });
+      }
 
       await chat.resumeStream();
 
@@ -880,9 +884,24 @@ describe('Chat', () => {
       },
     );
 
-    it('preserves active parts when resuming with only remaining chunks', async () => {
-      await disconnectAndResume(suffix);
+    it('rebuilds a replay after loading saved messages into a new chat', async () => {
+      await disconnectAndResume([...prefix, ...suffix], undefined, true);
     });
+
+    it('preserves replayed parts when a merged stream emits another start', async () => {
+      await disconnectAndResume([
+        ...prefix,
+        { type: 'start', messageId: 'answer-1' },
+        ...suffix,
+      ]);
+    });
+
+    it.each([undefined, false])(
+      'preserves active parts with only remaining chunks and replay option %s',
+      async resumeStreamIsReplay => {
+        await disconnectAndResume(suffix, resumeStreamIsReplay);
+      },
+    );
 
     it('allows a continuation endpoint to send a start without resetting parts', async () => {
       await disconnectAndResume(
@@ -892,108 +911,7 @@ describe('Chat', () => {
     });
   });
 
-  it.each([
-    'network connection lost',
-    'Failed to fetch',
-    'network error',
-    'NetworkError when attempting to fetch resource.',
-    'fetch failed',
-    'Load failed',
-  ])(
-    'should continue an active text part after a disconnect with "%s"',
-    async errorMessage => {
-      const onFinish = vi.fn();
-      const chat = new TestChat({
-        id: '123',
-        generateId: mockId(),
-        onFinish,
-        transport: {
-          sendMessages: async () => {
-            const chunks: UIMessageChunk[] = [
-              { type: 'start', messageId: 'assistant-1' },
-              { type: 'start-step' },
-              { type: 'text-start', id: 'text-1' },
-              { type: 'text-delta', id: 'text-1', delta: 'Hello' },
-            ];
-            let index = 0;
-
-            return new ReadableStream<UIMessageChunk>({
-              pull(controller) {
-                if (index < chunks.length) {
-                  controller.enqueue(chunks[index++]);
-                } else {
-                  controller.error(new TypeError(errorMessage));
-                }
-              },
-            });
-          },
-          reconnectToStream: async () =>
-            new ReadableStream<UIMessageChunk>({
-              start(controller) {
-                controller.enqueue({
-                  type: 'text-delta',
-                  id: 'text-1',
-                  delta: ' and loved well',
-                });
-                controller.enqueue({ type: 'text-end', id: 'text-1' });
-                controller.enqueue({ type: 'finish-step' });
-                controller.enqueue({ type: 'finish', finishReason: 'stop' });
-                controller.close();
-              },
-            }),
-        },
-      });
-
-      await chat.sendMessage({ text: 'Continue the response.' });
-
-      expect(chat.status).toBe('error');
-      expect(onFinish).toHaveBeenCalledWith(
-        expect.objectContaining({ isDisconnect: true, isError: true }),
-      );
-      expect(chat.messages.at(-1)?.parts).toEqual([
-        { type: 'step-start' },
-        {
-          type: 'text',
-          text: 'Hello',
-          state: 'streaming',
-          providerMetadata: undefined,
-        },
-      ]);
-
-      chat.clearError();
-      await chat.resumeStream();
-
-      expect(chat.status).toBe('ready');
-      expect(chat.messages.at(-1)?.parts).toEqual([
-        { type: 'step-start' },
-        {
-          type: 'text',
-          text: 'Hello and loved well',
-          state: 'done',
-          providerMetadata: undefined,
-        },
-      ]);
-    },
-  );
-
-  it('should wait for an active response to disconnect before resuming', async () => {
-    let responseController!: ReadableStreamDefaultController<UIMessageChunk>;
-    const reconnectToStream = vi.fn(
-      async () =>
-        new ReadableStream<UIMessageChunk>({
-          start(controller) {
-            controller.enqueue({
-              type: 'text-delta',
-              id: 'text-1',
-              delta: ', world.',
-            });
-            controller.enqueue({ type: 'text-end', id: 'text-1' });
-            controller.enqueue({ type: 'finish' });
-            controller.close();
-          },
-        }),
-    );
->>>>>>> 75b3ea281b (fix(ai): prevent duplicate message parts when resuming replayed streams (#22560))
+  it('should continue an active text part when resuming after a disconnect', async () => {
     const chat = new TestChat({
       id: '123',
       generateId: mockId(),
