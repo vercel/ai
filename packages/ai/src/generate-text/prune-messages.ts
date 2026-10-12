@@ -9,7 +9,9 @@ import type {
  *
  * @param messages - The list of model messages to prune.
  * @param reasoning - How to remove reasoning content from assistant messages. Default is `'none'`.
- * @param toolCalls - How to prune tool call/results/approval content. Default is `[]`.
+ * @param toolCalls - How to prune tool call/results/approval content. Reasoning parts that only
+ * preceded pruned tool calls are removed as well, since they no longer explain anything that
+ * remains in the history. Default is `[]`.
  * @param emptyMessages - Whether to keep or remove messages whose content is empty after pruning. Default is `'remove'`.
  *
  * @returns The pruned list of model messages.
@@ -163,41 +165,76 @@ export function pruneMessages({
         return message;
       }
 
+      // whether each part is kept by the current tool pruning setting:
+      const parts = message.content;
+      const partKept = parts.map(part => {
+        // keep non-tool parts:
+        if (
+          part.type !== 'tool-call' &&
+          part.type !== 'tool-result' &&
+          part.type !== 'tool-approval-request' &&
+          part.type !== 'tool-approval-response'
+        ) {
+          return true;
+        }
+
+        // keep parts that are associated with a tool call or approval that needs to be kept:
+        if (
+          ((part.type === 'tool-call' || part.type === 'tool-result') &&
+            keptToolCallIds.has(part.toolCallId)) ||
+          ((part.type === 'tool-approval-request' ||
+            part.type === 'tool-approval-response') &&
+            keptApprovalIds.has(part.approvalId))
+        ) {
+          return true;
+        }
+
+        // keep parts that are not associated with a tool that should be removed:
+        const partToolName =
+          part.type === 'tool-call' || part.type === 'tool-result'
+            ? part.toolName
+            : approvalIdToToolName.get(part.approvalId);
+
+        return (
+          toolCall.tools != null &&
+          partToolName != null &&
+          !toolCall.tools.includes(partToolName)
+        );
+      });
+
       return {
         ...message,
-        content: message.content.filter(part => {
-          // keep non-tool parts:
-          if (
-            part.type !== 'tool-call' &&
-            part.type !== 'tool-result' &&
-            part.type !== 'tool-approval-request' &&
-            part.type !== 'tool-approval-response'
-          ) {
-            return true;
+        content: parts.filter((part, partIndex) => {
+          if (!partKept[partIndex]) {
+            return false;
           }
 
-          // keep parts that are associated with a tool call or approval that needs to be kept:
-          if (
-            ((part.type === 'tool-call' || part.type === 'tool-result') &&
-              keptToolCallIds.has(part.toolCallId)) ||
-            ((part.type === 'tool-approval-request' ||
-              part.type === 'tool-approval-response') &&
-              keptApprovalIds.has(part.approvalId))
-          ) {
-            return true;
+          // remove reasoning parts that were orphaned by the pruned tool
+          // calls: a reasoning part is removed when every part after it, up
+          // to the next reasoning part or the end of the message, was removed:
+          if (part.type === 'reasoning' || part.type === 'reasoning-file') {
+            let hasRemovedFollowingPart = false;
+            for (
+              let followingIndex = partIndex + 1;
+              followingIndex < parts.length;
+              followingIndex++
+            ) {
+              const followingPart = parts[followingIndex];
+              if (
+                followingPart.type === 'reasoning' ||
+                followingPart.type === 'reasoning-file'
+              ) {
+                break;
+              }
+              if (partKept[followingIndex]) {
+                return true;
+              }
+              hasRemovedFollowingPart = true;
+            }
+            return !hasRemovedFollowingPart;
           }
 
-          // keep parts that are not associated with a tool that should be removed:
-          const partToolName =
-            part.type === 'tool-call' || part.type === 'tool-result'
-              ? part.toolName
-              : approvalIdToToolName.get(part.approvalId);
-
-          return (
-            toolCall.tools != null &&
-            partToolName != null &&
-            !toolCall.tools.includes(partToolName)
-          );
+          return true;
         }),
       } as AssistantModelMessage | ToolModelMessage;
     });
