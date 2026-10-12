@@ -1790,6 +1790,99 @@ describe('HarnessAgent', () => {
     await session.destroy();
   });
 
+  test('stream() exposes reasoning from the final step', async () => {
+    const { harness } = mockHarness({
+      script: () => [
+        { type: 'reasoning-start', id: 'r1' },
+        { type: 'reasoning-delta', id: 'r1', delta: 'First thought.' },
+        { type: 'reasoning-end', id: 'r1' },
+        {
+          type: 'finish-step',
+          finishReason: { unified: 'tool-calls', raw: 'tool_use' },
+          usage: zeroUsage(),
+        },
+        { type: 'reasoning-start', id: 'r2' },
+        { type: 'reasoning-delta', id: 'r2', delta: 'Final thought.' },
+        { type: 'reasoning-end', id: 'r2' },
+        { type: 'text-start', id: 't1' },
+        { type: 'text-delta', id: 't1', delta: 'Answer.' },
+        { type: 'text-end', id: 't1' },
+        {
+          type: 'finish-step',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          usage: zeroUsage(),
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          totalUsage: zeroUsage(),
+        },
+      ],
+    });
+
+    const agent = new HarnessAgent({ harness });
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
+    const result = await agent.stream({ session, prompt: 'think' });
+
+    const streamedReasoning: string[] = [];
+    for await (const part of result.fullStream) {
+      if (part.type === 'reasoning-delta') {
+        streamedReasoning.push(part.text);
+      }
+    }
+
+    expect(streamedReasoning).toEqual(['First thought.', 'Final thought.']);
+    await expect(result.reasoning).resolves.toEqual([
+      { type: 'reasoning', text: 'Final thought.' },
+    ]);
+    await expect(result.reasoningText).resolves.toBe('Final thought.');
+
+    const steps = await result.steps;
+    expect(steps.map(step => step.reasoningText)).toEqual([
+      'First thought.',
+      'Final thought.',
+    ]);
+    expect(await result.reasoning).toEqual((await result.finalStep).reasoning);
+    expect(await result.reasoningText).toBe(
+      (await result.finalStep).reasoningText,
+    );
+
+    await session.destroy();
+  });
+
+  test('stream() exposes empty reasoning accessors when no reasoning is emitted', async () => {
+    const { harness } = mockHarness({
+      script: () => [
+        { type: 'text-start', id: 't1' },
+        { type: 'text-delta', id: 't1', delta: 'Answer.' },
+        { type: 'text-end', id: 't1' },
+        {
+          type: 'finish-step',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          usage: zeroUsage(),
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          totalUsage: zeroUsage(),
+        },
+      ],
+    });
+
+    const agent = new HarnessAgent({ harness });
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
+    const result = await agent.stream({ session, prompt: 'answer' });
+
+    await expect(result.reasoning).resolves.toEqual([]);
+    await expect(result.reasoningText).resolves.toBeUndefined();
+
+    await session.destroy();
+  });
+
   test('releases the session after a turn-start failure', async () => {
     let promptTurnCount = 0;
     const { harness } = mockHarness({
