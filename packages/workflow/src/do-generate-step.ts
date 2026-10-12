@@ -4,7 +4,6 @@ import {
   ToolChoiceViolationError,
   type LanguageModel,
   type ModelMessage,
-  type ToolSet,
 } from 'ai';
 import {
   asLanguageModelUsage,
@@ -16,6 +15,7 @@ import {
   prepareTools,
   resolveLanguageModel,
 } from 'ai/internal';
+import { languageModelPromptToModelMessages } from './language-model-prompt-to-model-messages.js';
 import type {
   ModelCallOptions,
   ModelCallRawContentPart,
@@ -31,10 +31,6 @@ import {
   runModelCallWithTelemetry,
   type LanguageModelCallTelemetry,
 } from './model-call-telemetry.js';
-
-type ParseToolCallRepairFunction = Parameters<
-  typeof parseToolCall<ToolSet>
->[0]['repairToolCall'];
 
 /** A single durable provider call; orchestration and callbacks stay in the workflow. */
 export async function doGenerateStep(
@@ -99,21 +95,7 @@ async function generateModelCall(
   const modelPrompt = await convertToLanguageModelPrompt({
     prompt: {
       instructions: undefined,
-      messages: prompt.map(message =>
-        message.role !== 'tool'
-          ? message
-          : {
-              ...message,
-              // Provider prompt approval responses have already been filtered by
-              // the workflow-side conversion. Restore the marker expected when
-              // converting the prompt again with the model's URL capabilities.
-              content: message.content.map(part =>
-                part.type === 'tool-approval-response'
-                  ? { ...part, providerExecuted: true }
-                  : part,
-              ),
-            },
-      ) as unknown as ModelMessage[],
+      messages: languageModelPromptToModelMessages(prompt),
     },
     supportedUrls: await model.supportedUrls,
     download: options.download,
@@ -180,7 +162,6 @@ async function generateModelCall(
     performance: { responseTimeMs },
   });
   abortSignal?.throwIfAborted();
-  const repairToolCall = options.repairToolCall;
   const toolCalls = await Promise.all(
     response.content
       .filter(part => part.type === 'tool-call')
@@ -188,12 +169,7 @@ async function generateModelCall(
         parseToolCall({
           toolCall,
           tools,
-          // `ai` and `ai/internal` expose the same callback contract through
-          // separate declaration entrypoints. Bridge that type-only boundary
-          // without wrapping the callback or changing its runtime semantics.
-          repairToolCall: repairToolCall as
-            | ParseToolCallRepairFunction
-            | undefined,
+          repairToolCall: options.repairToolCall,
           instructions:
             modelPrompt
               .filter(message => message.role === 'system')
