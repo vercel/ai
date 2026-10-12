@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 23062,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-23062.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-23062.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_REPRODUCED: convertToModelMessages codemod emitted invalid JavaScript for a synchronous wrapper"
+  }
+}
