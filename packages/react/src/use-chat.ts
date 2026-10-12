@@ -52,16 +52,111 @@ export type UseChatOptions<UI_MESSAGE extends UIMessage> = (
   experimental_throttle?: number;
 
   /**
-   * Whether to resume an ongoing chat generation stream.
+   * Whether to automatically resume an ongoing chat generation stream.
    */
   resume?: boolean;
 };
 
+type AutomaticResumeState = {
+  registrations: Set<object>;
+  cleanupVisibilityListener?: () => void;
+  pendingVisibilityResume?: Promise<void>;
+};
+
+const automaticResumeStates = new WeakMap<object, AutomaticResumeState>();
+
+type AutomaticallyResumableChat = {
+  '~resumeStreamIfDisconnected': (options: {
+    shouldResume: () => boolean;
+  }) => Promise<void>;
+};
+
+/**
+ * When the document becomes visible again, resume the chat stream if it was
+ * interrupted by a network disconnect while the page was in the background.
+ */
+function resumeOnVisible<UI_MESSAGE extends UIMessage>({
+  chat,
+  state,
+}: {
+  chat: Chat<UI_MESSAGE>;
+  state: AutomaticResumeState;
+}) {
+  if (
+    document.visibilityState !== 'visible' ||
+    state.pendingVisibilityResume != null
+  ) {
+    return;
+  }
+
+  const isRegistered = () =>
+    automaticResumeStates.get(chat) === state && state.registrations.size > 0;
+
+  const clearPendingResume = () => {
+    state.pendingVisibilityResume = undefined;
+  };
+
+  const resumableChat = chat as Chat<UI_MESSAGE> & AutomaticallyResumableChat;
+
+  state.pendingVisibilityResume = resumableChat['~resumeStreamIfDisconnected']({
+    shouldResume: () =>
+      isRegistered() && document.visibilityState === 'visible',
+  }).then(clearPendingResume, clearPendingResume);
+}
+
+function registerAutomaticResume<UI_MESSAGE extends UIMessage>({
+  chat,
+  registration,
+}: {
+  chat: Chat<UI_MESSAGE>;
+  registration: object;
+}) {
+  let state = automaticResumeStates.get(chat);
+
+  if (state == null) {
+    const newState: AutomaticResumeState = { registrations: new Set() };
+    automaticResumeStates.set(chat, newState);
+    state = newState;
+
+    if (typeof document !== 'undefined') {
+      const onVisibilityChange = () =>
+        resumeOnVisible({ chat, state: newState });
+
+      document.addEventListener('visibilitychange', onVisibilityChange);
+      newState.cleanupVisibilityListener = () => {
+        document.removeEventListener('visibilitychange', onVisibilityChange);
+      };
+    }
+  }
+
+  const { registrations } = state;
+  const shouldResume = registrations.size === 0;
+  registrations.add(registration);
+
+  if (
+    shouldResume &&
+    chat.status !== 'submitted' &&
+    chat.status !== 'streaming'
+  ) {
+    void chat.resumeStream();
+  }
+
+  return () => {
+    registrations.delete(registration);
+
+    if (registrations.size === 0) {
+      state.cleanupVisibilityListener?.();
+      automaticResumeStates.delete(chat);
+    }
+  };
+}
 export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
   experimental_throttle: throttleWaitMs,
   resume = false,
   ...options
 }: UseChatOptions<UI_MESSAGE> = {}): UseChatHelpers<UI_MESSAGE> {
+  const automaticResumeRegistration = useRef({});
+
   // the Chat instance is created once and not recreated when options change,
   // so it would normally keep the callbacks/transport from the first render forever
 
@@ -225,9 +320,12 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
 
   useEffect(() => {
     if (resume) {
-      chatRef.current.resumeStream();
+      return registerAutomaticResume({
+        chat,
+        registration: automaticResumeRegistration.current,
+      });
     }
-  }, [resume, chatRef]);
+  }, [resume, chat]);
 
   return {
     id: chatRef.current.id,
