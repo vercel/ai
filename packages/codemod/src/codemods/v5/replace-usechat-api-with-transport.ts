@@ -5,6 +5,59 @@ export default createTransformer((fileInfo, api, options, context) => {
 
   // Track all useChat import names (including aliases)
   const useChatNames = new Set<string>();
+  let hasDefaultChatTransportValueImport = false;
+  let defaultChatTransportExpression: any;
+
+  root
+    .find(j.ImportDeclaration, {
+      source: { value: 'ai' },
+    })
+    .forEach(path => {
+      if (
+        hasDefaultChatTransportValueImport ||
+        path.node.importKind === 'type'
+      ) {
+        return;
+      }
+
+      path.node.specifiers?.forEach(specifier => {
+        if (
+          specifier.type === 'ImportSpecifier' &&
+          (specifier as any).importKind !== 'type' &&
+          specifier.imported.type === 'Identifier' &&
+          specifier.imported.name === 'DefaultChatTransport'
+        ) {
+          defaultChatTransportExpression = j.identifier(
+            specifier.local?.name ?? 'DefaultChatTransport',
+          );
+          hasDefaultChatTransportValueImport = true;
+        } else if (specifier.type === 'ImportNamespaceSpecifier') {
+          defaultChatTransportExpression = j.memberExpression(
+            j.identifier(specifier.local?.name ?? 'ai'),
+            j.identifier('DefaultChatTransport'),
+          );
+          hasDefaultChatTransportValueImport = true;
+        }
+      });
+    });
+
+  let defaultChatTransportLocalName = 'DefaultChatTransport';
+
+  if (!hasDefaultChatTransportValueImport) {
+    const programScope = root.find(j.Program).paths()[0].scope;
+    let suffix = 1;
+
+    while (programScope.declares(defaultChatTransportLocalName)) {
+      defaultChatTransportLocalName = `DefaultChatTransportValue${
+        suffix === 1 ? '' : suffix
+      }`;
+      suffix++;
+    }
+
+    defaultChatTransportExpression = j.identifier(
+      defaultChatTransportLocalName,
+    );
+  }
 
   // Replace old import path with new one and collect useChat import names
   root
@@ -85,7 +138,7 @@ export default createTransformer((fileInfo, api, options, context) => {
       const transportProperty = j.property(
         'init',
         j.identifier('transport'),
-        j.newExpression(j.identifier('DefaultChatTransport'), [
+        j.newExpression(defaultChatTransportExpression, [
           j.objectExpression([
             j.property('init', j.identifier('api'), (apiProperty as any).value),
           ]),
@@ -96,49 +149,40 @@ export default createTransformer((fileInfo, api, options, context) => {
       firstArg.properties = newProperties;
     });
 
-  if (needsDefaultChatTransportImport) {
-    const reactImports = root.find(j.ImportDeclaration, {
-      source: { value: '@ai-sdk/react' },
+  if (needsDefaultChatTransportImport && !hasDefaultChatTransportValueImport) {
+    const defaultChatTransportImport = j.importSpecifier(
+      j.identifier('DefaultChatTransport'),
+      defaultChatTransportLocalName === 'DefaultChatTransport'
+        ? null
+        : j.identifier(defaultChatTransportLocalName),
+    );
+    const aiImports = root.find(j.ImportDeclaration, {
+      source: { value: 'ai' },
     });
+    const compatibleAiImports = aiImports.filter(
+      path =>
+        path.node.importKind !== 'type' &&
+        !path.node.specifiers?.some(
+          specifier => specifier.type === 'ImportNamespaceSpecifier',
+        ),
+    );
 
-    if (reactImports.length > 0) {
-      const firstReactImport = reactImports.at(0);
-      const specifiers = firstReactImport.get().node.specifiers || [];
-
-      const hasDefaultChatTransport = specifiers.some(
-        (spec: any) =>
-          spec.type === 'ImportSpecifier' &&
-          spec.imported.type === 'Identifier' &&
-          spec.imported.name === 'DefaultChatTransport',
-      );
-
-      if (!hasDefaultChatTransport) {
-        specifiers.push(
-          j.importSpecifier(j.identifier('DefaultChatTransport')),
-        );
-      }
+    if (compatibleAiImports.length > 0) {
+      const firstAiImport = compatibleAiImports.at(0);
+      const specifiers = firstAiImport.get().node.specifiers || [];
+      specifiers.push(defaultChatTransportImport);
+      firstAiImport.get().node.specifiers = specifiers;
     } else {
       const imports = root.find(j.ImportDeclaration);
+      const importDeclaration = j.importDeclaration(
+        [defaultChatTransportImport],
+        j.literal('ai'),
+      );
+
       if (imports.length > 0) {
-        imports
-          .at(0)
-          .insertAfter(
-            j.importDeclaration(
-              [j.importSpecifier(j.identifier('DefaultChatTransport'))],
-              j.literal('@ai-sdk/react'),
-            ),
-          );
+        imports.at(0).insertAfter(importDeclaration);
       } else {
-        root
-          .find(j.Program)
-          .at(0)
-          .get('body', 0)
-          .insertBefore(
-            j.importDeclaration(
-              [j.importSpecifier(j.identifier('DefaultChatTransport'))],
-              j.literal('@ai-sdk/react'),
-            ),
-          );
+        root.get().node.program.body.unshift(importDeclaration);
       }
     }
   }
