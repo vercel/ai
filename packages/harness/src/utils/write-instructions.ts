@@ -58,6 +58,11 @@ export async function writeInstructions({
       currentDiskContent,
       existingMetadata,
     });
+    if (originalContent === undefined) {
+      throw new Error(
+        `Cannot update AI SDK harness instructions because the managed instructions in ${targetPath} were modified.`,
+      );
+    }
 
     const targetContent =
       originalContent != null && originalContent.trim().length > 0
@@ -102,6 +107,11 @@ export async function writeInstructions({
     currentDiskContent,
     existingMetadata,
   });
+  if (restoredContent === undefined) {
+    throw new Error(
+      `Cannot remove AI SDK harness instructions because the managed instructions in ${targetPath} were modified.`,
+    );
+  }
 
   if (restoredContent != null) {
     const contentToWrite = `${restoredContent.replace(/\n+$/, '')}\n`;
@@ -133,7 +143,7 @@ function deriveOriginalContent({
 }: {
   currentDiskContent: string | null;
   existingMetadata: InstructionsMetadata | undefined;
-}): string | null {
+}): string | null | undefined {
   if (existingMetadata == null) {
     return currentDiskContent;
   }
@@ -143,16 +153,10 @@ function deriveOriginalContent({
   if (currentDiskContent === existingMetadata.appliedContent) {
     return existingMetadata.originalContent;
   }
-  const trimmedDisk = currentDiskContent.replace(/\n+$/, '');
-  const expectedSuffix = `\n\n${existingMetadata.instructions}`;
-  if (trimmedDisk.endsWith(expectedSuffix)) {
-    const userBase = trimmedDisk.slice(0, -expectedSuffix.length);
-    return userBase.length > 0 ? userBase : null;
-  }
-  if (trimmedDisk === existingMetadata.instructions) {
-    return null;
-  }
-  return existingMetadata.originalContent ?? currentDiskContent;
+  return deriveUnmanagedContent({
+    currentDiskContent,
+    existingMetadata,
+  });
 }
 
 function deriveRestoredContent({
@@ -161,16 +165,46 @@ function deriveRestoredContent({
 }: {
   currentDiskContent: string | null;
   existingMetadata: InstructionsMetadata;
-}): string | null {
+}): string | null | undefined {
   if (currentDiskContent == null) {
     return null;
   }
+  return deriveUnmanagedContent({
+    currentDiskContent,
+    existingMetadata,
+  });
+}
+
+function deriveUnmanagedContent({
+  currentDiskContent,
+  existingMetadata,
+}: {
+  currentDiskContent: string;
+  existingMetadata: InstructionsMetadata;
+}): string | null | undefined {
   if (currentDiskContent === existingMetadata.appliedContent) {
     return existingMetadata.originalContent != null &&
       existingMetadata.originalContent.trim().length > 0
       ? existingMetadata.originalContent
       : null;
   }
+
+  const managedContent = `${existingMetadata.instructions}\n`;
+  if (
+    existingMetadata.appliedContent.endsWith(managedContent) &&
+    currentDiskContent.startsWith(existingMetadata.appliedContent)
+  ) {
+    const unmanagedPrefix = existingMetadata.appliedContent.slice(
+      0,
+      -managedContent.length,
+    );
+    const appendedContent = currentDiskContent
+      .slice(existingMetadata.appliedContent.length)
+      .replace(/^\n/, '');
+    const unmanagedContent = `${unmanagedPrefix}${appendedContent}`;
+    return unmanagedContent.trim().length > 0 ? unmanagedContent : null;
+  }
+
   const trimmedDisk = currentDiskContent.replace(/\n+$/, '');
   const expectedSuffix = `\n\n${existingMetadata.instructions}`;
   if (trimmedDisk.endsWith(expectedSuffix)) {
@@ -180,7 +214,7 @@ function deriveRestoredContent({
   if (trimmedDisk === existingMetadata.instructions) {
     return null;
   }
-  return currentDiskContent;
+  return undefined;
 }
 
 function resolveInstructionsFilePath({
