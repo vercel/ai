@@ -36,6 +36,23 @@ function serializeError(error: unknown): unknown {
     : error;
 }
 
+function stringifyRecord(record: Record_): string {
+  const ancestors: object[] = [];
+
+  return JSON.stringify(record, function (this: object, _key, value: unknown) {
+    if (typeof value === 'bigint') return value.toString();
+    if (typeof value !== 'object' || value == null) return value;
+
+    while (ancestors.length > 0 && ancestors[ancestors.length - 1] !== this) {
+      ancestors.pop();
+    }
+
+    if (ancestors.includes(value)) return '[Circular]';
+    ancestors.push(value);
+    return value;
+  });
+}
+
 export function createFileReporter(options: FileReporterOptions): FileReporter {
   const fileName = options.fileName ?? 'events.jsonl';
   const path = `${options.dir}/${fileName}`;
@@ -68,12 +85,22 @@ export function createFileReporter(options: FileReporterOptions): FileReporter {
 
   const flushLines = (lines: Record_[]): void => {
     if (lines.length === 0) return;
+
+    const serializedLines = lines.flatMap(line => {
+      try {
+        return [stringifyRecord(line)];
+      } catch {
+        return [];
+      }
+    });
+    if (serializedLines.length === 0) return;
+
     try {
       if (!dirReady) {
         mkdirSync(options.dir, { recursive: true });
         dirReady = true;
       }
-      appendFileSync(path, lines.map(l => JSON.stringify(l)).join('\n') + '\n');
+      appendFileSync(path, serializedLines.join('\n') + '\n');
     } catch {
       // Best-effort: never let observability break a turn.
     }
