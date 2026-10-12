@@ -8,10 +8,10 @@ For how `HarnessAgent` and harness adapters use these contracts, see the [harnes
 
 - **Basic sandbox session**: `Experimental_SandboxSession`
 - **Network sandbox session**: `HarnessV1NetworkSandboxSession`, an extension of `Experimental_SandboxSession`
-- **Sandbox provider**: `HarnessV1SandboxProvider`
+- **Sandbox template**: `HarnessV1SandboxTemplate` prepares a basic session before reuse
 
 The basic layer is the file and process API.
-The network layer adds resource identity, port resolution, lifecycle, and provider-managed creation/resume.
+The network layer adds resource identity, port resolution, and lifecycle. Each sandbox adapter creates or reattaches its own native sandbox and exposes a network session.
 
 ## Basic Layer: `Experimental_SandboxSession`
 
@@ -39,14 +39,15 @@ async function inspectPackageJson({
 
 The basic layer does not describe how the sandbox is created, stopped, destroyed, resumed, or exposed over a network.
 
-## Advanced Layer: Harness Network Sandbox
+## Extended Layer: Harness Network Sandbox
 
-Implement this layer when consumers need ports, network policy or request transformations, lifecycle methods, or provider-managed creation and resume.
+Implement this layer when consumers need ports, network policy or request transformations, or lifecycle methods.
 
 - `HarnessV1NetworkSandboxSession` extends `Experimental_SandboxSession`
-- `HarnessV1SandboxProvider` creates and resumes network sandbox sessions
+- A provider-specific async creator accepts native creation options plus certain shared properties controlled via [`HarnessV1SandboxSessionCreateOptions<TProviderOptions>`](../packages/harness/src/v1/harness-v1-sandbox-session-create-options.ts)
+- A provider-specific async resume function accepts lookup options plus the shared [`HarnessV1SandboxSessionResumeOptions<TProviderOptions>`](../packages/harness/src/v1/harness-v1-sandbox-session-resume-options.ts); synchronous adaptations wrap an already available native instance
 - `restricted()` narrows a network sandbox session back to the basic sandbox surface
-  - this is crucial for passing the sandbox to tool execution functions, to prevent the tools from calling advanced network sandbox methods they are not allowed to use
+  - this is crucial for passing the sandbox to tool execution functions, to prevent the tools from calling network sandbox methods they are not allowed to use
 
 ```mermaid
 classDiagram
@@ -67,55 +68,68 @@ classDiagram
       setPorts(ports, options)
       restricted()
     }
-    class HarnessV1SandboxProvider {
-      specificationVersion
-      providerId
-      createSession(options)
-      resumeSession(options)
+    class HarnessV1SandboxTemplate {
+      identity
+      prepare(options)
     }
 
     HarnessV1NetworkSandboxSession --|> Experimental_SandboxSession : extends
-    HarnessV1SandboxProvider ..> HarnessV1NetworkSandboxSession : returns
+    HarnessV1SandboxTemplate ..> Experimental_SandboxSession : prepares
     HarnessV1NetworkSandboxSession ..> Experimental_SandboxSession : restricted()
 ```
 
-It is recommended that you implement this sandbox layer decoupled from the basic sandbox layer. Ideally the advanced layer extends the basic layer, but allows to use the basic layer on its own. That way the sandbox implementation satisfies both use-cases efficiently.
+The network session extends the basic session interface while allowing sandbox adapters to expose the basic session on its own.
 
 ```ts
 import type {
   HarnessV1NetworkSandboxSession,
-  HarnessV1SandboxProvider,
+  HarnessV1SandboxSessionCreateOptions,
+  HarnessV1SandboxSessionResumeOptions,
 } from '@ai-sdk/harness';
 
-type CreateSessionOptions = NonNullable<
-  Parameters<HarnessV1SandboxProvider['createSession']>[0]
->;
+type DockerCreateOptions = HarnessV1SandboxSessionCreateOptions<{
+  image?: string;
+}>;
 
-class DockerSandboxProvider implements HarnessV1SandboxProvider {
-  readonly specificationVersion = 'harness-sandbox-v1' as const;
-  readonly providerId = 'docker-sandbox';
+type DockerResumeOptions = HarnessV1SandboxSessionResumeOptions<{
+  endpoint?: string;
+}>;
 
-  async createSession(
-    options: CreateSessionOptions = {},
-  ): Promise<HarnessV1NetworkSandboxSession> {
-    const image = await prepareDockerImage({
-      identity: options.identity,
-      onFirstCreate: options.onFirstCreate,
-      abortSignal: options.abortSignal,
-    });
+async function createDockerNetworkSandboxSession(
+  options: DockerCreateOptions = {},
+): Promise<HarnessV1NetworkSandboxSession> {
+  const image = await prepareDockerImage({
+    baseImage: options.image,
+    identity: options.template?.identity,
+    prepare: options.template?.prepare,
+    abortSignal: options.abortSignal,
+  });
+  return createDockerContainer({
+    image,
+    name: options.sandboxId,
+    abortSignal: options.abortSignal,
+  });
+}
 
-    return createDockerContainer({
-      image,
-      sessionId: options.sessionId,
-      abortSignal: options.abortSignal,
-    });
-  }
+async function resumeDockerNetworkSandboxSession(
+  options: DockerResumeOptions,
+): Promise<HarnessV1NetworkSandboxSession> {
+  return reattachDockerContainer({
+    name: options.sandboxId,
+    endpoint: options.endpoint,
+    abortSignal: options.abortSignal,
+  });
 }
 ```
 
+The creator starts a new sandbox; `sandboxId` on creation names it and never
+looks it up. For named sandboxes, an existing name conflicts with creation.
+The resume function uses its required `sandboxId` to find an existing sandbox
+and never creates one.
+
 ## Relationship Between the Layers
 
-The advanced layer is additive.
+The extended layer is additive.
 Every `HarnessV1NetworkSandboxSession` is also an `Experimental_SandboxSession`.
 
 `getPortEndpoint()` returns the public URL together with any headers required
@@ -140,12 +154,15 @@ The harness abstraction document defines how these contracts are used:
 
 Use the basic layer when consumers need only filesystem and process APIs.
 
-Use the network layer when consumers need ports, network policy or request transformations, or lifecycle methods. Also implement `HarnessV1SandboxProvider` when creation, resume, or bootstrap caching should be provider-managed.
+Use the network layer when consumers need ports, network policy or request transformations, or lifecycle methods. Implement creation and resume with the native SDK, applying an optional `HarnessV1SandboxTemplate` only on creation. A native adaptation should only wrap the native instance; its explicit lifecycle methods delegate to the native SDK. The caller chooses when to stop or destroy it.
 
 ## Reference Implementations
 
 - Basic session API - [`packages/provider-utils/src/types/sandbox.ts`](../packages/provider-utils/src/types/sandbox.ts)
 - Network session API - [`packages/harness/src/v1/harness-v1-network-sandbox-session.ts`](../packages/harness/src/v1/harness-v1-network-sandbox-session.ts)
-- Sandbox provider API - [`packages/harness/src/v1/harness-v1-sandbox-provider.ts`](../packages/harness/src/v1/harness-v1-sandbox-provider.ts)
-- Vercel sandbox provider - [`packages/sandbox-vercel/src/vercel-sandbox.ts`](../packages/sandbox-vercel/src/vercel-sandbox.ts)
-- Just Bash sandbox provider - [`packages/sandbox-just-bash/src/just-bash-sandbox.ts`](../packages/sandbox-just-bash/src/just-bash-sandbox.ts)
+- Shared creator options - [`packages/harness/src/v1/harness-v1-sandbox-session-create-options.ts`](../packages/harness/src/v1/harness-v1-sandbox-session-create-options.ts)
+- Shared resume options - [`packages/harness/src/v1/harness-v1-sandbox-session-resume-options.ts`](../packages/harness/src/v1/harness-v1-sandbox-session-resume-options.ts)
+- Template contract - [`packages/harness/src/v1/harness-v1-sandbox-template.ts`](../packages/harness/src/v1/harness-v1-sandbox-template.ts)
+- Template creation - [`packages/harness/src/agent/create-harness-sandbox-template.ts`](../packages/harness/src/agent/create-harness-sandbox-template.ts)
+- Vercel sandbox sessions - [`packages/sandbox-vercel/src/vercel-sandbox.ts`](../packages/sandbox-vercel/src/vercel-sandbox.ts)
+- Just Bash sandbox sessions - [`packages/sandbox-just-bash/src/just-bash-sandbox.ts`](../packages/sandbox-just-bash/src/just-bash-sandbox.ts)

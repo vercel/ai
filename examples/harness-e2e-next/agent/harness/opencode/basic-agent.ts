@@ -4,16 +4,11 @@ import {
   createTraceTreeReporter,
 } from '@ai-sdk/harness/agent';
 import { openCode } from '@ai-sdk/harness-opencode';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { getUserNameTool } from '@/lib/tools/get-user-name-tool';
 import type { InferUITools, UIMessage } from 'ai';
 
 export const openCodeHarnessAgent = new HarnessAgent({
   harness: openCode,
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-  }),
   tools: { getUserName: getUserNameTool },
   // Observability wired in code (dev/testing app). Trace tree + diagnostics
   // print to the `pnpm dev` terminal; the file reporter writes a per-agent

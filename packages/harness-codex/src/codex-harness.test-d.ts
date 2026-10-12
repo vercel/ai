@@ -1,4 +1,5 @@
 import type { SandboxChannelReconnectOptions } from '@ai-sdk/harness/utils';
+import type { InferToolInput } from '@ai-sdk/provider-utils';
 import { expectTypeOf, test } from 'vitest';
 import { createCodex, type CodexHarnessSettings } from './codex-harness';
 
@@ -25,4 +26,21 @@ test('accepts sandbox bridge reconnect settings', () => {
   expectTypeOf(settings.reconnect).toEqualTypeOf<
     SandboxChannelReconnectOptions | undefined
   >();
+});
+
+test('exposes typed native patch and image tools', () => {
+  const harness = createCodex();
+  expectTypeOf<keyof typeof harness.builtinTools>().toEqualTypeOf<
+    'bash' | 'webSearch' | 'apply_patch' | 'view_image'
+  >();
+  expectTypeOf<
+    InferToolInput<typeof harness.builtinTools.apply_patch>
+  >().toEqualTypeOf<string>();
+  expectTypeOf<
+    InferToolInput<typeof harness.builtinTools.view_image>
+  >().toEqualTypeOf<{
+    path: string;
+    detail?: 'high' | 'original';
+    environment_id?: string;
+  }>();
 });

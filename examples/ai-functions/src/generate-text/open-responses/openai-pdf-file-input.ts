@@ -10,7 +10,7 @@ const openResponses = createOpenResponses({
 
 run(async () => {
   const result = await generateText({
-    model: openResponses('gpt-4.1-nano'),
+    model: openResponses('gpt-5.4-nano'),
     messages: [
       {
         role: 'user',

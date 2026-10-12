@@ -15,7 +15,7 @@ npm i ai zod @ai-sdk/harness @ai-sdk/harness-claude-code @ai-sdk/sandbox-vercel
 ```ts
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { claudeCode } from '@ai-sdk/harness-claude-code';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 import { tool } from 'ai';
 import { z } from 'zod/v4';
 
@@ -25,14 +25,10 @@ const agent = new HarnessAgent({
   model: 'claude-sonnet-4-5',
   instructions:
     'You are a careful refactoring assistant. Prefer minimal diffs.',
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-  }),
   sandboxConfig: {
     bootstrapHash: 'ripgrep-v1',
     onBootstrap: async ({ session, abortSignal }) => {
-      const streamResult = await session.run({
+      const result = await session.run({
         command:
           'command -v rg >/dev/null || (apt-get update && apt-get install -y ripgrep)',
         abortSignal,
@@ -58,7 +54,12 @@ const agent = new HarnessAgent({
   },
 });
 
-const session = await agent.createSession();
+const sandboxSession = await createVercelNetworkSandboxSession({
+  runtime: 'node24',
+  ports: [4000],
+  template: await agent.getSandboxTemplate(),
+});
+const session = await agent.createSession({ sandboxSession });
 
 try {
   const generateResult = await agent.generate({
@@ -79,6 +80,7 @@ try {
   }
 } finally {
   await session.destroy();
+  await sandboxSession.destroy();
 }
 ```
 
@@ -92,7 +94,6 @@ import { Output } from 'ai';
 
 const agent = new HarnessAgent({
   harness: claudeCode,
-  sandbox,
   output: Output.object({
     schema: z.object({ answer: z.string() }),
   }),

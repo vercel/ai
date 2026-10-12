@@ -120,6 +120,63 @@ export function stripWorkDir(
   }
 }
 
+export function stripParsedToolInputWorkDir({
+  value,
+  sessionWorkDir,
+}: {
+  value: unknown;
+  sessionWorkDir: string;
+}): unknown {
+  if (sessionWorkDir.length === 0) return value;
+
+  const projected = new WeakMap<object, unknown>();
+  const pending: Array<{
+    source: object;
+    target: Record<string, unknown> | unknown[];
+  }> = [];
+
+  const project = (item: unknown): unknown => {
+    if (typeof item === 'string') return stripString(item, sessionWorkDir);
+    if (item === null || typeof item !== 'object') return item;
+    if (
+      !Array.isArray(item) &&
+      Object.getPrototypeOf(item) !== Object.prototype &&
+      Object.getPrototypeOf(item) !== null
+    ) {
+      return item;
+    }
+    if (projected.has(item)) return projected.get(item);
+
+    const target: Record<string, unknown> | unknown[] = Array.isArray(item)
+      ? new Array(item.length)
+      : {};
+    projected.set(item, target);
+    pending.push({ source: item, target });
+    return target;
+  };
+
+  const result = project(value);
+  while (pending.length > 0) {
+    const { source, target } = pending.pop()!;
+    if (Array.isArray(source) && Array.isArray(target)) {
+      for (let index = 0; index < source.length; index++) {
+        if (index in source) target[index] = project(source[index]);
+      }
+    } else {
+      for (const [key, item] of Object.entries(source)) {
+        Object.defineProperty(target, key, {
+          value: project(item),
+          enumerable: true,
+          writable: true,
+          configurable: true,
+        });
+      }
+    }
+  }
+
+  return result;
+}
+
 /**
  * Replace occurrences of the working directory in a string. A reference to the
  * directory followed by a separator becomes workspace-relative

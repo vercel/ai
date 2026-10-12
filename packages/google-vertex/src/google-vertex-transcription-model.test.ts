@@ -224,7 +224,7 @@ describe('doGenerate', () => {
       'custom-request-header': 'request-header-value',
     });
     expect(server.calls[0].requestUserAgent).toContain(
-      'ai-sdk/google-vertex/0.0.0-test',
+      'ai-sdk-google-vertex/0.0.0-test',
     );
   });
 
@@ -353,4 +353,29 @@ describe('doGenerate', () => {
     expect(result.response.modelId).toBe('chirp_2');
     expect(result.response.headers?.['x-request-id']).toBe('test-request-id');
   });
+});
+
+describe('region validation', () => {
+  it.each(['googleVertex', 'vertex', 'google'])(
+    'rejects an injected per-request region under %s before fetching',
+    async namespace => {
+      const fetch = vi.fn();
+      const model = createGoogleVertex({
+        project: 'test',
+        location: 'us-central1',
+        fetch,
+      }).transcription('chirp_3');
+      await expect(
+        model.doGenerate({
+          audio: audioData,
+          mediaType: 'audio/wav',
+          providerOptions: { [namespace]: { region: 'user@internal:8080/#' } },
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_InvalidArgumentError',
+        argument: 'region',
+      });
+      expect(fetch).not.toHaveBeenCalled();
+    },
+  );
 });

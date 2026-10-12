@@ -17,6 +17,8 @@ export type MistralChatModelId =
   | 'ministral-8b-latest'
   | 'mistral-code-fim-latest'
   | 'mistral-code-latest'
+  | 'mistral-large-4'
+  | 'mistral-large-4-0'
   | 'mistral-large-latest'
   | 'mistral-large-2512'
   | 'mistral-medium'

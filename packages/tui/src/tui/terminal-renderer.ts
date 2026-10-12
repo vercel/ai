@@ -9,6 +9,7 @@ import type {
 } from '../run-agent-tui';
 import { renderScreenViewport, sliceVisible, visibleLength } from './layout';
 import { renderMarkdown } from './markdown';
+import { sanitizeTerminalText } from './sanitize-terminal-text';
 import { TerminalFrameBuffer } from './terminal-frame-buffer';
 import {
   getToolName,
@@ -1172,8 +1173,10 @@ function sectionMatchesCache(
 function createSectionLines(section: ChatSection, width: number) {
   const style = sectionStyles[section.kind];
   const contentWidth = Math.max(1, width - 4);
-  const title = ` ${section.title} `;
-  const rightTitle = section.rightTitle ? ` ${section.rightTitle} ` : '';
+  const title = ` ${sanitizeTerminalText(section.title)} `;
+  const rightTitle = section.rightTitle
+    ? ` ${sanitizeTerminalText(section.rightTitle)} `
+    : '';
 
   if (section.collapsed) {
     const borderWidth = Math.max(
@@ -1289,8 +1292,6 @@ function extractTotalTokenCountFromUsage(usage: StreamUsage | undefined) {
   if (inputTokens != null && outputTokens != null) {
     return inputTokens + outputTokens;
   }
-
-  return undefined;
 }
 
 function extractInputTokenCountFromUsage(usage: StreamUsage | undefined) {

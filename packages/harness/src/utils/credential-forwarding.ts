@@ -28,14 +28,16 @@ export async function applyCredentialForwarding({
   return forwardedEnvironment;
 }
 
-export async function createSandboxCredentialEnvironment({
+export async function resolveSandboxCredentialEnvironment({
   environment,
   credentialEnvironmentVariables,
   credentialForwarding,
+  previousSandboxCredentialEnvironment,
 }: {
   environment: Readonly<Record<string, string>>;
   credentialEnvironmentVariables: ReadonlyArray<string>;
   credentialForwarding: HarnessV1CredentialForwarding | undefined;
+  previousSandboxCredentialEnvironment?: Readonly<Record<string, string>>;
 }): Promise<Record<string, string>> {
   const sandboxCredentialEnvironment: Record<string, string> = {};
 
@@ -43,6 +45,18 @@ export async function createSandboxCredentialEnvironment({
     credentialEnvironmentVariables,
   )) {
     if (environment[environmentVariableName] == null) continue;
+
+    if (
+      previousSandboxCredentialEnvironment != null &&
+      Object.prototype.hasOwnProperty.call(
+        previousSandboxCredentialEnvironment,
+        environmentVariableName,
+      )
+    ) {
+      sandboxCredentialEnvironment[environmentVariableName] =
+        previousSandboxCredentialEnvironment[environmentVariableName];
+      continue;
+    }
 
     const placeholder = generateSandboxCredentialPlaceholder();
     sandboxCredentialEnvironment[environmentVariableName] =

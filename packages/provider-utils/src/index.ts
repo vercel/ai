@@ -8,6 +8,7 @@ export {
 export { convertAsyncIteratorToReadableStream } from './convert-async-iterator-to-readable-stream';
 export { convertInlineFileDataToUint8Array } from './convert-inline-file-data-to-uint8-array';
 export { convertImageModelFileToDataUri } from './convert-image-model-file-to-data-uri';
+export { convertJsonResponseToolStream } from './convert-json-response-tool-stream';
 export { convertToFormData } from './convert-to-form-data';
 export { createLanguageModelResponseMetadata } from './create-language-model-response-metadata';
 export { createNullLanguageModelUsage } from './create-null-language-model-usage';
@@ -30,7 +31,11 @@ export {
 } from './detect-media-type';
 export { downloadBlob } from './download-blob';
 export { DownloadError } from './download-error';
-export { EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL as EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL } from './embedding-model-capabilities';
+export {
+  EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL as EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL,
+  EMBEDDING_MODEL_PROVIDER_OPTIONS_TRANSFORMER as EXPERIMENTAL_EMBEDDING_MODEL_PROVIDER_OPTIONS_TRANSFORMER,
+  type EmbeddingModelProviderOptionsTransformer,
+} from './embedding-model-capabilities';
 export {
   fetchWithValidatedEndpoint,
   fetchWithValidatedRedirects,
@@ -38,6 +43,7 @@ export {
 export { extractLines } from './extract-lines';
 export * from './extract-response-headers';
 export * from './fetch-function';
+export { fetchUntrustedUrl } from './fetch-untrusted-url';
 export { filterNullable } from './filter-nullable';
 export { createIdGenerator, generateId, type IdGenerator } from './generate-id';
 export * from './get-error-message';
@@ -53,6 +59,7 @@ export { isNonNullable } from './is-non-nullable';
 export { isProviderReference } from './is-provider-reference';
 export { isRecord } from './is-record';
 export { isUrlSupported } from './is-url-supported';
+export { isValidHostnamePart } from './is-valid-hostname-part';
 export * from './load-api-key';
 export { loadOptionalSetting } from './load-optional-setting';
 export { loadSetting } from './load-setting';

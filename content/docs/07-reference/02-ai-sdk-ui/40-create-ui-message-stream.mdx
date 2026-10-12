@@ -62,7 +62,8 @@ const stream = createUIMessageStream({
       }),
     );
   },
-  onError: error => `Custom error: ${error.message}`,
+  onError: error =>
+    `Custom error: ${error instanceof Error ? error.message : String(error)}`,
   originalMessages: existingMessages,
   onEnd: ({ messages, isContinuation, outcome, responseMessage }) => {
     console.log('Stream ended with messages:', messages);
@@ -124,7 +125,7 @@ outcomes and call `setOutcome` once.
       name: 'onError',
       type: '(error: unknown) => string',
       description:
-        'A function that handles errors and returns an error message string. By default, it returns the error message.',
+        'A function that handles errors and returns an error message string. By default, it returns `"An error occurred."` so server-side error details are not sent to the client.',
     },
     {
       name: 'originalMessages',

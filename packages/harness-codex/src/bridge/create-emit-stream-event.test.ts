@@ -3,6 +3,92 @@ import type { CodexStepTracker } from './codex-step-tracker';
 import { createEmitStreamEvent } from './create-emit-stream-event';
 
 describe('createEmitStreamEvent', () => {
+  it('preserves failed MCP status and native ids for interleaved calls', () => {
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      send: event => emitted.push(event),
+      stepTracker: { observeEvent() {}, finishTurn() {} } as CodexStepTracker,
+      setTurnUsage() {},
+      setThreadId() {},
+      emitWarning() {},
+      emitError() {},
+    });
+    const items = [
+      {
+        type: 'mcp_tool_call',
+        id: 'failed',
+        server: 'fixture',
+        tool: 'fail',
+        arguments: { exact: true },
+      },
+      {
+        type: 'mcp_tool_call',
+        id: 'success',
+        server: 'fixture',
+        tool: 'ok',
+        arguments: {},
+      },
+      {
+        type: 'mcp_tool_call',
+        id: 'empty-failure',
+        server: 'fixture',
+        tool: 'fail',
+        arguments: {},
+      },
+    ];
+    for (const item of items) emitStreamEvent({ type: 'item.started', item });
+    emitStreamEvent({
+      type: 'item.completed',
+      item: {
+        ...items[1],
+        status: 'completed',
+        result: { structured_content: { ok: true } },
+      },
+    });
+    emitStreamEvent({
+      type: 'item.completed',
+      item: {
+        ...items[0],
+        status: 'failed',
+        error: { message: 'native failure' },
+      },
+    });
+    emitStreamEvent({
+      type: 'item.completed',
+      item: { ...items[2], status: 'failed' },
+    });
+    expect(
+      emitted
+        .filter(event => event.type === 'tool-call')
+        .map(event => event.toolCallId),
+    ).toEqual(['failed', 'success', 'empty-failure']);
+    expect(emitted.filter(event => event.type === 'tool-result')).toEqual([
+      {
+        type: 'tool-result',
+        toolCallId: 'success',
+        toolName: 'mcp__fixture__ok',
+        result: { ok: true },
+        dynamic: true,
+      },
+      {
+        type: 'tool-result',
+        toolCallId: 'failed',
+        toolName: 'mcp__fixture__fail',
+        result: { error: 'native failure' },
+        isError: true,
+        dynamic: true,
+      },
+      {
+        type: 'tool-result',
+        toolCallId: 'empty-failure',
+        toolName: 'mcp__fixture__fail',
+        result: null,
+        isError: true,
+        dynamic: true,
+      },
+    ]);
+  });
+
   it('emits thread, accumulated text, and usage events', () => {
     const emitted: Record<string, unknown>[] = [];
     const observed: unknown[] = [];
@@ -216,7 +302,7 @@ describe('createEmitStreamEvent', () => {
     expect(emitted).toMatchInlineSnapshot(`
       [
         {
-          "input": "{\"command\":\"pwd\"}",
+          "input": "{"command":"pwd"}",
           "nativeName": "shell",
           "providerExecuted": true,
           "toolCallId": "command-1",
@@ -244,6 +330,135 @@ describe('createEmitStreamEvent', () => {
         },
       ]
     `);
+  });
+
+  it('qualifies MCP tool names with their server identity', () => {
+    const emitted: Record<string, unknown>[] = [];
+    const stepTracker = {
+      observeEvent: () => {},
+      finishTurn: () => {},
+    } as CodexStepTracker;
+    const emitStreamEvent = createEmitStreamEvent({
+      send: event => emitted.push(event),
+      stepTracker,
+      setTurnUsage: () => {},
+      setThreadId: () => {},
+      emitWarning: () => {},
+      emitError: () => {},
+    });
+
+    emitStreamEvent({
+      type: 'item.started',
+      item: {
+        type: 'mcp_tool_call',
+        id: 'context7-call',
+        server: 'context7',
+        tool: 'query-docs',
+        arguments: { libraryId: '/vercel/next.js' },
+      },
+    });
+    emitStreamEvent({
+      type: 'item.completed',
+      item: {
+        type: 'mcp_tool_call',
+        id: 'context7-call',
+        server: 'context7',
+        tool: 'query-docs',
+        result: { structured_content: { found: true } },
+      },
+    });
+    emitStreamEvent({
+      type: 'item.started',
+      item: {
+        type: 'mcp_tool_call',
+        id: 'serverless-call',
+        tool: 'query-docs',
+        arguments: {},
+      },
+    });
+
+    expect(emitted).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'context7-call',
+        toolName: 'mcp__context7__query-docs',
+        nativeName: 'mcp__context7__query-docs',
+        input: '{"libraryId":"/vercel/next.js"}',
+        providerExecuted: true,
+        dynamic: true,
+      },
+      {
+        type: 'tool-result',
+        toolCallId: 'context7-call',
+        toolName: 'mcp__context7__query-docs',
+        result: { found: true },
+        dynamic: true,
+      },
+      {
+        type: 'tool-call',
+        toolCallId: 'serverless-call',
+        toolName: 'query-docs',
+        nativeName: 'query-docs',
+        input: '{}',
+        providerExecuted: true,
+        dynamic: true,
+      },
+    ]);
+  });
+
+  it('emits native tool calls and real results with a distinct step tracker id', () => {
+    const emitted: Record<string, unknown>[] = [];
+    const observed: unknown[] = [];
+    const stepTracker = {
+      observeEvent: input => observed.push(input),
+      finishTurn: () => {},
+    } as CodexStepTracker;
+    const emitStreamEvent = createEmitStreamEvent({
+      send: event => emitted.push(event),
+      stepTracker,
+      setTurnUsage: () => {},
+      setThreadId: () => {},
+      emitWarning: () => {},
+      emitError: () => {},
+    });
+
+    emitStreamEvent({
+      type: 'item.started',
+      item: {
+        type: 'native_tool',
+        id: 'patch-1',
+        tool: 'apply_patch',
+        input: JSON.stringify('*** Begin Patch\n*** End Patch'),
+      },
+    });
+    emitStreamEvent({
+      type: 'item.completed',
+      item: {
+        type: 'native_tool',
+        id: 'patch-1',
+        tool: 'apply_patch',
+        result: 'Success. Updated notes.md',
+      },
+    });
+
+    expect(emitted).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'patch-1',
+        toolName: 'apply_patch',
+        input: JSON.stringify('*** Begin Patch\n*** End Patch'),
+        providerExecuted: true,
+      },
+      {
+        type: 'tool-result',
+        toolCallId: 'patch-1',
+        toolName: 'apply_patch',
+        result: 'Success. Updated notes.md',
+      },
+    ]);
+    expect(observed.map(value => (value as { itemId: string }).itemId)).toEqual(
+      ['native-tool:patch-1', 'native-tool:patch-1'],
+    );
   });
 
   it('preserves web search action metadata', () => {

@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: cohere('command-r-plus'),
+    model: cohere('command-a-03-2025'),
     prompt: 'Count from 1 to 3 slowly.',
     include: {
       rawChunks: true,

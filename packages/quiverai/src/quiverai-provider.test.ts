@@ -109,7 +109,7 @@ describe('createQuiverAI', () => {
       authorization: 'Bearer test-api-key',
       'content-type': 'application/json',
     });
-    expect(server.calls[0].requestUserAgent).toContain('ai-sdk/quiverai/');
+    expect(server.calls[0].requestUserAgent).toContain('ai-sdk-quiverai/');
   });
 
   it('reads the base URL and API key from the environment', async () => {
@@ -164,11 +164,12 @@ describe('createQuiverAI', () => {
     });
   });
 
-  it('throws for unsupported language and embedding models', () => {
+  it('creates language models and throws for unsupported embedding models', () => {
     const provider = createQuiverAI({ apiKey: 'test-api-key' });
 
-    expect(() => provider.languageModel('chat-model')).toThrow(
-      NoSuchModelError,
+    expect(provider('arrow-2').modelId).toBe('arrow-2');
+    expect(provider.languageModel('arrow-2-telos').provider).toBe(
+      'quiverai.responses',
     );
     expect(() => provider.embeddingModel('embed-model')).toThrow(
       NoSuchModelError,

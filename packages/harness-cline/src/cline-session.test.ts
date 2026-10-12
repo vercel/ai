@@ -739,8 +739,8 @@ describe('createClineSession model configuration', () => {
           headers: {
             'x-custom': 'custom',
             'x-agent': 'agent',
-            'User-Agent': 'ai-sdk/harness-cline/0.0.0-test',
-            'x-client-app': 'ai-sdk/harness-cline/0.0.0-test',
+            'User-Agent': 'ai-sdk-harness-cline/0.0.0-test',
+            'x-client-app': 'ai-sdk-harness-cline/0.0.0-test',
           },
         },
         {
@@ -751,8 +751,8 @@ describe('createClineSession model configuration', () => {
           headers: {
             'x-custom': 'custom',
             'x-agent': 'agent',
-            'User-Agent': 'ai-sdk/harness-cline/0.0.0-test',
-            'x-client-app': 'ai-sdk/harness-cline/0.0.0-test',
+            'User-Agent': 'ai-sdk-harness-cline/0.0.0-test',
+            'x-client-app': 'ai-sdk-harness-cline/0.0.0-test',
           },
         },
       ]);
@@ -782,8 +782,8 @@ describe('createClineSession model configuration', () => {
           apiKeyEnv: [],
           baseUrl: 'https://ai-gateway.vercel.sh/v1',
           headers: {
-            'User-Agent': 'ai-sdk/harness-cline/0.0.0-test',
-            'x-client-app': 'ai-sdk/harness-cline/0.0.0-test',
+            'User-Agent': 'ai-sdk-harness-cline/0.0.0-test',
+            'x-client-app': 'ai-sdk-harness-cline/0.0.0-test',
           },
         },
       ]);
@@ -1155,7 +1155,7 @@ async function createSession(
       isAuthenticationEnvironmentOverride: false,
       ...input.settings,
     },
-    clientApp: 'ai-sdk/harness-cline/0.0.0-test',
+    clientApp: 'ai-sdk-harness-cline/0.0.0-test',
     isResume: input.isResume ?? false,
     ...(input.builtinToolFiltering
       ? { builtinToolFiltering: input.builtinToolFiltering }

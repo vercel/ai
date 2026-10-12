@@ -12,6 +12,7 @@ import {
   type HarnessV1Skill,
   type HarnessV1StreamPart,
   type HarnessV1ToolSpec,
+  harnessStateDirectoryPath,
 } from '@ai-sdk/harness';
 import { HarnessBridgeCapabilityUnsupportedError } from '@ai-sdk/harness/bridge';
 import {
@@ -19,13 +20,12 @@ import {
   createBridgeToken,
   createBridgeErrorHandler,
   createBridgeStartupError,
-  createSandboxCredentialEnvironment,
+  resolveSandboxCredentialEnvironment,
   classifyDiskLog,
   drainBridgeProcessStream,
   forwardBridgeProcessStream,
   getRestrictedSandboxSession,
   markBridgeStarting,
-  resolveSandboxDefaultWorkingDirectory,
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
@@ -256,11 +256,6 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           message: `The ${settings.harnessId} ACP harness cannot use \`mintBridgeToken\` with a sandbox session that does not expose an id.`,
         });
       }
-      const defaultWorkingDirectory =
-        await resolveSandboxDefaultWorkingDirectory({
-          sandboxSession,
-          abortSignal: startOptions.abortSignal,
-        });
       const continueFrom =
         startOptions.continueFrom ?? startOptions.resumeFrom?.continueFrom;
       const lifecycleState = continueFrom ?? startOptions.resumeFrom;
@@ -323,13 +318,14 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           ...providerEnvironment,
         };
         sandboxCredentialEnvironment =
-          lifecycleData?.sandboxCredentialEnvironment ??
-          (await createSandboxCredentialEnvironment({
+          await resolveSandboxCredentialEnvironment({
             environment: brokeringEnvironment,
             credentialEnvironmentVariables:
               credentialForwardingEnvironmentVariables,
             credentialForwarding: settings.credentialForwarding,
-          }));
+            previousSandboxCredentialEnvironment:
+              lifecycleData?.sandboxCredentialEnvironment,
+          });
         sandboxImplementationEnvironment = {
           ...brokeringEnvironment,
           ...sandboxCredentialEnvironment,
@@ -376,19 +372,21 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           ),
         );
       }
-      const resolvedBridgeDir = posix.resolve(
-        defaultWorkingDirectory,
-        bootstrap.bootstrapDir,
-      );
-      const resolvedImplementationDir = `${resolvedBridgeDir}/implementation`;
-      const workDir = startOptions.sessionWorkDir;
+      // Harness SDK state always lives under the sandbox's own HOME, never
+      // the working directory, so it stays out of a user-owned workspace.
       const sandboxHomeDir = await resolveSandboxHomeDir({
         sandbox: toolSafeSandboxSession,
         abortSignal: startOptions.abortSignal,
       });
+      const stateDirectory = harnessStateDirectoryPath({ sandboxHomeDir });
+      const resolvedBridgeDir = posix.resolve(
+        stateDirectory,
+        bootstrap.bootstrapDir,
+      );
+      const resolvedImplementationDir = `${resolvedBridgeDir}/implementation`;
+      const workDir = startOptions.sessionWorkDir;
       const privateSessionDir = resolveACPPrivateSessionDirectory({
-        sandboxHomeDir,
-        harnessId: settings.harnessId,
+        stateDirectory,
         sessionId: startOptions.sessionId,
       });
       const implementationHomeDir =
@@ -2013,7 +2011,7 @@ function withNativeQuestionRequest({
     providerMetadata: {
       ...toolCall.providerMetadata,
       [harnessId]: {
-        ...(harnessMetadata ?? {}),
+        ...harnessMetadata,
         nativeRequest,
       } as NonNullable<
         Extract<HarnessV1StreamPart, { type: 'tool-call' }>['providerMetadata']
@@ -2067,7 +2065,6 @@ function takeBufferedQuestionResult({
       return buffered;
     }
   }
-  return undefined;
 }
 
 function isPermissionModeMappingValue({

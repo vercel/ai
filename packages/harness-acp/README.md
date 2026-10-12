@@ -24,7 +24,7 @@ authentication:
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { createACP } from '@ai-sdk/harness-acp';
 import { createCredentialRequestTransformation } from '@ai-sdk/harness/utils';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 
 const codexACP = createACP({
   harnessId: 'acp-codex',
@@ -73,13 +73,14 @@ const codexACP = createACP({
 
 const agent = new HarnessAgent({
   harness: codexACP,
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-  }),
 });
 
-const session = await agent.createSession();
+const sandboxSession = await createVercelNetworkSandboxSession({
+  runtime: 'node24',
+  ports: [4000],
+  template: await agent.getSandboxTemplate(),
+});
+const session = await agent.createSession({ sandboxSession });
 try {
   const result = await agent.generate({
     session,
@@ -88,6 +89,7 @@ try {
   console.log(result.text);
 } finally {
   await session.destroy();
+  await sandboxSession.destroy();
 }
 ```
 

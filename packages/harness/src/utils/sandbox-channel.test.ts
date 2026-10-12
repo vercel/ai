@@ -14,6 +14,7 @@ const outboundSchema = z.discriminatedUnion('type', [
   }),
   z.object({ type: z.literal('finish') }),
   z.object({ type: z.literal('finish-step') }),
+  z.object({ type: z.literal('compaction') }),
   z.object({ type: z.literal('error'), error: z.unknown() }),
 ]);
 type Outbound = z.infer<typeof outboundSchema>;
@@ -113,6 +114,134 @@ describe('SandboxChannel', () => {
     const captured: unknown[] = [];
     channel.on('finish', evt => captured.push(evt));
     expect(captured).toHaveLength(1);
+  });
+
+  it('replays buffered messages in arrival order across event types', async () => {
+    const connector = makeConnector();
+    const channel = makeChannel(connector);
+    await channel.open();
+    connector.current().deliver({ type: 'finish-step' });
+    connector
+      .current()
+      .deliver({ type: 'text-delta', id: 'a', delta: 'result' });
+    connector.current().deliver({ type: 'finish-step' });
+    connector.current().deliver({ type: 'finish' });
+    await flush();
+
+    const captured: string[] = [];
+    channel.on('text-delta', evt => captured.push(evt.type));
+    expect(captured).toEqual([]);
+
+    channel.on('finish-step', evt => captured.push(evt.type));
+    expect(captured).toEqual(['finish-step', 'text-delta', 'finish-step']);
+
+    channel.on('finish', evt => captured.push(evt.type));
+    expect(captured).toEqual([
+      'finish-step',
+      'text-delta',
+      'finish-step',
+      'finish',
+    ]);
+  });
+
+  it('preserves arrival order when listeners attach across a microtask', async () => {
+    const connector = makeConnector();
+    const channel = makeChannel(connector);
+    await channel.open();
+    connector.current().deliver({ type: 'finish-step' });
+    connector
+      .current()
+      .deliver({ type: 'text-delta', id: 'a', delta: 'result' });
+    await flush();
+
+    const captured: string[] = [];
+    channel.on('text-delta', evt => captured.push(evt.type));
+    await Promise.resolve();
+    channel.on('finish-step', evt => captured.push(evt.type));
+
+    expect(captured).toEqual(['finish-step', 'text-delta']);
+  });
+
+  it('preserves arrival order across an explicit asynchronous listener attachment', async () => {
+    const connector = makeConnector();
+    const channel = makeChannel(connector);
+    const finishListenerAttachment = channel.beginListenerAttachment();
+    await channel.open();
+    connector.current().deliver({ type: 'finish-step' });
+    connector
+      .current()
+      .deliver({ type: 'text-delta', id: 'a', delta: 'result' });
+    await flush();
+
+    const captured: string[] = [];
+    channel.on('text-delta', evt => captured.push(evt.type));
+    await new Promise(resolve => setTimeout(resolve, 0));
+    channel.on('finish-step', evt => captured.push(evt.type));
+    expect(captured).toEqual([]);
+
+    finishListenerAttachment();
+    expect(captured).toEqual(['finish-step', 'text-delta']);
+  });
+
+  it('holds events that arrive while listeners are attaching', async () => {
+    const connector = makeConnector();
+    const channel = makeChannel(connector);
+    const finishListenerAttachment = channel.beginListenerAttachment();
+    await channel.open();
+
+    const captured: string[] = [];
+    channel.on('text-delta', evt => captured.push(evt.delta));
+    connector
+      .current()
+      .deliver({ type: 'text-delta', id: 'a', delta: 'result' });
+    await flush();
+    expect(captured).toEqual([]);
+
+    finishListenerAttachment();
+    expect(captured).toEqual(['result']);
+  });
+
+  it('does not block subscribed events behind an unhandled buffered type', async () => {
+    const connector = makeConnector();
+    const channel = makeChannel(connector);
+    await channel.open();
+    connector.current().deliver({ type: 'compaction' });
+    connector
+      .current()
+      .deliver({ type: 'text-delta', id: 'a', delta: 'result' });
+    connector.current().deliver({ type: 'finish' });
+    await flush();
+
+    const captured: string[] = [];
+    channel.on('text-delta', evt => captured.push(evt.type));
+    channel.on('finish', evt => captured.push(evt.type));
+    await flush();
+
+    expect(captured).toEqual(['text-delta', 'finish']);
+
+    const compactions: Outbound[] = [];
+    channel.on('compaction', evt => compactions.push(evt));
+    expect(compactions).toEqual([{ type: 'compaction' }]);
+  });
+
+  it('delivers an already buffered subscribed event after immediate unsubscribe', async () => {
+    const connector = makeConnector();
+    const channel = makeChannel(connector);
+    await channel.open();
+    connector.current().deliver({ type: 'compaction' });
+    connector
+      .current()
+      .deliver({ type: 'text-delta', id: 'a', delta: 'result' });
+    await flush();
+
+    const captured: string[] = [];
+    const unsubscribe = channel.on('text-delta', evt =>
+      captured.push(evt.delta),
+    );
+    unsubscribe();
+    await flush();
+
+    expect(captured).toEqual(['result']);
   });
 
   it('suspend freezes the cursor at the last delivered event and closes with reason "suspended"', async () => {

@@ -22,7 +22,7 @@ import {
 import { VERSION } from './version';
 
 const ACP_CLIENT_APP = {
-  name: 'ai-sdk/harness-acp',
+  name: 'ai-sdk-harness-acp',
   version: VERSION,
 } as const satisfies ACPClientApp;
 

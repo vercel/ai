@@ -1,0 +1,133 @@
+---
+title: TopxAI
+description: Use the TopxAI OpenAI compatible API with the AI SDK.
+---
+
+# TopxAI Provider
+
+[TopxAI](https://ai.topxea.com/) is an API gateway that provides access to
+models from multiple AI providers through an OpenAI-compatible API. You can use
+its Chat Completions endpoint with the AI SDK through the
+`@ai-sdk/openai-compatible` module.
+
+## Setup
+
+Install the OpenAI Compatible provider:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+Create a [TopxAI API key](https://ai.topxea.com/keys), choose a route that
+includes the models you want to use, and set the key as a server-side
+environment variable:
+
+```bash
+export TOPXAI_API_KEY=your-api-key
+```
+
+See the [TopxAI API key guide](https://ai.topxea.com/docs/create-an-api-key-and-choose-a-route)
+for details.
+
+## Provider Instance
+
+Create a TopxAI provider instance with `createOpenAICompatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const topxai = createOpenAICompatible({
+  name: 'topxai',
+  apiKey: process.env.TOPXAI_API_KEY,
+  baseURL: 'https://ai.topxea.com/v1',
+  includeUsage: true,
+});
+```
+
+The `apiKey` setting sends the key as a Bearer token in the `Authorization`
+header. `includeUsage: true` requests usage information in streaming responses.
+
+## Language Models
+
+Create a language model by passing a TopxAI model ID to the provider instance:
+
+```ts
+const model = topxai('kimi-k3');
+```
+
+### Example
+
+Use `generateText` to generate text with the model:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const topxai = createOpenAICompatible({
+  name: 'topxai',
+  apiKey: process.env.TOPXAI_API_KEY,
+  baseURL: 'https://ai.topxea.com/v1',
+  includeUsage: true,
+});
+
+const { text } = await generateText({
+  model: topxai('kimi-k3'),
+  prompt: 'Explain what an API gateway does in one sentence.',
+});
+
+console.log(text);
+```
+
+You can also use TopxAI language models with `streamText`.
+
+## Supported Models and Capabilities
+
+TopxAI exposes the following text model IDs through its OpenAI-compatible Chat
+Completions endpoint:
+
+| Provider  | Model IDs                                                  |
+| --------- | ---------------------------------------------------------- |
+| Anthropic | `claude-fable-5-1`, `claude-opus-5-5`, `claude-sonnet-5-5` |
+| OpenAI    | `gpt-6-astra`, `gpt-6.1-sol`                               |
+| xAI       | `grok-4.7`                                                 |
+| Zhipu AI  | `GLM-5.3-Abliterated`                                      |
+| Moonshot  | `kimi-k3`                                                  |
+| DeepSeek  | `deepseek-flash`, `deepseek-v4-pro`                        |
+
+The available models and the routes enabled for a key can change. Use the
+authenticated [`GET /v1/models`](https://ai.topxea.com/v1/models) endpoint or
+the [TopxAI model and pricing catalog](https://ai.topxea.com/pricing) for the
+current model IDs.
+
+The `jev-1.13.0` model in the TopxAI catalog uses a separate System One
+endpoint and is not available through this Chat Completions integration.
+
+Supported capabilities depend on the selected model and include:
+
+- text generation and streaming;
+- tool calling, including multi-step tool use with `stopWhen`;
+- reasoning content and reasoning token usage for reasoning models such as
+  `deepseek-flash`; and
+- structured output for models that support JSON Schema.
+
+To send JSON Schema structured-output requests, enable
+`supportsStructuredOutputs`:
+
+```ts
+const topxai = createOpenAICompatible({
+  name: 'topxai',
+  apiKey: process.env.TOPXAI_API_KEY,
+  baseURL: 'https://ai.topxea.com/v1',
+  supportsStructuredOutputs: true,
+});
+```
+
+This guide covers TopxAI's OpenAI-compatible Chat Completions endpoint. TopxAI
+also documents using the AI SDK OpenAI and Anthropic providers with its
+Responses and Messages APIs.
+
+## Resources
+
+- [TopxAI AI SDK guide](https://ai.topxea.com/docs/use-topxai-with-vercel-ai-sdk)
+- [TopxAI API reference](https://ai.topxea.com/docs/api-reference)
+- [TopxAI API key guide](https://ai.topxea.com/docs/create-an-api-key-and-choose-a-route)
+- [TopxAI model and pricing catalog](https://ai.topxea.com/pricing)
+- [AI SDK OpenAI Compatible provider](/providers/openai-compatible-providers)

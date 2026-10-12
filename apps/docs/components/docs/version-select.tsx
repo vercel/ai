@@ -1,8 +1,10 @@
 'use client';
 
 import type { GeistdocsVersionConfig } from '@vercel/geistdocs/config';
-import { GeistdocsRouteSelect } from '@vercel/geistdocs/versions';
-import { usePathname } from 'next/navigation';
+import {
+  GeistdocsRouteSelect,
+  type GeistdocsVersionPaths,
+} from '@vercel/geistdocs/versions';
 
 /** Version glyph from the production ai-sdk.dev version switcher. */
 const VersionGlyph = () => (
@@ -25,35 +27,20 @@ const VersionGlyph = () => (
 
 export const VersionSelect = ({
   current,
-  missingPaths,
+  paths,
   versions,
 }: {
   current: string;
-  missingPaths: Record<string, string[]>;
+  paths: Record<string, GeistdocsVersionPaths>;
   versions: GeistdocsVersionConfig[];
 }) => {
-  const pathname = usePathname();
-  const currentVersion = versions.find(version => version.id === current);
-  const currentPrefix = currentVersion?.routePrefix ?? '';
   // The unprefixed version is the latest; production colors it blue and
   // maintenance versions gray.
   const latestId = versions.find(version => !version.routePrefix)?.id;
-  const unversionedPath = pathname.startsWith(currentPrefix)
-    ? pathname.slice(currentPrefix.length) || '/'
-    : pathname;
-  const items = versions.map(version => {
-    const prefix = version.routePrefix ?? '';
-    const targetPath = `${prefix}${unversionedPath}`;
-    const fallbackPath = `${prefix}/docs/introduction`;
-
-    return {
-      ...version,
-      href: missingPaths[version.id]?.includes(unversionedPath)
-        ? fallbackPath
-        : targetPath,
-      routePrefix: undefined,
-    };
-  });
+  const items = versions.map(version => ({
+    ...version,
+    ...paths[version.id],
+  }));
 
   return (
     <GeistdocsRouteSelect

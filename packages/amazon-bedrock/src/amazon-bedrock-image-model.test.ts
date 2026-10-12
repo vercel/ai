@@ -14,6 +14,31 @@ const invokeUrl = `https://bedrock-runtime.us-east-1.amazonaws.com/model/${encod
   'amazon.nova-canvas-v1:0',
 )}/invoke`;
 
+describe('capabilities', () => {
+  it.each([
+    {
+      modelId: 'amazon.nova-canvas-v1:0',
+      supportsFileInputs: true,
+      supportsMaskInputs: true,
+    },
+    {
+      modelId: 'custom-image-model',
+      supportsFileInputs: undefined,
+      supportsMaskInputs: undefined,
+    },
+  ] as const)(
+    'advertises file=$supportsFileInputs and mask=$supportsMaskInputs for $modelId',
+    ({ modelId, supportsFileInputs, supportsMaskInputs }) => {
+      const model = new AmazonBedrockImageModel(modelId, {
+        baseUrl: () => 'https://api.example.com',
+      });
+
+      expect(model.supportsFileInputs).toBe(supportsFileInputs);
+      expect(model.supportsMaskInputs).toBe(supportsMaskInputs);
+    },
+  );
+});
+
 describe('doGenerate', () => {
   const mockConfigHeaders = {
     'config-header': 'config-value',

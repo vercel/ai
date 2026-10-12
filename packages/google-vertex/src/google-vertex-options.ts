@@ -3,6 +3,7 @@
 // https://console.cloud.google.com/vertex-ai/studio/
 export type GoogleVertexModelId =
   // Stable models
+  | 'gemini-nano-banana-2.1'
   | 'gemini-3.8-flash'
   | 'gemini-3.7-flash'
   | 'gemini-3.6-flash'

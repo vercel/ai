@@ -127,11 +127,26 @@ describe('convertToLanguageModelV4FilePart', () => {
       });
     });
 
+    it('preserves the original opaque URI in a tagged URL', () => {
+      const originalUrl = 'gs://my-bucket/folder/My File.pdf';
+      const data = {
+        type: 'url' as const,
+        url: new URL(originalUrl),
+        originalUrl,
+      };
+
+      expect(convertToLanguageModelV4FilePart(data)).toEqual({
+        data,
+        mediaType: undefined,
+      });
+    });
+
     it('unwraps { type: "url", url } with data URL into base64 + mediaType', () => {
       const url = new URL('data:text/plain;base64,aGVsbG8=');
       const result = convertToLanguageModelV4FilePart({
         type: 'url',
         url,
+        originalUrl: url.toString(),
       });
       expect(result).toEqual({
         data: { type: 'data', data: 'aGVsbG8=' },

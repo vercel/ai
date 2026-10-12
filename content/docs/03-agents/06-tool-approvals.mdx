@@ -272,6 +272,22 @@ When a manual approval status includes a reason, it is available as
 `part.approval.requestReason`. A reason supplied with
 `addToolApprovalResponse` is stored separately as `part.approval.reason`.
 
+### Schema transforms and persisted approvals
+
+Approval requests preserve the original schema input in `inputSchemaInput` when
+it differs from the input presented for approval. Keep this field when persisting
+`responseMessages` or UI messages; the UI message conversion functions preserve it
+automatically.
+
+On continuation, the SDK reconstructs the transformed input and checks that it
+matches the approved input. It never replaces the approved input with a different
+value. Older or projected histories that omit the original input are rejected as
+invalid tool input if revalidation fails or would change the approved value.
+
+The original input is included in persisted messages and UI approval streams,
+including fields removed by schema transforms. A transform that removes a field
+does not redact it from approval metadata.
+
 ## Security Considerations
 
 ### Trust model

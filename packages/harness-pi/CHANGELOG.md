@@ -1,5 +1,224 @@
 # @ai-sdk/harness-pi
 
+## 1.0.150
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.148
+
+## 1.0.149
+
+### Patch Changes
+
+- c357e52: chore(harness): update primary harness SDKs to their latest versions
+  - @ai-sdk/harness@1.0.147
+
+## 1.0.148
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.146
+- @ai-sdk/provider-utils@5.0.58
+
+## 1.0.147
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.145
+
+## 1.0.146
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider-utils@5.0.57
+  - @ai-sdk/harness@1.0.144
+
+## 1.0.145
+
+### Patch Changes
+
+- c371c00: feat(harness-pi): add a `cacheRetention` setting that is passed to every Pi model request, so Anthropic models can use the 1-hour prompt cache
+- 5901911: fix(harness-pi): stream extension-registered tools as provider-executed dynamic tools, and close a compaction that arrives after the turn's last step in its own step
+- d7dedf2: fix(harness-pi): shut down MCP servers on dispose without reloading the Pi session
+- 10bc612: fix(harness-pi): report real step and turn usage
+
+  `finish-step` usage was always zero, and `finish.totalUsage` was the running total of the whole Pi session, not the usage of the current turn. Each step now reports the usage of its assistant message. The turn reports the change in Pi's session stats across the prompt. `inputTokens.total` now includes cached input. `noCache` is set, and `outputTokens.text` and `reasoning` are set when the provider reports reasoning tokens.
+
+- cadd7c1: fix(harness-pi): fail the turn when the requested model is not in Pi's model catalog instead of silently running on the previous model
+- 21148df: feat(harness-pi): add `mcpSettings` to configure the MCP adapter's tool prefix and output guard
+- d45e044: feat(harness-pi): add `fileToolPathPolicy` setting with readable and denied roots for native file tools
+- Updated dependencies [c4a5c8d]
+- Updated dependencies [50ac48b]
+- Updated dependencies [e8af189]
+  - @ai-sdk/harness@1.0.143
+
+## 1.0.144
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.142
+
+## 1.0.143
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.141
+- @ai-sdk/provider-utils@5.0.56
+
+## 1.0.142
+
+### Patch Changes
+
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+- Updated dependencies [4c6979c]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/harness@1.0.140
+
+## 1.0.141
+
+### Patch Changes
+
+- Updated dependencies [2959d35]
+- Updated dependencies [e7da240]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider-utils@5.0.54
+  - @ai-sdk/harness@1.0.139
+
+## 1.0.140
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.138
+
+## 1.0.139
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.137
+
+## 1.0.138
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.136
+
+## 1.0.137
+
+### Patch Changes
+
+- Updated dependencies [8c65988]
+- Updated dependencies [8182916]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider-utils@5.0.53
+  - @ai-sdk/harness@1.0.135
+
+## 1.0.136
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [ede5b89]
+  - @ai-sdk/harness@1.0.134
+  - @ai-sdk/provider-utils@5.0.52
+
+## 1.0.135
+
+### Patch Changes
+
+- Updated dependencies [b2049fa]
+- Updated dependencies [11f0e71]
+- Updated dependencies [2b9195b]
+- Updated dependencies [446725d]
+  - @ai-sdk/harness@1.0.133
+
+## 1.0.134
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.132
+
+## 1.0.133
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/provider-utils@5.0.51
+  - @ai-sdk/harness@1.0.131
+
+## 1.0.132
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.130
+
+## 1.0.131
+
+### Patch Changes
+
+- Updated dependencies [e3605f6]
+- Updated dependencies [e5aeb11]
+- Updated dependencies [d99d6dc]
+  - @ai-sdk/provider-utils@5.0.50
+  - @ai-sdk/harness@1.0.129
+
+## 1.0.130
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.128
+
+## 1.0.129
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.127
+
+## 1.0.128
+
+### Patch Changes
+
+- af9597b: Compile packages for ES2022 runtime target
+- Updated dependencies [af9597b]
+- Updated dependencies [31742b9]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/harness@1.0.126
+  - @ai-sdk/provider-utils@5.0.49
+
+## 1.0.127
+
+### Patch Changes
+
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+  - @ai-sdk/harness@1.0.125
+
+## 1.0.126
+
+### Patch Changes
+
+- e9c5e0f: fix(harness-pi): release suspended sessions when in-process reattachment is disabled
+- 85f3ff6: fix(harness-pi): bound model-facing tool results and support paged file reads
+- Updated dependencies [40231b6]
+  - @ai-sdk/harness@1.0.124
+
+## 1.0.125
+
+### Patch Changes
+
+- 771e74b: chore: enable dead code lint rules
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [9c8c0c1]
+- Updated dependencies [771e74b]
+- Updated dependencies [7115a3f]
+  - @ai-sdk/provider-utils@5.0.47
+  - @ai-sdk/harness@1.0.123
+
 ## 1.0.124
 
 ### Patch Changes

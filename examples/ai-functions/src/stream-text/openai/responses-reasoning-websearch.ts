@@ -7,7 +7,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: openai.responses('gpt-5-mini'),
+    model: openai.responses('gpt-6-luna'),
     prompt: 'What happened in the world today?',
     reasoning: 'medium',
     providerOptions: {
@@ -30,7 +30,7 @@ run(async () => {
 
   // switch to generate (output irrelevant)
   const result2 = await generateText({
-    model: openai.responses('gpt-5-mini'),
+    model: openai.responses('gpt-6-luna'),
     messages: [
       ...messages,
       { role: 'user', content: 'Summarize in 2 sentences.' },

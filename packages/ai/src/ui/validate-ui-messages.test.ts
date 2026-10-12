@@ -1,3 +1,4 @@
+import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { InferUITool, UIMessage } from './ui-messages';
 import {
@@ -848,6 +849,7 @@ describe('validateUIMessages', () => {
                 toolCallId: '1',
                 state: 'input-streaming',
                 input: { foo: 'bar' },
+                rawInput: '{"foo":"bar',
               },
             ],
           },
@@ -865,6 +867,7 @@ describe('validateUIMessages', () => {
                 "input": {
                   "foo": "bar",
                 },
+                "rawInput": "{"foo":"bar",
                 "state": "input-streaming",
                 "toolCallId": "1",
                 "toolName": "foo",
@@ -1316,6 +1319,74 @@ describe('validateUIMessages', () => {
       `);
     });
 
+    describe.each([
+      'approval-requested',
+      'approval-responded',
+      'output-available',
+      'output-denied',
+      'output-error',
+    ] as const)('transformed approval input in %s state', state => {
+      const tools = {
+        count: {
+          inputSchema: z.object({ count: z.string().transform(Number) }),
+        },
+      };
+
+      function createMessages(input: unknown) {
+        return [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-count',
+                toolCallId: '1',
+                state,
+                input,
+                ...(state === 'output-available' ? { output: 'ok' } : {}),
+                ...(state === 'output-error' ? { errorText: 'failed' } : {}),
+                approval: {
+                  id: 'approval-1',
+                  inputSchemaInput: { count: '3' },
+                  ...(state === 'approval-requested'
+                    ? {}
+                    : { approved: state !== 'output-denied' }),
+                },
+              },
+            ],
+          },
+        ];
+      }
+
+      it('should preserve input matching the reconstructed schema output', async () => {
+        const messages = createMessages({ count: 3 });
+
+        expect(await validateUIMessages({ messages, tools })).toEqual(messages);
+      });
+
+      it.each([{ count: 4 }, { count: 'not-a-number' }])(
+        'should not expose mismatched input %j as a validated static tool part',
+        async input => {
+          const messages = createMessages(input);
+
+          if (state === 'output-error') {
+            const result = await validateUIMessages({ messages, tools });
+            expect(result[0].parts[0]).toMatchObject({
+              type: 'dynamic-tool',
+              toolName: 'count',
+              input,
+            });
+          } else {
+            await expect(
+              validateUIMessages({ messages, tools }),
+            ).rejects.toThrow(/does not match the output reconstructed/);
+          }
+
+          expect(messages[0].parts[0].input).toEqual(input);
+        },
+      );
+    });
+
     it('should validate tool input when state is approval-requested', async () => {
       await expect(
         validateUIMessages<TestMessage>({
@@ -1375,6 +1446,93 @@ describe('validateUIMessages', () => {
       );
     });
 
+    it('should reject transformed approval input that does not match its schema input', async () => {
+      const transformedTool = {
+        inputSchema: z.object({
+          count: z.string().transform(Number),
+        }),
+      };
+      type TransformedMessage = UIMessage<
+        never,
+        never,
+        { count: InferUITool<typeof transformedTool> }
+      >;
+
+      await expect(
+        validateUIMessages<TransformedMessage>({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'tool-count',
+                  toolCallId: 'call-1',
+                  state: 'approval-responded',
+                  input: { count: 4 },
+                  approval: {
+                    id: 'approval-1',
+                    approved: true,
+                    inputSchemaInput: { count: '3' },
+                  },
+                },
+              ],
+            },
+          ],
+          tools: {
+            count: transformedTool,
+          },
+        }),
+      ).rejects.toThrowError(
+        'Tool input does not match the output reconstructed from inputSchemaInput.',
+      );
+    });
+
+    it('should compare transformed approval input after applying input refinement', async () => {
+      const refinedTool = {
+        inputSchema: z.object({
+          value: z.string(),
+        }),
+      };
+      type RefinedMessage = UIMessage<
+        never,
+        never,
+        { refined: InferUITool<typeof refinedTool> }
+      >;
+
+      const messages = await validateUIMessages<RefinedMessage>({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-refined',
+                toolCallId: 'call-1',
+                state: 'approval-responded',
+                input: { value: 'trimmed' },
+                approval: {
+                  id: 'approval-1',
+                  approved: true,
+                  inputSchemaInput: { value: ' trimmed ' },
+                },
+              },
+            ],
+          },
+        ],
+        tools: {
+          refined: refinedTool,
+        },
+        experimental_refineToolInput: {
+          refined: input => ({ value: input.value.trim() }),
+        },
+      });
+
+      expect(messages[0].parts[0]).toMatchObject({
+        input: { value: 'trimmed' },
+      });
+    });
+
     it('should validate tool input when state is output-denied', async () => {
       await expect(
         validateUIMessages<TestMessage>({
@@ -1405,46 +1563,69 @@ describe('validateUIMessages', () => {
       );
     });
 
-    it('should represent schema-incompatible output-available empty input as a dynamic tool part', async () => {
-      const inputMessages: TestMessage[] = [
-        {
-          id: '1',
-          role: 'assistant',
-          parts: [
-            {
-              type: 'tool-foo',
-              toolCallId: '1',
-              state: 'output-available',
-              input: {} as { foo: string },
-              output: { result: 'success' },
-            },
-          ],
-        },
-      ];
-
-      const messages = await validateUIMessages<TestMessage>({
-        messages: inputMessages,
-        tools: {
-          foo: testTool,
-        },
+    it('should normalize persisted aborted tool history from issue #18425', async () => {
+      const createArtifactTool = tool({
+        inputSchema: z.object({
+          identifier: z.string(),
+          type: z.enum(['application/vnd.react', 'text/html']),
+          language: z.string(),
+          code: z.string(),
+        }),
+        execute: async () => 'ok',
       });
 
-      expect(messages).toEqual([
+      type CreateArtifactMessage = UIMessage<
+        never,
+        never,
         {
-          id: '1',
-          role: 'assistant',
-          parts: [
-            {
-              type: 'dynamic-tool',
-              toolName: 'foo',
-              toolCallId: '1',
-              state: 'output-available',
-              input: {},
-              output: { result: 'success' },
-            },
-          ],
-        },
-      ]);
+          create_artifact: InferUITool<typeof createArtifactTool>;
+        }
+      >;
+
+      const messages = await validateUIMessages<CreateArtifactMessage>({
+        messages: [
+          {
+            id: 'u1',
+            role: 'user',
+            parts: [{ type: 'text', text: 'make me a chart' }],
+          },
+          {
+            id: 'a1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-create_artifact',
+                toolCallId: 'toolu_demo_aborted',
+                state: 'output-available',
+                input: {} as InferUITool<typeof createArtifactTool>['input'],
+                output: '{"error":"Tool was aborted by the user."}',
+              },
+            ],
+          },
+          {
+            id: 'u2',
+            role: 'user',
+            parts: [{ type: 'text', text: 'are you working?' }],
+          },
+        ],
+        tools: { create_artifact: createArtifactTool },
+      });
+
+      expect(messages[1].parts[1]).toEqual({
+        type: 'dynamic-tool',
+        dynamic: false,
+        toolName: 'create_artifact',
+        toolCallId: 'toolu_demo_aborted',
+        state: 'output-available',
+        input: {},
+        output: '{"error":"Tool was aborted by the user."}',
+      });
+      expect(messages[2]).toEqual({
+        id: 'u2',
+        role: 'user',
+        parts: [{ type: 'text', text: 'are you working?' }],
+      });
     });
 
     it('should validate output when an output-available tool call has empty input', async () => {
@@ -1577,6 +1758,7 @@ describe('validateUIMessages', () => {
           parts: [
             {
               errorText: 'AI_InvalidToolInputError',
+              dynamic: false,
               input: {
                 foo: 123,
               },
@@ -1815,6 +1997,7 @@ describe('validateUIMessages', () => {
           parts: [
             {
               type: 'dynamic-tool',
+              dynamic: false,
               toolName: 'bar',
               toolCallId: '1',
               state: 'output-available',
@@ -1824,6 +2007,7 @@ describe('validateUIMessages', () => {
             },
             {
               type: 'dynamic-tool',
+              dynamic: false,
               toolName: 'bar',
               toolCallId: '2',
               state: 'output-error',
@@ -1833,6 +2017,7 @@ describe('validateUIMessages', () => {
             },
             {
               type: 'dynamic-tool',
+              dynamic: false,
               toolName: 'bar',
               toolCallId: '3',
               state: 'output-denied',
@@ -1895,6 +2080,7 @@ describe('validateUIMessages', () => {
           parts: [
             {
               type: 'dynamic-tool',
+              dynamic: false,
               toolName: 'bar',
               toolCallId: '1',
               state: 'output-available',
@@ -1903,6 +2089,7 @@ describe('validateUIMessages', () => {
             },
             {
               type: 'dynamic-tool',
+              dynamic: false,
               toolName: 'bar',
               toolCallId: '2',
               state: 'output-error',
@@ -1911,6 +2098,7 @@ describe('validateUIMessages', () => {
             },
             {
               type: 'dynamic-tool',
+              dynamic: false,
               toolName: 'bar',
               toolCallId: '3',
               state: 'output-denied',
@@ -1946,6 +2134,7 @@ describe('validateUIMessages', () => {
 
       expect(messages[0].parts[0]).toEqual({
         type: 'dynamic-tool',
+        dynamic: false,
         toolName: 'bar',
         toolCallId: '1',
         state: 'output-available',
@@ -2189,6 +2378,7 @@ describe('validateUIMessages', () => {
                 toolCallId: '1',
                 state: 'input-streaming',
                 input: { foo: 123 }, // wrong type but should not be validated
+                rawInput: '{"foo":123',
                 providerExecuted: true,
               },
             ],
@@ -2210,6 +2400,7 @@ describe('validateUIMessages', () => {
                   "foo": 123,
                 },
                 "providerExecuted": true,
+                "rawInput": "{"foo":123",
                 "state": "input-streaming",
                 "toolCallId": "1",
                 "type": "tool-foo",
@@ -2438,6 +2629,7 @@ describe('safeValidateUIMessages', () => {
     expectToBe(result.success, true);
     expect(result.data[0].parts[0]).toEqual({
       type: 'dynamic-tool',
+      dynamic: false,
       toolName: 'foo',
       toolCallId: '1',
       state: 'output-available',
@@ -2474,6 +2666,7 @@ describe('safeValidateUIMessages', () => {
     expectToBe(result.success, true);
     expect(result.data[0].parts[0]).toEqual({
       type: 'dynamic-tool',
+      dynamic: false,
       toolName: 'removed',
       toolCallId: '1',
       state: 'output-error',

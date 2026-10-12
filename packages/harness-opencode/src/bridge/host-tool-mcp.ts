@@ -1,25 +1,20 @@
 #!/usr/bin/env node
 /*
- * These bridge imports are externalized by tsup and resolved inside the
+ * These bridge imports are externalized by tsdown and resolved inside the
  * sandbox from src/bridge/package.json and its lockfile. Keep this file,
- * tsup.config.ts, and the bridge package dependency list in sync.
+ * tsdown.config.ts, and the bridge package dependency list in sync.
  */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { readHostToolSchemasFromEnvironment } from './host-tool-schemas';
 import { jsonSchemaToZodShape } from './json-schema-to-zod';
 
-type ToolSchema = {
-  name: string;
-  description?: string;
-  inputSchema?: unknown;
-};
-
-const schemas: ToolSchema[] = JSON.parse(process.env.TOOL_SCHEMAS || '[]');
+const schemas = readHostToolSchemasFromEnvironment(process.env);
 const relayUrl = process.env.TOOL_RELAY_URL || '';
 
 if (!schemas.length || !relayUrl) {
   process.stderr.write(
-    '[host-tool-mcp] Missing TOOL_SCHEMAS or TOOL_RELAY_URL; exiting\n',
+    '[host-tool-mcp] Missing TOOL_SCHEMAS_PATH/TOOL_SCHEMAS or TOOL_RELAY_URL; exiting\n',
   );
   process.exit(0);
 }
