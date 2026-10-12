@@ -1,8 +1,13 @@
 <script setup lang="ts">
 import { experimental_useObject } from './use-object';
 import { z } from 'zod/v4';
-import { ref, reactive } from 'vue';
 
+const props = defineProps<{
+  headers?: Record<string, string> | Headers;
+  credentials?: RequestCredentials;
+}>();
+
+<<<<<<< HEAD
 const { object, error, submit, isLoading, stop, clear } =
   experimental_useObject({
     api: '/api/use-object',
@@ -13,6 +18,14 @@ const { object, error, submit, isLoading, stop, clear } =
     },
     credentials: 'include',
   });
+=======
+const { object, error, submit, isLoading, stop, clear } = useObject({
+  api: '/api/use-object',
+  schema: z.object({ content: z.string() }),
+  headers: props.headers,
+  credentials: props.credentials,
+});
+>>>>>>> 1b5fd20385 (fix: preserve Headers entries and Content-Type overrides in Vue useObject requests (#22545))
 </script>
 
 <template>

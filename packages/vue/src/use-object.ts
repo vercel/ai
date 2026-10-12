@@ -2,6 +2,7 @@ import { ref, type Ref } from 'vue';
 import swrv, { type default as SWRVDefault } from 'swrv';
 import {
   isAbortError,
+  normalizeHeaders,
   safeValidateTypes,
   type FetchFunction,
   type InferSchema,
@@ -159,8 +160,8 @@ export const experimental_useObject = function useObject<
       const response = await actualFetch(api, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          ...(headers as any),
+          'content-type': 'application/json',
+          ...normalizeHeaders(headers),
         },
         credentials: credentials ?? 'same-origin',
         signal: abortController.signal,
