@@ -1,0 +1,95 @@
+---
+title: ScaledThought
+description: Use the ScaledThought OpenAI compatible API with the AI SDK.
+---
+
+# ScaledThought Provider
+
+[ScaledThought](https://scaledthought.com/go/org-aisdk) is an OpenAI-compatible
+API for open-weight models. A coding agent can create the account and API key
+itself from the command line. Usage is prepaid: the agent asks a human to
+approve a top-up, with no subscription. You can use its Chat Completions
+endpoint with the AI SDK through the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+Install the OpenAI Compatible provider:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+Create an account and an API key (you or your coding agent can run this):
+
+```bash
+npx -y scaledthought@latest init --region us --source org-aisdk
+```
+
+`init` writes the key to `./.env` as `ST_API_KEY`. A new account has no
+credits, so approve a top-up before the first call:
+
+```bash
+npx -y scaledthought@latest billing topup --amount-usd 20
+```
+
+This prints an approval link for a human to pay by card. The US region is live;
+Canada is coming soon.
+
+## Provider Instance
+
+Create a ScaledThought provider instance with `createOpenAICompatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const scaledthought = createOpenAICompatible({
+  name: 'scaledthought',
+  apiKey: process.env.ST_API_KEY,
+  baseURL: 'https://api.us.scaledthought.com/v1',
+  includeUsage: true,
+});
+```
+
+The `apiKey` setting sends the key as a Bearer token in the `Authorization`
+header.
+
+## Language Models
+
+Create a language model by passing a ScaledThought model ID to the provider
+instance. The models live in your region, with their prices, are listed by
+`npx -y scaledthought@latest models --live` and at
+[scaledthought.com/pricing](https://scaledthought.com/pricing):
+
+```ts
+const model = scaledthought('<model-id>');
+```
+
+### Example
+
+Use `generateText` to generate text with the model:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const scaledthought = createOpenAICompatible({
+  name: 'scaledthought',
+  apiKey: process.env.ST_API_KEY,
+  baseURL: 'https://api.us.scaledthought.com/v1',
+  includeUsage: true,
+});
+
+const { text } = await generateText({
+  model: scaledthought('<model-id>'),
+  prompt: 'Explain what an open-weight model is in one sentence.',
+  maxOutputTokens: 200,
+});
+
+console.log(text);
+```
+
+You can also use ScaledThought language models with `streamText`.
+
+## Resources
+
+- [ScaledThought setup for agents (llms.txt)](https://scaledthought.com/llms.txt)
+- [ScaledThought models and prices](https://scaledthought.com/pricing)
+- [AI SDK OpenAI Compatible provider](/providers/openai-compatible-providers)
