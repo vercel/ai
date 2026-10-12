@@ -102,6 +102,28 @@ describe('createFileReporter', () => {
     ]);
   });
 
+  test('leaves diagnostics unassociated when turns overlap', () => {
+    const dir = tmp();
+    const reporter = createFileReporter({ dir, failOnly: true });
+    reporter.onStart!(startEvent);
+    reporter.onStart!({ callId: 'call-2' } as never);
+    reporter.ingestDiagnostic!(
+      diag({ level: 'error', message: 'ambiguous failure' }),
+    );
+    reporter.onEnd!(endEvent);
+    reporter.onEnd!({ callId: 'call-2' } as never);
+
+    expect(readLines(dir)).toEqual([
+      expect.objectContaining({
+        kind: 'diagnostic',
+        diagnostic: expect.objectContaining({
+          level: 'error',
+          message: 'ambiguous failure',
+        }),
+      }),
+    ]);
+  });
+
   test.each([
     { reason: 'user stopped', expectedReason: 'user stopped' },
     {
