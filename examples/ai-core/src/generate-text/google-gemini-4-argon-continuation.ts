@@ -2,9 +2,10 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { run } from '../lib/run';
 
-// Long decode: when a response stops with `length` (MAX_TOKENS) the provider
-// returns a continuation token. Resend the original prompt with the token and
-// a higher `maxOutputTokens` (the limit accumulates across hops) to resume.
+// Long decode: when a response uses up its `maxOutputTokens` budget it stops
+// with `length` (MAX_TOKENS) and the provider returns a continuation token.
+// Resend the original prompt with the token and a higher `maxOutputTokens`
+// (the budget is cumulative across requests) to resume.
 run(async () => {
   const prompt = 'Prove that sqrt(2) is irrational, in detail.';
 

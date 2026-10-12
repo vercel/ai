@@ -317,78 +317,74 @@ up to the shared 1M token context window (input, thinking, and output tokens
 together). Use it for hard math, science, proofs, and long coding or agentic
 tasks.
 
-- A single request returns at most 32K output tokens without streaming and 64K
-  with streaming (`streamText`). Both are also the defaults when `maxOutputTokens`
-  is not set. Thinking tokens count towards the output limit.
-- `maxOutputTokens` is a **cumulative budget across continuation hops**, not a
-  target length. A lower value does not make the model think less, it ends the
+- A single request generates at most 32,768 tokens without streaming and 65,536
+  tokens with streaming (`streamText`). Thinking tokens count towards this cap.
+- `maxOutputTokens` is a **cumulative budget across requests**, not a target
+  length. When a request reaches the per-request cap while budget remains, the
+  provider automatically sends the same request again with a continuation token
+  and combines the results into one response. Set `maxOutputTokens` above the
+  per-request cap (up to 1M) to enable this. If you do not set it, the call ends
+  after one request.
+- A lower `maxOutputTokens` does not make the model think less, it ends the
   response early (possibly before any answer) and you are still charged for the
   tokens. Use `thinkingConfig.thinkingLevel` to control how much the model
   thinks. `thinkingBudget` is not supported by these models.
 - Complex requests can run for several minutes. Make sure your HTTP client
   allows read timeouts of at least 15 to 20 minutes.
+- Usage is the sum of all requests. Each continued request re-sends your prompt
+  plus the accumulated thinking and output as input tokens, which are billed at
+  a discount through implicit caching.
 
-When a request stops because it reached a per-request cap or your
-`maxOutputTokens` budget, the finish reason is `length` and the provider returns
-a continuation token on `result.providerMetadata.google.continuationToken`. To
-continue, send the **original request unchanged** (same prompt, tools, and
-settings; do not append the partial output as a message) together with the token
-as `providerOptions.google.continuationToken`. Each response contains only the
-newly generated content. If the budget was used up, raise `maxOutputTokens` as
-well, otherwise the API rejects the request.
+When the cumulative generated tokens reach `maxOutputTokens`, the finish reason
+is `length` and the provider returns a continuation token on
+`result.providerMetadata.google.continuationToken`. To continue, send the
+**original request unchanged** (same prompt, tools, and settings; do not append
+the partial output as a message) together with the token as
+`providerOptions.google.continuationToken` and a **higher** `maxOutputTokens`.
+Resending with the same `maxOutputTokens` fails because the budget is used up.
+Each response contains only the newly generated content.
 
 ```ts
 import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
-const maxOutputTokens = 256_000; // cumulative budget across all hops
-let text = '';
-let continuationToken: string | undefined;
-let generatedTokens = 0;
+const prompt = 'Prove that sqrt(2) is irrational, in detail.';
 
-while (true) {
-  const result = await generateText({
+const result = await generateText({
+  model: google('gemini-4-argon'),
+  prompt,
+  maxOutputTokens: 128_000,
+});
+
+const continuationToken =
+  result.providerMetadata?.google?.continuationToken;
+
+if (result.finishReason === 'length' && typeof continuationToken === 'string') {
+  // The budget was used up. Raise it to keep going.
+  const continued = await generateText({
     model: google('gemini-4-argon'),
-    prompt: 'Prove that sqrt(2) is irrational, in detail.',
-    maxOutputTokens,
+    prompt,
+    maxOutputTokens: 256_000,
     providerOptions: { google: { continuationToken } },
   });
 
-  text += result.text;
-  generatedTokens += result.usage.outputTokens ?? 0;
-
-  const next = result.providerMetadata?.google?.continuationToken;
-
-  // A hop can spend its whole slice thinking and return no text, so keep
-  // going as long as a token is present and budget remains.
-  if (
-    result.finishReason !== 'length' ||
-    typeof next !== 'string' ||
-    generatedTokens >= maxOutputTokens
-  ) {
-    break;
-  }
-
-  continuationToken = next;
+  console.log(result.text + continued.text);
 }
 ```
 
-Things to keep in mind when building a loop:
+Things to keep in mind:
 
-- **Usage is per call.** Each hop re-sends your prompt plus the accumulated
-  thinking and output as input tokens. Repeated input is billed at a discount
-  through implicit caching. Sum `usage` across hops yourself.
-- **Streaming checkpoints.** With `streamText`, long responses emit a
-  continuation token every 5K tokens after the first 32K, and the provider keeps
-  the latest one. If a stream drops after 32K tokens, resume from the last
-  token you received (you are only billed up to that checkpoint). Drop
-  un-checkpointed output from the failed attempt before you resume.
+- **Streaming checkpoints.** With `streamText`, the provider keeps the latest
+  checkpoint token on `providerMetadata.google.continuationToken`. Checkpoints
+  arrive after the first 32,768 tokens and then every 5,000 tokens (every 5,000
+  tokens from the start on a continued stream). If a stream drops after a
+  checkpoint, discard everything received after that checkpoint and resume with
+  its token. If it drops before the first checkpoint, retry the request from
+  the start.
 - **Provider metadata is per call.** If you store the conversation history,
-  combine the content of all hops into one model message only after the final
-  hop finishes. Keep thought signatures unchanged, including the ones on empty
+  combine the content of all calls into one model message only after the final
+  call finishes. Keep thought signatures unchanged, including the ones on empty
   trailing text parts.
-- **Zero Data Retention.** Client-side continuation works with `store: false`
-  because the state travels encrypted inside the token.
 
 ### File Inputs
 
