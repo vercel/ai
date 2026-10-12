@@ -3,4 +3,4 @@
 '@ai-sdk/gateway': patch
 ---
 
-feat(google): add `gemini-4-argon` model id and `continuationToken` provider option / provider metadata for resuming truncated (long decode) responses
+feat(google): add `gemini-4-argon` model id and long decode support: requests that reach the per-request cap (`CONTINUATION` / `continuation_required`) are continued automatically, and `continuationToken` provider option / provider metadata resume responses that used up their `maxOutputTokens` budget

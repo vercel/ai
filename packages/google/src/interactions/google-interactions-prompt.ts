@@ -607,7 +607,13 @@ export type GoogleInteractionsStatus =
   | 'completed'
   | 'failed'
   | 'cancelled'
-  | 'incomplete';
+  | 'incomplete'
+  /**
+   * Gemini 4 long decode: the per-request cap was reached while
+   * `max_output_tokens` budget remains. Resend the same request with the
+   * returned `continuation_token` to continue.
+   */
+  | 'continuation_required';
 
 /*
  * Aliases used by the source extractor; structurally equivalent to their

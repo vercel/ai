@@ -1695,6 +1695,115 @@ describe('doGenerate', () => {
     expect(providerMetadata?.google).not.toHaveProperty('continuationToken');
   });
 
+  describe('long decode continuation', () => {
+    const continuationResponse = {
+      type: 'json-value' as const,
+      body: {
+        candidates: [
+          {
+            content: { parts: [{ text: 'Hello' }], role: 'model' },
+            finishReason: 'CONTINUATION',
+            index: 0,
+            continuationToken: 'token-1',
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 10,
+          candidatesTokenCount: 5,
+          thoughtsTokenCount: 20,
+          totalTokenCount: 35,
+        },
+      },
+    };
+
+    it('should resend the same request with the continuation token on CONTINUATION', async () => {
+      server.urls[TEST_URL_GEMINI_PRO].response = [
+        continuationResponse,
+        {
+          type: 'json-value',
+          body: {
+            candidates: [
+              {
+                content: { parts: [{ text: ', world' }], role: 'model' },
+                finishReason: 'STOP',
+                index: 0,
+              },
+            ],
+            usageMetadata: {
+              promptTokenCount: 35,
+              candidatesTokenCount: 7,
+              totalTokenCount: 42,
+            },
+          },
+        },
+      ];
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        maxOutputTokens: 100_000,
+      });
+
+      expect(server.calls.length).toBe(2);
+      const firstBody = (await server.calls[0].requestBodyJson) as Record<
+        string,
+        any
+      >;
+      const secondBody = (await server.calls[1].requestBodyJson) as Record<
+        string,
+        any
+      >;
+      expect(firstBody).not.toHaveProperty('continuationToken');
+      expect(secondBody).toEqual({
+        ...firstBody,
+        continuationToken: 'token-1',
+      });
+      expect(secondBody.generationConfig.maxOutputTokens).toBe(100_000);
+
+      expect(result.content).toMatchObject([
+        { type: 'text', text: 'Hello' },
+        { type: 'text', text: ', world' },
+      ]);
+      expect(result.finishReason).toEqual({ unified: 'stop', raw: 'STOP' });
+      expect(result.usage.inputTokens.total).toBe(45);
+      expect(result.usage.outputTokens).toMatchObject({
+        total: 32,
+        text: 12,
+        reasoning: 20,
+      });
+      expect(result.providerMetadata?.google).not.toHaveProperty(
+        'continuationToken',
+      );
+    });
+
+    it('should return the continuation token when the budget is used up after continuing', async () => {
+      server.urls[TEST_URL_GEMINI_PRO].response = [
+        continuationResponse,
+        {
+          type: 'json-value',
+          body: {
+            candidates: [
+              {
+                content: { parts: [{ text: ', wor' }], role: 'model' },
+                finishReason: 'MAX_TOKENS',
+                index: 0,
+                continuationToken: 'token-2',
+              },
+            ],
+          },
+        },
+      ];
+
+      const result = await model.doGenerate({ prompt: TEST_PROMPT });
+
+      expect(server.calls.length).toBe(2);
+      expect(result.finishReason).toEqual({
+        unified: 'length',
+        raw: 'MAX_TOKENS',
+      });
+      expect(result.providerMetadata?.google.continuationToken).toBe('token-2');
+    });
+  });
+
   describe('tool-call', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('google-tool-call');
@@ -6804,6 +6913,150 @@ describe('doStream', () => {
     expect(
       finishEvent?.type === 'finish' && finishEvent.providerMetadata?.google,
     ).not.toHaveProperty('continuationToken');
+  });
+
+  it('should continue the stream automatically on CONTINUATION', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = [
+      {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            candidates: [
+              {
+                content: { parts: [{ text: 'Hello' }], role: 'model' },
+                index: 0,
+              },
+            ],
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            candidates: [
+              {
+                content: { parts: [{ text: '' }], role: 'model' },
+                index: 0,
+                continuationToken: 'checkpoint-1',
+              },
+            ],
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            candidates: [
+              {
+                content: { parts: [{ text: '' }], role: 'model' },
+                finishReason: 'CONTINUATION',
+                index: 0,
+                continuationToken: 'token-1',
+              },
+            ],
+            usageMetadata: {
+              promptTokenCount: 10,
+              candidatesTokenCount: 5,
+              thoughtsTokenCount: 20,
+              totalTokenCount: 35,
+            },
+          })}\n\n`,
+        ],
+      },
+      {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            candidates: [
+              {
+                content: { parts: [{ text: ', world' }], role: 'model' },
+                finishReason: 'STOP',
+                index: 0,
+              },
+            ],
+            usageMetadata: {
+              promptTokenCount: 35,
+              candidatesTokenCount: 7,
+              totalTokenCount: 42,
+            },
+          })}\n\n`,
+        ],
+      },
+    ];
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      maxOutputTokens: 100_000,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    expect(server.calls.length).toBe(2);
+    const firstBody = (await server.calls[0].requestBodyJson) as Record<
+      string,
+      unknown
+    >;
+    expect(await server.calls[1].requestBodyJson).toEqual({
+      ...firstBody,
+      continuationToken: 'token-1',
+    });
+
+    expect(
+      events
+        .filter(event => event.type === 'text-delta')
+        .map(event => event.delta),
+    ).toEqual(['Hello', ', world']);
+    expect(events.filter(event => event.type === 'text-start')).toHaveLength(1);
+
+    const finishEvent = events.find(event => event.type === 'finish');
+    expect(finishEvent?.type === 'finish' && finishEvent.finishReason).toEqual({
+      unified: 'stop',
+      raw: 'STOP',
+    });
+    expect(
+      finishEvent?.type === 'finish' && finishEvent.usage.inputTokens.total,
+    ).toBe(45);
+    expect(
+      finishEvent?.type === 'finish' && finishEvent.usage.outputTokens.total,
+    ).toBe(32);
+  });
+
+  it('should finish with the last continuation token when continuing the stream fails', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = [
+      {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            candidates: [
+              {
+                content: { parts: [{ text: 'Hello' }], role: 'model' },
+                finishReason: 'CONTINUATION',
+                index: 0,
+                continuationToken: 'token-1',
+              },
+            ],
+          })}\n\n`,
+        ],
+      },
+      {
+        type: 'error',
+        status: 400,
+        body: JSON.stringify({
+          error: {
+            code: 400,
+            message: 'Invalid continuation token',
+            status: 'INVALID_ARGUMENT',
+          },
+        }),
+      },
+    ];
+
+    const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    expect(events.some(event => event.type === 'error')).toBe(true);
+    const finishEvent = events.find(event => event.type === 'finish');
+    expect(finishEvent?.type === 'finish' && finishEvent.finishReason).toEqual({
+      unified: 'length',
+      raw: 'CONTINUATION',
+    });
+    expect(
+      finishEvent?.type === 'finish' &&
+        finishEvent.providerMetadata?.google.continuationToken,
+    ).toBe('token-1');
   });
 
   it('should preserve the final complete raw usage metadata', async () => {

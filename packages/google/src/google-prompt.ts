@@ -102,10 +102,11 @@ export interface GoogleProviderMetadata {
   serviceTier: string | null;
 
   /**
-   * Opaque token returned when a response stops with `MAX_TOKENS` (and for
-   * streaming long-decode checkpoints). Pass it back as
-   * `providerOptions.google.continuationToken` together with a higher
-   * `maxOutputTokens` and the original prompt to resume generation.
+   * Opaque token returned when a response stops with `MAX_TOKENS` because it
+   * used up its `maxOutputTokens` budget (and the latest checkpoint while
+   * streaming). Pass it back as `providerOptions.google.continuationToken`
+   * together with a higher `maxOutputTokens` and the original prompt to resume
+   * generation.
    */
   continuationToken?: string | null;
 }

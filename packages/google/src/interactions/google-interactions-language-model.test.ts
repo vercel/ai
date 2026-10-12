@@ -550,6 +550,52 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
       });
       expect(providerMetadata?.google).not.toHaveProperty('continuationToken');
     });
+
+    it('resends the same request with the continuation token on continuation_required', async () => {
+      const fixture = JSON.parse(
+        fs.readFileSync('src/interactions/__fixtures__/basic.json', 'utf8'),
+      );
+      server.urls[TEST_URL].response = [
+        {
+          type: 'json-value',
+          body: {
+            ...fixture,
+            status: 'continuation_required',
+            continuation_token: 'token-1',
+          },
+        },
+        { type: 'json-value', body: fixture },
+      ];
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        maxOutputTokens: 100_000,
+      });
+
+      expect(server.calls.length).toBe(2);
+      const firstBody = (await server.calls[0].requestBodyJson) as Record<
+        string,
+        unknown
+      >;
+      expect(firstBody).not.toHaveProperty('continuation_token');
+      expect(await server.calls[1].requestBodyJson).toEqual({
+        ...firstBody,
+        continuation_token: 'token-1',
+      });
+
+      expect(result.content.filter(part => part.type === 'text')).toHaveLength(
+        2,
+      );
+      expect(result.finishReason).toEqual({
+        unified: 'stop',
+        raw: 'completed',
+      });
+      expect(result.usage.inputTokens.total).toBe(14);
+      expect(result.usage.outputTokens.total).toBe(102);
+      expect(result.providerMetadata?.google).not.toHaveProperty(
+        'continuationToken',
+      );
+    });
   });
 
   describe('service tier', () => {
@@ -2716,6 +2762,73 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
         | undefined;
       expect(finish?.providerMetadata?.google?.continuationToken).toBe(
         'checkpoint-2',
+      );
+    });
+
+    it('continues the stream automatically on continuation_required', async () => {
+      const objs = readFixtureChunkLines('basic');
+      const continuationObjs = objs.map(o =>
+        o.event_type === 'interaction.completed'
+          ? {
+              ...o,
+              interaction: {
+                ...(o.interaction as Record<string, unknown>),
+                status: 'continuation_required',
+                continuation_token: 'token-1',
+              },
+            }
+          : o,
+      );
+      server.urls[TEST_URL].response = [
+        {
+          type: 'stream-chunks',
+          chunks: continuationObjs.map(o => `data: ${JSON.stringify(o)}\n\n`),
+        },
+        {
+          type: 'stream-chunks',
+          chunks: objs.map(o => `data: ${JSON.stringify(o)}\n\n`),
+        },
+      ];
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+        maxOutputTokens: 100_000,
+      });
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(server.calls.length).toBe(2);
+      const firstBody = (await server.calls[0].requestBodyJson) as Record<
+        string,
+        unknown
+      >;
+      expect(await server.calls[1].requestBodyJson).toEqual({
+        ...firstBody,
+        continuation_token: 'token-1',
+      });
+
+      const textStarts = parts.filter(p => p.type === 'text-start') as Array<{
+        id: string;
+      }>;
+      expect(textStarts).toHaveLength(2);
+      expect(textStarts[0].id).not.toBe(textStarts[1].id);
+
+      const finish = parts.find(p => p.type === 'finish') as
+        | {
+            finishReason: { unified: string };
+            usage: {
+              inputTokens: { total?: number };
+              outputTokens: { total?: number };
+            };
+          }
+        | undefined;
+      expect(finish?.finishReason.unified).toBe('stop');
+      expect(finish?.usage.inputTokens.total).toBe(
+        2 *
+          (
+            objs.find(o => o.event_type === 'interaction.completed')!
+              .interaction as { usage: { total_input_tokens: number } }
+          ).usage.total_input_tokens,
       );
     });
 

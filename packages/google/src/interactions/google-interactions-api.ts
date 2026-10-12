@@ -59,6 +59,7 @@ const interactionStatusSchema = () =>
     'failed',
     'cancelled',
     'incomplete',
+    'continuation_required',
   ]);
 
 const annotationSchema = () => {

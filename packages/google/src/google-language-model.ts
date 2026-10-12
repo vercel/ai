@@ -36,7 +36,9 @@ import {
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import { continueGoogleStream } from './continue-google-stream';
 import {
+  addGoogleUsageMetadata,
   convertGoogleUsage,
   type GoogleUsageMetadata,
 } from './convert-google-usage';
@@ -744,30 +746,79 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       extraHeaders,
     );
 
-    const {
+    const generateContent = (body: typeof args) =>
+      postJsonToApi({
+        url: `${this.config.baseURL}/${getModelPath(
+          this.modelId,
+        )}:generateContent`,
+        headers: mergedHeaders,
+        body,
+        failedResponseHandler: googleFailedResponseHandler,
+        successfulResponseHandler: createJsonResponseHandler(responseSchema),
+        abortSignal: options.abortSignal,
+        fetch: this.config.fetch,
+      });
+
+    let {
       responseHeaders,
       value: response,
       rawValue: rawResponse,
-    } = await postJsonToApi({
-      url: `${this.config.baseURL}/${getModelPath(
-        this.modelId,
-      )}:generateContent`,
-      headers: mergedHeaders,
-      body: args,
-      failedResponseHandler: googleFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(responseSchema),
-      abortSignal: options.abortSignal,
-      fetch: this.config.fetch,
-    });
+    } = await generateContent(args);
 
-    const result = GoogleLanguageModel.convertGenerateContentResponse({
+    // Gemini 4 long decode: a request that reaches the per-request cap while
+    // `maxOutputTokens` budget remains finishes with `CONTINUATION`. Resend
+    // the same request with the continuation token (the server tracks the
+    // cumulative tokens) and combine the content of all requests.
+    const content: LanguageModelV4Content[] = [];
+    let usageMetadata: GoogleUsageMetadata | undefined;
+
+    while (true) {
+      const candidate = response.candidates?.[0];
+      const continuationToken =
+        candidate?.finishReason === 'CONTINUATION'
+          ? candidate.continuationToken
+          : undefined;
+
+      usageMetadata = addGoogleUsageMetadata(
+        usageMetadata,
+        response.usageMetadata ?? undefined,
+      );
+
+      if (continuationToken == null) {
+        break;
+      }
+
+      content.push(
+        ...GoogleLanguageModel.convertGenerateContentResponse({
+          config: this.config,
+          response,
+          warnings,
+          providerOptionsNames,
+          toolNameMapping,
+          jsonResponseToolName,
+        }).content,
+      );
+
+      ({
+        responseHeaders,
+        value: response,
+        rawValue: rawResponse,
+      } = await generateContent({ ...args, continuationToken }));
+    }
+
+    const lastResult = GoogleLanguageModel.convertGenerateContentResponse({
       config: this.config,
-      response,
+      response: { ...response, usageMetadata },
       warnings,
       providerOptionsNames,
       toolNameMapping,
       jsonResponseToolName,
     });
+
+    const result = {
+      ...lastResult,
+      content: [...content, ...lastResult.content],
+    };
 
     return {
       ...result,
@@ -802,16 +853,37 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       extraHeaders,
     );
 
-    const { responseHeaders, value: response } = await postJsonToApi({
-      url: `${this.config.baseURL}/${getModelPath(
-        this.modelId,
-      )}:streamGenerateContent?alt=sse`,
-      headers,
-      body: args,
-      failedResponseHandler: googleFailedResponseHandler,
-      successfulResponseHandler: createEventSourceResponseHandler(chunkSchema),
-      abortSignal: options.abortSignal,
-      fetch: this.config.fetch,
+    const streamGenerateContent = (body: typeof args) =>
+      postJsonToApi({
+        url: `${this.config.baseURL}/${getModelPath(
+          this.modelId,
+        )}:streamGenerateContent?alt=sse`,
+        headers,
+        body,
+        failedResponseHandler: googleFailedResponseHandler,
+        successfulResponseHandler:
+          createEventSourceResponseHandler(chunkSchema),
+        abortSignal: options.abortSignal,
+        fetch: this.config.fetch,
+      });
+
+    const { responseHeaders, value: firstResponse } =
+      await streamGenerateContent(args);
+
+    // Gemini 4 long decode: when a stream reaches the per-request cap while
+    // `maxOutputTokens` budget remains, its last chunk finishes with
+    // `CONTINUATION`. Resend the same request with the continuation token and
+    // append the new stream, which contains only newly generated content.
+    const response = continueGoogleStream({
+      stream: firstResponse,
+      getContinuationToken: chunk => {
+        const candidate = chunk.candidates?.[0];
+        return candidate?.finishReason === 'CONTINUATION'
+          ? (candidate.continuationToken ?? undefined)
+          : undefined;
+      },
+      continueStream: async continuationToken =>
+        (await streamGenerateContent({ ...args, continuationToken })).value,
     });
 
     let finishReason: LanguageModelV4FinishReason = {
@@ -819,6 +891,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       raw: undefined,
     };
     let usage: GoogleUsageMetadata | undefined = undefined;
+    // Usage of the completed requests of an automatically continued response.
+    let continuedUsage: GoogleUsageMetadata | undefined = undefined;
     let promptFeedback: PromptFeedbackSchema | null = null;
     let lastGroundingMetadata: GroundingMetadataSchema | null = null;
     let lastUrlContextMetadata: UrlContextMetadataSchema | null = null;
@@ -1332,6 +1406,13 @@ export class GoogleLanguageModel implements LanguageModelV4 {
               }
             }
 
+            if (candidate.finishReason === 'CONTINUATION') {
+              // Usage metadata is per request. The next request reports its
+              // own usage, so bank the usage of this one.
+              continuedUsage = addGoogleUsageMetadata(continuedUsage, usage);
+              usage = undefined;
+            }
+
             if (candidate.finishReason != null) {
               finishReason = {
                 unified: mapGoogleFinishReason({
@@ -1344,6 +1425,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           },
 
           flush(controller) {
+            usage = addGoogleUsageMetadata(continuedUsage, usage);
+
             if (currentTextBlockId !== null) {
               controller.enqueue({
                 type: 'text-end',
