@@ -1,5 +1,6 @@
 import {
   isAbortError,
+  normalizeHeaders,
   safeValidateTypes,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
@@ -164,8 +165,8 @@ export function useObject<
       const response = await actualFetch(api, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          ...(headers as any),
+          'content-type': 'application/json',
+          ...normalizeHeaders(headers),
         },
         credentials: credentials ?? 'same-origin',
         signal: currentAbortController.signal,
