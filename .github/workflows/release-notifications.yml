@@ -9,7 +9,7 @@ on:
 
 permissions:
   actions: read
-  contents: read
+  contents: write
   pull-requests: write
   issues: write
 
@@ -45,6 +45,18 @@ jobs:
           echo "published-packages=$(jq -c '.publishedPackages // []' "$manifest")" >> "$GITHUB_OUTPUT"
           echo "pull-request-number=$(jq -r '.pullRequestNumber // empty' "$manifest")" >> "$GITHUB_OUTPUT"
           echo "has-published-packages=$(jq '(.publishedPackages | length) > 0' "$manifest")" >> "$GITHUB_OUTPUT"
+
+      - name: Attach SLSA provenance to GitHub Releases
+        if: >-
+          steps.notification.outputs.type == 'release' &&
+          steps.notification.outputs.has-published-packages == 'true'
+        working-directory: .github/scripts/upload-provenance
+        run: |
+          npm install --no-save
+          node index.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PUBLISHED_PACKAGES: ${{ steps.notification.outputs.published-packages }}
 
       - name: Notify released PRs and issues
         if: >-

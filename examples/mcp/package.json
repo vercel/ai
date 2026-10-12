@@ -3,6 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
+    "server:events": "tsx src/events/server.ts",
+    "client:events": "tsx src/events/client.ts",
     "server:sse": "tsx src/sse/server.ts",
     "client:sse": "tsx src/sse/client.ts",
     "server:http": "tsx src/http/server.ts",
@@ -37,7 +39,7 @@
   "dependencies": {
     "@ai-sdk/openai": "workspace:*",
     "@modelcontextprotocol/node": "^2.0.0",
-    "@modelcontextprotocol/sdk": "^1.31.0",
+    "@modelcontextprotocol/sdk": "^1.32.0",
     "@modelcontextprotocol/server": "^2.0.0",
     "ai": "workspace:*",
     "dotenv": "16.4.5",

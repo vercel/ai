@@ -812,7 +812,9 @@ async function convertOpenAIBatchResult(
           type: 'tool-result',
           toolCallId: part.id,
           toolName: 'web_search',
-          result: mapWebSearchOutput(part.action),
+          ...(part.status === 'failed' || part.status === 'incomplete'
+            ? { isError: true, result: { status: part.status } }
+            : { result: mapWebSearchOutput(part.action) }),
           dynamic: true,
         });
         break;

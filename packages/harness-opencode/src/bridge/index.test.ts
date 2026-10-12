@@ -1,4 +1,10 @@
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -28,6 +34,7 @@ const relayMock = vi.hoisted(() => ({
   close: vi.fn(),
   port: 4097,
 }));
+const tempDirectories: string[] = [];
 
 vi.mock('@ai-sdk/harness/bridge', () => ({
   runBridge: vi.fn(async (options: unknown) => {
@@ -77,7 +84,11 @@ function createUserMessages() {
   };
 }
 
-function setBridgeArgv(workdir = '/tmp/opencode-bridge-test') {
+function setBridgeArgv(workdir = '/tmp/opencode-bridge-test'): string {
+  const bridgeStateDir = mkdtempSync(
+    path.join(tmpdir(), 'opencode-bridge-state-'),
+  );
+  tempDirectories.push(bridgeStateDir);
   process.argv.length = 0;
   process.argv.push(
     process.execPath,
@@ -85,15 +96,15 @@ function setBridgeArgv(workdir = '/tmp/opencode-bridge-test') {
     '--workdir',
     workdir,
     '--bridge-state-dir',
-    `${workdir}-state`,
+    bridgeStateDir,
     '--bootstrap-dir',
     `${workdir}-bootstrap`,
   );
+  return bridgeStateDir;
 }
 
 describe('OpenCode bridge turn settlement', () => {
   const originalArgv = [...process.argv];
-  const tempDirectories: string[] = [];
 
   afterEach(() => {
     process.argv.length = 0;
@@ -260,6 +271,93 @@ describe('OpenCode bridge turn settlement', () => {
         }),
       }),
     );
+  });
+
+  it('keeps large host tool schemas out of the inline OpenCode config', async () => {
+    const largeDescription = 'schema detail '.repeat(12_000);
+    const tools = [
+      {
+        name: 'lookup',
+        description: largeDescription,
+        inputSchema: {
+          type: 'object',
+          properties: {
+            query: { type: 'string', description: largeDescription },
+          },
+        },
+      },
+    ];
+    bridgeMock.start = {
+      type: 'start',
+      operation: 'prompt',
+      prompt: 'Look up a value.',
+      tools,
+    };
+    bridgeMock.turn = {
+      emit: vi.fn(),
+      requestToolResult: vi.fn(),
+      requestToolApproval: vi.fn(),
+      experimental_userMessages: createUserMessages(),
+      abortSignal: new AbortController().signal,
+      firstTurn: true,
+      bridgeLog: vi.fn(),
+      emitWarning: vi.fn(),
+      emitError: vi.fn(),
+    };
+    sdkMock.client = {
+      mcp: { status: vi.fn(async () => ({ data: {} })) },
+      session: {
+        create: vi.fn(async () => ({ data: { id: 'session-1' } })),
+        get: vi.fn(async () => ({ data: {} })),
+        messages: vi.fn(async () => ({ data: [] })),
+        promptAsync: vi.fn(async () => ({ data: {} })),
+      },
+      event: {
+        subscribe: vi.fn(async () => ({
+          stream: {
+            async *[Symbol.asyncIterator]() {
+              yield {
+                type: 'session.next.step.failed',
+                properties: {
+                  sessionID: 'session-1',
+                  error: 'end host tool schema test turn',
+                },
+              };
+            },
+          },
+        })),
+      },
+      v2: {
+        session: {
+          context: vi.fn(async () => ({ data: [] })),
+          switchModel: vi.fn(async () => ({ data: {} })),
+        },
+      },
+    };
+    const bridgeStateDir = setBridgeArgv();
+
+    await import('./index');
+
+    const config = createOpencodeServerMock.mock.calls[0]?.[0].config as Record<
+      string,
+      unknown
+    >;
+    const environment = (
+      config.mcp as {
+        'harness-tools': { environment: Record<string, string> };
+      }
+    )['harness-tools'].environment;
+    const schemasPath = environment.TOOL_SCHEMAS_PATH;
+    expect(environment).toEqual({
+      TOOL_SCHEMAS_PATH: path.join(bridgeStateDir, 'host-tool-schemas.json'),
+      TOOL_RELAY_URL: 'http://127.0.0.1:4097',
+    });
+    expect(environment).not.toHaveProperty('TOOL_SCHEMAS');
+    expect(
+      Buffer.byteLength(readFileSync(schemasPath, 'utf8')),
+    ).toBeGreaterThan(128 * 1024);
+    expect(JSON.parse(readFileSync(schemasPath, 'utf8'))).toEqual(tools);
+    expect(Buffer.byteLength(JSON.stringify(config))).toBeLessThan(128 * 1024);
   });
 
   it('allows external directory access in allow-all mode', async () => {

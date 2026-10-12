@@ -757,6 +757,13 @@ for (const toolResult of result.toolResults) {
 }
 ```
 
+`result.sources` and source stream events expose the URLs returned in
+`web_search_call.action.sources`. These may include uncited URLs. Inline
+references are available separately on `text.citations` and `text-end.citations`,
+including titles and provider-supplied text ranges. Raw annotations remain in
+text provider metadata. Citation-only responses and `web_search_preview`
+responses without retrieval data retain citation-derived sources.
+
 The web search tool supports the following configuration options:
 
 - **externalWebAccess** _boolean_ - Whether to use external web access for fetching live content. Defaults to `true`.
@@ -1853,6 +1860,10 @@ for (const part of result.content) {
           // url_citation is returned from web_search and provides:
           // properties: type, url, title, start_index and end_index
           break;
+        case 'file_search':
+          // Retrieved file-search result; provides fileId.
+          // The filename is available as part.filename.
+          break;
         case 'file_citation':
           // file_citation is returned from file_search and provides:
           // properties: type, file_id, filename and index
@@ -1931,12 +1942,20 @@ for (const part of result.content) {
 }
 ```
 
+When file-search results are included in the API response, each retrieved file
+is exposed once as a document source, even if it has multiple matching passages
+or is not cited. Inline file citations are available on `text.citations` and
+`text-end.citations`. If the response omits file-search results, file citations
+also remain document sources for compatibility. Generated file paths remain
+source parts and are not treated as citations.
+
 #### Typed providerMetadata in Source Document Parts
 
 For source document parts, when `part.type === 'source'` and `sourceType === 'document'`, the `providerMetadata` is provided as `OpenaiResponsesSourceDocumentProviderMetadata`.
 
 This metadata is also a discriminated union with a required `type` field. Supported types include:
 
+- `file_search` (retrieved file; includes `fileId`)
 - `file_citation`
 - `container_file_citation`
 - `file_path`
@@ -3515,6 +3534,22 @@ Structured state, instructions, and criterion descriptions are serialized as JSO
 text. Score levels receive zero-based index labels. Non-null Boolean criteria are
 appended to predicate instructions under `Criteria for true:` and `Criteria for false:`.
 String criteria are passed through; structured criteria are serialized as JSON text.
+
+Image file parts in `state` are sent as inline images. Set `imageDetail` in a file
+part's `providerOptions.openai` to `'low'`, `'high'`, `'auto'`, or `'original'` to
+choose its detail level:
+
+```ts
+state: [
+  { type: 'text', text: 'Inspect the product in this photo.' },
+  {
+    type: 'file',
+    mediaType: 'image/png',
+    data: productPhoto,
+    providerOptions: { openai: { imageDetail: 'high' } },
+  },
+],
+```
 
 The factory respects `createOpenAI` settings, including custom fetch and base URL.
 Set `providerOptions.openai.safetyIdentifier` to an opaque end-user identifier for

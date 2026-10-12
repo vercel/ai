@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/workflow",
-  "version": "2.0.62",
+  "version": "2.0.69",
   "type": "module",
   "description": "WorkflowAgent for building AI agents with AI SDK",
   "license": "Apache-2.0",
@@ -54,17 +54,20 @@
     "ajv": "^8.20.0"
   },
   "devDependencies": {
+    "@ai-sdk/otel": "workspace:*",
+    "@opentelemetry/api": "1.9.1",
+    "@opentelemetry/sdk-trace-base": "2.7.1",
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
-    "@workflow/vitest": "5.0.0-beta.42",
+    "@workflow/vitest": "5.0.2",
     "tsdown": "^0.23.0",
     "typescript": "6.0.3",
     "vitest": "4.1.11",
-    "workflow": "5.0.0-beta.42",
-    "zod": "4.4.3"
+    "workflow": "5.1.0",
+    "zod": "4.5.4"
   },
   "peerDependencies": {
-    "workflow": "^5.0.0-beta.42",
+    "workflow": "^5.1.0",
     "zod": "^3.25.76 || ^4.1.8"
   },
   "engines": {

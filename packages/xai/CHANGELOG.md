@@ -1,5 +1,27 @@
 # @ai-sdk/xai
 
+## 5.0.20
+
+### Patch Changes
+
+- Updated dependencies [4dbc902]
+  - @ai-sdk/provider@4.0.26
+  - @ai-sdk/provider-utils@5.0.58
+
+## 5.0.19
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider@4.0.25
+  - @ai-sdk/provider-utils@5.0.57
+
+## 5.0.18
+
+### Patch Changes
+
+- fab95c1: fix(xai): allow up to 20 `allowedXHandles` / `excludedXHandles` in the `xSearch` tool
+
 ## 5.0.17
 
 ### Patch Changes

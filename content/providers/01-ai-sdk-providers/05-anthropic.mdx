@@ -73,18 +73,18 @@ You can use the following optional settings to customize the Anthropic provider 
 ## Language Models
 
 You can create models that call the [Anthropic Messages API](https://docs.anthropic.com/claude/reference/messages_post) using the provider instance.
-The first argument is the model id, e.g. `claude-haiku-4-5`.
+The first argument is the model id, e.g. `claude-haiku-5-5`.
 Some models have multi-modal capabilities.
 
 ```ts
-const model = anthropic('claude-haiku-4-5');
+const model = anthropic('claude-haiku-5-5');
 ```
 
 You can also use the following aliases for model creation:
 
-- `anthropic.languageModel('claude-haiku-4-5')` - Creates a language model
-- `anthropic.chat('claude-haiku-4-5')` - Alias for `languageModel`
-- `anthropic.messages('claude-haiku-4-5')` - Alias for `languageModel`
+- `anthropic.languageModel('claude-haiku-5-5')` - Creates a language model
+- `anthropic.chat('claude-haiku-5-5')` - Alias for `languageModel`
+- `anthropic.messages('claude-haiku-5-5')` - Alias for `languageModel`
 
 You can use Anthropic language models to generate text with the `generateText` function:
 
@@ -93,7 +93,7 @@ import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: anthropic('claude-haiku-4-5'),
+  model: anthropic('claude-haiku-5-5'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -113,7 +113,7 @@ import { anthropic } from '@ai-sdk/anthropic';
 import { streamText } from 'ai';
 
 const result = streamText({
-  model: anthropic('claude-haiku-4-5'),
+  model: anthropic('claude-haiku-5-5'),
   prompt: 'Say hi in one word.',
 });
 
@@ -245,9 +245,18 @@ verify that a tool call was made.
 
 ### Effort
 
-Anthropic introduced an `effort` option with `claude-opus-4-5` that affects thinking, text responses, and function calls. Effort defaults to `high` and you can set it to `medium` or `low` to save tokens and to lower time-to-last-token latency (TTLT). `claude-opus-4-7`, `claude-opus-4-8`, `claude-opus-5`, `claude-opus-5-5`, `claude-fable-5`, `claude-fable-5-1`, `claude-sonnet-5`, and `claude-sonnet-5-5` additionally support `xhigh` for maximum reasoning effort.
+Anthropic introduced an `effort` option with `claude-opus-4-5` that affects thinking, text responses, and function calls. Effort defaults to `high` and you can set it to `medium` or `low` to save tokens and to lower time-to-last-token latency (TTLT). `claude-opus-4-7`, `claude-opus-4-8`, `claude-opus-5`, `claude-opus-5-5`, `claude-fable-5`, `claude-fable-5-1`, `claude-sonnet-5`, `claude-sonnet-5-5`, and `claude-haiku-5-5` additionally support `xhigh` for maximum reasoning effort.
 
-On `claude-opus-5`, thinking can only be disabled at effort levels up to and including `high`. When you combine `thinking: { type: 'disabled' }` with `effort: 'xhigh'` or `effort: 'max'`, the AI SDK lowers the effort to `high` and emits a warning instead of sending a request that the API would reject.
+On `claude-opus-5` and `claude-haiku-5-5`, thinking can only be disabled at effort levels up to and including `high`. When you combine `thinking: { type: 'disabled' }` with `effort: 'xhigh'` or `effort: 'max'`, the AI SDK lowers the effort to `high` and emits a warning instead of sending a request that the API would reject.
+
+`claude-haiku-5-5` is the first Haiku model with effort levels and supports all
+five of them. It uses adaptive thinking and does not support thinking token
+budgets: the AI SDK converts `thinking: { type: 'enabled', budgetTokens }` to
+`{ type: 'adaptive' }` and emits a warning. Use `effort` to control how much it
+thinks. Unlike `claude-sonnet-5-5`, thinking can still be turned off with
+`thinking: { type: 'disabled' }`, but only at `low`, `medium`, and `high` effort.
+Start at `medium` effort and test other levels rather than carrying over the
+settings you used on `claude-haiku-4-5`.
 
 On `claude-opus-5-5`, thinking is always adaptive and cannot be disabled, so
 `effort` is the main control for latency and cost. The API default effort for
@@ -369,6 +378,8 @@ The `inferenceGeo` option accepts `'us'` (US-only infrastructure) or `'global'` 
 ### Safety Classifiers and Fallbacks
 
 Claude Fable 5 has safeguards that limit its performance in certain areas like cybersecurity, biology, and chemistry, and automated safety checks are run on every request.
+
+Claude Haiku 5.5 has the same biology safeguards as Claude Sonnet 5 and 5.5, plus safeguards that prevent cyber misuse.
 
 Claude Sonnet 5.5 also has safety classifiers enabled, including for cybersecurity, biology, and reasoning extraction. Requests that ask the model to reproduce its internal reasoning in the response text can be declined with the `reasoning_extraction` category; use `thinking: { type: 'adaptive', display: 'summarized' }` and read the reasoning parts instead.
 
@@ -1409,6 +1420,40 @@ const result = await generateText({
   settings](https://console.anthropic.com/settings/privacy).
 </Note>
 
+#### Sources and Citations
+
+`result.sources` and source stream events expose web-search results. Inline
+references are attached separately to generated text as `part.citations`, and
+to streamed text as `text-end.citations`. This shared citation representation
+includes the referenced URL or document and its supporting passage. If web-search
+results are unavailable, web citations also provide source references for
+compatibility. Indexed document references retain their existing document source
+parts when the original prompt supplies document information.
+
+Raw citations remain available as
+`text.providerMetadata.anthropic.citations`, including on streamed `text-end`
+events. Import `AnthropicTextProviderMetadata` and `AnthropicCitation` for typed
+access. `AnthropicCitation` is a union of `web_search_result_location`,
+`search_result_location`, `page_location`, `char_location`, and
+`content_block_location`. Document page, character, and block locations refer to
+the source document, rather than the generated answer.
+
+```ts
+import type { AnthropicTextProviderMetadata } from '@ai-sdk/anthropic';
+
+for (const part of result.content) {
+  if (part.type === 'text') {
+    console.log(part.citations);
+    const metadata = part.providerMetadata as
+      | AnthropicTextProviderMetadata
+      | undefined;
+    for (const citation of metadata?.anthropic.citations ?? []) {
+      console.log(citation.type, citation.cited_text);
+    }
+  }
+}
+```
+
 #### Configuration Options
 
 Use `webSearch_20260318` for dynamic filtering and response inclusion control.
@@ -2248,6 +2293,7 @@ and the `mediaType` should be set to `'application/pdf'`.
 | `claude-opus-5`     | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
 | `claude-sonnet-5-5` | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
 | `claude-sonnet-5`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
+| `claude-haiku-5-5`  | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
 | `claude-fable-5-1`  | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
 | `claude-fable-5`    | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
 | `claude-opus-4-8`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |

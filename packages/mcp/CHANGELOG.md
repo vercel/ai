@@ -1,5 +1,41 @@
 # @ai-sdk/mcp
 
+## 2.0.73
+
+### Patch Changes
+
+- b5b0416: Give experimental managed event adapters a synchronous `createAdapter({ transport })` method that receives the configured MCP transport type and URL and returns bound subscription operations. Applications no longer need to configure the endpoint twice.
+
+  **Breaking change to the experimental API:** the configured integration is now `Experimental_MCPEventAdapter` and must implement `createAdapter`. The former `Experimental_MCPEventsAdapter` subscription operations interface is renamed to `Experimental_MCPEventOperations`. Update imports and operation type annotations, and wrap existing operations with `{ createAdapter: () => operations }` instead of passing them directly to `experimental_events.adapter`.
+
+  `createAdapter` must synchronously return an object implementing `subscribe`, `getSubscription`, `listSubscriptions`, and `unsubscribe`. Missing or non-callable operations, nullish results, and Promise/thenable results now reject `createMCPClient` with `MCPClientError` before the transport starts.
+
+  The adapter receives a fresh `transport: { type: 'http' | 'sse', url: string }` description for built-in transport configurations or `transport: { type: 'custom' }` for custom instances. Credentials, callbacks, and live transport methods are not forwarded.
+
+## 2.0.72
+
+### Patch Changes
+
+- Updated dependencies [4dbc902]
+  - @ai-sdk/provider@4.0.26
+  - @ai-sdk/provider-utils@5.0.58
+
+## 2.0.71
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider@4.0.25
+  - @ai-sdk/provider-utils@5.0.57
+
+## 2.0.70
+
+### Patch Changes
+
+- 6315a3d: Add experimental managed MCP Events adapters for backend-owned subscription lifecycles without a local event store. Rename the unreleased client event configuration to `experimental_events` and infer distinct managed and direct event APIs from a single MCPClientConfig and exclusive MCPEventsConfig union.
+- ac50548: feat(mcp): add compatibility for webhook based mcp events
+- d8e4b51: fix(mcp): authorization server paths beginning with repeated slashes should not bypass authorization server validation
+
 ## 2.0.69
 
 ### Patch Changes

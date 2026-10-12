@@ -1,5 +1,28 @@
 # @ai-sdk/mistral
 
+## 4.0.62
+
+### Patch Changes
+
+- 5cf13d2: feat: map the top level embedding dimensions to provider settings
+- Updated dependencies [4dbc902]
+  - @ai-sdk/provider@4.0.26
+  - @ai-sdk/provider-utils@5.0.58
+
+## 4.0.61
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider@4.0.25
+  - @ai-sdk/provider-utils@5.0.57
+
+## 4.0.60
+
+### Patch Changes
+
+- 1c963f2: feat(mistral): add conversations api and web search tool
+
 ## 4.0.59
 
 ### Patch Changes

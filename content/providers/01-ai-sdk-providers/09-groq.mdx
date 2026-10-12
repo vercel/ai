@@ -318,14 +318,16 @@ Groq provides a browser search tool that offers interactive web browsing capabil
 
 ### Supported Models
 
-Browser search is only available for these specific models:
+Browser search is available on Groq's GPT-OSS models, for example:
 
 - `openai/gpt-oss-20b`
 - `openai/gpt-oss-120b`
 
 <Note type="warning">
-  Browser search will only work with the supported models listed above. Using it
-  with other models will generate a warning and the tool will be ignored.
+  Known model IDs without browser search support (such as the Llama, Qwen, and
+  Kimi models) will generate a warning and the tool will be ignored. Unknown
+  model IDs are forwarded with the tool, and the Groq API decides whether it is
+  supported.
 </Note>
 
 ### Basic Usage
@@ -380,13 +382,13 @@ for await (const delta of result.stream) {
 ### Best Practices
 
 - Use `toolChoice: 'required'` to ensure the browser search is activated
-- Only supported on `openai/gpt-oss-20b` and `openai/gpt-oss-120b` models
+- Use a model that supports browser search, such as `openai/gpt-oss-20b` or `openai/gpt-oss-120b`
 - The tool works automatically - no configuration parameters needed
 - Server-side execution means no additional API keys or setup required
 
 ### Model Validation
 
-The provider automatically validates model compatibility:
+The provider ignores the tool for known model IDs without browser search support:
 
 ```ts
 // ✅ Supported - will work
@@ -400,7 +402,7 @@ const result = await generateText({
   model: groq('llama-3.1-8b-instant'),
   tools: { browser_search: groq.tools.browserSearch({}) },
 });
-// Warning: "Browser search is only supported on models: openai/gpt-oss-20b, openai/gpt-oss-120b"
+// Warning: "Browser search is not supported on model llama-3.1-8b-instant."
 ```
 
 <Note>

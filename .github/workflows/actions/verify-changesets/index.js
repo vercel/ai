@@ -12,7 +12,7 @@ function getChangedFiles(value) {
 
 function isCodeFile(path) {
   if (!path.startsWith('packages/')) return false;
-  if (/^packages\/[^/]+\/scripts\//.test(path)) return false;
+  if (/^packages\/[^/]+\/(scripts|examples|docs)\//.test(path)) return false;
   if (TEST_FILE_PATTERNS.test(path)) return false;
   if (path.endsWith('.md')) return false;
   return CODE_EXTENSIONS.test(path);

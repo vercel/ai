@@ -149,12 +149,25 @@ const opus55AnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   opus55AnthropicModelId,
 )}/converse`;
 
+const haiku55AnthropicModelId = 'us.anthropic.claude-haiku-5-5';
+const haiku55AnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  haiku55AnthropicModelId,
+)}/converse`;
+
 const sonnet5AnthropicModelId = 'us.anthropic.claude-sonnet-5';
 const sonnet5AnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   sonnet5AnthropicModelId,
 )}/converse`;
 
+const futureAnthropicModelId = 'us.anthropic.claude-opus-6-v1:0';
+const futureAnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(futureAnthropicModelId)}/converse`;
+
+const futureMinorAnthropicModelId = 'us.anthropic.claude-opus-4-9-v1:0';
+const futureMinorAnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(futureMinorAnthropicModelId)}/converse`;
+
 const server = createTestServer({
+  [futureAnthropicGenerateUrl]: {},
+  [futureMinorAnthropicGenerateUrl]: {},
   [generateUrl]: {},
   [streamUrl]: {
     response: {
@@ -179,6 +192,7 @@ const server = createTestServer({
   [opus5AnthropicGenerateUrl]: {},
   [opus55AnthropicGenerateUrl]: {},
   [sonnet5AnthropicGenerateUrl]: {},
+  [haiku55AnthropicGenerateUrl]: {},
 });
 
 describe('supportedUrls', () => {
@@ -334,6 +348,16 @@ const opusAnthropicModel = new AmazonBedrockChatLanguageModel(
 
 const opus5AnthropicModel = new AmazonBedrockChatLanguageModel(
   opus5AnthropicModelId,
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    fetch: fakeFetchWithAuth,
+    generateId: () => 'test-id',
+  },
+);
+
+const haiku55AnthropicModel = new AmazonBedrockChatLanguageModel(
+  haiku55AnthropicModelId,
   {
     baseUrl: () => baseUrl,
     headers: {},
@@ -6703,6 +6727,56 @@ describe('doGenerate', () => {
     ).toBeUndefined();
   });
 
+  it('should use the json tool fallback for claude-haiku-5-5 (Bedrock rejects output_config.format)', async () => {
+    server.urls[haiku55AnthropicGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                toolUse: {
+                  toolUseId: 'json-tool-id',
+                  name: 'json',
+                  input: { name: 'Test' },
+                },
+              },
+            ],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+        stopReason: 'tool_use',
+      },
+    };
+
+    await haiku55AnthropicModel.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Generate a name' }],
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+          },
+          required: ['name'],
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe('json');
+    expect(
+      requestBody.additionalModelRequestFields?.output_config,
+    ).toBeUndefined();
+  });
+
   it.each([undefined, 'jsonTool'] as const)(
     'should use JSON instructions instead of forced tool use for claude-opus-5-5 with structuredOutputMode %s',
     async structuredOutputMode => {
@@ -9128,3 +9202,75 @@ describe('doGenerate', () => {
     });
   });
 });
+
+it.each([
+  [futureAnthropicModelId, futureAnthropicGenerateUrl, false],
+  [futureAnthropicModelId, futureAnthropicGenerateUrl, true],
+  [futureMinorAnthropicModelId, futureMinorAnthropicGenerateUrl, false],
+  [futureMinorAnthropicModelId, futureMinorAnthropicGenerateUrl, true],
+] as const)(
+  'should use JSON instructions for future Claude model %s at %s (with tools: %s)',
+  async (modelId, generateUrl, withTools) => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ text: '{"name":"Test"}' }],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+        stopReason: 'end_turn',
+      },
+    };
+    const model = new AmazonBedrockChatLanguageModel(modelId, {
+      baseUrl: () => baseUrl,
+      headers: {},
+      fetch: fakeFetchWithAuth,
+      generateId: () => 'test-id',
+    });
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema: { type: 'object', properties: { name: { type: 'string' } } },
+      },
+      tools: withTools
+        ? [
+            {
+              type: 'function',
+              name: 'lookup',
+              strict: true,
+              inputSchema: {
+                type: 'object',
+                properties: {},
+                additionalProperties: false,
+              },
+            },
+          ]
+        : undefined,
+    });
+    const body = await server.calls[0].requestBodyJson;
+    expect(
+      body.additionalModelRequestFields?.output_config?.format,
+    ).toBeUndefined();
+    expect(body.system).toEqual(
+      expect.arrayContaining([
+        {
+          text: expect.stringContaining(
+            'You MUST answer with only a JSON object',
+          ),
+        },
+      ]),
+    );
+    if (withTools) {
+      expect(body.toolConfig.tools).toHaveLength(1);
+      expect(body.toolConfig.tools[0].toolSpec.name).toBe('lookup');
+      expect(body.toolConfig.tools[0].toolSpec.strict).toBeUndefined();
+    } else {
+      expect(body.toolConfig).toBeUndefined();
+    }
+    expect(result.content).toEqual([{ type: 'text', text: '{"name":"Test"}' }]);
+  },
+);
