@@ -73,8 +73,9 @@ export type PiHarnessSettings = {
    */
   readonly agentDir?: string;
   /**
-   * MCP servers keyed by server name, in Pi's native MCP server configuration
-   * (stdio or streamable HTTP). Tools are named `mcp__<server>__<tool>`, with
+   * MCP servers keyed by server name. Each value is a `PiMcpServerConfig`,
+   * Pi's native MCP server configuration (stdio or streamable HTTP). Tools
+   * are named `mcp__<server>__<tool>`, with
    * `-` in either name replaced by `_`.
    *
    * `exposure` defaults to `direct`, which declares the server's tools to the
@@ -86,7 +87,7 @@ export type PiHarnessSettings = {
    * runs. No `mcp.json` is read and nothing is written under Pi's agent
    * directory.
    */
-  readonly mcpServers?: Readonly<Record<string, PiMcpServerConfig>>;
+  readonly mcpServers?: Record<string, unknown>;
   /**
    * @deprecated Pi's native MCP serves `mcpServers` and has no adapter
    * settings. It always names tools `mcp__<server>__<tool>` and always
@@ -240,7 +241,13 @@ export function createPi(
           ...(settings.cacheRetention
             ? { cacheRetention: settings.cacheRetention }
             : {}),
-          ...(settings.mcpServers ? { mcpServers: settings.mcpServers } : {}),
+          ...(settings.mcpServers
+            ? {
+                mcpServers: settings.mcpServers as Readonly<
+                  Record<string, PiMcpServerConfig>
+                >,
+              }
+            : {}),
           ...(settings.mcpSettings
             ? { mcpSettings: settings.mcpSettings }
             : {}),

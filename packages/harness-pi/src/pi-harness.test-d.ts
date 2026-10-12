@@ -5,6 +5,7 @@ import {
   type PiCredentialStore,
   type PiHarnessExtensionSession,
   type PiHarnessSettings,
+  type PiMcpServerConfig,
 } from './index';
 
 test('PiHarnessSettings accepts readonly extension factory arrays', () => {
@@ -76,7 +77,7 @@ test('createPi accepts a file tool path policy with readonly roots', () => {
   createPi({ fileToolPathPolicy: {} });
 });
 
-test('createPi accepts native MCP server configs', () => {
+test('PiMcpServerConfig describes native MCP server configs', () => {
   createPi({
     mcpServers: {
       brand: {
@@ -89,16 +90,13 @@ test('createPi accepts native MCP server configs', () => {
         args: [],
         toolExposure: { secret: 'hidden' },
       },
-    },
+    } satisfies Record<string, PiMcpServerConfig>,
   });
-  createPi({
-    // @ts-expect-error
-    mcpServers: { brand: { url: 'https://x', exposure: 'codemode' } },
-  });
-  createPi({
-    // @ts-expect-error
-    mcpServers: { memory: { command: 'memory-mcp', lifecycle: 'eager' } },
-  });
+  const acceptConfig = (_config: PiMcpServerConfig) => {};
+  // @ts-expect-error
+  acceptConfig({ url: 'https://x', exposure: 'codemode' });
+  // @ts-expect-error
+  acceptConfig({ command: 'memory-mcp', lifecycle: 'eager' });
 });
 
 test('createPi accepts deprecated MCP adapter settings', () => {
