@@ -1,27 +1,11 @@
 import { createTransformer } from '../lib/create-transformer';
 
-export default createTransformer((fileInfo, api, options, context) => {
+export default createTransformer((_fileInfo, _api, _options, context) => {
   const { j, root } = context;
 
   // Track aliases for getUIText
   const aliases = new Set<string>();
   aliases.add('getUIText'); // Include the original name
-
-  // Extract leading comments from the original source
-  const originalLines = fileInfo.source.split('\n');
-  const leadingComments: string[] = [];
-  for (const line of originalLines) {
-    const trimmedLine = line.trim();
-    if (
-      trimmedLine.startsWith('//') ||
-      trimmedLine.startsWith('/*') ||
-      trimmedLine === ''
-    ) {
-      leadingComments.push(line);
-    } else {
-      break; // Stop at the first non-comment, non-empty line
-    }
-  }
 
   // Remove getUIText from import statements and track aliases
   root
@@ -51,6 +35,15 @@ export default createTransformer((fileInfo, api, options, context) => {
         });
 
         if (filteredSpecifiers.length === 0) {
+          const program = path.parent.node;
+          const importIndex = program.body.indexOf(path.node);
+          const commentTarget = program.body[importIndex + 1] ?? program;
+
+          commentTarget.comments = [
+            ...(path.node.comments ?? []),
+            ...(commentTarget.comments ?? []),
+          ];
+
           // Remove entire import if no specifiers left
           j(path).remove();
         } else {
@@ -106,69 +99,4 @@ export default createTransformer((fileInfo, api, options, context) => {
       j(path).replaceWith(replacement);
       context.hasChanges = true;
     });
-
-  // Handle comment preservation if changes were made
-  if (context.hasChanges && leadingComments.length > 0) {
-    // Get the transformed source
-    const transformedSource = root.toSource({ quote: 'single' });
-    const transformedLines = transformedSource.split('\n');
-
-    // Check if the transformed source starts with the same comments
-    let needsCommentRestoration = false;
-    for (let i = 0; i < leadingComments.length; i++) {
-      if (
-        i >= transformedLines.length ||
-        leadingComments[i] !== transformedLines[i]
-      ) {
-        needsCommentRestoration = true;
-        break;
-      }
-    }
-
-    if (needsCommentRestoration) {
-      // Find the first non-comment line in the transformed source
-      let firstCodeLineIndex = 0;
-      for (let i = 0; i < transformedLines.length; i++) {
-        const trimmedLine = transformedLines[i].trim();
-        if (
-          trimmedLine !== '' &&
-          !trimmedLine.startsWith('//') &&
-          !trimmedLine.startsWith('/*')
-        ) {
-          firstCodeLineIndex = i;
-          break;
-        }
-      }
-
-      // Rebuild the source with preserved comments
-      const preservedComments = leadingComments.join('\n');
-      const codeWithoutLeadingComments = transformedLines
-        .slice(firstCodeLineIndex)
-        .join('\n');
-
-      // Determine spacing between comments and code
-      let spacingAfterComments = '';
-      const lastCommentIndex = leadingComments.length - 1;
-      if (
-        lastCommentIndex >= 0 &&
-        leadingComments[lastCommentIndex].trim() === ''
-      ) {
-        // If the last leading comment line is empty, preserve that spacing
-        spacingAfterComments = '\n';
-      } else {
-        // Otherwise add a single newline to separate comments from code
-        spacingAfterComments = '\n';
-      }
-
-      // Override the default transformation result by directly returning the preserved version
-      const preservedResult = `${preservedComments}${spacingAfterComments}${codeWithoutLeadingComments}`;
-
-      // We need to manually handle the return since createTransformer expects us to modify context.hasChanges
-      // but we want to return a custom result. We'll modify the root to contain our preserved content.
-      const preservedAST = j(preservedResult);
-      context.root
-        .find(j.Program)
-        .replaceWith(preservedAST.find(j.Program).get().node);
-    }
-  }
 });
