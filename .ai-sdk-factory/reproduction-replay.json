@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "issueId": 21027,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-21027-google-tool-use-usage.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-21027-google-tool-use-usage.ts",
+    "packages/google/src/__fixtures__/google-tool-use-usage-issue-21027.chunks.txt"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_21027_REPRODUCED: AI SDK omits Google tool-use prompt tokens from reported usage"
+  }
+}
