@@ -399,9 +399,8 @@ export class HarnessAgent<
     const isResumedSession =
       validatedResumeFrom != null || effectiveContinueFrom != null;
 
-    const recipe = await harness.getBootstrap?.({ abortSignal });
     const lazySetup = this.sandboxConfig.setup === 'lazy';
-    if (lazySetup && recipe != null) {
+    if (lazySetup && (await harness.getBootstrap?.({ abortSignal })) != null) {
       throw new Error(
         `HarnessAgent.createSession: \`sandboxConfig.setup: 'lazy'\` is not supported for harness '${harness.harnessId}' because it declares a sandbox bootstrap recipe.`,
       );
@@ -428,6 +427,7 @@ export class HarnessAgent<
         workDir: this.sandboxConfig.workDir,
       });
 
+      const recipe = await harness.getBootstrap?.({ abortSignal });
       if (recipe != null) {
         const recipeIdentity = await hashHarnessBootstrap(recipe);
         try {
@@ -460,6 +460,7 @@ export class HarnessAgent<
         );
       }
 
+      const recipe = await harness.getBootstrap?.({ abortSignal });
       if (isResumedSession) {
         if (sandboxProvider.resumeSession == null) {
           throw new HarnessCapabilityUnsupportedError({

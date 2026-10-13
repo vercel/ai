@@ -3687,6 +3687,23 @@ describe('HarnessAgent', () => {
     expect(base.doStart).not.toHaveBeenCalled();
   });
 
+  test('the default setup reports a missing sandbox before it asks the harness for a bootstrap recipe', async () => {
+    const base = mockHarness({ script: () => [] });
+    const getBootstrap = vi.fn(async () => ({
+      harnessId: 'mock',
+      bootstrapDir: '.harness-bootstrap/mock',
+      files: [],
+      commands: [],
+    }));
+    const harness: HarnessV1 = { ...base.harness, getBootstrap };
+
+    await expect(new HarnessAgent({ harness }).createSession()).rejects.toThrow(
+      'HarnessAgent.createSession: configure `sandbox` on HarnessAgent or pass `sandboxSession` to createSession().',
+    );
+
+    expect(getBootstrap).not.toHaveBeenCalled();
+  });
+
   test("sandboxConfig.setup 'lazy' with a sandbox provider acquires the sandbox at createSession() and defers the work dir", async () => {
     const { harness, doStart } = mockHarness({ script: () => [] });
     const run = vi.fn(async () => ({ exitCode: 0, stdout: '', stderr: '' }));
