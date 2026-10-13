@@ -27,7 +27,7 @@ describe('createFx', () => {
       version: settings.version,
       harnessId: settings.harnessId,
       clientApp: settings.clientApp,
-      source: { type: settings.source.type },
+      source: settings.source,
       executable: settings.executable,
       args: settings.args,
       credentialEnv: settings.credentialEnv,
@@ -46,7 +46,15 @@ describe('createFx', () => {
           },
         ]),
       ),
-    }).toMatchInlineSnapshot(`
+    }).toMatchInlineSnapshot(
+      {
+        source: {
+          command: expect.stringMatching(
+            /^curl -fsSL https:\/\/fx\.sh\/setup\.sh \| bash -s -- v\S+$/,
+          ),
+        },
+      },
+      `
       {
         "args": [
           "acp",
@@ -233,18 +241,12 @@ describe('createFx', () => {
           },
         },
         "source": {
+          "command": StringMatching /\\^curl -fsSL https:\\\\/\\\\/fx\\\\\\.sh\\\\/setup\\\\\\.sh \\\\\\| bash -s -- v\\\\S\\+\\$/,
           "type": "install-command",
         },
         "version": "v1",
       }
-    `);
-
-    if (settings.source.type !== 'install-command') {
-      throw new Error('fx source must be an install command');
-    }
-
-    expect(settings.source.command).toMatch(
-      /^curl -fsSL https:\/\/fx\.sh\/setup\.sh \| bash -s -- v\S+$/,
+    `,
     );
   });
 
