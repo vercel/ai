@@ -1,5 +1,6 @@
 ---
+'@ai-sdk/tool-bash': patch
 '@ai-sdk/tools': patch
 ---
 
-feat(tools): add a new first party bash tool
+Add the first-party bash tool in @ai-sdk/tool-bash. Retain @ai-sdk/tools as a placeholder for future shared tools.

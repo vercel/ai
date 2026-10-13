@@ -1,1 +1,1 @@
-export { bashTool } from './bash';
+export {};

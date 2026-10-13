@@ -10,16 +10,5 @@
     "build",
     "node_modules",
     "tsdown.config.ts"
-  ],
-  "references": [
-    {
-      "path": "../ai"
-    },
-    {
-      "path": "../sandbox-just-bash"
-    },
-    {
-      "path": "../sandbox-vercel"
-    }
   ]
 }
