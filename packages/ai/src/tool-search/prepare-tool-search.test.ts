@@ -331,6 +331,14 @@ describe('deferred tool search', () => {
     },
   );
 
+  it('handles long uppercase-only queries without pathological backtracking', async () => {
+    const prepare = createToolSearchState({ tools, toolCallers });
+
+    expect(await search(prepare(tools)!, 'A'.repeat(100_000))).toEqual({
+      tools: [],
+    });
+  });
+
   it.each([
     { query: 'request', expected: ['HTTPRequest', 'getRequest'] },
     { query: 'HTTP', expected: ['HTTPRequest', 'getHTTPStatus'] },

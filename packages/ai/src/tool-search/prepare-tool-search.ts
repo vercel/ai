@@ -157,10 +157,7 @@ function tokenize(text: string): string[] {
   const camelCaseText = text.replace(/([a-z\d])([A-Z])/g, '$1 $2');
   const legacyTerms =
     camelCaseText.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
-  const acronymSeparatedText = camelCaseText.replace(
-    /([A-Z]+)([A-Z][a-z])/g,
-    '$1 $2',
-  );
+  const acronymSeparatedText = splitAcronymWordBoundaries(camelCaseText);
 
   if (acronymSeparatedText === camelCaseText) {
     return legacyTerms;
@@ -174,4 +171,35 @@ function tokenize(text: string): string[] {
       ...(acronymSeparatedText.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []),
     ]),
   ];
+}
+
+function splitAcronymWordBoundaries(text: string): string {
+  let parts: string[] | undefined;
+  let partStart = 0;
+
+  for (let index = 1; index < text.length - 1; index++) {
+    const previous = text.charCodeAt(index - 1);
+    const current = text.charCodeAt(index);
+    const next = text.charCodeAt(index + 1);
+
+    if (
+      previous >= 65 &&
+      previous <= 90 &&
+      current >= 65 &&
+      current <= 90 &&
+      next >= 97 &&
+      next <= 122
+    ) {
+      parts ??= [];
+      parts.push(text.slice(partStart, index));
+      partStart = index;
+    }
+  }
+
+  if (parts == null) {
+    return text;
+  }
+
+  parts.push(text.slice(partStart));
+  return parts.join(' ');
 }
