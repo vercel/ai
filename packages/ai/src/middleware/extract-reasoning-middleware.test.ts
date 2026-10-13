@@ -1090,7 +1090,7 @@ describe('extractReasoningMiddleware', () => {
     });
 
     it('should preserve overlapping text parts', async () => {
-      const mockModel = new MockLanguageModelV4({
+      const mockModel = new MockLanguageModelV3({
         async doStream() {
           return {
             stream: convertArrayToReadableStream([
@@ -1136,7 +1136,7 @@ describe('extractReasoningMiddleware', () => {
     });
 
     it('should preserve reasoning from overlapping text parts', async () => {
-      const mockModel = new MockLanguageModelV4({
+      const mockModel = new MockLanguageModelV3({
         async doStream() {
           return {
             stream: convertArrayToReadableStream([

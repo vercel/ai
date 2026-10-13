@@ -95,16 +95,12 @@ export function extractReasoningMiddleware({
         }
       > = createIdMap();
 
-<<<<<<< HEAD
-      let delayedTextStart: LanguageModelV3StreamPart | undefined;
-=======
       let reasoningIdCounter = 0;
 
       const delayedTextStarts: Record<
         string,
-        Extract<LanguageModelV4StreamPart, { type: 'text-start' }>
+        Extract<LanguageModelV3StreamPart, { type: 'text-start' }>
       > = createIdMap();
->>>>>>> 2b105fa30b (fix: preserve overlapping text blocks when extracting reasoning (#21059))
 
       return {
         stream: stream.pipeThrough(
