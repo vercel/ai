@@ -3548,6 +3548,43 @@ describe('OpenAIResponsesLanguageModel', () => {
       it('should include generate image tool call and result in content', async () => {
         expect(result.content).toMatchSnapshot();
       });
+
+      it.each(['generate', 'edit', 'auto'] as const)(
+        'should send documented image generation options with action %s',
+        async action => {
+          prepareJsonFixtureResponse('issue-20206-image-generation-options');
+
+          await createModel('gpt-4.1-mini').doGenerate({
+            prompt: TEST_PROMPT,
+            toolChoice: { type: 'none' },
+            tools: [
+              {
+                type: 'provider',
+                id: 'openai.image_generation',
+                name: 'generateImage',
+                args: {
+                  action,
+                  model: 'gpt-image-2',
+                  moderation: 'low',
+                  size: '1536x864',
+                },
+              },
+            ],
+          });
+
+          expect(await server.calls.at(-1)?.requestBodyJson).toMatchObject({
+            tools: [
+              {
+                type: 'image_generation',
+                action,
+                model: 'gpt-image-2',
+                moderation: 'low',
+                size: '1536x864',
+              },
+            ],
+          });
+        },
+      );
     });
 
     describe('tool search tool', () => {
