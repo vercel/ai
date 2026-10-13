@@ -1592,6 +1592,89 @@ describe('HarnessAgent', () => {
     await session.destroy();
   });
 
+  test('preserves interleaved text and reasoning blocks by stream ID', async () => {
+    const textMetadataA = { mock: { block: 'text-a' } };
+    const textMetadataB = { mock: { block: 'text-b' } };
+    const reasoningMetadataA = { mock: { block: 'reasoning-a' } };
+    const reasoningMetadataB = { mock: { block: 'reasoning-b' } };
+    const { harness } = mockHarness({
+      script: () => [
+        {
+          type: 'text-start',
+          id: 'text-a',
+          harnessMetadata: textMetadataA,
+        },
+        { type: 'text-delta', id: 'text-a', delta: 'A1' },
+        {
+          type: 'text-start',
+          id: 'text-b',
+          harnessMetadata: textMetadataB,
+        },
+        { type: 'text-delta', id: 'text-b', delta: 'B1' },
+        { type: 'text-delta', id: 'text-a', delta: 'A2' },
+        { type: 'text-end', id: 'text-a' },
+        { type: 'text-end', id: 'text-b' },
+        {
+          type: 'reasoning-start',
+          id: 'reasoning-a',
+          harnessMetadata: reasoningMetadataA,
+        },
+        { type: 'reasoning-delta', id: 'reasoning-a', delta: 'R1' },
+        {
+          type: 'reasoning-start',
+          id: 'reasoning-b',
+          harnessMetadata: reasoningMetadataB,
+        },
+        { type: 'reasoning-delta', id: 'reasoning-b', delta: 'S1' },
+        { type: 'reasoning-delta', id: 'reasoning-a', delta: 'R2' },
+        { type: 'reasoning-end', id: 'reasoning-a' },
+        { type: 'reasoning-end', id: 'reasoning-b' },
+        {
+          type: 'finish-step',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          usage: zeroUsage(),
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          totalUsage: zeroUsage(),
+        },
+      ],
+    });
+    const agent = new HarnessAgent({ harness });
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
+
+    const result = await agent.stream({ session, prompt: 'hi' });
+    await result.consumeStream();
+
+    expect((await result.finalStep).content).toEqual([
+      {
+        type: 'text',
+        text: 'A1A2',
+        providerMetadata: textMetadataA,
+      },
+      {
+        type: 'text',
+        text: 'B1',
+        providerMetadata: textMetadataB,
+      },
+      {
+        type: 'reasoning',
+        text: 'R1R2',
+        providerMetadata: reasoningMetadataA,
+      },
+      {
+        type: 'reasoning',
+        text: 'S1',
+        providerMetadata: reasoningMetadataB,
+      },
+    ]);
+
+    await session.destroy();
+  });
+
   test('preserves response message order across tool and text steps', async () => {
     const harness = {
       specificationVersion: 'harness-v1',
