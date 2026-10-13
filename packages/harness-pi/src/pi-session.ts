@@ -644,17 +644,18 @@ export async function createPiSession(
 
   let sessionInstructions: string | undefined;
 
+  const extensionSession: PiHarnessExtensionSession = {
+    sandboxSession: toolSafeSandboxSession,
+    sessionWorkDir,
+    instructions: () => sessionInstructions,
+  };
+
   /*
    * Configured MCP servers are served by an inline Pi extension, so they share
    * the extension runtime with the caller-supplied factories: both are loaded
    * by the resource loader below and both are subject to the reload handling
    * that keeps the active runtime alive across resource-only reloads.
    */
-  const extensionSession: PiHarnessExtensionSession = {
-    sandboxSession: toolSafeSandboxSession,
-    sessionWorkDir,
-    instructions: () => sessionInstructions,
-  };
   const extensionFactories: ExtensionFactory[] = [
     ...(input.settings.extensionFactories ?? []).map(
       (factory): ExtensionFactory =>
