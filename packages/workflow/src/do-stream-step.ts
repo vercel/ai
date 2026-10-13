@@ -10,10 +10,10 @@ import {
   NoOutputGeneratedError,
   wrapLanguageModel,
   type LanguageModel,
-  type ModelMessage,
   type ToolSet,
 } from 'ai';
 import { isOutputChunk, prepareRetries } from 'ai/internal';
+import { languageModelPromptToModelMessages } from './language-model-prompt-to-model-messages.js';
 import type { StreamTextTransform } from './workflow-agent.js';
 import {
   resolveSerializableTools,
@@ -178,21 +178,7 @@ async function streamModelStep(
           // streamModelCall expects Prompt (ModelMessage[]) but we pass the
           // pre-converted LanguageModelV4Prompt. standardizePrompt inside
           // streamModelCall handles both formats.
-          messages: conversationPrompt.map(message =>
-            message.role !== 'tool'
-              ? message
-              : {
-                  ...message,
-                  // Provider prompt approval responses have already been filtered by
-                  // convertToLanguageModelPrompt. Restore the marker expected by the
-                  // model-call helper when it converts these messages again.
-                  content: message.content.map(part =>
-                    part.type === 'tool-approval-response'
-                      ? { ...part, providerExecuted: true }
-                      : part,
-                  ),
-                },
-          ) as unknown as ModelMessage[],
+          messages: languageModelPromptToModelMessages(conversationPrompt),
           allowSystemInMessages: true,
           tools,
           toolChoice: options?.toolChoice,
@@ -211,6 +197,7 @@ async function streamModelStep(
           stopSequences: options?.stopSequences,
           seed: options?.seed,
           repairToolCall: options?.repairToolCall,
+          download: options?.download,
           ...languageModelCallTelemetry,
         }),
       );
