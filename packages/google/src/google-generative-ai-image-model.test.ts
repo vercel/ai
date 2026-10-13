@@ -1,4 +1,5 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import fs from 'node:fs';
 import { GoogleGenerativeAIImageModel } from './google-generative-ai-image-model';
 import { describe, it, expect } from 'vitest';
 
@@ -556,8 +557,8 @@ describe('GoogleGenerativeAIImageModel (Gemini)', () => {
   }
 
   describe('maxImagesPerCall', () => {
-    it('should return 10 for Gemini image models by default', () => {
-      expect(geminiModel.maxImagesPerCall).toBe(10);
+    it('should return 1 for Gemini image models by default', () => {
+      expect(geminiModel.maxImagesPerCall).toBe(1);
     });
 
     it('should respect custom maxImagesPerCall setting', () => {
@@ -571,6 +572,31 @@ describe('GoogleGenerativeAIImageModel (Gemini)', () => {
         },
       );
       expect(customModel.maxImagesPerCall).toBe(5);
+    });
+
+    it('should advertise a default accepted by doGenerate', async () => {
+      geminiServer.urls[TEST_URL_GEMINI_IMAGE].response = {
+        type: 'json-value',
+        body: JSON.parse(
+          fs.readFileSync(
+            'src/__fixtures__/google-image-gemini-3.1-flash-image.json',
+            'utf8',
+          ),
+        ),
+      };
+
+      const result = await geminiModel.doGenerate({
+        prompt: 'A beautiful sunset',
+        files: undefined,
+        mask: undefined,
+        n: geminiModel.maxImagesPerCall,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.images).toHaveLength(1);
     });
   });
 
