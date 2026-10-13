@@ -1,0 +1,86 @@
+{
+  "recordedAt": "2026-10-13",
+  "modelId": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+  "cases": [
+    {
+      "filename": "John's report.txt",
+      "submittedName": "John's report",
+      "status": 400,
+      "body": {
+        "message": "The document file name can only contain alphanumeric characters, whitespace characters, hyphens, parentheses, and square brackets. The name can't contain more than one consecutive whitespace character. Check that the file name conforms to these restrictions and retry your request."
+      }
+    },
+    {
+      "filename": "invoice #123.txt",
+      "submittedName": "invoice #123",
+      "status": 400,
+      "body": {
+        "message": "The document file name can only contain alphanumeric characters, whitespace characters, hyphens, parentheses, and square brackets. The name can't contain more than one consecutive whitespace character. Check that the file name conforms to these restrictions and retry your request."
+      }
+    },
+    {
+      "filename": "a&b.txt",
+      "submittedName": "a&b",
+      "status": 400,
+      "body": {
+        "message": "The document file name can only contain alphanumeric characters, whitespace characters, hyphens, parentheses, and square brackets. The name can't contain more than one consecutive whitespace character. Check that the file name conforms to these restrictions and retry your request."
+      }
+    },
+    {
+      "filename": "report,2026.txt",
+      "submittedName": "report,2026",
+      "status": 400,
+      "body": {
+        "message": "The document file name can only contain alphanumeric characters, whitespace characters, hyphens, parentheses, and square brackets. The name can't contain more than one consecutive whitespace character. Check that the file name conforms to these restrictions and retry your request."
+      }
+    },
+    {
+      "filename": "résumé.txt",
+      "submittedName": "résumé",
+      "status": 400,
+      "body": {
+        "message": "The document file name can only contain alphanumeric characters, whitespace characters, hyphens, parentheses, and square brackets. The name can't contain more than one consecutive whitespace character. Check that the file name conforms to these restrictions and retry your request."
+      }
+    },
+    {
+      "filename": "분기보고서.txt",
+      "submittedName": "분기보고서",
+      "status": 400,
+      "body": {
+        "message": "The document file name can only contain alphanumeric characters, whitespace characters, hyphens, parentheses, and square brackets. The name can't contain more than one consecutive whitespace character. Check that the file name conforms to these restrictions and retry your request."
+      }
+    },
+    {
+      "filename": "Report -  Final.txt",
+      "submittedName": "Report -  Final",
+      "status": 400,
+      "body": {
+        "message": "The document file name can only contain alphanumeric characters, whitespace characters, hyphens, parentheses, and square brackets. The name can't contain more than one consecutive whitespace character. Check that the file name conforms to these restrictions and retry your request."
+      }
+    },
+    {
+      "filename": "a\tb.txt",
+      "submittedName": "a\tb",
+      "status": 400,
+      "body": {
+        "message": "The document file name can only contain alphanumeric characters, whitespace characters, hyphens, parentheses, and square brackets. The name can't contain more than one consecutive whitespace character. Check that the file name conforms to these restrictions and retry your request."
+      }
+    },
+    {
+      "filename": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.txt",
+      "submittedName": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "status": 400,
+      "body": {
+        "message": "1 validation error detected: Value at 'messages.1.member.content.2.member.document.name' failed to satisfy constraint: Member must have length less than or equal to 200"
+      }
+    },
+    {
+      "filename": ".txt",
+      "submittedName": "",
+      "status": 400,
+      "body": {
+        "message": "1 validation error detected: Value at 'messages.1.member.content.2.member.document.name' failed to satisfy constraint: Member must have length greater than or equal to 1"
+      }
+    }
+  ]
+}
