@@ -3,12 +3,10 @@ import {
   tool,
   type Tool,
   type ToolExecuteFunction,
+  type Experimental_SandboxSession as SandboxSession,
 } from 'ai';
-import { Bash } from 'just-bash';
 import { posix } from 'node:path';
 import { z } from 'zod/v4';
-
-const workingDirectory = '/workspace';
 
 type BashInput = { command: string };
 
@@ -31,25 +29,29 @@ function limitOutput(output: string, maxLength: number): string {
 }
 
 /**
- * Create a provider-independent bash tool backed by an in-memory just-bash
- * environment. Commands run in the application's Node.js process, not in a
- * host shell or a remote service.
+ * Create a provider-independent bash tool backed by a supplied sandbox session.
  *
- * Files persist across calls to the returned tool. Each factory call creates
- * a separate filesystem. Shell variables and working directory changes do not
- * persist between commands.
+ * The caller owns the sandbox's lifecycle. Tools using the same session share
+ * its files. Available commands and persistence depend on the sandbox.
  *
- * @param files - UTF-8 files to initialize, relative to `/workspace`.
+ * @param sandbox - Sandbox session used for commands and file operations.
+ * @param files - UTF-8 files to initialize, relative to `workingDirectory`.
+ * @param workingDirectory - Absolute starting directory for every command.
+ * Defaults to `/workspace` and is created if needed.
  * @param maxOutputLength - Maximum characters retained from each output stream
  * before appending a truncation notice. Defaults to 30,000.
  */
 export async function createBashTool({
+  sandbox,
   files = {},
+  workingDirectory = '/workspace',
   maxOutputLength = 30_000,
 }: {
+  sandbox: SandboxSession;
   files?: Record<string, string>;
+  workingDirectory?: string;
   maxOutputLength?: number;
-} = {}): Promise<{
+}): Promise<{
   bash: Tool<BashInput, BashOutput, {}> & {
     execute: ToolExecuteFunction<BashInput, BashOutput, {}>;
   };
@@ -63,45 +65,64 @@ export async function createBashTool({
     });
   }
 
-  const initialFiles = Object.fromEntries(
-    Object.entries(files).map(([path, content]) => {
-      const resolvedPath = posix.resolve(workingDirectory, path);
+  if (!posix.isAbsolute(workingDirectory)) {
+    throw new InvalidArgumentError({
+      parameter: 'workingDirectory',
+      value: workingDirectory,
+      message: 'Must be an absolute path in the sandbox.',
+    });
+  }
 
-      if (
-        posix.isAbsolute(path) ||
-        !resolvedPath.startsWith(`${workingDirectory}/`)
-      ) {
-        throw new InvalidArgumentError({
-          parameter: 'files',
-          value: path,
-          message: 'File paths must be relative paths within /workspace.',
-        });
-      }
+  workingDirectory = posix.normalize(workingDirectory);
 
-      return [resolvedPath, content];
-    }),
-  );
+  const initialFiles = Object.entries(files).map(([path, content]) => {
+    const resolvedPath = posix.resolve(workingDirectory, path);
+    const relativePath = posix.relative(workingDirectory, resolvedPath);
 
-  const environment = new Bash({
-    cwd: workingDirectory,
-    files: initialFiles,
+    if (
+      posix.isAbsolute(path) ||
+      relativePath === '' ||
+      relativePath === '..' ||
+      relativePath.startsWith('../')
+    ) {
+      throw new InvalidArgumentError({
+        parameter: 'files',
+        value: path,
+        message: 'File paths must be relative paths within workingDirectory.',
+      });
+    }
+
+    return { path: resolvedPath, content };
   });
-  await environment.fs.mkdir(workingDirectory, { recursive: true });
+
+  const directoryResult = await sandbox.run({
+    command: `mkdir -p -- '${workingDirectory.replace(/'/g, "'\\''")}'`,
+  });
+  if (directoryResult.exitCode !== 0) {
+    throw new Error(
+      `Failed to create working directory: ${directoryResult.stderr}`,
+    );
+  }
+
+  for (const file of initialFiles) {
+    await sandbox.writeTextFile(file);
+  }
 
   return {
     bash: tool<BashInput, BashOutput, {}>({
       description:
-        'Run Bash commands over an in-memory filesystem. ' +
-        'Every command starts in /workspace. Files persist between calls, but ' +
-        'shell variables and directory changes do not. ' +
+        'Run Bash commands in the sandbox. ' +
+        `Every command starts in ${workingDirectory}. ` +
         'Use ls to discover files and commands such as cat, grep, sort, awk, ' +
         'and jq to inspect and transform them. Pipes and redirections are supported. ' +
-        'Host files, network access, and arbitrary installed programs are unavailable. ' +
-        'Returns stdout, stderr, and exitCode; long output is truncated.',
+        'Returns stdout, stderr, and exitCode; long output is truncated.\n' +
+        sandbox.description,
       inputSchema,
-      execute: async ({ command }) => {
-        const { stdout, stderr, exitCode } = await environment.exec(command, {
-          cwd: workingDirectory,
+      execute: async ({ command }, { abortSignal }) => {
+        const { stdout, stderr, exitCode } = await sandbox.run({
+          command,
+          workingDirectory,
+          abortSignal,
         });
 
         return {
@@ -112,8 +133,14 @@ export async function createBashTool({
       },
     }),
     sandbox: {
-      /** Read a generated UTF-8 file by its absolute in-memory path. */
-      readFile: (path: string) => environment.fs.readFile(path),
+      /** Read a generated UTF-8 file by its absolute sandbox path. */
+      readFile: async (path: string) => {
+        const content = await sandbox.readTextFile({ path });
+        if (content === null) {
+          throw new Error(`File not found: ${path}`);
+        }
+        return content;
+      },
     },
   };
 }

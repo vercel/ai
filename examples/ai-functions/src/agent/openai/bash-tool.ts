@@ -1,31 +1,36 @@
-import { openai } from '@ai-sdk/openai';
+import { createJustBashNetworkSandboxSession } from '@ai-sdk/sandbox-just-bash';
 import { createBashTool } from '@ai-sdk/tools/bash';
 import { isStepCount, ToolLoopAgent } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const { bash, sandbox } = await createBashTool({
-    files: {
-      'sales.json': JSON.stringify([
-        { product: 'Apples', revenue: 120 },
-        { product: 'Pears', revenue: 80 },
-      ]),
-    },
-  });
+  const session = await createJustBashNetworkSandboxSession();
 
-  const agent = new ToolLoopAgent({
-    model: 'openai/gpt-6-astra',
-    tools: { bash },
-    stopWhen: isStepCount(15),
-  });
+  try {
+    const { bash, sandbox } = await createBashTool({
+      sandbox: session.restricted(),
+      files: {
+        'sales.json': JSON.stringify([
+          { product: 'Apples', revenue: 120 },
+          { product: 'Pears', revenue: 80 },
+        ]),
+      },
+    });
 
-  const result = await agent.generate({
-    prompt:
-      'Whats our total sales revenue. Write a short summary to report.md.',
-    onStepEnd: step => {
-      console.log(JSON.stringify(step.content, null, 2));
-    },
-  });
+    const agent = new ToolLoopAgent({
+      model: 'openai/gpt-6-astra',
+      tools: { bash },
+      stopWhen: isStepCount(15),
+    });
 
-  console.log(await sandbox.readFile('/workspace/report.md'));
+    const result = await agent.generate({
+      prompt:
+        'What is our total sales revenue? Write a short summary to report.md.',
+    });
+
+    console.log(result.text);
+    console.log(await sandbox.readFile('/workspace/report.md'));
+  } finally {
+    await session.destroy();
+  }
 });

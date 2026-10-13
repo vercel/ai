@@ -39,13 +39,14 @@
     "test:watch": "vitest --config vitest.node.config.js"
   },
   "dependencies": {
-    "just-bash": "^3.0.1",
     "zod": "3.25.76"
   },
   "peerDependencies": {
     "ai": "workspace:^"
   },
   "devDependencies": {
+    "@ai-sdk/sandbox-just-bash": "workspace:*",
+    "@ai-sdk/sandbox-vercel": "workspace:*",
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
     "ai": "workspace:*",
