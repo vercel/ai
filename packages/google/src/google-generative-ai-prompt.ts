@@ -53,9 +53,13 @@ export type GoogleGenerativeAIContentPart =
       thoughtSignature?: string;
     };
 
-export type GoogleGenerativeAIFunctionResponsePart = {
-  inlineData: { mimeType: string; data: string };
-};
+export type GoogleGenerativeAIFunctionResponsePart =
+  | {
+      inlineData: { mimeType: string; data: string };
+    }
+  | {
+      fileData: { mimeType: string; fileUri: string };
+    };
 
 export type GoogleGenerativeAIGroundingMetadata = GroundingMetadataSchema;
 

@@ -426,9 +426,9 @@
     "deepinfra": "DeepInfra",
     "deepseek": "DeepSeek",
     "elevenlabs": "ElevenLabs",
+    "heygen": "HeyGen",
     "huggingface": "HuggingFace",
     "klingai": "KlingAI",
-    "lmnt": "LMNT",
     "minimax": "MiniMax",
     "moonshotai": "MoonshotAI",
     "openai": "OpenAI",
@@ -438,7 +438,7 @@
     "togetherai": "TogetherAI"
   },
   "kebabToCamelMap": {
-    "lmnt": "lmnt",
+    "heygen": "heygen",
     "minimax": "minimax"
   }
 }

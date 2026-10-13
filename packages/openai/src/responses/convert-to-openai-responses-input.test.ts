@@ -1,13 +1,162 @@
-import type { ToolNameMapping } from '../../../provider-utils/src/create-tool-name-mapping';
-import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
+import type { ToolNameMapping } from '@ai-sdk/provider-utils';
+import type {
+  LanguageModelV3Prompt,
+  LanguageModelV3ToolResultOutput,
+  LanguageModelV3ToolResultPart,
+} from '@ai-sdk/provider';
 import { describe, it, expect } from 'vitest';
+import { convertToOpenAIResponsesInput as convertToOpenAIResponsesInputBase } from './convert-to-openai-responses-input';
 
 const testToolNameMapping: ToolNameMapping = {
   toProviderToolName: (customToolName: string) => customToolName,
   toCustomToolName: (providerToolName: string) => providerToolName,
 };
 
+const convertToOpenAIResponsesInput = (
+  options: Parameters<typeof convertToOpenAIResponsesInputBase>[0],
+) =>
+  convertToOpenAIResponsesInputBase({
+    toolSearchToolName: 'tool_search',
+    ...options,
+  });
+
+const parallelToolCallInput =
+  '{"tool_uses":[{"recipient_name":"functions.weather","parameters":{"location":"San Francisco"}},{"recipient_name":"functions.cityAttractions","parameters":{"city":"Rome"}}]}';
+
+function createExpandedParallelToolCallPrompt({
+  withPromptCacheBreakpoints = false,
+}: {
+  withPromptCacheBreakpoints?: boolean;
+} = {}): LanguageModelV3Prompt {
+  const promptCacheBreakpoint = { mode: 'explicit' } as const;
+  const providerOptions = (index: number) => ({
+    openai: {
+      parallelToolCall: {
+        itemId: 'fc_parallel',
+        toolCallId: 'call_parallel',
+        toolName: 'parallel',
+        input: parallelToolCallInput,
+        index,
+        count: 2,
+      },
+    },
+  });
+
+  return [
+    {
+      role: 'assistant',
+      content: [
+        {
+          type: 'tool-call',
+          toolCallId: 'call_parallel_0',
+          toolName: 'weather',
+          input: { location: 'San Francisco' },
+          providerOptions: providerOptions(0),
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'call_parallel_1',
+          toolName: 'cityAttractions',
+          input: { city: 'Rome' },
+          providerOptions: providerOptions(1),
+        },
+      ],
+    },
+    {
+      role: 'tool',
+      content: [
+        {
+          type: 'tool-result',
+          toolCallId: 'call_parallel_0',
+          toolName: 'weather',
+          output: {
+            type: 'json',
+            value: { temperature: 72 },
+            ...(withPromptCacheBreakpoints && {
+              providerOptions: {
+                openai: { promptCacheBreakpoint },
+              },
+            }),
+          },
+          providerOptions: providerOptions(0),
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'call_parallel_1',
+          toolName: 'cityAttractions',
+          output: { type: 'text', value: 'Colosseum' },
+          providerOptions: {
+            ...providerOptions(1),
+            ...(withPromptCacheBreakpoints && {
+              openai: {
+                ...providerOptions(1).openai,
+                promptCacheBreakpoint,
+              },
+            }),
+          },
+        },
+      ],
+    },
+  ];
+}
+
+const parallelToolCallOutput = '{"temperature":72}\nColosseum';
+
 describe('convertToOpenAIResponsesInput', () => {
+  describe('explicit message item types', () => {
+    it('should add the message type to system, user, and assistant messages', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          { role: 'system', content: 'You are helpful.' },
+          { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+          { role: 'assistant', content: [{ type: 'text', text: 'Hi!' }] },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'system',
+        providerOptionsName: 'azure',
+        explicitMessageItemType: true,
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'message',
+          role: 'system',
+          content: 'You are helpful.',
+        },
+        {
+          type: 'message',
+          role: 'user',
+          content: [{ type: 'input_text', text: 'Hello' }],
+        },
+        {
+          type: 'message',
+          role: 'assistant',
+          content: [{ type: 'output_text', text: 'Hi!' }],
+        },
+      ]);
+    });
+
+    it('should add the message type to developer messages', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [{ role: 'system', content: 'You are helpful.' }],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'developer',
+        providerOptionsName: 'azure',
+        explicitMessageItemType: true,
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'message',
+          role: 'developer',
+          content: 'You are helpful.',
+        },
+      ]);
+    });
+  });
+
   describe('system messages', () => {
     it('should convert system messages to system role', async () => {
       const result = await convertToOpenAIResponsesInput({
@@ -1323,6 +1472,201 @@ describe('convertToOpenAIResponsesInput', () => {
       ]);
     });
 
+    it('should round-trip async mode on function tool calls', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_async',
+                toolName: 'get_weather',
+                input: { location: 'Berlin' },
+                providerOptions: {
+                  openai: {
+                    itemId: 'fc_async',
+                    async: true,
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call',
+          call_id: 'call_async',
+          name: 'get_weather',
+          arguments: JSON.stringify({ location: 'Berlin' }),
+          async: true,
+        },
+      ]);
+    });
+
+    it('should round-trip async mode on custom tool calls', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_custom_async',
+                toolName: 'write_sql',
+                input: 'SELECT 1',
+                providerOptions: {
+                  openai: {
+                    itemId: 'ctc_async',
+                    async: true,
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+        customProviderToolNames: new Set(['write_sql']),
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'custom_tool_call',
+          call_id: 'call_custom_async',
+          name: 'write_sql',
+          input: 'SELECT 1',
+          async: true,
+          id: 'ctc_async',
+        },
+      ]);
+    });
+
+    describe('reasoning models (store: true)', () => {
+      it('should use item_reference for text parts preceded by reasoning', async () => {
+        const result = await convertToOpenAIResponsesInput({
+          toolNameMapping: testToolNameMapping,
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'reasoning',
+                  text: 'Thinking...',
+                  providerOptions: { openai: { itemId: 'rs_123' } },
+                },
+                {
+                  type: 'text',
+                  text: 'Hello',
+                  providerOptions: { openai: { itemId: 'msg_123' } },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'developer',
+          providerOptionsName: 'openai',
+          store: true,
+          isReasoningModel: true,
+        });
+
+        expect(result.input).toMatchInlineSnapshot(`
+          [
+            {
+              "id": "rs_123",
+              "type": "item_reference",
+            },
+            {
+              "id": "msg_123",
+              "type": "item_reference",
+            },
+          ]
+        `);
+      });
+
+      it('should send text parts with content when their reasoning has been removed', async () => {
+        const result = await convertToOpenAIResponsesInput({
+          toolNameMapping: testToolNameMapping,
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Hello',
+                  providerOptions: { openai: { itemId: 'msg_123' } },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'developer',
+          providerOptionsName: 'openai',
+          store: true,
+          isReasoningModel: true,
+        });
+
+        expect(result.input).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "output_text",
+                },
+              ],
+              "id": undefined,
+              "role": "assistant",
+            },
+          ]
+        `);
+        expect(result.warnings).toEqual([]);
+      });
+
+      it('should send text parts without their id when their reasoning has been removed (store: false)', async () => {
+        const result = await convertToOpenAIResponsesInput({
+          toolNameMapping: testToolNameMapping,
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Hello',
+                  providerOptions: { openai: { itemId: 'msg_123' } },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'developer',
+          providerOptionsName: 'openai',
+          store: false,
+          isReasoningModel: true,
+        });
+
+        expect(result.input).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "output_text",
+                },
+              ],
+              "id": undefined,
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+    });
+
     describe('reasoning messages (store: false)', () => {
       describe('single summary part', () => {
         it('should convert single reasoning part with text', async () => {
@@ -2352,6 +2696,82 @@ describe('convertToOpenAIResponsesInput', () => {
   });
 
   describe('tool messages', () => {
+    it('should preserve prompt cache breakpoints on scalar tool results', async () => {
+      const promptCacheBreakpoint = { mode: 'explicit' } as const;
+      const providerOptions = {
+        openai: { promptCacheBreakpoint },
+      };
+      const scalarOutputs: Array<{
+        output: LanguageModelV3ToolResultOutput;
+        expectedText: string;
+      }> = [
+        {
+          output: { type: 'text', value: 'stable tool output' },
+          expectedText: 'stable tool output',
+        },
+        {
+          output: { type: 'json', value: { stable: true } },
+          expectedText: '{"stable":true}',
+        },
+        {
+          output: { type: 'error-text', value: 'tool error' },
+          expectedText: 'tool error',
+        },
+        {
+          output: { type: 'error-json', value: { error: 'boom' } },
+          expectedText: '{"error":"boom"}',
+        },
+        {
+          output: {
+            type: 'execution-denied',
+            reason: 'execution denied',
+          },
+          expectedText: 'execution denied',
+        },
+      ];
+      const toolResults = scalarOutputs.flatMap(
+        ({ output }, outputIndex): LanguageModelV3ToolResultPart[] =>
+          (['output', 'tool-result'] as const).map(placement => ({
+            type: 'tool-result',
+            toolCallId: `call_${outputIndex}_${placement}`,
+            toolName: 'lookup',
+            output:
+              placement === 'output'
+                ? ({
+                    ...output,
+                    providerOptions,
+                  } as LanguageModelV3ToolResultOutput)
+                : output,
+            ...(placement === 'tool-result' && { providerOptions }),
+          })),
+      );
+
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [{ role: 'tool', content: toolResults }],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toEqual(
+        scalarOutputs.flatMap(({ expectedText }, outputIndex) =>
+          (['output', 'tool-result'] as const).map(placement => ({
+            type: 'function_call_output',
+            call_id: `call_${outputIndex}_${placement}`,
+            output: [
+              {
+                type: 'input_text',
+                text: expectedText,
+                prompt_cache_breakpoint: promptCacheBreakpoint,
+              },
+            ],
+          })),
+        ),
+      );
+      expect(result.warnings).toEqual([]);
+    });
+
     it('should convert single tool result part with json value', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
@@ -2690,6 +3110,79 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ]
       `);
+    });
+
+    it('should convert provider references in tool result content', async () => {
+      const promptCacheBreakpoint = { mode: 'explicit' } as const;
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'search',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'text',
+                      text: 'Referenced files:',
+                    },
+                    {
+                      type: 'file-id',
+                      fileId: { openai: 'file-pdf-123' },
+                      providerOptions: {
+                        openai: { promptCacheBreakpoint },
+                      },
+                    },
+                    {
+                      type: 'image-file-id',
+                      fileId: { openai: 'file-image-123' },
+                      providerOptions: {
+                        openai: {
+                          imageDetail: 'high',
+                          promptCacheBreakpoint,
+                        },
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'call_123',
+          output: [
+            {
+              type: 'input_text',
+              text: 'Referenced files:',
+            },
+            {
+              type: 'input_file',
+              file_id: 'file-pdf-123',
+              prompt_cache_breakpoint: promptCacheBreakpoint,
+            },
+            {
+              type: 'input_image',
+              file_id: 'file-image-123',
+              detail: 'high',
+              prompt_cache_breakpoint: promptCacheBreakpoint,
+            },
+          ],
+        },
+      ]);
+      expect(result.warnings).toEqual([]);
     });
 
     it('should convert single tool result part with multipart that contains file (PDF)', async () => {
@@ -3353,7 +3846,7 @@ describe('convertToOpenAIResponsesInput', () => {
       expect(toolSearchCall.execution).toBe('client');
     });
 
-    it('should exclude provider-executed tool calls and results from prompt with store: false', async () => {
+    it('should reconstruct provider-executed web search results with store: false', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
         prompt: [
@@ -3419,6 +3912,21 @@ describe('convertToOpenAIResponsesInput', () => {
               "role": "assistant",
             },
             {
+              "action": {
+                "query": "San Francisco major news events June 22 2025",
+                "sources": [
+                  {
+                    "type": "url",
+                    "url": "https://patch.com/california/san-francisco/calendar",
+                  },
+                ],
+                "type": "search",
+              },
+              "id": "ws_67cf2b3051e88190b006770db6fdb13d",
+              "status": "completed",
+              "type": "web_search_call",
+            },
+            {
               "content": [
                 {
                   "text": "Based on the search results, several significant events took place in San Francisco yesterday (June 22, 2025).",
@@ -3429,14 +3937,145 @@ describe('convertToOpenAIResponsesInput', () => {
               "role": "assistant",
             },
           ],
-          "warnings": [
-            {
-              "message": "Results for OpenAI tool web_search are not sent to the API when store is false",
-              "type": "other",
-            },
-          ],
+          "warnings": [],
         }
       `);
+    });
+
+    it('should reconstruct web search preview and page actions with store: false', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'ws_preview',
+                toolName: 'web_search_preview',
+                output: {
+                  type: 'json',
+                  value: {
+                    action: {
+                      type: 'search',
+                      query: 'AI SDK',
+                    },
+                    sources: [
+                      {
+                        type: 'url',
+                        url: 'https://ai-sdk.dev',
+                      },
+                    ],
+                  },
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'ws_open_page',
+                toolName: 'web_search',
+                output: {
+                  type: 'json',
+                  value: {
+                    action: {
+                      type: 'openPage',
+                      url: 'https://ai-sdk.dev/docs',
+                    },
+                  },
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'ws_find_in_page',
+                toolName: 'web_search',
+                output: {
+                  type: 'json',
+                  value: {
+                    action: {
+                      type: 'findInPage',
+                      url: 'https://ai-sdk.dev/docs',
+                      pattern: 'streamText',
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result).toEqual({
+        input: [
+          {
+            type: 'web_search_call',
+            id: 'ws_preview',
+            status: 'completed',
+            action: {
+              type: 'search',
+              query: 'AI SDK',
+              sources: [{ type: 'url', url: 'https://ai-sdk.dev' }],
+            },
+          },
+          {
+            type: 'web_search_call',
+            id: 'ws_open_page',
+            status: 'completed',
+            action: {
+              type: 'open_page',
+              url: 'https://ai-sdk.dev/docs',
+            },
+          },
+          {
+            type: 'web_search_call',
+            id: 'ws_find_in_page',
+            status: 'completed',
+            action: {
+              type: 'find_in_page',
+              url: 'https://ai-sdk.dev/docs',
+              pattern: 'streamText',
+            },
+          },
+        ],
+        warnings: [],
+      });
+    });
+
+    it('should keep warning for web search results without an action', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'ws_missing_action',
+                toolName: 'web_search',
+                output: {
+                  type: 'json',
+                  value: {},
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result).toEqual({
+        input: [],
+        warnings: [
+          {
+            type: 'other',
+            message:
+              'Results for OpenAI tool web_search are not sent to the API when store is false',
+          },
+        ],
+      });
     });
 
     it('should skip provider-executed execution-denied tool results in assistant messages', async () => {
@@ -4597,6 +5236,60 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
 
+    it('should send expanded parallel tool results back to the stored wrapper call', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: createExpandedParallelToolCallPrompt(),
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasConversation: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'call_parallel',
+          output: parallelToolCallOutput,
+        },
+      ]);
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('should preserve scalar prompt cache breakpoints on expanded parallel tool results', async () => {
+      const promptCacheBreakpoint = { mode: 'explicit' } as const;
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: createExpandedParallelToolCallPrompt({
+          withPromptCacheBreakpoints: true,
+        }),
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasConversation: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'call_parallel',
+          output: [
+            {
+              type: 'input_text',
+              text: '{"temperature":72}',
+              prompt_cache_breakpoint: promptCacheBreakpoint,
+            },
+            {
+              type: 'input_text',
+              text: '\nColosseum',
+              prompt_cache_breakpoint: promptCacheBreakpoint,
+            },
+          ],
+        },
+      ]);
+      expect(result.warnings).toEqual([]);
+    });
+
     it('should include assistant messages without item IDs when hasConversation is true', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
@@ -4738,6 +5431,32 @@ describe('convertToOpenAIResponsesInput', () => {
   });
 
   describe('hasPreviousResponseId', () => {
+    it('should reconstruct expanded parallel tool calls with one wrapper output', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: createExpandedParallelToolCallPrompt(),
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasPreviousResponseId: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call',
+          call_id: 'call_parallel',
+          name: 'parallel',
+          arguments: parallelToolCallInput,
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'call_parallel',
+          output: parallelToolCallOutput,
+        },
+      ]);
+      expect(result.warnings).toEqual([]);
+    });
+
     it('should keep client-executed function calls paired with their outputs when hasPreviousResponseId is true', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
@@ -4964,6 +5683,83 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ]
       `);
+    });
+
+    it('should preserve prompt cache breakpoints on scalar custom tool results', async () => {
+      const promptCacheBreakpoint = { mode: 'explicit' } as const;
+      const providerOptions = {
+        openai: { promptCacheBreakpoint },
+      };
+      const scalarOutputs: Array<{
+        output: LanguageModelV3ToolResultOutput;
+        expectedText: string;
+      }> = [
+        {
+          output: { type: 'text', value: 'stable tool output' },
+          expectedText: 'stable tool output',
+        },
+        {
+          output: { type: 'json', value: { stable: true } },
+          expectedText: '{"stable":true}',
+        },
+        {
+          output: { type: 'error-text', value: 'tool error' },
+          expectedText: 'tool error',
+        },
+        {
+          output: { type: 'error-json', value: { error: 'boom' } },
+          expectedText: '{"error":"boom"}',
+        },
+        {
+          output: {
+            type: 'execution-denied',
+            reason: 'execution denied',
+          },
+          expectedText: 'execution denied',
+        },
+      ];
+      const toolResults = scalarOutputs.flatMap(
+        ({ output }, outputIndex): LanguageModelV3ToolResultPart[] =>
+          (['output', 'tool-result'] as const).map(placement => ({
+            type: 'tool-result',
+            toolCallId: `call_custom_${outputIndex}_${placement}`,
+            toolName: 'write_sql',
+            output:
+              placement === 'output'
+                ? ({
+                    ...output,
+                    providerOptions,
+                  } as LanguageModelV3ToolResultOutput)
+                : output,
+            ...(placement === 'tool-result' && { providerOptions }),
+          })),
+      );
+
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [{ role: 'tool', content: toolResults }],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        customProviderToolNames,
+      });
+
+      expect(result.input).toEqual(
+        scalarOutputs.flatMap(({ expectedText }, outputIndex) =>
+          (['output', 'tool-result'] as const).map(placement => ({
+            type: 'custom_tool_call_output',
+            call_id: `call_custom_${outputIndex}_${placement}`,
+            output: [
+              {
+                type: 'input_text',
+                text: expectedText,
+                prompt_cache_breakpoint: promptCacheBreakpoint,
+              },
+            ],
+          })),
+        ),
+      );
+      expect(result.warnings).toEqual([]);
     });
 
     it('should convert custom tool result to custom_tool_call_output with text value', async () => {

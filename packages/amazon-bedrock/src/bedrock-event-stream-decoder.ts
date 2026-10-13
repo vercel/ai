@@ -3,7 +3,8 @@ import { toUtf8, fromUtf8 } from '@smithy/util-utf8';
 
 export interface DecodedEvent {
   messageType: string;
-  eventType: string;
+  eventType?: string;
+  exceptionType?: string;
   data: string;
 }
 
@@ -43,10 +44,32 @@ export function createBedrockEventStreamDecoder<T>(
           buffer = buffer.slice(totalLength);
 
           const messageType = decoded.headers[':message-type']?.value as string;
+<<<<<<< HEAD
           const eventType = decoded.headers[':event-type']?.value as string;
           const data = textDecoder.decode(decoded.body);
 
           await processEvent({ messageType, eventType, data }, controller);
+=======
+          const eventType = decoded.headers[':event-type']?.value as
+            | string
+            | undefined;
+          const exceptionType = decoded.headers[':exception-type']?.value as
+            | string
+            | undefined;
+          const data = textDecoder.decode(decoded.body);
+
+          await processEvent(
+            { messageType, eventType, exceptionType, data },
+            controller,
+          );
+        }
+      },
+      flush() {
+        if (buffer.length > 0) {
+          throw new Error(
+            `Incomplete Amazon Bedrock event-stream frame: ${buffer.length} buffered bytes remain at end of stream.`,
+          );
+>>>>>>> origin/release-v6.0
         }
       },
     }),

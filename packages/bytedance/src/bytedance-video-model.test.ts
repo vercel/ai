@@ -63,6 +63,8 @@ describe('ByteDanceVideoModel', () => {
             status: 'succeeded',
             content: {
               video_url: 'https://bytedance.cdn/files/video-output.mp4',
+              last_frame_url:
+                'https://bytedance.cdn/files/video-output-last-frame.png',
             },
             usage: {
               completion_tokens: 100,
@@ -372,7 +374,7 @@ describe('ByteDanceVideoModel', () => {
   });
 
   describe('providerMetadata', () => {
-    it('should include task ID and usage', async () => {
+    it('should include task ID, usage, and last frame URL in completed status', async () => {
       const model = createBasicModel();
 
       const result = await model.doGenerate({ ...defaultOptions });
@@ -383,6 +385,8 @@ describe('ByteDanceVideoModel', () => {
           usage: {
             completion_tokens: 100,
           },
+          lastFrameUrl:
+            'https://bytedance.cdn/files/video-output-last-frame.png',
         },
       });
     });

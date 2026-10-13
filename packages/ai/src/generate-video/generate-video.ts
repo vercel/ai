@@ -1,3 +1,5 @@
+import { getOwn } from '../util/get-own';
+import { setOwn } from '../util/set-own';
 import type {
   Experimental_VideoModelV3,
   Experimental_VideoModelV3CallOptions,
@@ -385,12 +387,12 @@ export async function experimental_generateVideo({
       for (const [providerName, metadata] of Object.entries(
         result.providerMetadata,
       )) {
-        const existingMetadata = providerMetadata[providerName];
+        const existingMetadata = getOwn(providerMetadata, providerName);
         if (existingMetadata != null && typeof existingMetadata === 'object') {
-          providerMetadata[providerName] = {
+          setOwn(providerMetadata, providerName, {
             ...existingMetadata,
             ...metadata,
-          };
+          });
 
           // Merge videos arrays if both exist
           if (
@@ -405,7 +407,7 @@ export async function experimental_generateVideo({
             ];
           }
         } else {
-          providerMetadata[providerName] = metadata;
+          setOwn(providerMetadata, providerName, metadata);
         }
       }
     }

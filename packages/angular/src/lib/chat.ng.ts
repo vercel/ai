@@ -73,5 +73,5 @@ class AngularChatState<
     });
   };
 
-  snapshot = <T>(thing: T): T => structuredClone(thing);
+  snapshot = <T>(thing: T): T => thing;
 }

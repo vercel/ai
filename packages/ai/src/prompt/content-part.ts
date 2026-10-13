@@ -149,6 +149,7 @@ export const outputSchema: z.ZodType<ToolResultOutput> = z.discriminatedUnion(
           z.object({
             type: z.literal('file-url'),
             url: z.string(),
+            mediaType: z.string().optional(),
             providerOptions: providerMetadataSchema.optional(),
           }),
           z.object({
@@ -201,6 +202,8 @@ export const toolApprovalRequestSchema: z.ZodType<ToolApprovalRequest> =
     type: z.literal('tool-approval-request'),
     approvalId: z.string(),
     toolCallId: z.string(),
+    signature: z.string().optional(),
+    inputSchemaInput: z.unknown().optional(),
   });
 
 /**

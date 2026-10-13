@@ -198,6 +198,41 @@ describe('convertToLanguageModelPrompt', () => {
     });
 
     describe('file parts', () => {
+      it('preserves original Google Cloud Storage file URIs', async () => {
+        const result = await convertToLanguageModelPrompt({
+          prompt: {
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'file',
+                    data: 'gs://my-bucket/folder/My File.pdf',
+                    mediaType: 'application/pdf',
+                  },
+                ],
+              },
+            ],
+          },
+          supportedUrls: { '*': [/^gs:\/\/.*$/] },
+          download: undefined,
+        });
+
+        expect(result).toEqual([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: new URL('gs://my-bucket/folder/My File.pdf'),
+                originalUrl: 'gs://my-bucket/folder/My File.pdf',
+                mediaType: 'application/pdf',
+              },
+            ],
+          },
+        ]);
+      });
+
       it('should pass through URLs when the model supports a particular URL', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
@@ -1234,6 +1269,72 @@ describe('convertToLanguageModelPrompt', () => {
                     mediaType: 'image/png',
                     data: 'AAECAw==',
                     providerOptions: undefined,
+                  },
+                ],
+              },
+              providerOptions: undefined,
+            },
+          ],
+          providerOptions: undefined,
+        },
+      ]);
+    });
+
+    it('should pass through supported file URLs in tool results', async () => {
+      const mockDownload = vi.fn().mockResolvedValue([null]);
+
+      const result = await convertToLanguageModelPrompt({
+        prompt: {
+          messages: [
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolName: 'toolName',
+                  toolCallId: 'toolCallId',
+                  output: {
+                    type: 'content',
+                    value: [
+                      {
+                        type: 'file-url',
+                        url: 'gs://example-bucket/image.png',
+                        mediaType: 'image/png',
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+        supportedUrls: { '*': [/^gs:\/\/.*$/] },
+        download: mockDownload,
+      });
+
+      expect(mockDownload).toHaveBeenCalledOnce();
+      expect(mockDownload).toHaveBeenCalledWith([
+        {
+          url: new URL('gs://example-bucket/image.png'),
+          isUrlSupportedByModel: true,
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'toolCallId',
+              toolName: 'toolName',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'file-url',
+                    url: 'gs://example-bucket/image.png',
+                    mediaType: 'image/png',
                   },
                 ],
               },

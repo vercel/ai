@@ -10,6 +10,7 @@ export const customArgsSchema = lazySchema(() =>
     z.object({
       name: z.string(),
       description: z.string().optional(),
+      async: z.boolean().optional(),
       format: z
         .union([
           z.object({
@@ -40,6 +41,12 @@ export const customToolFactory = createProviderToolFactory<
      * An optional description of what the tool does.
      */
     description?: string;
+
+    /**
+     * Whether the model can continue generating after calling this tool
+     * without waiting for its result.
+     */
+    async?: boolean;
 
     /**
      * The output format specification for the tool.

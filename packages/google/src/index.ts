@@ -27,6 +27,11 @@ export type {
 } from './interactions/google-interactions-language-model-options';
 export type { GoogleInteractionsProviderMetadata } from './interactions/google-interactions-provider-metadata';
 export type { GoogleInteractionsAgentName } from './interactions/google-interactions-agent';
+export { GoogleTranscriptionModel } from './transcription/google-transcription-model';
+export type {
+  GoogleTranscriptionModelId,
+  GoogleTranscriptionModelOptions,
+} from './transcription/google-transcription-model-options';
 export { createGoogleGenerativeAI, google } from './google-provider';
 export type {
   GoogleGenerativeAIProvider,

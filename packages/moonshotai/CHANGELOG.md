@@ -1,5 +1,134 @@
 # @ai-sdk/moonshotai
 
+## 2.0.63
+
+### Patch Changes
+
+- a8b07a4: Enable structured output for unknown model IDs so future Moonshot models retain JSON schemas instead of silently falling back to JSON object mode.
+
+## 2.0.62
+
+### Patch Changes
+
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+  - @ai-sdk/provider-utils@4.0.57
+
+## 2.0.61
+
+### Patch Changes
+
+- Updated dependencies [29dc427]
+  - @ai-sdk/provider-utils@4.0.56
+
+## 2.0.60
+
+### Patch Changes
+
+- Updated dependencies [3983fea]
+  - @ai-sdk/provider@3.0.18
+  - @ai-sdk/provider-utils@4.0.55
+
+## 2.0.59
+
+### Patch Changes
+
+- Updated dependencies [069a945]
+- Updated dependencies [d1a36d2]
+- Updated dependencies [f7f36d2]
+  - @ai-sdk/provider-utils@4.0.54
+
+## 2.0.58
+
+### Patch Changes
+
+- Updated dependencies [da2e17b]
+  - @ai-sdk/provider@3.0.17
+  - @ai-sdk/provider-utils@4.0.53
+
+## 2.0.57
+
+### Patch Changes
+
+- Updated dependencies [82e18b0]
+  - @ai-sdk/provider-utils@4.0.52
+
+## 2.0.56
+
+### Patch Changes
+
+- 4bd2599: fix(deepseek): preserve reasoning streams across empty tool-call deltas
+
+## 2.0.55
+
+### Patch Changes
+
+- Updated dependencies [1a4dbb1]
+  - @ai-sdk/provider@3.0.16
+  - @ai-sdk/provider-utils@4.0.51
+
+## 2.0.54
+
+### Patch Changes
+
+- Updated dependencies [cc23556]
+  - @ai-sdk/provider-utils@4.0.50
+
+## 2.0.53
+
+### Patch Changes
+
+- e19917b: Add first-class Moonshot V1 auto and vision-preview model IDs while preserving custom and retired model ID support.
+- dd5da26: Add Moonshot AI Partial Mode support for continuing a final assistant message.
+- 921b74f: fix(provider/moonshotai): preserve complete raw usage objects
+- 1fef0bb: Preserve documented Moonshot API error codes in HTTP and streaming errors.
+- 84108e5: Add provider-specific names for Moonshot AI system, user, and assistant messages.
+- a88fd1b: feat(provider/moonshotai): add predicted output support
+- 38bf9fa: Support Kimi K3 dynamic tool-loading system messages.
+
+## 2.0.52
+
+### Patch Changes
+
+- 645e673: Preserve documented Moonshot AI chat response metadata for generate and stream.
+- fe34c75: Add Moonshot Chat Completions log probability options and provider metadata.
+- Updated dependencies [9a521b9]
+  - @ai-sdk/provider-utils@4.0.49
+
+## 2.0.51
+
+### Patch Changes
+
+- 8e81d87: Accept Moonshot streaming tool calls without indices and preserve choice-level usage.
+- d48615f: Normalize Moonshot structured output schemas and enable strict validation by default.
+- b6d6564: Use native JSON Schema structured outputs for official Moonshot V1 models.
+- aa748d8: Reject unsupported image and video media types before sending Moonshot chat requests.
+- e565062: fix(provider/moonshotai): send max output tokens with the current Moonshot request field
+
+## 2.0.50
+
+### Patch Changes
+
+- 172effc: fix(provider/moonshotai): align thinking and reasoning options by model
+- cc1743a: fix(provider/moonshotai): omit unsupported sampling settings for Kimi models
+- 12e6be3: Omit required tool choice with a warning for Moonshot Kimi models that reject it.
+
+## 2.0.49
+
+### Patch Changes
+
+- 313a441: Prevent negative text output token counts when providers report reasoning tokens. Perplexity reasoning tokens are now treated as separate from completion tokens.
+- Updated dependencies [5642849]
+  - @ai-sdk/provider-utils@4.0.48
+
+## 2.0.48
+
+### Patch Changes
+
+- Updated dependencies [2d172fb]
+  - @ai-sdk/provider-utils@4.0.47
+
 ## 2.0.47
 
 ### Patch Changes

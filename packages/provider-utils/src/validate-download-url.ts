@@ -78,7 +78,6 @@ export function validateDownloadUrl(url: string): void {
         message: `URL with IP address ${hostname} is not allowed`,
       });
     }
-    return;
   }
 }
 

@@ -547,6 +547,7 @@ Final result: 570",
       "output_tokens_details": {
         "reasoning_tokens": 64,
       },
+      "total_tokens": 665,
     },
   },
   "warnings": [],
@@ -779,6 +780,7 @@ exports[`responses > doGenerate > text > should extract text content 1`] = `
       "output_tokens_details": {
         "reasoning_tokens": 0,
       },
+      "total_tokens": 22,
     },
   },
   "warnings": [],
@@ -1026,6 +1028,7 @@ exports[`responses > doGenerate > tool call > should extract tool call content 1
       "output_tokens_details": {
         "reasoning_tokens": 0,
       },
+      "total_tokens": 69,
     },
   },
   "warnings": [],
@@ -1673,6 +1676,7 @@ providers and models, and which ones are available in the AI SDK.",
         "output_tokens_details": {
           "reasoning_tokens": 448,
         },
+        "total_tokens": 4291,
       },
     },
   },
@@ -2221,6 +2225,7 @@ exports[`responses > doStream > file search tool > should stream file search res
         "output_tokens_details": {
           "reasoning_tokens": 512,
         },
+        "total_tokens": 4358,
       },
     },
   },
@@ -2454,6 +2459,7 @@ exports[`responses > doStream > image generation tool > should stream image gene
         "output_tokens_details": {
           "reasoning_tokens": 0,
         },
+        "total_tokens": 2046,
       },
     },
   },
@@ -4228,6 +4234,7 @@ Generated numbers (formatted to 2 decimal places): 88.99, 51.21, 89.85, 88.97, 7
         "output_tokens_details": {
           "reasoning_tokens": 576,
         },
+        "total_tokens": 3062,
       },
     },
   },
@@ -5522,6 +5529,7 @@ I",
         "output_tokens_details": {
           "reasoning_tokens": 0,
         },
+        "total_tokens": 327,
       },
     },
   },
@@ -5596,6 +5604,7 @@ exports[`responses > doStream > text > should stream text content 1`] = `
         "output_tokens_details": {
           "reasoning_tokens": 0,
         },
+        "total_tokens": 22,
       },
     },
   },
@@ -5697,6 +5706,7 @@ exports[`responses > doStream > tool call > should stream tool call content 1`] 
         "output_tokens_details": {
           "reasoning_tokens": 0,
         },
+        "total_tokens": 69,
       },
     },
   },
@@ -7548,6 +7558,7 @@ exports[`responses > doStream > web search preview tool > should stream web sear
         "output_tokens_details": {
           "reasoning_tokens": 0,
         },
+        "total_tokens": 5462,
       },
     },
   },

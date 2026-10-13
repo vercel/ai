@@ -43,7 +43,6 @@ describe('OpenResponsesLanguageModel', () => {
           ),
         ),
       };
-      return;
     }
 
     describe('basic generation', () => {
@@ -67,6 +66,25 @@ describe('OpenResponsesLanguageModel', () => {
 
       it('should extract usage correctly', async () => {
         expect(result.usage).toMatchSnapshot();
+      });
+    });
+
+    it('should send schema-less JSON as a JSON object format', async () => {
+      prepareJsonFixtureResponse('lmstudio-basic.1');
+
+      await createModel().doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        text: {
+          format: {
+            type: 'json_object',
+          },
+        },
       });
     });
 
@@ -643,6 +661,39 @@ describe('OpenResponsesLanguageModel', () => {
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
       });
+    });
+
+    it('should stream reasoning summary text deltas', async () => {
+      prepareChunksFixtureResponse('openai-reasoning-summary-text.1');
+
+      const result = await createModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(result.stream);
+
+      expect(
+        parts.filter(part => part.type.startsWith('reasoning')),
+      ).toStrictEqual([
+        {
+          type: 'reasoning-start',
+          id: 'rs_1',
+        },
+        {
+          type: 'reasoning-delta',
+          id: 'rs_1',
+          delta: 'Think',
+        },
+        {
+          type: 'reasoning-delta',
+          id: 'rs_1',
+          delta: 'ing.',
+        },
+        {
+          type: 'reasoning-end',
+          id: 'rs_1',
+        },
+      ]);
     });
 
     describe('reasoning with tool call', () => {

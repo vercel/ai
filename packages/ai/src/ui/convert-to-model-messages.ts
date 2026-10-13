@@ -10,6 +10,7 @@ import {
 import type { ToolSet } from '../generate-text/tool-set';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { MessageConversionError } from '../prompt/message-conversion-error';
+import { getOwn } from '../util/get-own';
 import {
   getToolName,
   isDataUIPart,
@@ -27,6 +28,7 @@ import {
   type ToolUIPart,
   type UIMessage,
 } from './ui-messages';
+import { isToolPartFromUnavailableTool } from './unavailable-tool';
 
 /**
  * Converts an array of UI messages from useChat into an array of ModelMessages that can be used
@@ -58,11 +60,44 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
         part =>
           !isToolUIPart(part) ||
           part.state === 'approval-responded' ||
-          part.state === 'output-available' ||
+          (part.state === 'output-available' && part.preliminary !== true) ||
           part.state === 'output-error' ||
           part.state === 'output-denied',
       ),
     }));
+  }
+
+  async function createModelOutput({
+    toolPart,
+    toolName,
+    output,
+    errorMode,
+  }: {
+    toolPart: ToolUIPart<InferUIMessageTools<UI_MESSAGE>> | DynamicToolUIPart;
+    toolName: string;
+    output: unknown;
+    errorMode: 'none' | 'text' | 'json';
+  }) {
+    const tool = getOwn(options?.tools, toolName);
+
+    if (
+      errorMode === 'none' &&
+      tool == null &&
+      isToolPartFromUnavailableTool(toolPart)
+    ) {
+      return {
+        type: 'text' as const,
+        value: 'Tool output omitted because the tool is no longer available.',
+      };
+    }
+
+    return createToolModelOutput({
+      toolCallId: toolPart.toolCallId,
+      input: toolPart.input,
+      output,
+      tool,
+      errorMode,
+    });
   }
 
   for (const message of messages) {
@@ -178,6 +213,12 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                 const toolName = getToolName(part);
 
                 if (part.state !== 'input-streaming') {
+                  const callProviderMetadata =
+                    part.callProviderMetadata ??
+                    (part.state === 'output-error'
+                      ? part.resultProviderMetadata
+                      : undefined);
+
                   content.push({
                     type: 'tool-call' as const,
                     toolCallId: part.toolCallId,
@@ -188,8 +229,8 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                           ('rawInput' in part ? part.rawInput : undefined))
                         : part.input,
                     providerExecuted: part.providerExecuted,
-                    ...(part.callProviderMetadata != null
-                      ? { providerOptions: part.callProviderMetadata }
+                    ...(callProviderMetadata != null
+                      ? { providerOptions: callProviderMetadata }
                       : {}),
                   });
 
@@ -198,6 +239,14 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                       type: 'tool-approval-request' as const,
                       approvalId: part.approval.id,
                       toolCallId: part.toolCallId,
+                      ...(Object.prototype.hasOwnProperty.call(
+                        part.approval,
+                        'inputSchemaInput',
+                      )
+                        ? {
+                            inputSchemaInput: part.approval.inputSchemaInput,
+                          }
+                        : {}),
                       ...(part.approval.signature != null
                         ? { signature: part.approval.signature }
                         : {}),
@@ -217,14 +266,13 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                       type: 'tool-result',
                       toolCallId: part.toolCallId,
                       toolName,
-                      output: await createToolModelOutput({
-                        toolCallId: part.toolCallId,
-                        input: part.input,
+                      output: await createModelOutput({
+                        toolPart: part,
+                        toolName,
                         output:
                           part.state === 'output-error'
                             ? part.errorText
                             : part.output,
-                        tool: options?.tools?.[toolName],
                         errorMode:
                           part.state === 'output-error' ? 'json' : 'none',
                       }),
@@ -317,14 +365,13 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                         type: 'tool-result',
                         toolCallId: toolPart.toolCallId,
                         toolName,
-                        output: await createToolModelOutput({
-                          toolCallId: toolPart.toolCallId,
-                          input: toolPart.input,
+                        output: await createModelOutput({
+                          toolPart,
+                          toolName,
                           output:
                             toolPart.state === 'output-error'
                               ? toolPart.errorText
                               : toolPart.output,
-                          tool: options?.tools?.[toolName],
                           errorMode:
                             toolPart.state === 'output-error' ? 'text' : 'none',
                         }),

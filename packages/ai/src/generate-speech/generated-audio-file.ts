@@ -54,12 +54,4 @@ export class DefaultGeneratedAudioFile
 
 export class DefaultGeneratedAudioFileWithType extends DefaultGeneratedAudioFile {
   readonly type = 'audio';
-
-  constructor(options: {
-    data: string | Uint8Array;
-    mediaType: string;
-    format: string;
-  }) {
-    super(options);
-  }
 }

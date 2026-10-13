@@ -84,7 +84,7 @@ import { generateImage } from 'ai';
 import fs from 'fs';
 
 const { image } = await generateImage({
-  model: quiverai.image('arrow-1.1'),
+  model: quiverai.image('arrow-2'),
   prompt: 'A logo for the next AI Design startup',
 });
 
@@ -97,10 +97,12 @@ QuiverAI returns SVG documents. The generated SVG bytes are available through `r
 
 ### Model Capabilities
 
-QuiverAI exposes three Arrow models:
+QuiverAI supports the following Arrow models:
 
 | Model           | Description                                                                      |
 | --------------- | -------------------------------------------------------------------------------- |
+| `arrow-2`       | Arrow 2 balances SVG generation quality and speed. Uses token-based billing.     |
+| `arrow-2-telos` | Higher-fidelity Arrow 2 variant for complex designs. Uses token-based billing.   |
 | `arrow-1`       | Base text-to-SVG model. Accepts up to 4 reference images.                        |
 | `arrow-1.1`     | Improved text-to-SVG model. Accepts up to 4 reference images.                    |
 | `arrow-1.1-max` | Higher quality variant with extended context. Accepts up to 16 reference images. |
@@ -114,13 +116,15 @@ import { quiverai, type QuiverAIImageModelOptions } from '@ai-sdk/quiverai';
 import { generateImage } from 'ai';
 
 await generateImage({
-  model: quiverai.image('arrow-1.1'),
+  model: quiverai.image('arrow-2'),
   prompt: 'A geometric unicorn icon',
   providerOptions: {
     quiverai: {
       instructions: 'Use a flat monochrome style with clean geometry.',
-      temperature: 0.4,
-      topP: 0.95,
+      reasoningEffort: 'high',
+      attributes: {
+        viewBox: { minX: 0, minY: 0, width: 100, height: 100 },
+      },
       maxOutputTokens: 4096,
     } satisfies QuiverAIImageModelOptions,
   },
@@ -137,6 +141,14 @@ Supported options:
 
   Extra style guidance for prompt-based generation.
 
+- **reasoningEffort** _'low' | 'medium' | 'high' | 'xhigh'_
+
+  Reasoning effort for generation or vectorization. When omitted, QuiverAI uses its default.
+
+- **attributes** _object_
+
+  Requested SVG root attributes. Supports `viewBox` with numeric `minX`, `minY`, and positive `width` and `height`. This is separate from the unsupported `size` and `aspectRatio` options.
+
 - **temperature** _number_ (0-2)
 
   Sampling temperature.
@@ -149,9 +161,9 @@ Supported options:
 
   Presence penalty.
 
-- **maxOutputTokens** _number_ (1-131072)
+- **maxOutputTokens** _number_
 
-  Maximum number of output tokens.
+  Maximum number of output tokens. Arrow 2 and Arrow 2 Telos accept 1-65536. The provider retains its legacy validation bound of 131072 for other model IDs; the API may enforce a lower model-specific limit.
 
 - **autoCrop** _boolean_
 
@@ -167,7 +179,7 @@ Pass reference images through `prompt.images`:
 
 ```ts
 await generateImage({
-  model: quiverai.image('arrow-1.1'),
+  model: quiverai.image('arrow-2'),
   prompt: {
     text: 'A geometric unicorn icon',
     images: ['https://example.com/reference-1.png'],
@@ -175,7 +187,7 @@ await generateImage({
 });
 ```
 
-`arrow-1` and `arrow-1.1` accept up to 4 reference images. `arrow-1.1-max` accepts up to 16.
+`arrow-1` and `arrow-1.1` accept up to 4 reference images. `arrow-1.1-max` accepts up to 16. For Arrow 2 and other model IDs, the provider allows the endpoint maximum of 16 references and lets the API enforce any lower model-specific limit.
 
 ### Vectorizing a Raster Image
 
@@ -187,7 +199,7 @@ import { generateImage } from 'ai';
 import fs from 'fs';
 
 const { image } = await generateImage({
-  model: quiverai.image('arrow-1.1'),
+  model: quiverai.image('arrow-2'),
   prompt: {
     images: [fs.readFileSync('./logo.png')],
   },
@@ -202,3 +214,11 @@ const { image } = await generateImage({
 
 fs.writeFileSync('logo.svg', image.uint8Array);
 ```
+
+Vectorization returns one SVG per API request. To request multiple vectorizations with `n`, also set `maxImagesPerCall: 1` so `generateImage` splits them into separate calls.
+
+### Billing and Usage
+
+Arrow 2 models return measured token counts in `result.usage`. Fixed-credit models may return compatibility token counts of zero; their credit charge is available in `result.providerMetadata?.quiverai?.credits` when supplied by the API.
+
+Model availability and supported operations depend on your organization and API key permissions. Consult QuiverAI's [model catalog](https://docs.quiver.ai/developers/models) for current capabilities and billing. Editing, animation, and the Responses API are not yet exposed by this provider.

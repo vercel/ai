@@ -14,6 +14,11 @@ export type {
   GoogleVertexVideoModelOptions as GoogleVertexVideoProviderOptions,
 } from './google-vertex-video-model';
 export type { GoogleVertexVideoModelId } from './google-vertex-video-settings';
+export { GoogleVertexGeminiTranscriptionModel } from './gemini-transcription/google-vertex-gemini-transcription-model';
+export type {
+  GoogleVertexGeminiTranscriptionModelId,
+  GoogleVertexTranscriptionModelGeminiOptions,
+} from './gemini-transcription/google-vertex-gemini-transcription-model-options';
 export { createVertex, vertex } from './google-vertex-provider-node';
 export type {
   GoogleVertexProvider,

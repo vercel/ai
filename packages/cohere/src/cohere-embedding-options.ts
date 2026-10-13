@@ -37,11 +37,18 @@ export const cohereEmbeddingModelOptions = z.object({
    * The number of dimensions of the output embedding.
    * Only available for `embed-v4.0` and newer models.
    *
-   * Possible values are `256`, `512`, `1024`, and `1536`.
-   * The default is `1536`.
+   * Embed v4.0 supports `256`, `512`, `1024`, and `1536` (default).
+   * Embed v5.0 Pro and Fast also support `768` and `2048` (default).
    */
   outputDimension: z
-    .union([z.literal(256), z.literal(512), z.literal(1024), z.literal(1536)])
+    .union([
+      z.literal(256),
+      z.literal(512),
+      z.literal(768),
+      z.literal(1024),
+      z.literal(1536),
+      z.literal(2048),
+    ])
     .optional(),
 });
 

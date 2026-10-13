@@ -56,10 +56,11 @@ export interface MoonshotAIProvider extends ProviderV3 {
 const defaultBaseURL = 'https://api.moonshot.ai/v1';
 
 export function getModelStructuredOutputSupport(
-  modelId: MoonshotAIChatModelId,
+  _modelId: MoonshotAIChatModelId,
 ): boolean {
-  if (modelId.startsWith('kimi-k')) return true;
-  return false;
+  // All known Moonshot models support structured output. Future IDs inherit
+  // that support instead of depending on a specific family name.
+  return true;
 }
 
 export function createMoonshotAI(

@@ -4,6 +4,8 @@ import type { ProviderMetadata } from '../types';
 import type { ValueOf } from '../util/value-of';
 import type { ToolSet } from './tool-set';
 
+const inputSchemaInputSymbol = Symbol('ai-sdk-tool-call-input-schema-input');
+
 type BaseToolCall = {
   type: 'tool-call';
   toolCallId: string;
@@ -47,3 +49,27 @@ export type DynamicToolCall = BaseToolCall & {
 export type TypedToolCall<TOOLS extends ToolSet> =
   | StaticToolCall<TOOLS>
   | DynamicToolCall;
+
+export function setToolCallInputSchemaInput<TOOLS extends ToolSet>(
+  toolCall: TypedToolCall<TOOLS>,
+  inputSchemaInput: unknown,
+): TypedToolCall<TOOLS> {
+  Object.defineProperty(toolCall, inputSchemaInputSymbol, {
+    value: inputSchemaInput,
+  });
+  return toolCall;
+}
+
+export function getToolCallInputSchemaInput<TOOLS extends ToolSet>(
+  toolCall: TypedToolCall<TOOLS>,
+): { value: unknown } | undefined {
+  return inputSchemaInputSymbol in toolCall
+    ? {
+        value: (
+          toolCall as TypedToolCall<TOOLS> & {
+            [inputSchemaInputSymbol]: unknown;
+          }
+        )[inputSchemaInputSymbol],
+      }
+    : undefined;
+}

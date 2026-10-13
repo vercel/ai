@@ -85,6 +85,12 @@ export async function executeToolCall<TOOLS extends ToolSet>({
           operationId: 'ai.toolCall',
           telemetry,
         }),
+        ...Object.fromEntries(
+          Object.entries(telemetry?.metadata ?? {}).map(([key, value]) => [
+            `ai.telemetry.metadata.${key}`,
+            value,
+          ]),
+        ),
         'ai.toolCall.name': toolName,
         'ai.toolCall.id': toolCallId,
         'ai.toolCall.args': {

@@ -610,6 +610,37 @@ describe('experimental_generateVideo', () => {
   });
 
   describe('provider metadata merging', () => {
+    it.each(['__proto__', 'constructor', 'toString'])(
+      'merges metadata for provider %s as an own property',
+      async providerName => {
+        let callCount = 0;
+        const result = await experimental_generateVideo({
+          model: new MockVideoModelV3({
+            maxVideosPerCall: 1,
+            doGenerate: async () =>
+              createMockResponse({
+                videos: [
+                  { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+                ],
+                providerMetadata: {
+                  [providerName]: { videos: [{ seed: ++callCount }] },
+                },
+              }),
+          }),
+          prompt,
+          n: 2,
+        });
+
+        expect(Object.getPrototypeOf(result.providerMetadata)).toBe(
+          Object.prototype,
+        );
+        expect(Object.hasOwn(result.providerMetadata, providerName)).toBe(true);
+        expect(Object.entries(result.providerMetadata)).toStrictEqual([
+          [providerName, { videos: [{ seed: 1 }, { seed: 2 }] }],
+        ]);
+      },
+    );
+
     it('should merge provider metadata from multiple calls', async () => {
       let callCount = 0;
 
