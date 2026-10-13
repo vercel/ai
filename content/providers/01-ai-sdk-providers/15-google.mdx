@@ -10,13 +10,14 @@ or connect directly to the [Google APIs](https://ai.google.dev/api/rest) with `@
 
 ## Using AI Gateway
 
-To get started, pass a Google model ID to an AI SDK function. The AI SDK uses AI Gateway by default for model strings:
+Use the Gateway tab to get started with AI Gateway, or select Google to connect directly. The AI SDK uses AI Gateway by default for model strings:
 
-```ts
+```ts provider="google" model="google/gemini-4-argon" highlight="5"
 import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
 
 const { text } = await generateText({
-  model: 'google/gemini-4-argon',
+  model: __MODEL__,
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 
