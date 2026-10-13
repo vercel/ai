@@ -1,0 +1,31 @@
+{
+  "metrics": {
+    "latencyMs": 827
+  },
+  "output": {
+    "message": {
+      "content": [
+        {
+          "reasoningContent": {
+            "reasoningText": {
+              "signature": "recorded-live-signature",
+              "text": ""
+            }
+          }
+        }
+      ],
+      "role": "assistant"
+    }
+  },
+  "stopReason": "max_tokens",
+  "usage": {
+    "cacheReadInputTokenCount": 0,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokenCount": 0,
+    "cacheWriteInputTokens": 0,
+    "inputTokens": 10,
+    "outputTokens": 16,
+    "serverToolUsage": {},
+    "totalTokens": 26
+  }
+}
