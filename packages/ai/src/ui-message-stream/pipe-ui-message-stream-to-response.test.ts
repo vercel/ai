@@ -82,7 +82,6 @@ describe('pipeUIMessageStreamToResponse', () => {
     `);
   });
 
-<<<<<<< HEAD
   it('should write an opening comment when keep-alives are enabled', async () => {
     const mockResponse = createMockServerResponse();
 
@@ -98,7 +97,7 @@ describe('pipeUIMessageStreamToResponse', () => {
 
     expect(mockResponse.getDecodedChunks()[0]).toBe(': stream-open\n\n');
   });
-=======
+
   it.each(multipleCookieHeaderInputs)(
     'should preserve multiple Set-Cookie headers with $name',
     async ({ headers }) => {
@@ -108,8 +107,7 @@ describe('pipeUIMessageStreamToResponse', () => {
         response: mockResponse,
         headers,
         stream: convertArrayToReadableStream([
-          { type: 'start', messageId: 'message-id' },
-          { type: 'finish' },
+          { type: 'text-delta', id: '1', delta: 'test-data' },
         ]),
       });
 
@@ -118,7 +116,6 @@ describe('pipeUIMessageStreamToResponse', () => {
       expect(mockResponse.headers['set-cookie']).toStrictEqual(cookies);
     },
   );
->>>>>>> 85539c5795 (fix: Node streaming response helpers dropping repeated Set-Cookie headers (#21069))
 
   it('should handle errors in the stream', async () => {
     const mockResponse = createMockServerResponse();

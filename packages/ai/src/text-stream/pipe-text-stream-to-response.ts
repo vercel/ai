@@ -29,18 +29,9 @@ export function pipeTextStreamToResponse({
     response,
     status,
     statusText,
-<<<<<<< HEAD
-    headers: Object.fromEntries(
-      prepareHeaders(headers, {
-        'content-type': 'text/plain; charset=utf-8',
-      }).entries(),
-    ),
-    stream: textStream.pipeThrough(new TextEncoderStream()),
-=======
     headers: prepareHeaders(headers, {
       'content-type': 'text/plain; charset=utf-8',
     }),
-    stream: stream.pipeThrough(new TextEncoderStream()),
->>>>>>> 85539c5795 (fix: Node streaming response helpers dropping repeated Set-Cookie headers (#21069))
+    stream: textStream.pipeThrough(new TextEncoderStream()),
   });
 }

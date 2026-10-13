@@ -58,8 +58,6 @@ describe('pipeTextStreamToResponse', () => {
     expect(mockResponse.getDecodedChunks()).toStrictEqual(['test-data']);
   });
 
-<<<<<<< HEAD
-=======
   it.each(multipleCookieHeaderInputs)(
     'should preserve multiple Set-Cookie headers with $name',
     async ({ headers }) => {
@@ -68,7 +66,7 @@ describe('pipeTextStreamToResponse', () => {
       pipeTextStreamToResponse({
         response: mockResponse,
         headers,
-        stream: convertArrayToReadableStream(['test-data']),
+        textStream: convertArrayToReadableStream(['test-data']),
       });
 
       await mockResponse.waitForEnd();
@@ -77,30 +75,6 @@ describe('pipeTextStreamToResponse', () => {
     },
   );
 
-  it('can pipe a stream created by toTextStream', async () => {
-    const mockResponse = createMockServerResponse();
-
-    pipeTextStreamToResponse({
-      response: mockResponse,
-      stream: toTextStream({
-        stream: convertArrayToReadableStream([
-          { type: 'start' },
-          { type: 'text-delta', id: 't1', text: 'Hello' },
-          { type: 'text-delta', id: 't1', text: ', world!' },
-          { type: 'text-end', id: 't1' },
-        ] satisfies TextStreamPart<{}>[]),
-      }),
-    });
-
-    await mockResponse.waitForEnd();
-
-    expect(mockResponse.getDecodedChunks()).toStrictEqual([
-      'Hello',
-      ', world!',
-    ]);
-  });
-
->>>>>>> 85539c5795 (fix: Node streaming response helpers dropping repeated Set-Cookie headers (#21069))
   it('should reject when reading the stream fails', async () => {
     const mockResponse = createMockServerResponse();
     const error = new Error('stream read failed');
