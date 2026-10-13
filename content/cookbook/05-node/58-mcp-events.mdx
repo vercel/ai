@@ -252,65 +252,104 @@ Handle lifecycle messages as well as business events:
 Deduplicate lifecycle work by subscription ID and `messageId`. The local server
 only emits business events; it does not demonstrate gaps, termination, or retries.
 
-## 6. Let a backend manage subscriptions
+## 6. Let Connect manage subscriptions
 
-A managed backend such as Vercel Connect can take responsibility for upstream
-webhooks, storage, renewal, and cleanup. Configure `experimental_events.adapter`
-instead of `store`. The following is an integration pattern: `createEventOperations`
-stands for your backend SDK's implementation of `Experimental_MCPEventOperations`,
-bound to the authenticated account and authorized destination.
+Vercel Connect can manage upstream webhooks, subscription storage, renewal, and
+cleanup. Its SDK exports `experimental_connectEventsAdapter`; you do not need to
+implement an adapter or provide an AI SDK event store.
+
+Install the Connect SDK and an MCP client version with transport-context support:
+
+```sh
+pnpm add @vercel/connect@^2.5.0 @ai-sdk/mcp@^2.0.74
+```
+
+This path uses a deployed application, not the loopback demo above. Configure a
+Connect connector for your event-capable MCP server, authorize the user, and link
+the destination project/environment. MCP events must be enabled for the team.
+Connect currently supports production and stable custom environments for managed
+subscriptions, not development or preview. The SDK authenticates the calling
+project using Vercel workload OIDC.
+
+The following server-side function assumes a connector named `oauth/documents`
+whose server offers `comment.created`. Replace the connector and MCP URL with
+your configuration. Derive `userId` from authenticated application state, authorize
+access to `documentId`, and persist `requestId` before calling the function. Reuse
+that request ID when retrying the same subscription intent.
 
 ```ts
 import { createMCPClient } from '@ai-sdk/mcp';
-import { createEventOperations } from './my-events-backend';
-import { createManagedEventsAdapter } from './managed';
+import {
+  connectAuthProvider,
+  experimental_connectEventsAdapter,
+  type ConnectTokenParams,
+} from '@vercel/connect/ai-sdk';
 
-const client = await createMCPClient({
-  transport: { type: 'http', url: 'https://service.example/mcp' },
-  experimental_events: {
-    adapter: createManagedEventsAdapter({
-      createAdapter: createEventOperations,
-    }),
-  },
-});
+export async function watchDocument({
+  userId,
+  documentId,
+  requestId,
+}: {
+  userId: string;
+  documentId: string;
+  requestId: string;
+}) {
+  const connector = 'oauth/documents';
+  const tokenParams: ConnectTokenParams = {
+    subject: { type: 'user', id: userId },
+  };
 
-try {
-  const catalog = await client.experimental_events.list();
-  console.log(catalog.events);
-
-  const subscription = await client.experimental_events.subscribe({
-    name: 'comment.created',
-    arguments: { document_id: 'doc_123' },
-    idempotencyKey: 'saved-watch-request-123',
-    expiresAt: null,
+  const client = await createMCPClient({
+    transport: {
+      type: 'http',
+      url: 'https://documents.example/mcp',
+      authProvider: connectAuthProvider(connector, tokenParams),
+    },
+    experimental_events: {
+      adapter: experimental_connectEventsAdapter({
+        connector,
+        tokenParams,
+        destination: { path: '/hooks' },
+      }),
+    },
   });
-  console.log(subscription.id, subscription.status);
-} finally {
-  await client.close(); // The managed subscription remains in place.
+
+  try {
+    const catalog = await client.experimental_events.list();
+    console.log(catalog.events);
+
+    return await client.experimental_events.subscribe({
+      name: 'comment.created',
+      arguments: { document_id: documentId },
+      idempotencyKey: requestId,
+      expiresAt: null,
+    });
+  } finally {
+    await client.close(); // The managed subscription remains in place.
+  }
 }
 ```
 
-`createManagedEventsAdapter` is the helper from the example's
-[`managed.ts`](https://github.com/vercel/ai/blob/main/examples/mcp/src/events/managed.ts).
-It implements `createAdapter({ transport })` and forwards the HTTP/SSE URL to
-your backend operations. Custom transports have no standard URL; your backend
-must supply an authorized endpoint or reject that case. A backend SDK can expose
-its own adapter helper directly, without this wrapper.
-The backend must authorize the endpoint before sending credentials to it.
+`connectAuthProvider` obtains credentials for direct MCP requests, including
+catalog discovery. `experimental_connectEventsAdapter` delegates subscription
+management to Connect. Both use the same resolved `tokenParams` object so discovery
+and subscriptions use the same authorized account.
 
-Use the same authorized account for the MCP transport and backend operations.
-Discovery goes to the MCP server; subscription management goes to the backend.
-Save a unique idempotency key for each authorized creation request and reuse it
-when retrying that request; the literal above is just an example. With
-`expiresAt: null`, the backend manages renewal until you explicitly stop the watch.
-
+The adapter receives the MCP URL from the client's transport automatically.
+You only specify it once. An explicit `mcpUrl` option on the adapter overrides
+that URL; Connect still validates the endpoint before sending credentials.
+With `expiresAt: null`, Connect manages renewal until you explicitly stop the watch.
 See the [managed subscriptions reference](/docs/reference/ai-sdk-core/mcp-events#managed-subscriptions)
-for factory requirements, lifetime options, listing, and cleanup status.
+for lifetime options, listing, and cleanup status.
 
-Managed deliveries use the backend's webhook contract and verifier. Do not use
-`experimental_createMCPEventWebhook` to verify a backend's forwarded envelope;
-that helper verifies direct MCP deliveries with the shared event store. Your
-application still owns durable acceptance, deduplication, and model processing.
+Deploy the `/hooks` receiver before subscribing. Use
+`experimental_verifyMcpEvent` from `@vercel/connect/mcp` to verify Connect's
+forwarded deliveries, not `experimental_createMCPEventWebhook`, which verifies
+direct MCP deliveries with the shared event store. Your application still owns
+durable acceptance, deduplication, and model processing. Save the returned
+subscription ID with its authorized application binding; if a delivery arrives
+before that binding is saved, retain it durably or return a retryable failure
+rather than guessing its recipient.
 
 ## Next steps
 
