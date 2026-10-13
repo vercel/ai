@@ -1,4 +1,5 @@
 ---
+'@ai-sdk/workflow': patch
 'ai': patch
 ---
 

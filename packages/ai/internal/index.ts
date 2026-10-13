@@ -55,3 +55,7 @@ export { toResponseMessages } from '../src/generate-text/to-response-messages';
 export { DefaultGenerateTextResult } from '../src/generate-text/default-generate-text-result';
 export { convertLanguageModelContent } from '../src/generate-text/convert-language-model-content';
 export { calculateTokensPerSecond } from '../src/generate-text/calculate-tokens-per-second';
+export {
+  mapWithConcurrency,
+  prepareToolCallConcurrency,
+} from '../src/generate-text/tool-call-concurrency';
