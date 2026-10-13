@@ -523,5 +523,24 @@ describe('prepareTools', () => {
         },
       ]);
     });
+
+    it('should omit strict without a warning when strict is false and strict tools are unsupported', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+            strict: false,
+          },
+        ],
+        modelId: 'us.anthropic.claude-sonnet-5',
+      });
+
+      const toolSpec = (result.toolConfig.tools![0] as any).toolSpec;
+      expect(toolSpec).not.toHaveProperty('strict');
+      expect(result.toolWarnings).toEqual([]);
+    });
   });
 });
