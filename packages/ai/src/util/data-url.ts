@@ -13,6 +13,10 @@ const { atob } = globalThis;
 export function getTextFromDataUrl(dataUrl: string): string {
   const [header, base64Content] = dataUrl.split(',');
   const mediaType = header.split(';')[0].split(':')[1];
+  const charsetMatch = /(?:^|;)\s*charset\s*=\s*(?:"([^"]+)"|([^;\s]+))/i.exec(
+    header,
+  );
+  const charset = charsetMatch?.[1] ?? charsetMatch?.[2];
 
   if (mediaType == null || base64Content == null) {
     throw new InvalidArgumentError({
@@ -23,7 +27,15 @@ export function getTextFromDataUrl(dataUrl: string): string {
   }
 
   try {
-    return atob(base64Content);
+    const byteString = atob(base64Content);
+
+    if (charset == null) {
+      return byteString;
+    }
+
+    return new TextDecoder(charset).decode(
+      Uint8Array.from(byteString, byte => byte.codePointAt(0)!),
+    );
   } catch {
     throw new InvalidArgumentError({
       parameter: 'dataUrl',

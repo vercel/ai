@@ -25,18 +25,18 @@ import { z } from 'zod/v4';
 import { createTestSandbox } from './test/test-sandbox.js';
 import type { ParsedToolCall } from './do-stream-step.js';
 import type {
-  StreamTextIteratorAbortedValue,
-  StreamTextIteratorYieldValue,
-} from './stream-text-iterator.js';
+  ModelCallIteratorAbortedValue,
+  ModelCallIteratorYieldValue,
+} from './model-call-iterator.js';
 import type {
   PrepareCallOptions,
   PrepareStepCallback,
   ToolCallRepairFunction,
 } from './workflow-agent.js';
 
-// Mock the streamTextIterator
-vi.mock('./stream-text-iterator.js', () => ({
-  streamTextIterator: vi.fn(),
+// Mock the modelCallIterator
+vi.mock('./model-call-iterator.js', () => ({
+  modelCallIterator: vi.fn(),
 }));
 
 // Import after mocking
@@ -64,8 +64,8 @@ function createMockModel(): LanguageModelV4 {
  * Type for the mock iterator used in tests
  */
 type MockIterator = AsyncGenerator<
-  StreamTextIteratorYieldValue,
-  LanguageModelV4Prompt | StreamTextIteratorAbortedValue,
+  ModelCallIteratorYieldValue,
+  LanguageModelV4Prompt | ModelCallIteratorAbortedValue,
   LanguageModelV4ToolResultPart[]
 >;
 
@@ -89,8 +89,8 @@ describe('WorkflowAgent', () => {
 
   describe('user-agent', () => {
     async function runStream(headers?: Record<string, string>) {
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
-      vi.mocked(streamTextIterator).mockReturnValue({
+      const { modelCallIterator } = await import('./model-call-iterator.js');
+      vi.mocked(modelCallIterator).mockReturnValue({
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       } as unknown as MockIterator);
 
@@ -101,7 +101,7 @@ describe('WorkflowAgent', () => {
         ...(headers ? { headers } : {}),
       });
 
-      const call = vi.mocked(streamTextIterator).mock.calls.at(-1)?.[0];
+      const call = vi.mocked(modelCallIterator).mock.calls.at(-1)?.[0];
       return (call?.generationSettings?.headers ?? {}) as Record<
         string,
         string
@@ -122,8 +122,8 @@ describe('WorkflowAgent', () => {
 
   describe('prepareCall', () => {
     it('applies maxRetries to generation settings', async () => {
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
-      vi.mocked(streamTextIterator).mockReturnValue({
+      const { modelCallIterator } = await import('./model-call-iterator.js');
+      vi.mocked(modelCallIterator).mockReturnValue({
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       } as unknown as MockIterator);
 
@@ -138,7 +138,7 @@ describe('WorkflowAgent', () => {
         writable: new WritableStream({ write: vi.fn(), close: vi.fn() }),
       });
 
-      expect(streamTextIterator).toHaveBeenCalledWith(
+      expect(modelCallIterator).toHaveBeenCalledWith(
         expect.objectContaining({
           generationSettings: expect.objectContaining({ maxRetries: 5 }),
         }),
@@ -146,8 +146,8 @@ describe('WorkflowAgent', () => {
     });
 
     it('aborts before starting when prepareCall returns an aborted signal', async () => {
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
-      vi.mocked(streamTextIterator).mockClear();
+      const { modelCallIterator } = await import('./model-call-iterator.js');
+      vi.mocked(modelCallIterator).mockClear();
 
       const abortController = new AbortController();
       abortController.abort();
@@ -163,7 +163,7 @@ describe('WorkflowAgent', () => {
         onAbort,
       });
 
-      expect(streamTextIterator).not.toHaveBeenCalled();
+      expect(modelCallIterator).not.toHaveBeenCalled();
       expect(onAbort).toHaveBeenCalledWith({ steps: [] });
     });
 
@@ -192,8 +192,8 @@ describe('WorkflowAgent', () => {
           experimental_download: preparedDownload,
         };
       });
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
-      vi.mocked(streamTextIterator).mockReturnValue({
+      const { modelCallIterator } = await import('./model-call-iterator.js');
+      vi.mocked(modelCallIterator).mockReturnValue({
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       } as unknown as MockIterator);
 
@@ -210,12 +210,82 @@ describe('WorkflowAgent', () => {
         experimental_download: streamDownload,
       });
 
-      expect(streamTextIterator).toHaveBeenCalledWith(
+      expect(modelCallIterator).toHaveBeenCalledWith(
         expect.objectContaining({
           stopConditions: preparedStopWhen,
           tools: { second: tools.second },
         }),
       );
+    });
+
+    it('passes URL-backed image and file parts to model steps without downloading them', async () => {
+      const { modelCallIterator } = await import('./model-call-iterator.js');
+      vi.mocked(modelCallIterator).mockReturnValue({
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      } as unknown as MockIterator);
+      const download = vi.fn(async requests => requests.map(() => null));
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(() => {
+        throw new Error('fetch is unavailable in workflow functions');
+      });
+      const imageUrl = new URL('https://example.com/image.png');
+      const fileUrl = new URL('https://example.com/file.pdf');
+
+      try {
+        const agent = new WorkflowAgent({
+          model: createMockModel(),
+          experimental_download: download,
+        });
+        await agent.stream({
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'image',
+                  image: imageUrl,
+                  mediaType: 'image/png',
+                },
+                {
+                  type: 'file',
+                  data: fileUrl,
+                  mediaType: 'application/pdf',
+                },
+              ],
+            },
+          ],
+        });
+
+        const prompt = vi
+          .mocked(modelCallIterator)
+          .mock.calls.at(-1)?.[0].prompt;
+        expect(prompt).toEqual([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: { type: 'url', url: imageUrl },
+                mediaType: 'image/png',
+                providerOptions: undefined,
+              },
+              {
+                type: 'file',
+                data: { type: 'url', url: fileUrl },
+                mediaType: 'application/pdf',
+                filename: undefined,
+                providerOptions: undefined,
+              },
+            ],
+          },
+        ]);
+        expect(download).not.toHaveBeenCalled();
+        expect(modelCallIterator).toHaveBeenLastCalledWith(
+          expect.objectContaining({ download }),
+        );
+        expect(fetchSpy).not.toHaveBeenCalled();
+      } finally {
+        fetchSpy.mockRestore();
+      }
     });
   });
 
@@ -240,11 +310,11 @@ describe('WorkflowAgent', () => {
           }),
         },
       });
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const messages: LanguageModelV4Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
       ];
-      vi.mocked(streamTextIterator).mockReturnValue({
+      vi.mocked(modelCallIterator).mockReturnValue({
         next: vi
           .fn()
           .mockResolvedValueOnce({
@@ -288,11 +358,11 @@ describe('WorkflowAgent', () => {
           }),
         },
       });
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const messages: LanguageModelV4Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
       ];
-      vi.mocked(streamTextIterator).mockReturnValue({
+      vi.mocked(modelCallIterator).mockReturnValue({
         next: vi
           .fn()
           .mockResolvedValueOnce({
@@ -318,6 +388,7 @@ describe('WorkflowAgent', () => {
 
       expect(receivedSignal).toBeDefined();
       expect(receivedSignal?.aborted).toBe(true);
+      expect(receivedSignal?.reason).toHaveProperty('name', 'TimeoutError');
       expect(cooperativelyCancelled).toBe(true);
     });
 
@@ -348,8 +419,8 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      // Mock the streamTextIterator to return tool calls and then complete
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      // Mock the modelCallIterator to return tool calls and then complete
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockMessages: LanguageModelV4Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
       ];
@@ -371,7 +442,7 @@ describe('WorkflowAgent', () => {
           })
           .mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -424,7 +495,7 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockMessages: LanguageModelV4Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
       ];
@@ -446,7 +517,7 @@ describe('WorkflowAgent', () => {
           })
           .mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -509,7 +580,7 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockMessages: LanguageModelV4Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
       ];
@@ -531,7 +602,7 @@ describe('WorkflowAgent', () => {
           })
           .mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -586,7 +657,7 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockMessages: LanguageModelV4Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
       ];
@@ -609,7 +680,7 @@ describe('WorkflowAgent', () => {
           })
           .mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -674,7 +745,7 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockMessages: LanguageModelV4Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
       ];
@@ -708,7 +779,7 @@ describe('WorkflowAgent', () => {
           })
           .mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -753,7 +824,7 @@ describe('WorkflowAgent', () => {
         model: createMockModel(),
         tools,
       });
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi
           .fn()
@@ -780,7 +851,7 @@ describe('WorkflowAgent', () => {
           })
           .mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -818,7 +889,7 @@ describe('WorkflowAgent', () => {
         tools,
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockMessages: LanguageModelV4Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
       ];
@@ -854,7 +925,7 @@ describe('WorkflowAgent', () => {
           })
           .mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -914,7 +985,7 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockMessages: LanguageModelV4Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
       ];
@@ -956,7 +1027,7 @@ describe('WorkflowAgent', () => {
           })
           .mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -1011,7 +1082,7 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockMessages: LanguageModelV4Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
       ];
@@ -1045,7 +1116,7 @@ describe('WorkflowAgent', () => {
           })
           .mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -1095,7 +1166,7 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockMessages: LanguageModelV4Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
       ];
@@ -1123,7 +1194,7 @@ describe('WorkflowAgent', () => {
           })
           .mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -1182,7 +1253,7 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const invalidError = new Error('Invalid input for tool testTool');
       const mockMessages: LanguageModelV4Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
@@ -1223,7 +1294,7 @@ describe('WorkflowAgent', () => {
             value: finalMessages,
           }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -1285,7 +1356,7 @@ describe('WorkflowAgent', () => {
         },
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockMessages: LanguageModelV4Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
       ];
@@ -1307,7 +1378,7 @@ describe('WorkflowAgent', () => {
           })
           .mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -1367,7 +1438,7 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockMessages: LanguageModelV4Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
       ];
@@ -1389,7 +1460,7 @@ describe('WorkflowAgent', () => {
         }),
         // Note: no second call - the loop should stop before calling next again
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -1449,7 +1520,7 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockMessages: LanguageModelV4Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
       ];
@@ -1476,7 +1547,7 @@ describe('WorkflowAgent', () => {
           },
         }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -1566,7 +1637,7 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockMessages: LanguageModelV4Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
       ];
@@ -1592,7 +1663,7 @@ describe('WorkflowAgent', () => {
           },
         }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -1653,7 +1724,7 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi.fn().mockResolvedValueOnce({
           done: false,
@@ -1672,7 +1743,7 @@ describe('WorkflowAgent', () => {
           },
         }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -1718,7 +1789,7 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockMessages: LanguageModelV4Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
       ];
@@ -1739,7 +1810,7 @@ describe('WorkflowAgent', () => {
           },
         }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -1780,7 +1851,7 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockMessages: LanguageModelV4Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
       ];
@@ -1813,7 +1884,7 @@ describe('WorkflowAgent', () => {
           })
           .mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -1830,7 +1901,7 @@ describe('WorkflowAgent', () => {
   });
 
   describe('prepareStep callback', () => {
-    it('should pass prepareStep callback to streamTextIterator', async () => {
+    it('should pass prepareStep callback to modelCallIterator', async () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
@@ -1843,11 +1914,11 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -1859,8 +1930,8 @@ describe('WorkflowAgent', () => {
         prepareStep,
       });
 
-      // Verify streamTextIterator was called with prepareStep
-      expect(streamTextIterator).toHaveBeenCalledWith(
+      // Verify modelCallIterator was called with prepareStep
+      expect(modelCallIterator).toHaveBeenCalledWith(
         expect.objectContaining({
           prepareStep,
         }),
@@ -1876,8 +1947,8 @@ describe('WorkflowAgent', () => {
         tools: {},
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
-      vi.mocked(streamTextIterator).mockReturnValue({
+      const { modelCallIterator } = await import('./model-call-iterator.js');
+      vi.mocked(modelCallIterator).mockReturnValue({
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       } as unknown as MockIterator);
 
@@ -1886,7 +1957,7 @@ describe('WorkflowAgent', () => {
         instructions: 'stream instructions',
       });
 
-      expect(streamTextIterator).toHaveBeenCalledWith(
+      expect(modelCallIterator).toHaveBeenCalledWith(
         expect.objectContaining({
           initialInstructions: 'stream instructions',
           initialMessages: [{ role: 'user', content: 'test' }],
@@ -1914,11 +1985,11 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -1940,7 +2011,7 @@ describe('WorkflowAgent', () => {
       });
 
       // Verify prepareStep was passed to the iterator
-      expect(streamTextIterator).toHaveBeenCalledWith(
+      expect(modelCallIterator).toHaveBeenCalledWith(
         expect.objectContaining({
           prepareStep: expect.any(Function),
         }),
@@ -1960,11 +2031,11 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -1985,7 +2056,7 @@ describe('WorkflowAgent', () => {
       });
 
       // Verify prepareStep was passed to the iterator
-      expect(streamTextIterator).toHaveBeenCalledWith(
+      expect(modelCallIterator).toHaveBeenCalledWith(
         expect.objectContaining({
           prepareStep: expect.any(Function),
         }),
@@ -2005,11 +2076,11 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -2037,7 +2108,7 @@ describe('WorkflowAgent', () => {
       });
 
       // Verify prepareStep was passed and the function captures expected params
-      expect(streamTextIterator).toHaveBeenCalledWith(
+      expect(modelCallIterator).toHaveBeenCalledWith(
         expect.objectContaining({
           prepareStep: expect.any(Function),
         }),
@@ -2094,7 +2165,7 @@ describe('WorkflowAgent', () => {
         },
       ];
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi
           .fn()
@@ -2113,7 +2184,7 @@ describe('WorkflowAgent', () => {
           })
           .mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -2188,7 +2259,7 @@ describe('WorkflowAgent', () => {
         },
       ];
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi
           .fn()
@@ -2212,7 +2283,7 @@ describe('WorkflowAgent', () => {
           })
           .mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -2296,7 +2367,7 @@ describe('WorkflowAgent', () => {
         },
       ];
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi
           .fn()
@@ -2330,7 +2401,7 @@ describe('WorkflowAgent', () => {
           })
           .mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -2351,7 +2422,7 @@ describe('WorkflowAgent', () => {
   });
 
   describe('generation settings', () => {
-    it('should pass generation settings from constructor to streamTextIterator', async () => {
+    it('should pass generation settings from constructor to modelCallIterator', async () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
@@ -2369,11 +2440,11 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -2382,7 +2453,7 @@ describe('WorkflowAgent', () => {
         writable: mockWritable,
       });
 
-      expect(streamTextIterator).toHaveBeenCalledWith(
+      expect(modelCallIterator).toHaveBeenCalledWith(
         expect.objectContaining({
           generationSettings: expect.objectContaining({
             temperature: 0.7,
@@ -2409,11 +2480,11 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -2425,7 +2496,7 @@ describe('WorkflowAgent', () => {
         reasoning: 'none',
       });
 
-      expect(streamTextIterator).toHaveBeenCalledWith(
+      expect(modelCallIterator).toHaveBeenCalledWith(
         expect.objectContaining({
           generationSettings: expect.objectContaining({
             temperature: 0.3,
@@ -2438,7 +2509,7 @@ describe('WorkflowAgent', () => {
   });
 
   describe('toolChoice', () => {
-    it('should pass toolChoice from constructor to streamTextIterator', async () => {
+    it('should pass toolChoice from constructor to modelCallIterator', async () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
@@ -2452,11 +2523,11 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -2465,7 +2536,7 @@ describe('WorkflowAgent', () => {
         writable: mockWritable,
       });
 
-      expect(streamTextIterator).toHaveBeenCalledWith(
+      expect(modelCallIterator).toHaveBeenCalledWith(
         expect.objectContaining({
           toolChoice: 'required',
         }),
@@ -2486,11 +2557,11 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -2500,7 +2571,7 @@ describe('WorkflowAgent', () => {
         toolChoice: 'none',
       });
 
-      expect(streamTextIterator).toHaveBeenCalledWith(
+      expect(modelCallIterator).toHaveBeenCalledWith(
         expect.objectContaining({
           toolChoice: 'none',
         }),
@@ -2540,14 +2611,14 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       // Clear previous mock calls
-      vi.mocked(streamTextIterator).mockClear();
+      vi.mocked(modelCallIterator).mockClear();
 
       const mockIterator = {
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -2558,7 +2629,7 @@ describe('WorkflowAgent', () => {
       });
 
       // Verify only active tools are passed (get the most recent call)
-      const calls = vi.mocked(streamTextIterator).mock.calls;
+      const calls = vi.mocked(modelCallIterator).mock.calls;
       const lastCall = calls[calls.length - 1][0];
       expect(Object.keys(lastCall.tools).sort()).toEqual(['tool1', 'tool3']);
     });
@@ -2580,10 +2651,9 @@ describe('WorkflowAgent', () => {
           ...(activeToolsSource === 'constructor' ? { activeTools: [] } : {}),
         });
 
-        const { streamTextIterator } =
-          await import('./stream-text-iterator.js');
-        vi.mocked(streamTextIterator).mockClear();
-        vi.mocked(streamTextIterator).mockReturnValue({
+        const { modelCallIterator } = await import('./model-call-iterator.js');
+        vi.mocked(modelCallIterator).mockClear();
+        vi.mocked(modelCallIterator).mockReturnValue({
           next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
         } as unknown as MockIterator);
 
@@ -2593,7 +2663,7 @@ describe('WorkflowAgent', () => {
           ...(activeToolsSource === 'stream' ? { activeTools: [] } : {}),
         });
 
-        const call = vi.mocked(streamTextIterator).mock.calls.at(-1)?.[0];
+        const call = vi.mocked(modelCallIterator).mock.calls.at(-1)?.[0];
         expect(call?.tools).toEqual({});
       },
     );
@@ -2615,12 +2685,12 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
-      vi.mocked(streamTextIterator).mockClear();
+      const { modelCallIterator } = await import('./model-call-iterator.js');
+      vi.mocked(modelCallIterator).mockClear();
       const mockIterator = {
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -2629,7 +2699,7 @@ describe('WorkflowAgent', () => {
         writable: mockWritable,
       });
 
-      const calls = vi.mocked(streamTextIterator).mock.calls;
+      const calls = vi.mocked(modelCallIterator).mock.calls;
       const lastCall = calls[calls.length - 1][0];
       expect(lastCall.stopConditions).toBe(stopWhenFn);
     });
@@ -2650,12 +2720,12 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
-      vi.mocked(streamTextIterator).mockClear();
+      const { modelCallIterator } = await import('./model-call-iterator.js');
+      vi.mocked(modelCallIterator).mockClear();
       const mockIterator = {
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -2665,7 +2735,7 @@ describe('WorkflowAgent', () => {
         stopWhen: streamStopWhen as any,
       });
 
-      const calls = vi.mocked(streamTextIterator).mock.calls;
+      const calls = vi.mocked(modelCallIterator).mock.calls;
       const lastCall = calls[calls.length - 1][0];
       expect(lastCall.stopConditions).toBe(streamStopWhen);
     });
@@ -2697,12 +2767,12 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
-      vi.mocked(streamTextIterator).mockClear();
+      const { modelCallIterator } = await import('./model-call-iterator.js');
+      vi.mocked(modelCallIterator).mockClear();
       const mockIterator = {
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -2711,7 +2781,7 @@ describe('WorkflowAgent', () => {
         writable: mockWritable,
       });
 
-      const calls = vi.mocked(streamTextIterator).mock.calls;
+      const calls = vi.mocked(modelCallIterator).mock.calls;
       const lastCall = calls[calls.length - 1][0];
       expect(Object.keys(lastCall.tools)).toEqual(['tool1']);
     });
@@ -2731,12 +2801,12 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
-      vi.mocked(streamTextIterator).mockClear();
+      const { modelCallIterator } = await import('./model-call-iterator.js');
+      vi.mocked(modelCallIterator).mockClear();
       const mockIterator = {
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -2745,7 +2815,7 @@ describe('WorkflowAgent', () => {
         writable: mockWritable,
       });
 
-      const calls = vi.mocked(streamTextIterator).mock.calls;
+      const calls = vi.mocked(modelCallIterator).mock.calls;
       const lastCall = calls[calls.length - 1][0];
       expect(lastCall.repairToolCall).toBe(repairFn);
     });
@@ -2765,11 +2835,11 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -2781,7 +2851,7 @@ describe('WorkflowAgent', () => {
         onError,
       });
 
-      const call = vi.mocked(streamTextIterator).mock.lastCall?.[0];
+      const call = vi.mocked(modelCallIterator).mock.lastCall?.[0];
       expect(call).not.toHaveProperty('onError');
     });
 
@@ -2813,7 +2883,7 @@ describe('WorkflowAgent', () => {
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
       ];
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi
           .fn()
@@ -2832,7 +2902,7 @@ describe('WorkflowAgent', () => {
           })
           .mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -2873,7 +2943,7 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockStep: StepResult<any, any> = {
         content: [{ type: 'text', text: 'Hello' }],
         text: 'Hello',
@@ -2910,7 +2980,7 @@ describe('WorkflowAgent', () => {
           })
           .mockResolvedValueOnce({ done: true, value: mockMessages }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -2945,11 +3015,11 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -2976,8 +3046,8 @@ describe('WorkflowAgent', () => {
         write: vi.fn(),
         close: vi.fn(),
       });
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
-      vi.mocked(streamTextIterator).mockReturnValue({
+      const { modelCallIterator } = await import('./model-call-iterator.js');
+      vi.mocked(modelCallIterator).mockReturnValue({
         next: vi.fn().mockResolvedValueOnce({
           done: true,
           value: { aborted: true, messages: [] },
@@ -3013,8 +3083,8 @@ describe('WorkflowAgent', () => {
         'The operation timed out.',
         'TimeoutError',
       );
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
-      vi.mocked(streamTextIterator).mockReturnValue({
+      const { modelCallIterator } = await import('./model-call-iterator.js');
+      vi.mocked(modelCallIterator).mockReturnValue({
         next: vi.fn().mockRejectedValueOnce(timeoutError),
       } as unknown as MockIterator);
       const onAbort = vi.fn();
@@ -3066,7 +3136,7 @@ describe('WorkflowAgent', () => {
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
       ];
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi
           .fn()
@@ -3085,7 +3155,7 @@ describe('WorkflowAgent', () => {
           })
           .mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -3150,7 +3220,7 @@ describe('WorkflowAgent', () => {
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
       ];
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi
           .fn()
@@ -3169,7 +3239,7 @@ describe('WorkflowAgent', () => {
           })
           .mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -3205,11 +3275,11 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -3218,8 +3288,8 @@ describe('WorkflowAgent', () => {
         writable: mockWritable,
       });
 
-      // Verify onStepStart is passed to streamTextIterator (it will be called internally)
-      expect(streamTextIterator).toHaveBeenCalledWith(
+      // Verify onStepStart is passed to modelCallIterator (it will be called internally)
+      expect(modelCallIterator).toHaveBeenCalledWith(
         expect.objectContaining({
           onStepStart: expect.any(Function),
         }),
@@ -3238,8 +3308,8 @@ describe('WorkflowAgent', () => {
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
       ];
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
-      vi.mocked(streamTextIterator).mockReturnValue({
+      const { modelCallIterator } = await import('./model-call-iterator.js');
+      vi.mocked(modelCallIterator).mockReturnValue({
         next: vi
           .fn()
           .mockResolvedValueOnce({
@@ -3398,7 +3468,7 @@ describe('WorkflowAgent', () => {
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
       ];
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi
           .fn()
@@ -3414,7 +3484,7 @@ describe('WorkflowAgent', () => {
           })
           .mockResolvedValueOnce({ done: true, value: mockMessages }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -3473,7 +3543,7 @@ describe('WorkflowAgent', () => {
         { role: 'assistant', content: [{ type: 'text', text: 'Hello' }] },
       ];
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi
           .fn()
@@ -3487,7 +3557,7 @@ describe('WorkflowAgent', () => {
           })
           .mockResolvedValueOnce({ done: true, value: finalMessages }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -3516,11 +3586,11 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -3529,8 +3599,8 @@ describe('WorkflowAgent', () => {
         writable: mockWritable,
       });
 
-      // Verify streamTextIterator was called (standardizePrompt converts string prompt to messages)
-      expect(streamTextIterator).toHaveBeenCalled();
+      // Verify modelCallIterator was called (standardizePrompt converts string prompt to messages)
+      expect(modelCallIterator).toHaveBeenCalled();
     });
 
     it('should accept an array of messages as prompt', async () => {
@@ -3546,11 +3616,11 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -3559,7 +3629,7 @@ describe('WorkflowAgent', () => {
         writable: mockWritable,
       });
 
-      expect(streamTextIterator).toHaveBeenCalled();
+      expect(modelCallIterator).toHaveBeenCalled();
     });
   });
 
@@ -3570,15 +3640,15 @@ describe('WorkflowAgent', () => {
     ] as any;
 
     function mockIteratorOnce() {
-      return import('./stream-text-iterator.js').then(
-        ({ streamTextIterator }) => {
+      return import('./model-call-iterator.js').then(
+        ({ modelCallIterator }) => {
           const mockIterator = {
             next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
           };
-          vi.mocked(streamTextIterator).mockReturnValue(
+          vi.mocked(modelCallIterator).mockReturnValue(
             mockIterator as unknown as MockIterator,
           );
-          return streamTextIterator;
+          return modelCallIterator;
         },
       );
     }
@@ -3619,19 +3689,19 @@ describe('WorkflowAgent', () => {
         write: vi.fn(),
         close: vi.fn(),
       });
-      const streamTextIterator = await mockIteratorOnce();
+      const modelCallIterator = await mockIteratorOnce();
 
       await agent.stream({
         messages: messagesWithSystem,
         writable: mockWritable,
       });
 
-      expect(streamTextIterator).toHaveBeenCalled();
+      expect(modelCallIterator).toHaveBeenCalled();
     });
   });
 
   describe('tool call repair', () => {
-    it('should pass repairToolCall through to streamTextIterator', async () => {
+    it('should pass repairToolCall through to modelCallIterator', async () => {
       const repairFn: ToolCallRepairFunction<ToolSet> = vi.fn();
 
       const mockModel = createMockModel();
@@ -3646,11 +3716,11 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -3660,9 +3730,9 @@ describe('WorkflowAgent', () => {
         repairToolCall: repairFn,
       });
 
-      // Verify repairToolCall is passed through to streamTextIterator
+      // Verify repairToolCall is passed through to modelCallIterator
       // (streamModelCall inside doStreamStep will use it for tool call repair)
-      expect(streamTextIterator).toHaveBeenCalledWith(
+      expect(modelCallIterator).toHaveBeenCalledWith(
         expect.objectContaining({
           repairToolCall: repairFn,
         }),
@@ -3671,7 +3741,7 @@ describe('WorkflowAgent', () => {
   });
 
   describe('includeRawChunks', () => {
-    it('should pass includeRawChunks to streamTextIterator', async () => {
+    it('should pass includeRawChunks to modelCallIterator', async () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
@@ -3684,11 +3754,11 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -3698,7 +3768,7 @@ describe('WorkflowAgent', () => {
         includeRawChunks: true,
       });
 
-      expect(streamTextIterator).toHaveBeenCalledWith(
+      expect(modelCallIterator).toHaveBeenCalledWith(
         expect.objectContaining({
           includeRawChunks: true,
         }),
@@ -3707,7 +3777,7 @@ describe('WorkflowAgent', () => {
   });
 
   describe('telemetry', () => {
-    it('should pass telemetry settings from constructor to streamTextIterator', async () => {
+    it('should pass telemetry settings from constructor to modelCallIterator', async () => {
       const mockModel = createMockModel();
 
       const TelemetryOptions = {
@@ -3727,11 +3797,11 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -3740,7 +3810,7 @@ describe('WorkflowAgent', () => {
         writable: mockWritable,
       });
 
-      expect(streamTextIterator).toHaveBeenCalledWith(
+      expect(modelCallIterator).toHaveBeenCalledWith(
         expect.objectContaining({
           telemetry: TelemetryOptions,
         }),
@@ -3761,11 +3831,11 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -3777,7 +3847,7 @@ describe('WorkflowAgent', () => {
         telemetry: streamTelemetry,
       });
 
-      expect(streamTextIterator).toHaveBeenCalledWith(
+      expect(modelCallIterator).toHaveBeenCalledWith(
         expect.objectContaining({
           telemetry: streamTelemetry,
         }),
@@ -3799,11 +3869,11 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -3829,11 +3899,11 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -3845,7 +3915,7 @@ describe('WorkflowAgent', () => {
       expect(result.uiMessages).toBeUndefined();
     });
 
-    it('should pass collectUIChunks to streamTextIterator when collectUIMessages is true', async () => {
+    it('should pass collectUIChunks to modelCallIterator when collectUIMessages is true', async () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
@@ -3858,12 +3928,12 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       let capturedCollectUIChunks: boolean | undefined;
       const mockIterator = {
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockImplementation(opts => {
+      vi.mocked(modelCallIterator).mockImplementation(opts => {
         capturedCollectUIChunks = opts.collectUIChunks;
         return mockIterator as unknown as MockIterator;
       });
@@ -3874,7 +3944,7 @@ describe('WorkflowAgent', () => {
         collectUIMessages: true,
       });
 
-      // When collectUIMessages is true, collectUIChunks should be passed to streamTextIterator
+      // When collectUIMessages is true, collectUIChunks should be passed to modelCallIterator
       expect(capturedCollectUIChunks).toBe(true);
 
       // uiMessages should be defined (even if empty, since we're mocking)
@@ -3899,11 +3969,11 @@ describe('WorkflowAgent', () => {
         close: closeFn,
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -3943,11 +4013,11 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -4068,11 +4138,11 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -4130,8 +4200,8 @@ describe('WorkflowAgent', () => {
         },
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
-      vi.mocked(streamTextIterator).mockReturnValue({
+      const { modelCallIterator } = await import('./model-call-iterator.js');
+      vi.mocked(modelCallIterator).mockReturnValue({
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       } as unknown as MockIterator);
 
@@ -4201,8 +4271,8 @@ describe('WorkflowAgent', () => {
         experimental_toolApprovalSecret: toolApprovalSecretReference,
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
-      vi.mocked(streamTextIterator).mockReturnValue({
+      const { modelCallIterator } = await import('./model-call-iterator.js');
+      vi.mocked(modelCallIterator).mockReturnValue({
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       } as unknown as MockIterator);
 
@@ -4238,11 +4308,11 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -4284,7 +4354,7 @@ describe('WorkflowAgent', () => {
       expect(executeFn).not.toHaveBeenCalled();
       expect(mockIterator.next).toHaveBeenCalled();
       const iteratorOptions = vi
-        .mocked(streamTextIterator)
+        .mocked(modelCallIterator)
         .mock.calls.at(-1)?.[0];
       expect(iteratorOptions).toBeDefined();
       const initialMessages = iteratorOptions?.initialMessages;
@@ -4327,11 +4397,11 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -4400,11 +4470,11 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -4493,11 +4563,11 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -4541,7 +4611,7 @@ describe('WorkflowAgent', () => {
       });
 
       const iteratorArgs = vi
-        .mocked(streamTextIterator)
+        .mocked(modelCallIterator)
         .mock.calls.at(-1)?.[0] as any;
       const toolMessage = iteratorArgs.prompt.find(
         (message: any) =>
@@ -4589,11 +4659,11 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -4635,8 +4705,90 @@ describe('WorkflowAgent', () => {
       // The tool should NOT have been executed
       expect(executeFn).not.toHaveBeenCalled();
 
-      // The streamTextIterator should have been called (the agent continues with denial result)
+      // The modelCallIterator should have been called (the agent continues with denial result)
       expect(mockIterator.next).toHaveBeenCalled();
+    });
+
+    it('should reuse an existing denial result while streaming the denial event', async () => {
+      const executeFn = vi.fn();
+      const tools: ToolSet = {
+        deleteFile: {
+          description: 'Delete a file',
+          inputSchema: z.object({ path: z.string() }),
+          execute: executeFn,
+          needsApproval: true as const,
+        },
+      };
+      const write = vi.fn();
+      const { modelCallIterator } = await import('./model-call-iterator.js');
+      vi.mocked(modelCallIterator).mockReturnValue({
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      } as unknown as MockIterator);
+
+      await new WorkflowAgent({
+        model: createMockModel(),
+        tools,
+      }).stream({
+        messages: [
+          { role: 'user', content: 'Delete /etc/passwd' },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'deleteFile',
+                input: { path: '/etc/passwd' },
+              },
+              {
+                type: 'tool-approval-request',
+                approvalId: 'approval-call-1',
+                toolCallId: 'call-1',
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'approval-call-1',
+                approved: false,
+                reason: 'Too dangerous',
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'deleteFile',
+                output: {
+                  type: 'execution-denied',
+                  reason: 'Too dangerous',
+                },
+              },
+            ],
+          },
+        ] as any,
+        writable: new WritableStream({ write, close: vi.fn() }),
+      });
+
+      expect(executeFn).not.toHaveBeenCalled();
+      const initialMessages = vi
+        .mocked(modelCallIterator)
+        .mock.calls.at(-1)?.[0].initialMessages;
+      expect(
+        initialMessages?.flatMap(message =>
+          message.role === 'tool'
+            ? message.content.filter(
+                part =>
+                  part.type === 'tool-result' && part.toolCallId === 'call-1',
+              )
+            : [],
+        ),
+      ).toHaveLength(1);
+      expect(write.mock.calls.map(([chunk]) => chunk)).toContainEqual({
+        type: 'tool-output-denied',
+        toolCallId: 'call-1',
+      });
     });
 
     it('should pass through messages without approval responses unchanged', async () => {
@@ -4660,11 +4812,11 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -4703,11 +4855,11 @@ describe('WorkflowAgent', () => {
     }
 
     it('should forward an approved provider-executed approval to the provider', async () => {
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -4753,7 +4905,7 @@ describe('WorkflowAgent', () => {
       });
 
       // The agent continues, and the provider receives the approval response.
-      const call = vi.mocked(streamTextIterator).mock.calls.at(-1)!;
+      const call = vi.mocked(modelCallIterator).mock.calls.at(-1)!;
       const prompt = (call[0] as { prompt: any[] }).prompt;
       expect(collectApprovalResponses(prompt)).toContainEqual({
         approvalId: 'approval-call-1',
@@ -4762,11 +4914,11 @@ describe('WorkflowAgent', () => {
     });
 
     it('should forward a denied provider-executed approval to the provider', async () => {
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -4810,7 +4962,7 @@ describe('WorkflowAgent', () => {
         writable: mockWritable,
       });
 
-      const call = vi.mocked(streamTextIterator).mock.calls.at(-1)!;
+      const call = vi.mocked(modelCallIterator).mock.calls.at(-1)!;
       const prompt = (call[0] as { prompt: any[] }).prompt;
       expect(collectApprovalResponses(prompt)).toContainEqual({
         approvalId: 'approval-call-1',
@@ -4830,11 +4982,11 @@ describe('WorkflowAgent', () => {
         },
       };
 
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const { modelCallIterator } = await import('./model-call-iterator.js');
       const mockIterator = {
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       };
-      vi.mocked(streamTextIterator).mockReturnValue(
+      vi.mocked(modelCallIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
       );
 
@@ -4903,7 +5055,7 @@ describe('WorkflowAgent', () => {
 
       // Only the provider-executed approval response is forwarded; the local
       // one is stripped and replaced by a tool result.
-      const call = vi.mocked(streamTextIterator).mock.calls.at(-1)!;
+      const call = vi.mocked(modelCallIterator).mock.calls.at(-1)!;
       const prompt = (call[0] as { prompt: any[] }).prompt;
       const forwarded = collectApprovalResponses(prompt);
       expect(forwarded).toContainEqual({

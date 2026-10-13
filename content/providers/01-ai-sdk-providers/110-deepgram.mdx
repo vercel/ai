@@ -194,7 +194,7 @@ const result = await transcribe({
   audio: await readFile('audio.mp3'),
   providerOptions: {
     deepgram: {
-      summarize: true,
+      summarize: 'v2',
     } satisfies DeepgramTranscriptionModelOptions,
   },
 });

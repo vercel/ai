@@ -207,7 +207,7 @@ function resolveInstructionsFilePath({
     );
   }
   const containsTraversal = instructionsFile
-    .split(/[\\\/]/)
+    .split(/[\\/]/)
     .some(segment => segment === '..');
   const normalizedInstructionsFile = path.posix.normalize(
     instructionsFile.trim(),

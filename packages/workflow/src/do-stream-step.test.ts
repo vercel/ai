@@ -1,4 +1,4 @@
-import { APICallError } from '@ai-sdk/provider';
+import { APICallError, type LanguageModelV4StreamPart } from '@ai-sdk/provider';
 import { MockLanguageModelV4, convertArrayToReadableStream } from 'ai/test';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { doStreamStep } from './do-stream-step.js';
@@ -104,6 +104,153 @@ describe('doStreamStep', () => {
       id: 'text-1',
       text: 'Retried output',
     });
+  });
+
+  it('uses model URL support when invoking a custom downloader', async () => {
+    const fileUrl = new URL('https://example.com/file.pdf');
+    const urlPrompt = [
+      {
+        role: 'user' as const,
+        content: [
+          {
+            type: 'file' as const,
+            data: { type: 'url' as const, url: fileUrl },
+            mediaType: 'application/pdf',
+          },
+        ],
+      },
+    ];
+    const download = vi.fn(async () => [null]);
+    const model = new MockLanguageModelV4({
+      doStream: async () => successfulStream(),
+      supportedUrls: { 'application/pdf': [/.*/] },
+    });
+
+    await doStreamStep(urlPrompt, model, undefined, undefined, { download });
+
+    expect(download).toHaveBeenCalledWith([
+      { url: fileUrl, isUrlSupportedByModel: true },
+    ]);
+    expect(model.doStreamCalls[0].prompt).toEqual(urlPrompt);
+  });
+
+  it('preserves reasoning text and provider metadata as one content part', async () => {
+    const providerMetadata = {
+      anthropic: { signature: 'reasoning-signature' },
+      openai: { reasoningEncryptedContent: 'encrypted-reasoning' },
+    };
+    const model = new MockLanguageModelV4({
+      doStream: async () => ({
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start' as const, warnings: [] },
+          {
+            type: 'reasoning-start' as const,
+            id: 'reasoning-1',
+            providerMetadata,
+          },
+          {
+            type: 'reasoning-delta' as const,
+            id: 'reasoning-1',
+            delta: 'Inspect the configuration.',
+          },
+          { type: 'reasoning-end' as const, id: 'reasoning-1' },
+          {
+            type: 'finish' as const,
+            finishReason: { unified: 'stop' as const, raw: 'stop' },
+            usage: {
+              inputTokens: {
+                total: 1,
+                noCache: 1,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 1,
+                text: 0,
+                reasoning: 1,
+              },
+            },
+          },
+        ]),
+      }),
+    });
+
+    const result = await doStreamStep(prompt, model);
+
+    expect(result).toMatchObject({
+      raw: {
+        content: [{ type: 'reasoning', reasoningIndex: 0 }],
+        reasoning: [
+          {
+            text: 'Inspect the configuration.',
+            providerMetadata,
+          },
+        ],
+      },
+    });
+  });
+
+  it('preserves measured model call performance', async () => {
+    let timestamp = 0;
+    vi.spyOn(globalThis.performance, 'now').mockImplementation(
+      () => (timestamp += 100),
+    );
+    const model = new MockLanguageModelV4({
+      doStream: async () => ({
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start' as const, warnings: [] },
+          { type: 'text-start' as const, id: 'text-1' },
+          {
+            type: 'text-delta' as const,
+            id: 'text-1',
+            delta: 'Measured output',
+          },
+          { type: 'text-end' as const, id: 'text-1' },
+          {
+            type: 'finish' as const,
+            finishReason: { unified: 'stop' as const, raw: 'stop' },
+            usage: {
+              inputTokens: {
+                total: 10,
+                noCache: 10,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 20,
+                text: 20,
+                reasoning: undefined,
+              },
+            },
+          },
+        ]),
+      }),
+    });
+
+    const result = await doStreamStep(prompt, model);
+
+    if (result.aborted) {
+      throw new Error('Expected the model call to complete.');
+    }
+
+    expect(result.raw.performance).toMatchObject({
+      responseTimeMs: expect.any(Number),
+      effectiveOutputTokensPerSecond: expect.any(Number),
+      outputTokensPerSecond: expect.any(Number),
+      inputTokensPerSecond: expect.any(Number),
+      effectiveTotalTokensPerSecond: expect.any(Number),
+      timeToFirstOutputMs: expect.any(Number),
+    });
+    expect(result.raw.performance?.responseTimeMs).toBeGreaterThan(0);
+    expect(
+      result.raw.performance?.effectiveOutputTokensPerSecond,
+    ).toBeGreaterThan(0);
+    expect(result.raw.performance?.outputTokensPerSecond).toBeGreaterThan(0);
+    expect(result.raw.performance?.inputTokensPerSecond).toBeGreaterThan(0);
+    expect(
+      result.raw.performance?.effectiveTotalTokensPerSecond,
+    ).toBeGreaterThan(0);
+    expect(result.raw.performance?.timeToFirstOutputMs).toBeGreaterThan(0);
   });
 
   it('preserves provider metadata on provider-executed tool results', async () => {
@@ -360,6 +507,98 @@ describe('doStreamStep', () => {
       finish: { finishReason: 'error' },
     });
     expect(streamedParts).toContainEqual({ type: 'error', error: terminal });
+  });
+
+  it.each([
+    {
+      name: 'stream start only',
+      parts: [{ type: 'stream-start', warnings: [] }],
+    },
+    {
+      name: 'response metadata only',
+      parts: [
+        { type: 'stream-start', warnings: [] },
+        { type: 'response-metadata', id: 'response-1', modelId: 'mock-model' },
+      ],
+    },
+    {
+      name: 'bare text start',
+      parts: [
+        { type: 'stream-start', warnings: [] },
+        { type: 'text-start', id: 'text-1' },
+      ],
+    },
+    {
+      name: 'empty encrypted reasoning delta',
+      parts: [
+        { type: 'stream-start', warnings: [] },
+        {
+          type: 'reasoning-start',
+          id: 'reasoning-1',
+          providerMetadata: {
+            openai: { reasoningEncryptedContent: 'encrypted-reasoning' },
+          },
+        },
+        {
+          type: 'reasoning-delta',
+          id: 'reasoning-1',
+          delta: '',
+          providerMetadata: {
+            openai: { reasoningEncryptedContent: 'encrypted-reasoning' },
+          },
+        },
+      ],
+    },
+  ] satisfies Array<{
+    name: string;
+    parts: LanguageModelV4StreamPart[];
+  }>)(
+    'returns a no-output error when an incomplete stream contains $name',
+    async ({ parts }) => {
+      const model = new MockLanguageModelV4({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream(
+            parts as LanguageModelV4StreamPart[],
+          ),
+        }),
+      });
+
+      const result = await doStreamStep(prompt, model);
+
+      expect(result).toMatchObject({
+        terminalError: {
+          name: 'AI_NoOutputGeneratedError',
+          message:
+            'No output generated. The model stream ended without a finish chunk.',
+        },
+      });
+    },
+  );
+
+  it('retains partial output when the model stream ends without a finish part', async () => {
+    const model = new MockLanguageModelV4({
+      doStream: async () => ({
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start' as const, warnings: [] },
+          { type: 'text-start' as const, id: 'text-1' },
+          {
+            type: 'text-delta' as const,
+            id: 'text-1',
+            delta: 'partial output',
+          },
+        ]),
+      }),
+    });
+
+    const result = await doStreamStep(prompt, model);
+
+    expect(result).not.toHaveProperty('terminalError');
+    expect(result).toMatchObject({
+      finish: undefined,
+      raw: {
+        content: [{ type: 'text', text: 'partial output' }],
+      },
+    });
   });
 
   it('records tool input lifecycle events for callbacks outside the step', async () => {

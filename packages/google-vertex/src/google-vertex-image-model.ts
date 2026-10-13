@@ -26,6 +26,13 @@ interface GoogleVertexImageModelConfig {
   };
 }
 
+const googleVertexImageModelsWithFileInputSupport = new Set<string>([
+  'gemini-2.5-flash-image',
+  'gemini-3-pro-image-preview',
+  'gemini-3.1-flash-image-preview',
+  'gemini-nano-banana-2.1',
+]);
+
 export class GoogleVertexImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
 
@@ -43,7 +50,17 @@ export class GoogleVertexImageModel implements ImageModelV4 {
     return new GoogleVertexImageModel(options.modelId, options.config);
   }
 
-  readonly maxImagesPerCall = 10;
+  readonly maxImagesPerCall = 1;
+
+  get supportsFileInputs(): boolean | undefined {
+    return googleVertexImageModelsWithFileInputSupport.has(this.modelId)
+      ? true
+      : undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    return this.supportsFileInputs === true ? false : undefined;
+  }
 
   get provider(): string {
     return this.config.provider;
@@ -65,7 +82,6 @@ export class GoogleVertexImageModel implements ImageModelV4 {
 
     const {
       prompt,
-      n,
       size,
       aspectRatio,
       seed,
@@ -80,12 +96,6 @@ export class GoogleVertexImageModel implements ImageModelV4 {
     if (mask != null) {
       throw new Error(
         'Gemini image models do not support mask-based image editing.',
-      );
-    }
-
-    if (n != null && n > 1) {
-      throw new Error(
-        'Gemini image models do not support generating a set number of images per call. Use n=1 or omit the n parameter.',
       );
     }
 

@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: openai.responses('gpt-5.2-codex'),
+    model: openai.responses('gpt-6-sol'),
     tools: {
       write_sql: openai.tools.customTool({
         description: 'Write a SQL SELECT query to answer the user question.',

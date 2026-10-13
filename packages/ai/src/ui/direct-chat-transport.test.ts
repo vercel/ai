@@ -3,7 +3,7 @@ import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { ToolLoopAgent } from '../agent/tool-loop-agent';
@@ -102,6 +102,46 @@ describe('DirectChatTransport', () => {
         { type: 'text-delta', delta: ', ' },
         { type: 'text-delta', delta: 'world!' },
       ]);
+    });
+
+    it('should expose UI step snapshots through shared stream options', async () => {
+      const onStepEnd = vi.fn();
+      const transport = new DirectChatTransport({
+        agent: new ToolLoopAgent({ model: mockModel }),
+        generateMessageId: () => 'assistant-1',
+        messageMetadata: ({ part }) =>
+          part.type === 'finish-step'
+            ? { totalTokens: part.usage.totalTokens }
+            : undefined,
+        onStepEnd,
+      });
+      await convertReadableStreamToArray(
+        await transport.sendMessages({
+          chatId: 'chat-1',
+          messageId: undefined,
+          trigger: 'submit-message',
+          messages: [
+            {
+              id: 'user-1',
+              role: 'user',
+              parts: [{ type: 'text', text: 'Hello' }],
+            },
+          ],
+          abortSignal: undefined,
+        }),
+      );
+      expect(onStepEnd).toHaveBeenCalledOnce();
+      expect(onStepEnd.mock.calls[0][0]).toMatchObject({
+        isContinuation: false,
+        responseMessage: {
+          id: 'assistant-1',
+          metadata: { totalTokens: 13 },
+          parts: [
+            { type: 'step-start' },
+            { type: 'text', text: 'Hello, world!', state: 'done' },
+          ],
+        },
+      });
     });
 
     it('should pass abortSignal to agent', async () => {
@@ -466,7 +506,7 @@ describe('DirectChatTransport', () => {
       );
     });
 
-    it('should continue with terminal tool history when tools are omitted', async () => {
+    it('should continue with terminal tool history without exposing output when tools are omitted', async () => {
       const agent = new ToolLoopAgent({ model: mockModel });
       const transport = new DirectChatTransport({ agent });
 
@@ -520,8 +560,9 @@ describe('DirectChatTransport', () => {
               toolCallId: 'call-1',
               toolName: 'removed',
               output: {
-                type: 'json',
-                value: { result: 'done' },
+                type: 'text',
+                value:
+                  'Tool output omitted because the tool is no longer available.',
               },
             },
           ],
@@ -531,6 +572,93 @@ describe('DirectChatTransport', () => {
           content: [{ type: 'text', text: 'continue' }],
         },
       ]);
+    });
+
+    it('should continue an approved tool call when onEnd is provided', async () => {
+      let executions = 0;
+      let responseMessage: unknown;
+      let isContinuation: boolean | undefined;
+
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        maxRetries: 0,
+        tools: {
+          lookup: tool({
+            inputSchema: z.object({}),
+            needsApproval: true,
+            execute: async () => {
+              executions++;
+              return 'ok';
+            },
+          }),
+        },
+      });
+      const transport = new DirectChatTransport({
+        agent,
+        onEnd: event => {
+          responseMessage = event.responseMessage;
+          isContinuation = event.isContinuation;
+        },
+      });
+
+      const chunks = await convertReadableStreamToArray(
+        await transport.sendMessages({
+          chatId: 'chat-1',
+          messageId: 'assistant-1',
+          trigger: 'submit-message',
+          messages: [
+            {
+              id: 'user-1',
+              role: 'user',
+              parts: [{ type: 'text', text: 'Run the lookup.' }],
+            },
+            {
+              id: 'assistant-1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'tool-lookup',
+                  toolCallId: 'call-1',
+                  input: {},
+                  state: 'approval-responded',
+                  approval: {
+                    id: 'approval-1',
+                    approved: true,
+                  },
+                },
+              ],
+            },
+          ],
+          abortSignal: undefined,
+        }),
+      );
+
+      expect(executions).toBe(1);
+      expect(chunks).toContainEqual(
+        expect.objectContaining({
+          type: 'tool-output-available',
+          toolCallId: 'call-1',
+          output: 'ok',
+        }),
+      );
+      expect(isContinuation).toBe(true);
+      expect(responseMessage).toEqual(
+        expect.objectContaining({
+          id: 'assistant-1',
+          parts: expect.arrayContaining([
+            expect.objectContaining({
+              type: 'tool-lookup',
+              toolCallId: 'call-1',
+              state: 'output-available',
+              output: 'ok',
+            }),
+            expect.objectContaining({
+              type: 'text',
+              text: 'Hello, world!',
+            }),
+          ]),
+        }),
+      );
     });
   });
 

@@ -10,7 +10,7 @@ import { downloadOpenaiContainerFile } from '../../lib/download-openai-container
 run(async () => {
   // Basic text generation
   const basicResult = await generateText({
-    model: openai.responses('gpt-4.1-mini'),
+    model: openai.responses('gpt-6-luna'),
     prompt:
       'Create a program that generates five random numbers between 1 and 100 with two decimal places, and show me the execution results. Also save the result to a file.',
     tools: {

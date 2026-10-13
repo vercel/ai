@@ -1,7 +1,7 @@
-import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { HarnessAgent, type HarnessAgentSession } from '@ai-sdk/harness/agent';
 import { createFx } from './_create';
 import { run } from '../../lib/run';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 
 const fx = createFx();
 
@@ -11,21 +11,24 @@ const fx = createFx();
  * behavior is visible to callers.
  */
 run(async () => {
-  const sandbox = createVercelSandbox({
+  const agent = new HarnessAgent({ harness: fx });
+  const sandboxSession = await createVercelNetworkSandboxSession({
     runtime: 'node24',
     ports: [4000],
     timeout: 10 * 60 * 1000,
+    template: await agent.getSandboxTemplate(),
   });
-  const agent = new HarnessAgent({ harness: fx, sandbox });
 
-  const session = await agent.createSession();
+  let session: HarnessAgentSession | undefined;
   try {
+    session = await agent.createSession({ sandboxSession });
     await agent.generate({
       session,
       prompt: 'Reply with exactly ready.',
     });
     await session.compact();
   } finally {
-    await session.destroy();
+    await session?.destroy();
+    await sandboxSession.destroy();
   }
 });

@@ -3,7 +3,6 @@ import {
   HarnessCapabilityUnsupportedError,
   type HarnessV1NetworkSandboxSession,
   type HarnessV1PortEndpoint,
-  type HarnessV1SandboxProvider,
 } from '@ai-sdk/harness';
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
@@ -65,7 +64,12 @@ const harnessUtilsMocks = vi.hoisted(() => {
     readonly sent: unknown[] = [];
     readonly options: {
       initialLastSeenEventId?: number;
-      connect: () => Promise<unknown>;
+      connect: (options: { abortSignal: AbortSignal }) => Promise<unknown>;
+      reconnect?: {
+        readonly maxElapsedMs?: number;
+        readonly initialDelayMs?: number;
+        readonly maxDelayMs?: number;
+      };
     };
     openOptions: { resume?: boolean } | undefined;
     private readonly listeners = new Map<
@@ -83,7 +87,12 @@ const harnessUtilsMocks = vi.hoisted(() => {
 
     constructor(options: {
       initialLastSeenEventId?: number;
-      connect: () => Promise<unknown>;
+      connect: (options: { abortSignal: AbortSignal }) => Promise<unknown>;
+      reconnect?: {
+        readonly maxElapsedMs?: number;
+        readonly initialDelayMs?: number;
+        readonly maxDelayMs?: number;
+      };
     }) {
       this.options = options;
       channels.push(this);
@@ -93,7 +102,11 @@ const harnessUtilsMocks = vi.hoisted(() => {
       this.openOptions = options;
       const error = harnessUtilsMocks.openErrors.shift();
       if (error != null) throw error;
-      if (harnessUtilsMocks.connectOnOpen) await this.options.connect();
+      if (harnessUtilsMocks.connectOnOpen) {
+        await this.options.connect({
+          abortSignal: new AbortController().signal,
+        });
+      }
     }
     on(
       type: string,
@@ -193,7 +206,7 @@ vi.mock('node:fs/promises', async importOriginal => {
       if (path.endsWith('/bridge/host-tool-mcp.mjs'))
         return '// mock host tool MCP\n';
       if (path.endsWith('/bridge/package.json'))
-        return '{"name":"@ai-sdk/harness-acp-bridge"}\n';
+        return '{"name":"@ai-sdk-harness-acp-bridge"}\n';
       if (path.endsWith('/bridge/pnpm-lock.yaml'))
         return 'lockfileVersion: "9.0"\n';
       const readFile = actual.readFile as unknown as (
@@ -335,19 +348,6 @@ function fakeSandbox({
     ...(addRequestTransformations == null ? {} : { addRequestTransformations }),
     ...restricted,
   } as unknown as HarnessV1NetworkSandboxSession;
-}
-
-function sandboxProvider({
-  session,
-}: {
-  session: HarnessV1NetworkSandboxSession;
-}): HarnessV1SandboxProvider {
-  return {
-    specificationVersion: 'harness-sandbox-v1',
-    providerId: 'acp-test-sandbox',
-    createSession: async () => session,
-    resumeSession: async () => session,
-  };
 }
 
 async function collectStream({
@@ -1177,6 +1177,126 @@ describe('createACP', () => {
     await resumedSession.doDestroy();
   });
 
+  it('uses new placeholders after a brokered cold restore changes credential names', async () => {
+    vi.stubEnv('GITHUB_TOKEN', 'old-github-secret');
+    vi.stubEnv('GITLAB_TOKEN', undefined);
+    const addRequestTransformations = vi.fn(async () => {});
+    const spawns: Array<{
+      command: string;
+      env: Record<string, string | undefined>;
+    }> = [];
+    const sandboxSession = fakeSandbox({
+      runs: [],
+      spawns,
+      stop: async () => {},
+      addRequestTransformations,
+    });
+    const harness = createACP({
+      harnessId: 'changing-credentials-acp',
+      ...agentSettings,
+      forwardEnv: [],
+      credentialEnv: ['GITHUB_TOKEN', 'GITLAB_TOKEN'],
+      permissionModeMapping,
+      credentialBrokering: ({ env, sandboxEnv }) =>
+        (['GITHUB_TOKEN', 'GITLAB_TOKEN'] as const).flatMap(name =>
+          env[name] == null || sandboxEnv?.[name] == null
+            ? []
+            : [
+                {
+                  match: {
+                    host: 'tokens.example',
+                    headers: [
+                      {
+                        key: { exact: 'Authorization' },
+                        value: { exact: `Bearer ${sandboxEnv[name]}` },
+                      },
+                    ],
+                  },
+                  transform: {
+                    headers: { Authorization: `Bearer ${env[name]}` },
+                  },
+                },
+              ],
+        ),
+    });
+
+    const firstSession = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession,
+      sessionWorkDir: '/workspace/user-project',
+      permissionMode: 'allow-edits',
+    });
+    const firstPlaceholder = spawns[0]?.env.GITHUB_TOKEN;
+    expect(firstPlaceholder).toMatch(/^aisdkhc_[A-Za-z0-9_-]{43}$/);
+    const firstTurn = await firstSession.doPromptTurn({
+      skills: [],
+      prompt: 'Remember this.',
+      tools: [],
+      emit: () => {},
+    });
+    const firstChannel = harnessUtilsMocks.channels[0]!;
+    firstChannel.emit({ type: 'bridge-thread', threadId: 'acp-session-1' });
+    firstChannel.emit({
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'end_turn' },
+      totalUsage: unknownUsage(),
+    });
+    await firstTurn.done;
+    const resumeFrom = await firstSession.doStop();
+    expect(
+      (
+        resumeFrom.data as {
+          sandboxCredentialEnvironment: Record<string, string>;
+        }
+      ).sandboxCredentialEnvironment,
+    ).toEqual({ GITHUB_TOKEN: firstPlaceholder });
+
+    vi.stubEnv('GITHUB_TOKEN', undefined);
+    vi.stubEnv('GITLAB_TOKEN', 'new-gitlab-secret');
+    const resumedPromise = harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession,
+      sessionWorkDir: '/workspace/user-project',
+      resumeFrom,
+      permissionMode: 'allow-edits',
+    });
+    await vi.waitFor(() => {
+      expect(harnessUtilsMocks.channels).toHaveLength(2);
+      expect(harnessUtilsMocks.channels[1]?.sent).toHaveLength(1);
+    });
+    const newPlaceholder = spawns[1]?.env.GITLAB_TOKEN;
+    expect(newPlaceholder).toMatch(/^aisdkhc_[A-Za-z0-9_-]{43}$/);
+    expect(spawns[1]?.env.GITHUB_TOKEN).toBeUndefined();
+    expect(JSON.stringify(spawns[1]?.env)).not.toContain('new-gitlab-secret');
+    expect(addRequestTransformations).toHaveBeenNthCalledWith(2, [
+      {
+        match: {
+          host: 'tokens.example',
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: `Bearer ${newPlaceholder}` },
+            },
+          ],
+        },
+        transform: { headers: { Authorization: 'Bearer new-gitlab-secret' } },
+      },
+    ]);
+    emitColdRestoration({
+      channel: harnessUtilsMocks.channels[1]!,
+      method: 'resume',
+    });
+    const resumedSession = await resumedPromise;
+    const nextState = await resumedSession.doStop();
+    expect(
+      (
+        nextState.data as {
+          sandboxCredentialEnvironment: Record<string, string>;
+        }
+      ).sandboxCredentialEnvironment,
+    ).toEqual({ GITLAB_TOKEN: newPlaceholder });
+  });
+
   it('preserves real credential forwarding when additive transformations are unavailable', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     vi.stubEnv('PROVIDER_API_KEY', 'legacy-secret');
@@ -1749,7 +1869,7 @@ describe('createACP', () => {
     ]);
     expect(
       first.files.find(file => file.path.endsWith('/package.json'))?.content,
-    ).toContain('@ai-sdk/harness-acp-bridge');
+    ).toContain('@ai-sdk-harness-acp-bridge');
     expect(
       first.files.find(file =>
         file.path.endsWith('/implementation/package.json'),
@@ -1895,22 +2015,22 @@ describe('createACP', () => {
     });
 
     expect(runs[0]).toBe('printf "%s" "$HOME"');
-    expect(runs[1]).toMatch(
-      /^mkdir -p '\/workspace\/user-project' '\/home\/agent\/\.ai-sdk\/harness-acp\/codex-acp\/[a-f0-9]{64}\/bridge'$/,
+    expect(runs[1]).toBe(
+      "mkdir -p '/workspace/user-project' '/home/agent/.ai-sdk-harness/.agent-runs/session-1/bridge'",
     );
     expect(runs[1]).not.toContain("'/workspace/user-project/.ai-sdk");
     expect(spawns[0].command).toContain("--workdir '/workspace/user-project'");
     expect(spawns[0].command).toContain(
-      "node '/workspace/.harness-bootstrap/codex-acp/bridge.mjs'",
+      "node '/home/agent/.ai-sdk-harness/.harness-bootstrap/codex-acp/bridge.mjs'",
     );
     expect(spawns[0].command).toContain(
-      "--implementation-dir '/workspace/.harness-bootstrap/codex-acp/implementation'",
+      "--implementation-dir '/home/agent/.ai-sdk-harness/.harness-bootstrap/codex-acp/implementation'",
     );
     expect(spawns[0].env.CODEX_API_KEY).toBe('test-key');
     expect(spawns[0].env.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
     expect(spawns[0].env.BRIDGE_CHANNEL_TOKEN).not.toBe('test-key');
     expect(spawns[0].env.AI_SDK_ACP_GATEWAY_API_KEY).toBeUndefined();
-    expect(spawns[0].env.AI_SDK_ACP_CLIENT_APP_NAME).toBe('ai-sdk/harness-acp');
+    expect(spawns[0].env.AI_SDK_ACP_CLIENT_APP_NAME).toBe('ai-sdk-harness-acp');
     expect(spawns[0].env.AI_SDK_ACP_CLIENT_APP_VERSION).toBe('0.0.0-test');
     expect(stop).not.toHaveBeenCalled();
 
@@ -1969,7 +2089,7 @@ describe('createACP', () => {
       sessionWorkDir: '/workspace/user-project',
     });
 
-    expect(runs[0]).toBe('pwd');
+    expect(runs[0]).toBe('printf "%s" "$HOME"');
     const resumeFrom = await session.doDetach();
     expect(resumeFrom.data).toMatchObject({
       bridge: {
@@ -2018,11 +2138,17 @@ describe('createACP', () => {
       url: 'wss://sandbox.example/bridge?existing=value',
       headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
     };
+    const reconnect = {
+      maxElapsedMs: 120_000,
+      initialDelayMs: 100,
+      maxDelayMs: 5_000,
+    };
     const harness = createACP({
       harnessId: 'codex-acp',
       ...agentSettings,
       mintBridgeToken,
       portEndpoint,
+      reconnect,
     });
     const sandboxSession = fakeSandbox({
       runs: [],
@@ -2051,6 +2177,9 @@ describe('createACP', () => {
       resumeFrom,
     });
     expect(mintBridgeToken).toHaveBeenCalledTimes(1);
+    expect(
+      harnessUtilsMocks.channels.map(channel => channel.options.reconnect),
+    ).toEqual([reconnect, reconnect]);
     expect(webSocketMocks.calls).toEqual([
       {
         url: 'wss://sandbox.example/bridge?existing=value&agent_bridge_token=token-for-sandbox-1',
@@ -2353,7 +2482,7 @@ describe('createACP', () => {
     });
 
     expect(writes).toContainEqual({
-      path: '/workspace/.harness-bootstrap/cursor-skills-acp/implementation/home/.agents/skills/release-notes/SKILL.md',
+      path: '/home/agent/.ai-sdk-harness/.harness-bootstrap/cursor-skills-acp/implementation/home/.agents/skills/release-notes/SKILL.md',
       content:
         '---\n' +
         'name: release-notes\n' +
@@ -2902,7 +3031,7 @@ describe('createACP', () => {
       'https://gateway.example/custom',
     );
     expect(spawns[1]?.env.AI_SDK_ACP_CLIENT_APP_NAME).toBe(
-      'ai-sdk/harness-acp',
+      'ai-sdk-harness-acp',
     );
     expect(spawns[1]?.env.AI_SDK_ACP_CLIENT_APP_VERSION).toBe('0.0.0-test');
     expect(writes).toHaveLength(writeCount);
@@ -3640,11 +3769,11 @@ describe('createACP', () => {
     });
     const firstAgent = new HarnessAgent({
       harness,
-      sandbox: sandboxProvider({ session: sandboxSession }),
       tools: { clientTool },
     });
     const firstSession = await firstAgent.createSession({
       sessionId: 'session-1',
+      sandboxSession,
     });
     const firstChannel = harnessUtilsMocks.channels[0]!;
     const first = await firstAgent.stream({
@@ -3674,12 +3803,12 @@ describe('createACP', () => {
 
     const secondAgent = new HarnessAgent({
       harness,
-      sandbox: sandboxProvider({ session: sandboxSession }),
       tools: { clientTool },
     });
     const secondSession = await secondAgent.createSession({
       sessionId: 'session-1',
       continueFrom,
+      sandboxSession,
     });
     const secondChannel = harnessUtilsMocks.channels[1]!;
     const continued = await secondAgent.continueStream({
@@ -3746,11 +3875,11 @@ describe('createACP', () => {
     });
     const firstAgent = new HarnessAgent({
       harness,
-      sandbox: sandboxProvider({ session: sandboxSession }),
       permissionMode: 'allow-edits',
     });
     const firstSession = await firstAgent.createSession({
       sessionId: 'session-1',
+      sandboxSession,
     });
     const firstChannel = harnessUtilsMocks.channels[0]!;
     const first = await firstAgent.stream({
@@ -3788,12 +3917,12 @@ describe('createACP', () => {
 
     const secondAgent = new HarnessAgent({
       harness,
-      sandbox: sandboxProvider({ session: sandboxSession }),
       permissionMode: 'allow-edits',
     });
     const secondSession = await secondAgent.createSession({
       sessionId: 'session-1',
       continueFrom,
+      sandboxSession,
     });
     const secondChannel = harnessUtilsMocks.channels[1]!;
     const continued = await secondAgent.continueStream({
@@ -4179,10 +4308,9 @@ describe('createACP', () => {
         harnessId: 'codex-acp',
         ...agentSettings,
       }),
-      sandbox: sandboxProvider({ session: sandboxSession }),
       tools: { weather },
     });
-    const session = await agent.createSession();
+    const session = await agent.createSession({ sandboxSession });
     const channel = harnessUtilsMocks.channels[0]!;
     const result = await agent.stream({
       session,
@@ -4255,10 +4383,9 @@ describe('createACP', () => {
         harnessId: 'codex-acp',
         ...agentSettings,
       }),
-      sandbox: sandboxProvider({ session: sandboxSession }),
       tools: { clientTool },
     });
-    const session = await agent.createSession();
+    const session = await agent.createSession({ sandboxSession });
     const channel = harnessUtilsMocks.channels[0]!;
     const first = await agent.stream({
       session,

@@ -9,6 +9,7 @@ import type {
 } from '../run-agent-tui';
 import { renderScreenViewport, sliceVisible, visibleLength } from './layout';
 import { renderMarkdown } from './markdown';
+import { sanitizeTerminalText } from './sanitize-terminal-text';
 import { TerminalFrameBuffer } from './terminal-frame-buffer';
 import {
   getToolName,
@@ -137,6 +138,9 @@ const sectionStyles: Record<
 };
 
 const inputCursorBlinkMs = 500;
+const graphemeSegmenter = new Intl.Segmenter(undefined, {
+  granularity: 'grapheme',
+});
 const activeControls = '↑/↓ · PgUp/PgDn · Esc/Ctrl+C';
 const doneControls = '↑/↓ · PgUp/PgDn · q/Esc/Ctrl+C';
 const processingStatus = `Processing input... ${activeControls}`;
@@ -203,7 +207,7 @@ export class TerminalRenderer {
             this.#paint();
             break;
           case 'backspace':
-            this.#inputText = this.#inputText.slice(0, -1);
+            this.#inputText = removeLastGrapheme(this.#inputText);
             this.#showInputCursor();
             this.#paint();
             break;
@@ -1169,8 +1173,10 @@ function sectionMatchesCache(
 function createSectionLines(section: ChatSection, width: number) {
   const style = sectionStyles[section.kind];
   const contentWidth = Math.max(1, width - 4);
-  const title = ` ${section.title} `;
-  const rightTitle = section.rightTitle ? ` ${section.rightTitle} ` : '';
+  const title = ` ${sanitizeTerminalText(section.title)} `;
+  const rightTitle = section.rightTitle
+    ? ` ${sanitizeTerminalText(section.rightTitle)} `
+    : '';
 
   if (section.collapsed) {
     const borderWidth = Math.max(
@@ -1286,8 +1292,6 @@ function extractTotalTokenCountFromUsage(usage: StreamUsage | undefined) {
   if (inputTokens != null && outputTokens != null) {
     return inputTokens + outputTokens;
   }
-
-  return undefined;
 }
 
 function extractInputTokenCountFromUsage(usage: StreamUsage | undefined) {
@@ -1375,6 +1379,16 @@ function formatNumber(value: number) {
   return Number.isInteger(value)
     ? value.toLocaleString()
     : value.toLocaleString(undefined, { maximumFractionDigits: 1 });
+}
+
+function removeLastGrapheme(value: string) {
+  let lastGraphemeIndex = 0;
+
+  for (const { index } of graphemeSegmenter.segment(value)) {
+    lastGraphemeIndex = index;
+  }
+
+  return value.slice(0, lastGraphemeIndex);
 }
 
 export function parseKey(chunk: Buffer): TerminalKey {

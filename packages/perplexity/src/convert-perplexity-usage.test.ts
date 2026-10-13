@@ -4,17 +4,19 @@ import { convertPerplexityUsage } from './convert-perplexity-usage';
 describe('convertPerplexityUsage', () => {
   it('treats reasoning tokens as separate from completion tokens', () => {
     const usage = {
-      prompt_tokens: 33,
-      completion_tokens: 11395,
-      reasoning_tokens: 193947,
+      input_tokens: 33,
+      output_tokens: 205342,
+      output_tokens_details: {
+        reasoning_tokens: 193947,
+      },
     };
 
     expect(convertPerplexityUsage(usage)).toEqual({
       inputTokens: {
         total: 33,
         noCache: 33,
-        cacheRead: undefined,
-        cacheWrite: undefined,
+        cacheRead: 0,
+        cacheWrite: 0,
       },
       outputTokens: {
         total: 205342,

@@ -6,10 +6,12 @@ import {
   type HarnessV1CredentialForwarding,
   type HarnessV1PortEndpoint,
   type HarnessV1RequestTransformation,
+  type HarnessV1MintBridgeTokenCallback,
 } from '@ai-sdk/harness';
 import {
   createCredentialRequestTransformation,
   isSandboxCredentialPlaceholder,
+  type SandboxChannelReconnectOptions,
 } from '@ai-sdk/harness/utils';
 import { createACP, type ACPAuthenticationMode } from '@ai-sdk/harness-acp';
 import { tool } from '@ai-sdk/provider-utils';
@@ -25,7 +27,7 @@ declare const __GITHUB_COPILOT_IMPLEMENTATION_PNPM_LOCK_YAML__: string;
 declare const __GITHUB_COPILOT_IMPLEMENTATION_PNPM_WORKSPACE_YAML__: string;
 
 const GITHUB_COPILOT_CLIENT_APP = {
-  name: 'ai-sdk/harness-github-copilot',
+  name: 'ai-sdk-harness-github-copilot',
   version: VERSION,
 } as const;
 const GITHUB_COPILOT_IMPLEMENTATION_PACKAGE_JSON =
@@ -59,12 +61,19 @@ export type GitHubCopilotHarnessSettings = {
   readonly port?: number;
   readonly portEndpoint?: HarnessV1PortEndpoint;
   readonly startupTimeoutMs?: number;
-  readonly mintBridgeToken?: (sandboxId: string) => string;
+  /**
+   * Configures reconnection attempts after an established bridge connection
+   * drops. The reconnect window includes connection establishment and
+   * backoff delays. Defaults to 30 seconds with exponential backoff from 50
+   * milliseconds up to 2 seconds.
+   */
+  readonly reconnect?: SandboxChannelReconnectOptions;
+  readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
 };
 
 /*
  * This catalog reflects the stable, non-MCP tool surface emitted by GitHub
- * Copilot CLI 1.0.82. Loose object schemas preserve compatibility when the
+ * Copilot CLI >=1.0.82. Loose object schemas preserve compatibility when the
  * CLI adds fields without changing the established inputs.
  */
 const GITHUB_COPILOT_BUILTIN_TOOLS = {
@@ -477,6 +486,7 @@ export function createGitHubCopilot(
     port: settings.port,
     portEndpoint: settings.portEndpoint,
     startupTimeoutMs: settings.startupTimeoutMs,
+    reconnect: settings.reconnect,
     mintBridgeToken: settings.mintBridgeToken,
   });
 }

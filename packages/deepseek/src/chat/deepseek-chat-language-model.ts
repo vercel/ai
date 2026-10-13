@@ -1,13 +1,14 @@
-import type {
-  APICallError,
-  LanguageModelV4,
-  LanguageModelV4CallOptions,
-  LanguageModelV4Content,
-  LanguageModelV4FinishReason,
-  LanguageModelV4GenerateResult,
-  LanguageModelV4StreamPart,
-  LanguageModelV4StreamResult,
-  SharedV4Warning,
+import {
+  InvalidResponseDataError,
+  type APICallError,
+  type LanguageModelV4,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4Content,
+  type LanguageModelV4FinishReason,
+  type LanguageModelV4GenerateResult,
+  type LanguageModelV4StreamPart,
+  type LanguageModelV4StreamResult,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -358,6 +359,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
                 medium: 'high',
                 high: 'high',
                 xhigh: 'max',
+                max: 'max',
               },
               warnings: allWarnings,
             })
@@ -434,6 +436,13 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
     });
 
     const choice = responseBody.choices[0];
+    if (choice == null) {
+      throw new InvalidResponseDataError({
+        data: rawResponse,
+        message: 'Response did not contain any choices.',
+      });
+    }
+
     const content: Array<LanguageModelV4Content> = [];
 
     // reasoning content (before text):

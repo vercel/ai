@@ -145,7 +145,7 @@ describe('doGenerate', () => {
     });
 
     expect(server.calls[0].requestUserAgent).toContain(
-      `ai-sdk/openai/0.0.0-test`,
+      `ai-sdk-openai/0.0.0-test`,
     );
   });
 
@@ -160,6 +160,20 @@ describe('doGenerate', () => {
     expect(result.text).toMatchInlineSnapshot(
       `"Galileo was an American robotic space program that studied the planet Jupiter and its moons, as well as several other solar system bodies."`,
     );
+  });
+
+  it('should extract usage', async () => {
+    prepareJsonFixtureResponse('openai-transcription');
+
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    expect(result.usage).toStrictEqual({
+      type: 'duration',
+      seconds: 37,
+    });
   });
 
   it('should include response data with timestamp, modelId and headers', async () => {

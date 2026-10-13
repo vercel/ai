@@ -82,53 +82,53 @@ Define the `HarnessAgent` on the server:
 ```ts filename='app/api/chat/agent.ts'
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { claudeCode } from '@ai-sdk/harness-claude-code';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
 export const agent = new HarnessAgent({
   harness: claudeCode,
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-  }),
   instructions: 'You are a helpful coding assistant.',
 });
 ```
 
 ## Session Store
 
-Persist only the opaque resume state returned by `session.detach()`. If the
+Persist the opaque resume state returned by `session.detach()`. If the
 turn paused for approval or was otherwise interrupted, that resume state carries
 the continuation state internally. The chat id can also be the harness
-`sessionId`, which gives the sandbox a stable identity across requests and
-processes.
+`sessionId`. Here we derive a stable `sandboxId` from that known chat id. If
+you do not derive one, persist the returned `sandboxSession.id` separately.
 
 ```ts filename='app/api/chat/session-store.ts'
-import type {
-  HarnessAgentResumeSessionState,
-  HarnessAgentSession,
-} from '@ai-sdk/harness/agent';
+import type { HarnessAgentResumeSessionState } from '@ai-sdk/harness/agent';
+import {
+  createVercelNetworkSandboxSession,
+  resumeVercelNetworkSandboxSession,
+} from '@ai-sdk/sandbox-vercel';
 
 const states: Record<string, HarnessAgentResumeSessionState | undefined> = {};
-
-type SessionFactory = {
-  createSession(options?: {
-    sessionId?: string;
-    resumeFrom?: HarnessAgentResumeSessionState;
-  }): Promise<HarnessAgentSession>;
-};
 
 export async function resumeOrCreateSession({
   agent,
   chatId,
 }: {
-  agent: SessionFactory;
+  agent: typeof import('./agent').agent;
   chatId: string;
 }) {
   const resumeFrom = states[chatId];
-
-  return agent.createSession(
-    resumeFrom ? { sessionId: chatId, resumeFrom } : { sessionId: chatId },
-  );
+  const sandboxId = `harness-${chatId}`;
+  const sandboxSession = resumeFrom
+    ? await resumeVercelNetworkSandboxSession({ sandboxId })
+    : await createVercelNetworkSandboxSession({
+        sandboxId,
+        runtime: 'node24',
+        ports: [4000],
+        template: await agent.getSandboxTemplate(),
+      });
+  const session = await agent.createSession({
+    sessionId: chatId,
+    resumeFrom,
+    sandboxSession,
+  });
+  return { session, sandboxSession };
 }
 
 export async function detachAndPersist({
@@ -136,13 +136,15 @@ export async function detachAndPersist({
   session,
 }: {
   chatId: string;
-  session: HarnessAgentSession;
+  session: Awaited<ReturnType<typeof resumeOrCreateSession>>['session'];
 }) {
   states[chatId] = await session.detach();
 }
 ```
 
-Use durable storage instead of an in-memory map in production.
+Use durable storage instead of an in-memory map in production. The creator
+always creates a new sandbox and fails on a conflicting `sandboxId`; only the
+resume function reattaches an existing one.
 
 ## Route
 
@@ -177,7 +179,7 @@ export async function POST(request: Request) {
   return createUIMessageStreamResponse({
     stream: createUIMessageStream({
       execute: async ({ writer }) => {
-        const session = await resumeOrCreateSession({ agent, chatId });
+        const { session } = await resumeOrCreateSession({ agent, chatId });
         const result = await agent.stream({ session, messages });
 
         writer.merge(
@@ -212,9 +214,10 @@ sandbox warm for the next request. Bridge-backed adapters can usually reattach
 or replay efficiently. If the turn is unfinished, `detach()` includes the turn
 continuation state in the returned resume state.
 
-Use `session.stop()` when you want to save resume state and stop the runtime and
-sandbox after each turn. The next request resumes from persisted state and
-continues any unfinished turn before accepting a new prompt.
+`session.stop()` saves resume state and stops the harness runtime, but does not
+stop a supplied sandbox. The caller owns that network session and should call
+its `destroy()` method when the chat ends, not while a later request needs to
+reattach. Preserve the chosen `sandboxId` across processes.
 
 ## Rendering Harness Parts
 

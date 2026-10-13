@@ -16,7 +16,7 @@ import { run } from '../../lib/run';
 run(async () => {
   const result = streamText({
     model: wrapLanguageModel({
-      model: anthropic('claude-3-opus-20240229'),
+      model: anthropic('claude-opus-5-5'),
       middleware: [extractReasoningMiddleware({ tagName: 'thinking' })],
     }),
     providerOptions: {

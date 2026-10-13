@@ -203,7 +203,7 @@ describe('responses (default language model)', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
       );
     });
 
@@ -226,7 +226,7 @@ describe('responses (default language model)', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
       );
     });
 
@@ -322,7 +322,7 @@ describe('responses (default language model)', () => {
         {
           type: 'message',
           role: 'assistant',
-          content: [{ type: 'output_text', text: 'Hi.' }],
+          content: 'Hi.',
         },
         {
           type: 'message',
@@ -418,7 +418,7 @@ describe('chat', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
       );
     });
 
@@ -870,7 +870,7 @@ describe('completion', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
       );
     });
   });
@@ -1032,7 +1032,7 @@ describe('embedding', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
       );
     });
   });
@@ -1040,6 +1040,20 @@ describe('embedding', () => {
 
 describe('image', () => {
   const prompt = 'A cute baby sea otter';
+
+  describe('image editing capabilities', () => {
+    it.each(['image', 'imageModel'] as const)(
+      'leaves capabilities unknown for arbitrary deployment names created with %s',
+      factoryMethod => {
+        for (const deploymentName of ['gpt-image-production', 'dall-e-3']) {
+          const model = provider[factoryMethod](deploymentName);
+
+          expect(model.supportsFileInputs).toBeUndefined();
+          expect(model.supportsMaskInputs).toBeUndefined();
+        }
+      },
+    );
+  });
 
   describe('doGenerate', () => {
     function prepareJsonResponse() {
@@ -1137,7 +1151,7 @@ describe('image', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
       );
     });
 
@@ -1361,7 +1375,7 @@ describe('responses', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
       );
     });
 
@@ -1803,7 +1817,16 @@ describe('responses', () => {
           ],
         });
       });
-      it('should stream web search preview results include', async () => {
+      it('should retain web search preview citation sources', async () => {
+        expect(result.content).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              type: 'source',
+              sourceType: 'url',
+              url: 'https://www.straitstimes.com/world/while-you-were-sleeping-5-stories-you-might-have-missed-nov-19-2025',
+            }),
+          ]),
+        );
         expect(result.content).toMatchSnapshot();
       });
     });
@@ -1981,6 +2004,65 @@ describe('responses', () => {
             "warnings": [],
           },
           {
+            "citations": [
+              {
+                "source": {
+                  "filename": "resource1.json",
+                  "id": "assistant-YRcoCqn3Fo2K4JgraG",
+                  "mediaType": "text/plain",
+                  "providerMetadata": {
+                    "azure": {
+                      "fileId": "assistant-YRcoCqn3Fo2K4JgraG",
+                      "index": 145,
+                      "type": "file_citation",
+                    },
+                  },
+                  "sourceType": "document",
+                  "title": "resource1.json",
+                  "type": "source",
+                },
+              },
+              {
+                "source": {
+                  "filename": "resource1.json",
+                  "id": "assistant-YRcoCqn3Fo2K4JgraG",
+                  "mediaType": "text/plain",
+                  "providerMetadata": {
+                    "azure": {
+                      "fileId": "assistant-YRcoCqn3Fo2K4JgraG",
+                      "index": 192,
+                      "type": "file_citation",
+                    },
+                  },
+                  "sourceType": "document",
+                  "title": "resource1.json",
+                  "type": "source",
+                },
+              },
+            ],
+            "id": "msg_456",
+            "providerMetadata": {
+              "azure": {
+                "annotations": [
+                  {
+                    "file_id": "assistant-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 145,
+                    "type": "file_citation",
+                  },
+                  {
+                    "file_id": "assistant-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 192,
+                    "type": "file_citation",
+                  },
+                ],
+                "itemId": "msg_456",
+              },
+            },
+            "type": "text-end",
+          },
+          {
             "filename": "resource1.json",
             "id": "id-0",
             "mediaType": "text/plain",
@@ -2009,29 +2091,6 @@ describe('responses', () => {
             "sourceType": "document",
             "title": "resource1.json",
             "type": "source",
-          },
-          {
-            "id": "msg_456",
-            "providerMetadata": {
-              "azure": {
-                "annotations": [
-                  {
-                    "file_id": "assistant-YRcoCqn3Fo2K4JgraG",
-                    "filename": "resource1.json",
-                    "index": 145,
-                    "type": "file_citation",
-                  },
-                  {
-                    "file_id": "assistant-YRcoCqn3Fo2K4JgraG",
-                    "filename": "resource1.json",
-                    "index": 192,
-                    "type": "file_citation",
-                  },
-                ],
-                "itemId": "msg_456",
-              },
-            },
-            "type": "text-end",
           },
           {
             "finishReason": {
@@ -2183,7 +2242,7 @@ describe('responses', () => {
     });
 
     describe('web search preview tool', () => {
-      it('should stream web search preview results include', async () => {
+      it('should retain streamed web search preview citation sources', async () => {
         prepareChunksFixtureResponse('azure-web-search-preview-tool.1');
         const result = await createModel('test-deployment').doStream({
           prompt: TEST_PROMPT,
@@ -2196,9 +2255,18 @@ describe('responses', () => {
             },
           ],
         });
-        expect(
-          await convertReadableStreamToArray(result.stream),
-        ).toMatchSnapshot();
+        const events = await convertReadableStreamToArray(result.stream);
+
+        expect(events).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              type: 'source',
+              sourceType: 'url',
+              url: 'https://www.straitstimes.com/world/while-you-were-sleeping-5-stories-you-might-have-missed-nov-19-2025',
+            }),
+          ]),
+        );
+        expect(events).toMatchSnapshot();
       });
     });
 
@@ -2223,4 +2291,93 @@ describe('responses', () => {
       });
     });
   });
+});
+
+describe('resourceName validation', () => {
+  it.each([
+    'resource\n',
+    'resource\r',
+    'resource.example',
+    'my_resource',
+    'résource',
+    '-resource',
+    'resource-',
+    'a'.repeat(64),
+    '',
+    'user@internal:8080/#',
+    '169.254.169.254:80/x#',
+    'evil.example.com/#',
+  ])('rejects %j before sending a request', async resourceName => {
+    const fetch = vi.fn();
+    const provider = createAzure({ resourceName, apiKey: 'test-key', fetch });
+    await expect(
+      provider('test-deployment').doGenerate({ prompt: TEST_PROMPT }),
+    ).rejects.toMatchObject({
+      name: 'AI_InvalidArgumentError',
+      argument: 'resourceName',
+    });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('accepts a DNS-label resource name', async () => {
+    const fetch = vi.fn(
+      async (_url: RequestInfo | URL, _init?: RequestInit) =>
+        new Response('{}', { status: 500 }),
+    );
+    const provider = createAzure({
+      resourceName: 'my-resource',
+      apiKey: 'test-key',
+      fetch,
+    });
+    await expect(
+      provider('test-deployment').doGenerate({ prompt: TEST_PROMPT }),
+    ).rejects.toBeDefined();
+    expect(String(fetch.mock.calls[0]?.[0])).toContain(
+      'https://my-resource.openai.azure.com/',
+    );
+  });
+
+  it.each(['a', 'a'.repeat(63), 'My-Resource-1'])(
+    'accepts the DNS-label boundary case %j',
+    async resourceName => {
+      const fetch = vi.fn(
+        async (_url: RequestInfo | URL, _init?: RequestInit) =>
+          new Response('{}', { status: 500 }),
+      );
+      const provider = createAzure({ resourceName, apiKey: 'test-key', fetch });
+      await expect(
+        provider('test-deployment').doGenerate({ prompt: TEST_PROMPT }),
+      ).rejects.toBeDefined();
+      expect(new URL(String(fetch.mock.calls[0]?.[0])).hostname).toBe(
+        `${resourceName.toLowerCase()}.openai.azure.com`,
+      );
+    },
+  );
+
+  it('rejects an invalid AZURE_RESOURCE_NAME for non-language models', async () => {
+    vi.stubEnv('AZURE_RESOURCE_NAME', 'user@internal:8080/#');
+    try {
+      const fetch = vi.fn();
+      const provider = createAzure({ apiKey: 'test-key', fetch });
+      await expect(
+        provider.embedding('test-deployment').doEmbed({ values: ['hi'] }),
+      ).rejects.toMatchObject({
+        name: 'AI_InvalidArgumentError',
+        argument: 'resourceName',
+      });
+      expect(fetch).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+});
+
+it('does not validate an unused resource name with a custom endpoint', () => {
+  expect(() =>
+    createAzure({
+      resourceName: 'not a resource',
+      baseURL: 'https://proxy.example/openai',
+      apiKey: 'test-key',
+    })('test-deployment'),
+  ).not.toThrow();
 });

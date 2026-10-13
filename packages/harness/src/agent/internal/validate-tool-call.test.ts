@@ -113,6 +113,52 @@ describe('validateToolCall', () => {
     ).toBeUndefined();
   });
 
+  it('parses a provider-executed dynamic tool without a static tool set', async () => {
+    const result = await validateToolCall<typeof tools>({
+      event: {
+        type: 'tool-call',
+        toolCallId: 'c4-replacement',
+        toolName: 'bash',
+        input: '{"query":"test"}',
+        providerExecuted: true,
+        dynamic: true,
+      },
+      tools: undefined,
+    });
+
+    expect(result).toMatchObject({
+      type: 'tool-call',
+      toolCallId: 'c4-replacement',
+      toolName: 'bash',
+      input: { query: 'test' },
+      providerExecuted: true,
+      dynamic: true,
+    });
+    expect(result).not.toHaveProperty('invalid');
+  });
+
+  it('marks malformed provider-executed dynamic input invalid without a static tool set', async () => {
+    const result = await validateToolCall<typeof tools>({
+      event: {
+        type: 'tool-call',
+        toolCallId: 'c4-malformed',
+        toolName: 'bash',
+        input: '{',
+        providerExecuted: true,
+        dynamic: true,
+      },
+      tools: undefined,
+    });
+
+    expect(result).toMatchObject({
+      type: 'tool-call',
+      toolCallId: 'c4-malformed',
+      toolName: 'bash',
+      invalid: true,
+      dynamic: true,
+    });
+  });
+
   it('omits providerExecuted when the bridge did not set it', async () => {
     const result = await validateToolCall<typeof tools>({
       event: {

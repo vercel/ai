@@ -9,7 +9,7 @@ run(async () => {
     .toString('base64');
 
   const result = await generateText({
-    model: openai.responses('gpt-5.4'),
+    model: openai.responses('gpt-6-astra'),
     tools: {
       computer: openai.tools.computer({
         needsApproval: ({ pendingSafetyChecks }) =>

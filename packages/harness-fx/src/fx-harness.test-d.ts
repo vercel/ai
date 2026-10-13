@@ -1,5 +1,21 @@
-import { expectTypeOf, test } from 'vitest';
-import { createFx } from './fx-harness';
+import type { SandboxChannelReconnectOptions } from '@ai-sdk/harness/utils';
+import type { InferToolInput } from '@ai-sdk/provider-utils';
+import { assertType, expectTypeOf, test } from 'vitest';
+import { createFx, type FxHarnessSettings } from './fx-harness';
+
+test('accepts sandbox bridge reconnect settings', () => {
+  const settings: FxHarnessSettings = {
+    reconnect: {
+      maxElapsedMs: 120_000,
+      initialDelayMs: 100,
+      maxDelayMs: 5_000,
+    },
+  };
+  createFx(settings);
+  expectTypeOf(settings.reconnect).toEqualTypeOf<
+    SandboxChannelReconnectOptions | undefined
+  >();
+});
 
 test('preserves fx built-in tool types', () => {
   const harness = createFx({
@@ -24,15 +40,23 @@ test('preserves fx built-in tool types', () => {
     | 'semantic_search'
     | 'open_file'
     | 'web_fetch'
-    | 'terminal'
     | 'skill'
     | 'install_skill'
     | 'subagent'
     | 'mcp_search_tools'
+    | 'capability_search'
     | 'mcp_select_tool'
     | 'mcp_features'
+    | 'shell'
     | 'ask_user_question'
     | 'vision'
     | 'read_tool_result'
   >();
+
+  type SkillInput = InferToolInput<typeof harness.builtinTools.skill>;
+
+  assertType<SkillInput>({
+    location: 'skill:test:0/weather-forecast',
+    resource: 'SKILL.md',
+  });
 });

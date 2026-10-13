@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     const zapierTools = await mcpClient.tools();
 
     const result = streamText({
-      model: openai('gpt-4o'),
+      model: openai('gpt-6-astra'),
       messages: await convertToModelMessages(messages),
       tools: zapierTools,
       onEnd: async () => {

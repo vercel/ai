@@ -9,7 +9,7 @@ run(async () => {
     'Generating KlingAI image-to-video with first and last frames...',
     () =>
       generateVideo({
-        model: klingai.video('kling-v2.6-i2v'),
+        model: klingai.video('kling-v3.0-i2v'),
         prompt:
           'The cat walks across the scene and transforms into a dog by the end, in a playful and cartoonish style.',
         frameImages: [

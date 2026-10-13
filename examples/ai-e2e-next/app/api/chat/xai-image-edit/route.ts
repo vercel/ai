@@ -84,5 +84,4 @@ function findLastAssistantImage(
       }
     }
   }
-  return undefined;
 }
