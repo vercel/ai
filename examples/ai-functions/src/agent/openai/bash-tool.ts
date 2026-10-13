@@ -30,7 +30,7 @@ run(async () => {
     });
 
     console.log(JSON.stringify(result.content, null, 2));
-    console.log(await sandbox.readTextFile({ path: '/workspace/report.md' }));
+    console.log(await sandbox.readTextFile({ path: 'report.md' }));
   } finally {
     await session.destroy();
   }

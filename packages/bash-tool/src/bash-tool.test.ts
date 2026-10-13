@@ -27,8 +27,8 @@ const sessions: Awaited<
   ReturnType<typeof createJustBashNetworkSandboxSession>
 >[] = [];
 
-async function createSandbox() {
-  const session = await createJustBashNetworkSandboxSession();
+async function createSandbox(cwd = '/home/test') {
+  const session = await createJustBashNetworkSandboxSession({ cwd });
   sessions.push(session);
   return session.restricted();
 }
@@ -38,6 +38,75 @@ afterEach(async () => {
 });
 
 describe('bashTool', () => {
+  it('uses the sandbox default without setup commands when no files are supplied', async () => {
+    const sandbox = await createSandbox();
+    const run = vi.spyOn(sandbox, 'run');
+    const write = vi.spyOn(sandbox, 'writeTextFile');
+    const bash = await bashTool({ sandbox });
+
+    expect(run).not.toHaveBeenCalled();
+    expect(write).not.toHaveBeenCalled();
+    expect(bash.description).toContain("sandbox's default working directory");
+    expect(await execute(bash, 'pwd')).toEqual({
+      stdout: '/home/test\n',
+      stderr: '',
+      exitCode: 0,
+    });
+    expect(run).toHaveBeenCalledWith({
+      command: 'pwd',
+      abortSignal: undefined,
+    });
+  });
+
+  it('resolves initial files against the sandbox default, preserving path whitespace', async () => {
+    const sandbox = await createSandbox('/home/my project ');
+    const run = vi.spyOn(sandbox, 'run');
+    const write = vi.spyOn(sandbox, 'writeTextFile');
+    const bash = await bashTool({
+      sandbox,
+      files: { 'nested/input.txt': 'hello', 'other.txt': 'world' },
+    });
+
+    expect(run).toHaveBeenCalledExactlyOnceWith({ command: 'pwd' });
+    expect(write).toHaveBeenCalledWith({
+      path: '/home/my project /nested/input.txt',
+      content: 'hello',
+    });
+    expect(await execute(bash, 'cat nested/input.txt other.txt')).toEqual({
+      stdout: 'helloworld',
+      stderr: '',
+      exitCode: 0,
+    });
+    expect(run.mock.lastCall?.[0]).not.toHaveProperty('workingDirectory');
+  });
+
+  it.each([
+    { stdout: '', stderr: 'pwd failed', exitCode: 1, error: 'pwd failed' },
+    {
+      stdout: 'relative\n',
+      stderr: '',
+      exitCode: 0,
+      error: 'absolute working directory',
+    },
+    {
+      stdout: '',
+      stderr: '',
+      exitCode: 0,
+      error: 'absolute working directory',
+    },
+  ])(
+    'rejects failed or invalid directory discovery: $stdout $stderr',
+    async ({ error, ...result }) => {
+      const sandbox = await createSandbox();
+      vi.spyOn(sandbox, 'run').mockResolvedValue(result);
+      const write = vi.spyOn(sandbox, 'writeTextFile');
+      await expect(
+        bashTool({ sandbox, files: { 'input.txt': 'hello' } }),
+      ).rejects.toThrow(error);
+      expect(write).not.toHaveBeenCalled();
+    },
+  );
+
   it('uses a custom sandbox session and forwards cancellation', async () => {
     const session: SandboxSession = {
       description: 'Custom sandbox with Python and network access.',
@@ -81,44 +150,54 @@ describe('bashTool', () => {
     });
   });
 
-  it('works with the Vercel Sandbox adapter', async () => {
-    const runCommand = vi.fn().mockResolvedValue({
-      exitCode: 0,
-      stdout: async () => 'vercel output',
-      stderr: async () => '',
-    });
-    const writeFiles = vi.fn().mockResolvedValue(undefined);
-    const nativeSandbox = {
-      name: 'test-vercel-sandbox',
-      runCommand,
-      writeFiles,
-      readFileToBuffer: vi.fn().mockResolvedValue(Buffer.from('report')),
-    } as unknown as VercelNativeSandboxSession;
-    const bash = await bashTool({
-      sandbox: createVercelSandboxSessionFromNativeSandbox(nativeSandbox),
-      workingDirectory: '/vercel/sandbox/workspace',
-      files: { 'input.txt': 'input' },
-    });
-    expect(writeFiles).toHaveBeenCalledWith(
-      [
-        {
-          path: '/vercel/sandbox/workspace/input.txt',
-          content: new TextEncoder().encode('input'),
-        },
-      ],
-      undefined,
-    );
-    expect(await execute(bash, 'cat input.txt')).toEqual({
-      stdout: 'vercel output',
-      stderr: '',
-      exitCode: 0,
-    });
-    expect(runCommand).toHaveBeenLastCalledWith({
-      cmd: 'bash',
-      args: ['-c', 'cat input.txt'],
-      cwd: '/vercel/sandbox/workspace',
-    });
-  });
+  it.each([undefined, '/vercel/sandbox/workspace'])(
+    'works with the Vercel Sandbox adapter with workingDirectory %s',
+    async workingDirectory => {
+      const runCommand = vi.fn().mockResolvedValue({
+        exitCode: 0,
+        stdout: async () => 'vercel output',
+        stderr: async () => '',
+      });
+      if (workingDirectory === undefined) {
+        runCommand.mockResolvedValueOnce({
+          exitCode: 0,
+          stdout: async () => '/vercel/sandbox\n',
+          stderr: async () => '',
+        });
+      }
+      const writeFiles = vi.fn().mockResolvedValue(undefined);
+      const nativeSandbox = {
+        name: 'test-vercel-sandbox',
+        runCommand,
+        writeFiles,
+        readFileToBuffer: vi.fn().mockResolvedValue(Buffer.from('report')),
+      } as unknown as VercelNativeSandboxSession;
+      const bash = await bashTool({
+        sandbox: createVercelSandboxSessionFromNativeSandbox(nativeSandbox),
+        workingDirectory,
+        files: { 'input.txt': 'input' },
+      });
+      expect(writeFiles).toHaveBeenCalledWith(
+        [
+          {
+            path: `${workingDirectory ?? '/vercel/sandbox'}/input.txt`,
+            content: new TextEncoder().encode('input'),
+          },
+        ],
+        undefined,
+      );
+      expect(await execute(bash, 'cat input.txt')).toEqual({
+        stdout: 'vercel output',
+        stderr: '',
+        exitCode: 0,
+      });
+      expect(runCommand).toHaveBeenLastCalledWith({
+        cmd: 'bash',
+        args: ['-c', 'cat input.txt'],
+        ...(workingDirectory === undefined ? {} : { cwd: workingDirectory }),
+      });
+    },
+  );
 
   it('shares files across tools using the same session without resetting them', async () => {
     const session = await createSandbox();
@@ -133,7 +212,7 @@ describe('bashTool', () => {
       stderr: '',
       exitCode: 0,
     });
-    expect(await session.readTextFile({ path: '/workspace/report.txt' })).toBe(
+    expect(await session.readTextFile({ path: '/home/test/report.txt' })).toBe(
       'hello',
     );
   });
@@ -172,7 +251,11 @@ describe('bashTool', () => {
     });
     const write = vi.spyOn(sandbox, 'writeTextFile');
     await expect(
-      bashTool({ sandbox, files: { 'input.txt': 'input' } }),
+      bashTool({
+        sandbox,
+        workingDirectory: '/app',
+        files: { 'input.txt': 'input' },
+      }),
     ).rejects.toThrow('Permission denied');
     expect(write).not.toHaveBeenCalled();
   });
@@ -204,7 +287,7 @@ describe('bashTool', () => {
     expect(
       await execute(bash, 'cat data/words.txt | sort | uniq > report.txt'),
     ).toEqual({ stdout: '', stderr: '', exitCode: 0 });
-    expect(await sandbox.readTextFile({ path: '/workspace/report.txt' })).toBe(
+    expect(await sandbox.readTextFile({ path: '/home/test/report.txt' })).toBe(
       'apple\npear\n',
     );
     expect(await execute(bash, 'cat report.txt')).toEqual({
@@ -240,7 +323,7 @@ describe('bashTool', () => {
         bash,
         'pwd; printf "name=%s\\n" "$NAME"; test -f subdir/saved',
       ),
-    ).toEqual({ stdout: '/workspace\nname=\n', stderr: '', exitCode: 0 });
+    ).toEqual({ stdout: '/home/test\nname=\n', stderr: '', exitCode: 0 });
   });
 
   it('preserves stderr and nonzero exit codes for model recovery', async () => {
@@ -321,7 +404,7 @@ describe('bashTool', () => {
     });
 
     expect(
-      await sandbox.readTextFile({ path: '/workspace/nested/a $(echo b).txt' }),
+      await sandbox.readTextFile({ path: '/home/test/nested/a $(echo b).txt' }),
     ).toBe('literal path');
   });
 

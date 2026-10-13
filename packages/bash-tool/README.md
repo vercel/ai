@@ -43,7 +43,7 @@ try {
   });
 
   console.log(result.text);
-  console.log(await sandbox.readTextFile({ path: '/workspace/summary.txt' }));
+  console.log(await sandbox.readTextFile({ path: 'summary.txt' }));
 } finally {
   await session.destroy();
 }
@@ -51,10 +51,15 @@ try {
 
 `bashTool()` returns the tool directly. Read generated files through the
 supplied sandbox using `readTextFile({ path })`, which returns `null` if missing.
+The just-bash adapter resolves relative read paths against its default directory.
+When overriding `workingDirectory`, use absolute paths to read files there.
 
 The caller owns the sandbox lifecycle. Tools sharing a session share files.
-Initial files are relative to `workingDirectory` (default: `/workspace`), which
-is created if needed. Commands, networking, and persistence depend on the sandbox.
+Commands use the sandbox's default working directory. Initial files are written
+relative to that directory, resolved with `pwd` during initialization. Set
+`workingDirectory` to an absolute path to override it; explicit directories are
+created if needed. Without initial files or an override, creating the tool runs
+no setup commands. Commands, networking, and persistence depend on the sandbox.
 
 ## Vercel Sandbox
 
@@ -71,7 +76,6 @@ const nativeSandbox = await Sandbox.create();
 try {
   const bash = await bashTool({
     sandbox: createVercelSandboxSessionFromNativeSandbox(nativeSandbox),
-    workingDirectory: '/vercel/sandbox/workspace',
     files: { 'notes.txt': 'Hello from Vercel Sandbox' },
   });
 

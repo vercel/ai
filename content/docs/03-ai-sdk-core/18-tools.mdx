@@ -58,7 +58,7 @@ try {
   });
 
   console.log(result.text);
-  console.log(await sandbox.readTextFile({ path: '/workspace/summary.txt' }));
+  console.log(await sandbox.readTextFile({ path: 'summary.txt' }));
 } finally {
   await session.destroy();
 }
@@ -79,7 +79,6 @@ const nativeSandbox = await Sandbox.create();
 try {
   const bash = await bashTool({
     sandbox: createVercelSandboxSessionFromNativeSandbox(nativeSandbox),
-    workingDirectory: '/vercel/sandbox/workspace',
     files: { 'notes.txt': 'Hello from Vercel Sandbox' },
   });
 
@@ -100,12 +99,12 @@ Raw runtime instances need their respective adapters; a custom
 
 `bashTool()` requires an options object:
 
-| Option             | Type                          | Description                                                                                                                         |
-| ------------------ | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `sandbox`          | `Experimental_SandboxSession` | Required session for command execution and file operations.                                                                         |
-| `files`            | `Record<string, string>`      | UTF-8 files to write before returning, relative to `workingDirectory`. Existing files at these paths are overwritten.               |
-| `workingDirectory` | `string`                      | Absolute starting directory for each command. Defaults to `/workspace`; created if needed. Choose a writable path for your sandbox. |
-| `maxOutputLength`  | `number`                      | Positive integer limiting characters retained from each output stream before a truncation notice. Defaults to `30000`.              |
+| Option             | Type                          | Description                                                                                                                                                        |
+| ------------------ | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `sandbox`          | `Experimental_SandboxSession` | Required session for command execution and file operations.                                                                                                        |
+| `files`            | `Record<string, string>`      | UTF-8 files to write before returning, relative to the working directory (the sandbox's default unless overridden). Existing files at these paths are overwritten. |
+| `workingDirectory` | `string`                      | Optional absolute starting directory for each command, created if needed. When omitted, uses the sandbox's default directory.                                      |
+| `maxOutputLength`  | `number`                      | Positive integer limiting characters retained from each output stream before a truncation notice. Defaults to `30000`.                                             |
 
 The model calls the tool with `{ command: string }` and receives
 `{ stdout, stderr, exitCode }`. Nonzero exit codes are returned so the model can
@@ -115,10 +114,15 @@ duration.
 
 ### Files and lifecycle
 
-Initial file paths must stay within `workingDirectory`. This validation applies
-to initialization paths; the sandbox controls which files commands can access.
-Each command starts in `workingDirectory`. Available programs, network access,
-shell state, and persistence depend on the supplied sandbox. Its description is
+Commands use the sandbox's default working directory unless `workingDirectory`
+is provided. When initial `files` are supplied without an override, the tool runs
+`pwd` once to resolve their absolute paths. Without files or an override, creating
+the tool runs no setup commands.
+
+Initial file paths must be relative and stay within the working directory. This
+validation applies to initialization paths; the sandbox controls which files
+commands can access. Available programs, network access, shell state, and
+persistence depend on the supplied sandbox. Its description is
 included in the tool's instructions.
 
 Tools using the same session share files. Creating a tool does not reset existing
@@ -127,5 +131,7 @@ The caller creates, reconnects, and destroys the sandbox.
 
 `bashTool()` returns the tool directly, ready to use as `tools: { bash }`.
 Use the supplied sandbox's `readTextFile({ path })` to read generated text files;
-it returns `null` if the file is missing. The same session provides other file
-operations. File initialization completes before the factory returns.
+it returns `null` if the file is missing. Relative read paths depend on the
+sandbox adapter; just-bash resolves them against its default directory. With an
+explicit working directory, use absolute paths to read files from that directory.
+The same session provides other file operations. File initialization completes before the factory returns.
