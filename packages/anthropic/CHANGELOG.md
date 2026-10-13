@@ -1,5 +1,18 @@
 # @ai-sdk/anthropic
 
+## 4.0.79
+
+### Patch Changes
+
+- 1ccc7fb: fix(anthropic): preserve tools when disabling tool calls
+- c91c857: fix(anthropic): preserve failed tool search results in conversation history
+- e57803c: Keep retrieved web-search sources separate from normalized inline citations on text parts and text-end events. Preserve every supported web and document citation kind in generation, streaming, and batch results, with typed AnthropicCitation and AnthropicTextProviderMetadata exports. Retain document source compatibility and web citation source fallbacks when retrieval results are unavailable.
+- Updated dependencies [9667bf2]
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/provider@4.0.27
+
 ## 4.0.78
 
 ### Patch Changes

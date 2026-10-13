@@ -1048,6 +1048,150 @@ describe('runPrompt step accounting', () => {
     expect(await hasToolCall('weather')({ steps })).toBe(true);
   });
 
+  test('preserves input and execution origin on interleaved tool results', async () => {
+    const hostLookup = tool({
+      inputSchema: z.object({ query: z.string() }),
+      execute: async () => 'host found',
+    });
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        {
+          type: 'tool-call',
+          toolCallId: 'native-success',
+          toolName: 'nativeLookup',
+          input: JSON.stringify({ query: 'native success' }),
+          providerExecuted: true,
+          dynamic: true,
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'host-success',
+          toolName: 'hostLookup',
+          input: JSON.stringify({ query: 'host success' }),
+          providerExecuted: false,
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'native-failure',
+          toolName: 'nativeLookup',
+          input: JSON.stringify({ query: 'native failure' }),
+          providerExecuted: true,
+          dynamic: true,
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'host-success',
+          toolName: 'hostLookup',
+          result: 'host found',
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'native-failure',
+          toolName: 'nativeLookup',
+          result: 'native failed',
+          isError: true,
+          dynamic: true,
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'native-success',
+          toolName: 'nativeLookup',
+          result: 'native found',
+          dynamic: true,
+        },
+        ...finishEvents,
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { hostLookup },
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(parts).toContainEqual(
+      expect.objectContaining({
+        type: 'tool-result',
+        toolCallId: 'native-success',
+        input: { query: 'native success' },
+        output: 'native found',
+        providerExecuted: true,
+      }),
+    );
+    expect(parts).toContainEqual(
+      expect.objectContaining({
+        type: 'tool-result',
+        toolCallId: 'host-success',
+        input: { query: 'host success' },
+        output: 'host found',
+        providerExecuted: false,
+      }),
+    );
+    expect(parts).toContainEqual(
+      expect.objectContaining({
+        type: 'tool-error',
+        toolCallId: 'native-failure',
+        input: { query: 'native failure' },
+        error: 'native failed',
+        providerExecuted: true,
+      }),
+    );
+
+    await expect(result.toolResults).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          toolCallId: 'native-success',
+          input: { query: 'native success' },
+          providerExecuted: true,
+        }),
+        expect.objectContaining({
+          toolCallId: 'host-success',
+          input: { query: 'host success' },
+          providerExecuted: false,
+        }),
+      ]),
+    );
+
+    const responseMessages = await result.responseMessages;
+    const assistantMessage = responseMessages.find(
+      message => message.role === 'assistant',
+    );
+    const toolMessage = responseMessages.find(
+      message => message.role === 'tool',
+    );
+    expect(assistantMessage?.content).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'tool-result',
+          toolCallId: 'native-success',
+        }),
+      ]),
+    );
+    expect(toolMessage?.content).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'tool-result',
+          toolCallId: 'host-success',
+        }),
+      ]),
+    );
+    expect(toolMessage?.content).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'tool-result',
+          toolCallId: 'native-success',
+        }),
+      ]),
+    );
+  });
+
   test('surfaces a failed provider-executed tool result as a tool-error carrying the runtime message', async () => {
     const weather = tool({
       description: 'Get weather',
