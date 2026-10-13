@@ -555,6 +555,12 @@ as `part.approval.reason`.
 For manual approval requests, the reason for requiring approval is available as
 `part.approval.requestReason`. It remains separate from an optional response
 reason supplied to `addToolApprovalResponse`.
+When a response reason is supplied with a denial, it is included in the
+`execution-denied` tool result that the model sees. When it is supplied with an
+approval for a tool executed by the AI SDK, it is recorded on the message part,
+but the SDK does not include it in the model prompt, modify the tool's input, or
+expose it through a dedicated execution option. To collect input from the user
+for a tool, use a client-side tool and `addToolOutput` instead.
 
 Approval request chunks can also include an `approvalDescriptor` with opaque
 application-specific metadata. UI message processing exposes it as
