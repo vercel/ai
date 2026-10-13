@@ -23,7 +23,14 @@ const questions = {
     type: 'boolean' as const,
   },
 };
-const options = { state: nativeRequest.state, questions };
+const options = {
+  state: [{ type: 'json' as const, value: nativeRequest.state }],
+  questions,
+};
+const expectedRequest = {
+  ...nativeRequest,
+  state: nativeRequest.state,
+};
 const url = 'https://api.typesafe.ai/v1/systemone';
 const provider = createTypeSafeAi({ apiKey: 'test-api-key' });
 const model = provider.decisionModel('jev-latest');
@@ -43,7 +50,7 @@ afterEach(() => {
 it('sends all three question types and structured rubrics in one request', async () => {
   await model.doDecide(options);
   expect(server.calls).toHaveLength(1);
-  expect(await server.calls[0].requestBodyJson).toEqual(nativeRequest);
+  expect(await server.calls[0].requestBodyJson).toEqual(expectedRequest);
   expect(questions.requestsRefund.type).toBe('boolean');
   expect(server.calls[0].requestHeaders).toMatchObject({
     authorization: 'Bearer test-api-key',
@@ -125,7 +132,7 @@ it('reports unsupported provider options without passing them through', async ()
   expect(result.warnings).toEqual([
     { type: 'unsupported', feature: 'providerOptions.typesafe.temperature' },
   ]);
-  expect(await server.calls[0].requestBodyJson).toEqual(nativeRequest);
+  expect(await server.calls[0].requestBodyJson).toEqual(expectedRequest);
 });
 
 it.each([
@@ -143,7 +150,10 @@ it.each([
   },
 ] as const)('rejects provider limits before HTTP for $type', async question => {
   await expect(
-    model.doDecide({ state: 'test', questions: { question } }),
+    model.doDecide({
+      state: [{ type: 'text', text: 'test' }],
+      questions: { question },
+    }),
   ).rejects.toBeInstanceOf(InvalidArgumentError);
   expect(server.calls).toHaveLength(0);
 });
@@ -314,3 +324,42 @@ it('restores authentication from the environment when no headers are serialized'
     'Bearer workflow-key',
   );
 });
+
+it('maps text and JSON parts to native text state', async () => {
+  await model.doDecide({
+    ...options,
+    state: [
+      { type: 'text', text: 'Inspect.' },
+      { type: 'json', value: [1, null] },
+    ],
+  });
+  expect(await server.calls[0].requestBodyJson).toMatchObject({
+    state: 'Inspect.\n[1,null]',
+  });
+});
+
+it('rejects file evidence before sending a text-only decision request', async () => {
+  await expect(
+    model.doDecide({
+      ...options,
+      state: [
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: { type: 'data', data: 'AAAA' },
+        },
+      ],
+    }),
+  ).rejects.toMatchObject({ name: 'AI_UnsupportedFunctionalityError' });
+  expect(server.calls).toHaveLength(0);
+});
+
+it.each([{ nested: { amount: 49 }, history: ['refund'] }, [1, null]])(
+  'preserves a single JSON state part as native JSON: %j',
+  async value => {
+    await model.doDecide({ ...options, state: [{ type: 'json', value }] });
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      state: value,
+    });
+  },
+);

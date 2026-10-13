@@ -97,6 +97,72 @@ describe('AlibabaVideoModel', () => {
   });
 
   describe('doStart', () => {
+    it.each(['wan2.7-r2v', 'wan2.8-r2v', 'wan2.10-r2v'])(
+      'should use the tiered reference protocol for %s',
+      async modelId => {
+        await createModel({ modelId }).doStart({
+          ...defaultOptions,
+          resolution: '1280x720',
+          aspectRatio: '16:9',
+          inputReferences: [
+            { type: 'url', url: 'https://example.com/ref.jpg' },
+          ],
+        });
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.input.media).toEqual([
+          { type: 'reference_image', url: 'https://example.com/ref.jpg' },
+        ]);
+        expect(body.input.reference_urls).toBeUndefined();
+        expect(body.parameters).toMatchObject({
+          resolution: '720P',
+          ratio: '16:9',
+        });
+        expect(body.parameters.size).toBeUndefined();
+      },
+    );
+
+    it.each(['wan2.6-t2v', 'wan2.2-t2v-plus', 'wanx2.1-t2v-turbo'])(
+      'should use the legacy size protocol for %s',
+      async modelId => {
+        await createModel({ modelId }).doStart({
+          ...defaultOptions,
+          resolution: '1280x720',
+        });
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.parameters.size).toBe('1280*720');
+        expect(body.parameters.resolution).toBeUndefined();
+      },
+    );
+
+    it.each(['wan4.0-video', 'wan10.0-video', 'wan-next-video'])(
+      'should use the latest all-in-one protocol for %s',
+      async modelId => {
+        await createModel({ modelId }).doStart({
+          ...defaultOptions,
+          resolution: '832x480',
+          aspectRatio: '16:9',
+          generateAudio: false,
+          image: { type: 'url', url: 'https://example.com/first.jpg' },
+          inputReferences: [
+            { type: 'url', url: 'https://example.com/ref.jpg' },
+          ],
+        });
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.input.media).toEqual([
+          { type: 'reference_image', url: 'https://example.com/ref.jpg' },
+          { type: 'first_frame', url: 'https://example.com/first.jpg' },
+        ]);
+        expect(body.input.img_url).toBeUndefined();
+        expect(body.input.reference_urls).toBeUndefined();
+        expect(body.parameters).toMatchObject({
+          resolution: '480P',
+          ratio: '16:9',
+          audio: false,
+        });
+        expect(body.parameters.size).toBeUndefined();
+      },
+    );
+
     describe('text-to-video', () => {
       it('should send correct request body for T2V', async () => {
         const model = createModel();

@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "ultracite check"
+    "lint": "ultracite check",
+    "dev:websocket": "node --env-file-if-exists=.env --env-file-if-exists=.env.local --import tsx scripts/websocket-chat-server.ts",
+    "test:websocket": "playwright test --config playwright.websocket.config.ts"
   },
   "dependencies": {
     "@ai-sdk/amazon-bedrock": "workspace:*",
@@ -32,7 +34,7 @@
     "@ai-sdk/xai": "workspace:*",
     "@langfuse/otel": "^4.6.1",
     "@langfuse/tracing": "^5.3.0",
-    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@modelcontextprotocol/sdk": "^1.32.0",
     "@opentelemetry/sdk-trace-node": "^2.7.1",
     "@radix-ui/react-collapsible": "^1.1.12",
     "@radix-ui/react-use-controllable-state": "^1.2.2",
@@ -43,7 +45,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.545.0",
-    "next": "^16.3.3",
+    "next": "^16.3.6",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-markdown": "9.0.1",
@@ -53,15 +55,19 @@
     "tailwind-merge": "^3.6.0",
     "tailwindcss-animate": "^1.0.7",
     "valibot": "1.1.0",
+    "ws": "^8.21.0",
     "zod": "3.25.76"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@types/node": "22.19.19",
     "@types/react": "^18.3.28",
     "@types/react-dom": "^18.3.7",
+    "@types/ws": "^8.18.1",
     "autoprefixer": "^10.5.0",
     "postcss": "^8.5.14",
     "tailwindcss": "^3.4.19",
+    "tsx": "4.23.12",
     "typescript": "6.0.3"
   }
 }

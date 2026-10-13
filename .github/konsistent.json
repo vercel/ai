@@ -1006,6 +1006,7 @@
     "deepseek": "DeepSeek",
     "elevenlabs": "ElevenLabs",
     "github-copilot": "GitHubCopilot",
+    "heygen": "HeyGen",
     "huggingface": "HuggingFace",
     "klingai": "KlingAI",
     "minimax": "MiniMax",
@@ -1020,6 +1021,7 @@
   "kebabToCamelMap": {
     "acp": "acp",
     "github-copilot": "githubCopilot",
+    "heygen": "heygen",
     "minimax": "minimax"
   }
 }

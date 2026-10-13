@@ -83,7 +83,7 @@ it('resolves deprecated provider factories through default, custom, and registry
     (
       await registry
         .evaluationModel('legacy|model')
-        .doEvaluate({ state: 'message', questions })
+        .doEvaluate({ state: [{ type: 'text', text: 'message' }], questions })
     ).answers,
   ).toEqual(result.answers);
 });
@@ -100,7 +100,7 @@ it('prefers new model maps and factories and supports direct deprecated model ca
     (
       await provider
         .evaluationModel('alias')
-        .doEvaluate({ state: 'message', questions })
+        .doEvaluate({ state: [{ type: 'text', text: 'message' }], questions })
     ).answers,
   ).toEqual(result.answers);
   vi.stubGlobal(

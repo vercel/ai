@@ -302,7 +302,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     hasPermissionModeMapping: start.permissionModeMapping != null,
     emitToolCall: emitStreamEvent.permissionToolCall,
     claimHostToolPermission: emitStreamEvent.claimHostToolPermission,
-    onHostToolPermissionAllowed: hostToolAuthorization.observeAllowedPermission,
+    onHostToolPermissionAllowed: hostToolAuthorization.authorizePermission,
   });
   activePermissionController = permissionController;
   const relayTurn: HostToolRelayTurn = {

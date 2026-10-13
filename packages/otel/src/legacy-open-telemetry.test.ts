@@ -2624,6 +2624,39 @@ describe('LegacyOpenTelemetry integration with decide', () => {
     },
   );
 
+  it.each([true, false])(
+    'serializes decision image bytes with recordInputs=%s',
+    async recordInputs => {
+      const tracer = new IntegrationMockTracer();
+      const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0xff, 0xff]);
+      await experimental_decide({
+        model: new Experimental_DecisionMockModelV4({
+          doDecide: async () => ({
+            answers: { visible: { type: 'boolean', probability: 0.9 } },
+            warnings: [],
+          }),
+        }),
+        state: [{ type: 'file', mediaType: 'image/png', data: bytes }],
+        questions: {
+          visible: { type: 'boolean', instructions: 'Is the product visible?' },
+        },
+        telemetry: {
+          recordInputs,
+          integrations: new LegacyOpenTelemetry({ tracer }),
+        },
+      });
+      const attributes = tracer.jsonSpans.map(span => span.attributes);
+      expect(attributes).toHaveLength(2);
+      for (const value of attributes) {
+        expect(value['ai.decision.state']).toBe(
+          recordInputs
+            ? '[{"type":"file","mediaType":"image/png","data":"iVBOR///"}]'
+            : undefined,
+        );
+      }
+    },
+  );
+
   it.each(['current', 'deprecated'] as const)(
     'records decision inputs, outputs, and usage through the %s API',
     async api => {
@@ -2666,7 +2699,7 @@ describe('LegacyOpenTelemetry integration with decide', () => {
           "attributes": {
             "ai.decision.answers": "{"refund":{"type":"boolean","probability":0.9}}",
             "ai.decision.questions": "{"refund":{"type":"boolean","instructions":"Refund?"}}",
-            "ai.decision.state": "{"message":"Please refund me"}",
+            "ai.decision.state": "[{"type":"json","value":{"message":"Please refund me"}}]",
             "ai.model.id": "mock-model-id",
             "ai.model.provider": "mock-provider",
             "ai.operationId": "ai.decide.doDecide",

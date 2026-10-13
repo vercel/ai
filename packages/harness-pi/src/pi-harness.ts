@@ -11,7 +11,13 @@ import type {
 import { z } from 'zod/v4';
 import type { PiAuthenticationMode, PiCredentialStore } from './pi-auth';
 import { piResumeStateSchema } from './pi-resume-state';
-import { createPiSession, type PiThinkingLevel } from './pi-session';
+import {
+  createPiSession,
+  type PiCacheRetention,
+  type PiFileToolPathPolicy,
+  type PiMcpSettings,
+  type PiThinkingLevel,
+} from './pi-session';
 import { VERSION } from './version';
 
 /**
@@ -51,6 +57,12 @@ export type PiHarnessSettings = {
    */
   readonly thinkingLevel?: PiThinkingLevel;
   /**
+   * Default prompt cache retention for model requests. For Anthropic models,
+   * `long` uses the 1-hour cache instead of the 5-minute default. When omitted,
+   * Pi's default (`short`) applies.
+   */
+  readonly cacheRetention?: PiCacheRetention;
+  /**
    * Directory holding Pi's global agent config (auth.json, models.json,
    * settings.json). When omitted, native subscription auth is discovered from
    * Pi's default agent directory while model and general settings remain
@@ -63,11 +75,24 @@ export type PiHarnessSettings = {
    */
   readonly mcpServers?: Record<string, unknown>;
   /**
+   * Settings for the MCP adapter that serves `mcpServers`, applied over this
+   * package's defaults.
+   */
+  readonly mcpSettings?: PiMcpSettings;
+  /**
    * Trusted inline Pi extensions loaded for each harness session.
    *
    * Filesystem-discovered user and project extensions remain disabled.
    */
   readonly extensionFactories?: ReadonlyArray<ExtensionFactory>;
+  /**
+   * Absolute sandbox paths that widen or narrow what Pi's native file tools
+   * can reach. `readableRoots` lets `read`, `ls`, `find`, and `grep` reach
+   * outside the session workspace. `deniedRoots` are refused by every native
+   * file tool and take precedence, including through symlinks. Denied roots
+   * are resolved when the session starts. The `bash` tool is not restricted.
+   */
+  readonly fileToolPathPolicy?: PiFileToolPathPolicy;
 };
 
 const PI_BUILTIN_TOOLS = {
@@ -179,10 +204,19 @@ export function createPi(
           ...(settings.thinkingLevel
             ? { thinkingLevel: settings.thinkingLevel }
             : {}),
+          ...(settings.cacheRetention
+            ? { cacheRetention: settings.cacheRetention }
+            : {}),
           ...(settings.mcpServers ? { mcpServers: settings.mcpServers } : {}),
+          ...(settings.mcpSettings
+            ? { mcpSettings: settings.mcpSettings }
+            : {}),
           ...(settings.providers ? { providers: settings.providers } : {}),
           ...(settings.extensionFactories
             ? { extensionFactories: settings.extensionFactories }
+            : {}),
+          ...(settings.fileToolPathPolicy
+            ? { fileToolPathPolicy: settings.fileToolPathPolicy }
             : {}),
           ...(startOpts.headers ? { headers: startOpts.headers } : {}),
         },

@@ -3,6 +3,7 @@ import { DecisionUnsupportedQuestionTypeError } from './decision-unsupported-que
 export { AISDKError } from './ai-sdk-error';
 export { APICallError } from './api-call-error';
 export { EmptyResponseBodyError } from './empty-response-body-error';
+export { DecisionRefusalError as Experimental_DecisionRefusalError } from './decision-refusal-error';
 export { DecisionUnsupportedQuestionTypeError as Experimental_DecisionUnsupportedQuestionTypeError } from './decision-unsupported-question-type-error';
 export { getErrorMessage } from './get-error-message';
 export { InvalidArgumentError } from './invalid-argument-error';

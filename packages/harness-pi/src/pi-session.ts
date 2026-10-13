@@ -49,7 +49,11 @@ import { resolvePiSubscriptionAgentDir } from './pi-subscription';
 import { getPiTerminalError, parseNativeEvent } from './pi-events';
 import { createPiModelResolver } from './pi-model-resolver';
 import { createPiPathMapper } from './pi-paths';
-import { createPiRemoteOps, type PiRemoteOps } from './pi-remote-ops';
+import {
+  createPiRemoteOps,
+  resolvePiSandboxPathOrParent,
+  type PiRemoteOps,
+} from './pi-remote-ops';
 import {
   formatPiReadToolOutput,
   truncatePiToolOutputHead,
@@ -65,6 +69,7 @@ import {
 import {
   createPiTranslatorState,
   finishPiApprovalStep,
+  toHarnessUsage,
   translatePiEvent,
   type PiTranslatorState,
 } from './pi-translate';
@@ -94,6 +99,7 @@ type PiMcpAdapterModule = {
         directTools: boolean;
         toolPrefix: string;
         disableProxyTool: boolean;
+        outputGuard?: boolean;
       };
     };
   }): ExtensionFactory;
@@ -233,15 +239,49 @@ export type PiThinkingLevel =
   | 'xhigh'
   | 'max';
 
+export interface PiFileToolPathPolicy {
+  readonly readableRoots?: ReadonlyArray<string>;
+  readonly deniedRoots?: ReadonlyArray<string>;
+}
+
+export interface PiMcpSettings {
+  /**
+   * How MCP tool names are prefixed: `mcp` (`mcp__<server>_<tool>`), `server`
+   * (`<server>_<tool>`), `short` (the server name without an `mcp` suffix), or
+   * `none` (the bare tool name). Only `mcp`-prefixed tool calls are reported
+   * as provider-executed dynamic tools with parsed JSON results.
+   *
+   * @default 'mcp'
+   */
+  readonly toolPrefix?: 'server' | 'none' | 'short' | 'mcp';
+  /**
+   * Whether the MCP adapter truncates large tool results and writes the full
+   * text to a file in the host temp directory.
+   *
+   * @default true
+   */
+  readonly outputGuard?: boolean;
+}
+
+export type PiCacheRetention = 'none' | 'short' | 'long';
+
+export interface PiFileToolPathPolicy {
+  readonly readableRoots?: ReadonlyArray<string>;
+  readonly deniedRoots?: ReadonlyArray<string>;
+}
+
 export interface PiSessionSettings {
   readonly auth?: PiAuthenticationMode;
   readonly credentials?: PiCredentialStore;
   readonly reattachInProcess?: boolean;
   readonly headers?: Readonly<Record<string, string>>;
   readonly thinkingLevel?: PiThinkingLevel;
+  readonly cacheRetention?: PiCacheRetention;
   readonly mcpServers?: Record<string, unknown>;
+  readonly mcpSettings?: PiMcpSettings;
   readonly providers?: Readonly<Record<string, ProviderConfig>>;
   readonly extensionFactories?: ReadonlyArray<ExtensionFactory>;
+  readonly fileToolPathPolicy?: PiFileToolPathPolicy;
 }
 
 export interface CreatePiSessionInput {
@@ -283,9 +323,13 @@ function hasCompatibleReattachSettings(
     parked.settings.credentials === current.settings.credentials &&
     parked.settings.headers === current.settings.headers &&
     parked.settings.thinkingLevel === current.settings.thinkingLevel &&
+    parked.settings.cacheRetention === current.settings.cacheRetention &&
     parked.settings.mcpServers === current.settings.mcpServers &&
+    parked.settings.mcpSettings === current.settings.mcpSettings &&
     parked.settings.providers === current.settings.providers &&
-    parked.settings.extensionFactories === current.settings.extensionFactories
+    parked.settings.extensionFactories ===
+      current.settings.extensionFactories &&
+    parked.settings.fileToolPathPolicy === current.settings.fileToolPathPolicy
   );
 }
 
@@ -394,6 +438,17 @@ export async function createPiSession(
   const toolSafeSandboxSession = getRestrictedSandboxSession(
     input.sandboxSession,
   );
+  const fileToolPathPolicy = input.settings.fileToolPathPolicy;
+  const canonicalDeniedRoots: string[] = [];
+  for (const deniedRoot of fileToolPathPolicy?.deniedRoots ?? []) {
+    canonicalDeniedRoots.push(
+      await resolvePiSandboxPathOrParent({
+        sandbox: toolSafeSandboxSession,
+        remotePath: path.posix.normalize(deniedRoot),
+        inputPath: deniedRoot,
+      }),
+    );
+  }
 
   // Pi runs in this host process but must behave as though it lives in the
   // sandbox workspace: its working directory is the real `sessionWorkDir`
@@ -427,6 +482,14 @@ export async function createPiSession(
     sessionId: input.sessionId,
   });
   const permissionMode = input.permissionMode ?? 'allow-all';
+  const activeBuiltinNames = resolveActivePiBuiltinNames(
+    input.builtinToolFiltering,
+  );
+  const activeNativeToCommon = Object.fromEntries(
+    Object.entries(NATIVE_TO_COMMON).filter(([native]) =>
+      activeBuiltinNames.some(name => name === native),
+    ),
+  );
   const sandboxSkillRootDir = path.posix.join(
     sandboxHomeDir,
     '.agents',
@@ -473,7 +536,21 @@ export async function createPiSession(
   const paths = createPiPathMapper({
     hostWorkDir,
     sandboxWorkDir: sessionWorkDir,
-    readableRoots: [{ sandboxDir: sandboxSkillRootDir }],
+    readableRoots: [
+      { sandboxDir: sandboxSkillRootDir },
+      ...(fileToolPathPolicy?.readableRoots ?? []).map(sandboxDir => ({
+        sandboxDir,
+      })),
+    ],
+    deniedRoots: fileToolPathPolicy?.deniedRoots
+      ? [
+          ...new Set([
+            ...fileToolPathPolicy.deniedRoots,
+            ...canonicalDeniedRoots,
+          ]),
+        ]
+      : undefined,
+    ...(fileToolPathPolicy ? { homeDir: sandboxHomeDir } : {}),
   });
 
   // Pi auth + model registry are global to this Pi session. These live on the
@@ -559,6 +636,7 @@ export async function createPiSession(
             directTools: true,
             toolPrefix: 'mcp',
             disableProxyTool: true,
+            ...input.settings.mcpSettings,
           },
         },
       }),
@@ -1055,9 +1133,7 @@ export async function createPiSession(
     customTools: ToolDefinition[];
     builtinNames: string[];
   } {
-    const builtinNames = resolveActivePiBuiltinNames(
-      input.builtinToolFiltering,
-    );
+    const builtinNames = activeBuiltinNames;
     const customTools: ToolDefinition[] = [
       ...builtinNames.map(native =>
         buildBuiltinToolDefinition({
@@ -1076,7 +1152,11 @@ export async function createPiSession(
     };
   }
 
-  async function disposePiSession(): Promise<void> {
+  async function disposePiSession({
+    reason,
+  }: {
+    reason: 'reload' | 'quit';
+  }): Promise<void> {
     unsubscribe?.();
     unsubscribe = undefined;
 
@@ -1085,7 +1165,9 @@ export async function createPiSession(
     if (!session) return;
 
     if (hasMcpServers) {
-      await session.reload().catch(() => {});
+      await session.extensionRunner
+        .emit({ type: 'session_shutdown', reason })
+        .catch(() => {});
     }
     session.dispose();
   }
@@ -1096,7 +1178,7 @@ export async function createPiSession(
   ): Promise<boolean> {
     let resourcesReloaded = false;
     if (piSession) {
-      await disposePiSession();
+      await disposePiSession({ reason: 'reload' });
       // Original adapter waits 25 ms here to let Pi's teardown microtasks
       // settle before the next createAgentSession. Port verbatim.
       // TODO(pi-0.77): verify the race still exists; original SDK had a
@@ -1137,6 +1219,15 @@ export async function createPiSession(
       ...(activeResolvedModel ? { model: activeResolvedModel } : {}),
     });
     piSession = session;
+    const cacheRetention = input.settings.cacheRetention;
+    if (cacheRetention) {
+      const streamFunction = session.agent.streamFunction;
+      session.agent.streamFunction = (model, context, options) =>
+        streamFunction(model, context, {
+          ...options,
+          cacheRetention: options?.cacheRetention ?? cacheRetention,
+        });
+    }
     if (hasMcpServers) {
       await piSession.bindExtensions({ mode: 'print' });
     }
@@ -1153,7 +1244,7 @@ export async function createPiSession(
     translatorState = createPiTranslatorState({
       builtinToolNames: builtinNames,
       hostToolNames: userTools.map(tool => tool.name),
-      nativeToCommon: NATIVE_TO_COMMON,
+      nativeToCommon: activeNativeToCommon,
     });
 
     unsubscribe = piSession.subscribe(rawEvent => {
@@ -1189,6 +1280,15 @@ export async function createPiSession(
   }): Promise<HarnessV1PromptControl> {
     if (stopped) {
       throw new Error('Pi session has been stopped.');
+    }
+
+    const nextModel =
+      turnOpts.model == null ? undefined : resolveModel(turnOpts.model);
+    if (turnOpts.model != null && nextModel == null) {
+      throw new HarnessCapabilityUnsupportedError({
+        message: `Harness 'pi' has no model '${turnOpts.model}' in its catalog.`,
+        harnessId: HARNESS_ID,
+      });
     }
 
     const skillWriteResult = await writeSkills({
@@ -1235,8 +1335,6 @@ export async function createPiSession(
         const didAppendDeliveredHostToolResults =
           appendDeliveredHostToolResults();
 
-        const nextModel =
-          turnOpts.model == null ? undefined : resolveModel(turnOpts.model);
         if (nextModel != null) activeResolvedModel = nextModel;
 
         const signature = JSON.stringify(userTools.map(t => t.name).sort());
@@ -1276,9 +1374,9 @@ export async function createPiSession(
         // Fresh translator state for the new turn — keep the tool sets the
         // session was built with.
         translatorState = createPiTranslatorState({
-          builtinToolNames: [...PI_NATIVE_BUILTIN_NAMES],
+          builtinToolNames: activeBuiltinNames,
           hostToolNames: userTools.map(tool => tool.name),
-          nativeToCommon: NATIVE_TO_COMMON,
+          nativeToCommon: activeNativeToCommon,
         });
 
         currentEmit?.({
@@ -1329,6 +1427,7 @@ export async function createPiSession(
           }
         });
 
+        const tokensBefore = session.getSessionStats().tokens;
         try {
           await session.prompt(turnOpts.text);
 
@@ -1348,28 +1447,21 @@ export async function createPiSession(
             return;
           }
 
-          const stats = session.getSessionStats();
+          const tokensAfter = session.getSessionStats().tokens;
           const finishReason = {
             unified: 'stop' as const,
             raw: undefined,
           };
-          const usage = {
-            inputTokens: {
-              total: stats.tokens.input,
-              noCache: undefined,
-              cacheRead: stats.tokens.cacheRead,
-              cacheWrite: stats.tokens.cacheWrite,
-            },
-            outputTokens: {
-              total: stats.tokens.output,
-              text: undefined,
-              reasoning: undefined,
-            },
-          };
           currentEmit?.({
             type: 'finish',
             finishReason,
-            totalUsage: usage,
+            totalUsage: toHarnessUsage({
+              input: tokensAfter.input - tokensBefore.input,
+              output: tokensAfter.output - tokensBefore.output,
+              cacheRead: tokensAfter.cacheRead - tokensBefore.cacheRead,
+              cacheWrite: tokensAfter.cacheWrite - tokensBefore.cacheWrite,
+              reasoning: translatorState?.turnReasoningTokens,
+            }),
           });
         } catch (err) {
           // A `doSuspendTurn` aborts the in-flight turn on purpose — settle silently
@@ -1444,7 +1536,7 @@ export async function createPiSession(
       }
     }
 
-    await disposePiSession();
+    await disposePiSession({ reason: 'quit' });
     workspaceVfs.unmount();
     await rm(hostRoot, { recursive: true, force: true });
 
@@ -1573,7 +1665,7 @@ export async function createPiSession(
       settlePendingToolApprovals('Pi session stopped');
       await abortingTurn;
       await turnToDestroy?.done.catch(() => {});
-      await disposePiSession();
+      await disposePiSession({ reason: 'quit' });
       workspaceVfs.unmount();
       await rm(hostRoot, { recursive: true, force: true });
     },
@@ -1686,7 +1778,7 @@ export async function createPiSession(
 
       stopped = true;
       parkedPiSessions.delete(input.sessionId);
-      await disposePiSession();
+      await disposePiSession({ reason: 'quit' });
       workspaceVfs.unmount();
       await rm(hostRoot, { recursive: true, force: true });
 
@@ -1744,7 +1836,7 @@ function isAbortError(value: unknown): boolean {
 function asPiToolResult(text: string): AgentToolResult<unknown> {
   return {
     content: [{ type: 'text', text }],
-    details: undefined,
+    details: null,
   };
 }
 
