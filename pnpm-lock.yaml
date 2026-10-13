@@ -2313,6 +2313,9 @@ importers:
       jscodeshift:
         specifier: ^17.3.0
         version: 17.3.0(@babel/preset-env@7.29.2(@babel/core@7.29.0(supports-color@10.2.2))(supports-color@10.2.2))(supports-color@10.2.2)
+      shell-quote:
+        specifier: 1.11.0
+        version: 1.11.0
     devDependencies:
       '@types/cli-progress':
         specifier: ^3.11.6

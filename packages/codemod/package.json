@@ -67,6 +67,7 @@
     "cli-progress": "^3.12.0",
     "commander": "^12.1.0",
     "debug": "^4.4.3",
-    "jscodeshift": "^17.3.0"
+    "jscodeshift": "^17.3.0",
+    "shell-quote": "1.11.0"
   }
 }
