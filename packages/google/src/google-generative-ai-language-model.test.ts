@@ -5,11 +5,13 @@ import type {
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
+import { Output, streamText, tool } from 'ai';
 import {
   GoogleGenerativeAILanguageModel,
   getGroundingMetadataSchema,
   getUrlContextMetadataSchema,
 } from './google-generative-ai-language-model';
+import { z } from 'zod/v4';
 
 import type {
   GoogleGenerativeAIGroundingMetadata,
@@ -1224,6 +1226,218 @@ describe('doGenerate', () => {
         },
       },
     });
+  });
+
+  it('should use a response tool when JSON response format is combined with tools', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                { text: 'ignored text' },
+                {
+                  functionCall: {
+                    id: 'json-call-id',
+                    name: 'json',
+                    args: {
+                      output: [
+                        {
+                          name: 'prepare the issue reproduction',
+                          date: '2026-09-04',
+                        },
+                      ],
+                    },
+                  },
+                },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+          },
+        ],
+      },
+    };
+
+    const result = await model.doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'resolve-date',
+          description: 'Resolve a relative date.',
+          inputSchema: {
+            type: 'object',
+            properties: { input: { type: 'string' } },
+            required: ['input'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              date: { type: 'string' },
+            },
+            required: ['name', 'date'],
+            additionalProperties: false,
+          },
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.generationConfig).toEqual({});
+    expect(requestBody.toolConfig).toEqual({
+      functionCallingConfig: { mode: 'ANY' },
+    });
+    expect(requestBody.tools[0].functionDeclarations).toMatchObject([
+      { name: 'resolve-date' },
+      {
+        name: 'json',
+        description:
+          'Return the final response. The arguments must be an object with exactly one "output" property containing the complete JSON value; never pass the value directly as the arguments.',
+        parameters: {
+          type: 'object',
+          properties: {
+            output: {
+              type: 'array',
+            },
+          },
+          required: ['output'],
+        },
+      },
+    ]);
+    expect(result.content).toEqual([
+      {
+        type: 'text',
+        text: '[{"name":"prepare the issue reproduction","date":"2026-09-04"}]',
+      },
+    ]);
+    expect(result.finishReason).toBe('stop');
+  });
+
+  it('should only allow the response tool when toolChoice is none', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  functionCall: {
+                    id: 'json-call-id',
+                    name: 'json',
+                    args: { output: { date: '2026-09-04' } },
+                  },
+                },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+          },
+        ],
+      },
+    };
+
+    await model.doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'resolve-date',
+          inputSchema: {
+            type: 'object',
+            properties: { input: { type: 'string' } },
+          },
+        },
+      ],
+      toolChoice: { type: 'none' },
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { date: { type: 'string' } },
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.toolConfig).toEqual({
+      functionCallingConfig: {
+        mode: 'ANY',
+        allowedFunctionNames: ['json'],
+      },
+    });
+    expect(requestBody.tools[0].functionDeclarations).toMatchObject([
+      { name: 'json' },
+    ]);
+  });
+
+  it('should preserve a specific user tool choice with a response tool', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  functionCall: {
+                    id: 'resolve-date-call-id',
+                    name: 'resolve-date',
+                    args: { input: 'tomorrow' },
+                  },
+                },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+          },
+        ],
+      },
+    };
+
+    await model.doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'resolve-date',
+          inputSchema: {
+            type: 'object',
+            properties: { input: { type: 'string' } },
+          },
+        },
+      ],
+      toolChoice: { type: 'tool', toolName: 'resolve-date' },
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { date: { type: 'string' } },
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.toolConfig).toEqual({
+      functionCallingConfig: {
+        mode: 'ANY',
+        allowedFunctionNames: ['resolve-date'],
+      },
+    });
+    expect(requestBody.tools[0].functionDeclarations).toMatchObject([
+      { name: 'resolve-date' },
+      { name: 'json' },
+    ]);
   });
 
   it('should inline local JSON Schema references in response schemas', async () => {
@@ -3052,6 +3266,219 @@ describe('doStream', () => {
           },
         },
       },
+    });
+  });
+
+  it('should stream a JSON response tool call as text', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    functionCall: {
+                      id: 'json-call-id',
+                      name: 'json',
+                      args: {
+                        output: [
+                          {
+                            name: 'prepare the issue reproduction',
+                            date: '2026-09-04',
+                          },
+                        ],
+                      },
+                    },
+                  },
+                ],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+            },
+          ],
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'function',
+          name: 'resolve-date',
+          inputSchema: {
+            type: 'object',
+            properties: { input: { type: 'string' } },
+          },
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'array',
+          items: { type: 'object' },
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    expect(events).toContainEqual({
+      type: 'text-delta',
+      id: '0',
+      delta: '[{"name":"prepare the issue reproduction","date":"2026-09-04"}]',
+    });
+    expect(events.some(event => event.type === 'tool-call')).toBe(false);
+    expect(events.at(-1)).toMatchObject({
+      type: 'finish',
+      finishReason: 'stop',
+    });
+  });
+
+  it('should suppress prose from earlier chunks before streaming a JSON response tool call', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'Here is the requested result:' }],
+                role: 'model',
+              },
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    functionCall: {
+                      id: 'json-call-id',
+                      name: 'json',
+                      args: {
+                        output: {
+                          date: '2026-09-04',
+                          activity: 'review pull request',
+                        },
+                      },
+                    },
+                  },
+                ],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+            },
+          ],
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'function',
+          name: 'resolve-date',
+          inputSchema: {
+            type: 'object',
+            properties: { input: { type: 'string' } },
+          },
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            date: { type: 'string' },
+            activity: { type: 'string' },
+          },
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const text = events
+      .filter(event => event.type === 'text-delta')
+      .map(event => event.delta)
+      .join('');
+
+    expect(text).toBe('{"date":"2026-09-04","activity":"review pull request"}');
+    expect(JSON.parse(text)).toEqual({
+      date: '2026-09-04',
+      activity: 'review pull request',
+    });
+  });
+
+  it('should provide valid structured output to streamText from a JSON response tool call', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'Here is the requested result:' }],
+                role: 'model',
+              },
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    functionCall: {
+                      id: 'json-call-id',
+                      name: 'json',
+                      args: {
+                        output: {
+                          date: '2026-09-04',
+                          activity: 'review pull request',
+                        },
+                      },
+                    },
+                  },
+                ],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+            },
+          ],
+        })}\n\n`,
+      ],
+    };
+
+    const result = streamText({
+      model,
+      tools: {
+        resolveDate: tool({
+          inputSchema: z.object({ input: z.string() }),
+          execute: async () => '2026-09-04',
+        }),
+      },
+      experimental_output: Output.object({
+        schema: z.object({
+          date: z.string(),
+          activity: z.string(),
+        }),
+      }),
+      prompt: 'Resolve tomorrow and return the planned activity.',
+    });
+
+    const text = await result.text;
+
+    expect(text).toBe('{"date":"2026-09-04","activity":"review pull request"}');
+    expect(JSON.parse(text)).toEqual({
+      date: '2026-09-04',
+      activity: 'review pull request',
     });
   });
 
