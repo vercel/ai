@@ -3,7 +3,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createTypeSafeAi, typeSafeAi } from './typesafe-ai-provider';
 
 const decisionOptions = {
-  state: 'The request used the configured endpoint.',
+  state: [
+    {
+      type: 'text' as const,
+      text: 'The request used the configured endpoint.',
+    },
+  ],
   questions: {
     configured: {
       type: 'boolean' as const,

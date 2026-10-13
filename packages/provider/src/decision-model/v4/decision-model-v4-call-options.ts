@@ -1,12 +1,9 @@
 import type { SharedV4Headers, SharedV4ProviderOptions } from '../../shared/v4';
-import type {
-  DecisionModelV4Input,
-  DecisionModelV4Question,
-} from './decision-model-v4-question';
+import type { DecisionModelV4Question } from './decision-model-v4-question';
+import type { DecisionModelV4State } from './decision-model-v4-state';
 
 export type DecisionModelV4CallOptions = {
-  /** One shared state, even when the value is an array. */
-  state: DecisionModelV4Input;
+  state: DecisionModelV4State;
   questions: Readonly<Record<string, DecisionModelV4Question>>;
   abortSignal?: AbortSignal;
   headers?: SharedV4Headers;

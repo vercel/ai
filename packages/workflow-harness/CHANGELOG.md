@@ -1,5 +1,82 @@
 # @ai-sdk/workflow-harness
 
+## 1.0.150
+
+### Patch Changes
+
+- Updated dependencies [6617f11]
+- Updated dependencies [aae69cb]
+- Updated dependencies [a7a66f5]
+- Updated dependencies [52e3f53]
+- Updated dependencies [6c0295c]
+  - @ai-sdk/harness@1.0.150
+
+## 1.0.149
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.149
+
+## 1.0.148
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.148
+
+## 1.0.147
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.147
+
+## 1.0.146
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.146
+
+## 1.0.145
+
+### Patch Changes
+
+- 2fdbde7: Upgrade Workflow SDK support to the stable 5.1.0 release.
+  - @ai-sdk/harness@1.0.145
+
+## 1.0.144
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.144
+
+## 1.0.143
+
+### Patch Changes
+
+- Updated dependencies [c4a5c8d]
+- Updated dependencies [50ac48b]
+- Updated dependencies [e8af189]
+  - @ai-sdk/harness@1.0.143
+
+## 1.0.142
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.142
+
+## 1.0.141
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.141
+
+## 1.0.140
+
+### Patch Changes
+
+- Updated dependencies [0af2f7c]
+- Updated dependencies [4c6979c]
+  - @ai-sdk/harness@1.0.140
+
 ## 1.0.139
 
 ### Patch Changes

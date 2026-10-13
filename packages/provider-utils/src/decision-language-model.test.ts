@@ -26,7 +26,12 @@ const questions = {
     criteria: ['low', { meaning: 'medium' }, null],
   },
 } as const;
-const options = { state: { text: 'test', events: [1, null] }, questions };
+const options = {
+  state: [
+    { type: 'json' as const, value: { text: 'test', events: [1, null] } },
+  ],
+  questions,
+};
 function setup(overrides: Partial<LanguageModelV4GenerateResult> = {}) {
   const result: LanguageModelV4GenerateResult = {
     content: [{ type: 'text', text: '{"q1":1.25,"q0":"c1"}' }],
@@ -78,6 +83,37 @@ it('maps exact caller labels and fractional scores without inventing distributio
   });
   expect(doGenerate).toHaveBeenCalledTimes(1);
 });
+it('accepts exact choice labels when an internal option code is not returned', async () => {
+  const { model } = setup({
+    content: [{ type: 'text', text: '{"q1":1.25,"q0":"Needs review"}' }],
+  });
+  expect(await model.doDecide(options)).toMatchObject({
+    answers: {
+      category: { type: 'choice', choice: 'Needs review' },
+      severity: { type: 'score', score: 1.25 },
+    },
+  });
+});
+it('prefers internal option codes over identical choice labels', async () => {
+  const { model } = setup({
+    content: [{ type: 'text', text: '{"q0":"c1"}' }],
+  });
+  expect(
+    await model.doDecide({
+      state: options.state,
+      questions: {
+        category: {
+          ...questions.category,
+          criteria: { c1: 'first label', other: 'second label' },
+        },
+      },
+    }),
+  ).toMatchObject({
+    answers: {
+      category: { type: 'choice', choice: 'other' },
+    },
+  });
+});
 it('uses a portable flat schema with required fields and internal option codes', async () => {
   const { model, doGenerate } = setup();
   await model.doDecide(options);
@@ -99,7 +135,6 @@ it('uses a portable flat schema with required fields and internal option codes',
   if (message.role !== 'user' || message.content[0].type !== 'text')
     throw new Error('Expected text');
   expect(JSON.parse(message.content[0].text)).toEqual({
-    state: options.state,
     questions: {
       q0: {
         id: 'category',
@@ -113,6 +148,11 @@ it('uses a portable flat schema with required fields and internal option codes',
       },
       q1: { id: 'severity', ...questions.severity },
     },
+  });
+  expect(message.content[1]).toEqual({ type: 'text', text: 'Shared state:' });
+  expect(message.content[2]).toEqual({
+    type: 'text',
+    text: JSON.stringify(options.state[0].value),
   });
   expect(call).not.toHaveProperty('temperature');
   expect(call).not.toHaveProperty('tools');
@@ -157,10 +197,10 @@ it.each([0, 0.02, 0.5, 0.98, 1])(
     });
     const flag = {
       type: 'boolean',
-      instructions: { task: ['Is a refund requested?'] },
+      instructions: '{"task":["Is a refund requested?"]}',
       criteria: {
-        true: { meaning: 'A refund is requested' },
-        false: ['No refund requested'],
+        true: '{"meaning":"A refund is requested"}',
+        false: '["No refund requested"]',
       },
     } as const;
     const result = await model.doDecide({
@@ -215,7 +255,7 @@ it('supports Boolean questions without criteria', async () => {
   expect(
     (
       await model.doDecide({
-        state: 'test',
+        state: [{ type: 'text', text: 'test' }],
         questions: { flag: { type: 'boolean', instructions: 'Yes?' } },
       })
     ).answers,
@@ -288,7 +328,6 @@ it.each([
   '{"q0":"C1","q1":1}',
   '{"q0":"c01","q1":1}',
   '{"q0":"c3","q1":1}',
-  '{"q0":"Needs review","q1":1}',
   '{"q0":1,"q1":1}',
   '{"q0":"c1","q1":"1"}',
   '{"q0":"c1","q1":-0.01}',
@@ -364,7 +403,7 @@ it.each<DecisionModelV4CallOptions['questions']>([
 ])('rejects invalid rubric shapes before model I/O', async questions => {
   const { model, doGenerate } = setup();
   await expect(
-    model.doDecide({ state: 'text', questions }),
+    model.doDecide({ state: [{ type: 'text', text: 'text' }], questions }),
   ).rejects.toBeInstanceOf(InvalidArgumentError);
   expect(doGenerate).not.toHaveBeenCalled();
 });
@@ -377,4 +416,48 @@ it('restores the wrapped model and provider across workflow hooks', async () => 
   expect(restored.provider).toBe('test.decision');
   expect(restored.modelId).toBe('test-model');
   expect(doGenerate).toHaveBeenCalledTimes(1);
+});
+
+it('sends images as files and preserves state part order in the prompt', async () => {
+  const { model, doGenerate } = setup();
+  const image = {
+    type: 'file' as const,
+    mediaType: 'image/png',
+    data: { type: 'data' as const, data: new Uint8Array([1, 2]) },
+    providerOptions: { test: { detail: 'high' } },
+  };
+  await model.doDecide({
+    questions,
+    state: [
+      { type: 'text', text: 'Inspect.' },
+      image,
+      { type: 'json', value: [1, null] },
+    ],
+  });
+  const message = doGenerate.mock.calls[0][0].prompt[1];
+  if (message.role !== 'user') throw new Error('Expected user message');
+  expect(message.content).toEqual([
+    { type: 'text', text: expect.stringContaining('"questions"') },
+    { type: 'text', text: 'Shared state:' },
+    { type: 'text', text: 'Inspect.' },
+    image,
+    { type: 'text', text: '[1,null]' },
+  ]);
+});
+
+it('rejects unsupported media before generating a decision', async () => {
+  const { model, doGenerate } = setup();
+  await expect(
+    model.doDecide({
+      questions,
+      state: [
+        {
+          type: 'file',
+          mediaType: 'audio/wav',
+          data: { type: 'data', data: 'AAAA' },
+        },
+      ],
+    }),
+  ).rejects.toMatchObject({ name: 'AI_UnsupportedFunctionalityError' });
+  expect(doGenerate).not.toHaveBeenCalled();
 });

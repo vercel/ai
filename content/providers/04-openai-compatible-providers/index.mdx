@@ -18,6 +18,7 @@ We provide detailed documentation for the following OpenAI compatible providers:
 - [Heroku](/providers/openai-compatible-providers/heroku)
 - [Clarifai](/providers/openai-compatible-providers/clarifai)
 - [NEAR AI Cloud](/providers/openai-compatible-providers/nearai)
+- [TopxAI](/providers/openai-compatible-providers/topxai)
 
 The general setup and provider instance creation is the same for all of these providers.
 
@@ -92,11 +93,16 @@ You can use the following optional settings to customize the provider instance:
   Matching URLs are passed to the provider instead of being downloaded by the
   AI SDK.
 
-- **transformRequestBody** _(args: Record&lt;string, any&gt;) =&gt; Record&lt;string, any&gt;_
+- **transformRequestBody** _(args: Record&lt;string, any&gt;, warnings?: SharedV4Warning[]) =&gt; Record&lt;string, any&gt;_
 
   Optional function to transform the request body before sending it to the API.
   This is useful for proxy providers that may require a different request format
   than the official OpenAI API.
+
+  The optional second argument is the call's warning collection. Append
+  `SharedV4Warning` entries to report compatibility coercions or other transformations.
+  These warnings are returned by `doGenerate` and included in the `stream-start`
+  event for `doStream`. Existing callbacks that accept only the body continue to work.
 
 - **metadataExtractor** _MetadataExtractor_
 
@@ -164,6 +170,51 @@ const { text } = await generateText({
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
+
+### Uploaded File References
+
+For providers that accept uploaded files through `file_id`, pass the uploaded
+file ID as a provider reference. The reference key must match the provider's
+configured `name`, including hyphens:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const provider = createOpenAICompatible({
+  name: 'my-provider',
+  apiKey: process.env.PROVIDER_API_KEY,
+  baseURL: 'https://api.provider.com/v1',
+});
+
+const { text } = await generateText({
+  model: provider('model-id'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Summarize this document.' },
+        {
+          type: 'file',
+          mediaType: 'application/pdf',
+          data: {
+            type: 'reference',
+            reference: { 'my-provider': 'file-abc123' },
+          },
+        },
+      ],
+    },
+  ],
+});
+```
+
+The file part is sent as `{ type: 'file', file: { file_id: 'file-abc123' } }`.
+File references also work with streaming and supported multi-part tool results.
+Inline PDF data continues to be sent as a base64 data URL.
+
+Upload the file using the destination provider's Files API before referencing
+it. The OpenAI Compatible provider does not upload files itself. File-reference
+support and accepted file types depend on the destination provider and model.
 
 ### Video Inputs
 

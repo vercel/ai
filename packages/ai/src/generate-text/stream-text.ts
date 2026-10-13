@@ -54,6 +54,7 @@ import type {
   LanguageModel,
   ToolChoice,
 } from '../types/language-model';
+import type { Citation } from '../types/citation';
 import type { ProviderMetadata } from '../types/provider-metadata';
 import {
   addLanguageModelUsage,
@@ -89,6 +90,7 @@ import {
   executeToolsFromStream,
   type ExecuteToolsStreamPart,
 } from './execute-tools-from-stream';
+import { isOutputChunk } from './is-output-chunk';
 import { createToolSearchState } from '../tool-search/prepare-tool-search';
 import { executeToolCall } from './execute-tool-call';
 import {
@@ -178,63 +180,6 @@ const originalGenerateCallId = createIdGenerator({
   prefix: 'call',
   size: 24,
 });
-
-// Chunk types that contain semantic model output. This classification is used
-// for first-content and inter-content timeouts as well as to distinguish empty
-// incomplete streams from incomplete streams with partial results. It is
-// exhaustive so that new chunk types must be classified explicitly.
-const isOutputChunkType = {
-  file: true,
-  custom: false,
-  source: false,
-  'text-start': false,
-  'text-end': false,
-  'text-delta': true,
-  'reasoning-start': false,
-  'reasoning-end': false,
-  'reasoning-delta': true,
-  'reasoning-file': true,
-  'tool-input-start': false,
-  'tool-input-end': false,
-  'tool-input-delta': true,
-  'tool-approval-request': false,
-  'tool-approval-response': false,
-  'tool-call': true,
-  'tool-result': false,
-  'tool-error': false,
-  'tool-output-denied': false,
-  'tool-execution-end': false,
-  'model-call-start': false,
-  'model-call-response-metadata': false,
-  'model-call-end': false,
-  error: false,
-  raw: false,
-} as const satisfies Record<
-  Exclude<ExecuteToolsStreamPart, StreamRetryAttemptBoundaryPart>['type'],
-  boolean
->;
-
-function isOutputChunk(
-  chunk: Exclude<ExecuteToolsStreamPart, StreamRetryAttemptBoundaryPart>,
-): boolean {
-  if (!isOutputChunkType[chunk.type]) {
-    return false;
-  }
-
-  switch (chunk.type) {
-    case 'text-delta':
-    case 'reasoning-delta':
-      return chunk.text.length > 0;
-    case 'tool-input-delta':
-      return chunk.delta.length > 0;
-    case 'file':
-    case 'reasoning-file':
-    case 'tool-call':
-      return true;
-    default:
-      return false;
-  }
-}
 
 export type StreamTextInclude = {
   /**
@@ -1482,6 +1427,7 @@ class DefaultStreamTextResult<
       {
         type: 'text';
         text: string;
+        citations?: Array<Citation>;
         providerMetadata: ProviderMetadata | undefined;
       }
     > = createIdMap();
@@ -1601,6 +1547,10 @@ class DefaultStreamTextResult<
 
           activeText.providerMetadata =
             part.providerMetadata ?? activeText.providerMetadata;
+
+          if (part.citations != null) {
+            activeText.citations = part.citations;
+          }
 
           delete activeTextContent[part.id];
         }
@@ -1868,16 +1818,30 @@ class DefaultStreamTextResult<
 
     // resilient stream that handles abort signals and errors:
     const reader = stitchableStream.stream.getReader();
+    const cancelOnAbort = () => {
+      // Result promises must settle before any potentially stalled callback.
+      this.rejectResultPromises(abortSignal?.reason);
+      // Cancelling the reader releases a pending read immediately, even when
+      // the provider body or its cancellation promise does not settle.
+      void reader.cancel(abortSignal?.reason).catch(() => {});
+    };
+    const removeAbortListener = () =>
+      abortSignal?.removeEventListener('abort', cancelOnAbort);
     let stream = new ReadableStream<InternalTextStreamPart<TOOLS>>({
       async start(controller) {
         // send start event:
         controller.enqueue({ type: 'start' });
+        abortSignal?.addEventListener('abort', cancelOnAbort, { once: true });
+        if (abortSignal?.aborted) {
+          cancelOnAbort();
+        }
       },
 
       async pull(controller) {
         // abort handling:
         async function abort() {
           isAborted = true;
+          removeAbortListener();
 
           await notify({
             event: {
@@ -1904,18 +1868,20 @@ class DefaultStreamTextResult<
         try {
           const { done, value } = await reader.read();
 
-          if (done) {
-            controller.close();
-            return;
-          }
-
           if (abortSignal?.aborted) {
             await abort();
             return;
           }
 
+          if (done) {
+            removeAbortListener();
+            controller.close();
+            return;
+          }
+
           controller.enqueue(value);
         } catch (error) {
+          removeAbortListener();
           if (isAbortError(error) && abortSignal?.aborted) {
             await abort();
           } else {
@@ -1926,7 +1892,8 @@ class DefaultStreamTextResult<
       },
 
       cancel(reason) {
-        return stitchableStream.stream.cancel(reason);
+        removeAbortListener();
+        return reader.cancel(reason);
       },
     });
 
@@ -2280,6 +2247,9 @@ class DefaultStreamTextResult<
           if (chunkTimeoutId != null) {
             clearTimeout(chunkTimeoutId);
           }
+          if (abortSignal?.aborted) {
+            return;
+          }
           chunkTimeoutId = setAbortTimeout({
             abortController: chunkAbortController,
             label: 'Chunk',
@@ -2294,6 +2264,11 @@ class DefaultStreamTextResult<
           }
         }
 
+        function clearModelOutputTimeouts() {
+          clearFirstChunkTimeout();
+          clearChunkTimeout();
+        }
+
         function clearStepTimeout() {
           if (stepTimeoutId != null) {
             clearTimeout(stepTimeoutId);
@@ -2302,8 +2277,7 @@ class DefaultStreamTextResult<
 
         function clearStepTimeouts() {
           clearStepTimeout();
-          clearFirstChunkTimeout();
-          clearChunkTimeout();
+          clearModelOutputTimeouts();
         }
 
         function cleanupStepTimeouts() {
@@ -2514,7 +2488,6 @@ class DefaultStreamTextResult<
           let automaticStreamRetryCount = 0;
           let callbackStreamRetryCount = 0;
           let bufferedAttemptParts: LanguageModelStreamPart<TOOLS>[] = [];
-          const outputChunksHandledBeforeBuffering = new WeakSet<object>();
           const openTextParts = new Set<string>();
           const openReasoningParts = new Set<string>();
           let enqueueStreamRetryAttemptBoundary = false;
@@ -2566,7 +2539,16 @@ class DefaultStreamTextResult<
               };
 
               while (true) {
-                const { done, value } = await languageModelStreamReader.read();
+                let result: ReadableStreamReadResult<
+                  LanguageModelStreamPart<TOOLS>
+                >;
+                try {
+                  result = await languageModelStreamReader.read();
+                } catch (error) {
+                  clearModelOutputTimeouts();
+                  throw error;
+                }
+                const { done, value } = result;
 
                 if (enqueueStreamRetryAttemptBoundary) {
                   controller.enqueue(
@@ -2581,6 +2563,7 @@ class DefaultStreamTextResult<
                 }
 
                 if (done) {
+                  clearModelOutputTimeouts();
                   flushBufferedAttemptParts();
                   controller.close();
                   return;
@@ -2597,9 +2580,17 @@ class DefaultStreamTextResult<
                   value.type === 'tool-error';
 
                 if (value.type === 'model-call-end') {
+                  clearModelOutputTimeouts();
                   flushBufferedAttemptParts();
                   enqueueAttemptPart(value);
                   return;
+                }
+
+                // Observe model output before buffering and tool processing.
+                // Replaying buffered parts must not re-arm finished timers.
+                if (isOutputChunk(value)) {
+                  clearFirstChunkTimeout();
+                  resetChunkTimeout();
                 }
 
                 if (
@@ -2607,12 +2598,6 @@ class DefaultStreamTextResult<
                   value.type !== 'error' &&
                   (isToolPart || bufferedAttemptParts.length > 0)
                 ) {
-                  if (isOutputChunk(value)) {
-                    clearFirstChunkTimeout();
-                    resetChunkTimeout();
-                    outputChunksHandledBeforeBuffering.add(value);
-                  }
-
                   bufferedAttemptParts.push(value);
                   continue;
                 }
@@ -2622,6 +2607,7 @@ class DefaultStreamTextResult<
                   return;
                 }
 
+                clearModelOutputTimeouts();
                 await notify({
                   event: { chunk: value },
                   callbacks: onChunk,
@@ -2682,10 +2668,12 @@ class DefaultStreamTextResult<
                 response = retryLanguageModelCall.response;
                 languageModelStreamReader =
                   retryLanguageModelCall.stream.getReader();
+                startFirstChunkTimeout();
                 enqueueStreamRetryAttemptBoundary = true;
               }
             },
             cancel(reason) {
+              clearModelOutputTimeouts();
               return languageModelStreamReader.cancel(reason);
             },
           });
@@ -2863,21 +2851,7 @@ class DefaultStreamTextResult<
                   const chunkType = chunk.type;
 
                   if (isOutputChunk(chunk)) {
-                    const timeoutHandledBeforeBuffering =
-                      outputChunksHandledBeforeBuffering.has(chunk);
-
-                    if (
-                      !hasReceivedOutputChunk &&
-                      !timeoutHandledBeforeBuffering
-                    ) {
-                      // Clear before forwarding the first output so a timeout
-                      // cannot race with already-visible generated content.
-                      clearFirstChunkTimeout();
-                    }
                     hasReceivedOutputChunk = true;
-                    if (!timeoutHandledBeforeBuffering) {
-                      resetChunkTimeout();
-                    }
                   }
 
                   switch (chunkType) {
@@ -3464,6 +3438,8 @@ class DefaultStreamTextResult<
   toUIMessageStream<UI_MESSAGE extends UIMessage>({
     originalMessages,
     generateMessageId,
+    onStepEnd,
+    onStepFinish,
     onEnd,
     onFinish,
     messageMetadata,
@@ -3481,6 +3457,7 @@ class DefaultStreamTextResult<
         tools: this.tools,
         originalMessages,
         generateMessageId,
+        onStepEnd: onStepEnd ?? onStepFinish,
         onEnd: onEnd ?? onFinish,
         messageMetadata,
         sendReasoning,
@@ -3497,6 +3474,8 @@ class DefaultStreamTextResult<
     {
       originalMessages,
       generateMessageId,
+      onStepEnd,
+      onStepFinish,
       onEnd,
       onFinish,
       messageMetadata,
@@ -3513,6 +3492,7 @@ class DefaultStreamTextResult<
       stream: this.toUIMessageStream({
         originalMessages,
         generateMessageId,
+        onStepEnd: onStepEnd ?? onStepFinish,
         onEnd: onEnd ?? onFinish,
         messageMetadata,
         sendReasoning,
@@ -3536,6 +3516,8 @@ class DefaultStreamTextResult<
   toUIMessageStreamResponse<UI_MESSAGE extends UIMessage>({
     originalMessages,
     generateMessageId,
+    onStepEnd,
+    onStepFinish,
     onEnd,
     onFinish,
     messageMetadata,
@@ -3551,6 +3533,7 @@ class DefaultStreamTextResult<
       stream: this.toUIMessageStream({
         originalMessages,
         generateMessageId,
+        onStepEnd: onStepEnd ?? onStepFinish,
         onEnd: onEnd ?? onFinish,
         messageMetadata,
         sendReasoning,

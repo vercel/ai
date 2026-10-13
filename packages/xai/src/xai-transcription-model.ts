@@ -154,6 +154,13 @@ export class XaiTranscriptionModel implements TranscriptionModelV4 {
         headers: responseHeaders,
         body: rawResponse,
       },
+      ...(response.words?.some(word => word.speaker != null) && {
+        providerMetadata: {
+          xai: {
+            words: response.words,
+          },
+        },
+      }),
     };
   }
 
@@ -541,6 +548,7 @@ const xaiTranscriptionResponseSchema = z.object({
         text: z.string(),
         start: z.number(),
         end: z.number(),
+        speaker: z.number().nullish(),
       }),
     )
     .nullish(),

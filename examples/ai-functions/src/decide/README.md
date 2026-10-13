@@ -59,15 +59,15 @@ All paths below are relative to this directory. Run any script with
 
 ## Interpreting results
 
-TypeSafe AI provides native decisions. The OpenAI, Anthropic, and Google
-adapters use structured language-model output and decide all answers in one
+TypeSafe AI and OpenAI provide native decisions. The Anthropic and Google
+adapters use structured language-model output and evaluate all questions in one
 prompt. Their boolean probabilities are prompted estimates; Choice and Score
 answers do not include probability distributions.
 
 Choice and Score distributions are optional in the shared API. Check for their
 presence before using them, and choose routing thresholds using labeled data
 from your application. A boolean probability estimates whether the statement is
-true; it is not confidence in either outcome. TypeSafe's separate Choice/Score
+true; it is not confidence in either outcome. TypeSafe's and OpenAI's separate Choice/Score
 confidence statistic is available in `providerMetadata`.
 
 ## Related resources

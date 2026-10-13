@@ -1,3 +1,4 @@
+import type { Citation } from '../types/citation';
 import type { JSONObject } from '@ai-sdk/provider';
 import type {
   InferToolInput,
@@ -95,6 +96,9 @@ export type UIMessagePart<
  */
 export type TextUIPart = {
   type: 'text';
+
+  /** References supporting this text, separate from retrieved sources. */
+  citations?: Array<Citation>;
 
   /**
    * The text content.
