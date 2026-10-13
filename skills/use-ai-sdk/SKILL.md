@@ -1,9 +1,17 @@
 ---
 name: ai-sdk
-description: 'Answer questions about the AI SDK and help build AI-powered features. Use when developers: (1) Ask about AI SDK functions like generateText, streamText, ToolLoopAgent, embed, or tools, (2) Want to build AI agents, chatbots, RAG systems, or text generation features, (3) Have questions about AI providers (OpenAI, Anthropic, Google, etc.), streaming, tool calling, structured output, or embeddings, (4) Use React hooks like useChat or useCompletion. Triggers on: "AI SDK", "Vercel AI SDK", "generateText", "streamText", "add AI to my app", "build an agent", "tool calling", "structured output", "useChat".'
+description: Use for questions or implementation involving the Vercel AI SDK (the ai package or @ai-sdk packages) when it is explicitly requested or already selected by the project. Covers chat, streaming, tools, agents, and other SDK features. General LLM, RAG, MCP, or agent requests do not select this SDK or authorize changing an existing provider or framework.
 ---
 
 ## What the AI SDK Is
+
+Keep implementation within the SDK, framework, provider, model, and UI choices
+already established for this task. Use this skill to answer AI SDK questions
+without installing anything. If a framework or provider is still unchosen,
+resolve that during the requested planning work before implementation. Direct
+provider SDKs and other agent frameworks do not by themselves require migration.
+Apply API diagnostics against the installed version; they do not authorize
+dependency, provider, model, or UI changes outside the requested scope.
 
 The AI SDK by Vercel (the `ai` package on npm) is a TypeScript toolkit for building AI applications. It provides a unified API across model providers for text generation, structured output, tool calling, agents, embeddings, and framework UI integrations.
 
@@ -20,15 +28,17 @@ Whatever you remember about the AI SDK is likely outdated. The SDK changes frequ
 
 The `ai` package ships its full documentation and source code inside `node_modules`. These always match the installed version, so trust them over anything you remember.
 
-1. Ensure `ai` is installed. Check `node_modules/ai/` or locate the workspace package in a monorepo that depends on `ai` (e.g. `apps/<name>/node_modules/ai/`). If `ai` is not installed anywhere in the project, install **only** the `ai` package into the target package using the project's package manager (e.g. `pnpm add ai --filter <pkg>` or `npm install ai`). Install provider packages (e.g. `@ai-sdk/openai`) and framework packages (e.g. `@ai-sdk/react`) later, when the task requires them.
+1. Check `node_modules/ai/` or locate the workspace package that depends on `ai` (e.g. `apps/<name>/node_modules/ai/`). If it is absent, use the public docs for questions or planning. Install `ai` only when the requested implementation has selected the AI SDK, using the project's package manager and target package. Add provider and framework packages only when needed for the selected integration; preserve working dependencies and provider connections.
 2. Read and grep the bundled docs at `node_modules/ai/docs/` (or `<package>/node_modules/ai/docs/`) and the source at `node_modules/ai/src/`.
 3. Provider and framework packages bundle their own docs at `node_modules/@ai-sdk/<name>/docs/` (or `<package>/node_modules/@ai-sdk/<name>/docs/`).
 4. If something isn't in the bundled docs, search https://ai-sdk.dev/docs. You can append `.md` to any docs page URL to get its markdown, and search via `https://ai-sdk.dev/api/search-docs?q=your_query`.
 5. If you cannot find support for an answer in the docs or source, say so explicitly — do not guess.
 
-## AI Gateway: The Fastest Way to Start
+## AI Gateway When Selected
 
-The Vercel AI Gateway is the fastest way to get started with the AI SDK. It provides access to models from OpenAI, Anthropic, Google, and other providers through a single API, without installing provider packages or managing multiple API keys.
+Vercel AI Gateway provides access to multiple model providers through one API.
+Use it when the project or requested implementation has chosen it. Preserve an
+existing direct-provider integration unless migration is part of the task.
 
 To set it up:
 
@@ -40,7 +50,9 @@ For exact setup, authentication, and usage, read the bundled guide and the AI Ga
 
 ### Choosing a Model
 
-Never use model IDs from memory — models are released and retired frequently. Fetch the current list before writing code that references a model. Do not truncate the list (e.g. with `head`) so you can find the newest models:
+Verify model IDs and capabilities against the chosen provider's current docs or
+catalog before writing model-specific code. When AI Gateway is selected, fetch
+its current list without truncating it:
 
 ```bash
 # All available models
@@ -50,7 +62,9 @@ curl -s https://ai-gateway.vercel.sh/v1/models | jq -r '.data[].id'
 curl -s https://ai-gateway.vercel.sh/v1/models | jq -r '[.data[] | select(.id | startswith("anthropic/")) | .id] | reverse | .[]'
 ```
 
-When multiple versions of a model exist, prefer the one with the highest version number.
+Preserve the user's selected model when it supports the requested task. If a
+choice is needed, use the task's capabilities, compatibility, cost, and other
+confirmed constraints; a higher version number alone does not require a change.
 
 ## Building and Consuming Agents
 
@@ -66,12 +80,12 @@ For setup instructions, read the bundled DevTools documentation.
 
 ## Keep the SDK Current
 
-Outdated installs are the most common source of errors. Compare the installed version against the latest:
-
-- **Installed:** the `version` field in `node_modules/ai/package.json`.
-- **Latest:** run `npm view ai version`.
-
-If the installed version is a major version (or more) behind the latest, tell the user they are on an old release, and recommend upgrading before continuing. Migration guides are at https://ai-sdk.dev/docs/migration-guides.
+Use the installed version's documentation for the requested change. Investigate
+an upgrade when the user requests one or a specific compatibility issue makes
+it relevant; do not make being behind the latest release a prerequisite for
+continuing unrelated work. Migration guides are at
+https://ai-sdk.dev/docs/migration-guides. Keep any version change within the
+authorized task scope.
 
 ## After Making Changes
 
