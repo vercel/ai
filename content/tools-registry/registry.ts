@@ -720,4 +720,32 @@ console.log(text);`,
     websiteUrl: 'https://pexafy.com',
     npmUrl: 'https://www.npmjs.com/package/pexafy-ai-sdk',
   },
+  {
+    slug: 'openpath',
+    name: 'Openpath',
+    description:
+      'Openpath gives your agent live listings across the US: job openings with pay and the link to apply, local businesses and services with address, phone and website, plus homes, products, cars and events. Each result comes back as plain Markdown with how to act on it. No API key and no sign-up.',
+    packageName: '@openpath/ai-sdk-tools',
+    tags: ['search', 'jobs', 'local-business', 'listings'],
+    installCommand: {
+      pnpm: 'pnpm add @openpath/ai-sdk-tools',
+      npm: 'npm install @openpath/ai-sdk-tools',
+      yarn: 'yarn add @openpath/ai-sdk-tools',
+      bun: 'bun add @openpath/ai-sdk-tools',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { openpathTools } from '@openpath/ai-sdk-tools';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-5-5',
+  prompt: 'Find a plumber near Austin, TX I can call today.',
+  tools: openpathTools(),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://openpath.sh/docs/ai-sdk',
+    websiteUrl: 'https://openpath.sh',
+    npmUrl: 'https://www.npmjs.com/package/@openpath/ai-sdk-tools',
+  },
 ];
