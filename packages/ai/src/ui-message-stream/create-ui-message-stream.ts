@@ -110,8 +110,12 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
     ReadableStreamDefaultReader<InferUIMessageChunk<UI_MESSAGE>>
   >();
   const boundedSources: BoundedSource[] = [];
+  // Keep merge capacity reserved while chunks travel through the finish
+  // processing pipeline. The reservation is released only when the matching
+  // chunk reaches the returned stream's consumer.
+  const bufferedChunkOrigins: boolean[] = [];
   let boundedSourceCursor = 0;
-  let boundedReadsInFlight = 0;
+  let bufferedMergedChunks = 0;
   let completedBoundedReadsSinceYield = 0;
   let boundedReadResumeTimer: ReturnType<typeof setTimeout> | undefined;
   let isCancelled = false;
@@ -138,11 +142,24 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
         },
   );
 
-  function safeEnqueue(data: InferUIMessageChunk<UI_MESSAGE>) {
+  function safeEnqueue(
+    data: InferUIMessageChunk<UI_MESSAGE>,
+    isMergedChunk = false,
+  ): boolean {
+    if (maxBufferedChunks != null) {
+      bufferedChunkOrigins.push(isMergedChunk);
+    }
+
     try {
       controller.enqueue(data);
+      return true;
     } catch {
+      if (maxBufferedChunks != null) {
+        bufferedChunkOrigins.pop();
+      }
+
       // suppress errors when the stream has been closed
+      return false;
     }
   }
 
@@ -284,8 +301,7 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
       return;
     }
 
-    const availableSlots =
-      Math.floor(controller.desiredSize ?? 0) - boundedReadsInFlight;
+    const availableSlots = maxBufferedChunks - bufferedMergedChunks;
 
     for (let i = 0; i < availableSlots; i++) {
       const source = getNextBoundedSource();
@@ -294,29 +310,32 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
       }
 
       source.inFlight = true;
-      boundedReadsInFlight++;
+      bufferedMergedChunks++;
 
       void source.reader.read().then(
         ({ done, value }) => {
           source.inFlight = false;
-          boundedReadsInFlight--;
 
           if (!source.active) {
+            bufferedMergedChunks--;
             return;
           }
 
           if (isCancelled || done) {
+            bufferedMergedChunks--;
             finishBoundedSource(source);
             return;
           }
 
-          safeEnqueue(value);
+          if (!safeEnqueue(value, true)) {
+            bufferedMergedChunks--;
+          }
           completedBoundedReadsSinceYield++;
           scheduleBoundedReads();
         },
         error => {
           source.inFlight = false;
-          boundedReadsInFlight--;
+          bufferedMergedChunks--;
           finishBoundedSource(source, { error });
         },
       );
@@ -438,7 +457,16 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
           if (done) {
             controller.close();
           } else {
-            controller.enqueue(value);
+            const isMergedChunk = bufferedChunkOrigins.shift() ?? false;
+
+            try {
+              controller.enqueue(value);
+            } finally {
+              if (isMergedChunk) {
+                bufferedMergedChunks--;
+                scheduleBoundedReads();
+              }
+            }
           }
         } catch (error) {
           controller.error(error);

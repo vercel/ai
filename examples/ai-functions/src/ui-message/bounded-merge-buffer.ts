@@ -1,27 +1,31 @@
 import { createUIMessageStream, type UIMessage, type UIMessageChunk } from 'ai';
 
 const totalChunks = 20;
+const maxBufferedChunks = 2;
 let pulls = 0;
 
 type CountMessage = UIMessage<unknown, { count: number }>;
 
-const source = new ReadableStream<UIMessageChunk<unknown, { count: number }>>({
-  pull(controller) {
-    if (pulls === totalChunks) {
-      controller.close();
-      return;
-    }
+const source = new ReadableStream<UIMessageChunk<unknown, { count: number }>>(
+  {
+    pull(controller) {
+      if (pulls === totalChunks) {
+        controller.close();
+        return;
+      }
 
-    pulls++;
-    controller.enqueue({
-      type: 'data-count',
-      data: pulls,
-    });
+      pulls++;
+      controller.enqueue({
+        type: 'data-count',
+        data: pulls,
+      });
+    },
   },
-});
+  { highWaterMark: 0 },
+);
 
 const stream = createUIMessageStream<CountMessage>({
-  maxBufferedChunks: 2,
+  maxBufferedChunks,
   execute({ writer }) {
     writer.merge(source);
   },
@@ -31,9 +35,9 @@ const stream = createUIMessageStream<CountMessage>({
 await new Promise(resolve => setTimeout(resolve, 10));
 
 const pullsWhileStalled = pulls;
-if (pullsWhileStalled >= totalChunks) {
+if (pullsWhileStalled !== maxBufferedChunks) {
   throw new Error(
-    'Expected the merged source to pause while the client stalls.',
+    `Expected ${maxBufferedChunks} pulls while stalled, got ${pullsWhileStalled}.`,
   );
 }
 

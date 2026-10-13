@@ -107,46 +107,60 @@ describe('createUIMessageStream', () => {
     await stream.cancel();
   });
 
-  it('should pause merged streams when the bounded merge queue is full and resume in order', async () => {
-    let pulls = 0;
-    const totalChunks = 20;
+  it.each([
+    { callbacks: 'none' as const, maxBufferedChunks: 1 },
+    { callbacks: 'none' as const, maxBufferedChunks: 2 },
+    { callbacks: 'onEnd' as const, maxBufferedChunks: 1 },
+    { callbacks: 'onEnd' as const, maxBufferedChunks: 2 },
+    { callbacks: 'onStepEnd' as const, maxBufferedChunks: 1 },
+    { callbacks: 'onStepEnd' as const, maxBufferedChunks: 2 },
+  ])(
+    'should honor capacity $maxBufferedChunks with $callbacks callbacks and resume in order',
+    async ({ callbacks, maxBufferedChunks }) => {
+      let pulls = 0;
+      const totalChunks = 20;
 
-    const stream = createUIMessageStream({
-      maxBufferedChunks: 2,
-      execute: ({ writer }) => {
-        writer.merge(
-          new ReadableStream({
-            pull(controller) {
-              if (pulls === totalChunks) {
-                controller.close();
-                return;
-              }
+      const stream = createUIMessageStream({
+        maxBufferedChunks,
+        execute: ({ writer }) => {
+          writer.merge(
+            new ReadableStream(
+              {
+                pull(controller) {
+                  if (pulls === totalChunks) {
+                    controller.close();
+                    return;
+                  }
 
-              pulls++;
-              controller.enqueue({
-                type: 'text-delta',
-                id: 'bounded',
-                delta: String(pulls),
-              });
-            },
-          }),
-        );
-      },
-    });
+                  pulls++;
+                  controller.enqueue({
+                    type: 'data-value',
+                    data: pulls,
+                  });
+                },
+              },
+              { highWaterMark: 0 },
+            ),
+          );
+        },
+        ...(callbacks === 'onEnd' ? { onEnd: () => {} } : {}),
+        ...(callbacks === 'onStepEnd' ? { onStepEnd: () => {} } : {}),
+      });
 
-    await vi.advanceTimersByTimeAsync(0);
+      await vi.advanceTimersByTimeAsync(0);
 
-    expect(pulls).toBeLessThan(totalChunks);
+      expect(pulls).toBe(maxBufferedChunks);
 
-    const chunks = await convertReadableStreamToArray(stream);
+      const chunks = await convertReadableStreamToArray(stream);
 
-    expect(chunks).toHaveLength(totalChunks);
-    expect(
-      chunks.map(chunk =>
-        chunk.type === 'text-delta' ? Number(chunk.delta) : undefined,
-      ),
-    ).toEqual(Array.from({ length: totalChunks }, (_, index) => index + 1));
-  });
+      expect(chunks).toHaveLength(totalChunks);
+      expect(
+        chunks.map(chunk =>
+          chunk.type === 'data-value' ? chunk.data : undefined,
+        ),
+      ).toEqual(Array.from({ length: totalChunks }, (_, index) => index + 1));
+    },
+  );
 
   it('should read bounded merged streams fairly while preserving per-source order', async () => {
     function createSource(id: string) {
