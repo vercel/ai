@@ -813,7 +813,7 @@ describe('extractJsonMiddleware', () => {
         ];
 
         for (const chunks of chunkLayouts) {
-          const mockModel = new MockLanguageModelV4({
+          const mockModel = new MockLanguageModelV3({
             async doStream() {
               return {
                 stream: convertArrayToReadableStream([
@@ -855,7 +855,7 @@ describe('extractJsonMiddleware', () => {
 
     it('should efficiently stream whitespace-heavy content followed by non-whitespace', async () => {
       const text = `${' '.repeat(10_000)}x`;
-      const mockModel = new MockLanguageModelV4({
+      const mockModel = new MockLanguageModelV3({
         async doStream() {
           return {
             stream: convertArrayToReadableStream([
