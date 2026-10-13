@@ -60,10 +60,11 @@ its underlying data changes, without your application calling a tool first.
 
 ## 2. Understand the receiver and store
 
-The client and webhook handler share an `Experimental_MCPEventStore`. Before
-contacting the MCP server, `subscribe()` saves a generated signing secret and
-appends a `mcp_event_subscription` query parameter to the callback URL. This lets
-the receiver verify a challenge even before the subscribe request returns.
+The client and webhook handler share an `Experimental_MCPEventStore`. After
+catalog discovery and before sending `events/subscribe`, the client saves a
+generated signing secret and appends a `mcp_event_subscription` query parameter
+to the callback URL. This lets the receiver verify a challenge even before the
+subscribe request returns.
 
 The example's [file store](https://github.com/vercel/ai/blob/main/examples/mcp/src/events/event-store.ts)
 persists subscriptions privately in the system temporary directory. It supports
@@ -90,20 +91,18 @@ import { eventStore } from './event-store';
 import { startWebhookServer } from './webhook-server';
 
 async function main() {
+  // Uses the saved secret to verify callback challenges and event signatures.
   const webhook = experimental_createMCPEventWebhook({
     store: eventStore,
-    async onEvent({ subscription, event }) {
-      console.log(
-        'Received comment:',
-        subscription.id,
-        event.eventId,
-        event.data,
-      );
+    async onEvent({ event }) {
+      console.log('Received comment:', event.data);
     },
     async onGap({ subscription, gap }) {
+      // Some events cannot be replayed; reconcile state or notify the agent.
       console.log('Replay gap:', subscription.id, gap.cursor, gap.truncated);
     },
     async onTerminated({ subscription, termination }) {
+      // The server ended the subscription; notify the agent of the reason.
       console.log(
         'Subscription terminated:',
         subscription.id,
@@ -112,7 +111,7 @@ async function main() {
     },
   });
 
-  // The server can verify the callback while subscribe() is still running.
+  // Start receiving before subscribing: the server verifies this URL immediately.
   const receiver = await startWebhookServer(webhook);
   try {
     const client = await createMCPClient({
@@ -139,12 +138,13 @@ async function main() {
         delivery: {
           mode: 'webhook',
           url: 'http://127.0.0.1:3003/mcp-events',
-          allowInsecureLocalhost: true, // Local demo only; deploy with HTTPS.
+          allowInsecureLocalhost: true, // Local demo; production uses HTTPS.
         },
       });
       console.log('Subscribed (callback verified):', subscription.id);
 
       try {
+        // Simulate a new comment on the server. It sends a webhook to onEvent.
         await client.callTool({
           name: 'publish_comment',
           arguments: { document_id: 'doc_123', text: 'Hello from MCP events!' },
@@ -226,7 +226,8 @@ payload. This example gives the model no tools.
 ## 5. Keep subscriptions running
 
 The demo server grants a lease of at most 60 seconds. A long-running application
-must persist the returned `refreshBefore` and schedule renewal before that time:
+must persist the returned `refreshBefore` and, when it is non-null, schedule
+renewal before that time:
 
 ```ts
 const renewed = await client.experimental_events.refresh({
@@ -262,18 +263,14 @@ bound to the authenticated account and authorized destination.
 ```ts
 import { createMCPClient } from '@ai-sdk/mcp';
 import { createEventOperations } from './my-events-backend';
+import { createManagedEventsAdapter } from './managed';
 
 const client = await createMCPClient({
   transport: { type: 'http', url: 'https://service.example/mcp' },
   experimental_events: {
-    adapter: {
-      createAdapter({ transport }) {
-        if (transport.type === 'custom') {
-          throw new Error('This backend needs an HTTP or SSE MCP URL.');
-        }
-        return createEventOperations({ mcpUrl: transport.url });
-      },
-    },
+    adapter: createManagedEventsAdapter({
+      createAdapter: createEventOperations,
+    }),
   },
 });
 
@@ -293,23 +290,22 @@ try {
 }
 ```
 
-In an authenticated integration, configure the MCP transport credentials and bind
-the adapter to the same authorized account. An adapter SDK can return the object
-with `createAdapter` itself, so callers can pass its result directly as `adapter`.
-The factory receives transport metadata, not credentials or a live connection,
-and must return the four operations synchronously. Those operations can perform
-asynchronous work. The backend must authorize the MCP URL before sending credentials.
+`createManagedEventsAdapter` is the helper from the example's
+[`managed.ts`](https://github.com/vercel/ai/blob/main/examples/mcp/src/events/managed.ts).
+It implements `createAdapter({ transport })` and forwards the HTTP/SSE URL to
+your backend operations. Custom transports have no standard URL; your backend
+must supply an authorized endpoint or reject that case. A backend SDK can expose
+its own adapter helper directly, without this wrapper.
+The backend must authorize the endpoint before sending credentials to it.
 
-Discovery still uses the MCP connection. `subscribe`, `getSubscription`,
-`listSubscriptions`, and `unsubscribe` use the backend. Save a unique idempotency
-key for each authorized creation request and reuse it when retrying that request;
-the literal above is just an example.
+Use the same authorized account for the MCP transport and backend operations.
+Discovery goes to the MCP server; subscription management goes to the backend.
+Save a unique idempotency key for each authorized creation request and reuse it
+when retrying that request; the literal above is just an example. With
+`expiresAt: null`, the backend manages renewal until you explicitly stop the watch.
 
-`expiresAt: null` requests a watch until explicitly stopped. Alternatively, supply
-an application deadline or `ttlMs`. This lifetime is separate from the upstream
-lease: the backend renews that lease within the requested lifetime. Use the managed
-subscription ID for subsequent operations, and inspect `cleanupStatus` when
-stopping; upstream cleanup may still be pending.
+See the [managed subscriptions reference](/docs/reference/ai-sdk-core/mcp-events#managed-subscriptions)
+for factory requirements, lifetime options, listing, and cleanup status.
 
 Managed deliveries use the backend's webhook contract and verifier. Do not use
 `experimental_createMCPEventWebhook` to verify a backend's forwarded envelope;

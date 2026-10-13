@@ -154,7 +154,7 @@ try {
 }
 ```
 
-Before sending the subscription request, the SDK generates and saves
+After catalog discovery and before sending `events/subscribe`, the SDK generates and saves
 `delivery.secret`. It appends a `mcp_event_subscription` query parameter to the
 callback URL so the webhook can find that secret even while verification is
 pending. Preserve this parameter and pass the raw request body to the handler.
