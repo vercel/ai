@@ -34,6 +34,7 @@ import {
 } from '@ai-sdk/harness';
 import {
   getRestrictedSandboxSession,
+  convertHarnessToolModelOutput,
   resolveSandboxHomeDir,
   writeSkills,
 } from '@ai-sdk/harness/utils';
@@ -60,6 +61,7 @@ import {
 } from './pi-remote-ops';
 import {
   formatPiReadToolOutput,
+  truncatePiToolModelOutput,
   truncatePiToolOutputHead,
   truncatePiToolOutputTail,
 } from './pi-tool-result';
@@ -345,8 +347,12 @@ function hasCompatibleReattachSettings(
   );
 }
 
+type HostToolSubmission = Parameters<
+  HarnessV1PromptControl['submitToolResult']
+>[0];
+
 interface PendingToolResult {
-  resolve: (value: unknown) => void;
+  resolve: (value: HostToolSubmission) => void;
 }
 
 interface PendingToolApproval {
@@ -366,10 +372,7 @@ interface ActivePiTurn {
  */
 interface ToolBatchReplayBarrier {
   readonly awaiting: Set<string>;
-  readonly deliveredHostResults: Map<
-    string,
-    { output: unknown; isError: boolean }
-  >;
+  readonly deliveredHostResults: Map<string, HostToolSubmission>;
   readonly toCheckpoint: () => PiPendingToolBatch;
   readonly start: () => void;
   /** Settle the barrier without replaying: resolves `done` cleanly when no
@@ -380,7 +383,7 @@ interface ToolBatchReplayBarrier {
 interface PiToolBatchReplay {
   readonly toolResults: Map<string, PiCompletedToolResult>;
   readonly suppressedToolCallIds: Set<string>;
-  readonly hostToolResults: Map<string, { output: unknown; isError: boolean }>;
+  readonly hostToolResults: Map<string, HostToolSubmission>;
 }
 
 async function isWorkspaceAvailableOnHost({
@@ -800,8 +803,8 @@ export async function createPiSession(
   });
 
   function settlePendingToolResults(reason: string): void {
-    for (const pending of pendingToolResults.values()) {
-      pending.resolve({ error: reason });
+    for (const [toolCallId, pending] of pendingToolResults) {
+      pending.resolve({ toolCallId, output: { error: reason }, isError: true });
     }
     pendingToolResults.clear();
   }
@@ -950,18 +953,11 @@ export async function createPiSession(
     } as HarnessV1ResumeSessionState['data'];
   }
 
-  function acceptReplayToolResult(args: {
-    toolCallId: string;
-    output: unknown;
-    isError?: boolean;
-  }): void {
+  function acceptReplayToolResult(args: HostToolSubmission): void {
     const barrier = replayBarrier;
     if (barrier == null || !barrier.awaiting.has(args.toolCallId)) return;
     barrier.awaiting.delete(args.toolCallId);
-    barrier.deliveredHostResults.set(args.toolCallId, {
-      output: args.output,
-      isError: args.isError ?? false,
-    });
+    barrier.deliveredHostResults.set(args.toolCallId, args);
     if (barrier.awaiting.size === 0) barrier.start();
   }
 
@@ -1005,18 +1001,17 @@ export async function createPiSession(
       batch.completedToolResults.map(result => [result.toolCallId, result]),
     );
     const awaiting = new Set(batch.awaitingToolCallIds);
-    const deliveredHostResults = new Map<
-      string,
-      { output: unknown; isError: boolean }
-    >();
+    const deliveredHostResults = new Map<string, HostToolSubmission>();
     const deliveredToolResults = (): PiCompletedToolResult[] =>
-      [...deliveredHostResults].map(([toolCallId, delivered]) => ({
-        toolCallId,
-        result: toPiHostToolResult(
-          delivered.output,
-        ) as unknown as PiCompletedToolResult['result'],
-        isError: delivered.isError,
-      }));
+      [...deliveredHostResults].map(([toolCallId, delivered]) => {
+        const converted = toPiHostToolResult(delivered);
+        return {
+          toolCallId,
+          result:
+            converted.result as unknown as PiCompletedToolResult['result'],
+          isError: converted.isError,
+        };
+      });
 
     let resolveDone!: () => void;
     let rejectDone!: (error: unknown) => void;
@@ -1152,7 +1147,7 @@ export async function createPiSession(
          * the original object.
          */
         translatorState?.hostToolResults.set(args.toolCallId, args.output);
-        pending.resolve(args.output);
+        pending.resolve(args);
       },
       async submitToolApproval(args) {
         const pending = pendingToolApprovals.get(args.approvalId);
@@ -2191,13 +2186,45 @@ function buildBuiltinToolDefinition(input: {
   }
 }
 
-function toPiHostToolResult(output: unknown): AgentToolResult<unknown> {
-  return asPiToolResult(
-    truncatePiToolOutputHead(
-      serializeToolOutput(output),
-      'Call the tool again with narrower parameters to inspect the omitted output.',
-    ),
-  );
+function toPiHostToolResult(submission: HostToolSubmission): {
+  result: AgentToolResult<unknown>;
+  isError: boolean;
+} {
+  const continuation =
+    'Call the tool again with narrower parameters to inspect the omitted output.';
+  if (submission.toolResult == null) {
+    return {
+      result: asPiToolResult(
+        truncatePiToolOutputHead(
+          serializeToolOutput(submission.output),
+          continuation,
+        ),
+      ),
+      isError: submission.isError === true,
+    };
+  }
+  const converted = convertHarnessToolModelOutput({
+    output: submission.toolResult.output,
+  });
+  const content = truncatePiToolModelOutput({
+    content: converted.content,
+    continuation,
+  });
+  return {
+    result: {
+      content: content.map(part =>
+        part.type === 'text'
+          ? part
+          : {
+              type: 'image' as const,
+              data: part.data,
+              mimeType: part.mediaType,
+            },
+      ),
+      details: undefined,
+    },
+    isError: submission.isError === true || converted.isError,
+  };
 }
 
 function buildUserToolDefinition({
@@ -2220,10 +2247,21 @@ function buildUserToolDefinition({
     description: spec.description ?? `User-registered tool ${spec.name}`,
     parameters: toolSpecToTypeBoxParameters(schema),
     async execute(toolCallId) {
-      return new Promise<unknown>(resolve => {
+      return new Promise<HostToolSubmission>(resolve => {
         pending.set(toolCallId, { resolve });
         onPending();
-      }).then(toPiHostToolResult);
+      }).then(submission => {
+        const converted = toPiHostToolResult(submission);
+        if (submission.toolResult != null && converted.isError) {
+          throw new Error(
+            converted.result.content
+              .filter(part => part.type === 'text')
+              .map(part => part.text)
+              .join('\n'),
+          );
+        }
+        return converted.result;
+      });
     },
   });
 }

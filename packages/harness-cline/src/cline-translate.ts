@@ -26,6 +26,7 @@ export interface ClineTranslatorState {
   readonly hostToolNames: ReadonlySet<string>;
   readonly ignoredToolNames: ReadonlySet<string>;
   readonly mcpToolNames: ReadonlySet<string>;
+  readonly hostToolResults: Map<string, unknown>;
   openTextBlockId?: string;
   openReasoningBlockId?: string;
   emittedToolCalls: Set<string>;
@@ -59,6 +60,7 @@ export function createClineTranslatorState({
     hostToolNames: new Set(hostToolNames),
     ignoredToolNames: new Set(ignoredToolNames),
     mcpToolNames: new Set(mcpToolNames),
+    hostToolResults: new Map(),
     emittedToolCalls: new Set(),
     unfinishedStepToolCallIds: new Set(),
     earlyFinishStepToolCallIds: new Set(),
@@ -253,7 +255,13 @@ export function translateClineEvent(
           part.type === 'tool-result' &&
           part.toolCallId === event.toolCall.toolCallId,
       );
-      const output = resultPart?.output as AgentToolResult['output'] | unknown;
+      const hasHostOutput = state.hostToolResults.has(
+        event.toolCall.toolCallId,
+      );
+      const output = hasHostOutput
+        ? state.hostToolResults.get(event.toolCall.toolCallId)
+        : (resultPart?.output as AgentToolResult['output'] | unknown);
+      state.hostToolResults.delete(event.toolCall.toolCallId);
       const dynamic = state.dynamicToolCallIds.delete(
         event.toolCall.toolCallId,
       );
@@ -265,7 +273,12 @@ export function translateClineEvent(
             event.toolCall.toolName === 'ask_question'
               ? 'askUserQuestions'
               : event.toolCall.toolName,
-          result: toToolResultValue(output),
+          result: hasHostOutput
+            ? (output as Extract<
+                HarnessV1StreamPart,
+                { type: 'tool-result' }
+              >['result'])
+            : toToolResultValue(output),
           ...(resultPart?.isError ? { isError: true } : {}),
           ...(dynamic ? { dynamic: true } : {}),
         },
