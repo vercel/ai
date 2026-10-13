@@ -120,15 +120,11 @@ export type Experimental_UseObjectHelpers<RESULT, INPUT> = {
   clear: () => void;
 };
 
-<<<<<<< HEAD
-function useObject<
-=======
 type ObjectState<RESULT> = {
   object: DeepPartial<RESULT> | undefined;
 };
 
-export function useObject<
->>>>>>> f42a2474e9 (fix: React useObject.clear() restores initialValue instead of clearing the object (#21132))
+function useObject<
   SCHEMA extends FlexibleSchema,
   RESULT = InferSchema<SCHEMA>,
   INPUT = any,
@@ -222,13 +218,9 @@ export function useObject<
             if (!isDeepEqualData(latestObject, currentObject)) {
               latestObject = currentObject;
 
-<<<<<<< HEAD
               if (abortControllerRef.current === abortController) {
-                mutate(currentObject);
+                mutate({ object: currentObject });
               }
-=======
-              mutate({ object: currentObject });
->>>>>>> f42a2474e9 (fix: React useObject.clear() restores initialValue instead of clearing the object (#21132))
             }
           },
 

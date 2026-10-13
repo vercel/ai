@@ -548,8 +548,8 @@ describe('text stream', () => {
       initialValue: { content: 'Initial content' },
     };
 
-    const first = renderHook(() => useObject(options));
-    const second = renderHook(() => useObject(options));
+    const first = renderHook(() => experimental_useObject(options));
+    const second = renderHook(() => experimental_useObject(options));
 
     expect(first.result.current.object).toEqual(options.initialValue);
     expect(second.result.current.object).toEqual(options.initialValue);
@@ -564,7 +564,7 @@ describe('text stream', () => {
     first.unmount();
     second.unmount();
 
-    const remounted = renderHook(() => useObject(options));
+    const remounted = renderHook(() => experimental_useObject(options));
 
     expect(remounted.result.current.object).toBeUndefined();
     remounted.unmount();
@@ -572,7 +572,7 @@ describe('text stream', () => {
 
   it('should clear a null initial object', async () => {
     const { result } = renderHook(() =>
-      useObject({
+      experimental_useObject({
         id: 'cleared-null-initial-object',
         api: '/api/use-object',
         schema: z.null(),
