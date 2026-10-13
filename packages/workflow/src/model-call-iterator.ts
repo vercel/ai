@@ -101,7 +101,7 @@ export interface ModelCallIteratorYieldValue {
   runtimeContext?: Context;
   /** The current per-tool context, keyed by tool name */
   toolsContext?: Record<string, Context | undefined>;
-  /** Provider-executed tool results (keyed by tool call ID) */
+  /** Provider-executed tool results, with duplicate IDs stored separately. */
   providerExecutedToolResults?: Map<string, ProviderExecutedToolResult>;
   /** Original positions of provider-executed results in assistant content. */
   providerExecutedToolResultPositions?: ProviderExecutedToolResultPosition[];
@@ -118,6 +118,10 @@ export interface ModelCallIteratorErrorValue {
   error: unknown;
   messages: LanguageModelV4Prompt;
 }
+
+export type ModelCallToolResults = LanguageModelV4ToolResultPart[] & {
+  providerExecutedToolResultIndexes?: ReadonlySet<number>;
+};
 
 // This runs in the workflow context
 export async function* modelCallIterator({
@@ -182,7 +186,7 @@ export async function* modelCallIterator({
   | LanguageModelV4Prompt
   | ModelCallIteratorAbortedValue
   | ModelCallIteratorErrorValue,
-  LanguageModelV4ToolResultPart[]
+  ModelCallToolResults
 > {
   let conversationPrompt = [...prompt]; // Create a mutable copy
   let currentModel: LanguageModel = model;
@@ -199,7 +203,10 @@ export async function* modelCallIterator({
   let stepNumber = 0;
   let lastStep: StepResult<any, any> | undefined;
   let lastStepWasYielded = false;
-  const pendingDeferredToolCallIds = new Set<string>();
+  const pendingDeferredToolCalls: Array<{
+    toolCallId: string;
+    toolName: string;
+  }> = [];
   let wasAborted = false;
   let terminalError: unknown;
   let hasTerminalError = false;
@@ -481,17 +488,52 @@ export async function* modelCallIterator({
       const isToolExecutionAllowed =
         finishReason === 'tool-calls' || finishReason === 'stop';
 
-      for (const toolCall of toolCalls) {
+      const providerResults = [...providerExecutedToolResults.values()];
+      const unmatchedProviderResultIndexes = new Set(
+        providerResults.map((_, index) => index),
+      );
+
+      for (const [toolCallIndex, toolCall] of toolCalls.entries()) {
         if (
           toolCall.providerExecuted &&
-          serializedTools[toolCall.toolName]?.supportsDeferredResults &&
-          !providerExecutedToolResults.has(toolCall.toolCallId)
+          serializedTools[toolCall.toolName]?.supportsDeferredResults
         ) {
-          pendingDeferredToolCallIds.add(toolCall.toolCallId);
+          const matchingResultIndex = providerResults.findIndex(
+            (result, resultIndex) =>
+              unmatchedProviderResultIndexes.has(resultIndex) &&
+              (result.toolCallIndex === toolCallIndex ||
+                (result.toolCallIndex == null &&
+                  result.toolCallId === toolCall.toolCallId &&
+                  result.toolName === toolCall.toolName)),
+          );
+
+          if (matchingResultIndex >= 0) {
+            unmatchedProviderResultIndexes.delete(matchingResultIndex);
+          } else {
+            pendingDeferredToolCalls.push({
+              toolCallId: toolCall.toolCallId,
+              toolName: toolCall.toolName,
+            });
+          }
         }
       }
-      for (const toolCallId of providerExecutedToolResults.keys()) {
-        pendingDeferredToolCallIds.delete(toolCallId);
+
+      for (const providerResultIndex of unmatchedProviderResultIndexes) {
+        const providerResult = providerResults[providerResultIndex];
+        // Indexed results belong to calls in the current response. Only
+        // unindexed results can resolve a deferred call from an earlier step.
+        if (providerResult.toolCallIndex != null) {
+          continue;
+        }
+
+        const pendingCallIndex = pendingDeferredToolCalls.findIndex(
+          pendingCall =>
+            pendingCall.toolCallId === providerResult.toolCallId &&
+            pendingCall.toolName === providerResult.toolName,
+        );
+        if (pendingCallIndex >= 0) {
+          pendingDeferredToolCalls.splice(pendingCallIndex, 1);
+        }
       }
 
       const shouldProcessTools =
@@ -516,11 +558,26 @@ export async function* modelCallIterator({
           content: assistantContent,
           providerExecutedToolResultPositions,
         } = getAssistantMessageContent(step, mode);
-        const includedToolCallIds = new Set(
-          assistantContent.flatMap(part =>
-            part.type === 'tool-call' ? [part.toolCallId] : [],
-          ),
-        );
+        const includedToolCallIndexes = new Set<number>();
+        let nextToolCallIndex = 0;
+        for (const part of assistantContent) {
+          if (part.type !== 'tool-call') {
+            continue;
+          }
+
+          while (nextToolCallIndex < toolCalls.length) {
+            const toolCallIndex = nextToolCallIndex++;
+            const toolCall = toolCalls[toolCallIndex];
+            if (
+              toolCall.toolCallId === part.toolCallId &&
+              toolCall.toolName === part.toolName &&
+              (mode !== 'stream' || !toolCall.invalid)
+            ) {
+              includedToolCallIndexes.add(toolCallIndex);
+              break;
+            }
+          }
+        }
 
         // Add assistant message content in provider emission order. Invalid
         // tool calls are not part of StepResult.content, so retain the previous
@@ -534,7 +591,10 @@ export async function* modelCallIterator({
           content: [
             ...assistantContent,
             ...toolCalls
-              .filter(toolCall => !includedToolCallIds.has(toolCall.toolCallId))
+              .filter(
+                (_toolCall, toolCallIndex) =>
+                  !includedToolCallIndexes.has(toolCallIndex),
+              )
               .map(toAssistantToolCallContent),
           ],
         });
@@ -561,8 +621,12 @@ export async function* modelCallIterator({
             ...processableToolCalls.flatMap(toolCall =>
               toolCall.providerExecuted ? [toolCall.toolCallId] : [],
             ),
-            ...providerExecutedToolResults.keys(),
+            ...[...providerExecutedToolResults.values()].map(
+              result => result.toolCallId,
+            ),
           ]),
+          providerExecutedToolResultIndexes:
+            toolResults.providerExecutedToolResultIndexes,
           providerExecutedToolResultPositions,
         });
         step.response.messages.push(
@@ -587,7 +651,7 @@ export async function* modelCallIterator({
         done =
           !isToolExecutionAllowed ||
           stopConditionMet ||
-          (!hasClientToolCalls && pendingDeferredToolCallIds.size === 0);
+          (!hasClientToolCalls && pendingDeferredToolCalls.length === 0);
       } else if (
         hasTerminalError ||
         mode === 'generate' ||

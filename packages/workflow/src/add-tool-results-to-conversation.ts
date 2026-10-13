@@ -12,11 +12,13 @@ export function addToolResultsToConversation({
   messages,
   toolResults,
   providerExecutedToolCallIds,
+  providerExecutedToolResultIndexes,
   providerExecutedToolResultPositions = [],
 }: {
   messages: LanguageModelV4Prompt;
   toolResults: LanguageModelV4ToolResultPart[];
   providerExecutedToolCallIds: Set<string>;
+  providerExecutedToolResultIndexes?: ReadonlySet<number>;
   providerExecutedToolResultPositions?: ProviderExecutedToolResultPosition[];
 }) {
   const providerResultIds = new Set([
@@ -39,8 +41,13 @@ export function addToolResultsToConversation({
     }
   }
 
-  for (const toolResult of toolResults) {
-    if (providerResultIds.has(toolResult.toolCallId)) {
+  for (const [toolResultIndex, toolResult] of toolResults.entries()) {
+    const isProviderResult =
+      providerExecutedToolResultIndexes == null
+        ? providerResultIds.has(toolResult.toolCallId)
+        : providerExecutedToolResultIndexes.has(toolResultIndex);
+
+    if (isProviderResult) {
       const results = providerResults.get(toolResult.toolCallId) ?? [];
       results.push(toolResult);
       providerResults.set(toolResult.toolCallId, results);
