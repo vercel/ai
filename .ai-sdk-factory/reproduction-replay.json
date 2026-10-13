@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 21129,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/use-object-clear-initial-value.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/use-object-clear-initial-value.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE 21129 REPRODUCED: useObject.clear() exposed initialValue instead of undefined in all 6 reported scenarios"
+  }
+}
