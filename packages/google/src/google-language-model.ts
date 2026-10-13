@@ -36,7 +36,9 @@ import {
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import { continueGoogleStream } from './continue-google-stream';
 import {
+  addGoogleUsageMetadata,
   convertGoogleUsage,
   type GoogleUsageMetadata,
 } from './convert-google-usage';
@@ -442,6 +444,9 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         cachedContent: googleOptions?.cachedContent,
         labels: googleOptions?.labels,
         serviceTier: bodyServiceTier,
+        ...(googleOptions?.continuationToken != null && {
+          continuationToken: googleOptions.continuationToken,
+        }),
       },
       warnings: [...warnings, ...toolWarnings],
       providerOptionsNames,
@@ -510,6 +515,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     providerOptionsNames,
     toolNameMapping,
     jsonResponseToolName,
+    initialPromptTokenCount,
   }: {
     config: GoogleLanguageModelConfig;
     response: InferSchema<typeof responseSchema>;
@@ -517,6 +523,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     providerOptionsNames: readonly string[];
     toolNameMapping?: ReturnType<typeof createToolNameMapping>;
     jsonResponseToolName?: string;
+    initialPromptTokenCount?: number | null;
   }): LanguageModelV4GenerateResult {
     const wrapProviderMetadata = (payload: Record<string, unknown>) =>
       Object.fromEntries(
@@ -712,6 +719,10 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         usageMetadata: usageMetadata ?? null,
         finishMessage: candidate?.finishMessage ?? null,
         serviceTier: usageMetadata?.serviceTier ?? null,
+        ...(candidate?.continuationToken != null
+          ? { continuationToken: candidate.continuationToken }
+          : {}),
+        ...(initialPromptTokenCount != null ? { initialPromptTokenCount } : {}),
       } satisfies GoogleProviderMetadata),
       response: {
         // TODO timestamp, model id
@@ -738,30 +749,87 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       extraHeaders,
     );
 
-    const {
+    const generateContent = (body: typeof args) =>
+      postJsonToApi({
+        url: `${this.config.baseURL}/${getModelPath(
+          this.modelId,
+        )}:generateContent`,
+        headers: mergedHeaders,
+        body,
+        failedResponseHandler: googleFailedResponseHandler,
+        successfulResponseHandler: createJsonResponseHandler(responseSchema),
+        abortSignal: options.abortSignal,
+        fetch: this.config.fetch,
+      });
+
+    let {
       responseHeaders,
       value: response,
       rawValue: rawResponse,
-    } = await postJsonToApi({
-      url: `${this.config.baseURL}/${getModelPath(
-        this.modelId,
-      )}:generateContent`,
-      headers: mergedHeaders,
-      body: args,
-      failedResponseHandler: googleFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(responseSchema),
-      abortSignal: options.abortSignal,
-      fetch: this.config.fetch,
-    });
+    } = await generateContent(args);
 
-    const result = GoogleLanguageModel.convertGenerateContentResponse({
+    // Gemini 4 long decode: a request that reaches the per-request cap while
+    // `maxOutputTokens` budget remains finishes with `CONTINUATION`. Resend
+    // the same request with the continuation token (the server tracks the
+    // cumulative tokens) and combine the content of all requests.
+    //
+    // Usage is summed across requests (matching billing). Each request re-sends
+    // the prompt plus all output so far as input, so the first request's
+    // prompt token count is kept separately for context window checks.
+    const content: LanguageModelV4Content[] = [];
+    let usageMetadata: GoogleUsageMetadata | undefined;
+    const firstPromptTokenCount = response.usageMetadata?.promptTokenCount;
+    let isContinued = false;
+
+    while (true) {
+      const candidate = response.candidates?.[0];
+      const continuationToken =
+        candidate?.finishReason === 'CONTINUATION'
+          ? candidate.continuationToken
+          : undefined;
+
+      usageMetadata = addGoogleUsageMetadata(
+        usageMetadata,
+        response.usageMetadata ?? undefined,
+      );
+
+      if (continuationToken == null) {
+        break;
+      }
+
+      content.push(
+        ...GoogleLanguageModel.convertGenerateContentResponse({
+          config: this.config,
+          response,
+          warnings,
+          providerOptionsNames,
+          toolNameMapping,
+          jsonResponseToolName,
+        }).content,
+      );
+
+      isContinued = true;
+      ({
+        responseHeaders,
+        value: response,
+        rawValue: rawResponse,
+      } = await generateContent({ ...args, continuationToken }));
+    }
+
+    const lastResult = GoogleLanguageModel.convertGenerateContentResponse({
       config: this.config,
-      response,
+      response: { ...response, usageMetadata },
       warnings,
       providerOptionsNames,
       toolNameMapping,
       jsonResponseToolName,
+      initialPromptTokenCount: isContinued ? firstPromptTokenCount : undefined,
     });
+
+    const result = {
+      ...lastResult,
+      content: [...content, ...lastResult.content],
+    };
 
     return {
       ...result,
@@ -796,16 +864,37 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       extraHeaders,
     );
 
-    const { responseHeaders, value: response } = await postJsonToApi({
-      url: `${this.config.baseURL}/${getModelPath(
-        this.modelId,
-      )}:streamGenerateContent?alt=sse`,
-      headers,
-      body: args,
-      failedResponseHandler: googleFailedResponseHandler,
-      successfulResponseHandler: createEventSourceResponseHandler(chunkSchema),
-      abortSignal: options.abortSignal,
-      fetch: this.config.fetch,
+    const streamGenerateContent = (body: typeof args) =>
+      postJsonToApi({
+        url: `${this.config.baseURL}/${getModelPath(
+          this.modelId,
+        )}:streamGenerateContent?alt=sse`,
+        headers,
+        body,
+        failedResponseHandler: googleFailedResponseHandler,
+        successfulResponseHandler:
+          createEventSourceResponseHandler(chunkSchema),
+        abortSignal: options.abortSignal,
+        fetch: this.config.fetch,
+      });
+
+    const { responseHeaders, value: firstResponse } =
+      await streamGenerateContent(args);
+
+    // Gemini 4 long decode: when a stream reaches the per-request cap while
+    // `maxOutputTokens` budget remains, its last chunk finishes with
+    // `CONTINUATION`. Resend the same request with the continuation token and
+    // append the new stream, which contains only newly generated content.
+    const response = continueGoogleStream({
+      stream: firstResponse,
+      getContinuationToken: chunk => {
+        const candidate = chunk.candidates?.[0];
+        return candidate?.finishReason === 'CONTINUATION'
+          ? (candidate.continuationToken ?? undefined)
+          : undefined;
+      },
+      continueStream: async continuationToken =>
+        (await streamGenerateContent({ ...args, continuationToken })).value,
     });
 
     let finishReason: LanguageModelV4FinishReason = {
@@ -813,11 +902,16 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       raw: undefined,
     };
     let usage: GoogleUsageMetadata | undefined = undefined;
+    // Usage of the completed requests of an automatically continued response.
+    let continuedUsage: GoogleUsageMetadata | undefined = undefined;
+    // Prompt token count of the first request, for context window checks.
+    let initialPromptTokenCount: number | null | undefined = undefined;
     let promptFeedback: PromptFeedbackSchema | null = null;
     let lastGroundingMetadata: GroundingMetadataSchema | null = null;
     let lastUrlContextMetadata: UrlContextMetadataSchema | null = null;
     let lastSafetyRatings: SafetyRatingSchema[] | null = null;
     let lastFinishMessage: string | null = null;
+    let lastContinuationToken: string | null = null;
     let confirmedPromptBlockReason: string | undefined;
 
     const generateId = this.config.generateId;
@@ -946,6 +1040,9 @@ export class GoogleLanguageModel implements LanguageModelV4 {
               }
               if (candidate.finishMessage != null) {
                 lastFinishMessage = candidate.finishMessage;
+              }
+              if (candidate.continuationToken != null) {
+                lastContinuationToken = candidate.continuationToken;
               }
             }
 
@@ -1322,6 +1419,16 @@ export class GoogleLanguageModel implements LanguageModelV4 {
               }
             }
 
+            if (candidate.finishReason === 'CONTINUATION') {
+              // Usage metadata is per request. The next request reports its
+              // own usage, so bank the usage of this one.
+              if (continuedUsage == null) {
+                initialPromptTokenCount = usage?.promptTokenCount;
+              }
+              continuedUsage = addGoogleUsageMetadata(continuedUsage, usage);
+              usage = undefined;
+            }
+
             if (candidate.finishReason != null) {
               finishReason = {
                 unified: mapGoogleFinishReason({
@@ -1334,6 +1441,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           },
 
           flush(controller) {
+            usage = addGoogleUsageMetadata(continuedUsage, usage);
+
             if (currentTextBlockId !== null) {
               controller.enqueue({
                 type: 'text-end',
@@ -1359,6 +1468,17 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                 usageMetadata: usage ?? null,
                 finishMessage: lastFinishMessage,
                 serviceTier: usage?.serviceTier ?? null,
+                // Only surface the token when the response stopped early
+                // (budget used up, or continuing failed), not for the
+                // checkpoint tokens of a stream that finished normally.
+                ...(lastContinuationToken != null &&
+                (finishReason.raw === 'MAX_TOKENS' ||
+                  finishReason.raw === 'CONTINUATION')
+                  ? { continuationToken: lastContinuationToken }
+                  : {}),
+                ...(initialPromptTokenCount != null
+                  ? { initialPromptTokenCount }
+                  : {}),
               } satisfies GoogleProviderMetadata),
             });
           },
@@ -1845,6 +1965,7 @@ export const responseSchema = lazySchema(() =>
             content: getContentSchema().nullish().or(z.object({}).strict()),
             finishReason: z.string().nullish(),
             finishMessage: z.string().nullish(),
+            continuationToken: z.string().nullish(),
             safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
             groundingMetadata: getGroundingMetadataSchema().nullish(),
             urlContextMetadata: getUrlContextMetadataSchema().nullish(),
@@ -1898,6 +2019,7 @@ const chunkSchema = lazySchema(() =>
             content: getContentSchema().nullish(),
             finishReason: z.string().nullish(),
             finishMessage: z.string().nullish(),
+            continuationToken: z.string().nullish(),
             safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
             groundingMetadata: getGroundingMetadataSchema().nullish(),
             urlContextMetadata: getUrlContextMetadataSchema().nullish(),

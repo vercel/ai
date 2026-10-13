@@ -1,5 +1,29 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.154
+
+### Patch Changes
+
+- Updated dependencies [6617f11]
+- Updated dependencies [aae69cb]
+- Updated dependencies [a7a66f5]
+- Updated dependencies [52e3f53]
+- Updated dependencies [6c0295c]
+  - @ai-sdk/harness@1.0.150
+
+## 1.0.153
+
+### Patch Changes
+
+- bda96e8: fix(harness-claude-code): only restart recovered Claude Code turns once
+- 40c10e0: fix(harness-claude-code): register the native ListAgents tool
+- Updated dependencies [9667bf2]
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/provider@4.0.27
+  - @ai-sdk/harness@1.0.149
+
 ## 1.0.152
 
 ### Patch Changes
