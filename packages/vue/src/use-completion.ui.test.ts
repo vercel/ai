@@ -3,14 +3,19 @@ import {
   TestResponseController,
 } from '@ai-sdk/test-server/with-vitest';
 import userEvent from '@testing-library/user-event';
-import { findByText, screen, waitFor } from '@testing-library/vue';
+import {
+  cleanup,
+  findByText,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/vue';
 import type { UIMessageChunk } from 'ai';
-import { effectScope } from 'vue';
 import TestCompletionComponent from './TestCompletionComponent.vue';
 import TestCompletionTextStreamComponent from './TestCompletionTextStreamComponent.vue';
 import { setupTestComponent } from './setup-test-component';
 import { useCompletion } from './use-completion';
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect } from 'vitest';
 
 function formatChunk(part: UIMessageChunk) {
   return `data: ${JSON.stringify(part)}\n\n`;
@@ -21,14 +26,26 @@ const server = createTestServer({
 });
 
 describe('initial completion', () => {
+  afterEach(cleanup);
+
+  function renderUseCompletion(options: Parameters<typeof useCompletion>[0]) {
+    let result: ReturnType<typeof useCompletion> | undefined;
+
+    render({
+      setup() {
+        result = useCompletion(options);
+        return () => null;
+      },
+    });
+
+    return result!;
+  }
+
   it('allows the completion to be cleared', async () => {
-    const scope = effectScope();
-    const { completion, setCompletion } = scope.run(() =>
-      useCompletion({
-        id: 'clear-initial-completion',
-        initialCompletion: 'Previous completion',
-      }),
-    )!;
+    const { completion, setCompletion } = renderUseCompletion({
+      id: 'clear-initial-completion',
+      initialCompletion: 'Previous completion',
+    });
 
     await waitFor(() => {
       expect(completion.value).toBe('Previous completion');
@@ -39,18 +56,13 @@ describe('initial completion', () => {
     await waitFor(() => {
       expect(completion.value).toBe('');
     });
-
-    scope.stop();
   });
 
   it('preserves a cleared completion when reusing an id', async () => {
-    const scope = effectScope();
-    const first = scope.run(() =>
-      useCompletion({
-        id: 'reuse-cleared-initial-completion',
-        initialCompletion: 'Previous completion',
-      }),
-    )!;
+    const first = renderUseCompletion({
+      id: 'reuse-cleared-initial-completion',
+      initialCompletion: 'Previous completion',
+    });
 
     await waitFor(() => {
       expect(first.completion.value).toBe('Previous completion');
@@ -62,15 +74,12 @@ describe('initial completion', () => {
       expect(first.completion.value).toBe('');
     });
 
-    const second = scope.run(() =>
-      useCompletion({
-        id: 'reuse-cleared-initial-completion',
-        initialCompletion: 'Different initial completion',
-      }),
-    )!;
+    const second = renderUseCompletion({
+      id: 'reuse-cleared-initial-completion',
+      initialCompletion: 'Different initial completion',
+    });
 
     expect(second.completion.value).toBe('');
-    scope.stop();
   });
 
   it('shows an empty completion while a request is pending', async () => {
@@ -78,18 +87,15 @@ describe('initial completion', () => {
     const responseGate = new Promise<void>(resolve => {
       releaseResponse = resolve;
     });
-    const scope = effectScope();
-    const { completion, complete } = scope.run(() =>
-      useCompletion({
-        id: 'clear-initial-completion-on-request',
-        initialCompletion: 'Previous completion',
-        streamProtocol: 'text',
-        fetch: async () => {
-          await responseGate;
-          return new Response('');
-        },
-      }),
-    )!;
+    const { completion, complete } = renderUseCompletion({
+      id: 'clear-initial-completion-on-request',
+      initialCompletion: 'Previous completion',
+      streamProtocol: 'text',
+      fetch: async () => {
+        await responseGate;
+        return new Response('');
+      },
+    });
 
     await waitFor(() => {
       expect(completion.value).toBe('Previous completion');
@@ -103,19 +109,15 @@ describe('initial completion', () => {
 
     releaseResponse();
     await request;
-    scope.stop();
   });
 
   it('preserves an empty completion response', async () => {
-    const scope = effectScope();
-    const { completion, complete } = scope.run(() =>
-      useCompletion({
-        id: 'empty-completion-response',
-        initialCompletion: 'Previous completion',
-        streamProtocol: 'text',
-        fetch: async () => new Response(''),
-      }),
-    )!;
+    const { completion, complete } = renderUseCompletion({
+      id: 'empty-completion-response',
+      initialCompletion: 'Previous completion',
+      streamProtocol: 'text',
+      fetch: async () => new Response(''),
+    });
 
     await waitFor(() => {
       expect(completion.value).toBe('Previous completion');
@@ -126,8 +128,6 @@ describe('initial completion', () => {
     await waitFor(() => {
       expect(completion.value).toBe('');
     });
-
-    scope.stop();
   });
 });
 
