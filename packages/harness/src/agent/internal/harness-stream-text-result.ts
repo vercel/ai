@@ -489,10 +489,16 @@ export class HarnessStreamTextResult<
     this._response.resolve(finalStep.response);
     this._providerMetadata.resolve(this.finalProviderMetadata);
 
-    const responseMessages = await toResponseMessages<TOOLS>({
-      content: aggregatedContent,
-      tools: this.tools,
-    });
+    const responseMessages: Array<AssistantModelMessage | ToolModelMessage> =
+      [];
+    for (const step of this.stepsBuffer) {
+      responseMessages.push(
+        ...(await toResponseMessages<TOOLS>({
+          content: step.content,
+          tools: this.tools,
+        })),
+      );
+    }
     this._responseMessages.resolve(responseMessages);
 
     // Forward AI SDK finish event before closing.
