@@ -1,0 +1,32 @@
+{
+  "id": "42e3b49d-b408-4fb6-b667-dde66d92be9c",
+  "object": "chat.completion",
+  "created": 1791864355,
+  "model": "deepseek-flash",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "",
+        "reasoning_content": "The screenshot shows a verification code. Let me look at the image. I need to read the alphanumeric code including hyphen.\n\nThe image shows characters that appear to be a CAPTCHA-style code. Let me zoom in mentally. The text appears to be \"7K9L-3M2X\" or"
+      },
+      "logprobs": null,
+      "finish_reason": "length"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 9565,
+    "completion_tokens": 64,
+    "total_tokens": 9629,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 64
+    },
+    "prompt_cache_hit_tokens": 0,
+    "prompt_cache_miss_tokens": 9565
+  },
+  "system_fingerprint": "aeb56401ca74e127821c4f9126dcb669"
+}

@@ -474,6 +474,67 @@ describe('convertToDeepSeekChatMessages', () => {
   });
 
   describe('tool calls', () => {
+    it('should preserve inline and URL images in content tool results', async () => {
+      const result = await convertToDeepSeekChatMessages({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                input: {},
+                toolCallId: 'call-1',
+                toolName: 'takeScreenshot',
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'takeScreenshot',
+                output: {
+                  type: 'content',
+                  value: [
+                    { type: 'text', text: 'Screenshot captured.' },
+                    {
+                      type: 'image-data',
+                      data: 'AQID',
+                      mediaType: 'image/png',
+                    },
+                    {
+                      type: 'image-url',
+                      url: 'https://example.com/screenshot.png',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        responseFormat: undefined,
+        modelId: 'deepseek-flash',
+      });
+
+      expect(result.messages[1]).toEqual({
+        role: 'tool',
+        tool_call_id: 'call-1',
+        content: [
+          { type: 'text', text: 'Screenshot captured.' },
+          {
+            type: 'image_url',
+            image_url: { url: 'data:image/png;base64,AQID' },
+          },
+          {
+            type: 'image_url',
+            image_url: { url: 'https://example.com/screenshot.png' },
+          },
+        ],
+      });
+    });
+
     it('should stringify arguments to tool calls', async () => {
       const result = await convertToDeepSeekChatMessages({
         prompt: [

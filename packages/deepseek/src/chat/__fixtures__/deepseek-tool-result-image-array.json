@@ -1,0 +1,32 @@
+{
+  "id": "515edcf1-5821-4adc-a154-abc0db519c07",
+  "object": "chat.completion",
+  "created": 1791864354,
+  "model": "deepseek-flash",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "QZ-6BAE06",
+        "reasoning_content": "The code visible is QZ-6BAE06. Need to reply exactly with that and no other text."
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 289,
+    "completion_tokens": 31,
+    "total_tokens": 320,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 23
+    },
+    "prompt_cache_hit_tokens": 0,
+    "prompt_cache_miss_tokens": 289
+  },
+  "system_fingerprint": "aeb56401ca74e127821c4f9126dcb669"
+}
