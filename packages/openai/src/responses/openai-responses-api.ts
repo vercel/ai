@@ -492,11 +492,7 @@ export type OpenAIResponsesTool =
       output_compression: number | undefined;
       output_format: 'png' | 'jpeg' | 'webp' | undefined;
       partial_images: number | undefined;
-<<<<<<< HEAD
       quality: 'auto' | 'low' | 'medium' | 'high' | 'xhigh' | 'max' | undefined;
-      size: 'auto' | '1024x1024' | '1024x1536' | '1536x1024' | undefined;
-=======
-      quality: 'auto' | 'low' | 'medium' | 'high' | undefined;
       size:
         | 'auto'
         | '1024x1024'
@@ -504,7 +500,6 @@ export type OpenAIResponsesTool =
         | '1536x1024'
         | (string & {})
         | undefined;
->>>>>>> b54e551058 (fix: OpenAI image generation rejects documented action, low moderation, and gpt-image-2 sizes (#20209))
     }
 
   /**
