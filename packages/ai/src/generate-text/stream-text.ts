@@ -1944,6 +1944,7 @@ class DefaultStreamTextResult<
               generateId,
               stepNumber: recordedSteps.length,
               model: stepModelInfo,
+              toolChoice: stepToolChoice,
               onToolCallStart: [
                 onToolCallStart,
                 globalTelemetry.onToolCallStart as
