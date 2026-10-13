@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 23139,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-23139-provider-facade-sibling-import.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-23139-provider-facade-sibling-import.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_23139: codemod removed sibling openai import and left its call site unbound"
+  }
+}
