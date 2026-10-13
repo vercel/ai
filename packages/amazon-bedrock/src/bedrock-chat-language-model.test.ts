@@ -4524,6 +4524,156 @@ describe('doGenerate', () => {
     });
   });
 
+  it.each([
+    {
+      name: 'required tool choice',
+      toolChoice: { type: 'required' } as const,
+      disableParallelToolUse: false,
+    },
+    {
+      name: 'named tool choice',
+      toolChoice: {
+        type: 'tool',
+        toolName: 'getWeatherByCity',
+      } as const,
+      disableParallelToolUse: false,
+    },
+    {
+      name: 'required tool choice with parallel tool use disabled',
+      toolChoice: { type: 'required' } as const,
+      disableParallelToolUse: true,
+    },
+  ])(
+    'should fall back to auto for Claude Opus 5.5 $name',
+    async ({ toolChoice, disableParallelToolUse }) => {
+      let requestBody: any;
+      const providerError = fs.readFileSync(
+        'src/__fixtures__/bedrock-opus-5-5-forced-tool-choice-error.json',
+        'utf8',
+      );
+      const opus55Model = new BedrockChatLanguageModel(opus55AnthropicModelId, {
+        baseUrl: () => baseUrl,
+        headers: {},
+        generateId: () => 'test-id',
+        fetch: async (_input, init) => {
+          requestBody = JSON.parse(String(init?.body));
+          const standardToolChoice = requestBody.toolConfig?.toolChoice;
+          const anthropicToolChoice =
+            requestBody.additionalModelRequestFields?.tool_choice;
+          const forcedToolChoice =
+            standardToolChoice?.any != null ||
+            standardToolChoice?.tool != null ||
+            anthropicToolChoice?.type === 'any' ||
+            anthropicToolChoice?.type === 'tool';
+
+          if (forcedToolChoice) {
+            return new Response(providerError, {
+              status: 400,
+              headers: { 'content-type': 'application/json' },
+            });
+          }
+
+          return new Response(
+            JSON.stringify({
+              output: {
+                message: {
+                  role: 'assistant',
+                  content: [
+                    {
+                      toolUse: {
+                        toolUseId: 'weather-tool-id',
+                        name: 'getWeatherByCity',
+                        input: { city: 'Paris' },
+                      },
+                    },
+                  ],
+                },
+              },
+              stopReason: 'tool_use',
+              usage: {
+                inputTokens: 10,
+                outputTokens: 10,
+                totalTokens: 20,
+              },
+            }),
+            {
+              status: 200,
+              headers: { 'content-type': 'application/json' },
+            },
+          );
+        },
+      });
+
+      const result = await opus55Model.doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'function',
+            name: 'getWeatherByCity',
+            description: 'Get weather by city',
+            inputSchema: {
+              type: 'object',
+              properties: { city: { type: 'string' } },
+              required: ['city'],
+              additionalProperties: false,
+            },
+          },
+          {
+            type: 'function',
+            name: 'getCurrentTime',
+            description: 'Get current time',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+              additionalProperties: false,
+            },
+          },
+        ],
+        toolChoice,
+        providerOptions: disableParallelToolUse
+          ? {
+              anthropic: {
+                disableParallelToolUse: true,
+              },
+            }
+          : undefined,
+      });
+
+      expect(result.content).toContainEqual(
+        expect.objectContaining({
+          type: 'tool-call',
+          toolName: 'getWeatherByCity',
+        }),
+      );
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'toolChoice',
+        }),
+      );
+
+      if (disableParallelToolUse) {
+        expect(requestBody.toolConfig.toolChoice).toBeUndefined();
+        expect(
+          requestBody.additionalModelRequestFields.tool_choice,
+        ).toMatchObject({
+          type: 'auto',
+          disable_parallel_tool_use: true,
+        });
+      } else {
+        expect(requestBody.toolConfig.toolChoice).toEqual({ auto: {} });
+      }
+
+      if (toolChoice.type === 'tool') {
+        expect(
+          requestBody.toolConfig.tools.map(
+            (tool: { toolSpec: { name: string } }) => tool.toolSpec.name,
+          ),
+        ).toEqual(['getWeatherByCity']);
+      }
+    },
+  );
+
   it('should send all tools when toolChoice is auto', async () => {
     prepareJsonFixtureResponse('bedrock-text');
 

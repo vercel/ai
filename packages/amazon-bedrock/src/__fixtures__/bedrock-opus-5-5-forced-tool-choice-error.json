@@ -1,0 +1,3 @@
+{
+  "message": "The model returned the following errors: tool_choice: type \"tool\" and \"any\" are not supported for this model."
+}
