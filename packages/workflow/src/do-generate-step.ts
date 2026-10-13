@@ -7,6 +7,7 @@ import {
 } from 'ai';
 import {
   asLanguageModelUsage,
+  convertToLanguageModelPrompt,
   parseToolCall,
   prepareLanguageModelCallOptions,
   prepareRetries,
@@ -14,6 +15,7 @@ import {
   prepareTools,
   resolveLanguageModel,
 } from 'ai/internal';
+import { languageModelPromptToModelMessages } from './language-model-prompt-to-model-messages.js';
 import type {
   ModelCallOptions,
   ModelCallRawContentPart,
@@ -90,6 +92,16 @@ async function generateModelCall(
           AbortSignal.timeout(remaining),
         ]);
   const model = resolveLanguageModel(modelInit);
+  const modelPrompt = await convertToLanguageModelPrompt({
+    prompt: {
+      instructions: undefined,
+      messages: languageModelPromptToModelMessages(prompt),
+    },
+    supportedUrls: await model.supportedUrls,
+    download: options.download,
+    abortSignal,
+    provider: model.provider.split('.')[0],
+  });
   const tools = resolveSerializableTools(serializedTools);
   const toolChoice = prepareToolChoice({ toolChoice: options.toolChoice });
   const modelTools = await prepareTools({ tools });
@@ -125,7 +137,7 @@ async function generateModelCall(
       execute: () =>
         model.doGenerate({
           ...settings,
-          prompt: [...prompt],
+          prompt: modelPrompt,
           tools: modelTools,
           toolChoice,
           responseFormat: options.responseFormat,
@@ -159,7 +171,7 @@ async function generateModelCall(
           tools,
           repairToolCall: options.repairToolCall,
           instructions:
-            prompt
+            modelPrompt
               .filter(message => message.role === 'system')
               .map(message => message.content)
               .join('\n') || undefined,
