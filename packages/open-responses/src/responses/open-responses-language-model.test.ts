@@ -16,7 +16,7 @@ describe('OpenResponsesLanguageModel', () => {
     { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
   ];
   type AssistantContent = Extract<
-    LanguageModelV4Prompt[number],
+    LanguageModelV3Prompt[number],
     { role: 'assistant' }
   >['content'];
 
@@ -49,8 +49,6 @@ describe('OpenResponsesLanguageModel', () => {
       };
     }
 
-<<<<<<< HEAD
-=======
     function prepareOutputResponse(output: Array<Record<string, unknown>>) {
       server.urls[URL].response = {
         type: 'json-value',
@@ -69,55 +67,6 @@ describe('OpenResponsesLanguageModel', () => {
         },
       };
     }
-
-    it('should throw a descriptive error when the response has no output', async () => {
-      server.urls[URL].response = {
-        type: 'json-value',
-        body: {
-          id: 'resp_no_output',
-          created_at: 1741257730,
-          model: 'gemma-7b-it',
-          status: 'incomplete',
-          incomplete_details: { reason: 'content_filter' },
-          // no `output` field
-          usage: {
-            input_tokens: 10,
-            output_tokens: 0,
-          },
-        },
-      };
-
-      await expect(
-        createModel().doGenerate({ prompt: TEST_PROMPT }),
-      ).rejects.toThrow('Responses API returned no output (content_filter)');
-    });
-
-    it('should surface response.error message before the no-output fallback', async () => {
-      server.urls[URL].response = {
-        type: 'json-value',
-        body: {
-          id: 'resp_error',
-          created_at: 1741257730,
-          model: 'gemma-7b-it',
-          status: 'failed',
-          error: {
-            code: 'server_error',
-            message: 'The upstream provider failed to generate a response.',
-          },
-          // no `output` field
-          usage: {
-            input_tokens: 10,
-            output_tokens: 0,
-          },
-        },
-      };
-
-      await expect(
-        createModel().doGenerate({ prompt: TEST_PROMPT }),
-      ).rejects.toThrow('The upstream provider failed to generate a response.');
-    });
-
->>>>>>> 1c1a9d18e7 (fix: preserve Open Responses items across manual history round trips (#18844))
     describe('basic generation', () => {
       let result: LanguageModelV3GenerateResult;
 
@@ -142,7 +91,6 @@ describe('OpenResponsesLanguageModel', () => {
       });
     });
 
-<<<<<<< HEAD
     it('should send schema-less JSON as a JSON object format', async () => {
       prepareJsonFixtureResponse('lmstudio-basic.1');
 
@@ -159,7 +107,9 @@ describe('OpenResponsesLanguageModel', () => {
             type: 'json_object',
           },
         },
-=======
+      });
+    });
+
     describe('manual history replay', () => {
       it('should preserve output item order and ids', async () => {
         prepareOutputResponse([
@@ -396,7 +346,6 @@ describe('OpenResponsesLanguageModel', () => {
             ],
           },
         ]);
->>>>>>> 1c1a9d18e7 (fix: preserve Open Responses items across manual history round trips (#18844))
       });
     });
 
@@ -980,10 +929,51 @@ describe('OpenResponsesLanguageModel', () => {
       });
     });
 
-<<<<<<< HEAD
     it('should stream reasoning summary text deltas', async () => {
       prepareChunksFixtureResponse('openai-reasoning-summary-text.1');
-=======
+
+      const result = await createModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(result.stream);
+
+      expect(
+        parts.filter(part => part.type.startsWith('reasoning')),
+      ).toStrictEqual([
+        {
+          type: 'reasoning-start',
+          id: 'rs_1',
+        },
+        {
+          type: 'reasoning-delta',
+          id: 'rs_1',
+          delta: 'Think',
+        },
+        {
+          type: 'reasoning-delta',
+          id: 'rs_1',
+          delta: 'ing.',
+        },
+        {
+          type: 'reasoning-end',
+          id: 'rs_1',
+          providerMetadata: {
+            lmstudio: {
+              itemId: 'rs_1',
+              reasoningContent: null,
+              reasoningSummary: [
+                {
+                  type: 'summary_text',
+                  text: 'Thinking.',
+                },
+              ],
+            },
+          },
+        },
+      ]);
+    });
+
     it('should preserve output text annotations in stream metadata', async () => {
       const annotation = {
         type: 'url_citation',
@@ -1052,40 +1042,6 @@ describe('OpenResponsesLanguageModel', () => {
           },
         },
       });
-    });
-
-    it('should send provider-native reasoning effort when streaming', async () => {
-      prepareChunksFixtureResponse('lmstudio-basic.1');
->>>>>>> 1c1a9d18e7 (fix: preserve Open Responses items across manual history round trips (#18844))
-
-      const result = await createModel().doStream({
-        prompt: TEST_PROMPT,
-      });
-
-      const parts = await convertReadableStreamToArray(result.stream);
-
-      expect(
-        parts.filter(part => part.type.startsWith('reasoning')),
-      ).toStrictEqual([
-        {
-          type: 'reasoning-start',
-          id: 'rs_1',
-        },
-        {
-          type: 'reasoning-delta',
-          id: 'rs_1',
-          delta: 'Think',
-        },
-        {
-          type: 'reasoning-delta',
-          id: 'rs_1',
-          delta: 'ing.',
-        },
-        {
-          type: 'reasoning-end',
-          id: 'rs_1',
-        },
-      ]);
     });
 
     describe('reasoning with tool call', () => {

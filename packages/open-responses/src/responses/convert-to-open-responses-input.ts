@@ -7,23 +7,18 @@ import type {
   InputTextContentParam,
   OpenResponsesRequestBody,
   OutputTextContentParam,
+  ReasoningItemParam,
   RefusalContentParam,
 } from './open-responses-api';
 
 export async function convertToOpenResponsesInput({
   prompt,
   providerOptionsName = 'open-responses',
-<<<<<<< HEAD
   strictResponseInput = false,
 }: {
   prompt: LanguageModelV3Prompt;
   providerOptionsName?: string;
   strictResponseInput?: boolean;
-=======
-}: {
-  prompt: LanguageModelV4Prompt;
-  providerOptionsName?: string;
->>>>>>> 1c1a9d18e7 (fix: preserve Open Responses items across manual history round trips (#18844))
 }): Promise<{
   input: OpenResponsesRequestBody['input'];
   instructions: string | undefined;
@@ -90,10 +85,6 @@ export async function convertToOpenResponsesInput({
         let assistantContent: Array<
           OutputTextContentParam | RefusalContentParam
         > = [];
-<<<<<<< HEAD
-        const toolCalls: Array<FunctionCallItemParam> = [];
-=======
->>>>>>> 1c1a9d18e7 (fix: preserve Open Responses items across manual history round trips (#18844))
         let assistantMessageId: string | undefined;
 
         const flushAssistantContent = () => {
@@ -101,7 +92,6 @@ export async function convertToOpenResponsesInput({
             return;
           }
 
-<<<<<<< HEAD
           if (strictResponseInput && assistantMessageId == null) {
             input.push({
               type: 'message',
@@ -136,24 +126,12 @@ export async function convertToOpenResponsesInput({
               ...(assistantMessageId != null && { id: assistantMessageId }),
             });
           }
-=======
-          input.push({
-            type: 'message',
-            role: 'assistant',
-            content: assistantContent,
-            ...(assistantMessageId != null && { id: assistantMessageId }),
-          });
->>>>>>> 1c1a9d18e7 (fix: preserve Open Responses items across manual history round trips (#18844))
           assistantContent = [];
           assistantMessageId = undefined;
         };
 
         for (const part of content) {
           switch (part.type) {
-<<<<<<< HEAD
-            case 'text': {
-              const providerData = part.providerOptions?.[providerOptionsName];
-=======
             case 'reasoning': {
               flushAssistantContent();
 
@@ -204,8 +182,8 @@ export async function convertToOpenResponsesInput({
               ) {
                 if (reasoningItem.content != null) {
                   previousItem.content = [
-                    ...(previousItem.content ?? []),
-                    ...reasoningItem.content,
+                    ...(parseReasoningContent(previousItem.content) ?? []),
+                    ...(parseReasoningContent(reasoningItem.content) ?? []),
                   ];
                 }
               } else {
@@ -215,17 +193,13 @@ export async function convertToOpenResponsesInput({
             }
             case 'text': {
               const providerData = getProviderData(part, providerOptionsName);
->>>>>>> 1c1a9d18e7 (fix: preserve Open Responses items across manual history round trips (#18844))
               const itemId =
                 typeof providerData?.itemId === 'string'
                   ? providerData.itemId
                   : undefined;
-<<<<<<< HEAD
-=======
               const annotations = parseOutputTextAnnotations(
                 providerData?.annotations,
               );
->>>>>>> 1c1a9d18e7 (fix: preserve Open Responses items across manual history round trips (#18844))
 
               if (
                 assistantContent.length > 0 &&
@@ -235,15 +209,11 @@ export async function convertToOpenResponsesInput({
               }
 
               assistantMessageId = itemId;
-<<<<<<< HEAD
-              assistantContent.push({ type: 'output_text', text: part.text });
-=======
               assistantContent.push({
                 type: 'output_text',
                 text: part.text,
                 ...(annotations != null && { annotations }),
               });
->>>>>>> 1c1a9d18e7 (fix: preserve Open Responses items across manual history round trips (#18844))
               break;
             }
             case 'tool-call': {
@@ -272,14 +242,6 @@ export async function convertToOpenResponsesInput({
         }
 
         flushAssistantContent();
-<<<<<<< HEAD
-
-        // Push function calls as separate items
-        for (const toolCall of toolCalls) {
-          input.push(toolCall);
-        }
-=======
->>>>>>> 1c1a9d18e7 (fix: preserve Open Responses items across manual history round trips (#18844))
 
         break;
       }
@@ -375,7 +337,6 @@ export async function convertToOpenResponsesInput({
   };
 }
 
-<<<<<<< HEAD
 function getImageDetail(
   part: {
     providerOptions?: Record<string, Record<string, unknown>>;
@@ -389,7 +350,8 @@ function getImageDetail(
     imageDetail === 'auto'
     ? imageDetail
     : 'auto';
-=======
+}
+
 function getProviderData(
   part: {
     providerOptions?: Record<string, unknown>;
@@ -433,9 +395,12 @@ function parseReasoningSummary(
   }));
 }
 
-function parseReasoningContent(
-  value: unknown,
-): ReasoningItemParam['content'] | undefined {
+type ReasoningContent = Array<{
+  type: 'reasoning_text';
+  text: string;
+}>;
+
+function parseReasoningContent(value: unknown): ReasoningContent | undefined {
   if (
     !Array.isArray(value) ||
     !value.every(
@@ -482,5 +447,4 @@ function parseOutputTextAnnotations(
     url: (annotation as { url: string }).url,
     title: (annotation as { title: string }).title,
   }));
->>>>>>> 1c1a9d18e7 (fix: preserve Open Responses items across manual history round trips (#18844))
 }

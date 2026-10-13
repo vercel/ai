@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import type {
   LanguageModelV3,
   LanguageModelV3CallOptions,
@@ -8,21 +7,8 @@ import type {
   LanguageModelV3StreamPart,
   LanguageModelV3StreamResult,
   LanguageModelV3Usage,
+  SharedV3ProviderMetadata,
   SharedV3Warning,
-=======
-import {
-  APICallError,
-  type LanguageModelV4,
-  type LanguageModelV4CallOptions,
-  type LanguageModelV4Content,
-  type LanguageModelV4FinishReason,
-  type LanguageModelV4GenerateResult,
-  type LanguageModelV4StreamPart,
-  type LanguageModelV4StreamResult,
-  type LanguageModelV4Usage,
-  type SharedV4ProviderMetadata,
-  type SharedV4Warning,
->>>>>>> 1c1a9d18e7 (fix: preserve Open Responses items across manual history round trips (#18844))
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -109,10 +95,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
     } = await convertToOpenResponsesInput({
       prompt,
       providerOptionsName: this.config.providerOptionsName,
-<<<<<<< HEAD
       strictResponseInput: this.config.strictResponseInput,
-=======
->>>>>>> 1c1a9d18e7 (fix: preserve Open Responses items across manual history round trips (#18844))
     });
 
     warnings.push(...inputWarnings);
@@ -511,10 +494,6 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
               chunk.type === 'response.output_item.done' &&
               chunk.item.type === 'reasoning'
             ) {
-<<<<<<< HEAD
-              controller.enqueue({ type: 'reasoning-end', id: chunk.item.id });
-              isActiveReasoning = false;
-=======
               controller.enqueue({
                 type: 'reasoning-end',
                 id: chunk.item.id,
@@ -523,10 +502,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
                   providerOptionsName,
                 }),
               });
-              if (activeReasoningId === chunk.item.id) {
-                activeReasoningId = undefined;
-              }
->>>>>>> 1c1a9d18e7 (fix: preserve Open Responses items across manual history round trips (#18844))
+              isActiveReasoning = false;
             }
 
             // Text events
@@ -609,7 +585,7 @@ function createReasoningProviderMetadata({
   part: ReasoningBody;
   providerOptionsName: string;
   reasoningContent?: ReasoningBody['content'];
-}): SharedV4ProviderMetadata {
+}): SharedV3ProviderMetadata {
   return {
     [providerOptionsName]: {
       itemId: part.id,
