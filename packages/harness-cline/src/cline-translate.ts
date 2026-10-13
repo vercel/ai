@@ -31,6 +31,15 @@ export interface ClineTranslatorState {
   openReasoningBlockId?: string;
   emittedToolCalls: Set<string>;
   pendingFinishStep?: FinishStepPart;
+  /*
+   * Tool calls of the buffered step that have not finished yet, and the
+   * calls an early `finish-step` was already emitted for. When every
+   * unfinished call waits on host input, the runtime cannot make progress, so
+   * an early `finish-step` lets the host pause the turn. The buffered step
+   * stays open until `turn-finished`.
+   */
+  unfinishedStepToolCallIds: Set<string>;
+  earlyFinishStepToolCallIds: Set<string>;
   blockCounter: number;
 }
 
@@ -53,6 +62,8 @@ export function createClineTranslatorState({
     mcpToolNames: new Set(mcpToolNames),
     hostToolResults: new Map(),
     emittedToolCalls: new Set(),
+    unfinishedStepToolCallIds: new Set(),
+    earlyFinishStepToolCallIds: new Set(),
     blockCounter: 0,
   };
 }
@@ -206,6 +217,12 @@ export function translateClineEvent(
         finishReason: mapModelFinishReason(event.finishReason),
         usage: usageFromMessageMetrics(event.message.metrics),
       };
+      state.unfinishedStepToolCallIds = new Set(
+        event.message.content
+          .filter(part => part.type === 'tool-call')
+          .map(part => (part as { toolCallId: string }).toolCallId),
+      );
+      state.earlyFinishStepToolCallIds = new Set();
       return parts;
     }
 
@@ -215,6 +232,8 @@ export function translateClineEvent(
         return [];
       }
       state.pendingFinishStep = undefined;
+      state.unfinishedStepToolCallIds = new Set();
+      state.earlyFinishStepToolCallIds = new Set();
       return [pendingFinishStep];
     }
 
@@ -228,6 +247,7 @@ export function translateClineEvent(
     }
 
     case 'tool-finished': {
+      state.unfinishedStepToolCallIds.delete(event.toolCall.toolCallId);
       if (state.ignoredToolNames.has(event.toolCall.toolName)) return [];
       // The tool message carries the runtime's recorded result for this call.
       const resultPart = event.message.content.find(
@@ -305,5 +325,34 @@ export function finishClineTranslation(
 ): HarnessV1StreamPart[] {
   const parts = closeOpenBlocks(state);
   state.pendingFinishStep = undefined;
+  state.unfinishedStepToolCallIds = new Set();
+  state.earlyFinishStepToolCallIds = new Set();
   return parts;
+}
+
+export function takeClineEarlyFinishStep(
+  state: ClineTranslatorState,
+  { waitingToolCallIds }: { waitingToolCallIds: ReadonlySet<string> },
+): HarnessV1StreamPart[] {
+  if (!state.pendingFinishStep || state.unfinishedStepToolCallIds.size === 0) {
+    return [];
+  }
+  for (const toolCallId of state.unfinishedStepToolCallIds) {
+    if (!waitingToolCallIds.has(toolCallId)) return [];
+  }
+  const uncovered = [...state.unfinishedStepToolCallIds].filter(
+    toolCallId => !state.earlyFinishStepToolCallIds.has(toolCallId),
+  );
+  if (uncovered.length === 0) return [];
+  for (const toolCallId of uncovered) {
+    state.earlyFinishStepToolCallIds.add(toolCallId);
+  }
+  return [
+    {
+      type: 'finish-step',
+      finishReason: { unified: 'tool-calls', raw: 'host-input' },
+      usage: usageFromMessageMetrics(undefined),
+      harnessMetadata: { cline: { inferredStep: true } },
+    },
+  ];
 }
