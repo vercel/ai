@@ -872,6 +872,29 @@ describe('doGenerate', () => {
     expect(providerMetadata?.google.continuationToken).toBe('token-2');
   });
 
+  it('should not expose the candidate continuationToken on a STOP response', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: { parts: [{ text: 'Complete' }], role: 'model' },
+            finishReason: 'STOP',
+            index: 0,
+            continuationToken: 'checkpoint-token',
+          },
+        ],
+      },
+    };
+
+    const { providerMetadata, finishReason } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(finishReason).toBe('stop');
+    expect(providerMetadata?.google).not.toHaveProperty('continuationToken');
+  });
+
   it('should not expose continuationToken in provider metadata when absent', async () => {
     prepareJsonResponse({ content: 'test response' });
 
