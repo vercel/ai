@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 21080,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-21080-openai-image-edit-download-cancellation.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-21080-openai-image-edit-download-cancellation.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_21080_REPRODUCED: aborting OpenAI image edits did not cancel 8/8 pending URL downloads"
+  }
+}
