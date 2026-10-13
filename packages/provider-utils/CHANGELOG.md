@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 4.0.58
+
+### Patch Changes
+
+- 604b4d3: docs(provider-utils): clarify how `ToolApprovalResponse.reason` is handled for approved and denied tool calls
+
 ## 4.0.57
 
 ### Patch Changes
