@@ -121,7 +121,7 @@ const harness = createPi({
 });
 ```
 
-Each factory also receives the harness session it runs in, as a second argument. It carries the restricted `sandboxSession`, the `sessionWorkDir` and an `instructions()` getter for the current turn's instructions. Instructions arrive with each turn, so read them while a turn runs rather than when the factory runs. A tool that starts a child Pi session against the same sandbox, for example, can use all three:
+Each factory also receives the harness session it runs in, as a second argument. It carries the restricted `sandboxSession`, the `sessionWorkDir` and an `instructions()` getter for the current turn's instructions. Instructions arrive with each turn, so read them while a turn runs rather than when the factory runs. This extension uses all three to report the sandbox's git status when the agent starts:
 
 ```ts
 import { createPi } from '@ai-sdk/harness-pi';
@@ -129,8 +129,11 @@ import { createPi } from '@ai-sdk/harness-pi';
 const harness = createPi({
   extensionFactories: [
     (pi, session) => {
-      pi.on('agent_start', () => {
-        console.log(session.sessionWorkDir, session.instructions());
+      pi.on('agent_start', async () => {
+        const { stdout } = await session.sandboxSession.run({
+          command: `git -C ${session.sessionWorkDir} status --short`,
+        });
+        console.log(session.instructions(), stdout);
       });
     },
   ],
@@ -157,6 +160,6 @@ const harness = createPi({
 });
 ```
 
-Tools are named `mcp__<server>__<tool>`, with `-` in either name replaced by `_`. A server's tools are declared to the model by default (`exposure: 'direct'`). With `exposure: 'deferred'`, they stay undeclared until the model finds them with Pi's `tool_search` tool, and the model then calls them by name. `toolExposure` sets the exposure of single tools.
+Tools are named `mcp__<server>__<tool>`, with `-` in either name replaced by `_`. A server's tools are declared to the model by default (`exposure: 'direct'`). With `exposure: 'deferred'`, they stay undeclared until the model finds them with Pi's `tool_search` tool, and the model then calls them by name. `toolExposure` sets the exposure of single tools. Pi's `codemode` exposure is not supported, and an entry that uses it or that Pi rejects fails session start.
 
-The harness has no sign-in flow, so an HTTP server must carry an `Authorization` header or `auth.provider`. The harness reads no `mcp.json` and writes nothing under Pi's agent directory. `mcpSettings` is deprecated: Pi's native MCP has no tool prefix or output guard settings.
+The harness has no sign-in flow, so an HTTP server that requires authentication must carry an `Authorization` header or `auth.provider`. The harness reads no `mcp.json` and no sign-in stored by the Pi CLI, and writes nothing under Pi's agent directory. `mcpSettings` is deprecated: Pi's native MCP has no tool prefix or output guard settings.
