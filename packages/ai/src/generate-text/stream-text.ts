@@ -166,6 +166,10 @@ import type { ToolOutput } from './tool-output';
 import type { StaticToolOutputDenied } from './tool-output-denied';
 import type { ToolsContextParameter } from './tools-context-parameter';
 import { validateApprovedToolApprovals } from './validate-tool-approvals';
+import {
+  mapWithConcurrency,
+  prepareToolCallConcurrency,
+} from './tool-call-concurrency';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -288,6 +292,7 @@ export type StreamTextOnAbortCallback<
  * @param model - The language model to use.
  * @param tools - Tools that are accessible to and can be called by the model. The model needs to support calling tools.
  * @param toolOrder - Controls the order in which tools are sent to the provider. Tools not listed are appended alphabetically.
+ * @param toolCallConcurrency - Maximum number of tool calls that may execute concurrently within a step. Set to 1 for sequential execution. Default: unlimited.
  *
  * @param system - A system message that will be part of the prompt.
  * @param prompt - A simple text prompt. You can either use `prompt` or `messages` but not both.
@@ -377,6 +382,7 @@ export function streamText<
   providerOptions,
   activeTools,
   toolOrder,
+  toolCallConcurrency,
   experimental_repairToolCall,
   repairToolCall = experimental_repairToolCall,
   experimental_refineToolInput: refineToolInput,
@@ -478,6 +484,14 @@ export function streamText<
      * caching by keeping tool definitions in a stable order.
      */
     toolOrder?: ToolOrder<NoInfer<TOOLS>>;
+
+    /**
+     * Maximum number of tool calls that may execute concurrently within a step.
+     *
+     * Set to `1` to execute tool calls sequentially in the order they were
+     * generated. By default, all tool calls execute concurrently.
+     */
+    toolCallConcurrency?: number;
 
     /**
      * Optional specification for parsing structured outputs from the LLM response.
@@ -769,6 +783,8 @@ export function streamText<
       generateCallId?: IdGenerator;
     };
   }): StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
+  const resolvedToolCallConcurrency =
+    prepareToolCallConcurrency(toolCallConcurrency);
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
   const stepTimeoutMs = getStepTimeoutMs(timeout);
   const firstChunkTimeoutMs = getFirstChunkTimeoutMs(timeout);
@@ -828,6 +844,7 @@ export function streamText<
     transforms: asArray(transform),
     activeTools,
     toolOrder,
+    toolCallConcurrency: resolvedToolCallConcurrency,
     repairToolCall,
     refineToolInput,
     stopConditions: asArray(stopWhen),
@@ -1212,6 +1229,7 @@ class DefaultStreamTextResult<
     transforms,
     activeTools,
     toolOrder,
+    toolCallConcurrency,
     repairToolCall,
     refineToolInput,
     stopConditions,
@@ -1268,6 +1286,7 @@ class DefaultStreamTextResult<
     transforms: Array<StreamTextTransform<TOOLS>>;
     activeTools: ActiveTools<TOOLS>;
     toolOrder: ToolOrder<TOOLS>;
+    toolCallConcurrency: number | undefined;
     repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
     refineToolInput: ToolInputRefinement<TOOLS> | undefined;
     stopConditions: Array<
@@ -2075,8 +2094,11 @@ class DefaultStreamTextResult<
 
           const toolOutputs: Array<ToolOutput<TOOLS>> = [];
 
-          await Promise.all(
-            localApprovedToolApprovals.map(async toolApproval => {
+          await mapWithConcurrency({
+            items: localApprovedToolApprovals,
+            concurrency: toolCallConcurrency,
+            abortSignal,
+            execute: async toolApproval => {
               const result = await executeToolCall({
                 toolCall: toolApproval.toolCall,
                 tools,
@@ -2105,8 +2127,8 @@ class DefaultStreamTextResult<
                 toolExecutionStepStreamController?.enqueue(result.output);
                 toolOutputs.push(result.output);
               }
-            }),
-          );
+            },
+          });
 
           // Local tool results (approved + denied) are sent as tool results:
           if (
@@ -2709,6 +2731,7 @@ class DefaultStreamTextResult<
 
             executeToolInTelemetryContext: telemetryDispatcher.executeTool,
             runInTracingChannelSpan: runInTracingChannelSpanInStep,
+            toolCallConcurrency,
           });
 
           // Conditionally include request.body based on include settings.
