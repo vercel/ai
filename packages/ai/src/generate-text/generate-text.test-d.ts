@@ -14,6 +14,7 @@ import {
   generateText,
   Output,
   streamText,
+  type ContinueCondition,
   type ToolOrder,
 } from '../generate-text';
 import type { Instructions, Prompt } from '../prompt';
@@ -25,6 +26,59 @@ import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
 
 describe('generateText types', () => {
+  describe('continueWhen', () => {
+    const tools = {
+      lookup: tool({
+        inputSchema: z.object({ query: z.string() }),
+        execute: async ({ query }) => query,
+      }),
+    };
+
+    it('should infer step types for generateText', () => {
+      generateText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        tools,
+        runtimeContext: { tenantId: 'tenant-1' },
+        continueWhen: ({ steps }) => {
+          expectTypeOf(steps).toEqualTypeOf<
+            Array<StepResult<typeof tools, { tenantId: string }>>
+          >();
+          return false;
+        },
+      });
+    });
+
+    it('should infer step types for streamText', () => {
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        tools,
+        runtimeContext: { tenantId: 'tenant-1' },
+        continueWhen: ({ steps }) => {
+          expectTypeOf(steps).toEqualTypeOf<
+            Array<StepResult<typeof tools, { tenantId: string }>>
+          >();
+          return false;
+        },
+      });
+    });
+
+    it('should export the continue condition type', () => {
+      const condition: ContinueCondition<
+        typeof tools,
+        { tenantId: string }
+      > = ({ steps }) => {
+        expectTypeOf(steps).toEqualTypeOf<
+          Array<StepResult<typeof tools, { tenantId: string }>>
+        >();
+        return false;
+      };
+
+      expectTypeOf(condition).toBeFunction();
+    });
+  });
+
   describe('onLanguageModelCallEnd', () => {
     it('should expose provider metadata', async () => {
       await generateText({

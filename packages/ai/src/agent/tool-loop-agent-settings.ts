@@ -9,6 +9,7 @@ import type {
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import type { ActiveTools } from '../generate-text/active-tools';
+import type { ContinueCondition } from '../generate-text/continue-condition';
 import type {
   GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
@@ -87,12 +88,20 @@ export type ToolLoopAgentSettings<
     toolChoice?: ToolChoice<NoInfer<TOOLS>>;
 
     /**
-     * Condition for stopping the generation when there are tool results in the last step.
-     * When the condition is an array, any of the conditions can be met to stop the generation.
+     * Condition for stopping the agent before another step starts.
+     * When the condition is an array, any of the conditions can be met to stop the agent.
+     * When `continueWhen` is configured, stop conditions are also evaluated at
+     * natural completion before `continueWhen`.
      *
      * @default isStepCount(20)
      */
     stopWhen?: Arrayable<StopCondition<NoInfer<TOOLS>, RUNTIME_CONTEXT>>;
+
+    /**
+     * Optional condition for requesting another model step when the agent would
+     * otherwise finish naturally. `stopWhen` still takes precedence.
+     */
+    continueWhen?: ContinueCondition<NoInfer<TOOLS>, RUNTIME_CONTEXT>;
 
     /**
      * Optional telemetry configuration.
@@ -366,6 +375,7 @@ export type ToolLoopAgentSettings<
           | 'instructions'
           | 'allowSystemInMessages'
           | 'stopWhen'
+          | 'continueWhen'
           | 'telemetry'
           | 'experimental_telemetry'
           | 'activeTools'
@@ -408,6 +418,7 @@ export type ToolLoopAgentSettings<
         | 'instructions'
         | 'allowSystemInMessages'
         | 'stopWhen'
+        | 'continueWhen'
         | 'telemetry'
         | 'experimental_telemetry'
         | 'activeTools'

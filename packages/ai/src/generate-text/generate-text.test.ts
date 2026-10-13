@@ -211,6 +211,125 @@ describe('abort signal handling', () => {
   });
 });
 
+describe('continueWhen', () => {
+  it('should continue after a natural stop and let prepareStep update messages', async () => {
+    const prompts: LanguageModelV4Prompt[] = [];
+    const pendingMessages = [
+      { role: 'user' as const, content: 'focus on the API tests first' },
+    ];
+    let responseCount = 0;
+
+    const result = await generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async ({ prompt }) => {
+          prompts.push(prompt);
+          const text = responseCount++ === 0 ? 'first' : 'second';
+
+          return {
+            ...dummyResponseValues,
+            content: [{ type: 'text', text }],
+          };
+        },
+      }),
+      prompt: 'fix the failing tests',
+      stopWhen: isStepCount(2),
+      continueWhen: () => pendingMessages.length > 0,
+      prepareStep: ({ messages, stepNumber }) => {
+        if (stepNumber === 0 || pendingMessages.length === 0) {
+          return;
+        }
+
+        return {
+          messages: [...messages, ...pendingMessages.splice(0)],
+        };
+      },
+    });
+
+    expect(result.steps).toHaveLength(2);
+    expect(prompts).toHaveLength(2);
+    expect(prompts[1]).toContainEqual({
+      role: 'user',
+      content: [{ type: 'text', text: 'focus on the API tests first' }],
+      providerOptions: undefined,
+    });
+  });
+
+  it('should continue after tool results without calling continueWhen', async () => {
+    const continueWhen = vi.fn(async () => false);
+    let modelCallCount = 0;
+
+    const result = await generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async () => ({
+          ...dummyResponseValues,
+          content:
+            modelCallCount++ === 0
+              ? [
+                  {
+                    type: 'tool-call',
+                    toolCallId: 'call-1',
+                    toolName: 'tool1',
+                    input: '{}',
+                  },
+                ]
+              : [{ type: 'text', text: 'done' }],
+        }),
+      }),
+      prompt: 'test-input',
+      tools: {
+        tool1: {
+          inputSchema: z.object({}),
+          execute: async () => 'tool result',
+        },
+      },
+      stopWhen: isStepCount(2),
+      continueWhen,
+    });
+
+    expect(modelCallCount).toBe(2);
+    expect(result.steps).toHaveLength(2);
+    expect(result.text).toBe('done');
+    expect(continueWhen).not.toHaveBeenCalled();
+  });
+
+  it('should preserve natural completion callback behavior without continueWhen', async () => {
+    const stopWhen = vi.fn(async () => false);
+
+    const result = await generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async () => ({
+          ...dummyResponseValues,
+          content: [{ type: 'text', text: 'done' }],
+        }),
+      }),
+      prompt: 'test-input',
+      stopWhen,
+    });
+
+    expect(result.steps).toHaveLength(1);
+    expect(stopWhen).not.toHaveBeenCalled();
+  });
+
+  it('should let stopWhen prevent a requested continuation', async () => {
+    const continueWhen = vi.fn(async () => true);
+
+    const result = await generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async () => ({
+          ...dummyResponseValues,
+          content: [{ type: 'text', text: 'done' }],
+        }),
+      }),
+      prompt: 'test-input',
+      stopWhen: isStepCount(1),
+      continueWhen,
+    });
+
+    expect(result.steps).toHaveLength(1);
+    expect(continueWhen).not.toHaveBeenCalled();
+  });
+});
+
 describe('experimental_toolCallers', () => {
   it('late-binds local caller tools and hides local-only callees', async () => {
     let modelTools: LanguageModelV4CallOptions['tools'];
