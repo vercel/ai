@@ -19,32 +19,30 @@ export function executePiSandboxRead(
   sessionWorkDir: string,
   ...args: PiReadToolExecuteArgs
 ) {
+  const [, { path: sandboxPath }] = args;
   return createReadToolDefinition(sessionWorkDir, {
-    operations: createSandboxReadOperations(remoteOps),
+    operations: createSandboxReadOperations(remoteOps, sandboxPath),
   }).execute(...args);
 }
 
-function createSandboxReadOperations(remoteOps: PiRemoteOps): ReadOperations {
-  const reads = new Map<string, Promise<Buffer>>();
-  const readFile = (absolutePath: string): Promise<Buffer> => {
-    let read = reads.get(absolutePath);
-    if (read == null) {
-      read = remoteOps.readBuffer(absolutePath);
-      reads.set(absolutePath, read);
-    }
-    return read;
-  };
+// Pi resolves the path with the host's path rules before it calls these: it
+// rewrites Unicode spaces and, on a Windows host, turns a POSIX sandbox path
+// into a drive path.
+function createSandboxReadOperations(
+  remoteOps: PiRemoteOps,
+  sandboxPath: string,
+): ReadOperations {
+  let read: Promise<Buffer> | undefined;
+  const readFile = (): Promise<Buffer> =>
+    (read ??= remoteOps.readBuffer(sandboxPath));
   return {
     readFile,
-    async access(absolutePath) {
-      await readFile(absolutePath);
+    async access() {
+      await readFile();
     },
     // Pi exports its image sniffer only for host files.
-    async detectImageMimeType(absolutePath) {
-      const head = (await readFile(absolutePath)).subarray(
-        0,
-        PI_IMAGE_SNIFF_BYTES,
-      );
+    async detectImageMimeType() {
+      const head = (await readFile()).subarray(0, PI_IMAGE_SNIFF_BYTES);
       const dir = await mkdtemp(path.join(tmpdir(), 'ai-sdk-harness-pi-read-'));
       try {
         const file = path.join(dir, 'head');

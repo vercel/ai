@@ -1,8 +1,8 @@
 import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createPiPathMapper } from './pi-paths';
 import { executePiSandboxRead } from './pi-read-operations';
-import { createPiRemoteOps } from './pi-remote-ops';
+import { createPiRemoteOps, type PiRemoteOps } from './pi-remote-ops';
 
 describe('executePiSandboxRead with just-bash', () => {
   it("lets Pi's read tool return a sandbox image as an image block", async () => {
@@ -83,5 +83,22 @@ describe('executePiSandboxRead with just-bash', () => {
     } finally {
       await session.destroy();
     }
+  });
+  it('reads the mapped sandbox path, not the path Pi resolved on the host', async () => {
+    const sandboxPath = '/sandbox/workspace/release\u00A0notes.txt';
+    const readBuffer = vi.fn(async () => Buffer.from('shipped'));
+
+    const result = await executePiSandboxRead(
+      { readBuffer } as unknown as PiRemoteOps,
+      '/sandbox/workspace',
+      'tool-1',
+      { path: sandboxPath },
+      undefined,
+      undefined,
+      undefined as never,
+    );
+
+    expect(readBuffer.mock.calls).toEqual([[sandboxPath]]);
+    expect(result.content).toEqual([{ type: 'text', text: 'shipped' }]);
   });
 });
