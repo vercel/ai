@@ -85,6 +85,7 @@ import type {
 } from './language-model-events';
 import { text, type Output } from './output';
 import { parseToolCall } from './parse-tool-call';
+import type { ContinueCondition } from './continue-condition';
 import type { PrepareStepFunction } from './prepare-step';
 import { prepareStepCallSettings } from './prepare-step-call-settings';
 import { resolveToolApproval } from './resolve-tool-approval';
@@ -245,6 +246,7 @@ export async function generateText<
   timeout,
   headers,
   stopWhen = isStepCount(1),
+  continueWhen,
   experimental_sandbox: sandbox,
   output,
   toolApproval,
@@ -307,6 +309,13 @@ export async function generateText<
      * @default isStepCount(1)
      */
     stopWhen?: Arrayable<StopCondition<NoInfer<TOOLS>, RUNTIME_CONTEXT>>;
+
+    /**
+     * Optional condition for requesting another model step when the loop would
+     * otherwise finish naturally. Existing tool continuation rules still apply,
+     * and `stopWhen` takes precedence over `continueWhen`.
+     */
+    continueWhen?: ContinueCondition<NoInfer<TOOLS>, RUNTIME_CONTEXT>;
 
     /**
      * Optional telemetry configuration.
@@ -863,7 +872,7 @@ export async function generateText<
       // These tools may not return their results in the same turn as their call.
       const pendingDeferredToolCalls = new Map<string, { toolName: string }>();
 
-      do {
+      while (true) {
         if (steps.length > 0) {
           mergedAbortSignal?.throwIfAborted();
         }
@@ -1512,15 +1521,19 @@ export async function generateText<
             clearTimeout(stepTimeoutId);
           }
         }
-      } while (
-        // Continue only after all client tool calls have been executed or denied,
-        // and if there are client results or pending deferred provider results.
-        clientToolOutputs.length + deniedToolApprovalResponses.length ===
-          clientToolCalls.length &&
-        (clientToolCalls.length > 0 || pendingDeferredToolCalls.size > 0) &&
-        // continue until a stop condition is met:
-        !(await isStopConditionMet({ stopConditions, steps }))
-      );
+        const hasToolContinuation =
+          clientToolCalls.length > 0 || pendingDeferredToolCalls.size > 0;
+
+        if (
+          clientToolOutputs.length + deniedToolApprovalResponses.length !==
+            clientToolCalls.length ||
+          (!hasToolContinuation && continueWhen == null) ||
+          (await isStopConditionMet({ stopConditions, steps })) ||
+          (!hasToolContinuation && !(await continueWhen?.({ steps })))
+        ) {
+          break;
+        }
+      }
 
       const lastStep = steps[steps.length - 1];
 
