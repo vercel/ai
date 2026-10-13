@@ -10,5 +10,10 @@
     "build",
     "node_modules",
     "tsdown.config.ts"
+  ],
+  "references": [
+    {
+      "path": "../tool-bash"
+    }
   ]
 }

@@ -1,6 +1,6 @@
 ---
-'@ai-sdk/tool-bash': patch
-'@ai-sdk/tools': patch
+'@ai-sdk/tool-bash': major
+'@ai-sdk/tools': major
 ---
 
-Add the first-party bash tool in @ai-sdk/tool-bash. Retain @ai-sdk/tools as a placeholder for future shared tools.
+feat(tools): add the first-party bash tool
