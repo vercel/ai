@@ -14,4 +14,12 @@ describe('remove-openai-facade', () => {
   it('does transform openai import with as', () => {
     testTransform(transformer, 'remove-openai-facade-as');
   });
+
+  it('preserves sibling provider imports', () => {
+    testTransform(transformer, 'remove-openai-facade-sibling-imports');
+  });
+
+  it('reuses an aliased factory import', () => {
+    testTransform(transformer, 'remove-openai-facade-existing-factory');
+  });
 });
