@@ -107,11 +107,6 @@ export async function writeInstructions({
     currentDiskContent,
     existingMetadata,
   });
-  if (restoredContent === undefined) {
-    throw new Error(
-      `Cannot remove AI SDK harness instructions because the managed instructions in ${targetPath} were modified.`,
-    );
-  }
 
   if (restoredContent != null) {
     const contentToWrite = `${restoredContent.replace(/\n+$/, '')}\n`;
@@ -120,7 +115,7 @@ export async function writeInstructions({
       content: contentToWrite,
       abortSignal,
     });
-  } else {
+  } else if (restoredContent === null) {
     await removeTargetFile({
       sandbox,
       targetPath,

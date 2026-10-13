@@ -317,6 +317,10 @@ function fakeSandbox({
         const content = storedFiles.get(manifestMove[1]!);
         if (content != null) storedFiles.set(manifestMove[2]!, content);
       }
+      const fileRemoval = command.match(/^rm -f -- '([^']+)'$/);
+      if (fileRemoval != null) {
+        storedFiles.delete(fileRemoval[1]!);
+      }
       return { exitCode: 0, stdout: '', stderr: '' };
     },
     spawn: async ({
@@ -2683,6 +2687,92 @@ describe('createACP', () => {
     await second.done;
     await session.doDestroy();
   });
+
+  it.each([
+    { edit: 'removed', content: '# User notes without a trailing newline' },
+    { edit: 'edited', content: '# User notes\n\nEdited instructions.\n\n' },
+  ])(
+    'starts a subsequent filesystem-mapped turn with instructions unset after the managed block was $edit',
+    async ({ content }) => {
+      const writes: Array<{ path: string; content: string }> = [];
+      const runs: string[] = [];
+      const sandbox = fakeSandbox({
+        runs,
+        spawns: [],
+        writes,
+        stop: async () => {},
+      });
+      const filePath = '/home/agent/.cursor/rules/AGENTS.md';
+      const metadataPath =
+        '/home/agent/.cursor/rules/.AGENTS.md.ai-sdk-harness-instructions.json';
+      await sandbox.writeTextFile({
+        path: filePath,
+        content: '# Project notes\n',
+      });
+      const harness = createACP({
+        harnessId: 'cursor-acp',
+        ...agentSettings,
+        instructionMapping: {
+          type: 'filesystem',
+          path: '.cursor/rules/AGENTS.md',
+        },
+      });
+      const session = await harness.doStart({
+        sessionId: 'session-1',
+        sandboxSession: sandbox,
+        sessionWorkDir: '/workspace/user-project',
+      });
+      const channel = harnessUtilsMocks.channels[0]!;
+
+      try {
+        const first = await session.doPromptTurn({
+          skills: [],
+          tools: [],
+          prompt: 'Draft release notes.',
+          instructions: 'Always run tests.',
+          emit: () => {},
+        });
+        expect(await sandbox.readTextFile({ path: filePath })).toBe(
+          '# Project notes\n\nAlways run tests.\n',
+        );
+        expect(
+          await sandbox.readTextFile({ path: metadataPath }),
+        ).not.toBeNull();
+        channel.emit({
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          totalUsage: unknownUsage(),
+        });
+        await first.done;
+
+        await sandbox.writeTextFile({ path: filePath, content });
+        const writesCount = writes.length;
+        const second = await session.doPromptTurn({
+          skills: [],
+          tools: [],
+          prompt: 'Revise them.',
+          emit: () => {},
+        });
+        expect(channel.sent[1]).toMatchObject({
+          type: 'start',
+          prompt: [{ type: 'text', text: 'Revise them.' }],
+        });
+        expect(channel.sent[1]).not.toHaveProperty('instructions');
+        expect(await sandbox.readTextFile({ path: filePath })).toBe(content);
+        expect(writes).toHaveLength(writesCount);
+        expect(await sandbox.readTextFile({ path: metadataPath })).toBeNull();
+        expect(runs).toContain(`rm -f -- '${metadataPath}'`);
+        channel.emit({
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          totalUsage: unknownUsage(),
+        });
+        await second.done;
+      } finally {
+        await session.doDestroy();
+      }
+    },
+  );
 
   it('replaces changed skills before starting the next turn', async () => {
     const runs: string[] = [];

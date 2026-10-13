@@ -394,43 +394,102 @@ describe('writeInstructions', () => {
     );
   });
 
-  it('does not overwrite the file when the managed instructions were edited', async () => {
-    const state = makeSandbox();
-    state.files.set('/home/user/AGENTS.md', '# Base\n');
+  it.each([
+    { edit: 'edited', content: '# Base\n\nEdited instructions.\n' },
+    { edit: 'removed', content: '# Base\n\nUser-added notes.' },
+  ])(
+    'does not overwrite the file when replacing $edit managed instructions',
+    async ({ content }) => {
+      const state = makeSandbox();
+      state.files.set('/home/user/AGENTS.md', '# Base\n');
 
-    await writeInstructions({
-      sandbox: state.sandbox,
-      homePath: '/home/user',
-      instructionsFile: 'AGENTS.md',
-      instructions: 'First instructions.',
-    });
-
-    const editedContent = '# Base\n\nEdited instructions.\n';
-    state.files.set('/home/user/AGENTS.md', editedContent);
-    const writesCount = state.writes.length;
-    const runsCount = state.runs.length;
-
-    await expect(
-      writeInstructions({
+      await writeInstructions({
         sandbox: state.sandbox,
         homePath: '/home/user',
         instructionsFile: 'AGENTS.md',
-        instructions: 'Second instructions.',
-      }),
-    ).rejects.toThrow('the managed instructions');
+        instructions: 'First instructions.',
+      });
 
-    await expect(
-      writeInstructions({
-        sandbox: state.sandbox,
-        homePath: '/home/user',
-        instructionsFile: 'AGENTS.md',
-        instructions: undefined,
-      }),
-    ).rejects.toThrow('the managed instructions');
+      state.files.set('/home/user/AGENTS.md', content);
+      const writesCount = state.writes.length;
+      const runsCount = state.runs.length;
+      const metadata = state.files.get(
+        '/home/user/.AGENTS.md.ai-sdk-harness-instructions.json',
+      );
 
-    expect(state.files.get('/home/user/AGENTS.md')).toBe(editedContent);
-    expect(state.writes).toHaveLength(writesCount);
-    expect(state.runs).toHaveLength(runsCount);
+      await expect(
+        writeInstructions({
+          sandbox: state.sandbox,
+          homePath: '/home/user',
+          instructionsFile: 'AGENTS.md',
+          instructions: 'Second instructions.',
+        }),
+      ).rejects.toThrow('the managed instructions');
+
+      expect(state.files.get('/home/user/AGENTS.md')).toBe(content);
+      expect(
+        state.files.get(
+          '/home/user/.AGENTS.md.ai-sdk-harness-instructions.json',
+        ),
+      ).toBe(metadata);
+      expect(state.writes).toHaveLength(writesCount);
+      expect(state.runs).toHaveLength(runsCount);
+    },
+  );
+
+  describe.each([
+    { source: 'existing', originalContent: '# Base\n' },
+    { source: 'harness-created', originalContent: null },
+  ])('clearing instructions in a $source file', ({ originalContent }) => {
+    it.each([
+      { edit: 'removed', content: '# User notes without a trailing newline' },
+      { edit: 'edited', content: '# User notes\n\nEdited instructions.\n\n' },
+      { edit: 'removed along with all content', content: '' },
+    ])(
+      'preserves the file and retires metadata when managed instructions were $edit',
+      async ({ content }) => {
+        const state = makeSandbox();
+        const options = {
+          sandbox: state.sandbox,
+          homePath: '/home/user',
+          instructionsFile: 'AGENTS.md',
+        };
+        if (originalContent != null) {
+          state.files.set('/home/user/AGENTS.md', originalContent);
+        }
+        await writeInstructions({
+          ...options,
+          instructions: 'Temporary instructions.',
+        });
+
+        state.files.set('/home/user/AGENTS.md', content);
+        const writesCount = state.writes.length;
+        const runsCount = state.runs.length;
+
+        expect(await writeInstructions(options)).toEqual({
+          changed: true,
+          filePath: '/home/user/AGENTS.md',
+        });
+        expect(state.files.get('/home/user/AGENTS.md')).toBe(content);
+        expect(state.writes).toHaveLength(writesCount);
+        expect(state.runs.slice(runsCount)).toEqual([
+          "rm -f -- '/home/user/.AGENTS.md.ai-sdk-harness-instructions.json'",
+        ]);
+        expect(
+          state.files.has(
+            '/home/user/.AGENTS.md.ai-sdk-harness-instructions.json',
+          ),
+        ).toBe(false);
+
+        expect(await writeInstructions(options)).toEqual({
+          changed: false,
+          filePath: '/home/user/AGENTS.md',
+        });
+        expect(state.files.get('/home/user/AGENTS.md')).toBe(content);
+        expect(state.writes).toHaveLength(writesCount);
+        expect(state.runs).toHaveLength(runsCount + 1);
+      },
+    );
   });
 
   it('manages multiple target files in the same directory independently', async () => {
