@@ -1,17 +1,59 @@
 ---
 title: Fireworks
-description: Learn how to use Fireworks models with the AI SDK.
+description: Learn how to use Fireworks with AI Gateway and the direct provider.
 ---
 
 # Fireworks Provider
 
 [Fireworks](https://fireworks.ai/) is a platform for running and testing LLMs through their [API](https://readme.fireworks.ai/).
+Start with [AI Gateway](/providers/ai-sdk-providers/ai-gateway) for models in its catalog (recommended), or use `@ai-sdk/fireworks` to connect directly to Fireworks.
 
-## Setup
+```ts provider="fireworks" model="deepseek/deepseek-r1"
+import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
 
-The Fireworks provider is available via the `@ai-sdk/fireworks` module. You can install it with
+const { text } = await generateText({
+  model: __MODEL__,
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
 
-<InstallPackages packages="@ai-sdk/fireworks" />
+console.log(text);
+```
+
+## Using AI Gateway
+
+The AI SDK uses AI Gateway by default for model strings. Gateway provides access to models across providers through a single API key, with usage and cost tracking. Install `ai`:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
+
+Gateway uses catalog model IDs and its own routing. Model availability and the provider serving a request can differ from a direct connection. The dropdown shows models with a corresponding direct-provider example.
+
+## Using `@ai-sdk/fireworks`
+
+For direct access to Fireworks, install `ai` and `@ai-sdk/fireworks`:
+
+<InstallPackages packages="ai @ai-sdk/fireworks" />
+
+Set your Fireworks API credential in the `FIREWORKS_API_KEY` environment variable:
+
+```bash
+export FIREWORKS_API_KEY=your_api_key_here
+```
+
+AI Gateway does not expose every API in `@ai-sdk/fireworks`. Use the direct provider for provider-specific APIs or custom connection settings.
+
+<Note>
+  The following sections document the direct `@ai-sdk/fireworks` provider, including its model factories and settings. Gateway model and feature availability can differ.
+</Note>
 
 ## Provider Instance
 

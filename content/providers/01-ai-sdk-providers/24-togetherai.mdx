@@ -1,18 +1,59 @@
 ---
 title: Together.ai
-description: Learn how to use Together.ai's models with the AI SDK.
+description: Learn how to use Together.ai with AI Gateway and the direct provider.
 ---
 
 # Together.ai Provider
 
 The [Together.ai](https://together.ai) provider contains support for 200+ open-source models through the [Together.ai API](https://docs.together.ai/reference).
+Start with [AI Gateway](/providers/ai-sdk-providers/ai-gateway) for models in its catalog (recommended), or use `@ai-sdk/togetherai` to connect directly to Together.ai.
 
-## Setup
+```ts provider="togetherai" model="deepseek/deepseek-r1"
+import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
 
-The Together.ai provider is available via the `@ai-sdk/togetherai` module. You can
-install it with
+const { text } = await generateText({
+  model: __MODEL__,
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
 
-<InstallPackages packages="@ai-sdk/togetherai" />
+console.log(text);
+```
+
+## Using AI Gateway
+
+The AI SDK uses AI Gateway by default for model strings. Gateway provides access to models across providers through a single API key, with usage and cost tracking. Install `ai`:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
+
+Gateway uses catalog model IDs and its own routing. Model availability and the provider serving a request can differ from a direct connection. The dropdown shows models with a corresponding direct-provider example.
+
+## Using `@ai-sdk/togetherai`
+
+For direct access to Together.ai, install `ai` and `@ai-sdk/togetherai`:
+
+<InstallPackages packages="ai @ai-sdk/togetherai" />
+
+Set your Together.ai API credential in the `TOGETHER_API_KEY` environment variable:
+
+```bash
+export TOGETHER_API_KEY=your_api_key_here
+```
+
+AI Gateway does not expose every API in `@ai-sdk/togetherai`. Use the direct provider for provider-specific APIs or custom connection settings.
+
+<Note>
+  The following sections document the direct `@ai-sdk/togetherai` provider, including its model factories and settings. Gateway model and feature availability can differ.
+</Note>
 
 ## Provider Instance
 

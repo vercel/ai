@@ -1,6 +1,6 @@
 ---
 title: Open Responses
-description: Learn how to use the Open Responses provider for the AI SDK.
+description: Learn how to use Open Responses with AI Gateway and the direct provider.
 ---
 
 # Open Responses Provider
@@ -9,17 +9,61 @@ The [Open Responses](https://www.openresponses.org/) provider connects AI SDK
 Core to language model servers that implement an Open Responses-compatible
 `POST` endpoint. Open Responses is an open specification based on the OpenAI
 Responses API.
+Start with [AI Gateway](/providers/ai-sdk-providers/ai-gateway) for models in its catalog (recommended), or use `@ai-sdk/open-responses` to connect directly to Open Responses.
+
+```ts provider="open-responses" model="openai/gpt-6-astra"
+import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
+
+const { text } = await generateText({
+  model: __MODEL__,
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+
+console.log(text);
+```
+
+## Using AI Gateway
+
+The AI SDK uses AI Gateway by default for model strings. Gateway provides access to models across providers through a single API key, with usage and cost tracking. Install `ai`:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
+
+Gateway uses catalog model IDs and its own routing. Model availability and the provider serving a request can differ from a direct connection. The dropdown shows models with a corresponding direct-provider example.
+
+## Using `@ai-sdk/open-responses`
+
+For direct access to Open Responses, install `ai` and `@ai-sdk/open-responses`:
+
+<InstallPackages packages="ai @ai-sdk/open-responses" />
+
+Set the URL of your Open Responses endpoint:
+
+```bash
+export OPEN_RESPONSES_URL=http://localhost:1234/v1/responses
+```
+
+If your endpoint requires authentication, also set `OPEN_RESPONSES_API_KEY`; the example passes it to `createOpenResponses`. A local LM Studio server can run without an API key. Replace `your-model-id` with a model loaded on the server.
+
+Use the direct provider for a self-hosted or third-party Open Responses endpoint. The Gateway example uses a hosted OpenAI model; the direct example needs a model ID available on your endpoint.
+
+<Note>
+  The following sections document the direct `@ai-sdk/open-responses` provider, including its model factories and settings. Gateway model and feature availability can differ.
+</Note>
 
 Use `@ai-sdk/open-responses` for third-party or self-hosted endpoints that
 implement this protocol, such as LM Studio. If you call OpenAI directly and
 need OpenAI-specific provider options or built-in tools, use the
 [`@ai-sdk/openai` provider](/providers/ai-sdk-providers/openai) instead.
-
-## Setup
-
-The Open Responses provider is available in the `@ai-sdk/open-responses` module. You can install it with
-
-<InstallPackages packages="@ai-sdk/open-responses" />
 
 ## Provider Instance
 

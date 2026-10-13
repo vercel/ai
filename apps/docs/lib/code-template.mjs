@@ -1,10 +1,10 @@
 import {
-  DEFAULT_MODEL_IDS,
+  getCodeTemplateDefaults,
   MODEL_KIND_PLACEHOLDERS,
 } from './geistdocs/model-placeholders.ts';
 
 export const hasCodeTemplate = code =>
-  /__(?:MODEL|TEXT_MODEL|IMAGE_MODEL|VIDEO_MODEL|PROVIDER_IMPORT)__/.test(code);
+  /__(?:MODEL|TEXT_MODEL|IMAGE_MODEL|VIDEO_MODEL|SPEECH_MODEL|TRANSCRIPTION_MODEL|EMBEDDING_MODEL|DECISION_MODEL|PROVIDER_IMPORT)__/.test(code);
 
 export const parseCodeTemplateOptions = (meta = '') => {
   const fenceMeta = meta ?? '';
@@ -18,9 +18,9 @@ export const parseCodeTemplateOptions = (meta = '') => {
 
 export const renderGatewayCode = (
   code,
-  { defaultModelId = DEFAULT_MODEL_IDS.text } = {},
+  { defaultModelId } = {},
 ) => {
-  const defaultModels = { ...DEFAULT_MODEL_IDS, text: defaultModelId };
+  const defaultModels = getCodeTemplateDefaults(code, defaultModelId);
   let result = code;
   for (const [kind, placeholders] of Object.entries(MODEL_KIND_PLACEHOLDERS)) {
     for (const placeholder of placeholders) {

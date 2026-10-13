@@ -1,17 +1,59 @@
 ---
 title: Fal
-description: Learn how to use Fal AI models with the AI SDK.
+description: Learn how to use Fal with AI Gateway and the direct provider.
 ---
 
 # Fal Provider
 
 [Fal AI](https://fal.ai/) provides a generative media platform for developers with lightning-fast inference capabilities. Their platform offers optimized performance for running diffusion models, with speeds up to 4x faster than alternatives.
+Start with [AI Gateway](/providers/ai-sdk-providers/ai-gateway) for models in its catalog (recommended), or use `@ai-sdk/fal` to connect directly to Fal.
 
-## Setup
+```ts provider="fal" model="bfl/flux-pro-1.1"
+import { generateImage } from 'ai';
+__PROVIDER_IMPORT__;
 
-The Fal provider is available via the `@ai-sdk/fal` module. You can install it with
+const { image } = await generateImage({
+  model: __IMAGE_MODEL__,
+  prompt: 'A sunlit mountain village in watercolor.',
+});
 
-<InstallPackages packages="@ai-sdk/fal" />
+console.log(image.base64);
+```
+
+## Using AI Gateway
+
+The AI SDK uses AI Gateway by default for model strings. Gateway provides access to models across providers through a single API key, with usage and cost tracking. Install `ai`:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
+
+Gateway uses catalog model IDs and its own routing. Model availability and the provider serving a request can differ from a direct connection. The dropdown shows models with a corresponding direct-provider example.
+
+## Using `@ai-sdk/fal`
+
+For direct access to Fal, install `ai` and `@ai-sdk/fal`:
+
+<InstallPackages packages="ai @ai-sdk/fal" />
+
+Set your Fal API credential in the `FAL_API_KEY` environment variable:
+
+```bash
+export FAL_API_KEY=your_api_key_here
+```
+
+AI Gateway does not expose every API in `@ai-sdk/fal`. Use the direct provider for provider-specific APIs or custom connection settings.
+
+<Note>
+  The following sections document the direct `@ai-sdk/fal` provider, including its model factories and settings. Gateway model and feature availability can differ.
+</Note>
 
 ## Provider Instance
 

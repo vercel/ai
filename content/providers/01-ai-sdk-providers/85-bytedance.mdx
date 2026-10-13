@@ -1,17 +1,59 @@
 ---
 title: ByteDance
-description: Learn how to use ByteDance Seedance video and Seedream image models with the AI SDK.
+description: Learn how to use ByteDance with AI Gateway and the direct provider.
 ---
 
 # ByteDance Provider
 
 The [ByteDance](https://www.bytedance.com/) provider contains support for the Seedance family of video generation models and the Seedream family of image generation models through the [BytePlus ModelArk](https://docs.byteplus.com/en/docs/ModelArk/) platform. Seedance provides high-quality text-to-video and image-to-video generation capabilities, including audio-video synchronization, first-and-last frame control, and multi-reference image generation (see the [video generation API](https://docs.byteplus.com/en/docs/ModelArk/Video_Generation_API)). Seedream provides text-to-image and image-to-image generation, including multi-image blending and batch image generation (see the [image generation API](https://docs.byteplus.com/en/docs/ModelArk/1824690)).
+You can use ByteDance models through [AI Gateway](/providers/ai-sdk-providers/ai-gateway) (recommended) or connect directly with `@ai-sdk/bytedance`.
 
-## Setup
+```ts provider="bytedance" model="bytedance/seedream-5.0-pro"
+import { generateImage } from 'ai';
+__PROVIDER_IMPORT__;
 
-The ByteDance provider is available via the `@ai-sdk/bytedance` module. You can install it with
+const { image } = await generateImage({
+  model: __IMAGE_MODEL__,
+  prompt: 'A sunlit mountain village in watercolor.',
+});
 
-<InstallPackages packages="@ai-sdk/bytedance" />
+console.log(image.base64);
+```
+
+## Using AI Gateway
+
+The AI SDK uses AI Gateway by default for model strings. Gateway provides access to models across providers through a single API key, with usage and cost tracking. Install `ai`:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
+
+Gateway feature and provider-option support depends on the model and the provider serving the request. See [Gateway provider options](https://vercel.com/docs/ai-gateway/models-and-providers/provider-options).
+
+## Using `@ai-sdk/bytedance`
+
+For direct access to ByteDance, install `ai` and `@ai-sdk/bytedance`:
+
+<InstallPackages packages="ai @ai-sdk/bytedance" />
+
+Set your ByteDance API credential in the `ARK_API_KEY` environment variable:
+
+```bash
+export ARK_API_KEY=your_api_key_here
+```
+
+AI Gateway does not expose every API in `@ai-sdk/bytedance`. Use the direct provider for provider-specific APIs or custom connection settings.
+
+<Note>
+  The following sections document the direct `@ai-sdk/bytedance` provider, including its model factories and settings. Gateway model and feature availability can differ.
+</Note>
 
 ## Provider Instance
 

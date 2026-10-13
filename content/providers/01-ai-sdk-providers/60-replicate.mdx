@@ -1,18 +1,60 @@
 ---
 title: Replicate
-description: Learn how to use Replicate models with the AI SDK.
+description: Learn how to use Replicate with AI Gateway and the direct provider.
 ---
 
 # Replicate Provider
 
 [Replicate](https://replicate.com/) is a platform for running open-source AI models.
 It is a popular choice for running image generation models.
+Start with [AI Gateway](/providers/ai-sdk-providers/ai-gateway) for models in its catalog (recommended), or use `@ai-sdk/replicate` to connect directly to Replicate.
 
-## Setup
+```ts provider="replicate" model="bfl/flux-2-pro"
+import { generateImage } from 'ai';
+__PROVIDER_IMPORT__;
 
-The Replicate provider is available via the `@ai-sdk/replicate` module. You can install it with
+const { image } = await generateImage({
+  model: __IMAGE_MODEL__,
+  prompt: 'A sunlit mountain village in watercolor.',
+});
 
-<InstallPackages packages="@ai-sdk/replicate" />
+console.log(image.base64);
+```
+
+## Using AI Gateway
+
+The AI SDK uses AI Gateway by default for model strings. Gateway provides access to models across providers through a single API key, with usage and cost tracking. Install `ai`:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
+
+Gateway uses catalog model IDs and its own routing. Model availability and the provider serving a request can differ from a direct connection. The dropdown shows models with a corresponding direct-provider example.
+
+## Using `@ai-sdk/replicate`
+
+For direct access to Replicate, install `ai` and `@ai-sdk/replicate`:
+
+<InstallPackages packages="ai @ai-sdk/replicate" />
+
+Set your Replicate API credential in the `REPLICATE_API_TOKEN` environment variable:
+
+```bash
+export REPLICATE_API_TOKEN=your_api_key_here
+```
+
+AI Gateway does not expose every API in `@ai-sdk/replicate`. Use the direct provider for provider-specific APIs or custom connection settings.
+
+<Note>
+  The following sections document the direct `@ai-sdk/replicate` provider, including its model factories and settings. Gateway model and feature availability can differ.
+</Note>
 
 ## Provider Instance
 
