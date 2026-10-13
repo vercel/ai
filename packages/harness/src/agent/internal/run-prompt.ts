@@ -303,12 +303,15 @@ export function runPrompt<
     >();
     /*
      * Host results are echoed back as `tool-result` events too, so the event
-     * alone cannot say who ran the tool — classify by the originating
-     * `tool-call`. Only an explicit `true` counts: `LanguageModelV4ToolCall`
-     * defines an omitted flag as client-executed. A call missing from the map
-     * arrived in an earlier slice, where nothing here can classify it.
+     * alone cannot provide the parsed input or say who ran the tool — restore
+     * both from the originating `tool-call`. Only an explicit `true` counts:
+     * `LanguageModelV4ToolCall` defines an omitted flag as client-executed. A
+     * call missing from the map arrived in an earlier slice, where nothing
+     * here can classify it.
      */
     const translateOptions = {
+      getToolCall: (toolCallId: string) =>
+        toolCallsByToolCallId.get(toolCallId),
       isProviderExecuted: (toolCallId: string): boolean => {
         const rawToolCall = rawToolCallsByToolCallId.get(toolCallId);
         return rawToolCall == null || rawToolCall.providerExecuted === true;
