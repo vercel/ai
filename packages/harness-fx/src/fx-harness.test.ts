@@ -27,7 +27,7 @@ describe('createFx', () => {
       version: settings.version,
       harnessId: settings.harnessId,
       clientApp: settings.clientApp,
-      source: settings.source,
+      source: { type: settings.source.type },
       executable: settings.executable,
       args: settings.args,
       credentialEnv: settings.credentialEnv,
@@ -233,12 +233,19 @@ describe('createFx', () => {
           },
         },
         "source": {
-          "command": "curl -fsSL https://fx.sh/setup.sh | bash",
           "type": "install-command",
         },
         "version": "v1",
       }
     `);
+
+    if (settings.source.type !== 'install-command') {
+      throw new Error('fx source must be an install command');
+    }
+
+    expect(settings.source.command).toMatch(
+      /^curl -fsSL https:\/\/fx\.sh\/setup\.sh \| bash -s -- v\S+$/,
+    );
   });
 
   it('accepts fx v0.0.10 ACP shell and capability search inputs', () => {
