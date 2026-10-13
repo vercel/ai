@@ -393,21 +393,6 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
       url.searchParams.set('id', requestId);
     }
 
-<<<<<<< HEAD
-    for (let i = 0; i < maxPollAttempts; i++) {
-      const { value } = await getFromApi({
-        url: url.toString(),
-        // The polling URL comes from the provider response; only send
-        // credentials when it stays on a trusted provider host.
-        headers: isTrustedUrl(url.toString(), this.config.baseURL)
-          ? headers
-          : undefined,
-        failedResponseHandler: bflFailedResponseHandler,
-        successfulResponseHandler: createJsonResponseHandler(bflPollSchema),
-        abortSignal,
-        fetch: this.config.fetch,
-      });
-=======
     const timeoutController = new AbortController();
     let didTimeout = false;
     const timeoutId = setTimeout(() => {
@@ -418,15 +403,11 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
       abortSignal == null
         ? timeoutController.signal
         : AbortSignal.any([abortSignal, timeoutController.signal]);
->>>>>>> e4e761ea62 (fix: Black Forest Labs and Fireworks image polling can ignore pollTimeoutMillis during slow or hanging requests (#21014))
 
     try {
       while (true) {
         const { value } = await getFromApi({
           url: url.toString(),
-          // The polling URL comes from the provider response; validate it.
-          validateUrl: true,
-          trustedOrigin: this.config.baseURL,
           // Only send credentials when it stays on a trusted provider host.
           headers: isTrustedUrl(url.toString(), this.config.baseURL)
             ? headers
@@ -455,23 +436,13 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
         if (status === 'Error' || status === 'Failed') {
           throw new Error('Black Forest Labs generation failed.');
         }
-<<<<<<< HEAD
-        throw new Error(
-          'Black Forest Labs poll response is Ready but missing result.sample',
-        );
-      }
-      if (status === 'Error' || status === 'Failed') {
-        throw new Error('Black Forest Labs generation failed.');
-      }
-      if (
-        status === 'Request Moderated' ||
-        status === 'Content Moderated' ||
-        status === 'Task not found'
-      ) {
-        throw new Error(`Black Forest Labs generation failed: ${status}.`);
-      }
-=======
->>>>>>> e4e761ea62 (fix: Black Forest Labs and Fireworks image polling can ignore pollTimeoutMillis during slow or hanging requests (#21014))
+        if (
+          status === 'Request Moderated' ||
+          status === 'Content Moderated' ||
+          status === 'Task not found'
+        ) {
+          throw new Error(`Black Forest Labs generation failed: ${status}.`);
+        }
 
         await delay(pollIntervalMillis, {
           abortSignal: pollingAbortSignal,
