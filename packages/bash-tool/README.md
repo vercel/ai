@@ -19,13 +19,6 @@ pnpm add ai @ai-sdk/bash-tool @ai-sdk/sandbox-just-bash
 
 Requires Node.js 22.13 or newer.
 
-You can also install `@ai-sdk/tools` instead of `@ai-sdk/bash-tool` and use the
-same tool through the shared package:
-
-```ts
-import { bashTool } from '@ai-sdk/tools';
-```
-
 ## Usage
 
 ```ts

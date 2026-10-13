@@ -220,9 +220,6 @@
       "path": "packages/bash-tool"
     },
     {
-      "path": "packages/tools"
-    },
-    {
       "path": "packages/topaz"
     },
     {
