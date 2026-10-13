@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 23137,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-23137-stream-transcribe-telemetry-lock.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-23137-stream-transcribe-telemetry-lock.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #23137: telemetry must release the caller audio stream lock after completion"
+  }
+}
