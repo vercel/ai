@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "issueId": 21372,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-21372-bedrock-mantle-route.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-21372-bedrock-mantle-route.ts",
+    "packages/amazon-bedrock/src/mantle/__fixtures__/issue-21372-gpt-6-sol-live.json",
+    "packages/amazon-bedrock/src/mantle/bedrock-mantle-provider.test.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_21372_REPRODUCED: default Mantle routing rejected a supported model that succeeded through /openai/v1"
+  }
+}

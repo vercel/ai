@@ -1,0 +1,41 @@
+{
+  "recordedAt": "2026-10-13",
+  "region": "us-east-1",
+  "modelId": "openai.gpt-6-sol",
+  "attempts": {
+    "defaultChat": {
+      "requestUrl": "https://bedrock-mantle.us-east-1.api.aws/v1/chat/completions",
+      "status": 400,
+      "response": {
+        "error": {
+          "code": "validation_error",
+          "message": "model `openai.gpt-6-sol` isn't supported on this route",
+          "param": null,
+          "type": "invalid_request_error"
+        }
+      }
+    },
+    "explicitOpenAIChat": {
+      "requestUrl": "https://bedrock-mantle.us-east-1.api.aws/openai/v1/chat/completions",
+      "status": 200,
+      "mappedText": "pong"
+    },
+    "defaultResponses": {
+      "requestUrl": "https://bedrock-mantle.us-east-1.api.aws/v1/responses",
+      "status": 400,
+      "response": {
+        "error": {
+          "code": "validation_error",
+          "message": "The model 'openai.gpt-6-sol' does not support the '/v1/responses' API",
+          "param": null,
+          "type": "invalid_request_error"
+        }
+      }
+    },
+    "explicitOpenAIResponses": {
+      "requestUrl": "https://bedrock-mantle.us-east-1.api.aws/openai/v1/responses",
+      "status": 200,
+      "mappedText": "pong"
+    }
+  }
+}
