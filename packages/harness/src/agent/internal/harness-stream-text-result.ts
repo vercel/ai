@@ -22,6 +22,7 @@ import {
   createUIMessageStreamResponse,
   toUIMessageStream as toUIMessageStreamHelper,
   type CallWarning,
+  type Citation,
   type ContentPart,
   type FinishReason,
   type InferUIMessageChunk,
@@ -51,6 +52,19 @@ type InferElementOutput<OUTPUT extends Output> =
 type EnrichedStreamPart<TOOLS extends ToolSet, PARTIAL_OUTPUT> = {
   part: TextStreamPart<TOOLS>;
   partialOutput: PARTIAL_OUTPUT | undefined;
+};
+
+type AccumulatedTextContent = {
+  type: 'text';
+  text: string;
+  citations?: Citation[];
+  providerMetadata?: ProviderMetadata;
+};
+
+type AccumulatedReasoningContent = {
+  type: 'reasoning';
+  text: string;
+  providerMetadata?: ProviderMetadata;
 };
 
 /**
@@ -149,6 +163,11 @@ export class HarnessStreamTextResult<
 
   private readonly stepsBuffer: StepResult<TOOLS, RUNTIME_CONTEXT>[] = [];
   private currentStepContent: ContentPart<TOOLS>[] = [];
+  private currentStepTextContent = new Map<string, AccumulatedTextContent>();
+  private currentStepReasoningContent = new Map<
+    string,
+    AccumulatedReasoningContent
+  >();
   private currentStepWarnings: CallWarning[] = [];
   private stepNumber = 0;
   private stepStarted = false;
@@ -261,6 +280,8 @@ export class HarnessStreamTextResult<
    */
   discardCurrentStepContent(): void {
     this.currentStepContent = [];
+    this.currentStepTextContent.clear();
+    this.currentStepReasoningContent.clear();
     this.currentStepWarnings = [];
     this.stepStarted = false;
   }
@@ -334,6 +355,8 @@ export class HarnessStreamTextResult<
 
     this.stepNumber += 1;
     this.currentStepContent = [];
+    this.currentStepTextContent.clear();
+    this.currentStepReasoningContent.clear();
     this.currentStepWarnings = [];
     this.stepStarted = false;
 
@@ -846,30 +869,88 @@ export class HarnessStreamTextResult<
 
   private appendToCurrentStepContent(part: TextStreamPart<TOOLS>): void {
     switch (part.type) {
+      case 'text-start': {
+        const content: AccumulatedTextContent = {
+          type: 'text',
+          text: '',
+          ...(part.providerMetadata != null
+            ? { providerMetadata: part.providerMetadata }
+            : {}),
+        };
+        this.currentStepTextContent.set(part.id, content);
+        this.currentStepContent.push(content);
+        return;
+      }
       case 'text-delta': {
-        // Coalesce contiguous text-deltas with the same id into one text part.
-        const last =
-          this.currentStepContent[this.currentStepContent.length - 1];
-        if (last && last.type === 'text') {
-          (last as { text: string }).text += part.text;
-        } else {
-          this.currentStepContent.push({
+        let content = this.currentStepTextContent.get(part.id);
+        if (content == null) {
+          content = {
             type: 'text',
-            text: part.text,
-          } as ContentPart<TOOLS>);
+            text: '',
+            ...(part.providerMetadata != null
+              ? { providerMetadata: part.providerMetadata }
+              : {}),
+          };
+          this.currentStepTextContent.set(part.id, content);
+          this.currentStepContent.push(content);
+        }
+        content.text += part.text;
+        if (part.providerMetadata != null) {
+          content.providerMetadata = part.providerMetadata;
         }
         return;
       }
+      case 'text-end': {
+        const content = this.currentStepTextContent.get(part.id);
+        if (content != null) {
+          if (part.providerMetadata != null) {
+            content.providerMetadata = part.providerMetadata;
+          }
+          if (part.citations != null) {
+            content.citations = part.citations;
+          }
+          this.currentStepTextContent.delete(part.id);
+        }
+        return;
+      }
+      case 'reasoning-start': {
+        const content: AccumulatedReasoningContent = {
+          type: 'reasoning',
+          text: '',
+          ...(part.providerMetadata != null
+            ? { providerMetadata: part.providerMetadata }
+            : {}),
+        };
+        this.currentStepReasoningContent.set(part.id, content);
+        this.currentStepContent.push(content);
+        return;
+      }
       case 'reasoning-delta': {
-        const last =
-          this.currentStepContent[this.currentStepContent.length - 1];
-        if (last && last.type === 'reasoning') {
-          (last as { text: string }).text += part.text;
-        } else {
-          this.currentStepContent.push({
+        let content = this.currentStepReasoningContent.get(part.id);
+        if (content == null) {
+          content = {
             type: 'reasoning',
-            text: part.text,
-          } as ContentPart<TOOLS>);
+            text: '',
+            ...(part.providerMetadata != null
+              ? { providerMetadata: part.providerMetadata }
+              : {}),
+          };
+          this.currentStepReasoningContent.set(part.id, content);
+          this.currentStepContent.push(content);
+        }
+        content.text += part.text;
+        if (part.providerMetadata != null) {
+          content.providerMetadata = part.providerMetadata;
+        }
+        return;
+      }
+      case 'reasoning-end': {
+        const content = this.currentStepReasoningContent.get(part.id);
+        if (content != null) {
+          if (part.providerMetadata != null) {
+            content.providerMetadata = part.providerMetadata;
+          }
+          this.currentStepReasoningContent.delete(part.id);
         }
         return;
       }
