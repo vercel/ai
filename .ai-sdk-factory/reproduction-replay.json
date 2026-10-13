@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 20107,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-20107-empty-error-body.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-20107-empty-error-body.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_20107_REPRODUCED: empty HTTP error messages in DefaultChatTransport.sendMessages, DefaultChatTransport.reconnectToStream, callCompletionApi, React useObject, Svelte StructuredObject, Angular StructuredObject"
+  }
+}
