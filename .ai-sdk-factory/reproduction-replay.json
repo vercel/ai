@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 23147,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-23147-image-settings-alias.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-23147-image-settings-alias.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Issue #23147: aliased Luma polling interval was not migrated to providerOptions.luma"
+  }
+}
