@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "issueId": 23132,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/opencode-provider-model-limit.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/opencode-provider-model-limit.ts",
+    "packages/harness-opencode/src/bridge/index.test.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "OpenCode bridge dropped caller model limit"
+  }
+}
