@@ -1,0 +1,22 @@
+{
+  "id": "issue-21739",
+  "created": 1791853134,
+  "model": "mistral-small-latest",
+  "usage": {
+    "prompt_tokens": 1,
+    "total_tokens": 2,
+    "completion_tokens": 1
+  },
+  "object": "chat.completion",
+  "choices": [
+    {
+      "index": 0,
+      "finish_reason": "error",
+      "message": {
+        "role": "assistant",
+        "tool_calls": null,
+        "content": "Partial response"
+      }
+    }
+  ]
+}

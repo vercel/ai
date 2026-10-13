@@ -79,6 +79,19 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should map the documented error finish reason', async () => {
+    prepareJsonFixtureResponse('mistral-error-finish-reason');
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.finishReason).toStrictEqual({
+      unified: 'error',
+      raw: 'error',
+    });
+  });
+
   describe('tool call', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('mistral-tool-call');

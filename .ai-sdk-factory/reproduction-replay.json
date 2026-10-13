@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "issueId": 21739,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-21739-mistral-error-finish-reason.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-21739-mistral-error-finish-reason.ts",
+    "packages/mistral/src/__fixtures__/mistral-error-finish-reason.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_21739: expected finishReason \"error\", received \"other\" while rawFinishReason was \"error\""
+  }
+}
