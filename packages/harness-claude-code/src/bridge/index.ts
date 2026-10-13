@@ -170,6 +170,7 @@ function createPermissionOptions(input: {
   clearWaitingOnHostInput: (toolUseId: string) => void;
   nativeToolCallNames: Map<string, string>;
   approvalRequestedToolUseIds: Set<string>;
+  emittedToolCallIds: Set<string>;
 }): Record<string, unknown> {
   const permissionMode = input.start.permissionMode ?? 'allow-all';
   const inactiveNativeTools = new Set(input.inactiveNativeTools);
@@ -225,15 +226,19 @@ function createPermissionOptions(input: {
       const approvalId = options.toolUseID;
       input.approvalRequestedToolUseIds.add(approvalId);
       input.nativeToolCallNames.set(approvalId, toolName);
-      input.emit({
-        type: 'tool-call',
-        toolCallId: approvalId,
-        toolName: toCommonName(toolName),
-        nativeName: toolName,
-        input: JSON.stringify(toolInput ?? {}),
-        providerExecuted: true,
-        ...(isExternalMcpTool(toolName) ? { dynamic: true } : {}),
-      });
+      if (!input.emittedToolCallIds.has(approvalId)) {
+        input.emittedToolCallIds.add(approvalId);
+        input.emit({
+          type: 'tool-call',
+          toolCallId: approvalId,
+          toolName: toCommonName(toolName),
+          nativeName: toolName,
+          input: JSON.stringify(toolInput ?? {}),
+          providerExecuted: true,
+          ...(isExternalMcpTool(toolName) ? { dynamic: true } : {}),
+        });
+      }
+      const decisionPromise = input.turn.requestToolApproval(approvalId);
       input.emit({
         type: 'tool-approval-request',
         approvalId,
@@ -241,9 +246,9 @@ function createPermissionOptions(input: {
       });
       input.markWaitingOnHostInput(approvalId);
 
-      const decision = await input.turn
-        .requestToolApproval(approvalId)
-        .finally(() => input.clearWaitingOnHostInput(approvalId));
+      const decision = await decisionPromise.finally(() =>
+        input.clearWaitingOnHostInput(approvalId),
+      );
       return decision.approved
         ? { behavior: 'allow', updatedInput: toolInput, toolUseID: approvalId }
         : {
@@ -530,6 +535,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       clearWaitingOnHostInput({ state: streamEventState, toolUseId }),
     nativeToolCallNames: streamEventState.nativeToolCallNames,
     approvalRequestedToolUseIds: streamEventState.approvalRequestedToolUseIds,
+    emittedToolCallIds: streamEventState.emittedToolCallIds,
   });
   const questionPreToolUseHook = createQuestionPreToolUseHook({
     turn,

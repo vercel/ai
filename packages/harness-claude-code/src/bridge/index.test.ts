@@ -48,6 +48,9 @@ const state = vi.hoisted(() => ({
   requestToolResult: undefined as
     | ((input: Record<string, unknown>) => Promise<Record<string, unknown>>)
     | undefined,
+  requestToolApproval: undefined as
+    | ((approvalId: string) => Promise<{ approved: boolean; reason?: string }>)
+    | undefined,
 }));
 
 vi.mock('@anthropic-ai/claude-agent-sdk', () => ({
@@ -171,7 +174,8 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
         emitError: (input: unknown) => state.emitError?.(input),
         requestToolResult: async (input: Record<string, unknown>) =>
           state.requestToolResult?.(input) ?? { output: {} },
-        requestToolApproval: async () => ({ approved: true }),
+        requestToolApproval: async (approvalId: string) =>
+          state.requestToolApproval?.(approvalId) ?? { approved: true },
       });
     }
   },
@@ -192,6 +196,7 @@ describe('Claude Code bridge configuration', () => {
     state.turnAbortController = undefined;
     state.emitError = undefined;
     state.requestToolResult = undefined;
+    state.requestToolApproval = undefined;
     state.onStop = undefined;
     state.firstTurn = true;
     state.additionalTurns = [];
@@ -802,6 +807,76 @@ describe('Claude Code bridge configuration', () => {
       dynamic: true,
     });
   });
+
+  test.each(['before', 'after'])(
+    'emits native calls once when permission callbacks run %s assistant messages',
+    async ordering => {
+      state.start.permissionMode = 'allow-edits';
+      const registered: string[] = [];
+      state.requestToolApproval = async id => {
+        expect(
+          state.emitted.some(
+            event =>
+              event.type === 'tool-approval-request' && event.approvalId === id,
+          ),
+        ).toBe(false);
+        registered.push(id);
+        return { approved: id === 'first', reason: 'Not allowed' };
+      };
+      state.createQuery = args =>
+        (async function* () {
+          const canUseTool = args.options.canUseTool as (
+            name: string,
+            input: Record<string, unknown>,
+            options: { toolUseID: string },
+          ) => Promise<unknown>;
+          const assistant = {
+            type: 'assistant',
+            message: {
+              content: ['first', 'second'].map(id => ({
+                type: 'tool_use',
+                id,
+                name: 'Bash',
+                input: { command: 'pwd' },
+              })),
+            },
+          };
+          yield { type: 'stream_event', event: { type: 'message_start' } };
+          if (ordering === 'after') yield assistant;
+          for (const id of ['first', 'second']) {
+            const decision = await canUseTool(
+              'Bash',
+              { command: 'pwd' },
+              { toolUseID: id },
+            );
+            expect(registered).toContain(id);
+            expect(decision).toEqual(
+              id === 'first'
+                ? {
+                    behavior: 'allow',
+                    updatedInput: { command: 'pwd' },
+                    toolUseID: id,
+                  }
+                : { behavior: 'deny', message: 'Not allowed', toolUseID: id },
+            );
+          }
+          if (ordering === 'before') yield assistant;
+          yield { type: 'stream_event', event: { type: 'message_stop' } };
+          yield { type: 'result', subtype: 'success', result: 'done' };
+        })();
+      await import('./index');
+      expect(
+        state.emitted
+          .filter(event => event.type === 'tool-call')
+          .map(event => event.toolCallId),
+      ).toEqual(['first', 'second']);
+      expect(
+        state.emitted
+          .filter(event => event.type === 'tool-approval-request')
+          .map(event => event.approvalId),
+      ).toEqual(['first', 'second']);
+    },
+  );
 
   test('allows ListAgents without approval in allow-reads mode', async () => {
     state.start = {
