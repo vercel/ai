@@ -3,7 +3,7 @@ import { transform, type TransformErrors } from './transform';
 import type { TransformOptions } from './transform-options';
 import { SingleBar, Presets } from 'cli-progress';
 
-const bundle = [
+export const bundle = [
   'v4/remove-ai-stream-methods-from-stream-text-result',
   'v4/remove-anthropic-facade',
   'v4/remove-await-streamobject',
@@ -77,7 +77,7 @@ const bundle = [
   'v5/restructure-file-stream-parts',
   'v5/restructure-source-stream-parts',
   'v5/rsc-package',
-  'v5/move-tool-invocations-to-parts',
+  'v5/not-implemented/move-tool-invocations-to-parts',
   'v5/not-implemented/pattern',
   'v5/rename-addtoolresult-to-addtooloutput',
   'v6/rename-text-embedding-to-embedding',
