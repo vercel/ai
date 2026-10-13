@@ -1,5 +1,11 @@
 # @ai-sdk/svelte
 
+## 5.0.139
+
+### Patch Changes
+
+- ai@7.0.139
+
 ## 5.0.138
 
 ### Patch Changes
