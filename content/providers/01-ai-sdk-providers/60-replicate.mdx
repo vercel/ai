@@ -7,7 +7,7 @@ description: Learn how to use Replicate with AI Gateway and the direct provider.
 
 [Replicate](https://replicate.com/) is a platform for running open-source AI models.
 It is a popular choice for running image generation models.
-Start with [AI Gateway](/providers/ai-sdk-providers/ai-gateway) for models in its catalog (recommended), or use `@ai-sdk/replicate` to connect directly to Replicate.
+Use [AI Gateway](/providers/ai-sdk-providers/ai-gateway) for the shared models shown below, served by Gateway's supported providers, or use `@ai-sdk/replicate` to send requests directly to Replicate. Gateway does not currently route requests to Replicate.
 
 ```ts provider="replicate" model="bfl/flux-2-pro"
 import { generateImage } from 'ai';
@@ -36,7 +36,7 @@ export AI_GATEWAY_API_KEY=your_api_key_here
 Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
 See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
 
-Gateway uses catalog model IDs and its own routing. Model availability and the provider serving a request can differ from a direct connection. The dropdown shows models with a corresponding direct-provider example.
+The current [Gateway provider list](https://vercel.com/docs/ai-gateway/models-and-providers/provider-options#available-providers) does not include Replicate as an inference provider. The Gateway tab calls models also available from Replicate, but Gateway routes them through its supported inference providers. It does not send the request to Replicate. Use the direct tab to call Replicate; do not set `providerOptions.gateway.order` to an unsupported provider slug.
 
 ## Using `@ai-sdk/replicate`
 
@@ -50,7 +50,7 @@ Set your Replicate API credential in the `REPLICATE_API_TOKEN` environment varia
 export REPLICATE_API_TOKEN=your_api_key_here
 ```
 
-AI Gateway does not expose every API in `@ai-sdk/replicate`. Use the direct provider for provider-specific APIs or custom connection settings.
+Use `@ai-sdk/replicate` to authenticate with your Replicate account and call its platform APIs directly. The Gateway alternative above uses a supported inference provider instead.
 
 <Note>
   The following sections document the direct `@ai-sdk/replicate` provider, including its model factories and settings. Gateway model and feature availability can differ.

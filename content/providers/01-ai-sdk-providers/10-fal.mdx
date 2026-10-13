@@ -6,7 +6,7 @@ description: Learn how to use Fal with AI Gateway and the direct provider.
 # Fal Provider
 
 [Fal AI](https://fal.ai/) provides a generative media platform for developers with lightning-fast inference capabilities. Their platform offers optimized performance for running diffusion models, with speeds up to 4x faster than alternatives.
-Start with [AI Gateway](/providers/ai-sdk-providers/ai-gateway) for models in its catalog (recommended), or use `@ai-sdk/fal` to connect directly to Fal.
+Use [AI Gateway](/providers/ai-sdk-providers/ai-gateway) for the shared models shown below, served by Gateway's supported providers, or use `@ai-sdk/fal` to send requests directly to Fal. Gateway does not currently route requests to Fal.
 
 ```ts provider="fal" model="bfl/flux-pro-1.1"
 import { generateImage } from 'ai';
@@ -35,7 +35,7 @@ export AI_GATEWAY_API_KEY=your_api_key_here
 Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
 See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
 
-Gateway uses catalog model IDs and its own routing. Model availability and the provider serving a request can differ from a direct connection. The dropdown shows models with a corresponding direct-provider example.
+The current [Gateway provider list](https://vercel.com/docs/ai-gateway/models-and-providers/provider-options#available-providers) does not include Fal as an inference provider. The Gateway tab calls models also available from Fal, but Gateway routes them through its supported inference providers. It does not send the request to Fal. Use the direct tab to call Fal; do not set `providerOptions.gateway.order` to an unsupported provider slug.
 
 ## Using `@ai-sdk/fal`
 
@@ -49,7 +49,7 @@ Set your Fal API credential in the `FAL_API_KEY` environment variable:
 export FAL_API_KEY=your_api_key_here
 ```
 
-AI Gateway does not expose every API in `@ai-sdk/fal`. Use the direct provider for provider-specific APIs or custom connection settings.
+Use `@ai-sdk/fal` to authenticate with your Fal account and call its platform APIs directly. The Gateway alternative above uses a supported inference provider instead.
 
 <Note>
   The following sections document the direct `@ai-sdk/fal` provider, including its model factories and settings. Gateway model and feature availability can differ.

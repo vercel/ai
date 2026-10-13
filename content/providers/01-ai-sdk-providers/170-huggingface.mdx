@@ -6,7 +6,7 @@ description: Learn how to use Hugging Face with AI Gateway and the direct provid
 # Hugging Face Provider
 
 The [Hugging Face](https://huggingface.co/) provider offers access to thousands of language models through [Hugging Face Inference Providers](https://huggingface.co/docs/inference-providers/index), including models from Meta, DeepSeek, Qwen, and more.
-Start with [AI Gateway](/providers/ai-sdk-providers/ai-gateway) for models in its catalog (recommended), or use `@ai-sdk/huggingface` to connect directly to Hugging Face.
+Use [AI Gateway](/providers/ai-sdk-providers/ai-gateway) for the shared models shown below, served by Gateway's supported providers, or use `@ai-sdk/huggingface` to send requests directly to Hugging Face. Gateway does not currently route requests to Hugging Face.
 
 ```ts provider="huggingface" model="meta/llama-3.3-70b"
 import { generateText } from 'ai';
@@ -35,7 +35,7 @@ export AI_GATEWAY_API_KEY=your_api_key_here
 Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
 See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
 
-Gateway uses catalog model IDs and its own routing. Model availability and the provider serving a request can differ from a direct connection. The dropdown shows models with a corresponding direct-provider example.
+The current [Gateway provider list](https://vercel.com/docs/ai-gateway/models-and-providers/provider-options#available-providers) does not include Hugging Face as an inference provider. The Gateway tab calls models also available from Hugging Face, but Gateway routes them through its supported inference providers. It does not send the request to Hugging Face. Use the direct tab to call Hugging Face; do not set `providerOptions.gateway.order` to an unsupported provider slug.
 
 ## Using `@ai-sdk/huggingface`
 
@@ -49,7 +49,7 @@ Set your Hugging Face API credential in the `HUGGINGFACE_API_KEY` environment va
 export HUGGINGFACE_API_KEY=your_api_key_here
 ```
 
-AI Gateway does not expose every API in `@ai-sdk/huggingface`. Use the direct provider for provider-specific APIs or custom connection settings.
+Use `@ai-sdk/huggingface` to authenticate with your Hugging Face account and call its platform APIs directly. The Gateway alternative above uses a supported inference provider instead.
 
 <Note>
   The following sections document the direct `@ai-sdk/huggingface` provider, including its model factories and settings. Gateway model and feature availability can differ.

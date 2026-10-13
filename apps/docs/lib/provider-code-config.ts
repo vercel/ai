@@ -9,6 +9,8 @@ type ProviderCodeConfig = {
   /** Explicit pairs for hosted models, aliases, and deployment names. */
   models?: Record<string, string>;
   importCode?: string;
+  /** Gateway endpoint slug, which can differ from the SDK package name. */
+  gatewayProvider?: string;
 };
 
 // Scope provider-page dropdowns to models with a known direct-provider mapping.
@@ -74,6 +76,7 @@ export const providerCodeConfigs: Record<string, ProviderCodeConfig> = {
     title: 'Azure OpenAI',
     pkg: 'azure',
     export: 'azure',
+    gatewayProvider: 'azure',
     kinds: ['text'],
     models: {
       'openai/gpt-6-astra': 'your-gpt-6-astra-deployment-name',
@@ -116,6 +119,7 @@ export const providerCodeConfigs: Record<string, ProviderCodeConfig> = {
     title: 'Claude Platform on AWS',
     pkg: 'anthropic-aws',
     export: 'anthropicAws',
+    gatewayProvider: 'claudeaws',
     kinds: ['text'],
     models: {
       'anthropic/claude-sonnet-5.5': 'claude-sonnet-5-5',
@@ -127,6 +131,7 @@ export const providerCodeConfigs: Record<string, ProviderCodeConfig> = {
     title: 'Amazon Bedrock',
     pkg: 'amazon-bedrock',
     export: 'amazonBedrock',
+    gatewayProvider: 'bedrock',
     kinds: ['text'],
     models: {
       'amazon/nova-pro': 'us.amazon.nova-pro-v1:0',
@@ -139,11 +144,11 @@ export const providerCodeConfigs: Record<string, ProviderCodeConfig> = {
     title: 'Groq',
     pkg: 'groq',
     export: 'groq',
+    gatewayProvider: 'groq',
     kinds: ['text'],
     models: {
-      'alibaba/qwen3.6-27b': 'qwen/qwen3.6-27b',
       'openai/gpt-oss-120b': 'openai/gpt-oss-120b',
-      'meta/llama-3.3-70b': 'llama-3.3-70b-versatile',
+      'openai/gpt-oss-20b': 'openai/gpt-oss-20b',
     },
   },
   fal: {
@@ -161,10 +166,10 @@ export const providerCodeConfigs: Record<string, ProviderCodeConfig> = {
     title: 'GMI Cloud',
     pkg: 'gmicloud',
     export: 'gmicloud',
+    gatewayProvider: 'gmicloud',
     kinds: ['text'],
     models: {
       'deepseek/deepseek-v4-flash-0731': 'deepseek-ai/DeepSeek-V4-Flash-0731',
-      'moonshotai/kimi-k3': 'moonshotai/kimi-k3',
       'minimax/minimax-m3': 'MiniMaxAI/MiniMax-M3',
     },
   },
@@ -181,10 +186,11 @@ export const providerCodeConfigs: Record<string, ProviderCodeConfig> = {
     title: 'DeepInfra',
     pkg: 'deepinfra',
     export: 'deepInfra',
+    gatewayProvider: 'deepinfra',
     kinds: ['text'],
     models: {
-      'meta/llama-3.3-70b': 'meta-llama/Llama-3.3-70B-Instruct',
-      'meta/llama-3.1-70b': 'meta-llama/Meta-Llama-3.1-70B-Instruct',
+      'meta/llama-4-scout': 'meta-llama/Llama-4-Scout-17B-16E-Instruct',
+      'openai/gpt-oss-20b': 'openai/gpt-oss-20b',
     },
   },
   bfl: {
@@ -209,6 +215,7 @@ export const providerCodeConfigs: Record<string, ProviderCodeConfig> = {
     title: 'Google Vertex AI',
     pkg: 'google-vertex',
     export: 'googleVertex',
+    gatewayProvider: 'vertex',
     kinds: ['text'],
     models: {
       'google/gemini-4-argon': 'gemini-4-argon',
@@ -220,11 +227,10 @@ export const providerCodeConfigs: Record<string, ProviderCodeConfig> = {
     title: 'Baseten',
     pkg: 'baseten',
     export: 'baseten',
+    gatewayProvider: 'baseten',
     kinds: ['text'],
     models: {
-      'moonshotai/kimi-k2': 'moonshotai/Kimi-K2-Instruct-0905',
       'openai/gpt-oss-120b': 'openai/gpt-oss-120b',
-      'zai/glm-4.7': 'zai-org/GLM-4.7',
     },
   },
   huggingface: {
@@ -302,10 +308,10 @@ export const providerCodeConfigs: Record<string, ProviderCodeConfig> = {
     title: 'Together.ai',
     pkg: 'togetherai',
     export: 'togetherai',
+    gatewayProvider: 'togetherai',
     kinds: ['text'],
     models: {
-      'deepseek/deepseek-r1': 'deepseek-ai/DeepSeek-R1',
-      'meta/llama-3.3-70b': 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
+      'deepseek/deepseek-v4-flash-0731': 'deepseek-ai/DeepSeek-V4-Flash-0731',
     },
   },
   cohere: {
@@ -321,11 +327,10 @@ export const providerCodeConfigs: Record<string, ProviderCodeConfig> = {
     title: 'Fireworks',
     pkg: 'fireworks',
     export: 'fireworks',
+    gatewayProvider: 'fireworks',
     kinds: ['text'],
     models: {
-      'deepseek/deepseek-r1': 'accounts/fireworks/models/deepseek-r1',
-      'meta/llama-3.3-70b': 'accounts/fireworks/models/llama-v3p3-70b-instruct',
-      'moonshotai/kimi-k2.6': 'accounts/fireworks/models/kimi-k2p6',
+      'openai/gpt-oss-120b': 'accounts/fireworks/models/gpt-oss-120b',
     },
   },
   voyage: {
@@ -382,10 +387,10 @@ export const providerCodeConfigs: Record<string, ProviderCodeConfig> = {
     title: 'Cerebras',
     pkg: 'cerebras',
     export: 'cerebras',
+    gatewayProvider: 'cerebras',
     kinds: ['text'],
     models: {
       'openai/gpt-oss-120b': 'gpt-oss-120b',
-      'google/gemma-4-31b-it': 'gemma-4-31b',
     },
   },
   replicate: {
@@ -488,4 +493,21 @@ export const providerModelExpression = (
 ): string => {
   const config = providerCodeConfigs[provider];
   return `${config?.export ?? provider}${suffix}("${providerModelCode(provider, modelId)}")`;
+};
+
+/** Include routing preferences only in the Gateway tab and Markdown export. */
+export const resolveGatewayOptions = (
+  code: string,
+  provider?: string,
+): string => {
+  const slug = provider
+    ? providerCodeConfigs[provider]?.gatewayProvider
+    : undefined;
+  return code.replace(
+    /^([ \t]*)__GATEWAY_OPTIONS__;?[ \t]*(?:\r?\n|$)/gm,
+    (_, indent: string) =>
+      slug
+        ? `${indent}providerOptions: {\n${indent}  gateway: {\n${indent}    order: ['${slug}'],\n${indent}  },\n${indent}},\n`
+        : '',
+  );
 };

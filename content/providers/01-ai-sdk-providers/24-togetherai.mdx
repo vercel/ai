@@ -8,13 +8,14 @@ description: Learn how to use Together.ai with AI Gateway and the direct provide
 The [Together.ai](https://together.ai) provider contains support for 200+ open-source models through the [Together.ai API](https://docs.together.ai/reference).
 Start with [AI Gateway](/providers/ai-sdk-providers/ai-gateway) for models in its catalog (recommended), or use `@ai-sdk/togetherai` to connect directly to Together.ai.
 
-```ts provider="togetherai" model="deepseek/deepseek-r1"
+```ts provider="togetherai" model="deepseek/deepseek-v4-flash-0731"
 import { generateText } from 'ai';
 __PROVIDER_IMPORT__;
 
 const { text } = await generateText({
   model: __MODEL__,
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  __GATEWAY_OPTIONS__
 });
 
 console.log(text);
@@ -35,7 +36,9 @@ export AI_GATEWAY_API_KEY=your_api_key_here
 Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
 See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
 
-Gateway uses catalog model IDs and its own routing. Model availability and the provider serving a request can differ from a direct connection. The dropdown shows models with a corresponding direct-provider example.
+The example sets `providerOptions.gateway.order` to `['togetherai']`. This sends the request to Together.ai first, then falls back to other available providers of the same model if Together.ai is unavailable or the request fails. `order` sets a preference; it does not restrict fallback to Together.ai. See [provider ordering](https://vercel.com/docs/ai-gateway/models-and-providers/provider-filtering-and-ordering).
+
+The dropdown lists models served by Together.ai through Gateway with a corresponding direct-provider example. Provider availability depends on the model and your team's [Provider Allowlist](https://vercel.com/docs/ai-gateway/models-and-providers/provider-filtering-and-ordering).
 
 ## Using `@ai-sdk/togetherai`
 

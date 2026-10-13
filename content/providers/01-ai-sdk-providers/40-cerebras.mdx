@@ -15,6 +15,7 @@ __PROVIDER_IMPORT__;
 const { text } = await generateText({
   model: __MODEL__,
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  __GATEWAY_OPTIONS__
 });
 
 console.log(text);
@@ -35,7 +36,9 @@ export AI_GATEWAY_API_KEY=your_api_key_here
 Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
 See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
 
-Gateway uses catalog model IDs and its own routing. Model availability and the provider serving a request can differ from a direct connection. The dropdown shows models with a corresponding direct-provider example.
+The example sets `providerOptions.gateway.order` to `['cerebras']`. This sends the request to Cerebras first, then falls back to other available providers of the same model if Cerebras is unavailable or the request fails. `order` sets a preference; it does not restrict fallback to Cerebras. See [provider ordering](https://vercel.com/docs/ai-gateway/models-and-providers/provider-filtering-and-ordering).
+
+The dropdown lists models served by Cerebras through Gateway with a corresponding direct-provider example. Provider availability depends on the model and your team's [Provider Allowlist](https://vercel.com/docs/ai-gateway/models-and-providers/provider-filtering-and-ordering).
 
 ## Using `@ai-sdk/cerebras`
 

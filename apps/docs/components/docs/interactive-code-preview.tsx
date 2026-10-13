@@ -32,6 +32,7 @@ import {
   providerCodeConfigs,
   providerImport,
   providerModelExpression,
+  resolveGatewayOptions,
 } from '@/lib/provider-code-config';
 import {
   getCodeTemplateDefaults,
@@ -837,7 +838,10 @@ export const InteractiveCodePreview = ({
 
   // Replace placeholders in code
   const processedCode = useMemo(() => {
-    let result = code;
+    let result = resolveGatewayOptions(
+      code,
+      activeTab === 'gateway' ? provider : undefined,
+    );
 
     const getModelExpression = (model: ModelOption, kind: ModelKind) => {
       if (activeTab === 'gateway') {

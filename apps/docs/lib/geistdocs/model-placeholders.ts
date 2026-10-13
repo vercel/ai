@@ -47,7 +47,9 @@ const providerImportLine = /^.*__PROVIDER_IMPORT__.*(?:\r?\n|$)/gm;
  * instead of `__MODEL__` and `__PROVIDER_IMPORT__` tokens.
  */
 export const resolveModelPlaceholders = (markdown: string) => {
-  let result = markdown.replace(providerImportLine, '');
+  let result = markdown
+    .replace(providerImportLine, '')
+    .replace(/^.*__GATEWAY_OPTIONS__.*(?:\r?\n|$)/gm, '');
 
   for (const [placeholder, kind] of modelPlaceholders) {
     result = result.replace(placeholder, `'${DEFAULT_MODEL_IDS[kind]}'`);

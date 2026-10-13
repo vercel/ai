@@ -8,13 +8,14 @@ description: Learn how to use DeepInfra with AI Gateway and the direct provider.
 The [DeepInfra](https://deepinfra.com) provider contains support for state-of-the-art models through the DeepInfra API, including Llama 3, Mixtral, Qwen, and many other popular open-source models.
 Start with [AI Gateway](/providers/ai-sdk-providers/ai-gateway) for models in its catalog (recommended), or use `@ai-sdk/deepinfra` to connect directly to DeepInfra.
 
-```ts provider="deepinfra" model="meta/llama-3.3-70b"
+```ts provider="deepinfra" model="meta/llama-4-scout"
 import { generateText } from 'ai';
 __PROVIDER_IMPORT__;
 
 const { text } = await generateText({
   model: __MODEL__,
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  __GATEWAY_OPTIONS__
 });
 
 console.log(text);
@@ -35,7 +36,9 @@ export AI_GATEWAY_API_KEY=your_api_key_here
 Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
 See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
 
-Gateway uses catalog model IDs and its own routing. Model availability and the provider serving a request can differ from a direct connection. The dropdown shows models with a corresponding direct-provider example.
+The example sets `providerOptions.gateway.order` to `['deepinfra']`. This sends the request to DeepInfra first, then falls back to other available providers of the same model if DeepInfra is unavailable or the request fails. `order` sets a preference; it does not restrict fallback to DeepInfra. See [provider ordering](https://vercel.com/docs/ai-gateway/models-and-providers/provider-filtering-and-ordering).
+
+The dropdown lists models served by DeepInfra through Gateway with a corresponding direct-provider example. Provider availability depends on the model and your team's [Provider Allowlist](https://vercel.com/docs/ai-gateway/models-and-providers/provider-filtering-and-ordering).
 
 ## Using `@ai-sdk/deepinfra`
 

@@ -9,7 +9,7 @@ The [Open Responses](https://www.openresponses.org/) provider connects AI SDK
 Core to language model servers that implement an Open Responses-compatible
 `POST` endpoint. Open Responses is an open specification based on the OpenAI
 Responses API.
-Start with [AI Gateway](/providers/ai-sdk-providers/ai-gateway) for models in its catalog (recommended), or use `@ai-sdk/open-responses` to connect directly to Open Responses.
+Start with [AI Gateway](/providers/ai-sdk-providers/ai-gateway) for hosted models (recommended). Gateway also exposes an [OpenResponses-compatible endpoint](https://vercel.com/docs/ai-gateway/sdks-and-apis/openresponses) that you can call with `@ai-sdk/open-responses`. Use the direct tab for a third-party or self-hosted server.
 
 ```ts provider="open-responses" model="openai/gpt-6-astra"
 import { generateText } from 'ai';
@@ -38,7 +38,31 @@ export AI_GATEWAY_API_KEY=your_api_key_here
 Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
 See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
 
-Gateway uses catalog model IDs and its own routing. Model availability and the provider serving a request can differ from a direct connection. The dropdown shows models with a corresponding direct-provider example.
+The opening Gateway tab uses the AI SDK's native Gateway integration. To call Gateway through the OpenResponses protocol with `@ai-sdk/open-responses`, install both packages:
+
+<InstallPackages packages="ai @ai-sdk/open-responses" />
+
+Use the same `AI_GATEWAY_API_KEY` with Gateway's full `POST` endpoint URL:
+
+```ts
+import { generateText } from 'ai';
+import { createOpenResponses } from '@ai-sdk/open-responses';
+
+const gatewayResponses = createOpenResponses({
+  name: 'gateway',
+  url: 'https://ai-gateway.vercel.sh/v1/responses',
+  apiKey: process.env.AI_GATEWAY_API_KEY,
+});
+
+const { text } = await generateText({
+  model: gatewayResponses('openai/gpt-6-astra'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+
+console.log(text);
+```
+
+This calls Gateway's hosted endpoint using a catalog model ID. Gateway does not proxy an arbitrary `OPEN_RESPONSES_URL` or connect to your local LM Studio server.
 
 ## Using `@ai-sdk/open-responses`
 
