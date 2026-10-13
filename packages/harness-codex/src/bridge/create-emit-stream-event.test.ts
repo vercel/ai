@@ -7,7 +7,12 @@ describe('createEmitStreamEvent', () => {
     const emitted: Record<string, unknown>[] = [];
     const emitStreamEvent = createEmitStreamEvent({
       send: event => emitted.push(event),
-      stepTracker: { observeEvent() {}, finishTurn() {} } as CodexStepTracker,
+      stepTracker: {
+        observeEvent() {},
+        finishTurn() {},
+        awaitHostInput() {},
+        resolveHostInput() {},
+      },
       setTurnUsage() {},
       setThreadId() {},
       emitWarning() {},
