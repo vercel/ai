@@ -98,5 +98,5 @@ Raw runtime instances need their respective adapters; a custom
 Pass `maxOutputLength` to limit characters retained from each output stream
 (default: 30,000). Cancellation is forwarded to the supplied session.
 
-See the [Bash Tool documentation](https://ai-sdk.dev/docs/ai-sdk-core/bash-tool)
+See the [Bash Tool documentation](https://ai-sdk.dev/docs/ai-sdk-core/tools#bash-tool)
 for options and file handling.

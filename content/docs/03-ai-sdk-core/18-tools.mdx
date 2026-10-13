@@ -1,39 +1,59 @@
 ---
-title: Bash Tool
-description: Run provider-independent bash commands in your choice of sandbox with the AI SDK.
+title: Tools
+description: Use first-party tools from @ai-sdk/tools to add capabilities to AI SDK agents and applications.
 ---
 
-# Bash Tool
+# Tools
 
-The `@ai-sdk/tool-bash` entry point provides a bash tool for any model supporting
-function calling. Supply an `Experimental_SandboxSession` to choose where commands
-run. Use `@ai-sdk/sandbox-just-bash` for an in-memory environment,
-`@ai-sdk/sandbox-vercel` for Vercel Sandbox, or your own implementation.
+The `@ai-sdk/tools` package provides first-party tools for AI SDK agents and
+applications. Each tool includes its input schema, model-facing description, and
+execution logic, ready to use with `generateText`, `streamText`, or `ToolLoopAgent`.
+These tools work with any model that supports function calling.
 
-The tool has no direct dependency on either runtime.
+Import tools from the shared `@ai-sdk/tools` package, or install their individual
+`@ai-sdk/tool-*` packages when you only need a specific tool. Both entry points
+provide the same implementation.
+
+For defining your own tools and configuring tool execution, see
+[Tools and Tool Calling](/docs/ai-sdk-core/tools-and-tool-calling).
 
 ## Installation
 
-Install the tool and the sandbox adapter you want to use:
+```sh
+pnpm add ai @ai-sdk/tools
+```
+
+Requires Node.js 22.13 or newer. Individual tools may require additional setup,
+such as choosing a sandbox for command execution.
+
+## Bash Tool
+
+`bashTool` lets agents run Bash commands to search, analyze, and transform files.
+Supply an `Experimental_SandboxSession` to choose where commands run. Use
+`@ai-sdk/sandbox-just-bash` for an in-memory environment,
+`@ai-sdk/sandbox-vercel` for Vercel Sandbox, or your own implementation.
+The tool has no direct dependency on either runtime.
+
+### Sandbox setup
+
+Install the sandbox adapter you want to use. The following examples use just-bash:
 
 ```sh
-pnpm add ai @ai-sdk/tool-bash @ai-sdk/sandbox-just-bash
+pnpm add @ai-sdk/sandbox-just-bash
 ```
 
-Requires Node.js 22.13 or newer.
-
-You can also install `@ai-sdk/tools` instead of `@ai-sdk/tool-bash` and use the
-same tool through the shared package:
+To use Bash without the shared tools package, install `@ai-sdk/tool-bash` instead
+of `@ai-sdk/tools` and import the same factory directly:
 
 ```ts
-import { bashTool } from '@ai-sdk/tools';
+import { bashTool } from '@ai-sdk/tool-bash';
 ```
 
-## Usage
+### Usage
 
 ```ts
 import { createJustBashNetworkSandboxSession } from '@ai-sdk/sandbox-just-bash';
-import { bashTool } from '@ai-sdk/tool-bash';
+import { bashTool } from '@ai-sdk/tools';
 import { generateText, isStepCount } from 'ai';
 
 const session = await createJustBashNetworkSandboxSession();
@@ -59,14 +79,14 @@ try {
 }
 ```
 
-## Vercel Sandbox
+### Vercel Sandbox
 
 Install `@ai-sdk/sandbox-vercel` and `@vercel/sandbox` to use an existing native
 Vercel Sandbox. Wrap it with the adapter before passing it to the tool:
 
 ```ts
 import { createVercelSandboxSessionFromNativeSandbox } from '@ai-sdk/sandbox-vercel';
-import { bashTool } from '@ai-sdk/tool-bash';
+import { bashTool } from '@ai-sdk/tools';
 import { Sandbox } from '@vercel/sandbox';
 
 const nativeSandbox = await Sandbox.create();
@@ -91,7 +111,7 @@ You can also create a managed session with
 Raw runtime instances need their respective adapters; a custom
 `Experimental_SandboxSession` can be passed directly.
 
-## Options
+### Options
 
 `bashTool()` requires an options object:
 
@@ -108,7 +128,7 @@ inspect failures and recover. AI SDK cancellation is forwarded to the session.
 Output truncation happens after execution and does not limit execution memory or
 duration.
 
-## Files and lifecycle
+### Files and lifecycle
 
 Initial file paths must stay within `workingDirectory`. This validation applies
 to initialization paths; the sandbox controls which files commands can access.
