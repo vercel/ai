@@ -99,6 +99,27 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass speed and instructions from provider options', async () => {
+    prepareAudioResponse();
+
+    await provider.speech('gpt-4o-mini-tts').doGenerate({
+      text: 'Hello from the AI SDK!',
+      providerOptions: {
+        openai: {
+          speed: 0.75,
+          instructions: 'Speak slowly.',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      model: 'gpt-4o-mini-tts',
+      input: 'Hello from the AI SDK!',
+      speed: 0.75,
+      instructions: 'Speak slowly.',
+    });
+  });
+
   it('should return audio data with correct content type', async () => {
     const audio = new Uint8Array(100); // Mock audio data
     prepareAudioResponse({

@@ -1,0 +1,27 @@
+{
+  "recordedAt": "2026-10-13",
+  "model": "gpt-4o-mini-tts",
+  "aiSdk": {
+    "requestBody": {
+      "model": "gpt-4o-mini-tts",
+      "input": "Say the word hello.",
+      "voice": "alloy",
+      "response_format": "mp3"
+    },
+    "warnings": [],
+    "audioByteLength": 33792
+  },
+  "directProvider": {
+    "requestBody": {
+      "model": "gpt-4o-mini-tts",
+      "input": "Say the word hello.",
+      "voice": "alloy",
+      "response_format": "mp3",
+      "speed": 0.75,
+      "instructions": "Speak slowly."
+    },
+    "responseStatus": 200,
+    "responseContentType": "audio/mpeg",
+    "audioByteLength": 45312
+  }
+}
