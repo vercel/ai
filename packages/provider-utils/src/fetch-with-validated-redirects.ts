@@ -162,36 +162,13 @@ export async function fetchWithValidatedRedirects({
     }
 
     const location = response.headers?.get('location');
-<<<<<<< HEAD
     if (response.status >= 300 && response.status < 400 && location) {
-      // Release the redirect response's connection before moving to the next
-      // hop. Whether that hop is followed or rejected by the SSRF guard, an
-      // unconsumed 3xx body would leak the underlying socket.
-      await cancelResponseBody(response);
-      currentUrl = new URL(location, currentUrl).toString();
-=======
-    if (REDIRECT_STATUS_CODES.has(response.status) && location) {
       // Start releasing the redirect response's connection before moving to
       // the next hop. Do not wait for cancellation: when a fetch wrapper keeps
       // an unread response clone, tee cancellation can remain pending until
       // the cloned branch is consumed.
       void cancelResponseBody(response);
-      const nextUrl = new URL(location, currentUrl).toString();
-
-      // Drop all caller headers except the user-agent before following a
-      // redirect that crosses origin. Only stripping Authorization (as the
-      // fetch spec does) is not enough on the server: providers authenticate
-      // with custom headers too (e.g. `x-key`), and without CORS there is
-      // nothing else stopping them from riding to a foreign host.
-      if (currentHeaders !== undefined && !isSameOrigin(nextUrl, currentUrl)) {
-        const userAgent = currentHeaders.get('user-agent');
-        currentHeaders = new Headers(
-          userAgent == null ? undefined : { 'user-agent': userAgent },
-        );
-      }
-
-      currentUrl = nextUrl;
->>>>>>> 2937ea2a30 (fix: prevent validated redirects from stalling when fetch wrappers retain response clones (#21061))
+      currentUrl = new URL(location, currentUrl).toString();
       continue;
     }
 
