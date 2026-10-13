@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { convertGoogleUsage } from './convert-google-usage';
+import { convertGoogleGenerativeAIUsage } from './convert-google-generative-ai-usage';
 
-describe('convertGoogleUsage', () => {
+describe('convertGoogleGenerativeAIUsage', () => {
   it('includes tool-use prompt tokens in input usage', () => {
     expect(
-      convertGoogleUsage({
+      convertGoogleGenerativeAIUsage({
         promptTokenCount: 55,
         toolUsePromptTokenCount: 89,
         candidatesTokenCount: 51,
@@ -35,7 +35,7 @@ describe('convertGoogleUsage', () => {
 
   it('includes tool-use prompt tokens when calculating uncached input', () => {
     expect(
-      convertGoogleUsage({
+      convertGoogleGenerativeAIUsage({
         promptTokenCount: 55,
         toolUsePromptTokenCount: 89,
         cachedContentTokenCount: 100,
