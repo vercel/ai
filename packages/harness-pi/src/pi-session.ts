@@ -441,6 +441,7 @@ export async function createPiSession(
   }
 
   assertPiMcpSettingsSupported(input.settings.mcpSettings);
+  const mcpServers = resolvePiMcpServers(input.settings.mcpServers);
 
   // Host-side mirror layout under tmpdir. Replace path-separator characters
   // that would otherwise turn a session id like `2026-05-29T17:54:27` into a
@@ -622,8 +623,8 @@ export async function createPiSession(
     env: resolverEnv,
   });
   let activeResolvedModel = resolveModel();
-  const mcpServers = input.settings.mcpServers ?? {};
-  const hasMcpServers = Object.keys(mcpServers).length > 0;
+  const hasMcpServers = mcpServers.length > 0;
+  let mcpRegistrationError: unknown;
 
   let sessionInstructions: string | undefined;
 
@@ -636,10 +637,17 @@ export async function createPiSession(
       createMcpExtension({
         loadConfig: () => ({ servers: [], errors: [] }),
         logPath: devNull,
+        credentials: createInMemoryMcpCredentialStore(),
       }),
+      // Pi records an error thrown by an extension factory and loads the
+      // session without that extension.
       pi => {
-        for (const [name, config] of Object.entries(mcpServers)) {
-          pi.registerMcpServer(name, { exposure: 'direct', ...config });
+        try {
+          for (const [name, config] of mcpServers) {
+            pi.registerMcpServer(name, config);
+          }
+        } catch (error) {
+          mcpRegistrationError = error;
         }
       },
     );
@@ -693,6 +701,7 @@ export async function createPiSession(
     }),
   });
   await resourceLoader.reload();
+  if (mcpRegistrationError != null) throw mcpRegistrationError;
 
   async function reloadResourcesOnly(): Promise<void> {
     if (!hasExtensionFactories) {
@@ -1794,6 +1803,55 @@ export async function createPiSession(
   };
 
   return sessionImpl;
+}
+
+const PI_CODEMODE_EXPOSURES: ReadonlyArray<unknown> = [
+  'codemode',
+  'codemode-deferred',
+];
+
+function resolvePiMcpServers(
+  mcpServers: PiSessionSettings['mcpServers'],
+): Array<[name: string, config: PiMcpServerConfig]> {
+  return Object.entries(mcpServers ?? {}).map(([name, config]) => {
+    const exposures: unknown[] = [
+      config.exposure,
+      ...Object.values(config.toolExposure ?? {}),
+    ];
+    if (exposures.some(exposure => PI_CODEMODE_EXPOSURES.includes(exposure))) {
+      throw new Error(
+        `Pi MCP server ${JSON.stringify(name)} uses the codemode exposure, which is not supported: the harness does not load Pi's codemode extension. Use 'direct', 'deferred' or 'hidden'.`,
+      );
+    }
+    return [name, { ...config, exposure: config.exposure ?? 'direct' }];
+  });
+}
+
+type PiMcpCredentialStore = NonNullable<
+  NonNullable<Parameters<typeof createMcpExtension>[0]>['credentials']
+>;
+type PiMcpServerCredentialStore = ReturnType<PiMcpCredentialStore['forServer']>;
+type PiMcpOAuthState = Parameters<PiMcpServerCredentialStore['save']>[0];
+
+// Pi's default store is `mcp-auth.json` in the host agent directory, so a
+// server without an Authorization header would be sent the tokens of whoever
+// signed in to it with the Pi CLI on this machine.
+function createInMemoryMcpCredentialStore(): PiMcpCredentialStore {
+  const states = new Map<string, PiMcpOAuthState>();
+  const keyOf = (name: string, serverUrl: string) => `${name}|${serverUrl}`;
+  const store: Pick<PiMcpCredentialStore, 'forServer' | 'tokens' | 'remove'> = {
+    forServer: (name, serverUrl) => ({
+      load: () => states.get(keyOf(name, serverUrl)),
+      save: state => {
+        states.set(keyOf(name, serverUrl), state);
+      },
+      withRefreshLock: fn => fn(),
+    }),
+    tokens: (name, serverUrl) => states.get(keyOf(name, serverUrl))?.tokens,
+    remove: (name, serverUrl) => states.delete(keyOf(name, serverUrl)),
+  };
+  // Pi types the option as its store class, which has private members.
+  return store as PiMcpCredentialStore;
 }
 
 function assertPiMcpSettingsSupported(
