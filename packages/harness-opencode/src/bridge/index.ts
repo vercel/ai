@@ -1723,9 +1723,7 @@ async function startToolRelay({
 }: {
   tools: ReadonlyArray<{ name: string }>;
   emit: Emit;
-  requestToolResult: (
-    toolCallId: string,
-  ) => Promise<{ output: unknown; isError?: boolean }>;
+  requestToolResult: BridgeTurn['requestToolResult'];
 }): Promise<ToolRelay> {
   return startAuthorizedToolRelay({ tools, emit, requestToolResult });
 }

@@ -18,6 +18,52 @@ function newState() {
   });
 }
 
+describe('translateClineEvent host tool results', () => {
+  it('surfaces the raw submitted output instead of the runtime content', () => {
+    const state = newState();
+    state.hostToolResults.set('call-1', { status: 'ready' });
+
+    const parts = translateClineEvent(
+      {
+        type: 'tool-finished',
+        snapshot,
+        iteration: 1,
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'inspect',
+          input: {},
+        },
+        message: {
+          id: 'result-call-1',
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'inspect',
+              output: [
+                { type: 'image', data: 'iVBORw==', mediaType: 'image/png' },
+              ],
+            },
+          ],
+          createdAt: 0,
+        },
+      },
+      state,
+    );
+
+    expect(parts).toContainEqual(
+      expect.objectContaining({
+        type: 'tool-result',
+        toolCallId: 'call-1',
+        result: { status: 'ready' },
+      }),
+    );
+    expect(state.hostToolResults.has('call-1')).toBe(false);
+  });
+});
+
 describe('translateClineEvent', () => {
   it('translates ask_question into a client-side canonical question call', () => {
     const state = createClineTranslatorState({

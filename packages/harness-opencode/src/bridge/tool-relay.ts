@@ -1,4 +1,5 @@
 import { createServer, type Server } from 'node:http';
+import type { BridgeTurn } from '@ai-sdk/harness/bridge';
 import { ToolRelayAuthorizer, type ToolRelayCall } from './tool-relay-auth';
 
 export type ToolRelay = {
@@ -15,9 +16,7 @@ export async function startAuthorizedToolRelay({
 }: {
   tools: ReadonlyArray<{ name: string }>;
   emit: (message: Record<string, unknown>) => void;
-  requestToolResult: (
-    toolCallId: string,
-  ) => Promise<{ output: unknown; isError?: boolean }>;
+  requestToolResult: BridgeTurn['requestToolResult'];
   authorizer?: ToolRelayAuthorizer;
 }): Promise<ToolRelay> {
   const toolNames = new Set(tools.map(tool => tool.name));
@@ -62,7 +61,8 @@ export async function startAuthorizedToolRelay({
         providerExecuted: false,
       });
 
-      const { output, isError } = await requestToolResult(requestId);
+      const { output, isError, toolResult } =
+        await requestToolResult(requestId);
       emit({
         type: 'tool-result',
         toolCallId: requestId,
@@ -72,7 +72,13 @@ export async function startAuthorizedToolRelay({
       });
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ result: output }));
+      res.end(
+        JSON.stringify({
+          result: output,
+          ...(isError != null ? { isError } : {}),
+          ...(toolResult != null ? { toolResult } : {}),
+        }),
+      );
     } catch (error) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(

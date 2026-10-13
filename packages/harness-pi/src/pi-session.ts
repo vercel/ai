@@ -34,6 +34,7 @@ import {
 } from '@ai-sdk/harness';
 import {
   getRestrictedSandboxSession,
+  convertHarnessToolModelOutput,
   resolveSandboxHomeDir,
   writeSkills,
 } from '@ai-sdk/harness/utils';
@@ -56,6 +57,7 @@ import {
 } from './pi-remote-ops';
 import {
   formatPiReadToolOutput,
+  truncatePiToolModelOutput,
   truncatePiToolOutputHead,
   truncatePiToolOutputTail,
 } from './pi-tool-result';
@@ -333,8 +335,12 @@ function hasCompatibleReattachSettings(
   );
 }
 
+type HostToolSubmission = Parameters<
+  HarnessV1PromptControl['submitToolResult']
+>[0];
+
 interface PendingToolResult {
-  resolve: (value: unknown) => void;
+  resolve: (value: HostToolSubmission) => void;
 }
 
 interface PendingToolApproval {
@@ -731,7 +737,7 @@ export async function createPiSession(
    */
   const deliveredDanglingResults = new Map<
     string,
-    { toolName: string; output: unknown; isError: boolean }
+    HostToolSubmission & { toolName: string }
   >();
   let restoredSessionManager:
     | ReturnType<typeof SessionManager.open>
@@ -770,8 +776,8 @@ export async function createPiSession(
   });
 
   function settlePendingToolResults(reason: string): void {
-    for (const pending of pendingToolResults.values()) {
-      pending.resolve({ error: reason });
+    for (const [toolCallId, pending] of pendingToolResults) {
+      pending.resolve({ toolCallId, output: { error: reason }, isError: true });
     }
     pendingToolResults.clear();
   }
@@ -870,19 +876,14 @@ export async function createPiSession(
    * every dangling call has its result. Results for ids that are neither live
    * nor journal-pending have nowhere to go and are dropped, as before.
    */
-  function acceptDanglingHostToolResult(args: {
-    toolCallId: string;
-    output: unknown;
-    isError?: boolean;
-  }): void {
+  function acceptDanglingHostToolResult(args: HostToolSubmission): void {
     const barrier = deferredRerun;
     const toolName = barrier?.awaiting.get(args.toolCallId);
     if (barrier == null || toolName == null) return;
     barrier.awaiting.delete(args.toolCallId);
     deliveredDanglingResults.set(args.toolCallId, {
+      ...args,
       toolName,
-      output: args.output,
-      isError: args.isError ?? false,
     });
     if (barrier.awaiting.size === 0) {
       barrier.startRerun();
@@ -904,11 +905,33 @@ export async function createPiSession(
     const journal = getRestoredSessionManager();
     if (journal == null) return false;
     for (const [toolCallId, delivered] of deliveredDanglingResults) {
+      const converted =
+        delivered.toolResult == null
+          ? undefined
+          : convertHarnessToolModelOutput({
+              output: delivered.toolResult.output,
+            });
+      const content =
+        converted == null
+          ? undefined
+          : truncatePiToolModelOutput({
+              content: converted.content,
+              continuation:
+                'Call the tool again with narrower parameters to inspect the omitted output.',
+            });
       journal.appendMessage({
         role: 'toolResult',
         toolCallId,
         toolName: delivered.toolName,
-        content: [
+        content: content?.map(part =>
+          part.type === 'text'
+            ? part
+            : {
+                type: 'image' as const,
+                data: part.data,
+                mimeType: part.mediaType,
+              },
+        ) ?? [
           {
             type: 'text',
             text: truncatePiToolOutputHead(
@@ -917,7 +940,7 @@ export async function createPiSession(
             ),
           },
         ],
-        isError: delivered.isError,
+        isError: delivered.isError === true || converted?.isError === true,
         timestamp: Date.now(),
       });
     }
@@ -1078,7 +1101,7 @@ export async function createPiSession(
          * the original object.
          */
         translatorState?.hostToolResults.set(args.toolCallId, args.output);
-        pending.resolve(args.output);
+        pending.resolve(args);
       },
       async submitToolApproval(args) {
         const pending = pendingToolApprovals.get(args.approvalId);
@@ -2109,16 +2132,46 @@ function buildUserToolDefinition(
     description: spec.description ?? `User-registered tool ${spec.name}`,
     parameters: toolSpecToTypeBoxParameters(schema),
     async execute(toolCallId) {
-      return new Promise<unknown>(resolve => {
+      return new Promise<HostToolSubmission>(resolve => {
         pending.set(toolCallId, { resolve });
-      }).then(output =>
-        asPiToolResult(
+      }).then(submission => {
+        if (submission.toolResult != null) {
+          const converted = convertHarnessToolModelOutput({
+            output: submission.toolResult.output,
+          });
+          const content = truncatePiToolModelOutput({
+            content: converted.content,
+            continuation:
+              'Call the tool again with narrower parameters to inspect the omitted output.',
+          });
+          if (submission.isError === true || converted.isError) {
+            throw new Error(
+              content
+                .filter(part => part.type === 'text')
+                .map(part => part.text)
+                .join('\n'),
+            );
+          }
+          return {
+            content: content.map(part =>
+              part.type === 'text'
+                ? part
+                : {
+                    type: 'image' as const,
+                    data: part.data,
+                    mimeType: part.mediaType,
+                  },
+            ),
+            details: undefined,
+          };
+        }
+        return asPiToolResult(
           truncatePiToolOutputHead(
-            serializeToolOutput(output),
+            serializeToolOutput(submission.output),
             'Call the tool again with narrower parameters to inspect the omitted output.',
           ),
-        ),
-      );
+        );
+      });
     },
   });
 }

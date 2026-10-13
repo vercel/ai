@@ -310,6 +310,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       hostToolAuthorization.waitForToolCallAuthorization,
     emitToolCall: emitStreamEvent.hostToolCall,
     emitToolResult: emitStreamEvent.hostToolResult,
+    emitWarning: turn.emitWarning,
     requestToolResult: toolCallId => turn.requestToolResult(toolCallId),
     registerCorrelationInvocation:
       emitStreamEvent.registerHostToolCorrelationInvocation,
@@ -613,6 +614,7 @@ async function ensureSession({
     tools,
     serverName: HOST_TOOL_MCP_SERVER_NAME,
     mcpTransport,
+    nonTextContentTypes: bridgeConfiguration.nonTextContentTypes,
   });
 
   const mcpServers: acp.McpServer[] = [

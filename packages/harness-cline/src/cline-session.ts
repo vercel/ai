@@ -16,6 +16,7 @@ import {
 } from '@ai-sdk/harness';
 import {
   getRestrictedSandboxSession,
+  convertHarnessToolModelOutput,
   resolveSandboxHomeDir,
 } from '@ai-sdk/harness/utils';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
@@ -573,10 +574,17 @@ export async function createClineSession(
         const pending = pendingToolResults.get(args.toolCallId);
         if (!pending) return;
         pendingToolResults.delete(args.toolCallId);
+        translatorState?.hostToolResults.set(args.toolCallId, args.output);
+        const converted =
+          args.toolResult == null
+            ? undefined
+            : convertHarnessToolModelOutput({
+                output: args.toolResult.output,
+              });
         pending.resolve(
           createClineToolResult({
-            output: args.output,
-            isError: args.isError,
+            output: converted?.content ?? args.output,
+            isError: args.isError === true || converted?.isError === true,
           }),
         );
       },
