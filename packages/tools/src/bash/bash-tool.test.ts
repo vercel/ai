@@ -11,10 +11,10 @@ import {
 } from 'ai';
 import { MockLanguageModelV4 } from 'ai/test';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createBashTool } from './create-bash-tool';
+import { bashTool } from './bash-tool';
 
 async function execute(
-  bash: Awaited<ReturnType<typeof createBashTool>>,
+  bash: Awaited<ReturnType<typeof bashTool>>,
   command: string,
 ) {
   return bash.execute(
@@ -37,7 +37,7 @@ afterEach(async () => {
   await Promise.all(sessions.splice(0).map(session => session.destroy()));
 });
 
-describe('createBashTool', () => {
+describe('bashTool', () => {
   it('uses a custom sandbox session and forwards cancellation', async () => {
     const session: SandboxSession = {
       description: 'Custom sandbox with Python and network access.',
@@ -52,7 +52,7 @@ describe('createBashTool', () => {
       writeBinaryFile: vi.fn(),
       spawn: vi.fn(),
     };
-    const bash = await createBashTool({
+    const bash = await bashTool({
       sandbox: session,
       workingDirectory: '/app',
       files: { 'nested/input.txt': 'input' },
@@ -94,7 +94,7 @@ describe('createBashTool', () => {
       writeFiles,
       readFileToBuffer: vi.fn().mockResolvedValue(Buffer.from('report')),
     } as unknown as VercelNativeSandboxSession;
-    const bash = await createBashTool({
+    const bash = await bashTool({
       sandbox: createVercelSandboxSessionFromNativeSandbox(nativeSandbox),
       workingDirectory: '/vercel/sandbox/workspace',
       files: { 'input.txt': 'input' },
@@ -122,12 +122,12 @@ describe('createBashTool', () => {
 
   it('shares files across tools using the same session without resetting them', async () => {
     const session = await createSandbox();
-    const first = await createBashTool({
+    const first = await bashTool({
       sandbox: session,
       files: { 'input.txt': 'hello' },
     });
     await execute(first, 'cp input.txt report.txt');
-    const second = await createBashTool({ sandbox: session });
+    const second = await bashTool({ sandbox: session });
     expect(await execute(second, 'cat report.txt')).toEqual({
       stdout: 'hello',
       stderr: '',
@@ -141,7 +141,7 @@ describe('createBashTool', () => {
   it.each(['/custom/work/', "/tmp/it's $(echo literal)", '/'])(
     'initializes and executes in a custom working directory: %s',
     async workingDirectory => {
-      const bash = await createBashTool({
+      const bash = await bashTool({
         sandbox: await createSandbox(),
         workingDirectory,
         files: { 'input.txt': 'hello' },
@@ -158,7 +158,7 @@ describe('createBashTool', () => {
     const sandbox = await createSandbox();
     const run = vi.spyOn(sandbox, 'run');
     await expect(
-      createBashTool({ sandbox, workingDirectory: 'relative' }),
+      bashTool({ sandbox, workingDirectory: 'relative' }),
     ).rejects.toBeInstanceOf(InvalidArgumentError);
     expect(run).not.toHaveBeenCalled();
   });
@@ -172,13 +172,13 @@ describe('createBashTool', () => {
     });
     const write = vi.spyOn(sandbox, 'writeTextFile');
     await expect(
-      createBashTool({ sandbox, files: { 'input.txt': 'input' } }),
+      bashTool({ sandbox, files: { 'input.txt': 'input' } }),
     ).rejects.toThrow('Permission denied');
     expect(write).not.toHaveBeenCalled();
   });
 
   it('propagates an aborted command', async () => {
-    const bash = await createBashTool({ sandbox: await createSandbox() });
+    const bash = await bashTool({ sandbox: await createSandbox() });
     const controller = new AbortController();
     controller.abort(new Error('Cancelled'));
     await expect(
@@ -196,7 +196,7 @@ describe('createBashTool', () => {
 
   it('executes pipelines against supplied files and exposes generated files', async () => {
     const sandbox = await createSandbox();
-    const bash = await createBashTool({
+    const bash = await bashTool({
       sandbox,
       files: { 'data/words.txt': 'pear\napple\npear\n' },
     });
@@ -215,8 +215,8 @@ describe('createBashTool', () => {
   });
 
   it('keeps separate sessions independent', async () => {
-    const first = await createBashTool({ sandbox: await createSandbox() });
-    const second = await createBashTool({ sandbox: await createSandbox() });
+    const first = await bashTool({ sandbox: await createSandbox() });
+    const second = await bashTool({ sandbox: await createSandbox() });
 
     await execute(first, 'echo private > private.txt');
 
@@ -228,7 +228,7 @@ describe('createBashTool', () => {
   });
 
   it('resets shell state between calls while preserving files', async () => {
-    const bash = await createBashTool({ sandbox: await createSandbox() });
+    const bash = await bashTool({ sandbox: await createSandbox() });
 
     await execute(
       bash,
@@ -244,7 +244,7 @@ describe('createBashTool', () => {
   });
 
   it('preserves stderr and nonzero exit codes for model recovery', async () => {
-    const bash = await createBashTool({ sandbox: await createSandbox() });
+    const bash = await bashTool({ sandbox: await createSandbox() });
 
     expect(
       await execute(bash, 'echo partial; echo failure >&2; exit 7'),
@@ -252,7 +252,7 @@ describe('createBashTool', () => {
   });
 
   it('applies the configured output limit to both streams', async () => {
-    const bash = await createBashTool({
+    const bash = await bashTool({
       sandbox: await createSandbox(),
       maxOutputLength: 4,
     });
@@ -267,7 +267,7 @@ describe('createBashTool', () => {
   });
 
   it('uses the default output limit', async () => {
-    const bash = await createBashTool({
+    const bash = await bashTool({
       sandbox: await createSandbox(),
       files: { 'large.txt': 'x'.repeat(30_001) },
     });
@@ -280,7 +280,7 @@ describe('createBashTool', () => {
   });
 
   it('leaves output at the limit unchanged', async () => {
-    const bash = await createBashTool({
+    const bash = await bashTool({
       sandbox: await createSandbox(),
       maxOutputLength: 4,
     });
@@ -296,7 +296,7 @@ describe('createBashTool', () => {
     'rejects an invalid output limit: %s',
     async maxOutputLength => {
       await expect(
-        createBashTool({ sandbox: await createSandbox(), maxOutputLength }),
+        bashTool({ sandbox: await createSandbox(), maxOutputLength }),
       ).rejects.toBeInstanceOf(InvalidArgumentError);
     },
   );
@@ -305,7 +305,7 @@ describe('createBashTool', () => {
     'rejects initial file paths outside the workspace: %s',
     async path => {
       await expect(
-        createBashTool({
+        bashTool({
           sandbox: await createSandbox(),
           files: { [path]: 'content' },
         }),
@@ -315,7 +315,7 @@ describe('createBashTool', () => {
 
   it('initializes paths containing spaces and shell metacharacters literally', async () => {
     const sandbox = await createSandbox();
-    await createBashTool({
+    await bashTool({
       sandbox,
       files: { 'nested/a $(echo b).txt': 'literal path' },
     });
@@ -326,7 +326,7 @@ describe('createBashTool', () => {
   });
 
   it('executes as a function tool in the standard AI SDK loop', async () => {
-    const bash = await createBashTool({
+    const bash = await bashTool({
       sandbox: await createSandbox(),
       files: { 'message.txt': 'hello from bash' },
     });

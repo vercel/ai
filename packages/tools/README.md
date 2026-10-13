@@ -25,14 +25,14 @@ Requires Node.js 22.13 or newer.
 
 ```ts
 import { createJustBashNetworkSandboxSession } from '@ai-sdk/sandbox-just-bash';
-import { createBashTool } from '@ai-sdk/tools/bash';
+import { bashTool } from '@ai-sdk/tools/bash';
 import { generateText, isStepCount } from 'ai';
 
 const session = await createJustBashNetworkSandboxSession();
 
 try {
   const sandbox = session.restricted();
-  const bash = await createBashTool({
+  const bash = await bashTool({
     sandbox,
     files: { 'notes.txt': 'Apples: 10\nPears: 20\n' },
   });
@@ -51,7 +51,7 @@ try {
 }
 ```
 
-`createBashTool()` returns the tool directly. Read generated files through the
+`bashTool()` returns the tool directly. Read generated files through the
 supplied sandbox using `readTextFile({ path })`, which returns `null` if missing.
 
 The caller owns the sandbox lifecycle. Tools sharing a session share files.
@@ -65,13 +65,13 @@ Vercel Sandbox. Wrap it with the adapter before passing it to the tool:
 
 ```ts
 import { createVercelSandboxSessionFromNativeSandbox } from '@ai-sdk/sandbox-vercel';
-import { createBashTool } from '@ai-sdk/tools/bash';
+import { bashTool } from '@ai-sdk/tools/bash';
 import { Sandbox } from '@vercel/sandbox';
 
 const nativeSandbox = await Sandbox.create();
 
 try {
-  const bash = await createBashTool({
+  const bash = await bashTool({
     sandbox: createVercelSandboxSessionFromNativeSandbox(nativeSandbox),
     workingDirectory: '/vercel/sandbox/workspace',
     files: { 'notes.txt': 'Hello from Vercel Sandbox' },

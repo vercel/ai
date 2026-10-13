@@ -1,5 +1,5 @@
 import { createJustBashNetworkSandboxSession } from '@ai-sdk/sandbox-just-bash';
-import { createBashTool } from '@ai-sdk/tools/bash';
+import { bashTool } from '@ai-sdk/tools/bash';
 import { isStepCount, ToolLoopAgent } from 'ai';
 import { run } from '../../lib/run';
 
@@ -8,7 +8,7 @@ run(async () => {
 
   try {
     const sandbox = session.restricted();
-    const bash = await createBashTool({
+    const bash = await bashTool({
       sandbox: session.restricted(),
       files: {
         'sales.json': JSON.stringify([

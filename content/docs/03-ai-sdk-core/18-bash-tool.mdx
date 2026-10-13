@@ -26,14 +26,14 @@ Requires Node.js 22.13 or newer.
 
 ```ts
 import { createJustBashNetworkSandboxSession } from '@ai-sdk/sandbox-just-bash';
-import { createBashTool } from '@ai-sdk/tools/bash';
+import { bashTool } from '@ai-sdk/tools/bash';
 import { generateText, isStepCount } from 'ai';
 
 const session = await createJustBashNetworkSandboxSession();
 
 try {
   const sandbox = session.restricted();
-  const bash = await createBashTool({
+  const bash = await bashTool({
     sandbox,
     files: { 'notes.txt': 'Apples: 10\nPears: 20\n' },
   });
@@ -59,13 +59,13 @@ Vercel Sandbox. Wrap it with the adapter before passing it to the tool:
 
 ```ts
 import { createVercelSandboxSessionFromNativeSandbox } from '@ai-sdk/sandbox-vercel';
-import { createBashTool } from '@ai-sdk/tools/bash';
+import { bashTool } from '@ai-sdk/tools/bash';
 import { Sandbox } from '@vercel/sandbox';
 
 const nativeSandbox = await Sandbox.create();
 
 try {
-  const bash = await createBashTool({
+  const bash = await bashTool({
     sandbox: createVercelSandboxSessionFromNativeSandbox(nativeSandbox),
     workingDirectory: '/vercel/sandbox/workspace',
     files: { 'notes.txt': 'Hello from Vercel Sandbox' },
@@ -86,7 +86,7 @@ Raw runtime instances need their respective adapters; a custom
 
 ## Options
 
-`createBashTool()` requires an options object:
+`bashTool()` requires an options object:
 
 | Option             | Type                          | Description                                                                                                                         |
 | ------------------ | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
@@ -113,7 +113,7 @@ Tools using the same session share files. Creating a tool does not reset existin
 files or create a new sandbox. Use separate sessions for independent workflows.
 The caller creates, reconnects, and destroys the sandbox.
 
-`createBashTool()` returns the tool directly, ready to use as `tools: { bash }`.
+`bashTool()` returns the tool directly, ready to use as `tools: { bash }`.
 Use the supplied sandbox's `readTextFile({ path })` to read generated text files;
 it returns `null` if the file is missing. The same session provides other file
 operations. File initialization completes before the factory returns.
