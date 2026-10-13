@@ -288,7 +288,7 @@ for await (const part of result.fullStream) {
   }
 
   if (part.type === 'transcript-final') {
-    console.log('final:', part.text);
+    console.log('final:', part.text, part.startSecond, part.endSecond);
   }
 }
 ```
@@ -306,7 +306,11 @@ settings: `commitStrategy`, `enableLogging`, `filterBackgroundAudio`,
 ElevenLabs delivers detected language on its timestamp-bearing committed event.
 When `includeLanguageDetection` is enabled, the provider requests that event
 internally, but only returns timestamp segments when `includeTimestamps` is also
-enabled. `filterBackgroundAudio` cannot be combined with either option.
+enabled. When `includeTimestamps` is enabled, each committed segment produces
+one `transcript-final` with `startSecond` and `endSecond` after the
+timestamp-bearing event arrives. If ElevenLabs omits that detailed event, the
+provider emits the committed text once without timing before the stream
+finishes. `filterBackgroundAudio` cannot be combined with either option.
 
 See [Transcription](/docs/ai-sdk-core/transcription) for more information about
 streaming transcription.

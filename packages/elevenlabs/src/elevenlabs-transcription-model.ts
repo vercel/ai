@@ -314,8 +314,6 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
         abortSignal: options.abortSignal,
         audio: options.audio,
         headers: combineHeaders(this.config.headers?.(), options.headers),
-        includeLanguageDetection:
-          streamingOptions?.includeLanguageDetection === true,
         includeRawChunks: options.includeRawChunks,
         includeTimestamps: streamingOptions?.includeTimestamps === true,
         language: elevenLabsOptions?.languageCode ?? undefined,
@@ -414,7 +412,6 @@ function createElevenLabsRealtimeTranscriptionStream({
   abortSignal,
   audio,
   headers,
-  includeLanguageDetection,
   includeRawChunks,
   includeTimestamps,
   language,
@@ -427,7 +424,6 @@ function createElevenLabsRealtimeTranscriptionStream({
   abortSignal: AbortSignal | undefined;
   audio: ReadableStream<Uint8Array | string>;
   headers: Record<string, string | undefined>;
-  includeLanguageDetection: boolean;
   includeRawChunks: boolean | undefined;
   includeTimestamps: boolean;
   language: string | undefined;
@@ -456,14 +452,57 @@ function createElevenLabsRealtimeTranscriptionStream({
       let committedEventsAtEndOfInput = 0;
       let finalCommitEventCount: number | undefined;
       let timestampedCommitCount = 0;
-      const expectDetailedCommit =
-        includeTimestamps || includeLanguageDetection;
+      const commits: Array<{
+        emitted: boolean;
+        id?: string;
+        text?: string;
+      }> = [];
       const finalSegments: Array<{
         text: string;
         startSecond: number;
         endSecond: number;
       }> = [];
       const finalTexts: string[] = [];
+
+      const getCommit = (index: number) =>
+        (commits[index] ??= { emitted: false });
+
+      const setCommitText = (
+        commit: (typeof commits)[number],
+        text: string,
+      ) => {
+        if (commit.text != null || text.length === 0) return;
+        commit.id = `${sessionId ?? 'session'}:${segmentIndex++}`;
+        commit.text = text;
+        finalTexts.push(text);
+      };
+
+      const emitCommit = (
+        commit: (typeof commits)[number],
+        timestampedWords?: Array<{ start: number; end: number }>,
+      ) => {
+        if (commit.emitted || commit.id == null || commit.text == null) return;
+        commit.emitted = true;
+        controller.enqueue({
+          type: 'transcript-final',
+          id: commit.id,
+          text: commit.text,
+          ...(includeTimestamps &&
+          timestampedWords != null &&
+          timestampedWords.length > 0
+            ? {
+                startSecond: timestampedWords[0].start,
+                endSecond: timestampedWords.at(-1)!.end,
+              }
+            : {}),
+        });
+      };
+
+      const flushPendingCommits = () => {
+        for (const commit of commits) {
+          emitCommit(commit);
+        }
+      };
 
       cleanup = (closeCode?: number) => {
         clearTimeout(finalCommitGracePeriod);
@@ -484,6 +523,10 @@ function createElevenLabsRealtimeTranscriptionStream({
 
       const finish = () => {
         if (finished) return;
+        // ElevenLabs normally sends a timestamp-bearing event immediately
+        // after each plain commit. If it omits that event, preserve the
+        // committed text by emitting an untimed final before finishing.
+        flushPendingCommits();
         finished = true;
         controller.enqueue({
           type: 'finish',
@@ -606,19 +649,14 @@ function createElevenLabsRealtimeTranscriptionStream({
             }
             case 'final_transcript':
             case 'committed_transcript': {
-              committedEventCount++;
+              const commit = getCommit(committedEventCount++);
               const text = (raw.text ?? '').trim();
-              const id = `${sessionId ?? 'session'}:${segmentIndex}`;
+              setCommitText(commit, text);
 
-              if (text.length > 0) {
-                finalTexts.push(text);
-                segmentIndex++;
-                controller.enqueue({
-                  type: 'transcript-final',
-                  id,
-                  text,
-                });
-              }
+              // Delay the normalized final only when the consumer requested
+              // timestamps. The following detailed event can then enrich the
+              // same final without emitting the transcript text twice.
+              if (!includeTimestamps) emitCommit(commit);
 
               // When timestamps are requested, ElevenLabs follows this event
               // with committed_transcript_with_timestamps for the same commit.
@@ -628,17 +666,13 @@ function createElevenLabsRealtimeTranscriptionStream({
               ) {
                 receivedPostInputCommit = true;
                 finalCommitEventCount = committedEventCount;
-                if (
-                  !expectDetailedCommit ||
-                  raw.message_type === 'final_transcript'
-                ) {
-                  scheduleFinish();
-                }
+                scheduleFinish();
               }
               break;
             }
             case 'final_transcript_with_timestamps':
             case 'committed_transcript_with_timestamps': {
+              const commit = getCommit(timestampedCommitCount++);
               const text = (raw.text ?? '').trim();
               const words = raw.words ?? [];
               const timestampedWords = words.filter(
@@ -648,27 +682,11 @@ function createElevenLabsRealtimeTranscriptionStream({
               );
               detectedLanguage = raw.language_code ?? detectedLanguage;
 
-              // Normally this is paired with the preceding committed_transcript.
-              // Still handle a timestamp-only server response defensively.
-              if (
-                finalTexts[timestampedCommitCount] == null &&
-                text.length > 0
-              ) {
-                const id = `${sessionId ?? 'session'}:${segmentIndex++}`;
-                finalTexts.push(text);
-                controller.enqueue({
-                  type: 'transcript-final',
-                  id,
-                  text,
-                  ...(includeTimestamps
-                    ? {
-                        startSecond: timestampedWords[0]?.start,
-                        endSecond: timestampedWords.at(-1)?.end,
-                      }
-                    : {}),
-                });
-              }
-              timestampedCommitCount++;
+              // Normally this enriches the preceding plain commit. Still
+              // handle a timestamp-only server response defensively.
+              setCommitText(commit, text);
+              emitCommit(commit, timestampedWords);
+
               if (includeTimestamps) {
                 finalSegments.push(
                   ...timestampedWords.map(word => ({

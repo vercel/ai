@@ -513,6 +513,8 @@ describe('doStream', () => {
         type: 'transcript-final',
         id: 'session-1:0',
         text: 'Hello world.',
+        startSecond: 0,
+        endSecond: 0.9,
       },
       {
         type: 'finish',
@@ -621,6 +623,42 @@ describe('doStream', () => {
     ]);
   });
 
+  it('emits committed text without timing when the timestamp event is omitted', async () => {
+    const result = await createElevenLabs({
+      apiKey: 'test-api-key',
+      webSocket: MockWebSocket,
+    }).transcription('scribe_v2_realtime').doStream!({
+      audio: convertArrayToReadableStream([new Uint8Array([1])]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      providerOptions: {
+        elevenlabs: { streaming: { includeTimestamps: true } },
+      },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    ws.message({ message_type: 'session_started', session_id: 'session-1' });
+    await flush();
+    ws.message({ message_type: 'committed_transcript', text: 'Hello' });
+
+    await expect(partsPromise).resolves.toEqual([
+      { type: 'stream-start', warnings: [] },
+      {
+        type: 'transcript-final',
+        id: 'session-1:0',
+        text: 'Hello',
+      },
+      {
+        type: 'finish',
+        text: 'Hello',
+        segments: [],
+        language: undefined,
+        durationInSeconds: undefined,
+      },
+    ]);
+  });
+
   it('finishes a timestamp-only response to the final commit', async () => {
     const result = await createElevenLabs({
       apiKey: 'test-api-key',
@@ -660,6 +698,65 @@ describe('doStream', () => {
         segments: [{ text: 'Hello', startSecond: 0, endSecond: 0.4 }],
         language: 'en',
         durationInSeconds: 0.4,
+      },
+    ]);
+  });
+
+  it('emits one timestamped final for each paired committed segment', async () => {
+    const result = await createElevenLabs({
+      apiKey: 'test-api-key',
+      webSocket: MockWebSocket,
+    }).transcription('scribe_v2_realtime').doStream!({
+      audio: convertArrayToReadableStream([new Uint8Array([1])]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      providerOptions: {
+        elevenlabs: { streaming: { includeTimestamps: true } },
+      },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    ws.message({ message_type: 'session_started', session_id: 'session-1' });
+    await flush();
+    ws.message({ message_type: 'committed_transcript', text: 'First.' });
+    ws.message({
+      message_type: 'committed_transcript_with_timestamps',
+      text: 'First.',
+      words: [{ text: 'First.', start: 1, end: 1.5, type: 'word' }],
+    });
+    ws.message({ message_type: 'committed_transcript', text: 'Second.' });
+    ws.message({
+      message_type: 'committed_transcript_with_timestamps',
+      text: 'Second.',
+      words: [{ text: 'Second.', start: 2, end: 2.75, type: 'word' }],
+    });
+
+    await expect(partsPromise).resolves.toEqual([
+      { type: 'stream-start', warnings: [] },
+      {
+        type: 'transcript-final',
+        id: 'session-1:0',
+        text: 'First.',
+        startSecond: 1,
+        endSecond: 1.5,
+      },
+      {
+        type: 'transcript-final',
+        id: 'session-1:1',
+        text: 'Second.',
+        startSecond: 2,
+        endSecond: 2.75,
+      },
+      {
+        type: 'finish',
+        text: 'First. Second.',
+        segments: [
+          { text: 'First.', startSecond: 1, endSecond: 1.5 },
+          { text: 'Second.', startSecond: 2, endSecond: 2.75 },
+        ],
+        language: undefined,
+        durationInSeconds: 2.75,
       },
     ]);
   });
@@ -752,6 +849,8 @@ describe('doStream', () => {
         type: 'transcript-final',
         id: 'session-1:0',
         text: 'Legacy final',
+        startSecond: 0,
+        endSecond: 0.5,
       },
       {
         type: 'finish',

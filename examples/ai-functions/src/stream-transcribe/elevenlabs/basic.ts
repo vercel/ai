@@ -66,7 +66,13 @@ run(async () => {
     }
 
     if (part.type === 'transcript-final') {
-      console.log('final:', part.text);
+      console.log(
+        'final:',
+        part.text,
+        part.startSecond != null && part.endSecond != null
+          ? `(${part.startSecond}s-${part.endSecond}s)`
+          : '',
+      );
     }
   }
 
