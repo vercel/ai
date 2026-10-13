@@ -1,5 +1,12 @@
 # @ai-sdk/vue
 
+## 2.0.275
+
+### Patch Changes
+
+- 1af005a: fix(vue): preserve headers supplied as a Headers instance in useObject requests
+  - ai@5.0.275
+
 ## 2.0.274
 
 ### Patch Changes
