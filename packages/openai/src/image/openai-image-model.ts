@@ -295,12 +295,8 @@ type OpenAIImageEditInput = {
 };
 
 async function fileToBlob(
-<<<<<<< HEAD
   file: ImageModelV3File | undefined,
-=======
-  file: ImageModelV4File | undefined,
   abortSignal: AbortSignal | undefined,
->>>>>>> e76a0a3677 (fix: OpenAI image edits remain pending after cancellation while downloading images or masks (#21085))
 ): Promise<Blob | undefined> {
   if (!file) return undefined;
 
