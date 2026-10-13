@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 19914,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-19914-smooth-stream-regexp.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-19914-smooth-stream-regexp.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_19914_REPRODUCED: smoothStream custom RegExp chunking produced incorrect boundaries or failed to reject a zero-length match."
+  }
+}
