@@ -1085,14 +1085,8 @@ describe('extractReasoningMiddleware', () => {
               },
               "type": "finish",
             },
-<<<<<<< HEAD
           ]
         `);
-=======
-            "type": "finish",
-          },
-        ]
-      `);
     });
 
     it.each([
@@ -1111,7 +1105,7 @@ describe('extractReasoningMiddleware', () => {
     ])(
       'should preserve a partial tag in $location when the text part ends',
       async ({ delta, expectedText, expectedReasoningText }) => {
-        const mockModel = new MockLanguageModelV4({
+        const mockModel = new MockLanguageModelV3({
           async doStream() {
             return {
               stream: convertArrayToReadableStream([
@@ -1140,102 +1134,6 @@ describe('extractReasoningMiddleware', () => {
         expect(await result.reasoningText).toBe(expectedReasoningText);
       },
     );
-
-    it('should preserve overlapping text parts', async () => {
-      const mockModel = new MockLanguageModelV4({
-        async doStream() {
-          return {
-            stream: convertArrayToReadableStream([
-              {
-                type: 'response-metadata',
-                id: 'id-0',
-                modelId: 'mock-model-id',
-                timestamp: new Date(0),
-              },
-              { type: 'text-start', id: 'a' },
-              { type: 'text-start', id: 'b' },
-              { type: 'text-delta', id: 'a', delta: 'Alpha.' },
-              { type: 'text-delta', id: 'b', delta: 'Beta.' },
-              { type: 'text-end', id: 'a' },
-              { type: 'text-end', id: 'b' },
-              {
-                type: 'finish',
-                finishReason: { unified: 'stop', raw: 'stop' },
-                usage: testUsage,
-              },
-            ]),
-          };
-        },
-      });
-
-      const errors: unknown[] = [];
-      const result = streamText({
-        model: wrapLanguageModel({
-          model: mockModel,
-          middleware: extractReasoningMiddleware({ tagName: 'think' }),
-        }),
-        prompt: 'Hello, how can I help?',
-      });
-
-      for await (const event of result.fullStream) {
-        if (event.type === 'error') {
-          errors.push(event.error);
-        }
-      }
-
-      expect(await result.text).toBe('Alpha.Beta.');
-      expect(errors).toEqual([]);
-    });
-
-    it('should preserve reasoning from overlapping text parts', async () => {
-      const mockModel = new MockLanguageModelV4({
-        async doStream() {
-          return {
-            stream: convertArrayToReadableStream([
-              {
-                type: 'response-metadata',
-                id: 'id-0',
-                modelId: 'mock-model-id',
-                timestamp: new Date(0),
-              },
-              { type: 'text-start', id: 'a' },
-              { type: 'text-start', id: 'b' },
-              { type: 'text-delta', id: 'a', delta: '<think>A' },
-              { type: 'text-delta', id: 'b', delta: '<think>B' },
-              { type: 'text-delta', id: 'a', delta: '1</think>Alpha.' },
-              { type: 'text-delta', id: 'b', delta: '2</think>Beta.' },
-              { type: 'text-end', id: 'a' },
-              { type: 'text-end', id: 'b' },
-              {
-                type: 'finish',
-                finishReason: { unified: 'stop', raw: 'stop' },
-                usage: testUsage,
-              },
-            ]),
-          };
-        },
-      });
-
-      const errors: unknown[] = [];
-      const result = streamText({
-        model: wrapLanguageModel({
-          model: mockModel,
-          middleware: extractReasoningMiddleware({ tagName: 'think' }),
-        }),
-        prompt: 'Hello, how can I help?',
-      });
-
-      for await (const event of result.fullStream) {
-        if (event.type === 'error') {
-          errors.push(event.error);
-        }
-      }
-
-      expect(await result.reasoningText).toBe('A1B2');
-      expect(await result.text).toBe('Alpha.Beta.');
-      expect(errors).toEqual([]);
->>>>>>> 2a625cfb32 (fix: preserve streamed text ending with a partial reasoning tag (#21726))
-    });
 
     it('should handle empty <think></think> tags without crashing', async () => {
       const mockModel = new MockLanguageModelV3({

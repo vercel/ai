@@ -111,16 +111,7 @@ export function extractReasoningMiddleware({
                 return;
               }
 
-<<<<<<< HEAD
-              if (chunk.type === 'text-end' && delayedTextStart) {
-                controller.enqueue(delayedTextStart);
-                delayedTextStart = undefined;
-              }
-
-              if (chunk.type !== 'text-delta') {
-=======
               if (chunk.type !== 'text-delta' && chunk.type !== 'text-end') {
->>>>>>> 2a625cfb32 (fix: preserve streamed text ending with a partial reasoning tag (#21726))
                 controller.enqueue(chunk);
                 return;
               }
@@ -143,9 +134,9 @@ export function extractReasoningMiddleware({
               const activeExtraction = reasoningExtractions[chunk.id];
 
               if (activeExtraction == null) {
-                if (delayedTextStarts[chunk.id] != null) {
-                  controller.enqueue(delayedTextStarts[chunk.id]);
-                  delete delayedTextStarts[chunk.id];
+                if (delayedTextStart) {
+                  controller.enqueue(delayedTextStart);
+                  delayedTextStart = undefined;
                 }
                 controller.enqueue(chunk);
                 return;
@@ -203,9 +194,9 @@ export function extractReasoningMiddleware({
                 publish(activeExtraction.buffer);
                 activeExtraction.buffer = '';
 
-                if (delayedTextStarts[chunk.id] != null) {
-                  controller.enqueue(delayedTextStarts[chunk.id]);
-                  delete delayedTextStarts[chunk.id];
+                if (delayedTextStart) {
+                  controller.enqueue(delayedTextStart);
+                  delayedTextStart = undefined;
                 }
                 controller.enqueue(chunk);
                 return;
