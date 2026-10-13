@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 19243,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/vue-use-completion-empty-initial-fallback.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/vue-use-completion-empty-initial-fallback.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_19243_REPRODUCED: expected completion.value to render \"\" after clearing and an empty model response, but manual clear rendered \"PREVIOUS\"; request start rendered \"PREVIOUS\"; empty response rendered \"PREVIOUS\"."
+  }
+}
