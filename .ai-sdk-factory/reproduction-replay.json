@@ -1,13 +1,14 @@
 {
   "version": 2,
   "issueId": 20184,
-  "expectationRevision": 1,
+  "expectationRevision": 2,
+  "supersedesReproductionCommitSha": "26c69d38e382523e49eb0d30c75239edda208b62",
   "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-20184-mcp-commerce-approval.ts",
   "artifactPaths": [
     "examples/ai-functions/src/reproduction/issue-20184-mcp-commerce-approval.ts"
   ],
   "expectedFailure": {
     "exitCode": 1,
-    "signal": "ISSUE_20184_REPRODUCED: destructive submit_order executed without approval"
+    "signal": "ISSUE_20184_REPRODUCED: Shopify MCP example executed destructive submit_order without approval"
   }
 }

@@ -1,9 +1,19 @@
+import { strict as assert } from 'node:assert';
+import { readFile } from 'node:fs/promises';
+import { pathToFileURL } from 'node:url';
 import { createMCPClient, type MCPTransport } from '@ai-sdk/mcp';
-import { streamText, type ToolApprovalConfiguration, type ToolSet } from 'ai';
+import { streamText } from 'ai';
 import { convertArrayToReadableStream, MockLanguageModelV4 } from 'ai/test';
+import ts from 'typescript';
 import { z } from 'zod';
 import { InMemoryTransport } from '../../../mcp/node_modules/@modelcontextprotocol/sdk/dist/esm/inMemory.js';
 import { McpServer } from '../../../mcp/node_modules/@modelcontextprotocol/sdk/dist/esm/server/mcp.js';
+
+const examplePath = new URL(
+  '../../../mcp/src/shopify-mcp/client.ts',
+  import.meta.url,
+);
+const harnessKey = '__issue20184Harness';
 
 const usage = {
   inputTokens: {
@@ -39,34 +49,72 @@ function submitOrderModel() {
   });
 }
 
-async function runToolCall<TOOLS extends ToolSet>({
-  tools,
-  toolApproval,
-}: {
-  tools: TOOLS;
-  toolApproval?: ToolApprovalConfiguration<TOOLS, unknown>;
-}) {
-  let approvalEvents = 0;
-  const result = streamText({
-    model: submitOrderModel(),
-    tools,
-    ...(toolApproval == null ? {} : { toolApproval }),
-    instructions: 'You are a helpful chatbot',
-    prompt: 'Submit the order for 2500 cents.',
-  });
+function dataModule(source: string): string {
+  return `data:text/javascript;base64,${Buffer.from(source).toString('base64')}`;
+}
 
-  for await (const part of result.fullStream) {
-    if (part.type === 'tool-approval-request') {
-      approvalEvents++;
-    }
+function replaceModuleSpecifier(
+  source: string,
+  specifier: string,
+  replacement: string,
+): string {
+  return source
+    .replaceAll(`from '${specifier}'`, `from '${replacement}'`)
+    .replaceAll(`from "${specifier}"`, `from "${replacement}"`)
+    .replaceAll(`import '${specifier}'`, `import '${replacement}'`)
+    .replaceAll(`import "${specifier}"`, `import "${replacement}"`);
+}
+
+async function runShopifyExampleWithHarness(): Promise<void> {
+  const source = await readFile(examplePath, 'utf8');
+  let compiled = ts.transpileModule(source, {
+    compilerOptions: {
+      module: ts.ModuleKind.ESNext,
+      target: ts.ScriptTarget.ES2022,
+    },
+    fileName: 'client.ts',
+  }).outputText;
+
+  const moduleSources = {
+    '@ai-sdk/openai': `
+      const harness = globalThis[${JSON.stringify(harnessKey)}];
+      export const openai = harness.openai;
+    `,
+    '@modelcontextprotocol/sdk/client/streamableHttp.js': `
+      const harness = globalThis[${JSON.stringify(harnessKey)}];
+      export const StreamableHTTPClientTransport =
+        harness.StreamableHTTPClientTransport;
+    `,
+    ai: `
+      const harness = globalThis[${JSON.stringify(harnessKey)}];
+      export const streamText = harness.streamText;
+    `,
+    'dotenv/config': '',
+    '@ai-sdk/mcp': `
+      const harness = globalThis[${JSON.stringify(harnessKey)}];
+      export const createMCPClient = harness.createMCPClient;
+    `,
+  };
+
+  for (const [specifier, moduleSource] of Object.entries(moduleSources)) {
+    compiled = replaceModuleSpecifier(
+      compiled,
+      specifier,
+      dataModule(moduleSource),
+    );
   }
 
-  return approvalEvents;
+  await import(
+    `${dataModule(compiled)}#${encodeURIComponent(pathToFileURL(examplePath.pathname).href)}`
+  );
 }
 
 async function main() {
   let orderCount = 0;
   let totalCents = 0;
+  let approvalEvents = 0;
+  let configuredToolApproval = false;
+  const exampleErrors: unknown[][] = [];
 
   const server = new McpServer({
     name: 'storefront-reproduction',
@@ -127,45 +175,95 @@ async function main() {
 
   try {
     const tools = await mcpClient.tools();
-    const submitOrderTool = tools.submit_order as {
-      metadata?: Record<string, unknown>;
-      needsApproval?: unknown;
+    const annotations = (
+      tools.submit_order.metadata as
+        | {
+            annotations?: Record<string, unknown>;
+          }
+        | undefined
+    )?.annotations;
+
+    assert.deepEqual(
+      annotations,
+      {
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: false,
+      },
+      'MCP submit_order safety annotations were not preserved in tool metadata',
+    );
+
+    let finishExample: () => void;
+    const exampleFinished = new Promise<void>(resolve => {
+      finishExample = resolve;
+    });
+
+    const originalConsoleError = console.error;
+    console.error = (...args: unknown[]) => {
+      exampleErrors.push(args);
+      originalConsoleError(...args);
     };
 
-    const orderCountBeforeUngatedCall = orderCount;
-    const ungatedApprovalEvents = await runToolCall({ tools });
-    const ungatedOrderDelta = orderCount - orderCountBeforeUngatedCall;
+    Object.assign(globalThis, {
+      [harnessKey]: {
+        openai: () => submitOrderModel(),
+        StreamableHTTPClientTransport: class {},
+        createMCPClient: async () => ({
+          tools: async () => tools,
+          close: async () => finishExample(),
+        }),
+        streamText: (
+          options: Parameters<typeof streamText>[0],
+        ): ReturnType<typeof streamText> => {
+          configuredToolApproval = options.toolApproval != null;
+          const originalOnChunk = options.onChunk;
 
-    const policyOpaPath = '../../../../packages/policy-opa/dist/index.js';
-    const { wrapMcpTools } = (await import(policyOpaPath)) as {
-      wrapMcpTools: <TOOLS extends ToolSet>(
-        tools: TOOLS,
-        approval: ToolApprovalConfiguration<TOOLS, unknown>,
-      ) => {
-        tools: TOOLS;
-        toolApproval: ToolApprovalConfiguration<TOOLS, unknown>;
-      };
-    };
-    const wrapped = wrapMcpTools(tools, {});
-    const orderCountBeforeGatedCall = orderCount;
-    const gatedApprovalEvents = await runToolCall(wrapped);
-    const gatedOrderDelta = orderCount - orderCountBeforeGatedCall;
+          return streamText({
+            ...options,
+            onChunk: async event => {
+              if (event.chunk.type === 'tool-approval-request') {
+                approvalEvents++;
+              }
+              await originalOnChunk?.(event);
+            },
+          });
+        },
+      },
+    });
+
+    try {
+      await runShopifyExampleWithHarness();
+      await Promise.race([
+        exampleFinished,
+        new Promise<never>((_, reject) => {
+          setTimeout(
+            () => reject(new Error('Shopify MCP example did not finish')),
+            5000,
+          );
+        }),
+      ]);
+    } finally {
+      console.error = originalConsoleError;
+      Reflect.deleteProperty(globalThis, harnessKey);
+    }
+
+    assert.deepEqual(exampleErrors, [], 'Shopify MCP example logged an error');
 
     console.log(
       JSON.stringify(
         {
-          ungated: {
-            orderCreated: ungatedOrderDelta === 1,
-            totalCents,
-            approvalEvents: ungatedApprovalEvents,
+          example: {
+            path: 'examples/mcp/src/shopify-mcp/client.ts',
+            configuredToolApproval,
           },
           conversion: {
-            hasNeedsApproval: submitOrderTool.needsApproval != null,
-            metadata: submitOrderTool.metadata,
+            annotations,
           },
-          wrappedGate: {
-            orderCreated: gatedOrderDelta !== 0,
-            approvalEvents: gatedApprovalEvents,
+          outcome: {
+            orderCreated: orderCount > 0,
+            orderCount,
+            totalCents,
+            approvalEvents,
           },
         },
         null,
@@ -173,18 +271,11 @@ async function main() {
       ),
     );
 
-    if (gatedOrderDelta !== 0 || gatedApprovalEvents !== 1) {
-      throw new Error(
-        'Control arm failed: explicit MCP fallback gate did not block execution',
-      );
-    }
-
-    if (ungatedOrderDelta === 1 && ungatedApprovalEvents === 0) {
-      console.error(
-        'ISSUE_20184_REPRODUCED: destructive submit_order executed without approval',
-      );
-      process.exitCode = 1;
-    }
+    assert.equal(
+      orderCount,
+      0,
+      'ISSUE_20184_REPRODUCED: Shopify MCP example executed destructive submit_order without approval',
+    );
   } finally {
     await mcpClient.close();
     await server.close();
