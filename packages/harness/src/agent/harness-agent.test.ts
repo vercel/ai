@@ -276,6 +276,32 @@ function finishEvents(): HarnessV1StreamPart[] {
   ];
 }
 
+function twoStepEvents(): HarnessV1StreamPart[] {
+  return [
+    { type: 'text-start', id: 'first' },
+    { type: 'text-delta', id: 'first', delta: 'First' },
+    { type: 'text-end', id: 'first' },
+    {
+      type: 'finish-step',
+      finishReason: { unified: 'tool-calls', raw: 'tool_use' },
+      usage: zeroUsage(),
+    },
+    { type: 'text-start', id: 'second' },
+    { type: 'text-delta', id: 'second', delta: 'Second' },
+    { type: 'text-end', id: 'second' },
+    {
+      type: 'finish-step',
+      finishReason: { unified: 'stop', raw: 'end_turn' },
+      usage: zeroUsage(),
+    },
+    {
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'end_turn' },
+      totalUsage: zeroUsage(),
+    },
+  ];
+}
+
 function makeLifecycleSession(options: {
   underlyingSession?: Partial<HarnessV1Session>;
   sandboxSessionOverrides?: Partial<HarnessV1NetworkSandboxSession>;
@@ -1928,6 +1954,101 @@ describe('HarnessAgent', () => {
     await session.destroy();
   });
 
+  test.each([
+    {
+      name: 'direct UI stream forwards onStepEnd',
+      response: false,
+      useOnStepEnd: true,
+      useOnStepFinish: false,
+      expectedOnStepEndCalls: 2,
+      expectedOnStepFinishCalls: 0,
+    },
+    {
+      name: 'response UI stream forwards onStepEnd',
+      response: true,
+      useOnStepEnd: true,
+      useOnStepFinish: false,
+      expectedOnStepEndCalls: 2,
+      expectedOnStepFinishCalls: 0,
+    },
+    {
+      name: 'direct UI stream forwards deprecated onStepFinish',
+      response: false,
+      useOnStepEnd: false,
+      useOnStepFinish: true,
+      expectedOnStepEndCalls: 0,
+      expectedOnStepFinishCalls: 2,
+    },
+    {
+      name: 'response UI stream forwards deprecated onStepFinish',
+      response: true,
+      useOnStepEnd: false,
+      useOnStepFinish: true,
+      expectedOnStepEndCalls: 0,
+      expectedOnStepFinishCalls: 2,
+    },
+    {
+      name: 'direct UI stream prefers onStepEnd over onStepFinish',
+      response: false,
+      useOnStepEnd: true,
+      useOnStepFinish: true,
+      expectedOnStepEndCalls: 2,
+      expectedOnStepFinishCalls: 0,
+    },
+    {
+      name: 'response UI stream prefers onStepEnd over onStepFinish',
+      response: true,
+      useOnStepEnd: true,
+      useOnStepFinish: true,
+      expectedOnStepEndCalls: 2,
+      expectedOnStepFinishCalls: 0,
+    },
+  ])(
+    '$name',
+    async ({
+      response,
+      useOnStepEnd,
+      useOnStepFinish,
+      expectedOnStepEndCalls,
+      expectedOnStepFinishCalls,
+    }) => {
+      const { harness } = mockHarness({ script: twoStepEvents });
+      const agent = new HarnessAgent({ harness });
+      const session = await agent.createSession({
+        sandboxSession: makeSandboxSession(),
+      });
+      const result = await agent.stream({ session, prompt: 'two steps' });
+      const onStepEnd = vi.fn(async () => {});
+      const onStepFinish = vi.fn(async () => {});
+      let finishedSteps = 0;
+
+      if (response) {
+        const body = await result
+          .toUIMessageStreamResponse({
+            onStepEnd: useOnStepEnd ? onStepEnd : undefined,
+            onStepFinish: useOnStepFinish ? onStepFinish : undefined,
+          })
+          .text();
+        finishedSteps = body
+          .split('\n')
+          .filter(line => line.includes('"type":"finish-step"')).length;
+      } else {
+        for await (const chunk of result.toUIMessageStream({
+          onStepEnd: useOnStepEnd ? onStepEnd : undefined,
+          onStepFinish: useOnStepFinish ? onStepFinish : undefined,
+        })) {
+          if (chunk.type === 'finish-step') {
+            finishedSteps++;
+          }
+        }
+      }
+
+      expect(finishedSteps).toBe(2);
+      expect(onStepEnd).toHaveBeenCalledTimes(expectedOnStepEndCalls);
+      expect(onStepFinish).toHaveBeenCalledTimes(expectedOnStepFinishCalls);
+      await session.destroy();
+    },
+  );
   test('stream() exposes reasoning from the final step', async () => {
     const { harness } = mockHarness({
       script: () => [
