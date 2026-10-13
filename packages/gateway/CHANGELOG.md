@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 3.0.214
+
+### Patch Changes
+
+- d9244d1: Backport: chore(provider/gateway): update gateway model settings files
+
 ## 3.0.213
 
 ### Patch Changes
