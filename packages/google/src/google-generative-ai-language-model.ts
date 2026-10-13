@@ -647,7 +647,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
           usageMetadata: usageMetadata ?? null,
           finishMessage: candidate?.finishMessage ?? null,
           serviceTier: usageMetadata?.serviceTier ?? null,
-          ...(candidate?.continuationToken != null
+          ...(candidate?.continuationToken != null &&
+          rawFinishReason === 'MAX_TOKENS'
             ? { continuationToken: candidate.continuationToken }
             : {}),
           ...(continuedUsageMetadata != null && firstPromptTokenCount != null
