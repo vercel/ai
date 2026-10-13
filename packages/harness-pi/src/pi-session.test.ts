@@ -1340,6 +1340,7 @@ describe('createPiSession', () => {
     expect(mcpMock.createMcpExtension).toHaveBeenCalledExactlyOnceWith({
       loadConfig: expect.any(Function),
       logPath: devNull,
+      credentials: expect.any(Object),
     });
     const [mcpOptions] = mcpMock.createMcpExtension.mock
       .lastCall as unknown as [{ loadConfig: () => unknown }];
@@ -1553,6 +1554,49 @@ describe('createPiSession', () => {
     } finally {
       await session.doDestroy();
     }
+  });
+
+  it('serves a server whose exposure is explicitly undefined as direct', async () => {
+    const session = await createPi({
+      mcpServers: {
+        memory: { command: 'memory-mcp', args: [], exposure: undefined },
+      },
+    }).doStart({
+      sessionId: 'session-mcp-undefined-exposure',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+    });
+
+    try {
+      expect(
+        piMock.extensionApi.registerMcpServer,
+      ).toHaveBeenCalledExactlyOnceWith('memory', {
+        command: 'memory-mcp',
+        args: [],
+        exposure: 'direct',
+      });
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it.each([
+    { exposure: 'codemode' },
+    { exposure: 'codemode-deferred' },
+    { toolExposure: { search: 'codemode' } },
+  ])('rejects an MCP server with %o', async exposure => {
+    const start = createPi({
+      mcpServers: { memory: { command: 'memory-mcp', args: [], ...exposure } },
+    }).doStart({
+      sessionId: 'session-mcp-codemode',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+    });
+
+    await expect(start).rejects.toThrow(
+      'Pi MCP server "memory" uses the codemode exposure',
+    );
+    expect(piMock.createAgentSession).not.toHaveBeenCalled();
   });
 
   it.each([

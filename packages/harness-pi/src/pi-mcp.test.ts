@@ -1,6 +1,12 @@
 import type { HarnessV1StreamPart } from '@ai-sdk/harness';
 import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
-import { mkdtempSync, readdirSync, rmSync } from 'node:fs';
+import {
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { createServer, type ServerResponse } from 'node:http';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -308,5 +314,65 @@ describe("Pi's native MCP over streamable HTTP", () => {
     expect(
       readdirSync(agentDir).filter(name => name.startsWith('mcp')),
     ).toEqual([]);
+  });
+  it('fails session start when Pi rejects an MCP server entry', async () => {
+    const sessionWorkDir = '/sandbox/workspace';
+    const sandboxSession = await createJustBashSandbox({
+      cwd: sessionWorkDir,
+    }).createSession();
+
+    await expect(
+      createFakePi(modelUrl, { mcpServers: { broken: {} } }).doStart({
+        sessionId: 'session-invalid-mcp',
+        sandboxSession,
+        sessionWorkDir,
+      }),
+    ).rejects.toThrow('Invalid MCP server');
+  });
+
+  it("does not use Pi's stored OAuth credentials for a server without an Authorization header", async () => {
+    const sessionWorkDir = '/sandbox/workspace';
+    const sandboxSession = await createJustBashSandbox({
+      cwd: sessionWorkDir,
+    }).createSession();
+    const url = `${mcpUrl}/memory`;
+    const authFile = path.join(agentDir, 'mcp-auth.json');
+    const stored = JSON.stringify({
+      [`mcp__memory|${url}`]: {
+        serverUrl: url,
+        tokens: { access_token: MCP_TOKEN, token_type: 'Bearer' },
+        tokensExpireAt: Date.now() + 3_600_000,
+      },
+    });
+    writeFileSync(authFile, stored);
+    const firstRequest = mcp.requests.length;
+
+    const session = await createFakePi(modelUrl, {
+      mcpServers: { memory: { url } },
+    }).doStart({
+      sessionId: 'session-mcp-no-stored-credentials',
+      sandboxSession,
+      sessionWorkDir,
+    });
+    try {
+      const control = await session.doPromptTurn({
+        prompt: 'Hello.',
+        model: 'fake/fake-model',
+        tools: [],
+        skills: [],
+        emit: () => {},
+      });
+      await control.done;
+    } finally {
+      await session.doDestroy();
+    }
+
+    const requests = mcp.requests.slice(firstRequest);
+    expect(requests.length).toBeGreaterThan(0);
+    expect(requests.map(request => request.authorization)).not.toContain(
+      `Bearer ${MCP_TOKEN}`,
+    );
+    expect(readFileSync(authFile, 'utf8')).toBe(stored);
+    rmSync(authFile);
   });
 });
