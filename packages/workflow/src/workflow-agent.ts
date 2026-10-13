@@ -581,6 +581,7 @@ export type WorkflowAgentOptions<
 
     /**
      * Default custom download function to use for URLs.
+     * Mark the function with `'use step'` when used in a workflow.
      *
      * Per-stream `experimental_download` values passed to `stream()` override this default.
      */
@@ -1077,6 +1078,7 @@ export type WorkflowAgentCallOptions<
     /**
      * Custom download function to use for URLs.
      * By default, files are downloaded if the model does not support the URL for the given media type.
+     * Mark the function with `'use step'` when used in a workflow.
      */
     experimental_download?: DownloadFunction;
 
@@ -1875,7 +1877,8 @@ export class WorkflowAgent<
         ? { prompt: effectivePrompt }
         : { messages: effectiveMessages! }),
     } as Prompt);
-    const download = effectiveDownloadFromPrepare;
+    const workflowDownload: DownloadFunction = async requests =>
+      requests.map(() => null);
     const sandbox = options.experimental_sandbox ?? this.experimentalSandbox;
     // Model steps enforce the absolute deadline below. Avoid creating a native
     // timeout signal in the workflow VM, where timer APIs are unavailable.
@@ -1913,7 +1916,8 @@ export class WorkflowAgent<
       effectiveTelemetry,
       telemetryDispatcher,
       prompt,
-      download,
+      download: effectiveDownloadFromPrepare,
+      workflowDownload,
       sandbox,
       effectiveAbortSignal,
       timeoutAt,
@@ -1950,6 +1954,7 @@ export class WorkflowAgent<
       telemetryDispatcher,
       prompt,
       download,
+      workflowDownload,
       sandbox,
       effectiveAbortSignal,
       timeoutAt,
@@ -2044,7 +2049,7 @@ export class WorkflowAgent<
                 tool,
                 errorMode: 'text',
                 supportedUrls: {},
-                download,
+                download: workflowDownload,
               }),
             });
             continue;
@@ -2102,7 +2107,7 @@ export class WorkflowAgent<
                 tool,
                 errorMode: 'text',
                 supportedUrls: {},
-                download,
+                download: workflowDownload,
               }),
             });
             continue;
@@ -2224,7 +2229,7 @@ export class WorkflowAgent<
     const modelPrompt = await convertToLanguageModelPrompt({
       prompt,
       supportedUrls: {},
-      download,
+      download: workflowDownload,
     });
 
     // Merge generation settings: constructor defaults < prepareCall < stream options
@@ -2409,7 +2414,7 @@ export class WorkflowAgent<
             messages,
             resolvedContext,
             effectiveAbortSignal,
-            download,
+            workflowDownload,
             stepSandbox,
           );
         result =
@@ -2587,6 +2592,7 @@ export class WorkflowAgent<
       repairToolCall: (options.repairToolCall ??
         options.experimental_repairToolCall ??
         this.repairToolCall) as ToolCallRepairFunction<ToolSet> | undefined,
+      download,
       responseFormat: await (options.output ?? this.output)?.responseFormat,
       experimental_transform: options.experimental_transform as
         | StreamTextTransform<ToolSet>
@@ -2785,7 +2791,7 @@ export class WorkflowAgent<
                     toolCall,
                     capturedProviderToolResults,
                     stepTools,
-                    download,
+                    workflowDownload,
                     toolCallIndexes.get(toolCall),
                     toolCall.providerResultKey,
                   ),
@@ -3056,7 +3062,7 @@ export class WorkflowAgent<
                 toolCall,
                 capturedProviderToolResults,
                 stepTools,
-                download,
+                workflowDownload,
                 toolCallIndexes.get(toolCall),
                 toolCall.providerResultKey,
               ),
