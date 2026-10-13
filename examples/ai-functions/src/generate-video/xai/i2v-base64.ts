@@ -10,7 +10,7 @@ run(async () => {
     'Generating xAI image-to-video from base64...',
     () =>
       generateVideo({
-        model: xai.video('grok-imagine-video'),
+        model: xai.video('grok-imagine-video-1.5'),
         prompt: {
           image: fs.readFileSync('data/comic-cat.png'),
           text: 'The cat slowly turns its head and blinks',

@@ -4,6 +4,10 @@ import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-f
 import { getOwn } from '../util/get-own';
 import type { ContentPart } from './content-part';
 import { DefaultGeneratedFile } from './generated-file';
+import {
+  resolveGeneratedFileData,
+  type GeneratedFileDataCache,
+} from './resolve-generated-file-data';
 import type { ToolApprovalRequestOutput } from './tool-approval-request-output';
 import type { ToolApprovalResponseOutput } from './tool-approval-response-output';
 import type { TypedToolCall } from './tool-call';
@@ -11,13 +15,15 @@ import type { TypedToolError } from './tool-error';
 import type { ToolOutput } from './tool-output';
 import type { TypedToolResult } from './tool-result';
 
-export function convertLanguageModelContent<TOOLS extends ToolSet>({
+export async function convertLanguageModelContent<TOOLS extends ToolSet>({
   content,
   toolCalls,
   toolOutputs,
   toolApprovalRequests,
   toolApprovalResponses,
   tools,
+  abortSignal,
+  generatedFileDataCache,
 }: {
   content: Array<LanguageModelV4Content>;
   toolCalls: Array<TypedToolCall<TOOLS>>;
@@ -25,7 +31,9 @@ export function convertLanguageModelContent<TOOLS extends ToolSet>({
   toolApprovalRequests: Array<ToolApprovalRequestOutput<TOOLS>>;
   toolApprovalResponses: Array<ToolApprovalResponseOutput<TOOLS>>;
   tools: TOOLS | undefined;
-}): Array<ContentPart<TOOLS>> {
+  abortSignal?: AbortSignal;
+  generatedFileDataCache?: GeneratedFileDataCache;
+}): Promise<Array<ContentPart<TOOLS>>> {
   const contentParts: Array<ContentPart<TOOLS>> = [];
   const toolOutputsWithApprovalResponses: Array<ToolOutput<TOOLS>> = [];
   const toolOutputsWithoutApprovalResponses: Array<ToolOutput<TOOLS>> = [];
@@ -49,10 +57,11 @@ export function convertLanguageModelContent<TOOLS extends ToolSet>({
         contentParts.push({
           type: part.type as 'file' | 'reasoning-file',
           file: new DefaultGeneratedFile({
-            data:
-              part.data.type === 'data'
-                ? part.data.data
-                : part.data.url.toString(),
+            data: await resolveGeneratedFileData({
+              data: part.data,
+              abortSignal,
+              cache: generatedFileDataCache,
+            }),
             mediaType: part.mediaType,
           }),
           ...(part.providerMetadata != null

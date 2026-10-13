@@ -1,0 +1,34 @@
+.reveal {
+  animation: reveal 400ms ease-out both;
+}
+
+.mediaReveal {
+  animation: media-reveal 1.5s ease-out both;
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes media-reveal {
+  from {
+    filter: blur(16px);
+  }
+  to {
+    filter: blur(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .mediaReveal {
+    animation: none;
+  }
+}

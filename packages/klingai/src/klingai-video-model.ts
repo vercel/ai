@@ -260,6 +260,12 @@ export class KlingAIVideoModel implements VideoModelV4 {
       });
     }
 
+    // Progress notifications require a protocol-aware receiver, so omit handleWebhookOption.
+    // Forward webhookUrl for a caller-owned receiver that filters progress notifications.
+    if (options.webhookUrl != null) {
+      body.callback_url = options.webhookUrl;
+    }
+
     this.addUniversalWarnings(options, warnings);
 
     const endpointPath = modeEndpointMap[effectiveMode];

@@ -17,10 +17,11 @@ You can install it with
 
 ### Heroku Setup
 
-1. Create a test app in Heroku:
+1. Create a test app in Heroku, replacing `your-app-name` with a unique app name:
 
 ```bash
-heroku create
+export APP_NAME=your-app-name
+heroku create $APP_NAME
 ```
 
 2. Inference using claude-3-5-haiku:

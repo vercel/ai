@@ -9,6 +9,8 @@ metadata:
 
 This guide covers creating a new `@ai-sdk/harness-<name>` package for an agent harness.
 
+Before evaluating a runtime, read [Harness Requirements](references/harness-requirements.md) for feasibility criteria and capability gaps to document. Follow the requirements while implementing the harness package.
+
 A harness can be **host-driven**, where the runtime runs in the host process and uses the sandbox remotely, or **bridge-backed**, where a small bridge runs inside the sandbox because the runtime needs local access to the sandbox filesystem or process environment.
 Prefer host-driven when the runtime supports it.
 
@@ -46,7 +48,7 @@ packages/harness-<name>/
 ├── package.json
 ├── tsconfig.json
 ├── tsconfig.build.json
-├── tsup.config.ts
+├── tsdown.config.ts
 ├── turbo.json
 ├── vitest.node.config.js
 └── README.md
@@ -88,8 +90,8 @@ For bridge packages, add any bridge asset copy step required for files under `sr
 Bridge dependency rules (bridge-backed harnesses):
 
 - The bridge's runtime deps live in `src/bridge/package.json` (installed in-sandbox at bootstrap), not the main package.json. After changing them, regenerate `src/bridge/pnpm-lock.yaml` with `pnpm --dir packages/harness-<name>/src/bridge install --lockfile-only --ignore-workspace` (runnable from the repo root).
-- For every third-party import in `src/bridge/`, keep three things in sync: the import, the `external` array in `tsup.config.ts`, and the dep in `src/bridge/package.json`. A missing entry shows up only at sandbox runtime as a module-resolution error.
-- Include packages the runtime _lazily_ imports — e.g. provider SDKs (`@anthropic-ai/sdk`, `openai`) resolved from the model id at runtime — even though nothing imports them directly. These fail only when a model of that provider is actually used.
+- For every third-party import in `src/bridge/`, add the dependency to `src/bridge/package.json` so it is installed in the sandbox. tsdown automatically externalizes dependencies, peer dependencies, and optional dependencies declared by the main package; add bridge-only dependencies that are not declared there to `deps.neverBundle` in `tsdown.config.ts`. A missing dependency or required exclusion may show up only at sandbox runtime as a module-resolution error.
+- Include packages the runtime _lazily_ imports — e.g. provider SDKs (`@anthropic-ai/sdk`, `openai`) resolved from the model id at runtime — in `src/bridge/package.json` even though nothing imports them directly. They do not need a `neverBundle` entry unless the bridge source imports them. These fail only when a model of that provider is actually used.
 - Match shared dependency versions (transport, schema, tooling, runtime SDKs) to what the other harness packages currently use — copy from a sibling package rather than choosing your own pins. Stale pins drift from security patches and can desync from the shared bridge runtime; check the current versions at creation time.
 
 ### 3. Create TypeScript, Build, and Test Configs
@@ -98,7 +100,7 @@ Copy the nearest existing harness package config files and adjust paths/package 
 
 - `tsconfig.json`
 - `tsconfig.build.json`
-- `tsup.config.ts`
+- `tsdown.config.ts`
 - `turbo.json`
 - `vitest.node.config.js`
 
@@ -170,8 +172,7 @@ Link to the main harness docs for broader concepts.
 
 Add relevant examples for the new harness.
 
-- Add API/function examples under `examples/ai-functions` when the harness package needs a scriptable provider-behavior example.
-- Add interactive examples mirroring the existing harness examples in `examples/harness-e2e-next` (Next.js) and `examples/harness-e2e-tui` (TUI).
+- Add required API/function examples under `examples/ai-functions/src/harness-agent` and interactive examples under `examples/harness-e2e-next`.
 
 ### 9. Add Documentation
 
@@ -209,7 +210,7 @@ Run relevant harness examples against a live sandbox **early** — don't rely on
 - [ ] Package structure created in `packages/harness-<name>`
 - [ ] `package.json` configured with correct dependencies
 - [ ] TypeScript configs set up (`tsconfig.json`, `tsconfig.build.json`)
-- [ ] Build configuration (`tsup.config.ts`)
+- [ ] Build configuration (`tsdown.config.ts`)
 - [ ] Test configuration (`vitest.node.config.js`)
 - [ ] Harness adapter implementation complete
 - [ ] Runtime placement handled without creating a hidden sandbox

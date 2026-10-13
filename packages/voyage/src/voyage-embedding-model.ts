@@ -60,6 +60,7 @@ export class VoyageEmbeddingModel implements EmbeddingModelV4 {
 
   async doEmbed({
     values,
+    dimensions,
     headers,
     abortSignal,
     providerOptions,
@@ -93,7 +94,7 @@ export class VoyageEmbeddingModel implements EmbeddingModelV4 {
         model: this.modelId,
         input_type: embeddingOptions?.inputType,
         truncation: embeddingOptions?.truncation,
-        output_dimension: embeddingOptions?.outputDimension,
+        output_dimension: embeddingOptions?.outputDimension ?? dimensions,
         output_dtype: embeddingOptions?.outputDtype,
       },
       failedResponseHandler: voyageFailedResponseHandler,

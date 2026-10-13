@@ -43,6 +43,37 @@ describe('XaiImageModel', () => {
     },
   });
 
+  describe('capabilities', () => {
+    it.each([
+      {
+        modelId: 'grok-imagine-image',
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      },
+      {
+        modelId: 'grok-imagine-image-2.0',
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      },
+      {
+        modelId: 'custom-image-model',
+        supportsFileInputs: undefined,
+        supportsMaskInputs: undefined,
+      },
+    ] as const)(
+      'advertises file=$supportsFileInputs and mask=$supportsMaskInputs for $modelId',
+      ({ modelId, supportsFileInputs, supportsMaskInputs }) => {
+        const model = new XaiImageModel(modelId, {
+          provider: 'xai.image',
+          baseURL: 'https://api.example.com',
+        });
+
+        expect(model.supportsFileInputs).toBe(supportsFileInputs);
+        expect(model.supportsMaskInputs).toBe(supportsMaskInputs);
+      },
+    );
+  });
+
   describe('constructor', () => {
     it('should expose correct provider and model information', () => {
       const model = createModel();
@@ -51,6 +82,8 @@ describe('XaiImageModel', () => {
       expect(model.modelId).toBe('grok-imagine-image');
       expect(model.specificationVersion).toBe('v4');
       expect(model.maxImagesPerCall).toBe(3);
+      expect(model.supportsFileInputs).toBe(true);
+      expect(model.supportsMaskInputs).toBe(false);
     });
   });
 
@@ -381,59 +414,65 @@ describe('XaiImageModel', () => {
       });
     });
 
-    it('should pass resolution provider option', async () => {
-      const model = createModel();
+    it.each(['1k', '1.5k', '2k'] as const)(
+      'should pass %s resolution provider option',
+      async resolution => {
+        const model = createModel();
 
-      await model.doGenerate({
-        prompt,
-        files: undefined,
-        mask: undefined,
-        n: 1,
-        size: undefined,
-        aspectRatio: undefined,
-        seed: undefined,
-        providerOptions: {
-          xai: {
-            resolution: '2k',
+        await model.doGenerate({
+          prompt,
+          files: undefined,
+          mask: undefined,
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {
+            xai: {
+              resolution,
+            },
           },
-        },
-      });
+        });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'grok-imagine-image',
-        prompt,
-        n: 1,
-        response_format: 'b64_json',
-        resolution: '2k',
-      });
-    });
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'grok-imagine-image',
+          prompt,
+          n: 1,
+          response_format: 'b64_json',
+          resolution,
+        });
+      },
+    );
 
-    it('should pass quality provider option', async () => {
-      const model = createModel();
+    it.each(['high', 'auto'] as const)(
+      'should pass %s quality provider option',
+      async quality => {
+        const model = createModel();
 
-      await model.doGenerate({
-        prompt,
-        files: undefined,
-        mask: undefined,
-        n: 1,
-        size: undefined,
-        aspectRatio: undefined,
-        seed: undefined,
-        providerOptions: {
-          xai: {
-            quality: 'high',
+        await model.doGenerate({
+          prompt,
+          files: undefined,
+          mask: undefined,
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {
+            xai: {
+              quality,
+            },
           },
-        },
-      });
+        });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'grok-imagine-image',
-        prompt,
-        n: 1,
-        response_format: 'b64_json',
-        quality: 'high',
-      });
-    });
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'grok-imagine-image',
+          prompt,
+          n: 1,
+          response_format: 'b64_json',
+          quality,
+        });
+      },
+    );
 
     it('should pass user provider option', async () => {
       const model = createModel();

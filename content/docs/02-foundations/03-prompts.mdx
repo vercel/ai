@@ -314,7 +314,7 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: google('gemini-2.5-flash'),
+  model: google('gemini-3.8-flash'),
   messages: [
     {
       role: 'user',
@@ -608,11 +608,13 @@ const result = await generateText({
 ### System Messages
 
 System messages are messages that are sent to the model before the user messages to guide the assistant's behavior.
+Sending system messages in `messages` requires `allowSystemInMessages: true`.
 You can alternatively use the `instructions` property.
 
-```ts highlight="4"
+```ts highlight="3,5"
 const result = await generateText({
   model: __MODEL__,
+  allowSystemInMessages: true,
   messages: [
     { role: 'system', content: 'You help planning travel itineraries.' },
     {

@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { run } from '../../lib/run';
 
 const agent = new ToolLoopAgent({
-  model: openai('gpt-5-mini'),
+  model: openai('gpt-6-luna'),
   instructions:
     'Use the weather tool when a user asks about weather. Then summarize the result.',
   stopWhen: isStepCount(2),

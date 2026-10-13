@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es5",
+    "target": "es2022",
     "lib": [
       "dom",
       "dom.iterable",
@@ -66,6 +66,9 @@
     },
     {
       "path": "../../packages/harness-fx"
+    },
+    {
+      "path": "../../packages/harness-github-copilot"
     },
     {
       "path": "../../packages/harness-grok-build"

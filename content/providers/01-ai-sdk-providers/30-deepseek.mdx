@@ -78,7 +78,7 @@ const model = deepSeek.languageModel('deepseek-v4-flash');
 DeepSeek language models can be used in the `streamText` function
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
-DeepSeek retired the `deepseek-chat` and `deepseek-reasoner` aliases on July 24, 2026. Use `deepseek-v4-flash` or `deepseek-v4-pro` for the current API. Custom
+DeepSeek retired the `deepseek-chat` and `deepseek-reasoner` aliases on July 24, 2026. Use `deepseek-flash` (the alias for the current V4.x Flash release), `deepseek-v4-flash`, or `deepseek-v4-pro` for the current API. Custom
 and legacy model IDs remain accepted as strings for compatibility with custom
 endpoints.
 
@@ -111,8 +111,9 @@ The following optional provider options are available for DeepSeek models:
 
   Optional. Controls thinking strength for DeepSeek V4 reasoning models. When
   using the top-level `reasoning` setting, `minimal` is sent as `low`,
-  `medium` is sent as `high`, and `xhigh` is sent as `max`. A compatibility
-  warning is returned whenever the requested value is mapped.
+  `medium` is sent as `high`, `xhigh` is sent as `max`, and `max` is sent
+  directly. A compatibility warning is returned whenever the requested value
+  is mapped.
 
 For backwards compatibility, legacy provider options supplied at runtime are
 also mapped to documented values: `thinking.type: 'adaptive'` becomes
@@ -161,7 +162,7 @@ import {
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: deepSeek('deepseek-chat'),
+  model: deepSeek('deepseek-flash'),
   instructions: {
     role: 'system',
     content: 'Help the customer plan a short trip.',
@@ -213,7 +214,7 @@ import {
 import { streamText } from 'ai';
 
 const result = streamText({
-  model: deepSeek('deepseek-chat'),
+  model: deepSeek('deepseek-flash'),
   messages: [
     {
       role: 'user',
@@ -326,7 +327,7 @@ const deepSeek = createDeepSeek({
 });
 
 const result = await generateText({
-  model: deepSeek('deepseek-chat'),
+  model: deepSeek('deepseek-flash'),
   prompt: 'What is the weather in San Francisco?',
   tools: {
     weather: tool({
@@ -494,6 +495,7 @@ when its declared media type or filename indicates a supported image format.
 
 | Model                          | Text Generation | Object Generation | Image Input | Tool Usage | Tool Streaming |
 | ------------------------------ | --------------- | ----------------- | ----------- | ---------- | -------------- |
+| `deepseek-flash`               | <Check />       | <Check />         | <Cross />   | <Check />  | <Check />      |
 | `deepseek-v4-flash`            | <Check />       | <Check />         | <Cross />   | <Check />  | <Check />      |
 | `deepseek-v4-pro`              | <Check />       | <Check />         | <Cross />   | <Check />  | <Check />      |
 | `deepseek-v4-flash-vision-exp` | <Check />       | <Check />         | <Check />   | <Check />  | <Check />      |

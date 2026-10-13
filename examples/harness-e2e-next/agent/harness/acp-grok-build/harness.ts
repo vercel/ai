@@ -36,8 +36,8 @@ export const grokBuildACPHarness = createACP({
     ];
   },
   instructionMapping: {
-    type: 'session-meta',
-    path: ['rules'],
+    type: 'filesystem',
+    path: '.grok/AGENTS.md',
   },
   providerAuthentication: {
     gateway: {

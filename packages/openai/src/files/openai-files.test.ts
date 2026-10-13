@@ -425,18 +425,39 @@ describe('OpenAI Files - getFileMetadata', () => {
     },
   );
 
-  it.each(['.', '..'])(
-    'should not let a dot-segment file id (%j) retarget the path',
-    async fileId => {
-      const provider = createOpenAI({ apiKey: 'test-api-key' });
+  it.each([
+    { fileId: '.', encodedFileId: '%252E' },
+    { fileId: '..', encodedFileId: '%252E%252E' },
+  ])(
+    'should preserve dot-segment file id $fileId as a URL path segment',
+    async ({ fileId, encodedFileId }) => {
+      const requestUrls: string[] = [];
+      const provider = createOpenAI({
+        apiKey: 'test-api-key',
+        fetch: async input => {
+          requestUrls.push(
+            new Request(
+              typeof input === 'string'
+                ? input
+                : input instanceof URL
+                  ? input.href
+                  : input,
+            ).url,
+          );
+
+          return new Response(JSON.stringify({ id: fileId }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          });
+        },
+      });
       const files = provider.files();
 
-      // encodes to a non-normalizable segment, so the request targets an
-      // unregistered URL instead of /v1/files or a parent path
-      await expect(
-        files.getFileMetadata!({ file: { openai: fileId } }),
-      ).rejects.toThrow();
-      expect(server.calls.length).toBe(0);
+      await files.getFileMetadata!({ file: { openai: fileId } });
+
+      expect(requestUrls).toEqual([
+        `https://api.openai.com/v1/files/${encodedFileId}`,
+      ]);
     },
   );
 

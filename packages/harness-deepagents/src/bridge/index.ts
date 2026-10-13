@@ -1,4 +1,4 @@
-// In-sandbox turn driver on `@ai-sdk/harness/bridge`; third-party imports stay external (tsup) and install in-sandbox from src/bridge/package.json — keep import/externals/deps in sync.
+// In-sandbox turn driver on `@ai-sdk/harness/bridge`; third-party imports stay external (tsdown) and install in-sandbox from src/bridge/package.json — keep import/externals/deps in sync.
 
 import { randomUUID } from 'node:crypto';
 import { argv, env as procEnv } from 'node:process';
@@ -29,6 +29,7 @@ import {
 } from './create-emit-stream-event';
 import { jsonSchemaToZodObject } from './json-schema-to-zod';
 import { createLocalShellBackend } from './local-shell-backend';
+import { createMcpToolErrorMiddleware } from './mcp-tool-errors';
 import {
   loadMemorySaver,
   removeMemorySaverSnapshot,
@@ -59,10 +60,12 @@ function buildModel({
   rawModel,
   thinking,
   effort,
+  headers,
 }: {
   rawModel: string | undefined;
   thinking: StartMessage['thinking'];
   effort: StartMessage['effort'];
+  headers: StartMessage['headers'];
 }) {
   if (!rawModel) return undefined;
   const baseUrl = procEnv.ANTHROPIC_BASE_URL;
@@ -73,12 +76,17 @@ function buildModel({
     ...(effort ? { outputConfig: { effort } } : {}),
     ...(procEnv.ANTHROPIC_API_KEY ? { apiKey: procEnv.ANTHROPIC_API_KEY } : {}),
     ...(baseUrl ? { anthropicApiUrl: baseUrl } : {}),
-    ...(procEnv.AI_GATEWAY_API_KEY && HARNESS_CLIENT_APP
+    ...(headers != null || procEnv.AI_GATEWAY_API_KEY
       ? {
           clientOptions: {
             defaultHeaders: {
-              'User-Agent': HARNESS_CLIENT_APP,
-              'x-client-app': HARNESS_CLIENT_APP,
+              ...headers,
+              ...(procEnv.AI_GATEWAY_API_KEY && HARNESS_CLIENT_APP
+                ? {
+                    'User-Agent': HARNESS_CLIENT_APP,
+                    'x-client-app': HARNESS_CLIENT_APP,
+                  }
+                : {}),
             },
           },
         }
@@ -90,7 +98,7 @@ function createModelMiddleware() {
   return createMiddleware({
     name: 'harnessModel',
     wrapModelCall: async (request, handler) => {
-      if (!activeModel && !activeThinking && !activeEffort) {
+      if (!activeModel && !activeThinking && !activeEffort && !activeHeaders) {
         return handler(request);
       }
 
@@ -99,6 +107,7 @@ function createModelMiddleware() {
           rawModel: activeModel,
           thinking: activeThinking,
           effort: activeEffort,
+          headers: activeHeaders,
         });
         if (!configuredModel) throw new Error('Deep Agents model is missing');
         return handler({ ...request, model: configuredModel });
@@ -120,6 +129,7 @@ function createModelMiddleware() {
         rawModel: model.model,
         thinking: activeThinking,
         effort: activeEffort,
+        headers: activeHeaders,
       });
       if (!configuredModel) throw new Error('Deep Agents model is missing');
 
@@ -157,6 +167,7 @@ let agentConfigurationSignature: string | undefined;
 let activeModel: string | undefined;
 let activeThinking: StartMessage['thinking'];
 let activeEffort: StartMessage['effort'];
+let activeHeaders: StartMessage['headers'];
 const modelMiddleware = createModelMiddleware();
 
 type DeepAgentsJsonSchema = Record<string, unknown> & {
@@ -197,7 +208,14 @@ function buildHostTools(toolSchemas: StartMessage['tools']) {
           input: JSON.stringify(input),
           providerExecuted: false,
         } as BridgeEvent);
-        const { output } = await turn.requestToolResult(toolCallId);
+        const { output, isError } = await turn.requestToolResult(toolCallId);
+        turn.emit({
+          type: 'tool-result',
+          toolCallId,
+          toolName: schema.name,
+          result: output ?? null,
+          ...(isError !== undefined ? { isError } : {}),
+        });
         return typeof output === 'string' ? output : JSON.stringify(output);
       },
       {
@@ -214,6 +232,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   if (start.model) activeModel = start.model;
   activeThinking = start.thinking;
   activeEffort = start.effort;
+  activeHeaders = start.headers;
   currentResponseFormat =
     start.responseFormat?.type === 'json' && start.responseFormat.schema != null
       ? toolStrategy(start.responseFormat.schema as DeepAgentsJsonSchema)
@@ -260,6 +279,10 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       },
     );
     const middleware = [
+      createMcpToolErrorMiddleware({
+        mcpToolNames: () => mcpToolNames,
+        abortSignal: () => currentTurn?.abortSignal,
+      }),
       responseFormatMiddleware,
       modelMiddleware,
       ...(builtinToolFilteringMiddleware
@@ -300,11 +323,12 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   const streamEventState = createDeepAgentsStreamEventState();
   const emitStreamEvent = createEmitStreamEvent({
     state: streamEventState,
+    abortSignal: turn.abortSignal,
     configuredModel: activeModel,
     hostToolNames,
     mcpToolNames,
     structuredOutputToolNames: new Set(
-      currentResponseFormat?.map(format => format.name) ?? [],
+      currentResponseFormat?.map(format => format.name),
     ),
     emit,
   });

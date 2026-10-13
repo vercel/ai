@@ -203,6 +203,34 @@ type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
 the tool part transitions from `approval-requested` to `approval-responded` and
 in later approval-bearing output states.
 
+### `ToolOutputErrorUIPart`
+
+A static or dynamic tool part whose execution failed. Use the
+`isToolOutputErrorUIPart` type guard when rendering messages so your code does
+not need to check the tool state discriminator directly.
+
+```tsx
+import { isToolOutputErrorUIPart, type UIMessage } from 'ai';
+
+function ToolError({ part }: { part: UIMessage['parts'][number] }) {
+  if (!isToolOutputErrorUIPart(part)) {
+    return null;
+  }
+
+  return <div role="alert">{part.errorText}</div>;
+}
+```
+
+The generic `ToolOutputErrorUIPart<TOOLS>` type preserves the input types of
+static tools and also includes dynamic tool errors:
+
+```typescript
+type ToolOutputErrorUIPart<TOOLS extends UITools = UITools> = Extract<
+  ToolUIPart<TOOLS> | DynamicToolUIPart,
+  { state: 'output-error' }
+>;
+```
+
 ### `CustomContentUIPart`
 
 A provider-specific custom content part of a message.

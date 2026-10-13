@@ -353,6 +353,16 @@ export function streamObject<
       : never
     : never
 > {
+  logWarnings({
+    warnings: [
+      {
+        type: 'deprecated',
+        setting: 'streamObject',
+        message: 'Use streamText with an output setting instead.',
+      },
+    ],
+  });
+
   const {
     model,
     output = 'object',
@@ -612,6 +622,7 @@ class DefaultStreamObjectResult<
           prompt: standardizedPrompt,
           supportedUrls: await model.supportedUrls,
           download,
+          abortSignal,
           provider: model.provider.split('.')[0],
         }),
         providerOptions,

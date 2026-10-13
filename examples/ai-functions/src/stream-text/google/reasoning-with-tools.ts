@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: google('gemini-2.5-flash'),
+    model: google('gemini-3.8-flash'),
     prompt: 'Calculate the sum of 2+2 using the calculate function.',
     tools: {
       calculate: {

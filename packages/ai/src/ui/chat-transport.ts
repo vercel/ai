@@ -14,6 +14,22 @@ import type { UIMessage } from './ui-messages';
  */
 export interface ChatTransport<UI_MESSAGE extends UIMessage> {
   /**
+   * Whether reconnecting returns the complete response from its beginning.
+   * Complete replays must reset the streaming message state before processing
+   * the first start chunk.
+   */
+  readonly resumeStreamIsReplay?: boolean;
+
+  /**
+   * Releases persistent resources owned by the transport.
+   *
+   * The caller that creates a transport owns its lifecycle and should call
+   * this method when no consumers remain. `AbstractChat.dispose()` calls it
+   * for directly managed chat instances.
+   */
+  close?: () => void;
+
+  /**
    * Sends messages to the chat API endpoint and returns a streaming response.
    *
    * This method handles both new message submission and message regeneration.

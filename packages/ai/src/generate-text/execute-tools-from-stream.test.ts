@@ -518,7 +518,7 @@ describe('executeToolsFromStream', () => {
     expect(execute).toHaveBeenCalledTimes(1);
   });
 
-  it('should emit approval request and denied response without executing auto-denied tools', async () => {
+  it('should emit denied output after the approval response without executing auto-denied tools', async () => {
     let toolExecuted = false;
 
     const tools = {
@@ -598,6 +598,11 @@ describe('executeToolsFromStream', () => {
               "type": "tool-call",
             },
             "type": "tool-approval-response",
+          },
+          {
+            "toolCallId": "call-1",
+            "toolName": "deniedTool",
+            "type": "tool-output-denied",
           },
           {
             "finishReason": "stop",

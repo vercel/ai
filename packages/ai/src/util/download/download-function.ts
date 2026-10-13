@@ -34,12 +34,15 @@ export type DownloadFunction = (
  * Downloads the file if it is not supported by the model.
  */
 export const createDefaultDownloadFunction =
-  (download: typeof originalDownload = originalDownload): DownloadFunction =>
+  (
+    download: typeof originalDownload = originalDownload,
+    abortSignal?: AbortSignal,
+  ): DownloadFunction =>
   requestedDownloads =>
     Promise.all(
       requestedDownloads.map(async requestedDownload =>
         requestedDownload.isUrlSupportedByModel
           ? null
-          : await download(requestedDownload),
+          : await download({ ...requestedDownload, abortSignal }),
       ),
     );

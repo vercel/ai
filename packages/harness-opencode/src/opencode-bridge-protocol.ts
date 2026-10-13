@@ -18,6 +18,7 @@ export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
   resumeSessionId: z.string().optional(),
   openCodeConfig: z.record(z.string(), z.unknown()).optional(),
   mcpServers: z.record(z.string(), z.unknown()).optional(),
+  headers: z.record(z.string(), z.string()).optional(),
 });
 
 export type StartMessage = z.infer<typeof startMessageSchema>;

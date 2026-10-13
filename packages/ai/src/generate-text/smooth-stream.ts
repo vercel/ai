@@ -10,6 +10,15 @@ const CHUNKING_REGEXPS = {
   line: /\n+/m,
 };
 
+// Browsers heavily throttle timers in hidden documents (e.g. background tabs),
+// which would stall the smoothing delay and, through backpressure, the entire
+// stream. Smoothing has no visual purpose there, so the delay is skipped.
+function isDocumentHidden(): boolean {
+  return (
+    typeof document !== 'undefined' && document.visibilityState === 'hidden'
+  );
+}
+
 /**
  * Detects the first chunk in a buffer.
  *
@@ -22,7 +31,7 @@ export type ChunkDetector = (buffer: string) => string | undefined | null;
 /**
  * Smooths text and reasoning streaming output.
  *
- * @param delayInMs - The delay in milliseconds between each chunk. Defaults to 10ms. Can be set to `null` to skip the delay.
+ * @param delayInMs - The delay in milliseconds between each chunk. Defaults to 10ms. Can be set to `null` to skip the delay. The delay is skipped while the document is hidden (e.g. browser background tabs), where timer throttling would otherwise stall the stream.
  * @param chunking - Controls how the text is chunked for streaming. Use "word" to stream word by word (default), "line" to stream line by line, provide a custom RegExp pattern that does not match the empty string for custom chunking, provide an Intl.Segmenter for locale-aware word segmentation (recommended for CJK languages), or provide a custom ChunkDetector function.
  *
  * @returns A transform stream that smooths text streaming output.
@@ -126,7 +135,10 @@ export function smoothStream<TOOLS extends ToolSet>({
     function flushBuffer(
       controller: TransformStreamDefaultController<TextStreamPart<TOOLS>>,
     ) {
-      if (buffer.length > 0 && type !== undefined) {
+      if (
+        type !== undefined &&
+        (buffer.length > 0 || providerMetadata != null)
+      ) {
         controller.enqueue({
           type,
           text: buffer,
@@ -147,27 +159,45 @@ export function smoothStream<TOOLS extends ToolSet>({
           return;
         }
 
-        // Flush buffer when type or id changes
-        if ((chunk.type !== type || chunk.id !== id) && buffer.length > 0) {
+        if (chunk.text.length === 0 && chunk.providerMetadata != null) {
+          flushBuffer(controller);
+          controller.enqueue(chunk);
+          return;
+        }
+
+        // Flush at metadata boundaries because one output part cannot preserve
+        // metadata from multiple input deltas.
+        if (
+          buffer.length > 0 &&
+          (chunk.type !== type ||
+            chunk.id !== id ||
+            providerMetadata != null ||
+            chunk.providerMetadata != null)
+        ) {
           flushBuffer(controller);
         }
 
         buffer += chunk.text;
         id = chunk.id;
         type = chunk.type;
-
-        // Preserve providerMetadata (e.g., Anthropic thinking signatures)
-        if (chunk.providerMetadata != null) {
-          providerMetadata = chunk.providerMetadata;
-        }
+        providerMetadata = chunk.providerMetadata;
 
         let match;
 
         while ((match = detectChunk(buffer)) != null) {
-          controller.enqueue({ type, text: match, id });
+          controller.enqueue({
+            type,
+            text: match,
+            id,
+            ...(providerMetadata != null ? { providerMetadata } : {}),
+          });
           buffer = buffer.slice(match.length);
 
-          await delay(delayInMs);
+          await delay(isDocumentHidden() ? null : delayInMs);
+        }
+
+        if (buffer.length === 0) {
+          providerMetadata = undefined;
         }
       },
     });

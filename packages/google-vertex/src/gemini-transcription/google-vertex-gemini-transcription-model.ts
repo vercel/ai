@@ -149,7 +149,6 @@ export class GoogleVertexGeminiTranscriptionModel implements TranscriptionModelV
       });
       if (parsed != null) return parsed;
     }
-    return undefined;
   }
 
   async doGenerate(
@@ -249,6 +248,7 @@ export class GoogleVertexGeminiTranscriptionModel implements TranscriptionModelV
       },
       ...(response.usageMetadata != null
         ? {
+            usage: response.usageMetadata as JSONObject,
             providerMetadata: {
               google: { usageMetadata: response.usageMetadata as JSONObject },
             },
@@ -447,7 +447,10 @@ function createVertexLiveTranscriptionStream({
           language,
           durationInSeconds: undefined,
           ...(usageMetadata != null
-            ? { providerMetadata: { google: { usageMetadata } } }
+            ? {
+                usage: usageMetadata,
+                providerMetadata: { google: { usageMetadata } },
+              }
             : {}),
         });
         controller.close();
