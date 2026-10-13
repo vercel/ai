@@ -4127,38 +4127,35 @@ describe('doGenerate', () => {
     'should omit unsupported sampling parameters for %s',
     async samplingModelId => {
       let requestBody: any;
-      const samplingModel = new AmazonBedrockChatLanguageModel(
-        samplingModelId,
-        {
-          baseUrl: () => baseUrl,
-          headers: {},
-          generateId: () => 'test-id',
-          fetch: async (_input, init) => {
-            requestBody = JSON.parse(String(init?.body));
+      const samplingModel = new BedrockChatLanguageModel(samplingModelId, {
+        baseUrl: () => baseUrl,
+        headers: {},
+        generateId: () => 'test-id',
+        fetch: async (_input, init) => {
+          requestBody = JSON.parse(String(init?.body));
 
-            return new Response(
-              JSON.stringify({
-                output: {
-                  message: {
-                    role: 'assistant',
-                    content: [{ text: 'OK' }],
-                  },
+          return new Response(
+            JSON.stringify({
+              output: {
+                message: {
+                  role: 'assistant',
+                  content: [{ text: 'OK' }],
                 },
-                stopReason: 'end_turn',
-                usage: {
-                  inputTokens: 1,
-                  outputTokens: 1,
-                  totalTokens: 2,
-                },
-              }),
-              {
-                status: 200,
-                headers: { 'content-type': 'application/json' },
               },
-            );
-          },
+              stopReason: 'end_turn',
+              usage: {
+                inputTokens: 1,
+                outputTokens: 1,
+                totalTokens: 2,
+              },
+            }),
+            {
+              status: 200,
+              headers: { 'content-type': 'application/json' },
+            },
+          );
         },
-      );
+      });
 
       const result = await samplingModel.doGenerate({
         prompt: TEST_PROMPT,

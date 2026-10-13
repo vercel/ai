@@ -126,6 +126,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       supportsStructuredOutput: modelSupportsStructuredOutput,
       rejectsSamplingParameters,
       rejectsForcedToolUse,
+      isKnownModel,
     } = getModelCapabilities(this.modelId);
 
     if (frequencyPenalty != null) {
@@ -219,15 +220,6 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       bedrockOptions.reasoningConfig?.type === 'enabled' ||
       bedrockOptions.reasoningConfig?.type === 'adaptive';
 
-<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.ts
-    const {
-      supportsStructuredOutput: modelSupportsStructuredOutput,
-      rejectsForcedToolUse,
-      isKnownModel,
-    } = getModelCapabilities(this.modelId);
-
-=======
->>>>>>> 31fb00993c (fix: Amazon Bedrock forwards unsupported sampling parameters to newer Claude models (#21385)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.ts
     const structuredOutputMode =
       bedrockOptions.structuredOutputMode ??
       anthropicOptions?.structuredOutputMode ??
