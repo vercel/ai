@@ -291,7 +291,7 @@ describe('writeInstructions', () => {
     );
   });
 
-  it('preserves content appended after managed instructions when replacing and clearing them', async () => {
+  it('preserves appended instruction references when the unchanged prefix identifies the managed block', async () => {
     const state = makeSandbox();
     state.files.set('/home/user/AGENTS.md', '# Base\n');
 
@@ -304,7 +304,7 @@ describe('writeInstructions', () => {
 
     state.files.set(
       '/home/user/AGENTS.md',
-      '# Base\n\nFirst instructions.\n\n# User Section\n',
+      '# Base\n\nFirst instructions.\n\n# User Section\n\nFirst instructions.\n',
     );
 
     await writeInstructions({
@@ -315,7 +315,7 @@ describe('writeInstructions', () => {
     });
 
     expect(state.files.get('/home/user/AGENTS.md')).toBe(
-      '# Base\n\n# User Section\n\nSecond instructions.\n',
+      '# Base\n\n# User Section\n\nFirst instructions.\n\nSecond instructions.\n',
     );
 
     await writeInstructions({
@@ -326,7 +326,7 @@ describe('writeInstructions', () => {
     });
 
     expect(state.files.get('/home/user/AGENTS.md')).toBe(
-      '# Base\n\n# User Section\n',
+      '# Base\n\n# User Section\n\nFirst instructions.\n',
     );
   });
 
@@ -397,6 +397,20 @@ describe('writeInstructions', () => {
   it.each([
     { edit: 'edited', content: '# Base\n\nEdited instructions.\n' },
     { edit: 'removed', content: '# Base\n\nUser-added notes.' },
+    {
+      edit: 'ambiguous after a prefix edit and appended checklist',
+      content:
+        '# Updated base\n\nFirst instructions.\n\n# Checklist\n\nFirst instructions.\n\n',
+    },
+    {
+      edit: 'ambiguous after editing the separator and appending a checklist',
+      content:
+        '# Updated base\nFirst instructions.\n\n# Checklist\n\nFirst instructions.\n',
+    },
+    {
+      edit: 'ambiguous after removing the prefix and appending a checklist',
+      content: 'First instructions.\n\n# Checklist\n\nFirst instructions.\n',
+    },
   ])(
     'does not overwrite the file when replacing $edit managed instructions',
     async ({ content }) => {
@@ -445,6 +459,25 @@ describe('writeInstructions', () => {
       { edit: 'removed', content: '# User notes without a trailing newline' },
       { edit: 'edited', content: '# User notes\n\nEdited instructions.\n\n' },
       { edit: 'removed along with all content', content: '' },
+      {
+        edit: 'ambiguous after a prefix edit and appended checklist',
+        content:
+          '# Updated base\n\nTemporary instructions.\n\n# Checklist\n\nTemporary instructions.\n\n',
+      },
+      {
+        edit: 'ambiguous after editing the separator and appending a checklist',
+        content:
+          '# Updated base\nTemporary instructions.\n\n# Checklist\n\nTemporary instructions.\n',
+      },
+      ...(originalContent == null
+        ? []
+        : [
+            {
+              edit: 'ambiguous after removing the prefix and appending a checklist',
+              content:
+                'Temporary instructions.\n\n# Checklist\n\nTemporary instructions.\n',
+            },
+          ]),
     ])(
       'preserves the file and retires metadata when managed instructions were $edit',
       async ({ content }) => {

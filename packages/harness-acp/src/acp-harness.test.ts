@@ -2691,6 +2691,11 @@ describe('createACP', () => {
   it.each([
     { edit: 'removed', content: '# User notes without a trailing newline' },
     { edit: 'edited', content: '# User notes\n\nEdited instructions.\n\n' },
+    {
+      edit: 'ambiguous after a prefix edit and appended checklist',
+      content:
+        '# Updated notes\n\nAlways run tests.\n\n# Checklist\n\nAlways run tests.\n\n',
+    },
   ])(
     'starts a subsequent filesystem-mapped turn with instructions unset after the managed block was $edit',
     async ({ content }) => {

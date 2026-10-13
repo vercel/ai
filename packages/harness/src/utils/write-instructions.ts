@@ -203,6 +203,12 @@ function deriveUnmanagedContent({
   const trimmedDisk = currentDiskContent.replace(/\n+$/, '');
   const expectedSuffix = `\n\n${existingMetadata.instructions}`;
   if (trimmedDisk.endsWith(expectedSuffix)) {
+    if (
+      trimmedDisk.startsWith(managedContent) ||
+      trimmedDisk.includes(`\n${managedContent}`)
+    ) {
+      return undefined;
+    }
     const userBase = trimmedDisk.slice(0, -expectedSuffix.length);
     return userBase.length > 0 ? userBase : null;
   }
