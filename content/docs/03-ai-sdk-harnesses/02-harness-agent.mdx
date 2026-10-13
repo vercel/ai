@@ -613,7 +613,9 @@ start, so `createSession()` rejects `'lazy'` for them.
 session. To defer creating the sandbox as well, pass a session from
 `createLazyNetworkSandboxSession()`. Its `acquire` function creates or resumes
 the sandbox the first time the harness or a host tool performs a file, exec,
-spawn, or port operation. A turn that only chats never calls it.
+spawn, or port operation. Whether a turn that only chats calls it depends on the
+harness: a harness that reads the sandbox when a session starts acquires it
+during `createSession()`.
 
 ```ts
 import {
