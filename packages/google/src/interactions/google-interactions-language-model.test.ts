@@ -1969,6 +1969,55 @@ describe('GoogleInteractionsLanguageModel agent polling', () => {
     expect(getCallCount).toBe(2);
   });
 
+  it('polls doGenerate until terminal for model calls with background: true', async () => {
+    pollServer.urls[POST_URL].response = {
+      type: 'json-value',
+      body: { id: 'v1_poll-test', status: 'in_progress' },
+    };
+    pollServer.urls[POLL_URL].response = {
+      type: 'json-value',
+      body: {
+        id: 'v1_poll-test',
+        status: 'completed',
+        steps: [
+          {
+            type: 'model_output',
+            content: [{ type: 'text', text: 'long answer' }],
+          },
+        ],
+        usage: {
+          total_input_tokens: 5,
+          total_output_tokens: 100_000,
+          total_tokens: 100_005,
+        },
+      },
+    };
+
+    const fastProvider = createGoogle({
+      apiKey: 'test-api-key',
+      generateId: () => 'test-id',
+    });
+    const result = await fastProvider
+      .interactions('gemini-4-argon')
+      .doGenerate({
+        prompt: TEST_PROMPT,
+        maxOutputTokens: 200_000,
+        providerOptions: { google: { background: true } },
+      });
+
+    expect(await pollServer.calls[0].requestBodyJson).toMatchObject({
+      model: 'gemini-4-argon',
+      background: true,
+      generation_config: { max_output_tokens: 200_000 },
+    });
+    expect(pollServer.calls[1].requestMethod).toBe('GET');
+    expect(result.finishReason.unified).toBe('stop');
+    expect(result.content).toEqual([
+      expect.objectContaining({ type: 'text', text: 'long answer' }),
+    ]);
+    expect(result.usage.outputTokens.total).toBe(100_000);
+  });
+
   it('opens GET /interactions/{id}?stream=true and pipes SSE events through when POST is non-terminal', async () => {
     pollServer.urls[POST_URL].response = {
       type: 'json-value',
