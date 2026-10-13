@@ -31,7 +31,6 @@ describe('text stream', () => {
       error: Error | undefined;
     }) => Promise<void> | void;
   }) => {
-<<<<<<< HEAD
     const { object, error, submit, isLoading, stop, clear } =
       experimental_useObject({
         api: '/api/use-object',
@@ -41,25 +40,11 @@ describe('text stream', () => {
         },
         onFinish(event) {
           onFinishCalls.push(event);
+          return onFinish?.(event);
         },
         headers,
         credentials,
       });
-=======
-    const { object, error, submit, isLoading, stop, clear } = useObject({
-      api: '/api/use-object',
-      schema: z.object({ content: z.string() }),
-      onError(error) {
-        onErrorResult = error;
-      },
-      onFinish(event) {
-        onFinishCalls.push(event);
-        return onFinish?.(event);
-      },
-      headers,
-      credentials,
-    });
->>>>>>> e43032f8a8 (fix: React useObject ignores rejected asynchronous onFinish callbacks (#21117))
 
     return (
       <div>
