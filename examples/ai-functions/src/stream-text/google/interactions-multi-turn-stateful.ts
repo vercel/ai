@@ -10,7 +10,7 @@ run(async () => {
   // server keep the prior context so we can chain via `previousInteractionId`.
   console.log('--- Turn 1 ---');
   const turn1 = streamText({
-    model: google.interactions('gemini-2.5-flash'),
+    model: google.interactions('gemini-3.8-flash'),
     prompt: 'What are the three largest cities in Spain?',
   });
   for await (const textPart of turn1.textStream) {
@@ -34,7 +34,7 @@ run(async () => {
   // the wire.
   console.log('--- Turn 2 ---');
   const turn2 = streamText({
-    model: google.interactions('gemini-2.5-flash'),
+    model: google.interactions('gemini-3.8-flash'),
     prompt: 'What is the most famous landmark in the second one?',
     providerOptions: {
       google: {

@@ -4,6 +4,7 @@ import type { JSONRPCMessage } from './json-rpc-message';
 import { SseMCPTransport } from './mcp-sse-transport';
 import { HttpMCPTransport } from './mcp-http-transport';
 import type { OAuthClientProvider } from './oauth';
+import { LATEST_PROTOCOL_VERSION } from './types';
 
 /**
  * Transport interface for MCP (Model Context Protocol) communication.
@@ -14,6 +15,11 @@ export type MCPTransportSendOptions = {
    * Cancels the transport operation for this message.
    */
   signal?: AbortSignal;
+
+  /**
+   * Request-specific HTTP headers produced from MCP tool parameters.
+   */
+  headers?: Record<string, string>;
 
   /**
    * Associates an outgoing message with an incoming request.
@@ -39,6 +45,20 @@ export type MCPTransportCloseOptions = {
 };
 
 export interface MCPTransport {
+  /**
+   * Whether this transport can probe for stateless MCP protocol versions.
+   *
+   * Custom transports default to the legacy initialization flow unless they
+   * explicitly opt in.
+   */
+  supportsProtocolVersionDiscovery?: boolean;
+
+  /**
+   * Whether this transport mirrors x-mcp-header tool parameters into request
+   * headers.
+   */
+  supportsMcpToolParameterHeaders?: boolean;
+
   /**
    * Initialize and start the transport
    */
@@ -161,7 +181,11 @@ export function createMcpTransport(config: MCPTransportConfig): MCPTransport {
     case 'sse':
       return new SseMCPTransport(config);
     case 'http':
-      return new HttpMCPTransport(config);
+      return new HttpMCPTransport({
+        ...config,
+        initialProtocolVersion:
+          config.initialProtocolVersion ?? LATEST_PROTOCOL_VERSION,
+      });
     default:
       throw new MCPClientError({
         message:

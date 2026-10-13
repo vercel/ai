@@ -1,22 +1,23 @@
-import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
-import { createCodexACP } from '../../lib/codex-acp-harness';
+import { HarnessAgent, type HarnessAgentSession } from '@ai-sdk/harness/agent';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
+import { createCodexACP } from './_create';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 
 run(async () => {
   const agent = new HarnessAgent({
     harness: createCodexACP(),
-    sandbox: createVercelSandbox({
-      runtime: 'node24',
-      ports: [4000],
-      timeout: 10 * 60 * 1000,
-    }),
   });
 
-  let exitCode = 0;
-  const session = await agent.createSession();
+  const sandboxSession = await createVercelNetworkSandboxSession({
+    runtime: 'node24',
+    ports: [4000],
+    timeout: 10 * 60 * 1000,
+    template: await agent.getSandboxTemplate(),
+  });
+  let session: HarnessAgentSession | undefined;
   try {
+    session = await agent.createSession({ sandboxSession });
     console.log('--- turn 1 ---');
     const first = await agent.stream({
       session,
@@ -29,12 +30,18 @@ run(async () => {
       session,
       prompt: 'What is my name? Answer in one word.',
     });
-    await printFullStream({ result: second });
-  } catch (err) {
-    exitCode = 1;
-    console.error('[example] failed:', err);
+    let secondTurnText = '';
+    await printFullStream({
+      result: second,
+      onText: text => {
+        secondTurnText += text.text;
+      },
+    });
+    if (!secondTurnText.includes('Felix')) {
+      throw new Error('Second turn did not retain context from previous turn');
+    }
   } finally {
-    await session.destroy();
-    process.exit(exitCode);
+    await session?.destroy();
+    await sandboxSession.destroy();
   }
 });

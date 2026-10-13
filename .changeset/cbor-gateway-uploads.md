@@ -1,5 +1,5 @@
 ---
-'@ai-sdk/gateway': minor
+'@ai-sdk/gateway': patch
 ---
 
 feat(gateway): opt-in CBOR request encoding for language-model file uploads

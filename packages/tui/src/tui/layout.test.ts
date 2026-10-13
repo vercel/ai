@@ -131,11 +131,11 @@ describe('renderScreen', () => {
   });
 
   it('pads ANSI colored body lines by visible width', () => {
-    const output = renderScreen({
+    const output = renderScreenLines({
       width: 24,
       height: 8,
       title: 'Chat',
-      body: '\x1b[92mgreen\x1b[0m',
+      bodyLines: ['\x1b[92mgreen\x1b[0m'],
       input: '',
       inputActive: false,
       scrollOffset: 0,
@@ -147,11 +147,11 @@ describe('renderScreen', () => {
   });
 
   it('preserves trailing ANSI resets when colored content exactly fills a line', () => {
-    const output = renderScreen({
+    const output = renderScreenLines({
       width: 24,
       height: 8,
       title: 'Chat',
-      body: `\x1b[92m${'g'.repeat(20)}\x1b[0m`,
+      bodyLines: [`\x1b[92m${'g'.repeat(20)}\x1b[0m`],
       input: '',
       inputActive: false,
       scrollOffset: 0,

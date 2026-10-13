@@ -38,14 +38,14 @@ This provider currently supports three video generation modes: text-to-video, im
 
 Generate video from a text prompt.
 
-Available models: `kling-v1-t2v`, `kling-v1.6-t2v`, `kling-v2-master-t2v`, `kling-v2.1-master-t2v`, `kling-v2.5-turbo-t2v`, `kling-v2.6-t2v`
+Available models: `kling-v1-t2v`, `kling-v1.6-t2v`, `kling-v2-master-t2v`, `kling-v2.1-master-t2v`, `kling-v2.5-turbo-t2v`, `kling-v2.6-t2v`, `kling-v3.0-t2v`
 
 ```ts
 import { klingai } from '@ai-sdk/klingai';
 import { experimental_generateVideo } from 'ai';
 
 const { videos } = await experimental_generateVideo({
-  model: klingai.video('kling-v2.6-t2v'),
+  model: klingai.video('kling-v3.0-t2v'),
   prompt: 'A chicken flying into the sunset in the style of 90s anime.',
   aspectRatio: '16:9',
   duration: 5,
@@ -61,14 +61,14 @@ const { videos } = await experimental_generateVideo({
 
 Generate video from a start frame image, with optional end frame control.
 
-Available models: `kling-v1-i2v`, `kling-v1.5-i2v`, `kling-v1.6-i2v`, `kling-v2-master-i2v`, `kling-v2.1-i2v`, `kling-v2.1-master-i2v`, `kling-v2.5-turbo-i2v`, `kling-v2.6-i2v`
+Available models: `kling-v1-i2v`, `kling-v1.5-i2v`, `kling-v1.6-i2v`, `kling-v2-master-i2v`, `kling-v2.1-i2v`, `kling-v2.1-master-i2v`, `kling-v2.5-turbo-i2v`, `kling-v2.6-i2v`, `kling-v3.0-i2v`
 
 ```ts
 import { klingai } from '@ai-sdk/klingai';
 import { experimental_generateVideo } from 'ai';
 
 const { videos } = await experimental_generateVideo({
-  model: klingai.video('kling-v2.6-i2v'),
+  model: klingai.video('kling-v3.0-i2v'),
   prompt: {
     image: 'https://example.com/start-frame.png',
     text: 'The cat slowly turns its head and blinks',
@@ -89,14 +89,14 @@ const { videos } = await experimental_generateVideo({
 
 Generate video using a reference motion video.
 
-Available models: `kling-v2.6-motion-control`
+Available models: `kling-v2.6-motion-control`, `kling-v3.0-motion-control`
 
 ```ts
 import { klingai } from '@ai-sdk/klingai';
 import { experimental_generateVideo } from 'ai';
 
 const { videos } = await experimental_generateVideo({
-  model: klingai.video('kling-v2.6-motion-control'),
+  model: klingai.video('kling-v3.0-motion-control'),
   prompt: {
     image: 'https://example.com/character.png',
     text: 'The character performs a smooth dance move',

@@ -24,8 +24,17 @@ describe('ACP bridge environment', () => {
           CLIENT_APP_VERSION: { $source: 'client-app-version' },
         },
       },
+      providerEnvironment: {
+        AI_GATEWAY_API_KEY: 'AI_GATEWAY_API_KEY',
+        AI_GATEWAY_BASE_URL: 'https://gateway.example/v1',
+      },
       sessionMeta: {
         opaqueCredential: 'session-secret',
+      },
+      clientCapabilities: {
+        _meta: {
+          parameterizedModelPicker: true,
+        },
       },
     } as const;
 

@@ -6,6 +6,7 @@ import {
   GatewayRateLimitError,
   GatewayModelNotFoundError,
   GatewayInternalServerError,
+  GatewayNotFoundError,
   GatewayFailedDependencyError,
   GatewayForbiddenError,
   GatewayResponseError,
@@ -143,6 +144,26 @@ describe('Valid error responses', () => {
     expect((error as GatewayModelNotFoundError).modelId).toBe(
       'gpt-ai-sdk-test',
     );
+  });
+
+  it('should create GatewayNotFoundError for not_found type', async () => {
+    const response: GatewayErrorResponse = {
+      error: {
+        message: 'Async job not found.',
+        type: 'not_found',
+      },
+    };
+
+    const error = await createGatewayErrorFromResponse({
+      response,
+      statusCode: 404,
+    });
+
+    expect(error).toBeInstanceOf(GatewayNotFoundError);
+    expect(error.message).toBe('Async job not found.');
+    expect(error.statusCode).toBe(404);
+    expect(error.type).toBe('not_found');
+    expect(error.isRetryable).toBe(false);
   });
 
   it('should create GatewayModelNotFoundError without modelId for invalid param', async () => {

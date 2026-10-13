@@ -122,6 +122,14 @@ describe('FireworksProvider', () => {
       expect(config.includeUsage).toBe(true);
     });
 
+    it('should set supportsStructuredOutputs so response_format json_schema is forwarded', () => {
+      const provider = createFireworks();
+      provider.chatModel('test-model');
+
+      const config = OpenAICompatibleChatLanguageModelMock.mock.calls[0][1];
+      expect(config.supportsStructuredOutputs).toBe(true);
+    });
+
     // A schema that does not match what Fireworks actually returns fails the
     // parse, and the message silently degrades to the HTTP reason phrase —
     // "Bad Request" over HTTP/1.1, and "" over HTTP/2, which has none.
@@ -239,6 +247,27 @@ describe('FireworksProvider', () => {
         model: 'test-model',
         messages: [],
         thinking: { type: 'enabled' },
+      });
+    });
+
+    it('should map max reasoning effort to high', () => {
+      const provider = createFireworks();
+      provider.chatModel('test-model');
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const transformRequestBody = constructorCall[1].transformRequestBody;
+
+      expect(
+        transformRequestBody({
+          model: 'test-model',
+          messages: [],
+          reasoning_effort: 'max',
+        }),
+      ).toEqual({
+        model: 'test-model',
+        messages: [],
+        reasoning_effort: 'high',
       });
     });
 

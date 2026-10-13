@@ -182,7 +182,11 @@ describe('generateText types', () => {
       const result = await generateText({
         model: new MockLanguageModelV4(),
         prompt: 'Hello, world!',
-        output: Output.array({ element: z.string() }),
+        output: Output.array({
+          element: z.string(),
+          minItems: 1,
+          maxItems: 3,
+        }),
       });
 
       expectTypeOf<typeof result.output>().toEqualTypeOf<string[]>();
@@ -600,7 +604,7 @@ describe('generateText types', () => {
             frequencyPenalty: 0,
             stopSequences: ['stop'],
             seed: 0,
-            reasoning: 'high',
+            reasoning: 'max',
           }),
         });
       });

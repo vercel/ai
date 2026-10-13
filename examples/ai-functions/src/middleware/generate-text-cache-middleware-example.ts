@@ -5,7 +5,7 @@ import { run } from '../lib/run';
 
 run(async () => {
   const modelWithCaching = wrapLanguageModel({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     middleware: yourCacheMiddleware,
   });
 

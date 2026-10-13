@@ -1,21 +1,103 @@
-import { createMDX } from 'fumadocs-mdx/next';
+import { createGeistdocs } from '@vercel/geistdocs/next';
 import type { NextConfig } from 'next';
+import { exampleRedirects } from './lib/example-redirects';
+import { legacyRedirects } from './lib/legacy-redirects';
+import { versionHostRedirects } from './lib/version-host-redirects';
 
-const withMDX = createMDX();
+// createGeistdocs composes Fumadocs MDX and discovers App Router pages and
+// route handlers so createProxy can recover unknown agent/Markdown requests.
+// Restart `next dev` after adding, deleting, or renaming routes.
+const withGeistdocs = createGeistdocs();
 
 const config: NextConfig = {
+  cacheComponents: true,
+  partialPrefetching: true,
+  experimental: {
+    // Cap static-generation workers: the Vercel build machine exposes 30
+    // cores, and ~29 concurrent prerender workers OOM the container during
+    // "Generating static pages". Local 12-core builds peak fine at 11.
+    cpus: 8,
+  },
   images: {
     remotePatterns: [
       {
         hostname: 'e742qlubrjnjqpp0.public.blob.vercel-storage.com',
         protocol: 'https',
       },
+      {
+        hostname: 'langfuse.com',
+        pathname: '/images/docs/**',
+        protocol: 'https',
+      },
+      {
+        hostname: 'mintlify.s3.us-west-1.amazonaws.com',
+        pathname: '/langwatch/images/integration/**',
+        protocol: 'https',
+      },
+      {
+        hostname: 'confident-docs.s3.us-east-1.amazonaws.com',
+        pathname: '/confident-trace-workflows.png',
+        protocol: 'https',
+      },
+      {
+        hostname: 'cdn.getmaxim.ai',
+        pathname: '/public/images/maxim_vercel.gif',
+        protocol: 'https',
+      },
     ],
   },
+  headers: () => [
+    {
+      source: '/llms.txt',
+      headers: [{ key: 'X-Robots-Tag', value: 'noindex' }],
+    },
+    {
+      source: '/llms-full.txt',
+      headers: [{ key: 'X-Robots-Tag', value: 'noindex' }],
+    },
+  ],
   redirects: () => [
+    ...versionHostRedirects,
+    // AI SDK 4 is archived separately so it remains available without adding
+    // its content families to this app's already memory-intensive build.
+    {
+      source: '/v4',
+      destination: 'https://v4.ai-sdk.dev/docs/introduction',
+      permanent: true,
+    },
+    {
+      source: '/v4/:path*',
+      destination: 'https://v4.ai-sdk.dev/:path*',
+      permanent: true,
+    },
+    {
+      source: '/v5',
+      destination: '/v5/docs/introduction',
+      permanent: true,
+    },
+    {
+      source: '/v6',
+      destination: '/v6/docs/introduction',
+      permanent: true,
+    },
+    {
+      source: '/v7/docs/harnesses/overview',
+      destination: '/docs/ai-sdk-harnesses/overview',
+      permanent: true,
+    },
     {
       source: '/v7',
-      destination: '/',
+      destination: '/docs/introduction',
+      permanent: true,
+    },
+    {
+      source: '/v7/docs',
+      destination: '/docs/introduction',
+      permanent: true,
+    },
+    {
+      source: '/v7/providers',
+      destination: '/providers/ai-sdk-providers',
       permanent: true,
     },
     {
@@ -23,9 +105,20 @@ const config: NextConfig = {
       destination: '/:path*',
       permanent: true,
     },
+    ...legacyRedirects,
     {
-      source: '/docs',
-      destination: '/docs/introduction',
+      source: '/providers/ai-sdk-providers/google-generative-ai',
+      destination: '/providers/ai-sdk-providers/google',
+      permanent: true,
+    },
+    {
+      source: '/getting-started',
+      destination: '/docs/getting-started',
+      permanent: false,
+    },
+    {
+      source: '/v5/unauthenticated-ai-gateway/:path*',
+      destination: '/unauthenticated-ai-gateway/:path*',
       permanent: false,
     },
     // Legacy section landing pages (card grids) were folded into their
@@ -75,12 +168,7 @@ const config: NextConfig = {
     {
       source: '/v5/docs',
       destination: '/v5/docs/introduction',
-      permanent: false,
-    },
-    {
-      source: '/providers',
-      destination: '/providers/ai-sdk-providers',
-      permanent: false,
+      permanent: true,
     },
     {
       source: '/v6/providers',
@@ -90,7 +178,46 @@ const config: NextConfig = {
     {
       source: '/v5/providers',
       destination: '/v5/providers/ai-sdk-providers',
-      permanent: false,
+      permanent: true,
+    },
+    // Legacy resource URLs, mirroring production.
+    {
+      source: '/tools-registry',
+      destination: '/resources/tools',
+      permanent: true,
+    },
+    {
+      source: '/tools-registry/:slug',
+      destination: '/resources/tools/:slug',
+      permanent: true,
+    },
+    {
+      source: '/showcase',
+      destination: '/resources/showcase',
+      permanent: true,
+    },
+    // /examples and its deep URLs are still linked from docs content; they
+    // chain to their cookbook replacements exactly as on production.
+    ...exampleRedirects,
+    {
+      source: '/elements',
+      destination: 'https://elements.ai-sdk.dev',
+      permanent: true,
+    },
+    {
+      source: '/elements/:path*',
+      destination: 'https://elements.ai-sdk.dev/:path*',
+      permanent: true,
+    },
+    {
+      source: '/model-library',
+      destination: 'https://vercel.com/docs/ai-gateway',
+      permanent: true,
+    },
+    {
+      source: '/llms-full.txt',
+      destination: '/llms.txt',
+      permanent: true,
     },
     // The cookbook family root mirrors production (ai-sdk.dev/cookbook):
     // the legacy app permanently redirects it to the Recipes landing page.
@@ -189,4 +316,4 @@ const config: NextConfig = {
   ],
 };
 
-export default withMDX(config);
+export default withGeistdocs(config);

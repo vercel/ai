@@ -20,7 +20,7 @@ export function injectFetchHeaders(
         ...normalizeHeaders(init.headers),
         ...customHeaders,
       },
-      `ai-sdk/amazon-bedrock/${VERSION}`,
+      `ai-sdk-amazon-bedrock/${VERSION}`,
       getRuntimeEnvironmentUserAgent(),
     );
 

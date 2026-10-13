@@ -20,7 +20,7 @@ async function main() {
 
   try {
     const result = await generateText({
-      model: openai('gpt-4o-mini'),
+      model: openai('gpt-6-luna'),
       tools: await mcpClient.tools(),
       toolChoice: {
         type: 'tool',

@@ -1,8 +1,5 @@
-import type {
-  Experimental_LanguageModelStreamPart as ModelCallStreamPart,
-  ToolSet,
-  UIMessageChunk,
-} from 'ai';
+import type { ToolSet, UIMessageChunk } from 'ai';
+import type { ModelCallStreamPart } from './do-stream-step.js';
 
 /**
  * Convert a single ModelCallStreamPart to a UIMessageChunk.
@@ -12,6 +9,9 @@ export function toUIMessageChunk(
   part: ModelCallStreamPart<ToolSet>,
 ): UIMessageChunk | undefined {
   switch (part.type) {
+    case 'reset-step':
+      return { type: 'reset-step' };
+
     case 'text-start':
       return {
         type: 'text-start',
@@ -185,20 +185,22 @@ export function toUIMessageChunk(
     case 'raw':
       return undefined;
 
+    case 'tool-approval-request':
+      return {
+        type: 'tool-approval-request',
+        approvalId: part.approvalId,
+        toolCallId:
+          'toolCallId' in part ? part.toolCallId : part.toolCall.toolCallId,
+        ...(part.signature != null ? { signature: part.signature } : {}),
+      };
+
     default: {
-      // Pass through tool-approval-request, step boundaries, and other
-      // chunks as-is. Step boundaries (finish-step/start-step) are not
-      // standard ModelCallStreamPart types but are written by the
-      // WorkflowAgent between tool execution and the next model step
-      // to ensure proper message splitting in convertToModelMessages.
+      // Pass through step boundaries and other chunks as-is. Step boundaries
+      // (finish-step/start-step) are not standard ModelCallStreamPart types
+      // but are written by the WorkflowAgent between tool execution and the
+      // next model step to ensure proper message splitting in
+      // convertToModelMessages.
       const passthroughPart = part as any;
-      if (passthroughPart.type === 'tool-approval-request') {
-        return {
-          type: 'tool-approval-request',
-          approvalId: passthroughPart.approvalId,
-          toolCallId: passthroughPart.toolCallId,
-        } as UIMessageChunk;
-      }
       if (
         passthroughPart.type === 'finish-step' ||
         passthroughPart.type === 'start-step' ||
@@ -214,24 +216,50 @@ export function toUIMessageChunk(
 /**
  * Create a TransformStream that converts ModelCallStreamPart to UIMessageChunk.
  * Wraps toUIMessageChunk with start/start-step/finish-step lifecycle chunks.
+ *
+ * When resuming a stream, provide `uiStartIndex` and replay the source
+ * ModelCallStreamPart stream from index 0. The transform will omit the UI
+ * chunks that the client has already received. Raw model stream parts and UI
+ * message chunks do not have a one-to-one relationship, so a UI chunk index
+ * must not be used as the source stream's start index.
  */
-export function createModelCallToUIChunkTransform(): TransformStream<
-  ModelCallStreamPart<ToolSet>,
-  UIMessageChunk
-> {
+export function createModelCallToUIChunkTransform({
+  uiStartIndex = 0,
+}: {
+  /**
+   * Number of transformed UIMessageChunks to omit from the output.
+   * Must be a non-negative safe integer.
+   */
+  uiStartIndex?: number;
+} = {}): TransformStream<ModelCallStreamPart<ToolSet>, UIMessageChunk> {
+  if (!Number.isSafeInteger(uiStartIndex) || uiStartIndex < 0) {
+    throw new RangeError('uiStartIndex must be a non-negative safe integer');
+  }
+
+  let uiChunkIndex = 0;
+
+  const enqueue = (
+    controller: TransformStreamDefaultController<UIMessageChunk>,
+    chunk: UIMessageChunk,
+  ) => {
+    if (uiChunkIndex++ >= uiStartIndex) {
+      controller.enqueue(chunk);
+    }
+  };
+
   return new TransformStream<ModelCallStreamPart<ToolSet>, UIMessageChunk>({
     start: controller => {
-      controller.enqueue({ type: 'start' });
-      controller.enqueue({ type: 'start-step' });
+      enqueue(controller, { type: 'start' });
+      enqueue(controller, { type: 'start-step' });
     },
     flush: controller => {
-      controller.enqueue({ type: 'finish-step' });
-      controller.enqueue({ type: 'finish' });
+      enqueue(controller, { type: 'finish-step' });
+      enqueue(controller, { type: 'finish' });
     },
     transform: (part, controller) => {
       const uiChunk = toUIMessageChunk(part);
       if (uiChunk) {
-        controller.enqueue(uiChunk);
+        enqueue(controller, uiChunk);
       }
     },
   });

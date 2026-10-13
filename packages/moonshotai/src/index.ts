@@ -4,8 +4,11 @@ export type {
   MoonshotAIProviderSettings,
 } from './moonshotai-provider';
 export type {
+  MoonshotAIAssistantMessageProviderOptions,
   MoonshotAIChatModelId,
   MoonshotAILanguageModelOptions,
+  MoonshotAIMessageProviderOptions,
+  MoonshotAISystemMessageProviderOptions,
   /** @deprecated Use `MoonshotAILanguageModelOptions` instead. */
   MoonshotAILanguageModelOptions as MoonshotAIProviderOptions,
 } from './moonshotai-chat-options';

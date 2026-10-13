@@ -9,7 +9,7 @@ import {
 const gateway = {
   apiKey: 'gateway-key',
   baseUrl: 'https://gateway.example',
-  clientAppName: 'ai-sdk/harness-acp',
+  clientAppName: 'ai-sdk-harness-acp',
   clientAppVersion: '0.0.0-test',
 };
 
@@ -111,7 +111,7 @@ describe('ACP protocol configuration', () => {
       }),
     ).toEqual({
       CODEX_CONFIG:
-        '{"model_providers":{"ai_gateway":{"http_headers":{"User-Agent":"ai-sdk/harness-acp/0.0.0-test","x-client-app":"ai-sdk/harness-acp/0.0.0-test"}}}}',
+        '{"model_providers":{"ai_gateway":{"http_headers":{"User-Agent":"ai-sdk-harness-acp/0.0.0-test","x-client-app":"ai-sdk-harness-acp/0.0.0-test"}}}}',
     });
   });
 
@@ -129,9 +129,13 @@ describe('ACP protocol configuration', () => {
             },
           },
         },
+        clientCapabilities: {
+          _meta: { parameterizedModelPicker: true },
+        },
         supportsBooleanSessionConfigOptions: true,
       }).clientCapabilities,
     ).toEqual({
+      _meta: { parameterizedModelPicker: true },
       session: {
         _meta: { direct: true },
         configOptions: {

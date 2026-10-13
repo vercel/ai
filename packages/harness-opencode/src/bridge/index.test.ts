@@ -1,0 +1,1335 @@
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+const bridgeMock = vi.hoisted(() => ({
+  start: undefined as unknown,
+  turn: undefined as unknown,
+  onStart: undefined as
+    | ((start: unknown, turn: unknown) => Promise<void>)
+    | undefined,
+}));
+
+const sdkMock = vi.hoisted(() => ({
+  client: undefined as unknown,
+}));
+
+const permissionReplyMock = vi.hoisted(() => vi.fn());
+const createOpencodeServerMock = vi.hoisted(() =>
+  vi.fn(async (_options: Record<string, unknown>) => ({
+    url: 'http://127.0.0.1:4096',
+    close: vi.fn(),
+  })),
+);
+
+const relayMock = vi.hoisted(() => ({
+  authorizeToolCall: vi.fn(),
+  close: vi.fn(),
+  port: 4097,
+}));
+const tempDirectories: string[] = [];
+
+vi.mock('@ai-sdk/harness/bridge', () => ({
+  runBridge: vi.fn(async (options: unknown) => {
+    const bridge = options as {
+      onStart(start: unknown, turn: unknown): Promise<void>;
+    };
+    bridgeMock.onStart = bridge.onStart;
+    await bridge.onStart(bridgeMock.start, bridgeMock.turn);
+    return { close: vi.fn() };
+  }),
+}));
+
+vi.mock('@opencode-ai/sdk/v2', () => ({
+  createOpencodeServer: createOpencodeServerMock,
+  createOpencodeClient: vi.fn(() => sdkMock.client),
+}));
+
+vi.mock('./tool-relay', () => ({
+  startAuthorizedToolRelay: vi.fn(async () => relayMock),
+}));
+
+vi.mock('./opencode-path', () => ({
+  prependOpenCodeBinToPath: vi.fn(),
+}));
+
+function createUserMessages() {
+  let closed = false;
+  const iteratorWaiters: Array<(result: IteratorResult<never>) => void> = [];
+  return {
+    pendingCount: 0,
+    close: vi.fn(() => {
+      closed = true;
+      while (iteratorWaiters.length > 0) {
+        iteratorWaiters.shift()!({ done: true, value: undefined });
+      }
+    }),
+    [Symbol.asyncIterator]() {
+      return {
+        next: () =>
+          closed
+            ? Promise.resolve({ done: true as const, value: undefined })
+            : new Promise<IteratorResult<never>>(resolve => {
+                iteratorWaiters.push(resolve);
+              }),
+      };
+    },
+  };
+}
+
+function setBridgeArgv(workdir = '/tmp/opencode-bridge-test'): string {
+  const bridgeStateDir = mkdtempSync(
+    path.join(tmpdir(), 'opencode-bridge-state-'),
+  );
+  tempDirectories.push(bridgeStateDir);
+  process.argv.length = 0;
+  process.argv.push(
+    process.execPath,
+    'opencode-bridge',
+    '--workdir',
+    workdir,
+    '--bridge-state-dir',
+    bridgeStateDir,
+    '--bootstrap-dir',
+    `${workdir}-bootstrap`,
+  );
+  return bridgeStateDir;
+}
+
+describe('OpenCode bridge turn settlement', () => {
+  const originalArgv = [...process.argv];
+
+  afterEach(() => {
+    process.argv.length = 0;
+    for (const arg of originalArgv) process.argv.push(arg);
+    for (const directory of tempDirectories.splice(0)) {
+      rmSync(directory, { recursive: true, force: true });
+    }
+    vi.resetModules();
+    bridgeMock.onStart = undefined;
+    relayMock.authorizeToolCall.mockReset();
+    relayMock.close.mockReset();
+    permissionReplyMock.mockReset();
+    createOpencodeServerMock.mockClear();
+    vi.unstubAllEnvs();
+  });
+
+  it('preserves native manual compaction as one normalized completion event', async () => {
+    const emitted: Array<Record<string, unknown>> = [];
+    const emitError = vi.fn();
+    bridgeMock.start = {
+      type: 'start',
+      operation: 'compact',
+      model: 'openai/test-model',
+      resumeSessionId: 'session-1',
+    };
+    bridgeMock.turn = {
+      emit: (event: Record<string, unknown>) => emitted.push(event),
+      requestToolResult: vi.fn(),
+      requestToolApproval: vi.fn(),
+      experimental_userMessages: createUserMessages(),
+      abortSignal: new AbortController().signal,
+      firstTurn: false,
+      bridgeLog: vi.fn(),
+      emitWarning: vi.fn(),
+      emitError,
+    };
+    sdkMock.client = {
+      mcp: { status: vi.fn(async () => ({ data: {} })) },
+      session: {
+        get: vi.fn(async () => ({ data: {} })),
+        summarize: vi.fn(async () => ({ data: {} })),
+      },
+      v2: {
+        session: { switchModel: vi.fn(async () => ({ data: {} })) },
+      },
+      event: {
+        subscribe: vi.fn(async () => ({
+          stream: {
+            async *[Symbol.asyncIterator]() {
+              yield {
+                type: 'message.part.updated',
+                properties: {
+                  part: {
+                    sessionID: 'session-1',
+                    type: 'compaction',
+                    auto: false,
+                  },
+                },
+              };
+              yield {
+                type: 'message.updated',
+                properties: {
+                  info: {
+                    sessionID: 'session-1',
+                    id: 'summary-1',
+                    role: 'assistant',
+                    summary: true,
+                  },
+                },
+              };
+              yield {
+                type: 'message.part.updated',
+                properties: {
+                  part: {
+                    sessionID: 'session-1',
+                    messageID: 'summary-1',
+                    id: 'summary-text',
+                    type: 'text',
+                    text: 'Preserved context.',
+                  },
+                },
+              };
+              yield {
+                type: 'session.compacted',
+                properties: { sessionID: 'session-1' },
+              };
+            },
+          },
+        })),
+      },
+    };
+    setBridgeArgv();
+    await import('./index');
+
+    expect(emitError).not.toHaveBeenCalled();
+    expect(emitted.filter(event => event.type === 'compaction')).toEqual([
+      {
+        type: 'compaction',
+        trigger: 'manual',
+        summary: 'Preserved context.',
+        harnessMetadata: { opencode: { messageId: 'summary-1' } },
+      },
+    ]);
+    expect(emitted.some(event => event.type === 'text-delta')).toBe(false);
+    expect(emitted.at(-1)).toMatchObject({ type: 'finish' });
+  });
+
+  it('enables the interactive question tool', async () => {
+    const userMessages = createUserMessages();
+    bridgeMock.start = {
+      type: 'start',
+      operation: 'prompt',
+      prompt: 'Start.',
+    };
+    bridgeMock.turn = {
+      emit: vi.fn(),
+      requestToolResult: vi.fn(),
+      requestToolApproval: vi.fn(),
+      experimental_userMessages: userMessages,
+      abortSignal: new AbortController().signal,
+      firstTurn: true,
+      bridgeLog: vi.fn(),
+      emitWarning: vi.fn(),
+      emitError: vi.fn(),
+    };
+    sdkMock.client = {
+      mcp: { status: vi.fn(async () => ({ data: {} })) },
+      session: {
+        create: vi.fn(async () => ({ data: { id: 'session-1' } })),
+        get: vi.fn(async () => ({ data: {} })),
+        messages: vi.fn(async () => ({ data: [] })),
+        promptAsync: vi.fn(async () => ({ data: {} })),
+      },
+      event: {
+        subscribe: vi.fn(async () => ({
+          stream: {
+            async *[Symbol.asyncIterator]() {
+              yield {
+                type: 'session.next.step.failed',
+                properties: {
+                  sessionID: 'session-1',
+                  error: 'model step failed',
+                },
+              };
+            },
+          },
+        })),
+      },
+      v2: {
+        session: {
+          context: vi.fn(async () => ({ data: [] })),
+          switchModel: vi.fn(async () => ({ data: {} })),
+        },
+      },
+    };
+    setBridgeArgv();
+
+    await import('./index');
+
+    expect(createOpencodeServerMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        config: expect.objectContaining({
+          permission: expect.objectContaining({ question: 'allow' }),
+        }),
+      }),
+    );
+  });
+
+  it('keeps large host tool schemas out of the inline OpenCode config', async () => {
+    const largeDescription = 'schema detail '.repeat(12_000);
+    const tools = [
+      {
+        name: 'lookup',
+        description: largeDescription,
+        inputSchema: {
+          type: 'object',
+          properties: {
+            query: { type: 'string', description: largeDescription },
+          },
+        },
+      },
+    ];
+    bridgeMock.start = {
+      type: 'start',
+      operation: 'prompt',
+      prompt: 'Look up a value.',
+      tools,
+    };
+    bridgeMock.turn = {
+      emit: vi.fn(),
+      requestToolResult: vi.fn(),
+      requestToolApproval: vi.fn(),
+      experimental_userMessages: createUserMessages(),
+      abortSignal: new AbortController().signal,
+      firstTurn: true,
+      bridgeLog: vi.fn(),
+      emitWarning: vi.fn(),
+      emitError: vi.fn(),
+    };
+    sdkMock.client = {
+      mcp: { status: vi.fn(async () => ({ data: {} })) },
+      session: {
+        create: vi.fn(async () => ({ data: { id: 'session-1' } })),
+        get: vi.fn(async () => ({ data: {} })),
+        messages: vi.fn(async () => ({ data: [] })),
+        promptAsync: vi.fn(async () => ({ data: {} })),
+      },
+      event: {
+        subscribe: vi.fn(async () => ({
+          stream: {
+            async *[Symbol.asyncIterator]() {
+              yield {
+                type: 'session.next.step.failed',
+                properties: {
+                  sessionID: 'session-1',
+                  error: 'end host tool schema test turn',
+                },
+              };
+            },
+          },
+        })),
+      },
+      v2: {
+        session: {
+          context: vi.fn(async () => ({ data: [] })),
+          switchModel: vi.fn(async () => ({ data: {} })),
+        },
+      },
+    };
+    const bridgeStateDir = setBridgeArgv();
+
+    await import('./index');
+
+    const config = createOpencodeServerMock.mock.calls[0]?.[0].config as Record<
+      string,
+      unknown
+    >;
+    const environment = (
+      config.mcp as {
+        'harness-tools': { environment: Record<string, string> };
+      }
+    )['harness-tools'].environment;
+    const schemasPath = environment.TOOL_SCHEMAS_PATH;
+    expect(environment).toEqual({
+      TOOL_SCHEMAS_PATH: path.join(bridgeStateDir, 'host-tool-schemas.json'),
+      TOOL_RELAY_URL: 'http://127.0.0.1:4097',
+    });
+    expect(environment).not.toHaveProperty('TOOL_SCHEMAS');
+    expect(
+      Buffer.byteLength(readFileSync(schemasPath, 'utf8')),
+    ).toBeGreaterThan(128 * 1024);
+    expect(JSON.parse(readFileSync(schemasPath, 'utf8'))).toEqual(tools);
+    expect(Buffer.byteLength(JSON.stringify(config))).toBeLessThan(128 * 1024);
+  });
+
+  it('allows external directory access in allow-all mode', async () => {
+    bridgeMock.start = {
+      type: 'start',
+      operation: 'prompt',
+      prompt: 'Create /workspace/other/.state.',
+      permissionMode: 'allow-all',
+    };
+    bridgeMock.turn = {
+      emit: vi.fn(),
+      requestToolResult: vi.fn(),
+      requestToolApproval: vi.fn(),
+      experimental_userMessages: createUserMessages(),
+      abortSignal: new AbortController().signal,
+      firstTurn: true,
+      bridgeLog: vi.fn(),
+      emitWarning: vi.fn(),
+      emitError: vi.fn(),
+    };
+    sdkMock.client = {
+      mcp: { status: vi.fn(async () => ({ data: {} })) },
+      session: {
+        create: vi.fn(async () => ({ data: { id: 'session-1' } })),
+        get: vi.fn(async () => ({ data: {} })),
+        messages: vi.fn(async () => ({ data: [] })),
+        promptAsync: vi.fn(async () => ({ data: {} })),
+      },
+      event: {
+        subscribe: vi.fn(async () => ({
+          stream: {
+            async *[Symbol.asyncIterator]() {
+              yield {
+                type: 'permission.v2.asked',
+                properties: {
+                  id: 'external-request',
+                  sessionID: 'session-1',
+                  action: 'external_directory',
+                  resources: ['/workspace/other/.state'],
+                  source: { callID: 'bash-call' },
+                },
+              };
+              yield {
+                type: 'session.next.step.failed',
+                properties: {
+                  sessionID: 'session-1',
+                  error: 'end permission test turn',
+                },
+              };
+            },
+          },
+        })),
+      },
+      v2: {
+        session: {
+          context: vi.fn(async () => ({ data: [] })),
+          permission: { reply: permissionReplyMock },
+          switchModel: vi.fn(async () => ({ data: {} })),
+        },
+      },
+    };
+    setBridgeArgv();
+
+    await import('./index');
+
+    expect(permissionReplyMock).toHaveBeenCalledWith({
+      sessionID: 'session-1',
+      requestID: 'external-request',
+      reply: 'always',
+    });
+  });
+
+  it('uses canonical paths and accepts dot-prefixed children in restrictive modes', async () => {
+    const tempDirectory = mkdtempSync(
+      path.join(tmpdir(), 'opencode-permissions-'),
+    );
+    tempDirectories.push(tempDirectory);
+    const realWorkdir = path.join(tempDirectory, 'real-workdir');
+    const linkedWorkdir = path.join(tempDirectory, 'linked-workdir');
+    const externalDirectory = path.join(tempDirectory, 'external');
+    mkdirSync(realWorkdir);
+    mkdirSync(path.join(realWorkdir, '..cache'));
+    mkdirSync(externalDirectory);
+    symlinkSync(realWorkdir, linkedWorkdir, 'dir');
+    symlinkSync(externalDirectory, path.join(realWorkdir, 'escape'), 'dir');
+
+    bridgeMock.start = {
+      type: 'start',
+      operation: 'prompt',
+      prompt: 'Read workspace files.',
+      permissionMode: 'allow-reads',
+    };
+    bridgeMock.turn = {
+      emit: vi.fn(),
+      requestToolResult: vi.fn(),
+      requestToolApproval: vi.fn(),
+      experimental_userMessages: createUserMessages(),
+      abortSignal: new AbortController().signal,
+      firstTurn: true,
+      bridgeLog: vi.fn(),
+      emitWarning: vi.fn(),
+      emitError: vi.fn(),
+    };
+    sdkMock.client = {
+      mcp: { status: vi.fn(async () => ({ data: {} })) },
+      session: {
+        create: vi.fn(async () => ({ data: { id: 'session-1' } })),
+        get: vi.fn(async () => ({ data: {} })),
+        messages: vi.fn(async () => ({ data: [] })),
+        promptAsync: vi.fn(async () => ({ data: {} })),
+      },
+      event: {
+        subscribe: vi.fn(async () => ({
+          stream: {
+            async *[Symbol.asyncIterator]() {
+              yield {
+                type: 'permission.v2.asked',
+                properties: {
+                  id: 'canonical-workdir-request',
+                  sessionID: 'session-1',
+                  action: 'read',
+                  resources: [path.join(realWorkdir, 'inside.txt')],
+                  source: { callID: 'inside-read-call' },
+                },
+              };
+              yield {
+                type: 'permission.v2.asked',
+                properties: {
+                  id: 'dot-prefixed-directory-request',
+                  sessionID: 'session-1',
+                  action: 'read',
+                  resources: [
+                    path.join(linkedWorkdir, '..cache', 'inside.txt'),
+                  ],
+                  source: { callID: 'dot-prefixed-read-call' },
+                },
+              };
+              yield {
+                type: 'permission.v2.asked',
+                properties: {
+                  id: 'symlink-escape-request',
+                  sessionID: 'session-1',
+                  action: 'read',
+                  resources: [
+                    path.join(linkedWorkdir, 'escape', 'outside.txt'),
+                  ],
+                  source: { callID: 'outside-read-call' },
+                },
+              };
+              yield {
+                type: 'session.next.step.failed',
+                properties: {
+                  sessionID: 'session-1',
+                  error: 'end permission test turn',
+                },
+              };
+            },
+          },
+        })),
+      },
+      v2: {
+        session: {
+          context: vi.fn(async () => ({ data: [] })),
+          permission: { reply: permissionReplyMock },
+          switchModel: vi.fn(async () => ({ data: {} })),
+        },
+      },
+    };
+    setBridgeArgv(linkedWorkdir);
+
+    await import('./index');
+
+    expect(permissionReplyMock).toHaveBeenNthCalledWith(1, {
+      sessionID: 'session-1',
+      requestID: 'canonical-workdir-request',
+      reply: 'always',
+    });
+    expect(permissionReplyMock).toHaveBeenNthCalledWith(2, {
+      sessionID: 'session-1',
+      requestID: 'dot-prefixed-directory-request',
+      reply: 'always',
+    });
+    expect(permissionReplyMock).toHaveBeenNthCalledWith(3, {
+      sessionID: 'session-1',
+      requestID: 'symlink-escape-request',
+      reply: 'reject',
+      message: 'External directory access rejected.',
+    });
+  });
+
+  it('passes headers to a direct provider', async () => {
+    const userMessages = createUserMessages();
+    bridgeMock.start = {
+      type: 'start',
+      operation: 'prompt',
+      prompt: 'Start.',
+      model: 'openai/gpt-5.4-mini',
+      headers: { 'x-tenant': 'acme' },
+    };
+    bridgeMock.turn = {
+      emit: vi.fn(),
+      requestToolResult: vi.fn(),
+      requestToolApproval: vi.fn(),
+      experimental_userMessages: userMessages,
+      abortSignal: new AbortController().signal,
+      firstTurn: true,
+      bridgeLog: vi.fn(),
+      emitWarning: vi.fn(),
+      emitError: vi.fn(),
+    };
+    sdkMock.client = {
+      mcp: { status: vi.fn(async () => ({ data: {} })) },
+      session: {
+        create: vi.fn(async () => ({ data: { id: 'session-1' } })),
+        get: vi.fn(async () => ({ data: {} })),
+        messages: vi.fn(async () => ({ data: [] })),
+        promptAsync: vi.fn(async () => ({ data: {} })),
+      },
+      event: {
+        subscribe: vi.fn(async () => ({
+          stream: {
+            async *[Symbol.asyncIterator]() {
+              yield {
+                type: 'session.next.step.failed',
+                properties: {
+                  sessionID: 'session-1',
+                  error: 'model step failed',
+                },
+              };
+            },
+          },
+        })),
+      },
+      v2: {
+        session: {
+          context: vi.fn(async () => ({ data: [] })),
+          switchModel: vi.fn(async () => ({ data: {} })),
+        },
+      },
+    };
+    vi.stubEnv('OPENAI_API_KEY', 'openai-key');
+    vi.stubEnv('OPENAI_BASE_URL', 'https://api.openai.test/v1');
+    setBridgeArgv();
+
+    await import('./index');
+
+    expect(createOpencodeServerMock.mock.calls[0]?.[0]).toMatchObject({
+      config: {
+        provider: {
+          openai: {
+            options: {
+              apiKey: 'openai-key',
+              baseURL: 'https://api.openai.test/v1',
+              headers: {
+                'x-tenant': 'acme',
+              },
+            },
+          },
+        },
+      },
+    });
+  });
+
+  it('settles when OpenCode emits session.next.step.failed', async () => {
+    const emitted: Array<Record<string, unknown>> = [];
+    const emitError = vi.fn();
+    const userMessages = createUserMessages();
+    const openCodeConfig = {
+      agent: {
+        general: {
+          model: 'openai/gpt-5.4-mini',
+          permission: { bash: 'allow', external_directory: 'allow' },
+          tools: { bash: true, edit: true },
+        },
+      },
+      mode: {
+        plan: {
+          model: 'openai/gpt-5.4-mini',
+          permission: { edit: 'allow' },
+          tools: { edit: true },
+        },
+      },
+      share: 'manual',
+    };
+    bridgeMock.start = {
+      type: 'start',
+      operation: 'prompt',
+      prompt: 'Start.',
+      model: 'openai/gpt-5.6-sol',
+      openCodeConfig,
+    };
+    bridgeMock.turn = {
+      emit: (event: Record<string, unknown>) => emitted.push(event),
+      requestToolResult: vi.fn(),
+      requestToolApproval: vi.fn(),
+      experimental_userMessages: userMessages,
+      abortSignal: new AbortController().signal,
+      firstTurn: true,
+      bridgeLog: vi.fn(),
+      emitWarning: vi.fn(),
+      emitError,
+    };
+    sdkMock.client = {
+      mcp: { status: vi.fn(async () => ({ data: {} })) },
+      session: {
+        create: vi.fn(async () => ({ data: { id: 'session-1' } })),
+        get: vi.fn(async () => ({ data: {} })),
+        messages: vi.fn(async () => ({ data: [] })),
+        promptAsync: vi.fn(async () => ({ data: {} })),
+      },
+      event: {
+        subscribe: vi.fn(async () => ({
+          stream: {
+            async *[Symbol.asyncIterator]() {
+              yield {
+                type: 'session.next.step.failed',
+                properties: {
+                  sessionID: 'session-1',
+                  error: 'model step failed',
+                },
+              };
+            },
+          },
+        })),
+      },
+      v2: {
+        session: {
+          context: vi.fn(async () => ({ data: [] })),
+          switchModel: vi.fn(async () => ({ data: {} })),
+        },
+      },
+    };
+    setBridgeArgv();
+
+    await import('./index');
+
+    const client = sdkMock.client as {
+      v2: { session: { switchModel: ReturnType<typeof vi.fn> } };
+    };
+    expect(client.v2.session.switchModel).toHaveBeenCalledWith({
+      sessionID: 'session-1',
+      model: {
+        providerID: 'openai',
+        id: 'gpt-5.6-sol',
+      },
+    });
+    const serverConfig = createOpencodeServerMock.mock.calls[0]?.[0]
+      .config as Record<string, unknown>;
+    expect(serverConfig).toMatchObject({
+      agent: { general: { model: 'openai/gpt-5.4-mini' } },
+      mode: { plan: { model: 'openai/gpt-5.4-mini' } },
+      model: 'openai/gpt-5.6-sol',
+      share: 'disabled',
+    });
+    expect(serverConfig.agent).toEqual({
+      general: { model: 'openai/gpt-5.4-mini' },
+    });
+    expect(serverConfig.mode).toEqual({
+      plan: { model: 'openai/gpt-5.4-mini' },
+    });
+    expect(openCodeConfig).toEqual({
+      agent: {
+        general: {
+          model: 'openai/gpt-5.4-mini',
+          permission: { bash: 'allow', external_directory: 'allow' },
+          tools: { bash: true, edit: true },
+        },
+      },
+      mode: {
+        plan: {
+          model: 'openai/gpt-5.4-mini',
+          permission: { edit: 'allow' },
+          tools: { edit: true },
+        },
+      },
+      share: 'manual',
+    });
+    expect(userMessages.close).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'model step failed' }),
+    );
+    expect(emitError).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'OpenCode turn failed' }),
+    );
+    expect(emitted.at(-1)).toMatchObject({ type: 'finish' });
+  });
+
+  it('refreshes changed native config while preserving the warm session', async () => {
+    const client = {
+      mcp: { status: vi.fn(async () => ({ data: {} })) },
+      session: {
+        create: vi.fn(async () => ({ data: { id: 'session-1' } })),
+        get: vi.fn(async () => ({ data: {} })),
+        messages: vi.fn(async () => ({ data: [] })),
+        promptAsync: vi.fn(async (_request: unknown) => ({ data: {} })),
+      },
+      event: {
+        subscribe: vi.fn(async () => ({
+          stream: {
+            async *[Symbol.asyncIterator]() {
+              yield {
+                type: 'session.status',
+                properties: {
+                  sessionID: 'session-1',
+                  status: { type: 'busy' },
+                },
+              };
+              yield {
+                type: 'session.next.step.ended',
+                properties: {
+                  sessionID: 'session-1',
+                  finish: 'stop',
+                  tokens: {
+                    input: 1,
+                    output: 1,
+                    reasoning: 0,
+                    cache: { read: 0, write: 0 },
+                  },
+                },
+              };
+              yield {
+                type: 'session.status',
+                properties: {
+                  sessionID: 'session-1',
+                  status: { type: 'idle' },
+                },
+              };
+            },
+          },
+        })),
+      },
+      v2: {
+        session: { context: vi.fn(async () => ({ data: [] })) },
+      },
+    };
+    const turn = () => ({
+      emit: vi.fn(),
+      requestToolResult: vi.fn(),
+      requestToolApproval: vi.fn(),
+      experimental_userMessages: createUserMessages(),
+      abortSignal: new AbortController().signal,
+      firstTurn: false,
+      bridgeLog: vi.fn(),
+      emitWarning: vi.fn(),
+      emitError: vi.fn(),
+    });
+    const start = (prompt: string | undefined) => ({
+      type: 'start',
+      operation: 'prompt',
+      prompt: 'Continue.',
+      tools: [{ name: 'lookup' }],
+      openCodeConfig:
+        prompt === undefined ? undefined : { agent: { build: { prompt } } },
+    });
+
+    sdkMock.client = client;
+    bridgeMock.start = start('Prompt A');
+    bridgeMock.turn = turn();
+    setBridgeArgv();
+
+    await import('./index');
+
+    const firstServer = (await createOpencodeServerMock.mock.results[0]
+      ?.value) as { close: ReturnType<typeof vi.fn> };
+
+    await bridgeMock.onStart!(start('Prompt A'), turn());
+
+    expect(createOpencodeServerMock).toHaveBeenCalledTimes(1);
+    expect(firstServer.close).not.toHaveBeenCalled();
+    expect(relayMock.close).not.toHaveBeenCalled();
+
+    await bridgeMock.onStart!(start('Prompt B'), turn());
+
+    expect(createOpencodeServerMock).toHaveBeenCalledTimes(2);
+    expect(createOpencodeServerMock.mock.calls[1]?.[0]).toMatchObject({
+      config: {
+        agent: { build: { prompt: 'Prompt B' } },
+      },
+    });
+    expect(firstServer.close).toHaveBeenCalledTimes(1);
+    expect(relayMock.close).toHaveBeenCalledTimes(1);
+    expect(client.session.create).toHaveBeenCalledTimes(1);
+    expect(
+      client.session.promptAsync.mock.calls.map(
+        ([request]) => (request as { sessionID?: string }).sessionID,
+      ),
+    ).toEqual(['session-1', 'session-1', 'session-1']);
+
+    const secondServer = (await createOpencodeServerMock.mock.results[1]
+      ?.value) as { close: ReturnType<typeof vi.fn> };
+    createOpencodeServerMock.mockRejectedValueOnce(new Error('startup failed'));
+    const failedTurn = turn();
+
+    await bridgeMock.onStart!(start('Prompt C'), failedTurn);
+
+    expect(createOpencodeServerMock).toHaveBeenCalledTimes(3);
+    expect(secondServer.close).toHaveBeenCalledTimes(1);
+    expect(failedTurn.emitError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        error: expect.objectContaining({ message: 'startup failed' }),
+      }),
+    );
+    expect(client.session.promptAsync).toHaveBeenCalledTimes(3);
+
+    const retryTurn = turn();
+    await bridgeMock.onStart!(start('Prompt C'), retryTurn);
+
+    expect(retryTurn.emitError).not.toHaveBeenCalled();
+    expect(createOpencodeServerMock).toHaveBeenCalledTimes(4);
+    expect(client.session.promptAsync).toHaveBeenCalledTimes(4);
+    expect(secondServer.close).toHaveBeenCalledTimes(1);
+
+    await bridgeMock.onStart!(start(undefined), turn());
+
+    expect(createOpencodeServerMock).toHaveBeenCalledTimes(5);
+    expect(createOpencodeServerMock.mock.calls[4]?.[0]).toMatchObject({
+      config: expect.not.objectContaining({ agent: expect.anything() }),
+    });
+    expect(client.session.create).toHaveBeenCalledTimes(1);
+    expect(
+      client.session.promptAsync.mock.calls.every(
+        ([request]) =>
+          (request as { sessionID?: string }).sessionID === 'session-1',
+      ),
+    ).toBe(true);
+  });
+
+  it('aborts OpenCode before allowing the next turn to stream', async () => {
+    const abort = new AbortController();
+    const firstTurn = {
+      emit: vi.fn(),
+      requestToolResult: vi.fn(),
+      requestToolApproval: vi.fn(),
+      experimental_userMessages: createUserMessages(),
+      abortSignal: abort.signal,
+      firstTurn: true,
+      bridgeLog: vi.fn(),
+      emitWarning: vi.fn(),
+      emitError: vi.fn(),
+    };
+    bridgeMock.start = {
+      type: 'start',
+      operation: 'prompt',
+      prompt: 'Write a long response.',
+    };
+    bridgeMock.turn = firstTurn;
+    const sessionAbort = vi.fn(async () => ({ data: true }));
+    let subscriptionCount = 0;
+    sdkMock.client = {
+      mcp: { status: vi.fn(async () => ({ data: {} })) },
+      session: {
+        abort: sessionAbort,
+        create: vi.fn(async () => ({ data: { id: 'session-1' } })),
+        get: vi.fn(async () => ({ data: {} })),
+        messages: vi.fn(async () => ({ data: [] })),
+        promptAsync: vi.fn(async () => {
+          if (subscriptionCount === 1) queueMicrotask(() => abort.abort());
+          return { data: {} };
+        }),
+      },
+      event: {
+        subscribe: vi.fn(
+          async (_input: unknown, options: { signal: AbortSignal }) => {
+            subscriptionCount++;
+            if (subscriptionCount === 1) {
+              return {
+                stream: {
+                  [Symbol.asyncIterator]() {
+                    return {
+                      next: async () => {
+                        await new Promise<void>(resolve => {
+                          if (options.signal.aborted) return resolve();
+                          options.signal.addEventListener(
+                            'abort',
+                            () => resolve(),
+                            {
+                              once: true,
+                            },
+                          );
+                        });
+                        return { done: true as const, value: undefined };
+                      },
+                    };
+                  },
+                },
+              };
+            }
+            return {
+              stream: {
+                async *[Symbol.asyncIterator]() {
+                  yield {
+                    type: 'message.updated',
+                    properties: {
+                      info: {
+                        id: 'second-assistant',
+                        sessionID: 'session-1',
+                        role: 'assistant',
+                      },
+                    },
+                  };
+                  yield {
+                    type: 'message.part.delta',
+                    properties: {
+                      partID: 'second-text',
+                      messageID: 'second-assistant',
+                      field: 'text',
+                      delta: 'banana',
+                      sessionID: 'session-1',
+                    },
+                  };
+                  yield {
+                    type: 'message.part.updated',
+                    properties: {
+                      part: {
+                        id: 'second-step',
+                        messageID: 'second-assistant',
+                        sessionID: 'session-1',
+                        type: 'step-finish',
+                        reason: 'stop',
+                        tokens: {
+                          input: 1,
+                          output: 1,
+                          reasoning: 0,
+                          cache: { read: 0, write: 0 },
+                        },
+                      },
+                    },
+                  };
+                  yield {
+                    type: 'session.status',
+                    properties: {
+                      sessionID: 'session-1',
+                      status: { type: 'busy' },
+                    },
+                  };
+                  yield {
+                    type: 'session.status',
+                    properties: {
+                      sessionID: 'session-1',
+                      status: { type: 'idle' },
+                    },
+                  };
+                },
+              },
+            };
+          },
+        ),
+      },
+      v2: {
+        session: {
+          context: vi.fn(async () => ({ data: [] })),
+          switchModel: vi.fn(async () => ({ data: {} })),
+        },
+      },
+    };
+    setBridgeArgv();
+
+    await import('./index');
+
+    expect(sessionAbort).toHaveBeenCalledOnce();
+    expect(sessionAbort).toHaveBeenCalledWith({ sessionID: 'session-1' });
+    expect(firstTurn.emitError).not.toHaveBeenCalled();
+
+    const emitted: Array<Record<string, unknown>> = [];
+    const secondTurn = {
+      emit: (event: Record<string, unknown>) => emitted.push(event),
+      requestToolResult: vi.fn(),
+      requestToolApproval: vi.fn(),
+      experimental_userMessages: createUserMessages(),
+      abortSignal: new AbortController().signal,
+      firstTurn: false,
+      bridgeLog: vi.fn(),
+      emitWarning: vi.fn(),
+      emitError: vi.fn(),
+    };
+
+    await bridgeMock.onStart!(
+      {
+        type: 'start',
+        operation: 'prompt',
+        prompt: 'Reply with banana.',
+      },
+      secondTurn,
+    );
+
+    expect(secondTurn.emitError).not.toHaveBeenCalled();
+    expect(
+      emitted
+        .filter(event => event.type === 'text-delta')
+        .map(event => event.delta)
+        .join(''),
+    ).toBe('banana');
+  });
+
+  it('authorizes host tools for task-linked subagents only', async () => {
+    const emitted: Array<Record<string, unknown>> = [];
+    const userMessages = createUserMessages();
+    bridgeMock.start = {
+      type: 'start',
+      operation: 'prompt',
+      prompt: 'Delegate this task.',
+      tools: [{ name: 'lookup' }],
+      responseFormat: { type: 'json' },
+    };
+    bridgeMock.turn = {
+      emit: (event: Record<string, unknown>) => emitted.push(event),
+      requestToolResult: vi.fn(),
+      requestToolApproval: vi.fn(),
+      experimental_userMessages: userMessages,
+      abortSignal: new AbortController().signal,
+      firstTurn: true,
+      bridgeLog: vi.fn(),
+      emitWarning: vi.fn(),
+      emitError: vi.fn(),
+    };
+    sdkMock.client = {
+      mcp: { status: vi.fn(async () => ({ data: {} })) },
+      session: {
+        create: vi.fn(async () => ({ data: { id: 'parent-session' } })),
+        get: vi.fn(async () => ({ data: {} })),
+        messages: vi.fn(async () => ({ data: [] })),
+        promptAsync: vi.fn(async () => ({ data: {} })),
+      },
+      event: {
+        subscribe: vi.fn(async () => ({
+          stream: {
+            async *[Symbol.asyncIterator]() {
+              yield {
+                type: 'message.part.updated',
+                properties: {
+                  part: {
+                    type: 'tool',
+                    sessionID: 'parent-session',
+                    callID: 'task-call',
+                    tool: 'task',
+                    state: {
+                      status: 'running',
+                      input: { prompt: 'Research this.' },
+                      metadata: {
+                        parentSessionId: 'parent-session',
+                        sessionId: 'child-session',
+                      },
+                    },
+                  },
+                },
+              };
+              yield {
+                type: 'message.updated',
+                properties: {
+                  info: {
+                    id: 'child-message',
+                    sessionID: 'child-session',
+                    role: 'assistant',
+                    structured: { leaked: true },
+                  },
+                },
+              };
+              yield {
+                type: 'session.updated',
+                properties: {
+                  info: {
+                    id: 'child-session',
+                    summary: {
+                      additions: 99,
+                      deletions: 99,
+                      files: 99,
+                    },
+                  },
+                },
+              };
+              yield {
+                type: 'permission.v2.asked',
+                properties: {
+                  sessionID: 'child-session',
+                  id: 'child-permission',
+                  action: 'webfetch',
+                  resources: [],
+                  source: { callID: 'child-webfetch-call' },
+                },
+              };
+              yield {
+                type: 'message.part.updated',
+                properties: {
+                  part: {
+                    type: 'tool',
+                    sessionID: 'unrelated-session',
+                    callID: 'unrelated-call',
+                    tool: 'lookup',
+                    state: {
+                      status: 'running',
+                      input: { query: 'unrelated' },
+                    },
+                  },
+                },
+              };
+              yield {
+                type: 'message.part.updated',
+                properties: {
+                  part: {
+                    type: 'tool',
+                    sessionID: 'child-session',
+                    callID: 'child-call',
+                    tool: 'lookup',
+                    state: {
+                      status: 'running',
+                      input: { query: 'authorized' },
+                    },
+                  },
+                },
+              };
+              yield {
+                type: 'message.updated',
+                properties: {
+                  info: {
+                    id: 'child-message',
+                    sessionID: 'child-session',
+                    role: 'assistant',
+                    providerID: 'openai',
+                    modelID: 'gpt-5.6-sol',
+                  },
+                },
+              };
+              yield {
+                type: 'message.part.updated',
+                properties: {
+                  part: {
+                    id: 'child-step-finish',
+                    messageID: 'child-message',
+                    sessionID: 'child-session',
+                    type: 'step-finish',
+                    reason: 'stop',
+                    cost: 0.0042,
+                    tokens: {
+                      input: 3,
+                      output: 5,
+                      reasoning: 1,
+                      cache: { read: 10, write: 2 },
+                    },
+                  },
+                },
+              };
+              yield {
+                type: 'message.part.updated',
+                properties: {
+                  part: {
+                    id: 'child-step-finish-2',
+                    messageID: 'child-message',
+                    sessionID: 'child-session',
+                    type: 'step-finish',
+                    reason: 'stop',
+                    cost: 0.0021,
+                    tokens: {
+                      input: 2,
+                      output: 3,
+                      reasoning: 0,
+                      cache: { read: 4, write: 0 },
+                    },
+                  },
+                },
+              };
+              yield {
+                type: 'session.next.step.ended',
+                properties: {
+                  sessionID: 'parent-session',
+                  finish: 'stop',
+                  tokens: {
+                    input: 1,
+                    output: 1,
+                    reasoning: 0,
+                    cache: { read: 0, write: 0 },
+                  },
+                  cost: 0,
+                },
+              };
+              yield {
+                type: 'session.status',
+                properties: {
+                  sessionID: 'parent-session',
+                  status: { type: 'busy' },
+                },
+              };
+              yield {
+                type: 'session.status',
+                properties: {
+                  sessionID: 'parent-session',
+                  status: { type: 'idle' },
+                },
+              };
+              yield {
+                type: 'message.updated',
+                properties: {
+                  info: {
+                    id: 'parent-message',
+                    sessionID: 'parent-session',
+                    role: 'assistant',
+                    structured: { result: 'parent' },
+                  },
+                },
+              };
+            },
+          },
+        })),
+      },
+      v2: {
+        session: {
+          context: vi.fn(async () => ({ data: [] })),
+          switchModel: vi.fn(async () => ({ data: {} })),
+          permission: { reply: permissionReplyMock },
+        },
+      },
+    };
+    setBridgeArgv();
+
+    await import('./index');
+
+    expect(relayMock.authorizeToolCall).toHaveBeenCalledOnce();
+    expect(relayMock.authorizeToolCall).toHaveBeenCalledWith({
+      toolName: 'lookup',
+      input: { query: 'authorized' },
+    });
+    expect(permissionReplyMock).toHaveBeenCalledWith({
+      sessionID: 'child-session',
+      requestID: 'child-permission',
+      reply: 'always',
+    });
+    expect(emitted).toContainEqual({
+      type: 'raw',
+      rawValue: {
+        type: 'opencode.subagent-usage',
+        version: 1,
+        sessionId: 'child-session',
+        stepId: 'child-step-finish',
+        modelId: 'openai/gpt-5.6-sol',
+        usage: {
+          inputTokens: {
+            total: 3,
+            noCache: 0,
+            cacheRead: 10,
+            cacheWrite: 2,
+          },
+          outputTokens: { total: 6, text: 5, reasoning: 1 },
+        },
+        cost: 0.0042,
+      },
+    });
+    expect(emitted).toContainEqual({
+      type: 'raw',
+      rawValue: {
+        type: 'opencode.subagent-usage',
+        version: 1,
+        sessionId: 'child-session',
+        stepId: 'child-step-finish-2',
+        modelId: 'openai/gpt-5.6-sol',
+        usage: {
+          inputTokens: {
+            total: 2,
+            noCache: 0,
+            cacheRead: 4,
+            cacheWrite: 0,
+          },
+          outputTokens: { total: 3, text: 3, reasoning: 0 },
+        },
+        cost: 0.0021,
+      },
+    });
+    expect(emitted).toContainEqual({
+      type: 'text-delta',
+      id: 'parent-message',
+      delta: JSON.stringify({ result: 'parent' }),
+    });
+    expect(emitted).not.toContainEqual(
+      expect.objectContaining({ delta: JSON.stringify({ leaked: true }) }),
+    );
+    expect(emitted.at(-1)).toMatchObject({ type: 'finish' });
+  });
+});

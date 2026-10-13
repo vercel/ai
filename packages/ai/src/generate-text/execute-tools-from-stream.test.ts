@@ -244,6 +244,50 @@ describe('executeToolsFromStream', () => {
       `);
   });
 
+  it.each(['length', 'error', 'content-filter', 'other'] as const)(
+    'should not execute tools when the finish reason is %s',
+    async finishReason => {
+      const execute = vi.fn(async () => 'tool-result');
+      const tools = {
+        testTool: tool({
+          inputSchema: z.object({ value: z.string() }),
+          execute,
+        }),
+      };
+
+      const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'testTool',
+            input: { value: 'test' },
+          },
+          {
+            ...finishChunk,
+            finishReason,
+            rawFinishReason: finishReason,
+          },
+        ]);
+
+      await convertReadableStreamToArray(
+        executeToolsFromStream({
+          stream: inputStream,
+          generateId: mockId({ prefix: 'id' }),
+          tools,
+          callId: 'test-telemetry-call-id',
+          messages: [],
+          abortSignal: undefined,
+          timeout: undefined,
+          toolsContext: {},
+          runtimeContext: {},
+        }),
+      );
+
+      expect(execute).not.toHaveBeenCalled();
+    },
+  );
+
   it('should pass sandbox to tool execution', async () => {
     const sandbox = {
       description: 'test sandbox',
@@ -474,7 +518,7 @@ describe('executeToolsFromStream', () => {
     expect(execute).toHaveBeenCalledTimes(1);
   });
 
-  it('should emit approval request and denied response without executing auto-denied tools', async () => {
+  it('should emit denied output after the approval response without executing auto-denied tools', async () => {
     let toolExecuted = false;
 
     const tools = {
@@ -554,6 +598,11 @@ describe('executeToolsFromStream', () => {
               "type": "tool-call",
             },
             "type": "tool-approval-response",
+          },
+          {
+            "toolCallId": "call-1",
+            "toolName": "deniedTool",
+            "type": "tool-output-denied",
           },
           {
             "finishReason": "stop",

@@ -7,6 +7,7 @@ import {
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  getErrorMessage,
   postJsonToApi,
   resolve,
   type Resolvable,
@@ -74,7 +75,7 @@ export class GatewaySpeechModel implements SpeechModelV4 {
         ),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
-          errorToMessage: data => data,
+          errorToMessage: data => getErrorMessage(data) ?? 'unknown error',
         }),
         ...(abortSignal && { abortSignal }),
         fetch: this.config.fetch,
@@ -83,6 +84,7 @@ export class GatewaySpeechModel implements SpeechModelV4 {
       return {
         audio: responseBody.audio,
         warnings: (responseBody.warnings ?? []) as Array<SharedV4Warning>,
+        ...(responseBody.usage != null && { usage: responseBody.usage }),
         providerMetadata:
           responseBody.providerMetadata as SharedV4ProviderMetadata,
         response: {
@@ -139,6 +141,7 @@ const gatewaySpeechWarningSchema = z.discriminatedUnion('type', [
 const gatewaySpeechResponseSchema = z.object({
   audio: z.string(),
   warnings: z.array(gatewaySpeechWarningSchema).optional(),
+  usage: z.record(z.string(), z.json()).optional(),
   providerMetadata: z
     .record(z.string(), providerMetadataEntrySchema)
     .optional(),

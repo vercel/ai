@@ -6,16 +6,18 @@ import {
   type GoogleInteractionsModelId,
   type GoogleInteractionsModelInput,
 } from '@ai-sdk/google/internal';
-import type {
-  Experimental_VideoModelV4,
-  ImageModelV4,
-  LanguageModelV4,
-  ProviderV4,
-  SpeechModelV4,
-  TranscriptionModelV4,
+import {
+  InvalidArgumentError,
+  type Experimental_VideoModelV4,
+  type ImageModelV4,
+  type LanguageModelV4,
+  type ProviderV4,
+  type SpeechModelV4,
+  type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
   generateId,
+  isValidHostnamePart,
   loadOptionalSetting,
   loadSetting,
   normalizeHeaders,
@@ -24,6 +26,7 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
   type Resolvable,
+  type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
 import { VERSION } from './version';
 import type { GoogleVertexConfig } from './google-vertex-config';
@@ -36,6 +39,7 @@ import { GoogleVertexCloudTTSSpeechModel } from './google-vertex-cloud-tts-speec
 import { googleVertexTools } from './google-vertex-tools';
 import { GoogleVertexTranscriptionModel } from './google-vertex-transcription-model';
 import type { GoogleVertexTranscriptionModelId } from './google-vertex-transcription-model-options';
+import { GoogleVertexGeminiTranscriptionModel } from './gemini-transcription/google-vertex-gemini-transcription-model';
 import { GoogleVertexVideoModel } from './google-vertex-video-model';
 import type { GoogleVertexVideoModelId } from './google-vertex-video-settings';
 import type { GoogleVertexSpeechModelId } from './google-vertex-speech-model-options';
@@ -184,6 +188,24 @@ export interface GoogleVertexProviderSettings {
    * Base URL for the Google Vertex API calls.
    */
   baseURL?: string;
+
+  /**
+   * Custom WebSocket implementation for streaming transcription. Useful for
+   * runtimes that need a WebSocket constructor with header support (e.g. the
+   * `ws` package in Node.js, which Vertex's OAuth Bearer header requires).
+   */
+  webSocket?: WebSocketConstructor;
+
+  /**
+   * Settings for downloading remote files in tool results before sending them
+   * to Vertex as inline data.
+   */
+  toolResultDownloads?: {
+    /**
+     * Maximum size in bytes for each downloaded file. Defaults to 7 MiB.
+     */
+    maxBytes?: number;
+  };
 }
 
 /**
@@ -205,13 +227,22 @@ export function createGoogleVertex(
       description: 'Google Vertex project',
     });
 
-  const loadGoogleVertexLocation = () =>
-    loadSetting({
+  const loadGoogleVertexLocation = () => {
+    const location = loadSetting({
       settingValue: options.location,
       settingName: 'location',
       environmentVariableName: 'GOOGLE_VERTEX_LOCATION',
       description: 'Google Vertex location',
     });
+    if (!isValidHostnamePart(location)) {
+      throw new InvalidArgumentError({
+        argument: 'location',
+        message:
+          'Invalid Google Vertex location. Expected a single DNS label (letters, digits, and hyphens). Use `baseURL` for custom endpoints.',
+      });
+    }
+    return location;
+  };
 
   // Tuned models are addressed via their deployed endpoint
   // `.../locations/{region}/endpoints/{id}` instead of the base-model
@@ -220,6 +251,11 @@ export function createGoogleVertex(
   const loadBaseURL = ({ endpoint = false }: { endpoint?: boolean } = {}) => {
     if (apiKey) {
       return withoutTrailingSlash(options.baseURL) ?? EXPRESS_MODE_BASE_URL;
+    }
+
+    const baseURL = withoutTrailingSlash(options.baseURL);
+    if (baseURL != null) {
+      return baseURL;
     }
 
     const region = loadGoogleVertexLocation();
@@ -235,12 +271,9 @@ export function createGoogleVertex(
       }
     };
 
-    return (
-      withoutTrailingSlash(options.baseURL) ??
-      `https://${getHost()}/v1beta1/projects/${project}/locations/${region}${
-        endpoint ? '' : '/publishers/google'
-      }`
-    );
+    return `https://${getHost()}/v1beta1/projects/${project}/locations/${region}${
+      endpoint ? '' : '/publishers/google'
+    }`;
   };
 
   const createConfig = (
@@ -251,7 +284,7 @@ export function createGoogleVertex(
       const originalHeaders = await resolve(options.headers ?? {});
       return withUserAgentSuffix(
         originalHeaders,
-        `ai-sdk/google-vertex/${VERSION}`,
+        `ai-sdk-google-vertex/${VERSION}`,
       );
     };
 
@@ -285,6 +318,10 @@ export function createGoogleVertex(
           /^gs:\/\/.*$/,
         ],
       }),
+      downloadToolResultFiles: {
+        maxBytes: options.toolResultDownloads?.maxBytes ?? 7 * 1024 * 1024,
+        supportsGoogleCloudStorageUrls: true,
+      },
     });
   };
 
@@ -359,6 +396,22 @@ export function createGoogleVertex(
     }
 
     const config = createConfig('transcription');
+
+    // Gemini transcription models (`gemini-3.5-transcribe[-live]`) use the
+    // Vertex generateContent / Live API surfaces; everything else routes to
+    // Cloud Speech-to-Text (Chirp, telephony).
+    if (modelId.startsWith('gemini')) {
+      return new GoogleVertexGeminiTranscriptionModel(modelId, {
+        provider: config.provider,
+        baseURL: loadBaseURL(),
+        headers: config.headers,
+        fetch: config.fetch,
+        webSocket: options.webSocket,
+        project: loadGoogleVertexProject(),
+        location: loadGoogleVertexLocation(),
+      });
+    }
+
     return new GoogleVertexTranscriptionModel(modelId, {
       provider: config.provider,
       headers: config.headers,

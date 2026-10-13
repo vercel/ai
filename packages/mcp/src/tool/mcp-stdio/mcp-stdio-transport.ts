@@ -14,6 +14,7 @@ export interface StdioConfig {
 }
 
 export class StdioMCPTransport implements MCPTransport {
+  readonly supportsProtocolVersionDiscovery = true;
   private process?: ChildProcess;
   private abortController: AbortController = new AbortController();
   private readBuffer: ReadBuffer = new ReadBuffer();

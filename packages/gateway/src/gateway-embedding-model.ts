@@ -6,6 +6,7 @@ import {
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  getErrorMessage,
   lazySchema,
   postJsonToApi,
   resolve,
@@ -55,6 +56,7 @@ export class GatewayEmbeddingModel implements EmbeddingModelV4 {
 
   async doEmbed({
     values,
+    dimensions,
     headers,
     abortSignal,
     providerOptions,
@@ -79,6 +81,7 @@ export class GatewayEmbeddingModel implements EmbeddingModelV4 {
         ),
         body: {
           values,
+          dimensions,
           ...(providerOptions ? { providerOptions } : {}),
         },
         successfulResponseHandler: createJsonResponseHandler(
@@ -86,7 +89,7 @@ export class GatewayEmbeddingModel implements EmbeddingModelV4 {
         ),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
-          errorToMessage: data => data,
+          errorToMessage: data => getErrorMessage(data) ?? 'unknown error',
         }),
         ...(abortSignal && { abortSignal }),
         fetch: this.config.fetch,

@@ -1,6 +1,4 @@
-import 'dotenv/config';
-
-const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic';
 
 const execute = async (
   _req: Request,
@@ -86,4 +84,4 @@ const execute = async (
   });
 };
 
-export { dynamic, execute as GET, execute as POST };
+export { execute as GET, execute as POST };

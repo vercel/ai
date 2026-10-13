@@ -57,13 +57,17 @@
         "SENTRY_PROJECT",
         "TOGETHER_API_KEY",
         "TOGETHER_AI_API_KEY",
+        "TOPAZ_API_KEY",
+        "HEYGEN_API_KEY",
         "VERCEL_API_KEY",
         "VERCEL_DEPLOYMENT_ID",
         "VERCEL_ENV",
         "VERCEL_OIDC_TOKEN",
         "VERCEL_REGION",
         "VERCEL_URL",
-        "XAI_API_KEY"
+        "TYPESAFE_AI_API_KEY",
+        "XAI_API_KEY",
+        "ZAI_API_KEY"
       ],
       "outputs": [
         "dist/**",
@@ -79,7 +83,8 @@
     },
     "test": {
       "dependsOn": ["^build", "build"],
-      "env": ["SKIP_RSC_E2E"]
+      "env": ["SKIP_RSC_E2E", "VITEST_MAX_WORKERS", "TEST_NODE_VERSION"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/tools/setup-download-fetch.node.js"]
     },
     "test:e2e:ci": {
       "env": ["SKIP_RSC_E2E"]

@@ -1,9 +1,29 @@
+import type { SandboxChannelReconnectOptions } from '@ai-sdk/harness/utils';
 import { expectTypeOf, test } from 'vitest';
-import { createGrokBuild } from './grok-build-harness';
+import {
+  createGrokBuild,
+  type GrokBuildHarnessSettings,
+} from './grok-build-harness';
+
+test('accepts sandbox bridge reconnect settings', () => {
+  const settings: GrokBuildHarnessSettings = {
+    reconnect: {
+      maxElapsedMs: 120_000,
+      initialDelayMs: 100,
+      maxDelayMs: 5_000,
+    },
+  };
+  createGrokBuild(settings);
+  expectTypeOf(settings.reconnect).toEqualTypeOf<
+    SandboxChannelReconnectOptions | undefined
+  >();
+});
 
 test('preserves Grok Build built-in tool types', () => {
   const harness = createGrokBuild({
+    credentialForwarding: async ({ credential }) => credential,
     mintBridgeToken: sandboxId => sandboxId,
+    reasoningEffort: 'high',
   });
 
   expectTypeOf<keyof typeof harness.builtinTools>().toEqualTypeOf<
@@ -27,7 +47,7 @@ test('preserves Grok Build built-in tool types', () => {
     | 'workflow'
     | 'enter_plan_mode'
     | 'exit_plan_mode'
-    | 'ask_user_question'
+    | 'askUserQuestions'
     | 'image_gen'
     | 'image_edit'
     | 'image_to_video'

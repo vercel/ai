@@ -7,6 +7,105 @@ import {
 vi.mock('node:crypto', () => ({ randomUUID: () => 'uuid' }));
 
 describe('createEmitStreamEvent', () => {
+  it('settles only a correlated top-level MCP run once and preserves approval identity', () => {
+    const state = createDeepAgentsStreamEventState();
+    state.approvedToolQueue.set('mcp__fixture__fail', ['approval-call']);
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      configuredModel: undefined,
+      hostToolNames: new Set(['host']),
+      mcpToolNames: new Set(['mcp__fixture__fail', 'mcp__fixture__other']),
+      emit: event => emitted.push(event),
+    });
+    const start = {
+      event: 'on_tool_start',
+      name: 'mcp__fixture__fail',
+      run_id: 'run-1',
+      data: { input: {} },
+    };
+    const error = {
+      event: 'on_tool_error',
+      name: start.name,
+      run_id: start.run_id,
+      data: { error: new Error('native failure') },
+    };
+
+    emitStreamEvent({ ...error, run_id: 'never-started' });
+    emitStreamEvent(start);
+    emitStreamEvent({ ...error, name: 'mcp__fixture__other' });
+    emitStreamEvent({
+      ...error,
+      metadata: { langgraph_checkpoint_ns: 'task|child' },
+    });
+    emitStreamEvent(error);
+    emitStreamEvent(error);
+    emitStreamEvent({
+      event: 'on_tool_end',
+      name: start.name,
+      run_id: start.run_id,
+      data: { output: 'late result' },
+    });
+
+    expect(emitted).toEqual([
+      {
+        type: 'tool-result',
+        toolCallId: 'approval-call',
+        toolName: start.name,
+        result: 'native failure',
+        isError: true,
+        dynamic: true,
+      },
+    ]);
+  });
+
+  it('keeps error ToolMessages in the native loop and excludes aborted MCP completions', () => {
+    const state = createDeepAgentsStreamEventState();
+    const controller = new AbortController();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      configuredModel: undefined,
+      hostToolNames: new Set(['host']),
+      mcpToolNames: new Set(['mcp__fixture__fail']),
+      abortSignal: controller.signal,
+      emit: event => emitted.push(event),
+    });
+
+    for (const runId of ['run-1', 'run-2']) {
+      emitStreamEvent({
+        event: 'on_tool_start',
+        name: 'mcp__fixture__fail',
+        run_id: runId,
+        data: { input: {} },
+      });
+    }
+    emitStreamEvent({
+      event: 'on_tool_end',
+      name: 'mcp__fixture__fail',
+      run_id: 'run-1',
+      data: { output: { content: 'MCP failed', status: 'error' } },
+    });
+    controller.abort();
+    emitStreamEvent({
+      event: 'on_tool_error',
+      name: 'mcp__fixture__fail',
+      run_id: 'run-2',
+      data: { error: new Error('abort') },
+    });
+
+    expect(emitted.filter(event => event.type === 'tool-result')).toEqual([
+      {
+        type: 'tool-result',
+        toolCallId: 'run-1',
+        toolName: 'mcp__fixture__fail',
+        result: 'MCP failed',
+        isError: true,
+        dynamic: true,
+      },
+    ]);
+  });
+
   it('emits model, content, and step events while counting nested usage', () => {
     const state = createDeepAgentsStreamEventState();
     const emitted: Record<string, unknown>[] = [];
@@ -122,7 +221,7 @@ describe('createEmitStreamEvent', () => {
     expect(emitted).toMatchInlineSnapshot(`
       [
         {
-          "input": "{\"command\":\"pwd\"}",
+          "input": "{"command":"pwd"}",
           "nativeName": "execute",
           "providerExecuted": true,
           "toolCallId": "run-1",
@@ -134,6 +233,63 @@ describe('createEmitStreamEvent', () => {
           "toolCallId": "approval-1",
           "toolName": "read",
           "type": "tool-result",
+        },
+      ]
+    `);
+  });
+
+  it('emits reasoning from Anthropic and normalized LangChain blocks', () => {
+    const state = createDeepAgentsStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      configuredModel: undefined,
+      hostToolNames: new Set(),
+      mcpToolNames: new Set(),
+      emit: event => emitted.push(event),
+    });
+
+    emitStreamEvent({ event: 'on_chat_model_start' });
+    emitStreamEvent({
+      event: 'on_chat_model_stream',
+      data: {
+        chunk: {
+          content: [{ type: 'thinking', thinking: 'First' }],
+        },
+      },
+    });
+    emitStreamEvent({
+      event: 'on_chat_model_stream',
+      data: {
+        chunk: {
+          content: [{ type: 'reasoning-delta', reasoning: ' second' }],
+        },
+      },
+    });
+    emitStreamEvent({ event: 'on_chat_model_end' });
+
+    expect(emitted).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+        },
+        {
+          "id": "reasoning-uuid",
+          "type": "reasoning-start",
+        },
+        {
+          "delta": "First",
+          "id": "reasoning-uuid",
+          "type": "reasoning-delta",
+        },
+        {
+          "delta": " second",
+          "id": "reasoning-uuid",
+          "type": "reasoning-delta",
+        },
+        {
+          "id": "reasoning-uuid",
+          "type": "reasoning-end",
         },
       ]
     `);
@@ -173,7 +329,7 @@ describe('createEmitStreamEvent', () => {
       [
         {
           "dynamic": true,
-          "input": "{\"query\":\"AI SDK\"}",
+          "input": "{"query":"AI SDK"}",
           "nativeName": "mcp__memory__search",
           "providerExecuted": true,
           "toolCallId": "mcp-run",
@@ -189,5 +345,33 @@ describe('createEmitStreamEvent', () => {
         },
       ]
     `);
+  });
+
+  it('does not expose the internal structured output tool', () => {
+    const state = createDeepAgentsStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      configuredModel: undefined,
+      hostToolNames: new Set(),
+      mcpToolNames: new Set(),
+      structuredOutputToolNames: new Set(['StructuredOutput']),
+      emit: event => emitted.push(event),
+    });
+
+    emitStreamEvent({
+      event: 'on_tool_start',
+      name: 'StructuredOutput',
+      run_id: 'structured-output',
+      data: { input: { answer: 'yes' } },
+    });
+    emitStreamEvent({
+      event: 'on_tool_end',
+      name: 'StructuredOutput',
+      run_id: 'structured-output',
+      data: { output: { answer: 'yes' } },
+    });
+
+    expect(emitted).toEqual([]);
   });
 });
