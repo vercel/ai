@@ -1,5 +1,12 @@
 # @ai-sdk/gateway
 
+## 2.0.166
+
+### Patch Changes
+
+- 7c28815: feat(google): add `gemini-4-argon` model id and long decode support: requests that reach the per-request cap (`CONTINUATION`) are continued automatically with usage summed across requests and the first request's prompt token count exposed as `providerMetadata.google.initialPromptTokenCount`, and the `continuationToken` provider option / provider metadata resume responses that used up their `maxOutputTokens` budget
+- 66941b0: Backport: chore(provider/gateway): update gateway model settings files
+
 ## 2.0.165
 
 ### Patch Changes

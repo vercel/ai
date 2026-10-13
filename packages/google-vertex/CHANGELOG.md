@@ -1,5 +1,13 @@
 # @ai-sdk/google-vertex
 
+## 3.0.182
+
+### Patch Changes
+
+- 7c28815: feat(google): add `gemini-4-argon` model id and long decode support: requests that reach the per-request cap (`CONTINUATION`) are continued automatically with usage summed across requests and the first request's prompt token count exposed as `providerMetadata.google.initialPromptTokenCount`, and the `continuationToken` provider option / provider metadata resume responses that used up their `maxOutputTokens` budget
+- Updated dependencies [7c28815]
+  - @ai-sdk/google@2.0.103
+
 ## 3.0.181
 
 ### Patch Changes
