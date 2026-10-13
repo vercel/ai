@@ -11,7 +11,7 @@ execution logic, ready to use with `generateText`, `streamText`, or `ToolLoopAge
 These tools work with any model that supports function calling.
 
 Import tools from the shared `@ai-sdk/tools` package, or install their individual
-`@ai-sdk/tool-*` packages when you only need a specific tool. Both entry points
+`@ai-sdk/*-tool` packages when you only need a specific tool. Both entry points
 provide the same implementation.
 
 For defining your own tools and configuring tool execution, see
@@ -42,11 +42,11 @@ Install the sandbox adapter you want to use. The following examples use just-bas
 pnpm add @ai-sdk/sandbox-just-bash
 ```
 
-To use Bash without the shared tools package, install `@ai-sdk/tool-bash` instead
+To use Bash without the shared tools package, install `@ai-sdk/bash-tool` instead
 of `@ai-sdk/tools` and import the same factory directly:
 
 ```ts
-import { bashTool } from '@ai-sdk/tool-bash';
+import { bashTool } from '@ai-sdk/bash-tool';
 ```
 
 ### Usage

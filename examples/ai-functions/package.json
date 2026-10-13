@@ -68,7 +68,7 @@
     "@ai-sdk/sandbox-just-bash": "workspace:*",
     "@ai-sdk/sandbox-vercel": "workspace:*",
     "@ai-sdk/togetherai": "workspace:*",
-    "@ai-sdk/tool-bash": "workspace:*",
+    "@ai-sdk/bash-tool": "workspace:*",
     "@ai-sdk/topaz": "workspace:*",
     "@ai-sdk/tui": "workspace:*",
     "@ai-sdk/typesafe-ai": "workspace:*",

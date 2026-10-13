@@ -34,7 +34,7 @@
     "test:watch": "vitest --config vitest.node.config.js"
   },
   "dependencies": {
-    "@ai-sdk/tool-bash": "workspace:*"
+    "@ai-sdk/bash-tool": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "22.19.19",

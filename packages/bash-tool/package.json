@@ -1,5 +1,5 @@
 {
-  "name": "@ai-sdk/tool-bash",
+  "name": "@ai-sdk/bash-tool",
   "version": "0.0.0",
   "description": "Provider-independent bash tool for the AI SDK",
   "type": "module",
@@ -59,7 +59,7 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/vercel/ai",
-    "directory": "packages/tool-bash"
+    "directory": "packages/bash-tool"
   },
   "bugs": {
     "url": "https://github.com/vercel/ai/issues"

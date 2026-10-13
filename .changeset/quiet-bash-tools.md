@@ -1,5 +1,5 @@
 ---
-'@ai-sdk/tool-bash': major
+'@ai-sdk/bash-tool': major
 '@ai-sdk/tools': major
 ---
 

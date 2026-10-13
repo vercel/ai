@@ -1,1 +1,1 @@
-export { bashTool } from '@ai-sdk/tool-bash';
+export { bashTool } from '@ai-sdk/bash-tool';
