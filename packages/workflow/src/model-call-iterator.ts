@@ -143,6 +143,7 @@ export async function* modelCallIterator({
   includeRawChunks = false,
   timeoutAt,
   repairToolCall,
+  download,
   responseFormat,
   experimental_transform,
   experimental_sandbox: sandbox,
@@ -170,6 +171,7 @@ export async function* modelCallIterator({
   includeRawChunks?: boolean;
   timeoutAt?: number;
   repairToolCall?: ToolCallRepairFunction<ToolSet>;
+  download?: ModelCallOptions['download'];
   responseFormat?: LanguageModelV4CallOptions['responseFormat'];
   experimental_transform?:
     | StreamTextTransform<ToolSet>
@@ -380,6 +382,7 @@ export async function* modelCallIterator({
         includeRawChunks,
         timeoutAt,
         repairToolCall,
+        download,
         responseFormat,
         include,
         experimental_transform,
