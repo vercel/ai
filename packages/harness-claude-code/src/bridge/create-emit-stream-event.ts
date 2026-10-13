@@ -81,6 +81,7 @@ export type ClaudeStreamEventState = {
   pendingStepDeltaUsage: Record<string, unknown> | undefined;
   pendingStepUsage: Record<string, unknown> | undefined;
   pendingResponseUsage: Record<string, unknown> | undefined;
+  responseOpen: boolean;
   stepOpen: boolean;
   /*
    * Host-tool calls reported by Claude. The MCP handler normally emits its own
@@ -136,6 +137,7 @@ export function createClaudeStreamEventState(): ClaudeStreamEventState {
     pendingStepDeltaUsage: undefined,
     pendingStepUsage: undefined,
     pendingResponseUsage: undefined,
+    responseOpen: false,
     stepOpen: false,
     mcpToolCalls: new Map(),
     mcpHandlerCalls: new Map(),
@@ -606,7 +608,7 @@ function closeStepIfReady({
   state: ClaudeStreamEventState;
   emit: Emit;
 }): void {
-  if (!state.stepOpen || state.partialBlocks.size > 0) {
+  if (!state.stepOpen || state.responseOpen || state.partialBlocks.size > 0) {
     return;
   }
   if (state.pendingStepToolUseIds.size === 0) {
@@ -687,6 +689,7 @@ function handleStreamEvent({
   if (event.type === 'message_start') {
     state.modelResponseStreaming = true;
     state.pendingResponseUsage = toUsageRecord(event.message?.usage);
+    state.responseOpen = true;
     return;
   }
 
@@ -716,7 +719,8 @@ function handleStreamEvent({
     });
     state.pendingResponseUsage = undefined;
     state.modelResponseStreaming = false;
-    emitEarlyFinishStepIfReady({ state, emit: send });
+    state.responseOpen = false;
+    closeStepIfReady({ state, emit: send });
     return;
   }
 
