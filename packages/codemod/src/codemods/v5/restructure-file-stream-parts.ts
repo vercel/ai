@@ -124,6 +124,13 @@ export default createTransformer((fileInfo, api, options, context) => {
     .forEach(path => {
       const properties = path.node.properties;
 
+      if (properties.some(prop => prop.type === 'SpreadElement')) {
+        context.messages.push(
+          `Could not automatically migrate a file stream part object with spread properties in ${fileInfo.path}. Please migrate it manually.`,
+        );
+        return;
+      }
+
       // Find file-related properties (everything except 'type')
       const fileProperties = properties.filter(prop => {
         if (
