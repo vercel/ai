@@ -1,5 +1,16 @@
 # @ai-sdk/openai
 
+## 3.0.127
+
+### Patch Changes
+
+- 347b939: fix(openai): send assistant text with content instead of an item reference when its reasoning was removed
+
+  With reasoning models, pruning reasoning (e.g. `pruneMessages({ reasoning: 'all' })`) caused follow-up requests to fail with "Item 'msg\_...' of type 'message' was provided without its required 'reasoning' item". Assistant text parts are now only sent as item references, or with their item id, when they are preceded by reasoning in the same assistant message.
+
+- Updated dependencies [604b4d3]
+  - @ai-sdk/provider-utils@4.0.58
+
 ## 3.0.126
 
 ### Patch Changes

@@ -1,5 +1,15 @@
 # @ai-sdk/vue
 
+## 3.0.305
+
+### Patch Changes
+
+- fac482b: fix(vue): cancel useObject submissions stopped before their request starts
+- 2479c33: fix(vue): preserve headers supplied as a Headers instance in useObject requests
+- Updated dependencies [604b4d3]
+  - @ai-sdk/provider-utils@4.0.58
+  - ai@6.0.305
+
 ## 3.0.304
 
 ### Patch Changes

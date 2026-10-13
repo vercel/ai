@@ -1,5 +1,17 @@
 # @ai-sdk/google-vertex
 
+## 4.0.213
+
+### Patch Changes
+
+- 0a2b345: feat(google): add `gemini-4-argon` model id and long decode support for `generateContent`: requests that reach the per-request cap (`CONTINUATION`) are continued automatically with usage summed across requests and the first request's prompt token count exposed as `providerMetadata.google.initialPromptTokenCount`, and the `continuationToken` provider option / provider metadata resume responses that used up their `maxOutputTokens` budget. `generateText` with the Interactions API now polls `background: true` model calls until they finish.
+- Updated dependencies [604b4d3]
+- Updated dependencies [0a2b345]
+  - @ai-sdk/provider-utils@4.0.58
+  - @ai-sdk/google@3.0.132
+  - @ai-sdk/anthropic@3.0.130
+  - @ai-sdk/openai-compatible@2.0.82
+
 ## 4.0.212
 
 ### Patch Changes
