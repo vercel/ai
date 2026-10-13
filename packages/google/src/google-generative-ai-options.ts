@@ -251,6 +251,17 @@ export const googleGenerativeAIProviderOptions = lazySchema(() =>
        * Optional. The service tier to use for the request.
        */
       serviceTier: z.enum(['standard', 'flex', 'priority']).optional(),
+
+      /**
+       * Optional. Resumes a response that stopped with `MAX_TOKENS` because it
+       * used up its `maxOutputTokens` budget (Gemini 4 long decode). Pass the
+       * `continuationToken` from the previous response's provider metadata
+       * together with the original prompt and a higher `maxOutputTokens` (the
+       * budget is cumulative across requests). Requests that reach the
+       * per-request cap while budget remains (`CONTINUATION`) are continued
+       * automatically. Sent as the `continuationToken` body field.
+       */
+      continuationToken: z.string().optional(),
     }),
   ),
 );

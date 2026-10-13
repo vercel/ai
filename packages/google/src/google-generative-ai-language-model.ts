@@ -24,6 +24,8 @@ import {
   zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import { addGoogleGenerativeAIUsageMetadata } from './add-google-generative-ai-usage-metadata';
+import { continueGoogleStream } from './continue-google-stream';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
 import { convertToGoogleGenerativeAIMessages } from './convert-to-google-generative-ai-messages';
 import { getModelPath } from './get-model-path';
@@ -266,6 +268,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
         cachedContent: googleOptions?.cachedContent,
         labels: googleOptions?.labels,
         serviceTier: sanitizedServiceTier,
+        ...(googleOptions?.continuationToken != null && {
+          continuationToken: googleOptions.continuationToken,
+        }),
       },
       warnings: [...warnings, ...toolWarnings],
     };
@@ -282,21 +287,60 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       options.headers,
     );
 
-    const {
+    const generateContent = (body: typeof args) =>
+      postJsonToApi({
+        url: `${this.config.baseURL}/${getModelPath(
+          this.modelId,
+        )}:generateContent`,
+        headers: mergedHeaders,
+        body,
+        failedResponseHandler: googleFailedResponseHandler,
+        successfulResponseHandler: createJsonResponseHandler(responseSchema),
+        abortSignal: options.abortSignal,
+        fetch: this.config.fetch,
+      });
+
+    let {
       responseHeaders,
       value: response,
       rawValue: rawResponse,
-    } = await postJsonToApi({
-      url: `${this.config.baseURL}/${getModelPath(
-        this.modelId,
-      )}:generateContent`,
-      headers: mergedHeaders,
-      body: args,
-      failedResponseHandler: googleFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(responseSchema),
-      abortSignal: options.abortSignal,
-      fetch: this.config.fetch,
-    });
+    } = await generateContent(args);
+
+    // Gemini 4 long decode: a request that reaches the per-request cap while
+    // `maxOutputTokens` budget remains finishes with `CONTINUATION`. Resend
+    // the same request with the continuation token (the server tracks the
+    // cumulative tokens) and combine the parts and usage of all requests.
+    //
+    // Usage is summed across requests (matching billing). Each request re-sends
+    // the prompt plus all output so far as input, so the first request's
+    // prompt token count is kept separately for context window checks.
+    const continuedParts: NonNullable<ContentSchema['parts']> = [];
+    let continuedUsageMetadata: UsageMetadataSchema | undefined;
+    const firstPromptTokenCount = response.usageMetadata?.promptTokenCount;
+
+    while (true) {
+      const candidate = response.candidates?.[0];
+      const continuationToken =
+        candidate?.finishReason === 'CONTINUATION'
+          ? candidate.continuationToken
+          : undefined;
+
+      if (continuationToken == null) {
+        break;
+      }
+
+      continuedParts.push(...(candidate?.content?.parts ?? []));
+      continuedUsageMetadata = addGoogleGenerativeAIUsageMetadata(
+        continuedUsageMetadata,
+        response.usageMetadata ?? undefined,
+      );
+
+      ({
+        responseHeaders,
+        value: response,
+        rawValue: rawResponse,
+      } = await generateContent({ ...args, continuationToken }));
+    }
 
     const candidate = response.candidates?.[0];
     const promptBlockReason = response.promptFeedback?.blockReason;
@@ -305,9 +349,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     const content: Array<LanguageModelV2Content> = [];
 
     // map ordered parts to content:
-    const parts = candidate?.content?.parts ?? [];
+    const parts = [...continuedParts, ...(candidate?.content?.parts ?? [])];
 
-    const usageMetadata = response.usageMetadata;
+    const usageMetadata = addGoogleGenerativeAIUsageMetadata(
+      continuedUsageMetadata,
+      response.usageMetadata ?? undefined,
+    );
 
     // Associates code execution results with their preceding call.
     let lastCodeExecutionToolCallId: string | undefined;
@@ -407,6 +454,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           urlContextMetadata: candidate?.urlContextMetadata ?? null,
           safetyRatings: candidate?.safetyRatings ?? null,
           serviceTier: response.serviceTier ?? null,
+          ...(candidate?.continuationToken != null
+            ? { continuationToken: candidate.continuationToken }
+            : {}),
+          ...(continuedUsageMetadata != null && firstPromptTokenCount != null
+            ? { initialPromptTokenCount: firstPromptTokenCount }
+            : {}),
           usageMetadata: usageMetadata ?? null,
         },
       },
@@ -430,16 +483,37 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       options.headers,
     );
 
-    const { responseHeaders, value: response } = await postJsonToApi({
-      url: `${this.config.baseURL}/${getModelPath(
-        this.modelId,
-      )}:streamGenerateContent?alt=sse`,
-      headers,
-      body: args,
-      failedResponseHandler: googleFailedResponseHandler,
-      successfulResponseHandler: createEventSourceResponseHandler(chunkSchema),
-      abortSignal: options.abortSignal,
-      fetch: this.config.fetch,
+    const streamGenerateContent = (body: typeof args) =>
+      postJsonToApi({
+        url: `${this.config.baseURL}/${getModelPath(
+          this.modelId,
+        )}:streamGenerateContent?alt=sse`,
+        headers,
+        body,
+        failedResponseHandler: googleFailedResponseHandler,
+        successfulResponseHandler:
+          createEventSourceResponseHandler(chunkSchema),
+        abortSignal: options.abortSignal,
+        fetch: this.config.fetch,
+      });
+
+    const { responseHeaders, value: firstResponse } =
+      await streamGenerateContent(args);
+
+    // Gemini 4 long decode: when a stream reaches the per-request cap while
+    // `maxOutputTokens` budget remains, its last chunk finishes with
+    // `CONTINUATION`. Resend the same request with the continuation token and
+    // append the new stream, which contains only newly generated content.
+    const response = continueGoogleStream({
+      stream: firstResponse,
+      getContinuationToken: chunk => {
+        const candidate = chunk.candidates?.[0];
+        return candidate?.finishReason === 'CONTINUATION'
+          ? (candidate.continuationToken ?? undefined)
+          : undefined;
+      },
+      continueStream: async continuationToken =>
+        (await streamGenerateContent({ ...args, continuationToken })).value,
     });
 
     let finishReason: LanguageModelV2FinishReason = 'unknown';
@@ -452,6 +526,14 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     let lastGroundingMetadata: GroundingMetadataSchema | null = null;
     let lastUrlContextMetadata: UrlContextMetadataSchema | null = null;
     let serviceTier: string | null = null;
+    // Usage of the current request, and of the completed requests of an
+    // automatically continued response.
+    let requestUsageMetadata: UsageMetadataSchema | undefined;
+    let continuedUsageMetadata: UsageMetadataSchema | undefined;
+    // Latest continuation token, including streaming checkpoints.
+    let lastContinuationToken: string | null = null;
+    // Prompt token count of the first request, for context window checks.
+    let initialPromptTokenCount: number | null | undefined = undefined;
 
     const generateId = this.config.generateId;
     let hasToolCalls = false;
@@ -488,7 +570,17 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
 
             const value = chunk.value;
 
-            const usageMetadata = value.usageMetadata;
+            if (value.usageMetadata != null) {
+              requestUsageMetadata = value.usageMetadata;
+            }
+
+            const usageMetadata =
+              value.usageMetadata == null
+                ? undefined
+                : addGoogleGenerativeAIUsageMetadata(
+                    continuedUsageMetadata,
+                    requestUsageMetadata,
+                  );
 
             if (usageMetadata != null) {
               usage.inputTokens = usageMetadata.promptTokenCount ?? undefined;
@@ -506,6 +598,24 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
             }
 
             const candidate = value.candidates?.[0];
+
+            if (candidate?.continuationToken != null) {
+              lastContinuationToken = candidate.continuationToken;
+            }
+
+            if (candidate?.finishReason === 'CONTINUATION') {
+              // Usage metadata is per request. The next request reports its
+              // own usage, so bank the usage of this one.
+              if (continuedUsageMetadata == null) {
+                initialPromptTokenCount =
+                  requestUsageMetadata?.promptTokenCount;
+              }
+              continuedUsageMetadata = addGoogleGenerativeAIUsageMetadata(
+                continuedUsageMetadata,
+                requestUsageMetadata,
+              );
+              requestUsageMetadata = undefined;
+            }
 
             // sometimes the API returns an empty candidates array
             if (candidate == null) {
@@ -735,6 +845,17 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                   urlContextMetadata: lastUrlContextMetadata,
                   safetyRatings: candidate.safetyRatings ?? null,
                   serviceTier,
+                  // Only surface the token when the response stopped early
+                  // (budget used up, or continuing failed), not for the
+                  // checkpoint tokens of a stream that finished normally.
+                  ...(lastContinuationToken != null &&
+                  (rawFinishReason === 'MAX_TOKENS' ||
+                    rawFinishReason === 'CONTINUATION')
+                    ? { continuationToken: lastContinuationToken }
+                    : {}),
+                  ...(initialPromptTokenCount != null
+                    ? { initialPromptTokenCount }
+                    : {}),
                 },
               };
               if (usageMetadata != null) {
@@ -1073,6 +1194,7 @@ const responseSchema = lazySchema(() =>
           z.object({
             content: getContentSchema().nullish().or(z.object({}).strict()),
             finishReason: z.string().nullish(),
+            continuationToken: z.string().nullish(),
             safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
             groundingMetadata: getGroundingMetadataSchema().nullish(),
             urlContextMetadata: getUrlContextMetadataSchema().nullish(),
@@ -1096,6 +1218,8 @@ type CandidateSchema = NonNullable<
 >[number];
 
 type ContentSchema = NonNullable<CandidateSchema['content']>;
+
+type UsageMetadataSchema = z.infer<typeof usageSchema>;
 export type GroundingMetadataSchema = NonNullable<
   CandidateSchema['groundingMetadata']
 >;
@@ -1122,6 +1246,7 @@ const chunkSchema = lazySchema(() =>
           z.object({
             content: getContentSchema().nullish(),
             finishReason: z.string().nullish(),
+            continuationToken: z.string().nullish(),
             safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
             groundingMetadata: getGroundingMetadataSchema().nullish(),
             urlContextMetadata: getUrlContextMetadataSchema().nullish(),
