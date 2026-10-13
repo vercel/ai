@@ -1,5 +1,26 @@
 # @ai-sdk/harness-pi
 
+## 1.0.152
+
+### Patch Changes
+
+- Updated dependencies [6617f11]
+- Updated dependencies [aae69cb]
+- Updated dependencies [a7a66f5]
+- Updated dependencies [52e3f53]
+- Updated dependencies [6c0295c]
+  - @ai-sdk/harness@1.0.150
+
+## 1.0.151
+
+### Patch Changes
+
+- 1da6adb: fix(harness-pi): preserve meaningful tool result envelopes and emit JSON-safe empty text results
+- Updated dependencies [9667bf2]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/harness@1.0.149
+
 ## 1.0.150
 
 ### Patch Changes
