@@ -2124,82 +2124,16 @@ describe('prepareResponsesTools', () => {
         tools: [{ type: 'function', name: 'get_weather' }],
       });
     });
-<<<<<<< HEAD
-
-    it('should derive entries for function, built-in, custom, and MCP tools', async () => {
-      const result = await prepareResponsesTools({
-        tools: [
-          {
-            type: 'function',
-            name: 'get_weather',
-            description: 'Get weather',
-            inputSchema: { type: 'object', properties: {} },
-          },
-=======
     describe('entry shapes', () => {
       it.each([
         [
           'web search',
->>>>>>> origin/release-v6.0
           {
             type: 'provider',
             id: 'openai.web_search',
             name: 'search',
             args: {},
           },
-<<<<<<< HEAD
-          {
-            type: 'provider',
-            id: 'openai.web_search_preview',
-            name: 'previewSearch',
-            args: {},
-          },
-          {
-            type: 'provider',
-            id: 'openai.file_search',
-            name: 'files',
-            args: { vectorStoreIds: ['vs-1'] },
-          },
-          {
-            type: 'provider',
-            id: 'openai.image_generation',
-            name: 'image',
-            args: {},
-          },
-          {
-            type: 'provider',
-            id: 'openai.code_interpreter',
-            name: 'python',
-            args: {},
-          },
-          {
-            type: 'provider',
-            id: 'openai.apply_patch',
-            name: 'patch',
-            args: {},
-          },
-          {
-            type: 'provider',
-            id: 'openai.shell',
-            name: 'shell',
-            args: {},
-          },
-          {
-            type: 'provider',
-            id: 'openai.local_shell',
-            name: 'localShell',
-            args: {},
-          },
-          {
-            type: 'provider',
-            id: 'openai.custom',
-            name: 'sql',
-            args: {
-              name: 'write_sql',
-              description: 'Write a SQL SELECT query.',
-            },
-          },
-=======
           'search',
           { type: 'web_search' },
         ],
@@ -2265,8 +2199,18 @@ describe('prepareResponsesTools', () => {
           { type: 'shell' },
         ],
         [
+          'local shell',
+          {
+            type: 'provider',
+            id: 'openai.local_shell',
+            name: 'localShell',
+            args: {},
+          },
+          'localShell',
+          { type: 'local_shell' },
+        ],
+        [
           'mcp (carries its server label)',
->>>>>>> origin/release-v6.0
           {
             type: 'provider',
             id: 'openai.mcp',
@@ -2276,25 +2220,6 @@ describe('prepareResponsesTools', () => {
               serverUrl: 'https://mcp.deepwiki.com/mcp',
             },
           },
-<<<<<<< HEAD
-        ],
-        toolChoice: undefined,
-        allowedTools: {
-          toolNames: [
-            'get_weather',
-            'search',
-            'previewSearch',
-            'files',
-            'image',
-            'python',
-            'patch',
-            'shell',
-            'localShell',
-            'sql',
-            'deepwiki',
-          ],
-        },
-=======
           'deepwiki',
           { type: 'mcp', server_label: 'deepwiki' },
         ],
@@ -2303,13 +2228,13 @@ describe('prepareResponsesTools', () => {
           {
             type: 'provider',
             id: 'openai.custom',
-            name: 'write_sql',
+            name: 'sql',
             args: {
               name: 'write_sql',
               description: 'Write a SQL SELECT query.',
             },
           },
-          'write_sql',
+          'sql',
           { type: 'custom', name: 'write_sql' },
         ],
       ])(
@@ -2336,60 +2261,25 @@ describe('prepareResponsesTools', () => {
         tools: [functionTool, webSearchTool],
         toolChoice: undefined,
         allowedTools: { toolNames: ['search', 'get_weather', 'search'] },
->>>>>>> origin/release-v6.0
       });
 
       expect(result.toolChoice).toEqual({
         type: 'allowed_tools',
         mode: 'auto',
         tools: [
-<<<<<<< HEAD
-          { type: 'function', name: 'get_weather' },
-          { type: 'web_search' },
-          { type: 'web_search_preview' },
-          { type: 'file_search' },
-          { type: 'image_generation' },
-          { type: 'code_interpreter' },
-          { type: 'apply_patch' },
-          { type: 'shell' },
-          { type: 'local_shell' },
-          { type: 'custom', name: 'write_sql' },
-          { type: 'mcp', server_label: 'deepwiki' },
-        ],
-      });
-      expect(result.toolWarnings).toEqual([]);
-=======
           { type: 'web_search' },
           { type: 'function', name: 'get_weather' },
           { type: 'web_search' },
         ],
       });
->>>>>>> origin/release-v6.0
     });
 
     it('should resolve a built-in tool by its canonical provider name', async () => {
       const result = await prepareResponsesTools({
-<<<<<<< HEAD
-        tools: [
-          {
-            type: 'provider',
-            id: 'openai.web_search',
-            name: 'search',
-            args: {},
-          },
-        ],
-        toolChoice: undefined,
-        allowedTools: { toolNames: ['web_search'] },
-        toolNameMapping: {
-          toProviderToolName: name => (name === 'search' ? 'web_search' : name),
-          toCustomToolName: name => (name === 'web_search' ? 'search' : name),
-        },
-=======
         tools: [webSearchTool],
         toolChoice: undefined,
         allowedTools: { toolNames: ['web_search'] },
         toolNameMapping: webSearchNameMapping,
->>>>>>> origin/release-v6.0
       });
 
       expect(result.toolChoice).toEqual({
@@ -2399,24 +2289,11 @@ describe('prepareResponsesTools', () => {
       });
     });
 
-<<<<<<< HEAD
-    it('should drop tools OpenAI cannot allow-list and warn', async () => {
-=======
     it('should prefer the user tool name over a canonical name alias on collision', async () => {
->>>>>>> origin/release-v6.0
       const result = await prepareResponsesTools({
         tools: [
           {
             type: 'function',
-<<<<<<< HEAD
-            name: 'get_weather',
-            description: 'Get weather',
-            inputSchema: { type: 'object', properties: {} },
-          },
-          {
-            type: 'function',
-            name: 'deferred_tool',
-=======
             name: 'web_search',
             description: 'A function that happens to be named web_search',
             inputSchema: { type: 'object', properties: {} },
@@ -2472,42 +2349,10 @@ describe('prepareResponsesTools', () => {
           {
             type: 'function',
             name: 'problem_tool',
->>>>>>> origin/release-v6.0
             description: 'Deferred',
             inputSchema: { type: 'object', properties: {} },
             providerOptions: { openai: { deferLoading: true } },
           },
-<<<<<<< HEAD
-          {
-            type: 'function',
-            name: 'namespaced_tool',
-            description: 'Namespaced',
-            inputSchema: { type: 'object', properties: {} },
-            providerOptions: {
-              openai: {
-                namespace: {
-                  name: 'crm',
-                  description: 'CRM tools',
-                },
-              },
-            },
-          },
-          {
-            type: 'provider',
-            id: 'openai.tool_search',
-            name: 'toolSearch',
-            args: {},
-          },
-        ],
-        toolChoice: undefined,
-        allowedTools: {
-          toolNames: [
-            'get_weather',
-            'deferred_tool',
-            'namespaced_tool',
-            'toolSearch',
-          ],
-=======
           'problem_tool',
           'deferred tools are not visible to tool_choice.allowed_tools; the tool is removed from the allowed tools',
         ],
@@ -2701,66 +2546,14 @@ describe('prepareResponsesTools', () => {
           toProviderToolName: name =>
             name === 'my_tool' ? 'mapped_tool' : name,
           toCustomToolName: name => name,
->>>>>>> origin/release-v6.0
         },
       });
 
       expect(result.toolChoice).toEqual({
         type: 'allowed_tools',
         mode: 'auto',
-<<<<<<< HEAD
-        tools: [{ type: 'function', name: 'get_weather' }],
-      });
-      expect(result.toolWarnings).toEqual([
-        {
-          type: 'unsupported',
-          feature: 'allowedTools entry "deferred_tool"',
-          details:
-            'deferred tools are not visible to tool_choice.allowed_tools; the tool is removed from the allowed tools',
-        },
-        {
-          type: 'unsupported',
-          feature: 'allowedTools entry "namespaced_tool"',
-          details:
-            'tools inside an OpenAI tool namespace are not visible to tool_choice.allowed_tools; the tool is removed from the allowed tools',
-        },
-        {
-          type: 'unsupported',
-          feature: 'allowedTools entry "toolSearch"',
-          details:
-            'OpenAI does not support tool_search tools in tool_choice.allowed_tools; the tool is removed from the allowed tools',
-        },
-      ]);
-    });
-
-    it('should throw when no allowed tool can be expressed', async () => {
-      await expect(
-        prepareResponsesTools({
-          tools: [
-            {
-              type: 'provider',
-              id: 'openai.tool_search',
-              name: 'toolSearch',
-              args: {},
-            },
-            {
-              type: 'function',
-              name: 'deferred_tool',
-              description: 'Deferred',
-              inputSchema: { type: 'object', properties: {} },
-              providerOptions: { openai: { deferLoading: true } },
-            },
-          ],
-          toolChoice: undefined,
-          allowedTools: { toolNames: ['toolSearch', 'deferred_tool'] },
-        }),
-      ).rejects.toThrow(
-        'allowedTools with only tools that cannot be allow-listed (toolSearch, deferred_tool)',
-      );
-=======
         tools: [{ type: 'function', name: 'mapped_tool' }],
       });
->>>>>>> origin/release-v6.0
     });
   });
 });

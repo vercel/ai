@@ -24,16 +24,12 @@ type AllowedToolResolution =
   | { supported: true; entry: OpenAIResponsesAllowedTool }
   | { supported: false; reason: string };
 
-<<<<<<< HEAD
-type OpenAIToolOptions = {
-=======
 export type OpenAIToolOptions = {
   /**
    * Whether the model can continue generating after calling this tool without
    * waiting for its result.
    */
   async?: boolean;
->>>>>>> origin/release-v6.0
   deferLoading?: boolean;
   namespace?: {
     name: string;
