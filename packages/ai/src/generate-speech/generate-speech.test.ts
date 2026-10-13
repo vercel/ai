@@ -209,30 +209,6 @@ describe('generateSpeech', () => {
     });
   });
 
-<<<<<<< HEAD
-=======
-  it('should return ADTS AAC audio with AAC metadata', async () => {
-    const aacAudio = new DefaultGeneratedAudioFile({
-      data: new Uint8Array([0xff, 0xf1, 0x50, 0x40]),
-      mediaType: 'audio/aac',
-    });
-
-    const result = await generateSpeech({
-      model: new MockSpeechModelV4({
-        doGenerate: async () =>
-          createMockResponse({
-            audio: aacAudio,
-          }),
-      }),
-      text: sampleText,
-      outputFormat: 'aac',
-    });
-
-    expect(result.audio.mediaType).toBe('audio/aac');
-    expect(result.audio.format).toBe('aac');
-    expect(result.audio.uint8Array).toStrictEqual(aacAudio.uint8Array);
-  });
-
   describe('audio metadata', () => {
     it.each([
       { label: 'Uint8Array', audio: new Uint8Array([1, 2, 3, 4]) },
@@ -241,7 +217,7 @@ describe('generateSpeech', () => {
       'should identify headerless PCM returned as $label from the requested format',
       async ({ audio }) => {
         const result = await generateSpeech({
-          model: new MockSpeechModelV4({
+          model: new MockSpeechModelV3({
             doGenerate: async () => ({
               audio,
               warnings: [],
@@ -264,7 +240,7 @@ describe('generateSpeech', () => {
 
     it('should identify headerless audio from the response content type', async () => {
       const result = await generateSpeech({
-        model: new MockSpeechModelV4({
+        model: new MockSpeechModelV3({
           doGenerate: async () => ({
             audio,
             warnings: [],
@@ -292,7 +268,7 @@ describe('generateSpeech', () => {
       ]);
 
       const result = await generateSpeech({
-        model: new MockSpeechModelV4({
+        model: new MockSpeechModelV3({
           doGenerate: async () => ({
             audio: wav,
             warnings: [],
@@ -316,7 +292,6 @@ describe('generateSpeech', () => {
     });
   });
 
->>>>>>> e61cbd8c17 (fix: preserve PCM metadata for headerless speech audio (#21079))
   describe('error handling', () => {
     it('should throw NoSpeechGeneratedError when no audio is returned', async () => {
       await expect(

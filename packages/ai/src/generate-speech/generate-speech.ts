@@ -161,24 +161,17 @@ export async function generateSpeech({
 
   const detectedMediaType = detectMediaType({
     data: result.audio,
-    topLevelType: 'audio',
+    signatures: audioMediaTypeSignatures,
   });
 
   return new DefaultSpeechResult({
     audio: new DefaultGeneratedAudioFile({
       data: result.audio,
       mediaType:
-<<<<<<< HEAD
-        detectMediaType({
-          data: result.audio,
-          signatures: audioMediaTypeSignatures,
-        }) ?? 'audio/mp3',
-=======
         detectedMediaType ??
         getResponseAudioMediaType(result.response.headers) ??
         getOutputFormatMediaType(outputFormat) ??
         'audio/mp3',
->>>>>>> e61cbd8c17 (fix: preserve PCM metadata for headerless speech audio (#21079))
     }),
     warnings: result.warnings,
     responses: [result.response],
