@@ -114,7 +114,7 @@ const harness = createPi({
 });
 ```
 
-Each factory also receives the harness session it runs in, as a second argument. It carries the restricted `sandboxSession`, the `sessionWorkDir` and an `instructions()` getter for the current turn's instructions. Instructions arrive with each turn, so read them while a turn runs rather than when the factory runs. A tool that starts a child Pi session against the same sandbox, for example, can use all three:
+Each factory also receives the harness session it runs in, as a second argument. It carries the restricted `sandboxSession`, the `sessionWorkDir` and an `instructions()` getter for the current turn's instructions. Instructions arrive with each turn, so read them while a turn runs rather than when the factory runs. This extension uses all three to report the sandbox's git status when the agent starts:
 
 ```ts
 import { createPi } from '@ai-sdk/harness-pi';
@@ -122,8 +122,11 @@ import { createPi } from '@ai-sdk/harness-pi';
 const harness = createPi({
   extensionFactories: [
     (pi, session) => {
-      pi.on('agent_start', () => {
-        console.log(session.sessionWorkDir, session.instructions());
+      pi.on('agent_start', async () => {
+        const { stdout } = await session.sandboxSession.run({
+          command: `git -C ${session.sessionWorkDir} status --short`,
+        });
+        console.log(session.instructions(), stdout);
       });
     },
   ],
