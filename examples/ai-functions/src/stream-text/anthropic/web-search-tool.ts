@@ -26,6 +26,11 @@ run(async () => {
         break;
       }
 
+      case 'text-end': {
+        console.dir({ citations: chunk.citations }, { depth: Infinity });
+        break;
+      }
+
       case 'tool-call': {
         console.log(
           `\x1b[32m\x1b[1mTool call:\x1b[22m ${JSON.stringify(chunk, null, 2)}\x1b[0m`,

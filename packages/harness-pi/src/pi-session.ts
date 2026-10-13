@@ -1836,7 +1836,7 @@ function isAbortError(value: unknown): boolean {
 function asPiToolResult(text: string): AgentToolResult<unknown> {
   return {
     content: [{ type: 'text', text }],
-    details: undefined,
+    details: null,
   };
 }
 

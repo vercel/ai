@@ -127,7 +127,7 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
       type: 'DownloadFunction',
       isOptional: true,
       description:
-        'Default custom download function for URLs. Per-stream values override this default.',
+        "Default custom download function for URLs. Mark the function with 'use step' when used in a workflow. Per-stream values override this default.",
     },
     {
       name: 'experimental_sandbox',
@@ -622,7 +622,8 @@ const result = await agent.stream({
       name: 'experimental_download',
       type: 'DownloadFunction',
       isOptional: true,
-      description: 'Custom download function for fetching files/URLs.',
+      description:
+        "Custom download function for fetching files/URLs. Mark the function with 'use step' when used in a workflow.",
     },
     {
       name: 'experimental_sandbox',

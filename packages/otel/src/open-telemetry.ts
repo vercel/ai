@@ -1818,6 +1818,8 @@ export class OpenTelemetry implements Telemetry {
 
     state.decisionSpan.span.setAttributes(
       selectAttributes(state.telemetry, {
+        'gen_ai.response.id': event.response?.id,
+        'gen_ai.response.model': event.response?.modelId,
         'gen_ai.usage.input_tokens': event.usage?.inputTokens,
         'gen_ai.usage.output_tokens': event.usage?.outputTokens,
         ...selectSupplementalAttributes(

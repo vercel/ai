@@ -1,4 +1,4 @@
-import { APICallError } from '@ai-sdk/provider';
+import { APICallError, type LanguageModelV4StreamPart } from '@ai-sdk/provider';
 import { MockLanguageModelV4, convertArrayToReadableStream } from 'ai/test';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { doStreamStep } from './do-stream-step.js';
@@ -104,6 +104,34 @@ describe('doStreamStep', () => {
       id: 'text-1',
       text: 'Retried output',
     });
+  });
+
+  it('uses model URL support when invoking a custom downloader', async () => {
+    const fileUrl = new URL('https://example.com/file.pdf');
+    const urlPrompt = [
+      {
+        role: 'user' as const,
+        content: [
+          {
+            type: 'file' as const,
+            data: { type: 'url' as const, url: fileUrl },
+            mediaType: 'application/pdf',
+          },
+        ],
+      },
+    ];
+    const download = vi.fn(async () => [null]);
+    const model = new MockLanguageModelV4({
+      doStream: async () => successfulStream(),
+      supportedUrls: { 'application/pdf': [/.*/] },
+    });
+
+    await doStreamStep(urlPrompt, model, undefined, undefined, { download });
+
+    expect(download).toHaveBeenCalledWith([
+      { url: fileUrl, isUrlSupportedByModel: true },
+    ]);
+    expect(model.doStreamCalls[0].prompt).toEqual(urlPrompt);
   });
 
   it('preserves reasoning text and provider metadata as one content part', async () => {
@@ -479,6 +507,98 @@ describe('doStreamStep', () => {
       finish: { finishReason: 'error' },
     });
     expect(streamedParts).toContainEqual({ type: 'error', error: terminal });
+  });
+
+  it.each([
+    {
+      name: 'stream start only',
+      parts: [{ type: 'stream-start', warnings: [] }],
+    },
+    {
+      name: 'response metadata only',
+      parts: [
+        { type: 'stream-start', warnings: [] },
+        { type: 'response-metadata', id: 'response-1', modelId: 'mock-model' },
+      ],
+    },
+    {
+      name: 'bare text start',
+      parts: [
+        { type: 'stream-start', warnings: [] },
+        { type: 'text-start', id: 'text-1' },
+      ],
+    },
+    {
+      name: 'empty encrypted reasoning delta',
+      parts: [
+        { type: 'stream-start', warnings: [] },
+        {
+          type: 'reasoning-start',
+          id: 'reasoning-1',
+          providerMetadata: {
+            openai: { reasoningEncryptedContent: 'encrypted-reasoning' },
+          },
+        },
+        {
+          type: 'reasoning-delta',
+          id: 'reasoning-1',
+          delta: '',
+          providerMetadata: {
+            openai: { reasoningEncryptedContent: 'encrypted-reasoning' },
+          },
+        },
+      ],
+    },
+  ] satisfies Array<{
+    name: string;
+    parts: LanguageModelV4StreamPart[];
+  }>)(
+    'returns a no-output error when an incomplete stream contains $name',
+    async ({ parts }) => {
+      const model = new MockLanguageModelV4({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream(
+            parts as LanguageModelV4StreamPart[],
+          ),
+        }),
+      });
+
+      const result = await doStreamStep(prompt, model);
+
+      expect(result).toMatchObject({
+        terminalError: {
+          name: 'AI_NoOutputGeneratedError',
+          message:
+            'No output generated. The model stream ended without a finish chunk.',
+        },
+      });
+    },
+  );
+
+  it('retains partial output when the model stream ends without a finish part', async () => {
+    const model = new MockLanguageModelV4({
+      doStream: async () => ({
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start' as const, warnings: [] },
+          { type: 'text-start' as const, id: 'text-1' },
+          {
+            type: 'text-delta' as const,
+            id: 'text-1',
+            delta: 'partial output',
+          },
+        ]),
+      }),
+    });
+
+    const result = await doStreamStep(prompt, model);
+
+    expect(result).not.toHaveProperty('terminalError');
+    expect(result).toMatchObject({
+      finish: undefined,
+      raw: {
+        content: [{ type: 'text', text: 'partial output' }],
+      },
+    });
   });
 
   it('records tool input lifecycle events for callbacks outside the step', async () => {
