@@ -1,18 +1,69 @@
 ---
 title: Google
-description: Learn how to use Google Provider.
+description: Learn how to use Google models through AI Gateway or the direct Google provider.
 ---
 
 # Google Provider
 
-The [Google](https://ai.google.dev) provider contains language and embedding model support for
-the [Google](https://ai.google.dev/api/rest) APIs.
+You can use [Google](https://ai.google.dev) models through [AI Gateway](/providers/ai-sdk-providers/ai-gateway) (recommended)
+or connect directly to the [Google APIs](https://ai.google.dev/api/rest) with `@ai-sdk/google`.
+
+## Using AI Gateway
+
+To get started, pass a Google model ID to an AI SDK function. The AI SDK uses AI Gateway by default for model strings:
+
+```ts
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: 'google/gemini-3.8-flash',
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+
+console.log(text);
+```
+
+AI Gateway provides access to Google and other providers through a single API key, with usage and cost tracking.
+You only need the `ai` package for this example:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration
+and the [model catalog](https://vercel.com/ai-gateway/models?search=google) for available Google models.
+
+### Gateway and Direct Provider Features
+
+Google model options can be passed through `providerOptions.google` when using AI Gateway.
+Support depends on the model and the provider serving the request; see [Gateway provider options](https://vercel.com/docs/ai-gateway/models-and-providers/provider-options).
+
+AI Gateway does not expose every API in `@ai-sdk/google`.
+Use the direct provider for Google-specific APIs such as [`google.interactions(...)`](#interactions-api),
+or when you need to customize the Google connection with [`createGoogle`](#provider-instance).
+
+<Note>
+  The following sections document the direct `@ai-sdk/google` provider,
+  including its model factories, tools, and settings. Gateway model and feature
+  availability can differ from the direct provider.
+</Note>
 
 ## Setup
 
-The Google provider is available in the `@ai-sdk/google` module. You can install it with
+For direct access to the Google APIs, install the `@ai-sdk/google` module:
 
 <InstallPackages packages="@ai-sdk/google" />
+
+Set your Google API key in the `GOOGLE_GENERATIVE_AI_API_KEY` environment variable:
+
+```bash
+export GOOGLE_GENERATIVE_AI_API_KEY=your_api_key_here
+```
 
 ## Provider Instance
 
