@@ -569,6 +569,30 @@ export async function convertToAnthropicPrompt({
                               };
                             }
 
+                            if (contentPart.data.type === 'reference') {
+                              const fileId = resolveProviderReference({
+                                reference: contentPart.data.reference,
+                                provider: 'anthropic',
+                              });
+                              betas.add('files-api-2025-04-14');
+                              if (topLevel === 'image') {
+                                return {
+                                  type: 'image' as const,
+                                  source: {
+                                    type: 'file' as const,
+                                    file_id: fileId,
+                                  },
+                                };
+                              }
+                              return {
+                                type: 'document' as const,
+                                source: {
+                                  type: 'file' as const,
+                                  file_id: fileId,
+                                },
+                              };
+                            }
+
                             if (contentPart.data.type === 'data') {
                               if (topLevel === 'image') {
                                 return {
