@@ -86,6 +86,29 @@ describe('doGenerate', () => {
       );
     });
 
+    it('should expose word types and speaker IDs in provider metadata', async () => {
+      prepareJsonFixtureResponse('elevenlabs-transcription-word-metadata-live');
+
+      const result = await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+      expect(result.providerMetadata?.elevenlabs?.words).toEqual([
+        expect.objectContaining({
+          text: 'Hello',
+          type: 'word',
+          speaker_id: 'speaker_0',
+        }),
+        expect.objectContaining({
+          text: ' ',
+          type: 'spacing',
+          speaker_id: 'speaker_0',
+        }),
+        ...Array(9).fill(expect.anything()),
+      ]);
+    });
+
     it('should pass provider options correctly', async () => {
       await model.doGenerate({
         audio: audioData,
