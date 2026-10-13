@@ -44,6 +44,16 @@ export const alibabaLanguageModelOptions = z.object({
   thinkingBudget: z.number().positive().optional(),
 
   /**
+   * Whether to preserve reasoning from previous assistant messages.
+   *
+   * When enabled, historical reasoning is sent separately as
+   * `reasoning_content` and Alibaba receives `preserve_thinking: true`.
+   * Defaults to `true` for models that support preserved thinking; set to
+   * `false` to opt out.
+   */
+  preserveThinking: z.boolean().optional(),
+
+  /**
    * Whether to enable parallel function calling during tool use.
    *
    * @default true

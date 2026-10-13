@@ -6,7 +6,7 @@ import { weatherTool } from '../../tools/weather-tool';
 
 run(async () => {
   const { partialOutputStream } = streamText({
-    model: anthropic('claude-haiku-4-5'),
+    model: anthropic('claude-haiku-5-5'),
     stopWhen: stepCountIs(20),
     output: Output.array({
       element: z.object({

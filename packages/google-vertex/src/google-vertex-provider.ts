@@ -33,6 +33,7 @@ import type { GoogleVertexModelId } from './google-vertex-options';
 import { googleVertexTools } from './google-vertex-tools';
 import { GoogleVertexTranscriptionModel } from './google-vertex-transcription-model';
 import type { GoogleVertexTranscriptionModelId } from './google-vertex-transcription-model-options';
+import { GoogleVertexGeminiTranscriptionModel } from './gemini-transcription/google-vertex-gemini-transcription-model';
 import { GoogleVertexVideoModel } from './google-vertex-video-model';
 import type { GoogleVertexVideoModelId } from './google-vertex-video-settings';
 
@@ -305,6 +306,19 @@ export function createVertex(
     }
 
     const config = createConfig('transcription');
+
+    // Gemini transcription models (`gemini-3.5-transcribe`) use the Vertex
+    // generateContent surface; everything else routes to Cloud
+    // Speech-to-Text (Chirp, telephony).
+    if (modelId.startsWith('gemini')) {
+      return new GoogleVertexGeminiTranscriptionModel(modelId, {
+        provider: config.provider,
+        baseURL: loadBaseURL(),
+        headers: config.headers,
+        fetch: config.fetch,
+      });
+    }
+
     return new GoogleVertexTranscriptionModel(modelId, {
       provider: config.provider,
       headers: config.headers,

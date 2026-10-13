@@ -7,7 +7,7 @@ import 'dotenv/config';
 const result = streamText({
   model: wrapLanguageModel({
     middleware: devToolsMiddleware(),
-    model: gateway('anthropic/claude-haiku-4.5'),
+    model: gateway('anthropic/claude-haiku-5.5'),
   }),
   system: 'Always call the weather before recommending plans.',
   prompt: 'Whats the weather in SF and London in C?',
@@ -16,8 +16,8 @@ const result = streamText({
   providerOptions: {
     anthropic: {
       thinking: {
-        type: 'enabled',
-        budgetTokens: 10000,
+        type: 'adaptive',
+        display: 'summarized',
       },
     },
   },

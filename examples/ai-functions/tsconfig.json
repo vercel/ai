@@ -97,6 +97,9 @@
       "path": "../../packages/groq"
     },
     {
+      "path": "../../packages/heygen"
+    },
+    {
       "path": "../../packages/huggingface"
     },
     {
@@ -104,9 +107,6 @@
     },
     {
       "path": "../../packages/klingai"
-    },
-    {
-      "path": "../../packages/lmnt"
     },
     {
       "path": "../../packages/luma"
@@ -139,6 +139,9 @@
       "path": "../../packages/provider"
     },
     {
+      "path": "../../packages/provider-utils"
+    },
+    {
       "path": "../../packages/quiverai"
     },
     {
@@ -151,6 +154,9 @@
       "path": "../../packages/togetherai"
     },
     {
+      "path": "../../packages/topaz"
+    },
+    {
       "path": "../../packages/valibot"
     },
     {
@@ -161,6 +167,9 @@
     },
     {
       "path": "../../packages/xai"
+    },
+    {
+      "path": "../../packages/zai"
     }
   ]
 }

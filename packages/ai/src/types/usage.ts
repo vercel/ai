@@ -135,6 +135,12 @@ export function addLanguageModelUsage(
   usage1: LanguageModelUsage,
   usage2: LanguageModelUsage,
 ): LanguageModelUsage {
+  const raw = isNullLanguageModelUsage(usage1)
+    ? usage2.raw
+    : isNullLanguageModelUsage(usage2)
+      ? usage1.raw
+      : undefined;
+
   return {
     inputTokens: addTokenCounts(usage1.inputTokens, usage2.inputTokens),
     inputTokenDetails: {
@@ -171,7 +177,22 @@ export function addLanguageModelUsage(
       usage1.cachedInputTokens,
       usage2.cachedInputTokens,
     ),
+    ...(raw == null ? {} : { raw }),
   };
+}
+
+function isNullLanguageModelUsage(usage: LanguageModelUsage): boolean {
+  return (
+    usage.inputTokens == null &&
+    usage.inputTokenDetails?.noCacheTokens == null &&
+    usage.inputTokenDetails?.cacheReadTokens == null &&
+    usage.inputTokenDetails?.cacheWriteTokens == null &&
+    usage.outputTokens == null &&
+    usage.outputTokenDetails?.textTokens == null &&
+    usage.outputTokenDetails?.reasoningTokens == null &&
+    usage.totalTokens == null &&
+    usage.raw == null
+  );
 }
 
 function addTokenCounts(

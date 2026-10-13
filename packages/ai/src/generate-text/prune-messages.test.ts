@@ -110,6 +110,39 @@ const messagesFixture2: ModelMessage[] = [
   },
 ];
 
+const pendingApprovalMessagesFixture: ModelMessage[] = [
+  {
+    role: 'user',
+    content: 'Echo hello.',
+  },
+  {
+    role: 'assistant',
+    content: [
+      {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'echo',
+        input: { value: 'hello' },
+      },
+      {
+        type: 'tool-approval-request',
+        toolCallId: 'call-1',
+        approvalId: 'approval-1',
+      },
+    ],
+  },
+  {
+    role: 'tool',
+    content: [
+      {
+        type: 'tool-approval-response',
+        approvalId: 'approval-1',
+        approved: true,
+      },
+    ],
+  },
+];
+
 const multiTurnToolCallMessagesFixture: ModelMessage[] = [
   {
     role: 'user',
@@ -544,6 +577,27 @@ describe('pruneMessages', () => {
             },
           ]
         `);
+      });
+
+      it('should retain the originating tool call for a pending approval response', () => {
+        expect(
+          pruneMessages({
+            messages: pendingApprovalMessagesFixture,
+            toolCalls: 'before-last-message',
+          }),
+        ).toEqual(pendingApprovalMessagesFixture);
+
+        expect(
+          pruneMessages({
+            messages: pendingApprovalMessagesFixture,
+            toolCalls: [
+              {
+                type: 'before-last-message',
+                tools: ['echo'],
+              },
+            ],
+          }),
+        ).toEqual(pendingApprovalMessagesFixture);
       });
     });
 

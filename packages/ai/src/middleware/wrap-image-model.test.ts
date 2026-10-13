@@ -218,7 +218,7 @@ describe('wrapImageModel', () => {
     });
   });
 
-  it('should support models that use \"this\" context in maxImagesPerCall', async () => {
+  it('should support models that use "this" context in maxImagesPerCall', async () => {
     let maxImagesPerCallThis: unknown = undefined;
 
     class MockImageModelWithThisContext extends MockImageModelV3 {

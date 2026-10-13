@@ -14,17 +14,17 @@ import {
 import { PerplexityEmbeddingModel } from './perplexity-embedding-model';
 import type { PerplexityEmbeddingModelId } from './perplexity-embedding-model-options';
 import { PerplexityLanguageModel } from './perplexity-language-model';
-import type { PerplexityLanguageModelId } from './perplexity-language-model-options';
+import type { PerplexityLanguageModelId } from './perplexity-options';
 import { VERSION } from './version';
 
 export interface PerplexityProvider extends ProviderV3 {
   /**
-   * Creates an Perplexity chat model for text generation.
+   * Creates a Perplexity Agent API model or preset for text generation.
    */
   (modelId: PerplexityLanguageModelId): LanguageModelV3;
 
   /**
-   * Creates an Perplexity language model for text generation.
+   * Creates a Perplexity Agent API model or preset for text generation.
    */
   languageModel(modelId: PerplexityLanguageModelId): LanguageModelV3;
 
@@ -46,7 +46,7 @@ export interface PerplexityProvider extends ProviderV3 {
 
 export interface PerplexityProviderSettings {
   /**
-   * Base URL for the perplexity API calls.
+   * Base URL for Perplexity API calls.
    */
   baseURL?: string;
 
@@ -78,6 +78,7 @@ export function createPerplexity(
           environmentVariableName: 'PERPLEXITY_API_KEY',
           description: 'Perplexity',
         })}`,
+        'X-Pplx-Integration': 'vercel-ai-sdk',
         ...options.headers,
       },
       `ai-sdk/perplexity/${VERSION}`,

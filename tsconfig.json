@@ -85,6 +85,9 @@
       "path": "packages/groq"
     },
     {
+      "path": "packages/heygen"
+    },
+    {
       "path": "packages/huggingface"
     },
     {
@@ -98,9 +101,6 @@
     },
     {
       "path": "packages/llamaindex"
-    },
-    {
-      "path": "packages/lmnt"
     },
     {
       "path": "packages/luma"
@@ -163,6 +163,9 @@
       "path": "packages/togetherai"
     },
     {
+      "path": "packages/topaz"
+    },
+    {
       "path": "packages/valibot"
     },
     {
@@ -176,6 +179,9 @@
     },
     {
       "path": "packages/xai"
+    },
+    {
+      "path": "packages/zai"
     }
   ],
   "include": []

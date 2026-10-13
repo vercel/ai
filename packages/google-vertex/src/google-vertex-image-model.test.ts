@@ -35,6 +35,7 @@ const server = createTestServer({
   [IMAGEN4_URL]: {},
   [IMAGEN4_FAST_URL]: {},
   [IMAGEN4_ULTRA_URL]: {},
+  'https://api.example.com/models/gemini-nano-banana-2.1:generateContent': {},
   [GEMINI_IMAGE_URL]: {},
 });
 
@@ -125,6 +126,34 @@ describe('GoogleVertexImageModel', () => {
           "iVBORw0KGgoAAAANSUhEUgAABAAAAAQACAIAAADwf7zUAAAAg3pUWHRSYXcgcHJvZmlsZSB0eXBlIGlwdGMAAAiZTYs7DsIwEAV7",
         ]
       `);
+    });
+
+    it('should classify RAI-filtered results as terminal', async () => {
+      server.urls[GENERATE_URL].response = {
+        type: 'json-value',
+        body: {
+          predictions: [
+            {
+              raiFilteredReason:
+                'Your current safety filter threshold filtered out the image.',
+            },
+          ],
+        },
+      };
+
+      const result = await model.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.images).toEqual([]);
+      expect(result.isRetryable).toBe(false);
     });
 
     it('should return full result snapshot', async () => {
@@ -909,6 +938,7 @@ describe('GoogleVertexImageModel (Gemini)', () => {
   });
 
   function prepareGeminiJsonResponse({
+    url = GEMINI_IMAGE_URL,
     images = [{ mimeType: 'image/png', data: 'base64-generated-image' }],
     usage = {
       promptTokenCount: 10,
@@ -917,6 +947,7 @@ describe('GoogleVertexImageModel (Gemini)', () => {
     },
     headers,
   }: {
+    url?: keyof typeof server.urls;
     images?: Array<{ mimeType: string; data: string }>;
     usage?: {
       promptTokenCount: number;
@@ -925,7 +956,7 @@ describe('GoogleVertexImageModel (Gemini)', () => {
     };
     headers?: Record<string, string>;
   } = {}) {
-    server.urls[GEMINI_IMAGE_URL].response = {
+    server.urls[url].response = {
       type: 'json-value',
       headers,
       body: {
@@ -982,6 +1013,36 @@ describe('GoogleVertexImageModel (Gemini)', () => {
       });
 
       expect(result.images).toStrictEqual(['base64-generated-image']);
+    });
+
+    it('should classify prompt blocks as terminal', async () => {
+      server.urls[GEMINI_IMAGE_URL].response = {
+        type: 'json-value',
+        body: {
+          promptFeedback: {
+            blockReason: 'PROHIBITED_CONTENT',
+          },
+          usageMetadata: {
+            promptTokenCount: 9,
+            totalTokenCount: 9,
+          },
+        },
+      };
+
+      const result = await geminiModel.doGenerate({
+        prompt: 'A blocked image prompt',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.images).toEqual([]);
+      expect(result.isRetryable).toBe(false);
+      expect(server.calls).toHaveLength(1);
     });
 
     it('should send correct request body with responseModalities', async () => {
@@ -1095,6 +1156,43 @@ describe('GoogleVertexImageModel (Gemini)', () => {
         details:
           'This model does not support the `size` option. Use `aspectRatio` instead.',
       });
+    });
+  });
+
+  it('should generate and edit images with gemini-nano-banana-2.1', async () => {
+    prepareGeminiJsonResponse({
+      url: 'https://api.example.com/models/gemini-nano-banana-2.1:generateContent',
+    });
+    const nanoBananaModel = new GoogleVertexImageModel(
+      'gemini-nano-banana-2.1',
+      {
+        provider: 'google.vertex.image',
+        baseURL: 'https://api.example.com',
+        headers: { 'api-key': 'test-key' },
+      },
+    );
+
+    const result = await nanoBananaModel.doGenerate({
+      prompt: 'Add a hat to this cat',
+      files: [
+        { type: 'file', data: 'base64-source-image', mediaType: 'image/png' },
+      ],
+      mask: undefined,
+      n: 1,
+      size: undefined,
+      aspectRatio: '4:1',
+      seed: undefined,
+      providerOptions: {},
+    });
+
+    expect(result.images).toStrictEqual(['base64-generated-image']);
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.contents[0].parts).toStrictEqual([
+      { text: 'Add a hat to this cat' },
+      { inlineData: { mimeType: 'image/png', data: 'base64-source-image' } },
+    ]);
+    expect(requestBody.generationConfig.imageConfig).toStrictEqual({
+      aspectRatio: '4:1',
     });
   });
 

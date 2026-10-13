@@ -8,6 +8,10 @@ describe('getModelCapabilities', () => {
       supportsStructuredOutput: true,
       rejectsSamplingParameters: true,
       rejectsThinkingDisabledAboveHighEffort: true,
+      rejectsThinkingDisabled: false,
+      rejectsBudgetThinking: false,
+      rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: false,
     });
     expect(
@@ -17,6 +21,10 @@ describe('getModelCapabilities', () => {
       supportsStructuredOutput: true,
       rejectsSamplingParameters: true,
       rejectsThinkingDisabledAboveHighEffort: true,
+      rejectsThinkingDisabled: false,
+      rejectsBudgetThinking: false,
+      rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: false,
     });
   });
@@ -34,6 +42,10 @@ describe('getModelCapabilities', () => {
         supportsStructuredOutput: false,
         rejectsSamplingParameters: false,
         rejectsThinkingDisabledAboveHighEffort: false,
+        rejectsThinkingDisabled: false,
+        rejectsBudgetThinking: false,
+        rejectsForcedToolUse: false,
+        supportsBetweenToolsThinking: false,
         isKnownModel: false,
       });
     },
@@ -45,7 +57,68 @@ describe('getModelCapabilities', () => {
       supportsStructuredOutput: true,
       rejectsSamplingParameters: false,
       rejectsThinkingDisabledAboveHighEffort: false,
+      rejectsThinkingDisabled: false,
+      rejectsBudgetThinking: false,
+      rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: true,
+    });
+  });
+
+  it('recognizes Fable 5.1 structured output capabilities', () => {
+    expect(getModelCapabilities('claude-fable-5-1')).toEqual({
+      maxOutputTokens: 128000,
+      supportsStructuredOutput: true,
+      rejectsSamplingParameters: true,
+      rejectsThinkingDisabledAboveHighEffort: false,
+      rejectsThinkingDisabled: true,
+      rejectsBudgetThinking: true,
+      rejectsForcedToolUse: true,
+      supportsBetweenToolsThinking: false,
+      isKnownModel: true,
+    });
+  });
+
+  it('recognizes Opus 5.5 as always-adaptive and rejecting forced tool use', () => {
+    expect(getModelCapabilities('claude-opus-5-5')).toEqual({
+      maxOutputTokens: 128000,
+      supportsStructuredOutput: true,
+      rejectsSamplingParameters: true,
+      rejectsThinkingDisabledAboveHighEffort: true,
+      rejectsThinkingDisabled: true,
+      rejectsBudgetThinking: true,
+      rejectsForcedToolUse: true,
+      supportsBetweenToolsThinking: false,
+      isKnownModel: true,
+    });
+    expect(getModelCapabilities('claude-opus-5').rejectsForcedToolUse).toBe(
+      false,
+    );
+    expect(getModelCapabilities('claude-fable-5')).toMatchObject({
+      rejectsThinkingDisabled: true,
+      rejectsBudgetThinking: true,
+      rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
+    });
+  });
+
+  it('recognizes Sonnet 5.5 as supporting between_tools thinking', () => {
+    expect(getModelCapabilities('claude-sonnet-5-5')).toEqual({
+      maxOutputTokens: 128000,
+      supportsStructuredOutput: true,
+      rejectsSamplingParameters: true,
+      rejectsThinkingDisabledAboveHighEffort: true,
+      rejectsThinkingDisabled: true,
+      rejectsBudgetThinking: true,
+      rejectsForcedToolUse: true,
+      supportsBetweenToolsThinking: true,
+      isKnownModel: true,
+    });
+    expect(getModelCapabilities('claude-sonnet-5')).toMatchObject({
+      rejectsThinkingDisabled: false,
+      rejectsBudgetThinking: false,
+      rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
     });
   });
 
@@ -55,6 +128,10 @@ describe('getModelCapabilities', () => {
       supportsStructuredOutput: false,
       rejectsSamplingParameters: false,
       rejectsThinkingDisabledAboveHighEffort: false,
+      rejectsThinkingDisabled: false,
+      rejectsBudgetThinking: false,
+      rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: false,
     });
   });

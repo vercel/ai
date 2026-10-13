@@ -1,9 +1,248 @@
+import type { LanguageModelV3Prompt } from '@ai-sdk/provider';
 import { describe, expect, it } from 'vitest';
 import { convertToMoonshotAIChatMessages } from './convert-to-moonshotai-chat-messages';
 
+function convertMessages(prompt: LanguageModelV3Prompt) {
+  return convertToMoonshotAIChatMessages({ prompt }).messages;
+}
+
+describe('message names', () => {
+  it('should serialize names for system, user, and assistant messages', () => {
+    const result = convertToMoonshotAIChatMessages({
+      prompt: [
+        {
+          role: 'system',
+          content: 'You are a helpful assistant.',
+          providerOptions: { moonshotai: { name: 'guide' } },
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Describe this image.' }],
+          providerOptions: { moonshotai: { name: 'alice' } },
+        },
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'I will inspect it.' }],
+          providerOptions: { moonshotai: { name: 'vision_assistant' } },
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a helpful assistant.',
+          name: 'guide',
+        },
+        {
+          role: 'user',
+          content: 'Describe this image.',
+          name: 'alice',
+        },
+        {
+          role: 'assistant',
+          content: 'I will inspect it.',
+          name: 'vision_assistant',
+          tool_calls: undefined,
+        },
+      ],
+      warnings: [],
+    });
+  });
+
+  it('should ignore a name on a tool message with an unsupported warning', () => {
+    const result = convertToMoonshotAIChatMessages({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'weather',
+              output: { type: 'text', value: 'sunny' },
+            },
+          ],
+          providerOptions: { moonshotai: { name: 'weather_tool' } },
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'tool',
+          tool_call_id: 'call-1',
+          content: 'sunny',
+        },
+      ],
+      warnings: [
+        {
+          type: 'unsupported',
+          feature: 'message name on tool messages',
+        },
+      ],
+    });
+  });
+
+  it('should reject a non-string name', () => {
+    expect(() =>
+      convertToMoonshotAIChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+            providerOptions: { moonshotai: { name: 123 } },
+          },
+        ],
+      }),
+    ).toThrow('invalid moonshotai provider options');
+  });
+
+  it('should serialize a name from a custom provider options namespace', () => {
+    const result = convertToMoonshotAIChatMessages({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Hello' }],
+          providerOptions: { custom: { name: 'alice' } },
+        },
+      ],
+      providerOptionsName: 'custom',
+    });
+
+    expect(result.messages).toEqual([
+      {
+        role: 'user',
+        content: 'Hello',
+        name: 'alice',
+      },
+    ]);
+  });
+});
+
+describe('Partial Mode', () => {
+  it('should serialize partial true on the final assistant message', () => {
+    const result = convertToMoonshotAIChatMessages({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Continue the prefix.' }],
+        },
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'The sky is' }],
+          providerOptions: {
+            moonshotai: { name: 'writer', partial: true },
+          },
+        },
+      ],
+    });
+
+    expect(result.messages.at(-1)).toEqual({
+      role: 'assistant',
+      content: 'The sky is',
+      name: 'writer',
+      partial: true,
+      tool_calls: undefined,
+    });
+  });
+
+  it('should reject partial true on a non-assistant message', () => {
+    expect(() =>
+      convertToMoonshotAIChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Continue.' }],
+            providerOptions: { moonshotai: { partial: true } },
+          },
+        ],
+      }),
+    ).toThrow(
+      'Moonshot AI Partial Mode requires `partial: true` on an assistant message.',
+    );
+  });
+
+  it('should reject partial true on a non-final assistant message', () => {
+    expect(() =>
+      convertToMoonshotAIChatMessages({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'The sky is' }],
+            providerOptions: { moonshotai: { partial: true } },
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Continue.' }],
+          },
+        ],
+      }),
+    ).toThrow(
+      'Moonshot AI Partial Mode requires the partial assistant message to be the final message.',
+    );
+  });
+
+  it('should reject Partial Mode with JSON object response format', () => {
+    expect(() =>
+      convertToMoonshotAIChatMessages({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: '{' }],
+            providerOptions: { moonshotai: { partial: true } },
+          },
+        ],
+        responseFormat: { type: 'json_object' },
+      }),
+    ).toThrow(
+      'Moonshot AI Partial Mode cannot be combined with JSON object response format.',
+    );
+  });
+
+  it('should allow Partial Mode with JSON schema response format', () => {
+    const result = convertToMoonshotAIChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: '{' }],
+          providerOptions: { moonshotai: { partial: true } },
+        },
+      ],
+      responseFormat: { type: 'json_schema' },
+    });
+
+    expect(result.messages[0]).toMatchObject({ partial: true });
+  });
+});
+
 describe('user messages', () => {
+  const supportedImageMediaTypes = [
+    'image/jpeg',
+    'image/png',
+    'image/gif',
+    'image/webp',
+    'image/bmp',
+    'image/heic',
+    'image/heif',
+  ];
+
+  const supportedVideoMediaTypes = [
+    'video/mp4',
+    'video/mpeg',
+    'video/mov',
+    'video/avi',
+    'video/x-flv',
+    'video/mpg',
+    'video/webm',
+    'video/wmv',
+    'video/3gpp',
+  ];
+
   it('should convert a text-only user message to string content', () => {
-    const result = convertToMoonshotAIChatMessages([
+    const result = convertMessages([
       { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
     ]);
 
@@ -11,7 +250,7 @@ describe('user messages', () => {
   });
 
   it('should convert image data parts to image_url data URIs', () => {
-    const result = convertToMoonshotAIChatMessages([
+    const result = convertMessages([
       {
         role: 'user',
         content: [
@@ -39,8 +278,38 @@ describe('user messages', () => {
     ]);
   });
 
+  it.each(supportedImageMediaTypes)(
+    'should accept supported image media type %s',
+    mediaType => {
+      const result = convertMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: new Uint8Array([0, 1, 2, 3]),
+              mediaType,
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image_url',
+              image_url: { url: `data:${mediaType};base64,AAECAw==` },
+            },
+          ],
+        },
+      ]);
+    },
+  );
+
   it('should pass through image URLs', () => {
-    const result = convertToMoonshotAIChatMessages([
+    const result = convertMessages([
       {
         role: 'user',
         content: [
@@ -67,7 +336,7 @@ describe('user messages', () => {
   });
 
   it('should convert video data parts to video_url data URIs', () => {
-    const result = convertToMoonshotAIChatMessages([
+    const result = convertMessages([
       {
         role: 'user',
         content: [
@@ -95,8 +364,38 @@ describe('user messages', () => {
     ]);
   });
 
+  it.each(supportedVideoMediaTypes)(
+    'should accept supported video media type %s',
+    mediaType => {
+      const result = convertMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: new Uint8Array([0, 1, 2, 3]),
+              mediaType,
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'video_url',
+              video_url: { url: `data:${mediaType};base64,AAECAw==` },
+            },
+          ],
+        },
+      ]);
+    },
+  );
+
   it('should pass through video URLs', () => {
-    const result = convertToMoonshotAIChatMessages([
+    const result = convertMessages([
       {
         role: 'user',
         content: [
@@ -123,7 +422,7 @@ describe('user messages', () => {
   });
 
   it('should pass through ms:// file references from the Files API', () => {
-    const result = convertToMoonshotAIChatMessages([
+    const result = convertMessages([
       {
         role: 'user',
         content: [
@@ -150,7 +449,7 @@ describe('user messages', () => {
   });
 
   it('should decode text/* file parts into text parts', () => {
-    const result = convertToMoonshotAIChatMessages([
+    const result = convertMessages([
       {
         role: 'user',
         content: [
@@ -168,9 +467,31 @@ describe('user messages', () => {
     ]);
   });
 
+  it.each(['image/svg+xml', 'image/tiff', 'video/quicktime'])(
+    'should throw for unsupported multimodal media type %s',
+    mediaType => {
+      expect(() =>
+        convertMessages([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: new Uint8Array([0, 1, 2, 3]),
+                mediaType,
+              },
+            ],
+          },
+        ]),
+      ).toThrow(
+        `'file part media type ${mediaType}' functionality not supported`,
+      );
+    },
+  );
+
   it('should throw for audio file parts (rejected by the API)', () => {
     expect(() =>
-      convertToMoonshotAIChatMessages([
+      convertMessages([
         {
           role: 'user',
           content: [
@@ -187,7 +508,7 @@ describe('user messages', () => {
 
   it('should throw for PDF file parts (rejected by the API)', () => {
     expect(() =>
-      convertToMoonshotAIChatMessages([
+      convertMessages([
         {
           role: 'user',
           content: [
@@ -206,7 +527,7 @@ describe('user messages', () => {
 
   it('should throw for unsupported file types', () => {
     expect(() =>
-      convertToMoonshotAIChatMessages([
+      convertMessages([
         {
           role: 'user',
           content: [
@@ -226,17 +547,236 @@ describe('user messages', () => {
 
 describe('system messages', () => {
   it('should pass system messages through', () => {
-    const result = convertToMoonshotAIChatMessages([
+    const result = convertMessages([
       { role: 'system', content: 'You are Kimi.' },
     ]);
 
     expect(result).toEqual([{ role: 'system', content: 'You are Kimi.' }]);
   });
+
+  it('should serialize and normalize K3 dynamic tools without content', async () => {
+    const result = await convertToMoonshotAIChatMessages({
+      modelId: 'kimi-k3',
+      prompt: [
+        {
+          role: 'system',
+          content: '',
+          providerOptions: {
+            moonshotai: {
+              tools: [
+                {
+                  type: 'function',
+                  name: 'locate',
+                  description: 'Locate coordinates',
+                  inputSchema: {
+                    type: 'object',
+                    properties: {
+                      coordinates: {
+                        type: 'array',
+                        items: [{ type: 'number' }, { type: 'number' }],
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'system',
+          tools: [
+            {
+              type: 'function',
+              function: {
+                name: 'locate',
+                description: 'Locate coordinates',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    coordinates: {
+                      type: 'array',
+                      prefixItems: [{ type: 'number' }, { type: 'number' }],
+                    },
+                  },
+                },
+              },
+            },
+          ],
+        },
+      ],
+      warnings: [],
+    });
+  });
+
+  it('should omit dynamic tools and warn for known non-K3 models', async () => {
+    const result = await convertToMoonshotAIChatMessages({
+      modelId: 'kimi-k2.6',
+      prompt: [
+        { role: 'user', content: [{ type: 'text', text: 'Start' }] },
+        {
+          role: 'system',
+          content: '',
+          providerOptions: {
+            moonshotai: {
+              tools: [
+                {
+                  type: 'function',
+                  name: 'calculator',
+                  inputSchema: { type: 'object', properties: {} },
+                },
+              ],
+            },
+          },
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      messages: [{ role: 'user', content: 'Start' }],
+      warnings: [
+        {
+          type: 'unsupported',
+          feature: 'dynamic tool loading for model "kimi-k2.6"',
+          details:
+            'Moonshot documents dynamic tool loading only for Kimi K3. The dynamic system message has been omitted.',
+        },
+      ],
+    });
+  });
+
+  it('should preserve dynamic tools for unknown custom models', async () => {
+    const result = await convertToMoonshotAIChatMessages({
+      modelId: 'custom-model',
+      prompt: [
+        {
+          role: 'system',
+          content: '',
+          providerOptions: {
+            moonshotai: {
+              tools: [
+                {
+                  type: 'function',
+                  name: 'calculator',
+                  inputSchema: { type: 'object', properties: {} },
+                },
+              ],
+            },
+          },
+        },
+      ],
+    });
+
+    expect(result.warnings).toEqual([]);
+    expect(result.messages[0]).toMatchObject({
+      role: 'system',
+      tools: [{ function: { name: 'calculator' } }],
+    });
+  });
+
+  it('should preserve an ordinary system message when tools is empty', async () => {
+    const result = await convertToMoonshotAIChatMessages({
+      modelId: 'kimi-k3',
+      prompt: [
+        {
+          role: 'system',
+          content: 'You are Kimi.',
+          providerOptions: { moonshotai: { tools: [] } },
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      messages: [{ role: 'system', content: 'You are Kimi.' }],
+      warnings: [],
+    });
+  });
+
+  it('should reject incomplete dynamic tool definitions', () => {
+    expect(() =>
+      convertToMoonshotAIChatMessages({
+        modelId: 'kimi-k3',
+        prompt: [
+          {
+            role: 'system',
+            content: '',
+            providerOptions: {
+              moonshotai: {
+                tools: [
+                  {
+                    type: 'function',
+                    name: 'calculator',
+                    inputSchema: undefined,
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      }),
+    ).toThrow('invalid moonshotai provider options');
+  });
+
+  it('should reject content alongside dynamic tools', () => {
+    expect(() =>
+      convertToMoonshotAIChatMessages({
+        modelId: 'kimi-k3',
+        prompt: [
+          {
+            role: 'system',
+            content: 'Do not send this.',
+            providerOptions: {
+              moonshotai: {
+                tools: [
+                  {
+                    type: 'function',
+                    name: 'calculator',
+                    inputSchema: { type: 'object', properties: {} },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      }),
+    ).toThrow(
+      'A Moonshot dynamic-tool system message must use empty content because the API forbids content alongside tools.',
+    );
+  });
+
+  it('should reject dynamic tools on non-system messages', () => {
+    expect(() =>
+      convertToMoonshotAIChatMessages({
+        modelId: 'kimi-k3',
+        prompt: [
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello' }],
+            providerOptions: {
+              moonshotai: {
+                tools: [
+                  {
+                    type: 'function',
+                    name: 'calculator',
+                    inputSchema: { type: 'object', properties: {} },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      }),
+    ).toThrow('Moonshot dynamic tools must be configured on a system message.');
+  });
 });
 
 describe('assistant messages', () => {
   it('should emit reasoning_content for reasoning parts', () => {
-    const result = convertToMoonshotAIChatMessages([
+    const result = convertMessages([
       {
         role: 'assistant',
         content: [
@@ -257,7 +797,7 @@ describe('assistant messages', () => {
   });
 
   it('should convert tool calls and set content to null when there is no text', () => {
-    const result = convertToMoonshotAIChatMessages([
+    const result = convertMessages([
       {
         role: 'assistant',
         content: [
@@ -287,7 +827,7 @@ describe('assistant messages', () => {
   });
 
   it('should keep text content when text and tool calls are present', () => {
-    const result = convertToMoonshotAIChatMessages([
+    const result = convertMessages([
       {
         role: 'assistant',
         content: [
@@ -320,7 +860,7 @@ describe('assistant messages', () => {
 
 describe('tool messages', () => {
   it('should convert text tool results to tool messages', () => {
-    const result = convertToMoonshotAIChatMessages([
+    const result = convertMessages([
       {
         role: 'tool',
         content: [
@@ -340,7 +880,7 @@ describe('tool messages', () => {
   });
 
   it('should stringify json tool results', () => {
-    const result = convertToMoonshotAIChatMessages([
+    const result = convertMessages([
       {
         role: 'tool',
         content: [

@@ -454,6 +454,39 @@ describe('Gemma model system instructions', () => {
 });
 
 describe('user messages', () => {
+  it('should preserve original Google Cloud Storage file URIs', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: new URL('gs://my-bucket/folder/My File.pdf'),
+            originalUrl: 'gs://my-bucket/folder/My File.pdf',
+            mediaType: 'application/pdf',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      systemInstruction: undefined,
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              fileData: {
+                mimeType: 'application/pdf',
+                fileUri: 'gs://my-bucket/folder/My File.pdf',
+              },
+            },
+          ],
+        },
+      ],
+    });
+  });
+
   it('should add image parts', async () => {
     const result = convertToGoogleGenerativeAIMessages([
       {
@@ -690,6 +723,55 @@ describe('tool messages', () => {
             inlineData: {
               mimeType: 'image/png',
               data: 'base64pngdata',
+            },
+          },
+        ],
+      },
+    });
+  });
+
+  it('should convert GCS file-url tool result parts into functionResponse file data', async () => {
+    const result = convertToGoogleGenerativeAIMessages(
+      [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'imageViewer',
+              toolCallId: 'testCallId',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'file-url',
+                    url: 'gs://example-bucket/renditions/hero.png',
+                    mediaType: 'image/png',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+      {
+        supportedFunctionResponseUrls: { 'image/png': [/^gs:\/\/.*$/] },
+      },
+    );
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionResponse: {
+        id: 'testCallId',
+        name: 'imageViewer',
+        response: {
+          name: 'imageViewer',
+          content: 'Tool executed successfully.',
+        },
+        parts: [
+          {
+            fileData: {
+              mimeType: 'image/png',
+              fileUri: 'gs://example-bucket/renditions/hero.png',
             },
           },
         ],

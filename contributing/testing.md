@@ -10,6 +10,19 @@ Ideally you should cover 3 cases for changes or new features:
 
 # Unit Testing
 
+## CI parallelism
+
+`pnpm test:ci` uses Turbo to run at most one package per available CPU. In the
+package-test CI matrix, `VITEST_MAX_WORKERS=2` limits each package's Vitest worker
+pool. On a four-CPU runner, this permits four packages and up to eight test
+workers. Full-suite CI benchmarks selected this balance to reduce contention
+while retaining file parallelism. Individual package tests retain their default
+parallelism locally.
+
+Both `VITEST_MAX_WORKERS` and `TEST_NODE_VERSION` are included in the Turbo test
+environment and cache key. The workflow sets `TEST_NODE_VERSION` to the matrix
+Node version so a passing result from one Node major cannot satisfy another.
+
 ## Providers
 
 ### Test Fixtures

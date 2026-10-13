@@ -416,6 +416,58 @@ describe('runToolsTransformation', () => {
       `);
   });
 
+  it.each(['length', 'error', 'content-filter', 'other'] as const)(
+    'should not execute tools when the finish reason is %s',
+    async finishReason => {
+      let executionCount = 0;
+      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'testTool',
+            input: `{ "value": "test" }`,
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: finishReason, raw: finishReason },
+            usage: testUsage,
+          },
+        ]);
+
+      const transformedStream = runToolsTransformation({
+        generateId: mockId({ prefix: 'id' }),
+        tools: {
+          testTool: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => {
+              executionCount++;
+              return 'tool-result';
+            },
+          },
+        },
+        generatorStream: inputStream,
+        tracer: new MockTracer(),
+        telemetry: undefined,
+        messages: [],
+        system: undefined,
+        abortSignal: undefined,
+        repairToolCall: undefined,
+        experimental_context: undefined,
+      });
+
+      const result = await convertReadableStreamToArray(transformedStream);
+
+      expect(result).toContainEqual(
+        expect.objectContaining({
+          type: 'tool-call',
+          toolCallId: 'call-1',
+        }),
+      );
+      expect(executionCount).toBe(0);
+    },
+  );
+
   it('should hold off on sending finish until the delayed tool result is received', async () => {
     const inputStream: ReadableStream<LanguageModelV3StreamPart> =
       convertArrayToReadableStream([
@@ -1139,6 +1191,57 @@ describe('runToolsTransformation', () => {
   });
 
   describe('Tool.onInputAvailable', () => {
+    it('awaits input callbacks in stream order before input availability', async () => {
+      const events: string[] = [];
+      const transformedStream = runToolsTransformation({
+        generateId: mockId({ prefix: 'id' }),
+        tools: {
+          test: tool({
+            inputSchema: z.object({ value: z.string() }),
+            onInputStart: async () => {
+              await Promise.resolve();
+              events.push('start');
+            },
+            onInputDelta: async ({ inputTextDelta }) => {
+              await Promise.resolve();
+              events.push(inputTextDelta);
+            },
+            onInputAvailable: () => {
+              events.push('available');
+            },
+          }),
+        },
+        generatorStream: convertArrayToReadableStream([
+          { type: 'tool-input-start', id: 'call-1', toolName: 'test' },
+          { type: 'tool-input-delta', id: 'call-1', delta: '{"value":' },
+          { type: 'tool-input-delta', id: 'call-1', delta: '"test"}' },
+          { type: 'tool-input-end', id: 'call-1' },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'test',
+            input: '{"value":"test"}',
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: testUsage,
+          },
+        ]),
+        tracer: new MockTracer(),
+        telemetry: undefined,
+        messages: [],
+        system: undefined,
+        abortSignal: undefined,
+        repairToolCall: undefined,
+        experimental_context: undefined,
+      });
+
+      await convertReadableStreamToArray(transformedStream);
+
+      expect(events).toEqual(['start', '{"value":', '"test"}', 'available']);
+    });
+
     it('should call onInputAvailable before the tool call is executed', async () => {
       const output: unknown[] = [];
       const inputStream: ReadableStream<LanguageModelV3StreamPart> =

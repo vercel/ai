@@ -1,11 +1,17 @@
-import type { LanguageModelV3Usage } from '@ai-sdk/provider';
+import type { JSONValue, LanguageModelV3Usage } from '@ai-sdk/provider';
 
 export type BedrockUsage = {
+  [key: string]: JSONValue | undefined;
   inputTokens: number;
   outputTokens: number;
   totalTokens?: number;
   cacheReadInputTokens?: number | null;
   cacheWriteInputTokens?: number | null;
+  cacheDetails?: Array<{
+    [key: string]: JSONValue | undefined;
+    inputTokens: number;
+    ttl: string;
+  }> | null;
 };
 
 export function convertBedrockUsage(

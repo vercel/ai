@@ -1,4 +1,9 @@
-import type { JSONObject, RerankingModelV3CallOptions } from '@ai-sdk/provider';
+import {
+  InvalidResponseDataError,
+  type JSONObject,
+  type RerankingModelV3,
+  type RerankingModelV3CallOptions,
+} from '@ai-sdk/provider';
 import type { ProviderOptions } from '@ai-sdk/provider-utils';
 import { prepareRetries } from '../../src/util/prepare-retries';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
@@ -192,6 +197,8 @@ export async function rerank<VALUE extends JSONObject | string>({
           }),
       );
 
+      validateRankingIndices({ ranking, documents });
+
       logWarnings({
         warnings: warnings ?? [],
         provider: model.provider,
@@ -216,6 +223,23 @@ export async function rerank<VALUE extends JSONObject | string>({
       });
     },
   });
+}
+
+function validateRankingIndices<VALUE>({
+  ranking,
+  documents,
+}: {
+  ranking: Awaited<ReturnType<RerankingModelV3['doRerank']>>['ranking'];
+  documents: Array<VALUE>;
+}) {
+  for (const { index } of ranking) {
+    if (!Number.isInteger(index) || index < 0 || index >= documents.length) {
+      throw new InvalidResponseDataError({
+        data: ranking,
+        message: `Invalid ranking index ${index}. Expected an integer between 0 and ${documents.length - 1}.`,
+      });
+    }
+  }
 }
 
 class DefaultRerankResult<VALUE> implements RerankResult<VALUE> {

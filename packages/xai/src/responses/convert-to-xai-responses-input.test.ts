@@ -310,7 +310,7 @@ describe('convertToXaiResponsesInput', () => {
       expect(result.input).toMatchInlineSnapshot(`
         [
           {
-            "arguments": "{\"query\":\"latest news\"}",
+            "arguments": "{"query":"latest news"}",
             "call_id": "call_ws",
             "id": "call_ws",
             "name": "web_search",

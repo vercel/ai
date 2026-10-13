@@ -55,9 +55,9 @@ export async function POST(request: Request) {
     {
       name: 'uiMessages',
       type: 'unknown[]',
-      isRequired: true,
+      isRequired: false,
       description:
-        'Array of input UI messages provided to the agent (e.g., user and assistant messages).',
+        'Array of input UI messages provided to the agent (e.g., user and assistant messages). When omitted, originalMessages is used as the input.',
     },
     {
       name: 'abortSignal',

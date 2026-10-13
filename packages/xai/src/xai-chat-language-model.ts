@@ -544,7 +544,7 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
             }
 
             // process tool calls
-            if (delta.tool_calls != null) {
+            if (delta.tool_calls != null && delta.tool_calls.length > 0) {
               // end active reasoning block before tool calls start
               if (
                 activeReasoningBlockId != null &&
@@ -626,31 +626,36 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
 }
 
 // XAI API Response Schemas
-const xaiUsageSchema = z.object({
-  prompt_tokens: z.number(),
-  completion_tokens: z.number(),
-  total_tokens: z.number(),
-  prompt_tokens_details: z
-    .object({
-      text_tokens: z.number().nullish(),
-      audio_tokens: z.number().nullish(),
-      image_tokens: z.number().nullish(),
-      cached_tokens: z.number().nullish(),
-    })
-    .nullish(),
-  completion_tokens_details: z
-    .object({
-      reasoning_tokens: z.number().nullish(),
-      audio_tokens: z.number().nullish(),
-      accepted_prediction_tokens: z.number().nullish(),
-      rejected_prediction_tokens: z.number().nullish(),
-    })
-    .nullish(),
-});
+const xaiUsageSchema = z
+  .object({
+    prompt_tokens: z.number(),
+    completion_tokens: z.number(),
+    total_tokens: z.number(),
+    cost_in_usd_ticks: z.number().nullish(),
+    prompt_tokens_details: z
+      .object({
+        text_tokens: z.number().nullish(),
+        audio_tokens: z.number().nullish(),
+        image_tokens: z.number().nullish(),
+        cached_tokens: z.number().nullish(),
+      })
+      .catchall(z.json())
+      .nullish(),
+    completion_tokens_details: z
+      .object({
+        reasoning_tokens: z.number().nullish(),
+        audio_tokens: z.number().nullish(),
+        accepted_prediction_tokens: z.number().nullish(),
+        rejected_prediction_tokens: z.number().nullish(),
+      })
+      .catchall(z.json())
+      .nullish(),
+  })
+  .catchall(z.json());
 
 export type XaiChatUsage = z.infer<typeof xaiUsageSchema>;
 
-const xaiChatResponseSchema = z.object({
+export const xaiChatResponseSchema = z.object({
   id: z.string().nullish(),
   created: z.number().nullish(),
   model: z.string().nullish(),

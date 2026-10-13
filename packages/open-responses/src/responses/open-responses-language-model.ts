@@ -91,6 +91,8 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
       warnings: inputWarnings,
     } = await convertToOpenResponsesInput({
       prompt,
+      providerOptionsName: this.config.providerOptionsName,
+      strictResponseInput: this.config.strictResponseInput,
     });
 
     warnings.push(...inputWarnings);
@@ -116,17 +118,15 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
 
     const textFormat =
       responseFormat?.type === 'json'
-        ? {
-            type: 'json_schema' as const,
-            ...(responseFormat.schema != null
-              ? {
-                  name: responseFormat.name ?? 'response',
-                  description: responseFormat.description,
-                  schema: responseFormat.schema,
-                  strict: true,
-                }
-              : {}),
-          }
+        ? responseFormat.schema != null
+          ? {
+              type: 'json_schema' as const,
+              name: responseFormat.name ?? 'response',
+              description: responseFormat.description,
+              schema: responseFormat.schema,
+              strict: true,
+            }
+          : { type: 'json_object' as const }
         : undefined;
 
     const openResponsesOptions = await parseProviderOptions({
@@ -441,8 +441,9 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
               });
               isActiveReasoning = true;
             } else if (
+              chunk.type === 'response.reasoning_summary_text.delta' ||
               (chunk as { type: string }).type ===
-              'response.reasoning_text.delta'
+                'response.reasoning_text.delta'
             ) {
               const reasoningChunk = chunk as {
                 item_id: string;

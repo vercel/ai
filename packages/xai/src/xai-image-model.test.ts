@@ -289,6 +289,41 @@ describe('XaiImageModel', () => {
       expect(result.images[0]).toBe('dGVzdA==');
     });
 
+    it('should throw when an image is blocked by moderation', async () => {
+      // xAI documents that a moderated image sets `respect_moderation` to
+      // false and replaces the image with a placeholder:
+      // https://github.com/xai-org/xai-proto/blob/723dd2aa22d17be35617463837dc47cda008d90e/proto/xai/api/v1/image.proto#L148-L151
+      server.urls['https://api.example.com/images/generations'].response = {
+        type: 'json-value',
+        body: {
+          data: [
+            {
+              url: null,
+              b64_json: null,
+              respect_moderation: false,
+            },
+          ],
+        },
+      };
+
+      const model = createModel();
+
+      await expect(
+        model.doGenerate({
+          prompt,
+          files: undefined,
+          mask: undefined,
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        }),
+      ).rejects.toThrow(
+        'Image generation was blocked due to a content policy violation.',
+      );
+    });
+
     it('should pass headers', async () => {
       const model = createModel({
         headers: () => ({

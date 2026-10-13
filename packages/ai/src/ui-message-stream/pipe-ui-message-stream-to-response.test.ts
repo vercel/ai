@@ -60,6 +60,22 @@ describe('pipeUIMessageStreamToResponse', () => {
     `);
   });
 
+  it('should write an opening comment when keep-alives are enabled', async () => {
+    const mockResponse = createMockServerResponse();
+
+    pipeUIMessageStreamToResponse({
+      response: mockResponse,
+      keepAliveMs: 100,
+      stream: convertArrayToReadableStream([
+        { type: 'text-delta', id: '1', delta: 'test-data' },
+      ]),
+    });
+
+    await mockResponse.waitForEnd();
+
+    expect(mockResponse.getDecodedChunks()[0]).toBe(': stream-open\n\n');
+  });
+
   it('should handle errors in the stream', async () => {
     const mockResponse = createMockServerResponse();
 

@@ -31,8 +31,15 @@ describe('GoogleGenerativeAIImageModel', () => {
   describe('doGenerate', () => {
     function prepareJsonResponse({
       headers,
+      predictions = [
+        { bytesBase64Encoded: 'base64-image-1' },
+        { bytesBase64Encoded: 'base64-image-2' },
+      ],
     }: {
       headers?: Record<string, string>;
+      predictions?: Array<
+        { bytesBase64Encoded: string } | { raiFilteredReason: string }
+      >;
     } = {}) {
       const url =
         'https://api.example.com/v1beta/models/imagen-3.0-generate-002:predict';
@@ -40,10 +47,7 @@ describe('GoogleGenerativeAIImageModel', () => {
         type: 'json-value',
         headers,
         body: {
-          predictions: [
-            { bytesBase64Encoded: 'base64-image-1' },
-            { bytesBase64Encoded: 'base64-image-2' },
-          ],
+          predictions,
         },
       };
     }
@@ -127,6 +131,31 @@ describe('GoogleGenerativeAIImageModel', () => {
       });
 
       expect(result.images).toStrictEqual(['base64-image-1', 'base64-image-2']);
+    });
+
+    it('should classify RAI-filtered results as terminal', async () => {
+      prepareJsonResponse({
+        predictions: [
+          {
+            raiFilteredReason:
+              'Your current safety filter threshold filtered out the image.',
+          },
+        ],
+      });
+
+      const result = await model.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.images).toEqual([]);
+      expect(result.isRetryable).toBe(false);
     });
 
     it('sends aspect ratio in the request', async () => {
@@ -452,6 +481,8 @@ describe('GoogleGenerativeAIImageModel (Gemini)', () => {
     'https://api.example.com/v1beta/models/gemini-2.5-flash-image:generateContent';
 
   const geminiServer = createTestServer({
+    'https://api.example.com/v1beta/models/gemini-nano-banana-2.1:generateContent':
+      {},
     [TEST_URL_GEMINI_IMAGE]: {
       response: {
         type: 'json-value',
@@ -483,6 +514,7 @@ describe('GoogleGenerativeAIImageModel (Gemini)', () => {
   });
 
   function prepareGeminiJsonResponse({
+    url = TEST_URL_GEMINI_IMAGE,
     images = [{ mimeType: 'image/png', data: 'base64-generated-image' }],
     usage = {
       promptTokenCount: 10,
@@ -491,6 +523,7 @@ describe('GoogleGenerativeAIImageModel (Gemini)', () => {
     },
     headers,
   }: {
+    url?: keyof typeof geminiServer.urls;
     images?: Array<{ mimeType: string; data: string }>;
     usage?: {
       promptTokenCount: number;
@@ -499,7 +532,7 @@ describe('GoogleGenerativeAIImageModel (Gemini)', () => {
     };
     headers?: Record<string, string>;
   } = {}) {
-    geminiServer.urls[TEST_URL_GEMINI_IMAGE].response = {
+    geminiServer.urls[url].response = {
       type: 'json-value',
       headers,
       body: {
@@ -558,6 +591,84 @@ describe('GoogleGenerativeAIImageModel (Gemini)', () => {
 
       expect(result.images).toStrictEqual(['base64-generated-image']);
     });
+
+    it('should preserve prompt feedback when a prompt block returns no candidates', async () => {
+      geminiServer.urls[TEST_URL_GEMINI_IMAGE].response = {
+        type: 'json-value',
+        body: {
+          promptFeedback: {
+            blockReason: 'PROHIBITED_CONTENT',
+          },
+          usageMetadata: {
+            promptTokenCount: 9,
+            totalTokenCount: 9,
+            serviceTier: 'standard',
+          },
+        },
+      };
+
+      const result = await geminiModel.doGenerate({
+        prompt: 'A blocked image prompt',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.images).toEqual([]);
+      expect(result.isRetryable).toBe(false);
+      expect(result.providerMetadata?.google).toMatchObject({
+        promptFeedback: {
+          blockReason: 'PROHIBITED_CONTENT',
+        },
+        images: [],
+        usageMetadata: {
+          promptTokenCount: 9,
+          totalTokenCount: 9,
+          serviceTier: 'standard',
+        },
+        serviceTier: 'standard',
+      });
+    });
+
+    it.each(['', 'BLOCK_REASON_UNSPECIFIED', 'BLOCKED_REASON_UNSPECIFIED'])(
+      'should leave empty responses with default prompt block reason %j retryable',
+      async blockReason => {
+        geminiServer.urls[TEST_URL_GEMINI_IMAGE].response = {
+          type: 'json-value',
+          body: {
+            candidates: [],
+            promptFeedback: { blockReason },
+            usageMetadata: {
+              promptTokenCount: 9,
+              totalTokenCount: 9,
+            },
+          },
+        };
+
+        const result = await geminiModel.doGenerate({
+          prompt: 'An image prompt with an empty response',
+          files: undefined,
+          mask: undefined,
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        });
+
+        expect(result.images).toEqual([]);
+        expect(result.isRetryable).toBeUndefined();
+        expect(result.providerMetadata?.google).toMatchObject({
+          promptFeedback: {
+            blockReason,
+          },
+        });
+      },
+    );
 
     it('should send correct request body with responseModalities', async () => {
       prepareGeminiJsonResponse();
@@ -812,6 +923,44 @@ describe('GoogleGenerativeAIImageModel (Gemini)', () => {
       );
       // existing image metadata should be preserved alongside the LM metadata
       expect(googleMetadata?.images).toStrictEqual([{}]);
+    });
+  });
+
+  it('should generate and edit images with gemini-nano-banana-2.1', async () => {
+    prepareGeminiJsonResponse({
+      url: 'https://api.example.com/v1beta/models/gemini-nano-banana-2.1:generateContent',
+    });
+    const nanoBananaModel = new GoogleGenerativeAIImageModel(
+      'gemini-nano-banana-2.1',
+      {},
+      {
+        provider: 'google.generative-ai',
+        baseURL: 'https://api.example.com/v1beta',
+        headers: { 'api-key': 'test-key' },
+      },
+    );
+
+    const result = await nanoBananaModel.doGenerate({
+      prompt: 'Add a hat to this cat',
+      files: [
+        { type: 'file', data: 'base64-source-image', mediaType: 'image/png' },
+      ],
+      mask: undefined,
+      n: 1,
+      size: undefined,
+      aspectRatio: '4:1',
+      seed: undefined,
+      providerOptions: {},
+    });
+
+    expect(result.images).toStrictEqual(['base64-generated-image']);
+    const requestBody = await geminiServer.calls[0].requestBodyJson;
+    expect(requestBody.contents[0].parts).toStrictEqual([
+      { text: 'Add a hat to this cat' },
+      { inlineData: { mimeType: 'image/png', data: 'base64-source-image' } },
+    ]);
+    expect(requestBody.generationConfig.imageConfig).toStrictEqual({
+      aspectRatio: '4:1',
     });
   });
 

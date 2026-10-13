@@ -1,6 +1,9 @@
 import {
+  InvalidArgumentError,
+  InvalidPromptError,
   UnsupportedFunctionalityError,
   type LanguageModelV3Prompt,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   convertBase64ToUint8Array,
@@ -8,18 +11,165 @@ import {
 } from '@ai-sdk/provider-utils';
 
 import type { MoonshotAIMessages } from './moonshotai-chat-api-types';
+import {
+  getMoonshotAIModelFamily,
+  moonshotaiAllMessageProviderOptions,
+  type MoonshotAIChatModelId,
+} from './moonshotai-chat-options';
+import { prepareTools } from './moonshotai-prepare-tools';
+
+function parseMoonshotAIMessageProviderOptions({
+  providerOptions,
+  providerOptionsName,
+}: {
+  providerOptions: Record<string, unknown> | undefined;
+  providerOptionsName: string;
+}) {
+  const value = providerOptions?.[providerOptionsName];
+  if (value == null) {
+    return undefined;
+  }
+
+  const result = moonshotaiAllMessageProviderOptions.safeParse(value);
+  if (!result.success) {
+    throw new InvalidArgumentError({
+      argument: 'providerOptions',
+      message: `invalid ${providerOptionsName} provider options`,
+      cause: result.error,
+    });
+  }
+
+  return result.data;
+}
+
+const supportedImageMediaTypes = [
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'image/bmp',
+  'image/heic',
+  'image/heif',
+] as const;
+
+const supportedVideoMediaTypes = [
+  'video/mp4',
+  'video/mpeg',
+  'video/mov',
+  'video/avi',
+  'video/x-flv',
+  'video/mpg',
+  'video/webm',
+  'video/wmv',
+  'video/3gpp',
+] as const;
+
+function validateMediaType({
+  mediaType,
+  supportedMediaTypes,
+  topLevelMediaType,
+}: {
+  mediaType: string;
+  supportedMediaTypes: readonly string[];
+  topLevelMediaType: 'image' | 'video';
+}): string {
+  const normalizedMediaType =
+    mediaType === `${topLevelMediaType}/*`
+      ? topLevelMediaType === 'image'
+        ? 'image/jpeg'
+        : 'video/mp4'
+      : mediaType;
+
+  if (!supportedMediaTypes.includes(normalizedMediaType)) {
+    throw new UnsupportedFunctionalityError({
+      functionality: `file part media type ${normalizedMediaType}`,
+    });
+  }
+
+  return normalizedMediaType;
+}
 
 // Moonshot AI chat completions accepts text, image_url, and video_url content
 // parts only. Anything else (audio, PDF, other file types) throws here rather
 // than being rejected by the API with a 400.
-export function convertToMoonshotAIChatMessages(
-  prompt: LanguageModelV3Prompt,
-): MoonshotAIMessages {
+export function convertToMoonshotAIChatMessages({
+  modelId,
+  prompt,
+  providerOptionsName = 'moonshotai',
+  responseFormat,
+}: {
+  modelId?: MoonshotAIChatModelId;
+  prompt: LanguageModelV3Prompt;
+  providerOptionsName?: string;
+  responseFormat?: Record<string, unknown>;
+}): {
+  messages: MoonshotAIMessages;
+  warnings: Array<SharedV3Warning>;
+} {
   const messages: MoonshotAIMessages = [];
-  for (const { role, content } of prompt) {
+  const warnings: Array<SharedV3Warning> = [];
+  const modelFamily =
+    modelId == null ? 'unknown' : getMoonshotAIModelFamily(modelId);
+
+  for (const [index, { role, content, providerOptions }] of prompt.entries()) {
+    const moonshotMessageOptions = parseMoonshotAIMessageProviderOptions({
+      providerOptions,
+      providerOptionsName,
+    });
+
+    if (moonshotMessageOptions?.partial === true && role !== 'assistant') {
+      throw new InvalidPromptError({
+        prompt,
+        message:
+          'Moonshot AI Partial Mode requires `partial: true` on an assistant message.',
+      });
+    }
+
+    if (moonshotMessageOptions?.tools != null && role !== 'system') {
+      throw new InvalidPromptError({
+        prompt,
+        message:
+          'Moonshot dynamic tools must be configured on a system message.',
+      });
+    }
+
     switch (role) {
       case 'system': {
-        messages.push({ role: 'system', content });
+        if (moonshotMessageOptions?.tools?.length) {
+          if (content.length > 0) {
+            throw new InvalidPromptError({
+              prompt,
+              message:
+                'A Moonshot dynamic-tool system message must use empty content because the API forbids content alongside tools.',
+            });
+          }
+
+          if (modelFamily !== 'kimi-k3' && modelFamily !== 'unknown') {
+            warnings.push({
+              type: 'unsupported',
+              feature: `dynamic tool loading for model "${modelId}"`,
+              details:
+                'Moonshot documents dynamic tool loading only for Kimi K3. The dynamic system message has been omitted.',
+            });
+            break;
+          }
+
+          const { tools, toolWarnings } = prepareTools({
+            modelId: modelId ?? 'custom-model',
+            tools: moonshotMessageOptions.tools,
+          });
+          warnings.push(...toolWarnings);
+          messages.push({ role: 'system', tools: tools ?? [] });
+          break;
+        }
+
+        messages.push({
+          role: 'system',
+          content,
+          ...(moonshotMessageOptions?.name != null && {
+            name: moonshotMessageOptions.name,
+          }),
+        });
         break;
       }
 
@@ -28,6 +178,9 @@ export function convertToMoonshotAIChatMessages(
           messages.push({
             role: 'user',
             content: content[0].text,
+            ...(moonshotMessageOptions?.name != null && {
+              name: moonshotMessageOptions.name,
+            }),
           });
           break;
         }
@@ -41,10 +194,11 @@ export function convertToMoonshotAIChatMessages(
               }
               case 'file': {
                 if (part.mediaType.startsWith('image/')) {
-                  const mediaType =
-                    part.mediaType === 'image/*'
-                      ? 'image/jpeg'
-                      : part.mediaType;
+                  const mediaType = validateMediaType({
+                    mediaType: part.mediaType,
+                    supportedMediaTypes: supportedImageMediaTypes,
+                    topLevelMediaType: 'image',
+                  });
 
                   return {
                     type: 'image_url' as const,
@@ -58,8 +212,11 @@ export function convertToMoonshotAIChatMessages(
                 }
 
                 if (part.mediaType.startsWith('video/')) {
-                  const mediaType =
-                    part.mediaType === 'video/*' ? 'video/mp4' : part.mediaType;
+                  const mediaType = validateMediaType({
+                    mediaType: part.mediaType,
+                    supportedMediaTypes: supportedVideoMediaTypes,
+                    topLevelMediaType: 'video',
+                  });
 
                   return {
                     type: 'video_url' as const,
@@ -94,12 +251,33 @@ export function convertToMoonshotAIChatMessages(
               }
             }
           }),
+          ...(moonshotMessageOptions?.name != null && {
+            name: moonshotMessageOptions.name,
+          }),
         });
 
         break;
       }
 
       case 'assistant': {
+        if (moonshotMessageOptions?.partial === true) {
+          if (index !== prompt.length - 1) {
+            throw new InvalidPromptError({
+              prompt,
+              message:
+                'Moonshot AI Partial Mode requires the partial assistant message to be the final message.',
+            });
+          }
+
+          if (responseFormat?.type === 'json_object') {
+            throw new InvalidPromptError({
+              prompt,
+              message:
+                'Moonshot AI Partial Mode cannot be combined with JSON object response format.',
+            });
+          }
+        }
+
         let text = '';
         let reasoning = '';
         const toolCalls: Array<{
@@ -135,6 +313,12 @@ export function convertToMoonshotAIChatMessages(
         messages.push({
           role: 'assistant',
           content: toolCalls.length > 0 ? text || null : text,
+          ...(moonshotMessageOptions?.name != null && {
+            name: moonshotMessageOptions.name,
+          }),
+          ...(moonshotMessageOptions?.partial === true && {
+            partial: true,
+          }),
           ...(reasoning.length > 0 ? { reasoning_content: reasoning } : {}),
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
         });
@@ -143,6 +327,13 @@ export function convertToMoonshotAIChatMessages(
       }
 
       case 'tool': {
+        if (moonshotMessageOptions?.name != null) {
+          warnings.push({
+            type: 'unsupported',
+            feature: 'message name on tool messages',
+          });
+        }
+
         for (const toolResponse of content) {
           if (toolResponse.type === 'tool-approval-response') {
             continue;
@@ -182,5 +373,5 @@ export function convertToMoonshotAIChatMessages(
     }
   }
 
-  return messages;
+  return { messages, warnings };
 }

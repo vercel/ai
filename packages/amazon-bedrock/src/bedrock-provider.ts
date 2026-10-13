@@ -10,14 +10,19 @@ import {
   generateId,
   loadOptionalSetting,
   loadSetting,
-  withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
-import type { BedrockChatModelId } from './bedrock-chat-options';
+import type {
+  AmazonBedrockChatModelSettings,
+  BedrockChatModelId,
+} from './bedrock-chat-options';
 import { BedrockEmbeddingModel } from './bedrock-embedding-model';
-import type { BedrockEmbeddingModelId } from './bedrock-embedding-options';
+import type {
+  BedrockEmbeddingModelId,
+  AmazonBedrockEmbeddingModelSettings,
+} from './bedrock-embedding-options';
 import { BedrockImageModel } from './bedrock-image-model';
 import type { BedrockImageModelId } from './bedrock-image-settings';
 import {
@@ -27,6 +32,7 @@ import {
 } from './bedrock-sigv4-fetch';
 import { BedrockRerankingModel } from './reranking/bedrock-reranking-model';
 import type { BedrockRerankingModelId } from './reranking/bedrock-reranking-options';
+import { resolveBedrockBaseURL } from './resolve-bedrock-base-url';
 import { VERSION } from './version';
 
 export interface AmazonBedrockProviderSettings {
@@ -82,7 +88,9 @@ export interface AmazonBedrockProviderSettings {
   sessionToken?: string;
 
   /**
-   * Base URL for the Bedrock API calls.
+   * Base URL for the Bedrock API calls. When omitted, the provider uses
+   * service-specific AWS endpoint environment variables, then `AWS_ENDPOINT_URL`,
+   * before generating an endpoint from the AWS region.
    */
   baseURL?: string;
 
@@ -110,29 +118,47 @@ export interface AmazonBedrockProviderSettings {
 }
 
 export interface AmazonBedrockProvider extends ProviderV3 {
-  (modelId: BedrockChatModelId): LanguageModelV3;
+  (
+    modelId: BedrockChatModelId,
+    settings?: AmazonBedrockChatModelSettings,
+  ): LanguageModelV3;
 
-  languageModel(modelId: BedrockChatModelId): LanguageModelV3;
+  languageModel(
+    modelId: BedrockChatModelId,
+    settings?: AmazonBedrockChatModelSettings,
+  ): LanguageModelV3;
 
   /**
    * Creates a model for text embeddings.
    */
-  embedding(modelId: BedrockEmbeddingModelId): EmbeddingModelV3;
+  embedding(
+    modelId: BedrockEmbeddingModelId,
+    settings?: AmazonBedrockEmbeddingModelSettings,
+  ): EmbeddingModelV3;
 
   /**
    * Creates a model for text embeddings.
    */
-  embeddingModel(modelId: BedrockEmbeddingModelId): EmbeddingModelV3;
+  embeddingModel(
+    modelId: BedrockEmbeddingModelId,
+    settings?: AmazonBedrockEmbeddingModelSettings,
+  ): EmbeddingModelV3;
 
   /**
    * @deprecated Use `embedding` instead.
    */
-  textEmbedding(modelId: BedrockEmbeddingModelId): EmbeddingModelV3;
+  textEmbedding(
+    modelId: BedrockEmbeddingModelId,
+    settings?: AmazonBedrockEmbeddingModelSettings,
+  ): EmbeddingModelV3;
 
   /**
    * @deprecated Use `embeddingModel` instead.
    */
-  textEmbeddingModel(modelId: BedrockEmbeddingModelId): EmbeddingModelV3;
+  textEmbeddingModel(
+    modelId: BedrockEmbeddingModelId,
+    settings?: AmazonBedrockEmbeddingModelSettings,
+  ): EmbeddingModelV3;
 
   /**
    * Creates a model for image generation.
@@ -269,50 +295,69 @@ export function createAmazonBedrock(
   };
 
   const getBedrockRuntimeBaseUrl = (): string =>
-    withoutTrailingSlash(
-      options.baseURL ??
-        `https://bedrock-runtime.${loadSetting({
+    resolveBedrockBaseURL({
+      baseURL: options.baseURL,
+      getRegion: () =>
+        loadSetting({
           settingValue: options.region,
           settingName: 'region',
           environmentVariableName: 'AWS_REGION',
           description: 'AWS region',
-        })}.amazonaws.com`,
-    ) ?? `https://bedrock-runtime.us-east-1.amazonaws.com`;
+        }),
+      service: 'bedrock-runtime',
+      serviceEndpointUrlEnvironmentVariableName:
+        'AWS_ENDPOINT_URL_BEDROCK_RUNTIME',
+    });
 
   const getBedrockAgentRuntimeBaseUrl = (): string =>
-    withoutTrailingSlash(
-      options.baseURL ??
-        `https://bedrock-agent-runtime.${loadSetting({
+    resolveBedrockBaseURL({
+      baseURL: options.baseURL,
+      getRegion: () =>
+        loadSetting({
           settingValue: options.region,
           settingName: 'region',
           environmentVariableName: 'AWS_REGION',
           description: 'AWS region',
-        })}.amazonaws.com`,
-    ) ?? `https://bedrock-agent-runtime.us-west-2.amazonaws.com`;
+        }),
+      service: 'bedrock-agent-runtime',
+      serviceEndpointUrlEnvironmentVariableName:
+        'AWS_ENDPOINT_URL_BEDROCK_AGENT_RUNTIME',
+    });
 
-  const createChatModel = (modelId: BedrockChatModelId) =>
+  const createChatModel = (
+    modelId: BedrockChatModelId,
+    settings: AmazonBedrockChatModelSettings = {},
+  ) =>
     new BedrockChatLanguageModel(modelId, {
       baseUrl: getBedrockRuntimeBaseUrl,
       headers: getHeaders,
       fetch: fetchFunction,
       generateId,
+      modelFamily: settings.modelFamily,
     });
 
-  const provider = function (modelId: BedrockChatModelId) {
+  const provider = function (
+    modelId: BedrockChatModelId,
+    settings?: AmazonBedrockChatModelSettings,
+  ) {
     if (new.target) {
       throw new Error(
         'The Amazon Bedrock model function cannot be called with the new keyword.',
       );
     }
 
-    return createChatModel(modelId);
+    return createChatModel(modelId, settings);
   };
 
-  const createEmbeddingModel = (modelId: BedrockEmbeddingModelId) =>
+  const createEmbeddingModel = (
+    modelId: BedrockEmbeddingModelId,
+    settings: AmazonBedrockEmbeddingModelSettings = {},
+  ) =>
     new BedrockEmbeddingModel(modelId, {
       baseUrl: getBedrockRuntimeBaseUrl,
       headers: getHeaders,
       fetch: fetchFunction,
+      modelFamily: settings.modelFamily,
     });
 
   const createImageModel = (modelId: BedrockImageModelId) =>

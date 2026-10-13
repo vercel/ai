@@ -25,7 +25,13 @@ export function simulateStreamingMiddleware(): LanguageModelMiddleware {
             switch (part.type) {
               case 'text': {
                 if (part.text.length > 0) {
-                  controller.enqueue({ type: 'text-start', id: String(id) });
+                  controller.enqueue({
+                    type: 'text-start',
+                    id: String(id),
+                    ...(part.providerMetadata != null
+                      ? { providerMetadata: part.providerMetadata }
+                      : {}),
+                  });
                   controller.enqueue({
                     type: 'text-delta',
                     id: String(id),

@@ -7,6 +7,7 @@ import { codeExecution_20260120 } from './tool/code-execution_20260120';
 import { computer_20241022 } from './tool/computer_20241022';
 import { computer_20250124 } from './tool/computer_20250124';
 import { computer_20251124 } from './tool/computer_20251124';
+import { computerToolset_20260801 } from './tool/computer-toolset_20260801';
 import { memory_20250818 } from './tool/memory_20250818';
 import { textEditor_20241022 } from './tool/text-editor_20241022';
 import { textEditor_20250124 } from './tool/text-editor_20250124';
@@ -142,6 +143,30 @@ export const anthropicTools = {
    * @param enableZoom - Enable zoom action. Set to true to allow Claude to zoom into specific screen regions. Default: false.
    */
   computer_20251124,
+
+  /**
+   * The computer toolset lets Claude control a computer through screenshots,
+   * mouse, and keyboard. It replaces the versioned computer tools
+   * (`computer_20251124` and earlier) on newer models.
+   *
+   * The API returns each computer action as its own `tool_use` block with
+   * `toolset_name: 'computer'`. The AI SDK maps every member call to this tool
+   * and exposes the member name as `action`, so `execute` receives the same
+   * input shape as the older computer tools. Claude may return several actions
+   * in one turn.
+   *
+   * Coordinates are always in the pixel space of the screenshots you return;
+   * there are no display size parameters. Zoom is enabled by default.
+   *
+   * Does not require a beta header.
+   *
+   * Supported models: Claude Opus 5.5 (required; older computer tool types
+   * are rejected), Opus 5, Sonnet 5, Fable 5, Fable 5.1, Opus 4.8.
+   *
+   * @param configs - Per-member settings keyed by member name, e.g.
+   * `{ zoom: { enabled: false } }`. Omitted members keep their defaults.
+   */
+  computerToolset_20260801,
 
   /**
    * The memory tool enables Claude to store and retrieve information across conversations through a memory file directory.

@@ -132,30 +132,26 @@ const buildJwt = async (credentials: GoogleCredentials) => {
  * with the Edge runtime.
  */
 export async function generateAuthToken(credentials?: GoogleCredentials) {
-  try {
-    const creds = credentials || (await loadCredentials());
-    const jwt = await buildJwt(creds);
+  const creds = credentials || (await loadCredentials());
+  const jwt = await buildJwt(creds);
 
-    const response = await fetch('https://oauth2.googleapis.com/token', {
-      method: 'POST',
-      headers: withUserAgentSuffix(
-        { 'Content-Type': 'application/x-www-form-urlencoded' },
-        `ai-sdk/google-vertex/${VERSION}`,
-        getRuntimeEnvironmentUserAgent(),
-      ),
-      body: new URLSearchParams({
-        grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-        assertion: jwt,
-      }),
-    });
+  const response = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: withUserAgentSuffix(
+      { 'Content-Type': 'application/x-www-form-urlencoded' },
+      `ai-sdk/google-vertex/${VERSION}`,
+      getRuntimeEnvironmentUserAgent(),
+    ),
+    body: new URLSearchParams({
+      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+      assertion: jwt,
+    }),
+  });
 
-    if (!response.ok) {
-      throw new Error(`Token request failed: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return data.access_token;
-  } catch (error) {
-    throw error;
+  if (!response.ok) {
+    throw new Error(`Token request failed: ${response.statusText}`);
   }
+
+  const data = await response.json();
+  return data.access_token;
 }
