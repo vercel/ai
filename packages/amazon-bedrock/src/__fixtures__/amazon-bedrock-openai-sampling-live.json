@@ -1,0 +1,41 @@
+{
+  "recordedAt": "2026-10-13",
+  "region": "us-east-1",
+  "validationErrors": {
+    "temperature": {
+      "message": "This model doesn't support the temperature field. Remove temperature and try again."
+    },
+    "topP": {
+      "message": "This model doesn't support the topP field. Remove topP and try again."
+    },
+    "stopSequences": {
+      "message": "This model doesn't support the stopSequences field. Remove stopSequences and try again."
+    }
+  },
+  "successWithoutUnsupportedSampling": {
+    "metrics": {
+      "latencyMs": 490
+    },
+    "output": {
+      "message": {
+        "content": [
+          {
+            "text": "ok"
+          }
+        ],
+        "role": "assistant"
+      }
+    },
+    "stopReason": "end_turn",
+    "usage": {
+      "cacheReadInputTokenCount": 0,
+      "cacheReadInputTokens": 0,
+      "cacheWriteInputTokenCount": 0,
+      "cacheWriteInputTokens": 0,
+      "inputTokens": 9,
+      "outputTokens": 5,
+      "serverToolUsage": {},
+      "totalTokens": 14
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 21374,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-21374.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-21374.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_21374_REPRODUCED: Amazon Bedrock rejected supported OpenAI Converse calls because AI SDK forwarded unsupported sampling fields."
+  }
+}
