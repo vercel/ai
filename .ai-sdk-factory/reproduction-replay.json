@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 20359,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/embed-many-length-mismatch.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/embed-many-length-mismatch.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_20359_REPRODUCED: embedMany silently accepted embedding-count mismatches: fast-empty=2/0, fast-truncated=2/1, chunked-empty=4/0, chunked-truncated=4/2"
+  }
+}
