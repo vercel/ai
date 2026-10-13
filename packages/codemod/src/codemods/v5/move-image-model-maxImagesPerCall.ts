@@ -27,6 +27,27 @@ import { createTransformer } from '../lib/create-transformer';
 export default createTransformer((fileInfo, api, options, context) => {
   const { j, root } = context;
 
+  const importedProviderNames = new Map<string, string>();
+
+  root.find(j.ImportDeclaration).forEach(path => {
+    const source = path.node.source.value;
+    if (typeof source !== 'string' || !source.startsWith('@ai-sdk/')) {
+      return;
+    }
+
+    path.node.specifiers?.forEach(specifier => {
+      if (
+        specifier.type === 'ImportSpecifier' &&
+        specifier.imported.type === 'Identifier'
+      ) {
+        importedProviderNames.set(
+          specifier.local?.name ?? specifier.imported.name,
+          specifier.imported.name,
+        );
+      }
+    });
+  });
+
   // Find generateImage call expressions
   root
     .find(j.CallExpression, {
@@ -73,7 +94,9 @@ export default createTransformer((fileInfo, api, options, context) => {
 
         // Extract provider name from the callee
         if (imageCall.callee.object.type === 'Identifier') {
-          providerName = imageCall.callee.object.name;
+          const localProviderName = imageCall.callee.object.name;
+          providerName =
+            importedProviderNames.get(localProviderName) ?? localProviderName;
         }
 
         // Check if there's a second argument with settings
