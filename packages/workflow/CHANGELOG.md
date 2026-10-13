@@ -1,5 +1,13 @@
 # @ai-sdk/workflow
 
+## 2.0.72
+
+### Patch Changes
+
+- 9523eb0: feat(ai): add configurable tool call execution concurrency
+- Updated dependencies [9523eb0]
+  - ai@7.0.140
+
 ## 2.0.71
 
 ### Patch Changes

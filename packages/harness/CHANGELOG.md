@@ -1,5 +1,14 @@
 # @ai-sdk/harness
 
+## 1.0.151
+
+### Patch Changes
+
+- 6c65131: feat(harness): consistently support parallel and sequential tool approvals
+- 1bebfcf: feat(harness): add support for tools with `toModelOutput()` transformation
+- Updated dependencies [9523eb0]
+  - ai@7.0.140
+
 ## 1.0.150
 
 ### Patch Changes

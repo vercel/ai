@@ -1,5 +1,15 @@
 # @ai-sdk/harness-github-copilot
 
+## 1.0.47
+
+### Patch Changes
+
+- 1bebfcf: feat(harness): add support for tools with `toModelOutput()` transformation
+- Updated dependencies [6c65131]
+- Updated dependencies [1bebfcf]
+  - @ai-sdk/harness-acp@1.0.90
+  - @ai-sdk/harness@1.0.151
+
 ## 1.0.46
 
 ### Patch Changes
