@@ -215,13 +215,8 @@ export async function prepareTools({
     isAnthropicModel &&
     !usingAnthropicTools &&
     disableParallelToolUse &&
-<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-prepare-tools.ts
     bedrockTools.length > 0 &&
-    toolChoice?.type !== 'none'
-=======
-    amazonBedrockTools.length > 0 &&
     preparedToolChoice?.type !== 'none'
->>>>>>> 4e6a98cc48 (fix: Amazon Bedrock Claude Opus 5.5 returned HTTP 400 for required and named tool choices because forced tool use is unsupported. (#21366)):packages/amazon-bedrock/src/amazon-bedrock-prepare-tools.ts
   ) {
     additionalTools = {
       tool_choice:
@@ -242,13 +237,8 @@ export async function prepareTools({
   if (
     !usingAnthropicTools &&
     additionalTools?.tool_choice == null &&
-<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-prepare-tools.ts
     bedrockTools.length > 0 &&
-    toolChoice
-=======
-    amazonBedrockTools.length > 0 &&
     preparedToolChoice
->>>>>>> 4e6a98cc48 (fix: Amazon Bedrock Claude Opus 5.5 returned HTTP 400 for required and named tool choices because forced tool use is unsupported. (#21366)):packages/amazon-bedrock/src/amazon-bedrock-prepare-tools.ts
   ) {
     const type = preparedToolChoice.type;
     switch (type) {
@@ -263,13 +253,9 @@ export async function prepareTools({
         bedrockToolChoice = undefined;
         break;
       case 'tool':
-<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-prepare-tools.ts
-        bedrockToolChoice = { tool: { name: toolChoice.toolName } };
-=======
-        amazonBedrockToolChoice = {
+        bedrockToolChoice = {
           tool: { name: preparedToolChoice.toolName },
         };
->>>>>>> 4e6a98cc48 (fix: Amazon Bedrock Claude Opus 5.5 returned HTTP 400 for required and named tool choices because forced tool use is unsupported. (#21366)):packages/amazon-bedrock/src/amazon-bedrock-prepare-tools.ts
         break;
       default: {
         const _exhaustiveCheck: never = type;

@@ -4552,7 +4552,7 @@ describe('doGenerate', () => {
       modelId: string,
       capture: RequestCapture,
     ) {
-      return new AmazonBedrockChatLanguageModel(modelId, {
+      return new BedrockChatLanguageModel(modelId, {
         baseUrl: () => baseUrl,
         headers: {},
         generateId: () => 'test-id',
