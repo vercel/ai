@@ -467,6 +467,10 @@ const transport = new LangSmithDeploymentTransport({
 
 The transport always overrides `streamMode` with `['values', 'messages']`
 because both modes are required to produce an AI SDK UI message stream.
+It also forwards the request `abortSignal` to `RemoteGraph`. If the callback
+returns its own `signal`, the transport combines both signals so either one can
+cancel the request. An already-aborted signal prevents the graph stream from
+starting.
 
 <Note>
   When the transport runs in the browser, callback inputs and returned
@@ -618,7 +622,8 @@ const { messages, sendMessage } = useChat({
   - `graphId?`: `string` - The ID of the graph to connect to (defaults to `'agent'`)
   - `prepareRemoteGraphConfig?`: `(options) => RunnableConfig | PromiseLike<RunnableConfig>` -
     Prepares request-specific LangGraph configuration. The transport preserves
-    its required `values` and `messages` stream modes.
+    its required `values` and `messages` stream modes and combines any returned
+    `signal` with the request abort signal.
 
 **Implements:** `ChatTransport`
 

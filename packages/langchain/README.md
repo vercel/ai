@@ -314,7 +314,10 @@ A `ChatTransport` implementation for LangSmith/LangGraph deployments.
 including `chatId`, `messages`, `trigger`, `messageId`, `body`, `metadata`,
 `headers`, and `abortSignal`. Request body and metadata fields are not forwarded
 automatically. The transport always uses the `values` and `messages` stream
-modes required by the adapter.
+modes required by the adapter. It forwards the request `abortSignal` to
+`RemoteGraph`; when the callback also returns a `signal`, both are combined so
+either one can cancel the request. An already-aborted signal prevents the graph
+stream from starting.
 
 **Implements:** `ChatTransport`
 

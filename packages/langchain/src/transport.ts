@@ -20,6 +20,21 @@ export type PrepareRemoteGraphConfig<UI_MESSAGE extends UIMessage> = (
   options: Parameters<ChatTransport<UI_MESSAGE>['sendMessages']>[0],
 ) => RunnableConfig | PromiseLike<RunnableConfig>;
 
+function mergeAbortSignals(
+  first: AbortSignal | undefined,
+  second: AbortSignal | undefined,
+): AbortSignal | undefined {
+  if (first == null) {
+    return second;
+  }
+
+  if (second == null || first === second) {
+    return first;
+  }
+
+  return AbortSignal.any([first, second]);
+}
+
 /**
  * Options for configuring a LangSmith deployment transport.
  * Extends RemoteGraphParams but makes graphId optional (defaults to 'agent').
@@ -37,7 +52,8 @@ export type LangSmithDeploymentTransportOptions<
    * Prepares LangChain runnable configuration for each `sendMessages` call.
    *
    * Use this to map request-specific chat context to LangGraph configuration,
-   * such as a thread ID, tracing metadata, or tags.
+   * such as a thread ID, tracing metadata, or tags. A returned abort signal is
+   * combined with the request abort signal.
    */
   prepareRemoteGraphConfig?: PrepareRemoteGraphConfig<UI_MESSAGE>;
 };
@@ -87,13 +103,20 @@ export class LangSmithDeploymentTransport<
       abortSignal: AbortSignal | undefined;
     } & ChatRequestOptions,
   ): Promise<ReadableStream<UIMessageChunk>> {
+    options.abortSignal?.throwIfAborted();
+
     const baseMessages = await toBaseMessages(options.messages);
+    options.abortSignal?.throwIfAborted();
+
     const config = await this.prepareRemoteGraphConfig?.(options);
+    const signal = mergeAbortSignals(options.abortSignal, config?.signal);
+    signal?.throwIfAborted();
 
     const stream = await this.graph.stream(
       { messages: baseMessages },
       {
         ...config,
+        ...(signal == null ? {} : { signal }),
         // These modes are required by toUIMessageStream.
         streamMode: ['values', 'messages'],
       },

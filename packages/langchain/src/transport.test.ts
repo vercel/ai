@@ -180,6 +180,111 @@ describe('LangSmithDeploymentTransport', () => {
     });
   });
 
+  it('forwards the request abort signal to RemoteGraph', async () => {
+    const transport = new LangSmithDeploymentTransport({
+      url: 'https://test.langsmith.app',
+    });
+    const stream = mockGraphStream(transport);
+    const controller = new AbortController();
+
+    await transport.sendMessages({
+      trigger: 'submit-message',
+      chatId: 'chat-a',
+      messageId: undefined,
+      messages,
+      abortSignal: controller.signal,
+    });
+
+    expect(stream.mock.calls[0]?.[1]).toEqual({
+      signal: controller.signal,
+      streamMode: ['values', 'messages'],
+    });
+  });
+
+  it('does not call RemoteGraph for an already-aborted request', async () => {
+    const error = new Error('request aborted');
+    const prepareRemoteGraphConfig = vi.fn(() => ({
+      configurable: { thread_id: 'thread-a' },
+    }));
+    const transport = new LangSmithDeploymentTransport({
+      url: 'https://test.langsmith.app',
+      prepareRemoteGraphConfig,
+    });
+    const stream = mockGraphStream(transport);
+    const controller = new AbortController();
+    controller.abort(error);
+
+    await expect(
+      transport.sendMessages({
+        trigger: 'submit-message',
+        chatId: 'chat-a',
+        messageId: undefined,
+        messages,
+        abortSignal: controller.signal,
+      }),
+    ).rejects.toBe(error);
+    expect(prepareRemoteGraphConfig).not.toHaveBeenCalled();
+    expect(stream).not.toHaveBeenCalled();
+  });
+
+  it.each(['request', 'prepared'] as const)(
+    'composes request and prepared abort signals when the %s signal aborts',
+    async source => {
+      const preparedController = new AbortController();
+      const transport = new LangSmithDeploymentTransport({
+        url: 'https://test.langsmith.app',
+        prepareRemoteGraphConfig: () => ({
+          signal: preparedController.signal,
+        }),
+      });
+      const stream = mockGraphStream(transport);
+      const requestController = new AbortController();
+
+      await transport.sendMessages({
+        trigger: 'submit-message',
+        chatId: 'chat-a',
+        messageId: undefined,
+        messages,
+        abortSignal: requestController.signal,
+      });
+
+      const signal = stream.mock.calls[0]?.[1].signal as AbortSignal;
+      const error = new Error(`${source} aborted`);
+      const controller =
+        source === 'request' ? requestController : preparedController;
+      controller.abort(error);
+
+      expect(signal).not.toBe(requestController.signal);
+      expect(signal).not.toBe(preparedController.signal);
+      expect(signal.aborted).toBe(true);
+      expect(signal.reason).toBe(error);
+    },
+  );
+
+  it('does not call RemoteGraph when a prepared signal is already aborted', async () => {
+    const error = new Error('prepared signal aborted');
+    const controller = new AbortController();
+    controller.abort(error);
+    const transport = new LangSmithDeploymentTransport({
+      url: 'https://test.langsmith.app',
+      prepareRemoteGraphConfig: () => ({
+        signal: controller.signal,
+      }),
+    });
+    const stream = mockGraphStream(transport);
+
+    await expect(
+      transport.sendMessages({
+        trigger: 'submit-message',
+        chatId: 'chat-a',
+        messageId: undefined,
+        messages,
+        abortSignal: undefined,
+      }),
+    ).rejects.toBe(error);
+    expect(stream).not.toHaveBeenCalled();
+  });
+
   it('does not call RemoteGraph when configuration preparation fails', async () => {
     const error = new Error('configuration failed');
     const transport = new LangSmithDeploymentTransport({
