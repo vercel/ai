@@ -1420,7 +1420,7 @@ export async function createPiSession(
         stage = 'prompting';
         await session.prompt(turnOpts.text);
 
-        const terminalError = turnState.turnError;
+        const terminalError = turnState.lastAssistantError;
         if (terminalError) throw new Error(terminalError);
 
         const tokensAfter = session.getSessionStats().tokens;

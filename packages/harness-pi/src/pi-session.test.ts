@@ -713,6 +713,74 @@ describe('createPiSession', () => {
     }
   });
 
+  it('reports the error of a turn whose retries all failed', async () => {
+    const failed = {
+      role: 'assistant',
+      content: [],
+      stopReason: 'error',
+      errorMessage:
+        '529 {"type":"error","error":{"type":"overloaded_error","message":"Overloaded"}}',
+      usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    };
+    piMock.session = createFakePiSession({
+      promptEvents: [
+        { type: 'agent_start' },
+        { type: 'turn_start' },
+        { type: 'message_start', message: failed },
+        { type: 'message_end', message: failed },
+        { type: 'turn_end', message: failed },
+        { type: 'agent_end', messages: [], willRetry: true },
+        {
+          type: 'auto_retry_start',
+          attempt: 1,
+          maxAttempts: 1,
+          delayMs: 2000,
+          errorMessage: failed.errorMessage,
+        },
+        { type: 'agent_start' },
+        { type: 'turn_start' },
+        { type: 'message_start', message: failed },
+        { type: 'message_end', message: failed },
+        {
+          type: 'auto_retry_end',
+          success: false,
+          attempt: 1,
+          finalError: failed.errorMessage,
+        },
+        { type: 'turn_end', message: failed },
+        { type: 'agent_end', messages: [], willRetry: false },
+      ],
+    }).session;
+    const session = await createPiSession({
+      sessionId: 'session-retries-exhausted',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+      settings: {},
+      clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+      isResume: false,
+    });
+
+    try {
+      const emit = vi.fn();
+      const control = await session.doPromptTurn({
+        skills: [],
+        prompt: 'Where do coffee beans come from?',
+        tools: [],
+        emit,
+      });
+      await control.done;
+
+      const parts = emit.mock.calls.map(([part]) => part);
+      expect(parts.map(part => part.type)).not.toContain('finish');
+      expect(parts.at(-1)).toMatchObject({
+        type: 'error',
+        error: new Error(failed.errorMessage),
+      });
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
   it('does not report a terminal error from a turn cut by its own suspension', async () => {
     const started = createDeferred<void>();
     const aborted = createDeferred<void>();

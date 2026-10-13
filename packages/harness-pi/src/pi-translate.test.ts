@@ -623,7 +623,7 @@ describe('translatePiEvent', () => {
       ],
       state,
     );
-    expect(state.turnError).toBe('529 overloaded_error');
+    expect(state.lastAssistantError).toBe('529 overloaded_error');
 
     const answer = {
       role: 'assistant',
@@ -640,7 +640,7 @@ describe('translatePiEvent', () => {
       ],
       state,
     );
-    expect(state.turnError).toBeUndefined();
+    expect(state.lastAssistantError).toBeUndefined();
     expect(parts.map(part => part.type)).toEqual(['finish-step']);
   });
 

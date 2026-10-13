@@ -53,13 +53,11 @@ export interface PiTranslatorState {
   /** Pi's session stats do not track reasoning. */
   turnReasoningTokens: number | undefined;
   /**
-   * Terminal error of the most recent assistant message, or undefined when
-   * that message ended normally. Pi retries a failed request itself (rate
-   * limits, overloads, a context overflow after compaction), and the failed
-   * attempt still reports `stopReason: 'error'`, so the last assistant message
-   * decides the turn's outcome rather than the first error seen.
+   * Pi retries a failed request itself (rate limits, overloads, a context
+   * overflow after compaction), and the failed attempt still reports
+   * `stopReason: 'error'`.
    */
-  turnError: string | undefined;
+  lastAssistantError: string | undefined;
   /**
    * Tool-call id → the exact output value the host submitted for a
    * user-registered (host-executed) tool. Pi only echoes the tool result back
@@ -117,7 +115,7 @@ export function createPiTranslatorState(
     stepOpen: false,
     stepUsage: undefined,
     turnReasoningTokens: undefined,
-    turnError: undefined,
+    lastAssistantError: undefined,
     hostToolResults: new Map(),
     dynamicToolCalls: new Map(),
     builtinToolNames: new Set(options.builtinToolNames),
@@ -496,7 +494,7 @@ export function translatePiEvent(
       }
       if (event.type === 'message_end') {
         if (event.message?.role === 'assistant') {
-          state.turnError = getPiTerminalError(event);
+          state.lastAssistantError = getPiTerminalError(event);
         }
         const usage =
           event.message?.role === 'assistant' ? event.message.usage : undefined;
