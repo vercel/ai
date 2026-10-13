@@ -618,12 +618,20 @@ describe('experimental_streamTranscribe', () => {
 
   it('should emit telemetry events with the consumed audio byte count', async () => {
     const events: Array<{ type: string; event: unknown }> = [];
+    const audioStream = convertArrayToReadableStream([
+      new Uint8Array([1, 2, 3]),
+      'BAU=',
+    ]);
     const result = streamTranscribe({
       model: new MockTranscriptionModelV4({
         doStream: async ({ audio }) => {
           const reader = audio.getReader();
-          while (!(await reader.read()).done) {
-            // consume the complete input
+          try {
+            while (!(await reader.read()).done) {
+              // consume the complete input
+            }
+          } finally {
+            reader.releaseLock();
           }
           return createStreamResponse([
             { type: 'stream-start', warnings: [] },
@@ -637,7 +645,7 @@ describe('experimental_streamTranscribe', () => {
           ]);
         },
       }),
-      audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3]), 'BAU=']),
+      audio: audioStream,
       inputAudioFormat,
       telemetry: {
         functionId: 'stream-audio',
@@ -679,5 +687,102 @@ describe('experimental_streamTranscribe', () => {
         },
       },
     ]);
+    expect(audioStream.locked).toBe(false);
+  });
+
+  it('should release the original audio stream when a telemetry-counted source errors', async () => {
+    const error = new Error('audio source failed');
+    const audioStream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.error(error);
+      },
+    });
+
+    const result = streamTranscribe({
+      model: new MockTranscriptionModelV4({
+        doStream: async ({ audio }) => {
+          const reader = audio.getReader();
+          try {
+            while (!(await reader.read()).done) {
+              // consume the complete input
+            }
+          } finally {
+            reader.releaseLock();
+          }
+          return createStreamResponse([]);
+        },
+      }),
+      audio: audioStream,
+      inputAudioFormat,
+      telemetry: {
+        integrations: {
+          experimental_onStreamTranscriptionEnd: vi.fn(),
+        },
+      },
+    });
+
+    await expect(convertAsyncIterableToArray(result.fullStream)).rejects.toBe(
+      error,
+    );
+    expect(audioStream.locked).toBe(false);
+  });
+
+  it('should release the original audio stream when telemetry-counted audio is cancelled', async () => {
+    let audioCancelled = false;
+    let audioCleanup: Promise<void> | undefined;
+    const audioStream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new Uint8Array([1, 2, 3]));
+      },
+      cancel() {
+        audioCancelled = true;
+      },
+    });
+
+    const result = streamTranscribe({
+      model: new MockTranscriptionModelV4({
+        doStream: async ({ audio, abortSignal }) => {
+          const audioReader = audio.getReader();
+          await audioReader.read();
+          abortSignal?.addEventListener(
+            'abort',
+            () => {
+              audioCleanup = audioReader
+                .cancel(abortSignal.reason)
+                .finally(() => audioReader.releaseLock());
+            },
+            { once: true },
+          );
+
+          return {
+            stream: new ReadableStream<TranscriptionModelV4StreamPart>({
+              start(controller) {
+                controller.enqueue({
+                  type: 'transcript-delta',
+                  id: 'item-1',
+                  delta: 'Hello',
+                });
+              },
+            }),
+          };
+        },
+      }),
+      audio: audioStream,
+      inputAudioFormat,
+      telemetry: {
+        integrations: {
+          experimental_onStreamTranscriptionEnd: vi.fn(),
+        },
+      },
+    });
+
+    const reader = result.fullStream.getReader();
+    await reader.read();
+    await reader.cancel('consumer cancelled');
+    await vi.waitFor(() => expect(audioCleanup).toBeDefined());
+    await audioCleanup;
+
+    expect(audioCancelled).toBe(true);
+    expect(audioStream.locked).toBe(false);
   });
 });
