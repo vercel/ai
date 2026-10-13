@@ -52,6 +52,46 @@ const result = await generateText({
 Tool calling is not restricted to only text generation.
 You can also use it to render user interfaces (Generative UI).
 
+## Tool-Call Batch Output Budget Warnings
+
+When a model generates two or more tool calls in one step, serializing the
+batch can consume most of the model's output-token budget. If the provider
+reports output usage at or above 80% of an explicit `maxOutputTokens` value,
+`generateText` and `streamText` add a provider-neutral
+`tool-call-batch-output-budget` warning.
+
+```ts
+const result = await generateText({
+  model: __MODEL__,
+  tools,
+  maxOutputTokens: 256,
+  prompt: 'Check every location in the itinerary.',
+});
+
+for (const warning of result.warnings ?? []) {
+  if (warning.type === 'tool-call-batch-output-budget') {
+    console.warn('Tool-call batch may be truncated', {
+      maxOutputTokens: warning.maxOutputTokens,
+      outputTokens: warning.outputTokens,
+      outputTokenUtilization: warning.outputTokenUtilization,
+      toolCallCount: warning.toolCallCount,
+      stepNumber: warning.stepNumber,
+      finishReason: warning.finishReason,
+    });
+  }
+}
+```
+
+For `streamText`, access `await result.warnings` after the stream completes.
+The warning is included in the completed step and result; it is not emitted as
+a separate stream part.
+
+This warning is a heuristic because token accounting and tool-call
+serialization vary by provider and model. It is only available when you set
+`maxOutputTokens` and the provider reports output-token usage. To reduce the
+risk, increase `maxOutputTokens`, request fewer parallel tool calls, or reduce
+the size of tool inputs.
+
 ## Dynamic Descriptions
 
 Tool descriptions can be fixed strings or functions. Use a function when the

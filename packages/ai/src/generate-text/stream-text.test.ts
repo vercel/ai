@@ -7039,6 +7039,71 @@ describe('streamText', () => {
   });
 
   describe('result.warnings', () => {
+    it('should add a structured warning using the step output budget', async () => {
+      const providerWarning = {
+        type: 'other' as const,
+        message: 'provider warning',
+      };
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'stream-start',
+                warnings: [providerWarning],
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{}',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-2',
+                toolName: 'tool1',
+                input: '{}',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'length', raw: 'length' },
+                usage: {
+                  ...testUsage,
+                  outputTokens: {
+                    total: 32,
+                    text: 32,
+                    reasoning: undefined,
+                  },
+                },
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({}),
+          }),
+        },
+        maxOutputTokens: 100,
+        prepareStep: () => ({ maxOutputTokens: 32 }),
+        prompt: 'call the tool twice',
+      });
+
+      expect(await result.warnings).toEqual([
+        providerWarning,
+        {
+          type: 'tool-call-batch-output-budget',
+          maxOutputTokens: 32,
+          outputTokens: 32,
+          outputTokenUtilization: 1,
+          toolCallCount: 2,
+          stepNumber: 0,
+          finishReason: 'length',
+        },
+      ]);
+      expect((await result.finalStep).warnings).toEqual(await result.warnings);
+    });
+
     it('should resolve with warnings', async () => {
       const result = streamText({
         model: createTestModel({

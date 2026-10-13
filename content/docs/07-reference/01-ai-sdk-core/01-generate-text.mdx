@@ -1899,7 +1899,7 @@ To see `generateText` in action, check out [these examples](#examples).
               name: 'warnings',
               type: 'CallWarning[] | undefined',
               description:
-                'Warnings from the model provider (e.g. unsupported settings).',
+                'Provider warnings and AI SDK diagnostics (e.g. unsupported settings or tool-call batch output-budget risk).',
             },
             {
               name: 'request',
@@ -2329,7 +2329,7 @@ To see `generateText` in action, check out [these examples](#examples).
               name: 'warnings',
               type: 'CallWarning[] | undefined',
               description:
-                'Warnings from the model provider (e.g. unsupported settings) in all steps.',
+                'Provider warnings and AI SDK diagnostics from all steps.',
             },
             {
               name: 'request',
@@ -2835,9 +2835,8 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'warnings',
-      type: 'Warning[] | undefined',
-      description:
-        'Warnings from the model provider (e.g. unsupported settings) in all steps.',
+      type: 'CallWarning[] | undefined',
+      description: 'Provider warnings and AI SDK diagnostics from all steps.',
     },
     {
       name: 'responseMessages',
@@ -3134,9 +3133,9 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'warnings',
-              type: 'Warning[] | undefined',
+              type: 'CallWarning[] | undefined',
               description:
-                'Warnings from the model provider (e.g. unsupported settings).',
+                'Provider warnings and AI SDK diagnostics (e.g. unsupported settings or tool-call batch output-budget risk).',
             },
             {
               name: 'request',

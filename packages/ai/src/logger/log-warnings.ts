@@ -1,4 +1,4 @@
-import type { Warning } from '../types';
+import type { CallWarning } from '../types';
 import { getDeprecationCode } from './deprecations';
 
 /**
@@ -15,9 +15,9 @@ import { getDeprecationCode } from './deprecations';
  */
 export type LogWarningsFunction = (options: {
   /**
-   * The warnings returned by the model provider.
+   * Provider warnings and AI SDK diagnostics.
    */
-  warnings: Warning[];
+  warnings: CallWarning[];
 
   /**
    * The provider id used for the call, if scoped to a specific provider.
@@ -44,7 +44,7 @@ function formatWarning({
   provider,
   model,
 }: {
-  warning: Warning;
+  warning: CallWarning;
   provider?: string;
   model?: string;
 }): string {
@@ -75,6 +75,15 @@ function formatWarning({
 
     case 'other': {
       return `${prefix} ${warning.message}`;
+    }
+
+    case 'tool-call-batch-output-budget': {
+      return (
+        `${prefix} A batch of ${warning.toolCallCount} tool calls consumed ` +
+        `${warning.outputTokens} of ${warning.maxOutputTokens} configured ` +
+        `output tokens in step ${warning.stepNumber}, which may truncate the ` +
+        `batch. Increase maxOutputTokens or reduce the number or size of tool calls.`
+      );
     }
 
     default: {

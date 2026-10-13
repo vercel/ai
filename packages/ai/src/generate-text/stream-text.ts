@@ -2,7 +2,6 @@ import {
   getErrorMessage,
   UnsupportedFunctionalityError,
   type LanguageModelV4,
-  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   asArray,
@@ -105,6 +104,7 @@ import type {
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
 } from './generate-text-events';
+import { getToolCallBatchOutputBudgetWarning } from './get-tool-call-batch-output-budget-warning';
 import { invokeToolCallbacksFromStream } from './invoke-tool-callbacks-from-stream';
 import type {
   OnLanguageModelCallEndCallback,
@@ -1368,6 +1368,7 @@ class DefaultStreamTextResult<
     let currentStepMessages: Array<ModelMessage> = [];
     let isAborted = false;
     let currentStepModel = model;
+    let currentStepMaxOutputTokens: number | undefined;
 
     // provider-assigned text/reasoning part IDs are only unique within a
     // single model call (e.g. Anthropic uses the content block index, which
@@ -1610,6 +1611,24 @@ class DefaultStreamTextResult<
         }
 
         if (part.type === 'finish-step') {
+          const toolCallBatchOutputBudgetWarning =
+            getToolCallBatchOutputBudgetWarning({
+              maxOutputTokens: currentStepMaxOutputTokens,
+              outputTokens: part.usage.outputTokens,
+              toolCallCount: recordedContent.filter(
+                contentPart => contentPart.type === 'tool-call',
+              ).length,
+              stepNumber: recordedSteps.length,
+              finishReason: part.finishReason,
+            });
+
+          if (toolCallBatchOutputBudgetWarning != null) {
+            recordedWarnings = [
+              ...recordedWarnings,
+              toolCallBatchOutputBudgetWarning,
+            ];
+          }
+
           const stepResponseMessages = await toResponseMessages({
             content: recordedContent,
             tools,
@@ -2377,6 +2396,7 @@ class DefaultStreamTextResult<
             callSettings,
             stepSettings: prepareStepResult,
           });
+          currentStepMaxOutputTokens = stepCallSettings.maxOutputTokens;
 
           const stepStartTimestampMs = now();
 
@@ -2725,7 +2745,7 @@ class DefaultStreamTextResult<
           const stepToolCalls: TypedToolCall<TOOLS>[] = [];
           const stepToolOutputs: ToolOutput<TOOLS>[] = [];
           const stepToolApprovalResponses: ToolApprovalResponse[] = [];
-          let warnings: SharedV4Warning[] | undefined;
+          let warnings: CallWarning[] | undefined;
 
           let stepFinishReason: FinishReason = 'other';
           let stepRawFinishReason: string | undefined = undefined;

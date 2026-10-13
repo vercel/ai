@@ -18,13 +18,37 @@ import {
 } from '../generate-text';
 import type { Instructions, Prompt } from '../prompt';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
-import type { LanguageModelRequestMetadata, ProviderMetadata } from '../types';
+import type {
+  LanguageModelRequestMetadata,
+  ProviderMetadata,
+  ToolCallBatchOutputBudgetWarning,
+} from '../types';
 import type { LanguageModelUsage } from '../types/usage';
 import type { GenerateTextEndEvent } from './generate-text-events';
 import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
 
 describe('generateText types', () => {
+  describe('warnings', () => {
+    it('should expose structured tool-call batch output budget warnings', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+      });
+
+      for (const warning of result.warnings ?? []) {
+        if (warning.type === 'tool-call-batch-output-budget') {
+          expectTypeOf(
+            warning,
+          ).toEqualTypeOf<ToolCallBatchOutputBudgetWarning>();
+          expectTypeOf(warning.maxOutputTokens).toEqualTypeOf<number>();
+          expectTypeOf(warning.outputTokens).toEqualTypeOf<number>();
+          expectTypeOf(warning.toolCallCount).toEqualTypeOf<number>();
+        }
+      }
+    });
+  });
+
   describe('onLanguageModelCallEnd', () => {
     it('should expose provider metadata', async () => {
       await generateText({

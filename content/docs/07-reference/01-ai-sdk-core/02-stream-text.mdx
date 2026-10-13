@@ -1649,9 +1649,9 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'warnings',
-              type: 'Warning[] | undefined',
+              type: 'CallWarning[] | undefined',
               description:
-                'Warnings from the model provider (e.g. unsupported settings).',
+                'Provider warnings and AI SDK diagnostics (e.g. unsupported settings or tool-call batch output-budget risk).',
             },
             {
               name: 'response',
@@ -2005,9 +2005,9 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'warnings',
-              type: 'Warning[] | undefined',
+              type: 'CallWarning[] | undefined',
               description:
-                'Warnings from the model provider (e.g. unsupported settings).',
+                'Provider warnings and AI SDK diagnostics (e.g. unsupported settings or tool-call batch output-budget risk).',
             },
             {
               name: 'response',
@@ -3028,9 +3028,9 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'warnings',
-      type: 'Promise<Warning[] | undefined>',
+      type: 'Promise<CallWarning[] | undefined>',
       description:
-        'Warnings from the model provider (e.g. unsupported settings) in all steps.',
+        'Provider warnings and AI SDK diagnostics from all steps. Tool-call batch output-budget warnings are available after the stream completes.',
     },
     {
       name: 'responseMessages',
@@ -3313,9 +3313,9 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'warnings',
-              type: 'Warning[] | undefined',
+              type: 'CallWarning[] | undefined',
               description:
-                'Warnings from the model provider (e.g. unsupported settings).',
+                'Provider warnings and AI SDK diagnostics (e.g. unsupported settings or tool-call batch output-budget risk).',
             },
             {
               name: 'isContinued',
@@ -3647,9 +3647,9 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'warnings',
-              type: 'Warning[]',
+              type: 'CallWarning[]',
               description:
-                'Warnings from the model provider (e.g. unsupported settings).',
+                'Provider warnings and AI SDK diagnostics (e.g. unsupported settings or tool-call batch output-budget risk).',
             },
           ],
         },
