@@ -62,6 +62,7 @@
   },
   "devDependencies": {
     "@ai-sdk/amazon-bedrock": "workspace:*",
+    "@ai-sdk/anthropic": "workspace:*",
     "@ai-sdk/deepseek": "workspace:*",
     "@ai-sdk/google": "workspace:*",
     "@ai-sdk/groq": "workspace:*",
