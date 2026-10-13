@@ -29948,6 +29948,11 @@ describe('streamText', () => {
           { value: 'value' },
           expect.objectContaining({
             abortSignal: undefined,
+            approval: {
+              approvalId: 'id-1',
+              approved: true,
+              reason: 'trusted internal tool',
+            },
             toolCallId: 'call-1',
             messages: expect.any(Array),
           }),

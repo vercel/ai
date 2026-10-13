@@ -6,6 +6,7 @@ import {
   type InferToolInput,
   type InferToolSetContext,
   type ModelMessage,
+  type ToolExecutionApproval,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import {
@@ -46,6 +47,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   toolsContext,
   callId,
   messages,
+  approval,
   abortSignal,
   timeout,
   experimental_sandbox: sandbox,
@@ -59,6 +61,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   tools: TOOLS | undefined;
   callId: string;
   messages: ModelMessage[];
+  approval?: ToolExecutionApproval;
   abortSignal: AbortSignal | undefined;
   toolsContext: InferToolSetContext<TOOLS>;
   timeout?: TimeoutConfiguration<TOOLS>;
@@ -137,6 +140,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
                   toolCallId,
                   messages,
                   abortSignal: toolAbortSignal,
+                  approval,
                   context,
                   experimental_sandbox: sandbox,
                 },

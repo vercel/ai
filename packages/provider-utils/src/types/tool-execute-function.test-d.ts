@@ -3,6 +3,7 @@ import type { Context } from './context';
 import type { ModelMessage } from './model-message';
 import type { SandboxSession } from './sandbox';
 import type {
+  ToolExecutionApproval,
   ToolExecuteFunction,
   ToolExecutionOptions,
 } from './tool-execute-function';
@@ -13,8 +14,17 @@ describe('tool execute function types', () => {
       toolCallId: string;
       messages: ModelMessage[];
       abortSignal?: AbortSignal;
+      approval?: ToolExecutionApproval;
       context: { requestId: string };
       experimental_sandbox?: SandboxSession;
+    }>();
+  });
+
+  it('should expose approved execution metadata', () => {
+    expectTypeOf<ToolExecutionApproval>().toEqualTypeOf<{
+      approvalId: string;
+      approved: true;
+      reason?: string;
     }>();
   });
 

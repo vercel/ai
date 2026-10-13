@@ -2079,6 +2079,13 @@ class DefaultStreamTextResult<
             localApprovedToolApprovals.map(async toolApproval => {
               const result = await executeToolCall({
                 toolCall: toolApproval.toolCall,
+                approval: {
+                  approvalId: toolApproval.approvalResponse.approvalId,
+                  approved: true,
+                  ...(toolApproval.approvalResponse.reason != null
+                    ? { reason: toolApproval.approvalResponse.reason }
+                    : {}),
+                },
                 tools,
                 callId,
                 messages: initialMessages,

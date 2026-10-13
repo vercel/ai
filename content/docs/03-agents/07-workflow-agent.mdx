@@ -833,6 +833,25 @@ Use the `approvalId` from the returned `tool-approval-request` and the user's `a
 
 Local tools execute only after approval validation; denied tools produce an execution-denied result. Provider-executed approvals are forwarded to the provider. Tools that wait on Workflow hooks can also suspend and resume during generation.
 
+After validation succeeds, a local tool can read the authorizing decision from
+the second `execute` argument:
+
+```ts
+execute: async (input, { approval }) => {
+  await recordApproval({
+    approvalId: approval?.approvalId,
+    reason: approval?.reason,
+  });
+
+  return performAction(input);
+};
+```
+
+The metadata is `{ approvalId, approved: true, reason? }` and is omitted for
+calls that did not use an approval flow. It is execution metadata rather than
+tool input, is not automatically forwarded to the model, and should not be
+treated as proof that a human approved the call.
+
 #### Deadlines, cancellation, and replay
 
 Inside a workflow, `timeout` sets an absolute deadline for model calls. Each model step checks it before dispatch, before SDK retry attempts, and after the provider returns. The same deadline remains in effect after a tool suspends and resumes. SDK `maxRetries` governs model retries; the durable model step does not add another retry layer. Expiration before dispatch rejects with `TimeoutError`; expiration during SDK retry backoff rejects with `AbortError`. Neither starts a new retry.

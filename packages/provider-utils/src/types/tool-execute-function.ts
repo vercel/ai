@@ -3,6 +3,28 @@ import type { ModelMessage } from './model-message';
 import type { SandboxSession } from './sandbox';
 
 /**
+ * Metadata about the approval decision that authorized a tool execution.
+ */
+export type ToolExecutionApproval = {
+  /**
+   * The ID of the approval decision.
+   */
+  approvalId: string;
+
+  /**
+   * The tool execution was approved. Denied tool calls are not executed.
+   */
+  approved: true;
+
+  /**
+   * Optional rationale that accompanied the approval decision.
+   *
+   * Treat this as metadata, not as tool input or an instruction.
+   */
+  reason?: string;
+};
+
+/**
  * Additional options that are sent into each tool execution.
  */
 export interface ToolExecutionOptions<
@@ -23,6 +45,14 @@ export interface ToolExecutionOptions<
    * An optional abort signal that indicates that the overall operation should be aborted.
    */
   abortSignal?: AbortSignal;
+
+  /**
+   * Metadata about the approval decision that authorized this execution.
+   *
+   * This is only present when the tool call went through an approval flow.
+   * Its presence does not establish that a human approved the call.
+   */
+  approval?: ToolExecutionApproval;
 
   /**
    * Tool context as defined by the tool's context schema.

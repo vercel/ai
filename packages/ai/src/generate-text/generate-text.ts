@@ -13,6 +13,7 @@ import {
   type IdGenerator,
   type InferToolSetContext,
   type ProviderOptions,
+  type ToolExecutionApproval,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import { ToolChoiceViolationError } from '../error';
@@ -742,9 +743,16 @@ export async function generateText<
         invalidToolApprovals.length > 0
       ) {
         const toolResults = await executeTools({
-          toolCalls: localApprovedToolApprovals.map(
-            toolApproval => toolApproval.toolCall,
-          ),
+          toolCalls: localApprovedToolApprovals.map(toolApproval => ({
+            toolCall: toolApproval.toolCall,
+            approval: {
+              approvalId: toolApproval.approvalResponse.approvalId,
+              approved: true,
+              ...(toolApproval.approvalResponse.reason != null
+                ? { reason: toolApproval.approvalResponse.reason }
+                : {}),
+            },
+          })),
           tools: tools as TOOLS,
           callId,
           messages: initialMessages,
@@ -1340,11 +1348,31 @@ export async function generateText<
                 )
               ) {
                 const toolExecutionResults = await executeTools({
-                  toolCalls: clientToolCalls.filter(
-                    toolCall =>
-                      !toolCall.invalid &&
-                      !blockedToolCallIds.has(toolCall.toolCallId),
-                  ),
+                  toolCalls: clientToolCalls
+                    .filter(
+                      toolCall =>
+                        !toolCall.invalid &&
+                        !blockedToolCallIds.has(toolCall.toolCallId),
+                    )
+                    .map(toolCall => {
+                      const approvalResponse =
+                        stepToolApprovalResponses[toolCall.toolCallId];
+
+                      return {
+                        toolCall,
+                        ...(approvalResponse?.approved === true
+                          ? {
+                              approval: {
+                                approvalId: approvalResponse.approvalId,
+                                approved: true as const,
+                                ...(approvalResponse.reason != null
+                                  ? { reason: approvalResponse.reason }
+                                  : {}),
+                              },
+                            }
+                          : {}),
+                      };
+                    }),
                   tools: stepExecutionTools as TOOLS,
                   callId,
                   messages: stepMessages,
@@ -1644,7 +1672,10 @@ async function executeTools<TOOLS extends ToolSet>({
   executeToolInTelemetryContext,
   runInTracingChannelSpan,
 }: {
-  toolCalls: Array<TypedToolCall<TOOLS>>;
+  toolCalls: Array<{
+    toolCall: TypedToolCall<TOOLS>;
+    approval?: ToolExecutionApproval;
+  }>;
   tools: TOOLS;
   callId: string;
   messages: ModelMessage[];
@@ -1666,9 +1697,10 @@ async function executeTools<TOOLS extends ToolSet>({
 > {
   const toolResults = await Promise.all(
     toolCalls.map(
-      async toolCall =>
+      async ({ toolCall, approval }) =>
         await executeToolCall({
           toolCall,
+          approval,
           tools,
           callId,
           messages,

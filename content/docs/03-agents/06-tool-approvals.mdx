@@ -206,6 +206,24 @@ const finalResult = await agent.generate({ messages });
 
 If approved, the tool runs on the second call. If denied, the model receives the denial and can respond without the tool result.
 
+The approved tool receives the matched decision as `options.approval`:
+
+```ts
+execute: async (input, { approval }) => {
+  await recordApproval({
+    approvalId: approval?.approvalId,
+    reason: approval?.reason,
+  });
+
+  return performAction(input);
+};
+```
+
+The property is `{ approvalId, approved: true, reason? }` for manual and
+automatic approvals. It is omitted for `not-applicable` calls, and denied calls
+do not execute. Approval metadata is not added to the tool input or model
+prompt, and its presence does not prove that a human approved the call.
+
 <Note>
   When a tool execution is denied, consider adding an instruction such as "When
   a tool execution is not approved, do not retry it" to prevent repeated

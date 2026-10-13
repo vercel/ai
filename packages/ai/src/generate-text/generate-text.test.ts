@@ -11945,6 +11945,10 @@ describe('generateText', () => {
           { value: 'value' },
           expect.objectContaining({
             abortSignal: undefined,
+            approval: {
+              approvalId: 'id-1',
+              approved: true,
+            },
             toolCallId: 'call-1',
             messages: expect.any(Array),
           }),
@@ -13128,6 +13132,11 @@ describe('generateText', () => {
           { value: 'value' },
           expect.objectContaining({
             abortSignal: undefined,
+            approval: {
+              approvalId: 'id-1',
+              approved: true,
+              reason: 'trusted internal tool',
+            },
             toolCallId: 'call-1',
             messages: expect.any(Array),
           }),
@@ -13341,16 +13350,45 @@ describe('generateText', () => {
                   approvalId: 'id-1',
                   type: 'tool-approval-response',
                   approved: true,
+                  reason: 'approved first call',
                 },
                 {
                   approvalId: 'id-2',
                   type: 'tool-approval-response',
                   approved: true,
+                  reason: 'approved second call',
                 },
               ],
             },
           ],
         });
+      });
+
+      it('should associate each approval with its matching parallel tool call', () => {
+        expect(executeFunction).toHaveBeenNthCalledWith(
+          1,
+          { value: 'value1' },
+          expect.objectContaining({
+            toolCallId: 'call-1',
+            approval: {
+              approvalId: 'id-1',
+              approved: true,
+              reason: 'approved first call',
+            },
+          }),
+        );
+        expect(executeFunction).toHaveBeenNthCalledWith(
+          2,
+          { value: 'value2' },
+          expect.objectContaining({
+            toolCallId: 'call-2',
+            approval: {
+              approvalId: 'id-2',
+              approved: true,
+              reason: 'approved second call',
+            },
+          }),
+        );
       });
 
       it('should call the model with a prompt that includes the tool results', async () => {

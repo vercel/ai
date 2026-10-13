@@ -55,6 +55,7 @@ export {
   type ToolCallerTool as Experimental_ToolCallerTool,
 } from './tool-caller';
 export type {
+  ToolExecutionApproval,
   ToolExecuteFunction,
   ToolExecutionOptions,
 } from './tool-execute-function';

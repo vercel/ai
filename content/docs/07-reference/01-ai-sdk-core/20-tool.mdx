@@ -143,6 +143,13 @@ export const weatherTool = tool({
                         'An optional abort signal that indicates that the overall operation should be aborted.',
                     },
                     {
+                      name: 'approval',
+                      type: '{ approvalId: string; approved: true; reason?: string }',
+                      isOptional: true,
+                      description:
+                        'Metadata about the approval decision that authorized this execution. Omitted when the tool call did not go through an approval flow.',
+                    },
+                    {
                       name: 'context',
                       type: 'CONTEXT',
                       description:

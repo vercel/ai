@@ -31,6 +31,7 @@ export {
   type Tool,
   type ToolApprovalRequest,
   type ToolApprovalResponse,
+  type ToolExecutionApproval,
   type ToolExecuteFunction,
   type ToolExecutionOptions,
   type ToolSet,
