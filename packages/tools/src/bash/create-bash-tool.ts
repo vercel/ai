@@ -33,6 +33,7 @@ function limitOutput(output: string, maxLength: number): string {
  *
  * The caller owns the sandbox's lifecycle. Tools using the same session share
  * its files. Available commands and persistence depend on the sandbox.
+ * Returns the tool; use the supplied sandbox for file access.
  *
  * @param sandbox - Sandbox session used for commands and file operations.
  * @param files - UTF-8 files to initialize, relative to `workingDirectory`.
@@ -51,12 +52,11 @@ export async function createBashTool({
   files?: Record<string, string>;
   workingDirectory?: string;
   maxOutputLength?: number;
-}): Promise<{
-  bash: Tool<BashInput, BashOutput, {}> & {
+}): Promise<
+  Tool<BashInput, BashOutput, {}> & {
     execute: ToolExecuteFunction<BashInput, BashOutput, {}>;
-  };
-  sandbox: { readFile: (path: string) => Promise<string> };
-}> {
+  }
+> {
   if (!Number.isSafeInteger(maxOutputLength) || maxOutputLength < 1) {
     throw new InvalidArgumentError({
       parameter: 'maxOutputLength',
@@ -108,39 +108,27 @@ export async function createBashTool({
     await sandbox.writeTextFile(file);
   }
 
-  return {
-    bash: tool<BashInput, BashOutput, {}>({
-      description:
-        'Run Bash commands in the sandbox. ' +
-        `Every command starts in ${workingDirectory}. ` +
-        'Use ls to discover files and commands such as cat, grep, sort, awk, ' +
-        'and jq to inspect and transform them. Pipes and redirections are supported. ' +
-        'Returns stdout, stderr, and exitCode; long output is truncated.\n' +
-        sandbox.description,
-      inputSchema,
-      execute: async ({ command }, { abortSignal }) => {
-        const { stdout, stderr, exitCode } = await sandbox.run({
-          command,
-          workingDirectory,
-          abortSignal,
-        });
+  return tool<BashInput, BashOutput, {}>({
+    description:
+      'Run Bash commands in the sandbox. ' +
+      `Every command starts in ${workingDirectory}. ` +
+      'Use ls to discover files and commands such as cat, grep, sort, awk, ' +
+      'and jq to inspect and transform them. Pipes and redirections are supported. ' +
+      'Returns stdout, stderr, and exitCode; long output is truncated.\n' +
+      sandbox.description,
+    inputSchema,
+    execute: async ({ command }, { abortSignal }) => {
+      const { stdout, stderr, exitCode } = await sandbox.run({
+        command,
+        workingDirectory,
+        abortSignal,
+      });
 
-        return {
-          stdout: limitOutput(stdout, maxOutputLength),
-          stderr: limitOutput(stderr, maxOutputLength),
-          exitCode,
-        };
-      },
-    }),
-    sandbox: {
-      /** Read a generated UTF-8 file by its absolute sandbox path. */
-      readFile: async (path: string) => {
-        const content = await sandbox.readTextFile({ path });
-        if (content === null) {
-          throw new Error(`File not found: ${path}`);
-        }
-        return content;
-      },
+      return {
+        stdout: limitOutput(stdout, maxOutputLength),
+        stderr: limitOutput(stderr, maxOutputLength),
+        exitCode,
+      };
     },
-  };
+  });
 }

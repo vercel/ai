@@ -32,8 +32,9 @@ import { generateText, isStepCount } from 'ai';
 const session = await createJustBashNetworkSandboxSession();
 
 try {
-  const { bash, sandbox } = await createBashTool({
-    sandbox: session.restricted(),
+  const sandbox = session.restricted();
+  const bash = await createBashTool({
+    sandbox,
     files: { 'notes.txt': 'Apples: 10\nPears: 20\n' },
   });
 
@@ -45,7 +46,7 @@ try {
   });
 
   console.log(result.text);
-  console.log(await sandbox.readFile('/workspace/summary.txt'));
+  console.log(await sandbox.readTextFile({ path: '/workspace/summary.txt' }));
 } finally {
   await session.destroy();
 }
@@ -64,7 +65,7 @@ import { Sandbox } from '@vercel/sandbox';
 const nativeSandbox = await Sandbox.create();
 
 try {
-  const { bash } = await createBashTool({
+  const bash = await createBashTool({
     sandbox: createVercelSandboxSessionFromNativeSandbox(nativeSandbox),
     workingDirectory: '/vercel/sandbox/workspace',
     files: { 'notes.txt': 'Hello from Vercel Sandbox' },
@@ -112,7 +113,7 @@ Tools using the same session share files. Creating a tool does not reset existin
 files or create a new sandbox. Use separate sessions for independent workflows.
 The caller creates, reconnects, and destroys the sandbox.
 
-The returned `sandbox.readFile(path)` handle reads generated UTF-8 text and throws
-if the file is missing. You can also use the supplied session's
-`readTextFile({ path })`, which returns `null` for a missing file, and its other
-file operations. The returned handle is not exposed as a model tool.
+`createBashTool()` returns the tool directly, ready to use as `tools: { bash }`.
+Use the supplied sandbox's `readTextFile({ path })` to read generated text files;
+it returns `null` if the file is missing. The same session provides other file
+operations. File initialization completes before the factory returns.

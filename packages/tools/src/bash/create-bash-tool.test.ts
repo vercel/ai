@@ -14,7 +14,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createBashTool } from './create-bash-tool';
 
 async function execute(
-  bash: Awaited<ReturnType<typeof createBashTool>>['bash'],
+  bash: Awaited<ReturnType<typeof createBashTool>>,
   command: string,
 ) {
   return bash.execute(
@@ -52,7 +52,7 @@ describe('createBashTool', () => {
       writeBinaryFile: vi.fn(),
       spawn: vi.fn(),
     };
-    const { bash, sandbox } = await createBashTool({
+    const bash = await createBashTool({
       sandbox: session,
       workingDirectory: '/app',
       files: { 'nested/input.txt': 'input' },
@@ -79,10 +79,6 @@ describe('createBashTool', () => {
       workingDirectory: '/app',
       abortSignal,
     });
-    expect(await sandbox.readFile('/app/report.txt')).toBe('report');
-    expect(session.readTextFile).toHaveBeenCalledWith({
-      path: '/app/report.txt',
-    });
   });
 
   it('works with the Vercel Sandbox adapter', async () => {
@@ -98,7 +94,7 @@ describe('createBashTool', () => {
       writeFiles,
       readFileToBuffer: vi.fn().mockResolvedValue(Buffer.from('report')),
     } as unknown as VercelNativeSandboxSession;
-    const { bash, sandbox } = await createBashTool({
+    const bash = await createBashTool({
       sandbox: createVercelSandboxSessionFromNativeSandbox(nativeSandbox),
       workingDirectory: '/vercel/sandbox/workspace',
       files: { 'input.txt': 'input' },
@@ -122,9 +118,6 @@ describe('createBashTool', () => {
       args: ['-c', 'cat input.txt'],
       cwd: '/vercel/sandbox/workspace',
     });
-    expect(await sandbox.readFile('/vercel/sandbox/workspace/report.txt')).toBe(
-      'report',
-    );
   });
 
   it('shares files across tools using the same session without resetting them', async () => {
@@ -133,9 +126,14 @@ describe('createBashTool', () => {
       sandbox: session,
       files: { 'input.txt': 'hello' },
     });
-    await execute(first.bash, 'cp input.txt report.txt');
+    await execute(first, 'cp input.txt report.txt');
     const second = await createBashTool({ sandbox: session });
-    expect(await second.sandbox.readFile('/workspace/report.txt')).toBe(
+    expect(await execute(second, 'cat report.txt')).toEqual({
+      stdout: 'hello',
+      stderr: '',
+      exitCode: 0,
+    });
+    expect(await session.readTextFile({ path: '/workspace/report.txt' })).toBe(
       'hello',
     );
   });
@@ -143,7 +141,7 @@ describe('createBashTool', () => {
   it.each(['/custom/work/', "/tmp/it's $(echo literal)", '/'])(
     'initializes and executes in a custom working directory: %s',
     async workingDirectory => {
-      const { bash } = await createBashTool({
+      const bash = await createBashTool({
         sandbox: await createSandbox(),
         workingDirectory,
         files: { 'input.txt': 'hello' },
@@ -180,7 +178,7 @@ describe('createBashTool', () => {
   });
 
   it('propagates an aborted command', async () => {
-    const { bash } = await createBashTool({ sandbox: await createSandbox() });
+    const bash = await createBashTool({ sandbox: await createSandbox() });
     const controller = new AbortController();
     controller.abort(new Error('Cancelled'));
     await expect(
@@ -197,15 +195,16 @@ describe('createBashTool', () => {
   });
 
   it('executes pipelines against supplied files and exposes generated files', async () => {
-    const { bash, sandbox } = await createBashTool({
-      sandbox: await createSandbox(),
+    const sandbox = await createSandbox();
+    const bash = await createBashTool({
+      sandbox,
       files: { 'data/words.txt': 'pear\napple\npear\n' },
     });
 
     expect(
       await execute(bash, 'cat data/words.txt | sort | uniq > report.txt'),
     ).toEqual({ stdout: '', stderr: '', exitCode: 0 });
-    expect(await sandbox.readFile('/workspace/report.txt')).toBe(
+    expect(await sandbox.readTextFile({ path: '/workspace/report.txt' })).toBe(
       'apple\npear\n',
     );
     expect(await execute(bash, 'cat report.txt')).toEqual({
@@ -219,9 +218,9 @@ describe('createBashTool', () => {
     const first = await createBashTool({ sandbox: await createSandbox() });
     const second = await createBashTool({ sandbox: await createSandbox() });
 
-    await execute(first.bash, 'echo private > private.txt');
+    await execute(first, 'echo private > private.txt');
 
-    expect(await execute(second.bash, 'test -e private.txt')).toEqual({
+    expect(await execute(second, 'test -e private.txt')).toEqual({
       stdout: '',
       stderr: '',
       exitCode: 1,
@@ -229,7 +228,7 @@ describe('createBashTool', () => {
   });
 
   it('resets shell state between calls while preserving files', async () => {
-    const { bash } = await createBashTool({ sandbox: await createSandbox() });
+    const bash = await createBashTool({ sandbox: await createSandbox() });
 
     await execute(
       bash,
@@ -245,7 +244,7 @@ describe('createBashTool', () => {
   });
 
   it('preserves stderr and nonzero exit codes for model recovery', async () => {
-    const { bash } = await createBashTool({ sandbox: await createSandbox() });
+    const bash = await createBashTool({ sandbox: await createSandbox() });
 
     expect(
       await execute(bash, 'echo partial; echo failure >&2; exit 7'),
@@ -253,7 +252,7 @@ describe('createBashTool', () => {
   });
 
   it('applies the configured output limit to both streams', async () => {
-    const { bash } = await createBashTool({
+    const bash = await createBashTool({
       sandbox: await createSandbox(),
       maxOutputLength: 4,
     });
@@ -268,7 +267,7 @@ describe('createBashTool', () => {
   });
 
   it('uses the default output limit', async () => {
-    const { bash } = await createBashTool({
+    const bash = await createBashTool({
       sandbox: await createSandbox(),
       files: { 'large.txt': 'x'.repeat(30_001) },
     });
@@ -281,7 +280,7 @@ describe('createBashTool', () => {
   });
 
   it('leaves output at the limit unchanged', async () => {
-    const { bash } = await createBashTool({
+    const bash = await createBashTool({
       sandbox: await createSandbox(),
       maxOutputLength: 4,
     });
@@ -315,26 +314,19 @@ describe('createBashTool', () => {
   );
 
   it('initializes paths containing spaces and shell metacharacters literally', async () => {
-    const { sandbox } = await createBashTool({
-      sandbox: await createSandbox(),
+    const sandbox = await createSandbox();
+    await createBashTool({
+      sandbox,
       files: { 'nested/a $(echo b).txt': 'literal path' },
     });
 
-    expect(await sandbox.readFile('/workspace/nested/a $(echo b).txt')).toBe(
-      'literal path',
-    );
-  });
-
-  it('rejects reads of missing generated files', async () => {
-    const { sandbox } = await createBashTool({
-      sandbox: await createSandbox(),
-    });
-
-    await expect(sandbox.readFile('/workspace/missing.txt')).rejects.toThrow();
+    expect(
+      await sandbox.readTextFile({ path: '/workspace/nested/a $(echo b).txt' }),
+    ).toBe('literal path');
   });
 
   it('executes as a function tool in the standard AI SDK loop', async () => {
-    const { bash } = await createBashTool({
+    const bash = await createBashTool({
       sandbox: await createSandbox(),
       files: { 'message.txt': 'hello from bash' },
     });

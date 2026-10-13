@@ -7,7 +7,8 @@ run(async () => {
   const session = await createJustBashNetworkSandboxSession();
 
   try {
-    const { bash, sandbox } = await createBashTool({
+    const sandbox = session.restricted();
+    const bash = await createBashTool({
       sandbox: session.restricted(),
       files: {
         'sales.json': JSON.stringify([
@@ -28,8 +29,8 @@ run(async () => {
         'What is our total sales revenue? Write a short summary to report.md.',
     });
 
-    console.log(result.text);
-    console.log(await sandbox.readFile('/workspace/report.md'));
+    console.log(JSON.stringify(result.content, null, 2));
+    console.log(await sandbox.readTextFile({ path: '/workspace/report.md' }));
   } finally {
     await session.destroy();
   }

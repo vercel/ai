@@ -31,8 +31,9 @@ import { generateText, isStepCount } from 'ai';
 const session = await createJustBashNetworkSandboxSession();
 
 try {
-  const { bash, sandbox } = await createBashTool({
-    sandbox: session.restricted(),
+  const sandbox = session.restricted();
+  const bash = await createBashTool({
+    sandbox,
     files: { 'notes.txt': 'Apples: 10\nPears: 20\n' },
   });
 
@@ -44,11 +45,14 @@ try {
   });
 
   console.log(result.text);
-  console.log(await sandbox.readFile('/workspace/summary.txt'));
+  console.log(await sandbox.readTextFile({ path: '/workspace/summary.txt' }));
 } finally {
   await session.destroy();
 }
 ```
+
+`createBashTool()` returns the tool directly. Read generated files through the
+supplied sandbox using `readTextFile({ path })`, which returns `null` if missing.
 
 The caller owns the sandbox lifecycle. Tools sharing a session share files.
 Initial files are relative to `workingDirectory` (default: `/workspace`), which
@@ -67,7 +71,7 @@ import { Sandbox } from '@vercel/sandbox';
 const nativeSandbox = await Sandbox.create();
 
 try {
-  const { bash } = await createBashTool({
+  const bash = await createBashTool({
     sandbox: createVercelSandboxSessionFromNativeSandbox(nativeSandbox),
     workingDirectory: '/vercel/sandbox/workspace',
     files: { 'notes.txt': 'Hello from Vercel Sandbox' },
