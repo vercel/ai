@@ -15,8 +15,6 @@ export default createTransformer((fileInfo, api, options, context) => {
 
   // Track variable names that store results from AI methods
   const aiResultVariables = new Set<string>();
-  // Track destructured rawResponse variable names and their new names
-  const destructuredMapping = new Map<string, string>();
 
   // Find variable declarations from AI method calls
   root.find(j.VariableDeclarator).forEach(path => {
@@ -34,75 +32,19 @@ export default createTransformer((fileInfo, api, options, context) => {
       if (id.type === 'Identifier') {
         aiResultVariables.add(id.name);
       } else if (id.type === 'ObjectPattern') {
-        // Check if both response and rawResponse are present
-        const hasResponse = id.properties.some(
-          prop =>
-            (prop.type === 'Property' || prop.type === 'ObjectProperty') &&
-            prop.key.type === 'Identifier' &&
-            prop.key.name === 'response',
-        );
-
-        let rawResponseVarName: string | null = null;
-
-        // First pass: find rawResponse and track its variable name
         id.properties.forEach(prop => {
           if (
             (prop.type === 'Property' || prop.type === 'ObjectProperty') &&
             prop.key.type === 'Identifier' &&
-            prop.key.name === 'rawResponse' &&
-            prop.value.type === 'Identifier'
+            prop.key.name === 'rawResponse'
           ) {
-            rawResponseVarName = prop.value.name;
+            prop.key.name = 'response';
+            if (prop.shorthand) {
+              prop.shorthand = false;
+            }
+            context.hasChanges = true;
           }
         });
-
-        // Second pass: handle the transformation
-        if (hasResponse && rawResponseVarName) {
-          // If response already exists, remove rawResponse and map its variable to 'response'
-          id.properties = id.properties.filter(
-            prop =>
-              !(
-                (prop.type === 'Property' || prop.type === 'ObjectProperty') &&
-                prop.key.type === 'Identifier' &&
-                prop.key.name === 'rawResponse'
-              ),
-          );
-
-          // Find the response variable name to map rawResponse variable to it
-          const responseProp = id.properties.find(
-            prop =>
-              (prop.type === 'Property' || prop.type === 'ObjectProperty') &&
-              prop.key.type === 'Identifier' &&
-              prop.key.name === 'response',
-          ) as any;
-
-          if (
-            responseProp &&
-            responseProp.value &&
-            responseProp.value.type === 'Identifier'
-          ) {
-            destructuredMapping.set(
-              rawResponseVarName,
-              responseProp.value.name,
-            );
-          }
-          context.hasChanges = true;
-        } else {
-          // If response doesn't exist, rename rawResponse to response
-          id.properties.forEach(prop => {
-            if (
-              (prop.type === 'Property' || prop.type === 'ObjectProperty') &&
-              prop.key.type === 'Identifier' &&
-              prop.key.name === 'rawResponse' &&
-              prop.value.type === 'Identifier'
-            ) {
-              context.hasChanges = true;
-              prop.key.name = 'response';
-              // Track the destructured variable name mapping
-              destructuredMapping.set(prop.value.name, 'response');
-            }
-          });
-        }
       }
     }
 
@@ -116,69 +58,19 @@ export default createTransformer((fileInfo, api, options, context) => {
       if (id.type === 'Identifier') {
         aiResultVariables.add(id.name);
       } else if (id.type === 'ObjectPattern') {
-        // Similar logic for streaming methods
-        const hasResponse = id.properties.some(
-          prop =>
-            (prop.type === 'Property' || prop.type === 'ObjectProperty') &&
-            prop.key.type === 'Identifier' &&
-            prop.key.name === 'response',
-        );
-
-        let rawResponseVarName: string | null = null;
-
         id.properties.forEach(prop => {
           if (
             (prop.type === 'Property' || prop.type === 'ObjectProperty') &&
             prop.key.type === 'Identifier' &&
-            prop.key.name === 'rawResponse' &&
-            prop.value.type === 'Identifier'
+            prop.key.name === 'rawResponse'
           ) {
-            rawResponseVarName = prop.value.name;
+            prop.key.name = 'response';
+            if (prop.shorthand) {
+              prop.shorthand = false;
+            }
+            context.hasChanges = true;
           }
         });
-
-        if (hasResponse && rawResponseVarName) {
-          id.properties = id.properties.filter(
-            prop =>
-              !(
-                (prop.type === 'Property' || prop.type === 'ObjectProperty') &&
-                prop.key.type === 'Identifier' &&
-                prop.key.name === 'rawResponse'
-              ),
-          );
-
-          const responseProp = id.properties.find(
-            prop =>
-              (prop.type === 'Property' || prop.type === 'ObjectProperty') &&
-              prop.key.type === 'Identifier' &&
-              prop.key.name === 'response',
-          ) as any;
-
-          if (
-            responseProp &&
-            responseProp.value &&
-            responseProp.value.type === 'Identifier'
-          ) {
-            destructuredMapping.set(
-              rawResponseVarName,
-              responseProp.value.name,
-            );
-          }
-          context.hasChanges = true;
-        } else {
-          id.properties.forEach(prop => {
-            if (
-              (prop.type === 'Property' || prop.type === 'ObjectProperty') &&
-              prop.key.type === 'Identifier' &&
-              prop.key.name === 'rawResponse' &&
-              prop.value.type === 'Identifier'
-            ) {
-              context.hasChanges = true;
-              prop.key.name = 'response';
-              destructuredMapping.set(prop.value.name, 'response');
-            }
-          });
-        }
       }
     }
   });
@@ -236,36 +128,6 @@ export default createTransformer((fileInfo, api, options, context) => {
         context.hasChanges = true;
         property.name = 'response';
       }
-    }
-  });
-
-  // Transform identifiers that were destructured as rawResponse
-  root.find(j.Identifier).forEach(path => {
-    const varName = path.node.name;
-    if (varName && destructuredMapping.has(varName)) {
-      // Check if this identifier should be transformed
-      const parent = path.parent;
-
-      // Don't transform if it's a property key in an object
-      if (
-        (parent.value.type === 'Property' ||
-          parent.value.type === 'ObjectProperty') &&
-        parent.value.key === path.node
-      ) {
-        return;
-      }
-
-      // Don't transform if it's in a variable declarator pattern (already handled)
-      if (
-        parent.value.type === 'VariableDeclarator' &&
-        parent.value.id === path.node
-      ) {
-        return;
-      }
-
-      // Transform the identifier
-      context.hasChanges = true;
-      path.node.name = destructuredMapping.get(varName)!;
     }
   });
 });
