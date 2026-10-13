@@ -452,26 +452,46 @@ function createByteCountingStream(
   onChunk: (byteLength: number) => void,
 ): ReadableStream<Uint8Array | string> {
   let audioReader: ReadableStreamDefaultReader<Uint8Array | string> | undefined;
+  const releaseAudioReader = (
+    reader: ReadableStreamDefaultReader<Uint8Array | string>,
+  ) => {
+    if (audioReader === reader) {
+      reader.releaseLock();
+      audioReader = undefined;
+    }
+  };
 
   return new ReadableStream<Uint8Array | string>({
     async pull(controller) {
       audioReader ??= audio.getReader();
-      const { done, value } = await audioReader.read();
-      if (done) {
-        controller.close();
-        return;
-      }
+      const reader = audioReader;
+      try {
+        const { done, value } = await reader.read();
+        if (done) {
+          releaseAudioReader(reader);
+          controller.close();
+          return;
+        }
 
-      onChunk(
-        typeof value === 'string'
-          ? getBase64ByteLength(value)
-          : value.byteLength,
-      );
-      controller.enqueue(value);
+        onChunk(
+          typeof value === 'string'
+            ? getBase64ByteLength(value)
+            : value.byteLength,
+        );
+        controller.enqueue(value);
+      } catch (error) {
+        releaseAudioReader(reader);
+        throw error;
+      }
     },
     async cancel(reason) {
       if (audioReader != null) {
-        await audioReader.cancel(reason);
+        const reader = audioReader;
+        try {
+          await reader.cancel(reason);
+        } finally {
+          releaseAudioReader(reader);
+        }
       } else {
         await audio.cancel(reason);
       }
