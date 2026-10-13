@@ -19,11 +19,6 @@ export function getTextFromDataUrl(dataUrl: string): string {
   }
 
   try {
-<<<<<<< HEAD
-    return atob(base64Content);
-  } catch (error) {
-    throw new Error(`Error decoding data URL`);
-=======
     const byteString = atob(base64Content);
 
     if (charset == null) {
@@ -33,12 +28,7 @@ export function getTextFromDataUrl(dataUrl: string): string {
     return new TextDecoder(charset).decode(
       Uint8Array.from(byteString, byte => byte.codePointAt(0)!),
     );
-  } catch {
-    throw new InvalidArgumentError({
-      parameter: 'dataUrl',
-      value: dataUrl,
-      message: 'Error decoding data URL',
-    });
->>>>>>> c415657d17 (fix: preserve Unicode text when decoding base64 data URLs with a declared charset (#21115))
+  } catch (error) {
+    throw new Error(`Error decoding data URL`);
   }
 }
