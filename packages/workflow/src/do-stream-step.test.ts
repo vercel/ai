@@ -106,6 +106,34 @@ describe('doStreamStep', () => {
     });
   });
 
+  it('uses model URL support when invoking a custom downloader', async () => {
+    const fileUrl = new URL('https://example.com/file.pdf');
+    const urlPrompt = [
+      {
+        role: 'user' as const,
+        content: [
+          {
+            type: 'file' as const,
+            data: { type: 'url' as const, url: fileUrl },
+            mediaType: 'application/pdf',
+          },
+        ],
+      },
+    ];
+    const download = vi.fn(async () => [null]);
+    const model = new MockLanguageModelV4({
+      doStream: async () => successfulStream(),
+      supportedUrls: { 'application/pdf': [/.*/] },
+    });
+
+    await doStreamStep(urlPrompt, model, undefined, undefined, { download });
+
+    expect(download).toHaveBeenCalledWith([
+      { url: fileUrl, isUrlSupportedByModel: true },
+    ]);
+    expect(model.doStreamCalls[0].prompt).toEqual(urlPrompt);
+  });
+
   it('preserves reasoning text and provider metadata as one content part', async () => {
     const providerMetadata = {
       anthropic: { signature: 'reasoning-signature' },

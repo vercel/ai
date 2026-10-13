@@ -1,5 +1,17 @@
 # @ai-sdk/harness-codex
 
+## 1.0.151
+
+### Patch Changes
+
+- 4d3c555: fix(harness-codex): preserve failed native MCP calls as error tool results
+- Updated dependencies [9667bf2]
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/provider@4.0.27
+  - @ai-sdk/harness@1.0.149
+
 ## 1.0.150
 
 ### Patch Changes

@@ -276,6 +276,32 @@ function finishEvents(): HarnessV1StreamPart[] {
   ];
 }
 
+function twoStepEvents(): HarnessV1StreamPart[] {
+  return [
+    { type: 'text-start', id: 'first' },
+    { type: 'text-delta', id: 'first', delta: 'First' },
+    { type: 'text-end', id: 'first' },
+    {
+      type: 'finish-step',
+      finishReason: { unified: 'tool-calls', raw: 'tool_use' },
+      usage: zeroUsage(),
+    },
+    { type: 'text-start', id: 'second' },
+    { type: 'text-delta', id: 'second', delta: 'Second' },
+    { type: 'text-end', id: 'second' },
+    {
+      type: 'finish-step',
+      finishReason: { unified: 'stop', raw: 'end_turn' },
+      usage: zeroUsage(),
+    },
+    {
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'end_turn' },
+      totalUsage: zeroUsage(),
+    },
+  ];
+}
+
 function makeLifecycleSession(options: {
   underlyingSession?: Partial<HarnessV1Session>;
   sandboxSessionOverrides?: Partial<HarnessV1NetworkSandboxSession>;
@@ -1649,6 +1675,144 @@ describe('HarnessAgent', () => {
     await session.destroy();
   });
 
+  test('preserves response message order across tool and text steps', async () => {
+    const harness = {
+      specificationVersion: 'harness-v1',
+      harnessId: 'mock',
+      builtinTools: {},
+      async doStart() {
+        return {
+          sessionId: 'mock-session-1',
+          isResume: false,
+          async doPromptTurn({
+            emit,
+          }: {
+            emit: (event: HarnessV1StreamPart) => void;
+          }) {
+            let resolveDone!: () => void;
+            const done = new Promise<void>(resolve => {
+              resolveDone = resolve;
+            });
+
+            queueMicrotask(() => {
+              emit({
+                type: 'tool-call',
+                toolCallId: 'lookup-call',
+                toolName: 'lookup',
+                input: '{}',
+              });
+            });
+
+            return {
+              done,
+              async submitToolApproval() {},
+              async submitToolResult({
+                toolCallId,
+                output,
+              }: {
+                toolCallId: string;
+                output: unknown;
+              }) {
+                if (typeof output !== 'number') {
+                  throw new Error('lookup must return a number');
+                }
+                for (const event of [
+                  {
+                    type: 'tool-result',
+                    toolCallId,
+                    toolName: 'lookup',
+                    result: output,
+                  },
+                  {
+                    type: 'finish-step',
+                    finishReason: {
+                      unified: 'tool-calls',
+                      raw: 'tool_calls',
+                    },
+                    usage: zeroUsage(),
+                  },
+                  {
+                    type: 'text-delta',
+                    id: 'answer',
+                    delta: 'The answer is 42.',
+                  },
+                  {
+                    type: 'finish-step',
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                    usage: zeroUsage(),
+                  },
+                  {
+                    type: 'finish',
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                    totalUsage: zeroUsage(),
+                  },
+                ] satisfies HarnessV1StreamPart[]) {
+                  emit(event);
+                }
+                resolveDone();
+              },
+            };
+          },
+          async doDestroy() {},
+        };
+      },
+    } as unknown as HarnessV1;
+    const agent = new HarnessAgent({
+      harness,
+      tools: {
+        lookup: tool({
+          inputSchema: z.object({}),
+          execute: async () => 42,
+        }),
+      },
+    });
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
+
+    const result = await agent.generate({ session, prompt: 'Look it up' });
+
+    expect(result.steps).toHaveLength(2);
+    expect(result.responseMessages).toEqual([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'lookup-call',
+            toolName: 'lookup',
+            input: {},
+            providerExecuted: undefined,
+            providerOptions: undefined,
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'lookup-call',
+            toolName: 'lookup',
+            output: { type: 'json', value: 42 },
+          },
+        ],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'text',
+            text: 'The answer is 42.',
+            providerOptions: undefined,
+          },
+        ],
+      },
+    ]);
+
+    await session.destroy();
+  });
+
   test('reports whether typed output is configured', () => {
     const { harness } = mockHarness({ script: () => [] });
     const textAgent = new HarnessAgent({
@@ -1869,6 +2033,194 @@ describe('HarnessAgent', () => {
     expect(types).toContain('finish-step');
     expect(types).toContain('finish');
     expect(await result.text).toBe('Hi');
+
+    await session.destroy();
+  });
+
+  test.each([
+    {
+      name: 'direct UI stream forwards onStepEnd',
+      response: false,
+      useOnStepEnd: true,
+      useOnStepFinish: false,
+      expectedOnStepEndCalls: 2,
+      expectedOnStepFinishCalls: 0,
+    },
+    {
+      name: 'response UI stream forwards onStepEnd',
+      response: true,
+      useOnStepEnd: true,
+      useOnStepFinish: false,
+      expectedOnStepEndCalls: 2,
+      expectedOnStepFinishCalls: 0,
+    },
+    {
+      name: 'direct UI stream forwards deprecated onStepFinish',
+      response: false,
+      useOnStepEnd: false,
+      useOnStepFinish: true,
+      expectedOnStepEndCalls: 0,
+      expectedOnStepFinishCalls: 2,
+    },
+    {
+      name: 'response UI stream forwards deprecated onStepFinish',
+      response: true,
+      useOnStepEnd: false,
+      useOnStepFinish: true,
+      expectedOnStepEndCalls: 0,
+      expectedOnStepFinishCalls: 2,
+    },
+    {
+      name: 'direct UI stream prefers onStepEnd over onStepFinish',
+      response: false,
+      useOnStepEnd: true,
+      useOnStepFinish: true,
+      expectedOnStepEndCalls: 2,
+      expectedOnStepFinishCalls: 0,
+    },
+    {
+      name: 'response UI stream prefers onStepEnd over onStepFinish',
+      response: true,
+      useOnStepEnd: true,
+      useOnStepFinish: true,
+      expectedOnStepEndCalls: 2,
+      expectedOnStepFinishCalls: 0,
+    },
+  ])(
+    '$name',
+    async ({
+      response,
+      useOnStepEnd,
+      useOnStepFinish,
+      expectedOnStepEndCalls,
+      expectedOnStepFinishCalls,
+    }) => {
+      const { harness } = mockHarness({ script: twoStepEvents });
+      const agent = new HarnessAgent({ harness });
+      const session = await agent.createSession({
+        sandboxSession: makeSandboxSession(),
+      });
+      const result = await agent.stream({ session, prompt: 'two steps' });
+      const onStepEnd = vi.fn(async () => {});
+      const onStepFinish = vi.fn(async () => {});
+      let finishedSteps = 0;
+
+      if (response) {
+        const body = await result
+          .toUIMessageStreamResponse({
+            onStepEnd: useOnStepEnd ? onStepEnd : undefined,
+            onStepFinish: useOnStepFinish ? onStepFinish : undefined,
+          })
+          .text();
+        finishedSteps = body
+          .split('\n')
+          .filter(line => line.includes('"type":"finish-step"')).length;
+      } else {
+        for await (const chunk of result.toUIMessageStream({
+          onStepEnd: useOnStepEnd ? onStepEnd : undefined,
+          onStepFinish: useOnStepFinish ? onStepFinish : undefined,
+        })) {
+          if (chunk.type === 'finish-step') {
+            finishedSteps++;
+          }
+        }
+      }
+
+      expect(finishedSteps).toBe(2);
+      expect(onStepEnd).toHaveBeenCalledTimes(expectedOnStepEndCalls);
+      expect(onStepFinish).toHaveBeenCalledTimes(expectedOnStepFinishCalls);
+      await session.destroy();
+    },
+  );
+  test('stream() exposes reasoning from the final step', async () => {
+    const { harness } = mockHarness({
+      script: () => [
+        { type: 'reasoning-start', id: 'r1' },
+        { type: 'reasoning-delta', id: 'r1', delta: 'First thought.' },
+        { type: 'reasoning-end', id: 'r1' },
+        {
+          type: 'finish-step',
+          finishReason: { unified: 'tool-calls', raw: 'tool_use' },
+          usage: zeroUsage(),
+        },
+        { type: 'reasoning-start', id: 'r2' },
+        { type: 'reasoning-delta', id: 'r2', delta: 'Final thought.' },
+        { type: 'reasoning-end', id: 'r2' },
+        { type: 'text-start', id: 't1' },
+        { type: 'text-delta', id: 't1', delta: 'Answer.' },
+        { type: 'text-end', id: 't1' },
+        {
+          type: 'finish-step',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          usage: zeroUsage(),
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          totalUsage: zeroUsage(),
+        },
+      ],
+    });
+
+    const agent = new HarnessAgent({ harness });
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
+    const result = await agent.stream({ session, prompt: 'think' });
+
+    const streamedReasoning: string[] = [];
+    for await (const part of result.fullStream) {
+      if (part.type === 'reasoning-delta') {
+        streamedReasoning.push(part.text);
+      }
+    }
+
+    expect(streamedReasoning).toEqual(['First thought.', 'Final thought.']);
+    await expect(result.reasoning).resolves.toEqual([
+      { type: 'reasoning', text: 'Final thought.' },
+    ]);
+    await expect(result.reasoningText).resolves.toBe('Final thought.');
+
+    const steps = await result.steps;
+    expect(steps.map(step => step.reasoningText)).toEqual([
+      'First thought.',
+      'Final thought.',
+    ]);
+    expect(await result.reasoning).toEqual((await result.finalStep).reasoning);
+    expect(await result.reasoningText).toBe(
+      (await result.finalStep).reasoningText,
+    );
+
+    await session.destroy();
+  });
+
+  test('stream() exposes empty reasoning accessors when no reasoning is emitted', async () => {
+    const { harness } = mockHarness({
+      script: () => [
+        { type: 'text-start', id: 't1' },
+        { type: 'text-delta', id: 't1', delta: 'Answer.' },
+        { type: 'text-end', id: 't1' },
+        {
+          type: 'finish-step',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          usage: zeroUsage(),
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          totalUsage: zeroUsage(),
+        },
+      ],
+    });
+
+    const agent = new HarnessAgent({ harness });
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
+    const result = await agent.stream({ session, prompt: 'answer' });
+
+    await expect(result.reasoning).resolves.toEqual([]);
+    await expect(result.reasoningText).resolves.toBeUndefined();
 
     await session.destroy();
   });
