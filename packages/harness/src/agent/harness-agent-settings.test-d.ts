@@ -4,9 +4,11 @@ import { HarnessAgent } from './harness-agent';
 import type { HarnessAllTools } from './harness-agent-tool-types';
 import {
   tool,
+  type Context,
   type SystemModelMessage,
   type Tool,
 } from '@ai-sdk/provider-utils';
+import type { GenericToolApprovalFunction } from 'ai';
 import { describe, expectTypeOf, test } from 'vitest';
 import { z } from 'zod/v4';
 
@@ -51,6 +53,41 @@ const sandbox = undefined as never as HarnessV1SandboxProvider;
 type Settings = HarnessAgentSettings<typeof harness, typeof userTools>;
 
 describe('HarnessAgentSettings tool filtering types', () => {
+  test('toolApproval accepts a generic approval callback for user tools', () => {
+    type RuntimeContext = { tenantId: string };
+    const toolApproval: GenericToolApprovalFunction<
+      typeof userTools,
+      Context,
+      RuntimeContext
+    > = ({ toolCall, tools, toolsContext, runtimeContext, messages }) => {
+      if (!toolCall.dynamic && toolCall.toolName === 'echo') {
+        expectTypeOf(toolCall.input).toEqualTypeOf<{ value: string }>();
+      }
+      expectTypeOf(tools).toEqualTypeOf<typeof userTools | undefined>();
+      expectTypeOf(toolsContext).toEqualTypeOf<Context>();
+      expectTypeOf(runtimeContext).toEqualTypeOf<RuntimeContext>();
+      expectTypeOf(messages).not.toBeAny();
+      return !toolCall.dynamic &&
+        toolCall.toolName === 'echo' &&
+        toolCall.input.value === 'blocked'
+        ? 'denied'
+        : undefined;
+    };
+    const settings: HarnessAgentSettings<
+      typeof harness,
+      typeof userTools,
+      RuntimeContext
+    > = {
+      harness,
+      tools: userTools,
+      toolApproval,
+    };
+
+    expectTypeOf(settings).toMatchTypeOf<
+      HarnessAgentSettings<typeof harness, typeof userTools, RuntimeContext>
+    >();
+  });
+
   test('rejects toolsContext when no tool declares context', () => {
     const settings: Settings = {
       harness,
