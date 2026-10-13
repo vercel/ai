@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22698,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22698-async-completion-on-finish.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22698-async-completion-on-finish.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22698_REPRODUCED: async onFinish rejection was unhandled and bypassed onError/setError"
+  }
+}
