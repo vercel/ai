@@ -177,22 +177,23 @@ function runCodemods(
   }
 
   log(`${versionLabel} codemods complete.`);
+  return allErrors;
 }
 
 export function upgradeV4(options: TransformOptions) {
-  runCodemods(v4Bundle, options, 'v4');
+  return runCodemods(v4Bundle, options, 'v4');
 }
 
 export function upgradeV5(options: TransformOptions) {
-  runCodemods(v5Bundle, options, 'v5');
+  return runCodemods(v5Bundle, options, 'v5');
 }
 
 export function upgradeV6(options: TransformOptions) {
-  runCodemods(v6Bundle, options, 'v6');
+  return runCodemods(v6Bundle, options, 'v6');
 }
 
 export function upgradeV7(options: TransformOptions) {
-  runCodemods(v7Bundle, options, 'v7');
+  return runCodemods(v7Bundle, options, 'v7');
 }
 
 export function upgrade(options: TransformOptions) {
@@ -235,4 +236,5 @@ export function upgrade(options: TransformOptions) {
   }
 
   log('Upgrade complete.');
+  return allErrors;
 }

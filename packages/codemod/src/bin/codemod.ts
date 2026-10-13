@@ -2,7 +2,7 @@
 
 import debug from 'debug';
 import { Command } from 'commander';
-import { transform } from '../lib/transform';
+import { transform, type TransformErrors } from '../lib/transform';
 import {
   upgrade,
   upgradeV4,
@@ -18,6 +18,12 @@ const error = debug('codemod:error');
 debug.enable('codemod:*');
 
 const program = new Command();
+
+const failOnTransformErrors = (errors: TransformErrors): void => {
+  if (errors.length > 0) {
+    process.exitCode = 1;
+  }
+};
 
 const addTransformOptions = (command: Command): Command => {
   return command
@@ -38,7 +44,8 @@ addTransformOptions(
     .argument('<source>', 'Path to source files or directory to transform'),
 ).action((codemod, source, options: TransformOptions) => {
   try {
-    transform(codemod, source, options);
+    const { errors } = transform(codemod, source, options);
+    failOnTransformErrors(errors);
   } catch (err: any) {
     error(`Error transforming: ${err}`);
     process.exit(1);
@@ -51,7 +58,7 @@ addTransformOptions(
     .description('Upgrade ai package dependencies and apply all codemods'),
 ).action((options: TransformOptions) => {
   try {
-    upgrade(options);
+    failOnTransformErrors(upgrade(options));
   } catch (err: any) {
     error(`Error upgrading: ${err}`);
     process.exit(1);
@@ -62,7 +69,7 @@ addTransformOptions(
   program.command('v4').description('Apply v4 codemods (v3 → v4 migration)'),
 ).action((options: TransformOptions) => {
   try {
-    upgradeV4(options);
+    failOnTransformErrors(upgradeV4(options));
   } catch (err: any) {
     error(`Error applying v4 codemods: ${err}`);
     process.exit(1);
@@ -73,7 +80,7 @@ addTransformOptions(
   program.command('v5').description('Apply v5 codemods (v4 → v5 migration)'),
 ).action((options: TransformOptions) => {
   try {
-    upgradeV5(options);
+    failOnTransformErrors(upgradeV5(options));
   } catch (err: any) {
     error(`Error applying v5 codemods: ${err}`);
     process.exit(1);
@@ -84,7 +91,7 @@ addTransformOptions(
   program.command('v6').description('Apply v6 codemods (v5 → v6 migration)'),
 ).action((options: TransformOptions) => {
   try {
-    upgradeV6(options);
+    failOnTransformErrors(upgradeV6(options));
   } catch (err: any) {
     error(`Error applying v6 codemods: ${err}`);
     process.exit(1);
@@ -95,7 +102,7 @@ addTransformOptions(
   program.command('v7').description('Apply v7 codemods (v6 → v7 migration)'),
 ).action((options: TransformOptions) => {
   try {
-    upgradeV7(options);
+    failOnTransformErrors(upgradeV7(options));
   } catch (err: any) {
     error(`Error applying v7 codemods: ${err}`);
     process.exit(1);
