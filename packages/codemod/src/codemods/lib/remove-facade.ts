@@ -11,10 +11,11 @@ export function removeFacade(config: FacadeConfig) {
     const { j, root } = context;
     const importPath = `@ai-sdk/${config.packageName}`;
 
-    // Track which imports came from our target package
-    const targetImports = new Set<string>();
+    // Track facade imports and the factory binding that replaces them.
+    const targetImports = new Map<string, string>();
+    let factoryLocalName: string | undefined;
 
-    // First pass - collect imports from our target package
+    // First pass - reuse an existing factory import when possible.
     root
       .find(j.ImportDeclaration)
       .filter(path => path.node.source.value === importPath)
@@ -22,31 +23,52 @@ export function removeFacade(config: FacadeConfig) {
         path.node.specifiers?.forEach(spec => {
           if (
             spec.type === 'ImportSpecifier' &&
-            spec.imported.name === config.className &&
-            spec.local
+            spec.imported.name === config.createFnName
           ) {
-            context.hasChanges = true;
-            targetImports.add(spec.local.name);
+            factoryLocalName ??= spec.local?.name ?? config.createFnName;
           }
         });
       });
 
-    // Second pass - replace imports we found
+    // Second pass - collect facade bindings and replace only their specifiers.
+    let hasFactoryImport = factoryLocalName != null;
     root
       .find(j.ImportDeclaration)
       .filter(path => path.node.source.value === importPath)
       .forEach(path => {
-        const hasClassSpecifier = path.node.specifiers?.some(
+        const specifiers = path.node.specifiers ?? [];
+        const facadeSpecifiers = specifiers.filter(
           spec =>
             spec.type === 'ImportSpecifier' &&
             spec.imported.name === config.className,
         );
 
-        if (hasClassSpecifier) {
+        if (facadeSpecifiers.length > 0) {
           context.hasChanges = true;
-          path.node.specifiers = [
-            j.importSpecifier(j.identifier(config.createFnName)),
-          ];
+
+          for (const specifier of facadeSpecifiers) {
+            targetImports.set(
+              specifier.local?.name ?? config.className,
+              factoryLocalName ?? config.createFnName,
+            );
+          }
+
+          path.node.specifiers = specifiers.flatMap(specifier => {
+            if (
+              specifier.type !== 'ImportSpecifier' ||
+              specifier.imported.name !== config.className
+            ) {
+              return [specifier];
+            }
+
+            if (hasFactoryImport) {
+              return [];
+            }
+
+            hasFactoryImport = true;
+            factoryLocalName = config.createFnName;
+            return [j.importSpecifier(j.identifier(config.createFnName))];
+          });
         }
       });
 
@@ -59,10 +81,15 @@ export function removeFacade(config: FacadeConfig) {
           targetImports.has(path.node.callee.name),
       )
       .forEach(path => {
+        const callee = path.node.callee;
+        if (callee.type !== 'Identifier') {
+          return;
+        }
+
         context.hasChanges = true;
         j(path).replaceWith(
           j.callExpression(
-            j.identifier(config.createFnName),
+            j.identifier(targetImports.get(callee.name)!),
             path.node.arguments,
           ),
         );
