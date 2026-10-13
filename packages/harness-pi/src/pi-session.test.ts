@@ -1813,19 +1813,40 @@ describe('createPiSession', () => {
       role: 'assistant',
       usage: { input: 0, output: 0, cost: { total: 0 } },
     });
-    expect(toolResults).toEqual([
-      { content: [{ type: 'text', text: 'file' }], isError: false },
-      {
-        content: [{ type: 'text', text: '{"selection":"A"}' }],
-        details: undefined,
-        isError: false,
-      },
-      {
-        content: [{ type: 'text', text: 'no answer' }],
-        details: undefined,
-        isError: true,
-      },
-    ]);
+    expect(toolResults).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "text": "file",
+              "type": "text",
+            },
+          ],
+          "details": undefined,
+          "isError": false,
+        },
+        {
+          "content": [
+            {
+              "text": "{"selection":"A"}",
+              "type": "text",
+            },
+          ],
+          "details": null,
+          "isError": false,
+        },
+        {
+          "content": [
+            {
+              "text": "no answer",
+              "type": "text",
+            },
+          ],
+          "details": null,
+          "isError": true,
+        },
+      ]
+    `);
     expect(readExecute).not.toHaveBeenCalled();
     expect(askExecute).not.toHaveBeenCalled();
     expect(agent.state.tools).toBe(originalTools);
@@ -1870,25 +1891,42 @@ describe('createPiSession', () => {
       approved: true,
     });
 
-    await expect(session.doSuspendTurn()).resolves.toEqual({
-      type: 'continue-turn',
-      harnessId: 'pi',
-      specificationVersion: 'harness-v1',
-      data: {
-        sessionFileName: 'pi-session.jsonl',
-        pendingToolBatch: {
-          awaitingToolCallIds: ['tool-2'],
-          completedToolResults: [
-            {
-              toolCallId: 'tool-1',
-              result: { content: [{ type: 'text', text: 'answer' }] },
-              isError: false,
-            },
-          ],
-          nativeApprovalDecisions: [{ toolCallId: 'write-1', approved: true }],
+    await expect(session.doSuspendTurn()).resolves.toMatchInlineSnapshot(`
+      {
+        "data": {
+          "pendingToolBatch": {
+            "awaitingToolCallIds": [
+              "tool-2",
+            ],
+            "completedToolResults": [
+              {
+                "isError": false,
+                "result": {
+                  "content": [
+                    {
+                      "text": "answer",
+                      "type": "text",
+                    },
+                  ],
+                  "details": null,
+                },
+                "toolCallId": "tool-1",
+              },
+            ],
+            "nativeApprovalDecisions": [
+              {
+                "approved": true,
+                "toolCallId": "write-1",
+              },
+            ],
+          },
+          "sessionFileName": "pi-session.jsonl",
         },
-      },
-    });
+        "harnessId": "pi",
+        "specificationVersion": "harness-v1",
+        "type": "continue-turn",
+      }
+    `);
     await expect(control.done).resolves.toBeUndefined();
     expect(agent.continue).not.toHaveBeenCalled();
   });
