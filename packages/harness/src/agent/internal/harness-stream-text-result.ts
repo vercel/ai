@@ -421,14 +421,12 @@ export class HarnessStreamTextResult<
       >,
     );
     this._text.resolve(finalStep.text);
-    // Reasoning content parts are not yet derived from harness events; the
-    // foundation surfaces an empty array. Adapters that emit reasoning
-    // deltas can be wired up to produce real reasoning content in a later
-    // pass.
     this._reasoning.resolve(
-      [] as StreamProp<TOOLS, RUNTIME_CONTEXT, OUTPUT, 'reasoning'>,
+      finalStep.content.filter(
+        part => part.type === 'reasoning' || part.type === 'reasoning-file',
+      ) as StreamProp<TOOLS, RUNTIME_CONTEXT, OUTPUT, 'reasoning'>,
     );
-    this._reasoningText.resolve(undefined);
+    this._reasoningText.resolve(finalStep.reasoningText);
     this._files.resolve(this.stepsBuffer.flatMap(s => s.files));
     this._sources.resolve(this.stepsBuffer.flatMap(s => s.sources));
     this._toolCalls.resolve(
@@ -491,10 +489,16 @@ export class HarnessStreamTextResult<
     this._response.resolve(finalStep.response);
     this._providerMetadata.resolve(this.finalProviderMetadata);
 
-    const responseMessages = await toResponseMessages<TOOLS>({
-      content: aggregatedContent,
-      tools: this.tools,
-    });
+    const responseMessages: Array<AssistantModelMessage | ToolModelMessage> =
+      [];
+    for (const step of this.stepsBuffer) {
+      responseMessages.push(
+        ...(await toResponseMessages<TOOLS>({
+          content: step.content,
+          tools: this.tools,
+        })),
+      );
+    }
     this._responseMessages.resolve(responseMessages);
 
     // Forward AI SDK finish event before closing.
