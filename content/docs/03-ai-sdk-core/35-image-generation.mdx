@@ -170,9 +170,11 @@ const { images } = await generateImage({
 The increment applies per provider call, not per image. As a result,
 `maxImagesPerCall` determines the number of seeds used. Each retry reuses the
 seed selected for its original call. If `seed` is omitted, `seedStrategy` has no
-effect. Make sure every derived seed is within the range supported by your
-provider. Different seeds do not guarantee different images; output behavior
-depends on the provider and model.
+effect. When using `'increment'`, the base seed and every derived seed must be
+JavaScript safe integers; `generateImage` rejects the request before provider
+calls otherwise. Also make sure every derived seed is within the range
+supported by your provider. Different seeds do not guarantee different images;
+output behavior depends on the provider and model.
 
 ### Provider-specific Settings
 

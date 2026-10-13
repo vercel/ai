@@ -15,6 +15,7 @@ import {
   type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { NoImageGeneratedError } from '../error/no-image-generated-error';
+import { InvalidArgumentError } from '../error/invalid-argument-error';
 import {
   DefaultGeneratedFile,
   type GeneratedFile,
@@ -138,7 +139,8 @@ export async function generateImage({
    * Strategy for assigning seeds when the request is split into multiple model
    * calls. `'fixed'` reuses the provided seed for every call. `'increment'`
    * adds the zero-based call index to the provided seed. Retries reuse the seed
-   * selected for their model call.
+   * selected for their model call. With `'increment'`, the provided seed and
+   * every derived seed must be safe integers.
    *
    * Has no effect when `seed` is not provided.
    *
@@ -203,6 +205,23 @@ export async function generateImage({
 
   // parallelize calls to the model:
   const callCount = Math.ceil(n / maxImagesPerCallWithDefault);
+
+  if (seedStrategy === 'increment' && seed != null) {
+    const finalCallSeed = seed + (callCount - 1);
+
+    if (
+      !Number.isSafeInteger(seed) ||
+      (callCount > 0 && !Number.isSafeInteger(finalCallSeed))
+    ) {
+      throw new InvalidArgumentError({
+        parameter: 'seed',
+        value: seed,
+        message:
+          "seed and all derived seeds must be safe integers when seedStrategy is 'increment'",
+      });
+    }
+  }
+
   const callImageCounts = Array.from({ length: callCount }, (_, i) => {
     if (i < callCount - 1) {
       return maxImagesPerCallWithDefault;

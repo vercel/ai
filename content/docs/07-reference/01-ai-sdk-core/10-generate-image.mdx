@@ -101,7 +101,7 @@ console.log(images);
       type: "'fixed' | 'increment'",
       isOptional: true,
       description:
-        "Strategy for assigning seeds when the request is split into multiple model calls. 'fixed' reuses the seed for every call (default). 'increment' adds the zero-based call index to the seed. Retries reuse the seed selected for their call. Has no effect when seed is omitted.",
+        "Strategy for assigning seeds when the request is split into multiple model calls. 'fixed' reuses the seed for every call (default). 'increment' adds the zero-based call index to the seed; the base and derived seeds must be JavaScript safe integers. Retries reuse the seed selected for their call. Has no effect when seed is omitted.",
     },
     {
       name: 'providerOptions',

@@ -18,6 +18,7 @@ import {
   vi,
   vitest,
 } from 'vitest';
+import { InvalidArgumentError } from '../error/invalid-argument-error';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockImageModelV4 } from '../test/mock-image-model-v4';
 import type { Warning } from '../types/warning';
@@ -442,6 +443,94 @@ describe('generateImage', () => {
       });
 
       expect(seeds).toStrictEqual([42, 43, 44]);
+    });
+
+    it('should increment the seed per provider call for multi-image chunks', async () => {
+      const calls: Array<{ n: number; seed: number | undefined }> = [];
+
+      await generateImage({
+        model: new MockImageModelV4({
+          maxImagesPerCall: 2,
+          doGenerate: async ({ n, seed }) => {
+            calls.push({ n, seed });
+            return createMockResponse({
+              images: Array.from({ length: n }, () => pngBase64),
+            });
+          },
+        }),
+        prompt,
+        n: 5,
+        seed: 42,
+        seedStrategy: 'increment',
+      });
+
+      expect(calls).toStrictEqual([
+        { n: 2, seed: 42 },
+        { n: 2, seed: 43 },
+        { n: 1, seed: 44 },
+      ]);
+    });
+
+    it('should support incrementing through the safe integer boundary', async () => {
+      const seeds: Array<number | undefined> = [];
+
+      await generateImage({
+        model: new MockImageModelV4({
+          maxImagesPerCall: 1,
+          doGenerate: async ({ seed }) => {
+            seeds.push(seed);
+            return createMockResponse({
+              images: [pngBase64],
+            });
+          },
+        }),
+        prompt,
+        n: 2,
+        seed: Number.MAX_SAFE_INTEGER - 1,
+        seedStrategy: 'increment',
+      });
+
+      expect(seeds).toStrictEqual([
+        Number.MAX_SAFE_INTEGER - 1,
+        Number.MAX_SAFE_INTEGER,
+      ]);
+    });
+
+    it.each([
+      {
+        name: 'an unsafe base seed',
+        seed: 1e20,
+        n: 3,
+      },
+      {
+        name: 'an unsafe derived seed',
+        seed: Number.MAX_SAFE_INTEGER,
+        n: 2,
+      },
+    ])('should reject $name when incrementing', async ({ seed, n }) => {
+      const doGenerate = vi.fn();
+
+      await expect(
+        generateImage({
+          model: new MockImageModelV4({
+            maxImagesPerCall: 1,
+            doGenerate,
+          }),
+          prompt,
+          n,
+          seed,
+          seedStrategy: 'increment',
+        }),
+      ).rejects.toThrow(
+        new InvalidArgumentError({
+          parameter: 'seed',
+          value: seed,
+          message:
+            "seed and all derived seeds must be safe integers when seedStrategy is 'increment'",
+        }),
+      );
+
+      expect(doGenerate).not.toHaveBeenCalled();
     });
 
     it('should reuse the seed for each split call by default', async () => {
