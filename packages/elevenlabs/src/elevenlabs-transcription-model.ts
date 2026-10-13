@@ -22,7 +22,7 @@ const elevenLabsTranscriptionModelOptionsSchema = z.object({
     .enum(['none', 'word', 'character'])
     .nullish()
     .default('word'),
-  diarize: z.boolean().nullish().default(false),
+  diarize: z.boolean().nullish().default(true),
   fileFormat: z.enum(['pcm_s16le_16', 'other']).nullish().default('other'),
 });
 
