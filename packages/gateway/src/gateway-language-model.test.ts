@@ -26,8 +26,9 @@ const createTestModel = (
   config: Partial<
     GatewayConfig & { o11yHeaders?: Record<string, string> }
   > = {},
+  modelId = 'test-model',
 ) => {
-  return new GatewayLanguageModel('test-model', {
+  return new GatewayLanguageModel(modelId, {
     provider: 'test-provider',
     baseURL: 'https://api.test.com',
     headers: () => ({
@@ -107,6 +108,125 @@ describe('GatewayLanguageModel', () => {
         'ai-language-model-id': 'test-model',
         'ai-language-model-streaming': 'false',
       });
+    });
+
+    it('should reject incompatible Anthropic tool input schemas before sending a request', async () => {
+      const model = createTestModel({}, 'anthropic/claude-sonnet-4-6');
+
+      await expect(
+        model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'lookup',
+              description: 'Look up an item',
+              inputSchema: {
+                oneOf: [
+                  {
+                    type: 'object',
+                    properties: { id: { type: 'string' } },
+                  },
+                  {
+                    type: 'object',
+                    properties: { query: { type: 'string' } },
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_UnsupportedFunctionalityError',
+        message:
+          "Tool 'lookup' has an unsupported input schema for Anthropic. Anthropic tool input schemas must have type 'object' and must not use oneOf, anyOf, or allOf at the top level. Wrap the union in an object property instead.",
+      });
+      expect(server.calls).toHaveLength(0);
+    });
+
+    it('should allow nested unions for Anthropic models', async () => {
+      prepareJsonResponse({ content: { type: 'text', text: 'OK' } });
+
+      await createTestModel({}, 'anthropic/claude-sonnet-4-6').doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'function',
+            name: 'lookup',
+            description: 'Look up an item',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                request: {
+                  oneOf: [
+                    {
+                      type: 'object',
+                      properties: { id: { type: 'string' } },
+                    },
+                    {
+                      type: 'object',
+                      properties: { query: { type: 'string' } },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        ],
+      });
+
+      expect(server.calls).toHaveLength(1);
+    });
+
+    it('should not apply Anthropic schema restrictions to other models', async () => {
+      prepareJsonResponse({ content: { type: 'text', text: 'OK' } });
+
+      await createTestModel({}, 'openai/gpt-5').doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'function',
+            name: 'lookup',
+            description: 'Look up an item',
+            inputSchema: {
+              oneOf: [
+                {
+                  type: 'object',
+                  properties: { id: { type: 'string' } },
+                },
+              ],
+            },
+          },
+        ],
+      });
+
+      expect(server.calls).toHaveLength(1);
+    });
+
+    it('should skip Anthropic schema validation when tools are disabled', async () => {
+      prepareJsonResponse({ content: { type: 'text', text: 'OK' } });
+
+      await createTestModel({}, 'anthropic/claude-sonnet-4-6').doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'function',
+            name: 'lookup',
+            description: 'Look up an item',
+            inputSchema: {
+              oneOf: [
+                {
+                  type: 'object',
+                  properties: { id: { type: 'string' } },
+                },
+              ],
+            },
+          },
+        ],
+        toolChoice: { type: 'none' },
+      });
+
+      expect(server.calls).toHaveLength(1);
     });
 
     it('should extract text response', async () => {
