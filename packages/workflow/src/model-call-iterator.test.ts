@@ -506,6 +506,42 @@ describe('modelCallIterator', () => {
     ]);
   });
 
+  it('does not run the deferred tool-call writer when no tool call was deferred', async () => {
+    vi.mocked(doStreamStep).mockResolvedValue(
+      createMockDoStreamStepResult({
+        toolCalls: [
+          {
+            type: 'tool-call',
+            toolCallId: 'plain-call',
+            toolName: 'plain',
+            input: { query: 'docs' },
+          },
+        ],
+      }),
+    );
+    const writable = createMockWritable();
+    const getWriter = vi.spyOn(writable, 'getWriter');
+
+    const iterator = modelCallIterator({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'search' }] }],
+      tools: {
+        search: tool({ inputSchema: z.object({ query: z.string() }) }),
+        plain: tool({
+          inputSchema: jsonSchema<{ query: string }>({
+            type: 'object',
+            properties: { query: { type: 'string' } },
+          }),
+        }),
+      },
+      model: vi.fn() as any,
+      writable,
+    });
+
+    await iterator.next();
+
+    expect(getWriter).not.toHaveBeenCalled();
+  });
+
   it('validates and normalizes tool context before input callbacks', async () => {
     const callback = vi.fn();
     vi.mocked(doStreamStep).mockResolvedValue(

@@ -459,18 +459,20 @@ export async function* modelCallIterator({
         ),
         abortSignal: currentGenerationSettings.abortSignal,
       });
-      if (mode === 'stream' && writable != null) {
-        // Replace the tool-call chunk deferred inside the model step with the
-        // original schema's validated, normalized, or repaired result.
-        await writeDeferredToolCalls(
-          writable,
-          toolCalls.filter(
-            (toolCall, index) =>
-              !toolCall.providerExecuted &&
-              serializedTools[serializedToolCalls[index].toolName]
-                ?.hasOwnValidator,
-          ),
-        );
+      // Replace the tool-call chunks deferred inside the model step with the
+      // original schema's validated, normalized, or repaired result.
+      const deferredToolCalls = toolCalls.filter(
+        (toolCall, index) =>
+          !toolCall.providerExecuted &&
+          serializedTools[serializedToolCalls[index].toolName]?.hasOwnValidator,
+      );
+      // Writing is a durable step, so skip it when nothing was deferred.
+      if (
+        mode === 'stream' &&
+        writable != null &&
+        deferredToolCalls.length > 0
+      ) {
+        await writeDeferredToolCalls(writable, deferredToolCalls);
       }
       await invokeToolInputLifecycleCallbacks({
         events: toolInputLifecycleEvents ?? [],
