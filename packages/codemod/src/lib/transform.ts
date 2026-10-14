@@ -111,6 +111,8 @@ export function transform(
     transformOptions,
   );
   const stdout = execSync(command, { encoding: 'utf8', stdio: 'pipe' });
+  // Reports can contain required manual migration steps even when no files change.
+  process.stdout.write(stdout);
   const errors = parseErrors(codemod, stdout);
   const notImplementedErrors = parseNotImplementedErrors(codemod, stdout);
   if (options.logStatus) {
