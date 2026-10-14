@@ -7,7 +7,7 @@ import { tool } from '@ai-sdk/provider-utils';
 import type { ProviderConfig } from '@earendil-works/pi-coding-agent';
 import { z } from 'zod/v4';
 import type { PiAuthenticationMode, PiCredentialStore } from './pi-auth';
-import { piResumeStateSchema } from './pi-resume-state';
+import { piResumeStateSchema, type PiResumeStateData } from './pi-resume-state';
 import {
   createPiSession,
   type PiCacheRetention,
@@ -188,9 +188,7 @@ export function createPi(
     lifecycleStateSchema: piResumeStateSchema,
     doStart: async startOpts => {
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
-      const resumeData = lifecycleState?.data as
-        | { sessionFileName?: string }
-        | undefined;
+      const resumeData = lifecycleState?.data as PiResumeStateData | undefined;
 
       return createPiSession({
         sessionId: startOpts.sessionId,
@@ -230,6 +228,9 @@ export function createPi(
         builtinToolFiltering: startOpts.builtinToolFiltering,
         ...(resumeData?.sessionFileName
           ? { resumeSessionFileName: resumeData.sessionFileName }
+          : {}),
+        ...(resumeData?.pendingToolBatch
+          ? { resumePendingToolBatch: resumeData.pendingToolBatch }
           : {}),
         ...(startOpts.abortSignal
           ? { abortSignal: startOpts.abortSignal }
