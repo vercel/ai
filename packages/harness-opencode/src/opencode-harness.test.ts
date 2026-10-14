@@ -1,6 +1,7 @@
 import {
   HarnessCapabilityUnsupportedError,
   type HarnessV1NetworkSandboxSession,
+  type HarnessV1PromptControl,
 } from '@ai-sdk/harness';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
 import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
@@ -215,6 +216,52 @@ function getBuiltinToolMetadata(tool: unknown): {
   commonName?: string;
 } {
   return tool as { nativeName?: string; commonName?: string };
+}
+
+async function startOpenCodeSession({ resumed = false } = {}) {
+  harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
+  const sandbox = {
+    async run({ command }: { command: string }) {
+      return command === 'printf "%s" "$HOME"'
+        ? { exitCode: 0, stdout: '/home/vercel-sandbox', stderr: '' }
+        : { exitCode: 0, stdout: '', stderr: '' };
+    },
+    async readTextFile() {
+      return null;
+    },
+    async writeTextFile() {},
+    async spawn() {
+      return { async wait() {}, async kill() {} } as never;
+    },
+  };
+  const session = await createOpenCode().doStart({
+    sessionId: 's1',
+    sandboxSession: {
+      id: 'test-sandbox',
+      defaultWorkingDirectory: '/workspace',
+      restricted: () => sandbox,
+      ports: [4000] as ReadonlyArray<number>,
+      async getPortEndpoint() {
+        return { url: 'ws://sandbox.example' };
+      },
+      async getPortUrl() {
+        return 'ws://sandbox.example';
+      },
+      async stop() {},
+    } as unknown as HarnessV1NetworkSandboxSession,
+    sessionWorkDir: '/workspace/project',
+    ...(resumed
+      ? {
+          resumeFrom: {
+            type: 'resume-session' as const,
+            harnessId: 'opencode',
+            specificationVersion: 'harness-v1' as const,
+            data: { openCodeSessionId: 'oc-1' },
+          },
+        }
+      : {}),
+  });
+  return { session, channel: harnessUtilsMocks.channels.at(-1)! };
 }
 
 describe('createOpenCode adapter', () => {
@@ -1235,6 +1282,137 @@ describe('createOpenCode adapter', () => {
       { type: 'text-delta', id: 'second', delta: 'banana' },
       { type: 'finish' },
     ]);
+  });
+
+  it.each([
+    { pause: 'approval', resumed: false, firstTurn: 'prompt' },
+    { pause: 'tool-result', resumed: false, firstTurn: 'prompt' },
+    { pause: 'approval', resumed: true, firstTurn: 'prompt' },
+    { pause: 'approval', resumed: true, firstTurn: 'continue' },
+  ] as const)(
+    'continues a turn paused for host input without waiting for it to drain (pause: $pause, resumed: $resumed, first turn: $firstTurn)',
+    async ({ pause, resumed, firstTurn }) => {
+      const { session, channel } = await startOpenCodeSession({ resumed });
+      if (firstTurn === 'prompt') {
+        await session.doPromptTurn({
+          skills: [],
+          tools: [],
+          prompt: 'Write the working directory to marker.txt.',
+          emit: () => {},
+        });
+      } else {
+        await session.doContinueTurn({ skills: [], tools: [], emit: () => {} });
+      }
+      if (pause === 'approval') {
+        channel.emit('tool-approval-request', {
+          type: 'tool-approval-request',
+          approvalId: 'per-1',
+          toolCallId: 'call-1',
+        });
+      } else {
+        channel.emit('tool-call', {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'lookup',
+          input: '{}',
+          providerExecuted: false,
+        });
+      }
+
+      const continuedEvents: unknown[] = [];
+      let control: HarnessV1PromptControl | undefined;
+      void session
+        .doContinueTurn({
+          skills: [],
+          tools: [],
+          emit: event => continuedEvents.push(event),
+        })
+        .then(continued => {
+          control = continued;
+        });
+      await vi.waitFor(() => expect(control).toBeDefined());
+      if (pause === 'approval') {
+        await control!.submitToolApproval!({
+          approvalId: 'per-1',
+          approved: true,
+        });
+      } else {
+        await control!.submitToolResult({
+          toolCallId: 'call-1',
+          output: { found: true },
+        });
+      }
+      channel.emit('finish', { type: 'finish' });
+      await control!.done;
+
+      expect(channel.sent.at(-1)).toEqual(
+        pause === 'approval'
+          ? {
+              type: 'tool-approval-response',
+              approvalId: 'per-1',
+              approved: true,
+            }
+          : {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              output: { found: true },
+            },
+      );
+      expect(
+        channel.sent.filter(
+          message => (message as { type: string }).type === 'start',
+        ),
+      ).toHaveLength(1);
+      expect(continuedEvents).toEqual([{ type: 'finish' }]);
+      await session.doDestroy();
+    },
+  );
+
+  it('continues a turn aborted during an approval pause only after it drains', async () => {
+    const { session, channel } = await startOpenCodeSession();
+    const abort = new AbortController();
+    const pausedTurn = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Write the working directory to marker.txt.',
+      abortSignal: abort.signal,
+      emit: () => {},
+    });
+    channel.emit('tool-approval-request', {
+      type: 'tool-approval-request',
+      approvalId: 'per-1',
+      toolCallId: 'call-1',
+    });
+    abort.abort();
+    await expect(pausedTurn.done).rejects.toMatchObject({
+      name: 'AbortError',
+    });
+
+    const continuedEvents: unknown[] = [];
+    let continued = false;
+    const continuation = session
+      .doContinueTurn({
+        skills: [],
+        tools: [],
+        emit: event => continuedEvents.push(event),
+      })
+      .then(control => {
+        continued = true;
+        return control;
+      });
+    channel.emit('error', {
+      type: 'error',
+      error: new Error('OpenCode session abort failed'),
+    });
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    expect(continued).toBe(false);
+
+    channel.emit('finish', { type: 'finish' });
+    await continuation;
+
+    expect(continuedEvents).toEqual([]);
+    await session.doDestroy();
   });
 
   describe('getBootstrap', () => {
