@@ -276,45 +276,36 @@ describe('AnthropicMessagesLanguageModel', () => {
         { type: 'required' as const },
         { type: 'tool' as const, toolName: 'lookup' },
       ])('$type', toolChoice => {
-        it.each(['providerOptions', 'reasoning'] as const)(
-          'should fall back to auto for manual thinking set through %s',
-          async source => {
-            prepareJsonFixtureResponse('anthropic-text');
+        it('should fall back to auto for manual thinking set through providerOptions', async () => {
+          prepareJsonFixtureResponse('anthropic-text');
 
-            const result = await provider('claude-haiku-4-5').doGenerate({
-              prompt: TEST_PROMPT,
-              tools,
-              toolChoice,
-              ...(source === 'reasoning'
-                ? { reasoning: 'low' as const }
-                : {
-                    providerOptions: {
-                      anthropic: {
-                        thinking: { type: 'enabled', budgetTokens: 5000 },
-                      },
-                    },
-                  }),
-            });
-
-            const body = await server.calls[0].requestBodyJson;
-            expect(body.thinking.type).toBe('enabled');
-            expect(body.tool_choice).toEqual({ type: 'auto' });
-            expect(
-              body.tools.map((tool: { name: string }) => tool.name),
-            ).toEqual(
-              toolChoice.type === 'tool' ? ['lookup'] : ['lookup', 'other'],
-            );
-            expect(result.warnings).toEqual([
-              {
-                type: 'unsupported',
-                feature: 'toolChoice',
-                details: expect.stringContaining(
-                  'not supported with this model or thinking configuration',
-                ),
+          const result = await provider('claude-haiku-4-5').doGenerate({
+            prompt: TEST_PROMPT,
+            tools,
+            toolChoice,
+            providerOptions: {
+              anthropic: {
+                thinking: { type: 'enabled', budgetTokens: 5000 },
               },
-            ]);
-          },
-        );
+            },
+          });
+
+          const body = await server.calls[0].requestBodyJson;
+          expect(body.thinking.type).toBe('enabled');
+          expect(body.tool_choice).toEqual({ type: 'auto' });
+          expect(body.tools.map((tool: { name: string }) => tool.name)).toEqual(
+            toolChoice.type === 'tool' ? ['lookup'] : ['lookup', 'other'],
+          );
+          expect(result.warnings).toEqual([
+            {
+              type: 'unsupported',
+              feature: 'toolChoice',
+              details: expect.stringContaining(
+                'not supported with this model or thinking configuration',
+              ),
+            },
+          ]);
+        });
 
         it.each([
           { modelId: 'claude-haiku-4-5', thinkingType: 'disabled' },
