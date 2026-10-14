@@ -1010,13 +1010,16 @@ export const InteractiveCodePreview = ({
 
       <div
         aria-labelledby={`${id}-tab-${activeTab}`}
-        className="[&>div]:mb-0"
         data-language={language}
         id={`${id}-panel`}
         role="tabpanel"
       >
+        {/*
+          The Geistdocs CodeBlock draws its frame on inner sections, not on
+          the root, so flatten those sections to sit inside this card's border.
+        */}
         <CodeBlock
-          className="shiki geist line-numbers rounded-none border-0 bg-transparent py-4"
+          className="shiki geist line-numbers my-0 rounded-none [&>[data-section=content]]:rounded-none [&>[data-section=content]]:border-0 [&>[data-section=tabs]]:rounded-none [&>[data-section=tabs]]:border-x-0 [&>[data-section=tabs]]:border-t-0"
           title={title}
         >
           {highlightedTokens
