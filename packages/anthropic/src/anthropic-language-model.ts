@@ -1077,7 +1077,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
             supportsStructuredOutput,
             supportsStrictTools,
             defaultEagerInputStreaming,
-            rejectsForcedToolUse,
+            rejectsForcedToolUse:
+              rejectsForcedToolUse || thinkingType === 'enabled',
           },
     );
 
