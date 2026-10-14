@@ -33,7 +33,7 @@ import {
 } from './opencode-context-fallback';
 import { createEmitStreamEvent, stringValue } from './create-emit-stream-event';
 import { mapOpenCodeFinishReason } from './opencode-finish-step';
-import { prependOpenCodeBinToPath } from './opencode-path';
+import { configureOpenCodePath } from './opencode-path';
 import { configureOpenCodeServerAuth } from './opencode-server-auth';
 import {
   addUsage,
@@ -147,7 +147,7 @@ const runtime: RuntimeState = {
  */
 let currentHostInputTracker: OpenCodeHostInputTracker | undefined;
 let currentTurn: BridgeTurn | undefined;
-prependOpenCodeBinToPath({ bootstrapDir, env: procEnv });
+configureOpenCodePath({ bootstrapDir, env: procEnv });
 
 await runBridge<StartMessage>({
   bridgeType: 'opencode',

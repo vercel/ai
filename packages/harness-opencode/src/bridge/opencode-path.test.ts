@@ -1,14 +1,14 @@
 import path from 'node:path';
 import { rgPath } from '@vscode/ripgrep';
 import { describe, expect, it } from 'vitest';
-import { prependOpenCodeBinToPath } from './opencode-path';
+import { configureOpenCodePath } from './opencode-path';
 
-describe('prependOpenCodeBinToPath', () => {
-  it('prepends the bridge node_modules bin directory', () => {
+describe('configureOpenCodePath', () => {
+  it('preserves existing PATH precedence and adds the required directories', () => {
     const existingPath = ['/usr/bin', '/bin'].join(path.delimiter);
     const env = { PATH: existingPath };
 
-    prependOpenCodeBinToPath({
+    configureOpenCodePath({
       bootstrapDir: '/tmp/harness/opencode',
       env,
     });
@@ -25,7 +25,7 @@ describe('prependOpenCodeBinToPath', () => {
   it('keeps a usable system path fallback when PATH is absent', () => {
     const env: { PATH?: string } = {};
 
-    prependOpenCodeBinToPath({
+    configureOpenCodePath({
       bootstrapDir: '/tmp/harness/opencode',
       env,
     });
