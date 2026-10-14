@@ -202,6 +202,20 @@ describe('isUrlSupported', () => {
   });
 
   describe('case sensitivity', () => {
+    it('should preserve case-sensitive URL paths when matching provider patterns', () => {
+      const url = 'https://assets.example/Images/Photo.PNG';
+      const pattern = /^https:\/\/assets\.example\/Images\/Photo\.PNG$/;
+
+      expect(pattern.test(url)).toBe(true);
+      expect(
+        isUrlSupported({
+          url,
+          mediaType: 'image/png',
+          supportedUrls: { 'image/*': [pattern] },
+        }),
+      ).toBe(true);
+    });
+
     it('should be case-insensitive for media types', async () => {
       expect(
         isUrlSupported({
@@ -212,24 +226,38 @@ describe('isUrlSupported', () => {
       ).toBe(true);
     });
 
+    it('should preserve case-sensitive URL query values', () => {
+      expect(
+        isUrlSupported({
+          mediaType: 'image/png',
+          url: 'https://assets.example/photo.png?token=AbC123',
+          supportedUrls: {
+            'image/*': [
+              /^https:\/\/assets\.example\/photo\.png\?token=AbC123$/,
+            ],
+          },
+        }),
+      ).toBe(true);
+    });
+
     it('should handle case-insensitive regex for URLs if specified', async () => {
       expect(
         isUrlSupported({
           mediaType: 'text/plain',
           url: 'https://EXAMPLE.com/path', // Uppercase domain
-          supportedUrls: { 'text/plain': [/https:\/\/example\.com\/path/] },
+          supportedUrls: { 'text/plain': [/https:\/\/example\.com\/path/i] },
         }),
       ).toBe(true);
     });
 
-    it('should be case-insensitive for URL paths by default regex', async () => {
+    it('should be case-sensitive for URL paths unless the regex specifies otherwise', async () => {
       expect(
         isUrlSupported({
           mediaType: 'text/plain',
           url: 'https://example.com/PATH', // Uppercase path
           supportedUrls: { 'text/plain': [/https:\/\/example\.com\/path/] }, // Lowercase path in regex
         }),
-      ).toBe(true);
+      ).toBe(false);
     });
   });
 
