@@ -1609,6 +1609,34 @@ The following optional provider options are available for Anthropic models:
   Optional. Metadata to include with the request. See the [Anthropic API documentation](https://platform.claude.com/docs/en/api/messages/create) for details.
   - `userId` _string_ - An external identifier for the end-user.
 
+### Billing Labels
+
+Pass billing labels for Claude requests using `providerOptions.vertex.labels`.
+Labels are a map of string keys to string values and work with both
+`generateText` and `streamText`:
+
+```ts
+import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: vertexAnthropic('claude-sonnet-4-6@default'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  providerOptions: {
+    vertex: {
+      labels: { team: 'data-platform', feature: 'my-app' },
+    },
+  },
+});
+```
+
+The provider sends the labels as base64-encoded UTF-8 JSON in the
+`X-Vertex-AI-Labels` header. An explicitly supplied labels header takes
+precedence over `providerOptions.vertex.labels`.
+
+See [Google's billing labels documentation](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/multimodal/add-labels-to-api-calls#add_a_label_to_a_partner_model_api_call)
+for label requirements and supported billing options.
+
 ### Reasoning
 
 Anthropic has reasoning support for the `claude-3-7-sonnet@20250219` model.
