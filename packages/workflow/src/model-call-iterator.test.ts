@@ -84,7 +84,9 @@ function createMockDoStreamStepResult({
   finishRaw = 'stop',
   providerMetadata,
   rawOverrides = {},
+  repairedToolCallIds,
 }: {
+  repairedToolCallIds?: string[];
   toolCalls?: ParsedToolCall[];
   toolInputLifecycleEvents?: Array<
     | ['start', toolCallId: string, toolName: string]
@@ -110,6 +112,7 @@ function createMockDoStreamStepResult({
     } as DoStreamStepRawResult,
     providerExecutedToolResults: new Map(),
     toolInputLifecycleEvents,
+    ...(repairedToolCallIds != null ? { repairedToolCallIds } : {}),
   };
 }
 
@@ -337,6 +340,82 @@ describe('modelCallIterator', () => {
           toolCalls: [{ input: { path: '/etc/hosts' } }],
         },
       },
+    });
+  });
+
+  it('calls repairToolCall with step-safe tools for original-schema failures', async () => {
+    const readFile = tool({
+      inputSchema: z.object({
+        path: z.string().refine(value => value.startsWith('/')),
+      }),
+    });
+    const repairToolCall = vi.fn(async ({ toolCall }) => ({
+      ...toolCall,
+      input: JSON.stringify({ path: '/etc/hosts' }),
+    }));
+    vi.mocked(doStreamStep).mockResolvedValue(
+      createMockDoStreamStepResult({
+        finishReason: 'tool-calls',
+        toolCalls: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'readFile',
+            input: { path: 'etc/hosts' },
+          },
+        ],
+      }),
+    );
+
+    await modelCallIterator({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'read' }] }],
+      tools: { readFile },
+      model: vi.fn() as any,
+      repairToolCall,
+    }).next();
+
+    const options = repairToolCall.mock.calls[0][0];
+    // tools are rebuilt inside the step, not passed through from the workflow
+    expect(options.tools.readFile).not.toBe(readFile);
+    expect(await options.inputSchema({ toolName: 'readFile' })).toMatchObject({
+      type: 'object',
+    });
+    expect(options.error.toolInput).toBe('{"path":"etc/hosts"}');
+  });
+
+  it('does not repair a tool call a second time after the model step repaired it', async () => {
+    const repairToolCall = vi.fn(async ({ toolCall }) => toolCall);
+    vi.mocked(doStreamStep).mockResolvedValue(
+      createMockDoStreamStepResult({
+        finishReason: 'tool-calls',
+        repairedToolCallIds: ['call-1'],
+        toolCalls: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'readFile',
+            input: { path: 'etc/hosts' },
+          },
+        ],
+      }),
+    );
+
+    const result = await modelCallIterator({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'read' }] }],
+      tools: {
+        readFile: tool({
+          inputSchema: z.object({
+            path: z.string().refine(value => value.startsWith('/')),
+          }),
+        }),
+      },
+      model: vi.fn() as any,
+      repairToolCall,
+    }).next();
+
+    expect(repairToolCall).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      value: { toolCalls: [{ invalid: true }] },
     });
   });
 

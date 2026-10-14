@@ -223,6 +223,11 @@ export type ModelCallResult =
        * tool input lifecycle callback replay was added.
        */
       toolInputLifecycleEvents?: ToolInputLifecycleEvent[];
+      /**
+       * Tool call ids that `repairToolCall` already repaired inside the step,
+       * so deferred validation does not repair them a second time.
+       */
+      repairedToolCallIds?: string[];
       /** Present when the model stream emitted an error part or generation failed. */
       terminalError?: unknown;
     };

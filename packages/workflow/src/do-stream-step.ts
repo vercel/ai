@@ -116,6 +116,17 @@ async function streamModelStep(
   // Tools are serialized before crossing the step boundary because zod schemas
   // contain functions that can't be serialized by the workflow runtime.
   const toolInputLifecycleEvents: ToolInputLifecycleEvent[] = [];
+  const repairedToolCallIds = new Set<string>();
+  const repairToolCall = options?.repairToolCall;
+  const trackedRepairToolCall = repairToolCall
+    ? async (repairOptions: Parameters<typeof repairToolCall>[0]) => {
+        const repaired = await repairToolCall(repairOptions);
+        if (repaired != null) {
+          repairedToolCallIds.add(repairOptions.toolCall.toolCallId);
+        }
+        return repaired;
+      }
+    : undefined;
   const tools = serializedTools
     ? resolveSerializableTools(serializedTools)
     : undefined;
@@ -196,7 +207,7 @@ async function streamModelStep(
           frequencyPenalty: options?.frequencyPenalty,
           stopSequences: options?.stopSequences,
           seed: options?.seed,
-          repairToolCall: options?.repairToolCall,
+          repairToolCall: trackedRepairToolCall,
           download: options?.download,
           ...languageModelCallTelemetry,
         }),
@@ -505,6 +516,7 @@ async function streamModelStep(
     },
     providerExecutedToolResults,
     toolInputLifecycleEvents,
+    repairedToolCallIds: [...repairedToolCallIds],
     ...(hasTerminalError ? { terminalError } : {}),
   };
 }

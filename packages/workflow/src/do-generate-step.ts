@@ -162,6 +162,17 @@ async function generateModelCall(
     performance: { responseTimeMs },
   });
   abortSignal?.throwIfAborted();
+  const repairedToolCallIds = new Set<string>();
+  const repairToolCall = options.repairToolCall;
+  const trackedRepairToolCall = repairToolCall
+    ? async (repairOptions: Parameters<typeof repairToolCall>[0]) => {
+        const repaired = await repairToolCall(repairOptions);
+        if (repaired != null) {
+          repairedToolCallIds.add(repairOptions.toolCall.toolCallId);
+        }
+        return repaired;
+      }
+    : undefined;
   const toolCalls = await Promise.all(
     response.content
       .filter(part => part.type === 'tool-call')
@@ -169,7 +180,7 @@ async function generateModelCall(
         parseToolCall({
           toolCall,
           tools,
-          repairToolCall: options.repairToolCall as Parameters<
+          repairToolCall: trackedRepairToolCall as Parameters<
             typeof parseToolCall
           >[0]['repairToolCall'],
           instructions:
@@ -271,6 +282,7 @@ async function generateModelCall(
     },
     providerExecutedToolResults,
     toolInputLifecycleEvents,
+    repairedToolCallIds: [...repairedToolCallIds],
   };
 }
 

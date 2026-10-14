@@ -5,9 +5,15 @@ import type {
   LanguageModelV4ToolResultPart,
   SharedV4ProviderOptions,
 } from '@ai-sdk/provider';
-import { asSchema, safeParseJSON, type Context } from '@ai-sdk/provider-utils';
+import {
+  asSchema,
+  getErrorMessage,
+  safeParseJSON,
+  type Context,
+} from '@ai-sdk/provider-utils';
 import {
   experimental_filterActiveTools as filterActiveTools,
+  InvalidToolInputError,
   isDeepEqualData,
   type ActiveTools,
   type Experimental_SandboxSession as SandboxSession,
@@ -42,7 +48,11 @@ import {
 } from './add-tool-results-to-conversation.js';
 import { toModelResponseMessages } from './to-model-response-messages.js';
 import { resolveToolContext } from './resolve-tool-context.js';
-import { serializeToolSet } from './serializable-schema.js';
+import {
+  resolveSerializableTools,
+  serializeToolSet,
+  type SerializableToolDef,
+} from './serializable-schema.js';
 import type {
   GenerationSettings,
   PrepareStepCallback,
@@ -431,11 +441,14 @@ export async function* modelCallIterator({
         raw,
         providerExecutedToolResults,
         toolInputLifecycleEvents,
+        repairedToolCallIds,
       } = modelCallResult;
       const toolCalls = await validateToolCallInputs({
         toolCalls: serializedToolCalls,
         tools: effectiveTools,
+        serializedTools,
         repairToolCall,
+        repairedToolCallIds: new Set(repairedToolCallIds),
         instructions:
           conversationPrompt
             .filter(message => message.role === 'system')
@@ -696,14 +709,18 @@ export async function* modelCallIterator({
 async function validateToolCallInputs({
   toolCalls,
   tools,
+  serializedTools,
   repairToolCall,
+  repairedToolCallIds,
   instructions,
   messages,
   abortSignal,
 }: {
   toolCalls: ParsedToolCall[];
   tools: ToolSet;
+  serializedTools: Record<string, SerializableToolDef>;
   repairToolCall?: ToolCallRepairFunction<ToolSet>;
+  repairedToolCallIds: Set<string>;
   instructions?: Instructions;
   messages: ModelMessage[];
   abortSignal?: AbortSignal;
@@ -737,11 +754,24 @@ async function validateToolCallInputs({
           providerMetadata: toolCall.providerMetadata,
         } satisfies LanguageModelV4ToolCall,
         tools,
+        // A call that was already repaired inside the model step is not
+        // repaired again, matching parseToolCall's single repair attempt.
         repairToolCall:
-          repairToolCall == null
+          repairToolCall == null || repairedToolCallIds.has(toolCall.toolCallId)
             ? undefined
             : async options => {
-                const repairedToolCall = await repairToolCall(options);
+                const repairedToolCall = await repairToolCallInStep({
+                  repairToolCall,
+                  serializedTools,
+                  toolCall: options.toolCall,
+                  error: {
+                    toolName: options.toolCall.toolName,
+                    toolInput: options.toolCall.input,
+                    message: getErrorMessage(options.error),
+                  },
+                  instructions,
+                  messages: options.messages,
+                });
                 if (repairedToolCall != null) {
                   const parsedRepairedInput =
                     repairedToolCall.input.trim() === ''
@@ -774,6 +804,48 @@ async function validateToolCallInputs({
   );
 }
 
+/**
+ * Runs `repairToolCall` inside a step. The callback may be a `'use step'`
+ * function, so its arguments must be serializable: the tools and the
+ * `inputSchema` accessor are rebuilt here instead of crossing the boundary
+ * from the workflow body.
+ */
+async function repairToolCallInStep({
+  repairToolCall,
+  serializedTools,
+  toolCall,
+  error,
+  instructions,
+  messages,
+}: {
+  repairToolCall: ToolCallRepairFunction<ToolSet>;
+  serializedTools: Record<string, SerializableToolDef>;
+  toolCall: LanguageModelV4ToolCall;
+  error: { toolName: string; toolInput: string; message: string };
+  instructions?: Instructions;
+  messages: ModelMessage[];
+}): Promise<LanguageModelV4ToolCall | null> {
+  'use step';
+  const tools = resolveSerializableTools(serializedTools);
+  return repairToolCall({
+    toolCall,
+    tools,
+    inputSchema: async ({ toolName }) =>
+      asSchema(tools[toolName]?.inputSchema).jsonSchema,
+    instructions,
+    system: instructions,
+    messages,
+    // Errors are passed as plain data and rebuilt so that
+    // `InvalidToolInputError.isInstance` keeps working in the callback.
+    error: new InvalidToolInputError({
+      toolName: error.toolName,
+      toolInput: error.toolInput,
+      cause: new Error(error.message),
+      message: error.message,
+    }),
+  });
+}
+
 async function writeDeferredToolCalls(
   writable: WritableStream<ModelCallStreamPart<ToolSet>>,
   toolCalls: ParsedToolCall[],
@@ -783,6 +855,17 @@ async function writeDeferredToolCalls(
   try {
     for (const toolCall of toolCalls) {
       await writer.write(toolCall as ModelCallStreamPart<ToolSet>);
+      // Match streamModelCall, which follows an invalid call with a tool-error.
+      if (toolCall.invalid && !toolCall.providerExecuted) {
+        await writer.write({
+          type: 'tool-error',
+          toolCallId: toolCall.toolCallId,
+          toolName: toolCall.toolName,
+          input: toolCall.input,
+          error: getErrorMessage(toolCall.error),
+          dynamic: true,
+        } as ModelCallStreamPart<ToolSet>);
+      }
     }
   } finally {
     writer.releaseLock();
