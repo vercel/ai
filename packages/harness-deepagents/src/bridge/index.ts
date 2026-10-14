@@ -25,8 +25,13 @@ import {
   endReasoningBlock,
   endTextBlock,
   flushStep,
+  markApprovalsWaiting,
+  markHostToolWaiting,
+  clearHostInputWaiting,
+  settleHostToolCall,
   toCommonName,
   type DeepAgentsStreamEvent,
+  type DeepAgentsStreamEventState,
 } from './create-emit-stream-event';
 import { jsonSchemaToZodObject } from './json-schema-to-zod';
 import { createLocalShellBackend } from './local-shell-backend';
@@ -152,6 +157,7 @@ const conversationCheckpointPath = `${bridgeStateDir}/conversation.checkpoint`;
 // One agent per bridge process, reused across turns; host tools read the live turn via `currentTurn`.
 let agent: ReturnType<typeof createDeepAgent> | undefined;
 let currentTurn: BridgeTurn | undefined;
+let currentStreamEventState: DeepAgentsStreamEventState | undefined;
 let mcpClient: MultiServerMCPClient | undefined;
 let mcpToolNames = new Set<string>();
 let currentResponseFormat: ReturnType<typeof toolStrategy> | undefined;
@@ -209,8 +215,19 @@ function buildHostTools(toolSchemas: StartMessage['tools']) {
           input: JSON.stringify(input),
           providerExecuted: false,
         } as BridgeEvent);
-        const { output, isError, toolResult } =
-          await turn.requestToolResult(toolCallId);
+        const streamEventState = currentStreamEventState;
+        const emit = (event: Record<string, unknown>) =>
+          turn.emit(event as BridgeEvent);
+        if (streamEventState != null) {
+          markHostToolWaiting({ state: streamEventState, emit, toolCallId });
+        }
+        const { output, isError, toolResult } = await turn
+          .requestToolResult(toolCallId)
+          .finally(() => {
+            if (streamEventState != null) {
+              clearHostInputWaiting({ state: streamEventState, toolCallId });
+            }
+          });
         turn.emit({
           type: 'tool-result',
           toolCallId,
@@ -218,6 +235,9 @@ function buildHostTools(toolSchemas: StartMessage['tools']) {
           result: output ?? null,
           ...(isError !== undefined ? { isError } : {}),
         });
+        if (streamEventState != null) {
+          settleHostToolCall({ state: streamEventState, emit, toolCallId });
+        }
         if (toolResult != null) {
           const converted = convertHarnessToolModelOutput({
             output: toolResult.output,
@@ -338,6 +358,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
 
   const hostToolNames = new Set((start.tools ?? []).map(t => t.name));
   const streamEventState = createDeepAgentsStreamEventState();
+  currentStreamEventState = streamEventState;
   const emitStreamEvent = createEmitStreamEvent({
     state: streamEventState,
     abortSignal: turn.abortSignal,
@@ -399,12 +420,18 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     const actionRequests = await readPendingApprovals();
     if (actionRequests.length === 0) break;
 
-    // HITL paused the run: announce each gated call, collect host decisions, then resume.
+    /*
+     * HITL paused the run: announce every gated call, request all host
+     * decisions at once so the host can answer them together, then resume.
+     */
     const decisions: Array<
       { type: 'approve' } | { type: 'reject'; message?: string }
     > = [];
-    for (const action of actionRequests) {
-      const approvalId = `approval-${randomUUID()}`;
+    const approvals = actionRequests.map(action => ({
+      action,
+      approvalId: `approval-${randomUUID()}`,
+    }));
+    for (const { action, approvalId } of approvals) {
       endTextBlock({ state: streamEventState, emit });
       endReasoningBlock({ state: streamEventState, emit });
       emit({
@@ -420,8 +447,23 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         approvalId,
         toolCallId: approvalId,
       });
-      flushStep({ state: streamEventState, emit });
-      const decision = await turn.requestToolApproval(approvalId);
+    }
+    const decisionPromises = approvals.map(({ approvalId }) =>
+      turn.requestToolApproval(approvalId).finally(() =>
+        clearHostInputWaiting({
+          state: streamEventState,
+          toolCallId: approvalId,
+        }),
+      ),
+    );
+    markApprovalsWaiting({
+      state: streamEventState,
+      emit,
+      approvalIds: approvals.map(({ approvalId }) => approvalId),
+    });
+    const settledDecisions = await Promise.all(decisionPromises);
+    for (const [index, { action, approvalId }] of approvals.entries()) {
+      const decision = settledDecisions[index];
       if (decision.approved) {
         const queue = streamEventState.approvedToolQueue.get(action.name) ?? [];
         queue.push(approvalId);
@@ -434,6 +476,11 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
           toolCallId: approvalId,
           toolName: toCommonName(action.name),
           result: decision.reason ?? 'Rejected by user.',
+        });
+        settleHostToolCall({
+          state: streamEventState,
+          emit,
+          toolCallId: approvalId,
         });
         decisions.push({
           type: 'reject',

@@ -1,5 +1,15 @@
 # @ai-sdk/harness-cline
 
+## 1.0.78
+
+### Patch Changes
+
+- 6c65131: feat(harness): consistently support parallel and sequential tool approvals
+- 1bebfcf: feat(harness): add support for tools with `toModelOutput()` transformation
+- Updated dependencies [6c65131]
+- Updated dependencies [1bebfcf]
+  - @ai-sdk/harness@1.0.151
+
 ## 1.0.77
 
 ### Patch Changes

@@ -10,7 +10,7 @@ import {
 } from './codex-app-server-driver';
 import type { StartMessage } from '../codex-bridge-protocol';
 import type { BridgeTurn } from '@ai-sdk/harness/bridge';
-import { createCodexStepTracker } from './codex-step-tracker';
+import { createCodexStepTracker, defaultUsage } from './codex-step-tracker';
 import { createTrustedApplyPatchHook } from './codex-tool-filtering-hook';
 
 const server = vi.hoisted(() => ({
@@ -971,6 +971,9 @@ describe('Codex app-server dynamic tools', () => {
         dynamicTools,
         emit: event => emitted.push(event),
         requestToolResult,
+        stepTracker: createCodexStepTracker({
+          send: event => emitted.push(event),
+        }),
       }),
     ).resolves.toEqual({
       contentItems: [{ type: 'inputText', text: '{"temperature":21}' }],
@@ -984,6 +987,12 @@ describe('Codex app-server dynamic tools', () => {
         toolName: 'get_weather',
         input: '{"city":"Berlin"}',
         providerExecuted: false,
+      },
+      {
+        type: 'finish-step',
+        finishReason: { unified: 'tool-calls', raw: 'host-input' },
+        usage: defaultUsage(),
+        harnessMetadata: { codex: { inferredStep: true } },
       },
       {
         type: 'tool-result',
@@ -1009,6 +1018,7 @@ describe('Codex app-server dynamic tools', () => {
         },
         dynamicTools,
         emit: () => {},
+        stepTracker: createCodexStepTracker({ send: () => {} }),
         requestToolResult: async () => ({
           output: { status: 'ready' },
           toolResult: {
@@ -1064,6 +1074,7 @@ describe('Codex app-server dynamic tools', () => {
           output: 'failed',
           isError: true,
         }),
+        stepTracker: createCodexStepTracker({ send: () => {} }),
       }),
     ).resolves.toEqual({
       contentItems: [{ type: 'inputText', text: 'failed' }],

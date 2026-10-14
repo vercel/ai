@@ -2843,6 +2843,8 @@ export class WorkflowAgent<
             );
             const approvalRequests = await Promise.all(
               approvalToolCalls.map(async tc => {
+                const { inputSchemaInput, ...toolCallWithoutInputSchemaInput } =
+                  tc;
                 const approvalId = `approval-${tc.toolCallId}`;
                 const signature =
                   effectiveToolApprovalSecret == null
@@ -2857,15 +2859,23 @@ export class WorkflowAgent<
                 return {
                   type: 'tool-approval-request' as const,
                   approvalId,
+                  ...(inputSchemaInput !== undefined
+                    ? { inputSchemaInput }
+                    : {}),
                   toolCall: {
-                    ...tc,
+                    ...toolCallWithoutInputSchemaInput,
                     type: 'tool-call' as const,
                   } as StepResult<ToolSet>['toolCalls'][number],
                   ...(signature != null ? { signature } : {}),
                 };
               }),
             );
-            step?.content.push(...approvalRequests);
+            step?.content.push(
+              ...approvalRequests.map(
+                ({ inputSchemaInput: _inputSchemaInput, ...request }) =>
+                  request,
+              ),
+            );
             const approvalMessages = approvalRequests.map(
               ({ toolCall, ...request }) => ({
                 ...request,
@@ -3313,6 +3323,7 @@ async function writeApprovalRequests(
     approvalId: string;
     toolCallId: string;
     signature?: string;
+    inputSchemaInput?: unknown;
   }>,
 ) {
   'use step';
@@ -3324,6 +3335,9 @@ async function writeApprovalRequests(
         approvalId: request.approvalId,
         toolCallId: request.toolCallId,
         ...(request.signature != null ? { signature: request.signature } : {}),
+        ...(request.inputSchemaInput !== undefined
+          ? { inputSchemaInput: request.inputSchemaInput }
+          : {}),
       });
     }
   } finally {
@@ -3736,6 +3750,7 @@ function addApprovalRequestsToMessages(
     approvalId: string;
     toolCallId: string;
     signature?: string;
+    inputSchemaInput?: unknown;
   }>,
 ): ModelMessage[] {
   if (requests.length === 0) return messages;

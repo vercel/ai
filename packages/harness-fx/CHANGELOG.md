@@ -1,5 +1,16 @@
 # @ai-sdk/harness-fx
 
+## 1.0.65
+
+### Patch Changes
+
+- ce45d8e: fix(harness-fx): use pinned latest fx release instead of uncontrolled latest
+- 1bebfcf: feat(harness): add support for tools with `toModelOutput()` transformation
+- Updated dependencies [6c65131]
+- Updated dependencies [1bebfcf]
+  - @ai-sdk/harness-acp@1.0.90
+  - @ai-sdk/harness@1.0.151
+
 ## 1.0.64
 
 ### Patch Changes
