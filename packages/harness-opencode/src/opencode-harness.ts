@@ -275,9 +275,11 @@ export function createOpenCode(
     harnessId: 'opencode',
     builtinTools: OPENCODE_BUILTIN_TOOLS,
     supportsBuiltinToolApprovals: true,
+    supportsBuiltinToolFiltering: true,
     lifecycleStateSchema: openCodeResumeStateSchema,
     getBootstrap: getOpenCodeBootstrap,
     doStart: async startOpts => {
+      validateBuiltinToolFiltering(startOpts.builtinToolFiltering);
       const sandboxSession = startOpts.sandboxSession;
       const toolSafeSandboxSession =
         getRestrictedSandboxSession(sandboxSession);
@@ -670,6 +672,23 @@ export function createOpenCode(
       });
     },
   };
+}
+
+function validateBuiltinToolFiltering(
+  toolFiltering: HarnessV1BuiltinToolFiltering | undefined,
+): void {
+  if (toolFiltering == null) return;
+  const isActive = (toolName: 'write' | 'edit') =>
+    toolFiltering.mode === 'allow'
+      ? toolFiltering.toolNames.includes(toolName)
+      : !toolFiltering.toolNames.includes(toolName);
+  if (isActive('write') !== isActive('edit')) {
+    throw new HarnessCapabilityUnsupportedError({
+      harnessId: 'opencode',
+      message:
+        "OpenCode built-in filtering requires 'write' and 'edit' to either both be active or both be inactive.",
+    });
+  }
 }
 
 function resolveBridgePort({

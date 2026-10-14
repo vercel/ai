@@ -230,7 +230,7 @@ describe('createOpenCode adapter', () => {
     expect(harness.harnessId).toBe('opencode');
     expect(harness.specificationVersion).toBe('harness-v1');
     expect(harness.supportsBuiltinToolApprovals).toBe(true);
-    expect(harness.supportsBuiltinToolFiltering).toBeUndefined();
+    expect(harness.supportsBuiltinToolFiltering).toBe(true);
     expect(Object.keys(harness.builtinTools)).toEqual([
       'askUserQuestions',
       'read',
@@ -288,6 +288,30 @@ describe('createOpenCode adapter', () => {
       }),
     ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
   });
+
+  it.each([
+    { mode: 'allow' as const, toolNames: ['write'] },
+    { mode: 'deny' as const, toolNames: ['write'] },
+  ])(
+    'throws HarnessCapabilityUnsupportedError when write and edit have different filtering states',
+    async builtinToolFiltering => {
+      const harness = createOpenCode();
+      const start = harness.doStart({
+        sessionId: 's1',
+        sandboxSession: {} as HarnessV1NetworkSandboxSession,
+        sessionWorkDir: '/tmp/opencode-s1',
+        builtinToolFiltering,
+      });
+
+      await expect(start).rejects.toBeInstanceOf(
+        HarnessCapabilityUnsupportedError,
+      );
+      await expect(start).rejects.toMatchObject({
+        message:
+          "OpenCode built-in filtering requires 'write' and 'edit' to either both be active or both be inactive.",
+      });
+    },
+  );
 
   it('passes connection settings to spawned and attached bridge channels', async () => {
     harnessUtilsMocks.connectOnOpen = true;

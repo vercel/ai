@@ -98,9 +98,37 @@ const OPENCODE_TO_WIRE: Readonly<Record<string, string>> = {
   subtask: 'agent',
 };
 
-const PUBLIC_TO_NATIVE: Readonly<Record<string, string>> = {
-  read: 'view',
-  write: 'write',
+type OpenCodeBuiltinToolName =
+  | 'askUserQuestions'
+  | 'read'
+  | 'write'
+  | 'edit'
+  | 'bash'
+  | 'glob'
+  | 'grep'
+  | 'ls'
+  | 'webfetch'
+  | 'skill'
+  | 'todowrite'
+  | 'agent';
+
+type OpenCodePermissionName =
+  | 'question'
+  | 'read'
+  | 'edit'
+  | 'bash'
+  | 'glob'
+  | 'grep'
+  | 'list'
+  | 'webfetch'
+  | 'skill'
+  | 'todowrite'
+  | 'task';
+
+const BUILTIN_TOOL_PERMISSION = {
+  askUserQuestions: 'question',
+  read: 'read',
+  write: 'edit',
   edit: 'edit',
   bash: 'bash',
   glob: 'glob',
@@ -109,8 +137,12 @@ const PUBLIC_TO_NATIVE: Readonly<Record<string, string>> = {
   webfetch: 'webfetch',
   skill: 'skill',
   todowrite: 'todowrite',
-  agent: 'agent',
-};
+  agent: 'task',
+} as const satisfies Record<OpenCodeBuiltinToolName, OpenCodePermissionName>;
+
+const BUILTIN_TOOL_NAMES = Object.keys(
+  BUILTIN_TOOL_PERMISSION,
+) as OpenCodeBuiltinToolName[];
 
 const TOOL_KIND: Readonly<Record<string, 'readonly' | 'edit' | 'bash'>> = {
   read: 'readonly',
@@ -307,14 +339,7 @@ function buildOpenCodeConfig({
   const inactiveToolNames = resolveInactiveBuiltinToolNames(start);
   const permission = config.permission as Record<string, unknown>;
   for (const toolName of inactiveToolNames) {
-    const permissionName = toPermissionToolName(
-      PUBLIC_TO_NATIVE[toolName] ?? toolName,
-    );
-    if (permissionName === 'ls') {
-      permission.list = 'ask';
-    } else {
-      permission[permissionName] = 'ask';
-    }
+    permission[BUILTIN_TOOL_PERMISSION[toolName]] = 'deny';
   }
   const provider = buildProviderConfig(start);
   if (provider) config.provider = provider;
@@ -1439,14 +1464,16 @@ function toPermissionToolName(action: string): string {
 
 function resolveInactiveBuiltinToolNames(
   start: StartMessage,
-): ReadonlyArray<string> {
+): ReadonlyArray<OpenCodeBuiltinToolName> {
   const toolFiltering = start.builtinToolFiltering;
   if (toolFiltering == null) return [];
   return toolFiltering.mode === 'allow'
-    ? Object.keys(PUBLIC_TO_NATIVE).filter(
-        name => !toolFiltering.toolNames.includes(name),
+    ? BUILTIN_TOOL_NAMES.filter(
+        toolName => !toolFiltering.toolNames.includes(toolName),
       )
-    : toolFiltering.toolNames;
+    : BUILTIN_TOOL_NAMES.filter(toolName =>
+        toolFiltering.toolNames.includes(toolName),
+      );
 }
 
 function isBuiltinToolInactive(input: {

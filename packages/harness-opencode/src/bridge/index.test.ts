@@ -35,6 +35,20 @@ const relayMock = vi.hoisted(() => ({
   port: 4097,
 }));
 const tempDirectories: string[] = [];
+const allBuiltinToolNames = [
+  'askUserQuestions',
+  'read',
+  'write',
+  'edit',
+  'bash',
+  'glob',
+  'grep',
+  'ls',
+  'webfetch',
+  'skill',
+  'todowrite',
+  'agent',
+];
 
 vi.mock('@ai-sdk/harness/bridge', () => ({
   runBridge: vi.fn(async (options: unknown) => {
@@ -272,6 +286,111 @@ describe('OpenCode bridge turn settlement', () => {
       }),
     );
   });
+
+  it.each([
+    {
+      filteringMode: 'deny',
+      builtinToolFiltering: {
+        mode: 'deny' as const,
+        toolNames: allBuiltinToolNames,
+      },
+      expectedPermissions: {
+        question: 'deny',
+        read: 'deny',
+        edit: 'deny',
+        bash: 'deny',
+        glob: 'deny',
+        grep: 'deny',
+        list: 'deny',
+        webfetch: 'deny',
+        skill: 'deny',
+        todowrite: 'deny',
+        task: 'deny',
+      },
+    },
+    {
+      filteringMode: 'allow',
+      builtinToolFiltering: {
+        mode: 'allow' as const,
+        toolNames: ['write', 'edit'],
+      },
+      expectedPermissions: {
+        question: 'deny',
+        read: 'deny',
+        edit: 'ask',
+        bash: 'deny',
+        glob: 'deny',
+        grep: 'deny',
+        list: 'deny',
+        webfetch: 'deny',
+        skill: 'deny',
+        todowrite: 'deny',
+        task: 'deny',
+      },
+    },
+  ])(
+    'maps inactive builtins to native OpenCode deny permissions ($filteringMode)',
+    async ({ builtinToolFiltering, expectedPermissions }) => {
+      bridgeMock.start = {
+        type: 'start',
+        operation: 'prompt',
+        prompt: 'Start.',
+        builtinToolFiltering,
+      };
+      bridgeMock.turn = {
+        emit: vi.fn(),
+        requestToolResult: vi.fn(),
+        requestToolApproval: vi.fn(),
+        experimental_userMessages: createUserMessages(),
+        abortSignal: new AbortController().signal,
+        firstTurn: true,
+        bridgeLog: vi.fn(),
+        emitWarning: vi.fn(),
+        emitError: vi.fn(),
+      };
+      sdkMock.client = {
+        mcp: { status: vi.fn(async () => ({ data: {} })) },
+        session: {
+          create: vi.fn(async () => ({ data: { id: 'session-1' } })),
+          get: vi.fn(async () => ({ data: {} })),
+          messages: vi.fn(async () => ({ data: [] })),
+          promptAsync: vi.fn(async () => ({ data: {} })),
+        },
+        event: {
+          subscribe: vi.fn(async () => ({
+            stream: {
+              async *[Symbol.asyncIterator]() {
+                yield {
+                  type: 'session.next.step.failed',
+                  properties: {
+                    sessionID: 'session-1',
+                    error: 'end builtin filtering test turn',
+                  },
+                };
+              },
+            },
+          })),
+        },
+        v2: {
+          session: {
+            context: vi.fn(async () => ({ data: [] })),
+            switchModel: vi.fn(async () => ({ data: {} })),
+          },
+        },
+      };
+      setBridgeArgv();
+
+      await import('./index');
+
+      expect(createOpencodeServerMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          config: expect.objectContaining({
+            permission: expect.objectContaining(expectedPermissions),
+          }),
+        }),
+      );
+    },
+  );
 
   it('keeps large host tool schemas out of the inline OpenCode config', async () => {
     const largeDescription = 'schema detail '.repeat(12_000);
