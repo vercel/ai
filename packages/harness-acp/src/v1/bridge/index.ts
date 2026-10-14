@@ -310,6 +310,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       hostToolAuthorization.waitForToolCallAuthorization,
     emitToolCall: emitStreamEvent.hostToolCall,
     emitToolResult: emitStreamEvent.hostToolResult,
+    emitWarning: turn.emitWarning,
     requestToolResult: toolCallId => turn.requestToolResult(toolCallId),
     registerCorrelationInvocation:
       emitStreamEvent.registerHostToolCorrelationInvocation,
@@ -554,6 +555,12 @@ async function ensureSession({
         active.emitStreamEvent.suppressToolCall({
           toolCallId: nativeToolCallId ?? classification.toolCallId,
         });
+        active.turn.emit({
+          type: 'finish-step',
+          finishReason: { unified: 'tool-calls', raw: 'host-input' },
+          usage: unknownUsage(),
+          harnessMetadata: { acp: { inferredStep: true } },
+        });
         try {
           const nativeResult = await active.turn.requestToolResult(
             classification.toolCallId,
@@ -613,6 +620,7 @@ async function ensureSession({
     tools,
     serverName: HOST_TOOL_MCP_SERVER_NAME,
     mcpTransport,
+    nonTextContentTypes: bridgeConfiguration.nonTextContentTypes,
   });
 
   const mcpServers: acp.McpServer[] = [

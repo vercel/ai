@@ -598,6 +598,214 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
       );
     });
 
+    it('should keep provider-executed tool results paired when the output length limit is reached', async () => {
+      const tools = {
+        webSearch: tool({
+          type: 'provider' as const,
+          id: 'test.web_search',
+          args: {},
+          isProviderExecuted: true,
+          inputSchema: z.object({ query: z.string() }),
+        }),
+      };
+      const model = new MockLanguageModelV4({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'stream-start' as const, warnings: [] },
+            {
+              type: 'tool-call' as const,
+              toolCallId: 'call-1',
+              toolName: 'webSearch',
+              input: '{"query":"test"}',
+              providerExecuted: true,
+            },
+            {
+              type: 'tool-result' as const,
+              toolCallId: 'call-1',
+              toolName: 'webSearch',
+              result: { hits: 3 },
+              providerExecuted: true,
+            },
+            { type: 'text-start' as const, id: 'text-1' },
+            {
+              type: 'text-delta' as const,
+              id: 'text-1',
+              delta: 'A partial answer.',
+            },
+            { type: 'text-end' as const, id: 'text-1' },
+            {
+              ...dummyStreamFinish,
+              finishReason: {
+                unified: 'length' as const,
+                raw: 'length',
+              },
+            },
+          ]),
+        }),
+      });
+
+      const result = await new WorkflowAgent({ model, tools }).stream({
+        messages: [{ role: 'user', content: 'Write an answer.' }],
+      });
+
+      const assistantMessage = {
+        role: 'assistant',
+        content: [
+          { type: 'tool-call', toolCallId: 'call-1' },
+          { type: 'tool-result', toolCallId: 'call-1' },
+          { type: 'text', text: 'A partial answer.' },
+        ],
+      };
+      expect(result.finishReason).toBe('length');
+      expect(result.messages.at(-1)).toMatchObject(assistantMessage);
+      expect(result.steps[0]?.response.messages).toMatchObject([
+        assistantMessage,
+      ]);
+
+      let continuedPrompt: unknown;
+      const continuationModel = new MockLanguageModelV4({
+        doStream: async ({ prompt }) => {
+          continuedPrompt = prompt;
+          return createShortStreamResponse();
+        },
+      });
+      await new WorkflowAgent({
+        model: continuationModel,
+        tools,
+      }).stream({
+        messages: [...result.messages, { role: 'user', content: 'Continue.' }],
+      });
+
+      expect(continuedPrompt).toMatchObject([
+        expect.anything(),
+        assistantMessage,
+        expect.anything(),
+      ]);
+    });
+
+    it.each([
+      { description: 'truncated JSON', toolName: 'local', input: '{"value":' },
+      {
+        description: 'invalid input',
+        toolName: 'local',
+        input: '{"value":123}',
+      },
+      {
+        description: 'unknown tool',
+        toolName: 'unknown',
+        input: '{"value":"test"}',
+      },
+    ])(
+      'should preserve $description tool errors alongside provider results on length completion',
+      async ({ toolName, input }) => {
+        const execute = vi.fn(async () => 'should-not-run');
+        const needsApproval = vi.fn(() => true);
+        const tools = {
+          webSearch: tool({
+            type: 'provider' as const,
+            id: 'test.web_search',
+            args: {},
+            isProviderExecuted: true,
+            inputSchema: z.object({ query: z.string() }),
+          }),
+          local: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute,
+            needsApproval,
+          }),
+        };
+        const model = new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'tool-call',
+                toolCallId: 'provider-call',
+                toolName: 'webSearch',
+                input: '{"query":"test"}',
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'provider-call',
+                toolName: 'webSearch',
+                result: { hits: 3 },
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'invalid-call',
+                toolName,
+                input,
+              },
+              {
+                ...dummyStreamFinish,
+                finishReason: { unified: 'length', raw: 'length' },
+              },
+            ]),
+          }),
+        });
+        const { writable, chunks } = createMockWritable();
+        const result = await new WorkflowAgent({ model, tools }).stream({
+          prompt: 'Write an answer.',
+          writable,
+        });
+
+        const assistantMessage = {
+          role: 'assistant',
+          content: [
+            { type: 'tool-call', toolCallId: 'provider-call' },
+            { type: 'tool-result', toolCallId: 'provider-call' },
+            { type: 'tool-call', toolCallId: 'invalid-call', toolName },
+          ],
+        };
+        const errorMessage = {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'invalid-call',
+              toolName,
+              output: { type: 'error-text', value: expect.any(String) },
+            },
+          ],
+        };
+        expect(result.finishReason).toBe('length');
+        expect(model.doStreamCalls).toHaveLength(1);
+        expect(execute).not.toHaveBeenCalled();
+        expect(needsApproval).not.toHaveBeenCalled();
+        expect(chunks).toContainEqual(
+          expect.objectContaining({
+            type: 'tool-error',
+            toolCallId: 'invalid-call',
+          }),
+        );
+        expect(result.messages.slice(1)).toMatchObject([
+          assistantMessage,
+          errorMessage,
+        ]);
+        expect(result.steps[0]?.response.messages).toMatchObject([
+          assistantMessage,
+          errorMessage,
+        ]);
+
+        const continuationModel = new MockLanguageModelV4({
+          doStream: async () => createShortStreamResponse(),
+        });
+        await new WorkflowAgent({ model: continuationModel, tools }).stream({
+          messages: [
+            ...result.messages,
+            { role: 'user', content: 'Continue.' },
+          ],
+        });
+        expect(continuationModel.doStreamCalls[0]?.prompt).toMatchObject([
+          expect.anything(),
+          assistantMessage,
+          errorMessage,
+          expect.anything(),
+        ]);
+      },
+    );
+
     it.each([
       ['content-filter', 'content-filter'],
       ['error', 'error'],

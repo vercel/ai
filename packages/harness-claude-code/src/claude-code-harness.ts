@@ -1871,6 +1871,8 @@ function createSession({
             : {}),
       };
       pendingResumeFlag = false;
+      // Recovery starts a native turn once. Later continuations attach to it.
+      rerunContinue = false;
       channel.send(startMessage);
 
       return control;
@@ -1894,6 +1896,7 @@ function createSession({
       // Same as `doPromptTurn`: an already-aborted signal settled the turn in
       // `wireTurn`, so don't re-drive the thread nobody is waiting on.
       if (rerunContinue && !continueOpts.abortSignal?.aborted) {
+        rerunContinue = false;
         pendingResumeFlag = false;
         channel.send({
           type: 'start' as const,

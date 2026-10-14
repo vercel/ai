@@ -15,7 +15,11 @@ import type {
   ToolChoice,
   ToolSet,
 } from 'ai';
-import type { ProviderOptions, StreamTextTransform } from './workflow-agent.js';
+import type {
+  DownloadFunction,
+  ProviderOptions,
+  StreamTextTransform,
+} from './workflow-agent.js';
 
 export type ModelCallStreamPart<TTools extends ToolSet = ToolSet> =
   | Experimental_LanguageModelStreamPart<TTools>
@@ -64,6 +68,7 @@ export interface ModelCallOptions {
   toolChoice?: ToolChoice<ToolSet>;
   includeRawChunks?: boolean;
   repairToolCall?: ToolCallRepairFunction<ToolSet>;
+  download?: DownloadFunction;
   include?: {
     requestBody?: boolean;
     responseBody?: boolean;
@@ -73,6 +78,21 @@ export interface ModelCallOptions {
   experimental_transform?:
     | StreamTextTransform<ToolSet>
     | Array<StreamTextTransform<ToolSet>>;
+  /**
+   * Set when the model step dispatches telemetry to globally registered
+   * integrations, which are not available in the workflow body.
+   */
+  telemetry?: ModelCallTelemetry;
+}
+
+/**
+ * Serializable telemetry settings for a durable model call.
+ */
+export interface ModelCallTelemetry {
+  functionId?: string;
+  recordInputs?: boolean;
+  recordOutputs?: boolean;
+  stepNumber: number;
 }
 
 /**

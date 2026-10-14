@@ -1540,6 +1540,105 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
 
+    describe('reasoning models (store: true)', () => {
+      it('should use item_reference for text parts preceded by reasoning', async () => {
+        const result = await convertToOpenAIResponsesInput({
+          toolNameMapping: testToolNameMapping,
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'reasoning',
+                  text: 'Thinking...',
+                  providerOptions: { openai: { itemId: 'rs_123' } },
+                },
+                {
+                  type: 'text',
+                  text: 'Hello',
+                  providerOptions: { openai: { itemId: 'msg_123' } },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'developer',
+          providerOptionsName: 'openai',
+          store: true,
+          isReasoningModel: true,
+        });
+
+        expect(result.input).toMatchInlineSnapshot(`
+          [
+            {
+              "id": "rs_123",
+              "type": "item_reference",
+            },
+            {
+              "id": "msg_123",
+              "type": "item_reference",
+            },
+          ]
+        `);
+      });
+
+      it('should send text parts with content when their reasoning has been removed', async () => {
+        const result = await convertToOpenAIResponsesInput({
+          toolNameMapping: testToolNameMapping,
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Hello',
+                  providerOptions: { openai: { itemId: 'msg_123' } },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'developer',
+          providerOptionsName: 'openai',
+          store: true,
+          isReasoningModel: true,
+        });
+
+        expect(result.input).toMatchInlineSnapshot(`
+          [
+            {
+              "content": "Hello",
+              "role": "assistant",
+            },
+          ]
+        `);
+        expect(result.warnings).toEqual([]);
+      });
+
+      it('should skip text parts that already exist in the conversation', async () => {
+        const result = await convertToOpenAIResponsesInput({
+          toolNameMapping: testToolNameMapping,
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Hello',
+                  providerOptions: { openai: { itemId: 'msg_123' } },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'developer',
+          providerOptionsName: 'openai',
+          store: true,
+          isReasoningModel: true,
+          hasConversation: true,
+        });
+
+        expect(result.input).toEqual([]);
+      });
+    });
+
     it('should emit one item reference for text parts from the same stored message', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,

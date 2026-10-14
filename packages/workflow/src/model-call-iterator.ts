@@ -27,6 +27,7 @@ import {
 import { buildModelStepResult } from './build-model-step-result.js';
 import { doGenerateStep } from './do-generate-step.js';
 import { doStreamStep } from './do-stream-step.js';
+import { shouldDispatchModelCallTelemetryInStep } from './model-call-telemetry.js';
 import type {
   ModelCallStreamPart,
   ModelCallOptions,
@@ -145,6 +146,7 @@ export async function* modelCallIterator({
   includeRawChunks = false,
   timeoutAt,
   repairToolCall,
+  download,
   responseFormat,
   experimental_transform,
   experimental_sandbox: sandbox,
@@ -172,6 +174,7 @@ export async function* modelCallIterator({
   includeRawChunks?: boolean;
   timeoutAt?: number;
   repairToolCall?: ToolCallRepairFunction<ToolSet>;
+  download?: ModelCallOptions['download'];
   responseFormat?: LanguageModelV4CallOptions['responseFormat'];
   experimental_transform?:
     | StreamTextTransform<ToolSet>
@@ -221,6 +224,8 @@ export async function* modelCallIterator({
     includeRuntimeContext: telemetry?.includeRuntimeContext,
     includeToolsContext: telemetry?.includeToolsContext,
   }) as any;
+  const dispatchTelemetryInStep =
+    shouldDispatchModelCallTelemetryInStep(telemetry);
 
   while (!done) {
     // Check for abort signal
@@ -380,9 +385,18 @@ export async function* modelCallIterator({
         includeRawChunks,
         timeoutAt,
         repairToolCall,
+        download,
         responseFormat,
         include,
         experimental_transform,
+        telemetry: dispatchTelemetryInStep
+          ? {
+              functionId: telemetry?.functionId,
+              recordInputs: telemetry?.recordInputs,
+              recordOutputs: telemetry?.recordOutputs,
+              stepNumber,
+            }
+          : undefined,
       };
       const modelCallResult =
         mode === 'generate'
@@ -510,11 +524,22 @@ export async function* modelCallIterator({
       }
 
       const shouldProcessTools =
-        isToolExecutionAllowed &&
-        (toolCalls.length > 0 || providerExecutedToolResults.size > 0);
+        (isToolExecutionAllowed &&
+          (toolCalls.length > 0 || providerExecutedToolResults.size > 0)) ||
+        (finishReason === 'length' && providerExecutedToolResults.size > 0);
 
       if (!hasTerminalError && shouldProcessTools) {
         lastStepWasYielded = true;
+        // Invalid local calls still need validation error results when execution
+        // is disallowed. WorkflowAgent handles them without executing the tools.
+        const processableToolCalls = isToolExecutionAllowed
+          ? toolCalls
+          : toolCalls.filter(
+              toolCall =>
+                (!toolCall.providerExecuted && toolCall.invalid) ||
+                (toolCall.providerExecuted &&
+                  providerExecutedToolResults.has(toolCall.toolCallId)),
+            );
 
         const {
           content: assistantContent,
@@ -547,7 +572,7 @@ export async function* modelCallIterator({
         // This allows executeTool to pass the conversation context to tool execute functions
         // Also include provider-executed tool results so they can be used instead of local execution
         const toolResults = yield {
-          toolCalls,
+          toolCalls: processableToolCalls,
           tools: effectiveTools,
           messages: conversationPrompt,
           step,
@@ -562,7 +587,7 @@ export async function* modelCallIterator({
           messages: conversationPrompt,
           toolResults,
           providerExecutedToolCallIds: new Set([
-            ...toolCalls.flatMap(toolCall =>
+            ...processableToolCalls.flatMap(toolCall =>
               toolCall.providerExecuted ? [toolCall.toolCallId] : [],
             ),
             ...providerExecutedToolResults.keys(),
@@ -589,6 +614,7 @@ export async function* modelCallIterator({
         );
 
         done =
+          !isToolExecutionAllowed ||
           stopConditionMet ||
           (!hasClientToolCalls && pendingDeferredToolCallIds.size === 0);
       } else if (

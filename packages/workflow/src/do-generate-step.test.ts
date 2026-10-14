@@ -1,4 +1,4 @@
-import { APICallError } from '@ai-sdk/provider';
+import { APICallError, type LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { tool } from 'ai';
 import { MockLanguageModelV4 } from 'ai/test';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -26,7 +26,10 @@ const success = {
 };
 
 describe('doGenerateStep', () => {
-  afterEach(() => vi.useRealTimers());
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
 
   it('rejects an expired deadline without dispatching the model and disables Workflow retries', async () => {
     const model = new MockLanguageModelV4({ doGenerate: success });
@@ -131,6 +134,121 @@ describe('doGenerateStep', () => {
         ['available', 'call'],
       ],
     });
+  });
+
+  it.each([
+    {
+      name: 'unsupported',
+      supportedUrls: {} as Record<string, RegExp[]>,
+      isUrlSupportedByModel: false,
+    },
+    {
+      name: 'supported',
+      supportedUrls: {
+        'application/pdf': [/.*/],
+      } as Record<string, RegExp[]>,
+      isUrlSupportedByModel: true,
+    },
+  ])(
+    'honors a custom pass-through decision for $name URLs',
+    async ({ supportedUrls, isUrlSupportedByModel }) => {
+      const fileUrl = new URL('https://example.com/file.pdf');
+      const urlPrompt: LanguageModelV4Prompt = [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: { type: 'url', url: fileUrl },
+              mediaType: 'application/pdf',
+            },
+          ],
+        },
+      ];
+      const download = vi.fn(async () => [null]);
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(() => {
+        throw new Error('default download must not run');
+      });
+      const model = new MockLanguageModelV4({
+        doGenerate: success,
+        supportedUrls,
+      });
+
+      await expect(
+        doGenerateStep(urlPrompt, model, {}, { download }),
+      ).resolves.toMatchObject({
+        finish: { finishReason: 'stop' },
+      });
+
+      expect(download).toHaveBeenCalledWith([
+        { url: fileUrl, isUrlSupportedByModel },
+      ]);
+      expect(fetchSpy).not.toHaveBeenCalled();
+      expect(model.doGenerateCalls[0].prompt).toEqual(urlPrompt);
+    },
+  );
+
+  it('keeps URL attachments in repair callback messages after model prompt conversion', async () => {
+    const fileUrl = new URL('https://example.com/file.pdf');
+    const urlPrompt: LanguageModelV4Prompt = [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: { type: 'url', url: fileUrl },
+            mediaType: 'application/pdf',
+          },
+        ],
+      },
+    ];
+    const tools = serializeToolSet({
+      lookup: tool({
+        inputSchema: z.object({ city: z.string() }),
+      }),
+    });
+    const repair = vi.fn(async ({ toolCall }) => ({
+      ...toolCall,
+      input: '{"city":"London"}',
+    }));
+    const model = new MockLanguageModelV4({
+      doGenerate: {
+        ...success,
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call',
+            toolName: 'lookup',
+            input: '{',
+          },
+        ],
+      },
+    });
+
+    await doGenerateStep(urlPrompt, model, tools, {
+      download: async () => [
+        {
+          data: new Uint8Array([1, 2, 3]),
+          mediaType: 'application/pdf',
+        },
+      ],
+      repairToolCall: repair,
+    });
+
+    expect(model.doGenerateCalls[0].prompt).toMatchObject([
+      {
+        content: [
+          {
+            data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
+          },
+        ],
+      },
+    ]);
+    expect(repair).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messages: urlPrompt,
+      }),
+    );
   });
 
   it.each(['required', { type: 'tool', toolName: 'lookup' }] as const)(
