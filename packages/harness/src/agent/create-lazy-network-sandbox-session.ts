@@ -1,12 +1,13 @@
+import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 import type { HarnessV1NetworkSandboxSession } from '../v1';
 import { delegateSandboxOperations } from './internal/sandbox-operations';
 
 /**
  * Creates a network sandbox session that acquires its sandbox on first use.
  *
- * Pair it with `sandboxConfig.setup: 'lazy'` on `HarnessAgent` so that a
- * session whose turns never touch the sandbox neither creates nor resumes
- * one. The harness adapter must not declare a sandbox bootstrap recipe.
+ * With a harness adapter that declares no sandbox bootstrap recipe,
+ * `HarnessAgent` defers its sandbox setup to first use too, so a session
+ * whose turns never touch the sandbox neither creates nor resumes one.
  *
  * The returned session does not provide `setNetworkPolicy`,
  * `setRequestTransformations`, `addRequestTransformations`, or `setPorts`.
@@ -42,7 +43,7 @@ export function createLazyNetworkSandboxSession(options: {
 }): HarnessV1NetworkSandboxSession {
   const description =
     options.description ??
-    'A sandbox session whose sandbox starts on its first file, exec, or spawn operation.';
+    'A sandbox session whose sandbox starts on its first file, exec, spawn, or port operation.';
   let acquisition: Promise<HarnessV1NetworkSandboxSession> | undefined;
   let acquiredSession: HarnessV1NetworkSandboxSession | undefined;
   const acquired = () =>
@@ -51,6 +52,9 @@ export function createLazyNetworkSandboxSession(options: {
       acquiredSession = session;
       return session;
     })());
+  let restricted: Promise<SandboxSession> | undefined;
+  const acquiredRestricted = () =>
+    (restricted ??= acquired().then(session => session.restricted()));
   const settledSession = async () =>
     acquisition == null ? undefined : acquisition.catch(() => undefined);
 
@@ -76,7 +80,7 @@ export function createLazyNetworkSandboxSession(options: {
     },
     restricted: () => ({
       description,
-      ...delegateSandboxOperations(async () => (await acquired()).restricted()),
+      ...delegateSandboxOperations(acquiredRestricted),
     }),
   };
 }

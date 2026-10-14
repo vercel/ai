@@ -79,12 +79,11 @@ describe('Pi with a lazy sandbox', () => {
     rmSync(agentDir, { recursive: true, force: true });
   });
 
-  it('a chat-only turn with lazy setup and a lazy sandbox session acquires no sandbox', async () => {
+  it('a chat-only turn with a lazy sandbox session acquires no sandbox', async () => {
     const acquire = vi.fn(async () => createRecordingSandboxSession().sandbox);
     const agent = new HarnessAgent({
       harness: createFakePi(modelUrl),
       model: 'fake/fake-model',
-      sandboxConfig: { setup: 'lazy' },
     });
 
     const session = await agent.createSession({
@@ -109,7 +108,6 @@ describe('Pi with a lazy sandbox', () => {
     const agent = new HarnessAgent({
       harness: createFakePi(modelUrl),
       model: 'fake/fake-model',
-      sandboxConfig: { setup: 'lazy' },
     });
 
     const session = await agent.createSession({

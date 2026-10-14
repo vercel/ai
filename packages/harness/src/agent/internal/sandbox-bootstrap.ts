@@ -13,10 +13,7 @@ import {
 
 const SANDBOX_BOOTSTRAP_IDENTITY_VERSION = 1;
 
-type SandboxBootstrapSettings = Omit<
-  HarnessAgentSandboxConfig,
-  'onSession' | 'setup'
->;
+type SandboxBootstrapSettings = Omit<HarnessAgentSandboxConfig, 'onSession'>;
 
 export type SandboxBootstrapPlan = {
   readonly recipe?: HarnessV1Bootstrap;
