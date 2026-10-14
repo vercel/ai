@@ -8,10 +8,7 @@ import {
   experimental_streamLanguageModelCall as streamModelCall,
   gateway,
   NoOutputGeneratedError,
-  RetryError,
-  StreamProviderError,
   wrapLanguageModel,
-  type Experimental_LanguageModelStreamPart,
   type LanguageModel,
   type ToolSet,
 } from 'ai';
@@ -118,6 +115,18 @@ async function streamModelStep(
   // Reconstruct tools from serializable definitions with Ajv validation.
   // Tools are serialized before crossing the step boundary because zod schemas
   // contain functions that can't be serialized by the workflow runtime.
+  const toolInputLifecycleEvents: ToolInputLifecycleEvent[] = [];
+  const repairedToolCallIds = new Set<string>();
+  const repairToolCall = options?.repairToolCall;
+  const trackedRepairToolCall = repairToolCall
+    ? async (repairOptions: Parameters<typeof repairToolCall>[0]) => {
+        const repaired = await repairToolCall(repairOptions);
+        if (repaired != null) {
+          repairedToolCallIds.add(repairOptions.toolCall.toolCallId);
+        }
+        return repaired;
+      }
+    : undefined;
   const tools = serializedTools
     ? resolveSerializableTools(serializedTools)
     : undefined;
@@ -166,110 +175,58 @@ async function streamModelStep(
         };
 
   // streamModelCall handles prompt standardization, tool preparation,
-  // model.doStream(), and stream part transformation. The retry boundary
-  // includes stream consumption so retryable failures after the response opens
-  // use the same model-call retry budget as dispatch failures.
-  let retryableTerminalError: unknown;
-  let retryableTerminalResult: DoStreamStepResult | undefined;
-  let deferredTerminalParts: ModelCallStreamPart<ToolSet>[] = [];
+  // model.doStream(), and stream part transformation. Retries are applied
+  // around the model dispatch because streamModelCall itself does not retry.
   const { retry } = prepareRetries({
     maxRetries: options?.maxRetries,
     abortSignal,
-    additionalRetryableError: error =>
-      StreamProviderError.isInstance(error) && error.isRetryable,
   });
-  const writer = writable?.getWriter();
+  const modelStream = await (async () => {
+    try {
+      const { stream } = await retry(() =>
+        streamModelCall({
+          model: modelWithTransforms,
+          // streamModelCall expects Prompt (ModelMessage[]) but we pass the
+          // pre-converted LanguageModelV4Prompt. standardizePrompt inside
+          // streamModelCall handles both formats.
+          messages: languageModelPromptToModelMessages(conversationPrompt),
+          allowSystemInMessages: true,
+          tools,
+          toolChoice: options?.toolChoice,
+          includeRawChunks: options?.includeRawChunks,
+          providerOptions: options?.providerOptions,
+          abortSignal,
+          headers: options?.headers,
+          reasoning: options?.reasoning,
+          output,
+          maxOutputTokens: options?.maxOutputTokens,
+          temperature: options?.temperature,
+          topP: options?.topP,
+          topK: options?.topK,
+          presencePenalty: options?.presencePenalty,
+          frequencyPenalty: options?.frequencyPenalty,
+          stopSequences: options?.stopSequences,
+          seed: options?.seed,
+          repairToolCall: trackedRepairToolCall,
+          download: options?.download,
+          ...languageModelCallTelemetry,
+        }),
+      );
 
-  try {
-    return await retry(async () => {
-      const { stream } = await streamModelCall({
-        model: modelWithTransforms,
-        // streamModelCall expects Prompt (ModelMessage[]) but we pass the
-        // pre-converted LanguageModelV4Prompt. standardizePrompt inside
-        // streamModelCall handles both formats.
-        messages: languageModelPromptToModelMessages(conversationPrompt),
-        allowSystemInMessages: true,
-        tools,
-        toolChoice: options?.toolChoice,
-        includeRawChunks: options?.includeRawChunks,
-        providerOptions: options?.providerOptions,
-        abortSignal,
-        headers: options?.headers,
-        reasoning: options?.reasoning,
-        output,
-        maxOutputTokens: options?.maxOutputTokens,
-        temperature: options?.temperature,
-        topP: options?.topP,
-        topK: options?.topK,
-        presencePenalty: options?.presencePenalty,
-        frequencyPenalty: options?.frequencyPenalty,
-        stopSequences: options?.stopSequences,
-        seed: options?.seed,
-        repairToolCall: options?.repairToolCall,
-        download: options?.download,
-        ...languageModelCallTelemetry,
-      });
-
-      const { result, deferredParts } = await consumeModelStream({
-        modelStream: stream,
-        writer,
-        serializedTools,
-        abortSignal,
-        timeoutAt: options?.timeoutAt,
-      });
-
-      if (
-        !result.aborted &&
-        'terminalError' in result &&
-        StreamProviderError.isInstance(result.terminalError) &&
-        result.terminalError.isRetryable
-      ) {
-        retryableTerminalError = result.terminalError;
-        retryableTerminalResult = result;
-        deferredTerminalParts = deferredParts;
-        throw result.terminalError;
+      return stream;
+    } catch (error) {
+      if (abortSignal?.aborted && isAbortError(error)) {
+        return undefined;
       }
 
-      return result;
-    });
-  } catch (error) {
-    if (abortSignal?.aborted && isAbortError(error)) {
-      return { aborted: true };
+      throw error;
     }
+  })();
 
-    const finalError = RetryError.isInstance(error) ? error.lastError : error;
-    if (
-      retryableTerminalResult != null &&
-      finalError === retryableTerminalError
-    ) {
-      for (const part of deferredTerminalParts) {
-        await writer?.write(part);
-      }
-      return retryableTerminalResult;
-    }
-
-    throw error;
-  } finally {
-    writer?.releaseLock();
+  if (modelStream == null) {
+    return { aborted: true };
   }
-}
 
-async function consumeModelStream({
-  modelStream,
-  writer,
-  serializedTools,
-  abortSignal,
-  timeoutAt,
-}: {
-  modelStream: ReadableStream<Experimental_LanguageModelStreamPart<ToolSet>>;
-  writer: WritableStreamDefaultWriter<ModelCallStreamPart<ToolSet>> | undefined;
-  serializedTools: Record<string, SerializableToolDef> | undefined;
-  abortSignal: AbortSignal | undefined;
-  timeoutAt: number | undefined;
-}): Promise<{
-  result: DoStreamStepResult;
-  deferredParts: ModelCallStreamPart<ToolSet>[];
-}> {
   // Consume the stream: capture data and write to writable in real-time
   const toolCalls: ParsedToolCall[] = [];
   const providerExecutedToolResults = new Map<
@@ -293,15 +250,16 @@ async function consumeModelStream({
   let performance: ModelCallPerformance | undefined;
   let terminalError: unknown;
   let hasTerminalError = false;
-  let deferWritableParts = false;
-  const deferredParts: ModelCallStreamPart<ToolSet>[] = [];
   let hasReceivedOutputChunk = false;
   const ongoingToolCallToolNames = new Map<string, string>();
-  const toolInputLifecycleEvents: ToolInputLifecycleEvent[] = [];
+
+  // Acquire writer once before the loop to avoid per-chunk lock overhead
+  const writer = writable?.getWriter();
 
   try {
-    // Reset before consuming every opened stream so a retry invalidates chunks
-    // left behind by an earlier attempt.
+    // A workflow step can be retried after already writing partial output.
+    // Reset the current UI step before every attempt so a retry invalidates
+    // chunks left behind by an earlier execution.
     await writer?.write({ type: 'reset-step' });
 
     for await (const part of modelStream) {
@@ -493,6 +451,34 @@ async function consumeModelStream({
           break;
       }
 
+      // Write to writable in real-time
+      if (writer) {
+        if (part.type === 'tool-approval-request') {
+          await writer.write({
+            type: 'tool-approval-request',
+            approvalId: part.approvalId,
+            toolCallId: part.toolCall.toolCallId,
+            ...(part.signature != null ? { signature: part.signature } : {}),
+          });
+        } else if (
+          // The original schema must validate and normalize these calls outside
+          // the step before they become available to UI stream consumers. The
+          // matching `tool-error` for an invalid call (emitted by
+          // streamModelCall immediately after the `tool-call`) is deferred as
+          // well, so `writeDeferredToolCalls` stays the sole emitter.
+          // Otherwise the UI stream would receive a duplicate `tool-error`
+          // chunk, and the one written here would arrive before its deferred
+          // `tool-call`.
+          !(
+            (part.type === 'tool-call' ||
+              (part.type === 'tool-error' && !part.providerExecuted)) &&
+            serializedTools?.[part.toolName]?.hasOwnValidator
+          )
+        ) {
+          await writer.write(part);
+        }
+      }
+
       if (part.type === 'error' && !hasTerminalError) {
         // Retain the first model error as step data. Throwing here would make
         // the durable workflow runtime retry the model step and normalize the
@@ -500,45 +486,23 @@ async function consumeModelStream({
         // consuming so the existing finish reason and usage are preserved.
         terminalError = part.error;
         hasTerminalError = true;
-        deferWritableParts =
-          StreamProviderError.isInstance(terminalError) &&
-          terminalError.isRetryable;
-      }
-
-      // Write to writable in real-time
-      if (writer) {
-        const writablePart =
-          part.type === 'tool-approval-request'
-            ? {
-                type: 'tool-approval-request' as const,
-                approvalId: part.approvalId,
-                toolCallId: part.toolCall.toolCallId,
-                ...(part.signature != null
-                  ? { signature: part.signature }
-                  : {}),
-              }
-            : part;
-
-        if (deferWritableParts) {
-          // A reset can invalidate rendered output, but it cannot undo client
-          // callbacks triggered by an error chunk. Hold the terminal suffix
-          // until the retry operation is known to be exhausted.
-          deferredParts.push(writablePart);
-        } else {
-          await writer.write(writablePart);
-        }
       }
     }
   } catch (error) {
     if (abortSignal?.aborted && isAbortError(error)) {
-      return { result: { aborted: true }, deferredParts: [] };
+      return { aborted: true };
     }
 
     throw error;
+  } finally {
+    writer?.releaseLock();
   }
 
-  if (abortSignal?.aborted || (timeoutAt != null && timeoutAt <= Date.now())) {
-    return { result: { aborted: true }, deferredParts: [] };
+  if (
+    abortSignal?.aborted ||
+    (options?.timeoutAt != null && options.timeoutAt <= Date.now())
+  ) {
+    return { aborted: true };
   }
 
   if (finish == null && !hasReceivedOutputChunk && !hasTerminalError) {
@@ -550,21 +514,19 @@ async function consumeModelStream({
   }
 
   return {
-    result: {
-      toolCalls,
-      finish,
-      raw: {
-        content,
-        reasoning: reasoningParts,
-        responseMetadata,
-        performance,
-        warnings,
-      },
-      providerExecutedToolResults,
-      toolInputLifecycleEvents,
-      ...(hasTerminalError ? { terminalError } : {}),
+    toolCalls,
+    finish,
+    raw: {
+      content,
+      reasoning: reasoningParts,
+      responseMetadata,
+      performance,
+      warnings,
     },
-    deferredParts,
+    providerExecutedToolResults,
+    toolInputLifecycleEvents,
+    repairedToolCallIds: [...repairedToolCallIds],
+    ...(hasTerminalError ? { terminalError } : {}),
   };
 }
 

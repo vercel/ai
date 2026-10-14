@@ -24,6 +24,7 @@ describe('createGitHubCopilot', () => {
     createGitHubCopilot();
 
     const settings = lastSettings();
+    expect(settings.nonTextContentTypes).toBeUndefined();
     expect({
       version: settings.version,
       harnessId: settings.harnessId,

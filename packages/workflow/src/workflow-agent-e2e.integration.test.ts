@@ -31,7 +31,6 @@ import {
   agentSignedToolApprovalIssueE2e,
   agentSignedToolApprovalResumeE2e,
   agentStreamErrorE2e,
-  agentStreamReadRetriesE2e,
   agentTimeoutE2e,
   agentToolApprovalE2e,
   agentToolCallE2e,
@@ -107,20 +106,6 @@ describe('WorkflowAgent integration', { timeout: 120_000 }, () => {
       await expect(run.returnValue).resolves.toBe(
         'model-attempts=3;step-attempt=1',
       );
-    });
-
-    it('recovers from a stream read failure within one durable step attempt', async () => {
-      const run = await start(agentStreamReadRetriesE2e, []);
-      const chunksPromise = collectStream<{ type: string }>(run.readable);
-
-      await expect(run.returnValue).resolves.toBe(
-        'model-attempts=2;step-attempt=1',
-      );
-      const chunks = await chunksPromise;
-      expect(chunks.filter(chunk => chunk.type === 'reset-step')).toHaveLength(
-        2,
-      );
-      expect(chunks.filter(chunk => chunk.type === 'error')).toHaveLength(0);
     });
 
     it('surfaces stream error data without retrying the model step', async () => {

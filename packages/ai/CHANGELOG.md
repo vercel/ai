@@ -1,5 +1,22 @@
 # ai
 
+## 7.0.140
+
+### Patch Changes
+
+- 9523eb0: feat(ai): add configurable tool call execution concurrency
+- Updated dependencies [42a2895]
+  - @ai-sdk/gateway@4.0.113
+
+## 7.0.139
+
+### Patch Changes
+
+- Updated dependencies [685667c]
+- Updated dependencies [bdbeba3]
+- Updated dependencies [ec2af7b]
+  - @ai-sdk/gateway@4.0.112
+
 ## 7.0.138
 
 ### Patch Changes

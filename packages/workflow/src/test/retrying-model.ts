@@ -15,26 +15,14 @@ type MockStreamPart = MockStreamResult extends {
 
 class SerializableRetryingModel extends MockLanguageModelV4 {
   static [WORKFLOW_SERIALIZE](model: SerializableRetryingModel) {
-    return {
-      failuresBeforeSuccess: model.failuresBeforeSuccess,
-      failurePoint: model.failurePoint,
-    };
+    return { failuresBeforeSuccess: model.failuresBeforeSuccess };
   }
 
-  static [WORKFLOW_DESERIALIZE](options: {
-    failuresBeforeSuccess: number;
-    failurePoint: 'dispatch' | 'stream-read';
-  }) {
-    return new SerializableRetryingModel(
-      options.failuresBeforeSuccess,
-      options.failurePoint,
-    );
+  static [WORKFLOW_DESERIALIZE](options: { failuresBeforeSuccess: number }) {
+    return new SerializableRetryingModel(options.failuresBeforeSuccess);
   }
 
-  constructor(
-    readonly failuresBeforeSuccess: number,
-    readonly failurePoint: 'dispatch' | 'stream-read' = 'dispatch',
-  ) {
+  constructor(readonly failuresBeforeSuccess: number) {
     let modelAttempts = 0;
 
     super({
@@ -44,39 +32,13 @@ class SerializableRetryingModel extends MockLanguageModelV4 {
         modelAttempts++;
 
         if (modelAttempts <= failuresBeforeSuccess) {
-          const error = new APICallError({
+          throw new APICallError({
             message: `model call failed on attempt ${modelAttempts}`,
             url: 'https://example.com/model',
             requestBodyValues: {},
             statusCode: 500,
             responseHeaders: { 'retry-after-ms': '0' },
           });
-
-          if (failurePoint === 'dispatch') {
-            throw error;
-          }
-
-          const failedAttemptParts: MockStreamPart[] = [
-            { type: 'stream-start', warnings: [] },
-            { type: 'text-start', id: '1' },
-            {
-              type: 'text-delta',
-              id: '1',
-              delta: `partial-attempt-${modelAttempts}`,
-            },
-          ];
-          return {
-            stream: new ReadableStream({
-              pull(controller) {
-                const part = failedAttemptParts.shift();
-                if (part != null) {
-                  controller.enqueue(part);
-                } else {
-                  controller.error(error);
-                }
-              },
-            }),
-          };
         }
 
         const text = `model-attempts=${modelAttempts};step-attempt=${getStepMetadata().attempt}`;
@@ -114,8 +76,4 @@ class SerializableRetryingModel extends MockLanguageModelV4 {
 // transformation issue tracked in https://github.com/vercel/workflow/issues/1365.
 export function retryingModel(): MockLanguageModelV4 {
   return new SerializableRetryingModel(2);
-}
-
-export function retryingStreamReadModel(): MockLanguageModelV4 {
-  return new SerializableRetryingModel(1, 'stream-read');
 }
