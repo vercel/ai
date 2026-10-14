@@ -85,6 +85,11 @@ Settings:
 
 - `auth`: authentication mode (`auto`, `openai`, `anthropic`, `custom`, or
   `ai-gateway`) or an isolated authentication environment.
+- `agentDir`: Pi configuration directory for authentication, model definitions,
+  and settings. Remote packages (npm or Git) listed in global or project
+  settings are ignored and are not installed. Local package paths retain their
+  configured skills when the skill files are inside the workspace; filesystem
+  extensions remain disabled. Host settings files are not rewritten.
 - `cacheRetention`: default prompt cache retention for model requests (`none`,
   `short`, or `long`). For Anthropic models, `long` uses the 1-hour cache
   instead of the 5-minute default.
@@ -96,6 +101,8 @@ Settings:
 - `fileToolPathPolicy`: extra sandbox roots Pi's native file tools can read,
   and roots they must refuse. See [File Tool Paths](#file-tool-paths).
 - `mcpServers`: MCP server definitions keyed by server name.
+  The adapter is bundled as JavaScript, so Node hosts do not need a TypeScript
+  loader or module load hooks.
 - `mcpSettings`: settings for the MCP adapter that serves `mcpServers`, applied
   over the package defaults. `toolPrefix` (`mcp`, `server`, `short`, or `none`)
   sets how MCP tool names are prefixed and defaults to `mcp`; only

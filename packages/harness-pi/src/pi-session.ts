@@ -90,6 +90,7 @@ import {
 } from './pi-utils';
 import { PiWorkspaceVfs } from './pi-workspace-vfs';
 import { syncHostWorkspaceFromSandbox } from './pi-workspace-mirror';
+import { createPiResourceSettings } from './pi-resource-settings';
 
 const HARNESS_ID = 'pi';
 
@@ -98,8 +99,6 @@ const HARNESS_ID = 'pi';
  * non-literal specifier keeps the repository type-check focused on this
  * package's compatibility boundary instead of compiling dependency internals.
  */
-const PI_MCP_ADAPTER_PACKAGE: string = 'pi-mcp-adapter';
-
 type PiMcpAdapterModule = {
   createMcpAdapter(options: {
     config: {
@@ -642,7 +641,7 @@ export async function createPiSession(
   ];
   if (hasMcpServers) {
     const { createMcpAdapter } = (await import(
-      PI_MCP_ADAPTER_PACKAGE
+      'pi-mcp-adapter' as string
     )) as PiMcpAdapterModule;
     extensionFactories.push(
       createMcpAdapter({
@@ -667,7 +666,7 @@ export async function createPiSession(
   const resourceLoader = new DefaultResourceLoader({
     cwd: sessionWorkDir,
     agentDir: hostAgentDir,
-    settingsManager,
+    settingsManager: createPiResourceSettings(settingsManager),
     appendSystemPromptOverride: () =>
       sessionInstructions ? [sessionInstructions] : [],
     extensionFactories,

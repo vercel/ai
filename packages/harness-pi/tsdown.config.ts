@@ -8,6 +8,11 @@ const packageVersion = JSON.stringify(
 
 export default defineConfig(
   mergeConfig(tsdownBaseConfig, {
+    deps: {
+      alwaysBundle: ['pi-mcp-adapter'],
+      neverBundle: ['glimpseui'],
+    },
+    copy: ['node_modules/pi-mcp-adapter/app-bridge.bundle.js'],
     define: {
       __PACKAGE_VERSION__: packageVersion,
     },
