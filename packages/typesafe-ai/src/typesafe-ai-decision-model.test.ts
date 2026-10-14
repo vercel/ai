@@ -405,7 +405,7 @@ it('maps text and JSON parts to native text state', async () => {
 });
 
 describe('image input', () => {
-  it.each(['[animal-photo]', '__proto__', 'constructor'])(
+  it.each(['[animal-photo]', '__proto__', 'constructor', 'request'])(
     'uses an explicit reference in assets, state, instructions, and criteria: %s',
     async reference => {
       const imageQuestions = {
@@ -432,7 +432,8 @@ describe('image input', () => {
         ],
         questions: imageQuestions,
       });
-      const body = await server.calls[0].requestBodyJson;
+      const multipart = await server.calls[0].requestBodyMultipart;
+      const body = JSON.parse(await multipart!.request.text());
       const references = Object.keys(body.assets);
       expect(references).toHaveLength(2);
       expect(references).toContain(reference);
@@ -440,9 +441,9 @@ describe('image input', () => {
       expect(body.state).toBe(`${reference}\n${generatedReference}`);
       expect(body.assets[reference]).toEqual({
         type: 'image',
-        format: 'png',
-        data_base64: 'iVBORw==',
+        part: 'image-0',
       });
+      expect(multipart!['image-0'].name).toBe('unrelated-name.png');
       expect(body.questions.cat).toEqual({
         ...imageQuestions.cat,
         type: 'noul',
@@ -508,7 +509,8 @@ describe('image input', () => {
         },
       ],
     });
-    const body = await server.calls[0].requestBodyJson;
+    const multipart = await server.calls[0].requestBodyMultipart;
+    const body = JSON.parse(await multipart!.request.text());
     const references = Object.keys(body.assets);
     expect(references).toHaveLength(2);
     expect(references[0]).not.toBe(references[1]);
@@ -516,9 +518,23 @@ describe('image input', () => {
       `Compare these images.\n${references[0]}\n{"label":"second"}\n${references[1]}`,
     );
     expect(Object.values(body.assets)).toEqual([
-      { type: 'image', format: 'png', data_base64: 'iVBORw==' },
-      { type: 'image', format: 'jpeg', data_base64: '/9j/4A==' },
+      { type: 'image', part: 'image-1' },
+      { type: 'image', part: 'image-3' },
     ]);
+    expect(Object.keys(multipart!)).toEqual(['request', 'image-1', 'image-3']);
+    expect(multipart!.request.type).toBe('application/json');
+    expect(multipart!['image-1'].type).toBe('image/png');
+    expect(multipart!['image-1'].name).toBe('image-1.png');
+    expect(new Uint8Array(await multipart!['image-1'].arrayBuffer())).toEqual(
+      new Uint8Array([137, 80, 78, 71]),
+    );
+    expect(multipart!['image-3'].type).toBe('image/jpeg');
+    expect(new Uint8Array(await multipart!['image-3'].arrayBuffer())).toEqual(
+      new Uint8Array([255, 216, 255, 224]),
+    );
+    expect(server.calls[0].requestHeaders['content-type']).toMatch(
+      /^multipart\/form-data; boundary=/,
+    );
     expect(server.calls[0].requestHeaders['typesafe-danger-zone-images']).toBe(
       'true',
     );
@@ -545,8 +561,10 @@ describe('image input', () => {
     };
     await model.doDecide(imageOptions);
     await model.doDecide(imageOptions);
-    expect((await server.calls[0].requestBodyJson).state).not.toBe(
-      (await server.calls[1].requestBodyJson).state,
+    const first = await server.calls[0].requestBodyMultipart;
+    const second = await server.calls[1].requestBodyMultipart;
+    expect(JSON.parse(await first!.request.text()).state).not.toBe(
+      JSON.parse(await second!.request.text()).state,
     );
   });
 

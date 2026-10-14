@@ -7,12 +7,13 @@ import {
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
-  convertUint8ArrayToBase64,
+  convertBase64ToUint8Array,
   createJsonResponseHandler,
   generateId,
   loadApiKey,
   parseProviderOptions,
   postJsonToApi,
+  postFormDataToApi,
   resolve,
   serializeModelOptions,
   withUserAgentSuffix,
@@ -115,16 +116,15 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
         type: 'unsupported',
         feature: `providerOptions.typesafe.${option}`,
       }));
-    const assets: Record<
-      string,
-      { type: 'image'; format: 'png' | 'jpeg'; data_base64: string }
-    > = Object.create(null); // don't inherit from Object.prototype
+    const assets: Record<string, { type: 'image'; part: string }> =
+      Object.create(null); // don't inherit from Object.prototype
+    const imageParts: { name: string; blob: Blob; filename: string }[] = [];
     const requestState =
       state.length === 1 && state[0].type === 'json'
         ? state[0].value
         : (
             await Promise.all(
-              state.map(async part => {
+              state.map(async (part, index) => {
                 if (part.type === 'file') {
                   if (part.data.type !== 'data') {
                     throw new UnsupportedFunctionalityError({
@@ -151,14 +151,22 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
                       message: `Duplicate TypeSafe image reference: ${reference}`,
                     });
                   }
-                  assets[reference] = {
-                    type: 'image',
-                    format: mediaType === 'image/png' ? 'png' : 'jpeg',
-                    data_base64:
-                      typeof part.data.data === 'string'
-                        ? part.data.data
-                        : convertUint8ArrayToBase64(part.data.data),
-                  };
+                  const partName = `image-${index}`;
+                  assets[reference] = { type: 'image', part: partName };
+                  imageParts.push({
+                    name: partName,
+                    blob: new Blob(
+                      [
+                        (typeof part.data.data === 'string'
+                          ? convertBase64ToUint8Array(part.data.data)
+                          : part.data.data) as BlobPart,
+                      ],
+                      { type: mediaType },
+                    ),
+                    filename:
+                      part.filename ??
+                      `${partName}.${mediaType === 'image/png' ? 'png' : 'jpeg'}`,
+                  });
                   return reference;
                 }
                 return part.type === 'text'
@@ -177,11 +185,20 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
             `ai-sdk-typesafe-ai/${VERSION}`,
           )
         : await resolve(this.config.headers);
-    const {
-      value: response,
-      rawValue,
-      responseHeaders,
-    } = await postJsonToApi({
+    const body = {
+      model: this.modelId,
+      state: requestState,
+      ...(hasImages && { assets }),
+      questions: Object.fromEntries(
+        Object.entries(questions).map(([id, question]) => [
+          id,
+          question.type === 'boolean'
+            ? { ...question, type: 'noul' }
+            : question,
+        ]),
+      ),
+    };
+    const requestOptions = {
       url: `${this.config.baseURL}/systemone`,
       headers: combineHeaders(
         modelHeaders,
@@ -191,26 +208,32 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
           : undefined,
         headers,
       ),
-      body: {
-        model: this.modelId,
-        state: requestState,
-        ...(hasImages && { assets }),
-        questions: Object.fromEntries(
-          Object.entries(questions).map(([id, question]) => [
-            id,
-            question.type === 'boolean'
-              ? { ...question, type: 'noul' }
-              : question,
-          ]),
-        ),
-      },
       abortSignal,
       fetch: this.config.fetch,
       failedResponseHandler: typesafeFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         typesafeDecisionResponseSchema,
       ),
-    });
+    };
+    let formData: FormData | undefined;
+    if (hasImages) {
+      formData = new FormData();
+      formData.append(
+        'request',
+        new Blob([JSON.stringify(body)], { type: 'application/json' }),
+        'request.json',
+      );
+      for (const { name, blob, filename } of imageParts) {
+        formData.append(name, blob, filename);
+      }
+    }
+    const {
+      value: response,
+      rawValue,
+      responseHeaders,
+    } = formData !== undefined
+      ? await postFormDataToApi({ ...requestOptions, formData })
+      : await postJsonToApi({ ...requestOptions, body });
 
     const confidence = Object.fromEntries(
       Object.entries(response.answers).flatMap(([id, answer]) =>
