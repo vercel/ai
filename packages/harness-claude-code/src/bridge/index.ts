@@ -6,6 +6,7 @@
 
 import {
   runBridge,
+  convertHarnessToolModelOutput,
   type BridgeEvent,
   type BridgeTurn,
   type Experimental_BridgeUserMessage,
@@ -46,7 +47,9 @@ import {
   createEmitStreamEvent,
   defaultUsage,
   emitFinishStep,
-  finishApprovalStep,
+  markWaitingOnHostInput,
+  clearWaitingOnHostInput,
+  resolveMcpHandlerToolUseId,
   isExternalMcpTool,
   mapUsage,
   type ClaudeMessage,
@@ -164,9 +167,11 @@ function createPermissionOptions(input: {
   inactiveNativeTools: readonly string[];
   turn: BridgeTurn;
   emit: Emit;
-  finishApprovalStep: (approvalId: string) => void;
+  markWaitingOnHostInput: (toolUseId: string) => void;
+  clearWaitingOnHostInput: (toolUseId: string) => void;
   nativeToolCallNames: Map<string, string>;
   approvalRequestedToolUseIds: Set<string>;
+  emittedToolCallIds: Set<string>;
 }): Record<string, unknown> {
   const permissionMode = input.start.permissionMode ?? 'allow-all';
   const inactiveNativeTools = new Set(input.inactiveNativeTools);
@@ -222,23 +227,29 @@ function createPermissionOptions(input: {
       const approvalId = options.toolUseID;
       input.approvalRequestedToolUseIds.add(approvalId);
       input.nativeToolCallNames.set(approvalId, toolName);
-      input.emit({
-        type: 'tool-call',
-        toolCallId: approvalId,
-        toolName: toCommonName(toolName),
-        nativeName: toolName,
-        input: JSON.stringify(toolInput ?? {}),
-        providerExecuted: true,
-        ...(isExternalMcpTool(toolName) ? { dynamic: true } : {}),
-      });
+      if (!input.emittedToolCallIds.has(approvalId)) {
+        input.emittedToolCallIds.add(approvalId);
+        input.emit({
+          type: 'tool-call',
+          toolCallId: approvalId,
+          toolName: toCommonName(toolName),
+          nativeName: toolName,
+          input: JSON.stringify(toolInput ?? {}),
+          providerExecuted: true,
+          ...(isExternalMcpTool(toolName) ? { dynamic: true } : {}),
+        });
+      }
+      const decisionPromise = input.turn.requestToolApproval(approvalId);
       input.emit({
         type: 'tool-approval-request',
         approvalId,
         toolCallId: approvalId,
       });
-      input.finishApprovalStep(approvalId);
+      input.markWaitingOnHostInput(approvalId);
 
-      const decision = await input.turn.requestToolApproval(approvalId);
+      const decision = await decisionPromise.finally(() =>
+        input.clearWaitingOnHostInput(approvalId),
+      );
       return decision.approved
         ? { behavior: 'allow', updatedInput: toolInput, toolUseID: approvalId }
         : {
@@ -254,6 +265,8 @@ function createQuestionPreToolUseHook(input: {
   turn: BridgeTurn;
   emit: Emit;
   nativeToolCallNames: Map<string, string>;
+  markWaitingOnHostInput: (toolUseId: string) => void;
+  clearWaitingOnHostInput: (toolUseId: string) => void;
 }): HookCallback {
   return async (hookInput, toolUseID): Promise<HookJSONOutput> => {
     if (
@@ -284,20 +297,23 @@ function createQuestionPreToolUseHook(input: {
     });
 
     const questionKey = claudeCodeQuestionKey(nativeInput);
-    const result = await input.turn.requestToolResult({
-      toolCallId,
-      matches: candidate => {
-        const nativeRequest = candidate.toolResult?.providerOptions?.[
-          'claude-code'
-        ]?.nativeRequest as
-          | Parameters<typeof claudeCodeQuestionKey>[0]
-          | undefined;
-        return (
-          nativeRequest != null &&
-          claudeCodeQuestionKey(nativeRequest) === questionKey
-        );
-      },
-    });
+    input.markWaitingOnHostInput(toolCallId);
+    const result = await input.turn
+      .requestToolResult({
+        toolCallId,
+        matches: candidate => {
+          const nativeRequest = candidate.toolResult?.providerOptions?.[
+            'claude-code'
+          ]?.nativeRequest as
+            | Parameters<typeof claudeCodeQuestionKey>[0]
+            | undefined;
+          return (
+            nativeRequest != null &&
+            claudeCodeQuestionKey(nativeRequest) === questionKey
+          );
+        },
+      })
+      .finally(() => input.clearWaitingOnHostInput(toolCallId));
     const nativeResult = toClaudeCodeQuestionResult({
       nativeInput,
       output: result.output as Parameters<
@@ -413,21 +429,50 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
           const [input, extra] = handlerArgs;
           const metadataToolCallId = extra._meta?.['claudecode/toolUseId'];
           const toolCallId =
-            typeof metadataToolCallId === 'string'
-              ? metadataToolCallId
-              : randomUUID();
+            resolveMcpHandlerToolUseId({
+              state: streamEventState,
+              metadataToolUseId:
+                typeof metadataToolCallId === 'string'
+                  ? metadataToolCallId
+                  : undefined,
+              toolName: tool.name,
+              input,
+            }) ?? randomUUID();
           streamEventState.mcpHandlerCalls.set(toolCallId, {
             toolName: tool.name,
             input,
           });
-          emit({
-            type: 'tool-call',
-            toolCallId,
-            toolName: tool.name,
-            input: JSON.stringify(input),
-            providerExecuted: false,
-          });
-          const { output, isError } = await turn.requestToolResult(toolCallId);
+          if (!streamEventState.emittedToolCallIds.has(toolCallId)) {
+            streamEventState.emittedToolCallIds.add(toolCallId);
+            emit({
+              type: 'tool-call',
+              toolCallId,
+              toolName: tool.name,
+              input: JSON.stringify(input),
+              providerExecuted: false,
+            });
+            markWaitingOnHostInput({
+              state: streamEventState,
+              emit,
+              toolUseId: toolCallId,
+            });
+          }
+          const { output, isError, toolResult } = await turn
+            .requestToolResult(toolCallId)
+            .finally(() => {
+              clearWaitingOnHostInput({
+                state: streamEventState,
+                toolUseId: toolCallId,
+              });
+              /*
+               * A handler call that could not be matched to a reported
+               * `tool_use` block never receives a native tool result, so it
+               * must not keep the step open once the host has answered.
+               */
+              if (!streamEventState.mcpToolCalls.has(toolCallId)) {
+                streamEventState.pendingStepToolUseIds.delete(toolCallId);
+              }
+            });
           emit({
             type: 'tool-result',
             toolCallId,
@@ -435,6 +480,23 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
             result: output ?? null,
             isError: !!isError,
           });
+          if (toolResult != null) {
+            const converted = convertHarnessToolModelOutput({
+              output: toolResult.output,
+            });
+            return {
+              content: converted.content.map(part =>
+                part.type === 'text'
+                  ? part
+                  : {
+                      type: 'image' as const,
+                      data: part.data,
+                      mimeType: part.mediaType,
+                    },
+              ),
+              isError: isError === true || converted.isError,
+            };
+          }
           return {
             content: [{ type: 'text', text: JSON.stringify(output ?? null) }],
             isError,
@@ -485,16 +547,22 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     inactiveNativeTools,
     turn,
     emit,
-    finishApprovalStep: approvalId => {
-      finishApprovalStep({ state: streamEventState, emit, approvalId });
-    },
+    markWaitingOnHostInput: toolUseId =>
+      markWaitingOnHostInput({ state: streamEventState, emit, toolUseId }),
+    clearWaitingOnHostInput: toolUseId =>
+      clearWaitingOnHostInput({ state: streamEventState, toolUseId }),
     nativeToolCallNames: streamEventState.nativeToolCallNames,
     approvalRequestedToolUseIds: streamEventState.approvalRequestedToolUseIds,
+    emittedToolCallIds: streamEventState.emittedToolCallIds,
   });
   const questionPreToolUseHook = createQuestionPreToolUseHook({
     turn,
     emit,
     nativeToolCallNames: streamEventState.nativeToolCallNames,
+    markWaitingOnHostInput: toolUseId =>
+      markWaitingOnHostInput({ state: streamEventState, emit, toolUseId }),
+    clearWaitingOnHostInput: toolUseId =>
+      clearWaitingOnHostInput({ state: streamEventState, toolUseId }),
   });
 
   const q = claudeSdk.query({

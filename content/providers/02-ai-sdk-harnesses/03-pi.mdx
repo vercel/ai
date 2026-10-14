@@ -93,8 +93,8 @@ Settings:
   credentials.
 - `extensionFactories`: trusted inline Pi extension factories that run in the
   host Node.js process.
-- `fileToolPathPolicy`: extra sandbox roots Pi's native file tools can read,
-  and roots they must refuse. See [File Tool Paths](#file-tool-paths).
+- `fileToolPathPolicy`: extra sandbox roots Pi's native file tools can read or
+  write, and roots they must refuse. See [File Tool Paths](#file-tool-paths).
 - `mcpServers`: MCP servers keyed by server name, served by Pi's native MCP
   support. Each entry is Pi's MCP server configuration, either stdio
   (`command`, `args`, `env`, `cwd`) or streamable HTTP (`url`, `headers`).
@@ -154,7 +154,8 @@ can reach:
 ```ts
 const harness = createPi({
   fileToolPathPolicy: {
-    readableRoots: ['/home/vercel-sandbox', '/tmp'],
+    readableRoots: ['/home/vercel-sandbox'],
+    writableRoots: ['/tmp', '/mnt/artifacts'],
     deniedRoots: ['/home/vercel-sandbox/.credentials'],
   },
 });
@@ -162,15 +163,21 @@ const harness = createPi({
 
 - `readableRoots`: absolute sandbox directories that `read`, `ls`, `find`, and
   `grep` can reach in addition to the defaults. They do not become writable.
+- `writableRoots`: absolute sandbox directories that `write` and `edit` can
+  reach in addition to the workspace. Writable roots are also readable.
 - `deniedRoots`: absolute sandbox directories that every native file tool
   refuses, even inside the workspace or a readable root. Both requested paths
   and denied roots are resolved in the sandbox, so symlinks pointing to or from
-  a denied root are refused. Denied roots are resolved in the sandbox before
-  the first native file tool runs; start a new session if a denied symlink
-  changes target. `find` and
-  `grep` skip denied roots when they search a parent directory. `grep` skips
-  them by directory name, so it also skips other directories with the same
-  name under the searched directory.
+  a denied root are refused. Configured roots are resolved again for each file
+  operation; canonical denied roots captured before the first native file tool
+  runs remain denied.
+  `find` and `grep` prune exact denied paths without following directory symlinks,
+  and `ls` hides directly denied entries. Other directories with the same name
+  remain accessible.
+
+Every configured root must be an absolute sandbox path. Denied roots take
+precedence over the workspace, harness skill directory, and allowed roots.
+Writes outside the workspace do not emit workspace `file-change` events.
 
 When the setting is present, a leading `~` in a tool path expands to the
 sandbox home directory.

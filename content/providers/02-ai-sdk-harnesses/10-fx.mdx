@@ -18,10 +18,9 @@ streaming, tools, and lifecycle management to `@ai-sdk/harness-acp`.
 
 <InstallPackages packages="@ai-sdk/harness @ai-sdk/harness-fx @ai-sdk/sandbox-vercel" />
 
-The ACP harness runs the [canonical fx installer](https://fx.sh/docs/getting-started/installation)
-inside the sandbox when the first session starts. The installer tracks the
-latest fx release and installs the executable into the ACP implementation's
-private home directory.
+When the first session starts, the [canonical fx installer](https://fx.sh/docs/getting-started/installation)
+downloads a pinned fx release and places the executable into the ACP
+implementation's private home directory.
 
 ## Import
 
@@ -209,6 +208,9 @@ or apply its own permission policy without sending an ACP permission request.
   sandbox-external request transformations. When a sandbox without that
   capability is provided, custom `headers` therefore cannot be passed and are
   ignored.
+- Images returned by tool `toModelOutput()` callbacks are not supported. The
+  adapter omits image content and writes a warning to bridge stderr. Text
+  output is still delivered to the model.
 
 ## Related
 

@@ -1,5 +1,29 @@
 # @ai-sdk/gateway
 
+## 4.0.113
+
+### Patch Changes
+
+- 42a2895: chore(provider/gateway): update gateway model settings files
+
+## 4.0.112
+
+### Patch Changes
+
+- 685667c: chore(provider/gateway): update gateway model settings files
+- bdbeba3: feat(google): add `gemini-4-argon` model id and long decode support for `generateContent`: requests that reach the per-request cap (`CONTINUATION`) are continued automatically with usage summed across requests and the first request's prompt token count exposed as `providerMetadata.google.initialPromptTokenCount`, and the `continuationToken` provider option / provider metadata resume responses that used up their `maxOutputTokens` budget. `generateText` with the Interactions API now polls `background: true` model calls until they finish.
+- ec2af7b: chore(provider/gateway): update gateway model settings files
+
+## 4.0.111
+
+### Patch Changes
+
+- Updated dependencies [9667bf2]
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/provider@4.0.27
+
 ## 4.0.110
 
 ### Patch Changes
