@@ -104,7 +104,7 @@ export async function runModelCallWithTelemetry({
     reasoning: options?.reasoning,
     providerOptions: options?.providerOptions,
     output: undefined,
-    runtimeContext: {},
+    runtimeContext: telemetry.runtimeContext ?? {},
     toolsContext: {},
   } as never);
   await dispatcher.onStepStart?.({
@@ -120,7 +120,7 @@ export async function runModelCallWithTelemetry({
     steps: [],
     providerOptions: options?.providerOptions,
     output: undefined,
-    runtimeContext: {},
+    runtimeContext: telemetry.runtimeContext ?? {},
     toolsContext: {},
   } as never);
 
@@ -157,7 +157,7 @@ export async function runModelCallWithTelemetry({
       callId,
       tools,
       stepNumber: telemetry.stepNumber,
-      runtimeContext: {},
+      runtimeContext: telemetry.runtimeContext ?? {},
       toolsContext: {},
     },
   );

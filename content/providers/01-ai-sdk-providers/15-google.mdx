@@ -1,18 +1,67 @@
 ---
 title: Google
-description: Learn how to use Google Provider.
+description: Learn how to use Google models through AI Gateway or the direct Google provider.
 ---
 
 # Google Provider
 
-The [Google](https://ai.google.dev) provider contains language and embedding model support for
-the [Google](https://ai.google.dev/api/rest) APIs.
+You can use [Google](https://ai.google.dev) models through [AI Gateway](/providers/ai-sdk-providers/ai-gateway) (recommended)
+or connect directly to the [Google APIs](https://ai.google.dev/api/rest) with `@ai-sdk/google`.
 
-## Setup
+```ts provider="google" model="google/gemini-4-argon" highlight="5"
+import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
 
-The Google provider is available in the `@ai-sdk/google` module. You can install it with
+const { text } = await generateText({
+  model: __MODEL__,
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
 
-<InstallPackages packages="@ai-sdk/google" />
+console.log(text);
+```
+
+## Using AI Gateway
+
+The AI SDK uses AI Gateway by default for model strings.
+AI Gateway provides access to Google and other providers through a single API key, with usage and cost tracking.
+Install the `ai` package:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration
+and the [model catalog](https://vercel.com/ai-gateway/models?search=google) for available Google models.
+
+Google model options can be passed through `providerOptions.google` when using AI Gateway.
+Support depends on the model and the provider serving the request; see [Gateway provider options](https://vercel.com/docs/ai-gateway/models-and-providers/provider-options).
+
+## Using `@ai-sdk/google`
+
+For direct access to the Google APIs, install `ai` and `@ai-sdk/google`:
+
+<InstallPackages packages="ai @ai-sdk/google" />
+
+Set your [Google API key](https://aistudio.google.com/apikey) in the `GOOGLE_GENERATIVE_AI_API_KEY` environment variable:
+
+```bash
+export GOOGLE_GENERATIVE_AI_API_KEY=your_api_key_here
+```
+
+AI Gateway does not expose every API in `@ai-sdk/google`.
+Use the direct provider for Google-specific APIs such as [`google.interactions(...)`](#interactions-api),
+or when you need to customize the Google connection with [`createGoogle`](#provider-instance).
+
+<Note>
+  The following sections document the direct `@ai-sdk/google` provider,
+  including its model factories, tools, and settings. Gateway model and feature
+  availability can differ from the direct provider.
+</Note>
 
 ## Provider Instance
 
@@ -77,11 +126,11 @@ You can use the following optional settings to customize the Google provider ins
 ## Language Models
 
 You can create models that call the [Google Generative AI API](https://ai.google.dev/api/rest) using the provider instance.
-The first argument is the model id, e.g. `gemini-3.8-flash`.
+The first argument is the model id, e.g. `gemini-4-argon`.
 The models support tool calls and some have multi-modal capabilities.
 
 ```ts
-const model = google('gemini-3.8-flash');
+const model = google('gemini-4-argon');
 ```
 
 You can use Google language models to generate text with the `generateText` function:
@@ -91,7 +140,7 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: google('gemini-3.8-flash'),
+  model: google('gemini-4-argon'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -116,7 +165,7 @@ You can pass them as an options argument:
 ```ts
 import { google, type GoogleLanguageModelOptions } from '@ai-sdk/google';
 
-const model = google('gemini-3.8-flash');
+const model = google('gemini-4-argon');
 
 await generateText({
   model,
@@ -253,6 +302,12 @@ The following optional provider options are available for Google models:
   [Priority inference](https://ai.google.dev/gemini-api/docs/priority-inference)
   and [Flex inference](https://ai.google.dev/gemini-api/docs/flex-inference).
 
+- **continuationToken** _string_
+
+  Optional. Resumes a response that stopped because it used up its
+  `maxOutputTokens` budget (Gemini 4 long decode). Send it with the original
+  request and a higher `maxOutputTokens`. See [Long decode](#long-decode).
+
 - **threshold** _string_
 
   Optional. Standalone threshold setting that can be used independently of `safetySettings`.
@@ -270,7 +325,7 @@ For Gemini 3 and later models, use the `thinkingLevel` parameter to control the 
 import { google, GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
-const model = google('gemini-3.8-flash');
+const model = google('gemini-4-argon');
 
 const { text, reasoning } = await generateText({
   model: model,
@@ -318,6 +373,136 @@ console.log(text);
 console.log(reasoning); // Reasoning summary
 ```
 
+### Long decode
+
+Gemini 4 models such as `gemini-4-argon` can keep thinking and writing past a
+single request's limits, up to the shared 1M token context window (input,
+thinking, and output tokens together). Use it for hard math, science, proofs,
+and long coding or agentic tasks.
+
+- A single request generates at most 32,768 tokens without streaming and 65,536
+  tokens with streaming (`streamText`). Thinking tokens count towards this cap.
+- `maxOutputTokens` is a **cumulative budget across requests**, not a target
+  length. When a request reaches the per-request cap while budget remains, the
+  provider automatically sends the same request again with a continuation token
+  and combines the results into one response. Set `maxOutputTokens` above the
+  per-request cap (up to 1M minus the input tokens) to enable this. If you do
+  not set it, the call ends after one request.
+- A lower `maxOutputTokens` does not make the model think less, it ends the
+  response early (possibly before any answer) and you are still charged for the
+  tokens. Use `thinkingConfig.thinkingLevel` to control how much the model
+  thinks. `thinkingBudget` is not supported by these models.
+- Complex requests can run for several minutes. Make sure your HTTP client
+  allows read timeouts of at least 15 to 20 minutes.
+
+**Usage across requests.** Each continued request re-sends the prompt plus all
+output so far as input, so its prompt token count includes everything
+generated before it. `usage` is the sum of all requests, which matches what
+Google bills (re-sent tokens are billed at a discount through implicit
+caching). Do not use the summed input tokens for context window checks or
+compaction: they can be several times larger than the real context. When a
+response spanned more than one request,
+`providerMetadata.google.initialPromptTokenCount` holds the prompt token count
+of the first request (the google-genai SDKs expose the same value as
+`initial_prompt_token_count`):
+
+```ts
+const result = await generateText({
+  model: google('gemini-4-argon'),
+  prompt,
+  maxOutputTokens: 500_000,
+});
+
+// Billing: summed across all requests
+console.log(result.usage.inputTokens.total);
+
+// Context window: the first request's prompt plus the generated output
+const promptTokens =
+  result.finalStep.providerMetadata?.google?.initialPromptTokenCount ??
+  result.usage.inputTokens.total;
+const contextTokens = promptTokens + (result.usage.outputTokens.total ?? 0);
+```
+
+**Resuming after the budget is used up.** When the cumulative generated tokens
+reach `maxOutputTokens`, the finish reason is `length` and the provider returns
+a continuation token on `result.providerMetadata.google.continuationToken`. To
+continue, send the **original request unchanged** (same prompt, tools, and
+settings; do not append the partial output as a message) together with the
+token as `providerOptions.google.continuationToken` and a **higher**
+`maxOutputTokens`. Resending with the same `maxOutputTokens` fails because the
+budget is used up. Each response contains only the newly generated content.
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const prompt = 'Prove that sqrt(2) is irrational, in detail.';
+
+const result = await generateText({
+  model: google('gemini-4-argon'),
+  prompt,
+  maxOutputTokens: 128_000,
+});
+
+const continuationToken =
+  result.finalStep.providerMetadata?.google?.continuationToken;
+
+if (result.finishReason === 'length' && typeof continuationToken === 'string') {
+  // The budget was used up. Raise it to keep going.
+  const continued = await generateText({
+    model: google('gemini-4-argon'),
+    prompt,
+    maxOutputTokens: 256_000,
+    providerOptions: { google: { continuationToken } },
+  });
+
+  console.log(result.text + continued.text);
+}
+```
+
+Things to keep in mind:
+
+- **Dropped streams.** Streamed parts are forwarded as they arrive and are not
+  buffered between the server's checkpoints, so a stream that drops mid-request
+  is not resumed automatically. Retry the request from the start.
+- **Provider metadata is per call.** If you store the conversation history,
+  combine the content of all calls into one model message only after the final
+  call finishes. Keep thought signatures unchanged, including the ones on empty
+  trailing text parts.
+- **Zero Data Retention.** Continuation works with `store: false` because the
+  state travels encrypted inside the token.
+
+#### Long decode with the Interactions API
+
+With the [Interactions API](#interactions-api), long decode requires
+`background: true`. The server runs every request itself, so no client-side
+continuation is needed, and `usage` covers all requests. Set an explicit
+`maxOutputTokens` above 65,536 (without it, you get a single 64K request) and
+keep `store` enabled (the default). The provider polls the interaction (or
+streams it, reconnecting when the connection drops) until it finishes.
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: google.interactions('gemini-4-argon'),
+  prompt: 'Prove that sqrt(2) is irrational, in detail.',
+  maxOutputTokens: 500_000,
+  providerOptions: {
+    google: {
+      background: true,
+      pollingTimeoutMs: 60 * 60 * 1000, // default: 30 minutes
+    },
+  },
+});
+```
+
+Without `background: true`, an interaction generates at most 65,536 tokens.
+Requests with a higher `maxOutputTokens` are rejected by the API, and an
+interaction that reaches the cap finishes with `length`. Long decode is not
+available with the Vertex AI Interactions API.
+
 ### File Inputs
 
 The Google provider supports file inputs, e.g. PDF files.
@@ -327,7 +512,7 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: google('gemini-3.8-flash'),
+  model: google('gemini-4-argon'),
   messages: [
     {
       role: 'user',
@@ -354,7 +539,7 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: google('gemini-3.8-flash'),
+  model: google('gemini-4-argon'),
   messages: [
     {
       role: 'user',
@@ -390,7 +575,7 @@ Google supports both explicit and implicit caching to help reduce costs on repet
 
 #### Implicit Caching
 
-Gemini models automatically provide cache cost savings without needing to create an explicit cache. When you send requests that share common prefixes with previous requests, you'll receive a 75% token discount on cached content.
+Gemini models automatically provide cache cost savings without needing to create an explicit cache. When you send requests that share common prefixes with previous requests, you can receive discounted pricing on cached input tokens.
 
 To maximize cache hits with implicit caching:
 
@@ -409,13 +594,13 @@ const baseContext =
   'You are a cooking assistant with expertise in Italian cuisine. Here are 1000 lasagna recipes for reference...';
 
 const { text: veggieLasagna } = await generateText({
-  model: google('gemini-3.8-flash'),
+  model: google('gemini-4-argon'),
   prompt: `${baseContext}\n\nWrite a vegetarian lasagna recipe for 4 people.`,
 });
 
 // Second request with same prefix - eligible for cache hit
 const { text: meatLasagna, providerMetadata } = await generateText({
-  model: google('gemini-3.8-flash'),
+  model: google('gemini-4-argon'),
   prompt: `${baseContext}\n\nWrite a meat lasagna recipe for 12 people.`,
 });
 
@@ -443,7 +628,7 @@ console.log('Cached tokens:', providerMetadata.google);
 
 #### Explicit Caching
 
-For guaranteed cost savings, you can still use explicit caching with Gemini 2.5 and 3 series models. See the [models page](https://ai.google.dev/gemini-api/docs/models) to check if caching is supported for the used model:
+For guaranteed cost savings, you can still use explicit caching with Gemini 2.5 and 3 series models. Gemini 4 Argon supports implicit caching only, so this example uses `gemini-3.8-flash`. See the [models page](https://ai.google.dev/gemini-api/docs/models) to check if caching is supported for the used model:
 
 ```ts
 import { google, type GoogleLanguageModelOptions } from '@ai-sdk/google';
@@ -503,7 +688,7 @@ import { googleTools } from '@ai-sdk/google/internal';
 import { generateText } from 'ai';
 
 const { text, toolCalls, toolResults } = await generateText({
-  model: google('gemini-3.8-flash'),
+  model: google('gemini-4-argon'),
   tools: { code_execution: google.tools.codeExecution({}) },
   prompt: 'Use python to calculate the 20th fibonacci number.',
 });
@@ -522,7 +707,7 @@ import { GoogleProviderMetadata } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text, sources, providerMetadata } = await generateText({
-  model: google('gemini-3.8-flash'),
+  model: google('gemini-4-argon'),
   tools: {
     google_search: google.tools.googleSearch({}),
   },
@@ -630,7 +815,7 @@ const vertex = createGoogleVertex({
 });
 
 const { text, sources, providerMetadata } = await generateText({
-  model: vertex('gemini-3.8-flash'),
+  model: vertex('gemini-4-argon'),
   tools: {
     enterprise_web_search: vertex.tools.enterpriseWebSearch({}),
   },
@@ -653,7 +838,7 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text, sources, providerMetadata } = await generateText({
-  model: google('gemini-3.8-flash'),
+  model: google('gemini-4-argon'),
   tools: {
     file_search: google.tools.fileSearch({
       fileSearchStoreNames: [
@@ -683,7 +868,7 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text, sources, providerMetadata } = await generateText({
-  model: google('gemini-3.8-flash'),
+  model: google('gemini-4-argon'),
   prompt: `Based on the document: https://ai.google.dev/gemini-api/docs/url-context.
           Answer this question: How many links we can consume in one request?`,
   tools: {
@@ -761,7 +946,7 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text, sources, providerMetadata } = await generateText({
-  model: google('gemini-3.8-flash'),
+  model: google('gemini-4-argon'),
   prompt: `Based on this context: https://ai-sdk.dev/providers/ai-sdk-providers/google, tell me how to use Gemini with AI SDK.
     Also, provide the latest news about AI SDK V5.`,
   tools: {
@@ -786,7 +971,7 @@ import { GoogleProviderMetadata } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text, sources, providerMetadata } = await generateText({
-  model: google('gemini-3.8-flash'),
+  model: google('gemini-4-argon'),
   tools: {
     google_maps: google.tools.googleMaps({}),
   },
@@ -850,7 +1035,7 @@ const vertex = createGoogleVertex({
 });
 
 const { text, sources, providerMetadata } = await generateText({
-  model: vertex('gemini-3.8-flash'),
+  model: vertex('gemini-4-argon'),
   tools: {
     vertex_rag_store: vertex.tools.vertexRagStore({
       ragCorpus:
@@ -1024,7 +1209,7 @@ You can also disable provider-enforced structured outputs for object generation:
 
 ```ts highlight="3,8"
 const { output } = await generateText({
-  model: google('gemini-3.8-flash'),
+  model: google('gemini-4-argon'),
   providerOptions: {
     google: {
       structuredOutputs: false,
@@ -1059,6 +1244,7 @@ will still validate the response against the schema in `Output.object`.
 | Model                                 | Image Input | Object Generation | Tool Usage | Tool Streaming | Google Search | URL Context |
 | ------------------------------------- | ----------- | ----------------- | ---------- | -------------- | ------------- | ----------- |
 | `gemini-nano-banana-2.1`              | <Check />   | <Cross />         | <Cross />  | <Cross />      | <Check />     | <Cross />   |
+| `gemini-4-argon`                      | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
 | `gemini-3.8-flash`                    | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
 | `gemini-3.7-flash`                    | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
 | `gemini-3.6-flash`                    | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
@@ -1106,7 +1292,7 @@ You can pass a `webhookUrl` to receive a notification when the batch reaches a t
 import { google } from '@ai-sdk/google';
 import { experimental_startBatch as startBatch } from 'ai';
 
-const model = 'gemini-3.8-flash';
+const model = 'gemini-4-argon';
 
 const batch = await startBatch({
   provider: google,
@@ -1325,13 +1511,13 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: google.interactions('gemini-3.8-flash'),
+  model: google.interactions('gemini-4-argon'),
   prompt: 'Hello, how are you?',
 });
 ```
 
 `google.interactions(...)` accepts a model ID string (e.g.
-`'gemini-3.8-flash'`, `'gemini-3.1-pro-preview'`), `{ agent: <name> }` to use
+`'gemini-4-argon'`, `'gemini-3.1-pro-preview'`), `{ agent: <name> }` to use
 a Gemini [agent preset](#agent-presets), or `{ managedAgent: <name> }` to
 invoke a [managed agent](#managed-agents) you created on Google's side.
 The returned model can be passed to `generateText` and `streamText` like
@@ -1358,7 +1544,7 @@ import {
 import { generateText } from 'ai';
 
 await generateText({
-  model: google.interactions('gemini-3.8-flash'),
+  model: google.interactions('gemini-4-argon'),
   prompt: 'What color is the sky in one word?',
   providerOptions: {
     google: {
@@ -1536,7 +1722,7 @@ import {
 import { generateText } from 'ai';
 
 const turn1 = await generateText({
-  model: google.interactions('gemini-3.8-flash'),
+  model: google.interactions('gemini-4-argon'),
   prompt: 'What are the three largest cities in Spain?',
 });
 
@@ -1545,7 +1731,7 @@ const interactionId = turn1.providerMetadata?.google?.interactionId as
   | undefined;
 
 const turn2 = await generateText({
-  model: google.interactions('gemini-3.8-flash'),
+  model: google.interactions('gemini-4-argon'),
   prompt: 'What is the most famous landmark in the second one?',
   providerOptions: {
     google: {
@@ -1570,7 +1756,7 @@ const messages: Array<ModelMessage> = [
 ];
 
 const turn1 = await generateText({
-  model: google.interactions('gemini-3.8-flash'),
+  model: google.interactions('gemini-4-argon'),
   messages,
   providerOptions: {
     google: { store: false } satisfies GoogleLanguageModelInteractionsOptions,
@@ -1584,7 +1770,7 @@ messages.push({
 });
 
 const turn2 = await generateText({
-  model: google.interactions('gemini-3.8-flash'),
+  model: google.interactions('gemini-4-argon'),
   messages,
   providerOptions: {
     google: { store: false } satisfies GoogleLanguageModelInteractionsOptions,
@@ -1594,7 +1780,7 @@ const turn2 = await generateText({
 
 ### Agentic video understanding
 
-Gemini 3.7 Flash, 3.6 Flash, and 3.5 Flash Lite support agentic video
+Gemini 4 Argon, 3.7 Flash, 3.6 Flash, and 3.5 Flash Lite support agentic video
 understanding through the Interactions API. Instead of sampling the entire
 video at a fixed frame rate, the model dynamically navigates the timeline and
 loads the transcripts, frames, or audio needed for the prompt.
@@ -1608,7 +1794,7 @@ import { google, type GoogleInteractionsVideoOptions } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: google.interactions('gemini-3.8-flash'),
+  model: google.interactions('gemini-4-argon'),
   messages: [
     {
       role: 'user',
@@ -1708,7 +1894,7 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text, sources } = await generateText({
-  model: google.interactions('gemini-3.8-flash'),
+  model: google.interactions('gemini-4-argon'),
   tools: {
     google_search: google.tools.googleSearch({}),
   },
@@ -1732,7 +1918,7 @@ const weatherTool = tool({
 });
 
 const { text, toolCalls } = await generateText({
-  model: google.interactions('gemini-3.8-flash'),
+  model: google.interactions('gemini-4-argon'),
   tools: { getWeather: weatherTool },
   stopWhen: isStepCount(5),
   prompt: 'What is the weather in San Francisco right now?',
@@ -2031,7 +2217,7 @@ import { google } from '@ai-sdk/google';
 import { streamText } from 'ai';
 
 const result = streamText({
-  model: google.interactions('gemini-3.8-flash'),
+  model: google.interactions('gemini-4-argon'),
   prompt: 'Hello, how are you?',
 });
 
@@ -2411,14 +2597,14 @@ Older models continue to use labelled transcripts, such as
 
 Create an experimental decision model with `google.decisionModel(modelId)`.
 It uses Gemini structured output for Choice, Score, and Boolean questions. Choose a model
-that supports structured output, such as `gemini-3.5-flash-lite`.
+that supports structured output, such as `gemini-4-argon`.
 
 ```ts
 import { google } from '@ai-sdk/google';
 import { experimental_decide } from 'ai';
 
 const { answers } = await experimental_decide({
-  model: google.decisionModel('gemini-3.5-flash-lite'),
+  model: google.decisionModel('gemini-4-argon'),
   state: 'I was charged twice.',
   questions: {
     requestsRefund: {
@@ -2432,7 +2618,7 @@ const { answers } = await experimental_decide({
     },
   },
   providerOptions: {
-    google: { thinkingConfig: { thinkingLevel: 'minimal' } },
+    google: { thinkingConfig: { thinkingLevel: 'low' } },
   },
 });
 ```
