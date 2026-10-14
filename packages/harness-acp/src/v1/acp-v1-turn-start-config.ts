@@ -10,6 +10,9 @@ import {
 } from './acp-v1-bridge-protocol';
 import type { ACPTextContentBlock } from './acp-v1-prompt';
 import type {
+  ACPInstructionMapping,
+  ACPModelMapping,
+  ACPOutputSchemaMapping,
   ACPPermissionModeMapping,
   ACPSerializableValue,
 } from './acp-v1-settings';
@@ -20,18 +23,30 @@ export function createACPTurnStartConfig({
   builtinTools,
   permissionMode,
   permissionModeMapping,
+  mcpServers,
   debug,
   authenticationProfile,
   sessionMeta,
+  instructionMapping,
+  responseFormat,
+  outputSchemaMapping,
+  model,
+  modelMapping,
 }: {
   prompt: ReadonlyArray<ACPTextContentBlock>;
   tools: ReadonlyArray<HarnessV1ToolSpec>;
   builtinTools: ReadonlyArray<ACPBuiltinToolMapping>;
   permissionMode: NonNullable<StartMessage['permissionMode']>;
   permissionModeMapping: ACPPermissionModeMapping | undefined;
+  mcpServers: Record<string, unknown> | undefined;
   debug: HarnessV1DebugConfig | undefined;
   authenticationProfile: ACPAuthenticationProfileIdentity;
   sessionMeta: Readonly<Record<string, ACPSerializableValue>> | undefined;
+  instructionMapping: ACPInstructionMapping | undefined;
+  responseFormat: StartMessage['responseFormat'];
+  outputSchemaMapping: ACPOutputSchemaMapping | undefined;
+  model: string | undefined;
+  modelMapping: ACPModelMapping;
 }): ACPTurnStartConfig {
   return {
     version: 1,
@@ -40,8 +55,12 @@ export function createACPTurnStartConfig({
         stableStringify({
           authenticationProfile,
           sessionMeta: sessionMeta ?? null,
+          ...(instructionMapping == null ? {} : { instructionMapping }),
+          ...(outputSchemaMapping == null ? {} : { outputSchemaMapping }),
+          modelMapping,
           builtinTools,
           permissionModeMapping: permissionModeMapping ?? null,
+          mcpServers: mcpServers ?? null,
         }),
       )
       .digest('hex'),
@@ -49,6 +68,16 @@ export function createACPTurnStartConfig({
     tools: tools.map(tool => acpSerializableToolSpecSchema.parse(tool)),
     builtinTools: [...builtinTools],
     permissionMode,
+    ...(model == null ? {} : { model, modelMapping }),
+    ...(responseFormat == null ? {} : { responseFormat }),
+    ...(outputSchemaMapping == null
+      ? {}
+      : {
+          outputSchemaMapping: {
+            type: outputSchemaMapping.type,
+            path: [...outputSchemaMapping.path],
+          },
+        }),
     ...(permissionModeMapping == null ? {} : { permissionModeMapping }),
     ...(debug == null ? {} : { debug }),
   };
@@ -56,10 +85,8 @@ export function createACPTurnStartConfig({
 
 export function createACPColdSessionState({
   turnStartConfig,
-  modelId,
 }: {
   turnStartConfig: ACPTurnStartConfig;
-  modelId: string | undefined;
 }): ACPColdSessionState {
   return {
     version: turnStartConfig.version,
@@ -67,10 +94,15 @@ export function createACPColdSessionState({
     tools: turnStartConfig.tools,
     builtinTools: turnStartConfig.builtinTools,
     permissionMode: turnStartConfig.permissionMode,
+    ...(turnStartConfig.responseFormat == null
+      ? {}
+      : { responseFormat: turnStartConfig.responseFormat }),
+    ...(turnStartConfig.outputSchemaMapping == null
+      ? {}
+      : { outputSchemaMapping: turnStartConfig.outputSchemaMapping }),
     ...(turnStartConfig.permissionModeMapping == null
       ? {}
       : { permissionModeMapping: turnStartConfig.permissionModeMapping }),
-    ...(modelId == null ? {} : { modelId }),
   };
 }
 

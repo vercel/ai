@@ -6,9 +6,10 @@ import type { UIMessage } from '../ui/ui-messages';
 import { handleUIMessageStreamFinish } from './handle-ui-message-stream-finish';
 import type { InferUIMessageChunk } from './ui-message-chunks';
 import type { UIMessageStreamOnEndCallback } from './ui-message-stream-on-end-callback';
+import type { UIMessageStreamOutcome } from './ui-message-stream-outcome';
 import type { UIMessageStreamOnStepEndCallback } from './ui-message-stream-on-step-end-callback';
 import type { UIMessageStreamOnStepFinishCallback } from './ui-message-stream-on-step-finish-callback';
-import type { UIMessageStreamWriter } from './ui-message-stream-writer';
+import type { UIMessageStreamWriterWithOutcome } from './ui-message-stream-writer';
 
 /**
  * Creates a UI message stream that can be used to send messages to the client.
@@ -36,7 +37,7 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
   generateId = generateIdFunc,
 }: {
   execute: (options: {
-    writer: UIMessageStreamWriter<UI_MESSAGE>;
+    writer: UIMessageStreamWriterWithOutcome<UI_MESSAGE>;
   }) => Promise<void> | void;
   onError?: (error: unknown) => string;
 
@@ -72,10 +73,24 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
   >;
 
   const ongoingStreamPromises: Promise<void>[] = [];
+  const activeReaders = new Set<
+    ReadableStreamDefaultReader<InferUIMessageChunk<UI_MESSAGE>>
+  >();
+  let isCancelled = false;
+  let cancelReason: unknown;
+  let outcome: UIMessageStreamOutcome = { status: 'unknown' };
 
   const stream = new ReadableStream({
     start(controllerArg) {
       controller = controllerArg;
+    },
+    async cancel(reason) {
+      isCancelled = true;
+      cancelReason = reason;
+
+      await Promise.all(
+        Array.from(activeReaders, reader => reader.cancel(reason)),
+      );
     },
   });
 
@@ -87,6 +102,42 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
     }
   }
 
+  function setOutcome(newOutcome: UIMessageStreamOutcome) {
+    if (outcome.status === 'unknown' && newOutcome.status !== 'unknown') {
+      outcome = newOutcome;
+    }
+  }
+
+  function failOutcome(error: unknown) {
+    outcome = { status: 'failed', error };
+  }
+
+  function safeError(error: unknown) {
+    try {
+      controller.error(error);
+    } catch {
+      // suppress errors when the stream has been closed
+    }
+  }
+
+  function handleError(error: unknown) {
+    failOutcome(error);
+
+    let errorText: string;
+    try {
+      errorText = onError(error);
+    } catch (onErrorError) {
+      failOutcome(onErrorError);
+      safeError(onErrorError);
+      return;
+    }
+
+    safeEnqueue({
+      type: 'error',
+      errorText,
+    } as InferUIMessageChunk<UI_MESSAGE>);
+  }
+
   try {
     const result = execute({
       writer: {
@@ -94,22 +145,32 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
           safeEnqueue(part);
         },
         merge(streamArg) {
+          if (isCancelled) {
+            void streamArg.cancel(cancelReason).catch(() => {});
+            return;
+          }
+
           ongoingStreamPromises.push(
             (async () => {
               const reader = streamArg.getReader();
-              while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                safeEnqueue(value);
+              activeReaders.add(reader);
+
+              try {
+                while (true) {
+                  const { done, value } = await reader.read();
+                  if (done) break;
+                  safeEnqueue(value);
+                }
+              } finally {
+                activeReaders.delete(reader);
+                reader.releaseLock();
               }
             })().catch(error => {
-              safeEnqueue({
-                type: 'error',
-                errorText: onError(error),
-              } as InferUIMessageChunk<UI_MESSAGE>);
+              handleError(error);
             }),
           );
         },
+        setOutcome,
         onError,
       },
     });
@@ -117,30 +178,23 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
     if (result) {
       ongoingStreamPromises.push(
         result.catch(error => {
-          safeEnqueue({
-            type: 'error',
-            errorText: onError(error),
-          } as InferUIMessageChunk<UI_MESSAGE>);
+          handleError(error);
         }),
       );
     }
   } catch (error) {
-    safeEnqueue({
-      type: 'error',
-      errorText: onError(error),
-    } as InferUIMessageChunk<UI_MESSAGE>);
+    handleError(error);
   }
 
   // Wait until all ongoing streams are done. This approach enables merging
   // streams even after execute has returned, as long as there is still an
   // open merged stream. This is important to e.g. forward new streams and
   // from callbacks.
-  const waitForStreams: Promise<void> = new Promise(async resolve => {
+  const waitForStreams: Promise<void> = (async () => {
     while (ongoingStreamPromises.length > 0) {
       await ongoingStreamPromises.shift();
     }
-    resolve();
-  });
+  })();
 
   waitForStreams.finally(() => {
     try {
@@ -157,5 +211,6 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
     onStepEnd: onStepEnd ?? onStepFinish,
     onEnd: onEnd ?? onFinish,
     onError,
+    getOutcome: () => outcome,
   });
 }

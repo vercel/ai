@@ -4,17 +4,26 @@ import {
   type HarnessV1BuiltinTool,
 } from '@ai-sdk/harness';
 import { tool } from '@ai-sdk/provider-utils';
+import type {
+  ExtensionFactory,
+  ProviderConfig,
+} from '@earendil-works/pi-coding-agent';
 import { z } from 'zod/v4';
-import type { PiAuthOptions } from './pi-auth';
+import type { PiAuthenticationMode, PiCredentialStore } from './pi-auth';
+import { piResumeStateSchema, type PiResumeStateData } from './pi-resume-state';
+import {
+  createPiSession,
+  type PiCacheRetention,
+  type PiMcpSettings,
+  type PiThinkingLevel,
+} from './pi-session';
 import type { PiFileToolPathPolicy } from './pi-paths';
-import { piResumeStateSchema } from './pi-resume-state';
-import { createPiSession, type PiThinkingLevel } from './pi-session';
 import { VERSION } from './version';
 
 /**
  * Value to use in User-Agent and `x-client-app` headers.
  */
-const PI_CLIENT_APP = `ai-sdk/harness-pi/${VERSION}`;
+const PI_CLIENT_APP = `ai-sdk-harness-pi/${VERSION}`;
 
 /**
  * Configuration knobs for `createPi`. Pi runs as an in-process Node library
@@ -22,28 +31,69 @@ const PI_CLIENT_APP = `ai-sdk/harness-pi/${VERSION}`;
  */
 export type PiHarnessSettings = {
   /** Where Pi sources API keys / gateway credentials from. */
-  readonly auth?: PiAuthOptions;
+  readonly auth?: PiAuthenticationMode;
   /**
-   * Pi model id (or name). Leaving this unset falls back to the AI Gateway
-   * default when `AI_GATEWAY_API_KEY` / `VERCEL_OIDC_TOKEN` is set, and to
-   * Pi's own resolution otherwise.
+   * Application-owned credential storage for Pi's model runtime. When set,
+   * this replaces Pi's file-backed auth.json credential storage.
    */
-  readonly model?: string;
+  readonly credentials?: PiCredentialStore;
+  /**
+   * Whether a suspended turn may reuse its live Pi session in this process.
+   * Disable this in stateless or multi-replica applications so every request
+   * restores from persisted lifecycle state with the current settings.
+   *
+   * @default true
+   */
+  readonly reattachInProcess?: boolean;
+  /**
+   * Explicit Pi provider configurations keyed by provider id. Use this to
+   * register custom models and their API protocol without coupling model
+   * metadata to authentication environment variables.
+   */
+  readonly providers?: Readonly<Record<string, ProviderConfig>>;
   /**
    * Pi's extended-thinking budget level. Maps directly to the SDK's
    * `thinkingLevel` option on `createAgentSession`.
    */
   readonly thinkingLevel?: PiThinkingLevel;
   /**
+   * Default prompt cache retention for model requests. For Anthropic models,
+   * `long` uses the 1-hour cache instead of the 5-minute default. When omitted,
+   * Pi's default (`short`) applies.
+   */
+  readonly cacheRetention?: PiCacheRetention;
+  /**
    * Directory holding Pi's global agent config (auth.json, models.json,
-   * settings.json). When omitted, a per-session temp dir is used. Pass the
-   * user's agent dir (e.g. `~/.pi/agent/`) to reuse their CLI auth and
-   * model settings.
+   * settings.json). When omitted, native subscription auth is discovered from
+   * Pi's default agent directory while model and general settings remain
+   * isolated per session.
    */
   readonly agentDir?: string;
   /**
-   * Additional allow and deny roots for Pi's native file tools. This does not
-   * constrain shell commands executed by the `bash` tool.
+   * MCP server definitions keyed by server name. Each definition uses the
+   * underlying runtime's native MCP server configuration format.
+   */
+  readonly mcpServers?: Record<string, unknown>;
+  /**
+   * Settings for the MCP adapter that serves `mcpServers`, applied over this
+   * package's defaults.
+   */
+  readonly mcpSettings?: PiMcpSettings;
+  /**
+   * Trusted inline Pi extensions loaded for each harness session.
+   *
+   * Filesystem-discovered user and project extensions remain disabled.
+   */
+  readonly extensionFactories?: ReadonlyArray<ExtensionFactory>;
+  /**
+   * Absolute sandbox paths that widen or narrow what Pi's native file tools
+   * can reach. `readableRoots` lets `read`, `ls`, `find`, and `grep` reach
+   * outside the session workspace. `writableRoots` also permits writes and
+   * edits outside the workspace and grants read access. `deniedRoots` are
+   * refused by every native file tool and take precedence, including through
+   * symlinks. Configured roots are resolved for each operation; canonical
+   * denied roots captured at session startup remain denied. The `bash` tool
+   * is not restricted.
    */
   readonly fileToolPathPolicy?: PiFileToolPathPolicy;
 };
@@ -52,9 +102,12 @@ const PI_BUILTIN_TOOLS = {
   read: commonTool('read', {
     nativeName: 'read',
     toolUseKind: 'readonly',
-    description: 'Read file contents.',
+    description:
+      'Read file contents. Output is limited to 2,000 lines or 50KB. Use offset and limit to read large files in pages.',
     inputSchema: z.object({
       file_path: z.string(),
+      offset: z.number().int().positive().optional(),
+      limit: z.number().int().positive().optional(),
     }),
   }),
   write: commonTool('write', {
@@ -135,36 +188,54 @@ export function createPi(
     lifecycleStateSchema: piResumeStateSchema,
     doStart: async startOpts => {
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
-      const resumeData = lifecycleState?.data as
-        | { sessionFileName?: string }
-        | undefined;
+      const resumeData = lifecycleState?.data as PiResumeStateData | undefined;
 
       return createPiSession({
         sessionId: startOpts.sessionId,
         sandboxSession: startOpts.sandboxSession,
         sessionWorkDir: startOpts.sessionWorkDir,
-        skills: startOpts.skills ?? [],
         settings: {
           ...(settings.auth ? { auth: settings.auth } : {}),
-          ...(settings.model ? { model: settings.model } : {}),
+          ...(settings.credentials
+            ? { credentials: settings.credentials }
+            : {}),
+          ...(settings.reattachInProcess != null
+            ? { reattachInProcess: settings.reattachInProcess }
+            : {}),
           ...(settings.thinkingLevel
             ? { thinkingLevel: settings.thinkingLevel }
             : {}),
+          ...(settings.cacheRetention
+            ? { cacheRetention: settings.cacheRetention }
+            : {}),
+          ...(settings.mcpServers ? { mcpServers: settings.mcpServers } : {}),
+          ...(settings.mcpSettings
+            ? { mcpSettings: settings.mcpSettings }
+            : {}),
+          ...(settings.providers ? { providers: settings.providers } : {}),
+          ...(settings.extensionFactories
+            ? { extensionFactories: settings.extensionFactories }
+            : {}),
+          ...(settings.fileToolPathPolicy
+            ? { fileToolPathPolicy: settings.fileToolPathPolicy }
+            : {}),
+          ...(startOpts.headers ? { headers: startOpts.headers } : {}),
         },
         clientApp: PI_CLIENT_APP,
         isResume: lifecycleState != null,
+        ...(lifecycleState ? { resumeStateType: lifecycleState.type } : {}),
         permissionMode: startOpts.permissionMode,
         builtinToolFiltering: startOpts.builtinToolFiltering,
         ...(resumeData?.sessionFileName
           ? { resumeSessionFileName: resumeData.sessionFileName }
           : {}),
+        ...(resumeData?.pendingToolBatch
+          ? { resumePendingToolBatch: resumeData.pendingToolBatch }
+          : {}),
         ...(startOpts.abortSignal
           ? { abortSignal: startOpts.abortSignal }
           : {}),
         ...(settings.agentDir ? { agentDir: settings.agentDir } : {}),
-        ...(settings.fileToolPathPolicy
-          ? { fileToolPathPolicy: settings.fileToolPathPolicy }
-          : {}),
       });
     },
   };

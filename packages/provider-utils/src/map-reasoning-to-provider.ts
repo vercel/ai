@@ -63,6 +63,7 @@ const DEFAULT_REASONING_BUDGET_PERCENTAGES: Record<ReasoningLevel, number> = {
   medium: 0.3,
   high: 0.6,
   xhigh: 0.9,
+  max: 0.95,
 };
 
 /**

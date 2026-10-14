@@ -1,10 +1,14 @@
 import {
   createACP,
-  type ACPAuthOptions,
+  type ACPAuthenticationMode,
   type ACPPermissionModeMapping,
+  type ACPSource,
 } from '@ai-sdk/harness-acp';
-import { commonTool } from '@ai-sdk/harness';
+import { commonTool, type HarnessV1PortEndpoint } from '@ai-sdk/harness';
+import { createCredentialRequestTransformation } from '@ai-sdk/harness/utils';
+import { secureJsonParse } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
+import { codexACPAskUserQuestions } from './codex-acp-question-tool';
 
 const webSearchActionSchema = z.discriminatedUnion('type', [
   z.object({
@@ -24,13 +28,13 @@ const webSearchActionSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('other') }),
 ]);
 
-const CODEX_ACP_IMPLEMENTATION = {
-  type: 'npm',
-  mode: 'simple',
+const CODEX_ACP_EXECUTABLE = 'codex-acp';
+
+const CODEX_ACP_SOURCE = {
+  type: 'npm-simple',
   packageName: '@agentclientprotocol/codex-acp',
-  version: '1.1.4',
-  executable: 'codex-acp',
-} as const;
+  packageVersion: '1.1.4',
+} as const satisfies ACPSource;
 
 const CODEX_ACP_BUILTIN_TOOLS = {
   bash: commonTool('bash', {
@@ -59,45 +63,89 @@ const CODEX_ACP_PERMISSION_MODE_MAPPING = {
   'allow-all': { type: 'session-mode', modeId: 'agent-full-access' },
 } as const satisfies ACPPermissionModeMapping;
 
+const codexConfigSchema = z.object({
+  model_provider: z.string().optional(),
+  model_providers: z
+    .record(
+      z.object({
+        base_url: z.string().optional(),
+      }),
+    )
+    .optional(),
+});
+
+export type CodexACPHarnessSettings = {
+  auth?: ACPAuthenticationMode;
+  mcpServers?: Record<string, unknown>;
+  mintBridgeToken?: (sandboxId: string) => string;
+  port?: number;
+  portEndpoint?: HarnessV1PortEndpoint;
+  reasoningEffort?: 'low' | 'medium' | 'high';
+  webSearch?: boolean;
+  source?: ACPSource;
+};
+
 export function createCodexACP({
   auth = 'auto',
+  mcpServers,
+  mintBridgeToken,
+  port,
+  portEndpoint,
+  reasoningEffort,
   webSearch,
-  acquisition,
-}: {
-  auth?: ACPAuthOptions;
-  webSearch?: boolean;
-  acquisition?:
-    | { mode: 'simple' }
-    | {
-        mode: 'locked';
-        packageJson: string;
-        pnpmLockYaml: string;
-      };
-} = {}) {
-  const implementation =
-    acquisition?.mode === 'locked'
-      ? ({
-          type: 'npm',
-          mode: 'locked',
-          packageJson: acquisition.packageJson,
-          pnpmLockYaml: acquisition.pnpmLockYaml,
-          executable: CODEX_ACP_IMPLEMENTATION.executable,
-        } as const)
-      : CODEX_ACP_IMPLEMENTATION;
+  source = CODEX_ACP_SOURCE,
+}: CodexACPHarnessSettings = {}) {
+  const codexConfig = resolveCodexACPConfig({
+    serializedConfig: process.env.CODEX_CONFIG,
+    reasoningEffort,
+    webSearch,
+  });
 
   return createACP({
+    nonTextContentTypes: ['image'],
     harnessId: 'codex-acp',
     auth,
-    implementation: {
-      ...implementation,
-      forwardEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
-      ...(webSearch
-        ? {
-            env: {
-              CODEX_CONFIG: JSON.stringify({ web_search: 'live' }),
-            },
-          }
-        : {}),
+    mcpServers,
+    isMcpToolCall: toolCall => toolCall._meta?.is_mcp_tool_call === true,
+    askUserQuestions: codexACPAskUserQuestions,
+    clientCapabilities: {
+      elicitation: { form: {} },
+    },
+    mintBridgeToken,
+    port,
+    portEndpoint,
+    source,
+    executable: CODEX_ACP_EXECUTABLE,
+    modelMapping: {
+      type: 'session-config-option',
+      path: 'model',
+    },
+    forwardEnv: [],
+    credentialEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
+    credentialBrokering: ({ env, sandboxEnv }) => {
+      const environmentVariableName = env.CODEX_API_KEY
+        ? 'CODEX_API_KEY'
+        : 'OPENAI_API_KEY';
+      const credential = env[environmentVariableName];
+      const sandboxCredential = sandboxEnv?.[environmentVariableName];
+      if (!credential || !sandboxCredential) return [];
+      return [
+        createCredentialRequestTransformation({
+          matchUrl: resolveCodexACPBaseUrl({ env }),
+          matchHeaders: {
+            Authorization: `Bearer ${sandboxCredential}`,
+          },
+          transformHeaders: { Authorization: `Bearer ${credential}` },
+        }),
+      ];
+    },
+    instructionMapping: {
+      type: 'launch-env-json',
+      variable: 'CODEX_CONFIG',
+      path: ['developer_instructions'],
+    },
+    env: {
+      CODEX_CONFIG: JSON.stringify(codexConfig),
     },
     builtinTools: CODEX_ACP_BUILTIN_TOOLS,
     permissionModeMapping: CODEX_ACP_PERMISSION_MODE_MAPPING,
@@ -108,8 +156,16 @@ export function createCodexACP({
       gateway: {
         env: {
           CODEX_API_KEY: { $source: 'gateway-api-key' },
+          MODEL_PROVIDER: 'ai_gateway',
           CODEX_CONFIG: {
+            features: { default_mode_request_user_input: true },
             ...(webSearch ? { web_search: 'live' } : {}),
+            ...(reasoningEffort
+              ? {
+                  model_reasoning_effort: reasoningEffort,
+                  model_reasoning_summary: 'detailed',
+                }
+              : {}),
             model: 'openai/gpt-5.6-sol',
             model_provider: 'ai_gateway',
             model_providers: {
@@ -135,4 +191,55 @@ export function createCodexACP({
       },
     },
   });
+}
+
+function resolveCodexACPConfig({
+  serializedConfig,
+  reasoningEffort,
+  webSearch,
+}: {
+  serializedConfig: string | undefined;
+  reasoningEffort: CodexACPHarnessSettings['reasoningEffort'];
+  webSearch: boolean | undefined;
+}): Record<string, unknown> {
+  const parsedConfig =
+    serializedConfig == null
+      ? undefined
+      : z.record(z.unknown()).safeParse(secureJsonParse(serializedConfig));
+  const config = parsedConfig?.success ? parsedConfig.data : {};
+  const parsedFeatures = z.record(z.boolean()).safeParse(config.features);
+
+  return {
+    ...config,
+    features: {
+      ...(parsedFeatures.success ? parsedFeatures.data : {}),
+      default_mode_request_user_input: true,
+    },
+    ...(webSearch ? { web_search: 'live' } : {}),
+    ...(reasoningEffort
+      ? {
+          model_reasoning_effort: reasoningEffort,
+          model_reasoning_summary: 'detailed',
+        }
+      : {}),
+  };
+}
+
+function resolveCodexACPBaseUrl({
+  env,
+}: {
+  env: Readonly<Record<string, string>>;
+}): string {
+  const config = env.CODEX_CONFIG;
+  if (config != null) {
+    try {
+      const result = codexConfigSchema.safeParse(secureJsonParse(config));
+      if (result.success && result.data.model_provider != null) {
+        const baseUrl =
+          result.data.model_providers?.[result.data.model_provider]?.base_url;
+        if (baseUrl != null) return baseUrl;
+      }
+    } catch {}
+  }
+  return 'https://api.openai.com/v1';
 }

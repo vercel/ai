@@ -33,7 +33,7 @@ export interface PiPathMapper {
   /** Whether a sandbox-side path is inside `sandboxWorkDir`. */
   isWorkspacePath(inputPath: string): boolean;
   /** Denied roots nested within a sandbox-side path. */
-  getDeniedSandboxRootsWithin(inputPath: string): ReadonlyArray<string>;
+  relativeDeniedRootsUnder(sandboxDir: string): string[];
   /** Translate any path to its POSIX-relative form under `sandboxWorkDir`. */
   toRelativePath(inputPath: string): string;
 }
@@ -61,14 +61,18 @@ export interface CreatePiPathMapperOptions {
   readonly hostWorkDir: string;
   readonly sandboxWorkDir: string;
   readonly readableRoots?: ReadonlyArray<PiReadablePathRoot>;
-  readonly fileToolPathPolicy?: PiFileToolPathPolicy;
+  readonly writableRoots?: ReadonlyArray<string>;
+  readonly deniedRoots?: ReadonlyArray<string>;
+  readonly homeDir?: string;
 }
 
 function isInsidePath(parent: string, candidate: string): boolean {
   const relative = path.relative(parent, candidate);
   return (
     relative === '' ||
-    (!relative.startsWith('..') && !path.isAbsolute(relative))
+    (relative !== '..' &&
+      !relative.startsWith(`..${path.sep}`) &&
+      !path.isAbsolute(relative))
   );
 }
 
@@ -76,7 +80,9 @@ function isInsidePosixPath(parent: string, candidate: string): boolean {
   const relative = path.posix.relative(parent, candidate);
   return (
     relative === '' ||
-    (!relative.startsWith('..') && !path.posix.isAbsolute(relative))
+    (relative !== '..' &&
+      !relative.startsWith('../') &&
+      !path.posix.isAbsolute(relative))
   );
 }
 
@@ -95,51 +101,49 @@ function canonicalizeForContainment(inputPath: string): string {
   }
 }
 
-function normalizeSandboxRoots(
-  roots: ReadonlyArray<string> | undefined,
-  kind: string,
-): string[] {
-  return (roots ?? []).map(root => {
-    if (!path.posix.isAbsolute(root)) {
-      throw new Error(
-        `Pi ${kind} root must be an absolute sandbox path: ${root}`,
-      );
-    }
-    return path.posix.normalize(root);
-  });
-}
-
 export function createPiPathMapper(
   options: CreatePiPathMapperOptions,
 ): PiPathMapper {
   const normalizedHost = path.resolve(options.hostWorkDir);
   const normalizedSandbox = path.posix.normalize(options.sandboxWorkDir);
   const canonicalHost = canonicalizeForContainment(normalizedHost);
-  const readableRoots =
-    options.readableRoots?.map(root => ({
-      sandboxDir: path.posix.normalize(root.sandboxDir),
-    })) ?? [];
-  const policyReadableRoots = normalizeSandboxRoots(
-    options.fileToolPathPolicy?.readableRoots,
-    'readable',
-  );
-  const writableRoots = normalizeSandboxRoots(
-    options.fileToolPathPolicy?.writableRoots,
-    'writable',
-  );
-  const deniedRoots = normalizeSandboxRoots(
-    options.fileToolPathPolicy?.deniedRoots,
-    'denied',
-  );
+  const normalizeRoots = ({
+    roots,
+    kind,
+  }: {
+    roots: ReadonlyArray<string> | undefined;
+    kind: string;
+  }): string[] =>
+    (roots ?? []).map(root => {
+      if (!path.posix.isAbsolute(root))
+        throw new Error(
+          `Pi ${kind} root must be an absolute sandbox path: ${root}`,
+        );
+      return path.posix.normalize(root);
+    });
+  const readableRoots = normalizeRoots({
+    roots: options.readableRoots?.map(root => root.sandboxDir),
+    kind: 'readable',
+  });
+  const writableRoots = normalizeRoots({
+    roots: options.writableRoots,
+    kind: 'writable',
+  });
+  const deniedRoots = normalizeRoots({
+    roots: options.deniedRoots,
+    kind: 'denied',
+  });
+  const expandHome = (inputPath: string): string =>
+    options.homeDir != null && (inputPath === '~' || inputPath.startsWith('~/'))
+      ? path.posix.join(options.homeDir, inputPath.slice(1))
+      : inputPath;
 
   const isDeniedSandboxPath = (inputPath: string): boolean =>
     deniedRoots.some(root => isInsidePosixPath(root, inputPath));
 
   const assertNotDenied = (inputPath: string): void => {
     if (isDeniedSandboxPath(inputPath)) {
-      throw new Error(
-        `Pi path is denied by the file-tool policy: ${inputPath}`,
-      );
+      throw new Error(`Pi path is inside a denied root: ${inputPath}`);
     }
   };
 
@@ -160,12 +164,7 @@ export function createPiPathMapper(
     assertNotDenied(normalizedInput);
     if (
       !isInsidePosixPath(normalizedSandbox, normalizedInput) &&
-      !readableRoots.some(root =>
-        isInsidePosixPath(root.sandboxDir, normalizedInput),
-      ) &&
-      !policyReadableRoots.some(root =>
-        isInsidePosixPath(root, normalizedInput),
-      ) &&
+      !readableRoots.some(root => isInsidePosixPath(root, normalizedInput)) &&
       !writableRoots.some(root => isInsidePosixPath(root, normalizedInput))
     ) {
       throw new Error(`Pi path escapes the readable roots: ${inputPath}`);
@@ -201,6 +200,7 @@ export function createPiPathMapper(
         return assertWritableSandboxPath(normalizedInput);
       }
 
+      // Absolute host paths are handled below.
       const mappedHostPath = mapHostWorkspacePath(inputPath);
       if (mappedHostPath) {
         return assertWritableSandboxPath(mappedHostPath);
@@ -224,22 +224,21 @@ export function createPiPathMapper(
   return {
     hostWorkDir: normalizedHost,
     sandboxWorkDir: normalizedSandbox,
-    readableSandboxRoots: [
-      ...readableRoots.map(root => root.sandboxDir),
-      ...policyReadableRoots,
-    ],
+    readableSandboxRoots: readableRoots,
     writableSandboxRoots: writableRoots,
     deniedSandboxRoots: deniedRoots,
     toSandboxPath(inputPath: string) {
-      return toWritableSandboxPath(inputPath);
+      return toWritableSandboxPath(expandHome(inputPath));
     },
     toReadableSandboxPath(inputPath: string) {
+      inputPath = expandHome(inputPath);
       if (path.posix.isAbsolute(inputPath)) {
         const normalizedInput = path.posix.normalize(inputPath);
         if (isInsidePosixPath(normalizedSandbox, normalizedInput)) {
           return assertReadableSandboxPath(normalizedInput);
         }
 
+        // Absolute host paths are handled by workspace mapping below.
         const mappedHostPath = mapHostWorkspacePath(inputPath);
         if (mappedHostPath) {
           return assertReadableSandboxPath(mappedHostPath);
@@ -247,9 +246,6 @@ export function createPiPathMapper(
 
         if (
           readableRoots.some(root =>
-            isInsidePosixPath(root.sandboxDir, normalizedInput),
-          ) ||
-          policyReadableRoots.some(root =>
             isInsidePosixPath(root, normalizedInput),
           ) ||
           writableRoots.some(root => isInsidePosixPath(root, normalizedInput))
@@ -262,7 +258,7 @@ export function createPiPathMapper(
           return assertReadableSandboxPath(mappedHostPath);
         }
       }
-      throw new Error(`Pi path escapes the readable roots: ${inputPath}`);
+      throw new Error(`Pi path escapes the workspace: ${inputPath}`);
     },
     assertSandboxPath(inputPath: string) {
       return assertWritableSandboxPath(inputPath);
@@ -276,11 +272,10 @@ export function createPiPathMapper(
         path.posix.normalize(inputPath),
       );
     },
-    getDeniedSandboxRootsWithin(inputPath: string) {
-      const normalizedInput = path.posix.normalize(inputPath);
-      return deniedRoots.filter(root =>
-        isInsidePosixPath(normalizedInput, root),
-      );
+    relativeDeniedRootsUnder(sandboxDir: string) {
+      return deniedRoots
+        .filter(root => isInsidePosixPath(sandboxDir, root))
+        .map(root => path.posix.relative(sandboxDir, root));
     },
     toRelativePath(inputPath: string) {
       const sandboxPath = path.posix.isAbsolute(inputPath)

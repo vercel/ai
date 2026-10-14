@@ -42,6 +42,24 @@ export class UnauthorizedClientError extends MCPClientOAuthError {
   static errorCode = 'unauthorized_client';
 }
 
+const mismatchName = 'AI_AuthorizationServerMismatchError';
+const mismatchMarker = `vercel.ai.error.${mismatchName}`;
+const mismatchSymbol = Symbol.for(mismatchMarker);
+
+export class AuthorizationServerMismatchError extends MCPClientOAuthError {
+  private readonly [mismatchSymbol] = true;
+
+  static errorCode = 'authorization_server_mismatch';
+
+  constructor({ message, cause }: { message: string; cause?: unknown }) {
+    super({ name: 'AuthorizationServerMismatchError', message, cause });
+  }
+
+  static isInstance(error: unknown): error is AuthorizationServerMismatchError {
+    return AISDKError.hasMarker(error, mismatchMarker);
+  }
+}
+
 export const OAUTH_ERRORS = {
   [ServerError.errorCode]: ServerError,
   [InvalidClientError.errorCode]: InvalidClientError,

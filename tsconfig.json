@@ -79,6 +79,9 @@
       "path": "packages/gladia"
     },
     {
+      "path": "packages/gmicloud"
+    },
+    {
       "path": "packages/google-vertex"
     },
     {
@@ -94,10 +97,25 @@
       "path": "packages/harness-claude-code"
     },
     {
+      "path": "packages/harness-cline"
+    },
+    {
       "path": "packages/harness-codex"
     },
     {
+      "path": "packages/harness-cursor"
+    },
+    {
       "path": "packages/harness-deepagents"
+    },
+    {
+      "path": "packages/harness-fx"
+    },
+    {
+      "path": "packages/harness-github-copilot"
+    },
+    {
+      "path": "packages/harness-grok-build"
     },
     {
       "path": "packages/harness-opencode"
@@ -107,6 +125,9 @@
     },
     {
       "path": "packages/harness"
+    },
+    {
+      "path": "packages/heygen"
     },
     {
       "path": "packages/huggingface"
@@ -122,9 +143,6 @@
     },
     {
       "path": "packages/llamaindex"
-    },
-    {
-      "path": "packages/lmnt"
     },
     {
       "path": "packages/luma"
@@ -199,13 +217,16 @@
       "path": "packages/togetherai"
     },
     {
+      "path": "packages/topaz"
+    },
+    {
       "path": "packages/tui"
     },
     {
-      "path": "packages/valibot"
+      "path": "packages/typesafe-ai"
     },
     {
-      "path": "packages/vercel"
+      "path": "packages/valibot"
     },
     {
       "path": "packages/voyage"
@@ -221,6 +242,12 @@
     },
     {
       "path": "packages/xai"
+    },
+    {
+      "path": "packages/zai"
+    },
+    {
+      "path": "tools/integration-tests"
     }
   ],
   "include": [],

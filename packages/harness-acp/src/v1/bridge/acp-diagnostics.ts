@@ -39,9 +39,33 @@ export function createACPBridgeError({
     | 'prompt update stream';
   cause: unknown;
 }): Error {
-  const error = new Error(`ACP ${stage} failed.`);
+  const causeMessage = getErrorMessage({ error: cause });
+  const error = new Error(
+    causeMessage == null
+      ? `ACP ${stage} failed.`
+      : `ACP ${stage} failed: ${causeMessage}`,
+  );
   (error as Error & { cause?: unknown }).cause = cause;
   return error;
+}
+
+function getErrorMessage({ error }: { error: unknown }): string | undefined {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (
+    error != null &&
+    typeof error === 'object' &&
+    'message' in error &&
+    typeof error.message === 'string'
+  ) {
+    return error.message;
+  }
+
+  if (typeof error === 'string') {
+    return error;
+  }
 }
 
 function stripMetadata({ value }: { value: unknown }): unknown {

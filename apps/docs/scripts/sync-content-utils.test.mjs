@@ -123,6 +123,39 @@ test('transformDir drops the folder index when an overview page exists', (t) => 
   assert.equal(meta.defaultOpen, false);
 });
 
+test('transformDir drops frontmatter-only folder indexes', (t) => {
+  const src = mkdtempSync(join(tmpdir(), 'sync-src-'));
+  const out = mkdtempSync(join(tmpdir(), 'sync-out-'));
+  t.after(() => {
+    rmSync(src, { recursive: true, force: true });
+    rmSync(out, { recursive: true, force: true });
+  });
+
+  writeFixture(src, {
+    '01-next/index.mdx': '---\ntitle: Next.js\n---\n',
+    '01-next/10-generate-text.mdx':
+      '---\ntitle: Generate Text\n---\n\nBody\n',
+    '20-rsc/index.mdx': '---\ntitle: RSC\ncollapsed: true\n---\n\n\n',
+    '20-rsc/10-generate-text.mdx':
+      '---\ntitle: Generate Text\n---\n\nBody\n',
+  });
+
+  transformDir(src, out);
+
+  assert.equal(existsSync(join(out, 'next/index.mdx')), false);
+  assert.equal(existsSync(join(out, 'rsc/index.mdx')), false);
+
+  const nextMeta = JSON.parse(readFileSync(join(out, 'next/meta.json'), 'utf8'));
+  assert.deepEqual(nextMeta.pages, ['generate-text']);
+  // The dropped index still names the folder (no slug-derived fallback).
+  assert.equal(nextMeta.title, 'Next.js');
+
+  // `collapsed: true` on the dropped index still collapses the folder.
+  const rscMeta = JSON.parse(readFileSync(join(out, 'rsc/meta.json'), 'utf8'));
+  assert.equal(rscMeta.title, 'RSC');
+  assert.equal(rscMeta.defaultOpen, false);
+});
+
 test('transformDir keeps the folder index when no overview page exists', (t) => {
   const src = mkdtempSync(join(tmpdir(), 'sync-src-'));
   const out = mkdtempSync(join(tmpdir(), 'sync-out-'));

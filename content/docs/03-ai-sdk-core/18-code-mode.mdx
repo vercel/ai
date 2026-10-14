@@ -112,6 +112,45 @@ The code mode tool description includes TypeScript signatures generated from
 the input and output schemas of its allowed tools. Descriptions,
 `inputExamples`, and precise schemas help the model write correct code.
 
+### Discovering Tools Through Conversation
+
+By default, changing the tools routed through code mode also changes the
+provider-visible `code_mode` tool description. Set `toolDiscovery` to
+`'conversation'` to keep that tool definition stable and provide the current
+host-tool catalog in a user message instead:
+
+```ts
+const codeMode = codeModeTool({
+  toolDiscovery: 'conversation',
+});
+
+const tools = {
+  code_mode: codeMode,
+  getInventory,
+  getDemand,
+} as const;
+
+const result = await generateText({
+  model: __MODEL__,
+  tools,
+  experimental_toolCallers: {
+    getInventory: ['code_mode'],
+    getDemand: ['code_mode'],
+  },
+  prompt: 'Compare inventory and demand for product sku_123.',
+});
+```
+
+The AI SDK adds a complete code mode capability catalog to the conversation
+before calling the model. The catalog contains TypeScript signatures and call
+examples for the tools routed through code mode. When the effective tools or
+their definitions change in a later step or generation call, the SDK adds a
+new catalog that replaces earlier catalogs.
+
+This mode can improve prompt-cache reuse because the provider-visible tool
+definition stays unchanged. Actual cache behavior depends on the model
+provider.
+
 For the example above, the model can generate a program like:
 
 ```ts
@@ -133,6 +172,17 @@ that are not valid JavaScript identifiers use bracket notation:
 const user = await tools['lookup-user']({ userId: 'user_123' });
 return { id: user.id, plan: user.plan };
 ```
+
+### Searching Deferred Tools
+
+Use `toolSearch()` with `deferLoading: true` to expose tools only when the model
+needs them. With `toolDiscovery: 'conversation'`, discovered definitions arrive
+in user messages, preserving the tool-definition cache by keeping the
+provider-visible code mode tool unchanged. Actual prompt-cache reuse depends on
+the provider.
+
+See [Tool Search](/docs/ai-sdk-core/tool-search) for direct-calling and code mode
+examples.
 
 ## Writing Code Mode Programs
 
@@ -179,6 +229,17 @@ const result = await runCodeMode({
 
 `runCodeMode` returns the value returned by the program. It uses the same
 sandbox and execution limits as the AI SDK tool.
+
+## Tool Approval
+
+Code mode does not currently integrate with AI SDK tool approval flows. Tool
+calls made by generated code are nested inside the code mode invocation, so
+they cannot pause the generation and surface a tool approval request to your
+application.
+
+Do not expose tools that rely on user approval to code mode. Keep those tools
+directly callable by the model instead. If a nested tool requires approval,
+the call is rejected rather than executed.
 
 ## Execution Limits
 
@@ -244,6 +305,3 @@ to code mode.
 
 Tool input schemas are validated before their `execute` functions run. Abort
 signals and AI SDK tool execution context are forwarded to nested tool calls.
-
-Code mode does not currently support approval flows for nested tool calls.
-Tools that require approval are rejected instead of being executed.

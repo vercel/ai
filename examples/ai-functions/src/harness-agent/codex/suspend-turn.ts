@@ -1,8 +1,10 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { codex } from '@ai-sdk/harness-codex';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createCodex } from './_create';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
+
+const codex = createCodex();
 
 const prompt = `
 Create a complete retro Snake game in this workspace.
@@ -21,18 +23,17 @@ function wait({ ms }: { ms: number }) {
 }
 
 run(async () => {
-  const sandbox = createVercelSandbox({
+  const agent = new HarnessAgent({
+    harness: codex,
+  });
+
+  const sandboxSession = await createVercelNetworkSandboxSession({
     runtime: 'node24',
     ports: [4000],
     timeout: 10 * 60 * 1000,
+    template: await agent.getSandboxTemplate(),
   });
-  const agent = new HarnessAgent({
-    harness: codex,
-    sandbox,
-  });
-
-  let exitCode = 0;
-  let session = await agent.createSession();
+  let session = await agent.createSession({ sandboxSession });
   try {
     console.log('--- turn 1: stream ---');
     const result = await agent.stream({ session, prompt });
@@ -43,10 +44,11 @@ run(async () => {
     console.log('\n--- suspend turn ---');
     const continueFrom = await session.suspendTurn();
     await stream;
-    console.log('continueFrom:', JSON.stringify(continueFrom));
+    console.log('continueFrom:');
 
     console.log('--- continue turn ---');
     session = await agent.createSession({
+      sandboxSession,
       sessionId: session.sessionId,
       continueFrom,
     });
@@ -55,11 +57,8 @@ run(async () => {
 
     console.log('finishReason:', await continued.finishReason);
     console.log('usage:', await continued.usage);
-  } catch (err) {
-    exitCode = 1;
-    console.error('[example] failed:', err);
   } finally {
     await session.destroy();
-    process.exit(exitCode);
+    await sandboxSession.destroy();
   }
 });

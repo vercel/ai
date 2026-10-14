@@ -205,7 +205,7 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
     const formData = new FormData();
     const blob =
       options.audio instanceof Uint8Array
-        ? new Blob([options.audio])
+        ? new Blob([options.audio as Uint8Array<ArrayBuffer>])
         : new Blob([convertBase64ToUint8Array(options.audio)]);
 
     const fileExtension = mediaTypeToExtension(options.mediaType);
@@ -361,6 +361,19 @@ const gladiaTranscriptionResultResponseSchema = z.object({
             start: z.number(),
             end: z.number(),
             text: z.string(),
+            speaker: z.union([z.string(), z.number()]).nullish(),
+            confidence: z.number().nullish(),
+            language: z.string().nullish(),
+            words: z
+              .array(
+                z.object({
+                  word: z.string(),
+                  start: z.number(),
+                  end: z.number(),
+                  confidence: z.number().nullish(),
+                }),
+              )
+              .nullish(),
           }),
         ),
       }),

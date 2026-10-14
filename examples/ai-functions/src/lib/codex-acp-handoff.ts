@@ -6,16 +6,18 @@ import type {
 } from '@ai-sdk/harness/agent';
 import { classifyDiskLog } from '@ai-sdk/harness/utils';
 import {
+  isRecord,
   parseJSON,
   type Experimental_SandboxSession,
 } from '@ai-sdk/provider-utils';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 
 type HandoffPhase = 'start' | 'resume';
 
 type HandoffState<TState> = {
   sessionId: string;
   state: TState;
+  sandboxName: string;
 };
 
 export function getACPHandoffArguments({
@@ -47,8 +49,9 @@ export function getACPHandoffArguments({
   return { phase, statePath };
 }
 
-export function createACPHandoffSandbox() {
-  return createVercelSandbox({
+export function createACPHandoffSandbox({ sandboxId }: { sandboxId: string }) {
+  return createVercelNetworkSandboxSession({
+    sandboxId,
     runtime: 'node24',
     ports: [4000],
     timeout: 10 * 60 * 1000,
@@ -59,14 +62,16 @@ export async function writeACPHandoffState({
   statePath,
   sessionId,
   state,
+  sandboxName,
 }: {
   statePath: string;
   sessionId: string;
   state: HarnessAgentResumeSessionState | HarnessAgentContinueTurnState;
+  sandboxName: string;
 }): Promise<void> {
   await writeFile(
     statePath,
-    `${JSON.stringify({ sessionId, state }, null, 2)}\n`,
+    `${JSON.stringify({ sessionId, state, sandboxName }, null, 2)}\n`,
     {
       encoding: 'utf8',
       flag: 'wx',
@@ -89,6 +94,7 @@ export async function readACPResumeHandoffState({
   return {
     sessionId: handoff.sessionId,
     state: handoff.state,
+    sandboxName: handoff.sandboxName,
   };
 }
 
@@ -106,6 +112,7 @@ export async function readACPContinueHandoffState({
   return {
     sessionId: handoff.sessionId,
     state: handoff.state,
+    sandboxName: handoff.sandboxName,
   };
 }
 
@@ -159,9 +166,7 @@ export async function terminateACPBridgeForRecovery({
   }
   const meta = await parseJSON({ text: rawMeta });
   if (
-    meta == null ||
-    typeof meta !== 'object' ||
-    Array.isArray(meta) ||
+    !isRecord(meta) ||
     typeof meta.pid !== 'number' ||
     !Number.isSafeInteger(meta.pid) ||
     meta.pid <= 1
@@ -219,14 +224,9 @@ function getACPBridgeRecoveryCoordinates({
   lastSeenEventId: number;
 } {
   const data = state.data;
-  const bridge =
-    data != null && typeof data === 'object' && !Array.isArray(data)
-      ? data.bridge
-      : undefined;
+  const bridge = isRecord(data) ? data.bridge : undefined;
   if (
-    bridge == null ||
-    typeof bridge !== 'object' ||
-    Array.isArray(bridge) ||
+    !isRecord(bridge) ||
     typeof bridge.stateDir !== 'string' ||
     !bridge.stateDir.startsWith('/') ||
     typeof bridge.lastSeenEventId !== 'number'
@@ -250,13 +250,10 @@ async function readACPHandoffState({
     text: await readFile(statePath, 'utf8'),
   });
   if (
-    value == null ||
-    typeof value !== 'object' ||
-    Array.isArray(value) ||
+    !isRecord(value) ||
     typeof value.sessionId !== 'string' ||
-    value.state == null ||
-    typeof value.state !== 'object' ||
-    Array.isArray(value.state) ||
+    typeof value.sandboxName !== 'string' ||
+    !isRecord(value.state) ||
     (value.state.type !== 'resume-session' &&
       value.state.type !== 'continue-turn')
   ) {

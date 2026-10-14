@@ -24,7 +24,7 @@ export const maxDuration = 60;
  * The model to use for the agent
  */
 const model = new ChatOpenAI({
-  model: 'gpt-4o-mini',
+  model: 'gpt-6-luna',
 });
 
 /**

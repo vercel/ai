@@ -6,17 +6,21 @@ import type {
   HarnessV1BridgeToolWire,
   HarnessV1StreamPart,
 } from '@ai-sdk/harness';
+import type { ACPToolCall } from '../../acp-tool-call';
 import type { ACPBuiltinToolMapping } from '../acp-v1-bridge-protocol';
 import { createACPStreamTranslator } from './stream-translator';
 import { createHostToolCorrelation } from './host-tool-correlation';
+import type { HostToolCall } from './resolve-host-tool-call';
 
 export function createEmitStreamEvent({
   emit,
+  emitToolCallCandidate,
   builtinTools,
   hostToolServerName,
   hostTools,
 }: {
   emit: (event: HarnessV1StreamPart) => void;
+  emitToolCallCandidate: (options: { toolCall: ACPToolCall }) => void;
   builtinTools: ReadonlyArray<ACPBuiltinToolMapping>;
   hostToolServerName: string;
   hostTools: ReadonlyArray<HarnessV1BridgeToolWire>;
@@ -28,7 +32,9 @@ export function createEmitStreamEvent({
   raw: (options: { rawValue: unknown }) => void;
   close: () => void;
   permissionToolCall: (options: { toolCall: ToolCallUpdate }) => void;
-  claimHostToolPermission: (options: { toolCall: ToolCallUpdate }) => boolean;
+  claimHostToolPermission: (options: {
+    toolCall: ToolCallUpdate;
+  }) => HostToolCall | undefined;
   hostToolCall: (options: {
     toolCallId: string;
     toolName: string;
@@ -48,8 +54,14 @@ export function createEmitStreamEvent({
     order: number;
   }) => void;
   removeHostToolCorrelationInvocation: (options: { token: string }) => void;
+  suppressToolCall: (options: { toolCallId: string }) => void;
+  getToolCall: (options: { toolCallId: string }) => ACPToolCall | undefined;
 } {
-  const translator = createACPStreamTranslator({ emit, builtinTools });
+  const translator = createACPStreamTranslator({
+    emit,
+    emitToolCallCandidate,
+    builtinTools,
+  });
   const correlation = createHostToolCorrelation({
     emitSemanticUpdate: ({ message, rawUpdate }) => {
       translator.update({
@@ -93,5 +105,9 @@ export function createEmitStreamEvent({
     hostToolResult: translator.hostToolResult,
     registerHostToolCorrelationInvocation: correlation.registerInvocation,
     removeHostToolCorrelationInvocation: correlation.removeInvocation,
+    suppressToolCall: correlation.suppressToolCall,
+    getToolCall: ({ toolCallId }) =>
+      correlation.getToolCall({ toolCallId }) ??
+      translator.getToolCall({ toolCallId }),
   };
 }

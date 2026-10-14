@@ -15,11 +15,13 @@ afterEach(() => {
   rmSync(hostWorkDir, { recursive: true, force: true });
 });
 
-function createPolicyMapper(fileToolPathPolicy: PiFileToolPathPolicy) {
+function createPolicyMapper(policy: PiFileToolPathPolicy) {
   return createPiPathMapper({
     hostWorkDir,
     sandboxWorkDir,
-    fileToolPathPolicy,
+    readableRoots: policy.readableRoots?.map(sandboxDir => ({ sandboxDir })),
+    writableRoots: policy.writableRoots,
+    deniedRoots: policy.deniedRoots,
   });
 }
 
@@ -50,6 +52,19 @@ describe('createPiPathMapper', () => {
     );
   });
 
+  it('accepts two-dot-prefixed names inside the workspace', () => {
+    const mapper = createPiPathMapper({ hostWorkDir, sandboxWorkDir });
+    expect(mapper.toSandboxPath('..notes/file.txt')).toBe(
+      `${sandboxWorkDir}/..notes/file.txt`,
+    );
+    expect(mapper.assertSandboxPath(`${sandboxWorkDir}/..notes/file.txt`)).toBe(
+      `${sandboxWorkDir}/..notes/file.txt`,
+    );
+    expect(() => mapper.assertSandboxPath('/sandbox/work/escape.txt')).toThrow(
+      /escapes the workspace/,
+    );
+  });
+
   it('allows configured read-only sandbox roots for readable paths', () => {
     const mapper = createPiPathMapper({
       hostWorkDir,
@@ -66,6 +81,92 @@ describe('createPiPathMapper', () => {
         '/home/vercel-sandbox/.agents/skills/weather-codes/SKILL.md',
       ),
     ).toThrow(/escapes the workspace/);
+  });
+
+  it('refuses readable paths inside a denied root', () => {
+    const mapper = createPiPathMapper({
+      hostWorkDir,
+      sandboxWorkDir,
+      readableRoots: [{ sandboxDir: '/home/vercel-sandbox' }],
+      deniedRoots: ['/home/vercel-sandbox/.credentials'],
+    });
+
+    expect(() =>
+      mapper.toReadableSandboxPath('/home/vercel-sandbox/.credentials/token'),
+    ).toThrow(/inside a denied root/);
+    expect(() =>
+      mapper.assertReadableSandboxPath('/home/vercel-sandbox/.credentials'),
+    ).toThrow(/inside a denied root/);
+    expect(
+      mapper.toReadableSandboxPath('/home/vercel-sandbox/.credentials-old/a'),
+    ).toBe('/home/vercel-sandbox/.credentials-old/a');
+  });
+
+  it('refuses workspace paths inside a denied root', () => {
+    const mapper = createPiPathMapper({
+      hostWorkDir,
+      sandboxWorkDir,
+      deniedRoots: [`${sandboxWorkDir}/.private`],
+    });
+
+    expect(() => mapper.toReadableSandboxPath('.private/journal')).toThrow(
+      /inside a denied root/,
+    );
+    expect(() => mapper.toSandboxPath('.private/journal')).toThrow(
+      /inside a denied root/,
+    );
+    expect(() =>
+      mapper.assertSandboxPath(`${sandboxWorkDir}/.private/journal`),
+    ).toThrow(/inside a denied root/);
+    expect(mapper.toSandboxPath('src/foo.ts')).toBe(
+      `${sandboxWorkDir}/src/foo.ts`,
+    );
+  });
+
+  it('denies two-dot-prefixed descendants and includes two-dot-prefixed denied roots in recursive exclusions', () => {
+    const mapper = createPiPathMapper({
+      hostWorkDir,
+      sandboxWorkDir,
+      deniedRoots: [`${sandboxWorkDir}/private`, `${sandboxWorkDir}/..private`],
+    });
+
+    expect(() =>
+      mapper.toReadableSandboxPath('private/..backup/token.txt'),
+    ).toThrow(/inside a denied root/);
+    expect(() =>
+      mapper.toReadableSandboxPath(`${sandboxWorkDir}/..private/token.txt`),
+    ).toThrow(/inside a denied root/);
+    expect(mapper.relativeDeniedRootsUnder(sandboxWorkDir)).toEqual([
+      'private',
+      '..private',
+    ]);
+    expect(
+      mapper.toReadableSandboxPath('private-copy/..backup/token.txt'),
+    ).toBe(`${sandboxWorkDir}/private-copy/..backup/token.txt`);
+  });
+
+  it('expands ~ against the configured home directory', () => {
+    const mapper = createPiPathMapper({
+      hostWorkDir,
+      sandboxWorkDir,
+      homeDir: '/home/vercel-sandbox',
+      readableRoots: [{ sandboxDir: '/home/vercel-sandbox' }],
+    });
+
+    expect(mapper.toReadableSandboxPath('~/notes.txt')).toBe(
+      '/home/vercel-sandbox/notes.txt',
+    );
+    expect(mapper.toReadableSandboxPath('~')).toBe('/home/vercel-sandbox');
+    expect(() => mapper.toSandboxPath('~/notes.txt')).toThrow(
+      /escapes the workspace/,
+    );
+  });
+
+  it('treats ~ as a workspace-relative name without a home directory', () => {
+    const mapper = createPiPathMapper({ hostWorkDir, sandboxWorkDir });
+    expect(mapper.toReadableSandboxPath('~/notes.txt')).toBe(
+      `${sandboxWorkDir}/~/notes.txt`,
+    );
   });
 
   it('allows additional read-only roots without making them writable', () => {
@@ -98,7 +199,7 @@ describe('createPiPathMapper', () => {
       /escapes the workspace/,
     );
     expect(() => mapper.toReadableSandboxPath('/tmp-evil/output.json')).toThrow(
-      /escapes the readable roots/,
+      /escapes the workspace/,
     );
   });
 
@@ -119,30 +220,30 @@ describe('createPiPathMapper', () => {
     const mapper = createPiPathMapper({
       hostWorkDir,
       sandboxWorkDir,
-      readableRoots: [{ sandboxDir: skillRoot }],
-      fileToolPathPolicy: {
-        readableRoots: ['/mnt/reference'],
-        writableRoots: ['/tmp'],
-        deniedRoots: [
-          `${sandboxWorkDir}/private`,
-          `${skillRoot}/private`,
-          '/mnt/reference/private',
-          '/tmp/private',
-        ],
-      },
+      readableRoots: [
+        { sandboxDir: skillRoot },
+        { sandboxDir: '/mnt/reference' },
+      ],
+      writableRoots: ['/tmp'],
+      deniedRoots: [
+        `${sandboxWorkDir}/private`,
+        `${skillRoot}/private`,
+        '/mnt/reference/private',
+        '/tmp/private',
+      ],
     });
 
     expect(() => mapper.toSandboxPath('private/token')).toThrow(
-      /denied by the file-tool policy/,
+      /inside a denied root/,
     );
     expect(() =>
       mapper.toReadableSandboxPath(`${skillRoot}/private/SKILL.md`),
-    ).toThrow(/denied by the file-tool policy/);
+    ).toThrow(/inside a denied root/);
     expect(() =>
       mapper.toReadableSandboxPath('/mnt/reference/private/data.json'),
-    ).toThrow(/denied by the file-tool policy/);
+    ).toThrow(/inside a denied root/);
     expect(() => mapper.toSandboxPath('/tmp/private/result.json')).toThrow(
-      /denied by the file-tool policy/,
+      /inside a denied root/,
     );
 
     expect(mapper.toSandboxPath(`${sandboxWorkDir}/public.txt`)).toBe(
@@ -209,16 +310,12 @@ describe('createPiPathMapper', () => {
       ],
     });
 
-    expect(mapper.getDeniedSandboxRootsWithin(sandboxWorkDir)).toEqual([
-      `${sandboxWorkDir}/private`,
-      `${sandboxWorkDir}/credentials`,
+    expect(mapper.relativeDeniedRootsUnder(sandboxWorkDir)).toEqual([
+      'private',
+      'credentials',
     ]);
-    expect(mapper.getDeniedSandboxRootsWithin('/tmp')).toEqual([
-      '/tmp/private',
-    ]);
-    expect(mapper.getDeniedSandboxRootsWithin('/tmp/private')).toEqual([
-      '/tmp/private',
-    ]);
+    expect(mapper.relativeDeniedRootsUnder('/tmp')).toEqual(['private']);
+    expect(mapper.relativeDeniedRootsUnder('/tmp/private')).toEqual(['']);
   });
 
   it('toRelativePath returns "." for the sandbox root', () => {

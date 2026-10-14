@@ -66,7 +66,9 @@ describe('ACP diagnostics', () => {
       cause,
     });
 
-    expect(error.message).toBe('ACP prompt update stream failed.');
+    expect(error.message).toBe(
+      'ACP prompt update stream failed: connection closed',
+    );
     expect((error as Error & { cause?: unknown }).cause).toBe(cause);
   });
 
@@ -77,7 +79,33 @@ describe('ACP diagnostics', () => {
       cause,
     });
 
-    expect(error.message).toBe('ACP session cancellation failed.');
+    expect(error.message).toBe(
+      'ACP session cancellation failed: notification failed',
+    );
+    expect((error as Error & { cause?: unknown }).cause).toBe(cause);
+  });
+
+  it('preserves messages from serialized errors', () => {
+    const cause = { message: 'agent process failed' };
+    const error = createACPBridgeError({
+      stage: 'session initialization',
+      cause,
+    });
+
+    expect(error.message).toBe(
+      'ACP session initialization failed: agent process failed',
+    );
+    expect((error as Error & { cause?: unknown }).cause).toBe(cause);
+  });
+
+  it('uses only stage context when the cause has no message', () => {
+    const cause = { code: 'ECONNRESET' };
+    const error = createACPBridgeError({
+      stage: 'session initialization',
+      cause,
+    });
+
+    expect(error.message).toBe('ACP session initialization failed.');
     expect((error as Error & { cause?: unknown }).cause).toBe(cause);
   });
 });

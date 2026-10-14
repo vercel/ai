@@ -20,6 +20,10 @@ export function toJsonPayload(
   return toStrictJsonPayload(value, maxBytes, label);
 }
 
+export function fromJsonPayload(valueJson: string): unknown {
+  return valueJson === '' ? undefined : JSON.parse(valueJson);
+}
+
 export function toStrictJsonPayload(
   value: unknown,
   maxBytes: number,

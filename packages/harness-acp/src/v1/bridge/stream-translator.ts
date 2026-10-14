@@ -1,5 +1,10 @@
 import type { HarnessV1StreamPart } from '@ai-sdk/harness';
 import type { PromptResponse, SessionUpdate } from '@agentclientprotocol/sdk';
+import type {
+  ACPToolCall,
+  ACPToolCallStatus,
+  ACPToolKind,
+} from '../../acp-tool-call';
 import type { ACPBuiltinToolMapping } from '../acp-v1-bridge-protocol';
 
 type HarnessUsage = Extract<
@@ -20,7 +25,6 @@ type ToolState = {
   emittedResult: boolean;
   toolName?: string;
   nativeName?: string;
-  dynamic?: boolean;
 };
 
 export type ACPSessionUpdate = SessionUpdate;
@@ -28,9 +32,11 @@ export type ACPPromptResponse = PromptResponse;
 
 export function createACPStreamTranslator({
   emit,
+  emitToolCallCandidate,
   builtinTools = [],
 }: {
   emit: (event: HarnessV1StreamPart) => void;
+  emitToolCallCandidate?: (options: { toolCall: ACPToolCall }) => void;
   builtinTools?: ReadonlyArray<ACPBuiltinToolMapping>;
 }): {
   update: (
@@ -62,6 +68,7 @@ export function createACPStreamTranslator({
     output: unknown;
     isError?: boolean;
   }) => void;
+  getToolCall: (options: { toolCallId: string }) => ACPToolCall | undefined;
 } {
   let openBlock:
     | {
@@ -72,7 +79,6 @@ export function createACPStreamTranslator({
     | undefined;
   let blockCounter = 0;
   let stepOpen = false;
-  let completedToolStepEligible = false;
   let finished = false;
   const blockIdCounts = new Map<string, number>();
   const toolStates = new Map<string, ToolState>();
@@ -148,15 +154,10 @@ export function createACPStreamTranslator({
       harnessMetadata: { acp: { inferredStep: true } },
     });
     stepOpen = false;
-    completedToolStepEligible = false;
   };
 
-  const flushCompletedToolStep = () => {
-    if (
-      !stepOpen ||
-      !completedToolStepEligible ||
-      pendingToolCallIds.size > 0
-    ) {
+  const finishCompletedToolStep = () => {
+    if (!stepOpen || pendingToolCallIds.size > 0) {
       return;
     }
     emitInferredStep({
@@ -206,10 +207,16 @@ export function createACPStreamTranslator({
       const builtin = resolveBuiltinTool({
         programmaticName,
         metadata: state.values._meta,
+        title: getStringProperty({
+          value: state.values,
+          property: 'title',
+        }),
+        kind: isACPToolKind(state.values.kind) ? state.values.kind : undefined,
         rawInput: state.values.rawInput,
         builtinTools,
         builtinToolsByName,
       });
+      emitToolCallCandidate?.({ toolCall: createACPToolCall({ state }) });
       if (
         !forceEmit &&
         builtin?.inputSchema != null &&
@@ -228,13 +235,11 @@ export function createACPStreamTranslator({
           builtin.nativeName != null && builtin.toolName !== builtin.nativeName
             ? builtin.nativeName
             : undefined;
-        state.dynamic = false;
       } else {
         state.toolName = createDynamicToolName({
           programmaticName,
           toolCallId: state.toolCallId,
         });
-        state.dynamic = true;
       }
       emit({
         type: 'tool-call',
@@ -242,13 +247,11 @@ export function createACPStreamTranslator({
         toolName: state.toolName,
         input: stringifyToolInput({ input: state.values.rawInput }),
         providerExecuted: true,
-        ...(state.dynamic ? { dynamic: true } : {}),
         ...(state.nativeName == null ? {} : { nativeName: state.nativeName }),
       });
       state.emittedCall = true;
       stepOpen = true;
       pendingToolCallIds.add(state.toolCallId);
-      completedToolStepEligible = false;
     }
 
     emitFileChanges({ state, emit });
@@ -263,11 +266,10 @@ export function createACPStreamTranslator({
         toolName: state.toolName!,
         result: createToolResult({ state }),
         ...(state.values.status === 'failed' ? { isError: true } : {}),
-        ...(state.dynamic ? { dynamic: true } : {}),
       });
       state.emittedResult = true;
       pendingToolCallIds.delete(state.toolCallId);
-      completedToolStepEligible = pendingToolCallIds.size === 0;
+      finishCompletedToolStep();
     }
   };
 
@@ -290,7 +292,12 @@ export function createACPStreamTranslator({
     });
     stepOpen = true;
     pendingToolCallIds.add(toolCallId);
-    completedToolStepEligible = false;
+    emit({
+      type: 'finish-step',
+      finishReason: { unified: 'tool-calls', raw: 'host-input' },
+      usage: unknownUsage(),
+      harnessMetadata: { acp: { inferredStep: true } },
+    });
   };
 
   const hostToolResult = ({
@@ -313,7 +320,7 @@ export function createACPStreamTranslator({
       ...(isError ? { isError: true } : {}),
     });
     pendingToolCallIds.delete(toolCallId);
-    completedToolStepEligible = pendingToolCallIds.size === 0;
+    finishCompletedToolStep();
   };
 
   return {
@@ -335,7 +342,6 @@ export function createACPStreamTranslator({
         update.content?.type === 'text' &&
         typeof update.content.text === 'string'
       ) {
-        flushCompletedToolStep();
         emitContent({
           type: 'text',
           text: update.content.text,
@@ -348,7 +354,6 @@ export function createACPStreamTranslator({
         update.content?.type === 'text' &&
         typeof update.content.text === 'string'
       ) {
-        flushCompletedToolStep();
         emitContent({
           type: 'reasoning',
           text: update.content.text,
@@ -383,6 +388,10 @@ export function createACPStreamTranslator({
     close: closeBlock,
     hostToolCall,
     hostToolResult,
+    getToolCall: ({ toolCallId }) => {
+      const state = toolStates.get(toolCallId);
+      return state == null ? undefined : createACPToolCall({ state });
+    },
     finish: response => {
       if (finished) return;
       finished = true;
@@ -485,12 +494,16 @@ function addBuiltinToolMatch({
 function resolveBuiltinTool({
   programmaticName,
   metadata,
+  title,
+  kind,
   rawInput,
   builtinTools,
   builtinToolsByName,
 }: {
   programmaticName: string | undefined;
   metadata: unknown;
+  title: string | undefined;
+  kind: ACPToolKind | undefined;
   rawInput: unknown;
   builtinTools: ReadonlyArray<ACPBuiltinToolMapping>;
   builtinToolsByName: ReadonlyMap<string, ACPBuiltinToolMapping>;
@@ -509,10 +522,100 @@ function resolveBuiltinTool({
       : undefined;
   }
 
+  const titleMatch = findBuiltinToolByTitle({
+    title,
+    kind,
+    builtinTools,
+  });
+  if (titleMatch != null) return titleMatch;
+
   const schemaMatches = builtinTools.filter(tool =>
     matchesBuiltinToolInput({ rawInput, inputSchema: tool.inputSchema }),
   );
-  return schemaMatches.length === 1 ? schemaMatches[0] : undefined;
+  if (schemaMatches.length <= 1) return schemaMatches[0];
+  return findMostSpecificSchemaMatch({ rawInput, schemaMatches });
+}
+
+/*
+ * Multiple schemas can pass `matchesBuiltinToolInput` at once: a tool whose
+ * only required field is optional on a richer sibling tool (e.g. `bash`'s
+ * optional `shellId` versus `stop_bash`'s required `shellId`) matches any
+ * rawInput the richer tool also matches. Preferring whichever candidate
+ * declares the most of rawInput's own keys resolves that in favor of the
+ * richer, more specific schema, while two equally specific schemas (e.g.
+ * identical schemas under different names) still resolve to `undefined`.
+ */
+function findMostSpecificSchemaMatch({
+  rawInput,
+  schemaMatches,
+}: {
+  rawInput: unknown;
+  schemaMatches: ReadonlyArray<ACPBuiltinToolMapping>;
+}): ACPBuiltinToolMapping | undefined {
+  if (!isRecord(rawInput)) return undefined;
+  const rawInputKeys = Object.keys(rawInput);
+  const coverageOf = (tool: ACPBuiltinToolMapping): number => {
+    const properties = isRecord(tool.inputSchema)
+      ? isRecord(tool.inputSchema.properties)
+        ? tool.inputSchema.properties
+        : {}
+      : {};
+    return rawInputKeys.filter(key => key in properties).length;
+  };
+  const highestCoverage = Math.max(...schemaMatches.map(coverageOf));
+  const mostSpecificMatches = schemaMatches.filter(
+    tool => coverageOf(tool) === highestCoverage,
+  );
+  return mostSpecificMatches.length === 1 ? mostSpecificMatches[0] : undefined;
+}
+
+function findBuiltinToolByTitle({
+  title,
+  kind,
+  builtinTools,
+}: {
+  title: string | undefined;
+  kind: ACPToolKind | undefined;
+  builtinTools: ReadonlyArray<ACPBuiltinToolMapping>;
+}): ACPBuiltinToolMapping | undefined {
+  if (title == null) return undefined;
+  const matches = builtinTools.filter(
+    tool =>
+      tool.title != null &&
+      title.startsWith(tool.title) &&
+      isCompatibleToolKind({ toolUseKind: tool.toolUseKind, kind }),
+  );
+  if (matches.length === 0) return undefined;
+  const longestPrefixLength = Math.max(
+    ...matches.map(tool => tool.title!.length),
+  );
+  const longestMatches = matches.filter(
+    tool => tool.title!.length === longestPrefixLength,
+  );
+  return longestMatches.length === 1 ? longestMatches[0] : undefined;
+}
+
+function isCompatibleToolKind({
+  toolUseKind,
+  kind,
+}: {
+  toolUseKind: ACPBuiltinToolMapping['toolUseKind'];
+  kind: ACPToolKind | undefined;
+}): boolean {
+  if (toolUseKind == null || kind == null) return true;
+  switch (toolUseKind) {
+    case 'readonly':
+      return (
+        kind === 'read' ||
+        kind === 'search' ||
+        kind === 'fetch' ||
+        kind === 'think'
+      );
+    case 'edit':
+      return kind === 'edit' || kind === 'delete' || kind === 'move';
+    case 'bash':
+      return kind === 'execute';
+  }
 }
 
 function findBuiltinToolsInMetadata({
@@ -690,11 +793,66 @@ function mergeToolUpdate({
       state.values[property] = parsed[property];
     }
   }
-  const programmaticName = getStringProperty({
-    value: rawUpdate,
-    property: 'name',
-  });
+  const programmaticName =
+    getStringProperty({ value: update, property: 'name' }) ??
+    getStringProperty({ value: rawUpdate, property: 'name' });
   if (programmaticName != null) state.values.name = programmaticName;
+}
+
+function createACPToolCall({ state }: { state: ToolState }): ACPToolCall {
+  const name = getStringProperty({ value: state.values, property: 'name' });
+  const title = getStringProperty({
+    value: state.values,
+    property: 'title',
+  });
+  const kind = state.values.kind;
+  const status = state.values.status;
+  return {
+    toolCallId: state.toolCallId,
+    ...(name == null ? {} : { name }),
+    title: title ?? state.toolName ?? `Tool ${state.toolCallId}`,
+    ...(isACPToolKind(kind) ? { kind } : {}),
+    ...(isACPToolCallStatus(status) ? { status } : {}),
+    ...(Array.isArray(state.values.content)
+      ? { content: state.values.content as ACPToolCall['content'] }
+      : {}),
+    ...(Array.isArray(state.values.locations)
+      ? { locations: state.values.locations as ACPToolCall['locations'] }
+      : {}),
+    ...(Object.prototype.hasOwnProperty.call(state.values, 'rawInput')
+      ? { rawInput: state.values.rawInput }
+      : {}),
+    ...(Object.prototype.hasOwnProperty.call(state.values, 'rawOutput')
+      ? { rawOutput: state.values.rawOutput }
+      : {}),
+    ...(state.values._meta === null || isRecord(state.values._meta)
+      ? { _meta: state.values._meta }
+      : {}),
+  };
+}
+
+function isACPToolKind(value: unknown): value is ACPToolKind {
+  return (
+    value === 'read' ||
+    value === 'edit' ||
+    value === 'delete' ||
+    value === 'move' ||
+    value === 'search' ||
+    value === 'execute' ||
+    value === 'think' ||
+    value === 'fetch' ||
+    value === 'switch_mode' ||
+    value === 'other'
+  );
+}
+
+function isACPToolCallStatus(value: unknown): value is ACPToolCallStatus {
+  return (
+    value === 'pending' ||
+    value === 'in_progress' ||
+    value === 'completed' ||
+    value === 'failed'
+  );
 }
 
 function emitFileChanges({

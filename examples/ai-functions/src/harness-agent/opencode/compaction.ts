@@ -1,8 +1,10 @@
-import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { openCode } from '@ai-sdk/harness-opencode';
+import { HarnessAgent, type HarnessAgentSession } from '@ai-sdk/harness/agent';
+import { createOpenCode } from './_create';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
+
+const openCode = createOpenCode();
 
 /*
  * Context compaction (OpenCode).
@@ -18,16 +20,17 @@ import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
  * turns and observes the buffered compaction event on the next stream.
  */
 run(async () => {
-  const sandbox = createVercelSandbox({
+  const agent = new HarnessAgent({ harness: openCode });
+  const sandboxSession = await createVercelNetworkSandboxSession({
     runtime: 'node24',
     ports: [4000],
     timeout: 10 * 60 * 1000,
+    template: await agent.getSandboxTemplate(),
   });
-  const agent = new HarnessAgent({ harness: openCode, sandbox });
 
-  let exitCode = 0;
-  const session = await agent.createSession();
+  let session: HarnessAgentSession | undefined;
   try {
+    session = await agent.createSession({ sandboxSession });
     console.log('--- turn 1: build up some context ---');
     const first = await agent.stream({
       session,
@@ -47,11 +50,8 @@ run(async () => {
       prompt: 'Now write a short haiku about that explanation.',
     });
     await printFullStream({ result: second });
-  } catch (err) {
-    exitCode = 1;
-    console.error('[example] failed:', err);
   } finally {
-    await session.destroy();
-    process.exit(exitCode);
+    await session?.destroy();
+    await sandboxSession.destroy();
   }
 });

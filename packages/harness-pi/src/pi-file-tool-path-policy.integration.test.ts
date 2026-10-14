@@ -1,7 +1,8 @@
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
+import { shellQuote } from '@ai-sdk/harness/utils';
+import { createJustBashNetworkSandboxSession } from '@ai-sdk/sandbox-just-bash';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPiPathMapper } from './pi-paths';
 import { createPiRemoteOps } from './pi-remote-ops';
@@ -20,9 +21,58 @@ afterEach(() => {
 });
 
 describe('Pi file-tool path policy with JustBash', () => {
+  it('preserves embedded and trailing newlines in configured roots', async () => {
+    const session = await createJustBashNetworkSandboxSession({
+      cwd: sandboxWorkDir,
+    });
+    const sandbox = session.restricted();
+    const readableRoot = '/mnt/pi-reference\nfiles\n';
+    const writableRoot = '/tmp/pi-artifacts\n';
+    const deniedRoot = `${writableRoot}/private\n`;
+
+    try {
+      const setup = await sandbox.run({
+        command: `mkdir -p ${[sandboxWorkDir, readableRoot, deniedRoot].map(shellQuote).join(' ')}`,
+      });
+      expect(setup.exitCode).toBe(0);
+      await sandbox.writeTextFile({
+        path: `${readableRoot}/notes.txt`,
+        content: 'reference',
+      });
+      await sandbox.writeTextFile({
+        path: `${deniedRoot}/secret.txt`,
+        content: 'secret',
+      });
+      const operations = createPiRemoteOps({
+        sandbox,
+        paths: createPiPathMapper({
+          hostWorkDir,
+          sandboxWorkDir,
+          readableRoots: [{ sandboxDir: readableRoot }],
+          writableRoots: [writableRoot],
+          deniedRoots: [deniedRoot],
+        }),
+      });
+
+      await expect(
+        operations.readBuffer(`${readableRoot}/notes.txt`),
+      ).resolves.toEqual(Buffer.from('reference'));
+      await operations.writeFile(`${writableRoot}/result.txt`, 'result');
+      await expect(
+        operations.readBuffer(`${writableRoot}/result.txt`),
+      ).resolves.toEqual(Buffer.from('result'));
+      await expect(
+        operations.readBuffer(`${deniedRoot}/secret.txt`),
+      ).rejects.toThrow(/denied/);
+    } finally {
+      await session.destroy();
+    }
+  });
+
   it('enforces external allow and deny roots through the real sandbox provider', async () => {
-    const provider = createJustBashSandbox();
-    const session = await provider.createSession();
+    const session = await createJustBashNetworkSandboxSession({
+      cwd: sandboxWorkDir,
+    });
     const sandbox = session.restricted();
     const onFileChange = vi.fn();
 
@@ -49,10 +99,8 @@ describe('Pi file-tool path policy with JustBash', () => {
       const paths = createPiPathMapper({
         hostWorkDir,
         sandboxWorkDir,
-        fileToolPathPolicy: {
-          writableRoots: [artifactRoot],
-          deniedRoots: [`${artifactRoot}/private`],
-        },
+        writableRoots: [artifactRoot],
+        deniedRoots: [`${artifactRoot}/private`],
       });
       const operations = createPiRemoteOps({
         sandbox,
@@ -99,13 +147,14 @@ describe('Pi file-tool path policy with JustBash', () => {
         Buffer.from('workspace-value'),
       );
     } finally {
-      await session.destroy?.();
+      await session.destroy();
     }
   });
 
   it('canonicalizes configured symlink roots and prunes literal metacharacter paths', async () => {
-    const provider = createJustBashSandbox();
-    const session = await provider.createSession();
+    const session = await createJustBashNetworkSandboxSession({
+      cwd: sandboxWorkDir,
+    });
     const sandbox = session.restricted();
     const allowedAlias = '/tmp/pi-allowed-link';
     const allowedTarget = '/mnt/pi-allowed-target';
@@ -128,11 +177,9 @@ describe('Pi file-tool path policy with JustBash', () => {
       const paths = createPiPathMapper({
         hostWorkDir,
         sandboxWorkDir,
-        fileToolPathPolicy: {
-          readableRoots: [deniedTarget],
-          writableRoots: [allowedAlias],
-          deniedRoots: [deniedAlias, `${allowedAlias}/[private]`],
-        },
+        readableRoots: [{ sandboxDir: deniedTarget }],
+        writableRoots: [allowedAlias],
+        deniedRoots: [deniedAlias, `${allowedAlias}/[private]`],
       });
       const operations = createPiRemoteOps({ sandbox, paths });
 
@@ -153,9 +200,9 @@ describe('Pi file-tool path policy with JustBash', () => {
 
       await expect(
         operations.readBuffer(`${deniedTarget}/secret.txt`),
-      ).rejects.toThrow(/denied by the file-tool policy/);
+      ).rejects.toThrow(/inside a denied root/);
     } finally {
-      await session.destroy?.();
+      await session.destroy();
     }
   });
 });

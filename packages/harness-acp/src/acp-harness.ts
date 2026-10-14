@@ -1,41 +1,105 @@
-import type { HarnessV1 } from '@ai-sdk/harness';
+import {
+  HARNESS_V1_BUILTIN_TOOLS,
+  type HarnessV1,
+  type HarnessV1CredentialForwarding,
+  type HarnessV1MintBridgeTokenCallback,
+  type HarnessV1PortEndpoint,
+} from '@ai-sdk/harness';
+import type { SandboxChannelReconnectOptions } from '@ai-sdk/harness/utils';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import type { ACPAuthenticationMode, ACPClientApp } from './acp-auth';
+import type { ACPToolCall } from './acp-tool-call';
 import {
-  createACPAuthenticationProfileIdentity,
-  resolveACPProviderAuthenticationCompatibility,
-  type ACPAuthenticationProfileIdentity,
-  type ACPClientApp,
-} from './acp-auth';
-import { createACPV1, type ACPV1Settings } from './v1';
-import { createImplementationIdentity } from './v1/implementation';
+  createACPV1,
+  type ACPAskUserQuestionsSettings,
+  type ACPV1Settings,
+} from './v1';
 import {
   acpColdSessionStateSchema,
   acpTurnStartConfigSchema,
-  type ACPColdSessionState,
-  type ACPTurnStartConfig,
 } from './v1/acp-v1-bridge-protocol';
 import { VERSION } from './version';
 
 const ACP_CLIENT_APP = {
-  name: 'ai-sdk/harness-acp',
+  name: 'ai-sdk-harness-acp',
   version: VERSION,
 } as const satisfies ACPClientApp;
 
-export type ACPHarnessSettings<TBuiltinTools extends ToolSet = {}> = {
+export type ACPHarnessSettings<
+  TBuiltinTools extends ToolSet = {},
+  TAskUserQuestions extends ACPAskUserQuestionsSettings | undefined =
+    | ACPAskUserQuestionsSettings
+    | undefined,
+> = {
   readonly builtinTools?: TBuiltinTools;
+  /**
+   * MCP server definitions keyed by server name. Each definition uses the
+   * underlying runtime's native MCP server configuration format.
+   */
+  readonly mcpServers?: Record<string, unknown>;
+  readonly isMcpToolCall?: (toolCall: ACPToolCall) => boolean;
   readonly port?: number;
+  /**
+   * Override the host endpoint used to connect to the sandbox bridge. Required
+   * together with `port` when using a basic sandbox session.
+   */
+  readonly portEndpoint?: HarnessV1PortEndpoint;
   readonly startupTimeoutMs?: number;
+  /**
+   * Configures reconnection attempts after an established bridge connection
+   * drops. The reconnect window includes connection establishment and
+   * backoff delays. Defaults to 30 seconds with exponential backoff from 50
+   * milliseconds up to 2 seconds.
+   */
+  readonly reconnect?: SandboxChannelReconnectOptions;
   readonly clientApp?: ACPClientApp;
   readonly version?: ACPV1Settings['version'];
   readonly harnessId: ACPV1Settings['harnessId'];
-  readonly auth?: ACPV1Settings['auth'];
-  readonly implementation: ACPV1Settings['implementation'];
+  readonly auth?: ACPAuthenticationMode;
+  readonly resolveAuthenticationEnvironment?: ACPV1Settings['resolveAuthenticationEnvironment'];
+  readonly source: ACPV1Settings['source'];
+  readonly executable: ACPV1Settings['executable'];
+  readonly args?: ACPV1Settings['args'];
+  readonly forwardEnv?: ACPV1Settings['forwardEnv'];
+  readonly credentialEnv?: ACPV1Settings['credentialEnv'];
+  readonly credentialBrokering?: ACPV1Settings['credentialBrokering'];
+  readonly authenticationFiles?: ACPV1Settings['authenticationFiles'];
+  /**
+   * Customizes each credential value before it is forwarded into a sandbox
+   * process. This does not restrict which credentials the harness adapter can
+   * discover, read, or otherwise access in the host process.
+   */
+  readonly credentialForwarding?: HarnessV1CredentialForwarding;
+  readonly env?: ACPV1Settings['env'];
   readonly authentication?: ACPV1Settings['authentication'];
+  readonly clientCapabilities?: ACPV1Settings['clientCapabilities'];
   readonly providerAuthentication?: ACPV1Settings['providerAuthentication'];
-  readonly modelId?: ACPV1Settings['modelId'];
+  /**
+   * Maps the HarnessAgent model identifier to an ACP session operation.
+   */
+  readonly modelMapping: ACPV1Settings['modelMapping'];
+  readonly skillsDirectory?: ACPV1Settings['skillsDirectory'];
+  readonly instructionMapping?: ACPV1Settings['instructionMapping'];
+  readonly outputSchemaMapping?: ACPV1Settings['outputSchemaMapping'];
+  /**
+   * Transport used for the harness-owned MCP server that exposes host tools to
+   * the ACP implementation. Defaults to `stdio`. Set this to `http` for
+   * implementations that only accept HTTP or SSE MCP servers from the client,
+   * which requires the implementation to advertise
+   * `agentCapabilities.mcpCapabilities.http`.
+   */
+  readonly hostToolMcpTransport?: ACPV1Settings['hostToolMcpTransport'];
+  /**
+   * Non-text tool model output the ACP implementation can deliver to its
+   * model. Text is always supported. Undeclared image content is omitted
+   * with a warning. Defaults to an empty list.
+   */
+  readonly nonTextContentTypes?: ACPV1Settings['nonTextContentTypes'];
+  readonly askUserQuestions?: TAskUserQuestions;
   readonly permissionModeMapping?: ACPV1Settings['permissionModeMapping'];
   readonly session?: ACPV1Settings['session'];
+  readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
 };
 
 const ACP_BUILTIN_TOOLS = {} as const satisfies ToolSet;
@@ -66,6 +130,7 @@ const acpResumeStateSchema = z.object({
         .optional(),
     })
     .optional(),
+  sandboxCredentialEnvironment: z.record(z.string(), z.string()).optional(),
   acpSessionId: z.string().optional(),
   bridge: acpBridgeCoordsSchema.optional(),
   coldSession: acpColdSessionStateSchema.optional(),
@@ -82,75 +147,71 @@ const acpResumeStateSchema = z.object({
     })
     .optional(),
   initialGuidanceApplied: z.boolean().optional(),
-  skillsMaterialized: z.boolean().optional(),
-  skillsFingerprint: z.string().optional(),
+  instructionsFingerprint: z.string().optional(),
+  skillsDirectory: z.string().optional(),
 });
 
 type ACPBridgeCoords = z.infer<typeof acpBridgeCoordsSchema>;
 
-export function createACP<TBuiltinTools extends ToolSet = {}>(
-  settings: ACPHarnessSettings<TBuiltinTools>,
-): HarnessV1<TBuiltinTools> {
+type ACPHarnessTools<
+  TBuiltinTools extends ToolSet,
+  TAskUserQuestions,
+> = TBuiltinTools &
+  ([TAskUserQuestions] extends [undefined]
+    ? {}
+    : {
+        askUserQuestions: typeof HARNESS_V1_BUILTIN_TOOLS.askUserQuestions;
+      });
+
+export function createACP<
+  TBuiltinTools extends ToolSet = {},
+  TAskUserQuestions extends ACPAskUserQuestionsSettings | undefined = undefined,
+>(
+  settings: ACPHarnessSettings<TBuiltinTools, TAskUserQuestions>,
+): HarnessV1<ACPHarnessTools<TBuiltinTools, TAskUserQuestions>> {
+  if (
+    (settings.credentialEnv == null) !==
+    (settings.credentialBrokering == null)
+  ) {
+    throw new Error(
+      'ACP credentialEnv and credentialBrokering must be configured together.',
+    );
+  }
+  if (
+    settings.mcpServers != null &&
+    Object.prototype.hasOwnProperty.call(
+      settings.mcpServers,
+      'ai-sdk-harness-tools',
+    )
+  ) {
+    throw new Error(
+      'ACP MCP server name "ai-sdk-harness-tools" is reserved for HarnessAgent tools.',
+    );
+  }
   const version = (settings as { readonly version?: string }).version ?? 'v1';
   switch (version) {
     case 'v1': {
       const clientApp = settings.clientApp ?? ACP_CLIENT_APP;
-      const providerAuthenticationCompatibility =
-        resolveACPProviderAuthenticationCompatibility({
-          auth: settings.auth,
-          providerAuthentication: settings.providerAuthentication,
-          env: process.env,
-        });
-      const implementationIdentity = createImplementationIdentity({
-        harnessId: settings.harnessId,
-        acpVersion: version,
-        implementation: settings.implementation,
-        clientApp,
-        providerAuthentication: providerAuthenticationCompatibility,
-        permissionModeMapping: settings.permissionModeMapping,
-      });
-      const authenticationProfile = createACPAuthenticationProfileIdentity({
-        authentication: settings.authentication,
-        providerAuthenticationCompatibility,
-      });
-      const lifecycleStateSchema: z.ZodType<{
-        readonly implementationIdentity: string;
-        readonly authenticationProfile?: ACPAuthenticationProfileIdentity;
-        readonly acpSessionId?: string;
-        readonly bridge?: ACPBridgeCoords;
-        readonly coldSession?: ACPColdSessionState;
-        readonly turnStartConfig?: ACPTurnStartConfig;
-        readonly recovery?: {
-          readonly mode: 'disk-replay' | 'lossy-rerun';
-          readonly reason: string;
-        };
-        readonly restoration?: {
-          readonly method: 'resume' | 'load';
-        };
-        readonly initialGuidanceApplied?: boolean;
-        readonly skillsMaterialized?: boolean;
-        readonly skillsFingerprint?: string;
-      }> = acpResumeStateSchema.extend({
-        implementationIdentity: z.literal(implementationIdentity),
-        authenticationProfile: acpResumeStateSchema.shape.authenticationProfile
-          .unwrap()
-          .extend({
-            digest: z.literal(authenticationProfile.digest),
-          })
-          .optional(),
-      });
+      const builtinTools =
+        settings.askUserQuestions == null
+          ? (settings.builtinTools ?? (ACP_BUILTIN_TOOLS as TBuiltinTools))
+          : {
+              ...(settings.builtinTools ??
+                (ACP_BUILTIN_TOOLS as TBuiltinTools)),
+              askUserQuestions: HARNESS_V1_BUILTIN_TOOLS.askUserQuestions,
+            };
       return createACPV1({
         settings,
-        builtinTools:
-          settings.builtinTools ?? (ACP_BUILTIN_TOOLS as TBuiltinTools),
+        builtinTools,
         port: settings.port,
+        portEndpoint: settings.portEndpoint,
         startupTimeoutMs: settings.startupTimeoutMs,
+        reconnect: settings.reconnect,
         clientApp,
-        implementationIdentity,
-        authenticationProfile,
-        providerAuthenticationCompatibility,
-        lifecycleStateSchema,
-      });
+        lifecycleStateSchema: acpResumeStateSchema satisfies z.ZodType<{
+          bridge?: ACPBridgeCoords;
+        }>,
+      }) as HarnessV1<ACPHarnessTools<TBuiltinTools, TAskUserQuestions>>;
     }
     default:
       throw new Error(

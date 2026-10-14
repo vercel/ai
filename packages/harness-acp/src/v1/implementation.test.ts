@@ -4,31 +4,48 @@ import type {
   ACPProviderAuthenticationCompatibility,
 } from '../acp-auth';
 import type {
-  ACPNpmImplementation,
+  ACPModelMapping,
   ACPPermissionModeMapping,
+  ACPSerializableValue,
 } from './acp-v1-settings';
 import {
+  type ACPImplementation,
   createImplementationDescriptor,
   createImplementationIdentity,
   createImplementationInstallCommand,
   createImplementationManifest,
+  getImplementationInstallScript,
   getImplementationLockfile,
   resolveImplementationEnvironment,
   validateACPV1Implementation,
 } from './implementation';
 
 const simpleImplementation = {
-  type: 'npm',
-  mode: 'simple',
-  packageName: '@example/acp-agent',
-  version: '1.2.3',
+  source: {
+    type: 'npm-simple',
+    packageName: '@example/acp-agent',
+    packageVersion: '1.2.3',
+  },
   executable: 'acp-agent',
   args: ['stdio'],
   forwardEnv: ['PROVIDER_API_KEY', 'SECOND_PROVIDER_API_KEY'],
   env: {
     PROVIDER_BASE_URL: 'https://provider.example',
   },
-} as const satisfies ACPNpmImplementation;
+} as const satisfies ACPImplementation;
+
+const unpinnedImplementation = {
+  source: {
+    type: 'npm-simple',
+    packageName: '@example/acp-agent',
+  },
+  executable: 'acp-agent',
+  args: ['stdio'],
+  forwardEnv: ['PROVIDER_API_KEY', 'SECOND_PROVIDER_API_KEY'],
+  env: {
+    PROVIDER_BASE_URL: 'https://provider.example',
+  },
+} as const satisfies ACPImplementation;
 
 const packageJson = `{
   "name": "locked-acp-agent",
@@ -48,20 +65,31 @@ importers:
 `;
 
 const lockedImplementation = {
-  type: 'npm',
-  mode: 'locked',
-  packageJson,
-  pnpmLockYaml,
+  source: {
+    type: 'npm-locked',
+    packageJson,
+    pnpmLockYaml,
+  },
   executable: 'acp-agent',
   args: ['stdio'],
   forwardEnv: ['PROVIDER_API_KEY', 'SECOND_PROVIDER_API_KEY'],
   env: {
     PROVIDER_BASE_URL: 'https://provider.example',
   },
-} as const satisfies ACPNpmImplementation;
+} as const satisfies ACPImplementation;
+
+const installCommandImplementation = {
+  source: {
+    type: 'install-command',
+    command: 'curl https://example.com/install -fsS | bash',
+  },
+  executable: 'acp-agent',
+  args: ['stdio'],
+  credentialEnv: ['PROVIDER_API_KEY'],
+} as const satisfies ACPImplementation;
 
 const clientApp = {
-  name: 'ai-sdk/harness-acp',
+  name: 'ai-sdk-harness-acp',
   version: '0.0.0-test',
 } as const satisfies ACPClientApp;
 
@@ -69,26 +97,46 @@ function identity({
   implementation = simpleImplementation,
   harnessId = 'example-acp',
   clientApp: clientAppOverride = clientApp,
+  clientCapabilities,
+  modelMapping = {
+    type: 'session-config-option',
+    path: 'model',
+  },
   providerAuthentication,
   permissionModeMapping,
+  nonTextContentTypes,
 }: {
-  implementation?: ACPNpmImplementation;
+  implementation?: ACPImplementation;
   harnessId?: string;
   clientApp?: ACPClientApp;
+  clientCapabilities?: Readonly<Record<string, ACPSerializableValue>>;
+  modelMapping?: ACPModelMapping;
   providerAuthentication?: ACPProviderAuthenticationCompatibility;
   permissionModeMapping?: ACPPermissionModeMapping;
+  nonTextContentTypes?: ReadonlyArray<'image'>;
 } = {}): string {
   return createImplementationIdentity({
     harnessId,
     acpVersion: 'v1',
     implementation,
     clientApp: clientAppOverride,
+    clientCapabilities,
+    modelMapping,
     providerAuthentication,
     permissionModeMapping,
+    nonTextContentTypes,
   });
 }
 
-describe('ACP npm implementation', () => {
+describe('ACP implementation', () => {
+  it('includes declared non-text output support in the implementation identity', () => {
+    expect(identity({ nonTextContentTypes: [] })).toBe(identity());
+    expect(identity({ nonTextContentTypes: ['image'] })).not.toBe(identity());
+    expect(identity({ nonTextContentTypes: ['image', 'image'] })).toBe(
+      identity({ nonTextContentTypes: ['image'] }),
+    );
+  });
+
   it('creates a manifest for a simple exact-version installation', () => {
     expect(
       createImplementationManifest({
@@ -120,6 +168,50 @@ describe('ACP npm implementation', () => {
     ).toBeUndefined();
   });
 
+  it('installs the latest dist-tag when no version is pinned', () => {
+    expect(
+      createImplementationManifest({
+        implementation: unpinnedImplementation,
+      }),
+    ).toBe(`{
+  "name": "harness-acp-implementation",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@example/acp-agent": "latest"
+  }
+}
+`);
+    expect(() =>
+      validateACPV1Implementation(unpinnedImplementation),
+    ).not.toThrow();
+  });
+
+  it('keeps the identity of an unpinned source free of any version', () => {
+    const unpinnedIdentity = identity({
+      implementation: unpinnedImplementation,
+    });
+
+    expect(identity({ implementation: unpinnedImplementation })).toBe(
+      unpinnedIdentity,
+    );
+    expect(identity({ implementation: simpleImplementation })).not.toBe(
+      unpinnedIdentity,
+    );
+    expect(
+      identity({
+        implementation: {
+          ...unpinnedImplementation,
+          source: {
+            ...unpinnedImplementation.source,
+            packageName: '@example/other-agent',
+          },
+        },
+      }),
+    ).not.toBe(unpinnedIdentity);
+  });
+
   it('preserves caller-provided locked artifacts and freezes installation', () => {
     expect(
       createImplementationManifest({
@@ -142,11 +234,53 @@ describe('ACP npm implementation', () => {
     );
   });
 
-  it('requires exact versions only for simple acquisition', () => {
+  it('creates an isolated bash installation for an install command source', () => {
+    expect(
+      createImplementationManifest({
+        implementation: installCommandImplementation,
+      }),
+    ).toBeUndefined();
+    expect(
+      getImplementationLockfile({
+        implementation: installCommandImplementation,
+      }),
+    ).toBeUndefined();
+    expect(
+      createImplementationInstallCommand({
+        implementationDir: '/tmp/harness/example/implementation',
+        storeDir: '/tmp/harness/example/.pnpm-store',
+        implementation: installCommandImplementation,
+      }),
+    ).toBe('bash implementation/install.sh');
+
+    const script = getImplementationInstallScript({
+      implementation: installCommandImplementation,
+    });
+    expect(script).toContain('set -euo pipefail');
+    expect(script).toContain('ACP_INSTALL_HOME="$ACP_IMPLEMENTATION_DIR/home"');
+    expect(script).toContain(
+      'export PATH="$ACP_INSTALL_HOME/.local/bin:$PATH"',
+    );
+    expect(script).toContain('curl https://example.com/install -fsS | bash');
+  });
+
+  it('rejects an empty install command', () => {
+    expect(() =>
+      validateACPV1Implementation({
+        ...installCommandImplementation,
+        source: { type: 'install-command', command: '  \n' },
+      }),
+    ).toThrow('source.command must not be empty');
+  });
+
+  it('requires exact versions only for a simple npm source', () => {
     expect(() =>
       validateACPV1Implementation({
         ...simpleImplementation,
-        version: '^1.2.3',
+        source: {
+          ...simpleImplementation.source,
+          packageVersion: '^1.2.3',
+        },
       }),
     ).toThrow('must be an exact semantic version');
     expect(() =>
@@ -165,11 +299,32 @@ describe('ACP npm implementation', () => {
     ).toThrow('cannot be configured in both forwardEnv and env');
   });
 
+  it('requires credential environment keys to be distinct from other environment settings', () => {
+    expect(() =>
+      validateACPV1Implementation({
+        ...simpleImplementation,
+        credentialEnv: ['PROVIDER_API_KEY'],
+      }),
+    ).toThrow('cannot be configured in both forwardEnv and credentialEnv');
+    expect(() =>
+      validateACPV1Implementation({
+        ...simpleImplementation,
+        credentialEnv: ['PROVIDER_BASE_URL'],
+      }),
+    ).toThrow('cannot be configured in both credentialEnv and env');
+  });
+
   it('rejects invalid forwarded environment-variable names', () => {
     expect(() =>
       validateACPV1Implementation({
         ...simpleImplementation,
         forwardEnv: ['not-an-environment-variable'],
+      }),
+    ).toThrow('environment variable name is invalid');
+    expect(() =>
+      validateACPV1Implementation({
+        ...simpleImplementation,
+        credentialEnv: ['not-an-environment-variable'],
       }),
     ).toThrow('environment variable name is invalid');
   });
@@ -219,19 +374,71 @@ describe('ACP npm implementation', () => {
       SECOND_PROVIDER_API_KEY: 'second-provider-secret',
       PROVIDER_BASE_URL: 'https://provider.example',
     });
+    expect(
+      resolveImplementationEnvironment({
+        implementation: {
+          ...simpleImplementation,
+          forwardEnv: ['SECOND_PROVIDER_API_KEY'],
+          credentialEnv: ['PROVIDER_API_KEY'],
+        },
+        env: {
+          PROVIDER_API_KEY: 'provider-secret',
+          SECOND_PROVIDER_API_KEY: 'second-provider-secret',
+        },
+      }),
+    ).toEqual({
+      PROVIDER_API_KEY: 'provider-secret',
+      SECOND_PROVIDER_API_KEY: 'second-provider-secret',
+      PROVIDER_BASE_URL: 'https://provider.example',
+    });
+    expect(
+      resolveImplementationEnvironment({
+        implementation: {
+          ...simpleImplementation,
+          forwardEnv: ['SECOND_PROVIDER_API_KEY'],
+          credentialEnv: ['PROVIDER_API_KEY'],
+        },
+        env: {
+          PROVIDER_API_KEY: 'ambient-provider-secret',
+          SECOND_PROVIDER_API_KEY: 'forwarded-value',
+        },
+        credentialEnv: {
+          PROVIDER_API_KEY: 'programmatic-provider-secret',
+        },
+      }),
+    ).toEqual({
+      PROVIDER_API_KEY: 'programmatic-provider-secret',
+      SECOND_PROVIDER_API_KEY: 'forwarded-value',
+      PROVIDER_BASE_URL: 'https://provider.example',
+    });
   });
 
   it('keeps sensitive values out of immutable descriptors', () => {
     const descriptor = createImplementationDescriptor({
       implementation: simpleImplementation,
-      implementationIdentity: identity(),
     });
 
     expect(descriptor).toContain('"PROVIDER_API_KEY"');
     expect(descriptor).toContain('"SECOND_PROVIDER_API_KEY"');
     expect(descriptor).toContain('"PROVIDER_BASE_URL"');
-    expect(descriptor).toContain('"implementationIdentity"');
+    expect(descriptor).not.toContain('"implementationIdentity"');
     expect(descriptor).not.toContain('https://provider.example');
+  });
+
+  it('uses source-specific paths in a common launch descriptor', () => {
+    expect(
+      createImplementationDescriptor({ implementation: simpleImplementation }),
+    ).toContain('"executablePath": "node_modules/.bin/acp-agent"');
+    expect(
+      createImplementationDescriptor({
+        implementation: installCommandImplementation,
+      }),
+    ).toContain('"executablePath": "home/.local/bin/acp-agent"');
+    expect(
+      createImplementationDescriptor({
+        implementation: installCommandImplementation,
+      }),
+    ).toContain('"privateHome": true');
   });
 
   it('identifies every non-secret acquisition and launch input', () => {
@@ -250,6 +457,15 @@ describe('ACP npm implementation', () => {
       identity({
         implementation: {
           ...simpleImplementation,
+          forwardEnv: ['SECOND_PROVIDER_API_KEY'],
+          credentialEnv: ['PROVIDER_API_KEY'],
+        },
+      }),
+    ).not.toBe(baseIdentity);
+    expect(
+      identity({
+        implementation: {
+          ...simpleImplementation,
           forwardEnv: ['OTHER_PROVIDER_API_KEY'],
         },
       }),
@@ -257,11 +473,28 @@ describe('ACP npm implementation', () => {
     expect(identity({ implementation: lockedImplementation })).not.toBe(
       baseIdentity,
     );
+    expect(identity({ implementation: installCommandImplementation })).not.toBe(
+      baseIdentity,
+    );
+    expect(
+      identity({
+        implementation: {
+          ...installCommandImplementation,
+          source: {
+            type: 'install-command',
+            command: 'curl https://example.com/other -fsS | bash',
+          },
+        },
+      }),
+    ).not.toBe(identity({ implementation: installCommandImplementation }));
     expect(
       identity({
         implementation: {
           ...simpleImplementation,
-          packageName: '@example/other-agent',
+          source: {
+            ...simpleImplementation.source,
+            packageName: '@example/other-agent',
+          },
         },
       }),
     ).not.toBe(baseIdentity);
@@ -269,7 +502,10 @@ describe('ACP npm implementation', () => {
       identity({
         implementation: {
           ...simpleImplementation,
-          version: '1.2.4',
+          source: {
+            ...simpleImplementation.source,
+            packageVersion: '1.2.4',
+          },
         },
       }),
     ).not.toBe(baseIdentity);
@@ -319,6 +555,21 @@ describe('ACP npm implementation', () => {
     ).not.toBe(baseIdentity);
     expect(
       identity({
+        clientCapabilities: {
+          _meta: { parameterizedModelPicker: true },
+        },
+      }),
+    ).not.toBe(baseIdentity);
+    expect(
+      identity({
+        modelMapping: {
+          type: 'session-model',
+          path: 'modelId',
+        },
+      }),
+    ).not.toBe(baseIdentity);
+    expect(
+      identity({
         permissionModeMapping: {
           'allow-reads': { type: 'session-mode', modeId: 'read-only' },
           'allow-edits': { type: 'session-mode', modeId: 'agent' },
@@ -328,7 +579,7 @@ describe('ACP npm implementation', () => {
     ).not.toBe(baseIdentity);
   });
 
-  it('identifies locked manifest and lockfile content independently', () => {
+  it('identifies every locked acquisition artifact independently', () => {
     const lockedIdentity = identity({
       implementation: lockedImplementation,
     });
@@ -337,7 +588,10 @@ describe('ACP npm implementation', () => {
       identity({
         implementation: {
           ...lockedImplementation,
-          packageJson: packageJson.replace('locked-acp-agent', 'other-agent'),
+          source: {
+            ...lockedImplementation.source,
+            packageJson: packageJson.replace('locked-acp-agent', 'other-agent'),
+          },
         },
       }),
     ).not.toBe(lockedIdentity);
@@ -345,7 +599,22 @@ describe('ACP npm implementation', () => {
       identity({
         implementation: {
           ...lockedImplementation,
-          pnpmLockYaml: `${pnpmLockYaml}\n# changed\n`,
+          source: {
+            ...lockedImplementation.source,
+            pnpmLockYaml: `${pnpmLockYaml}\n# changed\n`,
+          },
+        },
+      }),
+    ).not.toBe(lockedIdentity);
+    expect(
+      identity({
+        implementation: {
+          ...lockedImplementation,
+          source: {
+            ...lockedImplementation.source,
+            pnpmWorkspaceYaml:
+              "allowBuilds:\n  '@example/acp-agent@1.2.3': true\n",
+          },
         },
       }),
     ).not.toBe(lockedIdentity);

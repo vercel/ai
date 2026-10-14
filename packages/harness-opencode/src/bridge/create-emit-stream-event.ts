@@ -3,6 +3,7 @@ import {
   emitLegacyPartDelta,
   emitLegacyTextPartUpdate,
   emitMissingFinalDelta,
+  emitOpenCodeStreamStart,
   openCodeMessageInfoFromValue,
   type TranslationState,
 } from './opencode-events';
@@ -10,6 +11,7 @@ import {
   mapOpenCodeFinishReason,
   translateLegacyStepFinishPart,
 } from './opencode-finish-step';
+import type { OpenCodeHostInputGroup } from './opencode-host-input-tracker';
 import { mapUsage } from './opencode-usage';
 import {
   asOpenCodeObject,
@@ -18,6 +20,11 @@ import {
 } from './opencode-types';
 
 type Emit = (message: Record<string, unknown>) => void;
+
+type SubagentSession = {
+  parentSessionId: string;
+  sessionId: string;
+};
 
 export function createEmitStreamEvent({
   state,
@@ -28,6 +35,9 @@ export function createEmitStreamEvent({
   nativeNameField,
   getHostToolName,
   authorizeHostToolCall,
+  onSubagentSession,
+  onToolCallStatus,
+  isMcpToolName,
   stripWorkDir,
   formatError,
 }: {
@@ -48,9 +58,39 @@ export function createEmitStreamEvent({
     toolName: string;
     input: unknown;
   }) => void;
+  onSubagentSession?: (session: SubagentSession) => void;
+  onToolCallStatus?: OnToolCallStatus;
+  isMcpToolName: (toolName: string) => boolean;
   stripWorkDir: (file: string) => string;
   formatError: (error: unknown) => string;
 }): (event: OpenCodeEvent) => void {
+  const compactionMessages = new Set<string>();
+  let compactionTrigger: 'auto' | 'manual' = 'auto';
+  let compaction:
+    | { id: string; trigger: 'auto' | 'manual'; text: Map<string, string> }
+    | undefined;
+  const finishCompaction = (failed = false) => {
+    if (!compaction) return;
+    if (failed) {
+      emit({
+        type: 'raw',
+        rawValue: {
+          type: 'opencode.compaction',
+          messageId: compaction.id,
+          status: 'failed',
+        },
+      });
+    } else {
+      emit({
+        type: 'compaction',
+        trigger: compaction.trigger,
+        summary: [...compaction.text.values()].join(''),
+        harnessMetadata: { opencode: { messageId: compaction.id } },
+      });
+    }
+    compaction = undefined;
+  };
+
   return event => {
     const type = event.type;
     const props = event.properties ?? {};
@@ -61,8 +101,60 @@ export function createEmitStreamEvent({
         const id = stringValue(info.id);
         const role = stringValue(info.role);
         if (id && role) state.messageRoles.set(id, role);
+        if (id && info.summary === true) {
+          if (!compactionMessages.has(id)) {
+            compactionMessages.add(id);
+            compaction = { id, trigger: compactionTrigger, text: new Map() };
+            emitOpenCodeStreamStart({ info, state, emit });
+            emit({
+              type: 'raw',
+              rawValue: {
+                type: 'opencode.compaction',
+                messageId: id,
+                status: 'started',
+              },
+            });
+          }
+          if (info.error && compaction?.id === id) finishCompaction(true);
+        }
       }
       return;
+    }
+
+    if (type === 'session.compacted') {
+      finishCompaction();
+      return;
+    }
+    if (type === 'message.part.updated' || type === 'message.part.delta') {
+      const part = asOpenCodeObject(props.part);
+      if (type === 'message.part.updated' && part?.type === 'compaction') {
+        compactionTrigger = part.auto === false ? 'manual' : 'auto';
+        return;
+      }
+      const messageId = stringValue(
+        type === 'message.part.updated' ? part?.messageID : props.messageID,
+      );
+      if (messageId && compactionMessages.has(messageId)) {
+        if (type === 'message.part.updated') {
+          if (messageId === compaction?.id && part?.type === 'text') {
+            const id = stringValue(part.id);
+            if (id && typeof part.text === 'string') {
+              compaction.text.set(id, part.text);
+            }
+          }
+          emitLegacyStepFinishPart({ part: props.part, state, emit });
+        } else if (messageId === compaction?.id && props.field === 'text') {
+          const id = stringValue(props.partID);
+          if (
+            id &&
+            compaction.text.has(id) &&
+            typeof props.delta === 'string'
+          ) {
+            compaction.text.set(id, compaction.text.get(id)! + props.delta);
+          }
+        }
+        return;
+      }
     }
 
     if (type === 'message.part.delta') {
@@ -81,6 +173,9 @@ export function createEmitStreamEvent({
         nativeNameField,
         getHostToolName,
         authorizeHostToolCall,
+        onSubagentSession,
+        onToolCallStatus,
+        isMcpToolName,
       });
       return;
     }
@@ -150,6 +245,7 @@ export function createEmitStreamEvent({
       const callID = String(props.callID ?? event.id);
       const command = String(props.command ?? '');
       state.shellCommands.set(callID, command);
+      onToolCallStatus?.({ callID, status: 'started', group: undefined });
       emit({
         type: 'tool-call',
         toolCallId: callID,
@@ -162,6 +258,7 @@ export function createEmitStreamEvent({
     }
     if (type === 'session.next.shell.ended') {
       const callID = String(props.callID ?? event.id);
+      onToolCallStatus?.({ callID, status: 'settled', group: undefined });
       emit({
         type: 'tool-result',
         toolCallId: callID,
@@ -191,9 +288,17 @@ export function createEmitStreamEvent({
     if (type === 'session.next.tool.called') {
       const callID = String(props.callID ?? event.id);
       const rawToolName = String(props.tool ?? 'unknown');
+      if (rawToolName === 'StructuredOutput' || rawToolName === 'question') {
+        return;
+      }
       const toolName = toWireToolName(rawToolName);
       state.toolNames.set(callID, { rawToolName, toolName });
       const hostToolName = getHostToolName(toolName, props.tool);
+      onToolCallStatus?.({
+        callID,
+        status: 'started',
+        group: toolCallGroup({ hostToolName, toolName }),
+      });
       if (hostToolName) {
         authorizeHostToolCall({
           callID,
@@ -209,10 +314,12 @@ export function createEmitStreamEvent({
         ...nativeNameField({ nativeName: rawToolName, toolName }),
         input: JSON.stringify(props.input ?? parseToolInput(state, props)),
         providerExecuted: true,
+        ...(isMcpToolName(rawToolName) ? { dynamic: true } : {}),
         ...(props.provider?.metadata
           ? { providerMetadata: props.provider.metadata }
           : {}),
       });
+      if (isMcpToolName(rawToolName)) state.dynamicToolCallIds.add(callID);
       return;
     }
     if (
@@ -224,8 +331,12 @@ export function createEmitStreamEvent({
       const rawToolName =
         cachedTool?.rawToolName ??
         String((props as { tool?: unknown }).tool ?? '');
+      if (rawToolName === 'StructuredOutput' || rawToolName === 'question') {
+        return;
+      }
       const toolName =
         cachedTool?.toolName ?? toWireToolName(rawToolName || 'unknown');
+      onToolCallStatus?.({ callID, status: 'settled', group: undefined });
       if (getHostToolName(toolName, rawToolName)) return;
       emit({
         type: 'tool-result',
@@ -237,6 +348,7 @@ export function createEmitStreamEvent({
           ('content' in props ? props.content : null) ??
           null,
         ...(type === 'session.next.tool.failed' ? { isError: true } : {}),
+        ...(state.dynamicToolCallIds.delete(callID) ? { dynamic: true } : {}),
       });
       return;
     }
@@ -290,6 +402,7 @@ export function createEmitStreamEvent({
       return;
     }
     if (type === 'session.error' || type === 'session.next.step.failed') {
+      finishCompaction(true);
       const error = props.error ?? event;
       emitError({
         error,
@@ -300,6 +413,24 @@ export function createEmitStreamEvent({
       });
     }
   };
+}
+
+type OnToolCallStatus = (input: {
+  callID: string;
+  status: 'started' | 'settled';
+  group: OpenCodeHostInputGroup | undefined;
+}) => void;
+
+function toolCallGroup({
+  hostToolName,
+  toolName,
+}: {
+  hostToolName: string | undefined;
+  toolName: string;
+}): OpenCodeHostInputGroup | undefined {
+  if (hostToolName) return 'host-tool';
+  if (toolName === 'agent') return 'subagent';
+  return undefined;
 }
 
 function closeLegacyOpenParts({
@@ -351,6 +482,9 @@ function emitLegacyToolPart({
   nativeNameField,
   getHostToolName,
   authorizeHostToolCall,
+  onSubagentSession,
+  onToolCallStatus,
+  isMcpToolName,
 }: {
   part: unknown;
   state: TranslationState;
@@ -368,6 +502,9 @@ function emitLegacyToolPart({
     toolName: string;
     input: unknown;
   }) => void;
+  onSubagentSession?: (session: SubagentSession) => void;
+  onToolCallStatus?: OnToolCallStatus;
+  isMcpToolName: (toolName: string) => boolean;
 }): void {
   const toolPart = legacyToolPartFromValue(part);
   if (!toolPart) return;
@@ -377,15 +514,32 @@ function emitLegacyToolPart({
   }
   const callID = toolPart.callID;
   const rawToolName = toolPart.tool;
+  if (rawToolName === 'StructuredOutput' || rawToolName === 'question') return;
   const toolName = toWireToolName(rawToolName);
+  if (toolName === 'agent') {
+    const metadata = {
+      ...toolPart.metadata,
+      ...toolPart.state?.metadata,
+    };
+    const parentSessionId = stringValue(metadata.parentSessionId);
+    const sessionId = stringValue(metadata.sessionId);
+    if (parentSessionId && sessionId) {
+      onSubagentSession?.({ parentSessionId, sessionId });
+    }
+  }
   state.toolNames.set(callID, { rawToolName, toolName });
   const hostToolName = getHostToolName(toolName, rawToolName);
+  onToolCallStatus?.({
+    callID,
+    status: status === 'running' ? 'started' : 'settled',
+    group: toolCallGroup({ hostToolName, toolName }),
+  });
   if (hostToolName) {
     if (status === 'running') {
       authorizeHostToolCall({
         callID,
         toolName: hostToolName,
-        input: legacyToolPartInput(toolPart),
+        input: toolPart.state?.input ?? {},
       });
     }
     return;
@@ -399,10 +553,12 @@ function emitLegacyToolPart({
       ...nativeNameField({ nativeName: rawToolName, toolName }),
       input: JSON.stringify(legacyToolPartInput(toolPart)),
       providerExecuted: true,
+      ...(isMcpToolName(rawToolName) ? { dynamic: true } : {}),
       ...(toolPart.providerMetadata
         ? { providerMetadata: toolPart.providerMetadata }
         : {}),
     });
+    if (isMcpToolName(rawToolName)) state.dynamicToolCallIds.add(callID);
   }
   if (
     (status === 'completed' || status === 'error') &&
@@ -415,15 +571,14 @@ function emitLegacyToolPart({
       toolName,
       result: legacyToolPartOutput(toolPart),
       ...(status === 'error' ? { isError: true } : {}),
+      ...(state.dynamicToolCallIds.delete(callID) ? { dynamic: true } : {}),
     });
   }
 }
 
 function legacyToolPartInput(part: LegacyToolPart): Record<string, unknown> {
   return {
-    ...(part.metadata ?? {}),
-    ...(part.state?.metadata ?? {}),
-    ...(part.state?.input ?? {}),
+    ...part.state?.input,
   };
 }
 
