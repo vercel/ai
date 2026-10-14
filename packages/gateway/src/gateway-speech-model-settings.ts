@@ -1,4 +1,5 @@
 export type GatewaySpeechModelId =
+  | 'fish-audio/drama-3'
   | 'fish-audio/s1'
   | 'fish-audio/s2-pro'
   | 'fish-audio/s2.1-pro'
