@@ -11,7 +11,7 @@ export interface PiPathMapper {
   readonly deniedSandboxRoots: ReadonlyArray<string>;
   /**
    * Translate a tool path (relative to `sandboxWorkDir`, or an absolute
-   * sandbox path) to the canonical sandbox path. Throws if the path would
+   * sandbox path) to a normalized sandbox path. Throws if the path would
    * escape the workspace and configured writable roots.
    */
   toSandboxPath(inputPath: string): string;
@@ -111,41 +111,22 @@ export function createPiPathMapper(
       ? inputPath
       : path.posix.join(normalizedSandbox, inputPath);
 
-  const assertNotDenied = (sandboxPath: string, inputPath: string): void => {
-    if (deniedRoots.some(root => isInsidePosixPath(root, sandboxPath))) {
+  const writableAreas = [normalizedSandbox, ...writableRoots];
+  const readableAreas = [...writableAreas, ...readableRoots];
+  const assertAllowed = (
+    sandboxPath: string,
+    inputPath: string,
+    allowedRoots: ReadonlyArray<string>,
+    escapeMessage: string,
+  ): string => {
+    const normalizedPath = path.posix.normalize(sandboxPath);
+    if (deniedRoots.some(root => isInsidePosixPath(root, normalizedPath))) {
       throw new Error(`Pi path is inside a denied root: ${inputPath}`);
     }
-  };
-
-  const assertWritableSandboxPath = (
-    sandboxPath: string,
-    inputPath: string,
-  ): string => {
-    const normalizedInput = path.posix.normalize(sandboxPath);
-    assertNotDenied(normalizedInput, inputPath);
-    if (
-      !isInsidePosixPath(normalizedSandbox, normalizedInput) &&
-      !writableRoots.some(root => isInsidePosixPath(root, normalizedInput))
-    ) {
-      throw new Error(`Pi path escapes the workspace: ${inputPath}`);
+    if (!allowedRoots.some(root => isInsidePosixPath(root, normalizedPath))) {
+      throw new Error(`Pi path ${escapeMessage}: ${inputPath}`);
     }
-    return normalizedInput;
-  };
-
-  const assertReadableSandboxPath = (
-    sandboxPath: string,
-    inputPath: string,
-  ): string => {
-    const normalizedInput = path.posix.normalize(sandboxPath);
-    assertNotDenied(normalizedInput, inputPath);
-    if (
-      !isInsidePosixPath(normalizedSandbox, normalizedInput) &&
-      !readableRoots.some(root => isInsidePosixPath(root, normalizedInput)) &&
-      !writableRoots.some(root => isInsidePosixPath(root, normalizedInput))
-    ) {
-      throw new Error(`Pi path escapes the readable roots: ${inputPath}`);
-    }
-    return normalizedInput;
+    return normalizedPath;
   };
 
   return {
@@ -154,30 +135,36 @@ export function createPiPathMapper(
     writableSandboxRoots: writableRoots,
     deniedSandboxRoots: deniedRoots,
     toSandboxPath(inputPath: string) {
-      return assertWritableSandboxPath(
+      return assertAllowed(
         absoluteSandboxPath(expandHome(inputPath)),
         inputPath,
+        writableAreas,
+        'escapes the workspace',
       );
     },
     toReadableSandboxPath(inputPath: string) {
-      const sandboxPath = path.posix.normalize(
+      return assertAllowed(
         absoluteSandboxPath(expandHome(inputPath)),
+        inputPath,
+        readableAreas,
+        'escapes the workspace',
       );
-      if (
-        !isInsidePosixPath(normalizedSandbox, sandboxPath) &&
-        ![...readableRoots, ...writableRoots].some(root =>
-          isInsidePosixPath(root, sandboxPath),
-        )
-      ) {
-        throw new Error(`Pi path escapes the workspace: ${inputPath}`);
-      }
-      return assertReadableSandboxPath(sandboxPath, inputPath);
     },
     assertSandboxPath(inputPath: string) {
-      return assertWritableSandboxPath(inputPath, inputPath);
+      return assertAllowed(
+        inputPath,
+        inputPath,
+        writableAreas,
+        'escapes the workspace',
+      );
     },
     assertReadableSandboxPath(inputPath: string) {
-      return assertReadableSandboxPath(inputPath, inputPath);
+      return assertAllowed(
+        inputPath,
+        inputPath,
+        readableAreas,
+        'escapes the readable roots',
+      );
     },
     isWorkspacePath(inputPath: string) {
       return isInsidePosixPath(
