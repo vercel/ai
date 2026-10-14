@@ -3116,6 +3116,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      '@vscode/ripgrep':
+        specifier: 1.18.0
+        version: 1.18.0
       deepagents:
         specifier: 1.14.2
         version: 1.14.2(80f64861dda9f18fd70e8f9644932f71)
