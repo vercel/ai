@@ -465,7 +465,8 @@ export async function* modelCallIterator({
         await writeDeferredToolCalls(
           writable,
           toolCalls.filter(
-            (_, index) =>
+            (toolCall, index) =>
+              !toolCall.providerExecuted &&
               serializedTools[serializedToolCalls[index].toolName]
                 ?.hasOwnValidator,
           ),

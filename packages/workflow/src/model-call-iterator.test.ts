@@ -459,6 +459,53 @@ describe('modelCallIterator', () => {
     expect(onInputAvailable).not.toHaveBeenCalled();
   });
 
+  it('does not write provider-executed tool calls after the model step', async () => {
+    const write = vi.fn();
+    vi.mocked(doStreamStep).mockResolvedValue(
+      createMockDoStreamStepResult({
+        finishReason: 'tool-calls',
+        toolCalls: [
+          {
+            type: 'tool-call',
+            toolCallId: 'provider-call',
+            toolName: 'webSearch',
+            input: {},
+            providerExecuted: true,
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'local-call',
+            toolName: 'search',
+            input: { query: 'docs' },
+          },
+        ],
+      }),
+    );
+
+    const iterator = modelCallIterator({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'search' }] }],
+      tools: {
+        webSearch: {
+          type: 'provider',
+          isProviderExecuted: true,
+          id: 'test.web_search',
+          args: {},
+          inputSchema: z.object({}),
+        },
+        search: tool({ inputSchema: z.object({ query: z.string() }) }),
+      } as ToolSet,
+      model: vi.fn() as any,
+      writable: new WritableStream({ write }),
+    });
+
+    await iterator.next();
+
+    // the model step already streamed the provider-executed call in place
+    expect(write.mock.calls.map(([part]) => part.toolCallId)).toEqual([
+      'local-call',
+    ]);
+  });
+
   it('validates and normalizes tool context before input callbacks', async () => {
     const callback = vi.fn();
     vi.mocked(doStreamStep).mockResolvedValue(
