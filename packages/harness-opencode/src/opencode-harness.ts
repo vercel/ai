@@ -966,6 +966,7 @@ function createSession({
   let selectedModel: string | undefined;
   let activeTurn = false;
   let pendingTurnDrain: Promise<void> = Promise.resolve();
+  let abortedTurnDrain: Promise<void> = Promise.resolve();
   const pendingCompactionParts: HarnessV1StreamPart[] = [];
   const inactiveBuiltinToolNames =
     resolveInactiveBuiltinToolNames(builtinToolFiltering);
@@ -1103,6 +1104,7 @@ function createSession({
         new DOMException('Aborted', 'AbortError');
       isSettled = true;
       drainingAfterAbort = true;
+      abortedTurnDrain = turnDrain;
       userMessageSubmitter?.close(error);
       pendingReject!(error);
     };
@@ -1177,7 +1179,6 @@ function createSession({
     control: HarnessV1PromptControl;
     skillWriteResult: WriteSkillsResult;
   }> => {
-    await pendingTurnDrain;
     if (
       opts.responseFormat?.type === 'json' &&
       opts.responseFormat.schema == null
@@ -1210,6 +1211,7 @@ function createSession({
     sessionId,
     isResume,
     doPromptTurn: async promptOpts => {
+      await pendingTurnDrain;
       const { control, skillWriteResult } = await prepareTurn(promptOpts);
       const turnModel = promptOpts.model ?? selectedModel;
       if (turnModel) selectedModel = turnModel;
@@ -1232,11 +1234,14 @@ function createSession({
         ...startBase(turnModel),
       });
       pendingResumeSessionId = undefined;
+      rerunContinue = false;
       return control;
     },
     doContinueTurn: async continueOpts => {
+      await abortedTurnDrain;
       const { control, skillWriteResult } = await prepareTurn(continueOpts);
       if (rerunContinue) {
+        rerunContinue = false;
         const turnModel = continueOpts.model ?? selectedModel;
         if (turnModel) selectedModel = turnModel;
         channel.send({
