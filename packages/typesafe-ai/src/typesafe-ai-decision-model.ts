@@ -7,7 +7,11 @@ import {
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
+  convertUint8ArrayToBase64,
   createJsonResponseHandler,
+  detectMediaType,
+  generateId,
+  isFullMediaType,
   loadApiKey,
   postJsonToApi,
   resolve,
@@ -98,20 +102,52 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
       type: 'unsupported',
       feature: `providerOptions.typesafe.${option}`,
     }));
+    const assets: Record<
+      string,
+      { type: 'image'; format: 'png' | 'jpeg'; data_base64: string }
+    > = {};
     const requestState =
       state.length === 1 && state[0].type === 'json'
         ? state[0].value
         : state
             .map(part => {
-              if (part.type === 'file')
-                throw new UnsupportedFunctionalityError({
-                  functionality: 'TypeSafe AI decision file input',
-                });
+              if (part.type === 'file') {
+                if (part.data.type !== 'data') {
+                  throw new UnsupportedFunctionalityError({
+                    functionality: `TypeSafe AI decision file input: ${part.mediaType} (${part.data.type})`,
+                  });
+                }
+                // Direct doDecide calls can bypass Core's media type detection.
+                const mediaType = isFullMediaType(part.mediaType)
+                  ? part.mediaType
+                  : detectMediaType({
+                      data: part.data.data,
+                      topLevelType: 'image',
+                    });
+                if (mediaType !== 'image/png' && mediaType !== 'image/jpeg') {
+                  throw new UnsupportedFunctionalityError({
+                    functionality: `TypeSafe AI decision image media type: ${part.mediaType}`,
+                  });
+                }
+                // References are replaced anywhere in request strings, so use
+                // random IDs to avoid matching ordinary text accidentally.
+                const reference = generateId();
+                assets[reference] = {
+                  type: 'image',
+                  format: mediaType === 'image/png' ? 'png' : 'jpeg',
+                  data_base64:
+                    typeof part.data.data === 'string'
+                      ? part.data.data
+                      : convertUint8ArrayToBase64(part.data.data),
+                };
+                return reference;
+              }
               return part.type === 'text'
                 ? part.text
                 : JSON.stringify(part.value);
             })
             .join('\n');
+    const hasImages = Object.keys(assets).length > 0;
     const modelHeaders =
       this.config.headers === undefined
         ? withUserAgentSuffix(
@@ -127,10 +163,15 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
       responseHeaders,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/systemone`,
-      headers: combineHeaders(modelHeaders, headers),
+      headers: combineHeaders(
+        modelHeaders,
+        hasImages ? { 'TypeSafe-Danger-Zone-Images': 'true' } : undefined,
+        headers,
+      ),
       body: {
         model: this.modelId,
         state: requestState,
+        ...(hasImages && { assets }),
         questions: Object.fromEntries(
           Object.entries(questions).map(([id, question]) => [
             id,

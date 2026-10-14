@@ -103,6 +103,35 @@ State, instructions, and descriptions accept JSON objects and arrays in addition
 to strings. Descriptions may be `null`. Boolean true/false criteria are optional.
 The SDK uses the neutral name `boolean` and maps it to TypeSafe's `noul` field.
 
+### Image input
+
+Pass PNG or JPEG images as file parts alongside text or JSON state:
+
+```ts
+import { readFileSync } from 'node:fs';
+
+const result = await experimental_decide({
+  model: typeSafeAi.decisionModel('jev-latest'),
+  state: [
+    { type: 'text', text: 'Inspect the animal in this picture.' },
+    {
+      type: 'file',
+      mediaType: 'image/png',
+      data: readFileSync('cat.png'),
+    },
+  ],
+  questions: {
+    cat: { type: 'boolean', instructions: 'Does the image show a cat?' },
+  },
+});
+```
+
+The provider sends images as base64 assets and automatically adds
+`TypeSafe-Danger-Zone-Images: true` when images are present. TypeSafe currently
+considers image support experimental. Only PNG and JPEG are supported; other
+file formats are rejected. See [TypeSafe's image documentation](https://docs.typesafe.ai/go/images)
+for image size and dimension limits.
+
 ### Rounded values and confidence
 
 TypeSafe returns scores and probabilities rounded to two decimal places.

@@ -338,20 +338,117 @@ it('maps text and JSON parts to native text state', async () => {
   });
 });
 
-it('rejects file evidence before sending a text-only decision request', async () => {
-  await expect(
-    model.doDecide({
+describe('image input', () => {
+  it('maps mixed text, JSON, and multiple images to referenced assets', async () => {
+    await model.doDecide({
       ...options,
       state: [
+        { type: 'text', text: 'Compare these images.' },
         {
           type: 'file',
           mediaType: 'image/png',
-          data: { type: 'data', data: 'AAAA' },
+          data: { type: 'data', data: new Uint8Array([137, 80, 78, 71]) },
+        },
+        { type: 'json', value: { label: 'second' } },
+        {
+          type: 'file',
+          mediaType: 'image/jpeg',
+          data: { type: 'data', data: '/9j/4A==' },
         },
       ],
-    }),
-  ).rejects.toMatchObject({ name: 'AI_UnsupportedFunctionalityError' });
-  expect(server.calls).toHaveLength(0);
+    });
+    const body = await server.calls[0].requestBodyJson;
+    const references = Object.keys(body.assets);
+    expect(references).toHaveLength(2);
+    expect(references[0]).not.toBe(references[1]);
+    expect(body.state).toBe(
+      `Compare these images.\n${references[0]}\n{"label":"second"}\n${references[1]}`,
+    );
+    expect(Object.values(body.assets)).toEqual([
+      { type: 'image', format: 'png', data_base64: 'iVBORw==' },
+      { type: 'image', format: 'jpeg', data_base64: '/9j/4A==' },
+    ]);
+    expect(server.calls[0].requestHeaders['typesafe-danger-zone-images']).toBe(
+      'true',
+    );
+  });
+
+  it.each(['image', 'image/*'])(
+    'detects the image format for %s',
+    async mediaType => {
+      await model.doDecide({
+        ...options,
+        state: [
+          {
+            type: 'file',
+            mediaType,
+            data: { type: 'data', data: 'iVBORw0KGgo=' },
+          },
+        ],
+      });
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.assets[body.state]).toEqual({
+        type: 'image',
+        format: 'png',
+        data_base64: 'iVBORw0KGgo=',
+      });
+    },
+  );
+
+  it('omits assets and the image header for text-only input', async () => {
+    await model.doDecide(options);
+    expect(await server.calls[0].requestBodyJson).not.toHaveProperty('assets');
+    expect(server.calls[0].requestHeaders).not.toHaveProperty(
+      'typesafe-danger-zone-images',
+    );
+  });
+
+  it('uses fresh references for each request', async () => {
+    const imageOptions = {
+      ...options,
+      state: [
+        {
+          type: 'file' as const,
+          mediaType: 'image/png',
+          data: { type: 'data' as const, data: 'iVBORw0KGgo=' },
+        },
+      ],
+    };
+    await model.doDecide(imageOptions);
+    await model.doDecide(imageOptions);
+    expect((await server.calls[0].requestBodyJson).state).not.toBe(
+      (await server.calls[1].requestBodyJson).state,
+    );
+  });
+
+  it.each(['application/pdf', 'image/webp', 'image/gif', 'image'])(
+    'rejects unsupported or unrecognized media before HTTP: %s',
+    async mediaType => {
+      await expect(
+        model.doDecide({
+          ...options,
+          state: [
+            { type: 'file', mediaType, data: { type: 'data', data: 'AAAA' } },
+          ],
+        }),
+      ).rejects.toMatchObject({ name: 'AI_UnsupportedFunctionalityError' });
+      expect(server.calls).toHaveLength(0);
+    },
+  );
+
+  it.each([
+    { type: 'url' as const, url: new URL('https://example.com/image.png') },
+    { type: 'reference' as const, reference: { typesafe: 'file-id' } },
+    { type: 'text' as const, text: 'not an image' },
+  ])('rejects unsupported file data before HTTP: $type', async data => {
+    await expect(
+      model.doDecide({
+        ...options,
+        state: [{ type: 'file', mediaType: 'image/png', data }],
+      }),
+    ).rejects.toMatchObject({ name: 'AI_UnsupportedFunctionalityError' });
+    expect(server.calls).toHaveLength(0);
+  });
 });
 
 it.each([{ nested: { amount: 49 }, history: ['refund'] }, [1, null]])(
