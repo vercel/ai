@@ -13,7 +13,9 @@ import type {
   LanguageModelV4ToolResultPart,
 } from '@ai-sdk/provider';
 import {
+  InvalidToolInputError,
   tool,
+  TypeValidationError,
   type Experimental_LanguageModelStreamPart,
   type ModelMessage,
   type StepResult,
@@ -381,6 +383,48 @@ describe('modelCallIterator', () => {
       type: 'object',
     });
     expect(options.error.toolInput).toBe('{"path":"etc/hosts"}');
+  });
+
+  it('passes the schema failure to repairToolCall as a TypeValidationError cause', async () => {
+    const repairToolCall = vi.fn(async (_options: any) => null);
+    vi.mocked(doStreamStep).mockResolvedValue(
+      createMockDoStreamStepResult({
+        finishReason: 'tool-calls',
+        toolCalls: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'readFile',
+            input: { path: 'etc/hosts' },
+          },
+        ],
+      }),
+    );
+
+    await modelCallIterator({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'read' }] }],
+      tools: {
+        readFile: tool({
+          inputSchema: z.object({
+            path: z
+              .string()
+              .refine(value => value.startsWith('/'), 'path must be absolute'),
+          }),
+        }),
+      },
+      model: vi.fn() as any,
+      repairToolCall,
+    }).next();
+
+    const { error } = repairToolCall.mock.calls[0][0];
+    expect(InvalidToolInputError.isInstance(error)).toBe(true);
+    // matches the cause parseToolCall passes to repairToolCall in streamText
+    expect(TypeValidationError.isInstance(error.cause)).toBe(true);
+    expect(error.cause).toMatchObject({
+      value: { path: 'etc/hosts' },
+      message: expect.stringContaining('path must be absolute'),
+    });
+    expect(error.message).toContain('path must be absolute');
   });
 
   it('does not repair a tool call a second time after the model step repaired it', async () => {
