@@ -1309,35 +1309,30 @@ const result = await generateText({
 
 #### Citation Metadata
 
-When citations are enabled, the response `content` array includes `source` parts with citation metadata:
+When citations are enabled, the cited passages are attached to the generated text as `part.citations` (and to streamed text as `text-end.citations`). Search result citations reference the search result's `source` as a URL. The raw `search_result_location` and `content_block_location` citations remain available as `text.providerMetadata.anthropic.citations` (see [Sources and Citations](#sources-and-citations)):
 
 ```ts
-const citations = result.content.filter(part => part.type === 'source');
+import type { AnthropicTextProviderMetadata } from '@ai-sdk/anthropic';
 
-for (const citation of citations) {
-  if (
-    citation.sourceType === 'document' &&
-    citation.providerMetadata?.anthropic
-  ) {
-    const meta = citation.providerMetadata.anthropic;
-    console.log(`Cited: "${meta.citedText}"`);
-    console.log(`Title: ${citation.title}`);
+for (const part of result.content) {
+  if (part.type === 'text') {
+    for (const citation of part.citations ?? []) {
+      console.log(`Cited: "${citation.citedText}"`);
+      console.log(`Title: ${citation.source.title}`);
+    }
 
-    // Search results include source URL and index
-    if ('searchResultIndex' in meta) {
-      console.log(`Source: ${meta.source}`);
-      console.log(`Search result index: ${meta.searchResultIndex}`);
+    const metadata = part.providerMetadata as
+      | AnthropicTextProviderMetadata
+      | undefined;
+    for (const citation of metadata?.anthropic.citations ?? []) {
+      if (citation.type === 'search_result_location') {
+        console.log(`Source: ${citation.source}`);
+        console.log(`Search result index: ${citation.search_result_index}`);
+      }
     }
   }
 }
 ```
-
-The `providerMetadata.anthropic` object includes:
-
-- **citedText** _string_ - The exact text that was cited
-- **source** _string_ - The source URL (search results only)
-- **searchResultIndex** _number_ - Index of the cited search result (search results only)
-- **startBlockIndex** / **endBlockIndex** _number_ - Block range of the citation
 
 For more details, see [Anthropic's Search Results documentation](https://platform.claude.com/docs/en/build-with-claude/search-results) and [Citations documentation](https://platform.claude.com/docs/en/build-with-claude/citations).
 

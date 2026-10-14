@@ -11,4 +11,4 @@ Search result blocks enable Claude to cite specific passages with proper source 
 
 Custom content documents (`source: { type: 'content', content: [...] }`) allow passing pre-chunked text that Claude cites via `content_block_location`.
 
-The new citation types `search_result_location` and `content_block_location` are parsed and returned as source parts with metadata including `citedText`, `source`, `searchResultIndex`, `startBlockIndex`, and `endBlockIndex`.
+Citations of these blocks (`search_result_location` and `content_block_location`) are returned through the existing text-part `citations`. Search result blocks provided as file parts do not shift the `document_index` of regular documents.

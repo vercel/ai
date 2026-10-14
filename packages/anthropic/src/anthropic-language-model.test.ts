@@ -3262,24 +3262,46 @@ describe('AnthropicLanguageModel', () => {
       expect(result.content).toMatchInlineSnapshot(`
         [
           {
-            "text": "The search results show important information.",
-            "type": "text",
-          },
-          {
-            "id": "test-search-result-citation-id",
-            "mediaType": "text/plain",
+            "citations": [
+              {
+                "citedText": "important information",
+                "source": {
+                  "id": "https://example.com/result",
+                  "providerMetadata": {
+                    "anthropic": {
+                      "cited_text": "important information",
+                      "end_block_index": 1,
+                      "search_result_index": 0,
+                      "source": "https://example.com/result",
+                      "start_block_index": 0,
+                      "title": "Search Result Title",
+                      "type": "search_result_location",
+                    },
+                  },
+                  "sourceType": "url",
+                  "title": "Search Result Title",
+                  "type": "source",
+                  "url": "https://example.com/result",
+                },
+              },
+            ],
             "providerMetadata": {
               "anthropic": {
-                "citedText": "important information",
-                "endBlockIndex": 1,
-                "searchResultIndex": 0,
-                "source": "https://example.com/result",
-                "startBlockIndex": 0,
+                "citations": [
+                  {
+                    "cited_text": "important information",
+                    "end_block_index": 1,
+                    "search_result_index": 0,
+                    "source": "https://example.com/result",
+                    "start_block_index": 0,
+                    "title": "Search Result Title",
+                    "type": "search_result_location",
+                  },
+                ],
               },
             },
-            "sourceType": "document",
-            "title": "Search Result Title",
-            "type": "source",
+            "text": "The search results show important information.",
+            "type": "text",
           },
         ]
       `);
@@ -3310,6 +3332,7 @@ describe('AnthropicLanguageModel', () => {
                   document_title: 'Custom Content Doc',
                   start_block_index: 1,
                   end_block_index: 2,
+                  file_id: null,
                 },
               ],
             },
@@ -3357,23 +3380,47 @@ describe('AnthropicLanguageModel', () => {
       expect(result.content).toMatchInlineSnapshot(`
         [
           {
-            "text": "The document shows important information.",
-            "type": "text",
-          },
-          {
-            "filename": "custom.txt",
-            "id": "test-content-block-citation-id",
-            "mediaType": "text/plain",
+            "citations": [
+              {
+                "citedText": "important information",
+                "source": {
+                  "filename": "custom.txt",
+                  "id": "0",
+                  "mediaType": "text/plain",
+                  "providerMetadata": {
+                    "anthropic": {
+                      "cited_text": "important information",
+                      "document_index": 0,
+                      "document_title": "Custom Content Doc",
+                      "end_block_index": 2,
+                      "file_id": null,
+                      "start_block_index": 1,
+                      "type": "content_block_location",
+                    },
+                  },
+                  "sourceType": "document",
+                  "title": "Custom Content Doc",
+                  "type": "source",
+                },
+              },
+            ],
             "providerMetadata": {
               "anthropic": {
-                "citedText": "important information",
-                "endBlockIndex": 2,
-                "startBlockIndex": 1,
+                "citations": [
+                  {
+                    "cited_text": "important information",
+                    "document_index": 0,
+                    "document_title": "Custom Content Doc",
+                    "end_block_index": 2,
+                    "file_id": null,
+                    "start_block_index": 1,
+                    "type": "content_block_location",
+                  },
+                ],
               },
             },
-            "sourceType": "document",
-            "title": "Custom Content Doc",
-            "type": "source",
+            "text": "The document shows important information.",
+            "type": "text",
           },
         ]
       `);
@@ -10748,27 +10795,9 @@ describe('AnthropicLanguageModel', () => {
 
         const result = await convertReadableStreamToArray(stream);
 
-        expect(result.filter(part => part.type === 'source'))
-          .toMatchInlineSnapshot(`
-          [
-            {
-              "id": "id-0",
-              "mediaType": "text/plain",
-              "providerMetadata": {
-                "anthropic": {
-                  "citedText": "important information",
-                  "endBlockIndex": 1,
-                  "searchResultIndex": 0,
-                  "source": "https://example.com/result",
-                  "startBlockIndex": 0,
-                },
-              },
-              "sourceType": "document",
-              "title": "Search Result Title",
-              "type": "source",
-            },
-          ]
-        `);
+        expect(
+          result.filter(part => part.type === 'source'),
+        ).toMatchInlineSnapshot(`[]`);
       });
 
       it('should process PDF citation responses in streaming', async () => {

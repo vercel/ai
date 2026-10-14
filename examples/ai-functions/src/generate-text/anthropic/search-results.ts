@@ -51,15 +51,18 @@ run(async () => {
   console.log('Response:', result.text);
   console.log();
 
-  const citations = result.content.filter(part => part.type === 'source');
+  const citations = result.content.flatMap(part =>
+    part.type === 'text' ? (part.citations ?? []) : [],
+  );
   citations.forEach((citation, i) => {
-    if (citation.sourceType === 'document') {
-      const metadata = citation.providerMetadata?.anthropic;
+    if (citation.source.sourceType === 'url') {
       console.log(`Citation ${i + 1}:`);
-      console.log(`  Title: ${citation.title}`);
-      console.log(`  Source: ${metadata?.source}`);
-      console.log(`  Cited text: "${metadata?.citedText}"`);
-      console.log(`  Search result index: ${metadata?.searchResultIndex}`);
+      console.log(`  Title: ${citation.source.title}`);
+      console.log(`  Source: ${citation.source.url}`);
+      console.log(`  Cited text: "${citation.citedText}"`);
+      console.log(
+        `  Search result index: ${citation.source.providerMetadata?.anthropic?.search_result_index}`,
+      );
       console.log();
     }
   });

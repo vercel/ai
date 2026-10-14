@@ -146,30 +146,7 @@ export function createCitationSource(
     };
   }
 
-  if (citation.type === 'search_result_location') {
-    return {
-      type: 'source' as const,
-      sourceType: 'document' as const,
-      id: generateId(),
-      mediaType: 'text/plain',
-      title: citation.title ?? 'Untitled Search Result',
-      providerMetadata: {
-        anthropic: {
-          citedText: citation.cited_text,
-          source: citation.source,
-          searchResultIndex: citation.search_result_index,
-          startBlockIndex: citation.start_block_index,
-          endBlockIndex: citation.end_block_index,
-        },
-      } satisfies SharedV4ProviderMetadata,
-    };
-  }
-
-  if (
-    citation.type !== 'page_location' &&
-    citation.type !== 'char_location' &&
-    citation.type !== 'content_block_location'
-  ) {
+  if (citation.type !== 'page_location' && citation.type !== 'char_location') {
     return;
   }
 
@@ -194,17 +171,11 @@ export function createCitationSource(
               startPageNumber: citation.start_page_number,
               endPageNumber: citation.end_page_number,
             }
-          : citation.type === 'content_block_location'
-            ? {
-                citedText: citation.cited_text,
-                startBlockIndex: citation.start_block_index,
-                endBlockIndex: citation.end_block_index,
-              }
-            : {
-                citedText: citation.cited_text,
-                startCharIndex: citation.start_char_index,
-                endCharIndex: citation.end_char_index,
-              },
+          : {
+              citedText: citation.cited_text,
+              startCharIndex: citation.start_char_index,
+              endCharIndex: citation.end_char_index,
+            },
     } satisfies SharedV4ProviderMetadata,
   };
 }
@@ -2879,9 +2850,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       contentBlock.firstDelta &&
                       contentBlock.providerToolInputType != null
                     ) {
-                      delta = `{"type": "${
-                        contentBlock.providerToolInputType
-                      }",${delta.substring(1)}`;
+                      delta = `{"type": "${contentBlock.providerToolInputType}",${delta.substring(1)}`;
                     }
 
                     controller.enqueue({
