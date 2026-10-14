@@ -1,3 +1,5 @@
+import path from 'node:path';
+import { rgPath } from '@vscode/ripgrep';
 import { LocalShellBackend } from 'deepagents';
 
 export const SANDBOX_PATH_FALLBACK =
@@ -13,7 +15,9 @@ export function createLocalShellBackend({
   return new LocalShellBackend({
     rootDir,
     env: {
-      PATH: env.PATH ?? SANDBOX_PATH_FALLBACK,
+      PATH: [env.PATH ?? SANDBOX_PATH_FALLBACK, path.dirname(rgPath)].join(
+        path.delimiter,
+      ),
     },
   });
 }

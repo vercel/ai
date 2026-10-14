@@ -1,3 +1,5 @@
+import path from 'node:path';
+import { rgPath } from '@vscode/ripgrep';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createLocalShellBackend,
@@ -20,10 +22,11 @@ describe('createLocalShellBackend', () => {
   });
 
   it('passes only PATH from the bridge environment to shell commands', () => {
+    const existingPath = ['/sandbox/bin', '/usr/bin'].join(path.delimiter);
     createLocalShellBackend({
       rootDir: '/workspace',
       env: {
-        PATH: '/sandbox/bin:/usr/bin',
+        PATH: existingPath,
         ANTHROPIC_API_KEY: 'secret',
         BRIDGE_CHANNEL_TOKEN: 'token',
       },
@@ -33,7 +36,7 @@ describe('createLocalShellBackend', () => {
       {
         rootDir: '/workspace',
         env: {
-          PATH: '/sandbox/bin:/usr/bin',
+          PATH: [existingPath, path.dirname(rgPath)].join(path.delimiter),
         },
       },
     ]);
@@ -46,7 +49,9 @@ describe('createLocalShellBackend', () => {
       {
         rootDir: '/workspace',
         env: {
-          PATH: SANDBOX_PATH_FALLBACK,
+          PATH: [SANDBOX_PATH_FALLBACK, path.dirname(rgPath)].join(
+            path.delimiter,
+          ),
         },
       },
     ]);
