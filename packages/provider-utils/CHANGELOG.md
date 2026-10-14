@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 4.0.59
+
+### Patch Changes
+
+- d5e7d82: fix(provider-utils): keep case-sensitive url paths and query values
+
 ## 4.0.58
 
 ### Patch Changes

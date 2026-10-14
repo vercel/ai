@@ -8,11 +8,11 @@
     "start": "next start"
   },
   "dependencies": {
-    "@ai-sdk/openai": "3.0.127",
-    "@ai-sdk/react": "3.0.309",
+    "@ai-sdk/openai": "3.0.128",
+    "@ai-sdk/react": "3.0.310",
     "@upstash/ratelimit": "^0.4.3",
     "@vercel/kv": "^0.2.2",
-    "ai": "6.0.306",
+    "ai": "6.0.307",
     "next": "^15.5.21",
     "react": "^18",
     "react-dom": "^18",
