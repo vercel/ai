@@ -120,8 +120,17 @@ function createMultipartBody(
     yield encoder.encode(`--${boundary}--\r\n`);
   }
 
-  return {
-    stream: convertAsyncIteratorToReadableStream(emitParts()),
+  const iterator = emitParts();
+  const body: MultipartBody = {
+    stream: convertAsyncIteratorToReadableStream<Uint8Array>({
+      next: () => iterator.next(),
+      async return(reason) {
+        // return() queues behind a pending next(): cancel the source read
+        // first so the generator can reach its finally block and release it.
+        await body.dispose(reason);
+        return iterator.return(undefined);
+      },
+    }),
     async dispose(reason?: unknown) {
       if (disposed) return;
       disposed = true;
@@ -145,6 +154,8 @@ function createMultipartBody(
       }
     },
   };
+
+  return body;
 }
 
 /**
