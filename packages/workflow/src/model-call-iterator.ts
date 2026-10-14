@@ -28,6 +28,7 @@ import {
 import {
   createRestrictedTelemetryDispatcher,
   createToolSearchState,
+  filterIncludedContext,
   parseToolCall,
 } from 'ai/internal';
 import { buildModelStepResult } from './build-model-step-result.js';
@@ -405,6 +406,12 @@ export async function* modelCallIterator({
               recordInputs: telemetry?.recordInputs,
               recordOutputs: telemetry?.recordOutputs,
               stepNumber,
+              includeRuntimeContext: telemetry?.includeRuntimeContext,
+              // Exclude unselected fields before serializing the step input.
+              runtimeContext: filterIncludedContext({
+                context: currentRuntimeContext,
+                includeContext: telemetry?.includeRuntimeContext,
+              }),
             }
           : undefined,
       };
