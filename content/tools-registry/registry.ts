@@ -720,4 +720,47 @@ console.log(text);`,
     websiteUrl: 'https://pexafy.com',
     npmUrl: 'https://www.npmjs.com/package/pexafy-ai-sdk',
   },
+  {
+    slug: 'plimsoll',
+    name: 'plimsoll',
+    description:
+      "Run the model's Python or JavaScript on a sandbox service you host yourself. Refuses to run below verified gVisor or virtual-machine isolation by default, returns the isolation tier with every result, and checks a record of the request and result. Optional per-conversation sessions keep interpreter state.",
+    packageName: '@plimsollmark/client',
+    tags: ['code-execution', 'sandbox', 'self-hosted'],
+    apiKeyEnvName: 'PLIMSOLL_TOKEN',
+    installCommand: {
+      pnpm: 'pnpm add @plimsollmark/client zod',
+      npm: 'npm install @plimsollmark/client zod',
+      yarn: 'yarn add @plimsollmark/client zod',
+      bun: 'bun add @plimsollmark/client zod',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { PlimsollClient } from '@plimsollmark/client';
+import { plimsollCodeTools } from '@plimsollmark/client/ai-sdk';
+
+// Your self-hosted plimsolld and the caller token it issued you.
+const plimsoll = plimsollCodeTools({
+  client: new PlimsollClient({
+    baseUrl: process.env.PLIMSOLL_URL!,
+    token: process.env.PLIMSOLL_TOKEN,
+  }),
+});
+
+const { text } = await generateText({
+  model: 'openai/gpt-5.1-codex',
+  prompt: 'What is 5 + 5 minus 84 cubed?',
+  tools: {
+    executeCode: plimsoll.executeCode,
+  },
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl:
+      'https://plimsollmark.github.io/plimsoll/integrations/vercel-ai-sdk/index.html',
+    apiKeyUrl:
+      'https://github.com/plimsollmark/plimsoll/blob/main/docs/callers.md',
+    websiteUrl: 'https://github.com/plimsollmark/plimsoll',
+    npmUrl: 'https://www.npmjs.com/package/@plimsollmark/client',
+  },
 ];
