@@ -210,12 +210,38 @@ describe('isUrlSupported', () => {
       ).toBe(true);
     });
 
-    it('should handle case-insensitive regex for URLs if specified', async () => {
+    it('should match an uppercase scheme and host against a lowercase pattern', () => {
       expect(
         isUrlSupported({
           mediaType: 'text/plain',
-          url: 'https://EXAMPLE.com/Path',
-          supportedUrls: { 'text/plain': [/https:\/\/example\.com\/path/i] },
+          url: 'HTTPS://EXAMPLE.com/Path',
+          supportedUrls: {
+            'text/plain': [/^https:\/\/example\.com\/Path$/],
+          },
+        }),
+      ).toBe(true);
+    });
+
+    it('should keep path casing when the scheme and host differ in case', () => {
+      expect(
+        isUrlSupported({
+          mediaType: 'text/plain',
+          url: 'HTTPS://EXAMPLE.com/Path',
+          supportedUrls: {
+            'text/plain': [/^https:\/\/example\.com\/path$/],
+          },
+        }),
+      ).toBe(false);
+    });
+
+    it('should lowercase the host and keep a non-default port', () => {
+      expect(
+        isUrlSupported({
+          mediaType: 'image/png',
+          url: 'HTTPS://EXAMPLE.com:8443/Path',
+          supportedUrls: {
+            'image/*': [/^https:\/\/example\.com:8443\/Path$/],
+          },
         }),
       ).toBe(true);
     });

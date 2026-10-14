@@ -20,9 +20,10 @@ export function isUrlSupported({
   url: string;
   supportedUrls: Record<string, RegExp[]>;
 }): boolean {
-  // Media types are case-insensitive. Paths and query strings are not, so
-  // provider patterns are tested against the original URL.
+  // Media types are case-insensitive. Paths, queries, and fragments are not.
+  // Scheme and host are case-insensitive, so only the origin is normalized.
   mediaType = mediaType.toLowerCase();
+  const urlForMatch = normalizeUrlOrigin(url);
 
   const isTopLevelOnly = !mediaType.includes('/');
 
@@ -52,8 +53,33 @@ export function isUrlSupported({
       })
       .flatMap(({ regexes }) => regexes)
       // check if any pattern matches the url:
-      .some(pattern => testRegExpFromStart(pattern, url))
+      .some(pattern => testRegExpFromStart(pattern, urlForMatch))
   );
+}
+
+/**
+ * Lowercase the scheme and host (including a non-default port) used for
+ * pattern matching. Pathname, search, and hash keep their original casing.
+ * Unparseable values are matched as given.
+ */
+function normalizeUrlOrigin(url: string): string {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return url;
+  }
+
+  if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(url)) {
+    return url;
+  }
+
+  const userinfo =
+    parsed.username === '' && parsed.password === ''
+      ? ''
+      : `${parsed.username}${parsed.password === '' ? '' : `:${parsed.password}`}@`;
+
+  return `${parsed.protocol}//${userinfo}${parsed.host.toLowerCase()}${parsed.pathname}${parsed.search}${parsed.hash}`;
 }
 
 function testRegExpFromStart(pattern: RegExp, value: string): boolean {
