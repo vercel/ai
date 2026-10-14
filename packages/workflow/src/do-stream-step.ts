@@ -462,9 +462,18 @@ async function streamModelStep(
           });
         } else if (
           // The original schema must validate and normalize these calls outside
-          // the step before they become available to UI stream consumers.
-          part.type !== 'tool-call' ||
-          !serializedTools?.[part.toolName]?.hasOwnValidator
+          // the step before they become available to UI stream consumers. The
+          // matching `tool-error` for an invalid call (emitted by
+          // streamModelCall immediately after the `tool-call`) is deferred as
+          // well, so `writeDeferredToolCalls` stays the sole emitter.
+          // Otherwise the UI stream would receive a duplicate `tool-error`
+          // chunk, and the one written here would arrive before its deferred
+          // `tool-call`.
+          !(
+            (part.type === 'tool-call' ||
+              (part.type === 'tool-error' && !part.providerExecuted)) &&
+            serializedTools?.[part.toolName]?.hasOwnValidator
+          )
         ) {
           await writer.write(part);
         }
