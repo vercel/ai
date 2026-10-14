@@ -1,5 +1,4 @@
 import path from 'node:path';
-import { rgPath } from '@vscode/ripgrep';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createLocalShellBackend,
@@ -36,7 +35,7 @@ describe('createLocalShellBackend', () => {
       {
         rootDir: '/workspace',
         env: {
-          PATH: [existingPath, path.dirname(rgPath)].join(path.delimiter),
+          PATH: existingPath,
         },
       },
     ]);
@@ -49,9 +48,7 @@ describe('createLocalShellBackend', () => {
       {
         rootDir: '/workspace',
         env: {
-          PATH: [SANDBOX_PATH_FALLBACK, path.dirname(rgPath)].join(
-            path.delimiter,
-          ),
+          PATH: SANDBOX_PATH_FALLBACK,
         },
       },
     ]);
