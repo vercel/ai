@@ -8,6 +8,8 @@ describe.skipIf(isEdgeRuntime)('global declaration compatibility', () => {
     [[], ['v6'], ['v7'], ['v5'], ['v5', 'v7']].map(versions => ({ versions })),
   )(
     'type-checks alongside patched versions $versions',
+    // Loading TypeScript and checking declarations can exceed the default 5s on CI.
+    { timeout: 30_000 },
     async ({ versions }) => {
       const [{ readFile }, { default: path }, { default: ts }] =
         await Promise.all([
