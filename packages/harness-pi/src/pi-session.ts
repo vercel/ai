@@ -47,11 +47,7 @@ import {
   type PiCredentialStore,
 } from './pi-auth';
 import { resolvePiSubscriptionAgentDir } from './pi-subscription';
-import {
-  getPiTerminalError,
-  parseNativeEvent,
-  type PiSessionEvent,
-} from './pi-events';
+import { parseNativeEvent, type PiSessionEvent } from './pi-events';
 import { createPiModelResolver } from './pi-model-resolver';
 import { createPiPathMapper } from './pi-paths';
 import {
@@ -1411,6 +1407,7 @@ export async function createPiSession(
     };
 
     const turnPromise = (async () => {
+      let stage: 'preparing' | 'prompting' = 'preparing';
       try {
         await applySessionInstructions(turnOpts.instructions);
         turnAbortController.signal.throwIfAborted();
@@ -1476,11 +1473,12 @@ export async function createPiSession(
 
         // Fresh translator state for the new turn — keep the tool sets the
         // session was built with.
-        translatorState = createPiTranslatorState({
+        const turnState = createPiTranslatorState({
           builtinToolNames: activeBuiltinNames,
           hostToolNames: userTools.map(tool => tool.name),
           nativeToCommon: activeNativeToCommon,
         });
+        translatorState = turnState;
 
         currentEmit?.({
           type: 'stream-start',
@@ -1492,87 +1490,51 @@ export async function createPiSession(
           translatorState.hostToolResults.set(toolCallId, delivered.output);
         }
 
-        let terminalError: string | undefined;
         const session = piSession!;
-
-        // We subscribed in rebuild, but the translator may need to detect
-        // terminal errors too — wrap a second listener that records them.
-        const unsubErr = session.subscribe(raw => {
-          const ev = parseNativeEvent(raw);
-          if (!ev) return;
-          const err = getPiTerminalError(ev);
-          if (err && !terminalError) {
-            terminalError = err;
-          }
-        });
-
         const tokensBefore = session.getSessionStats().tokens;
-        try {
-          if (replayBatch != null) {
-            replaySuppressedToolCallIds = replaySuppressed;
-            try {
-              await runToolBatchReplay({
-                agent: session.agent,
-                assistantMessage: replayBatch.assistantMessage,
-                toolResults: replayToolResults,
-                onReplayedMessage: () => {
-                  replayingAssistantMessage = true;
-                },
-              });
-            } finally {
-              replaySuppressedToolCallIds = new Set();
-              replayingAssistantMessage = false;
-            }
-          } else {
-            await session.prompt(turnOpts.text);
+        stage = 'prompting';
+        if (replayBatch != null) {
+          replaySuppressedToolCallIds = replaySuppressed;
+          try {
+            await runToolBatchReplay({
+              agent: session.agent,
+              assistantMessage: replayBatch.assistantMessage,
+              toolResults: replayToolResults,
+              onReplayedMessage: () => {
+                replayingAssistantMessage = true;
+              },
+            });
+          } finally {
+            replaySuppressedToolCallIds = new Set();
+            replayingAssistantMessage = false;
           }
-
-          if (terminalError) {
-            /*
-             * A `doSuspendTurn` aborts the in-flight turn on purpose. Pi surfaces
-             * that abort as a *resolved* prompt with a recorded terminal error
-             * ("This operation was aborted") rather than a thrown exception, so the
-             * `catch` guard below never sees it. Swallow it here too — but only if
-             * it's actually the abort: the stream then closes cleanly (no spurious
-             * `error` chunk) and the next slice rerun-continues from the journal.
-             * Any other terminal error mid-suspend is unanticipated and must
-             * surface.
-             */
-            if (suspending && isAbortError(terminalError)) return;
-            currentEmit?.({ type: 'error', error: new Error(terminalError) });
-            return;
-          }
-
-          const tokensAfter = session.getSessionStats().tokens;
-          const finishReason = {
-            unified: 'stop' as const,
-            raw: undefined,
-          };
-          currentEmit?.({
-            type: 'finish',
-            finishReason,
-            totalUsage: toHarnessUsage({
-              input: tokensAfter.input - tokensBefore.input,
-              output: tokensAfter.output - tokensBefore.output,
-              cacheRead: tokensAfter.cacheRead - tokensBefore.cacheRead,
-              cacheWrite: tokensAfter.cacheWrite - tokensBefore.cacheWrite,
-              reasoning: translatorState?.turnReasoningTokens,
-            }),
-          });
-        } catch (err) {
-          // A `doSuspendTurn` aborts the in-flight turn on purpose — settle silently
-          // so the stream closes cleanly without a spurious `error` chunk; the
-          // next slice rerun-continues from the persisted journal.
-          // Same rule as the resolved-with-terminalError path: only swallow the
-          // abort our own suspend caused; surface anything unanticipated.
-          if (suspending && isAbortError(err)) return;
-          currentEmit?.({ type: 'error', error: err });
-        } finally {
-          unsubErr();
+        } else {
+          await session.prompt(turnOpts.text);
         }
+
+        const terminalError = turnState.lastAssistantError;
+        if (terminalError) throw new Error(terminalError);
+
+        const tokensAfter = session.getSessionStats().tokens;
+        const finishReason = {
+          unified: 'stop' as const,
+          raw: undefined,
+        };
+        currentEmit?.({
+          type: 'finish',
+          finishReason,
+          totalUsage: toHarnessUsage({
+            input: tokensAfter.input - tokensBefore.input,
+            output: tokensAfter.output - tokensBefore.output,
+            cacheRead: tokensAfter.cacheRead - tokensBefore.cacheRead,
+            cacheWrite: tokensAfter.cacheWrite - tokensBefore.cacheWrite,
+            reasoning: turnState.turnReasoningTokens,
+          }),
+        });
       } catch (err) {
-        if (suspending && isAbortError(err)) return;
-        throw err;
+        if (suspending) return;
+        if (stage === 'preparing') throw err;
+        currentEmit?.({ type: 'error', error: err });
       }
     })();
 
@@ -1900,29 +1862,6 @@ function resolvePiMcpServers({
     }
   }
   return mcpServers;
-}
-
-/**
- * Whether a terminal error (string from Pi's event stream, or a thrown error)
- * is an abort — the expected result of `doSuspendTurn` aborting the in-flight
- * turn. Only these are safe to swallow while `suspending`; any other error is
- * unanticipated and must surface as an `error` chunk.
- */
-function isAbortError(value: unknown): boolean {
-  if (value == null) return false;
-  if (
-    typeof value === 'object' &&
-    (value as { name?: unknown }).name === 'AbortError'
-  ) {
-    return true;
-  }
-  const text =
-    typeof value === 'string'
-      ? value
-      : value instanceof Error
-        ? value.message
-        : String(value);
-  return /\baborted\b|AbortError|operation was aborted/i.test(text);
 }
 
 function asPiToolResult(text: string): AgentToolResult<unknown> {
