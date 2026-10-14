@@ -1,5 +1,6 @@
 import {
   createAgentSession,
+  createReadToolDefinition,
   DefaultResourceLoader,
   defineTool,
   ModelRegistry,
@@ -7,6 +8,7 @@ import {
   SettingsManager,
   type AgentSession,
   type AgentToolResult,
+  type ExtensionAPI,
   type ExtensionFactory,
   type ProviderConfig,
   type Skill,
@@ -55,8 +57,8 @@ import {
   resolvePiSandboxPathOrParent,
   type PiRemoteOps,
 } from './pi-remote-ops';
+import { executePiSandboxRead } from './pi-read-operations';
 import {
-  formatPiReadToolOutput,
   truncatePiToolModelOutput,
   truncatePiToolOutputHead,
   truncatePiToolOutputTail,
@@ -265,6 +267,34 @@ export interface PiMcpSettings {
 
 export type PiCacheRetention = 'none' | 'short' | 'long';
 
+/**
+ * The harness session a Pi extension factory runs in.
+ */
+export interface PiHarnessExtensionSession {
+  /**
+   * The session's sandbox, restricted to the operations harness tools may use.
+   */
+  readonly sandboxSession: SandboxSession;
+  /**
+   * The sandbox directory the session works in.
+   */
+  readonly sessionWorkDir: string;
+  /**
+   * The instructions of the session's current turn. Instructions arrive with
+   * each turn, so read them when a turn runs, not when the factory runs.
+   */
+  readonly instructions: () => string | undefined;
+}
+
+/**
+ * A Pi extension factory that also receives the harness session it runs in.
+ * Plain Pi `ExtensionFactory` functions are accepted unchanged.
+ */
+export type PiHarnessExtensionFactory = (
+  pi: ExtensionAPI,
+  session: PiHarnessExtensionSession,
+) => ReturnType<ExtensionFactory>;
+
 export interface PiSessionSettings {
   readonly auth?: PiAuthenticationMode;
   readonly credentials?: PiCredentialStore;
@@ -275,7 +305,7 @@ export interface PiSessionSettings {
   readonly mcpServers?: Record<string, unknown>;
   readonly mcpSettings?: PiMcpSettings;
   readonly providers?: Readonly<Record<string, ProviderConfig>>;
-  readonly extensionFactories?: ReadonlyArray<ExtensionFactory>;
+  readonly extensionFactories?: ReadonlyArray<PiHarnessExtensionFactory>;
   readonly fileToolPathPolicy?: PiFileToolPathPolicy;
 }
 
@@ -618,6 +648,12 @@ export async function createPiSession(
 
   let sessionInstructions: string | undefined;
 
+  const extensionSession: PiHarnessExtensionSession = {
+    sandboxSession: toolSafeSandboxSession,
+    sessionWorkDir,
+    instructions: () => sessionInstructions,
+  };
+
   /*
    * Configured MCP servers are served by an inline Pi extension, so they share
    * the extension runtime with the caller-supplied factories: both are loaded
@@ -625,7 +661,11 @@ export async function createPiSession(
    * that keeps the active runtime alive across resource-only reloads.
    */
   const extensionFactories: ExtensionFactory[] = [
-    ...(input.settings.extensionFactories ?? []),
+    ...(input.settings.extensionFactories ?? []).map(
+      (factory): ExtensionFactory =>
+        pi =>
+          factory(pi, extensionSession),
+    ),
   ];
   if (hasMcpServers) {
     const { createMcpAdapter } = (await import(
@@ -1901,12 +1941,12 @@ function buildBuiltinToolDefinition(input: {
   }) => Promise<{ approved: boolean; reason?: string }>;
 }): ToolDefinition {
   switch (input.native) {
-    case 'read':
+    case 'read': {
+      const sandboxWorkDir = input.remoteOps.paths.sandboxWorkDir;
       return defineTool({
         name: 'read',
         label: 'read',
-        description:
-          'Read file contents. Output is limited to 2,000 lines or 50KB. Use offset and limit to read large files in pages.',
+        description: createReadToolDefinition(sandboxWorkDir).description,
         parameters: Type.Object({
           file_path: Type.String(),
           offset: Type.Optional(
@@ -1922,24 +1962,29 @@ function buildBuiltinToolDefinition(input: {
             }),
           ),
         }),
-        async execute(toolCallId, params) {
+        async execute(toolCallId, params, signal, onUpdate, ctx) {
           const denied = await maybeDenyPiBuiltinTool({
             toolCallId,
             nativeName: 'read',
             requestApproval: input.requestApproval,
           });
           if (denied) return denied;
-          const buf = await input.remoteOps.readBuffer(params.file_path);
-          return asPiToolResult(
-            formatPiReadToolOutput({
-              text: buf.toString('utf8'),
-              filePath: params.file_path,
-              offset: params.offset,
-              limit: params.limit,
-            }),
+          // Pi expands `~` against the host home, so map the path first.
+          const sandboxPath = input.remoteOps.paths.toReadableSandboxPath(
+            params.file_path,
+          );
+          return executePiSandboxRead(
+            input.remoteOps,
+            sandboxWorkDir,
+            toolCallId,
+            { path: sandboxPath, offset: params.offset, limit: params.limit },
+            signal,
+            onUpdate,
+            ctx,
           );
         },
       });
+    }
     case 'write':
       return defineTool({
         name: 'write',

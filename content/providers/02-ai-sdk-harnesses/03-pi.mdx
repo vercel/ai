@@ -168,6 +168,31 @@ const harness = createPi({
 });
 ```
 
+Each factory also receives the harness session it runs in as a second argument:
+
+- `sandboxSession`: the session's sandbox, restricted to the operations harness
+  tools may use.
+- `sessionWorkDir`: the sandbox directory the session works in.
+- `instructions()`: the instructions of the current turn. Instructions arrive
+  with each turn, so call it while a turn runs, not when the factory runs.
+
+```ts
+const harness = createPi({
+  extensionFactories: [
+    (pi, session) => {
+      pi.on('agent_start', async () => {
+        const { stdout } = await session.sandboxSession.run({
+          command: `git -C ${session.sessionWorkDir} status --short`,
+        });
+        console.log(session.instructions(), stdout);
+      });
+    },
+  ],
+});
+```
+
+Factories that take only the Pi API keep working unchanged.
+
 Routine resource refreshes between turns reuse the active extension runtime and
 do not reinitialize factories. If the underlying Pi session is rebuilt, the
 factories initialize again for the new Pi runtime.

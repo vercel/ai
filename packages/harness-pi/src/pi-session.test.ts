@@ -32,7 +32,11 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { z } from 'zod/v4';
 import { createPi } from './pi-harness';
-import { createPiSession } from './pi-session';
+import {
+  createPiSession,
+  type PiHarnessExtensionFactory,
+  type PiHarnessExtensionSession,
+} from './pi-session';
 import { truncatePiToolOutputHead } from './pi-tool-result';
 
 type FakePiTool = Pick<ToolDefinition, 'name' | 'execute'>;
@@ -276,6 +280,60 @@ describe('createPiSession', () => {
     }
   });
 
+  it('gives inline extensions the harness session and the current turn instructions', async () => {
+    const sandboxSession = createSandboxSession();
+    const sessions: PiHarnessExtensionSession[] = [];
+    const instructionsSeen: Array<string | undefined> = [];
+    const factory: PiHarnessExtensionFactory = (piApi, extensionSession) => {
+      sessions.push(extensionSession);
+      piApi.on('agent_start', () => {
+        instructionsSeen.push(extensionSession.instructions());
+      });
+    };
+    piMock.session = Object.assign(
+      createFakePiSession({
+        promptImplementation: async () => {
+          for (const handler of piMock.extensionHandlers.get('agent_start') ??
+            []) {
+            await handler();
+          }
+        },
+      }).session,
+      { getActiveToolNames: () => [], setActiveToolsByName: vi.fn() },
+    );
+
+    const session = await createPi({ extensionFactories: [factory] }).doStart({
+      sessionId: 'session-extension-harness-session',
+      sandboxSession,
+      sessionWorkDir: '/sandbox/work',
+    });
+
+    try {
+      for (const instructions of ['Answer in French.', 'Answer in German.']) {
+        const control = await session.doPromptTurn({
+          skills: [],
+          prompt: 'Hello.',
+          instructions,
+          tools: [],
+          emit: vi.fn(),
+        });
+        await control.done;
+      }
+
+      expect(sessions).toHaveLength(1);
+      expect(sessions[0]).toMatchObject({
+        sandboxSession: sandboxSession.restricted(),
+        sessionWorkDir: '/sandbox/work',
+      });
+      expect(instructionsSeen).toEqual([
+        'Answer in French.',
+        'Answer in German.',
+      ]);
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
   it('lets inline extensions read a host-backed session workspace', async () => {
     const sessionWorkDir = mkdtempSync(
       path.join(tmpdir(), 'pi-host-workspace-'),
@@ -502,7 +560,7 @@ describe('createPiSession', () => {
     try {
       const extensionFactoryInput = piMock.extensionFactoryInputs.at(-1);
       expect(callOrder).toEqual(['first', 'second']);
-      expect(extensionFactoryInput?.snapshot).toEqual(extensionFactories);
+      expect(extensionFactoryInput?.snapshot).toHaveLength(2);
       expect(extensionFactoryInput?.reference).not.toBe(extensionFactories);
     } finally {
       await session.doDestroy();
@@ -1148,6 +1206,118 @@ describe('createPiSession', () => {
     }
   });
 
+  describe('native read tool', () => {
+    const onePixelPng = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      'base64',
+    );
+
+    async function readInSandbox(
+      files: Record<string, Uint8Array | string>,
+      read: () => Promise<unknown>,
+    ) {
+      const sandboxSession = createSandboxSession();
+      const run = vi.mocked(sandboxSession.run);
+      const runWithoutRealpath = run.getMockImplementation()!;
+      run.mockImplementation(async input => {
+        const targets = [...input.command.matchAll(/target='([^']+)'/g)].map(
+          match => match[1]!,
+        );
+        const marker = input.command.match(/realpath_marker='([^']+)'/)?.[1];
+        if (targets.length === 0 || marker == null)
+          return runWithoutRealpath(input);
+        return {
+          stdout: targets
+            .map(target => `${Buffer.from(target).toString('base64')}${marker}`)
+            .join(''),
+          stderr: '',
+          exitCode: 0,
+        };
+      });
+      vi.mocked(sandboxSession.readBinaryFile).mockImplementation(
+        async ({ path: filePath }) => {
+          const content = files[filePath];
+          return typeof content === 'string'
+            ? new TextEncoder().encode(content)
+            : content;
+        },
+      );
+      let result: unknown;
+      piMock.session = createFakePiSession({
+        promptImplementation: async () => {
+          result = await read();
+        },
+      }).session;
+
+      const session = await createPi().doStart({
+        sessionId: 'session-native-read',
+        sandboxSession,
+        sessionWorkDir: '/sandbox/work',
+      });
+      try {
+        const control = await session.doPromptTurn({
+          skills: [],
+          prompt: 'test prompt',
+          tools: [],
+          emit: vi.fn(),
+        });
+        await control.done;
+      } finally {
+        await session.doDestroy();
+      }
+      return { result, sandboxSession };
+    }
+
+    it('returns an image read as an image block', async () => {
+      const { result } = await readInSandbox(
+        { '/sandbox/work/screenshot.png': onePixelPng },
+        () => executeReadToolContent('screenshot.png'),
+      );
+
+      expect(result).toEqual([
+        { type: 'text', text: 'Read image file [image/png]' },
+        { type: 'image', mimeType: 'image/png', data: expect.any(String) },
+      ]);
+    });
+
+    it('pages a long text read with an offset continuation notice', async () => {
+      const text = Array.from(
+        { length: 3_000 },
+        (_, index) => `line ${index + 1}`,
+      ).join('\n');
+      const { result, sandboxSession } = await readInSandbox(
+        { '/sandbox/work/large.txt': text },
+        () =>
+          Promise.all([
+            executeReadToolContent('large.txt'),
+            executeReadToolContent('/sandbox/work/large.txt', {
+              offset: 2001,
+              limit: 10,
+            }),
+          ]),
+      );
+
+      const [firstPage, nextPage] = result as Array<
+        Array<{ type: string; text: string }>
+      >;
+      expect(firstPage).toEqual([
+        {
+          type: 'text',
+          text: expect.stringContaining(
+            '[Showing lines 1-2000 of 3000. Use offset=2001 to continue.]',
+          ),
+        },
+      ]);
+      expect(nextPage).toEqual([
+        {
+          type: 'text',
+          text: `${Array.from({ length: 10 }, (_, index) => `line ${index + 2001}`).join('\n')}\n\n[990 more lines in file. Use offset=2011 to continue.]`,
+        },
+      ]);
+      expect(sandboxSession.readBinaryFile).toHaveBeenCalledTimes(2);
+    });
+  });
+
   it('steers the active Pi session', async () => {
     let finishPrompt!: () => void;
     const promptDone = new Promise<void>(resolve => {
@@ -1481,7 +1651,7 @@ describe('createPiSession', () => {
 
     try {
       expect(piMock.extensionFactoryInputs.at(-1)?.snapshot).toEqual([
-        factory,
+        expect.any(Function),
         mcpAdapterMock.mcpExtensionFactory,
       ]);
       expect(factory).toHaveBeenCalledOnce();
@@ -2870,16 +3040,23 @@ function createDeferred<T>() {
 }
 
 async function executeReadTool(file_path: string): Promise<string> {
+  return JSON.stringify(await executeReadToolContent(file_path));
+}
+
+async function executeReadToolContent(
+  file_path: string,
+  page?: { offset: number; limit: number },
+) {
   const tool = piMock.customTools.find(tool => tool.name === 'read');
   if (!tool) throw new Error('Expected read tool.');
   const result = await tool.execute(
     'tool-1',
-    { file_path },
+    { file_path, ...page },
     undefined,
     undefined,
     undefined as never,
   );
-  return JSON.stringify(result.content);
+  return result.content;
 }
 
 type FakePiAgent = {
