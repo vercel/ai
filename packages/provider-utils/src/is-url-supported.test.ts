@@ -214,18 +214,44 @@ describe('isUrlSupported', () => {
       expect(
         isUrlSupported({
           mediaType: 'text/plain',
-          url: 'https://EXAMPLE.com/path', // Uppercase domain
-          supportedUrls: { 'text/plain': [/https:\/\/example\.com\/path/] },
+          url: 'https://EXAMPLE.com/Path',
+          supportedUrls: { 'text/plain': [/https:\/\/example\.com\/path/i] },
         }),
       ).toBe(true);
     });
 
-    it('should be case-insensitive for URL paths by default regex', async () => {
+    it('should match mixed-case paths against the original URL', () => {
       expect(
         isUrlSupported({
-          mediaType: 'text/plain',
-          url: 'https://example.com/PATH', // Uppercase path
-          supportedUrls: { 'text/plain': [/https:\/\/example\.com\/path/] }, // Lowercase path in regex
+          mediaType: 'image/png',
+          url: 'https://assets.example/Images/Photo.PNG',
+          supportedUrls: {
+            'image/*': [/^https:\/\/assets\.example\/Images\/Photo\.PNG$/],
+          },
+        }),
+      ).toBe(true);
+    });
+
+    it('should match mixed-case query values against the original URL', () => {
+      expect(
+        isUrlSupported({
+          mediaType: 'image/jpeg',
+          url: 'https://assets.example/photo.jpg?token=AbC123',
+          supportedUrls: {
+            'image/*': [
+              /^https:\/\/assets\.example\/photo\.jpg\?token=AbC123$/,
+            ],
+          },
+        }),
+      ).toBe(true);
+    });
+
+    it('should be case-insensitive for supported media type keys', () => {
+      expect(
+        isUrlSupported({
+          mediaType: 'Image/PNG',
+          url: 'https://example.com/cat.png',
+          supportedUrls: { 'IMAGE/png': [/https:\/\/example\.com\/.+/] },
         }),
       ).toBe(true);
     });
