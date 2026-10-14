@@ -230,7 +230,7 @@ describe('createOpenCode adapter', () => {
     expect(harness.harnessId).toBe('opencode');
     expect(harness.specificationVersion).toBe('harness-v1');
     expect(harness.supportsBuiltinToolApprovals).toBe(true);
-    expect(harness.supportsBuiltinToolFiltering).toBeUndefined();
+    expect(harness.supportsBuiltinToolFiltering).toBe(true);
     expect(Object.keys(harness.builtinTools)).toEqual([
       'askUserQuestions',
       'read',
@@ -288,6 +288,30 @@ describe('createOpenCode adapter', () => {
       }),
     ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
   });
+
+  it.each([
+    { mode: 'allow' as const, toolNames: ['write'] },
+    { mode: 'deny' as const, toolNames: ['write'] },
+  ])(
+    'throws HarnessCapabilityUnsupportedError when write and edit have different filtering states',
+    async builtinToolFiltering => {
+      const harness = createOpenCode();
+      const start = harness.doStart({
+        sessionId: 's1',
+        sandboxSession: {} as HarnessV1NetworkSandboxSession,
+        sessionWorkDir: '/tmp/opencode-s1',
+        builtinToolFiltering,
+      });
+
+      await expect(start).rejects.toBeInstanceOf(
+        HarnessCapabilityUnsupportedError,
+      );
+      await expect(start).rejects.toMatchObject({
+        message:
+          "OpenCode built-in filtering requires 'write' and 'edit' to either both be active or both be inactive.",
+      });
+    },
+  );
 
   it('passes connection settings to spawned and attached bridge channels', async () => {
     harnessUtilsMocks.connectOnOpen = true;
@@ -954,6 +978,10 @@ describe('createOpenCode adapter', () => {
     const openCodeConfig = {
       agent: { general: { model: 'openai/gpt-5.4-mini' } },
     };
+    const builtinToolFiltering = {
+      mode: 'deny' as const,
+      toolNames: ['read'],
+    };
     const harness = createOpenCode({
       auth: { AI_GATEWAY_API_KEY: 'gateway-key' },
       openCodeConfig,
@@ -965,6 +993,7 @@ describe('createOpenCode adapter', () => {
       headers: { 'x-tenant': 'acme' },
       sandboxSession,
       sessionWorkDir: '/workspace/project',
+      builtinToolFiltering,
     });
     const channel = harnessUtilsMocks.channels.at(-1)!;
     channel.emit('bridge-thread', {
@@ -977,10 +1006,12 @@ describe('createOpenCode adapter', () => {
       type: 'start',
       operation: 'compact',
       openCodeConfig,
+      inactiveBuiltinToolNames: ['read'],
       mcpServers,
       headers: { 'x-tenant': 'acme' },
       resumeSessionId: 'opencode-session',
     });
+    expect(channel.sent.at(-1)).not.toHaveProperty('builtinToolFiltering');
     channel.emit('finish', { type: 'finish' });
     await compaction;
 
@@ -1001,10 +1032,12 @@ describe('createOpenCode adapter', () => {
       model: 'anthropic/agent-model',
       variant: 'high',
       openCodeConfig,
+      inactiveBuiltinToolNames: ['read'],
       mcpServers,
       headers: { 'x-tenant': 'acme' },
       resumeSessionId: 'opencode-session',
     });
+    expect(channel.sent.at(-1)).not.toHaveProperty('builtinToolFiltering');
     channel.emit('finish', { type: 'finish' });
     await firstTurn.done;
 
@@ -1015,6 +1048,7 @@ describe('createOpenCode adapter', () => {
       sandboxSession,
       sessionWorkDir: '/workspace/project',
       resumeFrom,
+      builtinToolFiltering,
     });
     const resumedTurn = await resumedSession.doPromptTurn({
       skills: [],
@@ -1032,10 +1066,14 @@ describe('createOpenCode adapter', () => {
       instructions: 'be concise',
       variant: 'high',
       openCodeConfig,
+      inactiveBuiltinToolNames: ['read'],
       mcpServers,
       headers: { 'x-tenant': 'acme' },
       resumeSessionId: 'opencode-session',
     });
+    expect(resumedChannel.sent.at(-1)).not.toHaveProperty(
+      'builtinToolFiltering',
+    );
     resumedChannel.emit('finish', { type: 'finish' });
     await resumedTurn.done;
 

@@ -4,6 +4,7 @@ import {
   HARNESS_V1_BUILTIN_TOOLS,
   HarnessCapabilityUnsupportedError,
   harnessV1DiagnosticFromBridgeFrame,
+  isHarnessV1BuiltinToolIncluded,
   type HarnessV1,
   type HarnessV1BuiltinTool,
   type HarnessV1BuiltinToolFiltering,
@@ -77,6 +78,7 @@ import {
 import {
   outboundMessageSchema,
   type InboundMessage,
+  type OpenCodeBuiltinToolName,
   type OutboundMessage,
 } from './opencode-bridge-protocol';
 import { VERSION } from './version';
@@ -242,7 +244,14 @@ const OPENCODE_BUILTIN_TOOLS = {
       metadata: optionalStringRecord,
     }),
   }),
-} as const satisfies Record<string, HarnessV1BuiltinTool<any, any>>;
+} as const satisfies Record<
+  OpenCodeBuiltinToolName,
+  HarnessV1BuiltinTool<any, any>
+>;
+
+const OPENCODE_BUILTIN_TOOL_NAMES = Object.keys(
+  OPENCODE_BUILTIN_TOOLS,
+) as OpenCodeBuiltinToolName[];
 
 const openCodeBridgeCoordsSchema = z.object({
   port: z.number(),
@@ -275,9 +284,11 @@ export function createOpenCode(
     harnessId: 'opencode',
     builtinTools: OPENCODE_BUILTIN_TOOLS,
     supportsBuiltinToolApprovals: true,
+    supportsBuiltinToolFiltering: true,
     lifecycleStateSchema: openCodeResumeStateSchema,
     getBootstrap: getOpenCodeBootstrap,
     doStart: async startOpts => {
+      validateBuiltinToolFiltering(startOpts.builtinToolFiltering);
       const sandboxSession = startOpts.sandboxSession;
       const toolSafeSandboxSession =
         getRestrictedSandboxSession(sandboxSession);
@@ -672,6 +683,30 @@ export function createOpenCode(
   };
 }
 
+function validateBuiltinToolFiltering(
+  toolFiltering: HarnessV1BuiltinToolFiltering | undefined,
+): void {
+  if (toolFiltering == null) return;
+  const isActive = (toolName: 'write' | 'edit') =>
+    isHarnessV1BuiltinToolIncluded({ toolName, toolFiltering });
+  if (isActive('write') !== isActive('edit')) {
+    throw new HarnessCapabilityUnsupportedError({
+      harnessId: 'opencode',
+      message:
+        "OpenCode built-in filtering requires 'write' and 'edit' to either both be active or both be inactive.",
+    });
+  }
+}
+
+function resolveInactiveBuiltinToolNames(
+  toolFiltering: HarnessV1BuiltinToolFiltering | undefined,
+): OpenCodeBuiltinToolName[] | undefined {
+  if (toolFiltering == null) return undefined;
+  return OPENCODE_BUILTIN_TOOL_NAMES.filter(
+    toolName => !isHarnessV1BuiltinToolIncluded({ toolName, toolFiltering }),
+  );
+}
+
 function resolveBridgePort({
   sandboxSession,
   override,
@@ -932,6 +967,8 @@ function createSession({
   let activeTurn = false;
   let pendingTurnDrain: Promise<void> = Promise.resolve();
   const pendingCompactionParts: HarnessV1StreamPart[] = [];
+  const inactiveBuiltinToolNames =
+    resolveInactiveBuiltinToolNames(builtinToolFiltering);
 
   channel.on('bridge-thread', msg => {
     latestOpenCodeSessionId = msg.threadId;
@@ -1122,7 +1159,7 @@ function createSession({
     ...(mcpServers == null ? {} : { mcpServers }),
     ...(headers == null ? {} : { headers }),
     ...(permissionMode ? { permissionMode } : {}),
-    ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
+    ...(inactiveBuiltinToolNames == null ? {} : { inactiveBuiltinToolNames }),
     ...(pendingResumeSessionId
       ? { resumeSessionId: pendingResumeSessionId }
       : latestOpenCodeSessionId
@@ -1248,6 +1285,7 @@ function createSession({
         provider,
         permissionMode,
         debug,
+        inactiveBuiltinToolNames,
         openCodeConfig,
         mcpServers,
         headers,
@@ -1422,6 +1460,7 @@ async function runCompactOperation({
   provider,
   permissionMode,
   debug,
+  inactiveBuiltinToolNames,
   openCodeConfig,
   mcpServers,
   headers,
@@ -1433,6 +1472,7 @@ async function runCompactOperation({
   provider: string | undefined;
   permissionMode: HarnessV1PermissionMode | undefined;
   debug: HarnessV1DebugConfig | undefined;
+  inactiveBuiltinToolNames: OpenCodeBuiltinToolName[] | undefined;
   openCodeConfig: Record<string, unknown> | undefined;
   mcpServers: Record<string, unknown> | undefined;
   headers: Readonly<Record<string, string>> | undefined;
@@ -1467,6 +1507,7 @@ async function runCompactOperation({
     ...(mcpServers == null ? {} : { mcpServers }),
     ...(headers == null ? {} : { headers }),
     ...(permissionMode ? { permissionMode } : {}),
+    ...(inactiveBuiltinToolNames == null ? {} : { inactiveBuiltinToolNames }),
     ...(resumeSessionId ? { resumeSessionId } : {}),
     ...(debug ? { debug } : {}),
   });
