@@ -118,10 +118,13 @@ const result = await experimental_decide({
       type: 'file',
       mediaType: 'image/png',
       data: readFileSync('cat.png'),
+      providerOptions: {
+        typesafe: { reference: '[animal-photo]' },
+      },
     },
   ],
   questions: {
-    cat: { type: 'boolean', instructions: 'Does the image show a cat?' },
+    cat: { type: 'boolean', instructions: 'Does [animal-photo] show a cat?' },
   },
 });
 ```
@@ -131,6 +134,20 @@ The provider sends images as base64 assets and automatically adds
 considers image support experimental. Only PNG and JPEG are supported; other
 file formats are rejected. See [TypeSafe's image documentation](https://docs.typesafe.ai/images)
 for image size and dimension limits.
+
+Set `providerOptions.typesafe.reference` on a file part to choose its asset
+reference. You can use that reference in state text, question instructions, or
+criteria. The provider also inserts it at the file's position in the state.
+When omitted, the provider generates a random reference.
+
+References must be nonempty, contain more than whitespace, and be unique across
+images in the request. TypeSafe substitutes references anywhere in string
+values, so choose distinctive names such as `[animal-photo]` to avoid accidental
+matches. Each occurrence inserts the image again. The file's `filename` does
+not affect its reference.
+
+The `TypeSafeAiFilePartProviderOptions` type is exported from
+`@ai-sdk/typesafe-ai` for typing file-level options.
 
 ### Rounded values and confidence
 
@@ -151,8 +168,8 @@ errors. Core retries transient failures such as `429` and `529` according to
 `maxRetries` (default: 2). `abortSignal`, request headers, and custom fetch are
 forwarded. There is no provider-side retry loop.
 
-No provider-specific options are currently defined. Unknown entries under
-`providerOptions.typesafe` produce unsupported-option warnings. Language,
+No request-level provider options are currently defined. Unknown request-level
+entries under `providerOptions.typesafe` produce unsupported-option warnings. Language,
 embedding, and image model factories throw `NoSuchModelError`.
 
 Decision models support workflow serialization. A custom fetch function is not

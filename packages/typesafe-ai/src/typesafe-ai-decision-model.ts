@@ -11,6 +11,7 @@ import {
   createJsonResponseHandler,
   generateId,
   loadApiKey,
+  parseProviderOptions,
   postJsonToApi,
   resolve,
   serializeModelOptions,
@@ -25,6 +26,7 @@ import {
   typesafeFailedResponseHandler,
 } from './typesafe-ai-decision-api';
 import { VERSION } from './version';
+import { typesafeAiFilePartProviderOptions } from './typesafe-ai-file-part-options';
 
 export type TypeSafeAiDecisionModelId = 'jev-latest' | (string & {});
 
@@ -103,42 +105,55 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
     const assets: Record<
       string,
       { type: 'image'; format: 'png' | 'jpeg'; data_base64: string }
-    > = {};
+    > = Object.create(null); // don't inherit from Object.prototype
     const requestState =
       state.length === 1 && state[0].type === 'json'
         ? state[0].value
-        : state
-            .map(part => {
-              if (part.type === 'file') {
-                if (part.data.type !== 'data') {
-                  throw new UnsupportedFunctionalityError({
-                    functionality: `TypeSafe AI decision file input: ${part.mediaType} (${part.data.type})`,
+        : (
+            await Promise.all(
+              state.map(async part => {
+                if (part.type === 'file') {
+                  if (part.data.type !== 'data') {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: `TypeSafe AI decision file input: ${part.mediaType} (${part.data.type})`,
+                    });
+                  }
+                  const mediaType = part.mediaType;
+                  if (mediaType !== 'image/png' && mediaType !== 'image/jpeg') {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: `TypeSafe AI decision image media type: ${part.mediaType}`,
+                    });
+                  }
+                  const fileOptions = await parseProviderOptions({
+                    provider: 'typesafe',
+                    providerOptions: part.providerOptions,
+                    schema: typesafeAiFilePartProviderOptions,
                   });
+                  // Default to random IDs to avoid accidental text matches
+                  // as TypeSafe recommends as the safest option.
+                  const reference = fileOptions?.reference ?? generateId();
+                  if (assets[reference] !== undefined) {
+                    throw new InvalidArgumentError({
+                      argument: 'providerOptions.typesafe.reference',
+                      message: `Duplicate TypeSafe image reference: ${reference}`,
+                    });
+                  }
+                  assets[reference] = {
+                    type: 'image',
+                    format: mediaType === 'image/png' ? 'png' : 'jpeg',
+                    data_base64:
+                      typeof part.data.data === 'string'
+                        ? part.data.data
+                        : convertUint8ArrayToBase64(part.data.data),
+                  };
+                  return reference;
                 }
-                const mediaType = part.mediaType;
-                if (mediaType !== 'image/png' && mediaType !== 'image/jpeg') {
-                  throw new UnsupportedFunctionalityError({
-                    functionality: `TypeSafe AI decision image media type: ${part.mediaType}`,
-                  });
-                }
-                // References are replaced anywhere in request strings, so use
-                // random IDs to avoid matching ordinary text accidentally.
-                const reference = generateId();
-                assets[reference] = {
-                  type: 'image',
-                  format: mediaType === 'image/png' ? 'png' : 'jpeg',
-                  data_base64:
-                    typeof part.data.data === 'string'
-                      ? part.data.data
-                      : convertUint8ArrayToBase64(part.data.data),
-                };
-                return reference;
-              }
-              return part.type === 'text'
-                ? part.text
-                : JSON.stringify(part.value);
-            })
-            .join('\n');
+                return part.type === 'text'
+                  ? part.text
+                  : JSON.stringify(part.value);
+              }),
+            )
+          ).join('\n');
     const hasImages = Object.keys(assets).length > 0;
     const modelHeaders =
       this.config.headers === undefined

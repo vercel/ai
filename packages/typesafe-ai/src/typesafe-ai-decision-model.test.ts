@@ -339,6 +339,91 @@ it('maps text and JSON parts to native text state', async () => {
 });
 
 describe('image input', () => {
+  it.each(['[animal-photo]', '__proto__', 'constructor'])(
+    'uses an explicit reference in assets, state, instructions, and criteria: %s',
+    async reference => {
+      const imageQuestions = {
+        cat: {
+          type: 'boolean' as const,
+          instructions: `Does ${reference} show a cat?`,
+          criteria: { true: { image: reference } },
+        },
+      };
+      const result = await model.doDecide({
+        state: [
+          {
+            type: 'file',
+            filename: 'unrelated-name.png',
+            mediaType: 'image/png',
+            data: { type: 'data', data: 'iVBORw==' },
+            providerOptions: { typesafe: { reference } },
+          },
+          {
+            type: 'file',
+            mediaType: 'image/jpeg',
+            data: { type: 'data', data: '/9j/4A==' },
+          },
+        ],
+        questions: imageQuestions,
+      });
+      const body = await server.calls[0].requestBodyJson;
+      const references = Object.keys(body.assets);
+      expect(references).toHaveLength(2);
+      expect(references).toContain(reference);
+      const generatedReference = references.find(key => key !== reference);
+      expect(body.state).toBe(`${reference}\n${generatedReference}`);
+      expect(body.assets[reference]).toEqual({
+        type: 'image',
+        format: 'png',
+        data_base64: 'iVBORw==',
+      });
+      expect(body.questions.cat).toEqual({
+        ...imageQuestions.cat,
+        type: 'noul',
+      });
+      expect(result.warnings).toEqual([]);
+    },
+  );
+
+  it.each(['', ' \t\n', 123, true, null])(
+    'rejects invalid references before HTTP: %j',
+    async reference => {
+      await expect(
+        model.doDecide({
+          ...options,
+          state: [
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: { type: 'data', data: 'iVBORw==' },
+              providerOptions: { typesafe: { reference } },
+            },
+          ],
+        }),
+      ).rejects.toBeInstanceOf(InvalidArgumentError);
+      expect(server.calls).toHaveLength(0);
+    },
+  );
+
+  it('rejects duplicate image references before HTTP', async () => {
+    await expect(
+      model.doDecide({
+        ...options,
+        state: ['iVBORw==', '/9j/4A=='].map(data => ({
+          type: 'file',
+          mediaType: 'image/png',
+          data: { type: 'data', data },
+          providerOptions: { typesafe: { reference: '[photo]' } },
+        })),
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_InvalidArgumentError',
+      argument: 'providerOptions.typesafe.reference',
+      message: 'Duplicate TypeSafe image reference: [photo]',
+    });
+    expect(server.calls).toHaveLength(0);
+  });
+
   it('maps mixed text, JSON, and multiple images to referenced assets', async () => {
     await model.doDecide({
       ...options,
