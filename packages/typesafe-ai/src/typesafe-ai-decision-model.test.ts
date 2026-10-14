@@ -135,6 +135,72 @@ it('reports unsupported provider options without passing them through', async ()
   expect(await server.calls[0].requestBodyJson).toEqual(expectedRequest);
 });
 
+it.each(['jev-1.13.0', 'jev-1.14.0', 'jev-latest', 'jev-preview'])(
+  'sends the model ID or alias unchanged: %s',
+  async modelId => {
+    await provider.decisionModel(modelId).doDecide(options);
+    expect(await server.calls[0].requestBodyJson).toEqual({
+      ...expectedRequest,
+      model: modelId,
+    });
+  },
+);
+
+describe('long context', () => {
+  it.each([true, false, undefined])(
+    'enables the header only when longContext is true: %s',
+    async longContext => {
+      const result = await model.doDecide({
+        ...options,
+        ...(longContext !== undefined && {
+          providerOptions: { typesafe: { longContext } },
+        }),
+      });
+      expect(
+        server.calls[0].requestHeaders['typesafe-danger-zone-long-context'],
+      ).toBe(longContext ? 'true' : undefined);
+      expect(await server.calls[0].requestBodyJson).toEqual(expectedRequest);
+      expect(result.warnings).toEqual([]);
+    },
+  );
+
+  it('combines long context with image support and warns only for unknown options', async () => {
+    const result = await model.doDecide({
+      ...options,
+      state: [
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: { type: 'data', data: 'iVBORw==' },
+        },
+      ],
+      providerOptions: { typesafe: { longContext: true, temperature: 0 } },
+      headers: { 'x-custom': 'custom' },
+    });
+    expect(server.calls[0].requestHeaders).toMatchObject({
+      'typesafe-danger-zone-images': 'true',
+      'typesafe-danger-zone-long-context': 'true',
+      'x-custom': 'custom',
+    });
+    expect(result.warnings).toEqual([
+      { type: 'unsupported', feature: 'providerOptions.typesafe.temperature' },
+    ]);
+  });
+
+  it.each(['true', 1, null])(
+    'rejects invalid longContext values: %j',
+    async longContext => {
+      await expect(
+        model.doDecide({
+          ...options,
+          providerOptions: { typesafe: { longContext } },
+        }),
+      ).rejects.toBeInstanceOf(InvalidArgumentError);
+      expect(server.calls).toHaveLength(0);
+    },
+  );
+});
+
 it.each([
   {
     type: 'choice',

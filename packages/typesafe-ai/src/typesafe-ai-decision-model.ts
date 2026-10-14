@@ -27,8 +27,14 @@ import {
 } from './typesafe-ai-decision-api';
 import { VERSION } from './version';
 import { typesafeAiFilePartProviderOptions } from './typesafe-ai-file-part-options';
+import { typesafeAiDecisionModelOptions } from './typesafe-ai-decision-model-options';
 
-export type TypeSafeAiDecisionModelId = 'jev-latest' | (string & {});
+export type TypeSafeAiDecisionModelId =
+  | 'jev-1.13.0'
+  | 'jev-1.14.0'
+  | 'jev-latest'
+  | 'jev-preview'
+  | (string & {});
 
 type TypeSafeAiDecisionModelConfig = {
   provider: string;
@@ -96,12 +102,19 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
       }
     }
 
+    const typesafeOptions = await parseProviderOptions({
+      provider: 'typesafe',
+      providerOptions,
+      schema: typesafeAiDecisionModelOptions,
+    });
     const warnings: SharedV4Warning[] = Object.keys(
       providerOptions?.typesafe ?? {},
-    ).map(option => ({
-      type: 'unsupported',
-      feature: `providerOptions.typesafe.${option}`,
-    }));
+    )
+      .filter(option => option !== 'longContext')
+      .map(option => ({
+        type: 'unsupported',
+        feature: `providerOptions.typesafe.${option}`,
+      }));
     const assets: Record<
       string,
       { type: 'image'; format: 'png' | 'jpeg'; data_base64: string }
@@ -173,6 +186,9 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
       headers: combineHeaders(
         modelHeaders,
         hasImages ? { 'TypeSafe-Danger-Zone-Images': 'true' } : undefined,
+        typesafeOptions?.longContext
+          ? { 'TypeSafe-Danger-Zone-Long-Context': 'true' }
+          : undefined,
         headers,
       ),
       body: {

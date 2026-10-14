@@ -93,6 +93,15 @@ custom aliases, or registered providers. With `typeSafeAi` explicitly configured
 as `globalThis.AI_SDK_DEFAULT_PROVIDER`, you can pass `model: 'jev-latest'`
 directly. See [model aliases and registries](/docs/ai-sdk-core/decisions#model-aliases-and-registries).
 
+The provider includes these model IDs and aliases:
+
+| Model ID      | Description                                       |
+| ------------- | ------------------------------------------------- |
+| `jev-1.13.0`  | Jev 1.13 release.                                 |
+| `jev-1.14.0`  | Jev 1.14 release.                                 |
+| `jev-latest`  | Alias for the latest stable release.              |
+| `jev-preview` | Alias for the latest release, including previews. |
+
 | Question  | Native TypeSafe primitive | Limits and semantics                                                 |
 | --------- | ------------------------- | -------------------------------------------------------------------- |
 | `choice`  | Choice                    | 1–255 options; selected option and full probabilities.               |
@@ -102,6 +111,30 @@ directly. See [model aliases and registries](/docs/ai-sdk-core/decisions#model-a
 State, instructions, and descriptions accept JSON objects and arrays in addition
 to strings. Descriptions may be `null`. Boolean true/false criteria are optional.
 The SDK uses the neutral name `boolean` and maps it to TypeSafe's `noul` field.
+
+### Long context
+
+By default, Jev allows 64k tokens per request (state plus all questions) and 32k
+tokens per question (state plus one question). Set `longContext: true` to raise
+both limits to 262k tokens:
+
+```ts
+providerOptions: {
+  typesafe: {
+    longContext: true,
+  },
+},
+```
+
+The provider sends `TypeSafe-Danger-Zone-Long-Context: true` only when this
+option is enabled. It defaults to `false`. Both Jev 1.13 and 1.14 support it.
+TypeSafe charges the same per-token price for long context, but describes it
+as slower and less accurate than staying within the default limits. Enable it
+only when needed; the provider does not estimate token counts or enable it
+automatically. See [TypeSafe's context documentation](https://docs.typesafe.ai/models#context-length).
+
+The `TypeSafeAiDecisionModelOptions` type is exported from `@ai-sdk/typesafe-ai`
+for typing request-level options.
 
 ### Image input
 
@@ -168,8 +201,8 @@ errors. Core retries transient failures such as `429` and `529` according to
 `maxRetries` (default: 2). `abortSignal`, request headers, and custom fetch are
 forwarded. There is no provider-side retry loop.
 
-No request-level provider options are currently defined. Unknown request-level
-entries under `providerOptions.typesafe` produce unsupported-option warnings. Language,
+Unknown request-level entries under `providerOptions.typesafe` produce
+unsupported-option warnings. Language,
 embedding, and image model factories throw `NoSuchModelError`.
 
 Decision models support workflow serialization. A custom fetch function is not
