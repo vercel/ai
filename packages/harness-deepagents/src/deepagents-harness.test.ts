@@ -108,7 +108,6 @@ vi.mock('node:fs/promises', async importOriginal => {
     readFile: vi.fn(async (input: unknown, ...rest: unknown[]) => {
       const path = typeof input === 'string' ? input : String(input);
       if (path.endsWith('/bridge/index.mjs')) return '// mock bridge\n';
-      if (path.endsWith('/bridge/package.json')) return '{"name":"mock"}';
       if (path.endsWith('/bridge/pnpm-lock.yaml'))
         return 'lockfileVersion: "9.0"\n';
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -208,7 +207,7 @@ describe('createDeepAgents', () => {
     expect(harness.supportsBuiltinToolFiltering).toBeUndefined();
   });
 
-  it('ships the node bridge files and a pnpm install command in its bootstrap', async () => {
+  it('ships bridge dependencies and installs them in its bootstrap', async () => {
     const harness = createDeepAgents();
     const bootstrap = await harness.getBootstrap!();
     expect(bootstrap.harnessId).toBe('deepagents');
@@ -219,11 +218,15 @@ describe('createDeepAgents', () => {
       '.harness-bootstrap/deepagents/package.json',
       '.harness-bootstrap/deepagents/pnpm-lock.yaml',
     ]);
-    const commands = bootstrap.commands.map(c => c.command).join('\n');
-    expect(commands).toContain(
-      'pnpm install --frozen-lockfile --store-dir .pnpm-store',
+    const packageManifest = bootstrap.files.find(file =>
+      file.path.endsWith('/package.json'),
     );
-    expect(commands).not.toContain('mkdir -p .harness-bootstrap/deepagents');
+    expect(packageManifest?.content).toContain('"@vscode/ripgrep": "1.18.0"');
+    const commands = bootstrap.commands.map(c => c.command);
+    expect(commands).toEqual([
+      'pnpm install --frozen-lockfile --store-dir .pnpm-store',
+    ]);
+    expect(commands.join('\n')).not.toContain('github.com');
   });
 
   it('caches the bootstrap across calls', async () => {

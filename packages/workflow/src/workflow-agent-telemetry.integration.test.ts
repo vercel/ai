@@ -28,24 +28,53 @@ trace.setGlobalTracerProvider(
 );
 
 const events: string[] = [];
+const spanContexts: unknown[] = [];
+const eventContexts: unknown[] = [];
 const callIds = new Set<string>();
 const tracingChannelEvents: string[] = [];
 
-registerTelemetry(new OpenTelemetry(), {
-  onStart: event => {
-    events.push('onStart');
-    callIds.add(event.callId);
+registerTelemetry(
+  new OpenTelemetry({
+    enrichSpan: ({ runtimeContext }) => {
+      spanContexts.push(runtimeContext);
+      return undefined;
+    },
+  }),
+  {
+    onStart: event => {
+      events.push('onStart');
+      eventContexts.push(
+        'runtimeContext' in event ? event.runtimeContext : undefined,
+      );
+      callIds.add(event.callId);
+    },
+    onStepStart: event => {
+      events.push('onStepStart');
+      eventContexts.push(
+        'runtimeContext' in event ? event.runtimeContext : undefined,
+      );
+    },
+    onLanguageModelCallStart: () =>
+      void events.push('onLanguageModelCallStart'),
+    onLanguageModelCallEnd: () => void events.push('onLanguageModelCallEnd'),
+    onStepEnd: event => {
+      events.push('onStepEnd');
+      eventContexts.push(
+        'runtimeContext' in event ? event.runtimeContext : undefined,
+      );
+    },
+    onEnd: event => {
+      events.push('onEnd');
+      eventContexts.push(
+        'runtimeContext' in event ? event.runtimeContext : undefined,
+      );
+    },
+    executeLanguageModelCall: ({ execute }) => {
+      events.push('executeLanguageModelCall');
+      return execute();
+    },
   },
-  onStepStart: () => void events.push('onStepStart'),
-  onLanguageModelCallStart: () => void events.push('onLanguageModelCallStart'),
-  onLanguageModelCallEnd: () => void events.push('onLanguageModelCallEnd'),
-  onStepEnd: () => void events.push('onStepEnd'),
-  onEnd: () => void events.push('onEnd'),
-  executeLanguageModelCall: ({ execute }) => {
-    events.push('executeLanguageModelCall');
-    return execute();
-  },
-});
+);
 
 tracingChannel(AI_SDK_TELEMETRY_TRACING_CHANNEL).subscribe({
   start: message =>
@@ -59,6 +88,8 @@ tracingChannel(AI_SDK_TELEMETRY_TRACING_CHANNEL).subscribe({
 beforeEach(() => {
   exporter.reset();
   events.length = 0;
+  spanContexts.length = 0;
+  eventContexts.length = 0;
   callIds.clear();
   tracingChannelEvents.length = 0;
 });
@@ -110,4 +141,31 @@ describe('WorkflowAgent telemetry with global integrations', () => {
     expect(tracingChannelEvents).toContain('languageModelCall');
     expect(getAiSpanNames()).toEqual(expectedSpans);
   });
+
+  it.each(['stream', 'generate'] as const)(
+    '%s: includes only opted-in runtime context in model-step telemetry',
+    async mode => {
+      for (const includeTraceIdentity of [undefined, false, true]) {
+        spanContexts.length = 0;
+        eventContexts.length = 0;
+        const run =
+          mode === 'stream'
+            ? await start(agentStreamWithGlobalTelemetry, [
+                'hello',
+                includeTraceIdentity,
+              ])
+            : await start(agentGenerateWithGlobalTelemetry, [
+                'hello',
+                includeTraceIdentity,
+              ]);
+        await run.returnValue;
+
+        const expectedContext = includeTraceIdentity
+          ? { traceIdentity: { sessionId: 'chat_1', userId: 'user_1' } }
+          : {};
+        expect(spanContexts).toEqual(Array(3).fill(expectedContext));
+        expect(eventContexts).toEqual(Array(4).fill(expectedContext));
+      }
+    },
+  );
 });

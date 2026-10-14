@@ -22,6 +22,7 @@ export function createCursorACP({
   source = CURSOR_ACP_SOURCE,
 }: CursorACPHarnessSettings = {}) {
   return createACP({
+    nonTextContentTypes: ['image'],
     harnessId: 'cursor-acp',
     mcpServers,
     mintBridgeToken,

@@ -4,6 +4,7 @@ import type {
   ACPHostToolMCPTransport,
   ACPProfileValue,
   ACPSerializableValue,
+  ACPV1Settings,
 } from '../acp-v1-settings';
 
 export const ACP_BRIDGE_CONFIGURATION_ENV = 'AI_SDK_ACP_BRIDGE_CONFIGURATION';
@@ -68,6 +69,7 @@ export type ACPBridgeConfiguration = {
   readonly clientCapabilities?: Readonly<Record<string, ACPSerializableValue>>;
   readonly askUserQuestionsRequestMethod?: string;
   readonly hostToolMcpTransport?: ACPHostToolMCPTransport;
+  readonly nonTextContentTypes?: ACPV1Settings['nonTextContentTypes'];
 };
 
 const bridgeConfigurationSchema: z.ZodType<ACPBridgeConfiguration> = z.object({
@@ -78,6 +80,7 @@ const bridgeConfigurationSchema: z.ZodType<ACPBridgeConfiguration> = z.object({
   clientCapabilities: serializableRecordSchema.optional(),
   askUserQuestionsRequestMethod: z.string().optional(),
   hostToolMcpTransport: hostToolMcpTransportSchema.optional(),
+  nonTextContentTypes: z.array(z.literal('image')).optional(),
 });
 
 export function createACPBridgeEnvironment({
@@ -88,6 +91,7 @@ export function createACPBridgeEnvironment({
   clientCapabilities,
   askUserQuestionsRequestMethod,
   hostToolMcpTransport,
+  nonTextContentTypes,
 }: ACPBridgeConfiguration): Record<string, string> {
   return {
     [ACP_BRIDGE_CONFIGURATION_ENV]: JSON.stringify({
@@ -100,6 +104,7 @@ export function createACPBridgeEnvironment({
         ? {}
         : { askUserQuestionsRequestMethod }),
       ...(hostToolMcpTransport == null ? {} : { hostToolMcpTransport }),
+      ...(nonTextContentTypes == null ? {} : { nonTextContentTypes }),
     }),
   };
 }
