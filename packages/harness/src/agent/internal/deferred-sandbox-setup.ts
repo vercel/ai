@@ -38,6 +38,7 @@ export function deferSandboxSetup({
   const addRequestTransformations =
     original.addRequestTransformations?.bind(original);
   const setPorts = original.setPorts?.bind(original);
+  let restricted: SandboxSession | undefined;
   return {
     ...gatedOperations(original),
     get description() {
@@ -60,6 +61,6 @@ export function deferSandboxSetup({
     ...(setRequestTransformations != null ? { setRequestTransformations } : {}),
     ...(addRequestTransformations != null ? { addRequestTransformations } : {}),
     ...(setPorts != null ? { setPorts } : {}),
-    restricted: () => gate(original.restricted()),
+    restricted: () => (restricted ??= gate(original.restricted())),
   };
 }

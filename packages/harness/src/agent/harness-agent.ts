@@ -2,6 +2,7 @@ import { HarnessCapabilityUnsupportedError } from '../errors/harness-capability-
 import {
   harnessStateDirectoryPath,
   type HarnessV1,
+  type HarnessV1Bootstrap,
   type HarnessV1BuiltinToolFiltering,
   type HarnessV1JSONSchema,
   type HarnessV1NetworkSandboxSession,
@@ -399,18 +400,12 @@ export class HarnessAgent<
     const isResumedSession =
       validatedResumeFrom != null || effectiveContinueFrom != null;
 
-    const lazySetup = this.sandboxConfig.setup === 'lazy';
-    if (lazySetup && (await harness.getBootstrap?.({ abortSignal })) != null) {
-      throw new Error(
-        `HarnessAgent.createSession: \`sandboxConfig.setup: 'lazy'\` is not supported for harness '${harness.harnessId}' because it declares a sandbox bootstrap recipe.`,
-      );
-    }
-
     // Acquires the concrete sandbox session, either by starting fresh and then
     // creating a post-bootstrap snapshot, or by reusing a previously created
     // snapshot based on the bootstrap-based hashes.
     let sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
     let sessionWorkDir: string;
+    let recipe: HarnessV1Bootstrap | undefined;
     if (providedSandboxSession != null) {
       sandboxSession = providedSandboxSession;
       const toolSafeSandboxSession =
@@ -427,7 +422,7 @@ export class HarnessAgent<
         workDir: this.sandboxConfig.workDir,
       });
 
-      const recipe = await harness.getBootstrap?.({ abortSignal });
+      recipe = await harness.getBootstrap?.({ abortSignal });
       if (recipe != null) {
         const recipeIdentity = await hashHarnessBootstrap(recipe);
         try {
@@ -460,7 +455,7 @@ export class HarnessAgent<
         );
       }
 
-      const recipe = await harness.getBootstrap?.({ abortSignal });
+      recipe = await harness.getBootstrap?.({ abortSignal });
       if (isResumedSession) {
         if (sandboxProvider.resumeSession == null) {
           throw new HarnessCapabilityUnsupportedError({
@@ -570,36 +565,33 @@ export class HarnessAgent<
       }
     }
 
-    const acquiredSandboxSession = sandboxSession;
-    const setup = async (setupAbortSignal: AbortSignal | undefined) => {
+    const sandboxConfig = this.sandboxConfig;
+    const setup = async (setupAbortSignal?: AbortSignal) => {
+      const restrictedSandboxSession =
+        getRestrictedSandboxSession(sandboxSession);
       await runSandboxBootstrap({
-        session: getRestrictedSandboxSession(acquiredSandboxSession),
-        workDir: this.sandboxConfig.workDir,
-        onBootstrap: this.sandboxConfig.onBootstrap,
-        bootstrapHash: this.sandboxConfig.bootstrapHash,
+        session: restrictedSandboxSession,
+        workDir: sandboxConfig.workDir,
+        onBootstrap: sandboxConfig.onBootstrap,
+        bootstrapHash: sandboxConfig.bootstrapHash,
         skipOnBootstrapIfMarked: true,
         abortSignal: setupAbortSignal,
       });
       await ensureSandboxDirectory({
-        session: acquiredSandboxSession,
+        session: sandboxSession,
         workDir: sessionWorkDir,
         abortSignal: setupAbortSignal,
       });
-      if (this.sandboxConfig.onSession != null) {
-        await this.sandboxConfig.onSession({
-          session: getRestrictedSandboxSession(acquiredSandboxSession),
+      if (sandboxConfig.onSession != null) {
+        await sandboxConfig.onSession({
+          session: restrictedSandboxSession,
           sessionWorkDir,
           abortSignal: setupAbortSignal,
         });
       }
     };
 
-    if (lazySetup) {
-      sandboxSession = deferSandboxSetup({
-        sandboxSession,
-        setup: () => setup(undefined),
-      });
-    } else {
+    if (recipe != null) {
       try {
         await setup(abortSignal);
       } catch (err) {
@@ -610,6 +602,10 @@ export class HarnessAgent<
         throw err;
       }
     }
+    const startedSandboxSession =
+      recipe == null
+        ? deferSandboxSetup({ sandboxSession, setup })
+        : sandboxSession;
 
     try {
       const baseStartOptions = {
@@ -624,14 +620,14 @@ export class HarnessAgent<
       };
       const underlyingSession = await harness.doStart({
         ...baseStartOptions,
-        sandboxSession,
+        sandboxSession: startedSandboxSession,
         sessionWorkDir,
       });
       return new HarnessAgentSession({
         sessionId,
         harness,
         underlyingSession,
-        sandboxSession,
+        sandboxSession: startedSandboxSession,
         ownsSandboxLifecycle,
         sessionWorkDir,
         toolApproval: this.settings.toolApproval,
