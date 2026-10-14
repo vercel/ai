@@ -947,7 +947,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             supportsStructuredOutput: false,
             supportsStrictTools,
             defaultEagerInputStreaming,
-            rejectsForcedToolUse,
+            rejectsForcedToolUse:
+              rejectsForcedToolUse || thinkingType === 'enabled',
           }
         : {
             tools: tools ?? [],
@@ -957,7 +958,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             supportsStructuredOutput,
             supportsStrictTools,
             defaultEagerInputStreaming,
-            rejectsForcedToolUse,
+            rejectsForcedToolUse:
+              rejectsForcedToolUse || thinkingType === 'enabled',
           },
     );
 
