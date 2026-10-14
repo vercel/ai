@@ -1868,7 +1868,7 @@ describe('rejectsForcedToolUse', () => {
     expect(result.toolWarnings).toMatchInlineSnapshot(`
       [
         {
-          "details": "toolChoice 'required' is not supported by this model because it rejects forced tool use. Using 'auto' instead. Instruct the model to use a tool in the prompt and verify that a tool call was made.",
+          "details": "toolChoice 'required' is not supported with this model or thinking configuration. Using 'auto' instead. Instruct the model to use a tool in the prompt and verify that a tool call was made.",
           "feature": "toolChoice",
           "type": "unsupported",
         },

@@ -194,7 +194,158 @@ describe('AnthropicMessagesLanguageModel', () => {
     );
   });
 
+  describe.each(['generate', 'stream'] as const)(
+    'JSON response tool with manual thinking (%s)',
+    method => {
+      it.each([
+        { modelId: 'claude-sonnet-4-20250514', structuredOutputMode: 'auto' },
+        { modelId: 'claude-sonnet-4-5', structuredOutputMode: 'jsonTool' },
+      ] as const)(
+        'should fall back to auto tool choice for $modelId in $structuredOutputMode mode',
+        async ({ modelId, structuredOutputMode }) => {
+          const options = {
+            prompt: TEST_PROMPT,
+            maxOutputTokens: 1000,
+            providerOptions: {
+              anthropic: {
+                structuredOutputMode,
+                thinking: { type: 'enabled', budgetTokens: 5000 },
+              },
+            },
+            responseFormat: {
+              type: 'json' as const,
+              schema: { type: 'object' as const, properties: {} },
+            },
+          };
+          const warnings = [
+            {
+              type: 'unsupported',
+              feature: 'toolChoice',
+              details: expect.stringContaining(
+                'not supported with this model or thinking configuration',
+              ),
+            },
+          ];
+
+          if (method === 'generate') {
+            prepareJsonFixtureResponse('anthropic-json-tool.1');
+            const result = await provider(modelId).doGenerate(options);
+            expect(result.warnings).toEqual(warnings);
+            expect(result.content).toEqual([
+              { type: 'text', text: expect.stringContaining('"elements"') },
+            ]);
+            expect(result.finishReason.unified).toBe('stop');
+          } else {
+            prepareChunksFixtureResponse('anthropic-json-tool.1');
+            const result = await provider(modelId).doStream(options);
+            const chunks = await convertReadableStreamToArray(result.stream);
+            expect(chunks[0]).toEqual({ type: 'stream-start', warnings });
+            expect(chunks.some(chunk => chunk.type === 'error')).toBe(false);
+          }
+
+          const body = await server.calls[0].requestBodyJson;
+          expect(body.thinking).toEqual({
+            type: 'enabled',
+            budget_tokens: 5000,
+          });
+          expect(body.tool_choice).toEqual({
+            type: 'auto',
+            disable_parallel_tool_use: true,
+          });
+          expect(body.tools).toMatchObject([
+            {
+              name: 'json',
+              description: 'Respond with a JSON object.',
+              input_schema: options.responseFormat.schema,
+            },
+          ]);
+        },
+      );
+    },
+  );
+
   describe('doGenerate', () => {
+    describe('forced tool choice with thinking', () => {
+      const tools = ['lookup', 'other'].map(name => ({
+        type: 'function' as const,
+        name,
+        inputSchema: { type: 'object' as const, properties: {} },
+      }));
+
+      describe.each([
+        { type: 'required' as const },
+        { type: 'tool' as const, toolName: 'lookup' },
+      ])('$type', toolChoice => {
+        it('should fall back to auto for manual thinking set through providerOptions', async () => {
+          prepareJsonFixtureResponse('anthropic-text');
+
+          const result = await provider('claude-haiku-4-5').doGenerate({
+            prompt: TEST_PROMPT,
+            tools,
+            toolChoice,
+            providerOptions: {
+              anthropic: {
+                thinking: { type: 'enabled', budgetTokens: 5000 },
+              },
+            },
+          });
+
+          const body = await server.calls[0].requestBodyJson;
+          expect(body.thinking.type).toBe('enabled');
+          expect(body.tool_choice).toEqual({ type: 'auto' });
+          expect(body.tools.map((tool: { name: string }) => tool.name)).toEqual(
+            toolChoice.type === 'tool' ? ['lookup'] : ['lookup', 'other'],
+          );
+          expect(result.warnings).toEqual([
+            {
+              type: 'unsupported',
+              feature: 'toolChoice',
+              details: expect.stringContaining(
+                'not supported with this model or thinking configuration',
+              ),
+            },
+          ]);
+        });
+
+        it.each([
+          { modelId: 'claude-haiku-4-5', thinkingType: 'disabled' },
+          { modelId: 'claude-sonnet-4-6', thinkingType: 'adaptive' },
+          // Budget thinking is normalized to adaptive on this model.
+          { modelId: 'claude-haiku-5-5', thinkingType: 'enabled' },
+        ])(
+          'should preserve forced tool choice for $modelId with $thinkingType thinking',
+          async ({ modelId, thinkingType }) => {
+            prepareJsonFixtureResponse('anthropic-text');
+
+            const result = await provider(modelId).doGenerate({
+              prompt: TEST_PROMPT,
+              tools,
+              toolChoice,
+              providerOptions: {
+                anthropic: {
+                  thinking: { type: thinkingType },
+                },
+              },
+            });
+
+            const body = await server.calls[0].requestBodyJson;
+            expect(body.thinking.type).toBe(
+              thinkingType === 'disabled' ? 'disabled' : 'adaptive',
+            );
+            expect(body.tool_choice).toEqual(
+              toolChoice.type === 'tool'
+                ? { type: 'tool', name: 'lookup' }
+                : { type: 'any' },
+            );
+            expect(body.tools).toHaveLength(2);
+            expect(result.warnings).not.toContainEqual(
+              expect.objectContaining({ feature: 'toolChoice' }),
+            );
+          },
+        );
+      });
+    });
+
     describe('reasoning (thinking enabled)', () => {
       it('should pass thinking config; add budget tokens; clear out temperature, top_p, top_k; and return warnings', async () => {
         prepareJsonFixtureResponse('anthropic-text');
@@ -11312,7 +11463,7 @@ describe('claude-opus-5-5 specific behavior', () => {
     expect(result.warnings).toMatchInlineSnapshot(`
       [
         {
-          "details": "toolChoice 'required' is not supported by this model because it rejects forced tool use. Using 'auto' instead. Instruct the model to use a tool in the prompt and verify that a tool call was made.",
+          "details": "toolChoice 'required' is not supported with this model or thinking configuration. Using 'auto' instead. Instruct the model to use a tool in the prompt and verify that a tool call was made.",
           "feature": "toolChoice",
           "type": "unsupported",
         },
@@ -11337,7 +11488,7 @@ describe('claude-opus-5-5 specific behavior', () => {
     expect(result.warnings).toMatchInlineSnapshot(`
       [
         {
-          "details": "toolChoice 'tool' is not supported by this model because it rejects forced tool use. Only the 'otherTool' tool is sent with 'auto' tool choice. Instruct the model to use the tool in the prompt and verify that a tool call was made.",
+          "details": "toolChoice 'tool' is not supported with this model or thinking configuration. Only the 'otherTool' tool is sent with 'auto' tool choice. Instruct the model to use the tool in the prompt and verify that a tool call was made.",
           "feature": "toolChoice",
           "type": "unsupported",
         },
