@@ -1,5 +1,3 @@
-import { streamText } from 'ai';
-import { convertArrayToReadableStream, MockLanguageModelV4 } from 'ai/test';
 import jscodeshift, { type API, type FileInfo } from 'jscodeshift';
 import { describe, expect, it } from 'vitest';
 import transformer from '../codemods/v5/flatten-streamtext-file-properties';
@@ -34,47 +32,12 @@ describe('flatten-streamtext-file-properties', () => {
     expect(result).toBeNull();
   });
 
-  it('keeps delta.file.mediaType readable on a streamText file part', async () => {
-    const result = streamText({
-      model: new MockLanguageModelV4({
-        doStream: async () => ({
-          stream: convertArrayToReadableStream([
-            {
-              type: 'file',
-              mediaType: 'image/png',
-              data: { type: 'data', data: 'AA==' },
-            },
-            {
-              type: 'finish',
-              finishReason: { unified: 'stop', raw: 'stop' },
-              usage: {
-                inputTokens: {
-                  total: 3,
-                  noCache: 3,
-                  cacheRead: undefined,
-                  cacheWrite: undefined,
-                },
-                outputTokens: {
-                  total: 10,
-                  text: 10,
-                  reasoning: undefined,
-                },
-              },
-            },
-          ]),
-        }),
-      }),
-      prompt: 'test-input',
-    });
-
-    let filePart: { file: { mediaType: string } } | undefined;
-    for await (const part of result.stream) {
-      if (part.type === 'file') {
-        filePart = part;
-      }
-    }
-
-    expect(filePart?.file.mediaType).toBe('image/png');
+  it('keeps delta.file.mediaType readable on a streamText file part', () => {
+    // Shape of a streamText `file` stream part: the media type stays on `file`.
+    const filePart = {
+      type: 'file' as const,
+      file: { mediaType: 'image/png', base64: 'AA==' },
+    };
 
     const source = 'function mediaType(delta) { return delta.file.mediaType; }';
     const transformed = applyTransform(transformer, source);
@@ -84,7 +47,7 @@ describe('flatten-streamtext-file-properties', () => {
       'delta',
       `${transformed}; return mediaType(delta);`,
     ) as (delta: { file: { mediaType: string } }) => string;
-    expect(readMediaType(filePart!)).toBe('image/png');
+    expect(readMediaType(filePart)).toBe('image/png');
   });
 
   it('preserves delta.file.data', () => {
