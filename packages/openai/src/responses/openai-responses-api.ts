@@ -177,6 +177,7 @@ export type OpenAIResponsesInputItem =
   | OpenAIResponsesApplyPatchCallOutput
   | OpenAIResponsesToolSearchCall
   | OpenAIResponsesToolSearchOutput
+  | OpenAIResponsesWebSearchCall
   | OpenAIResponsesReasoning
   | OpenAIResponsesItemReference
   | OpenAIResponsesCompactionItem
@@ -342,6 +343,13 @@ export type OpenAIResponsesProgramOutput = {
   status: 'completed' | 'incomplete';
 };
 
+export type OpenAIResponsesWebSearchCall = {
+  type: 'web_search_call';
+  id: string;
+  status: 'completed';
+  action: OpenAIResponsesWebSearchAction;
+};
+
 export type OpenAIResponsesCustomToolCall = {
   type: 'custom_tool_call';
   id?: string;
@@ -486,7 +494,7 @@ export type OpenAIResponsesCompactionItem = {
 export type OpenAIResponsesConfigurationUpdate = {
   type: 'configuration_update';
   reasoning: {
-    effort: 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+    effort: 'none' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';
   };
 };
 
@@ -769,7 +777,7 @@ const openaiResponsesNestedErrorChunkSchema = z.object({
   sequence_number: z.number(),
   error: z.object({
     type: z.string(),
-    code: z.string(),
+    code: z.string().nullish(),
     message: z.string(),
     param: z.string().nullish(),
   }),

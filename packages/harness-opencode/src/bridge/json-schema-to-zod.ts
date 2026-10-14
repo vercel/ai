@@ -22,7 +22,7 @@ export function jsonSchemaToZodShape(input: unknown): ZodShape {
 
 function toZodShape(schema: JsonSchemaObject | undefined): ZodShape {
   if (!schema?.properties) return {};
-  const required = new Set(schema.required ?? []);
+  const required = new Set(schema.required);
   const shape: ZodShape = {};
   for (const [key, propSchema] of Object.entries(schema.properties)) {
     const propType = toZodType(propSchema);

@@ -13,6 +13,7 @@ import type {
   Context,
   Experimental_SandboxSession as SandboxSession,
   FlexibleSchema,
+  InferToolSetContext,
   MaybePromiseLike,
   SystemModelMessage,
   ToolSet,
@@ -34,6 +35,7 @@ import type {
   TelemetryOptions,
   ToolApprovalStatus,
 } from 'ai';
+import type { ToolsContextSettings } from 'ai/internal';
 import type { HarnessAllTools } from './harness-agent-tool-types';
 
 export type HarnessAgentToolApprovalConfiguration = Readonly<
@@ -43,8 +45,9 @@ export type HarnessAgentToolApprovalConfiguration = Readonly<
 export type HarnessAgentSandboxConfig = {
   /**
    * Optional fixed working directory for all sessions, relative to the
-   * sandbox's default working directory. When omitted, sessions keep the
-   * existing `<harnessId>-<sessionId>` work directory.
+   * sandbox's default working directory. Use `'.'` to use the default
+   * working directory itself. When omitted, sessions keep the existing
+   * `<harnessId>-<sessionId>` work directory.
    */
   readonly workDir?: string;
 
@@ -151,6 +154,19 @@ export type HarnessAgentSettings<
   readonly tools?: TUserTools;
 
   /**
+   * Per-tool context passed to host-executed tools. Each entry is validated
+   * against the matching tool's `contextSchema` before execution.
+   * `prepareCall` can replace it for each new turn.
+   */
+  readonly toolsContext?: InferToolSetContext<TUserTools>;
+
+  /**
+   * Runtime context passed to lifecycle callbacks and telemetry.
+   * `prepareCall` can replace it for each new turn.
+   */
+  readonly runtimeContext?: RUNTIME_CONTEXT;
+
+  /**
    * Skills made available to the underlying runtime. Each adapter decides how
    * to surface skills. `prepareCall` can replace them between completed turns.
    */
@@ -224,8 +240,10 @@ export type HarnessAgentSettings<
           NoInfer<OUTPUT>,
           CALL_OPTIONS
         >,
-        'model' | 'skills' | 'instructions' | 'tools'
-      >,
+        'model' | 'skills' | 'instructions' | 'tools' | 'runtimeContext'
+      > & {
+        toolsContext: InferToolSetContext<TUserTools>;
+      },
   ) => MaybePromiseLike<
     Pick<
       HarnessAgentSettings<
@@ -235,9 +253,10 @@ export type HarnessAgentSettings<
         NoInfer<OUTPUT>,
         CALL_OPTIONS
       >,
-      'model' | 'skills' | 'instructions' | 'tools'
-    > &
-      Omit<Prompt, 'system' | 'instructions' | 'allowSystemInMessages'>
+      'model' | 'skills' | 'instructions' | 'tools' | 'runtimeContext'
+    > & {
+      toolsContext: InferToolSetContext<TUserTools>;
+    } & Omit<Prompt, 'system' | 'instructions' | 'allowSystemInMessages'>
   >;
 
   /**
@@ -344,6 +363,7 @@ export type HarnessAgentSettings<
    * sessions. When omitted, every `createSession()` call must provide an
    * existing network sandbox session.
    */
+  /** @deprecated Supply `sandboxSession` to `HarnessAgent.createSession()` instead. */
   readonly sandbox?: HarnessV1SandboxProvider;
 
   /**
@@ -376,4 +396,5 @@ export type HarnessAgentSettings<
    * stderr default — wire this to capture diagnostics in code.
    */
   readonly onLog?: (event: HarnessDiagnostic) => void;
-} & HarnessAgentToolFilteringSettings<HarnessAllTools<THarness, TUserTools>>;
+} & ToolsContextSettings<TUserTools> &
+  HarnessAgentToolFilteringSettings<HarnessAllTools<THarness, TUserTools>>;

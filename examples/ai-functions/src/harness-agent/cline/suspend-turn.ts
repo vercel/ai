@@ -1,6 +1,6 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { createCline } from './_create';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 
@@ -23,17 +23,17 @@ function wait({ ms }: { ms: number }) {
 }
 
 run(async () => {
-  const sandbox = createVercelSandbox({
-    runtime: 'node24',
-    timeout: 10 * 60 * 1000,
-  });
   const agent = new HarnessAgent({
     harness: cline,
-    sandbox,
   });
 
   let exitCode = 0;
-  let session = await agent.createSession();
+  const sandboxSession = await createVercelNetworkSandboxSession({
+    runtime: 'node24',
+    timeout: 10 * 60 * 1000,
+    template: await agent.getSandboxTemplate(),
+  });
+  let session = await agent.createSession({ sandboxSession });
   try {
     console.log('--- turn 1: stream ---');
     const result = await agent.stream({ session, prompt });
@@ -44,10 +44,11 @@ run(async () => {
     console.log('\n--- suspend turn ---');
     const continueFrom = await session.suspendTurn();
     await stream;
-    console.log('continueFrom:', JSON.stringify(continueFrom));
+    console.log('continueFrom:');
 
     console.log('--- continue turn ---');
     session = await agent.createSession({
+      sandboxSession,
       sessionId: session.sessionId,
       continueFrom,
     });
@@ -61,6 +62,7 @@ run(async () => {
     console.error('[example] failed:', err);
   } finally {
     await session.destroy();
+    await sandboxSession.destroy();
     process.exit(exitCode);
   }
 });

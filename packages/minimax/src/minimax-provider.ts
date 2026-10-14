@@ -100,7 +100,7 @@ export function createMiniMax(
         }),
         ...options.headers,
       },
-      `ai-sdk/minimax/${VERSION}`,
+      `ai-sdk-minimax/${VERSION}`,
     );
 
   const createChatModel = (modelId: MiniMaxChatModelId) =>
@@ -123,7 +123,7 @@ export function createMiniMax(
         })}`,
         ...options.headers,
       },
-      `ai-sdk/minimax/${VERSION}`,
+      `ai-sdk-minimax/${VERSION}`,
     );
 
   const createVideoModel = (modelId: MiniMaxVideoModelId) =>

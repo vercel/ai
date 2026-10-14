@@ -93,7 +93,7 @@ export function createFishAudio(
         })}`,
         ...options.headers,
       },
-      `ai-sdk/fish-audio/${VERSION}`,
+      `ai-sdk-fish-audio/${VERSION}`,
     );
 
   const createSpeechModel = (modelId: FishAudioSpeechModelId) =>

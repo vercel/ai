@@ -12,3 +12,4 @@ export { VERSION } from './version';
 export type { ClaudeCodeHarnessSettings } from './claude-code-harness';
 export type { ClaudeCodeAuthenticationMode } from './claude-code-auth';
 export type { ClaudeCodeThinkingConfig } from './claude-code-thinking';
+export type { JSONObject } from '@ai-sdk/provider';

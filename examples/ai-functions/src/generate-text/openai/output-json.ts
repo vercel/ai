@@ -6,7 +6,7 @@ import { weatherTool } from '../../tools/weather-tool';
 
 run(async () => {
   const result = await generateText({
-    model: openai('gpt-4o-mini'),
+    model: openai('gpt-6-luna'),
     tools: { weather: weatherTool },
     stopWhen: isStepCount(5),
     output: Output.json(),

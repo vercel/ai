@@ -10,7 +10,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const provider = anthropic;
-  const model = 'claude-haiku-4-5';
+  const model = 'claude-haiku-5-5';
 
   const batch = await startBatch({
     provider,
@@ -24,7 +24,7 @@ run(async () => {
       {
         id: 'capital-germany',
         type: 'text',
-        model: 'claude-sonnet-4-5',
+        model: 'claude-sonnet-5-5',
         prompt: 'What is the capital of Germany?',
       },
     ],

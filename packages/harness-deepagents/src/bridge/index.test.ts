@@ -1,9 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 type DeepAgentOptions = {
+  tools?: Array<{
+    name: string;
+    invoke: (input: Record<string, unknown>) => Promise<unknown>;
+  }>;
   middleware?: Array<{
     name?: string;
     wrapModelCall?: (request: any, handler: any) => Promise<unknown>;
+    wrapToolCall?: (request: any, handler: any) => Promise<unknown>;
   }>;
   model?: unknown;
   systemPrompt?: string | { suffix?: string };
@@ -25,20 +30,46 @@ const state = vi.hoisted(() => ({
     | { type: 'json'; schema: Record<string, unknown> }
     | undefined,
   headers: undefined as Record<string, string> | undefined,
+  hostToolResponse: undefined as
+    | { output: unknown; isError?: boolean; toolResult?: unknown }
+    | undefined,
+  hostToolOutput: undefined as unknown,
+  receivedToolCallId: undefined as string | undefined,
+  emitted: [] as Array<Record<string, unknown>>,
 }));
 
 vi.mock('deepagents', () => ({
   createDeepAgent: (options: DeepAgentOptions) => {
     state.createDeepAgentOptions.push(options);
     return {
-      streamEvents: async () => [],
+      streamEvents: async function* () {
+        if (state.hostToolResponse !== undefined) {
+          const hostTool = options.tools?.find(tool => tool.name === 'weather');
+          if (!hostTool)
+            throw new Error('Weather host tool was not registered');
+          yield {
+            event: 'on_tool_start',
+            name: 'weather',
+            run_id: 'langchain-run-id',
+            data: { input: { city: 'Berlin' } },
+          };
+          state.hostToolOutput = await hostTool.invoke({ city: 'Berlin' });
+          yield {
+            event: 'on_tool_end',
+            name: 'weather',
+            run_id: 'langchain-run-id',
+            data: { output: state.hostToolOutput },
+          };
+        }
+      },
       getState: async () => ({ tasks: [] }),
     };
   },
   LocalShellBackend: class {},
 }));
 
-vi.mock('@ai-sdk/harness/bridge', () => ({
+vi.mock('@ai-sdk/harness/bridge', async importOriginal => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   runBridge: async ({
     onStart,
   }: {
@@ -50,13 +81,30 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
         instructions: 'Answer every question in German.',
         thinking: { type: 'adaptive', display: 'summarized' },
         effort: 'max',
-        tools: [],
+        tools:
+          state.hostToolResponse === undefined
+            ? []
+            : [
+                {
+                  name: 'weather',
+                  inputSchema: {
+                    type: 'object',
+                    properties: { city: { type: 'string' } },
+                    required: ['city'],
+                  },
+                },
+              ],
         responseFormat: state.responseFormat,
         headers: state.headers,
       },
       {
-        emit: () => {},
-        requestToolResult: async () => ({ output: {} }),
+        emit: (event: Record<string, unknown>) => {
+          state.emitted.push(event);
+        },
+        requestToolResult: async (toolCallId: string) => {
+          state.receivedToolCallId = toolCallId;
+          return state.hostToolResponse ?? { output: {} };
+        },
         requestToolApproval: async () => ({ approved: true }),
         abortSignal: new AbortController().signal,
       },
@@ -88,7 +136,13 @@ vi.mock('@langchain/core/messages', () => ({
 }));
 
 vi.mock('@langchain/core/tools', () => ({
-  tool: vi.fn(),
+  tool: vi.fn((...args: unknown[]) => {
+    const [invoke, config] = args as [
+      (input: Record<string, unknown>) => Promise<unknown>,
+      { name: string },
+    ];
+    return { name: config.name, invoke };
+  }),
 }));
 
 vi.mock('@langchain/langgraph', () => ({
@@ -116,6 +170,10 @@ describe('Deep Agents bridge instructions', () => {
     state.createDeepAgentOptions = [];
     state.responseFormat = undefined;
     state.headers = undefined;
+    state.hostToolResponse = undefined;
+    state.hostToolOutput = undefined;
+    state.receivedToolCallId = undefined;
+    state.emitted = [];
     state.originalArgv = [...process.argv];
     process.argv.splice(
       0,
@@ -141,6 +199,16 @@ describe('Deep Agents bridge instructions', () => {
     expect(state.createDeepAgentOptions[0]?.systemPrompt).toEqual({
       suffix: 'Answer every question in German.',
     });
+  });
+
+  it('installs MCP tool error recovery in the native agent', async () => {
+    await import('./index');
+
+    expect(
+      state.createDeepAgentOptions[0]?.middleware?.some(
+        middleware => middleware.name === 'harnessMcpToolErrors',
+      ),
+    ).toBe(true);
   });
 
   it('configures reasoning on the default Deep Agents model', async () => {
@@ -230,5 +298,93 @@ describe('Deep Agents bridge instructions', () => {
         { kind: 'tool-strategy', name: 'StructuredOutput', schema },
       ],
     });
+  });
+
+  async function expectHostToolResult({
+    output,
+    isError,
+  }: {
+    output?: unknown;
+    isError?: boolean;
+  }) {
+    state.hostToolResponse = { output, isError };
+
+    await import('./index');
+
+    const toolCallId = state.receivedToolCallId;
+    expect(toolCallId).toMatch(/^weather-/);
+    expect(state.emitted.filter(event => event.type === 'tool-call')).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId,
+        toolName: 'weather',
+        input: '{"city":"Berlin"}',
+        providerExecuted: false,
+      },
+    ]);
+    expect(state.emitted.filter(event => event.type === 'tool-result')).toEqual(
+      [
+        {
+          type: 'tool-result',
+          toolCallId,
+          toolName: 'weather',
+          result: output ?? null,
+          ...(isError !== undefined ? { isError } : {}),
+        },
+      ],
+    );
+    expect(state.hostToolOutput).toBe(
+      typeof output === 'string' ? output : JSON.stringify(output),
+    );
+  }
+
+  it('emits one successful host-tool result without duplicating on_tool_end', async () => {
+    await expectHostToolResult({ output: { temperature: 18 }, isError: false });
+  });
+
+  it('returns model-facing text and inline images as LangChain content blocks', async () => {
+    state.hostToolResponse = {
+      output: { status: 'ready' },
+      toolResult: {
+        type: 'tool-result',
+        toolCallId: 'weather-1',
+        toolName: 'weather',
+        output: {
+          type: 'content',
+          value: [
+            { type: 'text', text: 'marker' },
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: { type: 'data', data: 'iVBORw==' },
+            },
+          ],
+        },
+      },
+    };
+
+    await import('./index');
+
+    expect(state.hostToolOutput).toEqual([
+      { type: 'text', text: 'marker' },
+      {
+        type: 'image_url',
+        image_url: { url: 'data:image/png;base64,iVBORw==' },
+      },
+    ]);
+    expect(state.emitted.filter(event => event.type === 'tool-result')).toEqual(
+      [expect.objectContaining({ result: { status: 'ready' } })],
+    );
+  });
+
+  it('emits one errored host-tool result without duplicating on_tool_end', async () => {
+    await expectHostToolResult({
+      output: { error: 'Tool input validation failed.' },
+      isError: true,
+    });
+  });
+
+  it('emits null when the host-tool output is absent', async () => {
+    await expectHostToolResult({});
   });
 });

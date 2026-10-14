@@ -28,21 +28,21 @@ run(async () => {
 
   try {
     await embed({
-      model: cohere.embedding('embed-multilingual-v3.0'),
+      model: cohere.embedding('embed-v4.0'),
       value: 'sunny day at the beach',
       runtimeContext,
       telemetry,
     });
 
     await embedMany({
-      model: cohere.embedding('embed-multilingual-v3.0'),
+      model: cohere.embedding('embed-v4.0'),
       values: ['sunny day at the beach', 'rainy afternoon in the city'],
       runtimeContext,
       telemetry,
     });
 
     await rerank({
-      model: cohere.reranking('rerank-v3.5'),
+      model: cohere.reranking('rerank-v4.0-pro'),
       documents: ['sunny day at the beach', 'rainy afternoon in the city'],
       query: 'Where can I enjoy the sunshine?',
       runtimeContext,

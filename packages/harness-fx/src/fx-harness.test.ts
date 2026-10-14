@@ -1,6 +1,7 @@
 import type { HarnessV1BuiltinTool } from '@ai-sdk/harness';
 import type { ACPHarnessSettings } from '@ai-sdk/harness-acp';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { z } from 'zod/v4';
 import { createFx } from './fx-harness';
 import { VERSION } from './version';
 
@@ -21,6 +22,7 @@ describe('createFx', () => {
     createFx();
 
     const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
+    expect(settings.nonTextContentTypes).toBeUndefined();
 
     expect({
       version: settings.version,
@@ -45,7 +47,15 @@ describe('createFx', () => {
           },
         ]),
       ),
-    }).toMatchInlineSnapshot(`
+    }).toMatchInlineSnapshot(
+      {
+        source: {
+          command: expect.stringMatching(
+            /^curl -fsSL https:\/\/fx\.sh\/setup\.sh \| bash -s -- v\S+$/,
+          ),
+        },
+      },
+      `
       {
         "args": [
           "acp",
@@ -55,6 +65,11 @@ describe('createFx', () => {
             "commonName": undefined,
             "nativeName": undefined,
             "toolUseKind": undefined,
+          },
+          "capability_search": {
+            "commonName": undefined,
+            "nativeName": undefined,
+            "toolUseKind": "readonly",
           },
           "copy_file": {
             "commonName": undefined,
@@ -146,6 +161,11 @@ describe('createFx', () => {
             "nativeName": undefined,
             "toolUseKind": "readonly",
           },
+          "shell": {
+            "commonName": undefined,
+            "nativeName": undefined,
+            "toolUseKind": "bash",
+          },
           "skill": {
             "commonName": undefined,
             "nativeName": undefined,
@@ -155,11 +175,6 @@ describe('createFx', () => {
             "commonName": undefined,
             "nativeName": undefined,
             "toolUseKind": undefined,
-          },
-          "terminal": {
-            "commonName": undefined,
-            "nativeName": undefined,
-            "toolUseKind": "bash",
           },
           "vision": {
             "commonName": undefined,
@@ -183,7 +198,7 @@ describe('createFx', () => {
           },
         },
         "clientApp": {
-          "name": "ai-sdk/harness-fx",
+          "name": "ai-sdk-harness-fx",
           "version": "0.0.0-test",
         },
         "credentialEnv": [
@@ -227,12 +242,129 @@ describe('createFx', () => {
           },
         },
         "source": {
-          "command": "curl -fsSL https://fx.sh/setup.sh | bash",
+          "command": StringMatching /\\^curl -fsSL https:\\\\/\\\\/fx\\\\\\.sh\\\\/setup\\\\\\.sh \\\\\\| bash -s -- v\\\\S\\+\\$/,
           "type": "install-command",
         },
         "version": "v1",
       }
-    `);
+    `,
+    );
+  });
+
+  it('accepts fx v0.0.10 ACP shell and capability search inputs', () => {
+    createFx();
+
+    const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
+    const builtinTools = settings.builtinTools as Record<
+      string,
+      HarnessV1BuiltinTool
+    >;
+    const shellInputSchema = builtinTools.shell.inputSchema as z.ZodType;
+    const capabilitySearchInputSchema = builtinTools.capability_search
+      .inputSchema as z.ZodType;
+
+    expect(
+      shellInputSchema.safeParse({
+        action: 'run',
+        command: 'printf "hello"',
+        cwd: '.',
+      }).success,
+    ).toBe(true);
+    expect(
+      shellInputSchema.safeParse({
+        action: 'run',
+        command: 'printf "hello"',
+        tty: false,
+      }).success,
+    ).toBe(true);
+    expect(
+      shellInputSchema.safeParse({
+        action: 'run',
+        command: 'printf "hello"',
+        cwd: null,
+        profile: null,
+        tty: false,
+        yield_time_ms: null,
+        timeout_ms: null,
+        future_shell_option: true,
+      }).success,
+    ).toBe(true);
+    expect(
+      shellInputSchema.safeParse({
+        action: 'run',
+        command: 'printf "hello"',
+        profile: 'clean',
+        tty: true,
+      }).success,
+    ).toBe(true);
+    expect(
+      shellInputSchema.safeParse({
+        action: 'run',
+        command: 'printf "hello"',
+        shell: { kind: 'executable', path: '/bin/bash' },
+        tty: true,
+      }).success,
+    ).toBe(true);
+    expect(
+      shellInputSchema.safeParse({
+        action: 'interact',
+        session_id: 'session-1',
+        chars: null,
+        yield_time_ms: null,
+      }).success,
+    ).toBe(true);
+    expect(
+      shellInputSchema.safeParse({
+        action: 'stop',
+        session_id: 'session-1',
+        force: null,
+      }).success,
+    ).toBe(true);
+    expect(shellInputSchema.safeParse({ action: 'exec' }).success).toBe(false);
+    expect(
+      shellInputSchema.safeParse({
+        request: { action: 'run', command: 'printf "hello"' },
+      }).success,
+    ).toBe(false);
+
+    expect(
+      capabilitySearchInputSchema.safeParse({ query: 'Find a file tool' })
+        .success,
+    ).toBe(true);
+    expect(
+      capabilitySearchInputSchema.safeParse({
+        query: 'Find a file tool',
+        server: 'filesystem',
+      }).success,
+    ).toBe(true);
+    expect(capabilitySearchInputSchema.safeParse({}).success).toBe(false);
+  });
+
+  it('accepts fx v0.0.13 location-based skill inputs', () => {
+    createFx();
+
+    const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
+    const builtinTools = settings.builtinTools as Record<
+      string,
+      HarnessV1BuiltinTool
+    >;
+    const skillInputSchema = builtinTools.skill.inputSchema as z.ZodType;
+
+    expect(
+      skillInputSchema.safeParse({
+        location: 'skill:test:0/weather-forecast',
+      }).success,
+    ).toBe(true);
+    expect(
+      skillInputSchema.safeParse({
+        location: 'skill:test:0/weather-forecast',
+        resource: 'references/forecast.md',
+      }).success,
+    ).toBe(true);
+    expect(
+      skillInputSchema.safeParse({ name: 'weather-forecast' }).success,
+    ).toBe(false);
+    expect(skillInputSchema.safeParse({}).success).toBe(false);
   });
 
   it('forwards user-configurable settings', () => {
@@ -243,12 +375,18 @@ describe('createFx', () => {
       credential: string;
     }) => `ephemeral-${credential}`;
     const portEndpoint = { url: 'wss://sandbox.example/bridge' };
+    const reconnect = {
+      maxElapsedMs: 120_000,
+      initialDelayMs: 100,
+      maxDelayMs: 5_000,
+    };
     createFx({
       auth: 'direct',
       credentialForwarding,
       port: 4319,
       portEndpoint,
       startupTimeoutMs: 45_000,
+      reconnect,
       mcpServers: { external: { command: 'external-mcp' } },
       mintBridgeToken,
     });
@@ -261,6 +399,7 @@ describe('createFx', () => {
       port: settings.port,
       portEndpoint: settings.portEndpoint,
       startupTimeoutMs: settings.startupTimeoutMs,
+      reconnect: settings.reconnect,
       mcpServers: settings.mcpServers,
       mintBridgeToken: settings.mintBridgeToken,
     }).toEqual({
@@ -269,6 +408,7 @@ describe('createFx', () => {
       port: 4319,
       portEndpoint,
       startupTimeoutMs: 45_000,
+      reconnect,
       mcpServers: { external: { command: 'external-mcp' } },
       mintBridgeToken,
     });
@@ -353,7 +493,7 @@ describe('createFx', () => {
           headers: {
             'x-tenant': 'acme',
             Authorization: 'Bearer oidc-secret',
-            'x-client-app': 'ai-sdk/harness-fx/0.0.0-test',
+            'x-client-app': 'ai-sdk-harness-fx/0.0.0-test',
           },
         },
       },
@@ -378,7 +518,7 @@ describe('createFx', () => {
         transform: {
           headers: {
             Authorization: 'Bearer gateway-secret',
-            'x-client-app': 'ai-sdk/harness-fx/0.0.0-test',
+            'x-client-app': 'ai-sdk-harness-fx/0.0.0-test',
           },
         },
       },
@@ -409,7 +549,7 @@ describe('createFx', () => {
         transform: {
           headers: {
             Authorization: 'Bearer gateway-secret',
-            'x-client-app': 'ai-sdk/harness-fx/0.0.0-test',
+            'x-client-app': 'ai-sdk-harness-fx/0.0.0-test',
           },
         },
       },
@@ -455,7 +595,7 @@ describe('createFx', () => {
         transform: {
           headers: {
             Authorization: `Bearer ${accessToken}`,
-            'x-client-app': `ai-sdk/harness-fx/${VERSION}`,
+            'x-client-app': `ai-sdk-harness-fx/${VERSION}`,
           },
         },
       },
@@ -521,7 +661,7 @@ describe('createFx', () => {
         transform: {
           headers: {
             Authorization: 'Bearer explicit-gateway-key',
-            'x-client-app': 'ai-sdk/harness-fx/0.0.0-test',
+            'x-client-app': 'ai-sdk-harness-fx/0.0.0-test',
           },
         },
       },

@@ -1,5 +1,5 @@
 // Shared in-sandbox bridge runtime. Adapter `bridge.mjs` bundles re-bundle
-// this module (tsup inlines it; `ws` stays external and resolves from the
+// this module (tsdown inlines it; `ws` stays external and resolves from the
 // sandbox-installed node_modules). It owns everything generic to the bridge
 // transport — the WebSocket server, token auth, the in-memory event log +
 // monotonic `seq`, resume replay, and the lifecycle/meta files. Any number of
@@ -15,6 +15,10 @@ import type { ToolResultPart } from '@ai-sdk/provider-utils';
 import { WebSocketServer, type WebSocket } from 'ws';
 
 export { HarnessBridgeCapabilityUnsupportedError } from './harness-bridge-capability-unsupported-error';
+export {
+  convertHarnessToolModelOutput,
+  type HarnessToolModelOutputContent,
+} from '../utils/convert-harness-tool-model-output';
 
 export type BridgeState = 'init' | 'waiting' | 'running' | 'draining' | 'done';
 
@@ -934,7 +938,6 @@ export async function runBridge<TStart extends { type: 'start' }>(
         const data = (await onStop?.()) ?? {};
         sendControl(ws, { type: 'bridge-stop', data });
         drainThenExit(ws, 1000, 'stop');
-        return;
       }
     }
   };

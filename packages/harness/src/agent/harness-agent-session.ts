@@ -1,6 +1,7 @@
 import type {
   Context,
   Experimental_SandboxSession as SandboxSession,
+  InferToolSetContext,
   ToolApprovalResponse,
   ToolResultPart,
   ToolSet,
@@ -16,6 +17,7 @@ import type {
   HarnessV1BuiltinToolFiltering,
   HarnessV1NetworkSandboxSession,
   HarnessV1PromptControl,
+  HarnessV1ReadHistoryResult,
   HarnessV1ResponseFormat,
   HarnessV1Skill,
   HarnessV1TurnSettings,
@@ -65,6 +67,8 @@ type ActivePromptControl = {
 type ActiveTurnSettings = {
   readonly persisted: HarnessV1TurnSettings;
   readonly tools: ToolSet;
+  readonly toolsContext: Record<string, Context | undefined>;
+  readonly runtimeContext: Context;
   readonly activeTools: ToolSet;
   readonly builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
 };
@@ -119,6 +123,10 @@ export class HarnessAgentSession {
     | undefined;
   private activeTurnSettings: ActiveTurnSettings | undefined;
   private persistedTurnSettings: HarnessV1TurnSettings | undefined;
+  private readonly resumedToolsContext:
+    | Record<string, Context | undefined>
+    | undefined;
+  private readonly resumedRuntimeContext: Context | undefined;
 
   /**
    * Whether this session was created from `resumeFrom` or `continueFrom`.
@@ -137,6 +145,8 @@ export class HarnessAgentSession {
     pendingToolApprovals?: readonly HarnessAgentPendingToolApproval[];
     pendingToolResults?: readonly HarnessAgentPendingToolResult[];
     turnSettings?: HarnessV1TurnSettings;
+    resumedToolsContext?: Record<string, Context | undefined>;
+    resumedRuntimeContext?: Context;
     turnState?: HarnessAgentTurnState;
   }) {
     this.sessionId = options.sessionId;
@@ -153,6 +163,8 @@ export class HarnessAgentSession {
       this.pendingToolResults.set(pendingResult.toolCallId, pendingResult);
     }
     this.persistedTurnSettings = options.turnSettings;
+    this.resumedToolsContext = options.resumedToolsContext;
+    this.resumedRuntimeContext = options.resumedRuntimeContext;
     this.turnState =
       options.turnState ??
       (this.pendingToolApprovals.size > 0
@@ -201,6 +213,7 @@ export class HarnessAgentSession {
     skills: ReadonlyArray<HarnessV1Skill>;
     instructions: string | undefined;
     tools: TOOLS;
+    toolsContext: InferToolSetContext<TOOLS>;
     activeTools: ToolSet;
     toolSpecs: HarnessAgentToolSpec[];
     builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
@@ -225,6 +238,8 @@ export class HarnessAgentSession {
     this.activeTurnSettings = {
       persisted: this.persistedTurnSettings,
       tools: options.tools,
+      toolsContext: options.toolsContext,
+      runtimeContext: options.runtimeContext,
       activeTools: options.activeTools,
       builtinToolFiltering: options.builtinToolFiltering,
     };
@@ -239,6 +254,7 @@ export class HarnessAgentSession {
         skills: options.skills,
         instructions: options.instructions,
         tools: options.tools,
+        toolsContext: options.toolsContext,
         activeTools: options.activeTools,
         toolSpecs: options.toolSpecs,
         builtinToolFiltering: options.builtinToolFiltering,
@@ -302,6 +318,7 @@ export class HarnessAgentSession {
     skills: ReadonlyArray<HarnessV1Skill>;
     instructions: string | undefined;
     tools: TOOLS;
+    toolsContext: InferToolSetContext<TOOLS>;
     activeTools: ToolSet;
     toolSpecs: HarnessAgentToolSpec[];
     builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
@@ -322,6 +339,8 @@ export class HarnessAgentSession {
       skills: options.skills,
       instructions: options.instructions,
       tools: options.tools,
+      toolsContext: options.toolsContext,
+      runtimeContext: options.runtimeContext,
       activeTools: options.activeTools,
       toolSpecs: options.toolSpecs,
       builtinToolFiltering: options.builtinToolFiltering,
@@ -337,12 +356,13 @@ export class HarnessAgentSession {
         skills: turnSettings.persisted.skills,
         instructions: turnSettings.persisted.instructions,
         tools: turnSettings.tools as TOOLS,
+        toolsContext: turnSettings.toolsContext as InferToolSetContext<TOOLS>,
         activeTools: turnSettings.activeTools,
         toolSpecs: [...turnSettings.persisted.tools],
         builtinToolFiltering: turnSettings.builtinToolFiltering,
         sandboxSession: getRestrictedSandboxSession(sandboxSession),
         sessionWorkDir: this.sessionWorkDir,
-        runtimeContext: options.runtimeContext,
+        runtimeContext: turnSettings.runtimeContext as RUNTIME_CONTEXT,
         abortSignal: options.abortSignal,
         responseFormat: options.responseFormat,
         output: options.output,
@@ -463,22 +483,53 @@ export class HarnessAgentSession {
       );
     }
     const session = this.underlyingSession;
-    try {
-      if (this.turnState !== 'idle') {
-        return this.toResumeStateWithContinuation({
-          continueFrom: await this.finalizeCurrentTurnSuspension({ session }),
-        });
-      }
-      const raw = await session.doDetach();
-      const validated = await validateLifecycleStateData({
-        harness: this.harness,
-        state: raw,
-        expectedType: 'resume-session',
-      });
-      return validated;
-    } finally {
-      this.endLocalHandle({ sessionState: 'detached' });
+    const state =
+      this.turnState !== 'idle'
+        ? this.toResumeStateWithContinuation({
+            continueFrom: await this.finalizeCurrentTurnSuspension({ session }),
+          })
+        : await validateLifecycleStateData({
+            harness: this.harness,
+            state: await session.doDetach(),
+            expectedType: 'resume-session',
+          });
+    this.endLocalHandle({ sessionState: 'detached' });
+    return state;
+  }
+
+  /**
+   * Read the conversation history the runtime itself persisted, normalized
+   * by the adapter. Includes exchanges that happened outside this process —
+   * the same conversation continued interactively in the agent's own CLI,
+   * for instance — which the live event stream never saw.
+   *
+   * Pass a previous result's `cursor` as `since` to read only the delta. A
+   * conversation with no recorded messages yet resolves to an empty
+   * `messages` array.
+   *
+   * Throws `HarnessCapabilityUnsupportedError` when the adapter does not
+   * implement history reads, and
+   * `HarnessHistoryUnavailableError` when the adapter supports them but
+   * cannot reach the runtime's store from this environment.
+   */
+  async readHistory(options?: {
+    since?: string;
+  }): Promise<HarnessV1ReadHistoryResult> {
+    if (this.sessionState !== 'active' || this.underlyingSession == null) {
+      throw new Error(
+        `Harness session ${this.sessionId} is not active and cannot read history.`,
+      );
     }
+    const session = this.underlyingSession;
+    if (typeof session.doReadHistory !== 'function') {
+      throw new HarnessCapabilityUnsupportedError({
+        harnessId: this.harness.harnessId,
+        message: `Harness '${this.harness.harnessId}' does not support reading the runtime's conversation history.`,
+      });
+    }
+    return await session.doReadHistory({
+      ...(options?.since != null ? { since: options.since } : {}),
+    });
   }
 
   /**
@@ -778,6 +829,8 @@ export class HarnessAgentSession {
     skills: ReadonlyArray<HarnessV1Skill>;
     instructions: string | undefined;
     tools: ToolSet;
+    toolsContext: Record<string, Context | undefined>;
+    runtimeContext: Context;
     activeTools: ToolSet;
     toolSpecs: HarnessAgentToolSpec[];
     builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
@@ -811,6 +864,8 @@ export class HarnessAgentSession {
     this.activeTurnSettings = {
       persisted,
       tools: options.tools,
+      toolsContext: this.resumedToolsContext ?? options.toolsContext,
+      runtimeContext: this.resumedRuntimeContext ?? options.runtimeContext,
       activeTools,
       builtinToolFiltering: options.builtinToolFiltering,
     };

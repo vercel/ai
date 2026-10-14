@@ -6,7 +6,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: cohere('command-r-plus'),
+    model: cohere('command-a-03-2025'),
     maxOutputTokens: 512,
     tools: {
       weather: weatherTool,

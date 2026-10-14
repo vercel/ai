@@ -1,4 +1,5 @@
 import type * as AnthropicInternal from '@ai-sdk/anthropic/internal';
+import { prepareTools as prepareAnthropicTools } from '@ai-sdk/anthropic/internal';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { prepareTools } from './amazon-bedrock-prepare-tools';
 
@@ -387,6 +388,146 @@ describe('prepareTools', () => {
         'getWeather',
       );
     });
+
+    describe('models that reject forced tool use', () => {
+      const weatherTool = {
+        type: 'function' as const,
+        name: 'getWeather',
+        description: 'Get weather',
+        inputSchema: { type: 'object' as const },
+      };
+      const timeTool = {
+        type: 'function' as const,
+        name: 'getTime',
+        description: 'Get time',
+        inputSchema: { type: 'object' as const },
+      };
+
+      it.each([
+        'anthropic.claude-opus-5-5',
+        'us.anthropic.claude-opus-5-5',
+        'global.anthropic.claude-opus-5-5',
+        'anthropic.claude-sonnet-5-5',
+        'us.anthropic.claude-sonnet-5-5',
+      ])(
+        'should fall back to auto for tool choice "required" on %s',
+        async modelId => {
+          const result = await prepareTools({
+            tools: [weatherTool],
+            toolChoice: { type: 'required' },
+            modelId,
+            rejectsForcedToolUse: true,
+          });
+
+          expect(result.toolConfig.toolChoice).toEqual({ auto: {} });
+          expect(result.toolWarnings).toEqual([
+            {
+              type: 'unsupported',
+              feature: 'toolChoice',
+              details:
+                "toolChoice 'required' is not supported by this model because it rejects forced tool use. " +
+                "Using 'auto' instead. Instruct the model to use a tool in the prompt and verify that a tool call was made.",
+            },
+          ]);
+        },
+      );
+
+      it('should fall back to auto and send only the named function tool for tool choice "tool"', async () => {
+        const result = await prepareTools({
+          tools: [weatherTool, timeTool],
+          toolChoice: { type: 'tool', toolName: 'getWeather' },
+          modelId: 'us.anthropic.claude-opus-5-5',
+          rejectsForcedToolUse: true,
+        });
+
+        expect(result.toolConfig.toolChoice).toEqual({ auto: {} });
+        expect(
+          result.toolConfig.tools?.map(tool => (tool as any).toolSpec.name),
+        ).toEqual(['getWeather']);
+        expect(result.toolWarnings).toEqual([
+          {
+            type: 'unsupported',
+            feature: 'toolChoice',
+            details:
+              "toolChoice 'tool' is not supported by this model because it rejects forced tool use. " +
+              "Only the 'getWeather' tool is sent with 'auto' tool choice. " +
+              'Instruct the model to use the tool in the prompt and verify that a tool call was made.',
+          },
+        ]);
+      });
+
+      it('should drop provider tools that are not the named tool for tool choice "tool"', async () => {
+        const result = await prepareTools({
+          tools: [
+            weatherTool,
+            {
+              type: 'provider',
+              id: 'anthropic.bash_20250124',
+              name: 'bash',
+              args: {},
+            },
+          ],
+          toolChoice: { type: 'tool', toolName: 'getWeather' },
+          modelId: 'us.anthropic.claude-opus-5-5',
+          rejectsForcedToolUse: true,
+        });
+
+        expect(result.toolConfig.toolChoice).toEqual({ auto: {} });
+        expect(
+          result.toolConfig.tools?.map(tool => (tool as any).toolSpec.name),
+        ).toEqual(['getWeather']);
+        expect(result.additionalTools).toBeUndefined();
+      });
+
+      it('should pass the forced-tool capability to Anthropic provider tool preparation', async () => {
+        await prepareTools({
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.bash_20250124',
+              name: 'bash',
+              args: {},
+            },
+          ],
+          toolChoice: { type: 'tool', toolName: 'bash' },
+          modelId: 'us.anthropic.claude-opus-5-5',
+          rejectsForcedToolUse: true,
+        });
+
+        expect(prepareAnthropicTools).toHaveBeenCalledWith(
+          expect.objectContaining({
+            toolChoice: { type: 'tool', toolName: 'bash' },
+            rejectsForcedToolUse: true,
+          }),
+        );
+      });
+
+      it('should preserve disabled parallel tool use in the auto fallback', async () => {
+        const result = await prepareTools({
+          tools: [weatherTool],
+          toolChoice: { type: 'required' },
+          modelId: 'us.anthropic.claude-opus-5-5',
+          disableParallelToolUse: true,
+          rejectsForcedToolUse: true,
+        });
+
+        expect(result.additionalTools).toEqual({
+          tool_choice: { type: 'auto', disable_parallel_tool_use: true },
+        });
+        expect(result.toolConfig.toolChoice).toBeUndefined();
+      });
+
+      it('should keep forced tool choice for models that support it', async () => {
+        const result = await prepareTools({
+          tools: [weatherTool],
+          toolChoice: { type: 'required' },
+          modelId: 'us.anthropic.claude-opus-5',
+        });
+
+        expect(result.toolConfig.toolChoice).toEqual({ any: {} });
+        expect(result.toolWarnings).toEqual([]);
+      });
+    });
   });
 
   describe('strict mode for function tools', () => {
@@ -680,6 +821,8 @@ describe('prepareTools', () => {
     });
 
     it.each([
+      'us.anthropic.claude-opus-6-v1:0',
+      'global.anthropic.claude-future-v1:0',
       'us.anthropic.claude-opus-4-7',
       'anthropic.claude-opus-4-8',
       'us.anthropic.claude-opus-5',
@@ -712,6 +855,26 @@ describe('prepareTools', () => {
             "Tool 'testFunction' has strict: true, but strict mode is not supported by this model on Amazon Bedrock. The strict property will be ignored.",
         },
       ]);
+    });
+
+    it('should omit strict without warning when strict is false and strict mode is unsupported', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+            strict: false,
+          },
+        ],
+        modelId: 'us.anthropic.claude-opus-4-7',
+      });
+
+      expect((result.toolConfig.tools![0] as any).toolSpec).not.toHaveProperty(
+        'strict',
+      );
+      expect(result.toolWarnings).toEqual([]);
     });
   });
 });

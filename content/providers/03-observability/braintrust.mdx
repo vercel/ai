@@ -43,7 +43,7 @@ import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const result = await generateText({
-  model: openai('gpt-4o-mini'),
+  model: openai('gpt-6-luna'),
   prompt: 'What is 2 + 2?',
   context: {
     query: 'weather',
@@ -63,7 +63,7 @@ export async function POST(req: Request) {
   const { prompt } = await req.json();
 
   const result = await streamText({
-    model: openai('gpt-4o-mini'),
+    model: openai('gpt-6-luna'),
     prompt,
   });
 
@@ -107,7 +107,7 @@ registerTelemetry(new LegacyOpenTelemetry());
 
 async function main() {
   const result = await generateText({
-    model: openai('gpt-4o-mini'),
+    model: openai('gpt-6-luna'),
     messages: [
       {
         role: 'user',

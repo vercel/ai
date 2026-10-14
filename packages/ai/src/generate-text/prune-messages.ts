@@ -47,7 +47,9 @@ export function pruneMessages({
 
       return {
         ...message,
-        content: message.content.filter(part => part.type !== 'reasoning'),
+        content: message.content.filter(
+          part => part.type !== 'reasoning' && part.type !== 'reasoning-file',
+        ),
       };
     });
   }
@@ -80,7 +82,7 @@ export function pruneMessages({
     const keptToolCallIds: Set<string> = new Set();
     const keptApprovalIds: Set<string> = new Set();
 
-    if (keepLastMessagesCount != null) {
+    if (keepLastMessagesCount != null && keepLastMessagesCount !== 0) {
       for (const message of messages.slice(-keepLastMessagesCount)) {
         if (
           (message.role === 'assistant' || message.role === 'tool') &&

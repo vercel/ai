@@ -8,7 +8,10 @@ import {
   type HarnessAgentResumeSessionState,
 } from '@ai-sdk/harness/agent';
 import { createGitHubCopilot } from './_create';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import {
+  createVercelNetworkSandboxSession,
+  resumeVercelNetworkSandboxSession,
+} from '@ai-sdk/sandbox-vercel';
 import { run } from '../../lib/run';
 
 const githubCopilot = createGitHubCopilot();
@@ -25,7 +28,9 @@ run(async () => {
     );
   }
 
-  const sandbox = createVercelSandbox({
+  const sandboxName = `harness-${crypto.randomUUID()}`;
+  const sandboxSession = await createVercelNetworkSandboxSession({
+    sandboxId: sandboxName,
     token,
     teamId,
     projectId,
@@ -33,28 +38,41 @@ run(async () => {
     ports: [4000],
     timeout: 10 * 60 * 1000,
   });
-
-  let sessionId: string;
-  let resumeState: HarnessAgentResumeSessionState;
-  {
-    const agent = new HarnessAgent({ harness: githubCopilot, sandbox });
-    const session = await agent.createSession();
-    sessionId = session.sessionId;
-    resumeState = await session.stop();
-  }
-
-  {
-    const agent = new HarnessAgent({ harness: githubCopilot, sandbox });
-    const session = await agent.createSession({
-      sessionId,
-      resumeFrom: resumeState,
-    });
-    if (!session.isResume) {
-      throw new Error('expected resumed session');
+  let activeSandboxSession = sandboxSession;
+  try {
+    let sessionId: string;
+    let resumeState: HarnessAgentResumeSessionState;
+    {
+      const agent = new HarnessAgent({ harness: githubCopilot });
+      const session = await agent.createSession({
+        sandboxSession: activeSandboxSession,
+      });
+      sessionId = session.sessionId;
+      resumeState = await session.stop();
     }
-    await session.destroy();
-  }
 
-  console.log('Successfully resumed the named Vercel Sandbox session.');
-  process.exitCode = 0;
+    {
+      activeSandboxSession = await resumeVercelNetworkSandboxSession({
+        sandboxId: sandboxName,
+        token,
+        teamId,
+        projectId,
+      });
+      const agent = new HarnessAgent({ harness: githubCopilot });
+      const session = await agent.createSession({
+        sandboxSession: activeSandboxSession,
+        sessionId,
+        resumeFrom: resumeState,
+      });
+      if (!session.isResume) {
+        throw new Error('expected resumed session');
+      }
+      await session.destroy();
+    }
+
+    console.log('Successfully resumed the named Vercel Sandbox session.');
+    process.exitCode = 0;
+  } finally {
+    await activeSandboxSession.destroy();
+  }
 });

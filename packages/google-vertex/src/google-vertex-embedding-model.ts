@@ -61,6 +61,7 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV4 {
 
   async doEmbed({
     values,
+    dimensions,
     headers,
     abortSignal,
     providerOptions,
@@ -116,7 +117,8 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV4 {
         body: {
           content: { parts: [{ text: values[0] }] },
           embedContentConfig: {
-            outputDimensionality: googleOptions.outputDimensionality,
+            outputDimensionality:
+              googleOptions.outputDimensionality ?? dimensions,
             taskType: googleOptions.taskType,
             title: googleOptions.title,
             autoTruncate: googleOptions.autoTruncate,
@@ -156,7 +158,8 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV4 {
           title: googleOptions.title,
         })),
         parameters: {
-          outputDimensionality: googleOptions.outputDimensionality,
+          outputDimensionality:
+            googleOptions.outputDimensionality ?? dimensions,
           autoTruncate: googleOptions.autoTruncate,
         },
       },

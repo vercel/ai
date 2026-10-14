@@ -45,7 +45,12 @@ import {
 } from 'vitest';
 import { mockSandboxSessionFileStubs } from '../test/mock-sandbox';
 import { z } from 'zod/v4';
-import { Output, type LanguageModelCallEndEvent, type Telemetry } from '..';
+import {
+  Output,
+  ToolLoopAgent,
+  type LanguageModelCallEndEvent,
+  type Telemetry,
+} from '..';
 import {
   NoOutputGeneratedError,
   StreamProviderError,
@@ -61,10 +66,17 @@ import {
   createNullLanguageModelUsage,
 } from '../types/usage';
 import { readUIMessageStream } from '../ui-message-stream/read-ui-message-stream';
+import { convertToModelMessages } from '../ui/convert-to-model-messages';
+import type { UIMessage } from '../ui/ui-messages';
+import { validateUIMessages } from '../ui/validate-ui-messages';
 import type { StepResult } from './step-result';
 import { isLoopFinished, isStepCount } from './stop-condition';
 import { streamText } from './stream-text';
-import type { StreamTextResult, TextStreamPart } from './stream-text-result';
+import type {
+  StreamTextResult,
+  TextStreamPart,
+  UIMessageStreamOptions,
+} from './stream-text-result';
 import type {
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
@@ -1852,6 +1864,7 @@ describe('streamText', () => {
 
       it('should surface an error when a different tool is called instead of the required tool', async () => {
         const onError = vi.fn();
+        const executeTool2 = vi.fn();
 
         const result = streamText({
           model: new MockLanguageModelV4({
@@ -1880,6 +1893,7 @@ describe('streamText', () => {
             }),
             tool2: tool({
               inputSchema: z.object({ value: z.string() }),
+              execute: executeTool2,
             }),
           },
           toolChoice: { type: 'tool', toolName: 'tool1' },
@@ -1906,6 +1920,7 @@ describe('streamText', () => {
           ],
         });
         await expect(result.finishReason).resolves.toBe('error');
+        expect(executeTool2).not.toHaveBeenCalled();
       });
 
       it('should enforce the tool choice returned by prepareStep', async () => {
@@ -4971,6 +4986,71 @@ describe('streamText', () => {
   });
 
   describe('result.toUIMessageStream', () => {
+    it.each([
+      ['stream', false],
+      ['response', false],
+      ['pipe', false],
+      ['stream', true],
+      ['response', true],
+      ['pipe', true],
+    ] as const)(
+      'forwards UI step callbacks through %s (deprecated alias: %s)',
+      async (method, deprecated) => {
+        const onGenerationStepEnd = vi.fn();
+        const onUIStepEnd = vi.fn();
+        const onEnd = vi.fn();
+        const result = streamText({
+          model: createTestModel(),
+          prompt: 'test-input',
+          onStepEnd: onGenerationStepEnd,
+        });
+        const options: UIMessageStreamOptions<
+          UIMessage<{ totalTokens?: number; final?: boolean }>
+        > = {
+          generateMessageId: () => 'assistant-1',
+          messageMetadata: ({ part }) =>
+            part.type === 'finish-step'
+              ? { totalTokens: part.usage.totalTokens }
+              : part.type === 'finish'
+                ? { final: true }
+                : undefined,
+          onStepEnd: deprecated ? undefined : onUIStepEnd,
+          onStepFinish: deprecated ? onUIStepEnd : undefined,
+          onEnd,
+        };
+        if (method === 'stream') {
+          await convertReadableStreamToArray(result.toUIMessageStream(options));
+        } else if (method === 'response') {
+          await result.toUIMessageStreamResponse(options).text();
+        } else {
+          const response = createMockServerResponse();
+          result.pipeUIMessageStreamToResponse(response, options);
+          await response.waitForEnd();
+        }
+
+        expect(onGenerationStepEnd).toHaveBeenCalledOnce();
+        expect(onGenerationStepEnd.mock.calls[0][0]).not.toHaveProperty(
+          'responseMessage',
+        );
+        expect(onUIStepEnd).toHaveBeenCalledOnce();
+        expect(onUIStepEnd.mock.calls[0][0].responseMessage).toMatchObject({
+          id: 'assistant-1',
+          metadata: { totalTokens: 13 },
+          parts: [
+            { type: 'step-start' },
+            { type: 'text', text: 'Hello, world!', state: 'done' },
+          ],
+        });
+        expect(
+          onUIStepEnd.mock.calls[0][0].responseMessage.metadata,
+        ).not.toHaveProperty('final');
+        expect(onEnd.mock.calls[0][0].responseMessage.metadata).toEqual({
+          totalTokens: 13,
+          final: true,
+        });
+      },
+    );
+
     it('should include tool metadata in ui message stream chunks', async () => {
       const result = streamText({
         model: createTestModel({
@@ -5372,13 +5452,13 @@ describe('streamText', () => {
               "type": "message-metadata",
             },
             {
-              "type": "finish-step",
-            },
-            {
               "messageMetadata": {
                 "key8": "value8",
               },
               "type": "message-metadata",
+            },
+            {
+              "type": "finish-step",
             },
             {
               "finishReason": "stop",
@@ -8756,6 +8836,86 @@ describe('streamText', () => {
     });
   });
 
+  describe('toolCallConcurrency', () => {
+    it('should execute tool calls sequentially in model order with concurrency 1', async () => {
+      const firstStarted = new DelayedPromise<void>();
+      const secondStarted = new DelayedPromise<void>();
+      const releaseFirst = new DelayedPromise<void>();
+      const events: string[] = [];
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'first',
+              input: '{}',
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'call-2',
+              toolName: 'second',
+              input: '{}',
+            },
+            {
+              type: 'finish',
+              finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        tools: {
+          first: tool({
+            inputSchema: z.object({}),
+            execute: async () => {
+              events.push('first:start');
+              firstStarted.resolve();
+              await releaseFirst.promise;
+              events.push('first:end');
+            },
+          }),
+          second: tool({
+            inputSchema: z.object({}),
+            execute: async () => {
+              events.push('second:start');
+              secondStarted.resolve();
+              events.push('second:end');
+            },
+          }),
+        },
+        prompt: 'test-input',
+        toolCallConcurrency: 1,
+      });
+
+      const toolResultsPromise = result.toolResults;
+
+      await firstStarted.promise;
+      expect(events).toEqual(['first:start']);
+      releaseFirst.resolve();
+      await secondStarted.promise;
+      expect(events).toEqual([
+        'first:start',
+        'first:end',
+        'second:start',
+        'second:end',
+      ]);
+      await toolResultsPromise;
+    });
+
+    it('should reject invalid concurrency synchronously', () => {
+      expect(() =>
+        streamText({
+          model: createTestModel(),
+          prompt: 'test-input',
+          toolCallConcurrency: 0,
+        }),
+      ).toThrow(
+        'Invalid argument for parameter toolCallConcurrency: toolCallConcurrency must be >= 1',
+      );
+    });
+  });
+
   describe('result.toolResults', () => {
     it('should resolve with tool results', async () => {
       const result = streamText({
@@ -9536,7 +9696,6 @@ describe('streamText', () => {
           if (stepNumber === 1) {
             return { model: alternateModel };
           }
-          return undefined;
         },
         onStepStart: async event => {
           stepStartEvents.push(event);
@@ -10060,8 +10219,6 @@ describe('streamText', () => {
               },
             };
           }
-
-          return undefined;
         },
         onStepStart: async event => {
           stepStartEvents.push(event);
@@ -24664,6 +24821,96 @@ describe('streamText', () => {
   });
 
   describe('abort signal', () => {
+    it.each(['streamText', 'ToolLoopAgent'] as const)(
+      '%s should reject on abort without waiting for callbacks or cancellation',
+      async api => {
+        const abortController = new AbortController();
+        const reason = new Error('manual abort');
+        const outputReceived = new DelayedPromise<void>();
+        const abortCallback = new DelayedPromise<void>();
+        let providerController!: ReadableStreamDefaultController<LanguageModelV4StreamPart>;
+        const cancel = vi.fn(() => new Promise<void>(() => {}));
+        const onAbort = vi.fn(() => abortCallback.promise);
+        const onError = vi.fn();
+        const onEnd = vi.fn();
+        const options = {
+          model: new MockLanguageModelV4({
+            doStream: async () => ({
+              stream: new ReadableStream<LanguageModelV4StreamPart>({
+                start(controller) {
+                  providerController = controller;
+                  controller.enqueue({ type: 'text-start', id: '1' });
+                  controller.enqueue({
+                    type: 'text-delta',
+                    id: '1',
+                    delta: 'Hello',
+                  });
+                  // The body stays open and does not react to the abort signal.
+                },
+                cancel,
+              }),
+            }),
+          }),
+          onAbort,
+          onError,
+          onEnd,
+        };
+        const call = {
+          prompt: 'test-input',
+          abortSignal: abortController.signal,
+          onChunk: ({ chunk }: { chunk: { type: string } }) => {
+            if (chunk.type === 'text-delta') outputReceived.resolve();
+          },
+        };
+        const result =
+          api === 'streamText'
+            ? streamText({ ...options, ...call })
+            : await new ToolLoopAgent(options).stream(call);
+        const stream = convertAsyncIterableToArray(result.stream);
+        const results = Promise.allSettled([
+          result.text,
+          result.steps,
+          result.finishReason,
+          result.totalUsage,
+        ]);
+
+        await outputReceived.promise;
+        abortController.abort(reason);
+
+        try {
+          const settled = await Promise.race([
+            results,
+            delay(100).then(() => {
+              throw new Error('Result promises did not settle after abort');
+            }),
+          ]);
+          expect(settled).toEqual(
+            Array.from({ length: 4 }, () => ({ status: 'rejected', reason })),
+          );
+          // Only let onAbort finish after the result promises have rejected.
+          abortCallback.resolve();
+          const chunks = await stream;
+          expect(chunks.at(-1)).toEqual({
+            type: 'abort',
+            reason: 'Error: manual abort',
+          });
+          expect(cancel).toHaveBeenCalledOnce();
+          expect(onAbort).toHaveBeenCalledExactlyOnceWith(
+            expect.objectContaining({ steps: [], reason }),
+          );
+          expect(onError).not.toHaveBeenCalled();
+          expect(onEnd).not.toHaveBeenCalled();
+        } finally {
+          abortCallback.resolve();
+          // Release the original stream when running this test without the fix.
+          if (cancel.mock.calls.length === 0) {
+            providerController.error(new DOMException('cleanup', 'AbortError'));
+          }
+          await Promise.all([results, stream]);
+        }
+      },
+    );
+
     describe('basic abort', () => {
       let result: StreamTextResult<ToolSet, any, never>;
       let onErrorCalls: Array<{ error: unknown }> = [];
@@ -25128,6 +25375,20 @@ describe('streamText', () => {
       it('should not call onEnd when aborting after a completed step', async () => {
         await result.consumeStream();
         expect(onEndCalls).toBe(0);
+      });
+
+      it('should reject result promises when aborting after a completed step', async () => {
+        await result.consumeStream();
+        await Promise.all(
+          [
+            result.text,
+            result.steps,
+            result.finishReason,
+            result.totalUsage,
+          ].map(promise =>
+            expect(promise).rejects.toHaveProperty('name', 'AbortError'),
+          ),
+        );
       });
 
       it('should only stream initial chunks in full stream', async () => {
@@ -27157,7 +27418,6 @@ describe('streamText', () => {
                 };
               }
             }
-            return undefined;
           },
         });
       });
@@ -28985,6 +29245,100 @@ describe('streamText', () => {
           reason: 'requires operator review',
         }),
       );
+    });
+
+    it('should execute transformed approved input after a persisted UI message round trip', async () => {
+      const execute = vi.fn(async ({ count }: { count: number }) => count);
+      const tools = {
+        count: tool({
+          inputSchema: z.object({
+            count: z.string().transform(Number),
+          }),
+          execute,
+        }),
+      };
+      const firstResult = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'stream-start', warnings: [] },
+            {
+              type: 'tool-call',
+              toolCallId: 'count-call',
+              toolName: 'count',
+              input: '{"count":"3"}',
+            },
+            {
+              type: 'finish',
+              finishReason: { unified: 'tool-calls', raw: undefined },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        tools,
+        toolApproval: { count: 'user-approval' },
+        prompt: 'Count three items.',
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
+        },
+      });
+
+      const uiMessages = await convertReadableStreamToArray(
+        readUIMessageStream({ stream: firstResult.toUIMessageStream() }),
+      );
+      const persistedMessage = JSON.parse(
+        JSON.stringify(uiMessages.at(-1)),
+      ) as UIMessage;
+      const toolPart = persistedMessage.parts.find(
+        part => part.type === 'tool-count',
+      );
+
+      if (
+        toolPart == null ||
+        toolPart.type !== 'tool-count' ||
+        toolPart.state !== 'approval-requested'
+      ) {
+        throw new Error('Expected a count tool approval request.');
+      }
+
+      Object.assign(toolPart, {
+        state: 'approval-responded',
+        approval: { ...toolPart.approval, approved: true },
+      });
+
+      const validatedMessages = await validateUIMessages({
+        messages: [persistedMessage],
+        tools,
+      });
+      const modelMessages = await convertToModelMessages(validatedMessages, {
+        tools,
+      });
+
+      const secondResult = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'stream-start', warnings: [] },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Done' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        tools,
+        toolApproval: { count: 'user-approval' },
+        messages: [
+          { role: 'user', content: 'Count three items.' },
+          ...modelMessages,
+        ],
+      });
+
+      expect(await secondResult.text).toBe('Done');
+      expect(execute).toHaveBeenCalledOnce();
+      expect(execute).toHaveBeenCalledWith({ count: 3 }, expect.anything());
     });
 
     it('should stream invalid approved input as a tool error and continue', async () => {

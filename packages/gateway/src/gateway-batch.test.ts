@@ -2,6 +2,7 @@ import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { GatewayBatch } from './gateway-batch';
+import { createGateway } from './gateway-provider';
 import type { GatewayConfig } from './gateway-config';
 import {
   GatewayInvalidRequestError,
@@ -34,6 +35,7 @@ const createTestBatch = (
 
 describe('GatewayBatch', () => {
   const server = createTestServer({
+    'https://api.test.com/batch/cancel': {},
     'https://api.test.com/batch/start': {},
     'https://api.test.com/batch/status': {},
     'https://api.test.com/batch/results': {},
@@ -506,6 +508,85 @@ describe('GatewayBatch', () => {
     });
   });
 
+  describe('doCancelBatch', () => {
+    it.each([
+      ['pending', 'cancel_requested'],
+      ['completed', 'completed'],
+      ['failed', 'cancelled'],
+    ] as const)(
+      'should acknowledge cancellation without treating %s as a cancellation result',
+      async (status, jobStatus) => {
+        const providerMetadata = {
+          gateway: { asyncJob: { jobId: 'job_123', status: jobStatus } },
+        };
+        server.urls['https://api.test.com/batch/cancel'].response = {
+          type: 'json-value',
+          body: { batchId: 'job_123', status, providerMetadata },
+        };
+        const controller = new AbortController();
+        const fetch = vi.fn().mockImplementation(globalThis.fetch);
+        const result = await createTestBatch({
+          fetch,
+          o11yHeaders: { 'ai-o11y-deployment-id': 'dpl_123' },
+        }).doCancelBatch({
+          batchId: 'job_123',
+          headers: { 'custom-header': 'cancel-value' },
+          abortSignal: controller.signal,
+        });
+
+        expect(result).toEqual({ providerMetadata });
+        expect(server.calls).toHaveLength(1);
+        expect(await server.calls[0].requestBodyJson).toEqual({
+          batchId: 'job_123',
+        });
+        expect(server.calls[0].requestHeaders).toMatchObject({
+          authorization: 'Bearer test-token',
+          'ai-gateway-auth-method': 'api-key',
+          'ai-o11y-deployment-id': 'dpl_123',
+          'custom-header': 'cancel-value',
+        });
+        expect(server.calls[0].requestHeaders['ai-model-id']).toBeUndefined();
+        expect(fetch.mock.calls[0][1].signal).toBe(controller.signal);
+      },
+    );
+
+    it('should allow an acknowledgement without provider metadata', async () => {
+      server.urls['https://api.test.com/batch/cancel'].response = {
+        type: 'json-value',
+        body: { status: 'pending', providerMetadata: null },
+      };
+      await expect(
+        createTestBatch().doCancelBatch({ batchId: 'job_123' }),
+      ).resolves.toEqual({});
+    });
+
+    it('should map missing jobs to GatewayNotFoundError without retrying', async () => {
+      server.urls['https://api.test.com/batch/cancel'].response = {
+        type: 'error',
+        status: 404,
+        body: JSON.stringify({
+          error: { message: 'Async job not found.', type: 'not_found' },
+        }),
+      };
+      await expect(
+        createTestBatch().doCancelBatch({ batchId: 'missing-job' }),
+      ).rejects.toBeInstanceOf(GatewayNotFoundError);
+      expect(server.calls).toHaveLength(1);
+    });
+
+    it.each(['AbortError', 'TimeoutError'])(
+      'should preserve %s without wrapping or retrying it',
+      async name => {
+        const error = new DOMException('Request interrupted.', name);
+        const fetch = vi.fn().mockRejectedValue(error);
+        await expect(
+          createTestBatch({ fetch }).doCancelBatch({ batchId: 'job_123' }),
+        ).rejects.toBe(error);
+        expect(fetch).toHaveBeenCalledOnce();
+      },
+    );
+  });
+
   describe('doGetBatchResults', () => {
     const succeededItem = {
       type: 'text',
@@ -547,6 +628,28 @@ describe('GatewayBatch', () => {
       id: 'req-3',
       status: 'cancelled',
     };
+
+    it.each([16, 4096])(
+      'applies the factory maxLineBytes setting of %s',
+      async maxLineBytes => {
+        prepareBatchResultsResponse([`${JSON.stringify(succeededItem)}\n`]);
+        const batch = createGateway({
+          apiKey: 'test-api-key',
+          baseURL: 'https://api.test.com',
+          batchResultDownloads: { maxLineBytes },
+        }).experimental_batch();
+        const stream = await batch.doGetBatchResults({ batchId: 'job_123' });
+        const results = convertReadableStreamToArray(stream);
+        if (maxLineBytes === 16) {
+          await expect(results).rejects.toMatchObject({
+            name: 'AI_DownloadError',
+            url: 'https://api.test.com/batch/results',
+          });
+        } else {
+          await expect(results).resolves.toHaveLength(1);
+        }
+      },
+    );
 
     it('should revive response.timestamp into a Date on succeeded items', async () => {
       prepareBatchResultsResponse([`${JSON.stringify(succeededItem)}\n`]);

@@ -739,8 +739,8 @@ describe('createClineSession model configuration', () => {
           headers: {
             'x-custom': 'custom',
             'x-agent': 'agent',
-            'User-Agent': 'ai-sdk/harness-cline/0.0.0-test',
-            'x-client-app': 'ai-sdk/harness-cline/0.0.0-test',
+            'User-Agent': 'ai-sdk-harness-cline/0.0.0-test',
+            'x-client-app': 'ai-sdk-harness-cline/0.0.0-test',
           },
         },
         {
@@ -751,8 +751,8 @@ describe('createClineSession model configuration', () => {
           headers: {
             'x-custom': 'custom',
             'x-agent': 'agent',
-            'User-Agent': 'ai-sdk/harness-cline/0.0.0-test',
-            'x-client-app': 'ai-sdk/harness-cline/0.0.0-test',
+            'User-Agent': 'ai-sdk-harness-cline/0.0.0-test',
+            'x-client-app': 'ai-sdk-harness-cline/0.0.0-test',
           },
         },
       ]);
@@ -782,8 +782,8 @@ describe('createClineSession model configuration', () => {
           apiKeyEnv: [],
           baseUrl: 'https://ai-gateway.vercel.sh/v1',
           headers: {
-            'User-Agent': 'ai-sdk/harness-cline/0.0.0-test',
-            'x-client-app': 'ai-sdk/harness-cline/0.0.0-test',
+            'User-Agent': 'ai-sdk-harness-cline/0.0.0-test',
+            'x-client-app': 'ai-sdk-harness-cline/0.0.0-test',
           },
         },
       ]);
@@ -870,6 +870,62 @@ describe('createClineSession tool results', () => {
       }
     },
   );
+
+  it('submits model-facing text and inline images while keeping the raw output', async () => {
+    const session = await createSession();
+
+    try {
+      const control = await session.doPromptTurn({
+        skills: [],
+        prompt: 'use the lookup tool',
+        tools: [
+          { name: 'lookup', inputSchema: { type: 'object', properties: {} } },
+        ],
+        emit: vi.fn(),
+      });
+      await control.done;
+
+      const config = clineMock.configs.at(-1);
+      if (config == null) throw new Error('expected agent config');
+      const tool = findTool({ config, name: 'lookup' });
+      const resultPromise = Promise.resolve(
+        tool.execute({}, createToolContext({ toolCallId: 'call-1' })),
+      );
+
+      await control.submitToolResult({
+        toolCallId: 'call-1',
+        output: { status: 'ready' },
+        toolResult: {
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName: 'lookup',
+          output: {
+            type: 'content',
+            value: [
+              { type: 'text', text: 'marker' },
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: { type: 'data', data: 'iVBORw==' },
+              },
+            ],
+          },
+        },
+      });
+      const result = await runAfterToolHook({
+        config,
+        tool,
+        output: await resultPromise,
+      });
+
+      expect(result?.result?.output).toEqual([
+        { type: 'text', text: 'marker' },
+        { type: 'image', data: 'iVBORw==', mediaType: 'image/png' },
+      ]);
+    } finally {
+      await session.doDestroy();
+    }
+  });
 
   it('marks a pending host tool result as an error when the session is destroyed', async () => {
     const session = await createSession();
@@ -1155,7 +1211,7 @@ async function createSession(
       isAuthenticationEnvironmentOverride: false,
       ...input.settings,
     },
-    clientApp: 'ai-sdk/harness-cline/0.0.0-test',
+    clientApp: 'ai-sdk-harness-cline/0.0.0-test',
     isResume: input.isResume ?? false,
     ...(input.builtinToolFiltering
       ? { builtinToolFiltering: input.builtinToolFiltering }

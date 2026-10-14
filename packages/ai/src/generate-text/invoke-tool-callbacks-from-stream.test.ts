@@ -57,7 +57,7 @@ describe('invokeToolCallbacksFromStream', () => {
     });
     const resultChunks = await convertReadableStreamToArray(result);
     const recordedCallsForSnapshot = recordedCalls.map(call => ({
-      ...((call as { type: string; options: Record<string, unknown> }) ?? {}),
+      ...(call as { type: string; options: Record<string, unknown> }),
       options: {
         ...(call as { options: Record<string, unknown> }).options,
         abortSignal: '[AbortSignal]',
@@ -289,5 +289,92 @@ describe('invokeToolCallbacksFromStream', () => {
 
     await expect(convertReadableStreamToArray(result)).resolves.toEqual(chunks);
     expect(recordedCalls).toEqual(['onInputStart', 'onInputDelta']);
+  });
+
+  it('should invoke onInputAvailable for the tool named by the completed tool call', async () => {
+    const recordedCalls: string[] = [];
+    const callbackContexts: Array<{
+      callback: 'onInputStart' | 'onInputDelta' | 'onInputAvailable';
+      context: unknown;
+    }> = [];
+    const tools = {
+      originalTool: tool({
+        inputSchema: z.object({ value: z.string() }),
+        contextSchema: z.object({ source: z.literal('original') }),
+        onInputStart: ({ context }) => {
+          recordedCalls.push('originalTool.onInputStart');
+          callbackContexts.push({ callback: 'onInputStart', context });
+        },
+        onInputDelta: ({ context }) => {
+          recordedCalls.push('originalTool.onInputDelta');
+          callbackContexts.push({ callback: 'onInputDelta', context });
+        },
+        onInputAvailable: () => {
+          recordedCalls.push('originalTool.onInputAvailable');
+        },
+      }),
+      repairedTool: tool({
+        inputSchema: z.object({ count: z.number() }),
+        contextSchema: z.object({ source: z.literal('repaired') }),
+        onInputAvailable: ({ input, context }) => {
+          callbackContexts.push({ callback: 'onInputAvailable', context });
+          recordedCalls.push(
+            `repairedTool.onInputAvailable:${JSON.stringify(input)}`,
+          );
+        },
+      }),
+    };
+
+    const chunks: Array<LanguageModelStreamPart<typeof tools>> = [
+      {
+        type: 'tool-input-start',
+        id: 'call-1',
+        toolName: 'originalTool',
+      },
+      {
+        type: 'tool-input-delta',
+        id: 'call-1',
+        delta: '{"count":3}',
+      },
+      { type: 'tool-input-end', id: 'call-1' },
+      {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'repairedTool',
+        input: { count: 3 },
+      },
+    ];
+
+    const result = invokeToolCallbacksFromStream({
+      stream: convertArrayToReadableStream(chunks),
+      tools,
+      stepInputMessages: [],
+      abortSignal: undefined,
+      toolsContext: {
+        originalTool: { source: 'original' },
+        repairedTool: { source: 'repaired' },
+      },
+    });
+
+    await expect(convertReadableStreamToArray(result)).resolves.toEqual(chunks);
+    expect(recordedCalls).toEqual([
+      'originalTool.onInputStart',
+      'originalTool.onInputDelta',
+      'repairedTool.onInputAvailable:{"count":3}',
+    ]);
+    expect(callbackContexts).toEqual([
+      {
+        callback: 'onInputStart',
+        context: { source: 'original' },
+      },
+      {
+        callback: 'onInputDelta',
+        context: { source: 'original' },
+      },
+      {
+        callback: 'onInputAvailable',
+        context: { source: 'repaired' },
+      },
+    ]);
   });
 });

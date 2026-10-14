@@ -8,7 +8,7 @@ import { print } from '../../lib/print';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const model = 'anthropic/claude-sonnet-5';
+  const model = 'anthropic/claude-sonnet-5.5';
 
   const batch = await startBatch({
     requests: [

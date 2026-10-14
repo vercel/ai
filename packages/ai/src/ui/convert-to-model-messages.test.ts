@@ -10,6 +10,7 @@ import {
   processUIMessageStream,
 } from './process-ui-message-stream';
 import type { UIMessage } from './ui-messages';
+import { validateUIMessages } from './validate-ui-messages';
 
 async function recordAssistantMessageFromChunks<
   UI_MESSAGE extends UIMessage = UIMessage,
@@ -462,6 +463,61 @@ describe('convertToModelMessages', () => {
       `);
     });
 
+    it('should preserve an Anthropic compaction signature through UI message persistence', async () => {
+      const recordedMessage = await recordAssistantMessageFromChunks([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        {
+          type: 'text-start',
+          id: 'compaction',
+          providerMetadata: {
+            anthropic: {
+              type: 'compaction',
+              signature: 'compaction-signature',
+            },
+          },
+        },
+        {
+          type: 'text-delta',
+          id: 'compaction',
+          delta: 'Summary of the conversation.',
+        },
+        { type: 'text-end', id: 'compaction' },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      expect(recordedMessage.parts).toContainEqual({
+        type: 'text',
+        text: 'Summary of the conversation.',
+        state: 'done',
+        providerMetadata: {
+          anthropic: {
+            type: 'compaction',
+            signature: 'compaction-signature',
+          },
+        },
+      });
+
+      await expect(
+        convertToModelMessages([recordedMessage]),
+      ).resolves.toContainEqual({
+        role: 'assistant',
+        content: [
+          {
+            type: 'text',
+            text: 'Summary of the conversation.',
+            providerOptions: {
+              anthropic: {
+                type: 'compaction',
+                signature: 'compaction-signature',
+              },
+            },
+          },
+        ],
+      });
+    });
+
     it('should convert an assistant message with reasoning', async () => {
       const result = await convertToModelMessages([
         {
@@ -724,6 +780,107 @@ describe('convertToModelMessages', () => {
       `);
     });
 
+    it('should omit persisted output when a static tool is no longer available', async () => {
+      const historicalTool = tool({
+        inputSchema: z.object({ query: z.string() }),
+        outputSchema: z.object({
+          summary: z.string(),
+          privateMetadata: z.string(),
+        }),
+        toModelOutput: ({ output }) => ({
+          type: 'text',
+          value: output.summary,
+        }),
+      });
+
+      const history: UIMessage[] = [
+        {
+          id: 'assistant-1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-search',
+              toolCallId: 'call-1',
+              state: 'output-available',
+              input: { query: 'weather' },
+              output: {
+                summary: 'sunny',
+                privateMetadata: 'must-not-reach-the-model',
+              },
+            },
+          ],
+        },
+      ];
+
+      const before = await convertToModelMessages(
+        await validateUIMessages({
+          messages: history,
+          tools: { search: historicalTool },
+        }),
+        { tools: { search: historicalTool } },
+      );
+
+      const validatedWithoutTool = await validateUIMessages({
+        messages: history,
+        tools: {},
+      });
+
+      expect(validatedWithoutTool[0].parts[0]).toMatchObject({
+        type: 'dynamic-tool',
+        dynamic: false,
+      });
+
+      const reloadedMessages = [
+        JSON.parse(JSON.stringify(validatedWithoutTool)) as UIMessage[],
+        structuredClone(validatedWithoutTool),
+      ];
+
+      for (const messages of reloadedMessages) {
+        const revalidatedMessages = await validateUIMessages({
+          messages,
+          tools: {},
+        });
+
+        await expect(
+          convertToModelMessages(revalidatedMessages, { tools: {} }),
+        ).resolves.toEqual([
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'search',
+                input: { query: 'weather' },
+                providerExecuted: undefined,
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'search',
+                output: {
+                  type: 'text',
+                  value:
+                    'Tool output omitted because the tool is no longer available.',
+                },
+              },
+            ],
+          },
+        ]);
+
+        await expect(
+          convertToModelMessages(revalidatedMessages, {
+            tools: { search: historicalTool },
+          }),
+        ).resolves.toEqual(before);
+      }
+    });
+
     describe('tool output error', () => {
       it('should preserve result provider metadata on a failed tool call when call metadata is unavailable', async () => {
         const result = await convertToModelMessages([
@@ -817,7 +974,7 @@ describe('convertToModelMessages', () => {
                 "type": "text",
               },
               {
-                "input": "{\"operation\":\"add\",\"numbers\":[1,2]",
+                "input": "{"operation":"add","numbers":[1,2]",
                 "providerExecuted": undefined,
                 "toolCallId": "call1",
                 "toolName": "calculator",
@@ -1450,6 +1607,36 @@ describe('convertToModelMessages', () => {
     });
   });
 
+  describe('pending tool approvals', () => {
+    it('should ignore a pending approval when followed by a user message', async () => {
+      const result = await convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-weather',
+              state: 'approval-requested',
+              toolCallId: 'call-awaiting-approval',
+              input: { city: 'Tokyo' },
+              approval: { id: 'approval-1' },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          parts: [{ type: 'text', text: 'Use a different city instead.' }],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Use a different city instead.' }],
+        },
+      ]);
+    });
+  });
+
   describe('when ignoring incomplete tool calls', () => {
     it('should ignore preliminary tool outputs', async () => {
       let toModelOutputCalls = 0;
@@ -1582,6 +1769,80 @@ describe('convertToModelMessages', () => {
               approvalId: 'approval-1',
               toolCallId: 'call-approved',
               isAutomatic: undefined,
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-approval-response',
+              approvalId: 'approval-1',
+              approved: true,
+              reason: undefined,
+              providerExecuted: undefined,
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should preserve transformed approval input through a UI message round trip', async () => {
+      const tools = {
+        count: tool({
+          inputSchema: z.object({
+            count: z.string().transform(Number),
+          }),
+        }),
+      };
+      const assistantMessage = await recordAssistantMessageFromChunks([
+        {
+          type: 'tool-input-available',
+          toolCallId: 'count-call',
+          toolName: 'count',
+          input: { count: 3 },
+        },
+        {
+          type: 'tool-approval-request',
+          approvalId: 'approval-1',
+          toolCallId: 'count-call',
+          inputSchemaInput: { count: '3' },
+        },
+        {
+          type: 'tool-approval-response',
+          approvalId: 'approval-1',
+          approved: true,
+        },
+      ]);
+      const persistedMessage = JSON.parse(
+        JSON.stringify(assistantMessage),
+      ) as UIMessage;
+
+      const validatedMessages = await validateUIMessages({
+        messages: [persistedMessage],
+        tools,
+      });
+      const result = await convertToModelMessages(validatedMessages, {
+        tools,
+      });
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'count-call',
+              toolName: 'count',
+              input: { count: 3 },
+              providerExecuted: undefined,
+            },
+            {
+              type: 'tool-approval-request',
+              approvalId: 'approval-1',
+              toolCallId: 'count-call',
+              isAutomatic: undefined,
+              inputSchemaInput: { count: '3' },
             },
           ],
         },

@@ -16,7 +16,9 @@ export function parseJsonEventStream<T>({
   schema: FlexibleSchema<T>;
 }): ReadableStream<ParseResult<T>> {
   return stream
-    .pipeThrough(new TextDecoderStream())
+    .pipeThrough(
+      new TextDecoderStream() as ReadableWritablePair<string, Uint8Array>,
+    )
     .pipeThrough(new EventSourceParserStream())
     .pipeThrough(
       new TransformStream<EventSourceMessage, ParseResult<T>>({
