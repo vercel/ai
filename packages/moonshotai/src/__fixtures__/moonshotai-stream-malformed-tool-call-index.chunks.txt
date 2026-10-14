@@ -1,0 +1,1 @@
+{"id":"chatcmpl-malformed","object":"chat.completion.chunk","created":1787685025,"model":"kimi-k2.5","choices":[{"index":0,"delta":{"tool_calls":[{"index":"not-a-number","id":"weather_0","type":"function","function":{"name":"weather","arguments":"{}"}}]},"finish_reason":null}]}

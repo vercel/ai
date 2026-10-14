@@ -1,10 +1,12 @@
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import type { TextStreamPart } from '../generate-text/stream-text-result';
+import { getToolCallInputSchemaInput } from '../generate-text/tool-call';
 import type {
   InferUIMessageData,
   InferUIMessageMetadata,
   UIMessage,
 } from '../ui/ui-messages';
+import { isDeepEqualData } from '../util/is-deep-equal-data';
 import type { InferUIMessageChunk, UIMessageChunk } from './ui-message-chunks';
 
 export type ToUIMessageChunkOptions<
@@ -16,6 +18,11 @@ export type ToUIMessageChunkOptions<
   sendSources?: boolean;
   sendStart?: boolean;
   sendFinish?: boolean;
+  /**
+   * Formats stream errors, invalid tool calls, and application-executed tool
+   * errors. Provider-executed tool execution errors bypass this callback so
+   * their original error data survives model-message round trips.
+   */
   onError?: (error: unknown) => string;
   messageMetadata?: InferUIMessageMetadata<UI_MESSAGE>;
   responseMessageId?: string;
@@ -38,7 +45,7 @@ export function toUIMessageChunk<
     sendSources = false,
     sendStart = true,
     sendFinish = true,
-    onError = () => 'An error occurred.', // prevent leaking server error details to the client by default
+    onError = () => 'An error occurred.', // masks errors except provider-executed tool execution errors
     messageMetadata,
     responseMessageId,
   }: ToUIMessageChunkOptions<TOOLS, UI_MESSAGE> = {},
@@ -82,6 +89,7 @@ export function toUIMessageChunk<
       return {
         type: 'text-end',
         id: part.id,
+        ...(part.citations != null ? { citations: part.citations } : {}),
         ...(part.providerMetadata != null
           ? { providerMetadata: part.providerMetadata }
           : {}),
@@ -250,10 +258,16 @@ export function toUIMessageChunk<
     }
 
     case 'tool-approval-request': {
+      const inputSchemaInput = getToolCallInputSchemaInput(part.toolCall);
       return {
         type: 'tool-approval-request',
         approvalId: part.approvalId,
         toolCallId: part.toolCall.toolCallId,
+        ...(inputSchemaInput != null &&
+        !isDeepEqualData(inputSchemaInput.value, part.toolCall.input)
+          ? { inputSchemaInput: inputSchemaInput.value }
+          : {}),
+        ...(part.reason != null ? { reason: part.reason } : {}),
         ...(part.isAutomatic != null ? { isAutomatic: part.isAutomatic } : {}),
         ...(part.signature != null ? { signature: part.signature } : {}),
       };
@@ -297,6 +311,9 @@ export function toUIMessageChunk<
     case 'tool-error': {
       const dynamic = isDynamic(part);
 
+      // Preserve provider error codes for model-message round trips and harness
+      // runtime error messages. These execution errors intentionally bypass
+      // onError; invalid tool calls and stream errors still go through it.
       return {
         type: 'tool-output-error',
         toolCallId: part.toolCallId,

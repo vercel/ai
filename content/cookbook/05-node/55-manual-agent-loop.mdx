@@ -37,7 +37,7 @@ const messages: ModelMessage[] = [
 async function main() {
   while (true) {
     const result = streamText({
-      model: 'openai/gpt-4o',
+      model: 'openai/gpt-6-astra',
       messages,
       tools: {
         getWeather: tool({

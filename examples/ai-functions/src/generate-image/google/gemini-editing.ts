@@ -7,7 +7,7 @@ import { presentImages } from '../../lib/present-image';
 run(async () => {
   console.log('Generating base cat image...');
   const baseResult = await generateImage({
-    model: google.image('gemini-2.5-flash-image'),
+    model: google.image('gemini-3.1-flash-image-preview'),
     prompt:
       'A photorealistic picture of a fluffy ginger cat sitting on a wooden table',
   });
@@ -25,7 +25,7 @@ run(async () => {
 
   console.log('Adding wizard hat...');
   const editResult = await generateImage({
-    model: google.image('gemini-2.5-flash-image'),
+    model: google.image('gemini-3.1-flash-image-preview'),
     prompt: {
       text: 'Add a small wizard hat to this cat. Keep everything else the same.',
       images: [baseImage.uint8Array],

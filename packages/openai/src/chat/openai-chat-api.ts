@@ -36,6 +36,11 @@ export const openaiChatResponseSchema = lazySchema(() =>
           message: z.object({
             role: z.literal('assistant').nullish(),
             content: z.string().nullish(),
+            audio: z
+              .object({
+                transcript: z.string().nullish(),
+              })
+              .nullish(),
             tool_calls: z
               .array(
                 z.object({

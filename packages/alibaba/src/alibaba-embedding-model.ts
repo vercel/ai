@@ -63,6 +63,7 @@ export class AlibabaEmbeddingModel implements EmbeddingModelV4 {
 
   async doEmbed({
     values,
+    dimensions,
     headers,
     abortSignal,
     providerOptions,
@@ -107,7 +108,7 @@ export class AlibabaEmbeddingModel implements EmbeddingModelV4 {
         },
         parameters: {
           text_type: alibabaOptions?.textType,
-          dimension: alibabaOptions?.dimension,
+          dimension: alibabaOptions?.dimension ?? dimensions,
           output_type: alibabaOptions?.outputType,
         },
       },

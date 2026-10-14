@@ -1,0 +1,31 @@
+---
+title: AI_DecisionUnsupportedQuestionTypeError
+description: Identify a decision question type that a model does not support.
+---
+
+# AI_DecisionUnsupportedQuestionTypeError
+
+This experimental error identifies a question whose type is unsupported by a
+decision model. It is exported from `ai` and `@ai-sdk/provider` as
+`Experimental_DecisionUnsupportedQuestionTypeError`.
+
+## Properties
+
+- `questionId`: The ID of the unsupported question.
+- `questionType`: The requested question type.
+- `provider`: The provider of the decision model.
+- `modelId`: The decision model ID.
+- `message`: A description of the unsupported question and model. Providers can
+  supply a custom message.
+
+## Checking for this Error
+
+Use the marker-based `isInstance` check, which works across package copies:
+
+```typescript
+import { Experimental_DecisionUnsupportedQuestionTypeError as DecisionUnsupportedQuestionTypeError } from 'ai';
+
+if (DecisionUnsupportedQuestionTypeError.isInstance(error)) {
+  console.log(error.questionId, error.questionType, error.modelId);
+}
+```

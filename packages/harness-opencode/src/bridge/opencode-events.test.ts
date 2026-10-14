@@ -59,6 +59,14 @@ describe('OpenCode event helpers', () => {
     });
   });
 
+  it('rejects malformed event envelopes at the raw event boundary', () => {
+    expect(unwrapOpenCodeEvent(null)).toBeUndefined();
+    expect(unwrapOpenCodeEvent([])).toBeUndefined();
+    expect(
+      unwrapOpenCodeEvent({ type: 'sync', syncEvent: 'not-an-event' }),
+    ).toBeUndefined();
+  });
+
   it('finds legacy tool part session ids', () => {
     expect(
       getOpenCodeEventSessionId({
@@ -71,6 +79,17 @@ describe('OpenCode event helpers', () => {
         },
       }),
     ).toBe('session-1');
+  });
+
+  it.each([
+    ['message.updated', { info: { sessionID: 'child-session' } }],
+    ['session.created', { info: { id: 'child-session' } }],
+    ['session.updated', { info: { id: 'child-session' } }],
+    ['session.deleted', { info: { id: 'child-session' } }],
+  ])('finds nested session ids for %s events', (type, properties) => {
+    expect(getOpenCodeEventSessionId({ type, properties })).toBe(
+      'child-session',
+    );
   });
 
   it('emits the resolved assistant model once', () => {
@@ -237,5 +256,21 @@ describe('legacy reasoning part translation', () => {
       { type: 'text-delta', id: 'p2', delta: 'hello world' },
     ]);
     expect(out.some(msg => msg.type === 'reasoning-delta')).toBe(false);
+  });
+
+  it('does not treat a malformed time payload as a completed part', () => {
+    const state = createTranslationState();
+    const out: Array<Record<string, unknown>> = [];
+
+    emitLegacyTextPartUpdate({
+      part: { id: 'p3', type: 'text', text: 'hello', time: 'invalid' },
+      state,
+      emit: msg => out.push(msg),
+    });
+
+    expect(out).toEqual([
+      { type: 'text-start', id: 'p3' },
+      { type: 'text-delta', id: 'p3', delta: 'hello' },
+    ]);
   });
 });

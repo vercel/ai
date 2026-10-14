@@ -6,6 +6,7 @@ export type JsonSchemaObject = {
   type?: string | string[];
   description?: string;
   properties?: Record<string, JsonSchemaObject>;
+  additionalProperties?: boolean | JsonSchemaObject;
   required?: string[];
   items?: JsonSchemaObject | JsonSchemaObject[];
   enum?: unknown[];
@@ -17,14 +18,26 @@ export type JsonSchemaObject = {
 
 type ZodShape = Record<string, z.ZodTypeAny>;
 
-export function jsonSchemaToZodShape(input: unknown): ZodShape {
+export function jsonSchemaToZodObject(input: unknown) {
   const schema = isJsonSchemaObject(input) ? input : {};
-  return toZodShape(schema);
+  return toZodObject(schema);
+}
+
+function toZodObject(schema: JsonSchemaObject) {
+  const object = z.object(toZodShape(schema));
+  if (schema.additionalProperties === false) return object.strict();
+
+  // JSON Schema allows additional properties by default; Zod strips them.
+  return object.catchall(
+    isJsonSchemaObject(schema.additionalProperties)
+      ? toZodType(schema.additionalProperties)
+      : z.unknown(),
+  );
 }
 
 function toZodShape(schema: JsonSchemaObject | undefined): ZodShape {
   if (!schema?.properties) return {};
-  const required = new Set(schema.required ?? []);
+  const required = new Set(schema.required);
   const shape: ZodShape = {};
   for (const [key, propSchema] of Object.entries(schema.properties)) {
     const propType = toZodType(propSchema);
@@ -43,7 +56,7 @@ function toZodType(schema: JsonSchemaObject | undefined): z.ZodTypeAny {
   let zType =
     zodForConst(schema) ??
     zodForEnum(schema) ??
-    zodForNullableUnion(schema) ??
+    zodForUnion(schema) ??
     zodForType(schema);
 
   if (isNullable(schema)) zType = zType.nullable();
@@ -71,7 +84,7 @@ function zodForType(schema: JsonSchemaObject): z.ZodTypeAny {
         Array.isArray(schema.items) ? z.any() : toZodType(schema.items),
       );
     case 'object':
-      return z.object(toZodShape(schema));
+      return toZodObject(schema);
     case 'null':
       return z.null();
     default:
@@ -90,16 +103,16 @@ function zodForEnum(schema: JsonSchemaObject): z.ZodTypeAny | undefined {
   return zodForLiterals(schema.enum);
 }
 
-function zodForNullableUnion(
-  schema: JsonSchemaObject,
-): z.ZodTypeAny | undefined {
+function zodForUnion(schema: JsonSchemaObject): z.ZodTypeAny | undefined {
   const unionSchemas = schema.anyOf ?? schema.oneOf;
   if (!unionSchemas || unionSchemas.length < 2) return undefined;
 
-  const nonNullSchemas = unionSchemas.filter(item => !isNullOnlySchema(item));
-  if (nonNullSchemas.length !== 1) return undefined;
-
-  return toZodType(nonNullSchemas[0]).nullable();
+  const options = unionSchemas.map(item => toZodType(item)) as unknown as [
+    z.ZodTypeAny,
+    z.ZodTypeAny,
+    ...z.ZodTypeAny[],
+  ];
+  return z.union(options);
 }
 
 function zodForLiterals(values: JsonLiteral[]): z.ZodTypeAny {
@@ -124,19 +137,6 @@ function isNullable(schema: JsonSchemaObject): boolean {
   return (
     schema.nullable === true ||
     (Array.isArray(schema.type) && schema.type.includes('null'))
-  );
-}
-
-function isNullOnlySchema(schema: JsonSchemaObject): boolean {
-  return (
-    schema.type === 'null' ||
-    (Array.isArray(schema.type) &&
-      schema.type.length === 1 &&
-      schema.type[0] === 'null') ||
-    schema.const === null ||
-    (Array.isArray(schema.enum) &&
-      schema.enum.length === 1 &&
-      schema.enum[0] === null)
   );
 }
 

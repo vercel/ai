@@ -1,0 +1,68 @@
+[
+  {
+    "type": "update",
+    "value": {
+      "toolCallId": "call-8c14b51a-46dd-4444-bbb0-37271f53b421-1",
+      "title": "get_weather",
+      "name": "mcp_ai-sdk-harness-tools_get_weather",
+      "kind": "other",
+      "status": "pending",
+      "rawInput": {
+        "city": "Austin"
+      },
+      "_meta": {
+        "fx": {
+          "toolCall": {
+            "internal": false,
+            "mcp": {
+              "server": "ai-sdk-harness-tools",
+              "tool": "get_weather"
+            }
+          }
+        }
+      },
+      "sessionUpdate": "tool_call"
+    }
+  },
+  {
+    "type": "permission",
+    "value": {
+      "sessionId": "IL4gVwYC3V1R",
+      "toolCall": {
+        "toolCallId": "call-8c14b51a-46dd-4444-bbb0-37271f53b421-1",
+        "kind": "other",
+        "status": "pending",
+        "title": "mcp_ai-sdk-harness-tools_get_weather",
+        "name": "mcp_ai-sdk-harness-tools_get_weather",
+        "rawInput": {
+          "city": "Austin"
+        }
+      },
+      "options": [
+        {
+          "optionId": "allow_once",
+          "name": "Allow once",
+          "kind": "allow_once"
+        },
+        {
+          "optionId": "allow_always",
+          "name": "Allow for this session",
+          "kind": "allow_always"
+        },
+        {
+          "optionId": "reject_once",
+          "name": "Reject",
+          "kind": "reject_once"
+        }
+      ]
+    }
+  },
+  {
+    "type": "update",
+    "value": {
+      "toolCallId": "call-8c14b51a-46dd-4444-bbb0-37271f53b421-1",
+      "status": "in_progress",
+      "sessionUpdate": "tool_call_update"
+    }
+  }
+]

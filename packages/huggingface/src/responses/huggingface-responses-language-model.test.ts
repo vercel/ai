@@ -1,4 +1,5 @@
 import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import { isProviderStreamError } from '@ai-sdk/provider-utils';
 import {
   convertReadableStreamToArray,
   mockId,
@@ -670,6 +671,62 @@ describe('HuggingFaceResponsesLanguageModel', () => {
           "unified": "error",
         }
       `);
+    });
+
+    it.each([
+      {
+        event: {
+          type: 'response.failed',
+          response: {
+            error: { code: '429', message: 'Rate limit reached' },
+          },
+          sequence_number: 1,
+        },
+        expectedType: 'response.failed',
+      },
+      {
+        event: {
+          type: 'error',
+          code: '503',
+          message: 'Service unavailable',
+          param: null,
+          sequence_number: 1,
+        },
+        expectedType: 'error',
+      },
+    ])('preserves $expectedType stream errors', async testCase => {
+      server.urls['https://router.huggingface.co/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [`data:${JSON.stringify(testCase.event)}\n\n`],
+      };
+
+      const { stream } = await createModel(
+        'deepseek-ai/DeepSeek-V3-0324',
+      ).doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+      const errorPart = parts.find(part => part.type === 'error');
+
+      expect(errorPart?.type).toBe('error');
+      if (errorPart?.type !== 'error') {
+        expect.fail('Expected an error part');
+      }
+      expect(isProviderStreamError(errorPart.error)).toBe(true);
+      expect(errorPart.error).toMatchObject({
+        message:
+          'message' in testCase.event
+            ? testCase.event.message
+            : testCase.event.response.error.message,
+        type: testCase.expectedType,
+        code:
+          'code' in testCase.event
+            ? testCase.event.code
+            : testCase.event.response.error.code,
+        data: testCase.event,
+      });
+      expect(parts.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: { unified: 'error' },
+      });
     });
 
     it('should send correct streaming request', async () => {

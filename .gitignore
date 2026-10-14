@@ -2,6 +2,7 @@
 .cache
 .env
 .envrc
+.memory-benchmark-context-*
 .next
 .pnpm-store
 .turbo
@@ -21,3 +22,4 @@ tsconfig.vitest-temp.json
 *.tsbuildinfo
 packages/ai/docs
 .vercel
+.devtools
