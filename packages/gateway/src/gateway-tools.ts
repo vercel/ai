@@ -1,6 +1,7 @@
 import { browserbaseFetch } from './tool/browserbase-fetch';
 import { browserbaseSearch } from './tool/browserbase-search';
 import { exaSearch } from './tool/exa-search';
+import { expandFetch } from './tool/expand-fetch';
 import { parallelSearch } from './tool/parallel-search';
 import { perplexitySearch } from './tool/perplexity-search';
 import { takoSearch } from './tool/tako-search';
@@ -33,6 +34,15 @@ export const gatewayTools = {
    * extraction controls.
    */
   exaSearch,
+
+  /**
+   * Fetch page content using Expand's Fetch API.
+   *
+   * Renders the page in a real browser and returns Markdown and State JSON, with
+   * optional Highlights for query-relevant passages. Also converts PDFs,
+   * office files, and YouTube videos to Markdown.
+   */
+  expandFetch,
 
   /**
    * Search the web using Parallel AI's Search API for LLM-optimized excerpts.

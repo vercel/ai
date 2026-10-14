@@ -1124,6 +1124,81 @@ The Browserbase Fetch tool supports these optional configuration options:
 
 The Fetch API does not execute JavaScript. Use a browser session for interactive or JavaScript-rendered pages. The tool works with both `generateText` and `streamText`.
 
+#### Expand Fetch
+
+The Expand Fetch tool enables models to retrieve page content using [Expand's Fetch API](https://expand.ai/docs/fetch). This tool is executed by the AI Gateway and renders each page in a real browser, so JavaScript-rendered pages come back whole. It returns the Main Markdown, with navigation and footers moved to the Appendix, and State JSON, the hidden data behind the page. PDFs, office files, and YouTube videos also convert to Markdown.
+
+```ts
+import { gateway, generateText } from 'ai';
+
+const result = await generateText({
+  model: 'openai/gpt-5.6-luna',
+  prompt:
+    'Fetch https://www.nps.gov/yose/planyourvisit/halfdome.htm and summarize the permit requirements and main safety warnings.',
+  tools: {
+    expand_fetch: gateway.tools.expandFetch(),
+  },
+});
+
+console.log(result.text);
+console.log('Tool calls:', JSON.stringify(result.toolCalls, null, 2));
+console.log('Tool results:', JSON.stringify(result.toolResults, null, 2));
+```
+
+You can also set defaults for Highlights and choose which parts of the page to include. When the model passes a `highlights` query on a long web page, only the passages that match come back, under `data.highlights.snippets`, and `meta.markdown.url` links to the full page. Files and videos always return the full Markdown:
+
+```ts
+import { gateway, generateText } from 'ai';
+
+const result = await generateText({
+  model: 'openai/gpt-5.6-luna',
+  prompt:
+    'Find the permit requirements on https://www.nps.gov/yose/planyourvisit/halfdome.htm and list them with the page title.',
+  tools: {
+    expand_fetch: gateway.tools.expandFetch({
+      includeAppendix: true,
+      scrollFullPage: true,
+      highlights: {
+        maxResults: 3,
+        minScore: 0.5,
+      },
+    }),
+  },
+});
+
+console.log(result.text);
+```
+
+The Expand Fetch tool supports these optional configuration options:
+
+- **includeMeta** _boolean_
+
+  Include page metadata such as description, author, and Open Graph tags. The URL and `meta.playground` link are always returned. Defaults to `false`.
+
+- **includeJson** _boolean_
+
+  Include State JSON, the hidden data behind the page. Defaults to `true`. Turning it off saves tokens but can leave out data, such as prices or chart values, that does not appear in the Markdown.
+
+- **includeAppendix** _boolean_
+
+  Include the Appendix: navigation, footer, and related-content links moved out of the Main Markdown. Defaults to `false`.
+
+- **appendixMarkers** _'off' | 'compact' | 'detailed'_
+
+  How to mark where Appendix content was removed from the Markdown. `compact` writes a one-line marker with the link count and is the default. `detailed` adds a landmark label and a preview. `off` removes the markers.
+
+- **scrollFullPage** _boolean_
+
+  Scroll the whole page before capture so lazy-loaded content is included. Defaults to `false`.
+
+- **highlights** _object_
+
+  Defaults for Highlights when the model passes a query:
+  - `maxResults` - Maximum number of passages to return (1-50, default: 5)
+  - `minScore` - Minimum relevance score from 0 to 1 (default: 0, no filtering)
+
+When a site answers with an error status such as 404 but still serves a page, the page is returned with `originError` attached. Each successful response includes `meta.playground`, a link to the saved Snapshot of the page. It opens without an Expand account, and every line of the Markdown links back to where it came from. The tool reads pages. It does not click or fill forms, so use browser automation for that. The tool works with both `generateText` and `streamText`.
+
 #### Tako Search
 
 The Tako Search tool enables models to search the web and Tako's curated knowledge graph in a single call using [Tako's Search API](https://docs.tako.com/documentation/integrating-tako/search/overview). This tool is executed by the AI Gateway and returns token-efficient web excerpts, plus knowledge-graph results that carry structured data, premium source attribution, and an embed-ready visualization.
