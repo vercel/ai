@@ -10,7 +10,7 @@ run(async () => {
       { type: 'text', text: 'Inspect the animal in this picture.' },
       {
         type: 'file',
-        mediaType: 'image/png',
+        mediaType: 'image',
         data: readFileSync('data/comic-cat.png'),
       },
     ],

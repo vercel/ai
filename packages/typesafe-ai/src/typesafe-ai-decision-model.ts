@@ -9,9 +9,7 @@ import {
   combineHeaders,
   convertUint8ArrayToBase64,
   createJsonResponseHandler,
-  detectMediaType,
   generateId,
-  isFullMediaType,
   loadApiKey,
   postJsonToApi,
   resolve,
@@ -117,13 +115,7 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
                     functionality: `TypeSafe AI decision file input: ${part.mediaType} (${part.data.type})`,
                   });
                 }
-                // Direct doDecide calls can bypass Core's media type detection.
-                const mediaType = isFullMediaType(part.mediaType)
-                  ? part.mediaType
-                  : detectMediaType({
-                      data: part.data.data,
-                      topLevelType: 'image',
-                    });
+                const mediaType = part.mediaType;
                 if (mediaType !== 'image/png' && mediaType !== 'image/jpeg') {
                   throw new UnsupportedFunctionalityError({
                     functionality: `TypeSafe AI decision image media type: ${part.mediaType}`,

@@ -373,28 +373,6 @@ describe('image input', () => {
     );
   });
 
-  it.each(['image', 'image/*'])(
-    'detects the image format for %s',
-    async mediaType => {
-      await model.doDecide({
-        ...options,
-        state: [
-          {
-            type: 'file',
-            mediaType,
-            data: { type: 'data', data: 'iVBORw0KGgo=' },
-          },
-        ],
-      });
-      const body = await server.calls[0].requestBodyJson;
-      expect(body.assets[body.state]).toEqual({
-        type: 'image',
-        format: 'png',
-        data_base64: 'iVBORw0KGgo=',
-      });
-    },
-  );
-
   it('omits assets and the image header for text-only input', async () => {
     await model.doDecide(options);
     expect(await server.calls[0].requestBodyJson).not.toHaveProperty('assets');
