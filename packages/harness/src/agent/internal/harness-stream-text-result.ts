@@ -4,6 +4,7 @@ import {
   type AssistantModelMessage,
   type Context,
   type ToolModelMessage,
+  type ToolResultOutput,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import {
@@ -11,6 +12,7 @@ import {
   asLanguageModelUsage,
   createAsyncIterableStream,
   createNullLanguageModelUsage,
+  createToolModelOutput,
   DefaultStepResult,
   toResponseMessages,
 } from 'ai/internal';
@@ -22,6 +24,7 @@ import {
   createUIMessageStreamResponse,
   toUIMessageStream as toUIMessageStreamHelper,
   type CallWarning,
+  type Citation,
   type ContentPart,
   type FinishReason,
   type InferUIMessageChunk,
@@ -51,6 +54,19 @@ type InferElementOutput<OUTPUT extends Output> =
 type EnrichedStreamPart<TOOLS extends ToolSet, PARTIAL_OUTPUT> = {
   part: TextStreamPart<TOOLS>;
   partialOutput: PARTIAL_OUTPUT | undefined;
+};
+
+type AccumulatedTextContent = {
+  type: 'text';
+  text: string;
+  citations?: Citation[];
+  providerMetadata?: ProviderMetadata;
+};
+
+type AccumulatedReasoningContent = {
+  type: 'reasoning';
+  text: string;
+  providerMetadata?: ProviderMetadata;
 };
 
 /**
@@ -149,11 +165,17 @@ export class HarnessStreamTextResult<
 
   private readonly stepsBuffer: StepResult<TOOLS, RUNTIME_CONTEXT>[] = [];
   private currentStepContent: ContentPart<TOOLS>[] = [];
+  private currentStepTextContent = new Map<string, AccumulatedTextContent>();
+  private currentStepReasoningContent = new Map<
+    string,
+    AccumulatedReasoningContent
+  >();
   private currentStepWarnings: CallWarning[] = [];
   private stepNumber = 0;
   private stepStarted = false;
 
   private readonly tools: TOOLS;
+  private readonly toolModelOutputs = new Map<string, ToolResultOutput>();
   private readonly runtimeContext: RUNTIME_CONTEXT;
   private readonly toolsContext: InferToolSetContext<TOOLS>;
   private readonly providerName: string;
@@ -168,6 +190,13 @@ export class HarnessStreamTextResult<
   private finalRawFinishReason: string | undefined = undefined;
   private aggregateWarnings: CallWarning[] = [];
   private settled = false;
+
+  setToolModelOutput(input: {
+    toolCallId: string;
+    output: ToolResultOutput;
+  }): void {
+    this.toolModelOutputs.set(input.toolCallId, input.output);
+  }
 
   constructor(options: {
     tools: TOOLS;
@@ -261,6 +290,8 @@ export class HarnessStreamTextResult<
    */
   discardCurrentStepContent(): void {
     this.currentStepContent = [];
+    this.currentStepTextContent.clear();
+    this.currentStepReasoningContent.clear();
     this.currentStepWarnings = [];
     this.stepStarted = false;
   }
@@ -334,6 +365,8 @@ export class HarnessStreamTextResult<
 
     this.stepNumber += 1;
     this.currentStepContent = [];
+    this.currentStepTextContent.clear();
+    this.currentStepReasoningContent.clear();
     this.currentStepWarnings = [];
     this.stepStarted = false;
 
@@ -421,14 +454,12 @@ export class HarnessStreamTextResult<
       >,
     );
     this._text.resolve(finalStep.text);
-    // Reasoning content parts are not yet derived from harness events; the
-    // foundation surfaces an empty array. Adapters that emit reasoning
-    // deltas can be wired up to produce real reasoning content in a later
-    // pass.
     this._reasoning.resolve(
-      [] as StreamProp<TOOLS, RUNTIME_CONTEXT, OUTPUT, 'reasoning'>,
+      finalStep.content.filter(
+        part => part.type === 'reasoning' || part.type === 'reasoning-file',
+      ) as StreamProp<TOOLS, RUNTIME_CONTEXT, OUTPUT, 'reasoning'>,
     );
-    this._reasoningText.resolve(undefined);
+    this._reasoningText.resolve(finalStep.reasoningText);
     this._files.resolve(this.stepsBuffer.flatMap(s => s.files));
     this._sources.resolve(this.stepsBuffer.flatMap(s => s.sources));
     this._toolCalls.resolve(
@@ -491,10 +522,29 @@ export class HarnessStreamTextResult<
     this._response.resolve(finalStep.response);
     this._providerMetadata.resolve(this.finalProviderMetadata);
 
-    const responseMessages = await toResponseMessages<TOOLS>({
-      content: aggregatedContent,
-      tools: this.tools,
-    });
+    const responseTools: ToolSet = {};
+    for (const [name, tool] of Object.entries(this.tools)) {
+      responseTools[name] = {
+        ...tool,
+        toModelOutput: (options: {
+          toolCallId: string;
+          input: unknown;
+          output: unknown;
+        }) =>
+          this.toolModelOutputs.get(options.toolCallId) ??
+          createToolModelOutput({ ...options, tool, errorMode: 'none' }),
+      };
+    }
+    const responseMessages: Array<AssistantModelMessage | ToolModelMessage> =
+      [];
+    for (const step of this.stepsBuffer) {
+      responseMessages.push(
+        ...(await toResponseMessages<TOOLS>({
+          content: step.content,
+          tools: responseTools as TOOLS,
+        })),
+      );
+    }
     this._responseMessages.resolve(responseMessages);
 
     // Forward AI SDK finish event before closing.
@@ -755,6 +805,8 @@ export class HarnessStreamTextResult<
   toUIMessageStream<UI_MESSAGE extends UIMessage>({
     originalMessages,
     generateMessageId,
+    onStepEnd,
+    onStepFinish,
     onEnd,
     onFinish,
     messageMetadata,
@@ -772,6 +824,8 @@ export class HarnessStreamTextResult<
         tools: this.tools,
         originalMessages,
         generateMessageId,
+        onStepEnd,
+        onStepFinish,
         onEnd,
         onFinish,
         messageMetadata,
@@ -795,6 +849,8 @@ export class HarnessStreamTextResult<
   toUIMessageStreamResponse<UI_MESSAGE extends UIMessage>({
     originalMessages,
     generateMessageId,
+    onStepEnd,
+    onStepFinish,
     onEnd,
     onFinish,
     messageMetadata,
@@ -813,6 +869,8 @@ export class HarnessStreamTextResult<
       stream: this.toUIMessageStream<UI_MESSAGE>({
         originalMessages,
         generateMessageId,
+        onStepEnd,
+        onStepFinish,
         onEnd,
         onFinish,
         messageMetadata,
@@ -834,30 +892,88 @@ export class HarnessStreamTextResult<
 
   private appendToCurrentStepContent(part: TextStreamPart<TOOLS>): void {
     switch (part.type) {
+      case 'text-start': {
+        const content: AccumulatedTextContent = {
+          type: 'text',
+          text: '',
+          ...(part.providerMetadata != null
+            ? { providerMetadata: part.providerMetadata }
+            : {}),
+        };
+        this.currentStepTextContent.set(part.id, content);
+        this.currentStepContent.push(content);
+        return;
+      }
       case 'text-delta': {
-        // Coalesce contiguous text-deltas with the same id into one text part.
-        const last =
-          this.currentStepContent[this.currentStepContent.length - 1];
-        if (last && last.type === 'text') {
-          (last as { text: string }).text += part.text;
-        } else {
-          this.currentStepContent.push({
+        let content = this.currentStepTextContent.get(part.id);
+        if (content == null) {
+          content = {
             type: 'text',
-            text: part.text,
-          } as ContentPart<TOOLS>);
+            text: '',
+            ...(part.providerMetadata != null
+              ? { providerMetadata: part.providerMetadata }
+              : {}),
+          };
+          this.currentStepTextContent.set(part.id, content);
+          this.currentStepContent.push(content);
+        }
+        content.text += part.text;
+        if (part.providerMetadata != null) {
+          content.providerMetadata = part.providerMetadata;
         }
         return;
       }
+      case 'text-end': {
+        const content = this.currentStepTextContent.get(part.id);
+        if (content != null) {
+          if (part.providerMetadata != null) {
+            content.providerMetadata = part.providerMetadata;
+          }
+          if (part.citations != null) {
+            content.citations = part.citations;
+          }
+          this.currentStepTextContent.delete(part.id);
+        }
+        return;
+      }
+      case 'reasoning-start': {
+        const content: AccumulatedReasoningContent = {
+          type: 'reasoning',
+          text: '',
+          ...(part.providerMetadata != null
+            ? { providerMetadata: part.providerMetadata }
+            : {}),
+        };
+        this.currentStepReasoningContent.set(part.id, content);
+        this.currentStepContent.push(content);
+        return;
+      }
       case 'reasoning-delta': {
-        const last =
-          this.currentStepContent[this.currentStepContent.length - 1];
-        if (last && last.type === 'reasoning') {
-          (last as { text: string }).text += part.text;
-        } else {
-          this.currentStepContent.push({
+        let content = this.currentStepReasoningContent.get(part.id);
+        if (content == null) {
+          content = {
             type: 'reasoning',
-            text: part.text,
-          } as ContentPart<TOOLS>);
+            text: '',
+            ...(part.providerMetadata != null
+              ? { providerMetadata: part.providerMetadata }
+              : {}),
+          };
+          this.currentStepReasoningContent.set(part.id, content);
+          this.currentStepContent.push(content);
+        }
+        content.text += part.text;
+        if (part.providerMetadata != null) {
+          content.providerMetadata = part.providerMetadata;
+        }
+        return;
+      }
+      case 'reasoning-end': {
+        const content = this.currentStepReasoningContent.get(part.id);
+        if (content != null) {
+          if (part.providerMetadata != null) {
+            content.providerMetadata = part.providerMetadata;
+          }
+          this.currentStepReasoningContent.delete(part.id);
         }
         return;
       }

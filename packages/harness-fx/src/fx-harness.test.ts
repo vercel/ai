@@ -22,6 +22,7 @@ describe('createFx', () => {
     createFx();
 
     const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
+    expect(settings.nonTextContentTypes).toBeUndefined();
 
     expect({
       version: settings.version,
@@ -46,7 +47,15 @@ describe('createFx', () => {
           },
         ]),
       ),
-    }).toMatchInlineSnapshot(`
+    }).toMatchInlineSnapshot(
+      {
+        source: {
+          command: expect.stringMatching(
+            /^curl -fsSL https:\/\/fx\.sh\/setup\.sh \| bash -s -- v\S+$/,
+          ),
+        },
+      },
+      `
       {
         "args": [
           "acp",
@@ -233,12 +242,13 @@ describe('createFx', () => {
           },
         },
         "source": {
-          "command": "curl -fsSL https://fx.sh/setup.sh | bash",
+          "command": StringMatching /\\^curl -fsSL https:\\\\/\\\\/fx\\\\\\.sh\\\\/setup\\\\\\.sh \\\\\\| bash -s -- v\\\\S\\+\\$/,
           "type": "install-command",
         },
         "version": "v1",
       }
-    `);
+    `,
+    );
   });
 
   it('accepts fx v0.0.10 ACP shell and capability search inputs', () => {

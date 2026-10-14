@@ -9,17 +9,39 @@ import { z } from 'zod/v4';
 export const outboundMessageSchema = harnessV1BridgeOutboundMessageSchema;
 export type OutboundMessage = z.infer<typeof outboundMessageSchema>;
 
-export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
-  operation: z.enum(['prompt', 'compact']).optional(),
-  provider: z.string().optional(),
-  variant: z.string().optional(),
-  instructions: z.string().optional(),
-  skillsChanged: z.boolean().optional(),
-  resumeSessionId: z.string().optional(),
-  openCodeConfig: z.record(z.string(), z.unknown()).optional(),
-  mcpServers: z.record(z.string(), z.unknown()).optional(),
-  headers: z.record(z.string(), z.string()).optional(),
-});
+const openCodeBuiltinToolNameSchema = z.enum([
+  'askUserQuestions',
+  'read',
+  'write',
+  'edit',
+  'bash',
+  'glob',
+  'grep',
+  'ls',
+  'webfetch',
+  'skill',
+  'todowrite',
+  'agent',
+]);
+
+export type OpenCodeBuiltinToolName = z.infer<
+  typeof openCodeBuiltinToolNameSchema
+>;
+
+export const startMessageSchema = harnessV1BridgeStartBaseSchema
+  .omit({ builtinToolFiltering: true })
+  .extend({
+    operation: z.enum(['prompt', 'compact']).optional(),
+    provider: z.string().optional(),
+    variant: z.string().optional(),
+    instructions: z.string().optional(),
+    skillsChanged: z.boolean().optional(),
+    resumeSessionId: z.string().optional(),
+    openCodeConfig: z.record(z.string(), z.unknown()).optional(),
+    mcpServers: z.record(z.string(), z.unknown()).optional(),
+    headers: z.record(z.string(), z.string()).optional(),
+    inactiveBuiltinToolNames: z.array(openCodeBuiltinToolNameSchema).optional(),
+  });
 
 export type StartMessage = z.infer<typeof startMessageSchema>;
 

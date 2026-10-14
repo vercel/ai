@@ -25,6 +25,8 @@ import {
 const FX_CLIENT_APP = `ai-sdk-harness-fx/${VERSION}`;
 const DEFAULT_AI_GATEWAY_BASE_URL = 'https://ai-gateway.vercel.sh';
 
+const FX_VERSION = '0.0.13';
+
 export type FxAuthenticationMode = ACPAuthenticationMode;
 
 function sanitizeFxMcpToolNameSegment(value: string): string {
@@ -492,7 +494,7 @@ export function createFx(
     },
     source: {
       type: 'install-command',
-      command: 'curl -fsSL https://fx.sh/setup.sh | bash',
+      command: `curl -fsSL https://fx.sh/setup.sh | bash -s -- v${FX_VERSION}`,
     },
     executable: 'fx',
     args: ['acp'],
