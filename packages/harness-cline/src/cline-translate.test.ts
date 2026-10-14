@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import {
   createClineTranslatorState,
   finishClineTranslation,
+  takeClineEarlyFinishStep,
   toolApprovalParts,
   translateClineEvent,
 } from './cline-translate';
@@ -17,6 +18,52 @@ function newState() {
     builtinToolNames: ['read', 'write', 'edit', 'bash', 'grep', 'glob', 'ls'],
   });
 }
+
+describe('translateClineEvent host tool results', () => {
+  it('surfaces the raw submitted output instead of the runtime content', () => {
+    const state = newState();
+    state.hostToolResults.set('call-1', { status: 'ready' });
+
+    const parts = translateClineEvent(
+      {
+        type: 'tool-finished',
+        snapshot,
+        iteration: 1,
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'inspect',
+          input: {},
+        },
+        message: {
+          id: 'result-call-1',
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'inspect',
+              output: [
+                { type: 'image', data: 'iVBORw==', mediaType: 'image/png' },
+              ],
+            },
+          ],
+          createdAt: 0,
+        },
+      },
+      state,
+    );
+
+    expect(parts).toContainEqual(
+      expect.objectContaining({
+        type: 'tool-result',
+        toolCallId: 'call-1',
+        result: { status: 'ready' },
+      }),
+    );
+    expect(state.hostToolResults.has('call-1')).toBe(false);
+  });
+});
 
 describe('translateClineEvent', () => {
   it('translates ask_question into a client-side canonical question call', () => {
@@ -774,6 +821,75 @@ describe('finishClineTranslation', () => {
         },
         state,
       ),
+    ).toEqual([]);
+  });
+
+  it('emits one early finish-step once every unfinished step tool call waits on host input', () => {
+    const state = newState();
+    const toolCall = (toolCallId: string) => ({
+      type: 'tool-call' as const,
+      toolCallId,
+      toolName: 'get_weather',
+      input: {},
+    });
+    translateClineEvent(
+      {
+        type: 'assistant-message',
+        snapshot,
+        iteration: 1,
+        finishReason: 'tool-calls',
+        message: {
+          id: 'm1',
+          role: 'assistant',
+          content: [toolCall('paris'), toolCall('tokyo')],
+          createdAt: 0,
+        },
+      } as AgentRuntimeEvent,
+      state,
+    );
+
+    expect(
+      takeClineEarlyFinishStep(state, {
+        waitingToolCallIds: new Set(['paris']),
+      }),
+    ).toEqual([]);
+    expect(
+      takeClineEarlyFinishStep(state, {
+        waitingToolCallIds: new Set(['paris', 'tokyo']),
+      }),
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "finishReason": {
+            "raw": "host-input",
+            "unified": "tool-calls",
+          },
+          "harnessMetadata": {
+            "cline": {
+              "inferredStep": true,
+            },
+          },
+          "type": "finish-step",
+          "usage": {
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+          },
+        },
+      ]
+    `);
+    expect(
+      takeClineEarlyFinishStep(state, {
+        waitingToolCallIds: new Set(['paris', 'tokyo']),
+      }),
     ).toEqual([]);
   });
 });

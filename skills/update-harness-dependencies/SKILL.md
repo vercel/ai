@@ -62,10 +62,25 @@ pnpm --dir packages/harness-grok-build/src/bridge update @agentclientprotocol/sd
 pnpm --dir packages/harness-opencode/src/bridge update @opencode-ai/sdk opencode-ai --latest --ignore-workspace --config.minimumReleaseAge=4320
 ```
 
-The following harness adapters use an unversioned installer script instead of an NPM package for their SDK / CLI and therefore can be ignored:
+The following harness adapter uses an unversioned installer script instead of an NPM package for its CLI and therefore can be ignored:
 
 - `packages/harness-cursor`
-- `packages/harness-fx`
+
+#### Update the pinned fx CLI version
+
+The fx harness adapter pins the fx CLI release with `FX_VERSION` in
+`packages/harness-fx/src/fx-harness.ts`. To discover the latest release, run:
+
+```bash
+curl -fsSL https://releases.fx.sh/latest.txt
+```
+
+Update `FX_VERSION` to that version without a leading `v`, then run the fx
+harness tests:
+
+```bash
+pnpm --filter harness-fx test
+```
 
 #### Example dependencies
 
