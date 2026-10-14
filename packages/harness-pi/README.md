@@ -138,3 +138,25 @@ This policy applies only to Pi's native file tools (`read`, `write`, `edit`,
 whose filesystem access is defined by the sandbox. The harness
 `permissionMode` can require approval for the tool call, but it does not create
 a filesystem boundary.
+
+## MCP servers
+
+Use `mcpServers` to serve MCP servers through Pi's native MCP support. Each entry is Pi's MCP server configuration, either stdio (`command`, `args`, `env`, `cwd`) or streamable HTTP (`url`, `headers`):
+
+```ts
+import { createPi } from '@ai-sdk/harness-pi';
+
+const harness = createPi({
+  mcpServers: {
+    docs: {
+      url: 'https://mcp.example.com/docs',
+      headers: { Authorization: `Bearer ${process.env.DOCS_MCP_TOKEN}` },
+      exposure: 'deferred',
+    },
+  },
+});
+```
+
+Tools are named `mcp__<server>__<tool>`, with `-` in either name replaced by `_`. A server's tools are declared to the model by default (`exposure: 'direct'`). With `exposure: 'deferred'`, they stay undeclared until the model finds them with Pi's `tool_search` tool, and the model then calls them by name. `toolExposure` sets the exposure of single tools. Pi's `codemode` exposure is not supported, and an entry that uses it or that Pi rejects fails session start.
+
+The harness has no sign-in flow, so an HTTP server that requires authentication must carry an `Authorization` header or `auth.provider`. The harness reads no `mcp.json` and no sign-in stored by the Pi CLI, and writes nothing under Pi's agent directory. `mcpSettings` is deprecated: Pi's native MCP has no tool prefix or output guard settings.

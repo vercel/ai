@@ -6,6 +6,7 @@ import {
   type PiHarnessExtensionSession,
   type PiHarnessSettings,
   type PiFileToolPathPolicy,
+  type PiMcpServerConfig,
 } from './index';
 
 test('PiHarnessSettings accepts readonly extension factory arrays', () => {
@@ -83,7 +84,29 @@ test('createPi accepts a file tool path policy with readonly roots', () => {
   createPi({ fileToolPathPolicy: {} });
 });
 
-test('createPi accepts MCP adapter settings', () => {
+test('PiMcpServerConfig describes native MCP server configs', () => {
+  createPi({
+    mcpServers: {
+      brand: {
+        url: 'https://x',
+        headers: { Authorization: 'Bearer t' },
+        exposure: 'deferred',
+      },
+      memory: {
+        command: 'memory-mcp',
+        args: [],
+        toolExposure: { secret: 'hidden' },
+      },
+    } satisfies Record<string, PiMcpServerConfig>,
+  });
+  const acceptConfig = (_config: PiMcpServerConfig) => {};
+  // @ts-expect-error
+  acceptConfig({ url: 'https://x', exposure: 'codemode' });
+  // @ts-expect-error
+  acceptConfig({ command: 'memory-mcp', lifecycle: 'eager' });
+});
+
+test('createPi accepts deprecated MCP adapter settings', () => {
   createPi({ mcpSettings: { toolPrefix: 'none', outputGuard: false } });
   // @ts-expect-error
   createPi({ mcpSettings: { toolPrefix: 'bare' } });
