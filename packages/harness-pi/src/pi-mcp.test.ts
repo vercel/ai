@@ -11,6 +11,7 @@ import { createServer, type ServerResponse } from 'node:http';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { createPi } from './pi-harness';
 import {
   close,
   createFakePi,
@@ -328,6 +329,26 @@ describe("Pi's native MCP over streamable HTTP", () => {
         sessionWorkDir,
       }),
     ).rejects.toThrow('Invalid MCP server');
+  });
+
+  it('fails session start when an MCP server exposure is null', async () => {
+    const sessionWorkDir = '/sandbox/workspace';
+    const sandboxSession = await createJustBashSandbox({
+      cwd: sessionWorkDir,
+    }).createSession();
+
+    await expect(
+      createPi({
+        auth: {},
+        mcpServers: {
+          memory: { url: `${mcpUrl}/memory`, exposure: null },
+        },
+      }).doStart({
+        sessionId: 'session-null-mcp-exposure',
+        sandboxSession,
+        sessionWorkDir,
+      }),
+    ).rejects.toThrow('exposure must be one of');
   });
 
   it("does not use Pi's stored OAuth credentials for a server without an Authorization header", async () => {

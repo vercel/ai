@@ -12,12 +12,42 @@ import { z } from 'zod/v4';
  */
 export type PiSessionEntries = readonly [SessionHeader, ...SessionEntry[]];
 
+const piCompletedToolResultSchema = z.object({
+  toolCallId: z.string(),
+  result: z.looseObject({ content: z.array(z.unknown()).optional() }),
+  isError: z.boolean(),
+});
+
+/**
+ * A tool batch that was waiting on host input (tool results, approvals) when
+ * its turn was persisted. Pi cannot resume in the middle of a batch, so a cold
+ * continuation replays the batch's assistant message through Pi's tool
+ * executor: calls in `completedToolResults` (finished but not yet written to
+ * the journal) reuse their stored result, calls in `awaitingToolCallIds`
+ * receive the host input delivered with the continuation.
+ */
+const piPendingToolBatchSchema = z.object({
+  awaitingToolCallIds: z.array(z.string()),
+  completedToolResults: z.array(piCompletedToolResultSchema),
+  nativeApprovalDecisions: z.array(
+    z.object({
+      toolCallId: z.string(),
+      approved: z.boolean(),
+      reason: z.string().optional(),
+    }),
+  ),
+});
+
+export type PiPendingToolBatch = z.infer<typeof piPendingToolBatchSchema>;
+export type PiCompletedToolResult = z.infer<typeof piCompletedToolResultSchema>;
+
 /**
  * Lifecycle state `data` of the Pi harness. Without `entries` the session
  * starts fresh.
  */
 export interface PiLifecycleData {
   readonly entries?: PiSessionEntries;
+  readonly pendingToolBatch?: PiPendingToolBatch;
 }
 
 const sessionHeaderSchema = z.custom<SessionHeader>(
@@ -40,6 +70,7 @@ const sessionEntrySchema = z.custom<SessionEntry>(
 
 export const piLifecycleStateSchema: z.ZodType<PiLifecycleData> = z.object({
   entries: z.tuple([sessionHeaderSchema], sessionEntrySchema).optional(),
+  pendingToolBatch: piPendingToolBatchSchema.optional(),
 });
 
 export function sessionEntriesOf(

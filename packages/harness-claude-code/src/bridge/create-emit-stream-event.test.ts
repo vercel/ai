@@ -2,8 +2,10 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   type ClaudeMessage,
+  clearWaitingOnHostInput,
   createClaudeStreamEventState,
   createEmitStreamEvent,
+  markWaitingOnHostInput,
 } from './create-emit-stream-event';
 
 describe('createEmitStreamEvent', () => {
@@ -767,6 +769,165 @@ describe('createEmitStreamEvent', () => {
     });
   });
 
+  it.each([
+    { order: 'tool-result-first', outputOnly: false },
+    { order: 'delta-first', outputOnly: false },
+    { order: 'stop-first', outputOnly: false },
+    { order: 'tool-result-first', outputOnly: true },
+    { order: 'delta-first', outputOnly: true },
+    { order: 'stop-first', outputOnly: true },
+  ] as const)(
+    'keeps response usage on its own step: $order, outputOnly=$outputOnly',
+    ({ order, outputOnly }) => {
+      const emitted: Record<string, unknown>[] = [];
+      const receive = createEmitStreamEvent({
+        state: createClaudeStreamEventState(),
+        emit: event => emitted.push(event),
+        emitWarning: () => {},
+        emitTerminalError: () => {},
+        onCompactionBoundary: () => {},
+        toCommonName: name => name.toLowerCase(),
+      });
+      const initial = [
+        {
+          input_tokens: 10,
+          cache_creation_input_tokens: 20,
+          cache_read_input_tokens: 30,
+          output_tokens: 3,
+        },
+        {
+          input_tokens: 40,
+          cache_creation_input_tokens: 50,
+          cache_read_input_tokens: 60,
+          output_tokens: 3,
+        },
+      ];
+      const final = [
+        {
+          input_tokens: 110,
+          cache_creation_input_tokens: 220,
+          cache_read_input_tokens: 330,
+          output_tokens: 295,
+        },
+        {
+          input_tokens: 140,
+          cache_creation_input_tokens: 250,
+          cache_read_input_tokens: 360,
+          output_tokens: 233,
+        },
+      ];
+      const stream = (
+        event: NonNullable<ClaudeMessage['event']>,
+      ): ClaudeMessage => ({
+        type: 'stream_event',
+        parent_tool_use_id: null,
+        event,
+      });
+
+      for (let response = 0; response < 2; response++) {
+        receive(
+          stream({
+            type: 'message_start',
+            message: { usage: initial[response] },
+          }),
+        );
+        for (let index = 0; index < 2; index++) {
+          const id = `response-${response}-tool-${index}`;
+          receive(
+            stream({
+              type: 'content_block_start',
+              index,
+              content_block: { type: 'tool_use', id, name: 'Read' },
+            }),
+          );
+          receive({
+            type: 'assistant',
+            parent_tool_use_id: null,
+            message: {
+              usage: initial[response],
+              content: [
+                {
+                  type: 'tool_use',
+                  id,
+                  name: 'Read',
+                  input: { file_path: 'fixture.txt' },
+                },
+              ],
+            },
+          });
+          receive(stream({ type: 'content_block_stop', index }));
+        }
+        const results: ClaudeMessage[] = [0, 1].map(index => ({
+          type: 'user',
+          parent_tool_use_id: null,
+          message: {
+            content: [
+              {
+                type: 'tool_result',
+                tool_use_id: `response-${response}-tool-${index}`,
+                content: 'ok',
+              },
+            ],
+          },
+        }));
+        const delta = stream({
+          type: 'message_delta',
+          usage: outputOnly
+            ? { output_tokens: final[response].output_tokens }
+            : final[response],
+        });
+        const stop = stream({ type: 'message_stop' });
+        for (const message of order === 'tool-result-first'
+          ? [...results, delta, stop]
+          : order === 'delta-first'
+            ? [delta, ...results, stop]
+            : [delta, stop, ...results]) {
+          receive(message);
+        }
+      }
+
+      const expected = (outputOnly ? initial : final).map((usage, index) => ({
+        inputTokens: {
+          total:
+            usage.input_tokens +
+            usage.cache_creation_input_tokens +
+            usage.cache_read_input_tokens,
+          noCache: usage.input_tokens,
+          cacheRead: usage.cache_read_input_tokens,
+          cacheWrite: usage.cache_creation_input_tokens,
+        },
+        outputTokens: {
+          total: final[index].output_tokens,
+          text: final[index].output_tokens,
+        },
+      }));
+      expect(
+        emitted
+          .filter(event => event.type === 'finish-step')
+          .map(event => event.usage),
+      ).toEqual(expected);
+      expect(
+        emitted
+          .filter(event => {
+            const raw = event.rawValue as ClaudeMessage | undefined;
+            return (
+              event.type === 'raw' &&
+              raw?.type === 'stream_event' &&
+              raw.parent_tool_use_id == null &&
+              raw.event?.type === 'message_stop'
+            );
+          })
+          .map(event => (event.rawValue as ClaudeMessage).usage),
+      ).toEqual(
+        final.map((usage, index) =>
+          outputOnly
+            ? { ...initial[index], output_tokens: usage.output_tokens }
+            : usage,
+        ),
+      );
+    },
+  );
+
   it('keeps subagent messages out of the main Agent-tool step', () => {
     const messages = JSON.parse(
       readFileSync(
@@ -1147,7 +1308,7 @@ describe('createEmitStreamEvent', () => {
         toolCallId: 'host-tool',
         toolName: 'weather',
         input: '{}',
-        providerExecuted: true,
+        providerExecuted: false,
       },
       {
         type: 'tool-result',
@@ -1208,6 +1369,43 @@ describe('createEmitStreamEvent', () => {
     ).toEqual([]);
     expect(state.mcpHandlerCalls).toHaveLength(0);
   });
+
+  it.each(['first', 'unmatched'])(
+    'does not reuse a %s handler for identical parallel declarations',
+    handlerId => {
+      const state = createClaudeStreamEventState();
+      state.mcpHandlerCalls.set(handlerId, {
+        toolName: 'weather',
+        input: { city: 'Tokyo' },
+      });
+      const emitted: Record<string, unknown>[] = [];
+      const emitStreamEvent = createEmitStreamEvent({
+        state,
+        emit: event => emitted.push(event),
+        emitWarning: () => {},
+        emitTerminalError: () => {},
+        onCompactionBoundary: () => {},
+        toCommonName: name => name,
+      });
+      emitStreamEvent({
+        type: 'assistant',
+        message: {
+          content: ['first', 'second'].map(id => ({
+            type: 'tool_use',
+            id,
+            name: 'mcp__harness-tools__weather',
+            input: { city: 'Tokyo' },
+          })),
+        },
+      });
+      expect(
+        emitted
+          .filter(event => event.type === 'tool-call')
+          .map(event => event.toolCallId),
+      ).toEqual(['second']);
+      expect([...state.hostInputWaitingToolUseIds]).toEqual(['second']);
+    },
+  );
 
   it('suppresses native question tool calls', () => {
     const state = createClaudeStreamEventState();
@@ -1530,5 +1728,140 @@ describe('createEmitStreamEvent', () => {
         .filter(event => event.type === 'tool-result')
         .map(event => event.result),
     ).toEqual([imageContent, '42']);
+  });
+
+  it('batches host calls before sequential MCP handlers start without repeating the boundary', () => {
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emit = (event: Record<string, unknown>) => emitted.push(event);
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit,
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+    const finishSteps = () =>
+      emitted.filter(event => event.type === 'finish-step');
+
+    emitStreamEvent({ type: 'stream_event', event: { type: 'message_start' } });
+    emitStreamEvent({
+      type: 'assistant',
+      message: {
+        content: [
+          {
+            type: 'tool_use',
+            id: 'toolu_paris',
+            name: 'mcp__harness-tools__get_weather',
+            input: { city: 'Paris' },
+          },
+        ],
+      },
+    });
+    markWaitingOnHostInput({ state, emit, toolUseId: 'toolu_paris' });
+    emitStreamEvent({
+      type: 'assistant',
+      message: {
+        content: [
+          {
+            type: 'tool_use',
+            id: 'toolu_tokyo',
+            name: 'mcp__harness-tools__get_weather',
+            input: { city: 'Tokyo' },
+          },
+        ],
+      },
+    });
+
+    expect(finishSteps()).toHaveLength(0);
+
+    emitStreamEvent({ type: 'stream_event', event: { type: 'message_stop' } });
+
+    expect(finishSteps()).toHaveLength(1);
+
+    clearWaitingOnHostInput({ state, toolUseId: 'toolu_paris' });
+    state.mcpHandlerCalls.set('toolu_tokyo', {
+      toolName: 'get_weather',
+      input: { city: 'Tokyo' },
+    });
+    markWaitingOnHostInput({ state, emit, toolUseId: 'toolu_tokyo' });
+
+    expect(finishSteps()).toHaveLength(1);
+    expect(
+      emitted
+        .filter(event => event.type === 'tool-call')
+        .map(event => event.toolCallId),
+    ).toEqual(['toolu_paris', 'toolu_tokyo']);
+
+    clearWaitingOnHostInput({ state, toolUseId: 'toolu_tokyo' });
+    emitStreamEvent({
+      type: 'user',
+      message: {
+        content: [
+          { type: 'tool_result', tool_use_id: 'toolu_paris', content: '{}' },
+          { type: 'tool_result', tool_use_id: 'toolu_tokyo', content: '{}' },
+        ],
+      },
+    });
+
+    expect(
+      finishSteps().map(event => (event.finishReason as { raw: string }).raw),
+    ).toEqual(['host-input', 'stop']);
+  });
+
+  it('pauses for native approvals even when another native call is queued', () => {
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emit = (event: Record<string, unknown>) => emitted.push(event);
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit,
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+    emitStreamEvent({ type: 'stream_event', event: { type: 'message_start' } });
+    emitStreamEvent({
+      type: 'assistant',
+      message: {
+        content: ['first', 'second'].map(id => ({
+          type: 'tool_use',
+          id,
+          name: 'Bash',
+          input: { command: 'pwd' },
+        })),
+      },
+    });
+    markWaitingOnHostInput({ state, emit, toolUseId: 'first' });
+    expect(emitted.filter(event => event.type === 'finish-step')).toHaveLength(
+      0,
+    );
+    emitStreamEvent({ type: 'stream_event', event: { type: 'message_stop' } });
+    expect(emitted.filter(event => event.type === 'finish-step')).toHaveLength(
+      1,
+    );
+    clearWaitingOnHostInput({ state, toolUseId: 'first' });
+    markWaitingOnHostInput({ state, emit, toolUseId: 'second' });
+    expect(emitted.filter(event => event.type === 'finish-step')).toHaveLength(
+      2,
+    );
+    clearWaitingOnHostInput({ state, toolUseId: 'second' });
+    emitStreamEvent({
+      type: 'user',
+      message: {
+        content: ['first', 'second'].map(id => ({
+          type: 'tool_result',
+          tool_use_id: id,
+          content: '/work',
+        })),
+      },
+    });
+    expect(
+      emitted
+        .filter(event => event.type === 'finish-step')
+        .map(event => (event.finishReason as { raw: string }).raw),
+    ).toEqual(['host-input', 'host-input', 'stop']);
   });
 });

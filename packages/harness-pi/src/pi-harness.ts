@@ -14,13 +14,13 @@ import {
 import {
   createPiSession,
   type PiCacheRetention,
-  type PiFileToolPathPolicy,
   type PiHarnessExtensionFactory,
   type PiMcpServerConfig,
   type PiMcpSettings,
   type PiResources,
   type PiThinkingLevel,
 } from './pi-session';
+import type { PiFileToolPathPolicy } from './pi-paths';
 import { VERSION } from './version';
 
 /**
@@ -110,10 +110,12 @@ export type PiHarnessSettings = {
   /**
    * Absolute sandbox paths that widen or narrow what Pi's native file tools
    * can reach. `readableRoots` lets `read`, `ls`, `find`, and `grep` reach
-   * outside the session workspace. `deniedRoots` are refused by every native
-   * file tool and take precedence, including through symlinks. Denied roots
-   * are resolved in the sandbox before the first native file tool runs. The
-   * `bash` tool is not restricted.
+   * outside the session workspace. `writableRoots` also permits writes and
+   * edits outside the workspace and grants read access. `deniedRoots` are
+   * refused by every native file tool and take precedence, including through
+   * symlinks. Configured roots are resolved for each operation; denied roots
+   * are also resolved in the sandbox before the first native file tool runs.
+   * The `bash` tool is not restricted.
    */
   readonly fileToolPathPolicy?: PiFileToolPathPolicy;
   /**
@@ -217,9 +219,7 @@ export function createPi(
     lifecycleStateSchema: piLifecycleStateSchema,
     doStart: async startOpts => {
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
-      const resumeEntries = (
-        lifecycleState?.data as PiLifecycleData | undefined
-      )?.entries;
+      const resumeData = lifecycleState?.data as PiLifecycleData | undefined;
 
       return createPiSession({
         sessionId: startOpts.sessionId,
@@ -264,7 +264,10 @@ export function createPi(
         ...(lifecycleState ? { resumeStateType: lifecycleState.type } : {}),
         permissionMode: startOpts.permissionMode,
         builtinToolFiltering: startOpts.builtinToolFiltering,
-        ...(resumeEntries ? { resumeEntries } : {}),
+        ...(resumeData?.entries ? { resumeEntries: resumeData.entries } : {}),
+        ...(resumeData?.pendingToolBatch
+          ? { resumePendingToolBatch: resumeData.pendingToolBatch }
+          : {}),
         ...(startOpts.abortSignal
           ? { abortSignal: startOpts.abortSignal }
           : {}),

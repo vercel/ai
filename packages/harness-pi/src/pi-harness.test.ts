@@ -58,9 +58,15 @@ describe('createPi adapter', () => {
     async resumeStateType => {
       mocks.createPiSession.mockClear();
       const credentials = {} as PiCredentialStore;
+      const fileToolPathPolicy = {
+        readableRoots: ['/mnt/reference'],
+        writableRoots: ['/tmp/artifacts'],
+        deniedRoots: ['/tmp/artifacts/private'],
+      };
       const harness = createPi({
         credentials,
         reattachInProcess: false,
+        fileToolPathPolicy,
       });
       const lifecycleState = {
         harnessId: 'pi',
@@ -92,11 +98,33 @@ describe('createPi adapter', () => {
           settings: expect.objectContaining({
             credentials,
             reattachInProcess: false,
+            fileToolPathPolicy,
           }),
         }),
       );
     },
   );
+  it('forwards the native file-tool path policy to the Pi session', async () => {
+    mocks.createPiSession.mockClear();
+    const fileToolPathPolicy = {
+      readableRoots: ['/mnt/reference'],
+      writableRoots: ['/tmp', '/mnt/artifacts'],
+      deniedRoots: ['/tmp/private'],
+    };
+    const harness = createPi({ fileToolPathPolicy });
+
+    await harness.doStart({
+      sessionId: 'session-with-file-tool-policy',
+      sandboxSession: {} as never,
+      sessionWorkDir: '/sandbox/work',
+    });
+
+    expect(mocks.createPiSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        settings: expect.objectContaining({ fileToolPathPolicy }),
+      }),
+    );
+  });
 
   const header = {
     type: 'session',
