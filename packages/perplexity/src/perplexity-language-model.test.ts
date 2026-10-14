@@ -11,6 +11,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { PerplexityLanguageModel } from './perplexity-language-model';
+import type { PerplexityLanguageModelOptions } from './perplexity-language-model-options';
 
 const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -437,6 +438,109 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
         providerOptions: {
           perplexity: { max_steps: 0 },
+        },
+      }),
+    ).rejects.toThrow(InvalidArgumentError);
+  });
+
+  it('maps chat completion provider options onto Perplexity field names', async () => {
+    prepareJsonResponse();
+
+    const perplexityOptions = {
+      searchMode: 'academic',
+      webSearchOptions: {
+        searchContextSize: 'high',
+        searchType: 'pro',
+        userLocation: { country: 'US', city: 'San Francisco' },
+        imageResultsEnhancedRelevance: true,
+      },
+      returnImages: true,
+      returnRelatedQuestions: true,
+      enableSearchClassifier: true,
+      disableSearch: false,
+      searchDomainFilter: ['arxiv.org'],
+      searchLanguageFilter: ['en'],
+      searchRecencyFilter: 'week',
+      searchAfterDateFilter: '01/01/2024',
+      searchBeforeDateFilter: '12/31/2024',
+      lastUpdatedAfterFilter: '01/01/2024',
+      lastUpdatedBeforeFilter: '12/31/2024',
+      imageFormatFilter: ['png', 'jpg'],
+      imageDomainFilter: ['upload.wikimedia.org'],
+      streamMode: 'concise',
+      reasoningEffort: 'low',
+      tools: [
+        {
+          type: 'web_search' as const,
+          search_type: 'fast' as const,
+          filters: { search_recency_filter: 'month' as const },
+        },
+        {
+          type: 'image_search' as const,
+          max_results: 5,
+          filters: { format_filter: ['png' as const], safe_search: true },
+        },
+      ],
+    } satisfies PerplexityLanguageModelOptions;
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: { perplexity: perplexityOptions },
+    });
+
+    const body = (await server.calls[0].requestBodyJson) as Record<
+      string,
+      unknown
+    >;
+
+    expect(body).toMatchObject({
+      preset: 'low',
+      search_mode: 'academic',
+      web_search_options: {
+        search_context_size: 'high',
+        search_type: 'pro',
+        user_location: { country: 'US', city: 'San Francisco' },
+        image_results_enhanced_relevance: true,
+      },
+      return_images: true,
+      return_related_questions: true,
+      enable_search_classifier: true,
+      disable_search: false,
+      search_domain_filter: ['arxiv.org'],
+      search_language_filter: ['en'],
+      search_recency_filter: 'week',
+      search_after_date_filter: '01/01/2024',
+      search_before_date_filter: '12/31/2024',
+      last_updated_after_filter: '01/01/2024',
+      last_updated_before_filter: '12/31/2024',
+      image_format_filter: ['png', 'jpg'],
+      image_domain_filter: ['upload.wikimedia.org'],
+      stream_mode: 'concise',
+      reasoning_effort: 'low',
+      tools: [
+        {
+          type: 'web_search',
+          search_type: 'fast',
+          filters: { search_recency_filter: 'month' },
+        },
+        {
+          type: 'image_search',
+          max_results: 5,
+          filters: { format_filter: ['png'], safe_search: true },
+        },
+      ],
+    });
+    expect(body).not.toHaveProperty('searchMode');
+    expect(body).not.toHaveProperty('webSearchOptions');
+    expect(body).not.toHaveProperty('returnImages');
+  });
+
+  it('rejects an invalid search mode', async () => {
+    await expect(
+      model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          perplexity: { searchMode: 'blog' },
         },
       }),
     ).rejects.toThrow(InvalidArgumentError);
