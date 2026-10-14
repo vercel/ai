@@ -720,4 +720,34 @@ console.log(text);`,
     websiteUrl: 'https://pexafy.com',
     npmUrl: 'https://www.npmjs.com/package/pexafy-ai-sdk',
   },
+  {
+    slug: 'runstack',
+    name: 'Runstack',
+    description:
+      '@rnsk/tools — Runstack meta-tools for the AI SDK. Discover, authenticate, and execute 8,000+ tools across 120+ toolkits via four compact meta tools backed by the Runstack MCP server, without loading every tool schema into context.',
+    packageName: '@rnsk/tools',
+    tags: ['mcp', 'tool-discovery', 'integrations', 'oauth'],
+    apiKeyEnvName: 'RUNSTACK_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @rnsk/tools ai zod',
+      npm: 'npm install @rnsk/tools ai zod',
+      yarn: 'yarn add @rnsk/tools ai zod',
+      bun: 'bun add @rnsk/tools ai zod',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { runstackTools } from '@rnsk/tools';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-5.5',
+  prompt: 'Star the vercel/ai repo on GitHub and email me a confirmation.',
+  tools: runstackTools(process.env.RUNSTACK_API_KEY!),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://runstack.engineer/docs/rnsk-tools',
+    apiKeyUrl: 'https://runstack.engineer/docs/api-keys',
+    websiteUrl: 'https://runstack.engineer',
+    npmUrl: 'https://www.npmjs.com/package/@rnsk/tools',
+  },
 ];
