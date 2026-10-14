@@ -5,12 +5,14 @@ import type {
   LanguageModelV4Source,
   SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
+import type { Context } from '@ai-sdk/provider-utils';
 import type {
   Experimental_LanguageModelStreamPart,
   FinishReason,
   LanguageModelUsage,
   StepResultPerformance,
   StopCondition,
+  TelemetryOptions,
   ToolCallRepairFunction,
   ToolChoice,
   ToolSet,
@@ -93,6 +95,9 @@ export interface ModelCallTelemetry {
   recordInputs?: boolean;
   recordOutputs?: boolean;
   stepNumber: number;
+  includeRuntimeContext?: TelemetryOptions['includeRuntimeContext'];
+  /** Runtime context filtered before crossing the durable step boundary. */
+  runtimeContext?: Context;
 }
 
 /**
