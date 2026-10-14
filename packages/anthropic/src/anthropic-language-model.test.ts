@@ -196,6 +196,76 @@ describe('AnthropicLanguageModel', () => {
     );
   });
 
+  describe.each(['generate', 'stream'] as const)(
+    'JSON response tool with manual thinking (%s)',
+    method => {
+      it.each([
+        { modelId: 'claude-sonnet-4-20250514', structuredOutputMode: 'auto' },
+        { modelId: 'claude-sonnet-4-5', structuredOutputMode: 'jsonTool' },
+      ] as const)(
+        'should fall back to auto tool choice for $modelId in $structuredOutputMode mode',
+        async ({ modelId, structuredOutputMode }) => {
+          const options = {
+            prompt: TEST_PROMPT,
+            maxOutputTokens: 1000,
+            providerOptions: {
+              anthropic: {
+                structuredOutputMode,
+                thinking: { type: 'enabled', budgetTokens: 5000 },
+              },
+            },
+            responseFormat: {
+              type: 'json' as const,
+              schema: { type: 'object' as const, properties: {} },
+            },
+          };
+          const warnings = [
+            {
+              type: 'unsupported',
+              feature: 'toolChoice',
+              details: expect.stringContaining(
+                'not supported with this model or thinking configuration',
+              ),
+            },
+          ];
+
+          if (method === 'generate') {
+            prepareJsonFixtureResponse('anthropic-json-tool.1');
+            const result = await provider(modelId).doGenerate(options);
+            expect(result.warnings).toEqual(warnings);
+            expect(result.content).toEqual([
+              { type: 'text', text: expect.stringContaining('"elements"') },
+            ]);
+            expect(result.finishReason.unified).toBe('stop');
+          } else {
+            prepareChunksFixtureResponse('anthropic-json-tool.1');
+            const result = await provider(modelId).doStream(options);
+            const chunks = await convertReadableStreamToArray(result.stream);
+            expect(chunks[0]).toEqual({ type: 'stream-start', warnings });
+            expect(chunks.some(chunk => chunk.type === 'error')).toBe(false);
+          }
+
+          const body = await server.calls[0].requestBodyJson;
+          expect(body.thinking).toEqual({
+            type: 'enabled',
+            budget_tokens: 5000,
+          });
+          expect(body.tool_choice).toEqual({
+            type: 'auto',
+            disable_parallel_tool_use: true,
+          });
+          expect(body.tools).toMatchObject([
+            {
+              name: 'json',
+              description: 'Respond with a JSON object.',
+              input_schema: options.responseFormat.schema,
+            },
+          ]);
+        },
+      );
+    },
+  );
+
   describe('doGenerate', () => {
     describe('forced tool choice with thinking', () => {
       const tools = ['lookup', 'other'].map(name => ({

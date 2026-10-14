@@ -745,7 +745,8 @@ model's maximum output token limit.
 With manual thinking (`thinking.type: 'enabled'`), a `required` or named
 `toolChoice` falls back to `auto` with a warning. For a named tool choice, only
 the selected tool is sent. This also applies when the top-level `reasoning`
-option enables manual thinking. Tool use is no longer guaranteed: instruct the
+option enables manual thinking, including when structured output uses the
+internal JSON response tool. Tool use is no longer guaranteed: instruct the
 model to use the tool in your prompt and verify that a tool call was made.
 
 See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details
