@@ -34,6 +34,14 @@ import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
 
 describe('streamText types', () => {
+  it('should accept toolCallConcurrency', () => {
+    streamText({
+      model: new MockLanguageModelV4(),
+      prompt: 'Hello',
+      toolCallConcurrency: 1,
+    });
+  });
+
   describe('stream retries', () => {
     it('should accept streamRetries and an onError retry result', () => {
       streamText({

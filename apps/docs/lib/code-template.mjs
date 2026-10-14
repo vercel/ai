@@ -6,11 +6,25 @@ import {
 export const hasCodeTemplate = code =>
   /__(?:MODEL|TEXT_MODEL|IMAGE_MODEL|VIDEO_MODEL|PROVIDER_IMPORT)__/.test(code);
 
-export const renderGatewayCode = code => {
+export const parseCodeTemplateOptions = (meta = '') => {
+  const fenceMeta = meta ?? '';
+  const provider = fenceMeta.match(/\bprovider=(?:"([^"]*)"|'([^']*)')/);
+  const model = fenceMeta.match(/\bmodel=(?:"([^"]*)"|'([^']*)')/);
+  return {
+    provider: provider?.[1] ?? provider?.[2],
+    defaultModelId: model?.[1] ?? model?.[2],
+  };
+};
+
+export const renderGatewayCode = (
+  code,
+  { defaultModelId = DEFAULT_MODEL_IDS.text } = {},
+) => {
+  const defaultModels = { ...DEFAULT_MODEL_IDS, text: defaultModelId };
   let result = code;
   for (const [kind, placeholders] of Object.entries(MODEL_KIND_PLACEHOLDERS)) {
     for (const placeholder of placeholders) {
-      result = result.replaceAll(placeholder, `"${DEFAULT_MODEL_IDS[kind]}"`);
+      result = result.replaceAll(placeholder, `"${defaultModels[kind]}"`);
     }
   }
   return result.replace(/.*__PROVIDER_IMPORT__.*\n?/g, '').trim();

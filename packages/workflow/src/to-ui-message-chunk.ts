@@ -191,6 +191,9 @@ export function toUIMessageChunk(
         approvalId: part.approvalId,
         toolCallId:
           'toolCallId' in part ? part.toolCallId : part.toolCall.toolCallId,
+        ...('inputSchemaInput' in part && part.inputSchemaInput !== undefined
+          ? { inputSchemaInput: part.inputSchemaInput }
+          : {}),
         ...(part.signature != null ? { signature: part.signature } : {}),
       };
 
