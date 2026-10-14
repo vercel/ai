@@ -1113,6 +1113,40 @@ describe('translatePiEvent', () => {
     `);
   });
 
+  it('parses a JSON MCP result that carries native MCP details', () => {
+    const state = createPiTranslatorState();
+    emit([{ type: 'turn_start' } as PiSessionEvent], state);
+    emit(
+      [
+        {
+          type: 'tool_execution_start',
+          toolCallId: 'mcp-call',
+          toolName: 'mcp__brand_ai__brand_check',
+          args: {},
+        } as PiSessionEvent,
+      ],
+      state,
+    );
+
+    const result = translatePiEvent(
+      {
+        type: 'tool_execution_end',
+        toolCallId: 'mcp-call',
+        result: {
+          content: [{ type: 'text', text: '{"ok":true,"issues":[]}' }],
+          details: { server: 'brand_ai', tool: 'brand_check' },
+        },
+      } as PiSessionEvent,
+      state,
+    );
+
+    expect(result[0]).toMatchObject({
+      type: 'tool-result',
+      toolName: 'mcp__brand_ai__brand_check',
+      result: { ok: true, issues: [] },
+    });
+  });
+
   it('keeps non-JSON MCP results and JSON native results as text', () => {
     const state = createPiTranslatorState({ builtinToolNames: ['read'] });
     emit([{ type: 'turn_start' } as PiSessionEvent], state);
