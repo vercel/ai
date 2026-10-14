@@ -579,39 +579,22 @@ to `'.'` to use the sandbox's default working directory itself. When omitted,
 regular sessions use the default `<harnessId>-<sessionId>` directory, while
 `onBootstrap` receives the sandbox's default working directory.
 
-By default, `createSession()` runs this setup before the harness starts: it
-runs `onBootstrap` when its marker is missing, creates the session working
-directory, and calls `onSession`. Set `sandboxConfig.setup` to `'lazy'` to run
-the setup on the first file, exec, or spawn operation that the harness or a
-host tool performs on the sandbox instead. A session whose turns never touch the
-sandbox then makes no sandbox calls. If the setup fails, the operation that
-triggered it rejects, and the next operation runs the setup again.
-
-```ts
-const agent = new HarnessAgent({
-  harness: pi,
-  sandboxConfig: {
-    setup: 'lazy',
-    onSession: async ({ session, sessionWorkDir, abortSignal }) => {
-      await session.writeTextFile({
-        path: `${sessionWorkDir}/README.md`,
-        content: 'Session notes for the harness.',
-        abortSignal,
-      });
-    },
-  },
-});
-```
-
-`'lazy'` requires a harness without a sandbox bootstrap recipe. Harnesses such
-as Claude Code and Codex install their runtime into the sandbox before they
-start, so `createSession()` rejects `'lazy'` for them.
+When the harness declares a sandbox bootstrap recipe, as Claude Code and Codex
+do, `createSession()` runs the session's sandbox setup before the harness
+starts: it runs `onBootstrap` when its marker is missing, creates the session
+working directory, and calls `onSession`. For any other harness, such as Pi,
+the setup runs on the first file, exec, or spawn operation that the harness or
+a host tool performs on the sandbox. A session whose turns never touch the
+sandbox then makes no setup calls. If the setup fails, the operation that
+triggered it rejects, and the next operation runs the setup again. A sandbox
+session without `defaultWorkingDirectory` still answers one `pwd` in
+`createSession()`, because the session working directory is derived from it.
 
 ## Start the Sandbox on First Use
 
-`setup: 'lazy'` defers the setup, but `createSession()` still needs a sandbox
-session. To defer creating the sandbox as well, pass a session from
-`createLazyNetworkSandboxSession()`. Its `acquire` function creates or resumes
+Deferring the setup does not defer the sandbox itself: `createSession()` still
+creates or resumes a sandbox session. To defer creating the sandbox as well,
+pass a session from `createLazyNetworkSandboxSession()`. Its `acquire` function creates or resumes
 the sandbox the first time the harness or a host tool performs a file, exec,
 spawn, or port operation. Whether a turn that only chats calls it depends on the
 harness: a harness that reads the sandbox when a session starts acquires it
@@ -628,10 +611,7 @@ import {
   resumeVercelNetworkSandboxSession,
 } from '@ai-sdk/sandbox-vercel';
 
-const agent = new HarnessAgent({
-  harness: pi,
-  sandboxConfig: { setup: 'lazy' },
-});
+const agent = new HarnessAgent({ harness: pi });
 
 const sandboxId = `harness-${sessionId}`;
 const session = await agent.createSession({
@@ -654,8 +634,8 @@ const session = await agent.createSession({
 
 Keep the following constraints in mind:
 
-- The harness must not declare a sandbox bootstrap recipe, as for
-  `setup: 'lazy'`.
+- The harness must not declare a sandbox bootstrap recipe. A harness with one
+  sets up its sandbox during `createSession()`, which acquires it.
 - `defaultWorkingDirectory`, `ports`, and `description` are fixed when you
   create the session. `defaultWorkingDirectory` must match what the acquired
   sandbox reports, because `createSession()` derives the session working
