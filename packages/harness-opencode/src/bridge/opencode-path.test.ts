@@ -1,9 +1,12 @@
+import path from 'node:path';
+import { rgPath } from '@vscode/ripgrep';
 import { describe, expect, it } from 'vitest';
 import { prependOpenCodeBinToPath } from './opencode-path';
 
 describe('prependOpenCodeBinToPath', () => {
   it('prepends the bridge node_modules bin directory', () => {
-    const env = { PATH: '/usr/bin:/bin' };
+    const existingPath = ['/usr/bin', '/bin'].join(path.delimiter);
+    const env = { PATH: existingPath };
 
     prependOpenCodeBinToPath({
       bootstrapDir: '/tmp/harness/opencode',
@@ -11,7 +14,11 @@ describe('prependOpenCodeBinToPath', () => {
     });
 
     expect(env.PATH).toBe(
-      '/tmp/harness/opencode/node_modules/.bin:/usr/bin:/bin',
+      [
+        path.join('/tmp/harness/opencode', 'node_modules', '.bin'),
+        existingPath,
+        path.dirname(rgPath),
+      ].join(path.delimiter),
     );
   });
 
@@ -23,7 +30,12 @@ describe('prependOpenCodeBinToPath', () => {
       env,
     });
 
-    expect(env.PATH).toContain('/tmp/harness/opencode/node_modules/.bin:');
-    expect(env.PATH).toContain('/usr/bin');
+    expect(env.PATH).toBe(
+      [
+        path.join('/tmp/harness/opencode', 'node_modules', '.bin'),
+        '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
+        path.dirname(rgPath),
+      ].join(path.delimiter),
+    );
   });
 });
