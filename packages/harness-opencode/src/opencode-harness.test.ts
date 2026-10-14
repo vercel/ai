@@ -1006,11 +1006,12 @@ describe('createOpenCode adapter', () => {
       type: 'start',
       operation: 'compact',
       openCodeConfig,
-      builtinToolFiltering,
+      inactiveBuiltinToolNames: ['read'],
       mcpServers,
       headers: { 'x-tenant': 'acme' },
       resumeSessionId: 'opencode-session',
     });
+    expect(channel.sent.at(-1)).not.toHaveProperty('builtinToolFiltering');
     channel.emit('finish', { type: 'finish' });
     await compaction;
 
@@ -1031,11 +1032,12 @@ describe('createOpenCode adapter', () => {
       model: 'anthropic/agent-model',
       variant: 'high',
       openCodeConfig,
-      builtinToolFiltering,
+      inactiveBuiltinToolNames: ['read'],
       mcpServers,
       headers: { 'x-tenant': 'acme' },
       resumeSessionId: 'opencode-session',
     });
+    expect(channel.sent.at(-1)).not.toHaveProperty('builtinToolFiltering');
     channel.emit('finish', { type: 'finish' });
     await firstTurn.done;
 
@@ -1064,11 +1066,14 @@ describe('createOpenCode adapter', () => {
       instructions: 'be concise',
       variant: 'high',
       openCodeConfig,
-      builtinToolFiltering,
+      inactiveBuiltinToolNames: ['read'],
       mcpServers,
       headers: { 'x-tenant': 'acme' },
       resumeSessionId: 'opencode-session',
     });
+    expect(resumedChannel.sent.at(-1)).not.toHaveProperty(
+      'builtinToolFiltering',
+    );
     resumedChannel.emit('finish', { type: 'finish' });
     await resumedTurn.done;
 

@@ -289,11 +289,8 @@ describe('OpenCode bridge turn settlement', () => {
 
   it.each([
     {
-      filteringMode: 'deny',
-      builtinToolFiltering: {
-        mode: 'deny' as const,
-        toolNames: allBuiltinToolNames,
-      },
+      filteringCase: 'all inactive',
+      inactiveBuiltinToolNames: allBuiltinToolNames,
       expectedPermissions: {
         question: 'deny',
         read: 'deny',
@@ -309,11 +306,10 @@ describe('OpenCode bridge turn settlement', () => {
       },
     },
     {
-      filteringMode: 'allow',
-      builtinToolFiltering: {
-        mode: 'allow' as const,
-        toolNames: ['write', 'edit'],
-      },
+      filteringCase: 'write and edit active',
+      inactiveBuiltinToolNames: allBuiltinToolNames.filter(
+        toolName => toolName !== 'write' && toolName !== 'edit',
+      ),
       expectedPermissions: {
         question: 'deny',
         read: 'deny',
@@ -329,13 +325,13 @@ describe('OpenCode bridge turn settlement', () => {
       },
     },
   ])(
-    'maps inactive builtins to native OpenCode deny permissions ($filteringMode)',
-    async ({ builtinToolFiltering, expectedPermissions }) => {
+    'applies host-resolved inactive builtins to OpenCode permissions ($filteringCase)',
+    async ({ inactiveBuiltinToolNames, expectedPermissions }) => {
       bridgeMock.start = {
         type: 'start',
         operation: 'prompt',
         prompt: 'Start.',
-        builtinToolFiltering,
+        inactiveBuiltinToolNames,
       };
       bridgeMock.turn = {
         emit: vi.fn(),
@@ -922,19 +918,11 @@ describe('OpenCode bridge turn settlement', () => {
       emitWarning: vi.fn(),
       emitError: vi.fn(),
     });
-    const inactiveReadFilter = {
-      mode: 'deny' as const,
-      toolNames: ['read'],
-    };
-    const activeReadFilter = {
-      mode: 'allow' as const,
-      toolNames: ['read', 'write', 'edit'],
-    };
+    const inactiveBuiltinToolNames = ['read'];
+    const noInactiveBuiltinToolNames: string[] = [];
     const start = (
       prompt: string | undefined,
-      builtinToolFiltering:
-        | typeof inactiveReadFilter
-        | typeof activeReadFilter = inactiveReadFilter,
+      inactiveNames: string[] = inactiveBuiltinToolNames,
     ) => ({
       type: 'start',
       operation: 'prompt',
@@ -942,7 +930,7 @@ describe('OpenCode bridge turn settlement', () => {
       tools: [{ name: 'lookup' }],
       openCodeConfig:
         prompt === undefined ? undefined : { agent: { build: { prompt } } },
-      builtinToolFiltering,
+      inactiveBuiltinToolNames: inactiveNames,
     });
 
     sdkMock.client = client;
@@ -961,7 +949,10 @@ describe('OpenCode bridge turn settlement', () => {
     expect(firstServer.close).not.toHaveBeenCalled();
     expect(relayMock.close).not.toHaveBeenCalled();
 
-    await bridgeMock.onStart!(start('Prompt B'), turn());
+    await bridgeMock.onStart!(
+      start('Prompt B', noInactiveBuiltinToolNames),
+      turn(),
+    );
 
     expect(createOpencodeServerMock).toHaveBeenCalledTimes(2);
     expect(createOpencodeServerMock.mock.calls[1]?.[0]).toMatchObject({
@@ -1018,7 +1009,10 @@ describe('OpenCode bridge turn settlement', () => {
 
     const activeReadServer = (await createOpencodeServerMock.mock.results[4]
       ?.value) as { close: ReturnType<typeof vi.fn> };
-    await bridgeMock.onStart!(start(undefined, activeReadFilter), turn());
+    await bridgeMock.onStart!(
+      start(undefined, noInactiveBuiltinToolNames),
+      turn(),
+    );
 
     expect(createOpencodeServerMock).toHaveBeenCalledTimes(6);
     expect(activeReadServer.close).toHaveBeenCalledTimes(1);
@@ -1026,13 +1020,19 @@ describe('OpenCode bridge turn settlement', () => {
       config: { permission: { read: 'allow' } },
     });
 
-    await bridgeMock.onStart!(start(undefined, activeReadFilter), turn());
+    await bridgeMock.onStart!(
+      start(undefined, noInactiveBuiltinToolNames),
+      turn(),
+    );
 
     expect(createOpencodeServerMock).toHaveBeenCalledTimes(6);
 
     const deniedReadServer = (await createOpencodeServerMock.mock.results[5]
       ?.value) as { close: ReturnType<typeof vi.fn> };
-    await bridgeMock.onStart!(start(undefined, inactiveReadFilter), turn());
+    await bridgeMock.onStart!(
+      start(undefined, inactiveBuiltinToolNames),
+      turn(),
+    );
 
     expect(createOpencodeServerMock).toHaveBeenCalledTimes(7);
     expect(deniedReadServer.close).toHaveBeenCalledTimes(1);
