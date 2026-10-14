@@ -7,6 +7,7 @@ import {
 } from 'ai';
 import {
   asLanguageModelUsage,
+  convertToLanguageModelPrompt,
   parseToolCall,
   prepareLanguageModelCallOptions,
   prepareRetries,
@@ -14,6 +15,7 @@ import {
   prepareTools,
   resolveLanguageModel,
 } from 'ai/internal';
+import { languageModelPromptToModelMessages } from './language-model-prompt-to-model-messages.js';
 import type {
   ModelCallOptions,
   ModelCallRawContentPart,
@@ -90,6 +92,16 @@ async function generateModelCall(
           AbortSignal.timeout(remaining),
         ]);
   const model = resolveLanguageModel(modelInit);
+  const modelPrompt = await convertToLanguageModelPrompt({
+    prompt: {
+      instructions: undefined,
+      messages: languageModelPromptToModelMessages(prompt),
+    },
+    supportedUrls: await model.supportedUrls,
+    download: options.download,
+    abortSignal,
+    provider: model.provider.split('.')[0],
+  });
   const tools = resolveSerializableTools(serializedTools);
   const toolChoice = prepareToolChoice({ toolChoice: options.toolChoice });
   const modelTools = await prepareTools({ tools });
@@ -125,7 +137,7 @@ async function generateModelCall(
       execute: () =>
         model.doGenerate({
           ...settings,
-          prompt: [...prompt],
+          prompt: modelPrompt,
           tools: modelTools,
           toolChoice,
           responseFormat: options.responseFormat,
@@ -150,6 +162,17 @@ async function generateModelCall(
     performance: { responseTimeMs },
   });
   abortSignal?.throwIfAborted();
+  const repairedToolCallIds = new Set<string>();
+  const repairToolCall = options.repairToolCall;
+  const trackedRepairToolCall = repairToolCall
+    ? async (repairOptions: Parameters<typeof repairToolCall>[0]) => {
+        const repaired = await repairToolCall(repairOptions);
+        if (repaired != null) {
+          repairedToolCallIds.add(repairOptions.toolCall.toolCallId);
+        }
+        return repaired;
+      }
+    : undefined;
   const toolCalls = await Promise.all(
     response.content
       .filter(part => part.type === 'tool-call')
@@ -157,9 +180,11 @@ async function generateModelCall(
         parseToolCall({
           toolCall,
           tools,
-          repairToolCall: options.repairToolCall,
+          repairToolCall: trackedRepairToolCall as Parameters<
+            typeof parseToolCall
+          >[0]['repairToolCall'],
           instructions:
-            prompt
+            modelPrompt
               .filter(message => message.role === 'system')
               .map(message => message.content)
               .join('\n') || undefined,
@@ -257,6 +282,7 @@ async function generateModelCall(
     },
     providerExecutedToolResults,
     toolInputLifecycleEvents,
+    repairedToolCallIds: [...repairedToolCallIds],
   };
 }
 

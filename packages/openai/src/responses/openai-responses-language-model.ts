@@ -437,6 +437,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         passThroughUnsupportedFiles:
           openaiOptions?.passThroughUnsupportedFiles ?? false,
         store: openaiOptions?.store ?? true,
+        isReasoningModel,
         hasConversation: openaiOptions?.conversation != null,
         hasPreviousResponseId: openaiOptions?.previousResponseId != null,
         hasLocalShellTool: hasOpenAITool('openai.local_shell'),
