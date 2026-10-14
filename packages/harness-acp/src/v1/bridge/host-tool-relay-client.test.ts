@@ -18,6 +18,7 @@ describe('postHostToolRelay', () => {
       emitToolResult: vi.fn(),
       requestToolResult: () => pendingResult,
       registerCorrelationInvocation: vi.fn(),
+      emitWarning: vi.fn(),
       removeCorrelationInvocation: vi.fn(),
     };
     const relay = await startHostToolRelay({
