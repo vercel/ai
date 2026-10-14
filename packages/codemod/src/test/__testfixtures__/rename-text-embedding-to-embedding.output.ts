@@ -37,3 +37,5 @@ async function getEmbedding(text: string) {
   });
 }
 
+// Passed as arguments alongside direct calls
+register(openai.embedding, openai.embeddingModel, openai.embedding('model'));

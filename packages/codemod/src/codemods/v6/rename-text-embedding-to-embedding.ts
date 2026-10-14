@@ -39,7 +39,10 @@ export default createTransformer((fileInfo, api, options, context) => {
     .find(j.MemberExpression)
     .filter(path => {
       const parent = path.parent;
-      if (parent && parent.node.type === 'CallExpression') {
+      if (
+        parent?.node.type === 'CallExpression' &&
+        parent.node.callee === path.node
+      ) {
         return false;
       }
 
