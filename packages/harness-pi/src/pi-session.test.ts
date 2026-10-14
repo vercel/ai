@@ -991,11 +991,16 @@ describe('createPiSession', () => {
     const run = vi.mocked(sandboxSession.run);
     const runWithoutRealpath = run.getMockImplementation()!;
     run.mockImplementation(async input => {
-      const target = input.command.match(/^target='([^']+)'/)?.[1];
+      const targets = [...input.command.matchAll(/target='([^']+)'/g)].map(
+        match => match[1]!,
+      );
       const marker = input.command.match(/realpath_marker='([^']+)'/)?.[1];
-      if (target == null || marker == null) return runWithoutRealpath(input);
+      if (targets.length === 0 || marker == null)
+        return runWithoutRealpath(input);
       return {
-        stdout: `${Buffer.from(target).toString('base64')}${marker}`,
+        stdout: targets
+          .map(target => `${Buffer.from(target).toString('base64')}${marker}`)
+          .join(''),
         stderr: '',
         exitCode: 0,
       };
@@ -1059,13 +1064,20 @@ describe('createPiSession', () => {
     const run = vi.mocked(sandboxSession.run);
     const runWithoutRealpath = run.getMockImplementation()!;
     run.mockImplementation(async input => {
-      const remotePath = input.command.match(/^target='([^']+)'/)?.[1];
+      const remotePaths = [...input.command.matchAll(/target='([^']+)'/g)].map(
+        match => match[1]!,
+      );
       const marker = input.command.match(/realpath_marker='([^']+)'/)?.[1];
-      if (remotePath == null || marker == null) {
+      if (remotePaths.length === 0 || marker == null) {
         return runWithoutRealpath(input);
       }
       return {
-        stdout: `${Buffer.from(remotePath === alias ? target : remotePath).toString('base64')}${marker}`,
+        stdout: remotePaths
+          .map(
+            remotePath =>
+              `${Buffer.from(remotePath === alias ? target : remotePath).toString('base64')}${marker}`,
+          )
+          .join(''),
         stderr: '',
         exitCode: 0,
       };
@@ -1213,11 +1225,16 @@ describe('createPiSession', () => {
       const run = vi.mocked(sandboxSession.run);
       const runWithoutRealpath = run.getMockImplementation()!;
       run.mockImplementation(async input => {
-        const target = input.command.match(/^target='([^']+)'/)?.[1];
+        const targets = [...input.command.matchAll(/target='([^']+)'/g)].map(
+          match => match[1]!,
+        );
         const marker = input.command.match(/realpath_marker='([^']+)'/)?.[1];
-        if (target == null || marker == null) return runWithoutRealpath(input);
+        if (targets.length === 0 || marker == null)
+          return runWithoutRealpath(input);
         return {
-          stdout: `${Buffer.from(target).toString('base64')}${marker}`,
+          stdout: targets
+            .map(target => `${Buffer.from(target).toString('base64')}${marker}`)
+            .join(''),
           stderr: '',
           exitCode: 0,
         };

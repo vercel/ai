@@ -16,3 +16,4 @@ export type {
   PiMcpServerConfig,
 } from './pi-session';
 export type { PiAuthenticationMode, PiCredentialStore } from './pi-auth';
+export type { PiFileToolPathPolicy } from './pi-paths';

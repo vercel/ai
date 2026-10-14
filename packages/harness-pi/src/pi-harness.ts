@@ -11,12 +11,12 @@ import { piResumeStateSchema, type PiResumeStateData } from './pi-resume-state';
 import {
   createPiSession,
   type PiCacheRetention,
-  type PiFileToolPathPolicy,
   type PiHarnessExtensionFactory,
   type PiMcpServerConfig,
   type PiMcpSettings,
   type PiThinkingLevel,
 } from './pi-session';
+import type { PiFileToolPathPolicy } from './pi-paths';
 import { VERSION } from './version';
 
 /**
@@ -106,9 +106,12 @@ export type PiHarnessSettings = {
   /**
    * Absolute sandbox paths that widen or narrow what Pi's native file tools
    * can reach. `readableRoots` lets `read`, `ls`, `find`, and `grep` reach
-   * outside the session workspace. `deniedRoots` are refused by every native
-   * file tool and take precedence, including through symlinks. Denied roots
-   * are resolved when the session starts. The `bash` tool is not restricted.
+   * outside the session workspace. `writableRoots` also permits writes and
+   * edits outside the workspace and grants read access. `deniedRoots` are
+   * refused by every native file tool and take precedence, including through
+   * symlinks. Configured roots are resolved for each operation; canonical
+   * denied roots captured at session startup remain denied. The `bash` tool
+   * is not restricted.
    */
   readonly fileToolPathPolicy?: PiFileToolPathPolicy;
 };

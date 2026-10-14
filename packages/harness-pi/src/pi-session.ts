@@ -55,7 +55,7 @@ import {
 import { resolvePiSubscriptionAgentDir } from './pi-subscription';
 import { parseNativeEvent, type PiSessionEvent } from './pi-events';
 import { createPiModelResolver } from './pi-model-resolver';
-import { createPiPathMapper } from './pi-paths';
+import { createPiPathMapper, type PiFileToolPathPolicy } from './pi-paths';
 import {
   createPiRemoteOps,
   resolvePiSandboxPathOrParent,
@@ -278,11 +278,6 @@ export interface PiMcpSettings {
 }
 
 export type PiCacheRetention = 'none' | 'short' | 'long';
-
-export interface PiFileToolPathPolicy {
-  readonly readableRoots?: ReadonlyArray<string>;
-  readonly deniedRoots?: ReadonlyArray<string>;
-}
 
 /**
  * The harness session a Pi extension factory runs in.
@@ -594,6 +589,7 @@ export async function createPiSession(
         sandboxDir,
       })),
     ],
+    writableRoots: fileToolPathPolicy?.writableRoots,
     deniedRoots: fileToolPathPolicy?.deniedRoots
       ? [
           ...new Set([

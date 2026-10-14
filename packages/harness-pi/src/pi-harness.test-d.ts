@@ -5,6 +5,7 @@ import {
   type PiCredentialStore,
   type PiHarnessExtensionSession,
   type PiHarnessSettings,
+  type PiFileToolPathPolicy,
   type PiMcpServerConfig,
 } from './index';
 
@@ -73,7 +74,13 @@ test('createPi accepts an injected credential store and reattach opt-out', () =>
 test('createPi accepts a file tool path policy with readonly roots', () => {
   const readableRoots = ['/home/vercel-sandbox', '/tmp'] as const;
   const deniedRoots = ['/home/vercel-sandbox/.credentials'] as const;
-  createPi({ fileToolPathPolicy: { readableRoots, deniedRoots } });
+  const writableRoots = ['/tmp/artifacts'] as const;
+  const policy = {
+    readableRoots,
+    writableRoots,
+    deniedRoots,
+  } satisfies PiFileToolPathPolicy;
+  createPi({ fileToolPathPolicy: policy });
   createPi({ fileToolPathPolicy: {} });
 });
 
@@ -103,11 +110,4 @@ test('createPi accepts deprecated MCP adapter settings', () => {
   createPi({ mcpSettings: { toolPrefix: 'none', outputGuard: false } });
   // @ts-expect-error
   createPi({ mcpSettings: { toolPrefix: 'bare' } });
-});
-
-test('createPi accepts a file tool path policy with readonly roots', () => {
-  const readableRoots = ['/home/vercel-sandbox', '/tmp'] as const;
-  const deniedRoots = ['/home/vercel-sandbox/.credentials'] as const;
-  createPi({ fileToolPathPolicy: { readableRoots, deniedRoots } });
-  createPi({ fileToolPathPolicy: {} });
 });
