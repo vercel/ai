@@ -33,6 +33,7 @@ export async function prepareTools({
   supportsStrictTools,
   defaultEagerInputStreaming = false,
   rejectsForcedToolUse = false,
+  thinkingEnabled = false,
 }: {
   tools: LanguageModelV4CallOptions['tools'];
   toolChoice: LanguageModelV4CallOptions['toolChoice'] | undefined;
@@ -61,6 +62,13 @@ export async function prepareTools({
    * `auto` with a warning.
    */
   rejectsForcedToolUse?: boolean;
+
+  /**
+   * Whether extended thinking is enabled for this call. The Anthropic API
+   * only accepts `tool_choice` `auto` or `none` together with thinking, so
+   * `required` and `tool` tool choices fall back to `auto` with a warning.
+   */
+  thinkingEnabled?: boolean;
 }): Promise<{
   tools: Array<AnthropicTool> | undefined;
   toolChoice: AnthropicToolChoice | undefined;
@@ -475,6 +483,14 @@ export async function prepareTools({
 
   const type = toolChoice.type;
 
+  // Forced tool use (`tool_choice` `any` or a named tool) is rejected by some
+  // models outright, and by every model while thinking is enabled.
+  const forcedToolUseUnsupportedReason = rejectsForcedToolUse
+    ? 'by this model because it rejects forced tool use'
+    : thinkingEnabled
+      ? 'when thinking is enabled because the Anthropic API only accepts tool_choice auto or none together with thinking'
+      : undefined;
+
   switch (type) {
     case 'auto':
       return {
@@ -487,12 +503,12 @@ export async function prepareTools({
         betas,
       };
     case 'required':
-      if (rejectsForcedToolUse) {
+      if (forcedToolUseUnsupportedReason != null) {
         toolWarnings.push({
           type: 'unsupported',
           feature: 'toolChoice',
           details:
-            `toolChoice 'required' is not supported by this model because it rejects forced tool use. ` +
+            `toolChoice 'required' is not supported ${forcedToolUseUnsupportedReason}. ` +
             `Using 'auto' instead. Instruct the model to use a tool in the prompt and verify that a tool call was made.`,
         });
         return {
@@ -522,12 +538,12 @@ export async function prepareTools({
         betas,
       };
     case 'tool':
-      if (rejectsForcedToolUse) {
+      if (forcedToolUseUnsupportedReason != null) {
         toolWarnings.push({
           type: 'unsupported',
           feature: 'toolChoice',
           details:
-            `toolChoice 'tool' is not supported by this model because it rejects forced tool use. ` +
+            `toolChoice 'tool' is not supported ${forcedToolUseUnsupportedReason}. ` +
             `Only the '${toolChoice.toolName}' tool is sent with 'auto' tool choice. ` +
             `Instruct the model to use the tool in the prompt and verify that a tool call was made.`,
         });

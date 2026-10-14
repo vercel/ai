@@ -14542,3 +14542,152 @@ describe('computer toolset', () => {
     `);
   });
 });
+
+describe('forced tool choice with thinking enabled', () => {
+  const server = createTestServer({
+    'https://api.anthropic.com/v1/messages': {},
+  });
+
+  function prepareJsonFixtureResponse(filename: string) {
+    server.urls['https://api.anthropic.com/v1/messages'].response = {
+      type: 'json-value',
+      body: JSON.parse(
+        fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
+      ),
+    };
+  }
+
+  const TEST_TOOL = {
+    type: 'function' as const,
+    name: 'testTool',
+    inputSchema: {
+      type: 'object' as const,
+      properties: { value: { type: 'string' as const } },
+      required: ['value'],
+      additionalProperties: false,
+    },
+  };
+
+  it('should send the forced tool choice when thinking is not enabled', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-haiku-4-5').doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [TEST_TOOL, { ...TEST_TOOL, name: 'otherTool' }],
+      toolChoice: { type: 'tool', toolName: 'otherTool' },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toBeUndefined();
+    expect(requestBody.tool_choice).toEqual({
+      type: 'tool',
+      name: 'otherTool',
+    });
+    expect(requestBody.tools).toHaveLength(2);
+    expect(result.warnings).toEqual([]);
+  });
+
+  it.each([
+    ['enabled', { type: 'enabled', budgetTokens: 2000 }],
+    ['adaptive', { type: 'adaptive' }],
+    ['between_tools', { type: 'between_tools' }],
+  ] as const)(
+    'should fall back to auto for tool choice "required" with %s thinking',
+    async (_, thinking) => {
+      prepareJsonFixtureResponse('anthropic-text');
+
+      const result = await provider('claude-haiku-4-5').doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [TEST_TOOL],
+        toolChoice: { type: 'required' },
+        providerOptions: {
+          anthropic: { thinking } satisfies AnthropicLanguageModelOptions,
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.thinking).toMatchObject({ type: thinking.type });
+      expect(requestBody.tool_choice).toEqual({ type: 'auto' });
+      expect(requestBody.tools).toHaveLength(1);
+      expect(result.warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'toolChoice',
+        details:
+          "toolChoice 'required' is not supported when thinking is enabled because the Anthropic API only accepts tool_choice auto or none together with thinking. Using 'auto' instead. Instruct the model to use a tool in the prompt and verify that a tool call was made.",
+      });
+    },
+  );
+
+  it('should only send the selected tool with auto tool choice when tool choice is "tool"', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-haiku-4-5').doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [TEST_TOOL, { ...TEST_TOOL, name: 'otherTool' }],
+      toolChoice: { type: 'tool', toolName: 'otherTool' },
+      providerOptions: {
+        anthropic: {
+          thinking: { type: 'enabled', budgetTokens: 2000 },
+        } satisfies AnthropicLanguageModelOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toEqual({
+      type: 'enabled',
+      budget_tokens: 2000,
+    });
+    expect(requestBody.tool_choice).toEqual({ type: 'auto' });
+    expect(
+      requestBody.tools.map((tool: { name: string }) => tool.name),
+    ).toEqual(['otherTool']);
+    expect(result.warnings).toContainEqual({
+      type: 'unsupported',
+      feature: 'toolChoice',
+      details:
+        "toolChoice 'tool' is not supported when thinking is enabled because the Anthropic API only accepts tool_choice auto or none together with thinking. Only the 'otherTool' tool is sent with 'auto' tool choice. Instruct the model to use the tool in the prompt and verify that a tool call was made.",
+    });
+  });
+
+  it('should fall back to auto when the top-level reasoning option enables thinking', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-haiku-4-5').doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [TEST_TOOL],
+      toolChoice: { type: 'required' },
+      reasoning: 'high',
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toBeDefined();
+    expect(requestBody.thinking.type).not.toBe('disabled');
+    expect(requestBody.tool_choice).toEqual({ type: 'auto' });
+    expect(
+      result.warnings.some(
+        warning =>
+          warning.type === 'unsupported' && warning.feature === 'toolChoice',
+      ),
+    ).toBe(true);
+  });
+
+  it('should keep the forced tool choice when thinking is explicitly disabled', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-haiku-4-5').doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [TEST_TOOL],
+      toolChoice: { type: 'required' },
+      providerOptions: {
+        anthropic: {
+          thinking: { type: 'disabled' },
+        } satisfies AnthropicLanguageModelOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toEqual({ type: 'disabled' });
+    expect(requestBody.tool_choice).toEqual({ type: 'any' });
+    expect(result.warnings).toEqual([]);
+  });
+});
