@@ -31,15 +31,12 @@ export default createTransformer((fileInfo, api, options, context) => {
         const oldName = specifier.imported.name;
         const newName = renameMappings[oldName as keyof typeof renameMappings];
 
-        // Track the local name that should be renamed in the code
-        const localName = specifier.local?.name || oldName;
-        importedFromAi.add(localName);
-
         // Update the import name
         specifier.imported.name = newName;
 
         // If there's no alias, we also need to update the local name
         if (!specifier.local || specifier.local.name === oldName) {
+          importedFromAi.add(oldName);
           specifier.local = j.identifier(newName);
         }
 
