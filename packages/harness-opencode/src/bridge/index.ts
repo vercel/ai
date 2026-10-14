@@ -3,6 +3,7 @@ import {
   type BridgeEvent,
   type BridgeTurn,
 } from '@ai-sdk/harness/bridge';
+import { isHarnessV1BuiltinToolIncluded } from '@ai-sdk/harness';
 import { randomUUID } from 'node:crypto';
 import { mkdirSync, realpathSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -68,6 +69,7 @@ type RuntimeState = {
   sessionId?: string;
   relay?: ToolRelay;
   openCodeConfig?: Record<string, unknown>;
+  builtinToolFiltering?: StartMessage['builtinToolFiltering'];
   toolNames: Set<string>;
   mcpToolPrefixes: Set<string>;
 };
@@ -247,7 +249,8 @@ async function ensureRuntime({
 }): Promise<void> {
   if (
     runtime.client &&
-    isDeepStrictEqual(runtime.openCodeConfig, start.openCodeConfig)
+    isDeepStrictEqual(runtime.openCodeConfig, start.openCodeConfig) &&
+    isDeepStrictEqual(runtime.builtinToolFiltering, start.builtinToolFiltering)
   ) {
     return;
   }
@@ -295,6 +298,7 @@ async function ensureRuntime({
         .map(([serverName]) => `${sanitizeMcpToolName(serverName)}_`),
     );
     runtime.openCodeConfig = structuredClone(start.openCodeConfig);
+    runtime.builtinToolFiltering = structuredClone(start.builtinToolFiltering);
   } catch (error) {
     closeRuntime();
     throw error;
@@ -308,6 +312,7 @@ function closeRuntime(): void {
   runtime.client = undefined;
   runtime.relay = undefined;
   runtime.openCodeConfig = undefined;
+  runtime.builtinToolFiltering = undefined;
   runtime.toolNames = new Set();
   runtime.mcpToolPrefixes = new Set();
 }
@@ -1584,24 +1589,19 @@ function resolveInactiveBuiltinToolNames(
   start: StartMessage,
 ): ReadonlyArray<OpenCodeBuiltinToolName> {
   const toolFiltering = start.builtinToolFiltering;
-  if (toolFiltering == null) return [];
-  return toolFiltering.mode === 'allow'
-    ? BUILTIN_TOOL_NAMES.filter(
-        toolName => !toolFiltering.toolNames.includes(toolName),
-      )
-    : BUILTIN_TOOL_NAMES.filter(toolName =>
-        toolFiltering.toolNames.includes(toolName),
-      );
+  return BUILTIN_TOOL_NAMES.filter(
+    toolName => !isHarnessV1BuiltinToolIncluded({ toolName, toolFiltering }),
+  );
 }
 
 function isBuiltinToolInactive(input: {
   toolName: string;
   toolFiltering: StartMessage['builtinToolFiltering'];
 }): boolean {
-  if (input.toolFiltering == null) return false;
-  return input.toolFiltering.mode === 'allow'
-    ? !input.toolFiltering.toolNames.includes(input.toolName)
-    : input.toolFiltering.toolNames.includes(input.toolName);
+  return !isHarnessV1BuiltinToolIncluded({
+    toolName: input.toolName,
+    toolFiltering: input.toolFiltering,
+  });
 }
 
 function isExternalPath(resource: string): boolean {

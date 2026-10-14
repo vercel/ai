@@ -978,6 +978,10 @@ describe('createOpenCode adapter', () => {
     const openCodeConfig = {
       agent: { general: { model: 'openai/gpt-5.4-mini' } },
     };
+    const builtinToolFiltering = {
+      mode: 'deny' as const,
+      toolNames: ['read'],
+    };
     const harness = createOpenCode({
       auth: { AI_GATEWAY_API_KEY: 'gateway-key' },
       openCodeConfig,
@@ -989,6 +993,7 @@ describe('createOpenCode adapter', () => {
       headers: { 'x-tenant': 'acme' },
       sandboxSession,
       sessionWorkDir: '/workspace/project',
+      builtinToolFiltering,
     });
     const channel = harnessUtilsMocks.channels.at(-1)!;
     channel.emit('bridge-thread', {
@@ -1001,6 +1006,7 @@ describe('createOpenCode adapter', () => {
       type: 'start',
       operation: 'compact',
       openCodeConfig,
+      builtinToolFiltering,
       mcpServers,
       headers: { 'x-tenant': 'acme' },
       resumeSessionId: 'opencode-session',
@@ -1025,6 +1031,7 @@ describe('createOpenCode adapter', () => {
       model: 'anthropic/agent-model',
       variant: 'high',
       openCodeConfig,
+      builtinToolFiltering,
       mcpServers,
       headers: { 'x-tenant': 'acme' },
       resumeSessionId: 'opencode-session',
@@ -1039,6 +1046,7 @@ describe('createOpenCode adapter', () => {
       sandboxSession,
       sessionWorkDir: '/workspace/project',
       resumeFrom,
+      builtinToolFiltering,
     });
     const resumedTurn = await resumedSession.doPromptTurn({
       skills: [],
@@ -1056,6 +1064,7 @@ describe('createOpenCode adapter', () => {
       instructions: 'be concise',
       variant: 'high',
       openCodeConfig,
+      builtinToolFiltering,
       mcpServers,
       headers: { 'x-tenant': 'acme' },
       resumeSessionId: 'opencode-session',

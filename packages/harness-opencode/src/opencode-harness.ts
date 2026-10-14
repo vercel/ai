@@ -4,6 +4,7 @@ import {
   HARNESS_V1_BUILTIN_TOOLS,
   HarnessCapabilityUnsupportedError,
   harnessV1DiagnosticFromBridgeFrame,
+  isHarnessV1BuiltinToolIncluded,
   type HarnessV1,
   type HarnessV1BuiltinTool,
   type HarnessV1BuiltinToolFiltering,
@@ -679,9 +680,7 @@ function validateBuiltinToolFiltering(
 ): void {
   if (toolFiltering == null) return;
   const isActive = (toolName: 'write' | 'edit') =>
-    toolFiltering.mode === 'allow'
-      ? toolFiltering.toolNames.includes(toolName)
-      : !toolFiltering.toolNames.includes(toolName);
+    isHarnessV1BuiltinToolIncluded({ toolName, toolFiltering });
   if (isActive('write') !== isActive('edit')) {
     throw new HarnessCapabilityUnsupportedError({
       harnessId: 'opencode',
@@ -1267,6 +1266,7 @@ function createSession({
         provider,
         permissionMode,
         debug,
+        builtinToolFiltering,
         openCodeConfig,
         mcpServers,
         headers,
@@ -1441,6 +1441,7 @@ async function runCompactOperation({
   provider,
   permissionMode,
   debug,
+  builtinToolFiltering,
   openCodeConfig,
   mcpServers,
   headers,
@@ -1452,6 +1453,7 @@ async function runCompactOperation({
   provider: string | undefined;
   permissionMode: HarnessV1PermissionMode | undefined;
   debug: HarnessV1DebugConfig | undefined;
+  builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
   openCodeConfig: Record<string, unknown> | undefined;
   mcpServers: Record<string, unknown> | undefined;
   headers: Readonly<Record<string, string>> | undefined;
@@ -1486,6 +1488,7 @@ async function runCompactOperation({
     ...(mcpServers == null ? {} : { mcpServers }),
     ...(headers == null ? {} : { headers }),
     ...(permissionMode ? { permissionMode } : {}),
+    ...(builtinToolFiltering == null ? {} : { builtinToolFiltering }),
     ...(resumeSessionId ? { resumeSessionId } : {}),
     ...(debug ? { debug } : {}),
   });

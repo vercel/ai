@@ -922,13 +922,27 @@ describe('OpenCode bridge turn settlement', () => {
       emitWarning: vi.fn(),
       emitError: vi.fn(),
     });
-    const start = (prompt: string | undefined) => ({
+    const inactiveReadFilter = {
+      mode: 'deny' as const,
+      toolNames: ['read'],
+    };
+    const activeReadFilter = {
+      mode: 'allow' as const,
+      toolNames: ['read', 'write', 'edit'],
+    };
+    const start = (
+      prompt: string | undefined,
+      builtinToolFiltering:
+        | typeof inactiveReadFilter
+        | typeof activeReadFilter = inactiveReadFilter,
+    ) => ({
       type: 'start',
       operation: 'prompt',
       prompt: 'Continue.',
       tools: [{ name: 'lookup' }],
       openCodeConfig:
         prompt === undefined ? undefined : { agent: { build: { prompt } } },
+      builtinToolFiltering,
     });
 
     sdkMock.client = client;
@@ -995,6 +1009,36 @@ describe('OpenCode bridge turn settlement', () => {
       config: expect.not.objectContaining({ agent: expect.anything() }),
     });
     expect(client.session.create).toHaveBeenCalledTimes(1);
+    expect(
+      client.session.promptAsync.mock.calls.every(
+        ([request]) =>
+          (request as { sessionID?: string }).sessionID === 'session-1',
+      ),
+    ).toBe(true);
+
+    const activeReadServer = (await createOpencodeServerMock.mock.results[4]
+      ?.value) as { close: ReturnType<typeof vi.fn> };
+    await bridgeMock.onStart!(start(undefined, activeReadFilter), turn());
+
+    expect(createOpencodeServerMock).toHaveBeenCalledTimes(6);
+    expect(activeReadServer.close).toHaveBeenCalledTimes(1);
+    expect(createOpencodeServerMock.mock.calls[5]?.[0]).toMatchObject({
+      config: { permission: { read: 'allow' } },
+    });
+
+    await bridgeMock.onStart!(start(undefined, activeReadFilter), turn());
+
+    expect(createOpencodeServerMock).toHaveBeenCalledTimes(6);
+
+    const deniedReadServer = (await createOpencodeServerMock.mock.results[5]
+      ?.value) as { close: ReturnType<typeof vi.fn> };
+    await bridgeMock.onStart!(start(undefined, inactiveReadFilter), turn());
+
+    expect(createOpencodeServerMock).toHaveBeenCalledTimes(7);
+    expect(deniedReadServer.close).toHaveBeenCalledTimes(1);
+    expect(createOpencodeServerMock.mock.calls[6]?.[0]).toMatchObject({
+      config: { permission: { read: 'deny' } },
+    });
     expect(
       client.session.promptAsync.mock.calls.every(
         ([request]) =>
