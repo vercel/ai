@@ -71,7 +71,7 @@ vi.mock('./tool-relay', () => ({
 }));
 
 vi.mock('./opencode-path', () => ({
-  prependOpenCodeBinToPath: vi.fn(),
+  configureOpenCodePath: vi.fn(),
 }));
 
 function createUserMessages() {

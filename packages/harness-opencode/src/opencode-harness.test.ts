@@ -1307,6 +1307,10 @@ describe('createOpenCode adapter', () => {
       const workspace = recipe.files.find(file =>
         file.path.endsWith('/pnpm-workspace.yaml'),
       );
+      const packageManifest = recipe.files.find(file =>
+        file.path.endsWith('/package.json'),
+      );
+      expect(packageManifest?.content).toContain('"@vscode/ripgrep": "1.18.0"');
       expect(commands).toHaveLength(2);
       expect(commands[0]).toBe(
         'pnpm install --frozen-lockfile --store-dir .pnpm-store',
