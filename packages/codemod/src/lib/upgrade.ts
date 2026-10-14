@@ -28,7 +28,6 @@ const bundle = [
   'v4/replace-roundtrips-with-maxsteps',
   'v4/replace-token-usage-types',
   'v4/rewrite-framework-imports',
-  'v5/flatten-streamtext-file-properties',
   'v5/import-LanguageModelV2-from-provider-package',
   'v5/migrate-to-data-stream-protocol-v2',
   'v5/move-image-model-maxImagesPerCall',

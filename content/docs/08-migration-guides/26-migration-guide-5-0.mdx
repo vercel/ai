@@ -2455,7 +2455,7 @@ const result = streamText({
 
 #### File Stream Parts Restructure
 
-File parts in streams have been flattened.
+File parts in streams keep `mediaType`, `base64`, and `uint8Array` on `chunk.file`. The flatten codemod is obsolete and no longer rewrites nested `file` access.
 
 ```tsx filename="AI SDK 4.0"
 for await (const chunk of result.fullStream) {
@@ -2473,8 +2473,9 @@ for await (const chunk of result.fullStream) {
 for await (const chunk of result.fullStream) {
   switch (chunk.type) {
     case 'file': {
-      console.log('Media type:', chunk.mediaType);
-      console.log('File data:', chunk.data);
+      console.log('Media type:', chunk.file.mediaType);
+      console.log('Base64:', chunk.file.base64);
+      console.log('Bytes:', chunk.file.uint8Array);
       break;
     }
   }
@@ -3374,7 +3375,6 @@ For more information, see the [Codemods](#codemods) section.
 | Change                                           | Codemod                                               |
 | ------------------------------------------------ | ----------------------------------------------------- |
 | **AI SDK Core Changes**                          |                                                       |
-| Flatten streamText file properties               | `v5/flatten-streamtext-file-properties`               |
 | ID Generation Changes                            | `v5/require-createIdGenerator-size-argument`          |
 | IDGenerator → IdGenerator                        | `v5/rename-IDGenerator-to-IdGenerator`                |
 | Import LanguageModelV3 from provider package     | `v5/import-LanguageModelV3-from-provider-package`     |
