@@ -1918,7 +1918,13 @@ function resolvePiMcpServers(
         `Pi MCP server ${JSON.stringify(name)} uses the codemode exposure, which is not supported: the harness does not load Pi's codemode extension. Use 'direct', 'deferred' or 'hidden'.`,
       );
     }
-    return [name, { ...config, exposure: config.exposure ?? 'direct' }];
+    return [
+      name,
+      {
+        ...config,
+        exposure: config.exposure === undefined ? 'direct' : config.exposure,
+      },
+    ];
   });
 }
 
