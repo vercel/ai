@@ -1857,12 +1857,11 @@ function buildBuiltinToolDefinition(input: {
     return { ops: await input.remoteOps() };
   };
   switch (input.native) {
-    case 'read': {
-      const sandboxWorkDir = input.sessionWorkDir;
+    case 'read':
       return defineTool({
         name: 'read',
         label: 'read',
-        description: createReadToolDefinition(sandboxWorkDir).description,
+        description: createReadToolDefinition(input.sessionWorkDir).description,
         parameters: Type.Object({
           file_path: Type.String(),
           offset: Type.Optional(
@@ -1886,7 +1885,7 @@ function buildBuiltinToolDefinition(input: {
           const sandboxPath = ops.paths.toReadableSandboxPath(params.file_path);
           return executePiSandboxRead(
             ops,
-            sandboxWorkDir,
+            input.sessionWorkDir,
             toolCallId,
             { path: sandboxPath, offset: params.offset, limit: params.limit },
             signal,
@@ -1895,7 +1894,6 @@ function buildBuiltinToolDefinition(input: {
           );
         },
       });
-    }
     case 'write':
       return defineTool({
         name: 'write',
