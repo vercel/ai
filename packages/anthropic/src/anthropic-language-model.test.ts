@@ -355,6 +355,135 @@ describe('AnthropicLanguageModel', () => {
             'thinking budget is required when thinking is enabled. using default budget of 1024 tokens.',
         });
       });
+
+      describe('thinking with forced tool choice', () => {
+        const tool1: LanguageModelV4FunctionTool = {
+          type: 'function',
+          name: 'tool1',
+          description: 'First tool',
+          inputSchema: { type: 'object' },
+        };
+        const tool2: LanguageModelV4FunctionTool = {
+          type: 'function',
+          name: 'tool2',
+          description: 'Second tool',
+          inputSchema: { type: 'object' },
+        };
+
+        it('should fall back to auto tool choice and emit warning when thinking is enabled and toolChoice is "required"', async () => {
+          prepareJsonFixtureResponse('anthropic-text');
+
+          const result = await provider('claude-haiku-4-5').doGenerate({
+            prompt: TEST_PROMPT,
+            tools: [tool1, tool2],
+            toolChoice: { type: 'required' },
+            providerOptions: {
+              anthropic: {
+                thinking: { type: 'enabled', budgetTokens: 5000 },
+              } satisfies AnthropicLanguageModelOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.tool_choice).toEqual({ type: 'auto' });
+          expect(requestBody.tools).toHaveLength(2);
+          expect(result.warnings).toContainEqual({
+            type: 'unsupported',
+            feature: 'toolChoice',
+            details:
+              "toolChoice 'required' is not supported when thinking is enabled. Using 'auto' instead. Instruct the model to use a tool in the prompt and verify that a tool call was made.",
+          });
+        });
+
+        it('should only send selected tool with auto tool choice when thinking is enabled and toolChoice is "tool"', async () => {
+          prepareJsonFixtureResponse('anthropic-text');
+
+          const result = await provider('claude-haiku-4-5').doGenerate({
+            prompt: TEST_PROMPT,
+            tools: [tool1, tool2],
+            toolChoice: { type: 'tool', toolName: 'tool2' },
+            providerOptions: {
+              anthropic: {
+                thinking: { type: 'enabled', budgetTokens: 5000 },
+              } satisfies AnthropicLanguageModelOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.tool_choice).toEqual({ type: 'auto' });
+          expect(requestBody.tools).toHaveLength(1);
+          expect(requestBody.tools[0].name).toBe('tool2');
+          expect(result.warnings).toContainEqual({
+            type: 'unsupported',
+            feature: 'toolChoice',
+            details:
+              "toolChoice 'tool' is not supported when thinking is enabled. Only the 'tool2' tool is sent with 'auto' tool choice. Instruct the model to use the tool in the prompt and verify that a tool call was made.",
+          });
+        });
+
+        it('should fall back to auto tool choice when adaptive thinking is enabled and toolChoice is "required"', async () => {
+          prepareJsonFixtureResponse('anthropic-text');
+
+          const result = await provider('claude-sonnet-4-6').doGenerate({
+            prompt: TEST_PROMPT,
+            tools: [tool1],
+            toolChoice: { type: 'required' },
+            providerOptions: {
+              anthropic: {
+                thinking: { type: 'adaptive' },
+              } satisfies AnthropicLanguageModelOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.tool_choice).toEqual({ type: 'auto' });
+          expect(result.warnings).toContainEqual({
+            type: 'unsupported',
+            feature: 'toolChoice',
+            details:
+              "toolChoice 'required' is not supported when thinking is enabled. Using 'auto' instead. Instruct the model to use a tool in the prompt and verify that a tool call was made.",
+          });
+        });
+
+        it('should fall back to auto tool choice when thinking is enabled via top-level reasoning', async () => {
+          prepareJsonFixtureResponse('anthropic-text');
+
+          const result = await provider('claude-sonnet-4-6').doGenerate({
+            prompt: TEST_PROMPT,
+            tools: [tool1, tool2],
+            toolChoice: { type: 'tool', toolName: 'tool1' },
+            reasoning: 'high',
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.tool_choice).toEqual({ type: 'auto' });
+          expect(requestBody.tools).toHaveLength(1);
+          expect(requestBody.tools[0].name).toBe('tool1');
+          expect(result.warnings).toContainEqual({
+            type: 'unsupported',
+            feature: 'toolChoice',
+            details:
+              "toolChoice 'tool' is not supported when thinking is enabled. Only the 'tool1' tool is sent with 'auto' tool choice. Instruct the model to use the tool in the prompt and verify that a tool call was made.",
+          });
+        });
+
+        it('should send forced tool choice when thinking is not enabled on models supporting forced tool use', async () => {
+          prepareJsonFixtureResponse('anthropic-text');
+
+          const result = await provider('claude-haiku-4-5').doGenerate({
+            prompt: TEST_PROMPT,
+            tools: [tool1],
+            toolChoice: { type: 'tool', toolName: 'tool1' },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.tool_choice).toEqual({
+            type: 'tool',
+            name: 'tool1',
+          });
+          expect(result.warnings).toEqual([]);
+        });
+      });
     });
 
     describe('reasoning (adaptive thinking)', () => {

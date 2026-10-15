@@ -2205,3 +2205,121 @@ describe('rejectsForcedToolUse', () => {
     expect(none.toolWarnings).toEqual([]);
   });
 });
+
+describe('isThinking', () => {
+  const tools = [
+    {
+      type: 'function' as const,
+      name: 'testFunction',
+      description: 'Test',
+      inputSchema: {},
+    },
+    {
+      type: 'function' as const,
+      name: 'otherFunction',
+      description: 'Other',
+      inputSchema: {},
+    },
+  ];
+
+  it('should fall back to auto for tool choice "required" when thinking is enabled', async () => {
+    const result = await prepareTools({
+      tools,
+      toolChoice: { type: 'required' },
+      supportsStructuredOutput: true,
+      supportsStrictTools: true,
+      isThinking: true,
+    });
+
+    expect(result.toolChoice).toEqual({ type: 'auto' });
+    expect(result.tools).toHaveLength(2);
+    expect(result.toolWarnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "toolChoice 'required' is not supported when thinking is enabled. Using 'auto' instead. Instruct the model to use a tool in the prompt and verify that a tool call was made.",
+          "feature": "toolChoice",
+          "type": "unsupported",
+        },
+      ]
+    `);
+  });
+
+  it('should only send the selected tool with auto for tool choice "tool" when thinking is enabled', async () => {
+    const result = await prepareTools({
+      tools,
+      toolChoice: { type: 'tool', toolName: 'otherFunction' },
+      supportsStructuredOutput: true,
+      supportsStrictTools: true,
+      isThinking: true,
+    });
+
+    expect(result.toolChoice).toEqual({ type: 'auto' });
+    expect(
+      result.tools?.map(tool => ('name' in tool ? tool.name : tool.type)),
+    ).toEqual(['otherFunction']);
+    expect(result.toolWarnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "toolChoice 'tool' is not supported when thinking is enabled. Only the 'otherFunction' tool is sent with 'auto' tool choice. Instruct the model to use the tool in the prompt and verify that a tool call was made.",
+          "feature": "toolChoice",
+          "type": "unsupported",
+        },
+      ]
+    `);
+  });
+
+  it('should preserve disableParallelToolUse in the auto fallback when thinking is enabled', async () => {
+    const result = await prepareTools({
+      tools,
+      toolChoice: { type: 'required' },
+      disableParallelToolUse: true,
+      supportsStructuredOutput: true,
+      supportsStrictTools: true,
+      isThinking: true,
+    });
+
+    expect(result.toolChoice).toEqual({
+      type: 'auto',
+      disable_parallel_tool_use: true,
+    });
+  });
+
+  it('should not affect auto and none tool choices when thinking is enabled', async () => {
+    const auto = await prepareTools({
+      tools,
+      toolChoice: { type: 'auto' },
+      supportsStructuredOutput: true,
+      supportsStrictTools: true,
+      isThinking: true,
+    });
+    expect(auto.toolChoice).toEqual({ type: 'auto' });
+    expect(auto.toolWarnings).toEqual([]);
+
+    const none = await prepareTools({
+      tools,
+      toolChoice: { type: 'none' },
+      supportsStructuredOutput: true,
+      supportsStrictTools: true,
+      isThinking: true,
+    });
+    expect(none.tools).toHaveLength(2);
+    expect(none.toolChoice).toEqual({ type: 'none' });
+    expect(none.toolWarnings).toEqual([]);
+  });
+
+  it('should prefer model-level rejectsForcedToolUse message when both are true', async () => {
+    const result = await prepareTools({
+      tools,
+      toolChoice: { type: 'required' },
+      supportsStructuredOutput: true,
+      supportsStrictTools: true,
+      rejectsForcedToolUse: true,
+      isThinking: true,
+    });
+
+    expect(result.toolChoice).toEqual({ type: 'auto' });
+    expect(result.toolWarnings[0].details).toContain(
+      'not supported by this model because it rejects forced tool use',
+    );
+  });
+});

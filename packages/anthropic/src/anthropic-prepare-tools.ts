@@ -33,6 +33,7 @@ export async function prepareTools({
   supportsStrictTools,
   defaultEagerInputStreaming = false,
   rejectsForcedToolUse = false,
+  isThinking = false,
 }: {
   tools: LanguageModelV4CallOptions['tools'];
   toolChoice: LanguageModelV4CallOptions['toolChoice'] | undefined;
@@ -61,6 +62,14 @@ export async function prepareTools({
    * `auto` with a warning.
    */
   rejectsForcedToolUse?: boolean;
+
+  /**
+   * Whether thinking is enabled for this call. Anthropic does not allow
+   * forced tool use (`tool_choice` `any` or a named tool) when thinking is
+   * enabled. When true, `required` and `tool` tool choices fall back to
+   * `auto` with a warning.
+   */
+  isThinking?: boolean;
 }): Promise<{
   tools: Array<AnthropicTool> | undefined;
   toolChoice: AnthropicToolChoice | undefined;
@@ -487,12 +496,15 @@ export async function prepareTools({
         betas,
       };
     case 'required':
-      if (rejectsForcedToolUse) {
+      if (rejectsForcedToolUse || isThinking) {
+        const reason = rejectsForcedToolUse
+          ? 'by this model because it rejects forced tool use'
+          : 'when thinking is enabled';
         toolWarnings.push({
           type: 'unsupported',
           feature: 'toolChoice',
           details:
-            `toolChoice 'required' is not supported by this model because it rejects forced tool use. ` +
+            `toolChoice 'required' is not supported ${reason}. ` +
             `Using 'auto' instead. Instruct the model to use a tool in the prompt and verify that a tool call was made.`,
         });
         return {
@@ -522,12 +534,15 @@ export async function prepareTools({
         betas,
       };
     case 'tool':
-      if (rejectsForcedToolUse) {
+      if (rejectsForcedToolUse || isThinking) {
+        const reason = rejectsForcedToolUse
+          ? 'by this model because it rejects forced tool use'
+          : 'when thinking is enabled';
         toolWarnings.push({
           type: 'unsupported',
           feature: 'toolChoice',
           details:
-            `toolChoice 'tool' is not supported by this model because it rejects forced tool use. ` +
+            `toolChoice 'tool' is not supported ${reason}. ` +
             `Only the '${toolChoice.toolName}' tool is sent with 'auto' tool choice. ` +
             `Instruct the model to use the tool in the prompt and verify that a tool call was made.`,
         });

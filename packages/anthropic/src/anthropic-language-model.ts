@@ -1068,6 +1068,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
             supportsStrictTools,
             defaultEagerInputStreaming,
             rejectsForcedToolUse,
+            isThinking,
           }
         : {
             tools: tools ?? [],
@@ -1078,6 +1079,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
             supportsStrictTools,
             defaultEagerInputStreaming,
             rejectsForcedToolUse,
+            isThinking,
           },
     );
 
