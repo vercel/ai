@@ -29,8 +29,24 @@ const webSearchToolSchema = z.looseObject({
   user_location: userLocationSchema.optional(),
 });
 
+const imageSearchToolSchema = z.looseObject({
+  type: z.literal('image_search'),
+  max_results: z.number().int().min(1).max(30).optional(),
+  filters: z
+    .looseObject({
+      domain_filter: z.array(z.string()).max(10).optional(),
+      format_filter: z
+        .array(z.enum(['bmp', 'gif', 'jpeg', 'png', 'webp', 'svg']))
+        .max(10)
+        .optional(),
+      safe_search: z.boolean().optional(),
+    })
+    .optional(),
+});
+
 const nativeToolSchema = z.union([
   webSearchToolSchema,
+  imageSearchToolSchema,
   z.looseObject({
     type: z.literal('fetch_url'),
     max_urls: z.number().optional(),
