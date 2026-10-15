@@ -26,9 +26,9 @@ import {
   isTrustedUrl,
 } from './black-forest-labs-api';
 import {
-  blackForestLabsFlux3ImageKleinModelOptionsSchema,
   blackForestLabsFlux3ImageModelOptionsSchema,
   blackForestLabsImageModelOptionsSchema,
+  blackForestLabsLatestImageModelOptionsSchema,
 } from './black-forest-labs-image-model-options';
 import type {
   BlackForestLabsAspectRatio,
@@ -60,23 +60,26 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 1;
 
-  private get isFlux3Image(): boolean {
-    return (
-      this.modelId === 'flux-3-image' ||
-      this.modelId.startsWith('flux-3-image-')
-    );
-  }
+  private get modelApi(): 'legacy' | 'flux-3-image' | 'latest' {
+    if (
+      this.modelId.startsWith('flux-pro-') ||
+      this.modelId.startsWith('flux-kontext-') ||
+      /^flux-[12](?:[.-]|$)/.test(this.modelId)
+    ) {
+      return 'legacy';
+    }
 
-  private get isFlux3ImageKlein(): boolean {
-    return (
-      this.modelId === 'flux-3-image-klein' ||
-      this.modelId.startsWith('flux-3-image-klein-')
-    );
+    if (this.modelId === 'flux-3-image') {
+      return 'flux-3-image';
+    }
+
+    // Unknown model IDs inherit the latest supported image API.
+    return 'latest';
   }
 
   get supportsFileInputs(): boolean | undefined {
     if (
-      this.isFlux3Image ||
+      this.modelApi !== 'legacy' ||
       ['flux-kontext-pro', 'flux-kontext-max', 'flux-pro-1.0-fill'].includes(
         this.modelId,
       )
@@ -132,25 +135,28 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
     providerOptions,
   }: Parameters<ImageModelV4['doGenerate']>[0]) {
     const warnings: Array<SharedV4Warning> = [];
+    const modelApi = this.modelApi;
 
     const finalAspectRatio =
       aspectRatio ?? (size ? convertSizeToAspectRatio(size) : undefined);
 
-    if (size && !aspectRatio && !this.isFlux3ImageKlein) {
+    if (size && !aspectRatio && modelApi !== 'latest') {
       warnings.push({
         type: 'unsupported',
         feature: 'size',
-        details: this.isFlux3Image
-          ? 'Deriving aspect_ratio from size. FLUX 3 uses the resolution provider option to select output resolution.'
-          : 'Deriving aspect_ratio from size. Use the width and height provider options to specify dimensions for models that support them.',
+        details:
+          modelApi === 'flux-3-image'
+            ? 'Deriving aspect_ratio from size. FLUX 3 uses the resolution provider option to select output resolution.'
+            : 'Deriving aspect_ratio from size. Use the width and height provider options to specify dimensions for models that support them.',
       });
-    } else if (size && aspectRatio && !this.isFlux3ImageKlein) {
+    } else if (size && aspectRatio && modelApi !== 'latest') {
       warnings.push({
         type: 'unsupported',
         feature: 'size',
-        details: this.isFlux3Image
-          ? 'FLUX 3 ignores size when aspectRatio is provided. Use the resolution provider option to select output resolution.'
-          : 'Black Forest Labs ignores size when aspectRatio is provided. Use the width and height provider options to specify dimensions for models that support them',
+        details:
+          modelApi === 'flux-3-image'
+            ? 'FLUX 3 ignores size when aspectRatio is provided. Use the resolution provider option to select output resolution.'
+            : 'Black Forest Labs ignores size when aspectRatio is provided. Use the width and height provider options to specify dimensions for models that support them',
       });
     }
 
@@ -159,7 +165,7 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
     const bflOptions = await parseProviderOptions({
       provider: 'blackForestLabs',
       providerOptions:
-        this.isFlux3ImageKlein && size != null
+        modelApi === 'latest' && size != null
           ? {
               ...providerOptions,
               blackForestLabs: {
@@ -169,11 +175,12 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
               },
             }
           : providerOptions,
-      schema: this.isFlux3ImageKlein
-        ? blackForestLabsFlux3ImageKleinModelOptionsSchema
-        : this.isFlux3Image
-          ? blackForestLabsFlux3ImageModelOptionsSchema
-          : blackForestLabsImageModelOptionsSchema,
+      schema:
+        modelApi === 'latest'
+          ? blackForestLabsLatestImageModelOptionsSchema
+          : modelApi === 'flux-3-image'
+            ? blackForestLabsFlux3ImageModelOptionsSchema
+            : blackForestLabsImageModelOptionsSchema,
     });
 
     const inputImages: string[] =
@@ -193,8 +200,8 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
       throw new Error('Black Forest Labs supports up to 10 input images.');
     }
 
-    if (this.isFlux3Image) {
-      const hasDimensions = this.isFlux3ImageKlein && bflOptions?.width != null;
+    if (modelApi !== 'legacy') {
+      const hasDimensions = modelApi === 'latest' && bflOptions?.width != null;
       // The endpoint uses 21:9 and 9:21 instead of their reduced forms.
       let flux3AspectRatio = hasDimensions
         ? undefined
@@ -235,28 +242,29 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
           functionality: 'FLUX 3 image masks',
         });
       }
-      if (seed != null && !this.isFlux3ImageKlein) {
+      if (seed != null && modelApi !== 'latest') {
         warnings.push({ type: 'unsupported', feature: 'seed' });
       }
-      const supportedOptions = this.isFlux3ImageKlein
-        ? [
-            'height',
-            'outputFormat',
-            'pollIntervalMillis',
-            'pollTimeoutMillis',
-            'resolution',
-            'safetyTolerance',
-            'steps',
-            'width',
-          ]
-        : [
-            'grounding',
-            'pollIntervalMillis',
-            'pollTimeoutMillis',
-            'resolution',
-            'safetyTolerance',
-            'version',
-          ];
+      const supportedOptions =
+        modelApi === 'latest'
+          ? [
+              'height',
+              'outputFormat',
+              'pollIntervalMillis',
+              'pollTimeoutMillis',
+              'resolution',
+              'safetyTolerance',
+              'steps',
+              'width',
+            ]
+          : [
+              'grounding',
+              'pollIntervalMillis',
+              'pollTimeoutMillis',
+              'resolution',
+              'safetyTolerance',
+              'version',
+            ];
       for (const [key, value] of Object.entries(bflOptions ?? {})) {
         if (value != null && !supportedOptions.includes(key)) {
           warnings.push({
@@ -273,7 +281,7 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
           images: inputImages.length > 0 ? inputImages : undefined,
           resolution: hasDimensions ? undefined : bflOptions?.resolution,
           safety_tolerance: bflOptions?.safetyTolerance,
-          ...(this.isFlux3ImageKlein
+          ...(modelApi === 'latest'
             ? {
                 width: bflOptions?.width,
                 height: bflOptions?.height,

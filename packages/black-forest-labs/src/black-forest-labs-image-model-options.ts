@@ -57,7 +57,7 @@ export const blackForestLabsFlux3ImageModelOptionsSchema = lazySchema(() =>
   ),
 );
 
-export const blackForestLabsFlux3ImageKleinModelOptionsSchema = lazySchema(() =>
+export const blackForestLabsLatestImageModelOptionsSchema = lazySchema(() =>
   zodSchema(
     blackForestLabsImageProviderOptions
       .extend({

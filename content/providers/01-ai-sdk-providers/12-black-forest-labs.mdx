@@ -108,6 +108,11 @@ Black Forest Labs offers many models optimized for different use cases. Here are
 | `flux-pro-1.1`       | Fast, high-quality image generation from text.                                                                             |
 | `flux-pro-1.0-fill`  | Inpainting model for filling masked regions of images with new content                                                     |
 
+Unknown image model IDs use the latest supported image API, currently FLUX 3
+Image Klein's request format and options. Known older families (`flux-pro-*`,
+`flux-kontext-*`, `flux-1-*`, and `flux-2-*`) retain the legacy format.
+The original `flux-3-image` retains its distinct grounding and version controls.
+
 FLUX.1 and FLUX.2 models support aspect ratios from 3:7 (portrait) to 7:3 (landscape).
 FLUX 3 accepts only `21:9`, `2:1`, `16:9`, `3:2`, `7:5`, `4:3`, `5:4`,
 `1:1`, `4:5`, `3:4`, `5:7`, `2:3`, `9:16`, `1:2`, and `9:21`.
