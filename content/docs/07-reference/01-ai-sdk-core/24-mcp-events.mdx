@@ -122,7 +122,7 @@ try {
     name: 'comment.created',
     arguments: { document_id: 'doc_123' },
     context: { bindingId: 'saved_intent_123' },
-    expiresAt: null,
+    ttlMs: null,
     idempotencyKey: 'saved_intent_123',
   });
 
@@ -286,21 +286,24 @@ type ManagedSubscribeInput = {
   arguments: JSONObject;
   context?: JSONObject;
   idempotencyKey: string;
+  ttlMs: number | null;
   options?: {
     signal?: AbortSignal;
     timeout?: number;
     maxTotalTimeout?: number;
   };
-} & (
-  | { ttlMs: number; expiresAt?: never }
-  | { expiresAt: string | null; ttlMs?: never }
-);
+};
 ```
 
 These types are exported as `Experimental_ManagedSubscription` and
-`Experimental_ManagedSubscribeInput`. Supply exactly one monitoring lifetime:
-a positive `ttlMs`, an ISO deadline in `expiresAt`, or `expiresAt: null` to
-monitor until stopped. The backend validates these values and enforces its limits.
+`Experimental_ManagedSubscribeInput`. Creation requires `ttlMs`: a positive
+integer duration in milliseconds, or `null` to monitor until stopped. The backend
+validates these values and enforces its limits. `expiresAt` is response-only.
+
+Reuse the same duration and idempotency key when retrying an uncertain create
+result. The backend calculates the deadline once; a retry must not extend it.
+Update callers that previously passed `expiresAt: null` to `ttlMs: null`. For a
+finite watch, choose a duration instead of passing an absolute deadline.
 
 `Experimental_MCPEventOperations` has four operations:
 
