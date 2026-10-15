@@ -10,14 +10,16 @@ import { z } from 'zod/v4';
 
 type BashInput = z.infer<typeof inputSchema>;
 
-type BashOutput = {
-  stdout: string;
-  stderr: string;
-  exitCode: number;
-};
+type BashOutput = z.infer<typeof outputSchema>;
 
 const inputSchema = z.object({
   command: z.string().describe('The Bash command or script to execute.'),
+});
+
+const outputSchema = z.object({
+  stdout: z.string(),
+  stderr: z.string(),
+  exitCode: z.number(),
 });
 
 function limitOutput(output: string, maxLength: number): string {
