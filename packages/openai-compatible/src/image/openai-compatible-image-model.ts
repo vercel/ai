@@ -1,9 +1,10 @@
-import type {
-  ImageModelV4,
-  ImageModelV4File,
-  ImageModelV4Usage,
-  SharedV4ProviderOptions,
-  SharedV4Warning,
+import {
+  InvalidResponseDataError,
+  type ImageModelV4,
+  type ImageModelV4File,
+  type ImageModelV4Usage,
+  type SharedV4ProviderOptions,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   toCamelCase,
@@ -230,9 +231,15 @@ export class OpenAICompatibleImageModel implements ImageModelV4 {
           return convertBase64ToUint8Array(image.b64_json);
         }
 
-        // download image from url - pattern used by other providers
+        if (image.url == null) {
+          throw new InvalidResponseDataError({
+            data: image,
+            message: 'Expected url in the image response',
+          });
+        }
+
         const { value } = await getFromApi({
-          url: image.url!,
+          url: image.url,
           validateUrl: true,
           trustedOrigin: options.url,
           credentialedOrigin: options.url,
