@@ -53,8 +53,8 @@ describe.each(['generations', 'edits'])(
         `https://api.example.com/images/${endpoint}`,
       );
       expect(fetch.mock.calls[1][0]).toBe(imageUrl);
+      expect(fetch.mock.calls[1][1]?.method ?? 'GET').toBe('GET');
       expect(fetch.mock.calls[1][1]).toMatchObject({
-        method: 'GET',
         signal: abortSignal,
       });
       const downloadHeaders = new Headers(fetch.mock.calls[1][1]?.headers);
