@@ -10,7 +10,7 @@ run(async () => {
   const result = await experimental_decide({
     model: typeSafeAi.decisionModel('jev-latest'),
     state: [
-      { type: 'text', text: 'Inspect the animal in this picture.' },
+      { type: 'json', value: { photo: '[animal-photo]' } },
       {
         type: 'file',
         mediaType: 'image',
@@ -25,11 +25,11 @@ run(async () => {
     questions: {
       cat: {
         type: 'boolean',
-        instructions: 'Does [animal-photo] show a cat?',
+        instructions: 'Does `photo` show a cat?',
       },
       dog: {
         type: 'boolean',
-        instructions: 'Does [animal-photo] show a dog?',
+        instructions: 'Does `photo` show a dog?',
       },
     },
   });

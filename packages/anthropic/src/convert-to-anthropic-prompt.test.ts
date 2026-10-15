@@ -1775,6 +1775,70 @@ describe('tool messages', () => {
     `);
   });
 
+  it('should handle tool result with a provider-referenced file', async () => {
+    const warnings: SharedV4Warning[] = [];
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'get-file',
+              toolCallId: 'get-file-1',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'file',
+                    data: {
+                      type: 'reference',
+                      reference: { anthropic: 'file-txt-12345' },
+                    },
+                    mediaType: 'text/plain',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings,
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'tool_result',
+                tool_use_id: 'get-file-1',
+                is_error: undefined,
+                cache_control: undefined,
+                content: [
+                  {
+                    type: 'document',
+                    source: {
+                      type: 'file',
+                      file_id: 'file-txt-12345',
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      },
+      betas: new Set(['files-api-2025-04-14']),
+    });
+    expect(warnings).toEqual([]);
+  });
+
   it('should handle tool result with custom tool-reference content for custom tool search', async () => {
     const result = await convertToAnthropicPrompt({
       prompt: [

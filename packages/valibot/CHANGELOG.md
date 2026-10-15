@@ -1,5 +1,11 @@
 # @ai-sdk/valibot
 
+## 3.0.61
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@5.0.61
+
 ## 3.0.60
 
 ### Patch Changes

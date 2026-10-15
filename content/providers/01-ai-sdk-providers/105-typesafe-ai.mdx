@@ -102,15 +102,36 @@ The provider includes these model IDs and aliases:
 | `jev-latest`  | Alias for the latest stable release.              |
 | `jev-preview` | Alias for the latest release, including previews. |
 
-| Question  | Native TypeSafe primitive | Limits and semantics                                                 |
-| --------- | ------------------------- | -------------------------------------------------------------------- |
-| `choice`  | Choice                    | 1–255 options; selected option and full probabilities.               |
-| `score`   | Score                     | 2–10 ordered rubric levels; fractional score and full probabilities. |
-| `boolean` | Noul                      | Required model-estimated probability of true.                        |
+| Question  | Native TypeSafe primitive | Limits and semantics                                                  |
+| --------- | ------------------------- | --------------------------------------------------------------------- |
+| `choice`  | Choice                    | 1–255 options; selected option and full probabilities.                |
+| `score`   | Score                     | 2–10 ordered rubric levels; fractional score and full probabilities.  |
+| `box`     | Box                       | Four normalized image edges; requires Jev 1.14 or later and an image. |
+| `boolean` | Noul                      | Required model-estimated probability of true.                         |
 
 State, instructions, and descriptions accept JSON objects and arrays in addition
 to strings. Descriptions may be `null`. Boolean true/false criteria are optional.
 The SDK uses the neutral name `boolean` and maps it to TypeSafe's `noul` field.
+
+### Box questions
+
+Box questions locate one target in an image and take no `criteria`:
+
+```ts
+questions: {
+  target: { type: 'box', instructions: 'The cat in the image' },
+}
+```
+
+Send an image in `state` as shown below. The answer has
+`type: 'box'` and a `box` object with `top`, `bottom`, `left`, and `right`.
+Each edge is a fraction in `[0, 1]`, measured from the top-left corner;
+`left < right` and `top < bottom`. Confidence is available at
+`result.providerMetadata?.typesafe?.confidence`, keyed by question ID.
+
+This feature is experimental, and a box is returned even when the
+object is absent. Ask a Boolean question alongside it to check visibility. See
+[TypeSafe's Box documentation](https://docs.typesafe.ai/primitives/box).
 
 ### Long context
 
@@ -151,13 +172,10 @@ const result = await experimental_decide({
       type: 'file',
       mediaType: 'image/png',
       data: readFileSync('cat.png'),
-      providerOptions: {
-        typesafe: { reference: '[animal-photo]' },
-      },
     },
   ],
   questions: {
-    cat: { type: 'boolean', instructions: 'Does [animal-photo] show a cat?' },
+    cat: { type: 'boolean', instructions: 'Does the image show a cat?' },
   },
 });
 ```
@@ -168,16 +186,55 @@ considers image support experimental. Only PNG and JPEG are supported; other
 file formats are rejected. See [TypeSafe's image documentation](https://docs.typesafe.ai/images)
 for image size and dimension limits.
 
-Set `providerOptions.typesafe.reference` on a file part to choose its asset
-reference. You can use that reference in state text, question instructions, or
-criteria. The provider also inserts it at the file's position in the state.
-When omitted, the provider generates a random reference.
+Explicit references are optional. Set `providerOptions.typesafe.reference` on a
+file part to choose its asset reference. When omitted, the provider generates a
+random reference. If the state already contains the reference, the provider
+sends the state as written, so JSON state stays an object. Otherwise it inserts
+the reference at the file's position in the state.
+
+TypeSafe sends another copy of the image for every occurrence of its reference
+in state, instructions, or criteria. To ask several questions about one image,
+put it in the state once and refer to it by path in backticks, as shown below,
+rather than repeating the reference in each question.
+
+Set `providerOptions.typesafe.insertReference` to `false` to send an image only
+where you reference it in a question's instructions or criteria, for example a
+known picture to compare against. This requires an explicit `reference`. Set it
+to `true` to insert the reference even when the state already contains it.
+
+```ts
+const result = await experimental_decide({
+  model: typeSafeAi.decisionModel('jev-latest'),
+  state: [
+    { type: 'json', value: { photo: '[found-dog]' } },
+    {
+      type: 'file',
+      mediaType: 'image/jpeg',
+      data: readFileSync('found-dog.jpg'),
+      providerOptions: { typesafe: { reference: '[found-dog]' } },
+    },
+    {
+      type: 'file',
+      mediaType: 'image/jpeg',
+      data: readFileSync('lost-dog-poster.jpg'),
+      providerOptions: {
+        typesafe: { reference: '[poster]', insertReference: false },
+      },
+    },
+  ],
+  questions: {
+    sameDog: {
+      type: 'boolean',
+      instructions: 'Is the dog in `photo` the same dog as in [poster]?',
+    },
+  },
+});
+```
 
 References must be nonempty, contain more than whitespace, and be unique across
 images in the request. TypeSafe substitutes references anywhere in string
 values, so choose distinctive names such as `[animal-photo]` to avoid accidental
-matches. Each occurrence inserts the image again. The file's `filename` does
-not affect its reference.
+matches. The file's `filename` does not affect its reference.
 
 The `TypeSafeAiFilePartProviderOptions` type is exported from
 `@ai-sdk/typesafe-ai` for typing file-level options.

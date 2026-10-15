@@ -46,7 +46,12 @@ type TypeSafeAiDecisionModelConfig = {
 
 export class DecisionTypeSafeAiModel implements DecisionModelV4 {
   readonly specificationVersion = 'v4';
-  readonly supportedQuestionTypes = ['choice', 'score', 'boolean'] as const;
+  readonly supportedQuestionTypes = [
+    'choice',
+    'score',
+    'boolean',
+    'box',
+  ] as const;
 
   constructor(
     readonly modelId: TypeSafeAiDecisionModelId,
@@ -119,62 +124,87 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
     const assets: Record<string, { type: 'image'; part: string }> =
       Object.create(null); // don't inherit from Object.prototype
     const imageParts: { name: string; blob: Blob; filename: string }[] = [];
+    const stateStrings = state.flatMap(part =>
+      part.type === 'text'
+        ? [part.text]
+        : part.type === 'json'
+          ? jsonStrings(part.value)
+          : [],
+    );
+    const stateParts = (
+      await Promise.all(
+        state.map(async (part, index) => {
+          if (part.type !== 'file') {
+            return part;
+          }
+          if (part.data.type !== 'data') {
+            throw new UnsupportedFunctionalityError({
+              functionality: `TypeSafe AI decision file input: ${part.mediaType} (${part.data.type})`,
+            });
+          }
+          const mediaType = part.mediaType;
+          if (mediaType !== 'image/png' && mediaType !== 'image/jpeg') {
+            throw new UnsupportedFunctionalityError({
+              functionality: `TypeSafe AI decision image media type: ${part.mediaType}`,
+            });
+          }
+          const fileOptions = await parseProviderOptions({
+            provider: 'typesafe',
+            providerOptions: part.providerOptions,
+            schema: typesafeAiFilePartProviderOptions,
+          });
+          if (
+            fileOptions?.insertReference === false &&
+            fileOptions.reference === undefined
+          ) {
+            throw new InvalidArgumentError({
+              argument: 'providerOptions.typesafe.reference',
+              message:
+                'TypeSafe images with insertReference: false need an explicit reference.',
+            });
+          }
+          // Default to random IDs to avoid accidental text matches
+          // as TypeSafe recommends as the safest option.
+          const reference = fileOptions?.reference ?? generateId();
+          const insertReference =
+            fileOptions?.insertReference ??
+            !stateStrings.some(text => text.includes(reference));
+          if (assets[reference] !== undefined) {
+            throw new InvalidArgumentError({
+              argument: 'providerOptions.typesafe.reference',
+              message: `Duplicate TypeSafe image reference: ${reference}`,
+            });
+          }
+          const partName = `image-${index}`;
+          assets[reference] = { type: 'image', part: partName };
+          imageParts.push({
+            name: partName,
+            blob: new Blob(
+              [
+                (typeof part.data.data === 'string'
+                  ? convertBase64ToUint8Array(part.data.data)
+                  : part.data.data) as BlobPart,
+              ],
+              { type: mediaType },
+            ),
+            filename:
+              part.filename ??
+              `${partName}.${mediaType === 'image/png' ? 'png' : 'jpeg'}`,
+          });
+          return insertReference
+            ? { type: 'text' as const, text: reference }
+            : undefined;
+        }),
+      )
+    ).filter(part => part !== undefined);
     const requestState =
-      state.length === 1 && state[0].type === 'json'
-        ? state[0].value
-        : (
-            await Promise.all(
-              state.map(async (part, index) => {
-                if (part.type === 'file') {
-                  if (part.data.type !== 'data') {
-                    throw new UnsupportedFunctionalityError({
-                      functionality: `TypeSafe AI decision file input: ${part.mediaType} (${part.data.type})`,
-                    });
-                  }
-                  const mediaType = part.mediaType;
-                  if (mediaType !== 'image/png' && mediaType !== 'image/jpeg') {
-                    throw new UnsupportedFunctionalityError({
-                      functionality: `TypeSafe AI decision image media type: ${part.mediaType}`,
-                    });
-                  }
-                  const fileOptions = await parseProviderOptions({
-                    provider: 'typesafe',
-                    providerOptions: part.providerOptions,
-                    schema: typesafeAiFilePartProviderOptions,
-                  });
-                  // Default to random IDs to avoid accidental text matches
-                  // as TypeSafe recommends as the safest option.
-                  const reference = fileOptions?.reference ?? generateId();
-                  if (assets[reference] !== undefined) {
-                    throw new InvalidArgumentError({
-                      argument: 'providerOptions.typesafe.reference',
-                      message: `Duplicate TypeSafe image reference: ${reference}`,
-                    });
-                  }
-                  const partName = `image-${index}`;
-                  assets[reference] = { type: 'image', part: partName };
-                  imageParts.push({
-                    name: partName,
-                    blob: new Blob(
-                      [
-                        (typeof part.data.data === 'string'
-                          ? convertBase64ToUint8Array(part.data.data)
-                          : part.data.data) as BlobPart,
-                      ],
-                      { type: mediaType },
-                    ),
-                    filename:
-                      part.filename ??
-                      `${partName}.${mediaType === 'image/png' ? 'png' : 'jpeg'}`,
-                  });
-                  return reference;
-                }
-                return part.type === 'text'
-                  ? part.text
-                  : JSON.stringify(part.value);
-              }),
+      stateParts.length === 1 && stateParts[0].type === 'json'
+        ? stateParts[0].value
+        : stateParts
+            .map(part =>
+              part.type === 'text' ? part.text : JSON.stringify(part.value),
             )
-          ).join('\n');
+            .join('\n');
     const hasImages = Object.keys(assets).length > 0;
     const modelHeaders =
       this.config.headers === undefined
@@ -194,7 +224,9 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
           id,
           question.type === 'boolean'
             ? { ...question, type: 'noul' }
-            : question,
+            : question.type === 'box'
+              ? { type: 'box', instructions: question.instructions }
+              : question,
         ]),
       ),
     };
@@ -202,7 +234,10 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
       url: `${this.config.baseURL}/systemone`,
       headers: combineHeaders(
         modelHeaders,
-        hasImages ? { 'TypeSafe-Danger-Zone-Images': 'true' } : undefined,
+        hasImages ||
+          Object.values(questions).some(question => question.type === 'box')
+          ? { 'TypeSafe-Danger-Zone-Images': 'true' }
+          : undefined,
         typesafeOptions?.longContext
           ? { 'TypeSafe-Danger-Zone-Long-Context': 'true' }
           : undefined,
@@ -248,6 +283,8 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
         Object.entries(response.answers).map(
           ([id, answer]): [string, DecisionModelV4Answer] => {
             switch (answer.type) {
+              case 'box':
+                return [id, { type: 'box', box: answer.box }];
               case 'noul':
                 return [id, { type: 'boolean', probability: answer.noul }];
               case 'choice':
@@ -287,4 +324,17 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
       },
     };
   }
+}
+
+function jsonStrings(value: unknown): string[] {
+  if (typeof value === 'string') {
+    return [value];
+  }
+  if (Array.isArray(value)) {
+    return value.flatMap(jsonStrings);
+  }
+  if (value !== null && typeof value === 'object') {
+    return Object.values(value).flatMap(jsonStrings);
+  }
+  return [];
 }

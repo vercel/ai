@@ -35,6 +35,7 @@ it('infers answer kinds and literal options from inline questions', async () => 
         criteria: ['Low', 'High'],
       },
       refund: { type: 'boolean', instructions: 'Refund?' },
+      target: { type: 'box', instructions: 'The cat in the photo' },
     },
   });
   expectTypeOf(result.answers.topic.choice).toEqualTypeOf<
@@ -45,6 +46,10 @@ it('infers answer kinds and literal options from inline questions', async () => 
   >();
   expectTypeOf(result.answers.severity.score).toEqualTypeOf<number>();
   expectTypeOf(result.answers.refund.probability).toEqualTypeOf<number>();
+  expectTypeOf(result.answers.target).toEqualTypeOf<{
+    type: 'box';
+    box: { top: number; bottom: number; left: number; right: number };
+  }>();
   // @ts-expect-error No unknown question IDs.
   result.answers.missing;
   // @ts-expect-error Boolean answers are probabilities, not selected labels.
@@ -77,6 +82,10 @@ it('distributes over dynamic question types', () => {
     | { type: 'choice'; choice: string; probabilities?: Record<string, number> }
     | { type: 'score'; score: number; probabilities?: Record<string, number> }
     | { type: 'boolean'; probability: number }
+    | {
+        type: 'box';
+        box: { top: number; bottom: number; left: number; right: number };
+      }
   >();
 });
 

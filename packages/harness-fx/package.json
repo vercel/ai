@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/harness-fx",
-  "version": "1.0.66",
+  "version": "1.0.68",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -36,9 +36,10 @@
   },
   "dependencies": {
     "@ai-sdk/harness": "workspace:*",
-    "@ai-sdk/harness-acp": "workspace:*",
+    "@ai-sdk/mcp": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
-    "@ai-sdk/provider-utils": "workspace:*"
+    "@ai-sdk/provider-utils": "workspace:*",
+    "libfx": "0.0.13"
   },
   "peerDependencies": {
     "zod": "^3.25.76 || ^4.1.8"
@@ -47,6 +48,7 @@
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
     "tsdown": "^0.23.0",
+    "tsx": "4.23.12",
     "typescript": "6.0.3",
     "zod": "3.25.76"
   },
@@ -69,7 +71,7 @@
   "keywords": [
     "ai",
     "harness",
-    "acp",
-    "fx"
+    "fx",
+    "libfx"
   ]
 }
