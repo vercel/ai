@@ -1,5 +1,5 @@
 import { createMdxComponents } from '@vercel/geistdocs/mdx';
-import { LogoIconVercel } from '@vercel/geistdocs/assets/logos';
+import { LogoIconVercelSvg } from '@vercel/geistdocs/assets/logos';
 import type { MDXComponents } from 'mdx/types';
 import type { ComponentProps, ComponentType, JSX } from 'react';
 import { ExampleLinks } from '@/components/docs/example-links';
@@ -7,18 +7,27 @@ import { IndexCards } from '@/components/docs/index-cards';
 import { Check, Cross } from '@/components/docs/inline-icons';
 import { InstallPackages } from '@/components/docs/install-packages';
 import { InlinePrompt } from '@/components/docs/inline-prompt';
+import { Browser } from '@/components/docs/browser';
 import { BrowserIllustration } from '@/components/docs/browser-illustration';
+import { ChatGeneration } from '@/components/docs/chat-generation';
+import { CodeTemplate } from '@/components/docs/code-template';
+import { ObjectGeneration } from '@/components/docs/object-generation';
+import { TextGeneration } from '@/components/docs/text-generation';
+import { WeatherCard } from '@/components/docs/weather-card';
 import {
   CardPlayer,
   WeatherSearch,
 } from '@/components/docs/generative-ui-preview';
 import {
   Card,
-  OfficialModelCards,
   QuickstartFrameworkCards,
   Support,
-  Templates,
 } from '@/components/docs/marketing-cards';
+import { Templates } from '@/components/docs/templates';
+import {
+  CommunityModelCards,
+  OfficialModelCards,
+} from '@/components/docs/model-cards';
 import { MDXImage } from '@/components/docs/mdx-image';
 import { ButtonLink, GithubLink } from '@/components/docs/misc';
 import { Note } from '@/components/docs/note';
@@ -27,49 +36,9 @@ import { PreviewSwitchProviders } from '@/components/docs/provider-preview';
 import { resolveDocsHref } from '@/components/docs/resolve-href';
 import { Snippet } from '@/components/docs/snippet';
 import { Steps } from '@/components/docs/steps';
-import { createStub } from '@/components/docs/stub';
 import { Tab, Tabs } from '@/components/docs/tabs';
 
 type LinkComponent = ComponentType<ComponentProps<'a'>>;
-
-/**
- * Components not yet ported from the legacy app. Rendered as visible
- * placeholders — port or drop them in phase 2.
- */
-const stubNames = [
-  'Frameworks',
-  'Browser',
-  'TextGeneration',
-  'ObjectGeneration',
-  'ChatGeneration',
-  'WeatherCard',
-  'ReferenceTable',
-  'ObjectTableList',
-  'ExamplesList',
-  'MarketingVisualVercelAi',
-  'MarketingFrameworkCircles',
-  'MusicPlayer',
-  'FeatureCard',
-  'ModelCard',
-  'LogoOpenAi',
-  'CommunityModelCards',
-  'CompatibilityModelCards',
-  'FrameworkCard',
-  'ExampleCards',
-  'CodePreview',
-  'TabbedCodePreview',
-  'InteractiveCodePreview',
-  // Imported (top-level) by ai-sdk-rsc pages in the legacy app; the
-  // sync-content transform strips those imports.
-  'EventPlanning',
-  'Searching',
-  'UIPreviewCard',
-  'Weather',
-] as const;
-
-const stubs = Object.fromEntries(
-  stubNames.map(name => [name, createStub(name)]),
-);
 
 export const getMdxComponents = ({
   link,
@@ -90,24 +59,46 @@ export const getMdxComponents = ({
 
   return {
     ...createMdxComponents({ a: VersionedLink }),
-    ...stubs,
+    CodeTemplate: props => (
+      <CodeTemplate {...props} versionPrefix={versionPrefix} />
+    ),
     Note,
     Check,
     Cross,
     InstallPackages,
     InlinePrompt,
+    Browser,
     BrowserIllustration,
+    ChatGeneration,
+    ObjectGeneration,
+    TextGeneration,
+    WeatherCard,
     CardPlayer,
     WeatherSearch,
     Card,
     Templates,
-    OfficialModelCards,
-    PreviewSwitchProviders,
+    OfficialModelCards: props => (
+      <OfficialModelCards
+        {...props}
+        resolveHref={resolveVersionedHref}
+        versionPrefix={versionPrefix}
+      />
+    ),
+    CommunityModelCards: props => (
+      <CommunityModelCards
+        {...props}
+        resolveHref={resolveVersionedHref}
+        versionPrefix={versionPrefix}
+      />
+    ),
+    PreviewSwitchProviders: props => (
+      <PreviewSwitchProviders {...props} versionPrefix={versionPrefix} />
+    ),
     QuickstartFrameworkCards: props => (
       <QuickstartFrameworkCards {...props} resolveHref={resolveVersionedHref} />
     ),
     Support: props => <Support {...props} resolveHref={resolveVersionedHref} />,
-    VercelIcon: LogoIconVercel,
+    VercelIcon: LogoIconVercelSvg,
     Snippet,
     Tabs,
     Tab,

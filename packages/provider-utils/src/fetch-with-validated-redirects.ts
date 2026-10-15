@@ -3,6 +3,7 @@ import { DownloadError } from './download-error';
 import type { FetchFunction } from './fetch-function';
 import { isBrowserRuntime } from './is-browser-runtime';
 import { isSameOrigin } from './is-same-origin';
+import { getDefaultDownloadFetch } from './safe-node-fetch';
 import { sanitizeRequestHeaders } from './sanitize-request-headers';
 import { validateDownloadUrl } from './validate-download-url';
 
@@ -12,6 +13,63 @@ const MAX_DOWNLOAD_REDIRECTS = 10;
 // Notably 300 (Multiple Choices) and 304 (Not Modified) are NOT redirects,
 // even when a server attaches a Location header.
 const REDIRECT_STATUS_CODES = new Set([301, 302, 303, 307, 308]);
+
+async function getValidatedFetch(
+  customFetch: FetchFunction | undefined,
+): Promise<FetchFunction> {
+  // Callers commonly pass globalThis.fetch through several abstraction
+  // layers. Preserve the DNS-pinned Node.js default in that case rather than
+  // accidentally treating it as an intentionally custom fetch.
+  return customFetch == null || customFetch === globalThis.fetch
+    ? await getDefaultDownloadFetch()
+    : customFetch;
+}
+
+/**
+ * Fetches one validated URL without following redirects.
+ *
+ * On Node.js, the default fetch validates and pins DNS results at connect time.
+ * An injected fetch is responsible for equivalent connect-time validation.
+ * Redirects are rejected by default. Callers using `redirect: 'manual'` must
+ * validate the Location target before issuing another request.
+ */
+export async function fetchWithValidatedEndpoint({
+  url,
+  init,
+  fetch: customFetch,
+  trustedOrigin,
+  redirect = 'error',
+}: {
+  url: string | URL;
+  init?: RequestInit;
+  fetch?: FetchFunction;
+  /**
+   * A developer-configured origin that may legitimately resolve to a private
+   * address. This must never be derived from untrusted response data.
+   */
+  trustedOrigin?: string;
+  redirect?: 'error' | 'manual';
+}): Promise<Response> {
+  const urlText = url.toString();
+  const isTrusted =
+    trustedOrigin !== undefined && isSameOrigin(urlText, trustedOrigin);
+
+  if (!isTrusted) {
+    validateDownloadUrl(urlText);
+  }
+
+  const fetch =
+    isTrusted && customFetch != null
+      ? customFetch
+      : isTrusted
+        ? globalThis.fetch
+        : await getValidatedFetch(customFetch);
+
+  return await fetch(url, {
+    ...init,
+    redirect,
+  });
+}
 
 /**
  * Fetches a URL while enforcing the download guard on every hop.
@@ -25,6 +83,9 @@ const REDIRECT_STATUS_CODES = new Set([301, 302, 303, 307, 308]);
  * Request headers are also protected: {@link sanitizeRequestHeaders} strips
  * proxy/metadata/cookie/hop-by-hop headers before the first request, and all
  * caller headers except `User-Agent` are dropped on a cross-origin redirect.
+ * Credentials and custom headers are preserved on the first hop for backwards
+ * compatibility. The caller must ensure that the initial URL may receive them.
+ * Use `fetchUntrustedUrl` for URLs that require first-hop credential isolation.
  * The fetch spec only strips `Authorization` on cross-origin redirects because
  * in a browser, CORS preflighting protects custom headers; there is no CORS on
  * the server, so provider API keys carried in custom headers (e.g. `x-key`)
@@ -48,13 +109,11 @@ const REDIRECT_STATUS_CODES = new Set([301, 302, 303, 307, 308]);
  * The returned response is the final (non-redirect) response. The caller is
  * responsible for checking `response.ok` and reading the body.
  *
- * Not solved here: this does string/literal checks only and does not resolve
- * DNS, so a hostname that *resolves* to a private address, and DNS rebinding
- * (the resolved IP flipping between validation and connect), are not blocked.
- * Server deployments fetching untrusted URLs should constrain egress at the
- * network layer or inject a Node `fetch` that pins the resolved IP at connect
- * time — those need DNS/socket APIs not available on all target runtimes
- * (edge, browser, Bun), so they are intentionally not built in.
+ * On Node.js, the default fetch resolves every hostname through a validating
+ * lookup hook and passes those exact addresses to the connector, preventing
+ * hostname-to-private-IP and DNS-rebinding bypasses. An injected fetch is
+ * responsible for equivalent connect-time validation. Other runtimes should
+ * constrain egress at the network layer when handling untrusted URLs.
  *
  * @throws DownloadError if a hop is unsafe, the redirect limit is exceeded, or
  * a redirect cannot be validated on a non-browser runtime.
@@ -64,7 +123,7 @@ export async function fetchWithValidatedRedirects({
   headers,
   abortSignal,
   maxRedirects = MAX_DOWNLOAD_REDIRECTS,
-  fetch = globalThis.fetch,
+  fetch: customFetch,
   trustedOrigin,
 }: {
   url: string;
@@ -99,12 +158,19 @@ export async function fetchWithValidatedRedirects({
   for (let redirectCount = 0; redirectCount <= maxRedirects; redirectCount++) {
     // The developer-configured origin is trusted by definition; validating it
     // would reject legitimate self-hosted / localhost deployments.
-    if (
-      trustedOrigin === undefined ||
-      !isSameOrigin(currentUrl, trustedOrigin)
-    ) {
+    const isTrustedHop =
+      trustedOrigin !== undefined && isSameOrigin(currentUrl, trustedOrigin);
+
+    if (!isTrustedHop) {
       validateDownloadUrl(currentUrl);
     }
+
+    const fetch =
+      isTrustedHop && customFetch != null
+        ? customFetch
+        : isTrustedHop
+          ? globalThis.fetch
+          : await getValidatedFetch(customFetch);
 
     const response = await fetch(currentUrl, perHopInit('manual'));
 
@@ -118,12 +184,13 @@ export async function fetchWithValidatedRedirects({
       return await fetch(currentUrl, perHopInit('follow'));
     }
 
-    const location = response.headers.get('location');
+    const location = response.headers?.get('location');
     if (REDIRECT_STATUS_CODES.has(response.status) && location) {
-      // Release the redirect response's connection before moving to the next
-      // hop. Whether that hop is followed or rejected by the guard, an
-      // unconsumed 3xx body would leak the underlying socket.
-      await cancelResponseBody(response);
+      // Start releasing the redirect response's connection before moving to
+      // the next hop. Do not wait for cancellation: when a fetch wrapper keeps
+      // an unread response clone, tee cancellation can remain pending until
+      // the cloned branch is consumed.
+      void cancelResponseBody(response);
       const nextUrl = new URL(location, currentUrl).toString();
 
       // Drop all caller headers except the user-agent before following a

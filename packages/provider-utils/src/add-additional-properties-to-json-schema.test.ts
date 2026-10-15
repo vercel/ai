@@ -278,6 +278,29 @@ describe('addAdditionalPropertiesToJsonSchema', () => {
     });
   });
 
+  it('preserves schema-valued additionalProperties recursively', () => {
+    const schema: JSONSchema7 = {
+      type: 'object',
+      additionalProperties: {
+        type: 'object',
+        properties: {
+          value: { type: 'string' },
+        },
+      },
+    };
+
+    expect(addAdditionalPropertiesToJsonSchema(schema)).toEqual({
+      type: 'object',
+      additionalProperties: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          value: { type: 'string' },
+        },
+      },
+    });
+  });
+
   it('leaves non-object schemas unchanged', () => {
     const schema: JSONSchema7 = { type: 'string' };
 

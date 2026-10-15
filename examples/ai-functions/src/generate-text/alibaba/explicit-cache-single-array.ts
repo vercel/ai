@@ -18,11 +18,8 @@ run(async () => {
 
   const result = await generateText({
     model: alibaba('qwen-plus'),
+    instructions: 'You are a helpful assistant.',
     messages: [
-      {
-        role: 'system',
-        content: 'You are a helpful assistant.',
-      },
       {
         role: 'user',
         content: [
@@ -43,12 +40,13 @@ run(async () => {
   console.log('Text:', result.text.substring(0, 50) + '...');
   console.log('Usage:', result.usage);
 
-  const raw = result.usage.raw as AlibabaUsage;
-  const cacheCreated =
-    raw.prompt_tokens_details?.cache_creation_input_tokens || 0;
-  const cacheHit = raw.prompt_tokens_details?.cached_tokens || 0;
+  // `raw` is per-step: the top-level `usage` sums steps and drops it.
+  const raw = result.finalStep.usage.raw as AlibabaUsage | undefined;
+  const cacheCreated = result.usage.inputTokenDetails?.cacheWriteTokens ?? 0;
+  const cacheHit = result.usage.inputTokenDetails?.cacheReadTokens ?? 0;
 
   console.log();
+  console.log('cache_type:', raw?.prompt_tokens_details?.cache_type);
   if (cacheCreated > 0 || cacheHit > 0) {
     console.log(
       `SUCCESS: Part-level cache_control was applied (created: ${cacheCreated}, hit: ${cacheHit})`,

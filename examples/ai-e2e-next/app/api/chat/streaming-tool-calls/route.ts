@@ -32,7 +32,7 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     messages: await convertToModelMessages(messages),
     instructions:
       'You are a helpful assistant that answers questions about the weather in a given city.' +

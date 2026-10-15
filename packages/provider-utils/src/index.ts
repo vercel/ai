@@ -8,13 +8,22 @@ export {
 export { convertAsyncIteratorToReadableStream } from './convert-async-iterator-to-readable-stream';
 export { convertInlineFileDataToUint8Array } from './convert-inline-file-data-to-uint8-array';
 export { convertImageModelFileToDataUri } from './convert-image-model-file-to-data-uri';
+export { convertJsonResponseToolStream } from './convert-json-response-tool-stream';
 export { convertToFormData } from './convert-to-form-data';
+export { createLanguageModelResponseMetadata } from './create-language-model-response-metadata';
+export { createNullLanguageModelUsage } from './create-null-language-model-usage';
 export {
   createToolNameMapping,
   type ToolNameMapping,
 } from './create-tool-name-mapping';
+export {
+  createProviderStreamError,
+  isProviderStreamError,
+  type ProviderStreamError,
+} from './create-provider-stream-error';
 export * from './delay';
 export { DelayedPromise } from './delayed-promise';
+export * from './delete-from-api';
 export {
   detectMediaType,
   getTopLevelMediaType,
@@ -22,10 +31,19 @@ export {
 } from './detect-media-type';
 export { downloadBlob } from './download-blob';
 export { DownloadError } from './download-error';
-export { fetchWithValidatedRedirects } from './fetch-with-validated-redirects';
+export {
+  EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL as EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL,
+  EMBEDDING_MODEL_PROVIDER_OPTIONS_TRANSFORMER as EXPERIMENTAL_EMBEDDING_MODEL_PROVIDER_OPTIONS_TRANSFORMER,
+  type EmbeddingModelProviderOptionsTransformer,
+} from './embedding-model-capabilities';
+export {
+  fetchWithValidatedEndpoint,
+  fetchWithValidatedRedirects,
+} from './fetch-with-validated-redirects';
 export { extractLines } from './extract-lines';
 export * from './extract-response-headers';
 export * from './fetch-function';
+export { fetchUntrustedUrl } from './fetch-untrusted-url';
 export { filterNullable } from './filter-nullable';
 export { createIdGenerator, generateId, type IdGenerator } from './generate-id';
 export * from './get-error-message';
@@ -39,7 +57,9 @@ export { isBuffer } from './is-buffer';
 export { isSameOrigin } from './is-same-origin';
 export { isNonNullable } from './is-non-nullable';
 export { isProviderReference } from './is-provider-reference';
+export { isRecord } from './is-record';
 export { isUrlSupported } from './is-url-supported';
+export { isValidHostnamePart } from './is-valid-hostname-part';
 export * from './load-api-key';
 export { loadOptionalSetting } from './load-optional-setting';
 export { loadSetting } from './load-setting';
@@ -51,9 +71,11 @@ export {
 export { type MaybePromiseLike } from './maybe-promise-like';
 export { mediaTypeToExtension } from './media-type-to-extension';
 export { normalizeHeaders } from './normalize-headers';
+export { normalizeBatchRequestCounts } from './normalize-batch-request-counts';
 export * from './parse-json';
 export { parseJsonEventStream } from './parse-json-event-stream';
 export { parseProviderOptions } from './parse-provider-options';
+export * from './post-multipart-stream-to-api';
 export * from './post-to-api';
 export {
   createProviderDefinedToolFactory,
@@ -88,6 +110,7 @@ export {
   type ValidationResult,
 } from './schema';
 export { serializeModelOptions } from './serialize-model-options';
+export { SerializationError } from './serialization-error';
 export { secureJsonParse } from './secure-json-parse';
 export {
   StreamingToolCallTracker,

@@ -75,6 +75,16 @@ describe('generateObject', () => {
           prompt: 'prompt',
         });
 
+        expect(logWarningsSpy).toHaveBeenNthCalledWith(1, {
+          warnings: [
+            {
+              type: 'deprecated',
+              setting: 'generateObject',
+              message: 'Use generateText with an output setting instead.',
+            },
+          ],
+        });
+
         expect(result.object).toMatchInlineSnapshot(`
         {
           "content": "Hello, world!",
@@ -210,8 +220,8 @@ describe('generateObject', () => {
         prompt: 'prompt',
       });
 
-      expect(logWarningsSpy).toHaveBeenCalledOnce();
-      expect(logWarningsSpy).toHaveBeenCalledWith({
+      expect(logWarningsSpy).toHaveBeenCalledTimes(2);
+      expect(logWarningsSpy).toHaveBeenNthCalledWith(2, {
         warnings: expectedWarnings,
         provider: 'mock-provider',
         model: 'mock-model-id',
@@ -231,8 +241,8 @@ describe('generateObject', () => {
         prompt: 'prompt',
       });
 
-      expect(logWarningsSpy).toHaveBeenCalledOnce();
-      expect(logWarningsSpy).toHaveBeenCalledWith({
+      expect(logWarningsSpy).toHaveBeenCalledTimes(2);
+      expect(logWarningsSpy).toHaveBeenNthCalledWith(2, {
         warnings: [],
         provider: 'mock-provider',
         model: 'mock-model-id',
@@ -591,7 +601,7 @@ describe('generateObject', () => {
           }),
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_repairText: async ({ text, error }) => {
+          repairText: async ({ text, error }) => {
             expect(error).toBeInstanceOf(JSONParseError);
             expect(text).toStrictEqual(
               '{ "content": "provider metadata test" ',
@@ -622,7 +632,7 @@ describe('generateObject', () => {
           }),
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_repairText: async ({ text, error }) => {
+          repairText: async ({ text, error }) => {
             expect(error).toBeInstanceOf(TypeValidationError);
             expect(text).toStrictEqual(
               '{ "content-a": "provider metadata test" }',
@@ -653,7 +663,7 @@ describe('generateObject', () => {
           }),
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_repairText: async ({ text, error }) => {
+          repairText: async ({ text, error }) => {
             expect(error).toBeInstanceOf(TypeValidationError);
             expect(text).toStrictEqual(
               '{ "content-a": "provider metadata test" }',
@@ -665,6 +675,51 @@ describe('generateObject', () => {
         await expect(result).rejects.toThrow(
           'No object generated: response did not match schema.',
         );
+      });
+
+      it('should support the deprecated experimental_repairText option', async () => {
+        const result = await generateObject({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => ({
+              ...dummyResponseValues,
+              content: [
+                {
+                  type: 'text',
+                  text: '{ "content": "repaired"',
+                },
+              ],
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          experimental_repairText: async ({ text }) => text + ' }',
+        });
+
+        expect(result.object).toStrictEqual({ content: 'repaired' });
+      });
+
+      it('should prefer repairText over experimental_repairText', async () => {
+        const result = await generateObject({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => ({
+              ...dummyResponseValues,
+              content: [
+                {
+                  type: 'text',
+                  text: '{ "content": "repaired"',
+                },
+              ],
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          repairText: async ({ text }) => text + ' }',
+          experimental_repairText: async () => {
+            throw new Error('deprecated alias should not be called');
+          },
+        });
+
+        expect(result.object).toStrictEqual({ content: 'repaired' });
       });
     });
 
@@ -784,7 +839,7 @@ describe('generateObject', () => {
             }),
             schema: z.object({ content: z.string() }),
             prompt: 'prompt',
-            experimental_repairText: async ({ text }) => text + '{',
+            repairText: async ({ text }) => text + '{',
           });
 
           fail('must throw error');

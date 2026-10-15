@@ -45,8 +45,11 @@ describe('OpenCode bridge protocol', () => {
     expect(inboundMessageSchema.parse({ type: 'abort' })).toEqual({
       type: 'abort',
     });
-    expect(inboundMessageSchema.parse({ type: 'interrupt' })).toEqual({
-      type: 'interrupt',
+    expect(inboundMessageSchema.parse({ type: 'stop' })).toEqual({
+      type: 'stop',
+    });
+    expect(inboundMessageSchema.parse({ type: 'destroy' })).toEqual({
+      type: 'destroy',
     });
     expect(
       inboundMessageSchema.parse({
@@ -58,15 +61,6 @@ describe('OpenCode bridge protocol', () => {
       type: 'tool-result',
       toolCallId: 'tool-1',
       output: { ok: true },
-    });
-  });
-
-  it('accepts interrupt acknowledgements', () => {
-    expect(
-      outboundMessageSchema.parse({ type: 'bridge-interrupted', ok: true }),
-    ).toEqual({
-      type: 'bridge-interrupted',
-      ok: true,
     });
   });
 });

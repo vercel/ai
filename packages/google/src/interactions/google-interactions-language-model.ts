@@ -153,6 +153,21 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
 
     const isAgent = this.agent != null;
 
+    if (!isAgent) {
+      if (options.frequencyPenalty != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'frequencyPenalty',
+        });
+      }
+      if (options.presencePenalty != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'presencePenalty',
+        });
+      }
+    }
+
     const hasTools = options.tools != null && options.tools.length > 0;
 
     let toolsForBody: Array<GoogleInteractionsTool> | undefined;
@@ -230,6 +245,17 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
               mime_type: entry.mimeType ?? undefined,
             }),
           );
+        } else if (entry.type === 'video') {
+          responseFormatEntries.push(
+            pruneUndefined({
+              type: 'video' as const,
+              aspect_ratio: entry.aspectRatio ?? undefined,
+              resolution: entry.resolution ?? undefined,
+              duration: entry.duration ?? undefined,
+              delivery: entry.delivery ?? undefined,
+              gcs_uri: entry.gcsUri ?? undefined,
+            }),
+          );
         }
       }
     }
@@ -276,6 +302,11 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
       const droppedFields: Array<string> = [];
       if (options.temperature != null) droppedFields.push('temperature');
       if (options.topP != null) droppedFields.push('topP');
+      if (options.topK != null) droppedFields.push('topK');
+      if (options.frequencyPenalty != null)
+        droppedFields.push('frequencyPenalty');
+      if (options.presencePenalty != null)
+        droppedFields.push('presencePenalty');
       if (options.seed != null) droppedFields.push('seed');
       if (options.stopSequences != null && options.stopSequences.length > 0) {
         droppedFields.push('stopSequences');
@@ -299,6 +330,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
       generationConfig = pruneUndefined({
         temperature: options.temperature ?? undefined,
         top_p: options.topP ?? undefined,
+        top_k: options.topK ?? undefined,
         seed: options.seed ?? undefined,
         stop_sequences:
           options.stopSequences != null && options.stopSequences.length > 0
@@ -450,7 +482,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
   async doGenerate(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4GenerateResult> {
-    const { args, warnings, isAgent, pollingTimeoutMs } =
+    const { args, warnings, isAgent, isBackground, pollingTimeoutMs } =
       await this.getArgs(options);
 
     const url = `${this.config.baseURL}/interactions`;
@@ -479,12 +511,12 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     } = postResult;
 
     /*
-     * Agent calls may return a non-terminal status (`in_progress` /
-     * `requires_action`) when invoked with `background: true`. Poll
-     * `GET /interactions/{id}` until terminal so the user-facing surface
-     * matches a synchronous call.
+     * Agent calls and `background: true` calls (e.g. Gemini 4 long decode,
+     * where the server runs every hop) may return a non-terminal status
+     * (`in_progress` / `requires_action`). Poll `GET /interactions/{id}` until
+     * terminal so the user-facing surface matches a synchronous call.
      */
-    if (isAgent && !isTerminalStatus(response.status)) {
+    if ((isAgent || isBackground) && !isTerminalStatus(response.status)) {
       const polled = await pollGoogleInteractionUntilTerminal({
         baseURL: this.config.baseURL,
         interactionId: response.id,

@@ -1,5 +1,14 @@
 export {
+  type VercelSandboxSettings,
   createVercelSandbox,
   VercelSandboxProvider,
-  type VercelSandboxSettings,
+} from './vercel-legacy-sandbox-provider';
+export {
+  createVercelNetworkSandboxSession,
+  resumeVercelNetworkSandboxSession,
+  createVercelSandboxSessionFromNativeSandbox,
+  createVercelNetworkSandboxSessionFromNativeSandbox,
+  type VercelNativeSandboxSession,
+  type VercelNetworkSandboxSessionCreateOptions,
+  type VercelNetworkSandboxSessionResumeOptions,
 } from './vercel-sandbox';

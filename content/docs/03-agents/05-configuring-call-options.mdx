@@ -68,7 +68,7 @@ The `options` parameter is now required and type-checked. If you don't provide i
 
 ## Modifying Agent Settings
 
-Use `prepareCall` to modify any agent setting. Return only the settings you want to change.
+Use `prepareCall` to modify any agent setting. The returned object replaces the call settings, so spread the incoming settings and override only the ones you want to change.
 
 ### Dynamic Model Selection
 
@@ -87,7 +87,9 @@ const agent = new ToolLoopAgent({
   prepareCall: ({ options, ...settings }) => ({
     ...settings,
     model:
-      options.complexity === 'simple' ? 'openai/gpt-4o-mini' : 'openai/o1-mini',
+      options.complexity === 'simple'
+        ? 'openai/gpt-6-luna'
+        : 'openai/gpt-6-astra',
   }),
 });
 
@@ -158,7 +160,7 @@ import { ToolLoopAgent } from 'ai';
 import { z } from 'zod';
 
 const agent = new ToolLoopAgent({
-  model: 'openai/o3',
+  model: 'openai/gpt-6-astra',
   callOptionsSchema: z.object({
     taskDifficulty: z.enum(['low', 'medium', 'high']),
   }),

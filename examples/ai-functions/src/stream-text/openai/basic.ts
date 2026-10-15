@@ -6,7 +6,7 @@ import { print } from '../../lib/print';
 
 run(async () => {
   const result = streamText({
-    model: openai('gpt-5-nano'),
+    model: openai('gpt-5.4-nano'),
     prompt: 'Invent a new holiday and describe its traditions.',
     maxRetries: 0,
   });

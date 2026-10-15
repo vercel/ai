@@ -67,7 +67,10 @@ createFeatureTestSuite({
         provider.embeddingModel('gemini-embedding-2-preview'),
       ),
     ],
-    imageModels: [createImageModel('imagen-3.0-generate-002')],
+    imageModels: [
+      createImageModel('gemini-2.5-flash-image'),
+      createImageModel('gemini-nano-banana-2.1'),
+    ],
   },
   timeout: 20000,
   customAssertions: {
@@ -75,7 +78,7 @@ createFeatureTestSuite({
     errorValidator: (error: APICallError) => {
       console.log(error);
       expect((error.data as GoogleErrorData).error.message).match(
-        /models\/no\-such\-model is not found/,
+        /models\/no-such-model is not found/,
       );
     },
   },

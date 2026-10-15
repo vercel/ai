@@ -17,6 +17,7 @@ run(async () => {
       advisor: anthropic.tools.advisor_20260301({
         model: 'claude-opus-4-7',
         maxUses: 3,
+        maxTokens: 2048,
       }),
     },
   });
@@ -43,9 +44,20 @@ run(async () => {
 
       case 'tool-result': {
         if (chunk.toolName === 'advisor') {
+          const stopReason =
+            typeof chunk.output === 'object' &&
+            chunk.output !== null &&
+            'stopReason' in chunk.output
+              ? chunk.output.stopReason
+              : undefined;
           process.stdout.write(
             `\n\x1b[32m\x1b[1m[advisor result]\x1b[0m ${JSON.stringify(chunk.output, null, 2)}\n`,
           );
+          if (stopReason === 'max_tokens') {
+            process.stdout.write(
+              '\x1b[33m[advisor output was truncated at maxTokens]\x1b[0m\n',
+            );
+          }
         } else {
           console.log(
             `\x1b[32m\x1b[1mTool result:\x1b[22m ${JSON.stringify(chunk, null, 2)}\x1b[0m`,

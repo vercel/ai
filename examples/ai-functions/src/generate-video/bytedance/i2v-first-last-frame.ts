@@ -22,7 +22,6 @@ run(async () => {
               'https://ark-doc.tos-ap-southeast-1.bytepluses.com/doc_image/seepro_last_frame.jpeg',
             generateAudio: true,
             watermark: false,
-            pollTimeoutMs: 600000,
           } satisfies ByteDanceVideoModelOptions,
         },
       }),

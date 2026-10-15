@@ -1,14 +1,14 @@
 # AI SDK Tools Registry - Contributing a Tool
 
-You can add your tool to the [registry](https://ai-sdk.dev/tools-registry) by submitting a pull request that updates the `content/tools-registry/registry.ts` file.
+You can add your tool to the [registry](https://ai-sdk.dev/resources/tools) by submitting a pull request that updates the `content/tools-registry/registry.ts` file.
 
 ### Prerequisites
 
 Before submitting your tool, ensure you have:
 
 - Published your tool package to npm
-- Documented your tool with clear usage instructions
-- Tested your tool with the AI SDK
+- Tested the integration with the current AI SDK and confirmed that it works as advertised
+- Published documentation on your website that explains how the tool works with the AI SDK
 
 ### Adding Your Tool
 
@@ -52,16 +52,18 @@ Before submitting your tool, ensure you have:
    });
 
    console.log(text);`,
-     docsUrl: 'https://your-docs-url.com',
+     docsUrl: 'https://your-docs-url.com/ai-sdk-integration',
      apiKeyUrl: 'https://your-api-key-url.com',
      websiteUrl: 'https://your-website.com',
      npmUrl: 'https://www.npmjs.com/package/your-package-name',
    }
    ```
 
-3. **Provide a working code example**
+3. **Document and test your integration**
 
-   Your `codeExample` should:
+   Set `docsUrl` to the documentation on your website that explains how your tool works with the AI SDK. The link should point directly to the relevant AI SDK integration guide rather than to a homepage or generic API documentation.
+
+   Confirm that the integration works as advertised. Your `codeExample` must:
    - Be a complete, working example
    - Show realistic usage of your tool
    - Use the latest AI SDK patterns

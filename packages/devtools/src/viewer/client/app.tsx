@@ -36,13 +36,31 @@ import {
 import { TokenBreakdownTooltip } from './components/shared-components';
 import { StepCard } from './components/step-card';
 import { TraceTimeline } from './components/trace-timeline';
+import { ThemeToggle } from './components/theme-toggle';
+import { setTheme, type Theme } from './theme';
 
-function App() {
+function App({
+  initialTheme,
+  storage,
+}: {
+  initialTheme: Theme;
+  storage?: Pick<Storage, 'setItem'>;
+}) {
   const [runs, setRuns] = useState<Run[]>([]);
   const [selectedRun, setSelectedRun] = useState<RunDetail | null>(null);
   const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [showTimeline, setShowTimeline] = useState(false);
+  const [theme, updateTheme] = useState<Theme>(initialTheme);
+
+  const handleThemeChange = (nextTheme: Theme) => {
+    setTheme({
+      theme: nextTheme,
+      root: document.documentElement,
+      storage,
+    });
+    updateTheme(nextTheme);
+  };
 
   const fetchRuns = async () => {
     try {
@@ -245,6 +263,7 @@ function App() {
           </span>
         </div>
         <div className="flex gap-2">
+          <ThemeToggle theme={theme} onThemeChange={handleThemeChange} />
           <Button
             variant="ghost"
             size="sm"
@@ -293,7 +312,7 @@ function App() {
                     >
                       <div className="flex items-start gap-2 mb-1.5 min-w-0">
                         {run.isInProgress ? (
-                          <Loader2 className="size-3.5 text-blue-400 mt-0.5 shrink-0 animate-spin" />
+                          <Loader2 className="size-3.5 text-info mt-0.5 shrink-0 animate-spin" />
                         ) : run.hasError ? (
                           <AlertCircle className="size-3.5 text-destructive-foreground mt-0.5 shrink-0" />
                         ) : (
@@ -315,8 +334,8 @@ function App() {
                           <span
                             className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
                               run.type === 'stream'
-                                ? 'bg-blue-500/15 text-blue-400'
-                                : 'bg-emerald-500/15 text-emerald-400'
+                                ? 'bg-info/15 text-info'
+                                : 'bg-success/15 text-success'
                             }`}
                           >
                             {run.type === 'stream' && (
@@ -363,7 +382,7 @@ function App() {
                     {selectedRun.run.isInProgress && (
                       <Badge
                         variant="secondary"
-                        className="text-[10px] h-5 gap-1.5 bg-blue-500/15 text-blue-400 border-blue-500/30"
+                        className="text-[10px] h-5 gap-1.5 bg-info/15 text-info border-info/30"
                       >
                         <Loader2 className="size-3 animate-spin" />
                         In Progress

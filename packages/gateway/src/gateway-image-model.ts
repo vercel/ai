@@ -6,8 +6,9 @@ import type {
 import {
   combineHeaders,
   convertUint8ArrayToBase64,
-  createJsonResponseHandler,
   createJsonErrorResponseHandler,
+  createJsonResponseHandler,
+  getErrorMessage,
   postJsonToApi,
   resolve,
   serializeModelOptions,
@@ -15,7 +16,7 @@ import {
   WORKFLOW_DESERIALIZE,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import { z } from './zod';
 import type { GatewayConfig } from './gateway-config';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
@@ -96,7 +97,7 @@ export class GatewayImageModel implements ImageModelV4 {
         ),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
-          errorToMessage: data => data,
+          errorToMessage: data => getErrorMessage(data) ?? 'unknown error',
         }),
         ...(abortSignal && { abortSignal }),
         fetch: this.config.fetch,
@@ -104,6 +105,9 @@ export class GatewayImageModel implements ImageModelV4 {
 
       return {
         images: responseBody.images, // Always base64 strings from server
+        ...(responseBody.isRetryable != null && {
+          isRetryable: responseBody.isRetryable,
+        }),
         warnings: responseBody.warnings ?? [],
         providerMetadata:
           responseBody.providerMetadata as ImageModelV4ProviderMetadata,
@@ -186,6 +190,7 @@ const gatewayImageUsageSchema = z.object({
 
 const gatewayImageResponseSchema = z.object({
   images: z.array(z.string()), // Always base64 strings over the wire
+  isRetryable: z.boolean().optional(),
   warnings: z.array(gatewayImageWarningSchema).optional(),
   providerMetadata: z
     .record(z.string(), providerMetadataEntrySchema)

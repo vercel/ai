@@ -4,7 +4,7 @@ export function combineHeaders(
   return headers.reduce(
     (combinedHeaders, currentHeaders) => ({
       ...combinedHeaders,
-      ...(currentHeaders ?? {}),
+      ...currentHeaders,
     }),
     {},
   ) as Record<string, string | undefined>;
