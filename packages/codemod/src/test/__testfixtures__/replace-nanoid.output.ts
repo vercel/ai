@@ -1,12 +1,12 @@
 // @ts-nocheck
 import { generateText } from 'ai';
 import { createCohere } from '@ai-sdk/cohere';
-import { generateId } from 'ai';
+import { generateId as nanoid } from 'ai';
 import 'dotenv/config';
 
 async function main() {
   const cohereProvider = createCohere({
-    generateId,
+    generateId: nanoid,
   });
 
   const { text } = await generateText({
