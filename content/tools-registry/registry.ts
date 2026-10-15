@@ -751,4 +751,38 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'financial-evidence',
+    name: 'Financial Evidence',
+    description:
+      'Research published funding conditions, covered institutions and market liquidity with source dates, units, rights and missing-data diagnostics. Includes locally validated source-status metadata; no quote feed or order execution.',
+    packageName: '@moomoo202020/financial-evidence-ai-sdk',
+    tags: ['finance', 'research', 'data'],
+    installCommand: {
+      pnpm: 'pnpm add @moomoo202020/financial-evidence-ai-sdk',
+      npm: 'npm install @moomoo202020/financial-evidence-ai-sdk',
+      yarn: 'yarn add @moomoo202020/financial-evidence-ai-sdk',
+      bun: 'bun add @moomoo202020/financial-evidence-ai-sdk',
+    },
+    codeExample: `import { generateText, gateway, isStepCount } from 'ai';
+import { financialEvidenceTools } from '@moomoo202020/financial-evidence-ai-sdk';
+
+const { text, steps } = await generateText({
+  model: gateway('openai/gpt-5-mini'),
+  tools: financialEvidenceTools(),
+  prompt:
+    'Discover dataset coverage, then inspect three published money-market rows. Cite each source and observation date, retain missing values, and state coverage limits. Do not make a trade recommendation.',
+  stopWhen: isStepCount(3),
+  maxRetries: 0,
+  abortSignal: AbortSignal.timeout(60000),
+});
+
+console.log(text);
+console.log(JSON.stringify(steps.flatMap(step => step.toolResults), null, 2));`,
+    docsUrl:
+      'https://beepboop2025.github.io/financial-evidence-skills/platforms/ai-sdk.md',
+    websiteUrl: 'https://agents.seiche.info',
+    npmUrl:
+      'https://www.npmjs.com/package/@moomoo202020/financial-evidence-ai-sdk',
+  },
 ];
