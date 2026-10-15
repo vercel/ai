@@ -2,7 +2,7 @@ import type {
   AgentSession,
   SessionManager,
 } from '@earendil-works/pi-coding-agent';
-import type { PiCompletedToolResult } from './pi-resume-state';
+import type { PiCompletedToolResult } from './pi-lifecycle-state';
 
 export type PiAgent = AgentSession['agent'];
 type PiStreamFunction = PiAgent['streamFunction'];

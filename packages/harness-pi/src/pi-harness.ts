@@ -7,7 +7,10 @@ import { tool } from '@ai-sdk/provider-utils';
 import type { ProviderConfig } from '@earendil-works/pi-coding-agent';
 import { z } from 'zod/v4';
 import type { PiAuthenticationMode, PiCredentialStore } from './pi-auth';
-import { piResumeStateSchema, type PiResumeStateData } from './pi-resume-state';
+import {
+  piLifecycleStateSchema,
+  type PiLifecycleData,
+} from './pi-lifecycle-state';
 import {
   createPiSession,
   type PiCacheRetention,
@@ -213,10 +216,10 @@ export function createPi(
     builtinTools: PI_BUILTIN_TOOLS,
     supportsBuiltinToolApprovals: true,
     supportsBuiltinToolFiltering: true,
-    lifecycleStateSchema: piResumeStateSchema,
+    lifecycleStateSchema: piLifecycleStateSchema,
     doStart: async startOpts => {
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
-      const resumeData = lifecycleState?.data as PiResumeStateData | undefined;
+      const resumeData = lifecycleState?.data as PiLifecycleData | undefined;
 
       return createPiSession({
         sessionId: startOpts.sessionId,
@@ -261,11 +264,13 @@ export function createPi(
         ...(lifecycleState ? { resumeStateType: lifecycleState.type } : {}),
         permissionMode: startOpts.permissionMode,
         builtinToolFiltering: startOpts.builtinToolFiltering,
-        ...(resumeData?.sessionFileName
-          ? { resumeSessionFileName: resumeData.sessionFileName }
-          : {}),
-        ...(resumeData?.pendingToolBatch
-          ? { resumePendingToolBatch: resumeData.pendingToolBatch }
+        ...(resumeData?.entries
+          ? {
+              resumeEntries: resumeData.entries,
+              ...(resumeData.pendingToolBatch
+                ? { resumePendingToolBatch: resumeData.pendingToolBatch }
+                : {}),
+            }
           : {}),
         ...(startOpts.abortSignal
           ? { abortSignal: startOpts.abortSignal }
