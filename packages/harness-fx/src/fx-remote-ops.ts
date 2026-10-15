@@ -2,38 +2,6 @@ import path from 'node:path';
 import { shellQuote } from '@ai-sdk/harness/utils';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 
-export type FxFileChange = {
-  event: 'create' | 'modify' | 'delete';
-  path: string;
-};
-export type FxWorkspaceSnapshot = Record<string, string>;
-
-export function diffFxWorkspace(options: {
-  before: FxWorkspaceSnapshot;
-  after: FxWorkspaceSnapshot;
-}): FxFileChange[] {
-  return [
-    ...new Set([...Object.keys(options.before), ...Object.keys(options.after)]),
-  ]
-    .sort()
-    .flatMap(filePath => {
-      const before = options.before[filePath];
-      const after = options.after[filePath];
-      if (before === after) return [];
-      return [
-        {
-          event:
-            before === undefined
-              ? ('create' as const)
-              : after === undefined
-                ? ('delete' as const)
-                : ('modify' as const),
-          path: filePath,
-        },
-      ];
-    });
-}
-
 export function createFxRemoteOps(options: {
   sandbox: SandboxSession;
   workDir: string;
@@ -240,33 +208,7 @@ export function createFxRemoteOps(options: {
       .slice(0, input.limit ?? 500);
   }
 
-  async function snapshot(): Promise<FxWorkspaceSnapshot> {
-    const script = [
-      'set -euo pipefail',
-      `find . -type f -print0 -o -type l -print0 | while IFS= read -r -d '' fx_file; do`,
-      `printf '%s' "\${fx_file#./}" | base64 -w0`,
-      `printf '\t'`,
-      'if [ -L "$fx_file" ]; then readlink -n -- "$fx_file" | sha256sum; else sha256sum < "$fx_file"; fi',
-      'done',
-    ].join('\n');
-    const result = await run({ command: `bash -c ${shellQuote(script)}` });
-    if (result.exitCode !== 0)
-      throw new Error(
-        `Unable to observe fx workspace changes: ${result.stderr}`,
-      );
-    const entries = result.stdout
-      .split('\n')
-      .filter(Boolean)
-      .map(line => {
-        const [encodedPath, hash] = line.split('\t');
-        if (!encodedPath || !hash)
-          throw new Error('Invalid sandbox workspace snapshot.');
-        return [Buffer.from(encodedPath, 'base64').toString('utf8'), hash];
-      });
-    return Object.fromEntries(entries);
-  }
-
-  return { read, write, edit, bash, grep, glob, ls, snapshot };
+  return { read, write, edit, bash, grep, glob, ls };
 }
 
 export type FxRemoteOps = ReturnType<typeof createFxRemoteOps>;

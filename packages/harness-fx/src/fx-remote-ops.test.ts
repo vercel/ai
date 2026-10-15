@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
-import { createFxRemoteOps, diffFxWorkspace } from './fx-remote-ops';
+import { createFxRemoteOps } from './fx-remote-ops';
 
 describe('sandbox-only operations', () => {
   function setup(options: { canonical?: string } = {}) {
@@ -74,28 +74,5 @@ describe('sandbox-only operations', () => {
     await expect(remote.read({ file_path: 'file' })).rejects.toThrow(
       'Unable to resolve sandbox path',
     );
-  });
-  it('classifies create, modify, and delete events deterministically', () => {
-    expect(
-      diffFxWorkspace({
-        before: { a: 'old', b: 'removed', same: 'same' },
-        after: { a: 'new', c: 'created', same: 'same' },
-      }),
-    ).toMatchInlineSnapshot(`
-      [
-        {
-          "event": "modify",
-          "path": "a",
-        },
-        {
-          "event": "delete",
-          "path": "b",
-        },
-        {
-          "event": "create",
-          "path": "c",
-        },
-      ]
-    `);
   });
 });

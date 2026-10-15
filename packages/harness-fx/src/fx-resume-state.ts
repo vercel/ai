@@ -8,7 +8,6 @@ import {
 import type { HarnessV1PromptTurnOptions } from '@ai-sdk/harness';
 import { z } from 'zod/v4';
 import type { FxPrompt, FxToolResult } from './fx-runtime';
-import type { FxWorkspaceSnapshot } from './fx-remote-ops';
 
 const stateFileNameSchema = z
   .string()
@@ -37,8 +36,6 @@ export type FxToolRecord = {
   approval?: { approved: boolean; reason?: string };
   result?: FxToolResult;
   output?: unknown;
-  before?: FxWorkspaceSnapshot;
-  changes?: Array<{ event: 'create' | 'modify' | 'delete'; path: string }>;
 };
 
 export type FxTurnState = {
@@ -105,15 +102,6 @@ const storedStateSchema = z.object({
             })
             .optional(),
           output: z.unknown().optional(),
-          before: z.record(z.string(), z.string()).optional(),
-          changes: z
-            .array(
-              z.object({
-                event: z.enum(['create', 'modify', 'delete']),
-                path: z.string(),
-              }),
-            )
-            .optional(),
         }),
       ),
       emittedKeys: z.array(z.string()),

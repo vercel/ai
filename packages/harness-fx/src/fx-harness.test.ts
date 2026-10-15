@@ -462,6 +462,97 @@ describe('fx harness', () => {
     await resumed.doDestroy();
   });
 
+  it.each([
+    { name: 'write', input: { file_path: 'notes.md', content: 'hello' } },
+    {
+      name: 'edit',
+      input: {
+        file_path: 'notes.md',
+        old_string: 'hello',
+        new_string: 'Hello',
+      },
+    },
+    { name: 'bash', input: { command: 'touch important' } },
+  ])(
+    'reports $name through tool events without workspace scans',
+    async ({ name, input }) => {
+      const { sandbox, run, files } = createSandbox();
+      files.set('/workspace/notes.md', 'hello');
+      const originalRun = run.getMockImplementation()!;
+      run.mockImplementation(async input => {
+        if (input.command.includes('realpath')) {
+          return {
+            exitCode: 0,
+            stdout: Buffer.from(
+              input.command.includes('notes.md')
+                ? '/workspace/notes.md\0'
+                : '/workspace\0',
+            ).toString('base64'),
+            stderr: '',
+          };
+        }
+        return originalRun(input);
+      });
+      runtime.run = async options => {
+        await invoke({
+          runtimeOptions: options,
+          name,
+          id: 'mutation-id',
+          input,
+        });
+      };
+      const session = await createFx().doStart({
+        sandboxSession: sandbox,
+        sessionId: 'mutation',
+        sessionWorkDir: '/workspace',
+      });
+      const events: HarnessV1StreamPart[] = [];
+      try {
+        await (
+          await session.doPromptTurn({
+            ...turnOptions,
+            prompt: 'go',
+            emit: event => events.push(event),
+          })
+        ).done;
+        expect(events.some(event => event.type === 'file-change')).toBe(false);
+        expect(events.find(event => event.type === 'tool-call')).toEqual({
+          type: 'tool-call',
+          toolCallId: 'mutation-id',
+          toolName: name,
+          input: JSON.stringify(input),
+          nativeName: name,
+          providerExecuted: true,
+        });
+        expect(events.find(event => event.type === 'tool-result')).toEqual({
+          type: 'tool-result',
+          toolCallId: 'mutation-id',
+          toolName: name,
+          result:
+            name === 'bash'
+              ? { exitCode: 0, stdout: '', stderr: '' }
+              : name === 'write'
+                ? 'Wrote notes.md'
+                : 'Edited notes.md',
+          isError: undefined,
+        });
+        expect(
+          run.mock.calls
+            .map(([call]) => call.command)
+            .filter(
+              command =>
+                !command.includes('"$HOME"') &&
+                !command.startsWith('mkdir -p --') &&
+                !command.startsWith('mv --') &&
+                !command.includes('realpath'),
+            ),
+        ).toEqual(name === 'bash' ? ['touch important'] : []);
+      } finally {
+        await session.doDestroy();
+      }
+    },
+  );
+
   it('gates shell execution before touching the sandbox', async () => {
     const { sandbox, run } = createSandbox();
     runtime.run = async options => {

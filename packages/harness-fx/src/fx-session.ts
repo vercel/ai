@@ -15,7 +15,7 @@ import { getRestrictedSandboxSession } from '@ai-sdk/harness/utils';
 import { asSchema, secureJsonParse } from '@ai-sdk/provider-utils';
 import type { FxHarnessSettings } from './fx-harness';
 import { createFxMcpRuntime } from './fx-mcp';
-import { createFxRemoteOps, diffFxWorkspace } from './fx-remote-ops';
+import { createFxRemoteOps } from './fx-remote-ops';
 import {
   createFxStateStore,
   fxResumeStateSchema,
@@ -415,11 +415,6 @@ export async function createFxSession(options: {
             isError: true,
           };
           current.output = current.result.text;
-          if (current.before)
-            current.changes = diffFxWorkspace({
-              before: current.before,
-              after: await remote.snapshot(),
-            });
         } else if (!input.providerExecuted) {
           if (!results.has(current.id)) earlyStep(current);
           const submission = await waitFor(() => results.get(current.id));
@@ -451,8 +446,6 @@ export async function createFxSession(options: {
           }
           if (!current.result) {
             signal.throwIfAborted();
-            if (input.kind !== 'readonly')
-              current.before = await remote.snapshot();
             current.status = 'executing';
             await save();
             signal.throwIfAborted();
@@ -485,22 +478,12 @@ export async function createFxSession(options: {
               current.result.isError = true;
               current.output = current.result.text;
             }
-            if (current.before)
-              current.changes = diffFxWorkspace({
-                before: current.before,
-                after: await remote.snapshot(),
-              });
           }
         }
         current.status = 'completed';
       }
       await save();
       signal.throwIfAborted();
-      for (const change of current.changes ?? [])
-        emitOnce({
-          key: `file:${current.id}:${change.path}`,
-          part: { type: 'file-change', ...change },
-        });
       emitToolResult(current);
       await save();
       if (!current.result)
@@ -541,7 +524,7 @@ export async function createFxSession(options: {
             inputSchema: await asSchema(builtin.inputSchema).jsonSchema,
             execute: async (value, context) => {
               const operation = remote[name as keyof typeof remote];
-              if (!operation || name === 'snapshot')
+              if (!operation)
                 throw new Error(`Unsupported sandbox tool ${name}`);
               return (operation as (input: unknown) => Promise<unknown>)({
                 ...(value as object),
