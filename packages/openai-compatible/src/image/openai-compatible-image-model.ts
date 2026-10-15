@@ -1,17 +1,21 @@
-import type {
-  ImageModelV3,
-  ImageModelV3File,
-  SharedV3ProviderOptions,
-  SharedV3Warning,
+import {
+  InvalidResponseDataError,
+  type ImageModelV3,
+  type ImageModelV3File,
+  type SharedV3ProviderOptions,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
 import { toCamelCase } from '../utils/to-camel-case';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
   convertToFormData,
+  createBinaryResponseHandler,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  createStatusCodeErrorResponseHandler,
   downloadBlob,
+  getFromApi,
   postFormDataToApi,
   postJsonToApi,
   type FetchFunction,
@@ -96,15 +100,18 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
 
     const args = this.getArgs(providerOptions);
+    const isEditing = files != null && files.length > 0;
+    const url = this.config.url({
+      path: isEditing ? '/images/edits' : '/images/generations',
+      modelId: this.modelId,
+    });
+    const requestHeaders = combineHeaders(this.config.headers(), headers);
 
     // Image editing mode - use form data and /images/edits endpoint
-    if (files != null && files.length > 0) {
+    if (isEditing) {
       const { value: response, responseHeaders } = await postFormDataToApi({
-        url: this.config.url({
-          path: '/images/edits',
-          modelId: this.modelId,
-        }),
-        headers: combineHeaders(this.config.headers(), headers),
+        url,
+        headers: requestHeaders,
         formData: convertToFormData<OpenAICompatibleFormDataInput>({
           model: this.modelId,
           prompt,
@@ -125,7 +132,11 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
       });
 
       return {
-        images: response.data.map(item => item.b64_json),
+        images: await this.getImages(response.data, {
+          url,
+          headers: requestHeaders,
+          abortSignal,
+        }),
         warnings,
         response: {
           timestamp: currentDate,
@@ -137,11 +148,8 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
 
     // Standard image generation mode - use JSON and /images/generations endpoint
     const { value: response, responseHeaders } = await postJsonToApi({
-      url: this.config.url({
-        path: '/images/generations',
-        modelId: this.modelId,
-      }),
-      headers: combineHeaders(this.config.headers(), headers),
+      url,
+      headers: requestHeaders,
       body: {
         model: this.modelId,
         prompt,
@@ -161,7 +169,11 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
     });
 
     return {
-      images: response.data.map(item => item.b64_json),
+      images: await this.getImages(response.data, {
+        url,
+        headers: requestHeaders,
+        abortSignal,
+      }),
       warnings,
       response: {
         timestamp: currentDate,
@@ -170,12 +182,63 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
       },
     };
   }
+
+  private async getImages(
+    data: z.infer<typeof openaiCompatibleImageResponseSchema>['data'],
+    options: {
+      url: string;
+      headers: Record<string, string | undefined>;
+      abortSignal: AbortSignal | undefined;
+    },
+  ): Promise<string[] | Uint8Array[]> {
+    // Preserve base64 responses without conversion
+    if (data.every(image => image.b64_json != null)) {
+      return data.map(image => image.b64_json!);
+    }
+
+    return Promise.all(
+      data.map(async image => {
+        if (image.b64_json != null) {
+          return convertBase64ToUint8Array(image.b64_json);
+        }
+
+        if (image.url == null) {
+          throw new InvalidResponseDataError({
+            data: image,
+            message: 'Expected url in the image response',
+          });
+        }
+
+        const { value } = await getFromApi({
+          url: image.url,
+          validateUrl: true,
+          trustedOrigin: options.url,
+          credentialedOrigin: options.url,
+          headers: options.headers,
+          abortSignal: options.abortSignal,
+          fetch: this.config.fetch,
+          successfulResponseHandler: createBinaryResponseHandler(),
+          failedResponseHandler: createStatusCodeErrorResponseHandler(),
+        });
+        return value;
+      }),
+    );
+  }
 }
 
 // minimal version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const openaiCompatibleImageResponseSchema = z.object({
-  data: z.array(z.object({ b64_json: z.string() })),
+  data: z.array(
+    z
+      .object({
+        b64_json: z.string().nullish(),
+        url: z.string().nullish(),
+      })
+      .refine(image => image.b64_json != null || image.url != null, {
+        message: 'Expected b64_json or url in the image response',
+      }),
+  ),
 });
 
 type OpenAICompatibleFormDataInput = {
