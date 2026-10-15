@@ -912,12 +912,18 @@ To see `streamText` in action, check out [these examples](#examples).
                   parameters: [
                     {
                       name: 'type',
-                      type: "'tool-call-streaming-start'",
-                      description:
-                        'Indicates the start of a tool call streaming. Only available when streaming tool calls.',
+                      type: "'tool-input-start'",
+                      description: 'Indicates the start of streamed tool input.',
                     },
                     {
-                      name: 'toolCallId',
+                      name: 'inputEncoding',
+                      type: "'json' | 'text'",
+                      isOptional: true,
+                      description:
+                        'Encoding of subsequent tool-input-delta events. Defaults to json when omitted. Text deltas contain raw string input, such as OpenAI custom-tool code or HTML.',
+                    },
+                    {
+                      name: 'id',
                       type: 'string',
                       description: 'The id of the tool call.',
                     },
@@ -3034,12 +3040,18 @@ To see `streamText` in action, check out [these examples](#examples).
           parameters: [
             {
               name: 'type',
-              type: "'tool-call-streaming-start'",
-              description:
-                'Indicates the start of a tool call streaming. Only available when streaming tool calls.',
+              type: "'tool-input-start'",
+              description: 'Indicates the start of streamed tool input.',
             },
             {
-              name: 'toolCallId',
+              name: 'inputEncoding',
+              type: "'json' | 'text'",
+              isOptional: true,
+              description:
+                'Encoding of subsequent tool-input-delta events. Defaults to json when omitted. Text deltas contain raw string input, such as OpenAI custom-tool code or HTML.',
+            },
+            {
+              name: 'id',
               type: 'string',
               description: 'The id of the tool call.',
             },
