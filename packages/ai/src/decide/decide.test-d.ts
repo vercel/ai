@@ -216,13 +216,3 @@ it('preserves literal Choice inference with public JSON instructions and criteri
     reusableQuestions.department;
   expectTypeOf(providerQuestion).toExtend<DecisionQuestion>();
 });
-
-it('rejects criteria on box questions', () => {
-  // @ts-expect-error Box questions have no criteria.
-  const question: DecisionQuestion = {
-    type: 'box',
-    instructions: 'Cat',
-    criteria: {},
-  };
-  void question;
-});

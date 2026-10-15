@@ -91,6 +91,7 @@ export function validateDecisionInput({
         'instructions must be a JSON-compatible string, object, or array',
       );
     }
+    if (question.type === 'box') continue;
     const criteria = question.criteria;
     switch (question.type) {
       case 'choice':
@@ -111,15 +112,6 @@ export function validateDecisionInput({
           );
         }
         break;
-      case 'box':
-        if (criteria !== undefined) {
-          invalidInput(
-            parameter,
-            question,
-            'box questions do not accept criteria',
-          );
-        }
-        continue;
       case 'boolean':
         if (criteria === undefined) continue;
         if (

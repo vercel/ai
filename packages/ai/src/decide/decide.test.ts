@@ -989,18 +989,3 @@ it.each([
     decide({ model: boxModel(box), state: '', questions: boxQuestions }),
   ).rejects.toBeInstanceOf(InvalidResponseDataError);
 });
-
-it('rejects box criteria before calling the model', async () => {
-  const model = boxModel(validBox);
-  const doDecide = vi.spyOn(model, 'doDecide');
-  await expect(
-    decide({
-      model,
-      state: '',
-      questions: {
-        target: { ...boxQuestions.target, criteria: {} },
-      } as unknown as Record<string, DecisionQuestion>,
-    }),
-  ).rejects.toBeInstanceOf(InvalidArgumentError);
-  expect(doDecide).not.toHaveBeenCalled();
-});

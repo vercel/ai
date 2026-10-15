@@ -224,7 +224,9 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
           id,
           question.type === 'boolean'
             ? { ...question, type: 'noul' }
-            : question,
+            : question.type === 'box'
+              ? { type: 'box', instructions: question.instructions }
+              : question,
         ]),
       ),
     };
