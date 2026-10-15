@@ -1,7 +1,7 @@
 # AI SDK - Cartesia Provider
 
 The **[Cartesia provider](https://ai-sdk.dev/providers/ai-sdk-providers/cartesia)** for the [AI SDK](https://ai-sdk.dev/docs)
-contains Sonic 3.5 speech generation, Ink-Whisper batch transcription, and Ink 2 realtime and streaming transcription support.
+contains Sonic speech generation, Ink-Whisper batch transcription, and Ink 2 realtime and streaming transcription support.
 
 > **Deploying to Vercel?** With Vercel's AI Gateway you can access Cartesia (and hundreds of models from other providers) — no additional packages, API keys, or extra cost. [Get started with AI Gateway](https://vercel.com/ai-gateway).
 
@@ -36,7 +36,7 @@ import { cartesia } from '@ai-sdk/cartesia';
 import { generateSpeech } from 'ai';
 
 const { audio } = await generateSpeech({
-  model: cartesia.speech('sonic-3.5'),
+  model: cartesia.speech('sonic-3.6'),
   text: 'Hello from the Vercel AI SDK!',
   voice: 'a0e99841-438c-4a64-b679-ae501e7d6091',
 });
