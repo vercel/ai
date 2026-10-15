@@ -8255,6 +8255,65 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('custom tool', () => {
+      it.each([
+        ['text(', '"probe"', ');\n'],
+        ['path\\', '\t\r\n', '\u0000'],
+        ['"', 'quoted', '"'],
+        ['\ud83d', '\ude00'],
+        [],
+      ])(
+        'should preserve raw custom tool input deltas: %j',
+        async (...deltas) => {
+          const item = {
+            type: 'custom_tool_call',
+            id: 'ct_probe',
+            call_id: 'call_probe',
+            name: 'exec',
+            status: 'completed',
+            input: deltas.join(''),
+          };
+          server.urls['https://api.openai.com/v1/responses'].response = {
+            type: 'stream-chunks',
+            chunks: [
+              {
+                type: 'response.output_item.added',
+                output_index: 0,
+                item: { ...item, input: '' },
+              },
+              ...deltas.map(delta => ({
+                type: 'response.custom_tool_call_input.delta',
+                item_id: item.id,
+                output_index: 0,
+                delta,
+              })),
+              { type: 'response.output_item.done', output_index: 0, item },
+            ].map(chunk => `data: ${JSON.stringify(chunk)}\n\n`),
+          };
+
+          const { stream } = await createModel('gpt-5.2-codex').doStream({
+            prompt: TEST_PROMPT,
+          });
+          const chunks = await convertReadableStreamToArray(stream);
+          expect(chunks.filter(chunk => chunk.type === 'error')).toEqual([]);
+          expect(chunks).toContainEqual({
+            type: 'tool-input-start',
+            id: item.call_id,
+            toolName: item.name,
+            inputEncoding: 'text',
+          });
+          expect(
+            chunks
+              .filter(chunk => chunk.type === 'tool-input-delta')
+              .map(chunk => chunk.delta),
+          ).toEqual(deltas);
+          const finalCall = chunks.find(chunk => chunk.type === 'tool-call');
+          expect(finalCall?.input).toBe(JSON.stringify(item.input));
+          expect(
+            chunks.findIndex(chunk => chunk.type === 'tool-input-end'),
+          ).toBeLessThan(chunks.findIndex(chunk => chunk.type === 'tool-call'));
+        },
+      );
+
       it('should stream custom tool call', async () => {
         prepareChunksFixtureResponse('openai-custom-tool.1');
 
@@ -8294,13 +8353,9 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "call_custom_sql_001",
+                "inputEncoding": "text",
                 "toolName": "write_sql",
                 "type": "tool-input-start",
-              },
-              {
-                "delta": """,
-                "id": "call_custom_sql_001",
-                "type": "tool-input-delta",
               },
               {
                 "delta": "SELECT * ",
@@ -8314,11 +8369,6 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "delta": "WHERE age > 25",
-                "id": "call_custom_sql_001",
-                "type": "tool-input-delta",
-              },
-              {
-                "delta": """,
                 "id": "call_custom_sql_001",
                 "type": "tool-input-delta",
               },
