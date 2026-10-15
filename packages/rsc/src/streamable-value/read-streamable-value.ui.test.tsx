@@ -21,6 +21,106 @@ describe('readStreamableValue', () => {
     expect(result[Symbol.asyncIterator]).toBeDefined();
   });
 
+  it('should consume buffered updates in order when next calls overlap', async () => {
+    const streamable = createStreamableValue(0);
+    const value = streamable.value;
+    streamable.update(1);
+    streamable.done(2);
+
+    const iterator = readStreamableValue(value)[Symbol.asyncIterator]();
+
+    expect(
+      await Promise.all([
+        iterator.next(),
+        iterator.next(),
+        iterator.next(),
+        iterator.next(),
+        iterator.next(),
+      ]),
+    ).toStrictEqual([
+      { value: 0, done: false },
+      { value: 1, done: false },
+      { value: 2, done: false },
+      { value: 2, done: true },
+      { value: 2, done: true },
+    ]);
+  });
+
+  it('should consume pending updates in order when next calls overlap', async () => {
+    const streamable = createStreamableValue(0);
+    const iterator = readStreamableValue(streamable.value)[
+      Symbol.asyncIterator
+    ]();
+
+    expect(await iterator.next()).toStrictEqual({ value: 0, done: false });
+
+    const results = Promise.all([
+      iterator.next(),
+      iterator.next(),
+      iterator.next(),
+    ]);
+
+    streamable.update(1);
+    streamable.done(2);
+
+    expect(await results).toStrictEqual([
+      { value: 1, done: false },
+      { value: 2, done: false },
+      { value: 2, done: true },
+    ]);
+  });
+
+  it('should skip an empty initial value and apply patches once when next calls overlap', async () => {
+    const streamable = createStreamableValue<string>();
+    const iterator = readStreamableValue(streamable.value)[
+      Symbol.asyncIterator
+    ]();
+    const results = Promise.all([
+      iterator.next(),
+      iterator.next(),
+      iterator.next(),
+      iterator.next(),
+    ]);
+
+    streamable.append('hello');
+    streamable.append(' world');
+    streamable.append('!');
+    streamable.done();
+
+    expect(await results).toStrictEqual([
+      { value: 'hello', done: false },
+      { value: 'hello world', done: false },
+      { value: 'hello world!', done: false },
+      { value: 'hello world!', done: true },
+    ]);
+  });
+
+  it('should propagate errors to overlapping and subsequent next calls', async () => {
+    const streamable = createStreamableValue(0);
+    const iterator = readStreamableValue(streamable.value)[
+      Symbol.asyncIterator
+    ]();
+    const error = new Error('stream failed');
+
+    await iterator.next();
+
+    const results = Promise.allSettled([
+      iterator.next(),
+      iterator.next(),
+      iterator.next(),
+    ]);
+
+    streamable.update(1);
+    streamable.error(error);
+
+    expect(await results).toStrictEqual([
+      { status: 'fulfilled', value: { value: 1, done: false } },
+      { status: 'rejected', reason: error },
+      { status: 'rejected', reason: error },
+    ]);
+    await expect(iterator.next()).rejects.toBe(error);
+  });
+
   it('should support reading streamed values and errors', async () => {
     const streamable = createStreamableValue(1);
 
