@@ -211,6 +211,120 @@ describe('abort signal handling', () => {
   });
 });
 
+describe('toolCallConcurrency', () => {
+  const model = new MockLanguageModelV4({
+    doGenerate: async () => ({
+      ...dummyResponseValues,
+      finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+      content: [
+        {
+          type: 'tool-call',
+          toolCallType: 'function',
+          toolCallId: 'call-1',
+          toolName: 'first',
+          input: '{}',
+        },
+        {
+          type: 'tool-call',
+          toolCallType: 'function',
+          toolCallId: 'call-2',
+          toolName: 'second',
+          input: '{}',
+        },
+      ],
+    }),
+  });
+
+  it('should execute tool calls concurrently by default', async () => {
+    const release = new DelayedPromise<void>();
+    const events: string[] = [];
+
+    const resultPromise = generateText({
+      model,
+      prompt: 'test-input',
+      tools: {
+        first: tool({
+          inputSchema: z.object({}),
+          execute: async () => {
+            events.push('first:start');
+            await release.promise;
+            events.push('first:end');
+          },
+        }),
+        second: tool({
+          inputSchema: z.object({}),
+          execute: async () => {
+            events.push('second:start');
+            await release.promise;
+            events.push('second:end');
+          },
+        }),
+      },
+    });
+
+    await vi.waitFor(() =>
+      expect(events).toEqual(['first:start', 'second:start']),
+    );
+    release.resolve();
+    await resultPromise;
+  });
+
+  it('should execute tool calls sequentially in model order with concurrency 1', async () => {
+    const releaseFirst = new DelayedPromise<void>();
+    const events: string[] = [];
+
+    const resultPromise = generateText({
+      model,
+      prompt: 'test-input',
+      toolCallConcurrency: 1,
+      tools: {
+        first: tool({
+          inputSchema: z.object({}),
+          execute: async () => {
+            events.push('first:start');
+            await releaseFirst.promise;
+            events.push('first:end');
+          },
+        }),
+        second: tool({
+          inputSchema: z.object({}),
+          execute: async () => {
+            events.push('second:start');
+            events.push('second:end');
+          },
+        }),
+      },
+    });
+
+    await vi.waitFor(() => expect(events).toEqual(['first:start']));
+    releaseFirst.resolve();
+    await resultPromise;
+
+    expect(events).toEqual([
+      'first:start',
+      'first:end',
+      'second:start',
+      'second:end',
+    ]);
+  });
+
+  it('should reject invalid concurrency before calling the model', async () => {
+    const doGenerate = vi.fn();
+
+    await expect(
+      generateText({
+        model: new MockLanguageModelV4({ doGenerate }),
+        prompt: 'test-input',
+        toolCallConcurrency: 0,
+      }),
+    ).rejects.toMatchObject({
+      parameter: 'toolCallConcurrency',
+      value: 0,
+    });
+    expect(doGenerate).not.toHaveBeenCalled();
+  });
+});
+
 describe('experimental_toolCallers', () => {
   it('late-binds local caller tools and hides local-only callees', async () => {
     let modelTools: LanguageModelV4CallOptions['tools'];
@@ -266,6 +380,65 @@ describe('experimental_toolCallers', () => {
 
     expect(modelTools?.map(tool => tool.name)).toEqual(['code_mode']);
     expect(result.toolResults[0]?.output).toEqual(['getInventory']);
+  });
+
+  it('does not execute local-only callees emitted as direct model calls', async () => {
+    const execute = vi.fn();
+
+    const localCaller = experimental_toolCaller(
+      tool({
+        inputSchema: z.object({}),
+        execute: async (): Promise<unknown> => {
+          throw new Error('Caller was not bound.');
+        },
+      }),
+      {
+        type: 'local',
+        bind: tools =>
+          tool({
+            inputSchema: z.object({}),
+            execute: async () => Object.keys(tools),
+          }),
+      },
+    );
+
+    const result = await generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async () => ({
+          ...dummyResponseValues,
+          finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+          content: [
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'getInventory',
+              input: '{"sku":"sku-1"}',
+            },
+          ],
+        }),
+      }),
+      tools: {
+        code_mode: localCaller,
+        getInventory: tool({
+          inputSchema: z.object({ sku: z.string() }),
+          execute,
+        }),
+      },
+      experimental_toolCallers: {
+        getInventory: ['code_mode'],
+      },
+      prompt: 'Check inventory.',
+    });
+
+    expect(execute).not.toHaveBeenCalled();
+    expect(result.toolResults).toEqual([]);
+    expect(result.toolCalls).toMatchObject([
+      {
+        toolName: 'getInventory',
+        invalid: true,
+      },
+    ]);
   });
 
   it('announces local caller tools in a message while preserving the caller definition', async () => {
@@ -1371,6 +1544,48 @@ describe('generateText', () => {
 
       expect(result.files).toMatchSnapshot();
     });
+
+    it.each(['file', 'reasoning-file'] as const)(
+      'should download URL-backed %s parts once',
+      async type => {
+        const originalFetch = globalThis.fetch;
+        const fetchMock = vi.fn(async () => new Response('Hello World'));
+        globalThis.fetch = fetchMock;
+
+        try {
+          const result = await generateText({
+            model: new MockLanguageModelV4({
+              doGenerate: {
+                ...dummyResponseValues,
+                content: [
+                  {
+                    type,
+                    data: {
+                      type: 'url',
+                      url: new URL('https://example.com/generated.txt'),
+                    },
+                    mediaType: 'text/plain',
+                  },
+                ],
+              },
+            }),
+            prompt: 'prompt',
+          });
+
+          const part = result.content.find(part => part.type === type);
+          if (part?.type !== 'file' && part?.type !== 'reasoning-file') {
+            throw new Error('Expected a generated file');
+          }
+          expect(part.file.base64).toBe('SGVsbG8gV29ybGQ=');
+          expect(part.file.uint8Array).toEqual(
+            new TextEncoder().encode('Hello World'),
+          );
+          expect(fetchMock).toHaveBeenCalledOnce();
+        } finally {
+          globalThis.fetch = originalFetch;
+        }
+      },
+    );
 
     it('should contain files from all steps', async () => {
       let responseCount = 0;
@@ -2934,7 +3149,6 @@ describe('generateText', () => {
           if (stepNumber === 1) {
             return { model: alternateModel };
           }
-          return undefined;
         },
         onStepStart: async event => {
           stepStartEvents.push(event);
@@ -3537,8 +3751,6 @@ describe('generateText', () => {
               },
             };
           }
-
-          return undefined;
         },
         onStepStart: async event => {
           stepStartEvents.push(event);
@@ -7758,6 +7970,42 @@ describe('generateText', () => {
       ]);
     });
 
+    it('should not execute a repaired tool when aborted during input validation', async () => {
+      const abortController = new AbortController();
+      const cancellationReason = new Error('cancelled');
+      const validationStarted = new DelayedPromise<void>();
+      const validationFinished = new DelayedPromise<void>();
+      const execute = vi.fn(async () => 'tool result');
+
+      const result = generateText({
+        model: invalidToolCallModel(),
+        tools: {
+          tool1: tool({
+            inputSchema: z
+              .object({ value: z.string() })
+              .superRefine(async () => {
+                validationStarted.resolve(undefined);
+                await validationFinished.promise;
+              }),
+            execute,
+          }),
+        },
+        prompt: 'test-input',
+        abortSignal: abortController.signal,
+        repairToolCall: async ({ toolCall }) => ({
+          ...toolCall,
+          input: `{ "value": "repaired" }`,
+        }),
+      });
+
+      await validationStarted.promise;
+      abortController.abort(cancellationReason);
+      validationFinished.resolve(undefined);
+
+      await expect(result).rejects.toBe(cancellationReason);
+      expect(execute).not.toHaveBeenCalled();
+    });
+
     it('should support the deprecated experimental_repairToolCall option', async () => {
       const result = await generateText({
         model: invalidToolCallModel(),
@@ -7882,7 +8130,7 @@ describe('generateText', () => {
   });
 
   describe('tool callbacks', () => {
-    it('should invoke callbacks in the correct order', async () => {
+    it('should invoke callbacks in the correct order with the step tool context', async () => {
       const recordedCalls: unknown[] = [];
 
       await generateText({
@@ -7910,6 +8158,7 @@ describe('generateText', () => {
               required: ['value'],
               additionalProperties: false,
             }),
+            contextSchema: z.object({ prefix: z.string() }),
             onInputAvailable: options => {
               recordedCalls.push({ type: 'onInputAvailable', options });
             },
@@ -7921,6 +8170,11 @@ describe('generateText', () => {
             },
           }),
         },
+        runtimeContext: { prefix: 'runtime-context' },
+        toolsContext: { 'test-tool': { prefix: 'initial-tool-context' } },
+        prepareStep: () => ({
+          toolsContext: { 'test-tool': { prefix: 'step-tool-context' } },
+        }),
         toolChoice: 'required',
         prompt: 'test-input',
       });
@@ -7930,7 +8184,9 @@ describe('generateText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "context": {},
+              "context": {
+                "prefix": "step-tool-context",
+              },
               "messages": [
                 {
                   "content": "test-input",
@@ -7944,7 +8200,9 @@ describe('generateText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "context": {},
+              "context": {
+                "prefix": "step-tool-context",
+              },
               "input": {
                 "value": "value",
               },
@@ -9324,7 +9582,6 @@ describe('generateText', () => {
                 };
               }
             }
-            return undefined;
           },
         });
       });

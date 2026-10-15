@@ -10,8 +10,11 @@ definition into its initial context. Register tools with `deferLoading: true`;
 search matches their names and descriptions and makes them available on the
 **next model step**.
 
-Use it with `generateText`, `streamText`, or `ToolLoopAgent`. The factory takes no
-arguments; the model supplies a search query.
+Use it with `generateText`, `streamText`, `ToolLoopAgent`, or `WorkflowAgent` from
+`@ai-sdk/workflow`. The model supplies a search query; the factory optionally
+accepts an application-defined `search` callback and a `maxResults` limit.
+`WorkflowAgent` supports direct tool calling; the other APIs also support
+cache-preserving code mode.
 
 ## Direct Tool Calling
 
@@ -71,10 +74,45 @@ The model first runs `tools.search({ query: 'weather forecast' })`. On the next
 step, it receives the updated capability catalog and can call
 `tools.weather({ city: 'Bangalore' })`.
 
-In both modes, search loads up to five matches, respects `activeTools` and caller
-routing, and keeps discovered tools available for the rest of the generation.
+In both modes, search loads up to five matches by default, respects `activeTools`
+and caller routing, and keeps discovered tools available for the rest of the
+generation.
 MCP client tools work too: add `deferLoading: true` to the tools returned by
 `client.tools()`.
+
+Set `maxResults` to change the number of matching tools loaded per search:
+
+```ts
+const search = toolSearch({ maxResults: 10 });
+```
+
+`maxResults` must be a positive safe integer. A larger limit can load related
+tools in one search, but also adds more tool definitions to the model context.
+It does not change keyword matching or ranking.
+
+## Custom Search
+
+Provide a `search` callback when your application needs different matching or
+ranking. It receives the query and all eligible deferred tool names and resolved
+descriptions, and returns ranked names. It can be synchronous or asynchronous.
+
+```ts
+const search = toolSearch({
+  search: ({ query, tools }) => {
+    // Discover related Gmail actions together, in the application's preferred order.
+    const preferred = /\bgmail\b/i.test(query)
+      ? ['gmail_list_messages', 'gmail_get_message']
+      : [];
+    return preferred.filter(name => tools.some(tool => tool.name === name));
+  },
+});
+```
+
+The SDK filters unknown names and duplicates before keeping the first `maxResults`
+valid results (five by default). Tools excluded by `activeTools` or caller routing
+remain unavailable.
+Discovery still takes effect on the next model step. Without a callback, search
+keeps its default keyword matching and ranking.
 
 See the [`toolSearch()` reference](/docs/reference/ai-sdk-core/tool-search) for
 input, output, and matching details.

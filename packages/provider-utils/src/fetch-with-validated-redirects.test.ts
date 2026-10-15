@@ -70,6 +70,30 @@ describe('fetchWithValidatedEndpoint', () => {
 });
 
 describe('fetchWithValidatedRedirects', () => {
+  it.each([undefined, 'https://example.com', 'https://provider.example.com'])(
+    'preserves legacy first-hop credentials and custom headers with trustedOrigin %s',
+    async trustedOrigin => {
+      const fetchMock = vi.fn().mockResolvedValueOnce(okResponse());
+
+      await fetchWithValidatedRedirects({
+        url: 'https://example.com/file',
+        trustedOrigin,
+        headers: {
+          authorization: 'Bearer secret',
+          'x-jfrog-art-api': 'vendor-secret',
+          'x-custom-metadata': 'custom-value',
+        },
+        fetch: fetchMock,
+      });
+
+      expect(Object.fromEntries(fetchMock.mock.calls[0][1].headers)).toEqual({
+        authorization: 'Bearer secret',
+        'x-jfrog-art-api': 'vendor-secret',
+        'x-custom-metadata': 'custom-value',
+      });
+    },
+  );
+
   it('validates the initial URL before requesting it', async () => {
     const fetchMock = vi.fn();
 
@@ -133,7 +157,7 @@ describe('fetchWithValidatedRedirects', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it('cancels the redirect response body before moving to the next hop (prevents socket leak)', async () => {
+  it('starts cancelling redirect response bodies to prevent socket leaks', async () => {
     const onCancel = vi.fn();
     const redirectWithBody = (location: string): Response =>
       ({
@@ -166,6 +190,50 @@ describe('fetchWithValidatedRedirects', () => {
     // their bodies cancelled so the redirect chain does not leak sockets.
     expect(onCancel).toHaveBeenCalledTimes(2);
   });
+
+  it.each([301, 302, 303, 307, 308])(
+    'does not wait for cancellation before following a %d redirect',
+    async status => {
+      let markCancelEntered!: () => void;
+      const cancelEntered = new Promise<void>(resolve => {
+        markCancelEntered = resolve;
+      });
+      let finishCancellation!: () => void;
+      const cancelPending = new Promise<void>(resolve => {
+        finishCancellation = resolve;
+      });
+      const redirect = {
+        ok: false,
+        status,
+        headers: new Headers({ location: 'https://cdn.example.com/file' }),
+        body: {
+          cancel() {
+            markCancelEntered();
+            return cancelPending;
+          },
+        },
+      } as unknown as Response;
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(redirect)
+        .mockResolvedValueOnce(okResponse());
+
+      const download = fetchWithValidatedRedirects({
+        url: 'https://example.com/file',
+        fetch: fetchMock,
+      });
+
+      await cancelEntered;
+      await Promise.resolve();
+
+      try {
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+      } finally {
+        finishCancellation();
+        await download;
+      }
+    },
+  );
 
   it('resolves relative redirect targets against the current URL', async () => {
     const fetchMock = vi

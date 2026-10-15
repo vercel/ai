@@ -2,7 +2,7 @@ import { xai } from '@ai-sdk/xai';
 import { ToolLoopAgent, type InferAgentUIMessage } from 'ai';
 
 export const xaiImageGenerationAgent = new ToolLoopAgent({
-  model: xai.responses('grok-4.5'),
+  model: xai.responses('grok-4.7'),
   tools: {
     image_generation: xai.tools.imageGeneration(),
   },

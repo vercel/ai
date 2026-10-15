@@ -1,4 +1,9 @@
-import { APICallError, EmptyResponseBodyError } from '@ai-sdk/provider';
+import {
+  APICallError,
+  EmptyResponseBodyError,
+  InvalidArgumentError,
+} from '@ai-sdk/provider';
+import { DownloadError } from './download-error';
 import { extractResponseHeaders } from './extract-response-headers';
 import { handleFetchError } from './handle-fetch-error';
 import { isAbortError } from './is-abort-error';
@@ -18,6 +23,8 @@ export type ResponseHandler<RETURN_TYPE> = (options: {
 }>;
 
 const textDecoder = new TextDecoder();
+
+const DEFAULT_MAX_JSON_LINE_BYTES = 64 * 1024 * 1024;
 
 function wrapResponseBodyStream({
   stream,
@@ -225,9 +232,20 @@ export const createJsonResponseHandler =
     };
   };
 
-export const createJsonLinesResponseHandler =
-  <T>(responseSchema: FlexibleSchema<T>): ResponseHandler<AsyncGenerator<T>> =>
-  async ({ response }) => {
+export const createJsonLinesResponseHandler = <T>(
+  responseSchema: FlexibleSchema<T>,
+  {
+    maxLineBytes = DEFAULT_MAX_JSON_LINE_BYTES,
+  }: { maxLineBytes?: number } = {},
+): ResponseHandler<AsyncGenerator<T>> => {
+  if (!Number.isSafeInteger(maxLineBytes) || maxLineBytes <= 0) {
+    throw new InvalidArgumentError({
+      argument: 'maxLineBytes',
+      message: 'maxLineBytes must be a positive safe integer.',
+    });
+  }
+
+  return async ({ response, url }) => {
     const responseHeaders = extractResponseHeaders(response);
 
     if (response.body == null) {
@@ -239,20 +257,28 @@ export const createJsonLinesResponseHandler =
       value: parseJsonLines({
         stream: response.body,
         schema: responseSchema,
+        url,
+        maxLineBytes,
       }),
     };
   };
+};
 
 async function* parseJsonLines<T>({
   stream,
   schema,
+  url,
+  maxLineBytes,
 }: {
   stream: ReadableStream<Uint8Array>;
   schema: FlexibleSchema<T>;
+  url: string;
+  maxLineBytes: number;
 }): AsyncGenerator<T> {
   const reader = stream.getReader();
   const decoder = new TextDecoder();
   let buffer = '';
+  let lineBytes = 0;
   let finished = false;
 
   try {
@@ -265,18 +291,37 @@ async function* parseJsonLines<T>({
         break;
       }
 
-      buffer += decoder.decode(value, { stream: true });
+      let offset = 0;
+      while (offset < value.length) {
+        const lineEnd = value.indexOf(10, offset);
+        const segmentEnd = lineEnd === -1 ? value.length : lineEnd;
 
-      let lineEnd = buffer.indexOf('\n');
-      while (lineEnd !== -1) {
-        const line = buffer.slice(0, lineEnd).replace(/\r$/, '');
-        buffer = buffer.slice(lineEnd + 1);
+        // Bound each line before decoding it, excluding the newline byte.
+        lineBytes += segmentEnd - offset;
+        if (lineBytes > maxLineBytes) {
+          throw new DownloadError({
+            message: `JSON Lines response exceeded maximum line size of ${maxLineBytes} bytes.`,
+            url,
+          });
+        }
+
+        const decodeEnd = lineEnd === -1 ? segmentEnd : lineEnd + 1;
+        buffer += decoder.decode(value.subarray(offset, decodeEnd), {
+          stream: true,
+        });
+
+        if (lineEnd === -1) {
+          break;
+        }
+
+        const line = buffer.slice(0, -1).replace(/\r$/, '');
+        buffer = '';
+        lineBytes = 0;
+        offset = decodeEnd;
 
         if (line.trim().length > 0) {
           yield await parseJSON({ text: line, schema });
         }
-
-        lineEnd = buffer.indexOf('\n');
       }
     }
 

@@ -139,6 +139,11 @@ describe('doGenerate', () => {
         },
       },
     });
+    expect(result.usage).toEqual({
+      total_tokens: 10,
+      total_input_tokens: 10,
+      total_output_tokens: 0,
+    });
   });
 
   it('maps diarization and word timestamps into the mode object', async () => {
@@ -350,6 +355,7 @@ describe('doStream', () => {
         segments: [],
         language: 'en-US',
         durationInSeconds: undefined,
+        usage: { promptTokenCount: 7 },
         providerMetadata: {
           google: { usageMetadata: { promptTokenCount: 7 } },
         },

@@ -31,7 +31,7 @@ run(async () => {
   // before the Vertex fix, the remote file is sent back as URL-shaped content
   // rather than image bytes, so the model cannot inspect the tool result.
   const result = await generateText({
-    model: googleVertex('gemini-2.5-flash'),
+    model: googleVertex('gemini-3.8-flash'),
     tools: { get_cat_image: getCatImage },
     stopWhen: isStepCount(2),
     prepareStep: ({ stepNumber }) => ({

@@ -39,7 +39,15 @@ describe('validateUIMessages types', () => {
     } satisfies ToolSet;
     type TestMessage = UIMessage<unknown, never, InferUITools<typeof tools>>;
 
-    validateUIMessages<TestMessage>({ messages: [], tools });
+    validateUIMessages<TestMessage>({
+      messages: [],
+      tools,
+      experimental_refineToolInput: {
+        weather: input => ({
+          location: input.location.trim(),
+        }),
+      },
+    });
 
     validateUIMessages<TestMessage>({
       messages: [],

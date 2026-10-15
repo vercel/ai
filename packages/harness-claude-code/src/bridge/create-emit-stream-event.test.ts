@@ -2,8 +2,10 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   type ClaudeMessage,
+  clearWaitingOnHostInput,
   createClaudeStreamEventState,
   createEmitStreamEvent,
+  markWaitingOnHostInput,
 } from './create-emit-stream-event';
 
 describe('createEmitStreamEvent', () => {
@@ -11,6 +13,174 @@ describe('createEmitStreamEvent', () => {
     type: 'image',
     source: { type: 'base64', media_type: 'image/png', data: 'iVBORw0KGgo' },
   };
+
+  it('forwards tool progress as a raw stream part', () => {
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+    const progressMessage: ClaudeMessage = {
+      type: 'tool_progress',
+      parent_tool_use_id: 'tool-1',
+    };
+
+    emitStreamEvent(progressMessage);
+
+    expect(emitted).toEqual([
+      { type: 'stream-start' },
+      { type: 'raw', rawValue: progressMessage },
+    ]);
+  });
+
+  it.each([
+    {
+      status: 'rejected',
+      resetsAt: 1_791_331_200,
+      rateLimitType: 'five_hour',
+    },
+    { status: 'rejected' },
+    { status: 'allowed_warning' },
+    { status: 'allowed' },
+  ])('forwards rate-limit metadata unchanged: %j', rateLimitInfo => {
+    const emitted: Record<string, unknown>[] = [];
+    const terminalErrors: Array<string | undefined> = [];
+    const message = {
+      type: 'rate_limit_event',
+      rate_limit_info: rateLimitInfo,
+      uuid: '00000000-0000-4000-8000-000000000001',
+      session_id: 'test-session',
+      additional_metadata: { preserve: true },
+    };
+    const emitStreamEvent = createEmitStreamEvent({
+      state: createClaudeStreamEventState(),
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: error => terminalErrors.push(error),
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+
+    emitStreamEvent(message);
+
+    expect(emitted).toEqual([
+      { type: 'stream-start' },
+      { type: 'raw', rawValue: message },
+    ]);
+    expect(terminalErrors).toEqual([]);
+  });
+
+  it('forwards a usage-bearing raw message_stop for each response', () => {
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+
+    emitStreamEvent({
+      type: 'stream_event',
+      event: {
+        type: 'message_start',
+        message: {
+          usage: {
+            input_tokens: 2,
+            cache_creation_input_tokens: 3,
+            cache_read_input_tokens: 5,
+          },
+        },
+      },
+    });
+    emitStreamEvent({
+      type: 'stream_event',
+      event: {
+        type: 'message_delta',
+        usage: { output_tokens: 7 },
+      },
+    });
+    emitStreamEvent({
+      type: 'stream_event',
+      event: { type: 'message_stop' },
+    });
+    emitStreamEvent({
+      type: 'stream_event',
+      event: {
+        type: 'message_delta',
+        usage: { input_tokens: 11, output_tokens: 13 },
+      },
+    });
+    emitStreamEvent({
+      type: 'stream_event',
+      event: { type: 'message_stop' },
+    });
+
+    expect(
+      emitted.filter(
+        event =>
+          event.type === 'raw' &&
+          (event.rawValue as ClaudeMessage).event?.type === 'message_stop',
+      ),
+    ).toEqual([
+      {
+        type: 'raw',
+        rawValue: {
+          type: 'stream_event',
+          event: { type: 'message_stop' },
+          usage: {
+            input_tokens: 2,
+            cache_creation_input_tokens: 3,
+            cache_read_input_tokens: 5,
+            output_tokens: 7,
+          },
+        },
+      },
+      {
+        type: 'raw',
+        rawValue: {
+          type: 'stream_event',
+          event: { type: 'message_stop' },
+          usage: {
+            input_tokens: 11,
+            output_tokens: 13,
+          },
+        },
+      },
+    ]);
+    expect(emitted).not.toContainEqual(
+      expect.objectContaining({ type: 'finish-step' }),
+    );
+  });
+
+  it('ignores user messages with string content', () => {
+    const state = createClaudeStreamEventState();
+    state.stepOpen = true;
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+
+    emitStreamEvent({
+      type: 'user',
+      message: { content: 'Compacted conversation context' },
+    });
+
+    expect(emitted).toEqual([{ type: 'stream-start' }]);
+    expect(state.stepOpen).toBe(true);
+  });
 
   it.each([
     {
@@ -409,7 +579,7 @@ describe('createEmitStreamEvent', () => {
           "type": "stream-start",
         },
         {
-          "input": "{\"command\":\"pwd\"}",
+          "input": "{"command":"pwd"}",
           "nativeName": "Bash",
           "providerExecuted": true,
           "toolCallId": "tool-1",
@@ -599,6 +769,165 @@ describe('createEmitStreamEvent', () => {
     });
   });
 
+  it.each([
+    { order: 'tool-result-first', outputOnly: false },
+    { order: 'delta-first', outputOnly: false },
+    { order: 'stop-first', outputOnly: false },
+    { order: 'tool-result-first', outputOnly: true },
+    { order: 'delta-first', outputOnly: true },
+    { order: 'stop-first', outputOnly: true },
+  ] as const)(
+    'keeps response usage on its own step: $order, outputOnly=$outputOnly',
+    ({ order, outputOnly }) => {
+      const emitted: Record<string, unknown>[] = [];
+      const receive = createEmitStreamEvent({
+        state: createClaudeStreamEventState(),
+        emit: event => emitted.push(event),
+        emitWarning: () => {},
+        emitTerminalError: () => {},
+        onCompactionBoundary: () => {},
+        toCommonName: name => name.toLowerCase(),
+      });
+      const initial = [
+        {
+          input_tokens: 10,
+          cache_creation_input_tokens: 20,
+          cache_read_input_tokens: 30,
+          output_tokens: 3,
+        },
+        {
+          input_tokens: 40,
+          cache_creation_input_tokens: 50,
+          cache_read_input_tokens: 60,
+          output_tokens: 3,
+        },
+      ];
+      const final = [
+        {
+          input_tokens: 110,
+          cache_creation_input_tokens: 220,
+          cache_read_input_tokens: 330,
+          output_tokens: 295,
+        },
+        {
+          input_tokens: 140,
+          cache_creation_input_tokens: 250,
+          cache_read_input_tokens: 360,
+          output_tokens: 233,
+        },
+      ];
+      const stream = (
+        event: NonNullable<ClaudeMessage['event']>,
+      ): ClaudeMessage => ({
+        type: 'stream_event',
+        parent_tool_use_id: null,
+        event,
+      });
+
+      for (let response = 0; response < 2; response++) {
+        receive(
+          stream({
+            type: 'message_start',
+            message: { usage: initial[response] },
+          }),
+        );
+        for (let index = 0; index < 2; index++) {
+          const id = `response-${response}-tool-${index}`;
+          receive(
+            stream({
+              type: 'content_block_start',
+              index,
+              content_block: { type: 'tool_use', id, name: 'Read' },
+            }),
+          );
+          receive({
+            type: 'assistant',
+            parent_tool_use_id: null,
+            message: {
+              usage: initial[response],
+              content: [
+                {
+                  type: 'tool_use',
+                  id,
+                  name: 'Read',
+                  input: { file_path: 'fixture.txt' },
+                },
+              ],
+            },
+          });
+          receive(stream({ type: 'content_block_stop', index }));
+        }
+        const results: ClaudeMessage[] = [0, 1].map(index => ({
+          type: 'user',
+          parent_tool_use_id: null,
+          message: {
+            content: [
+              {
+                type: 'tool_result',
+                tool_use_id: `response-${response}-tool-${index}`,
+                content: 'ok',
+              },
+            ],
+          },
+        }));
+        const delta = stream({
+          type: 'message_delta',
+          usage: outputOnly
+            ? { output_tokens: final[response].output_tokens }
+            : final[response],
+        });
+        const stop = stream({ type: 'message_stop' });
+        for (const message of order === 'tool-result-first'
+          ? [...results, delta, stop]
+          : order === 'delta-first'
+            ? [delta, ...results, stop]
+            : [delta, stop, ...results]) {
+          receive(message);
+        }
+      }
+
+      const expected = (outputOnly ? initial : final).map((usage, index) => ({
+        inputTokens: {
+          total:
+            usage.input_tokens +
+            usage.cache_creation_input_tokens +
+            usage.cache_read_input_tokens,
+          noCache: usage.input_tokens,
+          cacheRead: usage.cache_read_input_tokens,
+          cacheWrite: usage.cache_creation_input_tokens,
+        },
+        outputTokens: {
+          total: final[index].output_tokens,
+          text: final[index].output_tokens,
+        },
+      }));
+      expect(
+        emitted
+          .filter(event => event.type === 'finish-step')
+          .map(event => event.usage),
+      ).toEqual(expected);
+      expect(
+        emitted
+          .filter(event => {
+            const raw = event.rawValue as ClaudeMessage | undefined;
+            return (
+              event.type === 'raw' &&
+              raw?.type === 'stream_event' &&
+              raw.parent_tool_use_id == null &&
+              raw.event?.type === 'message_stop'
+            );
+          })
+          .map(event => (event.rawValue as ClaudeMessage).usage),
+      ).toEqual(
+        final.map((usage, index) =>
+          outputOnly
+            ? { ...initial[index], output_tokens: usage.output_tokens }
+            : usage,
+        ),
+      );
+    },
+  );
+
   it('keeps subagent messages out of the main Agent-tool step', () => {
     const messages = JSON.parse(
       readFileSync(
@@ -670,6 +999,76 @@ describe('createEmitStreamEvent', () => {
       },
     });
     expect(leakedSubagentEvents).toEqual([]);
+  });
+
+  it('forwards subagent and task activity as raw parts', () => {
+    const messages = JSON.parse(
+      readFileSync(
+        new URL('./__fixtures__/subagent-task-stream.json', import.meta.url),
+        'utf8',
+      ),
+    ) as ClaudeMessage[];
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+
+    for (const message of messages) {
+      emitStreamEvent(message);
+    }
+
+    const rawValues = emitted
+      .filter(event => event.type === 'raw')
+      .map(event => event.rawValue);
+    const expectedRawValues = messages.filter(
+      message =>
+        message.parent_tool_use_id != null ||
+        (message.type === 'system' &&
+          [
+            'background_tasks_changed',
+            'task_started',
+            'task_progress',
+            'task_updated',
+            'task_notification',
+          ].includes(message.subtype ?? '')),
+    );
+
+    expect(
+      emitted.some(
+        event =>
+          event.type === 'tool-call' &&
+          event.toolCallId === 'toolu_parent_agent',
+      ),
+    ).toBe(true);
+    expect(rawValues).toEqual(expectedRawValues);
+  });
+
+  it('preserves failed task terminal error handling', () => {
+    const terminalErrors: Array<string | undefined> = [];
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state: createClaudeStreamEventState(),
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: error => terminalErrors.push(error),
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+
+    emitStreamEvent({
+      type: 'system',
+      subtype: 'task_updated',
+      patch: { status: 'failed', error: 'subagent failed' },
+    });
+
+    expect(terminalErrors).toEqual(['subagent failed']);
+    expect(emitted).toEqual([{ type: 'stream-start' }]);
   });
 
   it('preserves retry and compaction handling', () => {
@@ -782,6 +1181,10 @@ describe('createEmitStreamEvent', () => {
 
   it('marks external MCP tools as dynamic and suppresses typed host tools', () => {
     const state = createClaudeStreamEventState();
+    state.mcpHandlerCalls.set('host-tool', {
+      toolName: 'weather',
+      input: {},
+    });
     const emitted: Record<string, unknown>[] = [];
     const emitStreamEvent = createEmitStreamEvent({
       state,
@@ -837,7 +1240,7 @@ describe('createEmitStreamEvent', () => {
       [
         {
           "dynamic": true,
-          "input": "{\"libraryId\":\"/vercel/next.js\"}",
+          "input": "{"libraryId":"/vercel/next.js"}",
           "nativeName": "mcp__context7__query-docs",
           "providerExecuted": true,
           "toolCallId": "external-tool",
@@ -855,6 +1258,154 @@ describe('createEmitStreamEvent', () => {
       ]
     `);
   });
+
+  it('reports a host tool rejected before its MCP handler runs', () => {
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+
+    emitStreamEvent({
+      type: 'assistant',
+      message: {
+        content: [
+          {
+            type: 'tool_use',
+            id: 'host-tool',
+            name: 'mcp__harness-tools__weather',
+            input: {},
+          },
+        ],
+      },
+    });
+    emitStreamEvent({
+      type: 'user',
+      message: {
+        content: [
+          {
+            type: 'tool_result',
+            tool_use_id: 'host-tool',
+            content: 'Input validation error: city is required',
+            is_error: true,
+          },
+        ],
+      },
+    });
+
+    expect(
+      emitted.filter(
+        event => event.type === 'tool-call' || event.type === 'tool-result',
+      ),
+    ).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'host-tool',
+        toolName: 'weather',
+        input: '{}',
+        providerExecuted: false,
+      },
+      {
+        type: 'tool-result',
+        toolCallId: 'host-tool',
+        toolName: 'weather',
+        result: 'Input validation error: city is required',
+        isError: true,
+      },
+    ]);
+  });
+
+  it('deduplicates host tool results when handler metadata cannot be matched', () => {
+    const state = createClaudeStreamEventState();
+    state.mcpHandlerCalls.set('unmatched-handler-id', {
+      toolName: 'weather',
+      input: { city: 'Tokyo' },
+    });
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+
+    emitStreamEvent({
+      type: 'assistant',
+      message: {
+        content: [
+          {
+            type: 'tool_use',
+            id: 'host-tool',
+            name: 'mcp__harness-tools__weather',
+            input: { city: 'Tokyo' },
+          },
+        ],
+      },
+    });
+    emitStreamEvent({
+      type: 'user',
+      message: {
+        content: [
+          {
+            type: 'tool_result',
+            tool_use_id: 'host-tool',
+            content: 'sunny',
+          },
+        ],
+      },
+    });
+
+    expect(
+      emitted.filter(
+        event => event.type === 'tool-call' || event.type === 'tool-result',
+      ),
+    ).toEqual([]);
+    expect(state.mcpHandlerCalls).toHaveLength(0);
+  });
+
+  it.each(['first', 'unmatched'])(
+    'does not reuse a %s handler for identical parallel declarations',
+    handlerId => {
+      const state = createClaudeStreamEventState();
+      state.mcpHandlerCalls.set(handlerId, {
+        toolName: 'weather',
+        input: { city: 'Tokyo' },
+      });
+      const emitted: Record<string, unknown>[] = [];
+      const emitStreamEvent = createEmitStreamEvent({
+        state,
+        emit: event => emitted.push(event),
+        emitWarning: () => {},
+        emitTerminalError: () => {},
+        onCompactionBoundary: () => {},
+        toCommonName: name => name,
+      });
+      emitStreamEvent({
+        type: 'assistant',
+        message: {
+          content: ['first', 'second'].map(id => ({
+            type: 'tool_use',
+            id,
+            name: 'mcp__harness-tools__weather',
+            input: { city: 'Tokyo' },
+          })),
+        },
+      });
+      expect(
+        emitted
+          .filter(event => event.type === 'tool-call')
+          .map(event => event.toolCallId),
+      ).toEqual(['second']);
+      expect([...state.hostInputWaitingToolUseIds]).toEqual(['second']);
+    },
+  );
 
   it('suppresses native question tool calls', () => {
     const state = createClaudeStreamEventState();
@@ -1177,5 +1728,140 @@ describe('createEmitStreamEvent', () => {
         .filter(event => event.type === 'tool-result')
         .map(event => event.result),
     ).toEqual([imageContent, '42']);
+  });
+
+  it('batches host calls before sequential MCP handlers start without repeating the boundary', () => {
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emit = (event: Record<string, unknown>) => emitted.push(event);
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit,
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+    const finishSteps = () =>
+      emitted.filter(event => event.type === 'finish-step');
+
+    emitStreamEvent({ type: 'stream_event', event: { type: 'message_start' } });
+    emitStreamEvent({
+      type: 'assistant',
+      message: {
+        content: [
+          {
+            type: 'tool_use',
+            id: 'toolu_paris',
+            name: 'mcp__harness-tools__get_weather',
+            input: { city: 'Paris' },
+          },
+        ],
+      },
+    });
+    markWaitingOnHostInput({ state, emit, toolUseId: 'toolu_paris' });
+    emitStreamEvent({
+      type: 'assistant',
+      message: {
+        content: [
+          {
+            type: 'tool_use',
+            id: 'toolu_tokyo',
+            name: 'mcp__harness-tools__get_weather',
+            input: { city: 'Tokyo' },
+          },
+        ],
+      },
+    });
+
+    expect(finishSteps()).toHaveLength(0);
+
+    emitStreamEvent({ type: 'stream_event', event: { type: 'message_stop' } });
+
+    expect(finishSteps()).toHaveLength(1);
+
+    clearWaitingOnHostInput({ state, toolUseId: 'toolu_paris' });
+    state.mcpHandlerCalls.set('toolu_tokyo', {
+      toolName: 'get_weather',
+      input: { city: 'Tokyo' },
+    });
+    markWaitingOnHostInput({ state, emit, toolUseId: 'toolu_tokyo' });
+
+    expect(finishSteps()).toHaveLength(1);
+    expect(
+      emitted
+        .filter(event => event.type === 'tool-call')
+        .map(event => event.toolCallId),
+    ).toEqual(['toolu_paris', 'toolu_tokyo']);
+
+    clearWaitingOnHostInput({ state, toolUseId: 'toolu_tokyo' });
+    emitStreamEvent({
+      type: 'user',
+      message: {
+        content: [
+          { type: 'tool_result', tool_use_id: 'toolu_paris', content: '{}' },
+          { type: 'tool_result', tool_use_id: 'toolu_tokyo', content: '{}' },
+        ],
+      },
+    });
+
+    expect(
+      finishSteps().map(event => (event.finishReason as { raw: string }).raw),
+    ).toEqual(['host-input', 'stop']);
+  });
+
+  it('pauses for native approvals even when another native call is queued', () => {
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emit = (event: Record<string, unknown>) => emitted.push(event);
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit,
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+    emitStreamEvent({ type: 'stream_event', event: { type: 'message_start' } });
+    emitStreamEvent({
+      type: 'assistant',
+      message: {
+        content: ['first', 'second'].map(id => ({
+          type: 'tool_use',
+          id,
+          name: 'Bash',
+          input: { command: 'pwd' },
+        })),
+      },
+    });
+    markWaitingOnHostInput({ state, emit, toolUseId: 'first' });
+    expect(emitted.filter(event => event.type === 'finish-step')).toHaveLength(
+      0,
+    );
+    emitStreamEvent({ type: 'stream_event', event: { type: 'message_stop' } });
+    expect(emitted.filter(event => event.type === 'finish-step')).toHaveLength(
+      1,
+    );
+    clearWaitingOnHostInput({ state, toolUseId: 'first' });
+    markWaitingOnHostInput({ state, emit, toolUseId: 'second' });
+    expect(emitted.filter(event => event.type === 'finish-step')).toHaveLength(
+      2,
+    );
+    clearWaitingOnHostInput({ state, toolUseId: 'second' });
+    emitStreamEvent({
+      type: 'user',
+      message: {
+        content: ['first', 'second'].map(id => ({
+          type: 'tool_result',
+          tool_use_id: id,
+          content: '/work',
+        })),
+      },
+    });
+    expect(
+      emitted
+        .filter(event => event.type === 'finish-step')
+        .map(event => (event.finishReason as { raw: string }).raw),
+    ).toEqual(['host-input', 'host-input', 'stop']);
   });
 });

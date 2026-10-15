@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { isDeepStrictEqual } from 'node:util';
 
 type Emit = (message: Record<string, unknown>) => void;
 
@@ -22,6 +23,9 @@ export type ClaudeMessage = {
     type?: string;
     index?: number;
     usage?: Record<string, unknown>;
+    message?: {
+      usage?: Record<string, unknown>;
+    };
     content_block?: {
       type?: string;
       id?: string;
@@ -35,7 +39,7 @@ export type ClaudeMessage = {
     };
   };
   message?: {
-    content?: ReadonlyArray<MessageBlock>;
+    content?: string | ReadonlyArray<MessageBlock>;
     usage?: Record<string, unknown>;
   };
   result?: string;
@@ -76,17 +80,46 @@ export type ClaudeStreamEventState = {
   pendingStepAssistantUsage: Record<string, unknown> | undefined;
   pendingStepDeltaUsage: Record<string, unknown> | undefined;
   pendingStepUsage: Record<string, unknown> | undefined;
+  pendingResponseUsage: Record<string, unknown> | undefined;
+  responseOpen: boolean;
   stepOpen: boolean;
   /*
-   * Tool-use ids that originated from the MCP server hosting user-supplied
-   * tools. The MCP handler emits its own `tool-call`/`tool-result` pair with
-   * the user-facing tool name, so the duplicate `tool_result` block Claude
-   * reports for the underlying native id must be suppressed.
+   * Host-tool calls reported by Claude. The MCP handler normally emits its own
+   * `tool-call`/`tool-result` pair, but MCP input validation can reject a call
+   * before that handler runs. Retaining the call lets the mapper report that
+   * rejected attempt when the corresponding SDK result arrives.
    */
-  mcpToolUseIds: Set<string>;
+  mcpToolCalls: Map<string, { toolName: string; input: unknown }>;
+  /*
+   * Host-tool calls that reached the MCP handler. These records let the SDK
+   * result mapper suppress the duplicate native result. Input-based matching
+   * preserves deduplication when Claude omits or changes the tool-use metadata.
+   */
+  mcpHandlerCalls: Map<
+    string,
+    { toolName: string; input: unknown; toolUseId?: string }
+  >;
   externalMcpToolUseIds: Set<string>;
   structuredOutputToolUseIds: Set<string>;
   observedTerminalError: string | undefined;
+  /*
+   * Tool calls of the open step whose progress depends on the host: host
+   * tools waiting for their result, permission prompts waiting for a
+   * decision, and questions waiting for an answer. A waiting call can block
+   * dispatch of other calls in the response, so the mapper must allow a host
+   * pause even when those queued calls are not themselves waiting yet. The
+   * step stays open until the regular `finish-step`.
+   */
+  hostInputWaitingToolUseIds: Set<string>;
+  earlyFinishStepToolUseIds: Set<string>;
+  emittedToolCallIds: Set<string>;
+  /*
+   * Claude reports each `tool_use` block of a response separately, and may
+   * start executing a tool before the response finishes streaming. An early
+   * `finish-step` is held back until the response ends, so it covers every
+   * tool call of that response.
+   */
+  modelResponseStreaming: boolean;
 };
 
 type PartialBlock =
@@ -103,16 +136,30 @@ export function createClaudeStreamEventState(): ClaudeStreamEventState {
     pendingStepAssistantUsage: undefined,
     pendingStepDeltaUsage: undefined,
     pendingStepUsage: undefined,
+    pendingResponseUsage: undefined,
+    responseOpen: false,
     stepOpen: false,
-    mcpToolUseIds: new Set(),
+    mcpToolCalls: new Map(),
+    mcpHandlerCalls: new Map(),
     externalMcpToolUseIds: new Set(),
     structuredOutputToolUseIds: new Set(),
     observedTerminalError: undefined,
+    hostInputWaitingToolUseIds: new Set(),
+    earlyFinishStepToolUseIds: new Set(),
+    emittedToolCallIds: new Set(),
+    modelResponseStreaming: false,
   };
 }
 
 const UNRECOVERABLE_API_RETRY_STATUSES = new Set([401, 403, 404]);
 const HOST_TOOL_PREFIX = 'mcp__harness-tools__';
+const RAW_TASK_MESSAGE_SUBTYPES = new Set([
+  'background_tasks_changed',
+  'task_started',
+  'task_progress',
+  'task_updated',
+  'task_notification',
+]);
 
 export function isExternalMcpTool(nativeName: string): boolean {
   return (
@@ -215,16 +262,29 @@ export function createEmitStreamEvent({
       return;
     }
 
+    if (
+      type === 'tool_progress' ||
+      type === 'rate_limit_event' ||
+      (type === 'system' &&
+        msg.subtype != null &&
+        RAW_TASK_MESSAGE_SUBTYPES.has(msg.subtype))
+    ) {
+      emit({ type: 'raw', rawValue: msg });
+      return;
+    }
+
     // Messages emitted by a Task-tool subagent carry the parent tool-use id.
-    // They belong to the subagent stream and must not affect the parent step,
-    // including partial stream events that arrive before assistant messages.
+    // Forward them for correlation and nested rendering, but do not map them
+    // into regular stream parts or let them affect the parent step.
     if (msg.parent_tool_use_id != null) {
+      emit({ type: 'raw', rawValue: msg });
       return;
     }
 
     if (type === 'stream_event') {
       handleStreamEvent({
         event: msg.event,
+        message: msg,
         state,
         send: emit,
         toCommonName,
@@ -232,11 +292,12 @@ export function createEmitStreamEvent({
       return;
     }
 
-    if (type === 'assistant' && msg.message?.content) {
-      const usage = toUsageRecord(msg.message.usage);
+    const messageContent = msg.message?.content;
+    if (type === 'assistant' && Array.isArray(messageContent)) {
+      const usage = toUsageRecord(msg.message?.usage);
       const toolUseIds: string[] = [];
       let opensStep = false;
-      for (const block of msg.message.content) {
+      for (const block of messageContent) {
         if (
           block.type === 'tool_use' &&
           typeof block.id === 'string' &&
@@ -248,9 +309,34 @@ export function createEmitStreamEvent({
             continue;
           }
           if (block.name.startsWith(HOST_TOOL_PREFIX)) {
+            const hostToolName = block.name.slice(HOST_TOOL_PREFIX.length);
             state.pendingStepToolUseIds.add(block.id);
-            state.mcpToolUseIds.add(block.id);
+            state.mcpToolCalls.set(block.id, {
+              toolName: hostToolName,
+              input: block.input ?? {},
+            });
             opensStep = true;
+            const handlerCallId = findMcpHandlerCallId({
+              state,
+              toolCallId: block.id,
+              toolCall: state.mcpToolCalls.get(block.id)!,
+            });
+            if (handlerCallId != null) {
+              state.mcpHandlerCalls.get(handlerCallId)!.toolUseId = block.id;
+              state.emittedToolCallIds.add(block.id);
+              continue;
+            }
+            state.hostInputWaitingToolUseIds.add(block.id);
+            if (!state.emittedToolCallIds.has(block.id)) {
+              state.emittedToolCallIds.add(block.id);
+              emit({
+                type: 'tool-call',
+                toolCallId: block.id,
+                toolName: hostToolName,
+                input: JSON.stringify(block.input ?? {}),
+                providerExecuted: false,
+              });
+            }
             continue;
           }
           state.nativeToolCallNames.set(block.id, block.name);
@@ -261,11 +347,10 @@ export function createEmitStreamEvent({
           }
           const dynamic = isExternalMcpTool(block.name);
           if (dynamic) state.externalMcpToolUseIds.add(block.id);
-          if (state.approvalRequestedToolUseIds.has(block.id)) {
-            continue;
-          }
           state.pendingStepToolUseIds.add(block.id);
           opensStep = true;
+          if (state.emittedToolCallIds.has(block.id)) continue;
+          state.emittedToolCallIds.add(block.id);
           emit({
             type: 'tool-call',
             toolCallId: block.id,
@@ -283,18 +368,21 @@ export function createEmitStreamEvent({
           state.pendingStepAssistantUsage = usage;
           updatePendingStepUsage(state);
         }
+        if (state.hostInputWaitingToolUseIds.size > 0) {
+          closeStepIfReady({ state, emit });
+        }
       }
       return;
     }
 
-    if (type === 'user' && msg.message?.content) {
-      const toolResultBlocks = msg.message.content.filter(
+    if (type === 'user' && Array.isArray(messageContent)) {
+      const toolResultBlocks = messageContent.filter(
         block => block.type === 'tool_result',
       );
       const toolUseResult =
         toolResultBlocks.length === 1 ? msg.tool_use_result : undefined;
 
-      for (const block of msg.message.content) {
+      for (const block of messageContent) {
         if (
           block.type === 'tool_result' &&
           typeof block.tool_use_id === 'string'
@@ -302,9 +390,50 @@ export function createEmitStreamEvent({
           if (state.structuredOutputToolUseIds.delete(block.tool_use_id)) {
             continue;
           }
-          if (state.mcpToolUseIds.has(block.tool_use_id)) {
-            state.mcpToolUseIds.delete(block.tool_use_id);
+          const mcpToolCall = state.mcpToolCalls.get(block.tool_use_id);
+          if (mcpToolCall != null) {
+            const handlerReportedCall = takeMcpHandlerCall({
+              state,
+              toolCallId: block.tool_use_id,
+              toolCall: mcpToolCall,
+            });
+            state.mcpToolCalls.delete(block.tool_use_id);
             state.pendingStepToolUseIds.delete(block.tool_use_id);
+            state.hostInputWaitingToolUseIds.delete(block.tool_use_id);
+            if (handlerReportedCall) {
+              continue;
+            }
+
+            const isError = !!block.is_error;
+            const result =
+              toolUseResult !== undefined
+                ? toolUseResult
+                : resolveToolResult({
+                    toolName: mcpToolCall.toolName,
+                    dynamic: false,
+                    isError,
+                    rawContent: block.content,
+                  });
+            if (!state.emittedToolCallIds.has(block.tool_use_id)) {
+              state.emittedToolCallIds.add(block.tool_use_id);
+              emit({
+                type: 'tool-call',
+                toolCallId: block.tool_use_id,
+                toolName: mcpToolCall.toolName,
+                input: JSON.stringify(mcpToolCall.input),
+                /*
+                 * MCP rejected this call before asking the host to execute it.
+                 */
+                providerExecuted: true,
+              });
+            }
+            emit({
+              type: 'tool-result',
+              toolCallId: block.tool_use_id,
+              toolName: mcpToolCall.toolName,
+              result,
+              isError,
+            });
             continue;
           }
           state.approvalRequestedToolUseIds.delete(block.tool_use_id);
@@ -339,18 +468,114 @@ export function createEmitStreamEvent({
   };
 }
 
-export function finishApprovalStep({
+function takeMcpHandlerCall({
+  state,
+  toolCallId,
+  toolCall,
+}: {
+  state: ClaudeStreamEventState;
+  toolCallId: string;
+  toolCall: { toolName: string; input: unknown };
+}): boolean {
+  const handlerCallId = findMcpHandlerCallId({ state, toolCallId, toolCall });
+  if (handlerCallId != null) return state.mcpHandlerCalls.delete(handlerCallId);
+
+  const matchingHandlerCallIds = Array.from(state.mcpHandlerCalls)
+    .filter(([, handlerCall]) => handlerCall.toolName === toolCall.toolName)
+    .map(([handlerCallId]) => handlerCallId);
+  const matchingToolCallCount = Array.from(state.mcpToolCalls.values()).filter(
+    pendingCall => pendingCall.toolName === toolCall.toolName,
+  ).length;
+  if (
+    matchingHandlerCallIds.length > 0 &&
+    matchingHandlerCallIds.length === matchingToolCallCount
+  ) {
+    return state.mcpHandlerCalls.delete(matchingHandlerCallIds[0]);
+  }
+  return false;
+}
+
+function findMcpHandlerCallId({
+  state,
+  toolCallId,
+  toolCall,
+}: {
+  state: ClaudeStreamEventState;
+  toolCallId: string;
+  toolCall: { toolName: string; input: unknown };
+}): string | undefined {
+  if (state.mcpHandlerCalls.has(toolCallId)) return toolCallId;
+
+  for (const [handlerCallId, handlerCall] of state.mcpHandlerCalls) {
+    if (
+      (handlerCall.toolUseId != null && handlerCall.toolUseId !== toolCallId) ||
+      (handlerCallId !== toolCallId && state.mcpToolCalls.has(handlerCallId))
+    )
+      continue;
+    if (
+      handlerCall.toolName === toolCall.toolName &&
+      isDeepStrictEqual(handlerCall.input, toolCall.input)
+    ) {
+      return handlerCallId;
+    }
+  }
+
+  return undefined;
+}
+
+export function markWaitingOnHostInput({
   state,
   emit,
-  approvalId,
+  toolUseId,
 }: {
   state: ClaudeStreamEventState;
   emit: Emit;
-  approvalId: string;
+  toolUseId: string;
 }): void {
   state.stepOpen = true;
-  state.pendingStepToolUseIds.delete(approvalId);
+  state.pendingStepToolUseIds.add(toolUseId);
+  state.hostInputWaitingToolUseIds.add(toolUseId);
   closeStepIfReady({ state, emit });
+}
+
+export function clearWaitingOnHostInput({
+  state,
+  toolUseId,
+}: {
+  state: ClaudeStreamEventState;
+  toolUseId: string;
+}): void {
+  state.hostInputWaitingToolUseIds.delete(toolUseId);
+}
+
+/*
+ * Resolves the `tool_use` id of a host tool call that reached the MCP
+ * handler. Claude normally passes the id as request metadata; otherwise the
+ * handler call is matched to a reported host tool call with the same name and
+ * input that is not yet waiting on the host.
+ */
+export function resolveMcpHandlerToolUseId({
+  state,
+  metadataToolUseId,
+  toolName,
+  input,
+}: {
+  state: ClaudeStreamEventState;
+  metadataToolUseId: string | undefined;
+  toolName: string;
+  input: unknown;
+}): string | undefined {
+  if (metadataToolUseId != null) return metadataToolUseId;
+  for (const [toolUseId, toolCall] of state.mcpToolCalls) {
+    if (
+      !state.mcpHandlerCalls.has(toolUseId) &&
+      toolCall.toolName === toolName &&
+      isDeepStrictEqual(toolCall.input, input)
+    ) {
+      return toolUseId;
+    }
+  }
+  return undefined;
 }
 
 export function emitFinishStep({
@@ -372,6 +597,7 @@ export function emitFinishStep({
   state.pendingStepDeltaUsage = undefined;
   state.pendingStepUsage = undefined;
   state.pendingStepToolUseIds = new Set();
+  state.earlyFinishStepToolUseIds = new Set();
   state.stepOpen = false;
 }
 
@@ -382,14 +608,48 @@ function closeStepIfReady({
   state: ClaudeStreamEventState;
   emit: Emit;
 }): void {
+  if (!state.stepOpen || state.responseOpen || state.partialBlocks.size > 0) {
+    return;
+  }
+  if (state.pendingStepToolUseIds.size === 0) {
+    emitFinishStep({ state, emit, usage: state.pendingStepUsage });
+    return;
+  }
+  emitEarlyFinishStepIfReady({ state, emit });
+}
+
+function emitEarlyFinishStepIfReady({
+  state,
+  emit,
+}: {
+  state: ClaudeStreamEventState;
+  emit: Emit;
+}): void {
   if (
     !state.stepOpen ||
-    state.pendingStepToolUseIds.size > 0 ||
-    state.partialBlocks.size > 0
+    state.partialBlocks.size > 0 ||
+    state.modelResponseStreaming ||
+    state.pendingStepToolUseIds.size === 0
   ) {
     return;
   }
-  emitFinishStep({ state, emit, usage: state.pendingStepUsage });
+  const uncovered = [...state.hostInputWaitingToolUseIds].filter(
+    toolUseId =>
+      state.pendingStepToolUseIds.has(toolUseId) &&
+      !state.earlyFinishStepToolUseIds.has(toolUseId),
+  );
+  if (uncovered.length === 0) {
+    return;
+  }
+  for (const toolUseId of uncovered) {
+    state.earlyFinishStepToolUseIds.add(toolUseId);
+  }
+  emit({
+    type: 'finish-step',
+    finishReason: { unified: 'tool-calls', raw: 'host-input' },
+    usage: defaultUsage(),
+    harnessMetadata: { 'claude-code': { inferredStep: true } },
+  });
 }
 
 function formatApiRetryWarning(msg: ClaudeMessage): string {
@@ -413,26 +673,54 @@ function formatApiRetryWarning(msg: ClaudeMessage): string {
 
 function handleStreamEvent({
   event,
+  message,
   state,
   send,
   toCommonName,
 }: {
   event: ClaudeMessage['event'] | undefined;
+  message: ClaudeMessage;
   state: ClaudeStreamEventState;
   send: Emit;
   toCommonName: (nativeName: string) => string;
 }): void {
   if (!event) return;
 
+  if (event.type === 'message_start') {
+    state.modelResponseStreaming = true;
+    state.pendingResponseUsage = toUsageRecord(event.message?.usage);
+    state.responseOpen = true;
+    return;
+  }
+
   if (event.type === 'message_delta') {
     const usage = toUsageRecord(event.usage);
     if (usage) {
+      state.pendingResponseUsage = mergeNonNullUsage(
+        state.pendingResponseUsage,
+        usage,
+      );
       state.pendingStepDeltaUsage = mergeNonNullUsage(
         state.pendingStepDeltaUsage,
         usage,
       );
       updatePendingStepUsage(state);
     }
+    return;
+  }
+
+  if (event.type === 'message_stop') {
+    send({
+      type: 'raw',
+      rawValue: {
+        ...message,
+        usage: state.pendingResponseUsage ?? {},
+      },
+    });
+    state.pendingResponseUsage = undefined;
+    state.modelResponseStreaming = false;
+    state.responseOpen = false;
+    closeStepIfReady({ state, emit: send });
     return;
   }
 

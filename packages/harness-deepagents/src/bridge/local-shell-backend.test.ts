@@ -1,3 +1,4 @@
+import path from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createLocalShellBackend,
@@ -20,10 +21,11 @@ describe('createLocalShellBackend', () => {
   });
 
   it('passes only PATH from the bridge environment to shell commands', () => {
+    const existingPath = ['/sandbox/bin', '/usr/bin'].join(path.delimiter);
     createLocalShellBackend({
       rootDir: '/workspace',
       env: {
-        PATH: '/sandbox/bin:/usr/bin',
+        PATH: existingPath,
         ANTHROPIC_API_KEY: 'secret',
         BRIDGE_CHANNEL_TOKEN: 'token',
       },
@@ -33,7 +35,7 @@ describe('createLocalShellBackend', () => {
       {
         rootDir: '/workspace',
         env: {
-          PATH: '/sandbox/bin:/usr/bin',
+          PATH: existingPath,
         },
       },
     ]);

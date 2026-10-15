@@ -49,6 +49,17 @@ describe('ToolLoopAgent', () => {
   });
 
   describe('generate', () => {
+    it('should accept toolCallConcurrency in settings and prepareCall', () => {
+      new ToolLoopAgent({
+        model: new MockLanguageModelV4(),
+        toolCallConcurrency: 1,
+        prepareCall: options => ({
+          ...options,
+          toolCallConcurrency: 2,
+        }),
+      });
+    });
+
     it('should accept include', async () => {
       new ToolLoopAgent({
         model: new MockLanguageModelV4(),

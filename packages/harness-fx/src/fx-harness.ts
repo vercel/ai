@@ -9,6 +9,7 @@ import {
 import {
   createCredentialRequestTransformation,
   isHarnessAuthenticationEnvironment,
+  type SandboxChannelReconnectOptions,
 } from '@ai-sdk/harness/utils';
 import { createACP, type ACPAuthenticationMode } from '@ai-sdk/harness-acp';
 import { tool } from '@ai-sdk/provider-utils';
@@ -21,8 +22,10 @@ import {
   resolveFxSubscriptionEnvironment,
 } from './fx-subscription';
 
-const FX_CLIENT_APP = `ai-sdk/harness-fx/${VERSION}`;
+const FX_CLIENT_APP = `ai-sdk-harness-fx/${VERSION}`;
 const DEFAULT_AI_GATEWAY_BASE_URL = 'https://ai-gateway.vercel.sh';
+
+const FX_VERSION = '0.0.13';
 
 export type FxAuthenticationMode = ACPAuthenticationMode;
 
@@ -70,6 +73,13 @@ export type FxHarnessSettings = {
    */
   readonly startupTimeoutMs?: number;
   /**
+   * Configures reconnection attempts after an established bridge connection
+   * drops. The reconnect window includes connection establishment and
+   * backoff delays. Defaults to 30 seconds with exponential backoff from 50
+   * milliseconds up to 2 seconds.
+   */
+  readonly reconnect?: SandboxChannelReconnectOptions;
+  /**
    * MCP server definitions keyed by server name. Each definition uses fx's
    * native ACP MCP server configuration format.
    */
@@ -81,155 +91,47 @@ export type FxHarnessSettings = {
   readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
 };
 
-const terminalShellSchema = z.looseObject({
-  kind: z.enum(['user_login', 'executable']),
-  path: z.string().optional(),
-  clean_start: z.boolean().optional(),
+const shellExecutableSchema = z.looseObject({
+  kind: z.literal('executable'),
+  path: z.string(),
+  clean_start: z.boolean().nullish(),
 });
 
-const terminalReturnSchema = z.looseObject({
-  kind: z.enum(['started', 'exit', 'quiet', 'match']),
-  duration_ms: z.number().int().positive().optional(),
-  pattern: z.string().optional(),
+const shellRunWithProfileSchema = z.looseObject({
+  action: z.literal('run'),
+  command: z.string(),
+  cwd: z.string().nullish(),
+  profile: z.enum(['clean', 'user']).nullish(),
+  tty: z.boolean().nullish(),
+  yield_time_ms: z.number().int().nonnegative().nullish(),
+  timeout_ms: z.number().int().positive().nullish(),
 });
 
-const terminalDimensionsSchema = z.looseObject({
-  rows: z.number().int().min(1).max(4096),
-  columns: z.number().int().min(1).max(4096),
+const shellRunWithExecutableSchema = z.looseObject({
+  action: z.literal('run'),
+  command: z.string(),
+  cwd: z.string().nullish(),
+  shell: shellExecutableSchema,
+  tty: z.boolean(),
+  yield_time_ms: z.number().int().nonnegative().nullish(),
+  timeout_ms: z.number().int().positive().nullish(),
 });
 
-const terminalMonitorConditionSchema = z.looseObject({
-  kind: z.enum([
-    'process_exit',
-    'exit_code',
-    'signal',
-    'output_contains',
-    'output_matches',
-    'output_quiet',
-    'screen_matches',
-    'tcp_ready',
-    'http_ready',
-    'path_exists',
-    'path_changed',
-    'path_size',
-    'custom_probe',
-  ]),
-  pattern: z.string().optional(),
-  duration_ms: z.number().int().min(10).max(86_400_000).optional(),
-  exit_code: z.number().int().optional(),
-  signal: z
-    .enum(['hangup', 'interrupt', 'quit', 'terminate', 'kill'])
-    .optional(),
-  host: z.string().optional(),
-  port: z.number().int().min(1).max(65_535).optional(),
-  path: z.string().optional(),
-  minimum_bytes: z.number().int().optional(),
-  command: z.string().optional(),
-  cwd: z.string().optional(),
-});
-
-const terminalMonitorDefinitionSchema = z.looseObject({
-  condition: terminalMonitorConditionSchema,
-  check_interval_ms: z.number().int().min(10).max(86_400_000).optional(),
-  notify: z.looseObject({
-    kind: z.enum([
-      'on_match',
-      'on_state_change',
-      'on_exit',
-      'every_check',
-      'every_n_checks',
-      'interval',
-    ]),
-    count: z.number().int().positive().optional(),
-    interval_ms: z.number().int().min(10).max(86_400_000).optional(),
+const shellInputSchema = z.union([
+  shellRunWithProfileSchema,
+  shellRunWithExecutableSchema,
+  z.looseObject({
+    action: z.literal('interact'),
+    session_id: z.string(),
+    chars: z.string().nullish(),
+    yield_time_ms: z.number().int().nonnegative().nullish(),
   }),
-  lifetime: z.looseObject({
-    kind: z.enum(['until_match', 'until_session_end', 'duration']),
-    duration_ms: z.number().int().min(1).max(31_536_000_000).optional(),
+  z.looseObject({
+    action: z.literal('stop'),
+    session_id: z.string(),
+    force: z.boolean().nullish(),
   }),
-});
-
-const terminalRequestSchema = z.looseObject({
-  action: z.enum([
-    'exec',
-    'start',
-    'read',
-    'screen',
-    'write',
-    'wait',
-    'monitor',
-    'inspect',
-    'list',
-    'resize',
-    'signal',
-    'close',
-  ]),
-  session_id: z.string().nullable().optional(),
-  cwd: z.string().nullable().optional(),
-  command: z.string().max(65_536).nullable().optional(),
-  profile: z.enum(['clean', 'user']).nullable().optional(),
-  shell: terminalShellSchema.nullable().optional(),
-  backend: z.enum(['native', 'tmux']).nullable().optional(),
-  return_when: terminalReturnSchema.nullable().optional(),
-  wait_ceiling_ms: z.number().int().positive().nullable().optional(),
-  dimensions: terminalDimensionsSchema.nullable().optional(),
-  initial_monitors: z
-    .array(terminalMonitorDefinitionSchema)
-    .max(32)
-    .nullable()
-    .optional(),
-  cursor_segment: z.number().int().positive().nullable().optional(),
-  cursor_offset: z.number().int().nullable().optional(),
-  after_event_id: z.number().int().nullable().optional(),
-  acknowledge_event_id: z.number().int().positive().nullable().optional(),
-  max_events: z.number().int().min(1).max(256).nullable().optional(),
-  write: z
-    .looseObject({
-      kind: z.enum(['text', 'keys', 'controls', 'paste']),
-      text: z.string().optional(),
-      keys: z
-        .array(
-          z.enum([
-            'enter',
-            'tab',
-            'escape',
-            'backspace',
-            'delete',
-            'insert',
-            'arrow_up',
-            'arrow_down',
-            'arrow_left',
-            'arrow_right',
-            'home',
-            'end',
-            'page_up',
-            'page_down',
-          ]),
-        )
-        .optional(),
-      controls: z.array(z.number().int()).optional(),
-    })
-    .nullable()
-    .optional(),
-  lease: z.enum(['acquire', 'use', 'release', 'revoke']).nullable().optional(),
-  monitor: z
-    .looseObject({
-      kind: z.enum(['add', 'update', 'pause', 'resume', 'remove']),
-      monitor_id: z.string().optional(),
-      definition: terminalMonitorDefinitionSchema.optional(),
-    })
-    .nullable()
-    .optional(),
-  task_id: z.string().nullable().optional(),
-  workspace_root: z.string().nullable().optional(),
-  rows: z.number().int().min(1).max(4096).nullable().optional(),
-  columns: z.number().int().min(1).max(4096).nullable().optional(),
-  signal: z
-    .enum(['hangup', 'interrupt', 'quit', 'terminate', 'kill'])
-    .nullable()
-    .optional(),
-  close_policy: z.enum(['graceful', 'force']).nullable().optional(),
-});
+]);
 
 const subagentNotificationsSchema = z.looseObject({
   terminal: z
@@ -368,19 +270,15 @@ const FX_BUILTIN_TOOLS = {
     ...tool({ inputSchema: z.looseObject({ url: z.string() }) }),
     toolUseKind: 'readonly',
   },
-  terminal: {
-    ...tool({
-      inputSchema: terminalRequestSchema,
-    }),
+  shell: {
+    ...tool({ inputSchema: shellInputSchema }),
     toolUseKind: 'bash',
   },
   skill: {
     ...tool({
       inputSchema: z.looseObject({
-        name: z.string(),
-        location: z.string().optional(),
+        location: z.string(),
         resource: z.string().optional(),
-        offset: z.number().int().optional(),
       }),
     }),
     toolUseKind: 'readonly',
@@ -483,6 +381,15 @@ const FX_BUILTIN_TOOLS = {
     }),
     toolUseKind: 'readonly',
   },
+  capability_search: {
+    ...tool({
+      inputSchema: z.looseObject({
+        query: z.string().min(1),
+        server: z.string().min(1).optional(),
+      }),
+    }),
+    toolUseKind: 'readonly',
+  },
   mcp_select_tool: {
     ...tool({ inputSchema: z.looseObject({ name: z.string() }) }),
     toolUseKind: 'readonly',
@@ -573,6 +480,7 @@ export function createFx(
     port: settings.port,
     portEndpoint: settings.portEndpoint,
     startupTimeoutMs: settings.startupTimeoutMs,
+    reconnect: settings.reconnect,
     mcpServers: settings.mcpServers,
     isMcpToolCall: toolCall =>
       mcpToolTitlePrefixes.some(prefix => toolCall.title.startsWith(prefix)),
@@ -586,7 +494,7 @@ export function createFx(
     },
     source: {
       type: 'install-command',
-      command: 'curl -fsSL https://fx.sh/setup.sh | bash',
+      command: `curl -fsSL https://fx.sh/setup.sh | bash -s -- v${FX_VERSION}`,
     },
     executable: 'fx',
     args: ['acp'],

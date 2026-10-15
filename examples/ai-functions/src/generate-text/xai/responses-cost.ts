@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: xai.responses('grok-4-fast-non-reasoning'),
+    model: xai.responses('grok-4-1-fast-non-reasoning'),
     prompt: 'What is the capital of France?',
   });
 

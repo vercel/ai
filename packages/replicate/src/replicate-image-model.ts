@@ -49,6 +49,30 @@ export class ReplicateImageModel implements ImageModelV4 {
     return this.isFlux2Model ? MAX_FLUX_2_INPUT_IMAGES : 1;
   }
 
+  get supportsFileInputs(): boolean | undefined {
+    if (
+      this.modelId === 'black-forest-labs/flux-2-pro' ||
+      this.modelId === 'black-forest-labs/flux-2-dev' ||
+      this.modelId === 'black-forest-labs/flux-fill-pro' ||
+      this.modelId === 'black-forest-labs/flux-fill-dev'
+    ) {
+      return true;
+    }
+
+    return undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    if (
+      this.modelId === 'black-forest-labs/flux-fill-pro' ||
+      this.modelId === 'black-forest-labs/flux-fill-dev'
+    ) {
+      return true;
+    }
+
+    return this.supportsFileInputs === true ? false : undefined;
+  }
+
   get provider(): string {
     return this.config.provider;
   }

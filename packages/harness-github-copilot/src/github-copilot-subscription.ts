@@ -167,8 +167,6 @@ export async function findHostGitHubCliExecutable({
       } catch {}
     }
   }
-
-  return undefined;
 }
 
 async function readGitHubCopilotConfig({
@@ -203,7 +201,6 @@ function selectGitHubCopilotAccount({
       if (account != null) return account;
     }
   }
-  return undefined;
 }
 
 function toGitHubCopilotAccount(
@@ -254,7 +251,6 @@ async function readGitHubCopilotSecureCredential({
       targetName: `${account}.${service}`,
     });
   }
-  return undefined;
 }
 
 async function readHostGitHubCliToken({

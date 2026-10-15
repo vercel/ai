@@ -11,7 +11,7 @@
     "strict": true,
     "moduleResolution": "bundler",
     "module": "esnext",
-    "target": "esnext",
+    "target": "ES2022",
     "declaration": true,
     "declarationMap": true,
     "stripInternal": true,
@@ -42,10 +42,5 @@
     "./src/**/*.ts",
     "./src/**/*.svelte"
   ],
-  "exclude": [
-    "dist",
-    "build",
-    "node_modules",
-    "tsup.config.ts"
-  ]
+  "exclude": ["dist", "build", "node_modules"]
 }

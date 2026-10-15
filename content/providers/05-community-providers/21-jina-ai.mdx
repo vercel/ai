@@ -61,7 +61,7 @@ You can create models that call the Jina text embeddings API using the `.embeddi
 ```ts
 import { jina } from 'jina-ai-provider';
 
-const .embeddingModel = jina.embeddingModel('jina-embeddings-v3');
+const embeddingModel = jina.embeddingModel('jina-embeddings-v3');
 ```
 
 You can use Jina embedding models to generate embeddings with the `embed` or `embedMany` function:
@@ -70,7 +70,7 @@ You can use Jina embedding models to generate embeddings with the `embed` or `em
 import { jina } from 'jina-ai-provider';
 import { embedMany } from 'ai';
 
-const .embeddingModel = jina.embeddingModel('jina-embeddings-v3');
+const embeddingModel = jina.embeddingModel('jina-embeddings-v3');
 
 export const generateEmbeddings = async (
   value: string,
@@ -78,7 +78,7 @@ export const generateEmbeddings = async (
   const chunks = value.split('\n');
 
   const { embeddings } = await embedMany({
-    model: .embeddingModel,
+    model: embeddingModel,
     values: chunks,
     providerOptions: {
       jina: {

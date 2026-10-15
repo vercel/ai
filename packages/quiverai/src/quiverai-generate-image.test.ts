@@ -58,9 +58,14 @@ describe('QuiverAI generateImage integration', () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  it.each([false, true])(
-    'generates multiple edits through separate requests (middleware: %s)',
-    async useMiddleware => {
+  it.each([
+    { modelId: 'arrow-2', useMiddleware: false },
+    { modelId: 'arrow-2', useMiddleware: true },
+    { modelId: 'arrow-2-telos', useMiddleware: false },
+    { modelId: 'arrow-2-telos', useMiddleware: true },
+  ])(
+    'generates multiple edits with $modelId (middleware: $useMiddleware)',
+    async ({ modelId, useMiddleware }) => {
       const fetch = vi.fn(
         async () =>
           new Response(JSON.stringify(editSvgResponseFixture), {
@@ -68,23 +73,28 @@ describe('QuiverAI generateImage integration', () => {
           }),
       );
       const provider = createQuiverAI({ apiKey: 'test-api-key', fetch });
-      const model = provider.image('arrow-2');
+      const model = provider.image(modelId);
       const providerOptions = { quiverai: { operation: 'edit' } };
       const sourceSvg = '<svg><rect width="10" height="10"/></svg>';
 
+      const editingModel = useMiddleware
+        ? wrapImageModel({
+            model,
+            middleware: {
+              specificationVersion: 'v4',
+              transformParams: async ({ params }) => ({
+                ...params,
+                providerOptions,
+              }),
+            },
+          })
+        : model;
+
+      expect(await editingModel.supportsFileInputs).toBe(true);
+      expect(await editingModel.supportsMaskInputs).toBe(false);
+
       const result = await generateImage({
-        model: useMiddleware
-          ? wrapImageModel({
-              model,
-              middleware: {
-                specificationVersion: 'v4',
-                transformParams: async ({ params }) => ({
-                  ...params,
-                  providerOptions,
-                }),
-              },
-            })
-          : model,
+        model: editingModel,
         prompt: {
           text: 'Make the icon blue.',
           images: [encoder.encode(sourceSvg)],
@@ -106,7 +116,7 @@ describe('QuiverAI generateImage integration', () => {
         'https://api.quiver.ai/v1/svgs/edits',
         expect.objectContaining({
           body: JSON.stringify({
-            model: 'arrow-2',
+            model: modelId,
             prompt: 'Make the icon blue.',
             svg_source: { base64: btoa(sourceSvg) },
             stream: false,

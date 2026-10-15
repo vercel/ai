@@ -12,7 +12,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const provider = openai;
-  const model = 'gpt-4.1-nano';
+  const model = 'gpt-5.4-nano';
   let executeCallCount = 0;
 
   const tools = {

@@ -9,4 +9,11 @@ export const pi = createPi();
 export { createPi } from './pi-harness';
 export { VERSION } from './version';
 export type { PiHarnessSettings } from './pi-harness';
-export type { PiAuthenticationMode } from './pi-auth';
+export type {
+  PiHarnessExtensionFactory,
+  PiHarnessExtensionSession,
+  PiMcpExposure,
+  PiMcpServerConfig,
+} from './pi-session';
+export type { PiAuthenticationMode, PiCredentialStore } from './pi-auth';
+export type { PiFileToolPathPolicy } from './pi-paths';

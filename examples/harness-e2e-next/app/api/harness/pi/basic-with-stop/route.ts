@@ -27,7 +27,10 @@ export async function POST(request: Request) {
   return createUIMessageStreamResponse({
     stream: createUIMessageStream({
       execute: async ({ writer }) => {
-        const session = await resumeOrCreateSession(piHarnessAgent, chatId);
+        const { session, sandboxSession } = await resumeOrCreateSession({
+          agent: piHarnessAgent,
+          chatId,
+        });
 
         const result = await piHarnessAgent.stream({ session, messages });
 
@@ -35,9 +38,11 @@ export async function POST(request: Request) {
           toUIMessageStream({
             stream: result.stream,
             onError: getHarnessE2EErrorMessage,
-            // Stop the session at the end of the turn so the next request resumes
-            // from the persisted snapshot rather than attaching to a parked bridge.
-            onFinish: () => stopAndPersist(chatId, session),
+            /*
+             * Stop the harness and sandbox after the turn. The next request
+             * resumes the sandbox before starting the harness again.
+             */
+            onFinish: () => stopAndPersist({ chatId, session, sandboxSession }),
           }),
         );
       },

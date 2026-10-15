@@ -8,7 +8,7 @@ import { run } from '../lib/run';
 
 run(async () => {
   const model = wrapLanguageModel({
-    model: openai('gpt-4o-mini'),
+    model: openai('gpt-6-luna'),
     middleware: defaultInstructionsMiddleware({
       instructions: 'Answer in Spanish.',
     }),

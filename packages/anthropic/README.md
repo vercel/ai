@@ -35,7 +35,7 @@ import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: anthropic('claude-3-haiku-20240307'),
+  model: anthropic('claude-haiku-5-5'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
