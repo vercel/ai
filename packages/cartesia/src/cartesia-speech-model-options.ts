@@ -1,5 +1,66 @@
 import { z } from 'zod/v4';
 
+const cartesiaSpeechEmotions = [
+  'neutral',
+  'happy',
+  'excited',
+  'enthusiastic',
+  'elated',
+  'euphoric',
+  'triumphant',
+  'amazed',
+  'surprised',
+  'flirtatious',
+  'curious',
+  'content',
+  'peaceful',
+  'serene',
+  'calm',
+  'grateful',
+  'affectionate',
+  'trust',
+  'sympathetic',
+  'anticipation',
+  'mysterious',
+  'angry',
+  'mad',
+  'outraged',
+  'frustrated',
+  'agitated',
+  'threatened',
+  'disgusted',
+  'contempt',
+  'envious',
+  'sarcastic',
+  'ironic',
+  'sad',
+  'dejected',
+  'melancholic',
+  'disappointed',
+  'hurt',
+  'guilty',
+  'bored',
+  'tired',
+  'rejected',
+  'nostalgic',
+  'wistful',
+  'apologetic',
+  'hesitant',
+  'insecure',
+  'confused',
+  'resigned',
+  'anxious',
+  'panicked',
+  'alarmed',
+  'scared',
+  'proud',
+  'confident',
+  'distant',
+  'skeptical',
+  'contemplative',
+  'determined',
+] as const;
+
 // https://docs.cartesia.ai/api-reference/tts/bytes
 export const cartesiaSpeechModelOptionsSchema = z.object({
   /** Container format for the output audio (raw, wav, mp3). */
@@ -31,6 +92,10 @@ export const cartesiaSpeechModelOptionsSchema = z.object({
     .nullish(),
   /** Controls the speed of the generated speech. */
   speed: z.number().min(0.6).max(1.5).nullish(),
+  /** Volume of the generated speech, between 0.5 and 2. Sonic 3 and newer. */
+  volume: z.number().min(0.5).max(2).optional(),
+  /** Emotion of the generated speech. Beta, works best with English. Sonic 3 and newer. */
+  emotion: z.enum(cartesiaSpeechEmotions).optional(),
   /** The language to generate speech in (ISO 639-1 code). */
   language: z.string().nullish(),
 });

@@ -217,10 +217,14 @@ export class CartesiaSpeechModel implements SpeechModelV4 {
       }
     }
 
+    const generationConfig: NonNullable<
+      CartesiaSpeechAPITypes['generation_config']
+    > = {};
+
     const resolvedSpeed = cartesiaOptions?.speed ?? speed;
     if (resolvedSpeed != null) {
       if (resolvedSpeed >= 0.6 && resolvedSpeed <= 1.5) {
-        requestBody.generation_config = { speed: resolvedSpeed };
+        generationConfig.speed = resolvedSpeed;
       } else {
         warnings.push({
           type: 'unsupported',
@@ -229,6 +233,18 @@ export class CartesiaSpeechModel implements SpeechModelV4 {
             'Cartesia speed must be between 0.6 and 1.5. The speed option was ignored.',
         });
       }
+    }
+
+    if (cartesiaOptions?.volume != null) {
+      generationConfig.volume = cartesiaOptions.volume;
+    }
+
+    if (cartesiaOptions?.emotion != null) {
+      generationConfig.emotion = cartesiaOptions.emotion;
+    }
+
+    if (Object.keys(generationConfig).length > 0) {
+      requestBody.generation_config = generationConfig;
     }
 
     if (instructions) {
