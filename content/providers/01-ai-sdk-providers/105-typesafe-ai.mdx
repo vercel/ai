@@ -146,7 +146,7 @@ import { readFileSync } from 'node:fs';
 const result = await experimental_decide({
   model: typeSafeAi.decisionModel('jev-latest'),
   state: [
-    { type: 'text', text: 'Inspect the animal in this picture.' },
+    { type: 'json', value: { photo: '[animal-photo]' } },
     {
       type: 'file',
       mediaType: 'image/png',
@@ -157,7 +157,8 @@ const result = await experimental_decide({
     },
   ],
   questions: {
-    cat: { type: 'boolean', instructions: 'Does [animal-photo] show a cat?' },
+    cat: { type: 'boolean', instructions: 'Does `photo` show a cat?' },
+    dog: { type: 'boolean', instructions: 'Does `photo` show a dog?' },
   },
 });
 ```
@@ -169,15 +170,54 @@ file formats are rejected. See [TypeSafe's image documentation](https://docs.typ
 for image size and dimension limits.
 
 Set `providerOptions.typesafe.reference` on a file part to choose its asset
-reference. You can use that reference in state text, question instructions, or
-criteria. The provider also inserts it at the file's position in the state.
-When omitted, the provider generates a random reference.
+reference. When omitted, the provider generates a random reference. If the
+state already contains the reference, as in the example above, the provider
+sends the state as written, so JSON state stays an object. Otherwise it inserts
+the reference at the file's position in the state.
+
+TypeSafe sends another copy of the image for every occurrence of its reference
+in state, instructions, or criteria. To ask several questions about one image,
+put it in the state once and refer to it by path in backticks, as above, rather
+than repeating the reference in each question.
+
+Set `providerOptions.typesafe.insertReference` to `false` to send an image only
+where you reference it in a question's instructions or criteria, for example a
+known picture to compare against. This requires an explicit `reference`. Set it
+to `true` to insert the reference even when the state already contains it.
+
+```ts
+const result = await experimental_decide({
+  model: typeSafeAi.decisionModel('jev-latest'),
+  state: [
+    { type: 'json', value: { photo: '[found-dog]' } },
+    {
+      type: 'file',
+      mediaType: 'image/jpeg',
+      data: readFileSync('found-dog.jpg'),
+      providerOptions: { typesafe: { reference: '[found-dog]' } },
+    },
+    {
+      type: 'file',
+      mediaType: 'image/jpeg',
+      data: readFileSync('lost-dog-poster.jpg'),
+      providerOptions: {
+        typesafe: { reference: '[poster]', insertReference: false },
+      },
+    },
+  ],
+  questions: {
+    sameDog: {
+      type: 'boolean',
+      instructions: 'Is the dog in `photo` the same dog as in [poster]?',
+    },
+  },
+});
+```
 
 References must be nonempty, contain more than whitespace, and be unique across
 images in the request. TypeSafe substitutes references anywhere in string
 values, so choose distinctive names such as `[animal-photo]` to avoid accidental
-matches. Each occurrence inserts the image again. The file's `filename` does
-not affect its reference.
+matches. The file's `filename` does not affect its reference.
 
 The `TypeSafeAiFilePartProviderOptions` type is exported from
 `@ai-sdk/typesafe-ai` for typing file-level options.
