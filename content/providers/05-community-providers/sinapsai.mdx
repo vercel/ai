@@ -1,0 +1,21 @@
+---
+title: SinapsAI
+description: In-process multi-provider AI Gateway with Circuit Breaker, failover, and zero runtime dependencies for the AI SDK
+url: "https://ai-sdk.dev/providers/community-providers/sinapsai"
+---
+
+[SinapsAI](https://github.com/roedyrustam/sinapsai) is a high-performance in-process AI Gateway and Control Plane for Node.js and TypeScript. It allows the Vercel AI SDK to automatically route between multiple LLM providers (OpenAI, Anthropic Claude, Google Gemini, DeepSeek, Groq, Mistral, Ollama, OpenRouter) with zero extra network hops (<10ms overhead), in-memory Circuit Breakers, automatic failover, and PII guardrails.
+
+Key features:
+- **In-Process Resilience**: Zero proxy containers or external Redis required.
+- **Circuit Breaker**: Instantly trips during provider outages to protect serverless and edge runtimes.
+- **Lowest-Latency Auto-Routing**: Dynamically dispatches requests to the fastest responsive LLM.
+- **Enterprise PII Guardrails**: In-process automatic redaction for email, phone, credit card (Luhn validation), SSN, and JWT.
+- **Ecosystem Compatibility**: Works with `streamText`, `generateText`, and Next.js 15 App Router Route Handlers.
+
+## Setup
+
+The SinapsAI adapter is built directly into the `sinapsai` package. Install it with:
+
+```package-install
+npm install sinapsai
