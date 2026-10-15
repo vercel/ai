@@ -26,6 +26,7 @@ import {
   isTrustedUrl,
 } from './black-forest-labs-api';
 import {
+  blackForestLabsFlux3ImageKleinModelOptionsSchema,
   blackForestLabsFlux3ImageModelOptionsSchema,
   blackForestLabsImageModelOptionsSchema,
 } from './black-forest-labs-image-model-options';
@@ -59,14 +60,26 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 1;
 
+  private get isFlux3Image(): boolean {
+    return (
+      this.modelId === 'flux-3-image' ||
+      this.modelId.startsWith('flux-3-image-')
+    );
+  }
+
+  private get isFlux3ImageKlein(): boolean {
+    return (
+      this.modelId === 'flux-3-image-klein' ||
+      this.modelId.startsWith('flux-3-image-klein-')
+    );
+  }
+
   get supportsFileInputs(): boolean | undefined {
     if (
-      [
-        'flux-3-image',
-        'flux-kontext-pro',
-        'flux-kontext-max',
-        'flux-pro-1.0-fill',
-      ].includes(this.modelId)
+      this.isFlux3Image ||
+      ['flux-kontext-pro', 'flux-kontext-max', 'flux-pro-1.0-fill'].includes(
+        this.modelId,
+      )
     ) {
       return true;
     }
@@ -123,36 +136,45 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
     const finalAspectRatio =
       aspectRatio ?? (size ? convertSizeToAspectRatio(size) : undefined);
 
-    if (size && !aspectRatio) {
+    if (size && !aspectRatio && !this.isFlux3ImageKlein) {
       warnings.push({
         type: 'unsupported',
         feature: 'size',
-        details:
-          this.modelId === 'flux-3-image'
-            ? 'Deriving aspect_ratio from size. FLUX 3 uses the resolution provider option to select output resolution.'
-            : 'Deriving aspect_ratio from size. Use the width and height provider options to specify dimensions for models that support them.',
+        details: this.isFlux3Image
+          ? 'Deriving aspect_ratio from size. FLUX 3 uses the resolution provider option to select output resolution.'
+          : 'Deriving aspect_ratio from size. Use the width and height provider options to specify dimensions for models that support them.',
       });
-    } else if (size && aspectRatio) {
+    } else if (size && aspectRatio && !this.isFlux3ImageKlein) {
       warnings.push({
         type: 'unsupported',
         feature: 'size',
-        details:
-          this.modelId === 'flux-3-image'
-            ? 'FLUX 3 ignores size when aspectRatio is provided. Use the resolution provider option to select output resolution.'
-            : 'Black Forest Labs ignores size when aspectRatio is provided. Use the width and height provider options to specify dimensions for models that support them',
+        details: this.isFlux3Image
+          ? 'FLUX 3 ignores size when aspectRatio is provided. Use the resolution provider option to select output resolution.'
+          : 'Black Forest Labs ignores size when aspectRatio is provided. Use the width and height provider options to specify dimensions for models that support them',
       });
     }
 
+    const [widthStr, heightStr] = size?.split('x') ?? [];
+
     const bflOptions = await parseProviderOptions({
       provider: 'blackForestLabs',
-      providerOptions,
-      schema:
-        this.modelId === 'flux-3-image'
+      providerOptions:
+        this.isFlux3ImageKlein && size != null
+          ? {
+              ...providerOptions,
+              blackForestLabs: {
+                width: Number(widthStr),
+                height: Number(heightStr),
+                ...providerOptions.blackForestLabs,
+              },
+            }
+          : providerOptions,
+      schema: this.isFlux3ImageKlein
+        ? blackForestLabsFlux3ImageKleinModelOptionsSchema
+        : this.isFlux3Image
           ? blackForestLabsFlux3ImageModelOptionsSchema
           : blackForestLabsImageModelOptionsSchema,
     });
-
-    const [widthStr, heightStr] = size?.split('x') ?? [];
 
     const inputImages: string[] =
       files?.map(file => {
@@ -171,10 +193,12 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
       throw new Error('Black Forest Labs supports up to 10 input images.');
     }
 
-    if (this.modelId === 'flux-3-image') {
+    if (this.isFlux3Image) {
+      const hasDimensions = this.isFlux3ImageKlein && bflOptions?.width != null;
       // The endpoint uses 21:9 and 9:21 instead of their reduced forms.
-      let flux3AspectRatio =
-        finalAspectRatio === '7:3'
+      let flux3AspectRatio = hasDimensions
+        ? undefined
+        : finalAspectRatio === '7:3'
           ? '21:9'
           : finalAspectRatio === '3:7'
             ? '9:21'
@@ -211,21 +235,30 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
           functionality: 'FLUX 3 image masks',
         });
       }
-      if (seed != null) {
+      if (seed != null && !this.isFlux3ImageKlein) {
         warnings.push({ type: 'unsupported', feature: 'seed' });
       }
-      for (const [key, value] of Object.entries(bflOptions ?? {})) {
-        if (
-          value != null &&
-          ![
+      const supportedOptions = this.isFlux3ImageKlein
+        ? [
+            'height',
+            'outputFormat',
+            'pollIntervalMillis',
+            'pollTimeoutMillis',
+            'resolution',
+            'safetyTolerance',
+            'steps',
+            'width',
+          ]
+        : [
             'grounding',
             'pollIntervalMillis',
             'pollTimeoutMillis',
             'resolution',
             'safetyTolerance',
             'version',
-          ].includes(key)
-        ) {
+          ];
+      for (const [key, value] of Object.entries(bflOptions ?? {})) {
+        if (value != null && !supportedOptions.includes(key)) {
           warnings.push({
             type: 'unsupported',
             feature: `blackForestLabs.${key}`,
@@ -238,10 +271,20 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
           prompt,
           aspect_ratio: flux3AspectRatio,
           images: inputImages.length > 0 ? inputImages : undefined,
-          resolution: bflOptions?.resolution,
-          grounding: bflOptions?.grounding,
+          resolution: hasDimensions ? undefined : bflOptions?.resolution,
           safety_tolerance: bflOptions?.safetyTolerance,
-          version: bflOptions?.version,
+          ...(this.isFlux3ImageKlein
+            ? {
+                width: bflOptions?.width,
+                height: bflOptions?.height,
+                seed,
+                steps: bflOptions?.steps,
+                output_format: bflOptions?.outputFormat,
+              }
+            : {
+                grounding: bflOptions?.grounding,
+                version: bflOptions?.version,
+              }),
         },
         warnings,
         bflOptions,

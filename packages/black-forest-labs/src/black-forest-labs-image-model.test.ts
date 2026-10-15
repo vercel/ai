@@ -60,6 +60,24 @@ describe('BlackForestLabsImageModel', () => {
         body: { id: 'req-123', polling_url: 'https://api.example.com/poll' },
       },
     },
+    'https://api.example.com/v1/flux-3-image-preview': {
+      response: {
+        type: 'json-value',
+        body: { id: 'req-123', polling_url: 'https://api.example.com/poll' },
+      },
+    },
+    'https://api.example.com/v1/flux-3-image-klein': {
+      response: {
+        type: 'json-value',
+        body: { id: 'req-123', polling_url: 'https://api.example.com/poll' },
+      },
+    },
+    'https://api.example.com/v1/flux-3-image-klein-preview': {
+      response: {
+        type: 'json-value',
+        body: { id: 'req-123', polling_url: 'https://api.example.com/poll' },
+      },
+    },
     'https://api.example.com/v1/flux-pro-1.0-fill': {
       response: {
         type: 'json-value',
@@ -142,6 +160,15 @@ describe('BlackForestLabsImageModel', () => {
         supportsFileInputs: true,
         supportsMaskInputs: false,
       },
+      ...[
+        'flux-3-image-preview',
+        'flux-3-image-klein',
+        'flux-3-image-klein-preview',
+      ].map(modelId => ({
+        modelId,
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      })),
       {
         modelId: 'flux-pro-1.0-fill',
         supportsFileInputs: true,
@@ -935,6 +962,22 @@ describe('BlackForestLabsImageModel', () => {
       expect(result.warnings).toEqual([]);
     });
 
+    it('uses the FLUX 3 request shape for model variants', async () => {
+      await createBasicModel({ modelId: 'flux-3-image-preview' }).doGenerate({
+        ...callOptions,
+        files: [{ type: 'url', url: 'https://example.com/reference.png' }],
+        providerOptions: {
+          blackForestLabs: { resolution: '2k', grounding: false },
+        },
+      });
+      expect(await server.calls[0].requestBodyJson).toEqual({
+        prompt,
+        images: ['https://example.com/reference.png'],
+        resolution: '2k',
+        grounding: false,
+      });
+    });
+
     it.each(['768sq', '1k', '1.5k', '2k', '4k'])(
       'sends resolution %s and FLUX 3 provider options',
       async resolution => {
@@ -945,7 +988,7 @@ describe('BlackForestLabsImageModel', () => {
             blackForestLabs: {
               resolution,
               grounding: false,
-              safetyTolerance: 4,
+              safetyTolerance: 7,
               version: 'latest',
             },
           },
@@ -955,7 +998,7 @@ describe('BlackForestLabsImageModel', () => {
           aspect_ratio: '16:9',
           resolution,
           grounding: false,
-          safety_tolerance: 4,
+          safety_tolerance: 7,
           version: 'latest',
         });
       },
@@ -1127,7 +1170,7 @@ describe('BlackForestLabsImageModel', () => {
     });
 
     it.each([
-      { safetyTolerance: 5 },
+      { safetyTolerance: 8 },
       { safetyTolerance: -1 },
       { safetyTolerance: 1.5 },
       { resolution: '8k' },
@@ -1258,6 +1301,255 @@ describe('BlackForestLabsImageModel', () => {
       });
     });
   });
+
+  describe.each(['flux-3-image-klein', 'flux-3-image-klein-preview'])(
+    'FLUX 3 Klein (%s)',
+    modelId => {
+      const callOptions: Parameters<
+        BlackForestLabsImageModel['doGenerate']
+      >[0] = {
+        prompt,
+        n: 1,
+        files: undefined,
+        mask: undefined,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      };
+
+      it('leaves resolution and aspect ratio defaults to the endpoint', async () => {
+        const result = await createBasicModel({ modelId }).doGenerate(
+          callOptions,
+        );
+        expect(await server.calls[0].requestBodyJson).toEqual({ prompt });
+        expect(result.warnings).toEqual([]);
+      });
+
+      it.each(['768sq', '1k', '1.5k', '2k', '4k'])(
+        'sends resolution %s without explicit dimensions',
+        async resolution => {
+          const result = await createBasicModel({ modelId }).doGenerate({
+            ...callOptions,
+            aspectRatio: '16:9',
+            providerOptions: { blackForestLabs: { resolution } },
+          });
+          expect(await server.calls[0].requestBodyJson).toEqual({
+            prompt,
+            aspect_ratio: '16:9',
+            resolution,
+          });
+          expect(result.warnings).toEqual([]);
+        },
+      );
+
+      it('sends URL, binary and base64 references in the images array', async () => {
+        await createBasicModel({ modelId }).doGenerate({
+          ...callOptions,
+          files: [
+            { type: 'url', url: 'https://example.com/reference.png' },
+            {
+              type: 'file',
+              data: new Uint8Array([1, 2, 3]),
+              mediaType: 'image/png',
+            },
+            { type: 'file', data: 'dGVzdA==', mediaType: 'image/png' },
+          ],
+        });
+        expect(await server.calls[0].requestBodyJson).toEqual({
+          prompt,
+          images: ['https://example.com/reference.png', 'AQID', 'dGVzdA=='],
+        });
+      });
+
+      it('preserves seed, output format, steps and safety tolerance', async () => {
+        const result = await createBasicModel({ modelId }).doGenerate({
+          ...callOptions,
+          seed: 42,
+          providerOptions: {
+            blackForestLabs: {
+              outputFormat: 'png',
+              steps: 16,
+              safetyTolerance: 7,
+            },
+          },
+        });
+        expect(await server.calls[0].requestBodyJson).toEqual({
+          prompt,
+          seed: 42,
+          output_format: 'png',
+          steps: 16,
+          safety_tolerance: 7,
+        });
+        expect(result.warnings).toEqual([]);
+      });
+
+      it.each([
+        '768x768',
+        '1024x1024',
+        '1536x1536',
+        '2048x2048',
+        '4096x4096',
+      ] as const)('sends exact dimensions for size %s', async size => {
+        const result = await createBasicModel({ modelId }).doGenerate({
+          ...callOptions,
+          size,
+        });
+        expect(await server.calls[0].requestBodyJson).toEqual({
+          prompt,
+          width: Number(size.split('x')[0]),
+          height: Number(size.split('x')[1]),
+        });
+        expect(result.warnings).toEqual([]);
+      });
+
+      it('prefers exact dimensions over aspect ratio and resolution', async () => {
+        const result = await createBasicModel({ modelId }).doGenerate({
+          ...callOptions,
+          size: '1536x640',
+          aspectRatio: '3:1',
+          providerOptions: { blackForestLabs: { resolution: '4k' } },
+        });
+        expect(await server.calls[0].requestBodyJson).toEqual({
+          prompt,
+          width: 1536,
+          height: 640,
+        });
+        expect(result.warnings).toEqual([]);
+      });
+
+      it('prefers provider dimensions over size and accepts a wide 4K image', async () => {
+        await createBasicModel({ modelId }).doGenerate({
+          ...callOptions,
+          size: '1024x1024',
+          providerOptions: { blackForestLabs: { width: 6256, height: 2688 } },
+        });
+        expect(await server.calls[0].requestBodyJson).toEqual({
+          prompt,
+          width: 6256,
+          height: 2688,
+        });
+      });
+
+      it('accepts the minimum dimensions and fills the other dimension from size', async () => {
+        await createBasicModel({ modelId }).doGenerate({
+          ...callOptions,
+          size: '1024x64',
+          providerOptions: { blackForestLabs: { width: 64 } },
+        });
+        expect(await server.calls[0].requestBodyJson).toEqual({
+          prompt,
+          width: 64,
+          height: 64,
+        });
+      });
+
+      it('normalizes reduced ultrawide aspect ratios', async () => {
+        await createBasicModel({ modelId }).doGenerate({
+          ...callOptions,
+          aspectRatio: '7:3',
+        });
+        expect(await server.calls[0].requestBodyJson).toEqual({
+          prompt,
+          aspect_ratio: '21:9',
+        });
+      });
+
+      it('omits unsupported aspect ratios with a warning', async () => {
+        const result = await createBasicModel({ modelId }).doGenerate({
+          ...callOptions,
+          aspectRatio: '3:1',
+        });
+        expect(await server.calls[0].requestBodyJson).toEqual({ prompt });
+        expect(result.warnings).toContainEqual(
+          expect.objectContaining({
+            type: 'unsupported',
+            feature: 'aspectRatio',
+          }),
+        );
+      });
+
+      it('omits base-model and legacy options with warnings', async () => {
+        const result = await createBasicModel({ modelId }).doGenerate({
+          ...callOptions,
+          providerOptions: {
+            blackForestLabs: {
+              grounding: false,
+              version: 'latest',
+              guidance: 4,
+              inputImage: 'dGVzdA==',
+            },
+          },
+        });
+        expect(await server.calls[0].requestBodyJson).toEqual({ prompt });
+        expect(result.warnings).toEqual(
+          expect.arrayContaining([
+            { type: 'unsupported', feature: 'blackForestLabs.grounding' },
+            { type: 'unsupported', feature: 'blackForestLabs.version' },
+            { type: 'unsupported', feature: 'blackForestLabs.guidance' },
+            { type: 'unsupported', feature: 'blackForestLabs.inputImage' },
+          ]),
+        );
+        expect(result.warnings).toHaveLength(4);
+      });
+
+      it.each([
+        { width: 63, height: 64 },
+        { width: 64, height: 6257 },
+        { width: 6256, height: 6256 },
+        { width: 1024 },
+        { height: 1024 },
+        { steps: 0 },
+        { steps: 17 },
+        { safetyTolerance: 8 },
+        { resolution: '8k' },
+      ])(
+        'rejects invalid provider options %j before submission',
+        async blackForestLabs => {
+          await expect(
+            createBasicModel({ modelId }).doGenerate({
+              ...callOptions,
+              providerOptions: { blackForestLabs },
+            }),
+          ).rejects.toThrow();
+          expect(server.calls).toHaveLength(0);
+        },
+      );
+
+      it.each(['63x64', '6257x64', '4096x4108'] as const)(
+        'rejects unsupported size %s before submission',
+        async size => {
+          await expect(
+            createBasicModel({ modelId }).doGenerate({ ...callOptions, size }),
+          ).rejects.toThrow();
+          expect(server.calls).toHaveLength(0);
+        },
+      );
+
+      it('rejects masks before submission', async () => {
+        await expect(
+          createBasicModel({ modelId }).doGenerate({
+            ...callOptions,
+            mask: { type: 'url', url: 'https://example.com/mask.png' },
+          }),
+        ).rejects.toThrow('FLUX 3 image masks');
+        expect(server.calls).toHaveLength(0);
+      });
+
+      it('rejects more than ten reference images before submission', async () => {
+        await expect(
+          createBasicModel({ modelId }).doGenerate({
+            ...callOptions,
+            files: Array.from({ length: 11 }, () => ({
+              type: 'url' as const,
+              url: 'https://example.com/image.png',
+            })),
+          }),
+        ).rejects.toThrow('Black Forest Labs supports up to 10 input images.');
+        expect(server.calls).toHaveLength(0);
+      });
+    },
+  );
 
   describe('constructor', () => {
     it('exposes correct provider and model information', () => {
