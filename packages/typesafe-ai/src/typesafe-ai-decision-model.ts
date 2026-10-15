@@ -46,7 +46,12 @@ type TypeSafeAiDecisionModelConfig = {
 
 export class DecisionTypeSafeAiModel implements DecisionModelV4 {
   readonly specificationVersion = 'v4';
-  readonly supportedQuestionTypes = ['choice', 'score', 'boolean'] as const;
+  readonly supportedQuestionTypes = [
+    'choice',
+    'score',
+    'boolean',
+    'box',
+  ] as const;
 
   constructor(
     readonly modelId: TypeSafeAiDecisionModelId,
@@ -227,7 +232,10 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
       url: `${this.config.baseURL}/systemone`,
       headers: combineHeaders(
         modelHeaders,
-        hasImages ? { 'TypeSafe-Danger-Zone-Images': 'true' } : undefined,
+        hasImages ||
+          Object.values(questions).some(question => question.type === 'box')
+          ? { 'TypeSafe-Danger-Zone-Images': 'true' }
+          : undefined,
         typesafeOptions?.longContext
           ? { 'TypeSafe-Danger-Zone-Long-Context': 'true' }
           : undefined,
@@ -273,6 +281,8 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
         Object.entries(response.answers).map(
           ([id, answer]): [string, DecisionModelV4Answer] => {
             switch (answer.type) {
+              case 'box':
+                return [id, { type: 'box', box: answer.box }];
               case 'noul':
                 return [id, { type: 'boolean', probability: answer.noul }];
               case 'choice':

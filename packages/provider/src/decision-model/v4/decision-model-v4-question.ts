@@ -21,6 +21,11 @@ export type DecisionModelV4Question =
       readonly criteria: readonly (DecisionModelV4Input | null)[];
     }
   | {
+      readonly type: 'box';
+      readonly instructions: DecisionModelV4Input;
+      readonly criteria?: never;
+    }
+  | {
       readonly type: 'boolean';
       readonly instructions: DecisionModelV4Input;
       readonly criteria?: {
