@@ -8,15 +8,14 @@ run(async () => {
 
   try {
     const sandbox = session.restricted();
-    const bash = await bashTool({
-      sandbox: session.restricted(),
-      files: {
-        'sales.json': JSON.stringify([
-          { product: 'Apples', revenue: 120 },
-          { product: 'Pears', revenue: 80 },
-        ]),
-      },
+    await sandbox.writeTextFile({
+      path: 'sales.json',
+      content: JSON.stringify([
+        { product: 'Apples', revenue: 120 },
+        { product: 'Pears', revenue: 80 },
+      ]),
     });
+    const bash = await bashTool({ sandbox });
 
     const agent = new ToolLoopAgent({
       model: 'openai/gpt-6-astra',

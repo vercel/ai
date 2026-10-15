@@ -30,10 +30,11 @@ const session = await createJustBashNetworkSandboxSession();
 
 try {
   const sandbox = session.restricted();
-  const bash = await bashTool({
-    sandbox,
-    files: { 'notes.txt': 'Apples: 10\nPears: 20\n' },
+  await sandbox.writeTextFile({
+    path: 'notes.txt',
+    content: 'Apples: 10\nPears: 20\n',
   });
+  const bash = await bashTool({ sandbox });
 
   const result = await generateText({
     model, // Your configured model with function calling support.
@@ -55,11 +56,11 @@ The just-bash adapter resolves relative read paths against its default directory
 When overriding `workingDirectory`, use absolute paths to read files there.
 
 The caller owns the sandbox lifecycle. Tools sharing a session share files.
-Commands use the sandbox's default working directory. Initial files are written
-relative to that directory, resolved with `pwd` during initialization. Set
+Seed files through `sandbox.writeTextFile({ path, content })` before running the
+tool. Commands use the sandbox's default working directory. Set
 `workingDirectory` to an absolute path to override it; explicit directories are
-created if needed. Without initial files or an override, creating the tool runs
-no setup commands. Commands, networking, and persistence depend on the sandbox.
+created if needed. Without an override, creating the tool runs no setup commands.
+Commands, networking, and persistence depend on the sandbox.
 
 ## Vercel Sandbox
 
@@ -74,10 +75,12 @@ import { Sandbox } from '@vercel/sandbox';
 const nativeSandbox = await Sandbox.create();
 
 try {
-  const bash = await bashTool({
-    sandbox: createVercelSandboxSessionFromNativeSandbox(nativeSandbox),
-    files: { 'notes.txt': 'Hello from Vercel Sandbox' },
+  const sandbox = createVercelSandboxSessionFromNativeSandbox(nativeSandbox);
+  await sandbox.writeTextFile({
+    path: 'notes.txt',
+    content: 'Hello from Vercel Sandbox',
   });
+  const bash = await bashTool({ sandbox });
 
   // Use bash with generateText, streamText, or ToolLoopAgent here.
 } finally {
