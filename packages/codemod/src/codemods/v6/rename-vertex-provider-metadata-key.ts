@@ -36,26 +36,27 @@ export default createTransformer((fileInfo, api, options, context) => {
     return false;
   };
 
-  // Helper to check if a node is inside a providerOptions object
-  const isInsideProviderOptions = (path: any): boolean => {
-    let current = path.parent;
-    while (current) {
-      if (current.node.type === 'ObjectExpression') {
-        const grandparent = current.parent;
-        if (
-          grandparent &&
-          (grandparent.node.type === 'Property' ||
-            grandparent.node.type === 'ObjectProperty')
-        ) {
-          const key = grandparent.node.key;
-          if (key.type === 'Identifier' && key.name === 'providerOptions') {
-            return true;
-          }
-        }
-      }
-      current = current.parent;
+  // Helper to check if a property is a direct child of a providerOptions
+  // object, i.e. `providerOptions: { google: ... }`. Keys nested deeper inside
+  // the provider namespace (`labels: { google: ... }`) are application data
+  // and must not be renamed.
+  const isDirectProviderOptionsChild = (path: any): boolean => {
+    const parent = path.parent;
+    if (!parent || parent.node.type !== 'ObjectExpression') {
+      return false;
     }
-    return false;
+
+    const grandparent = parent.parent;
+    if (
+      !grandparent ||
+      (grandparent.node.type !== 'Property' &&
+        grandparent.node.type !== 'ObjectProperty')
+    ) {
+      return false;
+    }
+
+    const key = grandparent.node.key;
+    return key.type === 'Identifier' && key.name === 'providerOptions';
   };
 
   // Transform providerMetadata?.google and providerMetadata.google
@@ -144,7 +145,7 @@ export default createTransformer((fileInfo, api, options, context) => {
     }
 
     // Check if this property is inside a providerOptions object
-    if (isInsideProviderOptions(path)) {
+    if (isDirectProviderOptionsChild(path)) {
       key.name = 'vertex';
       context.hasChanges = true;
     }
@@ -158,7 +159,7 @@ export default createTransformer((fileInfo, api, options, context) => {
       return;
     }
 
-    if (isInsideProviderOptions(path)) {
+    if (isDirectProviderOptionsChild(path)) {
       key.name = 'vertex';
       context.hasChanges = true;
     }
