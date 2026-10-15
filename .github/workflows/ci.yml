@@ -10,6 +10,15 @@ on:
 permissions:
   contents: read
 
+env:
+  # disable remote cache on PRs because otherwise
+  # they fail authentication to Vercel
+  TURBO_CACHE: >-
+    ${{ github.repository == 'vercel/ai' &&
+        (github.event_name == 'push' ||
+         (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)) &&
+        'local:rw,remote:rw' || 'local:rw' }}
+
 jobs:
   check:
     name: 'Lint & Format'
@@ -59,6 +68,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Set up Turborepo Remote Cache
+        if: env.TURBO_CACHE == 'local:rw,remote:rw'
         uses: vercel/setup-turborepo-remote-cache-action@49d7b1b46ba4c9251e1977986bfe18336feabc8f # v1.1.0
         with:
           team: ${{ vars.TURBO_TEAM }}
@@ -113,6 +123,7 @@ jobs:
             ${{ runner.os }}-build-examples-${{ matrix.shard }}-
 
       - name: Set up Turborepo Remote Cache
+        if: env.TURBO_CACHE == 'local:rw,remote:rw'
         uses: vercel/setup-turborepo-remote-cache-action@49d7b1b46ba4c9251e1977986bfe18336feabc8f # v1.1.0
         with:
           team: ${{ vars.TURBO_TEAM }}
@@ -241,6 +252,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Set up Turborepo Remote Cache
+        if: env.TURBO_CACHE == 'local:rw,remote:rw'
         uses: vercel/setup-turborepo-remote-cache-action@49d7b1b46ba4c9251e1977986bfe18336feabc8f # v1.1.0
         with:
           team: ${{ vars.TURBO_TEAM }}
@@ -356,6 +368,7 @@ jobs:
         run: tar -xzf package-build-artifacts.tgz
 
       - name: Set up Turborepo Remote Cache
+        if: env.TURBO_CACHE == 'local:rw,remote:rw'
         uses: vercel/setup-turborepo-remote-cache-action@49d7b1b46ba4c9251e1977986bfe18336feabc8f # v1.1.0
         with:
           team: ${{ vars.TURBO_TEAM }}
@@ -634,6 +647,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Set up Turborepo Remote Cache
+        if: env.TURBO_CACHE == 'local:rw,remote:rw'
         uses: vercel/setup-turborepo-remote-cache-action@49d7b1b46ba4c9251e1977986bfe18336feabc8f # v1.1.0
         with:
           team: ${{ vars.TURBO_TEAM }}
