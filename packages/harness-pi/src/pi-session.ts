@@ -1512,8 +1512,7 @@ export async function createPiSession(
      */
     const pendingToolBatch = createPendingToolBatchCheckpoint();
     replayBarrier?.cancel();
-    const checkpointedEntries =
-      pendingToolBatch == null ? undefined : snapshotSessionEntries();
+    const entriesBeforeAbort = pendingToolBatch && snapshotSessionEntries();
     const turnToStop = activeTurn;
     const abortingTurn = turnToStop?.abort();
     settlePendingToolResults('Pi session stopped');
@@ -1521,10 +1520,7 @@ export async function createPiSession(
     await abortingTurn;
     await turnToStop?.done.catch(() => {});
 
-    const data = createLifecycleData(
-      pendingToolBatch,
-      checkpointedEntries ?? snapshotSessionEntries(),
-    );
+    const data = createLifecycleData(pendingToolBatch, entriesBeforeAbort);
 
     await disposePiSession({ reason: 'quit' });
     await rm(hostRoot, { recursive: true, force: true });
@@ -1540,9 +1536,6 @@ export async function createPiSession(
   const sessionImpl: HarnessV1Session = {
     sessionId: input.sessionId,
     isResume: input.isResume,
-    // Pi has no bridge to attach to and no on-disk event log to replay; its
-    // only resume path is restoring the session file on a fresh/snapshotted
-    // sandbox, i.e. `rerun`.
 
     doPromptTurn: async (
       promptOpts: HarnessV1PromptTurnOptions,
@@ -1710,8 +1703,7 @@ export async function createPiSession(
        */
       const pendingToolBatch = createPendingToolBatchCheckpoint();
       replayBarrier?.cancel();
-      const checkpointedEntries =
-        pendingToolBatch == null ? undefined : snapshotSessionEntries();
+      const entriesBeforeAbort = pendingToolBatch && snapshotSessionEntries();
       suspending = true;
       const turnToSuspend = activeTurn;
       const abortingTurn = turnToSuspend?.abort();
@@ -1720,10 +1712,7 @@ export async function createPiSession(
       await abortingTurn;
       await turnToSuspend?.done.catch(() => {});
 
-      const data = createLifecycleData(
-        pendingToolBatch,
-        checkpointedEntries ?? snapshotSessionEntries(),
-      );
+      const data = createLifecycleData(pendingToolBatch, entriesBeforeAbort);
 
       stopped = true;
       parkedPiSessions.delete(input.sessionId);

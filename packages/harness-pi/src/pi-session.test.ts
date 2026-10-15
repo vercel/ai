@@ -2611,7 +2611,7 @@ describe('createPiSession', () => {
         },
       });
       piMock.session = fakePiSession;
-      const { journal, entries } = createJournal([
+      const { sessionManager: journal, entries } = createFakeSessionManager([
         userMessage('ask the user something'),
         assistantMessageWithToolCalls([{ id: 'tool-1', name: 'askUser' }]),
       ]);
@@ -2768,12 +2768,14 @@ describe('createPiSession', () => {
             },
           });
           piMock.session = fakePiSession;
-          const { journal, entries } = createJournal([
-            userMessage('inspect an image'),
-            assistantMessageWithToolCalls([
-              { id: 'tool-1', name: 'visualize' },
-            ]),
-          ]);
+          const { sessionManager: journal, entries } = createFakeSessionManager(
+            [
+              userMessage('inspect an image'),
+              assistantMessageWithToolCalls([
+                { id: 'tool-1', name: 'visualize' },
+              ]),
+            ],
+          );
           piMock.sessionManagerInMemory.mockImplementation(() => journal);
           const session = await createPiSession({
             sessionId: 'session-live-truncation',
@@ -2894,7 +2896,7 @@ describe('createPiSession', () => {
       },
     });
     piMock.session = fakePiSession;
-    const { journal, entries } = createJournal([
+    const { sessionManager: journal, entries } = createFakeSessionManager([
       userMessage('ask the user two things'),
       {
         ...assistantMessageWithToolCalls([
@@ -3211,7 +3213,7 @@ describe('createPiSession', () => {
   it('reruns immediately on cross-process resume when the journal has no dangling host tool calls', async () => {
     const { session: fakePiSession, prompt } = createFakePiSession();
     piMock.session = fakePiSession;
-    const { journal, entries } = createJournal([
+    const { sessionManager: journal, entries } = createFakeSessionManager([
       userMessage('ask the user something'),
       assistantMessageWithToolCalls([{ id: 'tool-1', name: 'askUser' }]),
       {
@@ -3682,7 +3684,7 @@ async function startDeferredCrossProcessRerun({
     dispose,
     agent,
   } = createFakePiSession();
-  const { journal, entries } = createJournal([
+  const { sessionManager: journal, entries } = createFakeSessionManager([
     userMessage('ask the user something'),
     assistantMessageWithToolCalls([{ id: 'tool-1', name: 'askUser' }]),
   ]);
@@ -3775,12 +3777,6 @@ function createFakeSessionManager(messages: unknown[]) {
     }),
   };
   return { sessionManager, appendedMessages, entries };
-}
-
-function createJournal(messages: unknown[]) {
-  const { sessionManager, appendedMessages, entries } =
-    createFakeSessionManager(messages);
-  return { journal: sessionManager, appendedMessages, entries };
 }
 
 function userMessage(text: string) {

@@ -264,9 +264,13 @@ export function createPi(
         ...(lifecycleState ? { resumeStateType: lifecycleState.type } : {}),
         permissionMode: startOpts.permissionMode,
         builtinToolFiltering: startOpts.builtinToolFiltering,
-        ...(resumeData?.entries ? { resumeEntries: resumeData.entries } : {}),
-        ...(resumeData?.pendingToolBatch
-          ? { resumePendingToolBatch: resumeData.pendingToolBatch }
+        ...(resumeData?.entries
+          ? {
+              resumeEntries: resumeData.entries,
+              ...(resumeData.pendingToolBatch
+                ? { resumePendingToolBatch: resumeData.pendingToolBatch }
+                : {}),
+            }
           : {}),
         ...(startOpts.abortSignal
           ? { abortSignal: startOpts.abortSignal }

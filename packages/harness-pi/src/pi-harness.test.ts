@@ -181,4 +181,31 @@ describe('createPi adapter', () => {
       expect(input?.resumeEntries).toEqual(resumeEntries);
     },
   );
+
+  it('drops a pending tool batch from an earlier version that has no entries to replay it against', async () => {
+    mocks.createPiSession.mockClear();
+
+    await createPi().doStart({
+      sessionId: 'session-1',
+      sandboxSession: {} as never,
+      sessionWorkDir: '/sandbox/work',
+      continueFrom: {
+        type: 'continue-turn',
+        harnessId: 'pi',
+        specificationVersion: 'harness-v1',
+        data: {
+          sessionFileName: 'x.jsonl',
+          pendingToolBatch: {
+            awaitingToolCallIds: ['tool-1'],
+            completedToolResults: [],
+            nativeApprovalDecisions: [],
+          },
+        },
+      },
+    });
+
+    const input = mocks.createPiSession.mock.calls[0]?.[0];
+    expect(input?.resumeEntries).toBeUndefined();
+    expect(input?.resumePendingToolBatch).toBeUndefined();
+  });
 });
