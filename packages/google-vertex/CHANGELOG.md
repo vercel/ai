@@ -1,5 +1,18 @@
 # @ai-sdk/google-vertex
 
+## 5.0.112
+
+### Patch Changes
+
+- 40d0aec: feat(vertex-anthropic): forward 'providerOptions.vertex.labels' as a header
+- Updated dependencies [2e89fa4]
+- Updated dependencies [40d0aec]
+- Updated dependencies [40a4ce1]
+  - @ai-sdk/provider-utils@5.0.60
+  - @ai-sdk/anthropic@4.0.80
+  - @ai-sdk/google@4.0.96
+  - @ai-sdk/openai-compatible@3.0.69
+
 ## 5.0.111
 
 ### Patch Changes

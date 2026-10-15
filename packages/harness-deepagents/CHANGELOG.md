@@ -1,5 +1,14 @@
 # @ai-sdk/harness-deepagents
 
+## 1.0.152
+
+### Patch Changes
+
+- 8011fb5: fix(harness-deepagents): install `ripgrep` universally via NPM
+- Updated dependencies [2e89fa4]
+  - @ai-sdk/provider-utils@5.0.60
+  - @ai-sdk/harness@1.0.152
+
 ## 1.0.151
 
 ### Patch Changes

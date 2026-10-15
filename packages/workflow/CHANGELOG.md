@@ -1,5 +1,16 @@
 # @ai-sdk/workflow
 
+## 2.0.73
+
+### Patch Changes
+
+- 88ea0d7: fix(workflow): pass runtime context allowed by 'telemetry.includeRuntimeContext'
+- 6ac1ee1: fix(workflow): validate and normalize tool inputs with the original tool schema in `WorkflowAgent`, matching `streamText`. Defaults, transforms, coercion, refinements, unknown-key handling, custom validators, `repairToolCall`, and lifecycle callbacks now behave the same in durable runs, and approval requests retain the pre-transform input so transforms do not run twice on resume.
+- Updated dependencies [2e89fa4]
+- Updated dependencies [88ea0d7]
+  - @ai-sdk/provider-utils@5.0.60
+  - ai@7.0.141
+
 ## 2.0.72
 
 ### Patch Changes

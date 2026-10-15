@@ -1,5 +1,15 @@
 # ai
 
+## 7.0.141
+
+### Patch Changes
+
+- 88ea0d7: fix(workflow): pass runtime context allowed by 'telemetry.includeRuntimeContext'
+- Updated dependencies [2e89fa4]
+- Updated dependencies [b658e85]
+  - @ai-sdk/provider-utils@5.0.60
+  - @ai-sdk/gateway@4.0.114
+
 ## 7.0.140
 
 ### Patch Changes

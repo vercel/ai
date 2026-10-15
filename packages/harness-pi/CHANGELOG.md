@@ -1,5 +1,38 @@
 # @ai-sdk/harness-pi
 
+## 1.0.154
+
+### Patch Changes
+
+- 90983d7: feat(harness-pi): add configurable writable sandbox roots for Pi's native file tools
+- d10fa3e: feat(harness-pi): pass the harness session to extension factories
+
+  Each `extensionFactories` entry now receives a second argument, a `PiHarnessExtensionSession` with the restricted `sandboxSession`, the `sessionWorkDir` and an `instructions()` getter for the current turn's instructions. An extension can now run work against the session's sandbox with the session's instructions, such as a tool that delegates to a child Pi session. Existing `(pi) => void` factories keep working unchanged.
+
+- 9323fdb: feat(harness-pi): serve mcpServers with Pi's native MCP and tool_search
+
+  `mcpServers` is now served by Pi's built-in MCP extension and its `tool_search` tool instead of `pi-mcp-adapter`, which is no longer a dependency. Each entry is Pi's `McpServerConfig`: stdio `{ command, args, env, cwd }` or streamable HTTP `{ url, headers, timeout }`, plus `exposure`, `toolExposure`, `enabled` and `description`. The setting stays typed as `Record<string, unknown>` like the other harnesses; type entries with the exported `PiMcpServerConfig`. Fields that only the adapter understood, such as `lifecycle`, are no longer supported.
+
+  Tool names are always `mcp__<server>__<tool>`, with `-` in either name replaced by `_`, so a server named `brand-ai` now yields `mcp__brand_ai__<tool>`. `exposure` defaults to `direct`, which declares a server's tools to the model. `deferred` tools stay undeclared until the model loads them through `tool_search` and then calls them by name. Pi's own default, `codemode`, is not supported because the harness does not load Pi's codemode extension; an entry that asks for it fails session start, as does an entry Pi rejects.
+
+  `mcpSettings.toolPrefix` and `mcpSettings.outputGuard` are deprecated. A `toolPrefix` other than `'mcp'` or `outputGuard: false` now fails session start, since native MCP cannot honor either. Pi truncates text results over 20 KB and writes the full text to a file in the host temp directory.
+
+  The harness has no sign-in flow, so an HTTP server that requires authentication must carry an `Authorization` header or `auth.provider`; with the header, OAuth never runs. The harness reads no `mcp.json` and neither reads nor writes `mcp.log` or `mcp-auth.json`, so a sign-in stored by the Pi CLI is never sent. `@earendil-works/pi-ai` is no longer a direct dependency.
+
+- 286e0c7: fix(harness-pi): return images from the read tool as image blocks
+
+  The `read` tool decoded every file as UTF-8, so the model received an image as unreadable text. The tool now runs Pi's own `createReadToolDefinition` over the sandbox: PNG, JPEG, GIF, WebP and BMP files come back as image blocks that Pi resizes, and text reads keep Pi's truncation and paging notices. The tool still takes `file_path`, and path mapping and `fileToolPathPolicy` apply as before.
+
+- 8ae0804: fix(harness-pi): judge a turn by its last attempt and keep suspend errors out of the stream
+
+  A turn that Pi recovered by retrying a failed request (rate limit, overload, context overflow after compaction) ended with an `error` part, because the first terminal error seen was kept for the whole turn. The last assistant message now decides the outcome, so a recovered turn ends with `finish`.
+
+  Once `doSuspendTurn` has begun, every terminal or thrown error of the turn being cut belongs to the suspend and no longer emits an `error` part. Before, only errors that looked like an abort were kept silent, and a request Pi started on an already-aborted signal reports `stopReason: 'error'` ("This operation was aborted") while a provider can also fail during the cut. Reporting such an error ended the slice as failed with the unfinished turn nested in its resume state, and a session built from that state refused every later prompt.
+
+- Updated dependencies [2e89fa4]
+  - @ai-sdk/provider-utils@5.0.60
+  - @ai-sdk/harness@1.0.152
+
 ## 1.0.153
 
 ### Patch Changes
