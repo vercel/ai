@@ -215,6 +215,11 @@ export class CartesiaSpeechModel implements SpeechModelV4 {
       if (cartesiaOptions.language != null) {
         requestBody.language = cartesiaOptions.language;
       }
+
+      if (cartesiaOptions.pronunciationDictionaryId != null) {
+        requestBody.pronunciation_dict_id =
+          cartesiaOptions.pronunciationDictionaryId;
+      }
     }
 
     const resolvedSpeed = cartesiaOptions?.speed ?? speed;
