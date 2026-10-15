@@ -66,18 +66,15 @@ const ParameterEntry = ({
 
   return (
     <div
-      className={`flex min-w-0 max-w-full flex-col gap-1 border-gray-alpha-400 border-b ${rowClassName}`}
+      className={`flex flex-col gap-1 border-gray-alpha-400 border-b ${rowClassName}`}
       id={id}
     >
-      <a
-        className="flex min-w-0 max-w-full flex-row items-start gap-2"
-        href={`#${id}`}
-      >
-        <h3 className="min-w-0 font-medium font-mono text-sm wrap-anywhere">
+      <a className="flex flex-row items-start gap-2" href={`#${id}`}>
+        <h3 className="font-medium font-mono text-sm">
           {parameter.name}
           {parameter.isOptional ? '?:' : parameter.name === '' ? '' : ':'}
         </h3>
-        <div className="min-w-0 flex-1 font-mono text-gray-900 text-sm wrap-anywhere">
+        <div className="w-full font-mono text-gray-900 text-sm">
           {parameter.type}
         </div>
       </a>
@@ -88,11 +85,11 @@ const ParameterEntry = ({
       </div>
       {parameter.properties?.map((property, index) => (
         <div
-          className="relative m-2 my-4 flex min-w-0 max-w-full flex-col rounded-lg border border-gray-alpha-400"
+          className="relative m-2 my-4 flex flex-col rounded-lg border border-gray-alpha-400"
           key={`${parameter.name}-${property.type}-${index}`}
         >
           <a
-            className="-top-3 absolute right-2 z-10 max-w-[calc(100%-1rem)] wrap-anywhere rounded-md bg-gray-200 px-2 py-1 text-right font-mono text-gray-900 text-xs"
+            className="-top-3 absolute right-2 z-10 rounded-md bg-gray-200 px-2 py-1 font-mono text-gray-900 text-xs"
             href={`#${hashId([...parents, parameter.name, property.type])}`}
             id={hashId([...parents, parameter.name, property.type])}
           >
@@ -122,8 +119,8 @@ export const PropertiesTable = ({
   const descriptionComponents = createDescriptionComponents(versionPrefix);
 
   return (
-    <div className="not-prose flex min-w-0 max-w-full flex-col gap-6">
-      <div className="min-w-0 max-w-full">
+    <div className="not-prose flex flex-col gap-6">
+      <div>
         {typeof content === 'string'
           ? content
           : content.map((parameter, index) => (
