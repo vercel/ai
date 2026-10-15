@@ -15,6 +15,10 @@ describe('remove-await-fn', () => {
     testTransform(transformer, 'remove-await-fn-other');
   });
 
+  it('does not transform calls to a shadowing binding', () => {
+    testTransform(transformer, 'remove-await-fn-shadowed');
+  });
+
   it('does not transform on other function', () => {
     testTransform(transformer, 'remove-await-fn-other-fn');
   });
