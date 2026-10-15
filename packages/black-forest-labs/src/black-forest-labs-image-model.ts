@@ -11,12 +11,9 @@ import {
   delay,
   getFromApi,
   isSameOrigin,
-  lazySchema,
   parseProviderOptions,
   postJsonToApi,
   resolve,
-  zodSchema,
-  type InferSchema,
   type Resolvable,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
@@ -26,10 +23,6 @@ import {
   isTrustedUrl,
 } from './black-forest-labs-api';
 import {
-<<<<<<< HEAD
-  type BlackForestLabsAspectRatio,
-  type BlackForestLabsImageModelId,
-=======
   blackForestLabsFlux3ImageModelOptionsSchema,
   blackForestLabsImageModelOptionsSchema,
   blackForestLabsLatestImageModelOptionsSchema,
@@ -37,7 +30,6 @@ import {
 import type {
   BlackForestLabsAspectRatio,
   BlackForestLabsImageModelId,
->>>>>>> 66c7df2640 (fix(black-forest-labs): default unknown image models to latest FLUX API (#23410))
 } from './black-forest-labs-image-settings';
 
 const DEFAULT_POLL_INTERVAL_MILLIS = 500;
@@ -65,8 +57,6 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
   readonly specificationVersion = 'v3';
   readonly maxImagesPerCall = 1;
 
-<<<<<<< HEAD
-=======
   private get modelApi(): 'legacy' | 'flux-3-image' | 'latest' {
     if (
       this.modelId === 'flux-pro' ||
@@ -86,32 +76,6 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
     return 'latest';
   }
 
-  get supportsFileInputs(): boolean | undefined {
-    if (
-      this.modelApi !== 'legacy' ||
-      ['flux-kontext-pro', 'flux-kontext-max', 'flux-pro-1.0-fill'].includes(
-        this.modelId,
-      )
-    ) {
-      return true;
-    }
-
-    if (['flux-pro-1.1-ultra', 'flux-pro-1.1'].includes(this.modelId)) {
-      return false;
-    }
-
-    return undefined;
-  }
-
-  get supportsMaskInputs(): boolean | undefined {
-    if (this.modelId === 'flux-pro-1.0-fill') {
-      return true;
-    }
-
-    return this.supportsFileInputs == null ? undefined : false;
-  }
-
->>>>>>> 66c7df2640 (fix(black-forest-labs): default unknown image models to latest FLUX API (#23410))
   get provider(): string {
     return this.config.provider;
   }
@@ -129,14 +93,9 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
     aspectRatio,
     seed,
     providerOptions,
-<<<<<<< HEAD
   }: Parameters<ImageModelV3['doGenerate']>[0]) {
     const warnings: Array<SharedV3Warning> = [];
-=======
-  }: Parameters<ImageModelV4['doGenerate']>[0]) {
-    const warnings: Array<SharedV4Warning> = [];
     const modelApi = this.modelApi;
->>>>>>> 66c7df2640 (fix(black-forest-labs): default unknown image models to latest FLUX API (#23410))
 
     const finalAspectRatio =
       aspectRatio ?? (size ? convertSizeToAspectRatio(size) : undefined);
@@ -539,62 +498,6 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
     throw new Error('Black Forest Labs generation timed out.');
   }
 }
-
-const blackForestLabsImageProviderOptions = z.object({
-  resolution: z.enum(['768sq', '1k', '1.5k', '2k', '4k']).optional(),
-  grounding: z.boolean().optional(),
-  version: z.literal('latest').optional(),
-  imagePrompt: z.string().optional(),
-  imagePromptStrength: z.number().min(0).max(1).optional(),
-  /** @deprecated use prompt.images instead */
-  inputImage: z.string().optional(),
-  /** @deprecated use prompt.images instead */
-  inputImage2: z.string().optional(),
-  /** @deprecated use prompt.images instead */
-  inputImage3: z.string().optional(),
-  /** @deprecated use prompt.images instead */
-  inputImage4: z.string().optional(),
-  /** @deprecated use prompt.images instead */
-  inputImage5: z.string().optional(),
-  /** @deprecated use prompt.images instead */
-  inputImage6: z.string().optional(),
-  /** @deprecated use prompt.images instead */
-  inputImage7: z.string().optional(),
-  /** @deprecated use prompt.images instead */
-  inputImage8: z.string().optional(),
-  /** @deprecated use prompt.images instead */
-  inputImage9: z.string().optional(),
-  /** @deprecated use prompt.images instead */
-  inputImage10: z.string().optional(),
-  steps: z.number().int().positive().optional(),
-  guidance: z.number().min(0).optional(),
-  width: z.number().int().min(256).max(1920).optional(),
-  height: z.number().int().min(256).max(1920).optional(),
-  outputFormat: z.enum(['jpeg', 'png']).optional(),
-  promptUpsampling: z.boolean().optional(),
-  raw: z.boolean().optional(),
-  safetyTolerance: z.number().int().min(0).max(6).optional(),
-  webhookSecret: z.string().optional(),
-  webhookUrl: z.url().optional(),
-  pollIntervalMillis: z.number().int().positive().optional(),
-  pollTimeoutMillis: z.number().int().positive().optional(),
-});
-
-export const blackForestLabsImageModelOptionsSchema = lazySchema(() =>
-  zodSchema(blackForestLabsImageProviderOptions),
-);
-
-export const blackForestLabsFlux3ImageModelOptionsSchema = lazySchema(() =>
-  zodSchema(
-    blackForestLabsImageProviderOptions.extend({
-      safetyTolerance: z.number().int().min(0).max(4).optional(),
-    }),
-  ),
-);
-
-export type BlackForestLabsImageModelOptions = InferSchema<
-  typeof blackForestLabsImageModelOptionsSchema
->;
 
 function convertSizeToAspectRatio(
   size: string,

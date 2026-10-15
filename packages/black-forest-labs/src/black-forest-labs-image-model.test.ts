@@ -132,62 +132,6 @@ describe('BlackForestLabsImageModel', () => {
     },
   });
 
-<<<<<<< HEAD
-=======
-  describe('capabilities', () => {
-    it.each([
-      {
-        modelId: 'flux-3-image',
-        supportsFileInputs: true,
-        supportsMaskInputs: false,
-      },
-      {
-        modelId: 'flux-3-image-klein',
-        supportsFileInputs: true,
-        supportsMaskInputs: false,
-      },
-      {
-        modelId: 'flux-pro-1.0-fill',
-        supportsFileInputs: true,
-        supportsMaskInputs: true,
-      },
-      {
-        modelId: 'flux-kontext-pro',
-        supportsFileInputs: true,
-        supportsMaskInputs: false,
-      },
-      {
-        modelId: 'flux-kontext-max',
-        supportsFileInputs: true,
-        supportsMaskInputs: false,
-      },
-      {
-        modelId: 'flux-pro-1.1',
-        supportsFileInputs: false,
-        supportsMaskInputs: false,
-      },
-      {
-        modelId: 'flux-pro-1.1-ultra',
-        supportsFileInputs: false,
-        supportsMaskInputs: false,
-      },
-      {
-        modelId: 'flux-2-pro',
-        supportsFileInputs: undefined,
-        supportsMaskInputs: undefined,
-      },
-    ] as const)(
-      'advertises file=$supportsFileInputs and mask=$supportsMaskInputs for $modelId',
-      ({ modelId, supportsFileInputs, supportsMaskInputs }) => {
-        const model = createBasicModel({ modelId });
-
-        expect(model.supportsFileInputs).toBe(supportsFileInputs);
-        expect(model.supportsMaskInputs).toBe(supportsMaskInputs);
-      },
-    );
-  });
-
->>>>>>> 66c7df2640 (fix(black-forest-labs): default unknown image models to latest FLUX API (#23410))
   beforeEach(() => {
     vi.mocked(providerUtils.parseProviderOptions).mockClear();
   });
@@ -793,7 +737,6 @@ describe('BlackForestLabsImageModel', () => {
       expect(pollCalls.length).toBe(3);
     });
 
-<<<<<<< HEAD
     it('uses configured pollTimeoutMillis and pollIntervalMillis to time out', async () => {
       server.urls['https://api.example.com/poll'].response = ({
         callNumber,
@@ -801,35 +744,6 @@ describe('BlackForestLabsImageModel', () => {
         type: 'json-value',
         body: { status: 'Pending', callNumber },
       });
-=======
-    it('enforces pollTimeoutMillis while a polling request is pending', async () => {
-      let pollingSignal: AbortSignal | null | undefined;
-      const fetch: FetchFunction = async (input, init) => {
-        const url = input instanceof Request ? input.url : input.toString();
-
-        if (url === 'https://api.example.com/v1/flux-2-pro') {
-          return new Response(
-            JSON.stringify({
-              id: 'req-123',
-              polling_url: 'https://api.example.com/poll',
-            }),
-            {
-              status: 200,
-              headers: { 'content-type': 'application/json' },
-            },
-          );
-        }
-
-        pollingSignal = init?.signal;
-        return new Promise<Response>((_resolve, reject) => {
-          pollingSignal?.addEventListener(
-            'abort',
-            () => reject(pollingSignal?.reason),
-            { once: true },
-          );
-        });
-      };
->>>>>>> 66c7df2640 (fix(black-forest-labs): default unknown image models to latest FLUX API (#23410))
 
       const pollIntervalMillis = 10;
       const pollTimeoutMillis = 25;
@@ -1537,13 +1451,8 @@ describe('BlackForestLabsImageModel', () => {
       const model = createBasicModel();
 
       expect(model.provider).toBe('black-forest-labs.image');
-<<<<<<< HEAD
-      expect(model.modelId).toBe('test-model');
-      expect(model.specificationVersion).toBe('v3');
-=======
       expect(model.modelId).toBe('flux-2-pro');
-      expect(model.specificationVersion).toBe('v4');
->>>>>>> 66c7df2640 (fix(black-forest-labs): default unknown image models to latest FLUX API (#23410))
+      expect(model.specificationVersion).toBe('v3');
       expect(model.maxImagesPerCall).toBe(1);
     });
   });
