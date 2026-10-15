@@ -8,7 +8,7 @@ import {
 import { posix } from 'node:path';
 import { z } from 'zod/v4';
 
-type BashInput = { command: string };
+type BashInput = z.infer<typeof inputSchema>;
 
 type BashOutput = {
   stdout: string;
