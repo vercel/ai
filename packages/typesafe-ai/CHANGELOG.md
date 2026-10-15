@@ -1,5 +1,14 @@
 # @ai-sdk/typesafe-ai
 
+## 3.0.20
+
+### Patch Changes
+
+- 8c5a1d7: feat(typesafe): avoid duplicate image references and add insertReference
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+  - @ai-sdk/provider-utils@5.0.61
+
 ## 3.0.19
 
 ### Patch Changes
