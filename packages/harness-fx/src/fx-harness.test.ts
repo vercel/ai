@@ -1,11 +1,20 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
+import {
+  secureJsonParse,
+  type Experimental_SandboxSession as SandboxSession,
+} from '@ai-sdk/provider-utils';
+import { HarnessAgent } from '@ai-sdk/harness/agent';
 import type {
   HarnessV1PromptTurnOptions,
   HarnessV1StreamPart,
   HarnessV1BuiltinToolFiltering,
 } from '@ai-sdk/harness';
-import type { FxRuntimeOptions, FxToolResult } from './fx-runtime';
+import {
+  createFxRuntime,
+  type FxRuntimeOptions,
+  type FxToolResult,
+} from './fx-runtime';
+import type { FxStoredState } from './fx-resume-state';
 import { createFx } from './fx-harness';
 import { resolveFxEnv } from './fx-auth';
 import {
@@ -17,13 +26,14 @@ import {
 const runtime = vi.hoisted(() => ({
   options: [] as FxRuntimeOptions[],
   run: undefined as ((options: FxRuntimeOptions) => Promise<void>) | undefined,
+  close: undefined as (() => Promise<void>) | undefined,
 }));
 vi.mock('./fx-runtime', () => ({
   createFxRuntime: vi.fn(async (options: FxRuntimeOptions) => {
     runtime.options.push(options);
     return {
       checkpoint: async () => new Uint8Array([1, 2, 3]),
-      close: async () => {},
+      close: async () => runtime.close?.(),
       prompt: (_prompt: unknown, input: { signal: AbortSignal }) => {
         const result = Promise.race([
           Promise.resolve()
@@ -38,7 +48,18 @@ vi.mock('./fx-runtime', () => ({
           ),
         ]);
         void result.catch(() => {});
-        return { result, cancel() {}, async *[Symbol.asyncIterator]() {} };
+        return {
+          result,
+          cancel() {},
+          [Symbol.asyncIterator]() {
+            return {
+              async next() {
+                await result;
+                return { done: true as const, value: undefined };
+              },
+            };
+          },
+        };
       },
     };
   }),
@@ -47,6 +68,8 @@ vi.mock('./fx-runtime', () => ({
 function createSandbox() {
   const files = new Map<string, string>();
   const run = vi.fn(async ({ command }: { command: string }) => {
+    if (command === 'pwd')
+      return { exitCode: 0, stdout: '/workspace', stderr: '' };
     if (command.includes('"$HOME"'))
       return {
         exitCode: 0,
@@ -115,6 +138,7 @@ beforeEach(() => {
   vi.stubEnv('VERCEL_OIDC_TOKEN', undefined);
   runtime.options.length = 0;
   runtime.run = undefined;
+  runtime.close = undefined;
 });
 
 afterEach(() => vi.unstubAllEnvs());
@@ -597,6 +621,241 @@ describe('fx harness', () => {
     });
     await resumed.doDestroy();
     await session.doDestroy();
+  });
+});
+
+describe('fx turn failures', () => {
+  it.each(['initialization', 'prompt', 'abort', 'pre-aborted'] as const)(
+    'preserves the committed checkpoint and accepts a new prompt after %s failure',
+    async phase => {
+      const { sandbox, files } = createSandbox();
+      const session = await createFx().doStart({
+        sandboxSession: sandbox,
+        sessionId: 'failed-turn',
+        sessionWorkDir: '/workspace',
+      });
+      try {
+        await (
+          await session.doPromptTurn({
+            ...turnOptions,
+            prompt: 'baseline',
+            emit() {},
+          })
+        ).done;
+        const statePath = [...files.keys()].find(path =>
+          path.endsWith('/state.json'),
+        )!;
+        const baseline = secureJsonParse(
+          files.get(statePath)!,
+        ) as FxStoredState;
+        const failure = new Error(`${phase} failed`);
+        const controller = new AbortController();
+        const events: HarnessV1StreamPart[] = [];
+        if (phase === 'initialization') {
+          vi.mocked(createFxRuntime).mockRejectedValueOnce(failure);
+        } else if (phase === 'pre-aborted') {
+          controller.abort(failure);
+        } else {
+          runtime.run = async () => {
+            if (phase === 'abort') controller.abort(failure);
+            else throw failure;
+          };
+        }
+        const failed = await session.doPromptTurn({
+          ...turnOptions,
+          prompt: 'fail',
+          abortSignal: controller.signal,
+          emit: event => events.push(event),
+        });
+        await expect(failed.done).rejects.toBe(failure);
+        expect(events.filter(event => event.type === 'error')).toEqual([
+          { type: 'error', error: failure },
+        ]);
+        expect(events.some(event => event.type === 'finish')).toBe(false);
+        const stored = secureJsonParse(files.get(statePath)!) as FxStoredState;
+        expect(stored.turn).toBeUndefined();
+        expect(stored.checkpoint).toBe(baseline.checkpoint);
+        await expect(
+          session.doContinueTurn({ ...turnOptions, emit() {} }),
+        ).rejects.toThrow('There is no suspended fx turn to continue.');
+        runtime.run = undefined;
+        await (
+          await session.doPromptTurn({
+            ...turnOptions,
+            prompt: 'retry',
+            emit() {},
+          })
+        ).done;
+        expect(Array.from(runtime.options.at(-1)!.checkpoint!)).toEqual([
+          1, 2, 3,
+        ]);
+      } finally {
+        await session.doDestroy();
+      }
+    },
+  );
+
+  it.each(['error', 'abort'] as const)(
+    'allows an immediate HarnessAgent retry while %s cleanup is pending',
+    async outcome => {
+      const { sandbox } = createSandbox();
+      const harness = createFx();
+      const start = vi.spyOn(harness, 'doStart');
+      const agent = new HarnessAgent({ harness, activeTools: [] });
+      const session = await agent.createSession({ sandboxSession: sandbox });
+      const failure = new Error('First turn failed');
+      const controller = new AbortController();
+      let release!: () => void;
+      const cleanup = new Promise<void>(resolve => {
+        release = resolve;
+      });
+      let closing!: () => void;
+      const closeStarted = new Promise<void>(resolve => {
+        closing = resolve;
+      });
+      runtime.close = async () => {
+        closing();
+        await cleanup;
+      };
+      runtime.run = async () => {
+        if (outcome === 'abort') controller.abort(failure);
+        else throw failure;
+      };
+      try {
+        const first = await agent.stream({
+          session,
+          prompt: 'fail',
+          abortSignal: controller.signal,
+        });
+        const parts = [];
+        for await (const part of first.stream) parts.push(part);
+        await expect(first.text).rejects.toBe(failure);
+        expect(
+          parts
+            .filter(part => part.type === 'error' || part.type === 'abort')
+            .map(part => part.type),
+        ).toEqual([outcome]);
+        expect(session.hasUnfinishedTurn()).toBe(false);
+        await closeStarted;
+        runtime.run = undefined;
+        runtime.close = undefined;
+        const underlying = await start.mock.results[0].value;
+        const prompt = vi.spyOn(underlying, 'doPromptTurn');
+        const retry = agent.stream({ session, prompt: 'retry' });
+        await vi.waitFor(() => expect(prompt).toHaveBeenCalledTimes(1));
+        expect(runtime.options).toHaveLength(1);
+        release();
+        const second = await retry;
+        const retryParts = [];
+        for await (const part of second.stream) retryParts.push(part);
+        expect(
+          retryParts.some(
+            part => part.type === 'error' || part.type === 'abort',
+          ),
+        ).toBe(false);
+        expect(retryParts.some(part => part.type === 'finish')).toBe(true);
+        await expect(second.text).resolves.toBe('');
+        expect(runtime.options).toHaveLength(2);
+      } finally {
+        release();
+        await session.destroy();
+      }
+    },
+  );
+
+  it.each([false, true])(
+    'clears the active turn when runtime close fails (prompt failed: %s)',
+    async promptFailed => {
+      const { sandbox } = createSandbox();
+      const session = await createFx().doStart({
+        sandboxSession: sandbox,
+        sessionId: 'cleanup-failed',
+        sessionWorkDir: '/workspace',
+      });
+      const failure = new Error('Prompt failed');
+      const cleanupFailure = new Error('Runtime close failed');
+      runtime.run = async () => {
+        if (promptFailed) throw failure;
+      };
+      runtime.close = async () => {
+        throw cleanupFailure;
+      };
+      const events: HarnessV1StreamPart[] = [];
+      const control = await session.doPromptTurn({
+        ...turnOptions,
+        prompt: 'go',
+        emit: event => events.push(event),
+      });
+      await expect(control.done).rejects.toBe(cleanupFailure);
+      if (promptFailed) {
+        expect(events.filter(event => event.type === 'error')).toEqual([
+          { type: 'error', error: failure },
+        ]);
+      }
+      runtime.close = undefined;
+      const stopped = await session.doStop();
+      expect(stopped.continueFrom).toBeUndefined();
+      await session.doDestroy();
+    },
+  );
+
+  it('accepts a fresh prompt after a cold-continued turn fails', async () => {
+    const { sandbox, files } = createSandbox();
+    const harness = createFx();
+    const start = {
+      sandboxSession: sandbox,
+      sessionId: 'failed-continuation',
+      sessionWorkDir: '/workspace',
+    };
+    const session = await harness.doStart(start);
+    const options = { ...turnOptions, tools: [{ name: 'custom' }] };
+    let waiting!: () => void;
+    const pending = new Promise<void>(resolve => {
+      waiting = resolve;
+    });
+    runtime.run = async runtimeOptions => {
+      await invoke({
+        runtimeOptions,
+        name: 'custom',
+        id: 'pending-id',
+        input: {},
+      });
+    };
+    const first = await session.doPromptTurn({
+      ...options,
+      prompt: 'wait',
+      emit: event => {
+        if (event.type === 'finish-step') waiting();
+      },
+    });
+    await pending;
+    await session.doSuspendTurn();
+    await first.done;
+    const resumeFrom = await session.doStop();
+    const failure = new Error('Continuation failed');
+    runtime.run = async () => {
+      throw failure;
+    };
+    const resumed = await harness.doStart({ ...start, resumeFrom });
+    try {
+      const continued = await resumed.doContinueTurn({ ...options, emit() {} });
+      await expect(continued.done).rejects.toBe(failure);
+      const stored = secureJsonParse(
+        [...files.entries()].find(([path]) => path.endsWith('/state.json'))![1],
+      ) as FxStoredState;
+      expect(stored.turn).toBeUndefined();
+      runtime.run = undefined;
+      await (
+        await resumed.doPromptTurn({
+          ...turnOptions,
+          prompt: 'fresh',
+          emit() {},
+        })
+      ).done;
+    } finally {
+      await resumed.doDestroy();
+      await session.doDestroy();
+    }
   });
 });
 

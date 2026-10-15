@@ -135,7 +135,7 @@ export async function createFxSession(options: {
     continuing: boolean;
   }): Promise<HarnessV1PromptControl> {
     if (stopped) throw new Error('fx session has been stopped.');
-    if (active && !state.turn) await active.done;
+    if (active && !state.turn) await active.done.catch(() => {});
     const opts = input.turnOptions;
     const serviceTierOptions =
       settings.serviceTier === undefined || settings.serviceTier === 'default'
@@ -706,8 +706,7 @@ export async function createFxSession(options: {
             if (event.type === 'user_message') recordSteer(event.text);
           }
         })();
-        const result = await runtimeTurn.result;
-        await draining;
+        const [result] = await Promise.all([runtimeTurn.result, draining]);
         if (suspending) return;
         signal.throwIfAborted();
         flushStep(transport.requestIndex);
@@ -728,15 +727,19 @@ export async function createFxSession(options: {
         });
       } catch (error) {
         if (!suspending) {
+          state.turn = undefined;
           emit({ type: 'error', error });
           throw error;
         }
       } finally {
-        await runtime?.close();
-        await transport?.stop();
-        await mcp?.close();
-        await save();
-        active = undefined;
+        try {
+          await runtime?.close();
+          await transport?.stop();
+          await mcp?.close();
+          await save();
+        } finally {
+          active = undefined;
+        }
       }
     })();
     void done.catch(() => {});

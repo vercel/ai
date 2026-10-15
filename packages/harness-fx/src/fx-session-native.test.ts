@@ -654,6 +654,96 @@ describe('parallel fx approvals', () => {
 });
 
 describe('stable fx continuation', () => {
+  it('accepts a new prompt on the same session after a caller abort', async () => {
+    const fixture = readFileSync(
+      new URL('./__fixtures__/gateway-1.sse.txt', import.meta.url),
+      'utf8',
+    );
+    const models = readFileSync(
+      new URL('./__fixtures__/gateway-models.json', import.meta.url),
+      'utf8',
+    );
+    const files = new Map<string, string>();
+    const sandbox = {
+      description: 'remote sandbox',
+      run: async ({ command }: { command: string }) => {
+        let stdout = '';
+        if (command === 'pwd') stdout = '/workspace';
+        else if (command.includes('"$HOME"'))
+          stdout = Buffer.from('/home/sandbox').toString('base64');
+        else if (command.startsWith('mv --')) {
+          const paths = [...command.matchAll(/'([^']+)'/g)].map(
+            match => match[1],
+          );
+          files.set(paths[1], files.get(paths[0])!);
+        }
+        return { exitCode: 0, stdout, stderr: '' };
+      },
+      readTextFile: async ({ path }: { path: string }) =>
+        files.get(path) ?? null,
+      writeTextFile: async ({
+        path,
+        content,
+      }: {
+        path: string;
+        content: string;
+      }) => {
+        files.set(path, content);
+      },
+    } as unknown as SandboxSession;
+    let requests = 0;
+    vi.stubGlobal('fetch', async (_url: unknown, init?: RequestInit) => {
+      if (init?.method === 'GET') return new Response(models);
+      requests++;
+      return new Response(fixture);
+    });
+    const agent = new HarnessAgent({
+      harness: createFx({
+        auth: { AI_GATEWAY_API_KEY: 'test-key' },
+        backend: 'native',
+      }),
+      model: 'anthropic/claude-haiku-4-5',
+      activeTools: [],
+    });
+    const session = await agent.createSession({ sandboxSession: sandbox });
+    try {
+      const controller = new AbortController();
+      const reason = new Error('Stop the first turn');
+      const first = await agent.stream({
+        session,
+        prompt: 'Reply READY.',
+        abortSignal: controller.signal,
+      });
+      const parts = [];
+      for await (const part of first.stream) {
+        parts.push(part);
+        if (part.type === 'text-delta') controller.abort(reason);
+      }
+      expect(
+        parts
+          .filter(part => part.type === 'error' || part.type === 'abort')
+          .map(part => part.type),
+      ).toEqual(['abort']);
+      await expect(first.text).rejects.toBe(reason);
+      expect(session.hasUnfinishedTurn()).toBe(false);
+      const second = await agent.stream({
+        session,
+        prompt: 'Reply READY again.',
+      });
+      const retryParts = [];
+      for await (const part of second.stream) retryParts.push(part);
+      expect(
+        retryParts.some(part => part.type === 'error' || part.type === 'abort'),
+      ).toBe(false);
+      expect(retryParts.some(part => part.type === 'finish')).toBe(true);
+      await expect(second.text).resolves.toBe('READY');
+      expect(requests).toBe(2);
+    } finally {
+      await session.destroy();
+      vi.unstubAllGlobals();
+    }
+  }, 30000);
+
   it('persists native steering and reapplies it before the next request on cold continuation', async () => {
     const fixtures = [0, 1].map(index =>
       readFileSync(
