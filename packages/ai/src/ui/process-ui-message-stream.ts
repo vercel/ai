@@ -39,6 +39,7 @@ export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
     string,
     {
       text: string;
+      inputEncoding?: 'json' | 'text';
       index: number;
       toolName: string;
       dynamic?: boolean;
@@ -95,6 +96,7 @@ export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
 
     partialToolCalls[part.toolCallId] = {
       text: part.rawInput ?? '',
+      inputEncoding: part.inputEncoding,
       index,
       toolName:
         part.type === 'dynamic-tool' ? part.toolName : getStaticToolName(part),
@@ -209,6 +211,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   state: 'input-streaming';
                   input: unknown;
                   rawInput?: string;
+                  inputEncoding?: 'json' | 'text';
                   providerExecuted?: boolean;
                   providerMetadata?: ProviderMetadata;
                 }
@@ -254,6 +257,11 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               anyPart.output = anyOptions.output;
               anyPart.errorText = anyOptions.errorText;
               anyPart.rawInput = anyOptions.rawInput;
+              if (anyOptions.inputEncoding != null) {
+                anyPart.inputEncoding = anyOptions.inputEncoding;
+              } else {
+                delete anyPart.inputEncoding;
+              }
               anyPart.preliminary = anyOptions.preliminary;
               if (options.title !== undefined) {
                 anyPart.title = options.title;
@@ -292,6 +300,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   ? { toolMetadata: options.toolMetadata }
                   : {}),
                 input: anyOptions.input,
+                ...(anyOptions.inputEncoding != null
+                  ? { inputEncoding: anyOptions.inputEncoding }
+                  : {}),
                 output: anyOptions.output,
                 rawInput: anyOptions.rawInput,
                 errorText: anyOptions.errorText,
@@ -325,6 +336,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   state: 'input-streaming';
                   input: unknown;
                   rawInput?: string;
+                  inputEncoding?: 'json' | 'text';
                   providerMetadata?: ProviderMetadata;
                 }
               | {
@@ -366,6 +378,11 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               anyPart.output = anyOptions.output;
               anyPart.errorText = anyOptions.errorText;
               anyPart.rawInput = anyOptions.rawInput;
+              if (anyOptions.inputEncoding != null) {
+                anyPart.inputEncoding = anyOptions.inputEncoding;
+              } else {
+                delete anyPart.inputEncoding;
+              }
               anyPart.preliminary = anyOptions.preliminary;
               if (options.title !== undefined) {
                 anyPart.title = options.title;
@@ -401,6 +418,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 toolCallId: options.toolCallId,
                 state: options.state,
                 input: anyOptions.input,
+                ...(anyOptions.inputEncoding != null
+                  ? { inputEncoding: anyOptions.inputEncoding }
+                  : {}),
                 output: anyOptions.output,
                 errorText: anyOptions.errorText,
                 preliminary: anyOptions.preliminary,
@@ -599,6 +619,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               // add the partial tool call to the map
               state.partialToolCalls[chunk.toolCallId] = {
                 text: '',
+                inputEncoding: chunk.inputEncoding,
                 toolName: chunk.toolName,
                 index: toolInvocations.length,
                 dynamic: chunk.dynamic,
@@ -611,6 +632,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   toolCallId: chunk.toolCallId,
                   toolName: chunk.toolName,
                   state: 'input-streaming',
+                  inputEncoding: chunk.inputEncoding,
                   input: undefined,
                   providerExecuted: chunk.providerExecuted,
                   title: chunk.title,
@@ -622,6 +644,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   toolCallId: chunk.toolCallId,
                   toolName: chunk.toolName,
                   state: 'input-streaming',
+                  inputEncoding: chunk.inputEncoding,
                   input: undefined,
                   providerExecuted: chunk.providerExecuted,
                   title: chunk.title,
@@ -648,15 +671,17 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
               partialToolCall.text += chunk.inputTextDelta;
 
-              const { value: partialArgs } = await parsePartialJson(
-                partialToolCall.text,
-              );
+              const partialArgs =
+                partialToolCall.inputEncoding === 'text'
+                  ? partialToolCall.text
+                  : (await parsePartialJson(partialToolCall.text)).value;
 
               if (partialToolCall.dynamic) {
                 updateDynamicToolPart({
                   toolCallId: chunk.toolCallId,
                   toolName: partialToolCall.toolName,
                   state: 'input-streaming',
+                  inputEncoding: partialToolCall.inputEncoding,
                   input: partialArgs,
                   rawInput: partialToolCall.text,
                   title: partialToolCall.title,
@@ -667,6 +692,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   toolCallId: chunk.toolCallId,
                   toolName: partialToolCall.toolName,
                   state: 'input-streaming',
+                  inputEncoding: partialToolCall.inputEncoding,
                   input: partialArgs,
                   rawInput: partialToolCall.text,
                   title: partialToolCall.title,

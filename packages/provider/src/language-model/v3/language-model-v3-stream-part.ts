@@ -51,6 +51,12 @@ export type LanguageModelV3StreamPart =
       type: 'tool-input-start';
       id: string;
       toolName: string;
+      /**
+       * Encoding of the input deltas. Defaults to JSON when omitted.
+       * Text deltas concatenate to a raw string. The final tool-call input
+       * must still be JSON-encoded, regardless of the delta encoding.
+       */
+      inputEncoding?: 'json' | 'text';
       providerMetadata?: SharedV3ProviderMetadata;
       providerExecuted?: boolean;
       dynamic?: boolean;

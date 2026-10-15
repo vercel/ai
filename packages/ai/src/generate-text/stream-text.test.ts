@@ -2979,6 +2979,72 @@ describe('streamText', () => {
   });
 
   describe('result.toUIMessageStream', () => {
+    it.each([undefined, 'json', 'text'] as const)(
+      'should preserve tool input encoding %s in full and UI streams',
+      async inputEncoding => {
+        const input = 'text("probe");\n';
+        const delta = inputEncoding === 'text' ? input : JSON.stringify(input);
+        const result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'tool-input-start',
+                id: 'call-1',
+                toolName: 'exec',
+                inputEncoding,
+              },
+              { type: 'tool-input-delta', id: 'call-1', delta },
+              { type: 'tool-input-end', id: 'call-1' },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'exec',
+                input: JSON.stringify(input),
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+          tools: {
+            exec: dynamicTool({
+              inputSchema: z.string(),
+              execute: async input => input,
+            }),
+          },
+          prompt: 'test-input',
+        });
+
+        const fullStream = await convertAsyncIterableToArray(result.fullStream);
+        expect(fullStream).toContainEqual(
+          expect.objectContaining({ type: 'tool-input-start', inputEncoding }),
+        );
+
+        const chunks = await convertReadableStreamToArray(
+          result.toUIMessageStream(),
+        );
+        expect(chunks.find(chunk => chunk.type === 'tool-input-start')).toEqual(
+          {
+            type: 'tool-input-start',
+            toolCallId: 'call-1',
+            toolName: 'exec',
+            dynamic: true,
+            ...(inputEncoding != null ? { inputEncoding } : {}),
+          },
+        );
+        expect(chunks).toContainEqual({
+          type: 'tool-input-delta',
+          toolCallId: 'call-1',
+          inputTextDelta: delta,
+        });
+        expect(chunks).toContainEqual(
+          expect.objectContaining({ type: 'tool-input-available', input }),
+        );
+      },
+    );
+
     it('should include tool metadata in ui message stream chunks', async () => {
       const result = streamText({
         model: createTestModel({
