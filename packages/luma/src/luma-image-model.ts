@@ -44,6 +44,16 @@ export class LumaImageModel implements ImageModelV4 {
   readonly pollIntervalMillis = DEFAULT_POLL_INTERVAL_MILLIS;
   readonly maxPollAttempts = DEFAULT_MAX_POLL_ATTEMPTS;
 
+  get supportsFileInputs(): boolean | undefined {
+    return this.modelId === 'photon-1' || this.modelId === 'photon-flash-1'
+      ? true
+      : undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    return this.supportsFileInputs === true ? false : undefined;
+  }
+
   get provider(): string {
     return this.config.provider;
   }

@@ -1,8 +1,11 @@
-import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import {
+  UnsupportedFunctionalityError,
+  type ImageModelV4,
+  type SharedV4Warning,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
-  createJsonErrorResponseHandler,
   createJsonResponseHandler,
   createStatusCodeErrorResponseHandler,
   delay,
@@ -18,7 +21,14 @@ import {
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { blackForestLabsImageModelOptionsSchema } from './black-forest-labs-image-model-options';
+import {
+  bflFailedResponseHandler,
+  isTrustedUrl,
+} from './black-forest-labs-api';
+import {
+  blackForestLabsFlux3ImageModelOptionsSchema,
+  blackForestLabsImageModelOptionsSchema,
+} from './black-forest-labs-image-model-options';
 import type {
   BlackForestLabsAspectRatio,
   BlackForestLabsImageModelId,
@@ -48,6 +58,33 @@ interface BlackForestLabsImageModelConfig {
 export class BlackForestLabsImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 1;
+
+  get supportsFileInputs(): boolean | undefined {
+    if (
+      [
+        'flux-3-image',
+        'flux-kontext-pro',
+        'flux-kontext-max',
+        'flux-pro-1.0-fill',
+      ].includes(this.modelId)
+    ) {
+      return true;
+    }
+
+    if (['flux-pro-1.1-ultra', 'flux-pro-1.1'].includes(this.modelId)) {
+      return false;
+    }
+
+    return undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    if (this.modelId === 'flux-pro-1.0-fill') {
+      return true;
+    }
+
+    return this.supportsFileInputs == null ? undefined : false;
+  }
 
   get provider(): string {
     return this.config.provider;
@@ -91,21 +128,28 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
         type: 'unsupported',
         feature: 'size',
         details:
-          'Deriving aspect_ratio from size. Use the width and height provider options to specify dimensions for models that support them.',
+          this.modelId === 'flux-3-image'
+            ? 'Deriving aspect_ratio from size. FLUX 3 uses the resolution provider option to select output resolution.'
+            : 'Deriving aspect_ratio from size. Use the width and height provider options to specify dimensions for models that support them.',
       });
     } else if (size && aspectRatio) {
       warnings.push({
         type: 'unsupported',
         feature: 'size',
         details:
-          'Black Forest Labs ignores size when aspectRatio is provided. Use the width and height provider options to specify dimensions for models that support them',
+          this.modelId === 'flux-3-image'
+            ? 'FLUX 3 ignores size when aspectRatio is provided. Use the resolution provider option to select output resolution.'
+            : 'Black Forest Labs ignores size when aspectRatio is provided. Use the width and height provider options to specify dimensions for models that support them',
       });
     }
 
     const bflOptions = await parseProviderOptions({
       provider: 'blackForestLabs',
       providerOptions,
-      schema: blackForestLabsImageModelOptionsSchema,
+      schema:
+        this.modelId === 'flux-3-image'
+          ? blackForestLabsFlux3ImageModelOptionsSchema
+          : blackForestLabsImageModelOptionsSchema,
     });
 
     const [widthStr, heightStr] = size?.split('x') ?? [];
@@ -125,6 +169,83 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
 
     if (inputImages.length > 10) {
       throw new Error('Black Forest Labs supports up to 10 input images.');
+    }
+
+    if (this.modelId === 'flux-3-image') {
+      // The endpoint uses 21:9 and 9:21 instead of their reduced forms.
+      let flux3AspectRatio =
+        finalAspectRatio === '7:3'
+          ? '21:9'
+          : finalAspectRatio === '3:7'
+            ? '9:21'
+            : finalAspectRatio;
+      if (
+        flux3AspectRatio != null &&
+        ![
+          '21:9',
+          '2:1',
+          '16:9',
+          '3:2',
+          '7:5',
+          '4:3',
+          '5:4',
+          '1:1',
+          '4:5',
+          '3:4',
+          '5:7',
+          '2:3',
+          '9:16',
+          '1:2',
+          '9:21',
+        ].includes(flux3AspectRatio)
+      ) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'aspectRatio',
+          details: `FLUX 3 does not support aspect ratio ${finalAspectRatio}. Using the endpoint's default auto aspect ratio.`,
+        });
+        flux3AspectRatio = undefined;
+      }
+      if (mask != null) {
+        throw new UnsupportedFunctionalityError({
+          functionality: 'FLUX 3 image masks',
+        });
+      }
+      if (seed != null) {
+        warnings.push({ type: 'unsupported', feature: 'seed' });
+      }
+      for (const [key, value] of Object.entries(bflOptions ?? {})) {
+        if (
+          value != null &&
+          ![
+            'grounding',
+            'pollIntervalMillis',
+            'pollTimeoutMillis',
+            'resolution',
+            'safetyTolerance',
+            'version',
+          ].includes(key)
+        ) {
+          warnings.push({
+            type: 'unsupported',
+            feature: `blackForestLabs.${key}`,
+          });
+        }
+      }
+
+      return {
+        body: {
+          prompt,
+          aspect_ratio: flux3AspectRatio,
+          images: inputImages.length > 0 ? inputImages : undefined,
+          resolution: bflOptions?.resolution,
+          grounding: bflOptions?.grounding,
+          safety_tolerance: bflOptions?.safetyTolerance,
+          version: bflOptions?.version,
+        },
+        warnings,
+        bflOptions,
+      };
     }
 
     const inputImageField =
@@ -234,17 +355,23 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
       },
     });
 
+    const baseHostname = new URL(this.config.baseURL).hostname;
+    const useCustomDownloadHeaders =
+      isSameOrigin(imageUrl, this.config.baseURL) &&
+      baseHostname !== 'bfl.ai' &&
+      !baseHostname.endsWith('.bfl.ai');
     const { value: imageBytes, responseHeaders } = await getFromApi({
       url: imageUrl,
       // imageUrl comes from the provider response body; validate it.
       validateUrl: true,
       trustedOrigin: this.config.baseURL,
-      // Only send credentials if the response-supplied URL points back at the
-      // provider; the image is typically delivered from a CDN, so the API key
-      // must not travel to a foreign host.
-      headers: isTrustedUrl(imageUrl, this.config.baseURL)
-        ? combinedHeaders
+      credentialedOrigin: useCustomDownloadHeaders
+        ? this.config.baseURL
         : undefined,
+      // Signed BFL downloads need no credentials; custom proxies may need them.
+      headers: useCustomDownloadHeaders
+        ? combinedHeaders
+        : { 'user-agent': combinedHeaders['user-agent'] },
       abortSignal,
       failedResponseHandler: createStatusCodeErrorResponseHandler(),
       successfulResponseHandler: createBinaryResponseHandler(),
@@ -311,77 +438,78 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
       pollOverrides?.pollTimeoutMillis ??
       this.config.pollTimeoutMillis ??
       DEFAULT_POLL_TIMEOUT_MILLIS;
-    const maxPollAttempts = Math.ceil(
-      pollTimeoutMillis / Math.max(1, pollIntervalMillis),
-    );
 
     const url = new URL(pollUrl);
     if (!url.searchParams.has('id')) {
       url.searchParams.set('id', requestId);
     }
 
-    for (let i = 0; i < maxPollAttempts; i++) {
-      const { value } = await getFromApi({
-        url: url.toString(),
-        // The polling URL comes from the provider response; validate it.
-        validateUrl: true,
-        trustedOrigin: this.config.baseURL,
-        // Only send credentials when it stays on a trusted provider host.
-        headers: isTrustedUrl(url.toString(), this.config.baseURL)
-          ? headers
-          : undefined,
-        failedResponseHandler: bflFailedResponseHandler,
-        successfulResponseHandler: createJsonResponseHandler(bflPollSchema),
-        abortSignal,
-        fetch: this.config.fetch,
-      });
+    const timeoutController = new AbortController();
+    let didTimeout = false;
+    const timeoutId = setTimeout(() => {
+      didTimeout = true;
+      timeoutController.abort();
+    }, pollTimeoutMillis);
+    const pollingAbortSignal =
+      abortSignal == null
+        ? timeoutController.signal
+        : AbortSignal.any([abortSignal, timeoutController.signal]);
 
-      const status = value.status;
-      if (status === 'Ready') {
-        if (typeof value.result?.sample === 'string') {
-          return {
-            imageUrl: value.result.sample,
-            seed: value.result.seed ?? undefined,
-            start_time: value.result.start_time ?? undefined,
-            end_time: value.result.end_time ?? undefined,
-            duration: value.result.duration ?? undefined,
-          };
+    try {
+      while (true) {
+        const { value } = await getFromApi({
+          url: url.toString(),
+          // The polling URL comes from the provider response; validate it.
+          validateUrl: true,
+          trustedOrigin: this.config.baseURL,
+          // Only send credentials when it stays on a trusted provider host.
+          headers: isTrustedUrl(url.toString(), this.config.baseURL)
+            ? headers
+            : undefined,
+          failedResponseHandler: bflFailedResponseHandler,
+          successfulResponseHandler: createJsonResponseHandler(bflPollSchema),
+          abortSignal: pollingAbortSignal,
+          fetch: this.config.fetch,
+        });
+
+        const status = value.status;
+        if (status === 'Ready') {
+          if (typeof value.result?.sample === 'string') {
+            return {
+              imageUrl: value.result.sample,
+              seed: value.result.seed ?? undefined,
+              start_time: value.result.start_time ?? undefined,
+              end_time: value.result.end_time ?? undefined,
+              duration: value.result.duration ?? undefined,
+            };
+          }
+          throw new Error(
+            'Black Forest Labs poll response is Ready but missing result.sample',
+          );
         }
-        throw new Error(
-          'Black Forest Labs poll response is Ready but missing result.sample',
-        );
-      }
-      if (status === 'Error' || status === 'Failed') {
-        throw new Error('Black Forest Labs generation failed.');
-      }
+        if (status === 'Error' || status === 'Failed') {
+          throw new Error('Black Forest Labs generation failed.');
+        }
+        if (
+          status === 'Request Moderated' ||
+          status === 'Content Moderated' ||
+          status === 'Task not found'
+        ) {
+          throw new Error(`Black Forest Labs generation failed: ${status}.`);
+        }
 
-      await delay(pollIntervalMillis);
+        await delay(pollIntervalMillis, {
+          abortSignal: pollingAbortSignal,
+        });
+      }
+    } catch (error) {
+      if (didTimeout) {
+        throw new Error('Black Forest Labs generation timed out.');
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
     }
-
-    throw new Error('Black Forest Labs generation timed out.');
-  }
-}
-
-/**
- * Black Forest Labs returns response-supplied URLs (polling and delivery) on
- * sibling cluster hosts of the API origin (e.g. `api.us1.bfl.ai` for a base
- * URL on `api.bfl.ai`), so a strict same-origin check against the configured
- * base URL is not enough. Credentials may also be sent to any https host under
- * the official `bfl.ai` domain.
- */
-function isTrustedUrl(url: string, baseUrl: string): boolean {
-  if (isSameOrigin(url, baseUrl)) {
-    return true;
-  }
-
-  try {
-    const { protocol, hostname } = new URL(url);
-    return (
-      protocol === 'https:' &&
-      (hostname === 'bfl.ai' || hostname.endsWith('.bfl.ai'))
-    );
-  } catch {
-    return false;
   }
 }
 
@@ -423,11 +551,15 @@ const bflSubmitSchema = z.object({
 });
 
 const bflStatus = z.union([
+  z.literal('Content Moderated'),
+  z.literal('Generating'),
   z.literal('Pending'),
+  z.literal('Reasoning'),
   z.literal('Ready'),
   z.literal('Error'),
   z.literal('Failed'),
   z.literal('Request Moderated'),
+  z.literal('Task not found'),
 ]);
 
 const bflPollSchema = z
@@ -452,29 +584,3 @@ const bflPollSchema = z
     status: (v.status ?? v.state)!,
     result: v.result,
   }));
-
-const bflErrorSchema = z.object({
-  message: z.string().optional(),
-  detail: z.any().optional(),
-});
-
-const bflFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: bflErrorSchema,
-  errorToMessage: error =>
-    bflErrorToMessage(error) ?? 'Unknown Black Forest Labs error',
-});
-
-function bflErrorToMessage(error: unknown): string | undefined {
-  const parsed = bflErrorSchema.safeParse(error);
-  if (!parsed.success) return undefined;
-  const { message, detail } = parsed.data;
-  if (typeof detail === 'string') return detail;
-  if (detail != null) {
-    try {
-      return JSON.stringify(detail);
-    } catch {
-      // ignore
-    }
-  }
-  return message;
-}

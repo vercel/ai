@@ -13,14 +13,13 @@ npm i @ai-sdk/harness-pi @ai-sdk/harness @ai-sdk/sandbox-vercel
 ```ts
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { createPi } from '@ai-sdk/harness-pi';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 import { tool } from 'ai';
 import { z } from 'zod/v4';
 
 const agent = new HarnessAgent({
   harness: createPi({ thinkingLevel: 'medium' }),
   id: 'demo',
-  sandbox: createVercelSandbox({ runtime: 'node24' }),
   skills: [
     {
       name: 'careful-refactors',
@@ -37,7 +36,10 @@ const agent = new HarnessAgent({
   },
 });
 
-const session = await agent.createSession();
+const sandboxSession = await createVercelNetworkSandboxSession({
+  runtime: 'node24',
+});
+const session = await agent.createSession({ sandboxSession });
 try {
   const result = await agent.generate({
     session,
@@ -46,7 +48,14 @@ try {
   console.log(result.text);
 } finally {
   await session.destroy();
+  await sandboxSession.destroy();
 }
 ```
 
-The adapter requires a `HarnessV1SandboxProvider`. Pi has no in-sandbox bridge, so the sandbox doesn't need to expose any ports — `@ai-sdk/sandbox-vercel` or `@ai-sdk/sandbox-just-bash` both work.
+Pi has no in-sandbox bridge, so the supplied session does not need exposed ports. Its built-in tools operate on the sandbox from the host process.
+
+## Authentication
+
+The default `auto` authentication mode uses `AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN` when available and otherwise falls back to provider credentials such as `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`. Use `createPi({ auth: 'ai-gateway' })` or `createPi({ auth: 'anthropic' })` to select a mode explicitly, or pass an isolated authentication environment with `createPi({ auth: { ANTHROPIC_API_KEY: token } })`.
+
+See the [Pi harness documentation](https://ai-sdk.dev/providers/ai-sdk-harnesses/pi) for authentication options, model configuration, tools, skills, MCP, and session lifecycle details.

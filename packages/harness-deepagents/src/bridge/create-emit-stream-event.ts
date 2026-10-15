@@ -27,6 +27,27 @@ export type DeepAgentsStreamEventState = {
   // Approval-gated tools are announced before execution; these tie the later run back to the approval id and dedup the call.
   approvedToolQueue: Map<string, string[]>;
   approvedRunIds: Map<string, string>;
+  dynamicToolRunIds: Map<string, string>;
+  settledMcpRunIds: Set<string>;
+  /*
+   * Tool calls of the buffered step that have not settled yet, counted from
+   * the tool calls reported at model-end. `undefined` when model-end did not
+   * report them. Together with the host tool calls waiting on the host, this
+   * tells whether the agent can only make progress after host input. In that
+   * case an early `finish-step` lets the host pause the turn, while the step
+   * stays buffered until the regular `finish-step`. Counting from model-end
+   * keeps this independent of when LangGraph's tool events are delivered.
+   */
+  unsettledStepToolCallCount: number | undefined;
+  /*
+   * Host input requests that belong to the buffered step: host tool runs
+   * whose `on_tool_start` was observed, and approval requests. A host tool
+   * can start waiting before its step's events are delivered; it only counts
+   * once its run is known to belong to the buffered step.
+   */
+  observedStepHostInputCount: number;
+  hostInputWaitingToolCallIds: Set<string>;
+  earlyFinishStepToolCallIds: Set<string>;
 };
 
 export function createDeepAgentsStreamEventState(): DeepAgentsStreamEventState {
@@ -41,6 +62,12 @@ export function createDeepAgentsStreamEventState(): DeepAgentsStreamEventState {
     pendingStep: undefined,
     approvedToolQueue: new Map(),
     approvedRunIds: new Map(),
+    dynamicToolRunIds: new Map(),
+    settledMcpRunIds: new Set(),
+    unsettledStepToolCallCount: undefined,
+    observedStepHostInputCount: 0,
+    hostInputWaitingToolCallIds: new Set(),
+    earlyFinishStepToolCallIds: new Set(),
   };
 }
 
@@ -60,11 +87,17 @@ export function createEmitStreamEvent({
   state,
   configuredModel,
   hostToolNames,
+  mcpToolNames,
+  structuredOutputToolNames = new Set(),
+  abortSignal,
   emit,
 }: {
   state: DeepAgentsStreamEventState;
   configuredModel: string | undefined;
   hostToolNames: ReadonlySet<string>;
+  mcpToolNames: ReadonlySet<string>;
+  structuredOutputToolNames?: ReadonlySet<string>;
+  abortSignal?: AbortSignal;
   emit: Emit;
 }): (event: DeepAgentsStreamEvent) => void {
   return event => {
@@ -112,11 +145,21 @@ export function createEmitStreamEvent({
               type?: string;
               text?: string;
               thinking?: string;
+              reasoning?: string;
             };
-            if (value.type === 'text' && value.text) {
+            if (
+              (value.type === 'text' || value.type === 'text-delta') &&
+              value.text
+            ) {
               emitText({ state, emit, delta: value.text });
             } else if (value.type === 'thinking' && value.thinking) {
               emitReasoning({ state, emit, delta: value.thinking });
+            } else if (
+              (value.type === 'reasoning' ||
+                value.type === 'reasoning-delta') &&
+              value.reasoning
+            ) {
+              emitReasoning({ state, emit, delta: value.reasoning });
             }
           }
         }
@@ -140,6 +183,7 @@ export function createEmitStreamEvent({
               input_tokens?: number;
               output_tokens?: number;
             };
+            tool_calls?: unknown;
           }
         | undefined;
       const usage = output?.usage_metadata;
@@ -156,12 +200,36 @@ export function createEmitStreamEvent({
         endReasoningBlock({ state, emit });
         // Buffer the step; flushStep emits finish-step after this step's tools run (next start / turn end).
         state.pendingStep = { input: stepInput, output: stepOutput };
+        state.unsettledStepToolCallCount = Array.isArray(output?.tool_calls)
+          ? output.tool_calls.filter(
+              toolCall =>
+                !structuredOutputToolNames.has(
+                  (toolCall as { name?: unknown } | null)?.name as string,
+                ),
+            ).length
+          : undefined;
+        emitEarlyFinishStepIfReady({ state, emit });
       }
     } else if (kind === 'on_tool_start') {
       const toolName = event.name ?? 'unknown';
+      if (structuredOutputToolNames.has(toolName)) return;
       const runId = event.run_id ?? '';
+      if (!nested && hostToolNames.has(toolName) && state.pendingStep) {
+        state.observedStepHostInputCount += 1;
+        emitEarlyFinishStepIfReady({ state, emit });
+      }
       // Host tools emit their own tool-call; surface only top-level builtin (providerExecuted) tools.
       if (!nested && !hostToolNames.has(toolName)) {
+        const isMcpTool = mcpToolNames.has(toolName);
+        if (isMcpTool && runId) {
+          if (
+            state.dynamicToolRunIds.has(runId) ||
+            state.settledMcpRunIds.has(runId)
+          ) {
+            return;
+          }
+          state.dynamicToolRunIds.set(runId, toolName);
+        }
         const queued = state.approvedToolQueue.get(toolName);
         if (queued && queued.length > 0) {
           // Already announced at approval time; tie this run to that id and don't re-emit the call.
@@ -177,13 +245,68 @@ export function createEmitStreamEvent({
             input: toToolCallInput(data.input),
             providerExecuted: true,
             nativeName: toolName,
+            ...(isMcpTool ? { dynamic: true } : {}),
           });
         }
       }
-    } else if (kind === 'on_tool_end') {
+    } else if (kind === 'on_tool_error') {
       const toolName = event.name ?? 'unknown';
       const runId = event.run_id ?? '';
+      if (
+        nested ||
+        hostToolNames.has(toolName) ||
+        structuredOutputToolNames.has(toolName) ||
+        abortSignal?.aborted ||
+        !runId ||
+        data.error === undefined ||
+        state.dynamicToolRunIds.get(runId) !== toolName ||
+        state.settledMcpRunIds.has(runId)
+      ) {
+        return;
+      }
+
+      state.settledMcpRunIds.add(runId);
+      const error = data.error;
+      const message =
+        error instanceof Error
+          ? error.message
+          : error &&
+              typeof error === 'object' &&
+              'message' in error &&
+              typeof error.message === 'string'
+            ? error.message
+            : String(error);
+      emit({
+        type: 'tool-result',
+        toolCallId: state.approvedRunIds.get(runId) ?? runId,
+        toolName: toCommonName(toolName),
+        result: message,
+        isError: true,
+        dynamic: true,
+      });
+      state.approvedRunIds.delete(runId);
+      settleStepToolCall({ state, emit });
+    } else if (kind === 'on_tool_end') {
+      const toolName = event.name ?? 'unknown';
+      if (structuredOutputToolNames.has(toolName)) return;
+      const runId = event.run_id ?? '';
       if (!nested && !hostToolNames.has(toolName)) {
+        const nativeMcpName = state.dynamicToolRunIds.get(runId);
+        if (
+          nativeMcpName !== undefined
+            ? nativeMcpName !== toolName || state.settledMcpRunIds.has(runId)
+            : mcpToolNames.has(toolName)
+        ) {
+          return;
+        }
+        const dynamic = nativeMcpName !== undefined;
+        if (dynamic) state.settledMcpRunIds.add(runId);
+        const isError =
+          dynamic &&
+          data.output !== null &&
+          typeof data.output === 'object' &&
+          'status' in data.output &&
+          data.output.status === 'error';
         let output: unknown = data.output ?? '';
         if (output && typeof output === 'object' && 'content' in output) {
           output = (output as { content: unknown }).content;
@@ -193,8 +316,11 @@ export function createEmitStreamEvent({
           toolCallId: state.approvedRunIds.get(runId) ?? runId,
           toolName: toCommonName(toolName),
           result: output ?? null,
+          ...(isError ? { isError: true } : {}),
+          ...(dynamic ? { dynamic: true } : {}),
         });
         state.approvedRunIds.delete(runId);
+        settleStepToolCall({ state, emit });
       }
     }
   };
@@ -244,6 +370,117 @@ export function flushStep({
     },
   });
   state.pendingStep = undefined;
+  state.unsettledStepToolCallCount = undefined;
+  state.observedStepHostInputCount = 0;
+  state.earlyFinishStepToolCallIds = new Set();
+}
+
+export function markHostToolWaiting({
+  state,
+  emit,
+  toolCallId,
+}: {
+  state: DeepAgentsStreamEventState;
+  emit: Emit;
+  toolCallId: string;
+}): void {
+  state.hostInputWaitingToolCallIds.add(toolCallId);
+  emitEarlyFinishStepIfReady({ state, emit });
+}
+
+export function markApprovalsWaiting({
+  state,
+  emit,
+  approvalIds,
+}: {
+  state: DeepAgentsStreamEventState;
+  emit: Emit;
+  approvalIds: ReadonlyArray<string>;
+}): void {
+  state.pendingStep ??= { input: 0, output: 0 };
+  state.observedStepHostInputCount += approvalIds.length;
+  for (const approvalId of approvalIds) {
+    state.hostInputWaitingToolCallIds.add(approvalId);
+  }
+  emitEarlyFinishStepIfReady({ state, emit });
+}
+
+export function clearHostInputWaiting({
+  state,
+  toolCallId,
+}: {
+  state: DeepAgentsStreamEventState;
+  toolCallId: string;
+}): void {
+  state.hostInputWaitingToolCallIds.delete(toolCallId);
+}
+
+export function settleHostToolCall({
+  state,
+  emit,
+  toolCallId,
+}: {
+  state: DeepAgentsStreamEventState;
+  emit: Emit;
+  toolCallId: string;
+}): void {
+  state.hostInputWaitingToolCallIds.delete(toolCallId);
+  settleStepToolCall({ state, emit });
+}
+
+function settleStepToolCall({
+  state,
+  emit,
+}: {
+  state: DeepAgentsStreamEventState;
+  emit: Emit;
+}): void {
+  if (state.unsettledStepToolCallCount != null) {
+    state.unsettledStepToolCallCount = Math.max(
+      0,
+      state.unsettledStepToolCallCount - 1,
+    );
+  }
+  emitEarlyFinishStepIfReady({ state, emit });
+}
+
+function emitEarlyFinishStepIfReady({
+  state,
+  emit,
+}: {
+  state: DeepAgentsStreamEventState;
+  emit: Emit;
+}): void {
+  const waiting = state.hostInputWaitingToolCallIds;
+  if (
+    !state.pendingStep ||
+    waiting.size === 0 ||
+    waiting.size > state.observedStepHostInputCount
+  ) {
+    return;
+  }
+  if (
+    state.unsettledStepToolCallCount != null &&
+    state.unsettledStepToolCallCount > waiting.size
+  ) {
+    return;
+  }
+  const uncovered = [...waiting].filter(
+    toolCallId => !state.earlyFinishStepToolCallIds.has(toolCallId),
+  );
+  if (uncovered.length === 0) return;
+  for (const toolCallId of uncovered) {
+    state.earlyFinishStepToolCallIds.add(toolCallId);
+  }
+  emit({
+    type: 'finish-step',
+    finishReason: { unified: 'tool-calls', raw: 'host-input' },
+    usage: {
+      inputTokens: { total: 0 },
+      outputTokens: { total: 0 },
+    },
+    harnessMetadata: { deepagents: { inferredStep: true } },
+  });
 }
 
 function ensureTextBlock({

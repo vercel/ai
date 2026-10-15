@@ -26,7 +26,7 @@ describe('createCodexStepTracker', () => {
 
     expect(events).toEqual([]);
 
-    tracker.finishStep();
+    tracker.finishTurn();
 
     expect(events.map(event => event.type)).toEqual(['finish-step']);
   });
@@ -49,6 +49,45 @@ describe('createCodexStepTracker', () => {
       itemId: 'item_1',
     });
 
+    expect(events.map(event => event.type)).toEqual(['finish-step']);
+  });
+
+  it('tracks app-server dynamic tool item lifecycles', () => {
+    const { events, tracker } = createTracker();
+
+    tracker.observeEvent({
+      event: { type: 'item.started', item: { type: 'dynamic_tool_call' } },
+      itemId: 'dynamic_1',
+    });
+    tracker.observeEvent({
+      event: { type: 'item.completed', item: { type: 'dynamic_tool_call' } },
+      itemId: 'dynamic_1',
+    });
+
+    expect(events.map(event => event.type)).toEqual(['finish-step']);
+  });
+
+  it('keeps a native tool step open until its result even when typed items share the call id', () => {
+    const { events, tracker } = createTracker();
+
+    tracker.observeEvent({
+      event: { type: 'item.started', item: { type: 'native_tool' } },
+      itemId: 'native-tool:call-1',
+    });
+    tracker.observeEvent({
+      event: { type: 'item.started', item: { type: 'file_change' } },
+      itemId: 'call-1',
+    });
+    tracker.observeEvent({
+      event: { type: 'item.completed', item: { type: 'file_change' } },
+      itemId: 'call-1',
+    });
+    expect(events).toEqual([]);
+
+    tracker.observeEvent({
+      event: { type: 'item.completed', item: { type: 'native_tool' } },
+      itemId: 'native-tool:call-1',
+    });
     expect(events.map(event => event.type)).toEqual(['finish-step']);
   });
 
@@ -83,6 +122,22 @@ describe('createCodexStepTracker', () => {
     expect(events.map(event => event.type)).toEqual(['finish-step']);
   });
 
+  it('closes a pending tool step at turn end', () => {
+    const { events, tracker } = createTracker();
+
+    tracker.observeEvent({
+      event: {
+        type: 'item.started',
+        item: { type: 'command_execution' },
+      },
+      itemId: 'item_2',
+    });
+
+    tracker.finishTurn();
+
+    expect(events.map(event => event.type)).toEqual(['finish-step']);
+  });
+
   it('closes a final model text step at turn end after a tool step', () => {
     const { events, tracker } = createTracker();
 
@@ -110,7 +165,7 @@ describe('createCodexStepTracker', () => {
 
     expect(events.map(event => event.type)).toEqual(['finish-step']);
 
-    tracker.finishStep();
+    tracker.finishTurn();
 
     expect(events.map(event => event.type)).toEqual([
       'finish-step',

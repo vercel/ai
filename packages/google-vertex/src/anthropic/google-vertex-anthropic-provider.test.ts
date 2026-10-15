@@ -217,6 +217,7 @@ describe('google-vertex-anthropic-provider', () => {
           "supportsNativeStructuredOutput": false,
           "supportsStrictTools": false,
           "transformRequestBody": [Function],
+          "transformRequestHeaders": [Function],
         }
       `);
   });
@@ -240,6 +241,7 @@ describe('google-vertex-anthropic-provider', () => {
           "supportsNativeStructuredOutput": false,
           "supportsStrictTools": false,
           "transformRequestBody": [Function],
+          "transformRequestHeaders": [Function],
         }
       `);
   });

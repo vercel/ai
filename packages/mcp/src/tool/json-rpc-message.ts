@@ -27,7 +27,7 @@ export type JSONRPCResponse = z.infer<typeof JSONRPCResponseSchema>;
 const JSONRPCErrorSchema = z
   .object({
     jsonrpc: z.literal(JSONRPC_VERSION),
-    id: z.union([z.string(), z.number().int()]),
+    id: z.optional(z.union([z.string(), z.number().int()])),
     error: z.object({
       code: z.number().int(),
       message: z.string(),

@@ -16,8 +16,8 @@ export type AlibabaVideoModelOptions = {
   /** Whether to add watermark to generated video. Defaults to false. */
   watermark?: boolean | null;
   /**
-   * Enable audio generation (for wan2.6 I2V/R2V models;
-   * wan2.7 models always generate audio).
+   * Enable audio generation (wan2.6 I2V/R2V and wan3 models;
+   * wan2.7 models always generate audio). Defaults to true on wan3.
    */
   audio?: boolean | null;
   /**
@@ -27,22 +27,34 @@ export type AlibabaVideoModelOptions = {
    */
   referenceUrls?: string[] | null;
   /**
-   * Explicit media array for reference-to-video mode (wan2.7 models).
-   * Overrides the automatic mapping from `inputReferences` and `frameImages`.
+   * Explicit media array (wan2.7 and wan3 models). Overrides the automatic
+   * mapping from `inputReferences` and `frameImages`.
    * Use `Image 1`, `Video 1`, etc. in prompts to reference media items
-   * (images and videos are counted separately, in array order).
+   * (images, videos, and audio are counted separately, in array order).
+   *
+   * `reference_audio`, `file`, and `link` are wan3-only and have no top-level
+   * call option, so they can only be passed here. wan3 also rejects mixing
+   * `reference_*`/`file`/`link` with `first_frame`/`last_frame`.
    */
   media?: Array<{
-    type: 'reference_image' | 'reference_video' | 'first_frame';
+    type:
+      | 'reference_image'
+      | 'reference_video'
+      | 'reference_audio'
+      | 'first_frame'
+      | 'last_frame'
+      | 'file'
+      | 'link';
     /** Public URL, or a `data:{mime};base64,{data}` URI for images. */
     url: string;
     /** URL to an audio file used as voice reference for this media item. */
     referenceVoice?: string | null;
   }> | null;
   /**
-   * Aspect ratio (wan2.7 text-to-video and reference-to-video models).
+   * Aspect ratio (wan2.7 text-to-video and reference-to-video models, and
+   * every wan3 generation). `adaptive` is wan3-only, and is its default.
    */
-  ratio?: '16:9' | '9:16' | '1:1' | '4:3' | '3:4' | null;
+  ratio?: 'adaptive' | '16:9' | '9:16' | '1:1' | '4:3' | '3:4' | null;
   /** Polling interval in milliseconds. Defaults to 5000 (5 seconds). */
   pollIntervalMs?: number | null;
   /** Maximum wait time in milliseconds for video generation. Defaults to 600000 (10 minutes). */
@@ -63,13 +75,23 @@ export const alibabaVideoModelOptionsSchema = lazySchema(() =>
       media: z
         .array(
           z.object({
-            type: z.enum(['reference_image', 'reference_video', 'first_frame']),
+            type: z.enum([
+              'reference_image',
+              'reference_video',
+              'reference_audio',
+              'first_frame',
+              'last_frame',
+              'file',
+              'link',
+            ]),
             url: z.string(),
             referenceVoice: z.string().nullish(),
           }),
         )
         .nullish(),
-      ratio: z.enum(['16:9', '9:16', '1:1', '4:3', '3:4']).nullish(),
+      ratio: z
+        .enum(['adaptive', '16:9', '9:16', '1:1', '4:3', '3:4'])
+        .nullish(),
       pollIntervalMs: z.number().positive().nullish(),
       pollTimeoutMs: z.number().positive().nullish(),
     }),

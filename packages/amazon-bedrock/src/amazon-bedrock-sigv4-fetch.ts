@@ -43,7 +43,7 @@ export function createSigV4FetchFunction(
     );
     const headersWithUserAgent = withUserAgentSuffix(
       originalHeaders,
-      `ai-sdk/amazon-bedrock/${VERSION}`,
+      `ai-sdk-amazon-bedrock/${VERSION}`,
       getRuntimeEnvironmentUserAgent(),
     );
 
@@ -75,7 +75,9 @@ export function createSigV4FetchFunction(
     const signer = new AwsV4Signer({
       url,
       method: 'POST',
-      headers: Object.entries(headersWithUserAgent),
+      headers: Object.entries(headersWithUserAgent).filter(([, value]) =>
+        isAscii(value),
+      ),
       body,
       region: credentials.region,
       accessKeyId: credentials.accessKeyId,
@@ -110,6 +112,10 @@ function prepareBodyString(body: BodyInit | undefined): string {
   }
 }
 
+function isAscii(value: string): boolean {
+  return !/[\u0080-\uffff]/.test(value);
+}
+
 /**
  * Creates a fetch function that applies Bearer token authentication.
  *
@@ -130,7 +136,7 @@ export function createApiKeyFetchFunction(
     const originalHeaders = normalizeHeaders(init?.headers);
     const headersWithUserAgent = withUserAgentSuffix(
       originalHeaders,
-      `ai-sdk/amazon-bedrock/${VERSION}`,
+      `ai-sdk-amazon-bedrock/${VERSION}`,
       getRuntimeEnvironmentUserAgent(),
     );
 

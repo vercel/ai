@@ -63,6 +63,13 @@ const model = fireworks('accounts/fireworks/models/firefunction-v1');
 
 ### Reasoning Models
 
+For models that support reasoning effort, use the top-level `reasoning` parameter.
+Fireworks maps `'minimal'` to `'low'` and `'xhigh'` or `'max'` to `'high'`, returning
+a compatibility warning whenever it coerces the effort. Streaming calls include
+the warning in the `stream-start` event. Explicit
+`providerOptions.fireworks.reasoningEffort` takes precedence over the top-level
+setting.
+
 Fireworks exposes the thinking of `deepseek-r1` in the generated text using the `<think>` tag.
 You can use the `extractReasoningMiddleware` to extract this reasoning and expose it as a `reasoning` property on the result:
 

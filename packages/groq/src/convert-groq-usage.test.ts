@@ -216,6 +216,22 @@ describe('convertGroqUsage', () => {
     });
   });
 
+  it('clamps text tokens at 0 when reasoning exceeds completion', () => {
+    const result = convertGroqUsage({
+      prompt_tokens: 951,
+      completion_tokens: 6000,
+      completion_tokens_details: {
+        reasoning_tokens: 6001,
+      },
+    });
+
+    expect(result.outputTokens).toStrictEqual({
+      total: 6000,
+      text: 0,
+      reasoning: 6001,
+    });
+  });
+
   it('should map cached_tokens to cacheRead and subtract from noCache', () => {
     const result = convertGroqUsage({
       prompt_tokens: 4641,

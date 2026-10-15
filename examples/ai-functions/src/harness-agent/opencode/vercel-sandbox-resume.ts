@@ -7,9 +7,14 @@ import {
   HarnessAgent,
   type HarnessAgentResumeSessionState,
 } from '@ai-sdk/harness/agent';
-import { openCode } from '@ai-sdk/harness-opencode';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createOpenCode } from './_create';
+import {
+  createVercelNetworkSandboxSession,
+  resumeVercelNetworkSandboxSession,
+} from '@ai-sdk/sandbox-vercel';
 import { run } from '../../lib/run';
+
+const openCode = createOpenCode();
 
 run(async () => {
   process.exitCode = 1;
@@ -23,7 +28,9 @@ run(async () => {
     );
   }
 
-  const sandbox = createVercelSandbox({
+  const sandboxName = `harness-${crypto.randomUUID()}`;
+  const sandboxSession = await createVercelNetworkSandboxSession({
+    sandboxId: sandboxName,
     token,
     teamId,
     projectId,
@@ -31,28 +38,41 @@ run(async () => {
     ports: [4000],
     timeout: 10 * 60 * 1000,
   });
-
-  let sessionId: string;
-  let resumeState: HarnessAgentResumeSessionState;
-  {
-    const agent = new HarnessAgent({ harness: openCode, sandbox });
-    const session = await agent.createSession();
-    sessionId = session.sessionId;
-    resumeState = await session.stop();
-  }
-
-  {
-    const agent = new HarnessAgent({ harness: openCode, sandbox });
-    const session = await agent.createSession({
-      sessionId,
-      resumeFrom: resumeState,
-    });
-    if (!session.isResume) {
-      throw new Error('expected resumed session');
+  let activeSandboxSession = sandboxSession;
+  try {
+    let sessionId: string;
+    let resumeState: HarnessAgentResumeSessionState;
+    {
+      const agent = new HarnessAgent({ harness: openCode });
+      const session = await agent.createSession({
+        sandboxSession: activeSandboxSession,
+      });
+      sessionId = session.sessionId;
+      resumeState = await session.stop();
     }
-    await session.destroy();
-  }
 
-  console.log('Successfully resumed the named Vercel Sandbox session.');
-  process.exitCode = 0;
+    {
+      activeSandboxSession = await resumeVercelNetworkSandboxSession({
+        sandboxId: sandboxName,
+        token,
+        teamId,
+        projectId,
+      });
+      const agent = new HarnessAgent({ harness: openCode });
+      const session = await agent.createSession({
+        sandboxSession: activeSandboxSession,
+        sessionId,
+        resumeFrom: resumeState,
+      });
+      if (!session.isResume) {
+        throw new Error('expected resumed session');
+      }
+      await session.destroy();
+    }
+
+    console.log('Successfully resumed the named Vercel Sandbox session.');
+    process.exitCode = 0;
+  } finally {
+    await activeSandboxSession.destroy();
+  }
 });

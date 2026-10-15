@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es5",
+    "target": "es2022",
     "lib": [
       "dom",
       "dom.iterable",
@@ -57,6 +57,9 @@
     },
     {
       "path": "../../packages/azure"
+    },
+    {
+      "path": "../../packages/code-mode"
     },
     {
       "path": "../../packages/cohere"

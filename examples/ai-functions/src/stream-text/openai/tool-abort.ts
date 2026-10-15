@@ -7,7 +7,7 @@ run(async () => {
   const abortController = new AbortController();
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     stopWhen: isStepCount(5),
     tools: {
       currentLocation: tool({

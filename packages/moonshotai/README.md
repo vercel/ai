@@ -1,6 +1,6 @@
 # AI SDK - Moonshot AI Provider
 
-The **[Moonshot AI provider](https://ai-sdk.dev/providers/ai-sdk-providers/moonshotai)** for the [AI SDK](https://ai-sdk.dev/docs) contains language model support for the [Moonshot AI](https://platform.moonshot.cn) platform, including the Kimi model series.
+The **[Moonshot AI provider](https://ai-sdk.dev/providers/ai-sdk-providers/moonshotai)** for the [AI SDK](https://ai-sdk.dev/docs) contains language model support for the [Kimi API Platform](https://platform.kimi.ai/docs), including the Kimi model series.
 
 > **Deploying to Vercel?** With Vercel's AI Gateway you can access Moonshot AI (and hundreds of models from other providers) — no additional packages, API keys, or extra cost. [Get started with AI Gateway](https://vercel.com/ai-gateway).
 
@@ -40,23 +40,56 @@ const { text } = await generateText({
 });
 ```
 
-## Thinking Mode Example (Kimi K2 Thinking)
+## Reasoning Effort Example (Kimi K3)
 
 ```ts
-import { moonshotai } from '@ai-sdk/moonshotai';
+import {
+  moonshotai,
+  type MoonshotAILanguageModelOptions,
+} from '@ai-sdk/moonshotai';
 import { generateText } from 'ai';
 
-const { text } = await generateText({
-  model: moonshotai('kimi-k2-thinking'),
+const { text, reasoningText } = await generateText({
+  model: moonshotai('kimi-k3'),
   prompt: 'Solve this problem step by step: What is 15% of 240?',
-  moonshotai: {
-    thinking: {
-      type: 'enabled',
-      budgetTokens: 2048,
-    },
-    reasoningHistory: 'interleaved',
+  providerOptions: {
+    moonshotai: {
+      reasoningEffort: 'high',
+    } satisfies MoonshotAILanguageModelOptions,
   },
 });
+
+console.log(reasoningText);
+console.log(text);
+```
+
+Kimi K2.6 supports thinking and non-thinking modes. Enable it with
+`thinking: { type: 'enabled' }` or disable it with
+`thinking: { type: 'disabled' }`.
+
+Kimi K2.7 Code always has thinking enabled and uses Preserved Thinking. Keep
+reasoning history in multi-turn conversations:
+
+```ts
+import {
+  moonshotai,
+  type MoonshotAILanguageModelOptions,
+} from '@ai-sdk/moonshotai';
+import { generateText } from 'ai';
+
+const { text, reasoningText } = await generateText({
+  model: moonshotai('kimi-k2.7-code'),
+  prompt: 'Solve this problem step by step: What is 15% of 240?',
+  providerOptions: {
+    moonshotai: {
+      thinking: { type: 'enabled' },
+      reasoningHistory: 'preserved',
+    } satisfies MoonshotAILanguageModelOptions,
+  },
+});
+
+console.log(reasoningText);
+console.log(text);
 ```
 
 ## Documentation

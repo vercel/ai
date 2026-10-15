@@ -1,11 +1,11 @@
 import type {
+  Experimental_BatchV4 as BatchV4,
+  Experimental_DecisionModelV4 as DecisionModelV4,
   EmbeddingModelV4,
   FilesV4,
   ImageModelV4,
   LanguageModelV4,
   ProviderV4,
-  Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
-  Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
   SpeechModelV4,
   SkillsV4,
   TranscriptionModelV4,
@@ -20,6 +20,10 @@ import {
   type FetchFunction,
   type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
+import {
+  DecisionOpenAIModel,
+  type OpenAIDecisionModelId,
+} from './openai-decision-model';
 import { OpenAIChatLanguageModel } from './chat/openai-chat-language-model';
 import type { OpenAIChatModelId } from './chat/openai-chat-language-model-options';
 import { OpenAICompletionLanguageModel } from './completion/openai-completion-language-model';
@@ -30,20 +34,31 @@ import type { OpenAIEmbeddingModelId } from './embedding/openai-embedding-model-
 import { OpenAIImageModel } from './image/openai-image-model';
 import type { OpenAIImageModelId } from './image/openai-image-model-options';
 import { openaiTools } from './openai-tools';
-import { OpenAIRealtimeModel } from './realtime/openai-realtime-model';
+import { OpenAIBatch } from './openai-batch';
 import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
+import {
+  createOpenAIRealtimeFactory,
+  type OpenAIRealtimeFactory,
+} from './realtime/openai-realtime-factory';
 import type { OpenAIResponsesModelId } from './responses/openai-responses-language-model-options';
 import { OpenAISpeechModel } from './speech/openai-speech-model';
 import type { OpenAISpeechModelId } from './speech/openai-speech-model-options';
 import { OpenAITranscriptionModel } from './transcription/openai-transcription-model';
 import type { OpenAITranscriptionModelId } from './transcription/openai-transcription-model-options';
-import { OpenAITranslationModel } from './translation/openai-translation-model';
-import type { OpenAITranslationModelId } from './translation/openai-translation-model-options';
+import { OpenAISpeechTranslationModel } from './speech-translation/openai-speech-translation-model';
+import type { OpenAISpeechTranslationModelId } from './speech-translation/openai-speech-translation-model-options';
 import { OpenAISkills } from './skills/openai-skills';
 import { VERSION } from './version';
 
 export interface OpenAIProvider extends ProviderV4 {
   (modelId: OpenAIResponsesModelId): LanguageModelV4;
+
+  /** Creates an experimental Choice/Score/Boolean decision model using the Decisions API. */
+  decisionModel(modelId: OpenAIDecisionModelId): DecisionModelV4;
+  /** @deprecated Use `decisionModel` instead. */
+  evaluationModel(modelId: OpenAIDecisionModelId): DecisionModelV4 & {
+    doEvaluate: DecisionModelV4['doDecide'];
+  };
 
   /**
    * Creates an OpenAI model for text generation.
@@ -103,13 +118,15 @@ export interface OpenAIProvider extends ProviderV4 {
   /**
    * Creates an experimental model for streaming speech translation.
    */
-  translation(modelId: OpenAITranslationModelId): SpeechTranslationModelV4;
+  translation(
+    modelId: OpenAISpeechTranslationModelId,
+  ): SpeechTranslationModelV4;
 
   /**
    * Creates an experimental model for streaming speech translation.
    */
   speechTranslationModel(
-    modelId: OpenAITranslationModelId,
+    modelId: OpenAISpeechTranslationModelId,
   ): SpeechTranslationModelV4;
 
   /**
@@ -121,7 +138,7 @@ export interface OpenAIProvider extends ProviderV4 {
    * Creates an experimental realtime model for bidirectional audio/text
    * communication over WebSocket.
    */
-  experimental_realtime: RealtimeFactoryV4;
+  experimental_realtime: OpenAIRealtimeFactory;
 
   /**
    * Returns a FilesV4 interface for uploading files to OpenAI.
@@ -134,12 +151,23 @@ export interface OpenAIProvider extends ProviderV4 {
   skills(): SkillsV4;
 
   /**
+   * Returns a BatchV4 interface for processing batches with OpenAI.
+   */
+  experimental_batch(): BatchV4<{ text: OpenAIResponsesModelId }>;
+
+  /**
    * OpenAI-specific tools.
    */
   tools: typeof openaiTools;
 }
 
 export interface OpenAIProviderSettings {
+  /** Settings for downloading JSON Lines batch results. */
+  batchResultDownloads?: {
+    /** Maximum UTF-8 bytes per row, excluding LF. Defaults to 64 MiB. */
+    maxLineBytes?: number;
+  };
+
   /**
    * Base URL for the OpenAI API calls.
    */
@@ -213,7 +241,7 @@ export function createOpenAI(
         'OpenAI-Project': options.project,
         ...options.headers,
       },
-      `ai-sdk/openai/${VERSION}`,
+      `ai-sdk-openai/${VERSION}`,
     );
 
   const createChatModel = (modelId: OpenAIChatModelId) =>
@@ -257,9 +285,11 @@ export function createOpenAI(
       webSocket: options.webSocket,
     });
 
-  const createTranslationModel = (modelId: OpenAITranslationModelId) =>
-    new OpenAITranslationModel(modelId, {
-      provider: `${providerName}.translation`,
+  const createSpeechTranslationModel = (
+    modelId: OpenAISpeechTranslationModelId,
+  ) =>
+    new OpenAISpeechTranslationModel(modelId, {
+      provider: `${providerName}.speech-translation`,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
@@ -303,6 +333,7 @@ export function createOpenAI(
   const createResponsesModel = (modelId: OpenAIResponsesModelId) => {
     return new OpenAIResponsesLanguageModel(modelId, {
       provider: `${providerName}.responses`,
+      baseURL,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
@@ -311,32 +342,20 @@ export function createOpenAI(
     });
   };
 
-  const createRealtimeModel = (modelId: string) =>
-    new OpenAIRealtimeModel(modelId, {
-      provider: `${providerName}.realtime`,
-      baseURL,
-      headers: getHeaders,
-      fetch: options.fetch,
-    });
-
-  const experimentalRealtimeFactory = Object.assign(
-    (modelId: string) => createRealtimeModel(modelId),
-    {
-      getToken: async (tokenOptions: RealtimeFactoryV4GetTokenOptions) => {
-        const model = createRealtimeModel(tokenOptions.model);
-        const secret = await model.doCreateClientSecret({
-          sessionConfig: tokenOptions.sessionConfig,
-          expiresAfterSeconds: tokenOptions.expiresAfterSeconds,
-        });
-
-        return {
-          token: secret.token,
-          url: secret.url,
-          expiresAt: secret.expiresAt,
-        };
+  const createBatch = () =>
+    new OpenAIBatch({
+      provider: `${providerName}.batch`,
+      maxLineBytes: options.batchResultDownloads?.maxLineBytes,
+      config: {
+        provider: `${providerName}.responses`,
+        baseURL,
+        url: ({ path }) => `${baseURL}${path}`,
+        headers: getHeaders,
+        fetch: options.fetch,
+        // Soft-deprecated. TODO: remove in v8
+        fileIdPrefixes: ['file-'],
       },
-    },
-  ) as RealtimeFactoryV4;
+    });
 
   const provider = function (modelId: OpenAIResponsesModelId) {
     return createLanguageModel(modelId);
@@ -347,6 +366,16 @@ export function createOpenAI(
   provider.chat = createChatModel;
   provider.completion = createCompletionModel;
   provider.responses = createResponsesModel;
+  provider.decisionModel = (modelId: OpenAIDecisionModelId) =>
+    new DecisionOpenAIModel(modelId, {
+      baseURL,
+      url: ({ path }) => `${baseURL}${path}`,
+      headers: getHeaders,
+      fetch: options.fetch,
+      provider: `${providerName}.decision`,
+    });
+  provider.evaluationModel =
+    provider.decisionModel as OpenAIProvider['evaluationModel'];
   provider.embedding = createEmbeddingModel;
   provider.embeddingModel = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;
@@ -358,15 +387,21 @@ export function createOpenAI(
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
 
-  provider.translation = createTranslationModel;
-  provider.speechTranslationModel = createTranslationModel;
+  provider.translation = createSpeechTranslationModel;
+  provider.speechTranslationModel = createSpeechTranslationModel;
 
   provider.speech = createSpeechModel;
   provider.speechModel = createSpeechModel;
   provider.files = createFiles;
   provider.skills = createSkills;
+  provider.experimental_batch = createBatch;
 
-  provider.experimental_realtime = experimentalRealtimeFactory;
+  provider.experimental_realtime = createOpenAIRealtimeFactory({
+    provider: providerName,
+    baseURL,
+    headers: getHeaders,
+    fetch: options.fetch,
+  });
 
   provider.tools = openaiTools;
 
