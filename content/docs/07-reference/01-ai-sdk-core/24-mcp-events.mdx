@@ -302,8 +302,6 @@ validates these values and enforces its limits. `expiresAt` is response-only.
 
 Reuse the same duration and idempotency key when retrying an uncertain create
 result. The backend calculates the deadline once; a retry must not extend it.
-Update callers that previously passed `expiresAt: null` to `ttlMs: null`. For a
-finite watch, choose a duration instead of passing an absolute deadline.
 
 `Experimental_MCPEventOperations` has four operations:
 
