@@ -4,6 +4,7 @@ import {
   type ExtensionAPI,
   type ExtensionFactory,
   type ProviderConfig,
+  type Skill,
   type ToolDefinition,
   ModelRuntime,
   SettingsManager,
@@ -12,6 +13,7 @@ import type * as PiCodingAgentModule from '@earendil-works/pi-coding-agent';
 import type {
   HarnessV1NetworkSandboxSession,
   HarnessV1Session,
+  HarnessV1Skill,
   HarnessV1StreamPart,
   HarnessV1ToolSpec,
 } from '@ai-sdk/harness';
@@ -20,14 +22,7 @@ import {
   type HarnessAgentContinueTurnState,
 } from '@ai-sdk/harness/agent';
 import { tool, type ToolResultOutput } from '@ai-sdk/provider-utils';
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { existsSync } from 'node:fs';
 import { devNull, tmpdir } from 'node:os';
 import path from 'node:path';
 import { z } from 'zod/v4';
@@ -38,6 +33,7 @@ import {
   type PiHarnessExtensionSession,
 } from './pi-session';
 import { truncatePiToolOutputHead } from './pi-tool-result';
+import { createThrowingSandboxSession } from './test-helpers';
 
 type FakePiTool = Pick<ToolDefinition, 'name' | 'execute'>;
 type FakeExtensionsResult = {
@@ -45,15 +41,28 @@ type FakeExtensionsResult = {
   readonly extensions: unknown[];
   readonly runtime: object;
 };
+type FakeSkillsResult = {
+  readonly skills: Skill[];
+  readonly diagnostics: [];
+};
+type FakeAgentsFilesResult = {
+  readonly agentsFiles: Array<{ path: string; content: string }>;
+};
 type ResourceLoaderOptions = {
+  readonly agentsFilesOverride?: (
+    base: FakeAgentsFilesResult,
+  ) => FakeAgentsFilesResult;
   readonly appendSystemPromptOverride?: (base: string[]) => string[];
   readonly extensionFactories?: Array<ExtensionFactory>;
   readonly extensionsOverride?: (
     base: FakeExtensionsResult,
   ) => FakeExtensionsResult;
+  readonly noContextFiles?: boolean;
   readonly noExtensions?: boolean;
   readonly noPromptTemplates?: boolean;
+  readonly noSkills?: boolean;
   readonly noThemes?: boolean;
+  readonly skillsOverride?: (base: FakeSkillsResult) => FakeSkillsResult;
 };
 
 const piMock = vi.hoisted(() => {
@@ -336,37 +345,6 @@ describe('createPiSession', () => {
       ]);
     } finally {
       await session.doDestroy();
-    }
-  });
-
-  it('lets inline extensions read a host-backed session workspace', async () => {
-    const sessionWorkDir = mkdtempSync(
-      path.join(tmpdir(), 'pi-host-workspace-'),
-    );
-    const projectFile = path.join(sessionWorkDir, 'graphify-out', 'graph.json');
-    mkdirSync(path.dirname(projectFile), { recursive: true });
-    writeFileSync(projectFile, '{}');
-    const factory = vi.fn(() => {
-      expect(existsSync(projectFile)).toBe(true);
-      expect(readFileSync(projectFile, 'utf8')).toBe('{}');
-    });
-
-    try {
-      const session = await createPi({
-        extensionFactories: [factory],
-      }).doStart({
-        sessionId: 'session-host-workspace-extension',
-        sandboxSession: createSandboxSession({ hostFilesystem: true }),
-        sessionWorkDir,
-      });
-
-      try {
-        expect(factory).toHaveBeenCalledOnce();
-      } finally {
-        await session.doDestroy();
-      }
-    } finally {
-      rmSync(sessionWorkDir, { recursive: true, force: true });
     }
   });
 
@@ -981,6 +959,52 @@ describe('createPiSession', () => {
     }
   });
 
+  it('removes materialized skills once, then leaves the sandbox alone', async () => {
+    piMock.session = createFakePiSession().session;
+    const sandboxSession = createSandboxSession();
+    const session = await createPiSession({
+      sessionId: 'session-skills-removed',
+      sandboxSession,
+      sessionWorkDir: '/sandbox/work',
+      settings: {},
+      clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+      isResume: false,
+    });
+    const runTurn = async (skills: HarnessV1Skill[]) => {
+      const control = await session.doPromptTurn({
+        skills,
+        prompt: 'test prompt',
+        tools: [],
+        emit: vi.fn(),
+      });
+      await control.done;
+    };
+
+    try {
+      await runTurn([
+        {
+          name: 'demo-skill',
+          description: 'Demo skill description',
+          content: 'Skill instructions content',
+        },
+      ]);
+      await runTurn([]);
+      expect(sandboxSession.run).toHaveBeenCalledWith(
+        expect.objectContaining({
+          command: "rm -rf -- '/sandbox/home/.agents/skills/demo-skill'",
+        }),
+      );
+
+      vi.mocked(sandboxSession.run).mockClear();
+      vi.mocked(sandboxSession.readTextFile).mockClear();
+      await runTurn([]);
+      expect(sandboxSession.run).not.toHaveBeenCalled();
+      expect(sandboxSession.readTextFile).not.toHaveBeenCalled();
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
   it('applies fileToolPathPolicy to the native read tool', async () => {
     const files = new Map([
       ['/tmp/report.txt', 'report body'],
@@ -1148,27 +1172,99 @@ describe('createPiSession', () => {
     }
   });
 
-  it('fails startup if a denied root cannot be resolved in the sandbox', async () => {
+  it('fails native file tools when a denied root cannot be resolved in the sandbox', async () => {
     const alias = '/sandbox/home/blocked';
     const sandboxSession = createSandboxSession();
     const run = vi.mocked(sandboxSession.run);
     run.mockImplementation(async ({ command }) => ({
       stdout: command.startsWith(`target='${alias}'`)
         ? '__PI_REALPATH_FAILED__\n'
-        : '',
+        : command === 'printf "%s" "$HOME"'
+          ? '/sandbox/home'
+          : '',
       stderr: '',
       exitCode: command.startsWith(`target='${alias}'`) ? 3 : 0,
     }));
+    const readErrors: unknown[] = [];
+    piMock.session = createFakePiSession({
+      promptImplementation: async () => {
+        for (const file of ['first.txt', 'second.txt']) {
+          await executeReadTool(file).catch(error => readErrors.push(error));
+        }
+      },
+    }).session;
 
-    await expect(
-      createPi({ fileToolPathPolicy: { deniedRoots: [alias] } }).doStart({
-        sessionId: 'session-unresolved-denied-root',
-        sandboxSession,
-        sessionWorkDir: '/sandbox/work',
-      }),
-    ).rejects.toThrow(`Unable to resolve path: ${alias}`);
-    expect(piMock.createAgentSession).not.toHaveBeenCalled();
+    const session = await createPi({
+      fileToolPathPolicy: { deniedRoots: [alias] },
+    }).doStart({
+      sessionId: 'session-unresolved-denied-root',
+      sandboxSession,
+      sessionWorkDir: '/sandbox/work',
+    });
+    expect(run).not.toHaveBeenCalled();
+
+    try {
+      const control = await session.doPromptTurn({
+        skills: [],
+        prompt: 'test prompt',
+        tools: [],
+        emit: vi.fn(),
+      });
+      await control.done;
+
+      const unresolved = expect.objectContaining({
+        message: `Unable to resolve path: ${alias}`,
+      });
+      expect(readErrors).toEqual([unresolved, unresolved]);
+      expect(
+        run.mock.calls.filter(([{ command }]) =>
+          command.startsWith(`target='${alias}'`),
+        ),
+      ).toHaveLength(2);
+      expect(sandboxSession.readBinaryFile).not.toHaveBeenCalled();
+    } finally {
+      await session.doDestroy();
+    }
   });
+
+  it('starts and runs a chat-only turn without touching the sandbox', async () => {
+    const sandboxSession = createThrowingSandboxSession();
+    const { session: fakePiSession, prompt } = createFakePiSession();
+    piMock.session = fakePiSession;
+
+    const session = await createPi().doStart({
+      sessionId: 'session-chat-only',
+      sandboxSession,
+      sessionWorkDir: '/sandbox/work',
+    });
+    const control = await session.doPromptTurn({
+      skills: [],
+      prompt: 'Hello.',
+      tools: [],
+      emit: vi.fn(),
+    });
+    await control.done;
+    await session.doStop();
+
+    expect(prompt).toHaveBeenCalledExactlyOnceWith('Hello.');
+    for (const method of [
+      sandboxSession.run,
+      sandboxSession.spawn,
+      sandboxSession.readFile,
+      sandboxSession.readBinaryFile,
+      sandboxSession.readTextFile,
+      sandboxSession.writeFile,
+      sandboxSession.writeBinaryFile,
+      sandboxSession.writeTextFile,
+      sandboxSession.stop,
+      sandboxSession.destroy,
+      sandboxSession.getPortEndpoint,
+      sandboxSession.getPortUrl,
+    ]) {
+      expect(method).not.toHaveBeenCalled();
+    }
+  });
+
   it('keeps native reads inside the workspace without fileToolPathPolicy', async () => {
     const sandboxSession = createSandboxSession();
     let reads: PromiseSettledResult<string>[] = [];
@@ -1425,13 +1521,121 @@ describe('createPiSession', () => {
     try {
       expect(piMock.resourceLoaderOptions.at(-1)).toMatchObject({
         extensionFactories: [],
+        noContextFiles: true,
         noExtensions: true,
         noPromptTemplates: true,
+        noSkills: true,
         noThemes: true,
       });
       expect(
+        piMock.resourceLoaderOptions.at(-1)?.agentsFilesOverride?.({
+          agentsFiles: [{ path: '/sandbox/work/AGENTS.md', content: 'x' }],
+        }),
+      ).toEqual({ agentsFiles: [] });
+      expect(
+        piMock.resourceLoaderOptions.at(-1)?.skillsOverride?.({
+          skills: [],
+          diagnostics: [],
+        }),
+      ).toEqual({ skills: [], diagnostics: [] });
+      expect(
         piMock.resourceLoaderOptions.at(-1)?.extensionsOverride,
       ).toBeUndefined();
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('gives Pi the configured skills and lets read open the skill file', async () => {
+    const skillPath = '/sandbox/skills/brand-voice/SKILL.md';
+    const sandboxSession = createSandboxSession();
+    const run = vi.mocked(sandboxSession.run);
+    const runWithoutRealpath = run.getMockImplementation()!;
+    run.mockImplementation(async input => {
+      const targets = [...input.command.matchAll(/target='([^']+)'/g)].map(
+        match => match[1]!,
+      );
+      const marker = input.command.match(/realpath_marker='([^']+)'/)?.[1];
+      if (targets.length === 0 || marker == null)
+        return runWithoutRealpath(input);
+      return {
+        stdout: targets
+          .map(target => `${Buffer.from(target).toString('base64')}${marker}`)
+          .join(''),
+        stderr: '',
+        exitCode: 0,
+      };
+    });
+    vi.mocked(sandboxSession.readBinaryFile).mockImplementation(
+      async ({ path: filePath }) =>
+        filePath === skillPath ? new TextEncoder().encode('voice rules') : null,
+    );
+    let reads: PromiseSettledResult<string>[] = [];
+    piMock.session = createFakePiSession({
+      promptImplementation: async () => {
+        reads = await Promise.allSettled([
+          executeReadTool(skillPath),
+          executeReadTool('/sandbox/skills/other/SKILL.md'),
+        ]);
+      },
+    }).session;
+
+    const session = await createPi({
+      resources: {
+        skills: [
+          {
+            name: 'brand-voice',
+            description: 'Voice rules',
+            filePath: skillPath,
+          },
+        ],
+      },
+    }).doStart({
+      sessionId: 'session-resources',
+      sandboxSession,
+      sessionWorkDir: '/sandbox/work',
+    });
+
+    try {
+      const control = await session.doPromptTurn({
+        skills: [],
+        prompt: 'test prompt',
+        tools: [],
+        emit: vi.fn(),
+      });
+      await control.done;
+
+      const loaderOptions = piMock.resourceLoaderOptions.at(-1);
+      expect(
+        loaderOptions?.skillsOverride?.({ skills: [], diagnostics: [] }),
+      ).toEqual({
+        skills: [
+          {
+            name: 'brand-voice',
+            description: 'Voice rules',
+            filePath: skillPath,
+            baseDir: '/sandbox/skills/brand-voice',
+            sourceInfo: {
+              path: skillPath,
+              source: 'harness',
+              scope: 'temporary',
+              origin: 'top-level',
+              baseDir: '/sandbox/skills/brand-voice',
+            },
+            disableModelInvocation: false,
+          },
+        ],
+        diagnostics: [],
+      });
+      expect(reads).toEqual([
+        { status: 'fulfilled', value: expect.stringContaining('voice rules') },
+        {
+          status: 'rejected',
+          reason: expect.objectContaining({
+            message: expect.stringContaining('escapes the workspace'),
+          }),
+        },
+      ]);
     } finally {
       await session.doDestroy();
     }
@@ -3056,7 +3260,11 @@ describe('createPiSession', () => {
       modelsPath: '/custom/.pi/agent/models.json',
       allowModelNetwork: false,
     });
-    expect(SettingsManager.create).toHaveBeenCalledTimes(1);
+    expect(SettingsManager.create).toHaveBeenCalledExactlyOnceWith(
+      expect.any(String),
+      '/custom/.pi/agent',
+      { projectTrusted: false },
+    );
     expect(SettingsManager.inMemory).not.toHaveBeenCalled();
   });
 
@@ -3109,7 +3317,10 @@ describe('createPiSession', () => {
       isResume: false,
     });
 
-    expect(SettingsManager.inMemory).toHaveBeenCalledTimes(1);
+    expect(SettingsManager.inMemory).toHaveBeenCalledExactlyOnceWith(
+      {},
+      { projectTrusted: false },
+    );
     expect(SettingsManager.create).not.toHaveBeenCalled();
   });
 });
@@ -3347,8 +3558,6 @@ function assistantMessageWithToolCalls(
 function createSandboxSession(options?: {
   /** When set, resume-path `readBinaryFile` finds a persisted session file. */
   sessionFileContent?: string;
-  /** When set, file reads use the host filesystem at the same paths. */
-  hostFilesystem?: boolean;
 }): HarnessV1NetworkSandboxSession {
   const textFiles = new Map<string, string>();
   const sandbox = {
@@ -3359,16 +3568,6 @@ function createSandboxSession(options?: {
     getPortEndpoint: vi.fn(),
     getPortUrl: vi.fn(),
     readBinaryFile: vi.fn(async ({ path }: { path: string }) => {
-      if (options?.hostFilesystem) {
-        try {
-          return new Uint8Array(readFileSync(path));
-        } catch (error) {
-          if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-            return undefined;
-          }
-          throw error;
-        }
-      }
       return options?.sessionFileContent != null
         ? new TextEncoder().encode(options.sessionFileContent)
         : undefined;

@@ -14,6 +14,7 @@ import {
   type PiHarnessExtensionFactory,
   type PiMcpServerConfig,
   type PiMcpSettings,
+  type PiResources,
   type PiThinkingLevel,
 } from './pi-session';
 import type { PiFileToolPathPolicy } from './pi-paths';
@@ -109,11 +110,20 @@ export type PiHarnessSettings = {
    * outside the session workspace. `writableRoots` also permits writes and
    * edits outside the workspace and grants read access. `deniedRoots` are
    * refused by every native file tool and take precedence, including through
-   * symlinks. Configured roots are resolved for each operation; canonical
-   * denied roots captured at session startup remain denied. The `bash` tool
-   * is not restricted.
+   * symlinks. Configured roots are resolved for each operation; denied roots
+   * are also resolved in the sandbox before the first native file tool runs.
+   * The `bash` tool is not restricted.
    */
   readonly fileToolPathPolicy?: PiFileToolPathPolicy;
+  /**
+   * Project resources for the session. Pi reads no project resources from the
+   * host or the sandbox, so project skills reach the model only through this
+   * setting, and `AGENTS.md` and `CLAUDE.md` are not read at all.
+   *
+   * `skills` are listed to the model and must already exist in the sandbox at
+   * `filePath`, because the model reads them with the `read` tool.
+   */
+  readonly resources?: PiResources;
 };
 
 const PI_BUILTIN_TOOLS = {
@@ -243,6 +253,7 @@ export function createPi(
           ...(settings.fileToolPathPolicy
             ? { fileToolPathPolicy: settings.fileToolPathPolicy }
             : {}),
+          ...(settings.resources ? { resources: settings.resources } : {}),
           ...(startOpts.headers ? { headers: startOpts.headers } : {}),
         },
         clientApp: PI_CLIENT_APP,
