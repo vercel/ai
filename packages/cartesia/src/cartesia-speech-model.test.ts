@@ -231,7 +231,9 @@ describe('CartesiaSpeechModel', () => {
           voice: 'test-voice-id',
           providerOptions: { cartesia: options },
         }),
-      ).rejects.toThrow();
+      ).rejects.toMatchObject({
+        name: 'AI_InvalidArgumentError',
+      });
       expect(server.calls).toHaveLength(0);
     });
 
