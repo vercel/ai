@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 4.0.98
+
+### Patch Changes
+
+- 4cb3dec: feat(provider/google): allow AUDIO response modalities for Google language models
+
 ## 4.0.97
 
 ### Patch Changes
