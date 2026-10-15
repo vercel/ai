@@ -1,5 +1,13 @@
 # @ai-sdk/anthropic
 
+## 3.0.131
+
+### Patch Changes
+
+- 8228dfa: Fall back to automatic tool choice with a warning when manual thinking is enabled with a required or named tool choice, avoiding an Anthropic API 400 error. Named tool choices send only the selected tool.
+- Updated dependencies [d5e7d82]
+  - @ai-sdk/provider-utils@4.0.59
+
 ## 3.0.130
 
 ### Patch Changes
