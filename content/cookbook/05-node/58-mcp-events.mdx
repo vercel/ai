@@ -350,7 +350,7 @@ export async function watchDocument({
       name: 'comment.created',
       arguments: { document_id: documentId },
       idempotencyKey: requestId,
-      expiresAt: null,
+      ttlMs: null,
     });
   } finally {
     await client.close(); // The managed subscription remains in place.
@@ -366,7 +366,7 @@ and subscriptions use the same authorized account.
 The adapter receives the MCP URL from the client's transport automatically.
 You only specify it once. An explicit `mcpUrl` option on the adapter overrides
 that URL; Connect still validates the endpoint before sending credentials.
-With `expiresAt: null`, Connect manages renewal until you explicitly stop the watch.
+With `ttlMs: null`, Connect manages renewal until you explicitly stop the watch.
 See the [managed subscriptions reference](/docs/reference/ai-sdk-core/mcp-events#managed-subscriptions)
 for lifetime options, listing, and cleanup status.
 
