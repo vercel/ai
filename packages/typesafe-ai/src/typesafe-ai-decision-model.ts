@@ -119,6 +119,13 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
     const assets: Record<string, { type: 'image'; part: string }> =
       Object.create(null); // don't inherit from Object.prototype
     const imageParts: { name: string; blob: Blob; filename: string }[] = [];
+    const stateStrings = state.flatMap(part =>
+      part.type === 'text'
+        ? [part.text]
+        : part.type === 'json'
+          ? jsonStrings(part.value)
+          : [],
+    );
     const stateParts = (
       await Promise.all(
         state.map(async (part, index) => {
@@ -141,8 +148,10 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
             providerOptions: part.providerOptions,
             schema: typesafeAiFilePartProviderOptions,
           });
-          const insertReference = fileOptions?.insertReference !== false;
-          if (!insertReference && fileOptions?.reference === undefined) {
+          if (
+            fileOptions?.insertReference === false &&
+            fileOptions.reference === undefined
+          ) {
             throw new InvalidArgumentError({
               argument: 'providerOptions.typesafe.reference',
               message:
@@ -152,6 +161,9 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
           // Default to random IDs to avoid accidental text matches
           // as TypeSafe recommends as the safest option.
           const reference = fileOptions?.reference ?? generateId();
+          const insertReference =
+            fileOptions?.insertReference ??
+            !stateStrings.some(text => text.includes(reference));
           if (assets[reference] !== undefined) {
             throw new InvalidArgumentError({
               argument: 'providerOptions.typesafe.reference',
@@ -300,4 +312,17 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
       },
     };
   }
+}
+
+function jsonStrings(value: unknown): string[] {
+  if (typeof value === 'string') {
+    return [value];
+  }
+  if (Array.isArray(value)) {
+    return value.flatMap(jsonStrings);
+  }
+  if (value !== null && typeof value === 'object') {
+    return Object.values(value).flatMap(jsonStrings);
+  }
+  return [];
 }

@@ -472,7 +472,7 @@ describe('image input', () => {
     },
   );
 
-  it('keeps JSON state as an object when its image references are already placed', async () => {
+  it('keeps JSON state as an object when it already contains the reference', async () => {
     await model.doDecide({
       ...options,
       state: [
@@ -481,9 +481,7 @@ describe('image input', () => {
           type: 'file',
           mediaType: 'image/png',
           data: { type: 'data', data: 'iVBORw==' },
-          providerOptions: {
-            typesafe: { reference: '[photo]', insertReference: false },
-          },
+          providerOptions: { typesafe: { reference: '[photo]' } },
         },
       ],
     });
@@ -508,9 +506,7 @@ describe('image input', () => {
           type: 'file',
           mediaType: 'image/jpeg',
           data: { type: 'data', data: '/9j/4A==' },
-          providerOptions: {
-            typesafe: { reference: '[photo]', insertReference: false },
-          },
+          providerOptions: { typesafe: { reference: '[photo]' } },
         },
       ],
     });
@@ -518,6 +514,93 @@ describe('image input', () => {
     const body = JSON.parse(await multipart!.request.text());
     expect(body.state).toBe('Is [photo] damaged?');
     expect(Object.keys(body.assets)).toEqual(['[photo]']);
+  });
+
+  it('finds references in nested JSON string values but not in object keys', async () => {
+    await model.doDecide({
+      ...options,
+      state: [
+        {
+          type: 'json',
+          value: {
+            frames: [{ seconds_ago: 0, frame: 'Latest frame: [frame]' }],
+            '[label]': 'A key is not a reference.',
+          },
+        },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: { type: 'data', data: 'iVBORw==' },
+          providerOptions: { typesafe: { reference: '[frame]' } },
+        },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: { type: 'data', data: 'iVBORw==' },
+          providerOptions: { typesafe: { reference: '[label]' } },
+        },
+      ],
+    });
+    const multipart = await server.calls[0].requestBodyMultipart;
+    const body = JSON.parse(await multipart!.request.text());
+    expect(body.state).toBe(
+      `${JSON.stringify({
+        frames: [{ seconds_ago: 0, frame: 'Latest frame: [frame]' }],
+        '[label]': 'A key is not a reference.',
+      })}\n[label]`,
+    );
+  });
+
+  it('sends a question-only image without touching state when insertReference is false', async () => {
+    await model.doDecide({
+      state: [
+        { type: 'json', value: { photo: '[found]' } },
+        {
+          type: 'file',
+          mediaType: 'image/jpeg',
+          data: { type: 'data', data: '/9j/4A==' },
+          providerOptions: { typesafe: { reference: '[found]' } },
+        },
+        {
+          type: 'file',
+          mediaType: 'image/jpeg',
+          data: { type: 'data', data: '/9j/4A==' },
+          providerOptions: {
+            typesafe: { reference: '[poster]', insertReference: false },
+          },
+        },
+      ],
+      questions: {
+        same: {
+          type: 'boolean',
+          instructions: 'Is the dog in `photo` the dog in [poster]?',
+        },
+      },
+    });
+    const multipart = await server.calls[0].requestBodyMultipart;
+    const body = JSON.parse(await multipart!.request.text());
+    expect(body.state).toEqual({ photo: '[found]' });
+    expect(Object.keys(body.assets)).toEqual(['[found]', '[poster]']);
+  });
+
+  it('inserts a reference already in state when insertReference is true', async () => {
+    await model.doDecide({
+      ...options,
+      state: [
+        { type: 'text', text: 'Before: [photo]' },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: { type: 'data', data: 'iVBORw==' },
+          providerOptions: {
+            typesafe: { reference: '[photo]', insertReference: true },
+          },
+        },
+      ],
+    });
+    const multipart = await server.calls[0].requestBodyMultipart;
+    const body = JSON.parse(await multipart!.request.text());
+    expect(body.state).toBe('Before: [photo]\n[photo]');
   });
 
   it('inserts only the references that are not already placed', async () => {
