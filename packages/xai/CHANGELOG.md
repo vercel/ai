@@ -1,5 +1,14 @@
 # @ai-sdk/xai
 
+## 3.0.142
+
+### Patch Changes
+
+- Updated dependencies [739e9f6]
+  - @ai-sdk/provider@3.0.19
+  - @ai-sdk/openai-compatible@2.0.84
+  - @ai-sdk/provider-utils@4.0.60
+
 ## 3.0.141
 
 ### Patch Changes
