@@ -91,6 +91,7 @@ export function validateDecisionInput({
         'instructions must be a JSON-compatible string, object, or array',
       );
     }
+    if (question.type === 'box') continue;
     const criteria = question.criteria;
     switch (question.type) {
       case 'choice':
@@ -128,7 +129,7 @@ export function validateDecisionInput({
         invalidInput(
           parameter,
           question,
-          'question type must be choice, score, or boolean',
+          'question type must be choice, score, boolean, or box',
         );
     }
     if (
@@ -304,6 +305,25 @@ export function validateDecisionAnswers({
               `Question "${id}" score must equal the probability-weighted mean within the declared rounding precision.`,
             );
           }
+        }
+        break;
+      }
+      case 'box': {
+        const box = answer.box;
+        if (
+          !isRecord(box) ||
+          !hasExactKeys(box, ['top', 'bottom', 'left', 'right']) ||
+          !isProbability(box.left) ||
+          !isProbability(box.right) ||
+          !isProbability(box.top) ||
+          !isProbability(box.bottom) ||
+          !(box.left < box.right) ||
+          !(box.top < box.bottom)
+        ) {
+          invalidAnswer(
+            answers,
+            `Question "${id}" must return box edges in [0, 1] with left < right and top < bottom.`,
+          );
         }
         break;
       }
