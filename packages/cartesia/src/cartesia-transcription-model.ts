@@ -203,16 +203,6 @@ export class CartesiaTranscriptionModel implements TranscriptionModelV4 {
       schema: cartesiaTranscriptionModelOptionsSchema,
     });
 
-    if (
-      cartesiaOptions?.language != null &&
-      cartesiaOptions.language !== 'en'
-    ) {
-      throw new InvalidArgumentError({
-        argument: 'providerOptions',
-        message: 'Cartesia Ink 2 currently supports English only.',
-      });
-    }
-
     if (cartesiaOptions?.timestampGranularities != null) {
       warnings.push({
         type: 'unsupported',
@@ -271,7 +261,7 @@ export class CartesiaTranscriptionModel implements TranscriptionModelV4 {
         webSocket: this.config.webSocket,
         url,
         warnings,
-        language: cartesiaOptions?.language ?? 'en',
+        language: cartesiaOptions?.language ?? undefined,
         useTurnDetection,
         audio: options.audio,
         abortSignal: options.abortSignal,
@@ -312,7 +302,7 @@ function createCartesiaStreamingTranscriptionStream({
   webSocket: CartesiaConfig['webSocket'];
   url: URL;
   warnings: SharedV4Warning[];
-  language: string;
+  language: string | undefined;
   useTurnDetection: boolean;
   audio: ReadableStream<Uint8Array | string>;
   abortSignal: AbortSignal | undefined;
@@ -355,7 +345,7 @@ function createCartesiaStreamingTranscriptionStream({
           type: 'finish',
           text: finalTexts.join(useTurnDetection ? ' ' : ''),
           segments: [],
-          language,
+          ...(language != null ? { language } : {}),
           ...(durationInSeconds > 0 ? { durationInSeconds } : {}),
         });
         controller.close();

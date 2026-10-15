@@ -12,7 +12,10 @@ export const cartesiaStreamingEncodingSchema = z.enum([
 
 // https://docs.cartesia.ai/api-reference/stt/transcribe
 export const cartesiaTranscriptionModelOptionsSchema = z.object({
-  /** The language of the audio (ISO 639-1 code). Defaults to English. */
+  /**
+   * The language of the audio (ISO 639-1 code). Defaults to English.
+   * Used by Ink Whisper; Ink 2 detects the language automatically.
+   */
   language: z.string().nullish(),
   /** The timestamp granularities to populate. Currently only `word` is supported. */
   timestampGranularities: z.array(z.enum(['word'])).nullish(),
