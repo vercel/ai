@@ -6,4 +6,8 @@ describe('remove-isxxxerror', () => {
   it('transforms correctly', () => {
     testTransform(transformer, 'remove-isxxxerror');
   });
+
+  it('keeps aliased and namespaced receivers bound', () => {
+    testTransform(transformer, 'remove-isxxxerror-alias');
+  });
 });

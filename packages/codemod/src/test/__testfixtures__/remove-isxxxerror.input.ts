@@ -3,15 +3,15 @@ import { APICallError, TypeValidationError } from 'ai';
 import { NoSuchModelError } from '@ai-sdk/provider';
 import { CustomError } from 'other-pkg';
 
-if (APICallError.isInstance(error)) {
+if (APICallError.isAPICallError(error)) {
   console.log('API Call Error');
 }
 
-if (TypeValidationError.isInstance(error)) {
+if (TypeValidationError.isTypeValidationError(error)) {
   console.log('Type Validation Error');
 }
 
-if (NoSuchModelError.isInstance(error)) {
+if (NoSuchModelError.isNoSuchModelError(error)) {
   console.log('No Such Model Error');
 }
 
