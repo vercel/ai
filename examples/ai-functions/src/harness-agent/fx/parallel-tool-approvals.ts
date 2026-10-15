@@ -37,7 +37,6 @@ run(async () => {
     runtime: 'node24',
     timeout: 10 * 60 * 1000,
     template: await agent.getSandboxTemplate(),
-    ports: [4000],
   });
   let session: HarnessAgentSession | undefined;
   try {
