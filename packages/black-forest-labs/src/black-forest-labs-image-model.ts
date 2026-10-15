@@ -62,6 +62,8 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
 
   private get modelApi(): 'legacy' | 'flux-3-image' | 'latest' {
     if (
+      this.modelId === 'flux-pro' ||
+      this.modelId === 'flux-dev' ||
       this.modelId.startsWith('flux-pro-') ||
       this.modelId.startsWith('flux-kontext-') ||
       /^flux-[12](?:[.-]|$)/.test(this.modelId)
