@@ -15,6 +15,8 @@ export type GatewayImageModelId =
   | 'bytedance/seedream-5.0-lite'
   | 'bytedance/seedream-5.0-pro'
   | 'meta/muse-image-1.0'
+  | 'microsoft/mai-image-2.6'
+  | 'microsoft/mai-image-2.6-flash'
   | 'openai/gpt-image-1'
   | 'openai/gpt-image-1-mini'
   | 'openai/gpt-image-1.5'

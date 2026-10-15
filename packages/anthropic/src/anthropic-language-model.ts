@@ -255,6 +255,12 @@ export type AnthropicLanguageModelConfig = {
     args: Record<string, any>,
     betas: Set<string>,
   ) => Record<string, any>;
+  transformRequestHeaders?: (
+    headers: Record<string, string | undefined>,
+    providerOptions: LanguageModelV4CallOptions['providerOptions'],
+  ) =>
+    | Record<string, string | undefined>
+    | PromiseLike<Record<string, string | undefined>>;
   supportedUrls?: () => LanguageModelV4['supportedUrls'];
   generateId?: () => string;
   supportsNativeStructuredOutput?: boolean;
@@ -1067,7 +1073,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
             supportsStructuredOutput: false,
             supportsStrictTools,
             defaultEagerInputStreaming,
-            rejectsForcedToolUse,
+            rejectsForcedToolUse:
+              rejectsForcedToolUse || thinkingType === 'enabled',
           }
         : {
             tools: tools ?? [],
@@ -1077,7 +1084,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
             supportsStructuredOutput,
             supportsStrictTools,
             defaultEagerInputStreaming,
-            rejectsForcedToolUse,
+            rejectsForcedToolUse:
+              rejectsForcedToolUse || thinkingType === 'enabled',
           },
     );
 
@@ -1121,15 +1129,21 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
   private async getHeaders({
     betas,
     headers,
+    providerOptions,
   }: {
     betas: Set<string>;
     headers: Record<string, string | undefined> | undefined;
+    providerOptions: LanguageModelV4CallOptions['providerOptions'];
   }) {
-    return combineHeaders(
+    const combinedHeaders = combineHeaders(
       this.config.headers ? await resolve(this.config.headers) : undefined,
       headers,
       betas.size > 0 ? { 'anthropic-beta': Array.from(betas).join(',') } : {},
     );
+
+    return this.config.transformRequestHeaders
+      ? this.config.transformRequestHeaders(combinedHeaders, providerOptions)
+      : combinedHeaders;
   }
 
   private async getBetasFromHeaders(
@@ -1240,7 +1254,11 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url: this.buildRequestUrl(false),
-      headers: await this.getHeaders({ betas, headers: options.headers }),
+      headers: await this.getHeaders({
+        betas,
+        headers: options.headers,
+        providerOptions: options.providerOptions,
+      }),
       body: this.transformRequestBody(args, betas),
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -1880,7 +1898,11 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     const url = this.buildRequestUrl(true);
     const { responseHeaders, value: response } = await postJsonToApi({
       url,
-      headers: await this.getHeaders({ betas, headers: options.headers }),
+      headers: await this.getHeaders({
+        betas,
+        headers: options.headers,
+        providerOptions: options.providerOptions,
+      }),
       body: this.transformRequestBody(body, betas),
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler:

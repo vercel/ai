@@ -1,5 +1,8 @@
 import {
   createAgentSession,
+  createMcpExtension,
+  createReadToolDefinition,
+  createToolSearchExtension,
   DefaultResourceLoader,
   defineTool,
   ModelRegistry,
@@ -7,14 +10,17 @@ import {
   SettingsManager,
   type AgentSession,
   type AgentToolResult,
+  type ExtensionAPI,
   type ExtensionFactory,
+  type McpExposure,
+  type McpServerConfig,
   type ProviderConfig,
   type Skill,
   type ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
 import { randomUUID } from 'node:crypto';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { devNull, tmpdir } from 'node:os';
 import path from 'node:path';
 import { Type } from 'typebox';
 import {
@@ -47,20 +53,16 @@ import {
   type PiCredentialStore,
 } from './pi-auth';
 import { resolvePiSubscriptionAgentDir } from './pi-subscription';
-import {
-  getPiTerminalError,
-  parseNativeEvent,
-  type PiSessionEvent,
-} from './pi-events';
+import { parseNativeEvent, type PiSessionEvent } from './pi-events';
 import { createPiModelResolver } from './pi-model-resolver';
-import { createPiPathMapper } from './pi-paths';
+import { createPiPathMapper, type PiFileToolPathPolicy } from './pi-paths';
 import {
   createPiRemoteOps,
   resolvePiSandboxPathOrParent,
   type PiRemoteOps,
 } from './pi-remote-ops';
+import { executePiSandboxRead } from './pi-read-operations';
 import {
-  formatPiReadToolOutput,
   truncatePiToolModelOutput,
   truncatePiToolOutputHead,
   truncatePiToolOutputTail,
@@ -92,27 +94,6 @@ import { PiWorkspaceVfs } from './pi-workspace-vfs';
 import { syncHostWorkspaceFromSandbox } from './pi-workspace-mirror';
 
 const HARNESS_ID = 'pi';
-
-/*
- * pi-mcp-adapter publishes TypeScript source as its package entry point. A
- * non-literal specifier keeps the repository type-check focused on this
- * package's compatibility boundary instead of compiling dependency internals.
- */
-const PI_MCP_ADAPTER_PACKAGE: string = 'pi-mcp-adapter';
-
-type PiMcpAdapterModule = {
-  createMcpAdapter(options: {
-    config: {
-      mcpServers: Record<string, unknown>;
-      settings: {
-        directTools: boolean;
-        toolPrefix: string;
-        disableProxyTool: boolean;
-        outputGuard?: boolean;
-      };
-    };
-  }): ExtensionFactory;
-};
 
 /*
  * Pi runs in this Node process, not behind an attachable in-sandbox bridge.
@@ -248,36 +229,83 @@ export type PiThinkingLevel =
   | 'xhigh'
   | 'max';
 
-export interface PiFileToolPathPolicy {
-  readonly readableRoots?: ReadonlyArray<string>;
-  readonly deniedRoots?: ReadonlyArray<string>;
-}
+/**
+ * MCP exposure modes the harness serves. Pi's `codemode` exposure needs Pi's
+ * codemode extension, which the harness does not load.
+ */
+export type PiMcpExposure = Exclude<McpExposure, 'codemode'>;
 
+/**
+ * Pi's native MCP server configuration (stdio or streamable HTTP), limited to
+ * the exposure modes the harness serves.
+ */
+export type PiMcpServerConfig = McpServerConfig extends infer Config
+  ? Config extends McpServerConfig
+    ? Omit<Config, 'exposure' | 'toolExposure'> & {
+        /**
+         * How the server's tools reach the model.
+         *
+         * @default 'direct'
+         */
+        readonly exposure?: PiMcpExposure;
+        /**
+         * Exposure of single tools, keyed by the tool name the server offers or
+         * a `*` pattern, overriding `exposure`.
+         */
+        readonly toolExposure?: Readonly<Record<string, PiMcpExposure>>;
+      }
+    : never
+  : never;
+
+/**
+ * @deprecated Pi's native MCP serves `mcpServers` and has no adapter settings.
+ * It always names tools `mcp__<server>__<tool>` and always truncates results
+ * over 20 KB, writing the full text to a file in the host temp directory.
+ * Values it cannot honor fail session start.
+ */
 export interface PiMcpSettings {
   /**
-   * How MCP tool names are prefixed: `mcp` (`mcp__<server>_<tool>`), `server`
-   * (`<server>_<tool>`), `short` (the server name without an `mcp` suffix), or
-   * `none` (the bare tool name). Only `mcp`-prefixed tool calls are reported
-   * as provider-executed dynamic tools with parsed JSON results.
-   *
-   * @default 'mcp'
+   * @deprecated Native MCP always names tools `mcp__<server>__<tool>`, so only
+   * `'mcp'` is accepted; any other value fails session start.
    */
   readonly toolPrefix?: 'server' | 'none' | 'short' | 'mcp';
   /**
-   * Whether the MCP adapter truncates large tool results and writes the full
-   * text to a file in the host temp directory.
-   *
-   * @default true
+   * @deprecated Native MCP always truncates results over 20 KB and writes the
+   * full text to a file in the host temp directory, so `false` fails session
+   * start.
    */
   readonly outputGuard?: boolean;
 }
 
 export type PiCacheRetention = 'none' | 'short' | 'long';
 
-export interface PiFileToolPathPolicy {
-  readonly readableRoots?: ReadonlyArray<string>;
-  readonly deniedRoots?: ReadonlyArray<string>;
+/**
+ * The harness session a Pi extension factory runs in.
+ */
+export interface PiHarnessExtensionSession {
+  /**
+   * The session's sandbox, restricted to the operations harness tools may use.
+   */
+  readonly sandboxSession: SandboxSession;
+  /**
+   * The sandbox directory the session works in.
+   */
+  readonly sessionWorkDir: string;
+  /**
+   * The instructions of the session's current turn. Instructions arrive with
+   * each turn, so read them when a turn runs, not when the factory runs.
+   */
+  readonly instructions: () => string | undefined;
 }
+
+/**
+ * A Pi extension factory that also receives the harness session it runs in.
+ * Plain Pi `ExtensionFactory` functions are accepted unchanged.
+ */
+export type PiHarnessExtensionFactory = (
+  pi: ExtensionAPI,
+  session: PiHarnessExtensionSession,
+) => ReturnType<ExtensionFactory>;
 
 export interface PiSessionSettings {
   readonly auth?: PiAuthenticationMode;
@@ -286,10 +314,10 @@ export interface PiSessionSettings {
   readonly headers?: Readonly<Record<string, string>>;
   readonly thinkingLevel?: PiThinkingLevel;
   readonly cacheRetention?: PiCacheRetention;
-  readonly mcpServers?: Record<string, unknown>;
+  readonly mcpServers?: Readonly<Record<string, PiMcpServerConfig>>;
   readonly mcpSettings?: PiMcpSettings;
   readonly providers?: Readonly<Record<string, ProviderConfig>>;
-  readonly extensionFactories?: ReadonlyArray<ExtensionFactory>;
+  readonly extensionFactories?: ReadonlyArray<PiHarnessExtensionFactory>;
   readonly fileToolPathPolicy?: PiFileToolPathPolicy;
 }
 
@@ -444,6 +472,9 @@ export async function createPiSession(
     }
   }
 
+  assertPiMcpSettingsSupported(input.settings.mcpSettings);
+  const mcpServers = resolvePiMcpServers(input.settings.mcpServers);
+
   // Host-side mirror layout under tmpdir. Replace path-separator characters
   // that would otherwise turn a session id like `2026-05-29T17:54:27` into a
   // sub-directory tree on disk.
@@ -558,6 +589,7 @@ export async function createPiSession(
         sandboxDir,
       })),
     ],
+    writableRoots: fileToolPathPolicy?.writableRoots,
     deniedRoots: fileToolPathPolicy?.deniedRoots
       ? [
           ...new Set([
@@ -624,12 +656,16 @@ export async function createPiSession(
     env: resolverEnv,
   });
   let activeResolvedModel = resolveModel();
-  const mcpServers = resolvePiMcpServers({
-    mcpServers: input.settings.mcpServers,
-  });
-  const hasMcpServers = Object.keys(mcpServers).length > 0;
+  const hasMcpServers = mcpServers.length > 0;
+  let mcpRegistrationError: unknown;
 
   let sessionInstructions: string | undefined;
+
+  const extensionSession: PiHarnessExtensionSession = {
+    sandboxSession: toolSafeSandboxSession,
+    sessionWorkDir,
+    instructions: () => sessionInstructions,
+  };
 
   /*
    * Configured MCP servers are served by an inline Pi extension, so they share
@@ -638,24 +674,31 @@ export async function createPiSession(
    * that keeps the active runtime alive across resource-only reloads.
    */
   const extensionFactories: ExtensionFactory[] = [
-    ...(input.settings.extensionFactories ?? []),
+    ...(input.settings.extensionFactories ?? []).map(
+      (factory): ExtensionFactory =>
+        pi =>
+          factory(pi, extensionSession),
+    ),
   ];
   if (hasMcpServers) {
-    const { createMcpAdapter } = (await import(
-      PI_MCP_ADAPTER_PACKAGE
-    )) as PiMcpAdapterModule;
     extensionFactories.push(
-      createMcpAdapter({
-        config: {
-          mcpServers,
-          settings: {
-            directTools: true,
-            toolPrefix: 'mcp',
-            disableProxyTool: true,
-            ...input.settings.mcpSettings,
-          },
-        },
+      createToolSearchExtension(),
+      createMcpExtension({
+        loadConfig: () => ({ servers: [], errors: [] }),
+        logPath: devNull,
+        credentials: createInMemoryMcpCredentialStore(),
       }),
+      // Pi records an error thrown by an extension factory and loads the
+      // session without that extension.
+      pi => {
+        try {
+          for (const [name, config] of mcpServers) {
+            pi.registerMcpServer(name, config);
+          }
+        } catch (error) {
+          mcpRegistrationError = error;
+        }
+      },
     );
   }
   const hasExtensionFactories = extensionFactories.length > 0;
@@ -707,6 +750,7 @@ export async function createPiSession(
     }),
   });
   await resourceLoader.reload();
+  if (mcpRegistrationError != null) throw mcpRegistrationError;
 
   async function reloadResourcesOnly(): Promise<void> {
     if (!hasExtensionFactories) {
@@ -1411,6 +1455,7 @@ export async function createPiSession(
     };
 
     const turnPromise = (async () => {
+      let stage: 'preparing' | 'prompting' = 'preparing';
       try {
         await applySessionInstructions(turnOpts.instructions);
         turnAbortController.signal.throwIfAborted();
@@ -1476,11 +1521,12 @@ export async function createPiSession(
 
         // Fresh translator state for the new turn — keep the tool sets the
         // session was built with.
-        translatorState = createPiTranslatorState({
+        const turnState = createPiTranslatorState({
           builtinToolNames: activeBuiltinNames,
           hostToolNames: userTools.map(tool => tool.name),
           nativeToCommon: activeNativeToCommon,
         });
+        translatorState = turnState;
 
         currentEmit?.({
           type: 'stream-start',
@@ -1492,87 +1538,51 @@ export async function createPiSession(
           translatorState.hostToolResults.set(toolCallId, delivered.output);
         }
 
-        let terminalError: string | undefined;
         const session = piSession!;
-
-        // We subscribed in rebuild, but the translator may need to detect
-        // terminal errors too — wrap a second listener that records them.
-        const unsubErr = session.subscribe(raw => {
-          const ev = parseNativeEvent(raw);
-          if (!ev) return;
-          const err = getPiTerminalError(ev);
-          if (err && !terminalError) {
-            terminalError = err;
-          }
-        });
-
         const tokensBefore = session.getSessionStats().tokens;
-        try {
-          if (replayBatch != null) {
-            replaySuppressedToolCallIds = replaySuppressed;
-            try {
-              await runToolBatchReplay({
-                agent: session.agent,
-                assistantMessage: replayBatch.assistantMessage,
-                toolResults: replayToolResults,
-                onReplayedMessage: () => {
-                  replayingAssistantMessage = true;
-                },
-              });
-            } finally {
-              replaySuppressedToolCallIds = new Set();
-              replayingAssistantMessage = false;
-            }
-          } else {
-            await session.prompt(turnOpts.text);
+        stage = 'prompting';
+        if (replayBatch != null) {
+          replaySuppressedToolCallIds = replaySuppressed;
+          try {
+            await runToolBatchReplay({
+              agent: session.agent,
+              assistantMessage: replayBatch.assistantMessage,
+              toolResults: replayToolResults,
+              onReplayedMessage: () => {
+                replayingAssistantMessage = true;
+              },
+            });
+          } finally {
+            replaySuppressedToolCallIds = new Set();
+            replayingAssistantMessage = false;
           }
-
-          if (terminalError) {
-            /*
-             * A `doSuspendTurn` aborts the in-flight turn on purpose. Pi surfaces
-             * that abort as a *resolved* prompt with a recorded terminal error
-             * ("This operation was aborted") rather than a thrown exception, so the
-             * `catch` guard below never sees it. Swallow it here too — but only if
-             * it's actually the abort: the stream then closes cleanly (no spurious
-             * `error` chunk) and the next slice rerun-continues from the journal.
-             * Any other terminal error mid-suspend is unanticipated and must
-             * surface.
-             */
-            if (suspending && isAbortError(terminalError)) return;
-            currentEmit?.({ type: 'error', error: new Error(terminalError) });
-            return;
-          }
-
-          const tokensAfter = session.getSessionStats().tokens;
-          const finishReason = {
-            unified: 'stop' as const,
-            raw: undefined,
-          };
-          currentEmit?.({
-            type: 'finish',
-            finishReason,
-            totalUsage: toHarnessUsage({
-              input: tokensAfter.input - tokensBefore.input,
-              output: tokensAfter.output - tokensBefore.output,
-              cacheRead: tokensAfter.cacheRead - tokensBefore.cacheRead,
-              cacheWrite: tokensAfter.cacheWrite - tokensBefore.cacheWrite,
-              reasoning: translatorState?.turnReasoningTokens,
-            }),
-          });
-        } catch (err) {
-          // A `doSuspendTurn` aborts the in-flight turn on purpose — settle silently
-          // so the stream closes cleanly without a spurious `error` chunk; the
-          // next slice rerun-continues from the persisted journal.
-          // Same rule as the resolved-with-terminalError path: only swallow the
-          // abort our own suspend caused; surface anything unanticipated.
-          if (suspending && isAbortError(err)) return;
-          currentEmit?.({ type: 'error', error: err });
-        } finally {
-          unsubErr();
+        } else {
+          await session.prompt(turnOpts.text);
         }
+
+        const terminalError = turnState.lastAssistantError;
+        if (terminalError) throw new Error(terminalError);
+
+        const tokensAfter = session.getSessionStats().tokens;
+        const finishReason = {
+          unified: 'stop' as const,
+          raw: undefined,
+        };
+        currentEmit?.({
+          type: 'finish',
+          finishReason,
+          totalUsage: toHarnessUsage({
+            input: tokensAfter.input - tokensBefore.input,
+            output: tokensAfter.output - tokensBefore.output,
+            cacheRead: tokensAfter.cacheRead - tokensBefore.cacheRead,
+            cacheWrite: tokensAfter.cacheWrite - tokensBefore.cacheWrite,
+            reasoning: turnState.turnReasoningTokens,
+          }),
+        });
       } catch (err) {
-        if (suspending && isAbortError(err)) return;
-        throw err;
+        if (suspending) return;
+        if (stage === 'preparing') throw err;
+        currentEmit?.({ type: 'error', error: err });
       }
     })();
 
@@ -1886,43 +1896,74 @@ export async function createPiSession(
   return sessionImpl;
 }
 
-function resolvePiMcpServers({
-  mcpServers,
-}: {
-  mcpServers: Record<string, unknown> | undefined;
-}): Record<string, unknown> {
-  if (mcpServers == null) return {};
-  for (const [name, value] of Object.entries(mcpServers)) {
-    if (value == null || typeof value !== 'object' || Array.isArray(value)) {
+const PI_CODEMODE_EXPOSURES: ReadonlyArray<unknown> = [
+  'codemode',
+  'codemode-deferred',
+];
+
+function resolvePiMcpServers(
+  mcpServers: PiSessionSettings['mcpServers'],
+): Array<[name: string, config: PiMcpServerConfig]> {
+  return Object.entries(mcpServers ?? {}).map(([name, config]) => {
+    const exposures: unknown[] = [
+      config.exposure,
+      ...Object.values(config.toolExposure ?? {}),
+    ];
+    if (exposures.some(exposure => PI_CODEMODE_EXPOSURES.includes(exposure))) {
       throw new Error(
-        `Pi MCP server ${JSON.stringify(name)} must be configured with an object value.`,
+        `Pi MCP server ${JSON.stringify(name)} uses the codemode exposure, which is not supported: the harness does not load Pi's codemode extension. Use 'direct', 'deferred' or 'hidden'.`,
       );
     }
-  }
-  return mcpServers;
+    return [
+      name,
+      {
+        ...config,
+        exposure: config.exposure === undefined ? 'direct' : config.exposure,
+      },
+    ];
+  });
 }
 
-/**
- * Whether a terminal error (string from Pi's event stream, or a thrown error)
- * is an abort — the expected result of `doSuspendTurn` aborting the in-flight
- * turn. Only these are safe to swallow while `suspending`; any other error is
- * unanticipated and must surface as an `error` chunk.
- */
-function isAbortError(value: unknown): boolean {
-  if (value == null) return false;
-  if (
-    typeof value === 'object' &&
-    (value as { name?: unknown }).name === 'AbortError'
-  ) {
-    return true;
+type PiMcpCredentialStore = NonNullable<
+  NonNullable<Parameters<typeof createMcpExtension>[0]>['credentials']
+>;
+type PiMcpServerCredentialStore = ReturnType<PiMcpCredentialStore['forServer']>;
+type PiMcpOAuthState = Parameters<PiMcpServerCredentialStore['save']>[0];
+
+// Pi's default store is `mcp-auth.json` in the host agent directory, so a
+// server without an Authorization header would be sent the tokens of whoever
+// signed in to it with the Pi CLI on this machine.
+function createInMemoryMcpCredentialStore(): PiMcpCredentialStore {
+  const states = new Map<string, PiMcpOAuthState>();
+  const keyOf = (name: string, serverUrl: string) => `${name}|${serverUrl}`;
+  const store: Pick<PiMcpCredentialStore, 'forServer' | 'tokens' | 'remove'> = {
+    forServer: (name, serverUrl) => ({
+      load: () => states.get(keyOf(name, serverUrl)),
+      save: state => {
+        states.set(keyOf(name, serverUrl), state);
+      },
+      withRefreshLock: fn => fn(),
+    }),
+    tokens: (name, serverUrl) => states.get(keyOf(name, serverUrl))?.tokens,
+    remove: (name, serverUrl) => states.delete(keyOf(name, serverUrl)),
+  };
+  // Pi types the option as its store class, which has private members.
+  return store as PiMcpCredentialStore;
+}
+
+function assertPiMcpSettingsSupported(
+  mcpSettings: PiMcpSettings | undefined,
+): void {
+  if (mcpSettings?.toolPrefix != null && mcpSettings.toolPrefix !== 'mcp') {
+    throw new Error(
+      `Pi MCP setting toolPrefix ${JSON.stringify(mcpSettings.toolPrefix)} is not supported: Pi's native MCP always names tools mcp__<server>__<tool>.`,
+    );
   }
-  const text =
-    typeof value === 'string'
-      ? value
-      : value instanceof Error
-        ? value.message
-        : String(value);
-  return /\baborted\b|AbortError|operation was aborted/i.test(text);
+  if (mcpSettings?.outputGuard === false) {
+    throw new Error(
+      "Pi MCP setting outputGuard false is not supported: Pi's native MCP always truncates results over 20 KB and writes the full text to a file in the host temp directory.",
+    );
+  }
 }
 
 function asPiToolResult(text: string): AgentToolResult<unknown> {
@@ -1971,12 +2012,12 @@ function buildBuiltinToolDefinition(input: {
   }) => Promise<{ approved: boolean; reason?: string }>;
 }): ToolDefinition {
   switch (input.native) {
-    case 'read':
+    case 'read': {
+      const sandboxWorkDir = input.remoteOps.paths.sandboxWorkDir;
       return defineTool({
         name: 'read',
         label: 'read',
-        description:
-          'Read file contents. Output is limited to 2,000 lines or 50KB. Use offset and limit to read large files in pages.',
+        description: createReadToolDefinition(sandboxWorkDir).description,
         parameters: Type.Object({
           file_path: Type.String(),
           offset: Type.Optional(
@@ -1992,24 +2033,29 @@ function buildBuiltinToolDefinition(input: {
             }),
           ),
         }),
-        async execute(toolCallId, params) {
+        async execute(toolCallId, params, signal, onUpdate, ctx) {
           const denied = await maybeDenyPiBuiltinTool({
             toolCallId,
             nativeName: 'read',
             requestApproval: input.requestApproval,
           });
           if (denied) return denied;
-          const buf = await input.remoteOps.readBuffer(params.file_path);
-          return asPiToolResult(
-            formatPiReadToolOutput({
-              text: buf.toString('utf8'),
-              filePath: params.file_path,
-              offset: params.offset,
-              limit: params.limit,
-            }),
+          // Pi expands `~` against the host home, so map the path first.
+          const sandboxPath = input.remoteOps.paths.toReadableSandboxPath(
+            params.file_path,
+          );
+          return executePiSandboxRead(
+            input.remoteOps,
+            sandboxWorkDir,
+            toolCallId,
+            { path: sandboxPath, offset: params.offset, limit: params.limit },
+            signal,
+            onUpdate,
+            ctx,
           );
         },
       });
+    }
     case 'write':
       return defineTool({
         name: 'write',

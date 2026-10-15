@@ -28,11 +28,15 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { devNull, tmpdir } from 'node:os';
 import path from 'node:path';
 import { z } from 'zod/v4';
 import { createPi } from './pi-harness';
-import { createPiSession } from './pi-session';
+import {
+  createPiSession,
+  type PiHarnessExtensionFactory,
+  type PiHarnessExtensionSession,
+} from './pi-session';
 import { truncatePiToolOutputHead } from './pi-tool-result';
 
 type FakePiTool = Pick<ToolDefinition, 'name' | 'execute'>;
@@ -68,6 +72,7 @@ const piMock = vi.hoisted(() => {
         handlers.push(handler);
         extensionHandlers.set(eventType, handlers);
       }),
+      registerMcpServer: vi.fn(),
     } as unknown as ExtensionAPI,
     extensionFactoryInputs: [] as Array<{
       readonly reference: Array<ExtensionFactory>;
@@ -82,23 +87,24 @@ const piMock = vi.hoisted(() => {
   };
 });
 
-const mcpAdapterMock = vi.hoisted(() => {
+const mcpMock = vi.hoisted(() => {
   const mcpExtensionFactory = vi.fn();
+  const toolSearchFactory = vi.fn();
   return {
-    createMcpAdapter: vi.fn(() => mcpExtensionFactory),
+    createMcpExtension: vi.fn(() => mcpExtensionFactory),
+    createToolSearchExtension: vi.fn(() => toolSearchFactory),
     mcpExtensionFactory,
+    toolSearchFactory,
   };
 });
-
-vi.mock('pi-mcp-adapter', () => ({
-  createMcpAdapter: mcpAdapterMock.createMcpAdapter,
-}));
 
 vi.mock('@earendil-works/pi-coding-agent', async importOriginal => {
   const actual = await importOriginal<typeof PiCodingAgentModule>();
   return {
     ...actual,
     createAgentSession: piMock.createAgentSession,
+    createMcpExtension: mcpMock.createMcpExtension,
+    createToolSearchExtension: mcpMock.createToolSearchExtension,
     DefaultResourceLoader: class {
       private extensionsResult: FakeExtensionsResult = {
         errors: [],
@@ -176,8 +182,11 @@ describe('createPiSession', () => {
     piMock.resourceLoaderOptions = [];
     piMock.registerProvider.mockClear();
     piMock.session = undefined;
-    mcpAdapterMock.createMcpAdapter.mockClear();
-    mcpAdapterMock.mcpExtensionFactory.mockClear();
+    vi.mocked(piMock.extensionApi.registerMcpServer).mockClear();
+    mcpMock.createMcpExtension.mockClear();
+    mcpMock.createToolSearchExtension.mockClear();
+    mcpMock.mcpExtensionFactory.mockClear();
+    mcpMock.toolSearchFactory.mockClear();
     piMock.createAgentSession.mockReset();
     piMock.createAgentSession.mockImplementation(async options => {
       piMock.agentSessionExtensionResults.push(
@@ -271,6 +280,60 @@ describe('createPiSession', () => {
 
     try {
       expect(factory).toHaveBeenCalledOnce();
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('gives inline extensions the harness session and the current turn instructions', async () => {
+    const sandboxSession = createSandboxSession();
+    const sessions: PiHarnessExtensionSession[] = [];
+    const instructionsSeen: Array<string | undefined> = [];
+    const factory: PiHarnessExtensionFactory = (piApi, extensionSession) => {
+      sessions.push(extensionSession);
+      piApi.on('agent_start', () => {
+        instructionsSeen.push(extensionSession.instructions());
+      });
+    };
+    piMock.session = Object.assign(
+      createFakePiSession({
+        promptImplementation: async () => {
+          for (const handler of piMock.extensionHandlers.get('agent_start') ??
+            []) {
+            await handler();
+          }
+        },
+      }).session,
+      { getActiveToolNames: () => [], setActiveToolsByName: vi.fn() },
+    );
+
+    const session = await createPi({ extensionFactories: [factory] }).doStart({
+      sessionId: 'session-extension-harness-session',
+      sandboxSession,
+      sessionWorkDir: '/sandbox/work',
+    });
+
+    try {
+      for (const instructions of ['Answer in French.', 'Answer in German.']) {
+        const control = await session.doPromptTurn({
+          skills: [],
+          prompt: 'Hello.',
+          instructions,
+          tools: [],
+          emit: vi.fn(),
+        });
+        await control.done;
+      }
+
+      expect(sessions).toHaveLength(1);
+      expect(sessions[0]).toMatchObject({
+        sandboxSession: sandboxSession.restricted(),
+        sessionWorkDir: '/sandbox/work',
+      });
+      expect(instructionsSeen).toEqual([
+        'Answer in French.',
+        'Answer in German.',
+      ]);
     } finally {
       await session.doDestroy();
     }
@@ -502,7 +565,7 @@ describe('createPiSession', () => {
     try {
       const extensionFactoryInput = piMock.extensionFactoryInputs.at(-1);
       expect(callOrder).toEqual(['first', 'second']);
-      expect(extensionFactoryInput?.snapshot).toEqual(extensionFactories);
+      expect(extensionFactoryInput?.snapshot).toHaveLength(2);
       expect(extensionFactoryInput?.reference).not.toBe(extensionFactories);
     } finally {
       await session.doDestroy();
@@ -647,6 +710,223 @@ describe('createPiSession', () => {
     }
   });
 
+  it('finishes a turn that Pi recovered by retrying a failed request', async () => {
+    const usage = { input: 2, output: 7, cacheRead: 0, cacheWrite: 0 };
+    const failed = {
+      role: 'assistant',
+      content: [{ type: 'text', text: 'Coffee beans grow' }],
+      stopReason: 'error',
+      errorMessage:
+        '529 {"type":"error","error":{"type":"overloaded_error","message":"Overloaded"}}',
+      usage,
+    };
+    const answer = {
+      role: 'assistant',
+      content: [{ type: 'text', text: 'Coffee beans come from cherries.' }],
+      stopReason: 'stop',
+      usage,
+    };
+    piMock.session = createFakePiSession({
+      promptEvents: [
+        { type: 'agent_start' },
+        { type: 'turn_start' },
+        { type: 'message_start', message: failed },
+        { type: 'message_end', message: failed },
+        { type: 'turn_end', message: failed },
+        { type: 'agent_end', messages: [], willRetry: true },
+        {
+          type: 'auto_retry_start',
+          attempt: 1,
+          maxAttempts: 3,
+          delayMs: 2000,
+          errorMessage: failed.errorMessage,
+        },
+        { type: 'agent_start' },
+        { type: 'turn_start' },
+        { type: 'message_start', message: answer },
+        { type: 'message_end', message: answer },
+        { type: 'auto_retry_end', success: true, attempt: 1 },
+        { type: 'turn_end', message: answer },
+        { type: 'agent_end', messages: [], willRetry: false },
+      ],
+    }).session;
+    const session = await createPiSession({
+      sessionId: 'session-retried-turn',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+      settings: {},
+      clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+      isResume: false,
+    });
+
+    try {
+      const emit = vi.fn();
+      const control = await session.doPromptTurn({
+        skills: [],
+        prompt: 'Where do coffee beans come from?',
+        tools: [],
+        emit,
+      });
+      await control.done;
+
+      const types = emit.mock.calls.map(([part]) => part.type);
+      expect(types).not.toContain('error');
+      expect(types.at(-1)).toBe('finish');
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('reports the error of a turn whose retries all failed', async () => {
+    const failed = {
+      role: 'assistant',
+      content: [],
+      stopReason: 'error',
+      errorMessage:
+        '529 {"type":"error","error":{"type":"overloaded_error","message":"Overloaded"}}',
+      usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    };
+    piMock.session = createFakePiSession({
+      promptEvents: [
+        { type: 'agent_start' },
+        { type: 'turn_start' },
+        { type: 'message_start', message: failed },
+        { type: 'message_end', message: failed },
+        { type: 'turn_end', message: failed },
+        { type: 'agent_end', messages: [], willRetry: true },
+        {
+          type: 'auto_retry_start',
+          attempt: 1,
+          maxAttempts: 1,
+          delayMs: 2000,
+          errorMessage: failed.errorMessage,
+        },
+        { type: 'agent_start' },
+        { type: 'turn_start' },
+        { type: 'message_start', message: failed },
+        { type: 'message_end', message: failed },
+        {
+          type: 'auto_retry_end',
+          success: false,
+          attempt: 1,
+          finalError: failed.errorMessage,
+        },
+        { type: 'turn_end', message: failed },
+        { type: 'agent_end', messages: [], willRetry: false },
+      ],
+    }).session;
+    const session = await createPiSession({
+      sessionId: 'session-retries-exhausted',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+      settings: {},
+      clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+      isResume: false,
+    });
+
+    try {
+      const emit = vi.fn();
+      const control = await session.doPromptTurn({
+        skills: [],
+        prompt: 'Where do coffee beans come from?',
+        tools: [],
+        emit,
+      });
+      await control.done;
+
+      const parts = emit.mock.calls.map(([part]) => part);
+      expect(parts.map(part => part.type)).not.toContain('finish');
+      expect(parts.at(-1)).toMatchObject({
+        type: 'error',
+        error: new Error(failed.errorMessage),
+      });
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('does not report a terminal error from a turn cut by its own suspension', async () => {
+    const started = createDeferred<void>();
+    const aborted = createDeferred<void>();
+    const failed = {
+      role: 'assistant',
+      content: [],
+      stopReason: 'error',
+      errorMessage:
+        '400 {"type":"error","error":{"type":"invalid_request_error","message":"bad request"}}',
+      usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    };
+    const fake = createFakePiSession({
+      promptImplementation: async (_text, emitEvent) => {
+        emitEvent({ type: 'turn_start' });
+        started.resolve();
+        await aborted.promise;
+        emitEvent({ type: 'message_start', message: failed });
+        emitEvent({ type: 'message_end', message: failed });
+        emitEvent({ type: 'turn_end', message: failed });
+      },
+    });
+    fake.abort.mockImplementation(async () => aborted.resolve());
+    piMock.session = fake.session;
+    const session = await createPiSession({
+      sessionId: 'session-suspend-terminal-error',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+      settings: {},
+      clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+      isResume: false,
+    });
+    const emit = vi.fn();
+    const control = await session.doPromptTurn({
+      skills: [],
+      prompt: 'go',
+      tools: [],
+      emit,
+    });
+    await started.promise;
+
+    await session.doSuspendTurn();
+    await control.done;
+
+    expect(emit.mock.calls.map(([part]) => part.type)).not.toContain('error');
+  });
+
+  it('does not report a turn that throws while it is being suspended', async () => {
+    const started = createDeferred<void>();
+    const aborted = createDeferred<void>();
+    const fake = createFakePiSession({
+      promptImplementation: async (_text, emitEvent) => {
+        emitEvent({ type: 'turn_start' });
+        started.resolve();
+        await aborted.promise;
+        throw new Error('socket hang up');
+      },
+    });
+    fake.abort.mockImplementation(async () => aborted.resolve());
+    piMock.session = fake.session;
+    const session = await createPiSession({
+      sessionId: 'session-suspend-thrown-error',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+      settings: {},
+      clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+      isResume: false,
+    });
+    const emit = vi.fn();
+    const control = await session.doPromptTurn({
+      skills: [],
+      prompt: 'go',
+      tools: [],
+      emit,
+    });
+    await started.promise;
+
+    await session.doSuspendTurn();
+    await control.done;
+
+    expect(emit.mock.calls.map(([part]) => part.type)).not.toContain('error');
+  });
+
   it('materializes skills under sandbox HOME on prompt turn', async () => {
     piMock.session = {
       abort: vi.fn(async () => {}),
@@ -711,11 +991,16 @@ describe('createPiSession', () => {
     const run = vi.mocked(sandboxSession.run);
     const runWithoutRealpath = run.getMockImplementation()!;
     run.mockImplementation(async input => {
-      const target = input.command.match(/^target='([^']+)'/)?.[1];
+      const targets = [...input.command.matchAll(/target='([^']+)'/g)].map(
+        match => match[1]!,
+      );
       const marker = input.command.match(/realpath_marker='([^']+)'/)?.[1];
-      if (target == null || marker == null) return runWithoutRealpath(input);
+      if (targets.length === 0 || marker == null)
+        return runWithoutRealpath(input);
       return {
-        stdout: `${Buffer.from(target).toString('base64')}${marker}`,
+        stdout: targets
+          .map(target => `${Buffer.from(target).toString('base64')}${marker}`)
+          .join(''),
         stderr: '',
         exitCode: 0,
       };
@@ -779,13 +1064,20 @@ describe('createPiSession', () => {
     const run = vi.mocked(sandboxSession.run);
     const runWithoutRealpath = run.getMockImplementation()!;
     run.mockImplementation(async input => {
-      const remotePath = input.command.match(/^target='([^']+)'/)?.[1];
+      const remotePaths = [...input.command.matchAll(/target='([^']+)'/g)].map(
+        match => match[1]!,
+      );
       const marker = input.command.match(/realpath_marker='([^']+)'/)?.[1];
-      if (remotePath == null || marker == null) {
+      if (remotePaths.length === 0 || marker == null) {
         return runWithoutRealpath(input);
       }
       return {
-        stdout: `${Buffer.from(remotePath === alias ? target : remotePath).toString('base64')}${marker}`,
+        stdout: remotePaths
+          .map(
+            remotePath =>
+              `${Buffer.from(remotePath === alias ? target : remotePath).toString('base64')}${marker}`,
+          )
+          .join(''),
         stderr: '',
         exitCode: 0,
       };
@@ -919,6 +1211,118 @@ describe('createPiSession', () => {
     }
   });
 
+  describe('native read tool', () => {
+    const onePixelPng = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      'base64',
+    );
+
+    async function readInSandbox(
+      files: Record<string, Uint8Array | string>,
+      read: () => Promise<unknown>,
+    ) {
+      const sandboxSession = createSandboxSession();
+      const run = vi.mocked(sandboxSession.run);
+      const runWithoutRealpath = run.getMockImplementation()!;
+      run.mockImplementation(async input => {
+        const targets = [...input.command.matchAll(/target='([^']+)'/g)].map(
+          match => match[1]!,
+        );
+        const marker = input.command.match(/realpath_marker='([^']+)'/)?.[1];
+        if (targets.length === 0 || marker == null)
+          return runWithoutRealpath(input);
+        return {
+          stdout: targets
+            .map(target => `${Buffer.from(target).toString('base64')}${marker}`)
+            .join(''),
+          stderr: '',
+          exitCode: 0,
+        };
+      });
+      vi.mocked(sandboxSession.readBinaryFile).mockImplementation(
+        async ({ path: filePath }) => {
+          const content = files[filePath];
+          return typeof content === 'string'
+            ? new TextEncoder().encode(content)
+            : content;
+        },
+      );
+      let result: unknown;
+      piMock.session = createFakePiSession({
+        promptImplementation: async () => {
+          result = await read();
+        },
+      }).session;
+
+      const session = await createPi().doStart({
+        sessionId: 'session-native-read',
+        sandboxSession,
+        sessionWorkDir: '/sandbox/work',
+      });
+      try {
+        const control = await session.doPromptTurn({
+          skills: [],
+          prompt: 'test prompt',
+          tools: [],
+          emit: vi.fn(),
+        });
+        await control.done;
+      } finally {
+        await session.doDestroy();
+      }
+      return { result, sandboxSession };
+    }
+
+    it('returns an image read as an image block', async () => {
+      const { result } = await readInSandbox(
+        { '/sandbox/work/screenshot.png': onePixelPng },
+        () => executeReadToolContent('screenshot.png'),
+      );
+
+      expect(result).toEqual([
+        { type: 'text', text: 'Read image file [image/png]' },
+        { type: 'image', mimeType: 'image/png', data: expect.any(String) },
+      ]);
+    });
+
+    it('pages a long text read with an offset continuation notice', async () => {
+      const text = Array.from(
+        { length: 3_000 },
+        (_, index) => `line ${index + 1}`,
+      ).join('\n');
+      const { result, sandboxSession } = await readInSandbox(
+        { '/sandbox/work/large.txt': text },
+        () =>
+          Promise.all([
+            executeReadToolContent('large.txt'),
+            executeReadToolContent('/sandbox/work/large.txt', {
+              offset: 2001,
+              limit: 10,
+            }),
+          ]),
+      );
+
+      const [firstPage, nextPage] = result as Array<
+        Array<{ type: string; text: string }>
+      >;
+      expect(firstPage).toEqual([
+        {
+          type: 'text',
+          text: expect.stringContaining(
+            '[Showing lines 1-2000 of 3000. Use offset=2001 to continue.]',
+          ),
+        },
+      ]);
+      expect(nextPage).toEqual([
+        {
+          type: 'text',
+          text: `${Array.from({ length: 10 }, (_, index) => `line ${index + 2001}`).join('\n')}\n\n[990 more lines in file. Use offset=2011 to continue.]`,
+        },
+      ]);
+      expect(sandboxSession.readBinaryFile).toHaveBeenCalledTimes(2);
+    });
+  });
+
   it('steers the active Pi session', async () => {
     let finishPrompt!: () => void;
     const promptDone = new Promise<void>(resolve => {
@@ -1033,7 +1437,7 @@ describe('createPiSession', () => {
     }
   });
 
-  it('registers configured MCP servers as direct Pi extension tools', async () => {
+  it('registers configured MCP servers as direct Pi tools by default', async () => {
     const bindExtensions = vi.fn(async () => {});
     const dispose = vi.fn();
     piMock.session = {
@@ -1069,26 +1473,55 @@ describe('createPiSession', () => {
     await control.done;
     await session.doDestroy();
 
-    expect(mcpAdapterMock.createMcpAdapter).toHaveBeenCalledWith({
-      config: {
-        mcpServers: {
-          memory: { command: 'memory-mcp', args: [] },
-        },
-        settings: {
-          directTools: true,
-          toolPrefix: 'mcp',
-          disableProxyTool: true,
-        },
-      },
+    expect(
+      piMock.extensionApi.registerMcpServer,
+    ).toHaveBeenCalledExactlyOnceWith('memory', {
+      exposure: 'direct',
+      command: 'memory-mcp',
+      args: [],
     });
+    expect(mcpMock.createMcpExtension).toHaveBeenCalledExactlyOnceWith({
+      loadConfig: expect.any(Function),
+      logPath: devNull,
+      credentials: expect.any(Object),
+    });
+    const [mcpOptions] = mcpMock.createMcpExtension.mock
+      .lastCall as unknown as [{ loadConfig: () => unknown }];
+    expect(mcpOptions.loadConfig()).toEqual({ servers: [], errors: [] });
+    expect(mcpMock.createToolSearchExtension).toHaveBeenCalledOnce();
     expect(piMock.resourceLoaderOptions.at(-1)?.extensionFactories).toEqual([
-      mcpAdapterMock.mcpExtensionFactory,
+      mcpMock.toolSearchFactory,
+      mcpMock.mcpExtensionFactory,
+      expect.any(Function),
     ]);
     expect(piMock.createAgentSession).toHaveBeenCalledWith(
       expect.objectContaining({ noTools: 'builtin' }),
     );
     expect(bindExtensions).toHaveBeenCalledWith({ mode: 'print' });
     expect(dispose).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps a server's own exposure and tool overrides", async () => {
+    const brand = {
+      url: 'https://mcp.example.com',
+      headers: { Authorization: 'Bearer token' },
+      exposure: 'deferred',
+      toolExposure: { secret: 'hidden' },
+    } as const;
+
+    const session = await createPi({ mcpServers: { brand } }).doStart({
+      sessionId: 'session-mcp-exposure',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+    });
+
+    try {
+      expect(
+        piMock.extensionApi.registerMcpServer,
+      ).toHaveBeenCalledExactlyOnceWith('brand', brand);
+    } finally {
+      await session.doDestroy();
+    }
   });
 
   it('shuts down MCP servers on dispose without reloading the Pi session', async () => {
@@ -1113,7 +1546,7 @@ describe('createPiSession', () => {
       sessionWorkDir: '/sandbox/work',
       settings: {
         mcpServers: {
-          memory: { command: 'memory-mcp', args: [], lifecycle: 'eager' },
+          memory: { command: 'memory-mcp', args: [] },
         },
       },
       clientApp: 'ai-sdk-harness-pi/0.0.0-test',
@@ -1184,7 +1617,7 @@ describe('createPiSession', () => {
     const session = await createPi({
       extensionFactories: [factory],
       mcpServers: {
-        memory: { command: 'memory-mcp', args: [], lifecycle: 'eager' },
+        memory: { command: 'memory-mcp', args: [] },
       },
     }).doStart({
       sessionId: 'session-mcp-rebuild',
@@ -1218,7 +1651,9 @@ describe('createPiSession', () => {
       );
       expect(first.reload).not.toHaveBeenCalled();
       expect(factory).toHaveBeenCalledTimes(2);
-      expect(mcpAdapterMock.mcpExtensionFactory).toHaveBeenCalledTimes(2);
+      expect(mcpMock.mcpExtensionFactory).toHaveBeenCalledTimes(2);
+      expect(mcpMock.toolSearchFactory).toHaveBeenCalledTimes(2);
+      expect(piMock.extensionApi.registerMcpServer).toHaveBeenCalledTimes(2);
 
       await session.doDestroy();
 
@@ -1232,7 +1667,7 @@ describe('createPiSession', () => {
       );
       expect(second.reload).not.toHaveBeenCalled();
       expect(factory).toHaveBeenCalledTimes(2);
-      expect(mcpAdapterMock.mcpExtensionFactory).toHaveBeenCalledTimes(2);
+      expect(mcpMock.mcpExtensionFactory).toHaveBeenCalledTimes(2);
     } finally {
       await session.doDestroy();
     }
@@ -1252,52 +1687,101 @@ describe('createPiSession', () => {
 
     try {
       expect(piMock.extensionFactoryInputs.at(-1)?.snapshot).toEqual([
-        factory,
-        mcpAdapterMock.mcpExtensionFactory,
+        expect.any(Function),
+        mcpMock.toolSearchFactory,
+        mcpMock.mcpExtensionFactory,
+        expect.any(Function),
       ]);
       expect(factory).toHaveBeenCalledOnce();
-      expect(mcpAdapterMock.mcpExtensionFactory).toHaveBeenCalledOnce();
+      expect(mcpMock.mcpExtensionFactory).toHaveBeenCalledOnce();
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('serves a server whose exposure is explicitly undefined as direct', async () => {
+    const session = await createPi({
+      mcpServers: {
+        memory: { command: 'memory-mcp', args: [], exposure: undefined },
+      },
+    }).doStart({
+      sessionId: 'session-mcp-undefined-exposure',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+    });
+
+    try {
+      expect(
+        piMock.extensionApi.registerMcpServer,
+      ).toHaveBeenCalledExactlyOnceWith('memory', {
+        command: 'memory-mcp',
+        args: [],
+        exposure: 'direct',
+      });
     } finally {
       await session.doDestroy();
     }
   });
 
   it.each([
+    { exposure: 'codemode' },
+    { exposure: 'codemode-deferred' },
+    { toolExposure: { search: 'codemode' } },
+  ])('rejects an MCP server with %o', async exposure => {
+    const start = createPi({
+      mcpServers: { memory: { command: 'memory-mcp', args: [], ...exposure } },
+    }).doStart({
+      sessionId: 'session-mcp-codemode',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+    });
+
+    await expect(start).rejects.toThrow(
+      'Pi MCP server "memory" uses the codemode exposure',
+    );
+    expect(piMock.createAgentSession).not.toHaveBeenCalled();
+  });
+
+  it.each([
     {
-      mcpSettings: { toolPrefix: 'none', outputGuard: false },
-      expected: { toolPrefix: 'none', outputGuard: false },
+      mcpSettings: { toolPrefix: 'none' },
+      messages: ['toolPrefix', 'mcp__<server>__<tool>'],
     },
     {
       mcpSettings: { outputGuard: false },
-      expected: { toolPrefix: 'mcp', outputGuard: false },
+      messages: ['outputGuard'],
     },
   ] as const)(
-    'passes mcpSettings $mcpSettings to the MCP adapter over the defaults',
-    async ({ mcpSettings, expected }) => {
-      const mcpServers = { memory: { command: 'memory-mcp', args: [] } };
-
-      const session = await createPi({ mcpServers, mcpSettings }).doStart({
+    'rejects mcpSettings $mcpSettings that native MCP cannot honor',
+    async ({ mcpSettings, messages }) => {
+      const start = createPi({
+        mcpServers: { memory: { command: 'memory-mcp', args: [] } },
+        mcpSettings,
+      }).doStart({
         sessionId: 'session-mcp-settings',
         sandboxSession: createSandboxSession(),
         sessionWorkDir: '/sandbox/work',
       });
 
-      try {
-        expect(mcpAdapterMock.createMcpAdapter).toHaveBeenCalledWith({
-          config: {
-            mcpServers,
-            settings: {
-              directTools: true,
-              disableProxyTool: true,
-              ...expected,
-            },
-          },
-        });
-      } finally {
-        await session.doDestroy();
+      for (const message of messages) {
+        await expect(start).rejects.toThrow(message);
       }
+      expect(piMock.createAgentSession).not.toHaveBeenCalled();
     },
   );
+
+  it('accepts mcpSettings that match native MCP', async () => {
+    const session = await createPi({
+      mcpServers: { memory: { command: 'memory-mcp', args: [] } },
+      mcpSettings: { toolPrefix: 'mcp', outputGuard: true },
+    }).doStart({
+      sessionId: 'session-mcp-settings-native',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+    });
+
+    await session.doDestroy();
+  });
 
   it('rejects unsafe resume session filenames before sandbox restore', async () => {
     const sandboxSession = createSandboxSession();
@@ -1400,7 +1884,7 @@ describe('createPiSession', () => {
 
     expect(piMock.appendSystemPrompts.at(-1)).toEqual(['Use turbo build.']);
     expect(prompt).toHaveBeenCalledWith('do the thing');
-    expect(mcpAdapterMock.mcpExtensionFactory).toHaveBeenCalledOnce();
+    expect(mcpMock.mcpExtensionFactory).toHaveBeenCalledOnce();
   });
 
   it('parks a pending tool turn on suspend and resumes it in-process', async () => {
@@ -1652,7 +2136,7 @@ describe('createPiSession', () => {
     },
     {
       name: 'mcpSettings changed',
-      settings: { mcpSettings: { outputGuard: false } },
+      settings: { mcpSettings: { outputGuard: true } },
       resumeStateType: 'continue-turn' as const,
     },
   ])('cold-restores a parked session when $name', async input => {
@@ -2641,16 +3125,23 @@ function createDeferred<T>() {
 }
 
 async function executeReadTool(file_path: string): Promise<string> {
+  return JSON.stringify(await executeReadToolContent(file_path));
+}
+
+async function executeReadToolContent(
+  file_path: string,
+  page?: { offset: number; limit: number },
+) {
   const tool = piMock.customTools.find(tool => tool.name === 'read');
   if (!tool) throw new Error('Expected read tool.');
   const result = await tool.execute(
     'tool-1',
-    { file_path },
+    { file_path, ...page },
     undefined,
     undefined,
     undefined as never,
   );
-  return JSON.stringify(result.content);
+  return result.content;
 }
 
 type FakePiAgent = {
