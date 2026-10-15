@@ -249,7 +249,7 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
 }
 
 export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
-  readonly id: string;
+  private _id?: string;
   readonly generateId: IdGenerator;
 
   protected state: ChatState<UI_MESSAGE>;
@@ -280,7 +280,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
   constructor({
     generateId = generateIdFunc,
-    id = generateId(),
+    id,
     transport = new DefaultChatTransport(),
     messageMetadataSchema,
     dataPartSchemas,
@@ -293,7 +293,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   }: Omit<ChatInit<UI_MESSAGE>, 'messages'> & {
     state: ChatState<UI_MESSAGE>;
   }) {
-    this.id = id;
+    this._id = id;
     this.transport = transport;
     this.generateId = generateId;
     this.messageMetadataSchema = messageMetadataSchema;
@@ -304,6 +304,13 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     this.onFinish = onFinish;
     this.onData = onData;
     this.sendAutomaticallyWhen = sendAutomaticallyWhen;
+  }
+
+  get id(): string {
+    if (this._id === undefined) {
+      this._id = this.generateId();
+    }
+    return this._id;
   }
 
   /**

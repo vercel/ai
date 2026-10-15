@@ -136,6 +136,35 @@ describe('Chat', () => {
     expect(close).toHaveBeenCalledOnce();
   });
 
+  describe('chat id', () => {
+    it('does not generate an id during construction when not provided', () => {
+      const generateId = vi.fn(() => 'generated-id');
+      const chat = new TestChat({ generateId });
+
+      expect(generateId).not.toHaveBeenCalled();
+    });
+
+    it('generates an id lazily on first access and caches it', () => {
+      let count = 0;
+      const generateId = vi.fn(() => `id-${++count}`);
+      const chat = new TestChat({ generateId });
+
+      expect(generateId).not.toHaveBeenCalled();
+      expect(chat.id).toBe('id-1');
+      expect(generateId).toHaveBeenCalledOnce();
+      expect(chat.id).toBe('id-1');
+      expect(generateId).toHaveBeenCalledOnce();
+    });
+
+    it('uses the explicitly provided id without calling generateId', () => {
+      const generateId = vi.fn(() => 'generated-id');
+      const chat = new TestChat({ id: 'custom-id', generateId });
+
+      expect(chat.id).toBe('custom-id');
+      expect(generateId).not.toHaveBeenCalled();
+    });
+  });
+
   describe('send a simple message', () => {
     let chat: TestChat;
     let letOnFinishArgs: any[] = [];

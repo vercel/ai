@@ -346,8 +346,15 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     }
   }, [resume, chat]);
 
+  useEffect(() => {
+    // Generate id lazily outside of render on client mount
+    void chat.id;
+  }, [chat]);
+
   return {
-    id: chat.id,
+    get id() {
+      return chat.id;
+    },
     messages,
     setMessages,
     sendMessage: chat.sendMessage,
