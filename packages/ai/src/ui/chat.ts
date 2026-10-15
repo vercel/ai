@@ -196,7 +196,7 @@ export type ChatOnFinishCallback<UI_MESSAGE extends UIMessage> = (options: {
 export interface ChatInit<UI_MESSAGE extends UIMessage> {
   /**
    * A unique identifier for the chat. If not provided, a random one will be
-   * generated.
+   * generated when first accessed.
    */
   id?: string;
 
@@ -249,7 +249,12 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
 }
 
 export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
-  readonly id: string;
+  private _id: string | undefined;
+
+  get id(): string {
+    return (this._id ??= this.generateId());
+  }
+
   readonly generateId: IdGenerator;
 
   protected state: ChatState<UI_MESSAGE>;
@@ -280,7 +285,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
   constructor({
     generateId = generateIdFunc,
-    id = generateId(),
+    id,
     transport = new DefaultChatTransport(),
     messageMetadataSchema,
     dataPartSchemas,
@@ -293,7 +298,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   }: Omit<ChatInit<UI_MESSAGE>, 'messages'> & {
     state: ChatState<UI_MESSAGE>;
   }) {
-    this.id = id;
+    this._id = id;
     this.transport = transport;
     this.generateId = generateId;
     this.messageMetadataSchema = messageMetadataSchema;
