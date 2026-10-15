@@ -720,4 +720,36 @@ console.log(text);`,
     websiteUrl: 'https://pexafy.com',
     npmUrl: 'https://www.npmjs.com/package/pexafy-ai-sdk',
   },
+  {
+    slug: 'machine-library',
+    name: 'Machine Library',
+    description:
+      'Citable research search for agents: search 205M papers, books, patents, standards and Wikipedia articles, find the passages inside a long document that answer a question, and read bounded full text, with canonical source identifiers (DOI, ISBN, standard numbers) for every result.',
+    packageName: '@machinelibrary/ai-sdk',
+    tags: ['search', 'research', 'citations', 'scholarly'],
+    apiKeyEnvName: 'MACHINELIBRARY_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @machinelibrary/ai-sdk',
+      npm: 'npm install @machinelibrary/ai-sdk',
+      yarn: 'yarn add @machinelibrary/ai-sdk',
+      bun: 'bun add @machinelibrary/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { machineLibraryTools } from '@machinelibrary/ai-sdk';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-5.5',
+  tools: machineLibraryTools(),
+  stopWhen: isStepCount(8),
+  prompt:
+    'What limits the cycle life of lithium-metal anodes? Cite the sources.',
+});
+
+console.log(text);`,
+    docsUrl:
+      'https://github.com/SpaceFrontiers/machinelibrary-integrations/tree/main/typescript/ai-sdk',
+    apiKeyUrl: 'https://machinelibrary.ai/keys',
+    websiteUrl: 'https://machinelibrary.ai',
+    npmUrl: 'https://www.npmjs.com/package/@machinelibrary/ai-sdk',
+  },
 ];
