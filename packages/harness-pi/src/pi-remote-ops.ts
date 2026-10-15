@@ -283,7 +283,6 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
     const resolvedRoot = (root: string): string =>
       resolvedRoots[roots.indexOf(root)]!;
     const paths = createPiPathMapper({
-      hostWorkDir: options.paths.hostWorkDir,
       sandboxWorkDir: resolvedRoot(options.paths.sandboxWorkDir),
       readableRoots: options.paths.readableSandboxRoots.map(root => ({
         sandboxDir: resolvedRoot(root),
