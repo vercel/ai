@@ -7,9 +7,13 @@ import {
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
+  convertBase64ToUint8Array,
   createJsonResponseHandler,
+  generateId,
   loadApiKey,
+  parseProviderOptions,
   postJsonToApi,
+  postFormDataToApi,
   resolve,
   serializeModelOptions,
   withUserAgentSuffix,
@@ -23,8 +27,15 @@ import {
   typesafeFailedResponseHandler,
 } from './typesafe-ai-decision-api';
 import { VERSION } from './version';
+import { typesafeAiFilePartProviderOptions } from './typesafe-ai-file-part-options';
+import { typesafeAiDecisionModelOptions } from './typesafe-ai-decision-model-options';
 
-export type TypeSafeAiDecisionModelId = 'jev-latest' | (string & {});
+export type TypeSafeAiDecisionModelId =
+  | 'jev-1.13.0'
+  | 'jev-1.14.0'
+  | 'jev-latest'
+  | 'jev-preview'
+  | (string & {});
 
 type TypeSafeAiDecisionModelConfig = {
   provider: string;
@@ -92,26 +103,79 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
       }
     }
 
+    const typesafeOptions = await parseProviderOptions({
+      provider: 'typesafe',
+      providerOptions,
+      schema: typesafeAiDecisionModelOptions,
+    });
     const warnings: SharedV4Warning[] = Object.keys(
       providerOptions?.typesafe ?? {},
-    ).map(option => ({
-      type: 'unsupported',
-      feature: `providerOptions.typesafe.${option}`,
-    }));
+    )
+      .filter(option => option !== 'longContext')
+      .map(option => ({
+        type: 'unsupported',
+        feature: `providerOptions.typesafe.${option}`,
+      }));
+    const assets: Record<string, { type: 'image'; part: string }> =
+      Object.create(null); // don't inherit from Object.prototype
+    const imageParts: { name: string; blob: Blob; filename: string }[] = [];
     const requestState =
       state.length === 1 && state[0].type === 'json'
         ? state[0].value
-        : state
-            .map(part => {
-              if (part.type === 'file')
-                throw new UnsupportedFunctionalityError({
-                  functionality: 'TypeSafe AI decision file input',
-                });
-              return part.type === 'text'
-                ? part.text
-                : JSON.stringify(part.value);
-            })
-            .join('\n');
+        : (
+            await Promise.all(
+              state.map(async (part, index) => {
+                if (part.type === 'file') {
+                  if (part.data.type !== 'data') {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: `TypeSafe AI decision file input: ${part.mediaType} (${part.data.type})`,
+                    });
+                  }
+                  const mediaType = part.mediaType;
+                  if (mediaType !== 'image/png' && mediaType !== 'image/jpeg') {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: `TypeSafe AI decision image media type: ${part.mediaType}`,
+                    });
+                  }
+                  const fileOptions = await parseProviderOptions({
+                    provider: 'typesafe',
+                    providerOptions: part.providerOptions,
+                    schema: typesafeAiFilePartProviderOptions,
+                  });
+                  // Default to random IDs to avoid accidental text matches
+                  // as TypeSafe recommends as the safest option.
+                  const reference = fileOptions?.reference ?? generateId();
+                  if (assets[reference] !== undefined) {
+                    throw new InvalidArgumentError({
+                      argument: 'providerOptions.typesafe.reference',
+                      message: `Duplicate TypeSafe image reference: ${reference}`,
+                    });
+                  }
+                  const partName = `image-${index}`;
+                  assets[reference] = { type: 'image', part: partName };
+                  imageParts.push({
+                    name: partName,
+                    blob: new Blob(
+                      [
+                        (typeof part.data.data === 'string'
+                          ? convertBase64ToUint8Array(part.data.data)
+                          : part.data.data) as BlobPart,
+                      ],
+                      { type: mediaType },
+                    ),
+                    filename:
+                      part.filename ??
+                      `${partName}.${mediaType === 'image/png' ? 'png' : 'jpeg'}`,
+                  });
+                  return reference;
+                }
+                return part.type === 'text'
+                  ? part.text
+                  : JSON.stringify(part.value);
+              }),
+            )
+          ).join('\n');
+    const hasImages = Object.keys(assets).length > 0;
     const modelHeaders =
       this.config.headers === undefined
         ? withUserAgentSuffix(
@@ -121,32 +185,55 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
             `ai-sdk-typesafe-ai/${VERSION}`,
           )
         : await resolve(this.config.headers);
-    const {
-      value: response,
-      rawValue,
-      responseHeaders,
-    } = await postJsonToApi({
+    const body = {
+      model: this.modelId,
+      state: requestState,
+      ...(hasImages && { assets }),
+      questions: Object.fromEntries(
+        Object.entries(questions).map(([id, question]) => [
+          id,
+          question.type === 'boolean'
+            ? { ...question, type: 'noul' }
+            : question,
+        ]),
+      ),
+    };
+    const requestOptions = {
       url: `${this.config.baseURL}/systemone`,
-      headers: combineHeaders(modelHeaders, headers),
-      body: {
-        model: this.modelId,
-        state: requestState,
-        questions: Object.fromEntries(
-          Object.entries(questions).map(([id, question]) => [
-            id,
-            question.type === 'boolean'
-              ? { ...question, type: 'noul' }
-              : question,
-          ]),
-        ),
-      },
+      headers: combineHeaders(
+        modelHeaders,
+        hasImages ? { 'TypeSafe-Danger-Zone-Images': 'true' } : undefined,
+        typesafeOptions?.longContext
+          ? { 'TypeSafe-Danger-Zone-Long-Context': 'true' }
+          : undefined,
+        headers,
+      ),
       abortSignal,
       fetch: this.config.fetch,
       failedResponseHandler: typesafeFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         typesafeDecisionResponseSchema,
       ),
-    });
+    };
+    let formData: FormData | undefined;
+    if (hasImages) {
+      formData = new FormData();
+      formData.append(
+        'request',
+        new Blob([JSON.stringify(body)], { type: 'application/json' }),
+        'request.json',
+      );
+      for (const { name, blob, filename } of imageParts) {
+        formData.append(name, blob, filename);
+      }
+    }
+    const {
+      value: response,
+      rawValue,
+      responseHeaders,
+    } = formData !== undefined
+      ? await postFormDataToApi({ ...requestOptions, formData })
+      : await postJsonToApi({ ...requestOptions, body });
 
     const confidence = Object.fromEntries(
       Object.entries(response.answers).flatMap(([id, answer]) =>
