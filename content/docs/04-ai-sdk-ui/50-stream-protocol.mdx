@@ -125,16 +125,19 @@ The following stream parts are currently supported:
 
 ### Message Start Part
 
-Indicates the beginning of a new message with metadata.
+Indicates the beginning of a new message. It can optionally include a `messageId` and `messageMetadata`.
 
 Format: Server-Sent Event with JSON object
 
 Example:
 
 ```
-data: {"type":"start","messageId":"..."}
+data: {"type":"start","messageId":"msg_123","messageMetadata":{"createdAt":1760500000000}}
 
 ```
+
+When provided, `messageId` is used as the ID of the assistant message on the client,
+and `messageMetadata` is added to `message.metadata` (see [Message Metadata Part](#message-metadata-part)).
 
 ### Text Parts
 
@@ -464,16 +467,38 @@ data: {"type":"reset-step"}
 
 ### Finish Message Part
 
-A part indicating the completion of a message.
+A part indicating the completion of a message. It can optionally include a `finishReason` and `messageMetadata`.
 
 Format: Server-Sent Event with JSON object
 
 Example:
 
 ```
-data: {"type":"finish"}
+data: {"type":"finish","finishReason":"stop","messageMetadata":{"totalTokens":123}}
 
 ```
+
+`finishReason` must be one of `stop`, `length`, `content-filter`, `tool-calls`, `error`, or `other`.
+
+### Message Metadata Part
+
+Attaches metadata to the current message. It can be sent at any point during the stream.
+
+Format: Server-Sent Event with JSON object
+
+Example:
+
+```
+data: {"type":"message-metadata","messageMetadata":{"model":"gpt-4o"}}
+
+```
+
+<Note>
+  Metadata from `start`, `message-metadata`, and `finish` parts is merged into
+  `message.metadata` on the client instead of replacing it. If you pass a
+  `messageMetadataSchema` to `useChat`, the merged metadata is validated against
+  it. See [Message Metadata](/docs/ai-sdk-ui/message-metadata) for more details.
+</Note>
 
 ### Abort Part
 
