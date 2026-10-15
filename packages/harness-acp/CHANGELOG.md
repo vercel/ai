@@ -1,5 +1,12 @@
 # @ai-sdk/harness-acp
 
+## 1.0.92
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.153
+- @ai-sdk/provider-utils@5.0.61
+
 ## 1.0.91
 
 ### Patch Changes
