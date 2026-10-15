@@ -19,3 +19,4 @@ export type {
 } from './pi-session';
 export type { PiAuthenticationMode, PiCredentialStore } from './pi-auth';
 export type { PiFileToolPathPolicy } from './pi-paths';
+export type { PiLifecycleData, PiSessionEntries } from './pi-lifecycle-state';
