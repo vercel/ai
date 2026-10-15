@@ -687,8 +687,7 @@ export async function createPiSession(
         }
       : {}),
     // Pi runs in the host process, where its filesystem discovery would read
-    // the host developer's config and execute their extensions. Project
-    // resources come only from `resources` and per-turn harness skills.
+    // the host developer's config and execute their extensions.
     noExtensions: true,
     noThemes: true,
     noPromptTemplates: true,
