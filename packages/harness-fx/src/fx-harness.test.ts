@@ -182,6 +182,55 @@ describe('fx harness', () => {
     expect(destroy).not.toHaveBeenCalled();
   });
 
+  it('maps service tiers to mutually exclusive libfx flags', async () => {
+    for (const serviceTier of [
+      undefined,
+      'default',
+      'fast',
+      'ultrafast',
+    ] as const) {
+      const { sandbox } = createSandbox();
+      const session = await createFx({ serviceTier }).doStart({
+        sandboxSession: sandbox,
+        sessionId: 'service-tier',
+        sessionWorkDir: '/workspace',
+      });
+      try {
+        await (
+          await session.doPromptTurn({
+            ...turnOptions,
+            prompt: 'go',
+            emit() {},
+          })
+        ).done;
+      } finally {
+        await session.doDestroy();
+      }
+    }
+
+    expect(runtime.options.map(({ fast, ultrafast }) => ({ fast, ultrafast })))
+      .toMatchInlineSnapshot(`
+      [
+        {
+          "fast": undefined,
+          "ultrafast": undefined,
+        },
+        {
+          "fast": undefined,
+          "ultrafast": undefined,
+        },
+        {
+          "fast": true,
+          "ultrafast": false,
+        },
+        {
+          "fast": false,
+          "ultrafast": true,
+        },
+      ]
+    `);
+  });
+
   it('filters tools before configuring the runtime and preserves recursive schemas', async () => {
     const { sandbox } = createSandbox();
     const schema = {

@@ -78,6 +78,7 @@ Use `createFx()` to configure the runtime:
 const harness = createFx({
   auth: 'ai-gateway',
   effort: 'low',
+  serviceTier: 'default',
 });
 ```
 
@@ -91,8 +92,9 @@ Settings:
   Connections run on the host; command/stdio servers are unsupported.
 - `headers`: extra headers sent with AI Gateway requests from the host.
 - `effort`: reasoning effort for models that support it.
-- `fast`: enables the fast lane for models that support it.
-- `ultrafast`: enables Ultra mode for models that support it.
+- `serviceTier`: selects `default`, `fast`, or `ultrafast`. `default` is
+  equivalent to omitting the setting and leaves libfx's defaults unchanged.
+  Fast and Ultra require a model that supports the selected tier.
 - `backend`: libfx runtime backend (`auto`, `native`, or `wasm`). The default
   is `auto`, which prefers the native backend. The WASM backend requires
   JavaScript Promise Integration (JSPI) support.

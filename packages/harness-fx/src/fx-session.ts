@@ -125,6 +125,13 @@ export async function createFxSession(options: {
     if (stopped) throw new Error('fx session has been stopped.');
     if (active && !state.turn) await active.done;
     const opts = input.turnOptions;
+    const serviceTierOptions =
+      settings.serviceTier === undefined || settings.serviceTier === 'default'
+        ? undefined
+        : {
+            fast: settings.serviceTier === 'fast',
+            ultrafast: settings.serviceTier === 'ultrafast',
+          };
     const signature = createHash('sha256')
       .update(
         JSON.stringify({
@@ -137,8 +144,8 @@ export async function createFxSession(options: {
           permissionMode: startOpts.permissionMode,
           mcpServers: settings.mcpServers,
           effort: settings.effort,
-          fast: settings.fast,
-          ultrafast: settings.ultrafast,
+          fast: serviceTierOptions?.fast,
+          ultrafast: serviceTierOptions?.ultrafast,
         }),
       )
       .digest('hex');
@@ -528,10 +535,7 @@ export async function createFxSession(options: {
           apiKey: options.environment.AI_GATEWAY_API_KEY ?? '',
           ...(opts.model ? { model: opts.model } : {}),
           ...(settings.effort ? { effort: settings.effort } : {}),
-          ...(settings.fast !== undefined ? { fast: settings.fast } : {}),
-          ...(settings.ultrafast !== undefined
-            ? { ultrafast: settings.ultrafast }
-            : {}),
+          ...serviceTierOptions,
           instructions: [
             opts.instructions,
             skills.instructions,

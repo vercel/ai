@@ -18,8 +18,7 @@ export type FxHarnessSettings = {
   readonly mcpServers?: Record<string, unknown>;
   readonly headers?: Record<string, string>;
   readonly effort?: string;
-  readonly fast?: boolean;
-  readonly ultrafast?: boolean;
+  readonly serviceTier?: 'default' | 'fast' | 'ultrafast';
   readonly backend?: 'auto' | 'native' | 'wasm';
 };
 
