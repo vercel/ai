@@ -230,6 +230,7 @@ to retain its experimental `decisionModel` method.
 | --------- | ----------------------------------------- | ------------------------------------------------------------------------ |
 | `choice`  | A nonempty map of options to descriptions | `choice`, inferred as a union of option keys; optional `probabilities`   |
 | `score`   | At least two ordered level descriptions   | Fractional `score` in `[0, levels.length - 1]`; optional `probabilities` |
+| `box`     | None                                      | `box` with normalized `top`, `bottom`, `left`, and `right` image edges   |
 | `boolean` | Optional `true` and `false` descriptions  | Required `probability`, the model-estimated probability of true          |
 
 `Experimental_DecisionQuestion` is exported from `ai`. Instructions and
@@ -262,7 +263,7 @@ Choice and Score distributions are optional. Boolean probability is required:
 either outcome. The SDK does not promise calibration across providers. Structured
 language-model adapters prompt the model to estimate P(true); native decision providers return
 their API probabilities. Provider-specific confidence statistics belong
-in `providerMetadata`. TypeSafe exposes its separate Choice/Score confidence
+in `providerMetadata`. TypeSafe exposes its separate Choice/Score/Box confidence
 statistic at `result.providerMetadata?.typesafe?.confidence`, keyed by question
 ID. It is not the selected option's probability or a portable confidence measure.
 

@@ -116,6 +116,17 @@ async function streamModelStep(
   // Tools are serialized before crossing the step boundary because zod schemas
   // contain functions that can't be serialized by the workflow runtime.
   const toolInputLifecycleEvents: ToolInputLifecycleEvent[] = [];
+  const repairedToolCallIds = new Set<string>();
+  const repairToolCall = options?.repairToolCall;
+  const trackedRepairToolCall = repairToolCall
+    ? async (repairOptions: Parameters<typeof repairToolCall>[0]) => {
+        const repaired = await repairToolCall(repairOptions);
+        if (repaired != null) {
+          repairedToolCallIds.add(repairOptions.toolCall.toolCallId);
+        }
+        return repaired;
+      }
+    : undefined;
   const tools = serializedTools
     ? resolveSerializableTools(serializedTools)
     : undefined;
@@ -196,7 +207,7 @@ async function streamModelStep(
           frequencyPenalty: options?.frequencyPenalty,
           stopSequences: options?.stopSequences,
           seed: options?.seed,
-          repairToolCall: options?.repairToolCall,
+          repairToolCall: trackedRepairToolCall,
           download: options?.download,
           ...languageModelCallTelemetry,
         }),
@@ -449,7 +460,21 @@ async function streamModelStep(
             toolCallId: part.toolCall.toolCallId,
             ...(part.signature != null ? { signature: part.signature } : {}),
           });
-        } else {
+        } else if (
+          // The original schema must validate and normalize these calls outside
+          // the step before they become available to UI stream consumers. The
+          // matching `tool-error` for an invalid call (emitted by
+          // streamModelCall immediately after the `tool-call`) is deferred as
+          // well, so `writeDeferredToolCalls` stays the sole emitter.
+          // Otherwise the UI stream would receive a duplicate `tool-error`
+          // chunk, and the one written here would arrive before its deferred
+          // `tool-call`.
+          !(
+            (part.type === 'tool-call' ||
+              (part.type === 'tool-error' && !part.providerExecuted)) &&
+            serializedTools?.[part.toolName]?.hasOwnValidator
+          )
+        ) {
           await writer.write(part);
         }
       }
@@ -500,6 +525,7 @@ async function streamModelStep(
     },
     providerExecutedToolResults,
     toolInputLifecycleEvents,
+    repairedToolCallIds: [...repairedToolCallIds],
     ...(hasTerminalError ? { terminalError } : {}),
   };
 }

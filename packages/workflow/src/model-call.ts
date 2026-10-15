@@ -5,12 +5,14 @@ import type {
   LanguageModelV4Source,
   SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
+import type { Context } from '@ai-sdk/provider-utils';
 import type {
   Experimental_LanguageModelStreamPart,
   FinishReason,
   LanguageModelUsage,
   StepResultPerformance,
   StopCondition,
+  TelemetryOptions,
   ToolCallRepairFunction,
   ToolChoice,
   ToolSet,
@@ -28,6 +30,8 @@ export type ModelCallStreamPart<TTools extends ToolSet = ToolSet> =
       approvalId: string;
       toolCallId: string;
       signature?: string;
+      /** Raw input before the original tool schema transformed it. */
+      inputSchemaInput?: unknown;
     }
   | { type: 'reset-step' };
 
@@ -91,6 +95,9 @@ export interface ModelCallTelemetry {
   recordInputs?: boolean;
   recordOutputs?: boolean;
   stepNumber: number;
+  includeRuntimeContext?: TelemetryOptions['includeRuntimeContext'];
+  /** Runtime context filtered before crossing the durable step boundary. */
+  runtimeContext?: Context;
 }
 
 /**
@@ -108,6 +115,8 @@ export interface ParsedToolCall {
   dynamic?: boolean;
   invalid?: boolean;
   error?: unknown;
+  /** Raw input before the original tool schema validated and transformed it. */
+  inputSchemaInput?: unknown;
 }
 
 /**
@@ -219,6 +228,11 @@ export type ModelCallResult =
        * tool input lifecycle callback replay was added.
        */
       toolInputLifecycleEvents?: ToolInputLifecycleEvent[];
+      /**
+       * Tool call ids that `repairToolCall` already repaired inside the step,
+       * so deferred validation does not repair them a second time.
+       */
+      repairedToolCallIds?: string[];
       /** Present when the model stream emitted an error part or generation failed. */
       terminalError?: unknown;
     };

@@ -942,3 +942,50 @@ it('preserves structured questions for provider calls and all lifecycle events',
   );
   expect(publicQuestions).toEqual(originalQuestions);
 });
+
+const boxQuestions = {
+  target: { type: 'box', instructions: 'The cat' },
+} as const;
+const validBox = { top: 0.25, bottom: 0.82, left: 0.44, right: 0.84 };
+
+function boxModel(box: unknown) {
+  return new DecisionMockModelV4({
+    supportedQuestionTypes: ['box'],
+    doDecide: async () => ({
+      answers: {
+        target: { type: 'box', box },
+      } as DecisionModelV4Result['answers'],
+      warnings: [],
+    }),
+  });
+}
+
+it('preserves normalized box coordinates', async () => {
+  const result = await decide({
+    model: boxModel(validBox),
+    state: '',
+    questions: boxQuestions,
+  });
+  expect(result.answers.target).toEqual({ type: 'box', box: validBox });
+});
+
+it.each([
+  undefined,
+  null,
+  [],
+  {},
+  { ...validBox, top: -0.1 },
+  { ...validBox, bottom: 1.1 },
+  { ...validBox, left: NaN },
+  { ...validBox, right: Infinity },
+  { ...validBox, top: '0.25' },
+  { ...validBox, left: 0.9 },
+  { ...validBox, bottom: 0.2 },
+  { ...validBox, right: validBox.left },
+  { ...validBox, bottom: validBox.top },
+  { ...validBox, extra: 0 },
+])('rejects malformed box coordinates: %j', async box => {
+  await expect(
+    decide({ model: boxModel(box), state: '', questions: boxQuestions }),
+  ).rejects.toBeInstanceOf(InvalidResponseDataError);
+});

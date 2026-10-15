@@ -78,7 +78,7 @@ export class DecisionLanguageModel implements DecisionModelV4 {
       }
     }
     const entries = Object.entries(questions).map(([id, question]) => {
-      if (!this.supportedQuestionTypes.includes(question.type)) {
+      if (!this.supportedQuestionTypes.some(type => type === question.type)) {
         throw new DecisionUnsupportedQuestionTypeError({
           questionId: id,
           questionType: question.type,

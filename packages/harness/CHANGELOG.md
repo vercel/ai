@@ -1,5 +1,43 @@
 # @ai-sdk/harness
 
+## 1.0.153
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+  - ai@7.0.142
+  - @ai-sdk/provider-utils@5.0.61
+
+## 1.0.152
+
+### Patch Changes
+
+- Updated dependencies [2e89fa4]
+- Updated dependencies [88ea0d7]
+  - @ai-sdk/provider-utils@5.0.60
+  - ai@7.0.141
+
+## 1.0.151
+
+### Patch Changes
+
+- 6c65131: feat(harness): consistently support parallel and sequential tool approvals
+- 1bebfcf: feat(harness): add support for tools with `toModelOutput()` transformation
+- Updated dependencies [9523eb0]
+  - ai@7.0.140
+
+## 1.0.150
+
+### Patch Changes
+
+- 6617f11: fix(harness): preserve interleaved text and reasoning blocks by stream ID
+- aae69cb: fix(harness): invoke UI stream step callbacks for HarnessAgent results
+- a7a66f5: fix(harness): expose final-step reasoning through stream result accessors
+- 52e3f53: fix(harness): preserve response message order across steps
+- 6c0295c: fix(harness): preserve native tool result input and execution origin
+  - ai@7.0.139
+
 ## 1.0.149
 
 ### Patch Changes

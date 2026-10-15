@@ -4,6 +4,7 @@ import {
   type AssistantModelMessage,
   type Context,
   type ToolModelMessage,
+  type ToolResultOutput,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import {
@@ -11,6 +12,7 @@ import {
   asLanguageModelUsage,
   createAsyncIterableStream,
   createNullLanguageModelUsage,
+  createToolModelOutput,
   DefaultStepResult,
   toResponseMessages,
 } from 'ai/internal';
@@ -173,6 +175,7 @@ export class HarnessStreamTextResult<
   private stepStarted = false;
 
   private readonly tools: TOOLS;
+  private readonly toolModelOutputs = new Map<string, ToolResultOutput>();
   private readonly runtimeContext: RUNTIME_CONTEXT;
   private readonly toolsContext: InferToolSetContext<TOOLS>;
   private readonly providerName: string;
@@ -187,6 +190,13 @@ export class HarnessStreamTextResult<
   private finalRawFinishReason: string | undefined = undefined;
   private aggregateWarnings: CallWarning[] = [];
   private settled = false;
+
+  setToolModelOutput(input: {
+    toolCallId: string;
+    output: ToolResultOutput;
+  }): void {
+    this.toolModelOutputs.set(input.toolCallId, input.output);
+  }
 
   constructor(options: {
     tools: TOOLS;
@@ -512,13 +522,26 @@ export class HarnessStreamTextResult<
     this._response.resolve(finalStep.response);
     this._providerMetadata.resolve(this.finalProviderMetadata);
 
+    const responseTools: ToolSet = {};
+    for (const [name, tool] of Object.entries(this.tools)) {
+      responseTools[name] = {
+        ...tool,
+        toModelOutput: (options: {
+          toolCallId: string;
+          input: unknown;
+          output: unknown;
+        }) =>
+          this.toolModelOutputs.get(options.toolCallId) ??
+          createToolModelOutput({ ...options, tool, errorMode: 'none' }),
+      };
+    }
     const responseMessages: Array<AssistantModelMessage | ToolModelMessage> =
       [];
     for (const step of this.stepsBuffer) {
       responseMessages.push(
         ...(await toResponseMessages<TOOLS>({
           content: step.content,
-          tools: this.tools,
+          tools: responseTools as TOOLS,
         })),
       );
     }
