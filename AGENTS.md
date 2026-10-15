@@ -55,16 +55,15 @@ pnpm build          # Build all packages
 
 ### Root-Level Commands
 
-| Command                  | Description                                                       |
-| ------------------------ | ----------------------------------------------------------------- |
-| `pnpm install`           | Install dependencies                                              |
-| `pnpm build`             | Build all packages                                                |
-| `pnpm test`              | Run all tests (excludes examples)                                 |
-| `pnpm check`             | Run linting (oxlint) and formatting (oxfmt) checks                |
-| `pnpm fix`               | Fix linting and formatting issues                                 |
-| `pnpm type-check:full`   | TypeScript type checking (includes examples)                      |
-| `pnpm changeset`         | Add a changeset for your PR                                       |
-| `pnpm update-references` | Update tsconfig.json references after adding package dependencies |
+| Command                | Description                                        |
+| ---------------------- | -------------------------------------------------- |
+| `pnpm install`         | Install dependencies                               |
+| `pnpm build`           | Build all packages                                 |
+| `pnpm test`            | Run all tests (excludes examples)                  |
+| `pnpm check`           | Run linting (oxlint) and formatting (oxfmt) checks |
+| `pnpm fix`             | Fix linting and formatting issues                  |
+| `pnpm type-check:full` | TypeScript type checking (includes examples)       |
+| `pnpm changeset`       | Add a changeset for your PR                        |
 
 ### Package-Level Commands
 
@@ -250,8 +249,8 @@ For a focused conceptual walkthrough of AI functions, model specifications, and 
 ### Adding New Packages
 
 1. Create folder under `packages/<name>`
-2. Add to root `tsconfig.json` references
-3. Run `pnpm update-references` if adding dependencies between packages
+2. Declare workspace dependencies in the package manifest. Turbo reads these to order builds and checks.
+3. Add a package `type-check` script that checks without emitting JavaScript.
 
 ## Contributing Guides
 
@@ -320,5 +319,5 @@ When uncertain about expected artifacts, ask for clarification.
 - Add minor/major changesets
 - Change public APIs without updating documentation
 - Use `require()` for imports
-- Add new dependencies without running `pnpm update-references`
+- Add workspace dependencies without declaring them in the consuming package manifest
 - Modify `content/docs/08-migration-guides` or `packages/codemod` as part of broader codebase changes

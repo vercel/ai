@@ -23,7 +23,7 @@
     "build": "pnpm clean && tsdown",
     "build:watch": "pnpm clean && tsdown --watch",
     "clean": "del-cli *.tsbuildinfo",
-    "type-check": "tsc --build",
+    "type-check": "tsc --noEmit --rootDir ../.. --incremental false",
     "test": "vitest --config vitest.node.config.js --run",
     "test:update": "vitest --config vitest.node.config.js --run -u",
     "test:watch": "vitest --config vitest.node.config.js"

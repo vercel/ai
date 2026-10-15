@@ -8,7 +8,8 @@
     "dev": "concurrently \"npm run next-dev\" \"npm run fastapi-dev\"",
     "build": "next build",
     "start": "next start",
-    "lint": "ultracite check"
+    "lint": "ultracite check",
+    "type-check": "tsc --noEmit --rootDir ../.. --incremental false"
   },
   "dependencies": {
     "@ai-sdk/react": "workspace:*",

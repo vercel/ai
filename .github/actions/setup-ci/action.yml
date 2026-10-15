@@ -1,0 +1,23 @@
+name: Set up CI
+description: Install the workspace and connect Turbo to the shared task cache.
+inputs:
+  node-version:
+    description: Node.js version for this runner
+    default: '22'
+    required: false
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+    - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: pnpm
+    - run: pnpm install --frozen-lockfile
+      shell: bash
+    - uses: vercel/setup-turborepo-remote-cache-action@49d7b1b46ba4c9251e1977986bfe18336feabc8f # v1.1.0
+      with:
+        team: ${{ vars.TURBO_TEAM }}
+    - name: Identify test runtime
+      shell: bash
+      run: echo "TEST_NODE_VERSION=$(node --version)" >> "$GITHUB_ENV"

@@ -14,7 +14,7 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true,
     "plugins": [
       {
@@ -26,24 +26,18 @@
         "./*"
       ]
     },
-    "composite": true,
-    "noEmit": true
+    "noEmit": true,
+    "rootDir": "."
   },
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts"
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
-  ],
-  "references": [
-    {
-      "path": "../../packages/ai"
-    },
-    {
-      "path": "../../packages/google-vertex"
-    }
+    "node_modules",
+    ".next/dev/**"
   ]
 }

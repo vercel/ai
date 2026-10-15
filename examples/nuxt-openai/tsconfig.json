@@ -1,14 +1,3 @@
 {
-  "extends": "./.nuxt/tsconfig.json",
-  "references": [
-    {
-      "path": "../../packages/ai"
-    },
-    {
-      "path": "../../packages/openai"
-    },
-    {
-      "path": "../../packages/vue"
-    }
-  ]
+  "extends": "./.nuxt/tsconfig.json"
 }

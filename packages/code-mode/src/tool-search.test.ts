@@ -32,7 +32,7 @@ describe('tool search through code mode', () => {
         'const matches = await tools.tool_search({ query: "weather" }); try { await tools.getForecast({ city: "Bangalore" }); return { calledEarly: true }; } catch { return { matches, calledEarly: false }; }',
         'return await tools.getForecast({ city: "Bangalore" });',
       ];
-      const model = new MockLanguageModelV4({
+      const model: MockLanguageModelV4 = new MockLanguageModelV4({
         doGenerate: async () => {
           const step = model.doGenerateCalls.length - 1;
           return {
@@ -69,7 +69,7 @@ describe('tool search through code mode', () => {
         prompt: 'Get the weather in Bangalore.',
         stopWhen: isStepCount(2),
       });
-      expect(result.steps[0].toolResults[0].output).toEqual({
+      expect(result.steps[0]!.toolResults[0]!.output).toEqual({
         matches: {
           tools: [
             { name: 'getForecast', description: 'Weather forecast for a city' },
@@ -77,12 +77,13 @@ describe('tool search through code mode', () => {
         },
         calledEarly: false,
       });
-      expect(result.steps[1].toolResults[0].output).toEqual({
+      expect(result.steps[1]!.toolResults[0]!.output).toEqual({
         city: 'Bangalore',
         forecast: 'rain',
       });
       expect(execute).toHaveBeenCalledTimes(generation + 1);
-      const [first, second] = model.doGenerateCalls;
+      const first = model.doGenerateCalls[0]!;
+      const second = model.doGenerateCalls[1]!;
       expect(first.tools?.map(tool => tool.name)).toEqual(['code_mode']);
       expect(second.tools).toEqual(first.tools);
       expect(JSON.stringify(first.prompt)).not.toContain('getForecast');

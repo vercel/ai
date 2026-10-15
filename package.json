@@ -10,13 +10,12 @@
     "clean": "turbo clean",
     "dev": "turbo dev --cache=local:r,remote:r --concurrency 25 --continue",
     "prepare": "husky",
-    "update-references": "update-ts-references && node tools/split-ts-references.mjs",
-    "type-check": "tsc --build",
-    "type-check:full": "tsc --build tsconfig.with-examples.json",
+    "type-check": "turbo run type-check --filter=./packages/*",
+    "type-check:full": "turbo run type-check",
     "publint": "turbo publint",
     "test": "turbo test --concurrency 16 --filter=!@example/*",
     "test:bundlers": "node tools/bundler-tests/run.mjs",
-    "test:ci": "turbo run ci:checks --concurrency=100% --filter=!@example/* --continue=dependencies-successful",
+    "test:ci": "turbo run ci:checks --filter=!@example/* --concurrency=100% --continue=dependencies-successful",
     "test:update": "turbo test:update --concurrency 16 --filter=!@example/*",
     "ci:release": "turbo clean && npm run build:packages && changeset publish",
     "ci:version": "changeset version && node .github/scripts/cleanup-examples-changesets.mjs && pnpm install --no-frozen-lockfile",
@@ -27,7 +26,11 @@
     "konsistent": "turbo run konsistent:validate konsistent:check --log-order=grouped --log-prefix=none",
     "konsistent:check": "konsistent --config-path .github/konsistent.json",
     "konsistent:validate": "konsistent validate --config-path .github/konsistent.json",
-    "worktree:setup": "bash tools/worktree-setup.sh"
+    "worktree:setup": "bash tools/worktree-setup.sh",
+    "ci:check": "turbo run ci:checks check validate:docs konsistent:check konsistent:validate test:site check-bundle-size test:bundlers --filter=!@example/* --concurrency=100% --continue=dependencies-successful",
+    "ci:examples": "turbo run build type-check --filter=@example/* --concurrency=2 --continue=dependencies-successful",
+    "ci:browser": "turbo run test:browser --filter=@ai-sdk/rsc --filter=@ai-sdk/devtools --concurrency=2 --continue=dependencies-successful",
+    "benchmark:load-time": "node tools/ci/check-load-time.mjs"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
@@ -53,7 +56,6 @@
     "turbo": "2.9.14",
     "typescript": "6.0.3",
     "ultracite": "7.3.2",
-    "update-ts-references": "^3.6.0",
     "vitest": "4.1.11"
   },
   "engines": {

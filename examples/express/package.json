@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "tsx src/server.ts",
-    "type-check": "tsc --build"
+    "type-check": "tsc --noEmit --rootDir ../.. --incremental false"
   },
   "dependencies": {
     "@ai-sdk/openai": "workspace:*",

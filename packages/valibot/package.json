@@ -20,7 +20,7 @@
     "build": "pnpm clean && tsdown",
     "build:watch": "pnpm clean && tsdown --watch",
     "clean": "del-cli *.tsbuildinfo",
-    "type-check": "tsc --build"
+    "type-check": "tsc --noEmit --rootDir ../.. --incremental false"
   },
   "exports": {
     "./package.json": "./package.json",

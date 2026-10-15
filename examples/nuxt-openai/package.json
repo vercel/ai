@@ -7,7 +7,8 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
-    "clean": "del-cli .nuxt"
+    "clean": "del-cli .nuxt",
+    "type-check": "tsc --noEmit --rootDir ../.. --incremental false"
   },
   "dependencies": {
     "@ai-sdk/openai": "workspace:*",

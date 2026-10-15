@@ -97,7 +97,7 @@ Some packages like `ai` also have more details tests and watch mode, see their `
 
 #### Adding package dependencies
 
-Please run `pnpm update-references` in workspace root to update the `references` section in the `tsconfig.json` file.
+Declare workspace dependencies in the consuming package manifest. Turborepo uses the workspace graph to build dependencies before running package checks; TypeScript project references are not needed.
 
 ### Submitting Pull Requests
 

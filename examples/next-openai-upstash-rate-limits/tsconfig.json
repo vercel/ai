@@ -1,7 +1,9 @@
 {
   "compilerOptions": {
     "target": "es2015",
-    "types": ["node"],
+    "types": [
+      "node"
+    ],
     "lib": [
       "dom",
       "dom.iterable",
@@ -16,7 +18,7 @@
     "moduleResolution": "Bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true,
     "plugins": [
       {
@@ -28,27 +30,18 @@
         "./*"
       ]
     },
-    "composite": true,
-    "noEmit": true
+    "noEmit": true,
+    "rootDir": "."
   },
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts"
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
-  ],
-  "references": [
-    {
-      "path": "../../packages/ai"
-    },
-    {
-      "path": "../../packages/openai"
-    },
-    {
-      "path": "../../packages/react"
-    }
+    "node_modules",
+    ".next/dev/**"
   ]
 }
