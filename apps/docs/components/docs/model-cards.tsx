@@ -430,6 +430,13 @@ const COMMUNITY_MODELS: ModelCardData[] = [
     logoIcon: CloudflareIcon,
   },
   {
+    title: 'Picsart',
+    logo: { src: '/images/icons/picsart.svg' },
+    href: '/providers/community-providers/picsart',
+    color: 'FF47FF',
+    features: {},
+  },
+  {
     title: 'Write your own',
     logoIcon: WriteYourOwnIcon,
     href: '/providers/community-providers/custom-providers',
