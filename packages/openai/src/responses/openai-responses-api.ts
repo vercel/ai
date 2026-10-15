@@ -181,6 +181,7 @@ export type OpenAIResponsesInputItem =
   | OpenAIResponsesReasoning
   | OpenAIResponsesItemReference
   | OpenAIResponsesCompactionItem
+  | OpenAIResponsesAdditionalTools
   | OpenAIResponsesConfigurationUpdate
   | OpenAIResponsesCompactionTrigger;
 
@@ -489,6 +490,12 @@ export type OpenAIResponsesCompactionItem = {
   type: 'compaction';
   id: string;
   encrypted_content: string;
+};
+
+export type OpenAIResponsesAdditionalTools = {
+  type: 'additional_tools';
+  role: 'developer';
+  tools: Array<OpenAIResponsesTool>;
 };
 
 export type OpenAIResponsesConfigurationUpdate = {

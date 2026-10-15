@@ -330,6 +330,115 @@ The following OpenAI-specific metadata may be returned:
 - **reasoningContext** _(optional)_
   Effective persisted-reasoning context returned by GPT-5.6 (`'current_turn'` or `'all_turns'`).
 
+#### Adding Tools Mid-Conversation
+
+When your application discovers a new function tool during a conversation, append
+its definition with `additionalTools`. Keep the initial request's tool catalog
+unchanged and retain the addition at the same position when replaying history.
+
+Register the new tool in `tools` so the SDK can validate its inputs and execute it.
+Use [model middleware](/docs/ai-sdk-core/middleware) to keep sending the original
+request catalog while the new definition is sent in `messages`.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import {
+  generateText,
+  jsonSchema,
+  tool,
+  wrapLanguageModel,
+  type ModelMessage,
+} from 'ai';
+
+const model = openai.responses('gpt-6-astra');
+const weather = tool({
+  description: 'Get current weather',
+  inputSchema: jsonSchema<{ city: string }>({
+    type: 'object',
+    properties: { city: { type: 'string' } },
+    required: ['city'],
+    additionalProperties: false,
+  }),
+  execute: async ({ city }) => ({ city, temperature: 20 }),
+});
+const messages: ModelMessage[] = [
+  { role: 'user', content: 'Which weather tools are available?' },
+];
+const first = await generateText({
+  model,
+  tools: { get_weather: weather },
+  messages,
+});
+messages.push(...first.responseMessages);
+
+const forecastSchema = {
+  type: 'object' as const,
+  properties: { city: { type: 'string' as const } },
+  required: ['city'],
+  additionalProperties: false,
+};
+const forecast = tool({
+  description: 'Get a five-day forecast',
+  inputSchema: jsonSchema<{ city: string }>(forecastSchema),
+  execute: async ({ city }) => ({ city, forecast: 'Sunny for five days' }),
+});
+messages.push({
+  role: 'system',
+  content: '',
+  providerOptions: {
+    openai: {
+      additionalTools: [
+        {
+          type: 'function',
+          name: 'get_forecast',
+          description: 'Get a five-day forecast',
+          inputSchema: forecastSchema,
+        },
+      ],
+    },
+  },
+});
+messages.push({
+  role: 'user',
+  content: 'What is the five-day forecast for Paris?',
+});
+
+const positionedModel = wrapLanguageModel({
+  model,
+  middleware: {
+    transformParams: async ({ params }) => ({
+      ...params,
+      tools: params.tools?.filter(tool => tool.name !== 'get_forecast'),
+    }),
+  },
+});
+
+const result = await generateText({
+  model: positionedModel,
+  messages,
+  allowSystemInMessages: true,
+  tools: { get_weather: weather, get_forecast: forecast },
+});
+console.log(result.text);
+console.log(result.toolResults);
+```
+
+<Note>
+  `additionalTools` accepts SDK function-tool definitions with a JSON Schema
+  `inputSchema`, rather than executable `tool()` objects. The provider uses its
+  normal tool conversion and sends an `additional_tools` item with role
+  `developer`. You can combine it with `reasoningEffortUpdate` on the same
+  message.
+</Note>
+
+Requirements:
+
+- Use a Responses endpoint and model that support
+  [positioned tool additions](https://developers.openai.com/api/docs/guides/tools-tool-search#add-tools-at-a-specific-point-in-the-input).
+- Set `allowSystemInMessages: true` and use empty system message content.
+- Preserve the addition and earlier messages when replaying history. Unsupported
+  historical tool settings throw an error.
+
 #### Changing Reasoning Effort Mid-Conversation
 
 You can increase reasoning effort for difficult work or reduce it for routine
