@@ -13,6 +13,15 @@ export const typesafeAiFilePartProviderOptions = z.object({
     .string()
     .refine(value => value.trim().length > 0)
     .optional(),
+
+  /**
+   * Whether to insert the reference into state at the file's position.
+   * Set to `false` when the state already contains the reference, for example
+   * as a field value in JSON state. Requires an explicit `reference`.
+   *
+   * Defaults to `true`.
+   */
+  insertReference: z.boolean().optional(),
 });
 
 export type TypeSafeAiFilePartProviderOptions = z.infer<

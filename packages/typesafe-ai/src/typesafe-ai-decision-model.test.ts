@@ -472,6 +472,104 @@ describe('image input', () => {
     },
   );
 
+  it('keeps JSON state as an object when its image references are already placed', async () => {
+    await model.doDecide({
+      ...options,
+      state: [
+        { type: 'json', value: { photo: '[photo]', note: 'Box arrived wet.' } },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: { type: 'data', data: 'iVBORw==' },
+          providerOptions: {
+            typesafe: { reference: '[photo]', insertReference: false },
+          },
+        },
+      ],
+    });
+    const multipart = await server.calls[0].requestBodyMultipart;
+    const body = JSON.parse(await multipart!.request.text());
+    expect(body.state).toEqual({ photo: '[photo]', note: 'Box arrived wet.' });
+    expect(body.assets).toEqual({
+      '[photo]': { type: 'image', part: 'image-1' },
+    });
+    expect(Object.keys(multipart!)).toEqual(['request', 'image-1']);
+    expect(server.calls[0].requestHeaders['typesafe-danger-zone-images']).toBe(
+      'true',
+    );
+  });
+
+  it('leaves text state unchanged when it already contains the reference', async () => {
+    await model.doDecide({
+      ...options,
+      state: [
+        { type: 'text', text: 'Is [photo] damaged?' },
+        {
+          type: 'file',
+          mediaType: 'image/jpeg',
+          data: { type: 'data', data: '/9j/4A==' },
+          providerOptions: {
+            typesafe: { reference: '[photo]', insertReference: false },
+          },
+        },
+      ],
+    });
+    const multipart = await server.calls[0].requestBodyMultipart;
+    const body = JSON.parse(await multipart!.request.text());
+    expect(body.state).toBe('Is [photo] damaged?');
+    expect(Object.keys(body.assets)).toEqual(['[photo]']);
+  });
+
+  it('inserts only the references that are not already placed', async () => {
+    await model.doDecide({
+      ...options,
+      state: [
+        { type: 'text', text: 'Compare [before] with the new photo.' },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: { type: 'data', data: 'iVBORw==' },
+          providerOptions: {
+            typesafe: { reference: '[before]', insertReference: false },
+          },
+        },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: { type: 'data', data: 'iVBORw==' },
+          providerOptions: { typesafe: { reference: '[after]' } },
+        },
+      ],
+    });
+    const multipart = await server.calls[0].requestBodyMultipart;
+    const body = JSON.parse(await multipart!.request.text());
+    expect(body.state).toBe('Compare [before] with the new photo.\n[after]');
+    expect(body.assets).toEqual({
+      '[before]': { type: 'image', part: 'image-1' },
+      '[after]': { type: 'image', part: 'image-2' },
+    });
+  });
+
+  it('rejects insertReference: false without an explicit reference before HTTP', async () => {
+    await expect(
+      model.doDecide({
+        ...options,
+        state: [
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: { type: 'data', data: 'iVBORw==' },
+            providerOptions: { typesafe: { insertReference: false } },
+          },
+        ],
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_InvalidArgumentError',
+      argument: 'providerOptions.typesafe.reference',
+    });
+    expect(server.calls).toHaveLength(0);
+  });
+
   it('rejects duplicate image references before HTTP', async () => {
     await expect(
       model.doDecide({

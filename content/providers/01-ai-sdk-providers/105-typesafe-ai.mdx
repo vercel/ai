@@ -173,6 +173,34 @@ reference. You can use that reference in state text, question instructions, or
 criteria. The provider also inserts it at the file's position in the state.
 When omitted, the provider generates a random reference.
 
+Set `providerOptions.typesafe.insertReference` to `false` when the state already
+contains the reference, for example as a field value in JSON state. The provider
+then only uploads the image and sends the state as written, so JSON state stays
+an object. This requires an explicit `reference`:
+
+```ts
+const result = await experimental_decide({
+  model: typeSafeAi.decisionModel('jev-latest'),
+  state: [
+    { type: 'json', value: { note: 'Box arrived crushed.', photo: '[photo]' } },
+    {
+      type: 'file',
+      mediaType: 'image/png',
+      data: readFileSync('box.png'),
+      providerOptions: {
+        typesafe: { reference: '[photo]', insertReference: false },
+      },
+    },
+  ],
+  questions: {
+    damaged: {
+      type: 'boolean',
+      instructions: 'Is the box in [photo] damaged?',
+    },
+  },
+});
+```
+
 References must be nonempty, contain more than whitespace, and be unique across
 images in the request. TypeSafe substitutes references anywhere in string
 values, so choose distinctive names such as `[animal-photo]` to avoid accidental
