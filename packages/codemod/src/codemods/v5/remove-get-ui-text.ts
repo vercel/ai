@@ -1,4 +1,7 @@
+import type { JSCodeshift } from 'jscodeshift';
 import { createTransformer } from '../lib/create-transformer';
+
+type ExpressionKind = Parameters<JSCodeshift['awaitExpression']>[0];
 
 export default createTransformer((fileInfo, api, options, context) => {
   const { j, root } = context;
@@ -60,7 +63,30 @@ export default createTransformer((fileInfo, api, options, context) => {
       }
     });
 
-  // Replace function calls for getUIText and its aliases
+  // Builds `parts.map(part => (part.type === 'text' ? part.text : '')).join('')`
+  const createUITextExpression = (parts: ExpressionKind) =>
+    j.callExpression(
+      j.memberExpression(
+        j.callExpression(j.memberExpression(parts, j.identifier('map')), [
+          j.arrowFunctionExpression(
+            [j.identifier('part')],
+            j.conditionalExpression(
+              j.binaryExpression(
+                '===',
+                j.memberExpression(j.identifier('part'), j.identifier('type')),
+                j.stringLiteral('text'),
+              ),
+              j.memberExpression(j.identifier('part'), j.identifier('text')),
+              j.stringLiteral(''),
+            ),
+          ),
+        ]),
+        j.identifier('join'),
+      ),
+      [j.stringLiteral('')],
+    );
+
+  // Replace direct calls: getUIText(parts) → parts.map(...).join('')
   root
     .find(j.CallExpression)
     .filter(path => {
@@ -78,32 +104,80 @@ export default createTransformer((fileInfo, api, options, context) => {
         return; // Skip spread elements
       }
 
-      // Create the replacement: argument.map(part => (part.type === 'text' ? part.text : '')).join('')
-      const replacement = j.callExpression(
-        j.memberExpression(
-          j.callExpression(j.memberExpression(argument, j.identifier('map')), [
-            j.arrowFunctionExpression(
-              [j.identifier('part')],
-              j.conditionalExpression(
-                j.binaryExpression(
-                  '===',
-                  j.memberExpression(
-                    j.identifier('part'),
-                    j.identifier('type'),
-                  ),
-                  j.stringLiteral('text'),
-                ),
-                j.memberExpression(j.identifier('part'), j.identifier('text')),
-                j.stringLiteral(''),
-              ),
-            ),
-          ]),
-          j.identifier('join'),
-        ),
-        [j.stringLiteral('')],
+      j(path).replaceWith(createUITextExpression(argument));
+      context.hasChanges = true;
+    });
+
+  // Replace the remaining references, e.g. `messages.map(getUIText)` or
+  // `const toText = getUIText`, with an equivalent inline function so that no
+  // identifier is left unbound once the import is gone.
+  root
+    .find(j.Identifier)
+    .filter(path => {
+      if (!aliases.has(path.node.name)) {
+        return false;
+      }
+
+      const parent = path.parent?.node;
+      if (!parent) {
+        return false;
+      }
+
+      // Non-computed member property: `obj.getUIText`
+      if (
+        (parent.type === 'MemberExpression' ||
+          parent.type === 'OptionalMemberExpression') &&
+        parent.property === path.node &&
+        !parent.computed
+      ) {
+        return false;
+      }
+
+      // Object property key: `{ getUIText: value }` (shorthand handled below)
+      if (
+        (parent.type === 'Property' || parent.type === 'ObjectProperty') &&
+        parent.key === path.node &&
+        !parent.computed &&
+        !parent.shorthand
+      ) {
+        return false;
+      }
+
+      // Import / export specifiers and declarations are not references
+      if (
+        parent.type === 'ImportSpecifier' ||
+        parent.type === 'ImportDefaultSpecifier' ||
+        parent.type === 'ImportNamespaceSpecifier' ||
+        parent.type === 'ExportSpecifier' ||
+        parent.type === 'VariableDeclarator' ||
+        parent.type === 'FunctionDeclaration' ||
+        parent.type === 'ClassDeclaration'
+      ) {
+        return (
+          parent.type === 'VariableDeclarator' && parent.init === path.node
+        );
+      }
+
+      return true;
+    })
+    .forEach(path => {
+      const parent = path.parent?.node;
+      const replacement = j.arrowFunctionExpression(
+        [j.identifier('parts')],
+        createUITextExpression(j.identifier('parts')),
       );
 
-      j(path).replaceWith(replacement);
+      if (
+        (parent.type === 'Property' || parent.type === 'ObjectProperty') &&
+        parent.shorthand
+      ) {
+        // `{ getUIText }` → `{ getUIText: parts => ... }`
+        parent.shorthand = false;
+        parent.value = replacement;
+      } else {
+        j(path).replaceWith(replacement);
+      }
+
       context.hasChanges = true;
     });
 
