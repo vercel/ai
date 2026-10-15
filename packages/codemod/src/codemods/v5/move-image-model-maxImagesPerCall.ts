@@ -83,6 +83,24 @@ export default createTransformer((fileInfo, api, options, context) => {
         ) {
           const settingsObject = imageCall.arguments[1];
 
+          // A spread (`{ ...settings }`) cannot be split into
+          // maxImagesPerCall and provider options statically. Leave the call
+          // untouched and report it instead of dropping the settings.
+          const hasSpread = settingsObject.properties.some(
+            (settingProp: any) =>
+              settingProp.type === 'SpreadElement' ||
+              settingProp.type === 'SpreadProperty',
+          );
+
+          if (hasSpread) {
+            const line = imageCall.loc?.start.line;
+            context.messages.push(
+              `${fileInfo.path}${line ? `:${line}` : ''}: image model settings contain a spread and were left unchanged. ` +
+                'Move maxImagesPerCall to the generateImage() options and the remaining settings to providerOptions manually.',
+            );
+            return;
+          }
+
           // Extract settings from the model constructor
           settingsObject.properties.forEach((settingProp: any) => {
             if (
