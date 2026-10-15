@@ -29,6 +29,133 @@ async function main() {
 }
 ```
 
+## Reading an HTTP Response on the Client
+
+You can consume a UI message stream from `fetch` without using `useChat`.
+The response body contains SSE-encoded bytes, not `UIMessageChunk` objects, so
+parse and validate the events before passing them to `readUIMessageStream`.
+Install `@ai-sdk/provider-utils` alongside `ai` for the `ParseResult` type used
+below:
+
+```sh
+pnpm add @ai-sdk/provider-utils
+```
+
+First, define a shared message type for the custom data parts:
+
+```ts filename="ai/types.ts"
+import type { UIMessage } from 'ai';
+
+export type MyUIMessage = UIMessage<
+  never,
+  {
+    content: { title: string };
+  }
+>;
+```
+
+Create an endpoint that returns a UI message stream. This example writes text
+and custom data directly, so it does not require a model or an API key:
+
+```ts filename="app/api/completion/route.ts"
+import { createUIMessageStream, createUIMessageStreamResponse } from 'ai';
+import type { MyUIMessage } from '@/ai/types';
+
+export async function POST() {
+  const stream = createUIMessageStream<MyUIMessage>({
+    execute({ writer }) {
+      writer.write({ type: 'start' });
+      writer.write({
+        type: 'data-content',
+        data: { title: 'Example result' },
+      });
+      writer.write({ type: 'text-start', id: 'text-1' });
+      writer.write({ type: 'text-delta', id: 'text-1', delta: 'Hello, ' });
+      writer.write({ type: 'text-delta', id: 'text-1', delta: 'world!' });
+      writer.write({ type: 'text-end', id: 'text-1' });
+      writer.write({ type: 'finish' });
+    },
+  });
+
+  return createUIMessageStreamResponse({ stream });
+}
+```
+
+On the client, use `parseJsonEventStream` with the public `uiMessageChunkSchema`
+export to decode the response. Each parsed event is a `ParseResult`; unwrap
+successful results and throw parsing or validation errors instead of casting
+the stream:
+
+```ts filename="read-response.ts"
+import type { ParseResult } from '@ai-sdk/provider-utils';
+import {
+  parseJsonEventStream,
+  readUIMessageStream,
+  uiMessageChunkSchema,
+  type UIMessageChunk,
+} from 'ai';
+import type { MyUIMessage } from '@/ai/types';
+
+async function readResponse() {
+  const response = await fetch('/api/completion', { method: 'POST' });
+
+  if (!response.ok) {
+    throw new Error(`Request failed: ${response.status}`);
+  }
+
+  if (response.body == null) {
+    throw new Error('Response body is missing');
+  }
+
+  const chunkStream = parseJsonEventStream({
+    stream: response.body,
+    schema: uiMessageChunkSchema,
+  }).pipeThrough(
+    new TransformStream<ParseResult<UIMessageChunk>, UIMessageChunk>({
+      transform(result, controller) {
+        if (!result.success) {
+          throw result.error;
+        }
+
+        controller.enqueue(result.value);
+      },
+    }),
+  );
+
+  for await (const message of readUIMessageStream<MyUIMessage>({
+    stream: chunkStream,
+    terminateOnError: true,
+  })) {
+    for (const part of message.parts) {
+      if (part.type === 'text') {
+        console.log('Current text:', part.text);
+      } else if (part.type === 'data-content') {
+        console.log('Content title:', part.data.title);
+      }
+    }
+  }
+}
+
+await readResponse();
+```
+
+`terminateOnError: true` makes the iteration throw when parsing fails or the
+server sends an error chunk. Handle these errors, along with HTTP failures,
+with `try`/`catch` around `readResponse()`.
+
+Each iteration yields the current message snapshot, not a text delta. Replace
+previously displayed text with `part.text` rather than appending it. Custom data
+parts can also appear in multiple snapshots.
+
+<Note>
+  The custom message type provides compile-time types for data parts;
+  `uiMessageChunkSchema` validates the stream protocol, not the shape of custom
+  data payloads. Validate those payloads separately when consuming untrusted
+  data. Parts marked with `transient: true` do not appear in the snapshots. To
+  handle transient events, inspect the decoded chunks before passing them to
+  `readUIMessageStream`.
+</Note>
+
 ## Tool Calls Integration
 
 Handle streaming responses that include tool calls:
