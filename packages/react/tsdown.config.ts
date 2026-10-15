@@ -1,5 +1,5 @@
 import { defineConfig } from 'tsdown';
 
-import { tsdownBaseConfig } from '../../tools/tsdown-config.mts';
+import { tsdownBaseConfig } from '@vercel/ai-tsdown-config';
 
 export default defineConfig(tsdownBaseConfig);
