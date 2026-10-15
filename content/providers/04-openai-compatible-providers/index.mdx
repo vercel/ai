@@ -366,6 +366,11 @@ You can create image models using the `.imageModel()` factory method:
 const model = provider.imageModel('model-id');
 ```
 
+Image generation and editing responses can contain base64 data (`b64_json`),
+image URLs (`url`), or a mixture of both. The provider automatically downloads
+URL-based images so that `image.base64` and `image.uint8Array` remain available.
+When an image includes both fields, base64 data takes precedence.
+
 ### Basic Image Generation
 
 ```ts
