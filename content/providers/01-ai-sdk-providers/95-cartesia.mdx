@@ -266,14 +266,38 @@ const result = streamTranscribe({
 });
 ```
 
+To bias recognition toward product names or jargon, pass up to 100
+`providerOptions.cartesia.streaming.keyterms`
+([keyterm prompting](https://docs.cartesia.ai/use-the-api/stt/keyterms)). Turn detection can be tuned with
+`turnStartThreshold`, `turnEagerEndThreshold`, `turnEndThreshold` and
+`turnEndTimeoutMs`; these are ignored, with a warning, when `turnDetection` is
+`false`. See the [Cartesia turn detection docs](https://docs.cartesia.ai/use-the-api/stt/turns)
+for the accepted ranges.
+
+```ts
+const result = streamTranscribe({
+  model: cartesia.transcription('ink-2'),
+  audio,
+  inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+  providerOptions: {
+    cartesia: {
+      streaming: {
+        keyterms: ['Cartesia', 'Sonic'],
+        turnEndTimeoutMs: 800,
+      },
+    },
+  },
+});
+```
+
 See [Transcription](/docs/ai-sdk-core/transcription) for more information about
 streaming transcription.
 
 ### Model Capabilities
 
-| Model   | Streaming Transcription | Turn Detection      |
-| ------- | ----------------------- | ------------------- |
-| `ink-2` | <Check size={18} />     | <Check size={18} /> |
+| Model   | Streaming Transcription | Turn Detection      | Keyterms            |
+| ------- | ----------------------- | ------------------- | ------------------- |
+| `ink-2` | <Check size={18} />     | <Check size={18} /> | <Check size={18} /> |
 
 ## Batch Transcription Models
 
