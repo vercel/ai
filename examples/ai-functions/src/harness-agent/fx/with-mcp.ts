@@ -11,7 +11,6 @@ run(async () => {
         context7: {
           type: 'http',
           url: 'https://mcp.context7.com/mcp',
-          headers: [],
         },
       },
     }),

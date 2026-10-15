@@ -67,7 +67,25 @@ export function createFxTransport(options: {
       method !== 'POST' ||
       !originalUrl.pathname.endsWith('/ai/language-model')
     ) {
-      return networkFetch(url, { ...init, headers });
+      if (!(input instanceof Request)) {
+        return networkFetch(url, { ...init, headers });
+      }
+      /*
+       * Retargeting a Request exposes its body as a stream, which cannot be
+       * supplied with keepalive enabled. Restore keepalive through fetch init,
+       * where the body is inherited from the Request instead of supplied anew.
+       */
+      const request = new Request(
+        url,
+        new Request(input, { keepalive: false }),
+      );
+      return networkFetch(request, {
+        keepalive: input.keepalive,
+        referrer: input.referrer,
+        referrerPolicy: input.referrerPolicy,
+        ...init,
+        headers,
+      });
     }
     const index = ++requestIndex;
     const inputBody =

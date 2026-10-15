@@ -2,6 +2,10 @@ import type {
   HarnessV1PermissionMode,
   HarnessV1PromptControl,
 } from '@ai-sdk/harness';
+import {
+  convertHarnessToolModelOutput,
+  normalizeHarnessToolModelOutput,
+} from '@ai-sdk/harness/utils';
 import { secureJsonParse } from '@ai-sdk/provider-utils';
 import type { JSONValue } from '@ai-sdk/provider';
 import type { FxToolResult } from './fx-runtime';
@@ -48,49 +52,31 @@ export function toFxToolResult(submission: FxToolSubmission): FxToolResult {
         : JSON.stringify(fxJsonValue(submission.output));
     return result;
   }
-  switch (output.type) {
-    case 'text':
-    case 'error-text':
-      result.text = output.value;
-      result.isError ||= output.type === 'error-text';
-      break;
-    case 'json':
-    case 'error-json':
-      result.text = JSON.stringify(output.value);
-      result.isError ||= output.type === 'error-json';
-      break;
-    case 'execution-denied':
-      result.text = output.reason ?? 'Tool execution was denied.';
-      result.isError = true;
-      break;
-    case 'content':
-      result.text = output.value
-        .map(part => {
-          if (part.type === 'text') return part.text;
-          if (
-            part.type === 'file' &&
-            part.mediaType.startsWith('image/') &&
-            part.data.type === 'data'
-          ) {
-            result.images.push({
-              type: 'image',
-              mimeType: part.mediaType,
-              data:
-                typeof part.data.data === 'string'
-                  ? part.data.data
-                  : Buffer.from(
-                      part.data.data instanceof ArrayBuffer
-                        ? new Uint8Array(part.data.data)
-                        : part.data.data,
-                    ).toString('base64'),
-            });
-            return '';
-          }
-          return JSON.stringify(part);
-        })
-        .filter(Boolean)
-        .join('\n');
-      break;
+  const converted = convertHarnessToolModelOutput({
+    output: normalizeHarnessToolModelOutput({
+      output:
+        output.type === 'execution-denied'
+          ? { ...output, reason: output.reason ?? 'Tool execution was denied.' }
+          : output,
+    }),
+  });
+  const text: string[] = [];
+  for (const part of converted.content) {
+    if (part.type === 'text') {
+      if (part.text) text.push(part.text);
+    } else {
+      result.images.push({
+        type: 'image',
+        data: part.data,
+        mimeType: part.mediaType,
+      });
+    }
   }
+  result.text = text.join('\n');
+  result.isError = converted.isError
+    ? true
+    : output.type === 'content'
+      ? submission.isError
+      : Boolean(submission.isError);
   return result;
 }

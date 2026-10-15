@@ -1,6 +1,51 @@
 import { HarnessCapabilityUnsupportedError } from '@ai-sdk/harness';
 import { createMCPClient, type MCPClient } from '@ai-sdk/mcp';
+import { z } from 'zod/v4';
 import type { FxTool } from './fx-runtime';
+
+type FxMcpServerConfig = {
+  url: string;
+  type?: 'http' | 'sse' | 'streamableHttp';
+  headers?: Record<string, string>;
+};
+
+const fxMcpServerConfigSchema = z.looseObject({
+  url: z.string(),
+  type: z.enum(['http', 'sse', 'streamableHttp']).optional(),
+  headers: z.record(z.string(), z.string()).optional(),
+  disabled: z.boolean().optional(),
+});
+
+function parseFxMcpServerConfig({
+  serverName,
+  config,
+}: {
+  serverName: string;
+  config: unknown;
+}): FxMcpServerConfig | undefined {
+  if (
+    typeof config === 'object' &&
+    config != null &&
+    'disabled' in config &&
+    config.disabled === true
+  )
+    return undefined;
+  const parsed = fxMcpServerConfigSchema.safeParse(config);
+  if (parsed.success) return parsed.data;
+  const issue = parsed.error.issues[0];
+  if (
+    issue.path.length === 0 ||
+    ['url', 'type'].includes(String(issue.path[0]))
+  ) {
+    throw new HarnessCapabilityUnsupportedError({
+      harnessId: 'fx',
+      message: `fx MCP server ${serverName} must use an HTTP or SSE URL. Command/stdio servers are not supported.`,
+    });
+  }
+  throw new Error(
+    `Invalid fx MCP server ${serverName} field ${issue.path.join('.')}: ${issue.message}`,
+  );
+}
 
 export type FxMcpRuntime = {
   tools: FxTool[];
@@ -29,22 +74,8 @@ export async function createFxMcpRuntime(options: {
     for (const [serverName, rawConfig] of Object.entries(
       options.mcpServers ?? {},
     )) {
-      const config = rawConfig as {
-        type?: string;
-        url?: string;
-        headers?: Record<string, string>;
-        disabled?: boolean;
-      };
-      if (config?.disabled) continue;
-      if (
-        typeof config?.url !== 'string' ||
-        !['http', 'sse', 'streamableHttp'].includes(config.type ?? 'http')
-      ) {
-        throw new HarnessCapabilityUnsupportedError({
-          harnessId: 'fx',
-          message: `fx MCP server ${serverName} must use an HTTP or SSE URL. Command/stdio servers are not supported.`,
-        });
-      }
+      const config = parseFxMcpServerConfig({ serverName, config: rawConfig });
+      if (!config) continue;
       const client = await createMCPClient({
         transport: {
           type: config.type === 'sse' ? 'sse' : 'http',

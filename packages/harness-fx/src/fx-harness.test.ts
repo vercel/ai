@@ -1,13 +1,18 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 import type {
   HarnessV1PromptTurnOptions,
   HarnessV1StreamPart,
+  HarnessV1BuiltinToolFiltering,
 } from '@ai-sdk/harness';
 import type { FxRuntimeOptions, FxToolResult } from './fx-runtime';
 import { createFx } from './fx-harness';
 import { resolveFxEnv } from './fx-auth';
-import { fxToolRequiresApproval, toFxToolResult } from './fx-tools';
+import {
+  fxToolRequiresApproval,
+  toFxToolResult,
+  type FxToolSubmission,
+} from './fx-tools';
 
 const runtime = vi.hoisted(() => ({
   options: [] as FxRuntimeOptions[],
@@ -106,9 +111,13 @@ function invoke(options: {
 }
 
 beforeEach(() => {
+  vi.stubEnv('AI_GATEWAY_API_KEY', 'test-key');
+  vi.stubEnv('VERCEL_OIDC_TOKEN', undefined);
   runtime.options.length = 0;
   runtime.run = undefined;
 });
+
+afterEach(() => vi.unstubAllEnvs());
 
 describe('fx harness', () => {
   it('constructs without a bridge or bootstrap', () => {
@@ -267,6 +276,101 @@ describe('fx harness', () => {
     ]);
     expect(runtime.options[0].tools[1].inputSchema).toEqual(schema);
     await session.doDestroy();
+  });
+
+  it.each([
+    {
+      filtering: undefined,
+      names: [
+        'read',
+        'write',
+        'edit',
+        'bash',
+        'grep',
+        'glob',
+        'ls',
+        'askUserQuestions',
+      ],
+    },
+    { filtering: { mode: 'allow', toolNames: [] }, names: [] },
+    {
+      filtering: { mode: 'deny', toolNames: [] },
+      names: [
+        'read',
+        'write',
+        'edit',
+        'bash',
+        'grep',
+        'glob',
+        'ls',
+        'askUserQuestions',
+      ],
+    },
+    {
+      filtering: { mode: 'deny', toolNames: ['bash', 'write', 'edit'] },
+      names: ['read', 'grep', 'glob', 'ls', 'askUserQuestions'],
+    },
+  ] satisfies Array<{
+    filtering: HarnessV1BuiltinToolFiltering | undefined;
+    names: string[];
+  }>)(
+    'registers included built-ins for $filtering',
+    async ({ filtering, names }) => {
+      const { sandbox } = createSandbox();
+      const session = await createFx().doStart({
+        sandboxSession: sandbox,
+        sessionId: 'filtering',
+        sessionWorkDir: '/workspace',
+        builtinToolFiltering: filtering,
+      });
+      try {
+        await (
+          await session.doPromptTurn({
+            ...turnOptions,
+            prompt: 'go',
+            emit() {},
+          })
+        ).done;
+        expect(runtime.options[0].tools.map(tool => tool.name)).toEqual(names);
+      } finally {
+        await session.doDestroy();
+      }
+    },
+  );
+
+  it('preserves custom tools that override filtered built-in names', async () => {
+    const { sandbox } = createSandbox();
+    const session = await createFx().doStart({
+      sandboxSession: sandbox,
+      sessionId: 'override',
+      sessionWorkDir: '/workspace',
+      builtinToolFiltering: { mode: 'allow', toolNames: [] },
+    });
+    try {
+      await (
+        await session.doPromptTurn({
+          ...turnOptions,
+          tools: [{ name: 'read', description: 'custom read' }],
+          prompt: 'go',
+          emit() {},
+        })
+      ).done;
+      expect(
+        runtime.options[0].tools.map(({ name, description }) => ({
+          name,
+          description,
+        })),
+      ).toMatchInlineSnapshot(`
+          [
+            {
+              "description": "custom read",
+              "name": "read",
+            },
+          ]
+        `);
+    } finally {
+      await session.doDestroy();
+    }
   });
 
   it('cold-continues pending custom calls with original IDs and full model-facing results', async () => {
@@ -497,6 +601,79 @@ describe('fx harness', () => {
 });
 
 describe('Gateway authentication', () => {
+  it.each([undefined, ''])(
+    'fails before sandbox access when credentials are missing: %s',
+    async apiKey => {
+      vi.stubEnv('AI_GATEWAY_API_KEY', apiKey);
+      vi.stubEnv('VERCEL_OIDC_TOKEN', undefined);
+      const { sandbox, files, run } = createSandbox();
+      const harness = createFx();
+      await expect(
+        harness.doStart({
+          sandboxSession: sandbox,
+          sessionId: 'missing-auth',
+          sessionWorkDir: '/workspace',
+        }),
+      ).rejects.toThrow(
+        'fx requires AI_GATEWAY_API_KEY or VERCEL_OIDC_TOKEN in the host environment or an explicit authentication environment.',
+      );
+      expect(run).not.toHaveBeenCalled();
+      expect(sandbox.readTextFile).not.toHaveBeenCalled();
+      expect(sandbox.writeTextFile).not.toHaveBeenCalled();
+      expect(files.size).toBe(0);
+      expect(runtime.options).toHaveLength(0);
+    },
+  );
+
+  it.each<{ auth: Record<string, string>; expected: string }>([
+    { auth: { AI_GATEWAY_API_KEY: 'explicit-key' }, expected: 'explicit-key' },
+    { auth: { VERCEL_OIDC_TOKEN: 'explicit-oidc' }, expected: 'explicit-oidc' },
+    {
+      auth: { AI_GATEWAY_API_KEY: 'preferred-key', VERCEL_OIDC_TOKEN: 'oidc' },
+      expected: 'preferred-key',
+    },
+  ])(
+    'passes the resolved credential to the runtime: $expected',
+    async ({ auth, expected }) => {
+      const { sandbox } = createSandbox();
+      const session = await createFx({ auth }).doStart({
+        sandboxSession: sandbox,
+        sessionId: 'auth',
+        sessionWorkDir: '/workspace',
+      });
+      try {
+        await (
+          await session.doPromptTurn({
+            ...turnOptions,
+            prompt: 'go',
+            emit() {},
+          })
+        ).done;
+        expect(runtime.options[0].apiKey).toBe(expected);
+      } finally {
+        await session.doDestroy();
+      }
+    },
+  );
+
+  it('does not read host credentials for an explicit empty authentication environment', async () => {
+    const { sandbox, run } = createSandbox();
+    await expect(
+      createFx({ auth: {} }).doStart({
+        sandboxSession: sandbox,
+        sessionId: 'isolated-auth',
+        sessionWorkDir: '/workspace',
+      }),
+    ).rejects.toThrow('fx requires AI_GATEWAY_API_KEY or VERCEL_OIDC_TOKEN');
+    expect(run).not.toHaveBeenCalled();
+  });
+
+  it('constructs without credentials', () => {
+    vi.stubEnv('AI_GATEWAY_API_KEY', undefined);
+    vi.stubEnv('VERCEL_OIDC_TOKEN', undefined);
+    expect(createFx().harnessId).toBe('fx');
+  });
+
   it.each(['auto', 'direct', 'ai-gateway'] as const)(
     '%s resolves Gateway credentials',
     auth => {
@@ -515,6 +692,205 @@ describe('Gateway authentication', () => {
 });
 
 describe('tool conversion and permissions', () => {
+  it('preserves typed text, JSON, denial, and error semantics', () => {
+    const outputs: Array<
+      NonNullable<FxToolSubmission['toolResult']>['output']
+    > = [
+      { type: 'text', value: 'text' },
+      { type: 'json', value: { count: 2 } },
+      { type: 'error-text', value: 'error text' },
+      { type: 'error-json', value: { error: true } },
+      { type: 'execution-denied' },
+      { type: 'execution-denied', reason: 'Not permitted' },
+      {
+        type: 'content',
+        value: [
+          { type: 'text', text: 'first' },
+          { type: 'text', text: '' },
+          { type: 'text', text: 'second' },
+        ],
+      },
+    ];
+    expect(
+      outputs.map(output =>
+        toFxToolResult({
+          toolCallId: 'a',
+          output: 'visible',
+          toolResult: {
+            type: 'tool-result',
+            toolCallId: 'a',
+            toolName: 'tool',
+            output,
+          },
+        }),
+      ),
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "images": [],
+          "isError": false,
+          "text": "text",
+          "type": "libfx.tool-result",
+        },
+        {
+          "images": [],
+          "isError": false,
+          "text": "{"count":2}",
+          "type": "libfx.tool-result",
+        },
+        {
+          "images": [],
+          "isError": true,
+          "text": "error text",
+          "type": "libfx.tool-result",
+        },
+        {
+          "images": [],
+          "isError": true,
+          "text": "{"error":true}",
+          "type": "libfx.tool-result",
+        },
+        {
+          "images": [],
+          "isError": true,
+          "text": "Tool execution was denied.",
+          "type": "libfx.tool-result",
+        },
+        {
+          "images": [],
+          "isError": true,
+          "text": "Not permitted",
+          "type": "libfx.tool-result",
+        },
+        {
+          "images": [],
+          "isError": undefined,
+          "text": "first
+      second",
+          "type": "libfx.tool-result",
+        },
+      ]
+    `);
+    for (const output of outputs) {
+      expect(
+        toFxToolResult({
+          toolCallId: 'a',
+          output: 'visible',
+          isError: true,
+          toolResult: {
+            type: 'tool-result',
+            toolCallId: 'a',
+            toolName: 'tool',
+            output,
+          },
+        }).isError,
+      ).toBe(true);
+    }
+  });
+
+  it('preserves untyped output fallbacks', () => {
+    expect(
+      ['raw', { answer: 42 }, undefined].map(output =>
+        toFxToolResult({
+          toolCallId: 'a',
+          output,
+        }),
+      ),
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "images": [],
+          "isError": undefined,
+          "text": "raw",
+          "type": "libfx.tool-result",
+        },
+        {
+          "images": [],
+          "isError": undefined,
+          "text": "{"answer":42}",
+          "type": "libfx.tool-result",
+        },
+        {
+          "images": [],
+          "isError": undefined,
+          "text": "null",
+          "type": "libfx.tool-result",
+        },
+      ]
+    `);
+  });
+
+  it.each(['AQID', new Uint8Array([1, 2, 3]).buffer])(
+    'retains base64 and ArrayBuffer images',
+    data => {
+      expect(
+        toFxToolResult({
+          toolCallId: 'a',
+          output: 'visible',
+          toolResult: {
+            type: 'tool-result',
+            toolCallId: 'a',
+            toolName: 'tool',
+            output: {
+              type: 'content',
+              value: [
+                {
+                  type: 'file',
+                  mediaType: 'image/png',
+                  data: { type: 'data', data },
+                },
+              ],
+            },
+          },
+        }),
+      ).toMatchInlineSnapshot(`
+        {
+          "images": [
+            {
+              "data": "AQID",
+              "mimeType": "image/png",
+              "type": "image",
+            },
+          ],
+          "isError": undefined,
+          "text": "",
+          "type": "libfx.tool-result",
+        }
+      `);
+    },
+  );
+
+  it.each([
+    {
+      type: 'file',
+      mediaType: 'application/pdf',
+      data: { type: 'data', data: 'AQID' },
+    },
+    {
+      type: 'file',
+      mediaType: 'image/png',
+      data: { type: 'url', url: new URL('https://example.com/image.png') },
+    },
+  ] as const)(
+    'rejects unsupported tool model content: $mediaType / $data.type',
+    part => {
+      expect(() =>
+        toFxToolResult({
+          toolCallId: 'a',
+          output: 'visible',
+          toolResult: {
+            type: 'tool-result',
+            toolCallId: 'a',
+            toolName: 'tool',
+            output: { type: 'content', value: [part] },
+          },
+        }),
+      ).toThrow(
+        'Harnesses support only text and inline images in tool model output.',
+      );
+    },
+  );
+
   it('retains images and error status', () => {
     expect(
       toFxToolResult({

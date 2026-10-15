@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import {
   HarnessCapabilityUnsupportedError,
+  isHarnessV1BuiltinToolIncluded,
   type HarnessV1BuiltinTool,
   type HarnessV1ContinueTurnOptions,
   type HarnessV1ContinueTurnState,
@@ -85,6 +86,12 @@ export async function createFxSession(options: {
 }): Promise<HarnessV1Session> {
   const { startOpts, settings } = options;
   startOpts.abortSignal?.throwIfAborted();
+  const apiKey = options.environment.AI_GATEWAY_API_KEY;
+  if (!apiKey) {
+    throw new Error(
+      'fx requires AI_GATEWAY_API_KEY or VERCEL_OIDC_TOKEN in the host environment or an explicit authentication environment.',
+    );
+  }
   const resume =
     startOpts.continueFrom ??
     startOpts.resumeFrom?.continueFrom ??
@@ -515,15 +522,15 @@ export async function createFxSession(options: {
         });
         const tools: FxTool[] = [];
         const customNames = new Set(opts.tools.map(tool => tool.name));
-        const filtering = startOpts.builtinToolFiltering;
         for (const [name, builtin] of Object.entries(options.builtinTools)) {
           if (customNames.has(name)) continue;
-          const included =
-            filtering == null ||
-            (filtering.mode === 'allow'
-              ? filtering.toolNames.includes(name)
-              : !filtering.toolNames.includes(name));
-          if (!included) continue;
+          if (
+            !isHarnessV1BuiltinToolIncluded({
+              toolName: name,
+              toolFiltering: startOpts.builtinToolFiltering,
+            })
+          )
+            continue;
           const kind = builtin.toolUseKind ?? 'readonly';
           const implementation: FxTool = {
             name,
@@ -631,7 +638,7 @@ export async function createFxSession(options: {
         });
         signal.throwIfAborted();
         runtime = await createFxRuntime({
-          apiKey: options.environment.AI_GATEWAY_API_KEY ?? '',
+          apiKey,
           ...(opts.model ? { model: opts.model } : {}),
           ...(settings.effort ? { effort: settings.effort } : {}),
           ...serviceTierOptions,
