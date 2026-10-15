@@ -1,8 +1,9 @@
-import type {
-  LanguageModelV4StreamPart,
-  LanguageModelV4Usage,
+import {
+  APICallError,
+  type LanguageModelV4StreamPart,
+  type LanguageModelV4Usage,
 } from '@ai-sdk/provider';
-import { DelayedPromise } from '@ai-sdk/provider-utils';
+import { delay, DelayedPromise } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
@@ -429,5 +430,429 @@ describe('streamText chunk timeout', () => {
     expect((receivedAbortSignal?.reason as Error)?.name).toBe('TimeoutError');
 
     await consumePromise;
+  });
+});
+
+describe('streamText model output timeout boundaries', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const finish: LanguageModelV4StreamPart = {
+    type: 'finish',
+    finishReason: { unified: 'stop', raw: 'stop' },
+    usage: testUsage,
+  };
+  const textChunks: LanguageModelV4StreamPart[] = [
+    { type: 'text-start', id: '1' },
+    { type: 'text-delta', id: '1', delta: 'Hello' },
+    { type: 'text-end', id: '1' },
+    finish,
+  ];
+  const toolChunks: LanguageModelV4StreamPart[] = [
+    { type: 'tool-call', toolCallId: 'call-1', toolName: 'slow', input: '{}' },
+    {
+      type: 'finish',
+      finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+      usage: testUsage,
+    },
+  ];
+
+  for (const streamRetries of [0, 1]) {
+    it(`should clear chunkMs before a long streaming tool (streamRetries: ${streamRetries})`, async () => {
+      let signal: AbortSignal | undefined;
+      const parts: string[] = [];
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async ({ abortSignal }) => {
+            signal = abortSignal;
+            return { stream: convertArrayToReadableStream(toolChunks) };
+          },
+        }),
+        tools: {
+          slow: {
+            inputSchema: z.object({}),
+            execute: async function* (_, { abortSignal }) {
+              for (let i = 0; i < 4; i++) {
+                await delay(40, { abortSignal });
+                yield i;
+              }
+            },
+          },
+        },
+        prompt: 'test',
+        streamRetries,
+        timeout: { firstChunkMs: 50, chunkMs: 50 },
+      });
+      const consuming = (async () => {
+        for await (const part of result.fullStream) parts.push(part.type);
+      })();
+
+      await vi.advanceTimersByTimeAsync(250);
+      await consuming;
+      expect(signal?.aborted).toBe(false);
+      expect(parts.filter(type => type === 'tool-result')).toHaveLength(5);
+      expect(parts.slice(-2)).toEqual(['finish-step', 'finish']);
+    });
+  }
+
+  for (const budget of ['stepMs', 'totalMs'] as const) {
+    it(`should keep ${budget} active during local tool execution`, async () => {
+      // Native AbortSignal.timeout (used by totalMs) does not use fake timers.
+      if (budget === 'totalMs') vi.useRealTimers();
+      let signal: AbortSignal | undefined;
+      const parts: string[] = [];
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async ({ abortSignal }) => {
+            signal = abortSignal;
+            return { stream: convertArrayToReadableStream(toolChunks) };
+          },
+        }),
+        tools: {
+          slow: {
+            inputSchema: z.object({}),
+            execute: async (_, { abortSignal }) => {
+              await delay(200, { abortSignal });
+              return 'done';
+            },
+          },
+        },
+        prompt: 'test',
+        timeout: { [budget]: 100, firstChunkMs: 50, chunkMs: 50 },
+        onError: () => {},
+      });
+      const consuming = (async () => {
+        for await (const part of result.fullStream) parts.push(part.type);
+      })();
+
+      if (budget === 'stepMs') await vi.advanceTimersByTimeAsync(150);
+      await consuming;
+      expect(signal?.reason.name).toBe('TimeoutError');
+      if (budget === 'stepMs') {
+        expect(signal?.reason.message).toBe('Step timeout of 100ms exceeded');
+      } else {
+        expect(signal?.reason.message).not.toContain('Chunk');
+      }
+      expect(parts.at(-1)).toBe('abort');
+    });
+  }
+
+  it('should keep toolMs active after the model finishes', async () => {
+    // Exercise the native AbortSignal.timeout used by toolMs.
+    vi.useRealTimers();
+    let signal: AbortSignal | undefined;
+    const parts: string[] = [];
+    const result = streamText({
+      model: new MockLanguageModelV4({
+        doStream: async ({ abortSignal }) => {
+          signal = abortSignal;
+          return { stream: convertArrayToReadableStream(toolChunks) };
+        },
+      }),
+      tools: {
+        slow: {
+          inputSchema: z.object({}),
+          execute: async (_, { abortSignal }) => {
+            await delay(200, { abortSignal });
+            return 'done';
+          },
+        },
+      },
+      prompt: 'test',
+      timeout: { toolMs: 100, firstChunkMs: 50, chunkMs: 50 },
+    });
+    const consuming = (async () => {
+      for await (const part of result.fullStream) parts.push(part.type);
+    })();
+    await consuming;
+    expect(signal?.aborted).toBe(false);
+    expect(parts).toContain('tool-error');
+    expect(parts.at(-1)).toBe('finish');
+  });
+
+  for (const terminal of ['finish', 'error', 'close'] as const) {
+    it(`should clear output timers on ${terminal} before slow stream processing`, async () => {
+      let signal: AbortSignal | undefined;
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async ({ abortSignal }) => {
+            signal = abortSignal;
+            return {
+              stream: convertArrayToReadableStream(
+                terminal === 'finish'
+                  ? [finish]
+                  : terminal === 'error'
+                    ? [{ type: 'error', error: new Error('provider error') }]
+                    : textChunks.slice(0, -1),
+              ),
+            };
+          },
+        }),
+        prompt: 'test',
+        timeout: { firstChunkMs: 50, chunkMs: 50 },
+        onError: async () => {
+          await delay(100);
+        },
+        onStepEnd: async () => {
+          await delay(100);
+        },
+      });
+      const consuming = result.consumeStream();
+      await vi.advanceTimersByTimeAsync(250);
+      await consuming;
+      expect(signal?.aborted).toBe(false);
+    });
+  }
+
+  for (const retryKind of ['stream', 'callback'] as const) {
+    it(`should give a ${retryKind} retry a fresh firstChunkMs budget`, async () => {
+      let attempts = 0;
+      let signal: AbortSignal | undefined;
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async ({ abortSignal }) => {
+            signal = abortSignal;
+            attempts++;
+            if (attempts === 1) {
+              return {
+                stream: new ReadableStream<LanguageModelV4StreamPart>({
+                  async start(controller) {
+                    await delay(40, { abortSignal });
+                    controller.enqueue({
+                      type: 'error',
+                      error: new Error('retryable stream error'),
+                    });
+                    controller.close();
+                  },
+                }),
+              };
+            }
+            return {
+              stream: new ReadableStream<LanguageModelV4StreamPart>({
+                async start(controller) {
+                  await delay(40, { abortSignal });
+                  for (const chunk of textChunks) controller.enqueue(chunk);
+                  controller.close();
+                },
+              }),
+            };
+          },
+        }),
+        prompt: 'test',
+        streamRetries: retryKind === 'stream' ? 1 : 0,
+        timeout: { firstChunkMs: 50, chunkMs: 50 },
+        onError: () => (retryKind === 'callback' ? { retry: true } : undefined),
+      });
+      const consuming = result.consumeStream();
+      await vi.advanceTimersByTimeAsync(250);
+      await consuming;
+      expect(attempts).toBe(2);
+      expect(signal?.aborted).toBe(false);
+      expect(await result.text).toBe('Hello');
+    });
+  }
+
+  for (const continuation of ['step', 'retry'] as const) {
+    it(`should start chunkMs only after output begins in the next ${continuation}`, async () => {
+      let attempts = 0;
+      let signal: AbortSignal | undefined;
+      const parts: string[] = [];
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async ({ abortSignal }) => {
+            signal = abortSignal;
+            attempts++;
+            if (attempts === 1) {
+              return {
+                stream: convertArrayToReadableStream(
+                  continuation === 'step'
+                    ? toolChunks
+                    : [
+                        ...textChunks.slice(0, -1),
+                        { type: 'error', error: new Error('retryable error') },
+                      ],
+                ),
+              };
+            }
+            return {
+              stream: new ReadableStream<LanguageModelV4StreamPart>({
+                async start(controller) {
+                  await delay(100, { abortSignal });
+                  controller.enqueue({ type: 'text-start', id: '2' });
+                  controller.enqueue({
+                    type: 'text-delta',
+                    id: '2',
+                    delta: 'Next',
+                  });
+                  abortSignal?.addEventListener(
+                    'abort',
+                    () => controller.error(abortSignal.reason),
+                    { once: true },
+                  );
+                },
+              }),
+            };
+          },
+        }),
+        tools: {
+          slow: {
+            inputSchema: z.object({}),
+            execute: async (_, { abortSignal }) => {
+              await delay(100, { abortSignal });
+              return 'done';
+            },
+          },
+        },
+        prompt: 'test',
+        timeout: { firstChunkMs: 150, chunkMs: 50 },
+        streamRetries: continuation === 'retry' ? 1 : 0,
+        stopWhen: isStepCount(2),
+        onError: () => {},
+      });
+      const consuming = (async () => {
+        for await (const part of result.fullStream) parts.push(part.type);
+      })();
+      await vi.advanceTimersByTimeAsync(continuation === 'step' ? 225 : 125);
+      expect(attempts).toBe(2);
+      expect(signal?.aborted).toBe(false);
+      await vi.advanceTimersByTimeAsync(50);
+      await consuming;
+      expect(signal?.reason.message).toBe('Chunk timeout of 50ms exceeded');
+      expect(parts.at(-1)).toBe('abort');
+    });
+  }
+
+  it('should re-arm firstChunkMs after retrying an attempt that produced output', async () => {
+    let attempts = 0;
+    let signal: AbortSignal | undefined;
+    const result = streamText({
+      model: new MockLanguageModelV4({
+        doStream: async ({ abortSignal }) => {
+          signal = abortSignal;
+          attempts++;
+          if (attempts === 1) {
+            return {
+              stream: convertArrayToReadableStream([
+                ...textChunks.slice(0, -1),
+                { type: 'error', error: new Error('retryable error') },
+              ]),
+            };
+          }
+          return {
+            stream: new ReadableStream<LanguageModelV4StreamPart>({
+              start(controller) {
+                abortSignal?.addEventListener(
+                  'abort',
+                  () => controller.error(abortSignal.reason),
+                  { once: true },
+                );
+              },
+            }),
+          };
+        },
+      }),
+      prompt: 'test',
+      timeout: { firstChunkMs: 50 },
+      streamRetries: 1,
+      onError: () => {},
+    });
+    const consuming = result.consumeStream();
+    await vi.advanceTimersByTimeAsync(100);
+    expect(attempts).toBe(2);
+    expect(signal?.reason.message).toBe('First chunk timeout of 50ms exceeded');
+    await consuming;
+  });
+
+  for (const retryKind of ['request', 'stream'] as const) {
+    it(`should keep stepMs cumulative across ${retryKind} retries`, async () => {
+      let attempts = 0;
+      let signal: AbortSignal | undefined;
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async ({ abortSignal }) => {
+            signal = abortSignal;
+            attempts++;
+            await delay(40, { abortSignal });
+            if (attempts === 1) {
+              const error = new APICallError({
+                message: 'retryable error',
+                url: 'https://example.com',
+                requestBodyValues: {},
+                statusCode: 429,
+                responseHeaders: { 'retry-after-ms': '0' },
+                isRetryable: true,
+              });
+              if (retryKind === 'request') throw error;
+              return {
+                stream: convertArrayToReadableStream([
+                  { type: 'error', error },
+                ]),
+              };
+            }
+            return { stream: convertArrayToReadableStream(textChunks) };
+          },
+        }),
+        prompt: 'test',
+        timeout: { stepMs: 60, firstChunkMs: 50 },
+        maxRetries: 1,
+        streamRetries: retryKind === 'stream' ? 1 : 0,
+        onError: () => {},
+      });
+      const consuming = result.consumeStream();
+      await vi.advanceTimersByTimeAsync(100);
+      await consuming;
+      expect(attempts).toBe(2);
+      expect(signal?.reason.message).toBe('Step timeout of 60ms exceeded');
+    });
+  }
+
+  it('should keep chunkMs active during provider-executed tools without resetting on their results', async () => {
+    let signal: AbortSignal | undefined;
+    const result = streamText({
+      model: new MockLanguageModelV4({
+        doStream: async ({ abortSignal }) => {
+          signal = abortSignal;
+          return {
+            stream: new ReadableStream<LanguageModelV4StreamPart>({
+              async start(controller) {
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'slow',
+                  input: '{}',
+                  providerExecuted: true,
+                });
+                await delay(40, { abortSignal });
+                controller.enqueue({
+                  type: 'tool-result',
+                  toolCallId: 'call-1',
+                  toolName: 'slow',
+                  result: 'progress',
+                  preliminary: true,
+                });
+                abortSignal?.addEventListener(
+                  'abort',
+                  () => controller.error(abortSignal.reason),
+                  { once: true },
+                );
+              },
+            }),
+          };
+        },
+      }),
+      tools: { slow: { inputSchema: z.object({}) } },
+      prompt: 'test',
+      timeout: { chunkMs: 50 },
+      onError: () => {},
+    });
+    const consuming = result.consumeStream();
+    await vi.advanceTimersByTimeAsync(60);
+    await consuming;
+    expect(signal?.reason.message).toBe('Chunk timeout of 50ms exceeded');
   });
 });

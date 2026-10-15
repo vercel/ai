@@ -27,6 +27,9 @@ export type EmbedStartEvent<RUNTIME_CONTEXT extends Context = Context> = {
   /** The value(s) being embedded. A string for embed, an array for embedMany. */
   readonly value: string | Array<string>;
 
+  /** Requested output dimensions, when specified. */
+  readonly dimensions?: number;
+
   /** Maximum number of retries for failed requests. */
   readonly maxRetries: number;
 
@@ -104,6 +107,9 @@ export type EmbeddingModelCallStartEvent = {
 
   /** The values being embedded in this particular model call. */
   readonly values: Array<string>;
+
+  /** Requested output dimensions, when specified. */
+  readonly dimensions?: number;
 };
 
 /**

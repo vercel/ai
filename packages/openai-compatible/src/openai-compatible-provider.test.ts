@@ -327,6 +327,30 @@ describe('OpenAICompatibleProvider', () => {
     });
   });
 
+  describe('supportsMultiPartToolContent setting', () => {
+    it('should pass supportsMultiPartToolContent to chat models only', () => {
+      const provider = createOpenAICompatible({
+        baseURL: 'https://api.example.com',
+        name: 'test-provider',
+        supportsMultiPartToolContent: true,
+      });
+
+      provider.chatModel('chat-model');
+      expect(
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0][1]
+          .supportsMultiPartToolContent,
+      ).toBe(true);
+
+      provider.completionModel('completion-model');
+      const completionModelConfigArg =
+        OpenAICompatibleCompletionLanguageModelMock.mock.calls[0][1];
+      expect(
+        // @ts-expect-error - testing
+        completionModelConfigArg.supportsMultiPartToolContent,
+      ).toBeUndefined();
+    });
+  });
+
   describe('metadataExtractor setting', () => {
     it('should pass metadataExtractor to chat model', () => {
       const mockExtractor = {

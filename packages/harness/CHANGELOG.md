@@ -1,5 +1,211 @@
 # @ai-sdk/harness
 
+## 1.0.152
+
+### Patch Changes
+
+- Updated dependencies [2e89fa4]
+- Updated dependencies [88ea0d7]
+  - @ai-sdk/provider-utils@5.0.60
+  - ai@7.0.141
+
+## 1.0.151
+
+### Patch Changes
+
+- 6c65131: feat(harness): consistently support parallel and sequential tool approvals
+- 1bebfcf: feat(harness): add support for tools with `toModelOutput()` transformation
+- Updated dependencies [9523eb0]
+  - ai@7.0.140
+
+## 1.0.150
+
+### Patch Changes
+
+- 6617f11: fix(harness): preserve interleaved text and reasoning blocks by stream ID
+- aae69cb: fix(harness): invoke UI stream step callbacks for HarnessAgent results
+- a7a66f5: fix(harness): expose final-step reasoning through stream result accessors
+- 52e3f53: fix(harness): preserve response message order across steps
+- 6c0295c: fix(harness): preserve native tool result input and execution origin
+  - ai@7.0.139
+
+## 1.0.149
+
+### Patch Changes
+
+- Updated dependencies [eab278a]
+- Updated dependencies [26d64e9]
+- Updated dependencies [9667bf2]
+- Updated dependencies [75b3ea2]
+- Updated dependencies [69f4b82]
+- Updated dependencies [e57803c]
+- Updated dependencies [4c705d9]
+- Updated dependencies [81663cc]
+- Updated dependencies [5150d50]
+- Updated dependencies [9aef724]
+- Updated dependencies [7d0458b]
+  - ai@7.0.138
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/provider@4.0.27
+
+## 1.0.148
+
+### Patch Changes
+
+- Updated dependencies [e27cc64]
+  - ai@7.0.137
+
+## 1.0.147
+
+### Patch Changes
+
+- Updated dependencies [7b5497c]
+  - ai@7.0.136
+
+## 1.0.146
+
+### Patch Changes
+
+- Updated dependencies [5ddbb70]
+- Updated dependencies [7c40a09]
+- Updated dependencies [4dbc902]
+- Updated dependencies [ff18b73]
+- Updated dependencies [9be846c]
+  - ai@7.0.135
+  - @ai-sdk/provider@4.0.26
+  - @ai-sdk/provider-utils@5.0.58
+
+## 1.0.145
+
+### Patch Changes
+
+- Updated dependencies [8281ec4]
+- Updated dependencies [46c2b05]
+  - ai@7.0.134
+
+## 1.0.144
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - ai@7.0.133
+  - @ai-sdk/provider@4.0.25
+  - @ai-sdk/provider-utils@5.0.57
+
+## 1.0.143
+
+### Patch Changes
+
+- c4a5c8d: fix(harness): fix calculation for total turn token usage so that it is not just the last step usage
+- 50ac48b: fix(harness): fix `raw` chunk emission to not start a step
+- e8af189: fix(harness): ensure a dynamic tool with the same name as a currently inactive built-in tool can pass validation
+- Updated dependencies [3ebefff]
+  - ai@7.0.132
+
+## 1.0.142
+
+### Patch Changes
+
+- ai@7.0.131
+
+## 1.0.141
+
+### Patch Changes
+
+- Updated dependencies [6f6b9c0]
+- Updated dependencies [d3bcad9]
+  - ai@7.0.130
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/provider-utils@5.0.56
+
+## 1.0.140
+
+### Patch Changes
+
+- 0af2f7c: chore: upgrade to TypeScript 6
+- 4c6979c: fix(harness): preserve adapter warnings in agent stream results and declare
+  their compatibility warning shapes
+- Updated dependencies [fc1e19e]
+- Updated dependencies [e37d213]
+- Updated dependencies [5094ebd]
+- Updated dependencies [73d8343]
+- Updated dependencies [268225c]
+- Updated dependencies [d83366e]
+- Updated dependencies [34905a2]
+- Updated dependencies [16ab882]
+- Updated dependencies [f810ea3]
+- Updated dependencies [19a127b]
+- Updated dependencies [0af2f7c]
+- Updated dependencies [4c6979c]
+  - @ai-sdk/provider-utils@5.0.55
+  - ai@7.0.129
+  - @ai-sdk/provider@4.0.23
+
+## 1.0.139
+
+### Patch Changes
+
+- e7da240: fix(harness): settle turn telemetry for errors and aborts
+- Updated dependencies [0fe8c67]
+- Updated dependencies [2959d35]
+- Updated dependencies [0ca1ab9]
+- Updated dependencies [d6b42fd]
+- Updated dependencies [ed6e72d]
+- Updated dependencies [59116e6]
+- Updated dependencies [2136151]
+  - ai@7.0.128
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+
+## 1.0.138
+
+### Patch Changes
+
+- Updated dependencies [158a718]
+- Updated dependencies [bb8d33e]
+- Updated dependencies [284dc11]
+- Updated dependencies [ba8afe9]
+  - ai@7.0.127
+
+## 1.0.137
+
+### Patch Changes
+
+- Updated dependencies [4f3d236]
+  - ai@7.0.126
+
+## 1.0.136
+
+### Patch Changes
+
+- Updated dependencies [ff3dcef]
+  - ai@7.0.125
+
+## 1.0.135
+
+### Patch Changes
+
+- 8182916: chore(harness): minor code consistency cleanup without functional changes
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - ai@7.0.124
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+
+## 1.0.134
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [05cdac6]
+- Updated dependencies [4514fc1]
+- Updated dependencies [ede5b89]
+- Updated dependencies [2a625cf]
+- Updated dependencies [50a26d5]
+  - ai@7.0.123
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
 ## 1.0.133
 
 ### Patch Changes

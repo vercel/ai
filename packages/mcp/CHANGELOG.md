@@ -1,5 +1,126 @@
 # @ai-sdk/mcp
 
+## 2.0.76
+
+### Patch Changes
+
+- 5111e98: BREAKING (experimental): managed event subscriptions now require `ttlMs: number | null` instead of accepting an `expiresAt` creation input. Use a duration in milliseconds or `null` to watch until stopped. Subscription responses retain `expiresAt` as the backend-calculated deadline. Update managed event adapters together with callers.
+
+## 2.0.75
+
+### Patch Changes
+
+- Updated dependencies [2e89fa4]
+  - @ai-sdk/provider-utils@5.0.60
+
+## 2.0.74
+
+### Patch Changes
+
+- 2913c8c: fix(mcp): allow MCP tools to execute without options
+- Updated dependencies [9667bf2]
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/provider@4.0.27
+
+## 2.0.73
+
+### Patch Changes
+
+- b5b0416: Give experimental managed event adapters a synchronous `createAdapter({ transport })` method that receives the configured MCP transport type and URL and returns bound subscription operations. Applications no longer need to configure the endpoint twice.
+
+  **Breaking change to the experimental API:** the configured integration is now `Experimental_MCPEventAdapter` and must implement `createAdapter`. The former `Experimental_MCPEventsAdapter` subscription operations interface is renamed to `Experimental_MCPEventOperations`. Update imports and operation type annotations, and wrap existing operations with `{ createAdapter: () => operations }` instead of passing them directly to `experimental_events.adapter`.
+
+  `createAdapter` must synchronously return an object implementing `subscribe`, `getSubscription`, `listSubscriptions`, and `unsubscribe`. Missing or non-callable operations, nullish results, and Promise/thenable results now reject `createMCPClient` with `MCPClientError` before the transport starts.
+
+  The adapter receives a fresh `transport: { type: 'http' | 'sse', url: string }` description for built-in transport configurations or `transport: { type: 'custom' }` for custom instances. Credentials, callbacks, and live transport methods are not forwarded.
+
+## 2.0.72
+
+### Patch Changes
+
+- Updated dependencies [4dbc902]
+  - @ai-sdk/provider@4.0.26
+  - @ai-sdk/provider-utils@5.0.58
+
+## 2.0.71
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider@4.0.25
+  - @ai-sdk/provider-utils@5.0.57
+
+## 2.0.70
+
+### Patch Changes
+
+- 6315a3d: Add experimental managed MCP Events adapters for backend-owned subscription lifecycles without a local event store. Rename the unreleased client event configuration to `experimental_events` and infer distinct managed and direct event APIs from a single MCPClientConfig and exclusive MCPEventsConfig union.
+- ac50548: feat(mcp): add compatibility for webhook based mcp events
+- d8e4b51: fix(mcp): authorization server paths beginning with repeated slashes should not bypass authorization server validation
+
+## 2.0.69
+
+### Patch Changes
+
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/provider-utils@5.0.56
+
+## 2.0.68
+
+### Patch Changes
+
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/provider@4.0.23
+
+## 2.0.67
+
+### Patch Changes
+
+- bba3927: feat(mcp): export MCPClientError for typed MCP failure handling
+- 9384b92: fix(mcp): reject SSE startup when the connection closes before an endpoint is received
+- 575383e: fix(mcp): preserve OAuth credentials when callback codes are rejected
+- Updated dependencies [2959d35]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+
+## 2.0.66
+
+### Patch Changes
+
+- 3ff0f54: feat(mcp): add AuthorizationServerMismatchError for OAuth authorization server pin mismatches
+
+## 2.0.65
+
+### Patch Changes
+
+- 4d0500e: fix(mcp): identify failed OAuth tokens for conditional invalidation
+
+## 2.0.64
+
+### Patch Changes
+
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+
+## 2.0.63
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [ede5b89]
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
 ## 2.0.62
 
 ### Patch Changes

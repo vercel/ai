@@ -1,0 +1,61 @@
+import { createJsonErrorResponseHandler } from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
+
+/**
+ * The image API reports errors as `{ "message": ... }` and the video API as
+ * `{ "message": ..., "errorCode": ... }`. `detail` (a message or FastAPI's
+ * array of validation issues) and `error` are accepted as well because a few
+ * endpoints use them instead.
+ */
+export const topazErrorDataSchema = z.object({
+  detail: z
+    .union([
+      z.string(),
+      z.array(z.object({ msg: z.string().nullish() }).loose()),
+    ])
+    .nullish(),
+  message: z.string().nullish(),
+  error: z.string().nullish(),
+  errorCode: z.string().nullish(),
+  errors: z.array(z.object({ msg: z.string().nullish() }).loose()).nullish(),
+});
+
+export type TopazErrorData = z.infer<typeof topazErrorDataSchema>;
+
+export function topazErrorToMessage(data: TopazErrorData): string {
+  const message = baseErrorMessage(data);
+  const withCode =
+    data.errorCode != null ? `${message} (${data.errorCode})` : message;
+
+  // The video API lists field validation failures separately.
+  const issues = (data.errors ?? [])
+    .map(issue => issue.msg)
+    .filter((msg): msg is string => msg != null);
+
+  return issues.length > 0 ? `${withCode}: ${issues.join('; ')}` : withCode;
+}
+
+function baseErrorMessage(data: TopazErrorData): string {
+  const { detail } = data;
+
+  if (typeof detail === 'string') {
+    return detail;
+  }
+
+  if (Array.isArray(detail)) {
+    const messages = detail
+      .map(issue => issue.msg)
+      .filter((msg): msg is string => msg != null);
+
+    if (messages.length > 0) {
+      return messages.join('; ');
+    }
+  }
+
+  return data.message ?? data.error ?? 'Unknown Topaz API error';
+}
+
+export const topazFailedResponseHandler = createJsonErrorResponseHandler({
+  errorSchema: topazErrorDataSchema,
+  errorToMessage: topazErrorToMessage,
+});

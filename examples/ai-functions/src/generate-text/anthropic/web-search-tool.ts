@@ -21,4 +21,13 @@ run(async () => {
 
   console.dir(result.response.body, { depth: Infinity });
   console.dir(result.content, { depth: Infinity });
+  console.dir(
+    {
+      sources: result.sources,
+      citations: result.content.flatMap(part =>
+        part.type === 'text' ? (part.citations ?? []) : [],
+      ),
+    },
+    { depth: Infinity },
+  );
 });

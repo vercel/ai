@@ -3,6 +3,97 @@ import type { CodexStepTracker } from './codex-step-tracker';
 import { createEmitStreamEvent } from './create-emit-stream-event';
 
 describe('createEmitStreamEvent', () => {
+  it('preserves failed MCP status and native ids for interleaved calls', () => {
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      send: event => emitted.push(event),
+      stepTracker: {
+        observeEvent() {},
+        finishTurn() {},
+        awaitHostInput() {},
+        resolveHostInput() {},
+      },
+      setTurnUsage() {},
+      setThreadId() {},
+      emitWarning() {},
+      emitError() {},
+    });
+    const items = [
+      {
+        type: 'mcp_tool_call',
+        id: 'failed',
+        server: 'fixture',
+        tool: 'fail',
+        arguments: { exact: true },
+      },
+      {
+        type: 'mcp_tool_call',
+        id: 'success',
+        server: 'fixture',
+        tool: 'ok',
+        arguments: {},
+      },
+      {
+        type: 'mcp_tool_call',
+        id: 'empty-failure',
+        server: 'fixture',
+        tool: 'fail',
+        arguments: {},
+      },
+    ];
+    for (const item of items) emitStreamEvent({ type: 'item.started', item });
+    emitStreamEvent({
+      type: 'item.completed',
+      item: {
+        ...items[1],
+        status: 'completed',
+        result: { structured_content: { ok: true } },
+      },
+    });
+    emitStreamEvent({
+      type: 'item.completed',
+      item: {
+        ...items[0],
+        status: 'failed',
+        error: { message: 'native failure' },
+      },
+    });
+    emitStreamEvent({
+      type: 'item.completed',
+      item: { ...items[2], status: 'failed' },
+    });
+    expect(
+      emitted
+        .filter(event => event.type === 'tool-call')
+        .map(event => event.toolCallId),
+    ).toEqual(['failed', 'success', 'empty-failure']);
+    expect(emitted.filter(event => event.type === 'tool-result')).toEqual([
+      {
+        type: 'tool-result',
+        toolCallId: 'success',
+        toolName: 'mcp__fixture__ok',
+        result: { ok: true },
+        dynamic: true,
+      },
+      {
+        type: 'tool-result',
+        toolCallId: 'failed',
+        toolName: 'mcp__fixture__fail',
+        result: { error: 'native failure' },
+        isError: true,
+        dynamic: true,
+      },
+      {
+        type: 'tool-result',
+        toolCallId: 'empty-failure',
+        toolName: 'mcp__fixture__fail',
+        result: null,
+        isError: true,
+        dynamic: true,
+      },
+    ]);
+  });
+
   it('emits thread, accumulated text, and usage events', () => {
     const emitted: Record<string, unknown>[] = [];
     const observed: unknown[] = [];
@@ -11,6 +102,8 @@ describe('createEmitStreamEvent', () => {
     const stepTracker = {
       observeEvent: input => observed.push(input),
       finishTurn: () => observed.push('finish'),
+      awaitHostInput: () => {},
+      resolveHostInput: () => {},
     } as CodexStepTracker;
     const emitStreamEvent = createEmitStreamEvent({
       send: event => emitted.push(event),
@@ -120,6 +213,8 @@ describe('createEmitStreamEvent', () => {
     const stepTracker = {
       observeEvent: () => {},
       finishTurn: () => {},
+      awaitHostInput: () => {},
+      resolveHostInput: () => {},
     } as CodexStepTracker;
     const emitStreamEvent = createEmitStreamEvent({
       send: event => emitted.push(event),
@@ -176,6 +271,8 @@ describe('createEmitStreamEvent', () => {
     const stepTracker = {
       observeEvent: () => {},
       finishTurn: () => {},
+      awaitHostInput: () => {},
+      resolveHostInput: () => {},
     } as CodexStepTracker;
     const emitStreamEvent = createEmitStreamEvent({
       send: event => emitted.push(event),
@@ -251,6 +348,8 @@ describe('createEmitStreamEvent', () => {
     const stepTracker = {
       observeEvent: () => {},
       finishTurn: () => {},
+      awaitHostInput: () => {},
+      resolveHostInput: () => {},
     } as CodexStepTracker;
     const emitStreamEvent = createEmitStreamEvent({
       send: event => emitted.push(event),
@@ -326,6 +425,8 @@ describe('createEmitStreamEvent', () => {
     const stepTracker = {
       observeEvent: input => observed.push(input),
       finishTurn: () => {},
+      awaitHostInput: () => {},
+      resolveHostInput: () => {},
     } as CodexStepTracker;
     const emitStreamEvent = createEmitStreamEvent({
       send: event => emitted.push(event),
@@ -380,6 +481,8 @@ describe('createEmitStreamEvent', () => {
     const stepTracker = {
       observeEvent: () => {},
       finishTurn: () => {},
+      awaitHostInput: () => {},
+      resolveHostInput: () => {},
     } as CodexStepTracker;
     const emitStreamEvent = createEmitStreamEvent({
       send: event => emitted.push(event),
@@ -434,6 +537,8 @@ describe('createEmitStreamEvent', () => {
     const stepTracker = {
       observeEvent: () => {},
       finishTurn: () => {},
+      awaitHostInput: () => {},
+      resolveHostInput: () => {},
     } as CodexStepTracker;
     const emitStreamEvent = createEmitStreamEvent({
       send: event => emitted.push(event),
@@ -495,6 +600,8 @@ describe('createEmitStreamEvent', () => {
     const stepTracker = {
       observeEvent: () => {},
       finishTurn: () => {},
+      awaitHostInput: () => {},
+      resolveHostInput: () => {},
     } as CodexStepTracker;
     const emitStreamEvent = createEmitStreamEvent({
       send: event => emitted.push(event),

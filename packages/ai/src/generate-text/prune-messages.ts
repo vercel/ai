@@ -82,7 +82,7 @@ export function pruneMessages({
     const keptToolCallIds: Set<string> = new Set();
     const keptApprovalIds: Set<string> = new Set();
 
-    if (keepLastMessagesCount != null) {
+    if (keepLastMessagesCount != null && keepLastMessagesCount !== 0) {
       for (const message of messages.slice(-keepLastMessagesCount)) {
         if (
           (message.role === 'assistant' || message.role === 'tool') &&

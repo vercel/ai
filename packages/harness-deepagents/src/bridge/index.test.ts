@@ -1,4 +1,14 @@
+import path from 'node:path';
+import { rgPath } from '@vscode/ripgrep';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { SANDBOX_PATH_FALLBACK } from './local-shell-backend';
+
+const originalPath = process.env.PATH;
+
+function restorePath() {
+  if (originalPath === undefined) delete process.env.PATH;
+  else process.env.PATH = originalPath;
+}
 
 type DeepAgentOptions = {
   tools?: Array<{
@@ -8,6 +18,7 @@ type DeepAgentOptions = {
   middleware?: Array<{
     name?: string;
     wrapModelCall?: (request: any, handler: any) => Promise<unknown>;
+    wrapToolCall?: (request: any, handler: any) => Promise<unknown>;
   }>;
   model?: unknown;
   systemPrompt?: string | { suffix?: string };
@@ -30,7 +41,7 @@ const state = vi.hoisted(() => ({
     | undefined,
   headers: undefined as Record<string, string> | undefined,
   hostToolResponse: undefined as
-    | { output: unknown; isError?: boolean }
+    | { output: unknown; isError?: boolean; toolResult?: unknown }
     | undefined,
   hostToolOutput: undefined as unknown,
   receivedToolCallId: undefined as string | undefined,
@@ -67,7 +78,8 @@ vi.mock('deepagents', () => ({
   LocalShellBackend: class {},
 }));
 
-vi.mock('@ai-sdk/harness/bridge', () => ({
+vi.mock('@ai-sdk/harness/bridge', async importOriginal => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   runBridge: async ({
     onStart,
   }: {
@@ -165,6 +177,7 @@ vi.mock('langchain', () => ({
 
 describe('Deep Agents bridge instructions', () => {
   beforeEach(() => {
+    restorePath();
     state.createDeepAgentOptions = [];
     state.responseFormat = undefined;
     state.headers = undefined;
@@ -187,8 +200,30 @@ describe('Deep Agents bridge instructions', () => {
 
   afterEach(() => {
     process.argv.splice(0, process.argv.length, ...state.originalArgv);
+    restorePath();
     vi.unstubAllEnvs();
     vi.resetModules();
+  });
+
+  it('adds packaged ripgrep after the existing PATH for built-in tools', async () => {
+    const existingPath = ['/sandbox/bin', '/usr/bin'].join(path.delimiter);
+    process.env.PATH = existingPath;
+
+    await import('./index');
+
+    expect(process.env.PATH).toBe(
+      [existingPath, path.dirname(rgPath)].join(path.delimiter),
+    );
+  });
+
+  it('keeps a usable fallback PATH when PATH is unavailable', async () => {
+    delete process.env.PATH;
+
+    await import('./index');
+
+    expect(process.env.PATH).toBe(
+      [SANDBOX_PATH_FALLBACK, path.dirname(rgPath)].join(path.delimiter),
+    );
   });
 
   it('appends instructions to the native system prompt', async () => {
@@ -197,6 +232,16 @@ describe('Deep Agents bridge instructions', () => {
     expect(state.createDeepAgentOptions[0]?.systemPrompt).toEqual({
       suffix: 'Answer every question in German.',
     });
+  });
+
+  it('installs MCP tool error recovery in the native agent', async () => {
+    await import('./index');
+
+    expect(
+      state.createDeepAgentOptions[0]?.middleware?.some(
+        middleware => middleware.name === 'harnessMcpToolErrors',
+      ),
+    ).toBe(true);
   });
 
   it('configures reasoning on the default Deep Agents model', async () => {
@@ -328,6 +373,41 @@ describe('Deep Agents bridge instructions', () => {
 
   it('emits one successful host-tool result without duplicating on_tool_end', async () => {
     await expectHostToolResult({ output: { temperature: 18 }, isError: false });
+  });
+
+  it('returns model-facing text and inline images as LangChain content blocks', async () => {
+    state.hostToolResponse = {
+      output: { status: 'ready' },
+      toolResult: {
+        type: 'tool-result',
+        toolCallId: 'weather-1',
+        toolName: 'weather',
+        output: {
+          type: 'content',
+          value: [
+            { type: 'text', text: 'marker' },
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: { type: 'data', data: 'iVBORw==' },
+            },
+          ],
+        },
+      },
+    };
+
+    await import('./index');
+
+    expect(state.hostToolOutput).toEqual([
+      { type: 'text', text: 'marker' },
+      {
+        type: 'image_url',
+        image_url: { url: 'data:image/png;base64,iVBORw==' },
+      },
+    ]);
+    expect(state.emitted.filter(event => event.type === 'tool-result')).toEqual(
+      [expect.objectContaining({ result: { status: 'ready' } })],
+    );
   });
 
   it('emits one errored host-tool result without duplicating on_tool_end', async () => {

@@ -250,6 +250,27 @@ describe('FireworksProvider', () => {
       });
     });
 
+    it('should map max reasoning effort to high', () => {
+      const provider = createFireworks();
+      provider.chatModel('test-model');
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const transformRequestBody = constructorCall[1].transformRequestBody;
+
+      expect(
+        transformRequestBody({
+          model: 'test-model',
+          messages: [],
+          reasoning_effort: 'max',
+        }),
+      ).toEqual({
+        model: 'test-model',
+        messages: [],
+        reasoning_effort: 'high',
+      });
+    });
+
     it('should map promptCacheKey to prompt_cache_key', () => {
       const provider = createFireworks();
       provider.chatModel('test-model');
