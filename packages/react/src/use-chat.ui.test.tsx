@@ -23,6 +23,7 @@ import {
   type UIMessageChunk,
 } from 'ai';
 import React, { act, useRef, useState } from 'react';
+import { renderToString } from 'react-dom/server';
 import { Chat } from './chat.react';
 import { setupTestComponent } from './setup-test-component';
 import { useChat } from './use-chat';
@@ -142,6 +143,66 @@ describe('use-chat', () => {
           providerMetadata: undefined,
         },
       ]);
+    });
+  });
+
+  describe('chat id and prerendering', () => {
+    afterEach(cleanup);
+
+    it('does not invoke Math.random() during render when no id is provided', () => {
+      let randomCallsDuringRender = 0;
+      function TestComponent() {
+        const randomSpy = vi.spyOn(Math, 'random').mockImplementation(() => {
+          randomCallsDuringRender++;
+          return 0.5;
+        });
+        const { messages } = useChat();
+        randomSpy.mockRestore();
+        return <div>{messages.length} messages</div>;
+      }
+
+      render(<TestComponent />);
+      expect(randomCallsDuringRender).toBe(0);
+    });
+
+    it('does not invoke Math.random() during server-side prerendering', () => {
+      const randomSpy = vi.spyOn(Math, 'random');
+      try {
+        function TestComponent() {
+          const { messages } = useChat();
+          return <div>{messages.length} messages</div>;
+        }
+
+        const html = renderToString(<TestComponent />);
+        expect(html).toContain('messages');
+        expect(randomSpy).not.toHaveBeenCalled();
+      } finally {
+        randomSpy.mockRestore();
+      }
+    });
+
+    it('exposes id lazily when accessed', () => {
+      let helpers!: ReturnType<typeof useChat>;
+      function TestComponent() {
+        helpers = useChat();
+        return null;
+      }
+
+      render(<TestComponent />);
+      expect(typeof helpers.id).toBe('string');
+      expect(helpers.id.length).toBeGreaterThan(0);
+      expect(helpers.id).toBe(helpers.id);
+    });
+
+    it('uses provided id when specified', () => {
+      let helpers!: ReturnType<typeof useChat>;
+      function TestComponent() {
+        helpers = useChat({ id: 'custom-id' });
+        return null;
+      }
+
+      render(<TestComponent />);
+      expect(helpers.id).toBe('custom-id');
     });
   });
 
