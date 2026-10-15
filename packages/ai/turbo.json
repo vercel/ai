@@ -7,6 +7,11 @@
       "outputs": [
         "**/dist/**"
       ]
+    },
+    "ci:checks": {
+      "dependsOn": [
+        "build"
+      ]
     }
   }
 }

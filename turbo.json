@@ -2,6 +2,17 @@
   "$schema": "https://turbo.build/schema.json",
   "globalEnv": ["CI", "PORT", "RUNNER_OS"],
   "tasks": {
+    "ci:checks": {
+      "dependsOn": ["build", "test"]
+    },
+    "//#ci:quality": {
+      "dependsOn": ["//#check", "//#validate:docs"]
+    },
+    "//#check": {},
+    "//#validate:docs": {},
+    "//#type-check:full": {
+      "outputs": []
+    },
     "build": {
       "dependsOn": ["^build"],
       "env": [

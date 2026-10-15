@@ -14,6 +14,9 @@ jobs:
   check:
     name: 'Lint & Format'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -30,11 +33,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run ultracite check
-        run: pnpm run check
+      - name: Set up Turborepo Remote Cache
+        uses: vercel/setup-turborepo-remote-cache-action@49d7b1b46ba4c9251e1977986bfe18336feabc8f # v1.1.0
+        with:
+          team: ${{ vars.TURBO_TEAM }}
 
-      - name: Validate docs <PropertiesTable> usage
-        run: pnpm run validate:docs
+      - name: Run quality checks
+        run: pnpm exec turbo run ci:quality --continue
 
   konsistent:
     name: 'Code Consistency'
@@ -67,23 +72,11 @@ jobs:
         run: pnpm konsistent
 
   build-examples:
-    name: 'Build Examples (${{ matrix.shard }})'
+    name: 'Build Examples'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - shard: next-core
-            filters: --filter=@example/next --filter=@example/next-openai --filter=@example/next-agent
-          - shard: next-integrations
-            filters: --filter=@example/harness-e2e-next --filter=@example/next-fastapi --filter=@example/next-google-vertex --filter=@example/next-langchain --filter=@example/next-workflow
-          - shard: next-telemetry
-            filters: --filter=@example/next-openai-kasada-bot-protection --filter=@example/next-openai-pages --filter=@example/next-openai-rate-limits --filter=@example/next-openai-telemetry --filter=@example/next-openai-telemetry-sentry
-          - shard: other-frameworks
-            filters: --filter=@example/angular --filter=@example/nest --filter=@example/nuxt-openai --filter=@example/sveltekit-openai
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -107,9 +100,9 @@ jobs:
           path: |
             examples/*/.next/cache
             examples/*/.angular/cache
-          key: ${{ runner.os }}-build-examples-${{ matrix.shard }}-${{ github.sha }}
+          key: ${{ runner.os }}-build-examples-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-build-examples-${{ matrix.shard }}-
+            ${{ runner.os }}-build-examples-
 
       - name: Set up Turborepo Remote Cache
         uses: vercel/setup-turborepo-remote-cache-action@49d7b1b46ba4c9251e1977986bfe18336feabc8f # v1.1.0
@@ -117,11 +110,14 @@ jobs:
           team: ${{ vars.TURBO_TEAM }}
 
       - name: Build Examples
-        run: pnpm exec turbo build ${{ matrix.filters }}
+        run: pnpm build:examples --concurrency=2 --continue=dependencies-successful
 
   types:
     name: 'TypeScript'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -138,8 +134,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Set up Turborepo Remote Cache
+        uses: vercel/setup-turborepo-remote-cache-action@49d7b1b46ba4c9251e1977986bfe18336feabc8f # v1.1.0
+        with:
+          team: ${{ vars.TURBO_TEAM }}
+
       - name: Run TypeScript type check
-        run: pnpm run type-check:full
+        run: pnpm exec turbo run type-check:full
 
   docs-site:
     name: 'Docs Site'
@@ -217,40 +218,9 @@ jobs:
         if: steps.docs-changes.outputs.changed == 'true'
         run: pnpm --filter ai-sdk-docs validate:site
 
-  build-packages:
-    name: 'Build Packages'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-
-      - name: Use Node.js 22
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 22
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Set up Turborepo Remote Cache
-        uses: vercel/setup-turborepo-remote-cache-action@49d7b1b46ba4c9251e1977986bfe18336feabc8f # v1.1.0
-        with:
-          team: ${{ vars.TURBO_TEAM }}
-
-      - name: Build packages
-        run: pnpm run build:packages
-
   bundle-size:
     name: 'Bundle Size Check'
     runs-on: ubuntu-latest
-    needs: build-packages
     permissions:
       contents: read
       id-token: write
@@ -285,42 +255,15 @@ jobs:
           name: bundle-size-metafiles
           path: packages/ai/dist-bundle-check/*.json
 
-  test_node_versions:
-    name: 'Test Node Versions'
-    runs-on: ubuntu-latest
-    outputs:
-      node_versions: ${{ steps.node-versions.outputs.node_versions }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Select Node versions
-        id: node-versions
-        run: |
-          if [ "${{ github.event_name }}" != "pull_request" ]; then
-            echo 'node_versions=[22,24,26]' >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          BASE_SHA="${{ github.event.pull_request.base.sha }}"
-          git fetch --no-tags --depth=1 origin "$BASE_SHA"
-
-          if git diff --name-only "$BASE_SHA" "${{ github.sha }}" | grep -E '^packages/[^/]+/(src/|test/|tests/|.*\.test(-d)?\.(ts|tsx|js|jsx)$)'; then
-            echo 'node_versions=[22,24,26]' >> "$GITHUB_OUTPUT"
-          else
-            echo 'node_versions=[22]' >> "$GITHUB_OUTPUT"
-          fi
-
   test_matrix:
     name: 'Test'
     runs-on: ubuntu-latest
-    needs: [build-packages, test_node_versions]
     permissions:
       contents: read
       id-token: write
     strategy:
       matrix:
-        node-version: ${{ fromJSON(needs.test_node_versions.outputs.node_versions) }}
+        node-version: [22, 24, 26]
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -354,7 +297,6 @@ jobs:
   test_mcp_windows:
     name: 'Test MCP (Windows)'
     runs-on: windows-latest
-    needs: build-packages
     permissions:
       contents: read
       id-token: write
@@ -387,7 +329,6 @@ jobs:
   test_rsc_e2e:
     name: 'Test RSC e2e'
     runs-on: ubuntu-latest
-    needs: build-packages
     permissions:
       contents: read
       id-token: write
@@ -404,35 +345,15 @@ jobs:
           node-version: 22
           cache: 'pnpm'
 
-      - name: Detect RSC e2e changes
-        id: rsc-e2e
-        run: |
-          if [ "${{ github.event_name }}" != "pull_request" ]; then
-            echo "run=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          BASE_SHA="${{ github.event.pull_request.base.sha }}"
-          git fetch --no-tags --depth=1 origin "$BASE_SHA"
-
-          if git diff --name-only "$BASE_SHA" "${{ github.sha }}" | grep -E '^(\.github/workflows/ci\.yml$|packages/rsc/|pnpm-lock.yaml$|package.json$)'; then
-            echo "run=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "run=false" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Install dependencies
-        if: steps.rsc-e2e.outputs.run == 'true'
         run: pnpm install --frozen-lockfile
 
       - name: Set up Turborepo Remote Cache
-        if: steps.rsc-e2e.outputs.run == 'true'
         uses: vercel/setup-turborepo-remote-cache-action@49d7b1b46ba4c9251e1977986bfe18336feabc8f # v1.1.0
         with:
           team: ${{ vars.TURBO_TEAM }}
 
       - name: Resolve Playwright version
-        if: steps.rsc-e2e.outputs.run == 'true'
         id: playwright-version
         working-directory: packages/rsc
         run: |
@@ -440,7 +361,6 @@ jobs:
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Cache Playwright browsers
-        if: steps.rsc-e2e.outputs.run == 'true'
         id: playwright-cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -448,7 +368,6 @@ jobs:
           key: ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.version }}
 
       - name: Install Playwright system dependencies
-        if: steps.rsc-e2e.outputs.run == 'true'
         working-directory: packages/rsc
         run: |
           # `playwright install-deps` shells out through sudo when it is run as
@@ -528,7 +447,6 @@ jobs:
           done
 
       - name: Install Playwright browsers
-        if: steps.rsc-e2e.outputs.run == 'true'
         working-directory: packages/rsc
         run: |
           # Browser binaries are restored from cache when available; this only
@@ -549,7 +467,6 @@ jobs:
           done
 
       - name: Run RSC e2e tests
-        if: steps.rsc-e2e.outputs.run == 'true'
         env:
           TEST_NODE_VERSION: '22'
         run: pnpm exec turbo test:e2e --filter=@ai-sdk/rsc
@@ -557,7 +474,6 @@ jobs:
   test_bundlers:
     name: 'Consumer Bundles (Zod ${{ matrix.zod }})'
     runs-on: ubuntu-latest
-    needs: build-packages
     permissions:
       contents: read
       id-token: write
@@ -628,56 +544,16 @@ jobs:
           pnpm exec turbo test:node --filter=ai -- --shard ${{ matrix.shard }}
           pnpm exec turbo test:edge --filter=ai -- --shard ${{ matrix.shard }}
 
-  test_codemod_matrix:
-    name: 'Test Codemod'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-    strategy:
-      matrix:
-        node-version: [22, 24, 26]
-        shard: ['1/4', '2/4', '3/4', '4/4']
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Set up Turborepo Remote Cache
-        uses: vercel/setup-turborepo-remote-cache-action@49d7b1b46ba4c9251e1977986bfe18336feabc8f # v1.1.0
-        with:
-          team: ${{ vars.TURBO_TEAM }}
-
-      - name: Run codemod tests
-        env:
-          TEST_NODE_VERSION: ${{ matrix.node-version }}
-        run: pnpm exec turbo test --filter=@ai-sdk/codemod -- --shard ${{ matrix.shard }}
-
-  # separate "test" job to set as required in branch protections,
-  # as the matrix build names above change each time Node versions change
+  # Stable required check for all test environments and AI shards.
   test:
     runs-on: ubuntu-latest
     needs:
       [
-        build-packages,
-        test_node_versions,
         test_matrix,
         test_mcp_windows,
         test_rsc_e2e,
         test_bundlers,
         test_ai_matrix,
-        test_codemod_matrix,
       ]
     if: ${{ !cancelled() }}
     steps:
@@ -691,7 +567,6 @@ jobs:
   load-time_matrix:
     name: 'Load Time Check'
     runs-on: ubuntu-latest
-    needs: build-packages
     permissions:
       contents: read
       id-token: write
@@ -770,7 +645,7 @@ jobs:
   # as the matrix build names above change each time modules are added/removed
   load-time:
     runs-on: ubuntu-latest
-    needs: [build-packages, load-time_matrix]
+    needs: [load-time_matrix]
     if: ${{ !cancelled() }}
     steps:
       - name: All required jobs passed
