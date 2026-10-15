@@ -5,6 +5,12 @@ import type {
 } from '@ai-sdk/provider';
 import type { FxGatewayPart } from './fx-transport';
 
+export type FxGatewayToolCall = {
+  toolCallId: string;
+  toolName: string;
+  input: unknown;
+};
+
 export function emptyFxUsage(): LanguageModelV4Usage {
   return {
     inputTokens: {
@@ -21,6 +27,7 @@ export function createFxTranslator(options: {
   turnId: string;
   emit(part: HarnessV1StreamPart): void;
 }) {
+  const toolCalls = new Map<number, FxGatewayToolCall[]>();
   const steps = new Map<
     number,
     { finishReason: LanguageModelV4FinishReason; usage: LanguageModelV4Usage }
@@ -32,6 +39,22 @@ export function createFxTranslator(options: {
     suppress: boolean;
   }) {
     const { part } = input;
+    if (
+      part.type === 'tool-call' &&
+      part.providerExecuted !== true &&
+      typeof part.toolCallId === 'string' &&
+      typeof part.toolName === 'string'
+    ) {
+      const calls = toolCalls.get(input.requestIndex) ?? [];
+      if (!calls.some(call => call.toolCallId === part.toolCallId)) {
+        calls.push({
+          toolCallId: part.toolCallId,
+          toolName: part.toolName,
+          input: part.input,
+        });
+      }
+      toolCalls.set(input.requestIndex, calls);
+    }
     if (part.type === 'finish') {
       steps.set(input.requestIndex, {
         finishReason: part.finishReason as LanguageModelV4FinishReason,
@@ -69,5 +92,5 @@ export function createFxTranslator(options: {
     }
     return total;
   }
-  return { onPart, steps, totalUsage };
+  return { onPart, steps, toolCalls, totalUsage };
 }

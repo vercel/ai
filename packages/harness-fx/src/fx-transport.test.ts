@@ -4,6 +4,7 @@ import { createFxTransport } from './fx-transport';
 import type { FxTurnState } from './fx-resume-state';
 import { createFxTranslator } from './fx-translate';
 import type { HarnessV1StreamPart } from '@ai-sdk/harness';
+import { secureJsonParse } from '@ai-sdk/provider-utils';
 
 const fixture = readFileSync(
   new URL('./__fixtures__/gateway-0.sse.txt', import.meta.url),
@@ -30,6 +31,67 @@ const request = {
 };
 
 describe('fx Gateway transport', () => {
+  it('awaits batch publication before releasing live and replayed tool frames', async () => {
+    const turn = createTurn();
+    const fetch = vi.fn(async () => new Response(fixture));
+    for (const replay of [false, true]) {
+      let resolvePublishing!: () => void;
+      const publishing = new Promise<void>(resolve => {
+        resolvePublishing = resolve;
+      });
+      let resolveRelease!: () => void;
+      const release = new Promise<void>(resolve => {
+        resolveRelease = resolve;
+      });
+      const translator = createFxTranslator({ turnId: 'test', emit() {} });
+      const beforeRelease = vi.fn(async () => {
+        resolvePublishing();
+        await release;
+      });
+      const transport = createFxTransport({
+        baseUrl: 'https://ai-gateway.vercel.sh',
+        headers: {},
+        turn,
+        fetch,
+        save: async () => {},
+        onPart: translator.onPart,
+        onRequest() {},
+        beforeRelease,
+      });
+      let released = false;
+      const body = transport
+        .fetch(request.url, request.init)
+        .then(async response => {
+          const text = await response.text();
+          released = true;
+          return text;
+        });
+      await publishing;
+      expect(released).toBe(false);
+      expect(beforeRelease).toHaveBeenCalledWith({ requestIndex: 0, replay });
+      expect(
+        translator.toolCalls.get(0)?.map(call => ({
+          ...call,
+          input: secureJsonParse(call.input as string),
+        })),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "input": {
+              "command": "printf LIBFX_FIXTURE",
+            },
+            "toolCallId": "toolu_01KswTwrpijqi88ffraLQVsY",
+            "toolName": "bash",
+          },
+        ]
+      `);
+      resolveRelease();
+      expect((await body).trim()).toBe(fixture.trim());
+      await transport.stop();
+    }
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
   it('keeps request indexes stable when libfx retries a failed fetch', async () => {
     const turn = createTurn();
     const fetch = vi
@@ -100,6 +162,31 @@ describe('fx Gateway transport', () => {
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(parts.every(part => part.suppress)).toBe(true);
     await replay.stop();
+  });
+
+  it('does not publish a tool batch from a response missing its terminal event', async () => {
+    const turn = createTurn();
+    const translator = createFxTranslator({ turnId: 'test', emit() {} });
+    const beforeRelease = vi.fn();
+    const transport = createFxTransport({
+      baseUrl: 'https://ai-gateway.vercel.sh',
+      headers: {},
+      turn,
+      save: async () => {},
+      onPart: translator.onPart,
+      onRequest() {},
+      beforeRelease,
+      fetch: async () =>
+        new Response(
+          fixture.slice(0, fixture.indexOf('data: {"type":"finish"')),
+        ),
+    });
+    await expect(
+      (await transport.fetch(request.url, request.init)).text(),
+    ).rejects.toThrow('before a terminal event');
+    expect(beforeRelease).not.toHaveBeenCalled();
+    expect(translator.toolCalls.size).toBe(0);
+    await transport.stop();
   });
 
   it('forwards structured output and attribution to the configured Gateway', async () => {

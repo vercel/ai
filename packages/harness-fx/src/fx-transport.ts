@@ -29,7 +29,10 @@ export function createFxTransport(options: {
     suppress: boolean;
   }): void;
   onRequest(input: { requestIndex: number; modelId?: string }): void;
-  beforeRelease(input: { requestIndex: number; replay: boolean }): void;
+  beforeRelease(input: {
+    requestIndex: number;
+    replay: boolean;
+  }): void | Promise<void>;
   fetch?: typeof globalThis.fetch;
 }) {
   let requestIndex = -1;
@@ -137,7 +140,10 @@ export function createFxTransport(options: {
             partIndex: partIndex++,
           });
       }
-      options.beforeRelease({ requestIndex: index, replay: true });
+      await options.beforeRelease({ requestIndex: index, replay: true });
+      await options.save();
+      if (!active)
+        throw new DOMException('fx turn is suspended.', 'AbortError');
       return new Response(previous.body, {
         status: previous.status,
         headers: { 'content-type': 'text/event-stream' },
@@ -236,8 +242,10 @@ export function createFxTransport(options: {
           if (frame)
             deliver({ frame, record, replay: false, partIndex: heldIndex++ });
         }
-        options.beforeRelease({ requestIndex: index, replay: false });
+        await options.beforeRelease({ requestIndex: index, replay: false });
         await options.save();
+        if (!active)
+          throw new DOMException('fx turn is suspended.', 'AbortError');
         if (held) await writer.write(encoder.encode(held));
         await writer.close();
       } catch (error) {

@@ -11,7 +11,7 @@ import {
   type HarnessV1StreamPart,
 } from '@ai-sdk/harness';
 import { getRestrictedSandboxSession } from '@ai-sdk/harness/utils';
-import { asSchema } from '@ai-sdk/provider-utils';
+import { asSchema, secureJsonParse } from '@ai-sdk/provider-utils';
 import type { FxHarnessSettings } from './fx-harness';
 import { createFxMcpRuntime } from './fx-mcp';
 import { createFxRemoteOps, diffFxWorkspace } from './fx-remote-ops';
@@ -38,6 +38,11 @@ import {
 } from './fx-tools';
 import { createFxTransport } from './fx-transport';
 import { createFxTranslator, emptyFxUsage } from './fx-translate';
+
+type FxRegisteredTool = {
+  providerExecuted: boolean;
+  kind: 'readonly' | 'edit' | 'bash';
+};
 
 function toPrompt(prompt: HarnessV1PromptTurnOptions['prompt']): FxPrompt {
   if (typeof prompt === 'string') return prompt;
@@ -189,6 +194,8 @@ export async function createFxSession(options: {
     let mcp: Awaited<ReturnType<typeof createFxMcpRuntime>> | undefined;
     const results = new Map<string, FxToolSubmission>();
     const approvals = new Map<string, { approved: boolean; reason?: string }>();
+    const registeredTools = new Map<string, FxRegisteredTool>();
+    const toolRequests = new Map<string, number>();
     const wake = new Set<() => void>();
     const identities: Array<{ id: string; name: string }> = [];
     const seenIdentities = new Set<string>();
@@ -245,14 +252,130 @@ export async function createFxSession(options: {
       }
     }
     function earlyStep(record: FxToolRecord) {
+      const requestIndex = toolRequests.get(record.id);
       emitOnce({
-        key: `waiting:${record.id}`,
+        key:
+          requestIndex === undefined
+            ? `waiting:${record.id}`
+            : `waiting-step:${requestIndex}`,
         part: {
           type: 'finish-step',
           finishReason: { unified: 'tool-calls', raw: undefined },
           usage: emptyFxUsage(),
         },
       });
+    }
+    function getToolRecord(input: {
+      id: string;
+      name: string;
+      value: unknown;
+    }): FxToolRecord {
+      const record = turnState.tools.find(item => item.id === input.id);
+      if (record) {
+        if (
+          record.name !== input.name ||
+          JSON.stringify(record.input) !== JSON.stringify(input.value)
+        )
+          throw new Error('fx continuation changed a recorded tool call.');
+        return record;
+      }
+      const created: FxToolRecord = {
+        id: input.id,
+        name: input.name,
+        input: fxJsonValue(input.value),
+        status: 'waiting',
+      };
+      turnState.tools.push(created);
+      return created;
+    }
+    function emitToolCall(input: {
+      record: FxToolRecord;
+      providerExecuted: boolean;
+    }) {
+      const { record, providerExecuted } = input;
+      emitOnce({
+        key: `call:${record.id}`,
+        part: {
+          type: 'tool-call',
+          toolCallId: record.id,
+          toolName: record.name,
+          input: JSON.stringify(record.input),
+          providerExecuted,
+          ...(record.name.startsWith('mcp_') ? { dynamic: true } : {}),
+          ...(providerExecuted ? { nativeName: record.name } : {}),
+        },
+      });
+    }
+    function emitToolApproval(record: FxToolRecord) {
+      record.approvalId ??= `fx:${record.id}`;
+      if (record.approval) return;
+      emitOnce({
+        key: `approval:${record.id}`,
+        part: {
+          type: 'tool-approval-request',
+          approvalId: record.approvalId,
+          toolCallId: record.id,
+        },
+      });
+    }
+    function emitToolResult(record: FxToolRecord) {
+      emitOnce({
+        key: `result:${record.id}`,
+        part: {
+          type: 'tool-result',
+          toolCallId: record.id,
+          toolName: record.name,
+          result: fxJsonValue(record.output) ?? '',
+          isError: record.result?.isError,
+          ...(record.name.startsWith('mcp_') ? { dynamic: true } : {}),
+        },
+      });
+    }
+    /*
+     * libfx invokes host executors sequentially. Publishing the complete
+     * recorded model batch before those callbacks lets the host collect all
+     * approvals without waiting for an earlier call to finish executing.
+     */
+    async function publishToolBatch(input: { requestIndex: number }) {
+      signal.throwIfAborted();
+      const batch: Array<{ record: FxToolRecord; tool: FxRegisteredTool }> = [];
+      for (const call of translator.toolCalls.get(input.requestIndex) ?? []) {
+        const tool = registeredTools.get(call.toolName);
+        if (!tool) continue;
+        let value: unknown;
+        try {
+          value =
+            typeof call.input === 'string'
+              ? secureJsonParse(call.input)
+              : call.input;
+        } catch {
+          continue;
+        }
+        if (value == null || typeof value !== 'object' || Array.isArray(value))
+          continue;
+        const record = getToolRecord({
+          id: call.toolCallId,
+          name: call.toolName,
+          value,
+        });
+        toolRequests.set(record.id, input.requestIndex);
+        batch.push({ record, tool });
+      }
+      await save();
+      signal.throwIfAborted();
+      for (const { record, tool } of batch) {
+        emitToolCall({ record, providerExecuted: tool.providerExecuted });
+        if (
+          record.status !== 'completed' &&
+          tool.providerExecuted &&
+          fxToolRequiresApproval({
+            permissionMode: startOpts.permissionMode ?? 'allow-all',
+            kind: tool.kind,
+          })
+        ) {
+          emitToolApproval(record);
+        }
+      }
     }
     async function executeTool(input: {
       tool: FxTool;
@@ -266,34 +389,14 @@ export async function createFxSession(options: {
         throw new Error(
           'fx tool callback could not be matched to its original call ID.',
         );
-      let record = turnState.tools.find(item => item.id === identity.id);
-      if (
-        record &&
-        (record.name !== input.tool.name ||
-          JSON.stringify(record.input) !== JSON.stringify(input.value))
-      )
-        throw new Error('fx continuation changed a recorded tool call.');
-      if (!record) {
-        record = {
-          id: identity.id,
-          name: input.tool.name,
-          input: fxJsonValue(input.value),
-          status: 'waiting',
-        };
-        turnState.tools.push(record);
-      }
-      const current = record;
-      emitOnce({
-        key: `call:${current.id}`,
-        part: {
-          type: 'tool-call',
-          toolCallId: current.id,
-          toolName: current.name,
-          input: JSON.stringify(current.input),
-          providerExecuted: input.providerExecuted,
-          ...(current.name.startsWith('mcp_') ? { dynamic: true } : {}),
-          ...(input.providerExecuted ? { nativeName: current.name } : {}),
-        },
+      const current = getToolRecord({
+        id: identity.id,
+        name: input.tool.name,
+        value: input.value,
+      });
+      emitToolCall({
+        record: current,
+        providerExecuted: input.providerExecuted,
       });
       if (current.status !== 'completed') {
         await save();
@@ -311,7 +414,7 @@ export async function createFxSession(options: {
               after: await remote.snapshot(),
             });
         } else if (!input.providerExecuted) {
-          earlyStep(current);
+          if (!results.has(current.id)) earlyStep(current);
           const submission = await waitFor(() => results.get(current.id));
           current.result = toFxToolResult(submission);
           current.output = fxJsonValue(submission.output);
@@ -322,16 +425,9 @@ export async function createFxSession(options: {
               kind: input.kind,
             })
           ) {
-            current.approvalId ??= `fx:${current.id}`;
-            emitOnce({
-              key: `approval:${current.id}`,
-              part: {
-                type: 'tool-approval-request',
-                approvalId: current.approvalId,
-                toolCallId: current.id,
-              },
-            });
-            earlyStep(current);
+            emitToolApproval(current);
+            current.approval ??= approvals.get(current.approvalId!);
+            if (!current.approval) earlyStep(current);
             await save();
             current.approval ??= await waitFor(() =>
               approvals.get(current.approvalId!),
@@ -390,25 +486,15 @@ export async function createFxSession(options: {
           }
         }
         current.status = 'completed';
-        await save();
       }
+      await save();
       signal.throwIfAborted();
       for (const change of current.changes ?? [])
         emitOnce({
           key: `file:${current.id}:${change.path}`,
           part: { type: 'file-change', ...change },
         });
-      emitOnce({
-        key: `result:${current.id}`,
-        part: {
-          type: 'tool-result',
-          toolCallId: current.id,
-          toolName: current.name,
-          result: fxJsonValue(current.output) ?? '',
-          isError: current.result?.isError,
-          ...(current.name.startsWith('mcp_') ? { dynamic: true } : {}),
-        },
-      });
+      emitToolResult(current);
       await save();
       if (!current.result)
         throw new Error('Recorded fx tool result is missing.');
@@ -456,6 +542,10 @@ export async function createFxSession(options: {
               });
             },
           };
+          registeredTools.set(name, {
+            providerExecuted: name !== 'askUserQuestions',
+            kind,
+          });
           tools.push({
             ...implementation,
             execute: value =>
@@ -474,6 +564,10 @@ export async function createFxSession(options: {
             inputSchema: spec.inputSchema ?? { type: 'object', properties: {} },
             execute: async () => undefined,
           };
+          registeredTools.set(spec.name, {
+            providerExecuted: false,
+            kind: 'readonly',
+          });
           tools.push({
             ...implementation,
             execute: value =>
@@ -494,6 +588,10 @@ export async function createFxSession(options: {
           )
             name = `${tool.name.slice(0, 58)}_${suffix}`;
           const implementation = { ...tool, name };
+          registeredTools.set(name, {
+            providerExecuted: true,
+            kind: 'bash',
+          });
           tools.push({
             ...implementation,
             execute: value =>
@@ -521,7 +619,8 @@ export async function createFxSession(options: {
             if (requestIndex > 0) flushStep(requestIndex - 1);
             emitOnce({ key: 'start', part: { type: 'stream-start', modelId } });
           },
-          beforeRelease: ({ requestIndex }) => {
+          beforeRelease: async ({ requestIndex }) => {
+            await publishToolBatch({ requestIndex });
             for (const steer of replaySteers.filter(
               steer => steer.beforeRequest === requestIndex + 1,
             )) {
@@ -638,10 +737,37 @@ export async function createFxSession(options: {
       done,
       submitToolResult: async submission => {
         results.set(submission.toolCallId, submission);
+        const record = turnState.tools.find(
+          item => item.id === submission.toolCallId,
+        );
+        if (record && record.status !== 'completed') {
+          /*
+           * A later host call can settle while libfx is blocked on an earlier
+           * approval. Its durable result and echo must not depend on libfx
+           * reaching its executor, because the host waits for those echoes
+           * before returning an approval response to the caller.
+           */
+          record.result = toFxToolResult(submission);
+          record.output = fxJsonValue(submission.output);
+          record.status = 'completed';
+          await save();
+          emitToolResult(record);
+          await save();
+        }
         notify();
       },
       submitToolApproval: async approval => {
         approvals.set(approval.approvalId, approval);
+        const record = turnState.tools.find(
+          item => item.approvalId === approval.approvalId,
+        );
+        if (record) {
+          record.approval = {
+            approved: approval.approved,
+            reason: approval.reason,
+          };
+          await save();
+        }
         notify();
       },
       submitUserMessage: async text => {
