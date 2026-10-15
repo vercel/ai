@@ -751,4 +751,35 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'specstream',
+    name: 'SpecStream',
+    description:
+      'SpecStream hands agents finished lists instead of pages to read. Ask in plain words for "dental clinics in Lisbon with online booking" or "US startups that filed a $5M+ Form D this month" and get every matching row, each with the page it was read from. The price is set in your code before anything runs, the model cannot raise it, and you pay only for rows that match.',
+    packageName: '@specstream/ai-sdk',
+    tags: ['search', 'web-data', 'lists'],
+    apiKeyEnvName: 'SPECSTREAM_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @specstream/ai-sdk',
+      npm: 'npm install @specstream/ai-sdk',
+      yarn: 'yarn add @specstream/ai-sdk',
+      bun: 'bun add @specstream/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { specstreamTools } from '@specstream/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools: specstreamTools({ maxPriceUsd: 5 }),
+  stopWhen: isStepCount(5),
+  prompt:
+    'Find breweries in Portland, Oregon that host events, with their website.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://specstream.ai/docs/vercel-ai-sdk',
+    apiKeyUrl: 'https://specstream.ai/signup',
+    websiteUrl: 'https://specstream.ai',
+    npmUrl: 'https://www.npmjs.com/package/@specstream/ai-sdk',
+  },
 ];
