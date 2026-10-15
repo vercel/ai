@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 2.0.76
+
+### Patch Changes
+
+- 5111e98: BREAKING (experimental): managed event subscriptions now require `ttlMs: number | null` instead of accepting an `expiresAt` creation input. Use a duration in milliseconds or `null` to watch until stopped. Subscription responses retain `expiresAt` as the backend-calculated deadline. Update managed event adapters together with callers.
+
 ## 2.0.75
 
 ### Patch Changes
