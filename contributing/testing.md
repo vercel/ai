@@ -19,8 +19,16 @@ coverage, and the limitations of the historical Zod regression reproduction.
 
 ## Continuous integration
 
-See [CI and caching](ci.md) for the task graph, runner groups, cache rules, and
-required merge checks.
+GitHub Actions selects runners and Node versions; Turbo schedules builds, tests,
+and checks in dependency order and reuses cached results. Package tests run on
+Node 22, 24, and 26. The `ai` tests use four shards per Node version to keep cold
+runs fast. Test cache keys include the Node version, worker limit, and AI shard.
+
+`pnpm ci:check` runs package checks, linting, formatting, documentation validation,
+and bundle checks. Separate jobs build and type-check examples, run RSC and
+DevTools browser tests, and test MCP on Windows. The `CI passed` check requires
+all of these jobs to succeed; the load-time benchmark is advisory. The docs site
+is built and deployed by Vercel.
 
 ## Providers
 
