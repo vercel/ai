@@ -1,6 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalEnv": ["CI", "PORT"],
+  "globalEnv": ["CI", "PORT", "RUNNER_OS"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -85,6 +85,29 @@
       "dependsOn": ["^build", "build"],
       "env": ["SKIP_RSC_E2E", "VITEST_MAX_WORKERS", "TEST_NODE_VERSION"],
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/tools/setup-download-fetch.node.js"]
+    },
+    "test:node": {
+      "dependsOn": ["^build", "build"],
+      "env": ["SKIP_RSC_E2E", "VITEST_MAX_WORKERS", "TEST_NODE_VERSION"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/tools/setup-download-fetch.node.js"]
+    },
+    "test:edge": {
+      "dependsOn": ["^build", "build"],
+      "env": ["SKIP_RSC_E2E", "VITEST_MAX_WORKERS", "TEST_NODE_VERSION"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/tools/setup-download-fetch.node.js"]
+    },
+    "test:e2e": {
+      "dependsOn": ["^build", "build"],
+      "env": ["SKIP_RSC_E2E", "VITEST_MAX_WORKERS", "TEST_NODE_VERSION"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/tools/setup-download-fetch.node.js"],
+      "outputs": ["test-results.json", "test-results/**", "playwright-report/**"]
+    },
+    "check-bundle-size": {
+      "dependsOn": ["^build", "build"],
+      "outputs": ["dist-bundle-check/**"]
+    },
+    "//#test:bundlers": {
+      "dependsOn": ["ai#build", "@ai-sdk/openai#build"]
     },
     "test:e2e:ci": {
       "env": ["SKIP_RSC_E2E"]
