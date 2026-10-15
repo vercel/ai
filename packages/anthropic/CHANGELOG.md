@@ -1,5 +1,14 @@
 # @ai-sdk/anthropic
 
+## 4.0.80
+
+### Patch Changes
+
+- 40d0aec: feat(vertex-anthropic): forward 'providerOptions.vertex.labels' as a header
+- 40a4ce1: Fall back to automatic tool choice with a warning when manual thinking is enabled with a required or named tool choice, avoiding an Anthropic API 400 error. Named tool choices send only the selected tool.
+- Updated dependencies [2e89fa4]
+  - @ai-sdk/provider-utils@5.0.60
+
 ## 4.0.79
 
 ### Patch Changes
