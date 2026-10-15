@@ -114,7 +114,7 @@ export async function POST(req: Request) {
 
 A data stream follows a special protocol that the AI SDK provides to send information to the frontend.
 
-The data stream protocol uses Server-Sent Events (SSE) format for improved standardization, keep-alive through ping, reconnect capabilities, and better cache handling.
+The data stream protocol uses Server-Sent Events (SSE) format for improved standardization, optional [SSE comment keep-alives](#keep-alive), reconnect capabilities, and better cache handling.
 
 <Note>
   When you provide data streams from a custom backend, you need to set the
@@ -500,6 +500,33 @@ Example:
 data: [DONE]
 
 ```
+
+### Keep-Alive
+
+The protocol has no `ping` or `pong` chunk. `{"type":"pong"}` is not a UI message chunk, so the client rejects that `data:` event and stops reading the rest of the stream. Chunk types are the parts listed on this page. Custom data must use a `data-*` type.
+
+Idle keep-alive is an SSE comment, enabled with `keepAliveMs` on [`createUIMessageStreamResponse`](/docs/reference/ai-sdk-ui/create-ui-message-stream-response), [`pipeUIMessageStreamToResponse`](/docs/reference/ai-sdk-ui/pipe-ui-message-stream-to-response), [`createAgentUIStreamResponse`](/docs/reference/ai-sdk-core/create-agent-ui-stream-response), or [`pipeAgentUIStreamToResponse`](/docs/reference/ai-sdk-core/pipe-agent-ui-stream-to-response). When `keepAliveMs` is omitted, the response writes bytes only when a chunk is produced or the stream ends. A long tool call can therefore sit idle until a proxy or load balancer closes the connection.
+
+When `keepAliveMs` is set, the response writes an opening comment immediately, then another comment after the stream has been idle for that many milliseconds. Activity resets the timer. A comment is skipped when the stream is backpressured.
+
+```
+: stream-open
+
+: keep-alive
+
+```
+
+```ts
+return createUIMessageStreamResponse({
+  stream: toUIMessageStream({ stream: result.stream }),
+  // Example interval. Use a value shorter than your proxy's idle timeout.
+  keepAliveMs: 15_000,
+});
+```
+
+The UI client reads the body with `eventsource-parser` and only handles `data:` events. Comment lines are ignored, so they do not update message state. A custom backend that speaks this protocol can write the same comments. Leave them as comment lines; do not put them in a `data:` field.
+
+To send an application signal during a long call, write a transient data part instead (`type` starting with `data-`, plus `transient: true`). That part is a real chunk: `onData` receives it, and it is not stored on the message. See [Streaming Data](/docs/ai-sdk-ui/streaming-data).
 
 The data stream protocol is supported
 by `useChat` and `useCompletion` on the frontend and used by default.
