@@ -148,6 +148,7 @@ export async function bashTool({
       'Returns stdout, stderr, and exitCode; long output is truncated.\n' +
       sandbox.description,
     inputSchema,
+    outputSchema,
     execute: async ({ command }, { abortSignal }) => {
       const { stdout, stderr, exitCode } = await sandbox.run({
         command,
