@@ -1,18 +1,9 @@
-<<<<<<< HEAD
-import type {
-  ImageModelV3,
-  ImageModelV3File,
-  SharedV3ProviderOptions,
-  SharedV3Warning,
-=======
 import {
   InvalidResponseDataError,
-  type ImageModelV4,
-  type ImageModelV4File,
-  type ImageModelV4Usage,
-  type SharedV4ProviderOptions,
-  type SharedV4Warning,
->>>>>>> d6ed4b9a24 (feat(openai-compatible): support URL-based image responses (#23403))
+  type ImageModelV3,
+  type ImageModelV3File,
+  type SharedV3ProviderOptions,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
 import { toCamelCase } from '../utils/to-camel-case';
 import {
@@ -108,31 +99,19 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
 
-<<<<<<< HEAD
     const args = this.getArgs(providerOptions);
-=======
-    const args = this.getArgs(providerOptions, warnings);
     const isEditing = files != null && files.length > 0;
     const url = this.config.url({
       path: isEditing ? '/images/edits' : '/images/generations',
       modelId: this.modelId,
     });
-    const requestHeaders = combineHeaders(this.config.headers?.(), headers);
->>>>>>> d6ed4b9a24 (feat(openai-compatible): support URL-based image responses (#23403))
+    const requestHeaders = combineHeaders(this.config.headers(), headers);
 
     // Image editing mode - use form data and /images/edits endpoint
     if (isEditing) {
       const { value: response, responseHeaders } = await postFormDataToApi({
-<<<<<<< HEAD
-        url: this.config.url({
-          path: '/images/edits',
-          modelId: this.modelId,
-        }),
-        headers: combineHeaders(this.config.headers(), headers),
-=======
         url,
         headers: requestHeaders,
->>>>>>> d6ed4b9a24 (feat(openai-compatible): support URL-based image responses (#23403))
         formData: convertToFormData<OpenAICompatibleFormDataInput>({
           model: this.modelId,
           prompt,
@@ -169,16 +148,8 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
 
     // Standard image generation mode - use JSON and /images/generations endpoint
     const { value: response, responseHeaders } = await postJsonToApi({
-<<<<<<< HEAD
-      url: this.config.url({
-        path: '/images/generations',
-        modelId: this.modelId,
-      }),
-      headers: combineHeaders(this.config.headers(), headers),
-=======
       url,
       headers: requestHeaders,
->>>>>>> d6ed4b9a24 (feat(openai-compatible): support URL-based image responses (#23403))
       body: {
         model: this.modelId,
         prompt,
@@ -258,9 +229,6 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
 // minimal version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const openaiCompatibleImageResponseSchema = z.object({
-<<<<<<< HEAD
-  data: z.array(z.object({ b64_json: z.string() })),
-=======
   data: z.array(
     z
       .object({
@@ -271,14 +239,6 @@ const openaiCompatibleImageResponseSchema = z.object({
         message: 'Expected b64_json or url in the image response',
       }),
   ),
-  usage: z
-    .object({
-      input_tokens: z.number().nullish(),
-      output_tokens: z.number().nullish(),
-      total_tokens: z.number().nullish(),
-    })
-    .nullish(),
->>>>>>> d6ed4b9a24 (feat(openai-compatible): support URL-based image responses (#23403))
 });
 
 type OpenAICompatibleFormDataInput = {
