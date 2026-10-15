@@ -1,5 +1,11 @@
 # @ai-sdk/harness-fx
 
+## 1.0.68
+
+### Patch Changes
+
+- a0cd442: feat(harness-fx): reimplement adapter to use `libfx`, achieving clean host-sandbox separation and unlocking additional capabilities
+
 ## 1.0.67
 
 ### Patch Changes
