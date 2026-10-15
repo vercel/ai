@@ -720,4 +720,32 @@ console.log(text);`,
     websiteUrl: 'https://pexafy.com',
     npmUrl: 'https://www.npmjs.com/package/pexafy-ai-sdk',
   },
+  {
+    slug: 'openpath',
+    name: 'Openpath',
+    description:
+      'Openpath is an open directory of real-world listings for agents: job openings from company job boards with pay, the link to apply and the date each was last checked (mostly tech, product, operations and health roles in Austin and remote), and local businesses in Austin, Texas, each with an inbox address to reach the owner. Results come back as plain Markdown. No API key and no sign-up.',
+    packageName: '@openpath/ai-sdk-tools',
+    tags: ['search', 'jobs', 'local-business', 'listings'],
+    installCommand: {
+      pnpm: 'pnpm add @openpath/ai-sdk-tools',
+      npm: 'npm install @openpath/ai-sdk-tools',
+      yarn: 'yarn add @openpath/ai-sdk-tools',
+      bun: 'bun add @openpath/ai-sdk-tools',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { openpathTools } from '@openpath/ai-sdk-tools';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-5.5',
+  prompt: 'Find remote analytics engineer jobs that pay over $130k, with how to apply.',
+  tools: openpathTools(),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://openpath.sh/docs/ai-sdk',
+    websiteUrl: 'https://openpath.sh',
+    npmUrl: 'https://www.npmjs.com/package/@openpath/ai-sdk-tools',
+  },
 ];
