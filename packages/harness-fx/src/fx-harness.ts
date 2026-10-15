@@ -2,7 +2,6 @@ import {
   commonTool,
   HARNESS_V1_BUILTIN_TOOLS,
   type HarnessV1,
-  type HarnessV1BuiltinTool,
 } from '@ai-sdk/harness';
 import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
@@ -89,11 +88,11 @@ const FX_BUILTIN_TOOLS = {
       outputSchema: z.unknown(),
     }),
     toolUseKind: 'readonly',
-  } satisfies HarnessV1BuiltinTool<any, any>,
+  },
   askUserQuestions: {
     ...HARNESS_V1_BUILTIN_TOOLS.askUserQuestions,
     toolUseKind: 'readonly',
-  } satisfies HarnessV1BuiltinTool<any, any>,
+  },
 } as const;
 
 export function createFx(
