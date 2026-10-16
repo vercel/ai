@@ -138,6 +138,8 @@ User messages can include images alongside text:
 - remote image URLs, provider file references, and non-image files are not supported
 
 ```ts
+import fs from 'node:fs';
+
 const result = await agent.generate({
   session,
   messages: [
