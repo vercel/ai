@@ -1,5 +1,45 @@
 # @ai-sdk/mcp
 
+## 2.0.78
+
+### Patch Changes
+
+- Updated dependencies [0957554]
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+
+## 2.0.77
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+  - @ai-sdk/provider-utils@5.0.61
+
+## 2.0.76
+
+### Patch Changes
+
+- 5111e98: BREAKING (experimental): managed event subscriptions now require `ttlMs: number | null` instead of accepting an `expiresAt` creation input. Use a duration in milliseconds or `null` to watch until stopped. Subscription responses retain `expiresAt` as the backend-calculated deadline. Update managed event adapters together with callers.
+
+## 2.0.75
+
+### Patch Changes
+
+- Updated dependencies [2e89fa4]
+  - @ai-sdk/provider-utils@5.0.60
+
+## 2.0.74
+
+### Patch Changes
+
+- 2913c8c: fix(mcp): allow MCP tools to execute without options
+- Updated dependencies [9667bf2]
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/provider@4.0.27
+
 ## 2.0.73
 
 ### Patch Changes

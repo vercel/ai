@@ -52,8 +52,28 @@ export const blackForestLabsImageModelOptionsSchema = lazySchema(() =>
 export const blackForestLabsFlux3ImageModelOptionsSchema = lazySchema(() =>
   zodSchema(
     blackForestLabsImageProviderOptions.extend({
-      safetyTolerance: z.number().int().min(0).max(4).optional(),
+      safetyTolerance: z.number().int().min(0).max(7).optional(),
     }),
+  ),
+);
+
+export const blackForestLabsLatestImageModelOptionsSchema = lazySchema(() =>
+  zodSchema(
+    blackForestLabsImageProviderOptions
+      .extend({
+        width: z.number().int().min(64).max(6256).optional(),
+        height: z.number().int().min(64).max(6256).optional(),
+        steps: z.number().int().min(1).max(16).optional(),
+        safetyTolerance: z.number().int().min(0).max(7).optional(),
+      })
+      .refine(({ width, height }) => (width == null) === (height == null), {
+        message: 'width and height must be provided together',
+      })
+      .refine(
+        ({ width, height }) =>
+          width == null || height == null || width * height <= 16822272,
+        { message: 'width × height must not exceed 16822272 pixels' },
+      ),
   ),
 );
 

@@ -1,0 +1,45 @@
+data: {"type":"stream-start","warnings":[]}
+
+data: {"type":"response-metadata","id":"39f189ad-1847-9d93-9b3e-c6013f37c1d0","modelId":"grok-4.7","timestamp":"2026-10-15T00:41:40.000Z"}
+
+data: {"type":"reasoning-start","id":"reasoning-rs_39f189ad-1847-9d93-9b3e-c6013f37c1d0","providerMetadata":{"xai":{"itemId":"rs_39f189ad-1847-9d93-9b3e-c6013f37c1d0"}}}
+
+data: {"type":"reasoning-end","id":"reasoning-rs_39f189ad-1847-9d93-9b3e-c6013f37c1d0","providerMetadata":{"xai":{"reasoningEncryptedContent":"4ODspnBZJhrU9J6evzeADO346y4o0ueg3moLM5cweFQfTXRCQ2CKfOKNW52PgBxFZEpcGmnsEQcTMYCihk11pRXR/ClJ2i20AWmHn2511QnwhQUN/oplHAy4wZF8Z3rttcy5gdAjqI4Wt4XLF1WEqnQysjqYoA6VAtbAuAYF","itemId":"rs_39f189ad-1847-9d93-9b3e-c6013f37c1d0"}}}
+
+data: {"type":"text-start","id":"text-msg_39f189ad-1847-9d93-9b3e-c6013f37c1d0"}
+
+data: {"type":"text-delta","id":"text-msg_39f189ad-1847-9d93-9b3e-c6013f37c1d0","delta":"Paris"}
+
+data: {"type":"text-delta","id":"text-msg_39f189ad-1847-9d93-9b3e-c6013f37c1d0","delta":" is"}
+
+data: {"type":"text-delta","id":"text-msg_39f189ad-1847-9d93-9b3e-c6013f37c1d0","delta":" "}
+
+data: {"type":"text-delta","id":"text-msg_39f189ad-1847-9d93-9b3e-c6013f37c1d0","delta":"12"}
+
+data: {"type":"text-delta","id":"text-msg_39f189ad-1847-9d93-9b3e-c6013f37c1d0","delta":"°"}
+
+data: {"type":"text-delta","id":"text-msg_39f189ad-1847-9d93-9b3e-c6013f37c1d0","delta":"C"}
+
+data: {"type":"text-delta","id":"text-msg_39f189ad-1847-9d93-9b3e-c6013f37c1d0","delta":" and"}
+
+data: {"type":"text-delta","id":"text-msg_39f189ad-1847-9d93-9b3e-c6013f37c1d0","delta":" Tokyo"}
+
+data: {"type":"text-delta","id":"text-msg_39f189ad-1847-9d93-9b3e-c6013f37c1d0","delta":" is"}
+
+data: {"type":"text-delta","id":"text-msg_39f189ad-1847-9d93-9b3e-c6013f37c1d0","delta":" "}
+
+data: {"type":"text-delta","id":"text-msg_39f189ad-1847-9d93-9b3e-c6013f37c1d0","delta":"18"}
+
+data: {"type":"text-delta","id":"text-msg_39f189ad-1847-9d93-9b3e-c6013f37c1d0","delta":"°"}
+
+data: {"type":"text-delta","id":"text-msg_39f189ad-1847-9d93-9b3e-c6013f37c1d0","delta":"C"}
+
+data: {"type":"text-delta","id":"text-msg_39f189ad-1847-9d93-9b3e-c6013f37c1d0","delta":"."}
+
+data: {"type":"text-end","id":"text-msg_39f189ad-1847-9d93-9b3e-c6013f37c1d0"}
+
+data: {"type":"finish","finishReason":{"unified":"stop","raw":"completed"},"usage":{"inputTokens":{"total":2268,"noCache":92,"cacheRead":2176},"outputTokens":{"total":42,"text":14,"reasoning":28},"raw":{"input_tokens":2268,"output_tokens":42,"total_tokens":2310,"input_tokens_details":{"cached_tokens":2176},"output_tokens_details":{"reasoning_tokens":28},"num_sources_used":0,"num_server_side_tools_used":0,"cost_in_usd_ticks":15240000,"context_details":{"input_tokens":2268,"output_tokens":51}}},"providerMetadata":{"xai":{"costInUsdTicks":15240000,"serviceTier":"default"},"gateway":{"routing":{"originalModelId":"spacexai/grok-4.7","resolvedProvider":"xai","fallbacksAvailable":[],"planningReasoning":"System credentials planned for: xai. Total execution order: xai(system)","canonicalSlug":"xai/grok-4.7","finalProvider":"xai","modelAttemptCount":1,"modelAttempts":[{"canonicalSlug":"xai/grok-4.7","success":true,"providerAttemptCount":1,"providerAttempts":[{"provider":"xai","credentialType":"system","success":true,"startTime":1792024900746,"endTime":1792024903111,"providerRequestId":"39f189ad-1847-9d93-9b3e-c6013f37c1d0","statusCode":200,"providerResponseId":"39f189ad-1847-9d93-9b3e-c6013f37c1d0"}]}],"totalProviderAttemptCount":1,"affinity":{"outcome":"confirmed","pinnedProvider":"xai"},"clientSessionId":"JX6wLq14h9h7","clientSessionIdSource":"explicit"},"cost":"0.001524","marketCost":"0.001524","surchargeCost":"0.0001","gatewayCost":"0.001624","inferenceCost":"0.001524","inputInferenceCost":"0.001272","outputInferenceCost":"0.000252","providerAllowlistCost":"0.0001","generationId":"gen_01M4YG3X3N13GKHF12V878M7M6"}}}
+
+DONE
+
+
