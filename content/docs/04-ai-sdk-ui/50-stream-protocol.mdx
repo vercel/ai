@@ -125,14 +125,27 @@ The following stream parts are currently supported:
 
 ### Message Start Part
 
-Indicates the beginning of a new message with metadata.
+Indicates the beginning of a new message with optional ID and metadata.
 
 Format: Server-Sent Event with JSON object
 
 Example:
 
 ```
-data: {"type":"start","messageId":"..."}
+data: {"type":"start","messageId":"msg_123","messageMetadata":{"createdAt":1760500000000}}
+
+```
+
+### Message Metadata Part
+
+Sends custom metadata associated with the message during the stream. Metadata sent across `start`, `message-metadata`, and `finish` parts is merged into `message.metadata` on the client. If a `messageMetadataSchema` is specified on the client, the metadata values should conform to it.
+
+Format: Server-Sent Event with JSON object
+
+Example:
+
+```
+data: {"type":"message-metadata","messageMetadata":{"model":"gpt-4o"}}
 
 ```
 
@@ -471,14 +484,14 @@ data: {"type":"reset-step"}
 
 ### Finish Message Part
 
-A part indicating the completion of a message.
+A part indicating the completion of a message, with optional `finishReason` and final `messageMetadata`.
 
 Format: Server-Sent Event with JSON object
 
 Example:
 
 ```
-data: {"type":"finish"}
+data: {"type":"finish","finishReason":"stop","messageMetadata":{"totalTokens":123}}
 
 ```
 
