@@ -1,5 +1,14 @@
 # @ai-sdk/tui
 
+## 1.0.144
+
+### Patch Changes
+
+- Updated dependencies [8a5233b]
+- Updated dependencies [894e130]
+- Updated dependencies [0957554]
+  - ai@7.0.143
+
 ## 1.0.143
 
 ### Patch Changes
