@@ -2161,7 +2161,7 @@ function createSession({
  * Reduce a `HarnessV1Prompt` to the prompt the bridge forwards to the Claude
  * SDK: plain text when every part is text, otherwise text and inline image
  * blocks. Remote URLs, provider references, and non-image files are not
- * supported — throw rather than silently drop them so callers learn about the
+ * supported: throw rather than silently drop them so callers learn about the
  * gap instead of seeing mysteriously truncated prompts.
  */
 function convertUserPrompt(prompt: HarnessV1Prompt): PromptContent {
