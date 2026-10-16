@@ -10,6 +10,7 @@ import type {
 import type { TimeoutConfiguration } from '../prompt/request-options';
 import type { Telemetry, TelemetryDispatcher } from '../telemetry/telemetry';
 import { getOwn } from '../util/get-own';
+import { createToolCallNotExecutedOutput } from './create-tool-call-not-executed-output';
 import { executeToolCall } from './execute-tool-call';
 import { isToolExecutionAllowedFinishReason } from './is-tool-execution-allowed-finish-reason';
 import { resolveToolApproval } from './resolve-tool-approval';
@@ -226,6 +227,18 @@ export function executeToolsFromStream<
 
           case 'model-call-end': {
             if (!isToolExecutionAllowedFinishReason(chunk.finishReason)) {
+              for (const toolCall of toolCallsToExecute) {
+                const output = createToolCallNotExecutedOutput({
+                  toolCall,
+                  tools,
+                  finishReason: chunk.finishReason,
+                });
+
+                if (output != null) {
+                  controller.enqueue(output);
+                }
+              }
+
               return;
             }
 
