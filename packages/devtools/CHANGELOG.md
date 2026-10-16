@@ -1,5 +1,13 @@
 # @ai-sdk/devtools
 
+## 1.0.45
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+  - ai@7.0.142
+
 ## 1.0.44
 
 ### Patch Changes

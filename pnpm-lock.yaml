@@ -3143,15 +3143,18 @@ importers:
       '@ai-sdk/harness':
         specifier: workspace:*
         version: link:../harness
-      '@ai-sdk/harness-acp':
+      '@ai-sdk/mcp':
         specifier: workspace:*
-        version: link:../harness-acp
+        version: link:../mcp
       '@ai-sdk/provider':
         specifier: workspace:*
         version: link:../provider
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
+      libfx:
+        specifier: 0.0.13
+        version: 0.0.13
     devDependencies:
       '@types/node':
         specifier: 22.19.19
@@ -3162,6 +3165,9 @@ importers:
       tsdown:
         specifier: ^0.23.0
         version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
+      tsx:
+        specifier: 4.23.12
+        version: 4.23.12
       typescript:
         specifier: 6.0.3
         version: 6.0.3
@@ -19115,6 +19121,10 @@ packages:
   levn@0.4.1:
     resolution: {integrity: sha512-+bT2uH4E5LGE7h/n3evcS/sQlJXCpIp6ym8OWJ5eV6+67Dsql/LaaT7qJBAt2rzfoa/5QBGBhxDix1dMt2kQKQ==}
     engines: {node: '>= 0.8.0'}
+
+  libfx@0.0.13:
+    resolution: {integrity: sha512-Tyc+3soT61Ij9LeTnSTyX3efEx+XNwQ58k1V5X52jmixii+ITqCPi9X4uQHOqfk05tGqr0x1y1hAVGAbjG8v6Q==}
+    engines: {node: '>=20'}
 
   license-webpack-plugin@4.0.2:
     resolution: {integrity: sha512-771TFWFD70G1wLTC4oU2Cw4qvtmNrIw+wRvBtn+okgHl7slJVi7zfNcdmqDL72BojM30VNJ2UHylr1o77U37Jw==}
@@ -43890,6 +43900,8 @@ snapshots:
       prelude-ls: 1.2.1
       type-check: 0.4.0
     optional: true
+
+  libfx@0.0.13: {}
 
   license-webpack-plugin@4.0.2(webpack@5.105.2(@swc/core@1.15.3(@swc/helpers@0.5.23))(cssnano@7.1.9(postcss@8.5.23))(csso@5.0.5)(esbuild@0.28.1)(lightningcss@1.32.0)(postcss@8.5.23)(uglify-js@3.19.3)):
     dependencies:
