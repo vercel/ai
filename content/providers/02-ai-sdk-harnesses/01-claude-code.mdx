@@ -130,6 +130,32 @@ Settings:
   random 32-byte token. Custom implementations must return a suitably secret
   token.
 
+## Image Inputs
+
+User messages can include images alongside text:
+
+- pass image data as bytes, a base64 string, or a `data:` URL, which is what `useChat` attachments produce
+- remote image URLs, provider file references, and non-image files are not supported
+
+```ts
+const result = await agent.generate({
+  session,
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'What is in this screenshot?' },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: fs.readFileSync('./screenshot.png'),
+        },
+      ],
+    },
+  ],
+});
+```
+
 ## Structured Output
 
 Claude Code supports schema-backed [`HarnessAgent` structured output](/docs/ai-sdk-harnesses/harness-agent#generate-structured-output).
