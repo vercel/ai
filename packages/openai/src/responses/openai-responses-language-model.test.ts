@@ -2259,6 +2259,45 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should fall back to json_object when the response format schema root is not an object', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          responseFormat: {
+            type: 'json',
+            schema: {
+              $schema: 'http://json-schema.org/draft-07/schema#',
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: { word: { type: 'string' } },
+                required: ['word'],
+                additionalProperties: false,
+              },
+            } as any,
+          },
+          prompt: TEST_PROMPT,
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+
+        // OpenAI rejects an array root for `json_schema` with
+        // `invalid_json_schema`, so the request must not send one:
+        expect(body.text.format).toStrictEqual({ type: 'json_object' });
+
+        // the schema is passed through the input instead:
+        expect(body.input[0].content).toContain('"type":"array"');
+        expect(body.input[0].content).toContain(
+          'You MUST answer with JSON that matches the JSON schema above.',
+        );
+
+        expect(warnings).toContainEqual({
+          type: 'unsupported',
+          feature: 'responseFormat schema root',
+          details: expect.stringContaining(
+            'require a JSON schema with an object at the root',
+          ),
+        });
+      });
+
       it('should remove string propertyNames from response schemas and warn', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           responseFormat: {
