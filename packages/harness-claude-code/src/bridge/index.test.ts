@@ -498,6 +498,35 @@ describe('Claude Code bridge configuration', () => {
     expect(state.queryArgs[0]?.options).toMatchObject({ effort: 'max' });
   });
 
+  test('passes plugins and the Claude Code executable to the Agent SDK', async () => {
+    state.start = {
+      ...state.start,
+      plugins: [{ type: 'local', path: '/opt/plugins/review' }],
+      pathToClaudeCodeExecutable: '/opt/bin/claude-wrapper',
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({
+      plugins: [{ type: 'local', path: '/opt/plugins/review' }],
+      pathToClaudeCodeExecutable: '/opt/bin/claude-wrapper',
+    });
+  });
+
+  test('enables only the named skills when the start lists them', async () => {
+    state.start = {
+      ...state.start,
+      skills: ['release-notes'],
+      enabledSkills: ['release-notes'],
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({
+      skills: ['release-notes'],
+    });
+  });
+
   test('passes subagent activity options to the Agent SDK', async () => {
     state.start = {
       ...state.start,
