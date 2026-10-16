@@ -5,9 +5,13 @@ import { DownloadError } from './download-error';
 function createMockResponse({
   body,
   contentLength,
+  chunkSize = 4,
+  chunkOffsets = false,
 }: {
   body?: Uint8Array | null;
   contentLength?: string;
+  chunkSize?: number;
+  chunkOffsets?: boolean;
 }): { response: Response; cancelled: () => boolean } {
   const headers = new Headers();
   if (contentLength != null) {
@@ -20,10 +24,17 @@ function createMockResponse({
     body != null
       ? new ReadableStream<Uint8Array>({
           start(controller) {
-            // Send in small chunks to simulate streaming
-            const chunkSize = 4;
-            for (let i = 0; i < body.length; i += chunkSize) {
-              controller.enqueue(body.slice(i, i + chunkSize));
+            if (chunkOffsets) {
+              // Emit views with a non-zero byteOffset, the way a runtime that
+              // slices a shared backing buffer does.
+              for (let i = 0; i < body.length; i += chunkSize) {
+                controller.enqueue(body.subarray(i, i + chunkSize));
+              }
+            } else {
+              // Send in small chunks to simulate streaming
+              for (let i = 0; i < body.length; i += chunkSize) {
+                controller.enqueue(body.slice(i, i + chunkSize));
+              }
             }
             controller.close();
           },
@@ -245,5 +256,87 @@ describe('readResponseWithSizeLimit', () => {
       expect(DownloadError.isInstance(error)).toBe(true);
       return true;
     });
+  });
+});
+
+describe('readResponseWithSizeLimit buffer handling', () => {
+  it('should copy chunks that are views with a non-zero byteOffset', async () => {
+    // A chunk that is a view over a buffer bigger than the chunk (Deno hands
+    // back one per read) must be copied out by offset, so the result is exactly
+    // the body and no oversized backing buffer is kept alive.
+    const body = new Uint8Array(64 * 1024);
+    for (let i = 0; i < body.length; i++) {
+      body[i] = i % 256;
+    }
+
+    const { response } = createMockResponse({
+      body,
+      chunkSize: 1024,
+      chunkOffsets: true,
+    });
+
+    const result = await readResponseWithSizeLimit({
+      response,
+      url: 'http://example.com/file',
+    });
+
+    expect(result).toEqual(body);
+    expect(result.buffer.byteLength).toBe(body.length);
+  });
+
+  it('should read a body larger than the initial buffer', async () => {
+    // Exercises the growth path when no Content-Length is declared.
+    const body = new Uint8Array(200 * 1024);
+    for (let i = 0; i < body.length; i++) {
+      body[i] = (i * 7) % 256;
+    }
+
+    const { response } = createMockResponse({
+      body,
+      chunkSize: 997,
+      chunkOffsets: true,
+    });
+
+    const result = await readResponseWithSizeLimit({
+      response,
+      url: 'http://example.com/large',
+    });
+
+    expect(result).toEqual(body);
+    expect(result.buffer.byteLength).toBe(body.length);
+  });
+
+  it('should size the result from the declared Content-Length', async () => {
+    const body = new Uint8Array([1, 2, 3, 4, 5]);
+
+    const { response } = createMockResponse({
+      body,
+      contentLength: '5',
+    });
+
+    const result = await readResponseWithSizeLimit({
+      response,
+      url: 'http://example.com/file',
+    });
+
+    expect(result).toEqual(body);
+    expect(result.buffer.byteLength).toBe(5);
+  });
+
+  it('should trim the buffer when the body is shorter than declared', async () => {
+    const body = new Uint8Array([1, 2, 3]);
+
+    const { response } = createMockResponse({
+      body,
+      contentLength: '100',
+    });
+
+    const result = await readResponseWithSizeLimit({
+      response,
+      url: 'http://example.com/short',
+    });
+
+    expect(result).toEqual(body);
+    expect(result.buffer.byteLength).toBe(3);
   });
 });
