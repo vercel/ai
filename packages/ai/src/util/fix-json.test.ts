@@ -1,6 +1,6 @@
 import assert from 'node:assert';
 import { describe, test } from 'vitest';
-import { fixJson } from './fix-json';
+import { fixJson, repairJson } from './fix-json';
 
 test('should handle empty input', () => {
   assert.strictEqual(fixJson(''), '');
@@ -291,5 +291,41 @@ describe('regression', () => {
       fixJson(`{"type":"div","children":[{"type":"Card","props":{}`),
       `{"type":"div","children":[{"type":"Card","props":{}}]}`,
     );
+  });
+});
+
+describe('repairJson', () => {
+  test('should mark input that ends inside a string, object, or array as truncated', () => {
+    for (const input of [
+      '"ab',
+      '{',
+      '{"a',
+      '{"a":',
+      '{"a":1',
+      '[',
+      '[1,',
+      '["a\\',
+    ]) {
+      const { text, isTruncated } = repairJson(input);
+      assert.strictEqual(isTruncated, true, input);
+      assert.strictEqual(text, fixJson(input), input);
+      assert.throws(() => JSON.parse(input));
+    }
+  });
+
+  test('should not mark complete or top-level scalar input as truncated', () => {
+    for (const input of [
+      '',
+      '12',
+      '-1.5e',
+      'tru',
+      'null',
+      '"ab"',
+      '{}',
+      '[1, {"a": "b"}]',
+      '{"a":1} ',
+    ]) {
+      assert.strictEqual(repairJson(input).isTruncated, false, input);
+    }
   });
 });
