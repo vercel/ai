@@ -18,6 +18,7 @@ import {
   createToolNameMapping,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  createProviderStreamError,
   generateId,
   isCustomReasoning,
   lazySchema,
@@ -45,7 +46,10 @@ import {
 import { convertToGoogleMessages } from './convert-to-google-messages';
 import { downloadToolResultFiles } from './download-tool-result-files';
 import { getModelPath } from './get-model-path';
-import { googleFailedResponseHandler } from './google-error';
+import {
+  getGoogleErrorSchema,
+  googleFailedResponseHandler,
+} from './google-error';
 import { sanitizeResponseJsonSchema } from './sanitize-response-json-schema';
 import {
   googleLanguageModelOptions,
@@ -994,6 +998,28 @@ export class GoogleLanguageModel implements LanguageModelV4 {
             }
 
             const value = chunk.value;
+
+            if (value.error != null) {
+              finishReason = { unified: 'error', raw: undefined };
+              const error = value.error;
+              controller.enqueue({
+                type: 'error',
+                error: createProviderStreamError({
+                  message: error.message,
+                  type: error.status,
+                  code: error.code ?? undefined,
+                  statusCode: error.code ?? undefined,
+                  isRetryable:
+                    error.code != null &&
+                    (error.code === 408 ||
+                      error.code === 409 ||
+                      error.code === 429 ||
+                      error.code >= 500),
+                  data: error,
+                }),
+              });
+              return;
+            }
 
             if (!hasEmittedResponseMetadata && value.responseId != null) {
               hasEmittedResponseMetadata = true;
@@ -2012,6 +2038,7 @@ export type UsageMetadataSchema = NonNullable<
 const chunkSchema = lazySchema(() =>
   zodSchema(
     z.object({
+      error: getGoogleErrorSchema().nullish(),
       responseId: z.string().nullish(),
       candidates: z
         .array(
