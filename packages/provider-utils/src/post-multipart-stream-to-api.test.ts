@@ -221,6 +221,102 @@ describe('postMultipartStreamToApi', () => {
     expect(cancelSpy).toHaveBeenCalled();
   });
 
+  it.each([false, true])(
+    'cancels a pending source read when the body is cancelled (source cancel rejects: %s)',
+    async rejectCancellation => {
+      const reason = 'consumer stopped';
+      let signalReadStarted!: () => void;
+      const readStarted = new Promise<void>(resolve => {
+        signalReadStarted = resolve;
+      });
+      let sourceController!: ReadableStreamDefaultController<Uint8Array>;
+      const cancelSpy = vi.fn(() => {
+        if (rejectCancellation) throw new Error('source cancel failed');
+      });
+      const source = new ReadableStream<Uint8Array>(
+        {
+          start(controller) {
+            sourceController = controller;
+          },
+          pull() {
+            signalReadStarted();
+          },
+          cancel: cancelSpy,
+        },
+        { highWaterMark: 0 },
+      );
+      const laterCancelSpy = vi.fn();
+      const laterSource = new ReadableStream<Uint8Array>({
+        cancel: laterCancelSpy,
+      });
+
+      await postMultipartStreamToApi({
+        url: 'https://api.test.com/files',
+        parts: [
+          { type: 'file', name: 'file', content: source },
+          { type: 'file', name: 'later', content: laterSource },
+        ],
+        successfulResponseHandler: async () => ({ value: 'ok' }),
+        failedResponseHandler: async () => ({ value: new Error('unexpected') }),
+        fetch: async (_url, init) => {
+          const reader = (init!.body as ReadableStream<Uint8Array>).getReader();
+          await reader.read(); // multipart header
+          const pendingRead = reader.read();
+          await readStarted;
+
+          let timeout: ReturnType<typeof setTimeout> | undefined;
+          try {
+            await Promise.race([
+              reader.cancel(reason),
+              new Promise<never>((_resolve, reject) => {
+                timeout = setTimeout(
+                  () => reject(new Error('body cancellation did not settle')),
+                  1000,
+                );
+              }),
+            ]);
+            await pendingRead;
+            expect(cancelSpy).toHaveBeenCalledExactlyOnceWith(reason);
+            expect(laterCancelSpy).toHaveBeenCalledExactlyOnceWith(reason);
+            expect(source.locked).toBe(false);
+            expect(laterSource.locked).toBe(false);
+          } finally {
+            clearTimeout(timeout);
+            // Unblock the fixture if cancellation regresses, so the failing
+            // test does not leave an outstanding source read behind.
+            if (source.locked) sourceController.close();
+            await pendingRead;
+            reader.releaseLock();
+          }
+
+          return Response.json({ id: 'file-123' });
+        },
+      });
+    },
+  );
+
+  it('cancels source streams before the multipart iterator enters them', async () => {
+    const reason = 'consumer stopped';
+    const cancelSpy = vi.fn();
+    const source = new ReadableStream<Uint8Array>({ cancel: cancelSpy });
+
+    await postMultipartStreamToApi({
+      url: 'https://api.test.com/files',
+      parts: [{ type: 'file', name: 'file', content: source }],
+      successfulResponseHandler: async () => ({ value: 'ok' }),
+      failedResponseHandler: async () => ({ value: new Error('unexpected') }),
+      fetch: async (_url, init) => {
+        const reader = (init!.body as ReadableStream<Uint8Array>).getReader();
+        await reader.read(); // yield the header before acquiring the source
+        await reader.cancel(reason);
+        reader.releaseLock();
+        expect(cancelSpy).toHaveBeenCalledExactlyOnceWith(reason);
+        expect(source.locked).toBe(false);
+        return Response.json({ id: 'file-123' });
+      },
+    });
+  });
+
   it('throws an APICallError for a failed response', async () => {
     const mockFetch = vi
       .fn()
