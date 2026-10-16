@@ -132,10 +132,11 @@ console.log(output);
 Linkrra exposes the following model IDs through its OpenAI-compatible Chat
 Completions endpoint:
 
-| Model ID          | Model                        | Context window |
-| ----------------- | ---------------------------- | -------------- |
-| `qwen3-coder-30b` | Qwen3 Coder 30B A3B Instruct | 32,768 tokens  |
-| `glm-4.7-flash`   | GLM 4.7 Flash                | 32,768 tokens  |
+| Model ID             | Model                        | Context window |
+| -------------------- | ---------------------------- | -------------- |
+| `qwen3-coder-30b`    | Qwen3 Coder 30B A3B Instruct | 32,768 tokens  |
+| `gpt-oss-20b`        | gpt-oss-20b                  | 32,768 tokens  |
+| `gemma-4-26b-a4b-it` | Gemma 4 26B A4B Instruct     | 131,072 tokens |
 
 The available models can change. Use the
 [`GET /v1/models?format=openrouter`](https://pool.linkrra.com/v1/models?format=openrouter)
@@ -144,7 +145,8 @@ endpoint for the current model IDs.
 This guide covers Linkrra's OpenAI-compatible Chat Completions endpoint, which
 supports:
 
-- text generation and streaming; and
+- text generation and streaming;
+- tool calling (`tools` and `tool_choice`); and
 - structured output with JSON Schema.
 
 ## Resources
