@@ -1,5 +1,85 @@
 # @ai-sdk/zai
 
+## 3.0.32
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+- Updated dependencies [d6ed4b9]
+  - @ai-sdk/provider@4.0.28
+  - @ai-sdk/openai-compatible@3.0.70
+  - @ai-sdk/provider-utils@5.0.61
+
+## 3.0.31
+
+### Patch Changes
+
+- Updated dependencies [2e89fa4]
+  - @ai-sdk/provider-utils@5.0.60
+  - @ai-sdk/openai-compatible@3.0.69
+
+## 3.0.30
+
+### Patch Changes
+
+- Updated dependencies [9667bf2]
+- Updated dependencies [e57803c]
+- Updated dependencies [2c6996e]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/provider@4.0.27
+  - @ai-sdk/openai-compatible@3.0.68
+
+## 3.0.29
+
+### Patch Changes
+
+- Updated dependencies [5cf13d2]
+- Updated dependencies [4dbc902]
+  - @ai-sdk/openai-compatible@3.0.67
+  - @ai-sdk/provider@4.0.26
+  - @ai-sdk/provider-utils@5.0.58
+
+## 3.0.28
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider@4.0.25
+  - @ai-sdk/provider-utils@5.0.57
+  - @ai-sdk/openai-compatible@3.0.66
+
+## 3.0.27
+
+### Patch Changes
+
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/openai-compatible@3.0.65
+  - @ai-sdk/provider-utils@5.0.56
+
+## 3.0.26
+
+### Patch Changes
+
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/provider@4.0.23
+  - @ai-sdk/openai-compatible@3.0.64
+
+## 3.0.25
+
+### Patch Changes
+
+- Updated dependencies [2959d35]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+  - @ai-sdk/openai-compatible@3.0.63
+
 ## 3.0.24
 
 ### Patch Changes

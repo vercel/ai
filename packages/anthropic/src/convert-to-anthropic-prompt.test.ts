@@ -1775,6 +1775,70 @@ describe('tool messages', () => {
     `);
   });
 
+  it('should handle tool result with a provider-referenced file', async () => {
+    const warnings: SharedV4Warning[] = [];
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'get-file',
+              toolCallId: 'get-file-1',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'file',
+                    data: {
+                      type: 'reference',
+                      reference: { anthropic: 'file-txt-12345' },
+                    },
+                    mediaType: 'text/plain',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings,
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'tool_result',
+                tool_use_id: 'get-file-1',
+                is_error: undefined,
+                cache_control: undefined,
+                content: [
+                  {
+                    type: 'document',
+                    source: {
+                      type: 'file',
+                      file_id: 'file-txt-12345',
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      },
+      betas: new Set(['files-api-2025-04-14']),
+    });
+    expect(warnings).toEqual([]);
+  });
+
   it('should handle tool result with custom tool-reference content for custom tool search', async () => {
     const result = await convertToAnthropicPrompt({
       prompt: [
@@ -2076,6 +2140,7 @@ describe('assistant messages', () => {
         ],
       },
     ]);
+    expect(result.betas).toContain('server-side-fallback-2026-06-01');
   });
 
   it('should warn and omit fallback boundaries with invalid metadata', async () => {
@@ -3495,6 +3560,94 @@ describe('assistant messages', () => {
     `);
     expect(warnings).toMatchInlineSnapshot(`[]`);
   });
+
+  it.each([
+    {
+      toolName: 'tool_search_tool_regex',
+      output: {
+        type: 'error-json',
+        value: JSON.stringify({
+          type: 'tool_search_tool_result_error',
+          errorCode: 'invalid_tool_input',
+        }),
+      },
+    },
+    {
+      toolName: 'tool_search_tool_regex',
+      output: {
+        type: 'json',
+        value: {
+          type: 'tool_search_tool_result_error',
+          errorCode: 'invalid_tool_input',
+        },
+      },
+    },
+    {
+      toolName: 'tool_search_tool_bm25',
+      output: {
+        type: 'error-json',
+        value: JSON.stringify({
+          type: 'tool_search_tool_result_error',
+          errorCode: 'invalid_tool_input',
+        }),
+      },
+    },
+    {
+      toolName: 'tool_search_tool_bm25',
+      output: {
+        type: 'json',
+        value: {
+          type: 'tool_search_tool_result_error',
+          errorCode: 'invalid_tool_input',
+        },
+      },
+    },
+  ] as const)(
+    'should convert $toolName $output.type error results',
+    async ({ toolName, output }) => {
+      const warnings: SharedV4Warning[] = [];
+      const toolCallId = `srvtoolu_${toolName}`;
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                input:
+                  toolName === 'tool_search_tool_regex'
+                    ? { pattern: '[' }
+                    : { query: 'weather' },
+                providerExecuted: true,
+                toolCallId,
+                toolName,
+                type: 'tool-call',
+              },
+              {
+                output,
+                toolCallId,
+                toolName,
+                type: 'tool-result',
+              },
+            ],
+          },
+        ],
+        sendReasoning: false,
+        warnings,
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result.prompt.messages[0].content[1]).toEqual({
+        cache_control: undefined,
+        content: {
+          error_code: 'invalid_tool_input',
+          type: 'tool_search_tool_result_error',
+        },
+        tool_use_id: toolCallId,
+        type: 'tool_search_tool_result',
+      });
+      expect(warnings).toEqual([]);
+    },
+  );
 
   describe('advisor 20260301 multi-turn round-trip', () => {
     it('should convert advisor server_tool_use + advisor_result back to the API shape', async () => {

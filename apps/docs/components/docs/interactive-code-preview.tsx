@@ -282,21 +282,26 @@ const getPlaceholderKinds = (code: string): ModelKind[] => {
   return kinds.length > 0 ? kinds : ['text'];
 };
 
-const getDefaultModelOption = (kind: ModelKind): ModelOption => {
-  const provider =
-    kind === 'image' ? 'openai' : kind === 'video' ? 'google' : 'anthropic';
+const DEFAULT_MODEL_NAMES: Record<string, string> = {
+  [DEFAULT_MODEL_IDS.text]: 'Claude Sonnet 5.5',
+  [DEFAULT_MODEL_IDS.image]: 'GPT Image 2.5 Sunburst',
+  [DEFAULT_MODEL_IDS.video]: 'Veo 3.1',
+  'google/gemini-4-argon': 'Gemini 4 Argon',
+};
+
+const getDefaultModelOption = (
+  kind: ModelKind,
+  modelId = DEFAULT_MODEL_IDS[kind],
+): ModelOption => {
+  const creator = modelId.split('/')[0];
+  const provider = creator === 'spacexai' ? 'xai' : creator;
   return {
-    id: DEFAULT_MODEL_IDS[kind],
+    id: modelId,
     kind,
-    name:
-      kind === 'image'
-        ? 'GPT Image 2.5 Sunburst'
-        : kind === 'video'
-          ? 'Veo 3.1'
-          : 'Claude Sonnet 5.5',
+    name: DEFAULT_MODEL_NAMES[modelId] ?? modelId,
     provider,
     providerTitle: providerTitles[provider] ?? provider,
-    code: DEFAULT_MODEL_IDS[kind].split('/')[1] || DEFAULT_MODEL_IDS[kind],
+    code: modelId.split('/')[1] || modelId,
     icon: <ProviderLogo provider={provider} />,
     created: 0,
   };
@@ -404,6 +409,7 @@ function ModelDropdown({
   providers,
   onProviderSelect,
   showProviderOnly,
+  showProviders,
 }: {
   options: ModelOption[];
   selected: ModelOption;
@@ -411,6 +417,7 @@ function ModelDropdown({
   providers: { name: string; title: string; icon: ReactNode }[];
   onProviderSelect: (providerName: string) => void;
   showProviderOnly: string | null;
+  showProviders: boolean;
 }) {
   const grouped = useMemo(() => {
     const groups: Record<string, ModelOption[]> = {};
@@ -471,31 +478,35 @@ function ModelDropdown({
         align="end"
         className="max-h-[min(300px,var(--radix-dropdown-menu-content-available-height))] w-[280px]"
       >
-        <DropdownMenuLabel className="text-gray-900 text-xs">
-          Model Creators
-        </DropdownMenuLabel>
-        {topProviders.map(provider => (
-          <DropdownMenuItem
-            className="cursor-pointer"
-            key={`provider-${provider.name}`}
-            onSelect={() => onProviderSelect(provider.name)}
-          >
-            <span className="flex items-center gap-2">
-              <span className="shrink-0">{provider.icon}</span>
-              <span>{provider.title}</span>
-            </span>
-          </DropdownMenuItem>
-        ))}
-        {otherProviders.map(provider => (
-          <DropdownMenuItem
-            className="inline-flex w-auto cursor-pointer px-1.5"
-            key={`provider-${provider.name}`}
-            onSelect={() => onProviderSelect(provider.name)}
-            title={provider.title}
-          >
-            <span className="shrink-0">{provider.icon}</span>
-          </DropdownMenuItem>
-        ))}
+        {showProviders ? (
+          <>
+            <DropdownMenuLabel className="text-gray-900 text-xs">
+              Model Creators
+            </DropdownMenuLabel>
+            {topProviders.map(provider => (
+              <DropdownMenuItem
+                className="cursor-pointer"
+                key={`provider-${provider.name}`}
+                onSelect={() => onProviderSelect(provider.name)}
+              >
+                <span className="flex items-center gap-2">
+                  <span className="shrink-0">{provider.icon}</span>
+                  <span>{provider.title}</span>
+                </span>
+              </DropdownMenuItem>
+            ))}
+            {otherProviders.map(provider => (
+              <DropdownMenuItem
+                className="inline-flex w-auto cursor-pointer px-1.5"
+                key={`provider-${provider.name}`}
+                onSelect={() => onProviderSelect(provider.name)}
+                title={provider.title}
+              >
+                <span className="shrink-0">{provider.icon}</span>
+              </DropdownMenuItem>
+            ))}
+          </>
+        ) : null}
         {providerOrder.map(provider => (
           <div key={provider}>
             <DropdownMenuLabel className="text-gray-900 text-xs">
@@ -559,6 +570,8 @@ type InteractiveCodePreviewProps = {
   className?: string;
   /** Default text model ID for backwards-compatible text snippets. */
   defaultModelId?: string;
+  /** Limit both tabs to one model creator and label the direct tab with its name. */
+  provider?: string;
   /** Provider IDs to show in the Provider tab. Intersected with the supported providers for the detected model kind. */
   allowedProviders?: string[];
   /** Model IDs to exclude from the Provider tab. */
@@ -579,6 +592,7 @@ export const InteractiveCodePreview = ({
   highlightedLinesWithImport,
   className,
   defaultModelId = DEFAULT_MODEL_IDS.text,
+  provider,
   allowedProviders,
   excludedModelIds = EXCLUDED_MODEL_IDS,
   onModelChange,
@@ -590,6 +604,25 @@ export const InteractiveCodePreview = ({
     {},
   );
 
+  const tabs = useMemo(
+    () =>
+      provider
+        ? TABS.filter(tab => tab.id !== 'custom').map(tab =>
+            tab.id === 'provider'
+              ? {
+                  ...tab,
+                  title: providerTitles[provider] ?? provider,
+                  icon: <ProviderLogo provider={provider} />,
+                }
+              : tab,
+          )
+        : TABS,
+    [provider],
+  );
+  const defaultModelIds = useMemo(
+    () => getDefaultModelIds(defaultModelId),
+    [defaultModelId],
+  );
   const placeholderKinds = useMemo(() => getPlaceholderKinds(code), [code]);
   const activeModelKind = useMemo<ModelKind>(() => {
     if (placeholderKinds.includes('video')) {
@@ -628,7 +661,7 @@ export const InteractiveCodePreview = ({
           setGatewayData(json);
         }
       } catch {
-        // Network failure or aborted: keep the DEFAULT_MODEL_IDS fallback.
+        // Network failure or aborted: keep the configured default models.
       }
     };
 
@@ -641,10 +674,17 @@ export const InteractiveCodePreview = ({
   }, []);
 
   const allModels = useMemo(() => parseModels(gatewayData), [gatewayData]);
-  const models =
-    allModels.length > 0
-      ? allModels
-      : MODEL_KINDS.map(kind => getDefaultModelOption(kind));
+  const models = useMemo(() => {
+    const candidates =
+      allModels.length > 0
+        ? allModels
+        : MODEL_KINDS.map(kind =>
+            getDefaultModelOption(kind, defaultModelIds[kind]),
+          );
+    return provider
+      ? candidates.filter(model => model.provider === provider)
+      : candidates;
+  }, [allModels, defaultModelIds, provider]);
 
   const gatewayTabModelsByKind = useMemo(
     () =>
@@ -702,7 +742,10 @@ export const InteractiveCodePreview = ({
     () =>
       MODEL_KINDS.reduce(
         (acc, kind) => {
-          const defaultModel = getDefaultModelOption(kind);
+          const defaultModel = getDefaultModelOption(
+            kind,
+            defaultModelIds[kind],
+          );
           const currentModels =
             activeTab === 'provider'
               ? providerTabModelsByKind[kind]
@@ -711,6 +754,8 @@ export const InteractiveCodePreview = ({
 
           acc[kind] =
             currentModels.find(model => model.id === selectedModelId) ??
+            currentModels.find(model => model.id === defaultModel.id) ??
+            currentModels[0] ??
             defaultModel;
 
           return acc;
@@ -719,6 +764,7 @@ export const InteractiveCodePreview = ({
       ),
     [
       activeTab,
+      defaultModelIds,
       gatewayTabModelsByKind,
       providerTabModelsByKind,
       selectedModelIds,
@@ -769,22 +815,22 @@ export const InteractiveCodePreview = ({
   };
 
   const handleTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
-    const currentIndex = TABS.findIndex(tab => tab.id === activeTab);
+    const currentIndex = tabs.findIndex(tab => tab.id === activeTab);
     let nextIndex: number | null = null;
     if (event.key === 'ArrowRight') {
-      nextIndex = (currentIndex + 1) % TABS.length;
+      nextIndex = (currentIndex + 1) % tabs.length;
     } else if (event.key === 'ArrowLeft') {
-      nextIndex = (currentIndex - 1 + TABS.length) % TABS.length;
+      nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
     } else if (event.key === 'Home') {
       nextIndex = 0;
     } else if (event.key === 'End') {
-      nextIndex = TABS.length - 1;
+      nextIndex = tabs.length - 1;
     }
     if (nextIndex === null) {
       return;
     }
     event.preventDefault();
-    const nextTab = TABS[nextIndex].id;
+    const nextTab = tabs[nextIndex].id;
     handleTabChange(nextTab);
     tabRefs.current[nextTab]?.focus();
   };
@@ -910,7 +956,7 @@ export const InteractiveCodePreview = ({
           className="-mb-px flex items-center gap-1"
           role="tablist"
         >
-          {TABS.map(tab => (
+          {tabs.map(tab => (
             <button
               aria-controls={`${id}-panel`}
               aria-selected={activeTab === tab.id}
@@ -956,6 +1002,7 @@ export const InteractiveCodePreview = ({
               providers={providers}
               selected={selectedModel}
               showProviderOnly={showProviderOnly}
+              showProviders={!provider}
             />
           )}
         </div>

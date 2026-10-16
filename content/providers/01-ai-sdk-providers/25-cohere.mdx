@@ -279,6 +279,13 @@ The following provider options are available:
   - `classification`: Used for embeddings passed through a text classifier.
   - `clustering`: Used for embeddings run through a clustering algorithm.
 
+- **outputDimension** _256 | 512 | 768 | 1024 | 1536 | 2048_
+
+  The number of dimensions of the output embedding. Available for Embed v4.0
+  and newer models. Embed v4.0 supports `256`, `512`, `1024`, and `1536`
+  (default). Embed v5.0 Pro and Fast also support `768` and `2048` (default).
+  When omitted, the API uses the model's default dimension.
+
 - **truncate** _'NONE' | 'START' | 'END'_
 
   Specifies how the API will handle inputs longer than the maximum token length.
@@ -289,15 +296,18 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model                           | Embedding Dimensions |
-| ------------------------------- | -------------------- |
-| `embed-english-v3.0`            | 1024                 |
-| `embed-multilingual-v3.0`       | 1024                 |
-| `embed-english-light-v3.0`      | 384                  |
-| `embed-multilingual-light-v3.0` | 384                  |
-| `embed-english-v2.0`            | 4096                 |
-| `embed-english-light-v2.0`      | 1024                 |
-| `embed-multilingual-v2.0`       | 768                  |
+| Model                           | Embedding Dimensions                      |
+| ------------------------------- | ----------------------------------------- |
+| `embed-v5.0-pro`                | 256, 512, 768, 1024, 1536, 2048 (default) |
+| `embed-v5.0-fast`               | 256, 512, 768, 1024, 1536, 2048 (default) |
+| `embed-v4.0`                    | 256, 512, 1024, 1536 (default)            |
+| `embed-english-v3.0`            | 1024                                      |
+| `embed-multilingual-v3.0`       | 1024                                      |
+| `embed-english-light-v3.0`      | 384                                       |
+| `embed-multilingual-light-v3.0` | 384                                       |
+| `embed-english-v2.0`            | 4096                                      |
+| `embed-english-light-v2.0`      | 1024                                      |
+| `embed-multilingual-v2.0`       | 768                                       |
 
 ## Reranking Models
 

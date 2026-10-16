@@ -6,6 +6,40 @@ import {
 } from './acp-v1-bridge-environment';
 
 describe('ACP bridge environment', () => {
+  it.each([
+    { nonTextContentTypes: [] },
+    { nonTextContentTypes: ['image'] as const },
+  ])(
+    'round-trips non-text content types: %j',
+    async ({ nonTextContentTypes }) => {
+      const configuration = { nonTextContentTypes };
+      await expect(
+        readACPBridgeEnvironment({
+          env: createACPBridgeEnvironment(configuration),
+        }),
+      ).resolves.toEqual(configuration);
+    },
+  );
+
+  it.each([
+    { nonTextContentTypes: ['text'] },
+    { nonTextContentTypes: ['audio'] },
+    { nonTextContentTypes: true },
+  ])(
+    'rejects invalid non-text content types: %j',
+    async ({ nonTextContentTypes }) => {
+      await expect(
+        readACPBridgeEnvironment({
+          env: {
+            [ACP_BRIDGE_CONFIGURATION_ENV]: JSON.stringify({
+              nonTextContentTypes,
+            }),
+          },
+        }),
+      ).rejects.toThrow('ACP bridge configuration environment is invalid.');
+    },
+  );
+
   it('round-trips fixed authentication and session configuration', async () => {
     const configuration = {
       authentication: {

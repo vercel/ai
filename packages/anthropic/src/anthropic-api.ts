@@ -594,6 +594,7 @@ export type AnthropicSpeed = 'fast' | 'standard';
 
 export type AnthropicToolChoice =
   | { type: 'auto' | 'any'; disable_parallel_tool_use?: boolean }
+  | { type: 'none' }
   | { type: 'tool'; name: string; disable_parallel_tool_use?: boolean };
 
 export type AnthropicContainer = {

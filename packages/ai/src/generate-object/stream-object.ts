@@ -353,6 +353,16 @@ export function streamObject<
       : never
     : never
 > {
+  logWarnings({
+    warnings: [
+      {
+        type: 'deprecated',
+        setting: 'streamObject',
+        message: 'Use streamText with an output setting instead.',
+      },
+    ],
+  });
+
   const {
     model,
     output = 'object',

@@ -318,7 +318,7 @@ describe('createHostToolRelayAuthorization', () => {
     authorization.observeUpdate({
       update: {
         sessionUpdate: 'tool_call',
-        toolCallId: 'codex',
+        toolCallId: 'server-tool',
         title: 'Weather',
         rawInput: {
           server: serverName,
@@ -433,20 +433,244 @@ describe('createHostToolRelayAuthorization', () => {
     for (const pending of invalid) await expect(pending).resolves.toBe(false);
   });
 
+  it.each([
+    { tool_name: `${serverName}__weather` },
+    { tool_name: `${serverName}__weather`, tool_input: null },
+    { tool_name: `${serverName}__weather`, tool_input: [] },
+  ])('does not authorize unresolved deferred updates: %j', async rawInput => {
+    const authorization = authorizer();
+    authorization.observeUpdate({
+      update: {
+        sessionUpdate: 'tool_call',
+        toolCallId: 'unresolved-deferred',
+        title: `mcp__${serverName}__weather`,
+        rawInput,
+      },
+    });
+    const direct = authorization.waitForToolCallAuthorization({
+      toolName: 'weather',
+      input: rawInput,
+    });
+    const unwrapped = authorization.waitForToolCallAuthorization(weather);
+    authorization.close();
+    await expect(direct).resolves.toBe(false);
+    await expect(unwrapped).resolves.toBe(false);
+  });
+
   it('uses accepted permission requests as ACP evidence when they precede updates', async () => {
     const authorization = authorizer();
-    const permission: ToolCallUpdate = {
+    authorization.authorizePermission({
       toolCallId: 'permission-1',
-      status: 'pending',
-      title: `mcp__${serverName}__weather`,
-      rawInput: weather.input,
-    };
-    authorization.observeAllowedPermission({ toolCall: permission });
+      call: weather,
+    });
 
     await expect(
       authorization.waitForToolCallAuthorization(weather),
     ).resolves.toBe(true);
     authorization.close();
+  });
+
+  it.each([
+    { status: 'in_progress' },
+    { status: null },
+    { title: 'Checking the weather' },
+    { name: null, title: null },
+    { content: [], rawOutput: { temperature: 72 } },
+  ] satisfies Array<Omit<ToolCallUpdate, 'toolCallId'>>)(
+    'retains permission-first authorization through a sparse update: %j',
+    async patch => {
+      const authorization = authorizer();
+      authorization.authorizePermission({
+        toolCallId: 'permission-first',
+        call: weather,
+      });
+      authorization.observeUpdate({
+        update: {
+          sessionUpdate: 'tool_call_update',
+          toolCallId: 'permission-first',
+          ...patch,
+        },
+      });
+      await expect(
+        authorization.waitForToolCallAuthorization(weather),
+      ).resolves.toBe(true);
+      authorization.close();
+    },
+  );
+
+  it('fulfills pending relay requests through canonical permission grants only once', async () => {
+    const authorization = authorizer();
+    const pending = authorization.waitForToolCallAuthorization(weather);
+    authorization.authorizePermission({
+      toolCallId: 'pending-permission',
+      call: weather,
+    });
+    await expect(pending).resolves.toBe(true);
+    authorization.authorizePermission({
+      toolCallId: 'pending-permission',
+      call: weather,
+    });
+    authorization.observeUpdate({
+      update: update({ toolCallId: 'pending-permission' }),
+    });
+    const replay = authorization.waitForToolCallAuthorization(weather);
+    authorization.close();
+    await expect(replay).resolves.toBe(false);
+  });
+
+  it('does not rearm permission grants consumed before subsequent permissions', async () => {
+    const authorization = authorizer();
+    authorization.authorizePermission({
+      toolCallId: 'consumed-permission',
+      call: weather,
+    });
+    await expect(
+      authorization.waitForToolCallAuthorization(weather),
+    ).resolves.toBe(true);
+    authorization.authorizePermission({
+      toolCallId: 'consumed-permission',
+      call: weather,
+    });
+    const replay = authorization.waitForToolCallAuthorization(weather);
+    authorization.close();
+    await expect(replay).resolves.toBe(false);
+  });
+
+  it.each(['completed', 'failed'] as const)(
+    'does not rearm a %s permission grant',
+    async status => {
+      const authorization = authorizer();
+      authorization.authorizePermission({
+        toolCallId: 'terminal-permission',
+        call: weather,
+      });
+      authorization.observeUpdate({
+        update: {
+          sessionUpdate: 'tool_call_update',
+          toolCallId: 'terminal-permission',
+          status,
+        },
+      });
+      authorization.authorizePermission({
+        toolCallId: 'terminal-permission',
+        call: weather,
+      });
+      const pending = authorization.waitForToolCallAuthorization(weather);
+      authorization.close();
+      await expect(pending).resolves.toBe(false);
+    },
+  );
+
+  it.each([
+    { rawInput: null },
+    { rawInput: [] },
+    { rawInput: { city: 'Quito' } },
+    { name: 'different_tool' },
+    { _meta: null },
+  ] satisfies Array<Omit<ToolCallUpdate, 'toolCallId'>>)(
+    'revokes permission-first authorization when new evidence is unresolved: %j',
+    async patch => {
+      const authorization = authorizer();
+      authorization.authorizePermission({
+        toolCallId: 'changed-permission',
+        call: weather,
+      });
+      authorization.observeUpdate({
+        update: {
+          sessionUpdate: 'tool_call_update',
+          toolCallId: 'changed-permission',
+          ...patch,
+        },
+      });
+      const stale = authorization.waitForToolCallAuthorization(weather);
+      authorization.close();
+      await expect(stale).resolves.toBe(false);
+    },
+  );
+
+  it('replaces an unused permission grant with newly resolved notification input', async () => {
+    const authorization = authorizer();
+    authorization.observeUpdate({
+      update: update({ toolCallId: 'replacement' }),
+    });
+    authorization.authorizePermission({
+      toolCallId: 'replacement',
+      call: weather,
+    });
+    authorization.observeUpdate({
+      update: {
+        sessionUpdate: 'tool_call_update',
+        toolCallId: 'replacement',
+        rawInput: { city: 'Quito' },
+      },
+    });
+    const stale = authorization.waitForToolCallAuthorization(weather);
+    await expect(
+      authorization.waitForToolCallAuthorization({
+        toolName: 'weather',
+        input: { city: 'Quito' },
+      }),
+    ).resolves.toBe(true);
+    authorization.close();
+    await expect(stale).resolves.toBe(false);
+  });
+
+  it('clears metadata instead of retaining server identity from an earlier notification', async () => {
+    const authorization = authorizer();
+    authorization.observeUpdate({
+      update: {
+        sessionUpdate: 'tool_call',
+        toolCallId: 'metadata',
+        title: 'Weather',
+        name: 'weather',
+        rawInput: weather.input,
+        _meta: { serverName },
+      },
+    });
+    authorization.authorizePermission({
+      toolCallId: 'metadata',
+      call: weather,
+    });
+    authorization.observeUpdate({
+      update: {
+        sessionUpdate: 'tool_call_update',
+        toolCallId: 'metadata',
+        _meta: null,
+      },
+    });
+    const stale = authorization.waitForToolCallAuthorization(weather);
+    authorization.close();
+    await expect(stale).resolves.toBe(false);
+  });
+
+  it('keeps identical canonical permission grants independent by call ID', async () => {
+    const authorization = authorizer();
+    for (const toolCallId of ['first-permission', 'second-permission']) {
+      authorization.authorizePermission({ toolCallId, call: weather });
+    }
+    await expect(
+      authorization.waitForToolCallAuthorization(weather),
+    ).resolves.toBe(true);
+    await expect(
+      authorization.waitForToolCallAuthorization(weather),
+    ).resolves.toBe(true);
+    const third = authorization.waitForToolCallAuthorization(weather);
+    authorization.close();
+    await expect(third).resolves.toBe(false);
+  });
+
+  it('closes pending permission requests and ignores later grants', async () => {
+    const authorization = authorizer();
+    const pending = authorization.waitForToolCallAuthorization(weather);
+    authorization.close();
+    authorization.authorizePermission({
+      toolCallId: 'closed-permission',
+      call: weather,
+    });
+    await expect(pending).resolves.toBe(false);
+    await expect(
+      authorization.waitForToolCallAuthorization(weather),
+    ).resolves.toBe(false);
   });
 
   it('keeps an unused authorization until consumption, terminal status, or close', async () => {

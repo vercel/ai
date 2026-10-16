@@ -14,7 +14,7 @@ import { toUIMessageChunk } from './to-ui-message-chunk';
  * Converts a stream of `TextStreamPart<TOOLS>` chunks (as emitted by
  * `streamText`'s `stream`) into a stream of `UIMessageChunk`s suitable for
  * UI message streaming, including response message ID injection and
- * `onEnd` handling.
+ * step and stream end callbacks.
  */
 export function toUIMessageStream<
   TOOLS extends ToolSet = ToolSet,
@@ -30,6 +30,8 @@ export function toUIMessageStream<
   messageMetadata,
   originalMessages,
   generateMessageId,
+  onStepEnd,
+  onStepFinish,
   onEnd,
   onFinish,
 }: {
@@ -130,7 +132,7 @@ export function toUIMessageStream<
             responseMessageId,
           });
 
-          if (uiMessageChunk != null) {
+          if (uiMessageChunk != null && part.type !== 'finish-step') {
             controller.enqueue(uiMessageChunk);
           }
 
@@ -145,6 +147,11 @@ export function toUIMessageStream<
               type: 'message-metadata',
               messageMetadata: messageMetadataValue,
             });
+          }
+
+          // Apply step metadata before the boundary triggers a UI snapshot.
+          if (uiMessageChunk != null && part.type === 'finish-step') {
+            controller.enqueue(uiMessageChunk);
           }
 
           if (part.type === 'finish') {
@@ -166,6 +173,7 @@ export function toUIMessageStream<
     stream: uiMessageChunkStream,
     messageId: responseMessageId ?? generateMessageId?.(),
     originalMessages,
+    onStepEnd: onStepEnd ?? onStepFinish,
     onEnd: onEnd ?? onFinish,
     onError,
     getOutcome: () => outcome,

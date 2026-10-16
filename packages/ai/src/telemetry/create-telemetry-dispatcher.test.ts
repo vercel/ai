@@ -32,10 +32,10 @@ describe('createTelemetryDispatcher', () => {
     expect(telemetry.onEmbedEnd).toBeUndefined();
     expect(telemetry.onRerankStart).toBeUndefined();
     expect(telemetry.onRerankEnd).toBeUndefined();
-    expect(telemetry.experimental_onEvaluateStart).toBeUndefined();
-    expect(telemetry.experimental_onEvaluationModelCallStart).toBeUndefined();
-    expect(telemetry.experimental_onEvaluationModelCallEnd).toBeUndefined();
-    expect(telemetry.experimental_onEvaluateEnd).toBeUndefined();
+    expect(telemetry.experimental_onDecideStart).toBeUndefined();
+    expect(telemetry.experimental_onDecisionModelCallStart).toBeUndefined();
+    expect(telemetry.experimental_onDecisionModelCallEnd).toBeUndefined();
+    expect(telemetry.experimental_onDecideEnd).toBeUndefined();
     expect(telemetry.experimental_onStreamTranscriptionStart).toBeUndefined();
     expect(telemetry.experimental_onStreamTranscriptionEnd).toBeUndefined();
     expect(telemetry.onEnd).toBeUndefined();
@@ -184,10 +184,10 @@ describe('createTelemetryDispatcher', () => {
       onEmbedEnd: vi.fn(),
       onRerankStart: vi.fn(),
       onRerankEnd: vi.fn(),
-      experimental_onEvaluateStart: vi.fn(),
-      experimental_onEvaluationModelCallStart: vi.fn(),
-      experimental_onEvaluationModelCallEnd: vi.fn(),
-      experimental_onEvaluateEnd: vi.fn(),
+      experimental_onDecideStart: vi.fn(),
+      experimental_onDecisionModelCallStart: vi.fn(),
+      experimental_onDecisionModelCallEnd: vi.fn(),
+      experimental_onDecideEnd: vi.fn(),
       experimental_onStreamTranscriptionStart: vi.fn(),
       experimental_onStreamTranscriptionEnd: vi.fn(),
       onEnd: vi.fn(),
@@ -212,10 +212,10 @@ describe('createTelemetryDispatcher', () => {
     await telemetry.onEmbedEnd!(dummyEvent);
     await telemetry.onRerankStart!(dummyEvent);
     await telemetry.onRerankEnd!(dummyEvent);
-    await telemetry.experimental_onEvaluateStart!(dummyEvent);
-    await telemetry.experimental_onEvaluationModelCallStart!(dummyEvent);
-    await telemetry.experimental_onEvaluationModelCallEnd!(dummyEvent);
-    await telemetry.experimental_onEvaluateEnd!(dummyEvent);
+    await telemetry.experimental_onDecideStart!(dummyEvent);
+    await telemetry.experimental_onDecisionModelCallStart!(dummyEvent);
+    await telemetry.experimental_onDecisionModelCallEnd!(dummyEvent);
+    await telemetry.experimental_onDecideEnd!(dummyEvent);
     await telemetry.experimental_onStreamTranscriptionStart!(dummyEvent);
     await telemetry.experimental_onStreamTranscriptionEnd!(dummyEvent);
     await telemetry.onEnd!(dummyEvent);
@@ -235,14 +235,14 @@ describe('createTelemetryDispatcher', () => {
     expect(integration.onEmbedEnd).toHaveBeenCalledOnce();
     expect(integration.onRerankStart).toHaveBeenCalledOnce();
     expect(integration.onRerankEnd).toHaveBeenCalledOnce();
-    expect(integration.experimental_onEvaluateStart).toHaveBeenCalledOnce();
+    expect(integration.experimental_onDecideStart).toHaveBeenCalledOnce();
     expect(
-      integration.experimental_onEvaluationModelCallStart,
+      integration.experimental_onDecisionModelCallStart,
     ).toHaveBeenCalledOnce();
     expect(
-      integration.experimental_onEvaluationModelCallEnd,
+      integration.experimental_onDecisionModelCallEnd,
     ).toHaveBeenCalledOnce();
-    expect(integration.experimental_onEvaluateEnd).toHaveBeenCalledOnce();
+    expect(integration.experimental_onDecideEnd).toHaveBeenCalledOnce();
     expect(
       integration.experimental_onStreamTranscriptionStart,
     ).toHaveBeenCalledOnce();
@@ -277,10 +277,10 @@ describe('createTelemetryDispatcher', () => {
         onEmbedEnd: vi.fn(),
         onRerankStart: vi.fn(),
         onRerankEnd: vi.fn(),
-        experimental_onEvaluateStart: vi.fn(),
-        experimental_onEvaluationModelCallStart: vi.fn(),
-        experimental_onEvaluationModelCallEnd: vi.fn(),
-        experimental_onEvaluateEnd: vi.fn(),
+        experimental_onDecideStart: vi.fn(),
+        experimental_onDecisionModelCallStart: vi.fn(),
+        experimental_onDecisionModelCallEnd: vi.fn(),
+        experimental_onDecideEnd: vi.fn(),
         experimental_onStreamTranscriptionStart: vi.fn(),
         experimental_onStreamTranscriptionEnd: vi.fn(),
         onEnd: vi.fn(),
@@ -305,10 +305,10 @@ describe('createTelemetryDispatcher', () => {
       expect(telemetry.onEmbedEnd).toBeUndefined();
       expect(telemetry.onRerankStart).toBeUndefined();
       expect(telemetry.onRerankEnd).toBeUndefined();
-      expect(telemetry.experimental_onEvaluateStart).toBeUndefined();
-      expect(telemetry.experimental_onEvaluationModelCallStart).toBeUndefined();
-      expect(telemetry.experimental_onEvaluationModelCallEnd).toBeUndefined();
-      expect(telemetry.experimental_onEvaluateEnd).toBeUndefined();
+      expect(telemetry.experimental_onDecideStart).toBeUndefined();
+      expect(telemetry.experimental_onDecisionModelCallStart).toBeUndefined();
+      expect(telemetry.experimental_onDecisionModelCallEnd).toBeUndefined();
+      expect(telemetry.experimental_onDecideEnd).toBeUndefined();
       expect(telemetry.experimental_onStreamTranscriptionStart).toBeUndefined();
       expect(telemetry.experimental_onStreamTranscriptionEnd).toBeUndefined();
       expect(telemetry.onEnd).toBeUndefined();

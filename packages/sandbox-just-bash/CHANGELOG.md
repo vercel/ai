@@ -1,5 +1,125 @@
 # @ai-sdk/sandbox-just-bash
 
+## 1.0.153
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.153
+- @ai-sdk/provider-utils@5.0.61
+
+## 1.0.152
+
+### Patch Changes
+
+- Updated dependencies [2e89fa4]
+  - @ai-sdk/provider-utils@5.0.60
+  - @ai-sdk/harness@1.0.152
+
+## 1.0.151
+
+### Patch Changes
+
+- Updated dependencies [6c65131]
+- Updated dependencies [1bebfcf]
+  - @ai-sdk/harness@1.0.151
+
+## 1.0.150
+
+### Patch Changes
+
+- Updated dependencies [6617f11]
+- Updated dependencies [aae69cb]
+- Updated dependencies [a7a66f5]
+- Updated dependencies [52e3f53]
+- Updated dependencies [6c0295c]
+  - @ai-sdk/harness@1.0.150
+
+## 1.0.149
+
+### Patch Changes
+
+- Updated dependencies [9667bf2]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/harness@1.0.149
+
+## 1.0.148
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.148
+
+## 1.0.147
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.147
+
+## 1.0.146
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.146
+- @ai-sdk/provider-utils@5.0.58
+
+## 1.0.145
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.145
+
+## 1.0.144
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider-utils@5.0.57
+  - @ai-sdk/harness@1.0.144
+
+## 1.0.143
+
+### Patch Changes
+
+- Updated dependencies [c4a5c8d]
+- Updated dependencies [50ac48b]
+- Updated dependencies [e8af189]
+  - @ai-sdk/harness@1.0.143
+
+## 1.0.142
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.142
+
+## 1.0.141
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.141
+- @ai-sdk/provider-utils@5.0.56
+
+## 1.0.140
+
+### Patch Changes
+
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+- Updated dependencies [4c6979c]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/harness@1.0.140
+
+## 1.0.139
+
+### Patch Changes
+
+- Updated dependencies [2959d35]
+- Updated dependencies [e7da240]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider-utils@5.0.54
+  - @ai-sdk/harness@1.0.139
+
 ## 1.0.138
 
 ### Patch Changes

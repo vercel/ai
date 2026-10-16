@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { auth, type OAuthClientProvider } from './oauth';
 import type { OAuthTokens } from './oauth-types';
+import { InvalidGrantError } from '../error/oauth-error';
 
 const serverUrl = 'https://api.example.com/mcp';
 const authorizationServerInformation = {
@@ -202,19 +203,58 @@ describe('OAuth credential invalidation', () => {
     expect(store.tokens).toBeUndefined();
   });
 
-  it('keeps authorization-code invalidation separate from refresh token context', async () => {
+  it.each([
+    { name: 'existing', tokens: oldTokens },
+    { name: 'newer', tokens: newTokens },
+    { name: 'absent', tokens: undefined },
+  ])(
+    'preserves $name credentials when an authorization code is rejected',
+    async ({ tokens }) => {
+      const store = { tokens };
+      // No storedState hook: the rejected code reaches the token endpoint.
+      const provider = createProvider(store);
+      const handleToken = vi.fn((_params: URLSearchParams) => invalidGrant());
+
+      await expect(
+        auth(provider, {
+          serverUrl,
+          authorizationCode: 'rejected-code',
+          fetchFn: createFetch(handleToken),
+        }),
+      ).rejects.toBeInstanceOf(InvalidGrantError);
+
+      expect(store.tokens).toBe(tokens);
+      expect(provider.invalidateCredentials).not.toHaveBeenCalled();
+      expect(provider.saveTokens).not.toHaveBeenCalled();
+      expect(provider.redirectToAuthorization).not.toHaveBeenCalled();
+      expect(handleToken).toHaveBeenCalledExactlyOnceWith(
+        expect.any(URLSearchParams),
+      );
+      expect(handleToken.mock.calls[0][0].get('grant_type')).toBe(
+        'authorization_code',
+      );
+    },
+  );
+
+  it('preserves tokens saved while an authorization-code exchange is in flight', async () => {
     const store = { tokens: { ...oldTokens } as OAuthTokens | undefined };
     const provider = createProvider(store);
+    const handleToken = vi.fn(() => {
+      store.tokens = { ...newTokens };
+      return invalidGrant();
+    });
+
     await expect(
       auth(provider, {
         serverUrl,
         authorizationCode: 'rejected-code',
-        fetchFn: createFetch(invalidGrant),
+        fetchFn: createFetch(handleToken),
       }),
-    ).rejects.toThrow();
-    expect(provider.invalidateCredentials).toHaveBeenCalledExactlyOnceWith(
-      'tokens',
-    );
+    ).rejects.toBeInstanceOf(InvalidGrantError);
+
+    expect(store.tokens).toEqual(newTokens);
+    expect(provider.invalidateCredentials).not.toHaveBeenCalled();
+    expect(handleToken).toHaveBeenCalledOnce();
   });
 
   it('includes the stored generation when invalidating tokens without an authorization server pin', async () => {
