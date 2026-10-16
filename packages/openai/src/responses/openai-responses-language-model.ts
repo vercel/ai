@@ -598,7 +598,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     }
 
     const baseArgs = {
-      model: modelId,
+      model: config.requestModelId ?? modelId,
       input,
       temperature,
       top_p: topP,
@@ -854,7 +854,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     } = await this.getArgs(options);
     const url = this.config.url({
       path: '/responses',
-      modelId: this.modelId,
+      modelId: this.config.requestModelId ?? this.modelId,
     });
 
     const approvalRequestIdToDummyToolCallIdFromPrompt =
@@ -1547,7 +1547,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
     const url = this.config.url({
       path: '/responses',
-      modelId: this.modelId,
+      modelId: this.config.requestModelId ?? this.modelId,
     });
 
     const { responseHeaders, value: response } = await postJsonToApi({
