@@ -720,6 +720,12 @@ the operation is idempotent, and set explicit step limits.
 
 The OpenAI responses API supports web search through the `openai.tools.webSearch` tool.
 
+<Note>
+  `openai.tools.webSearchPreview()` is deprecated. Use
+  `openai.tools.webSearch()` instead. The existing `searchContextSize` and
+  `userLocation` options are supported by both tools.
+</Note>
+
 ```ts
 const result = await generateText({
   model: openai('gpt-6-astra'),

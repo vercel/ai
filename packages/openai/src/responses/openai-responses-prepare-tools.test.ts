@@ -1,4 +1,5 @@
 import { NoSuchProviderReferenceError } from '@ai-sdk/provider';
+import { openai } from '../openai-provider';
 import { imageGeneration } from '../tool/image-generation';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { describe, it, expect } from 'vitest';
@@ -916,6 +917,66 @@ describe('prepareResponsesTools', () => {
   });
 
   describe('web search', () => {
+    describe.each([
+      {
+        name: 'webSearch',
+        createTool: openai.tools.webSearch,
+        type: 'web_search',
+      },
+      {
+        name: 'webSearchPreview',
+        createTool: openai.tools.webSearchPreview,
+        type: 'web_search_preview',
+      },
+    ])('$name', ({ createTool, type }) => {
+      it('should prepare the tool without options', async () => {
+        const tool = createTool({});
+
+        const result = await prepareResponsesTools({
+          tools: [{ ...tool, name: type }],
+          toolChoice: undefined,
+        });
+
+        expect(tool.id).toBe(`openai.${type}`);
+        expect(result).toEqual({
+          tools: [{ type }],
+          toolChoice: undefined,
+          toolWarnings: [],
+        });
+      });
+
+      it('should preserve search options and support tool choice', async () => {
+        const userLocation = {
+          type: 'approximate' as const,
+          country: 'US',
+          city: 'San Francisco',
+          region: 'California',
+          timezone: 'America/Los_Angeles',
+        };
+        const tool = createTool({
+          searchContextSize: 'high',
+          userLocation,
+        });
+
+        const result = await prepareResponsesTools({
+          tools: [{ ...tool, name: type }],
+          toolChoice: { type: 'tool', toolName: type },
+        });
+
+        expect(result).toEqual({
+          tools: [
+            {
+              type,
+              search_context_size: 'high',
+              user_location: userLocation,
+            },
+          ],
+          toolChoice: { type },
+          toolWarnings: [],
+        });
+      });
+    });
+
     it('should prepare web_search tool with no options', async () => {
       const result = await prepareResponsesTools({
         tools: [
