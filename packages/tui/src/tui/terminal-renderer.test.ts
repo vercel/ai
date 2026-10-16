@@ -393,6 +393,24 @@ describe('TerminalRenderer', () => {
     expect(rendered).toMatch(/╭ Tool · shell ─+ denied ╮/);
   });
 
+  it('renders tool calls that were not run with their finish reason', async () => {
+    const input = createInput();
+    const output = createOutput();
+    output.columns = 64;
+    output.rows = 20;
+    const renderer = new TerminalRenderer({ input, output });
+
+    await renderer.renderStream(createToolNotRunStream() as never, {
+      title: 'Test',
+      waitForExit: false,
+    });
+
+    const rendered = stripAnsi(output.text());
+
+    expect(rendered).toMatch(/╭ Tool Not Run · weather ─+ not run ╮/);
+    expect(rendered).toContain('Finish reason: length');
+  });
+
   it('collapses tool parts to an empty box with name and status', async () => {
     const input = createInput();
     const output = createOutput();
@@ -1029,6 +1047,26 @@ function createToolApprovalStream(): AgentTUIStreamResult {
         reason: 'Denied by user.',
       } satisfies UIMessageChunk;
       yield { type: 'finish' };
+    })(),
+  };
+}
+
+function createToolNotRunStream(): AgentTUIStreamResult {
+  return {
+    uiMessageStream: (async function* () {
+      yield { type: 'start', messageId: 'message-1' };
+      yield {
+        type: 'tool-input-available',
+        toolCallId: 'call-1',
+        toolName: 'weather',
+        input: { city: 'Berlin' },
+      } satisfies UIMessageChunk;
+      yield {
+        type: 'tool-output-not-run',
+        toolCallId: 'call-1',
+        finishReason: 'length',
+      } satisfies UIMessageChunk;
+      yield { type: 'finish', finishReason: 'length' };
     })(),
   };
 }

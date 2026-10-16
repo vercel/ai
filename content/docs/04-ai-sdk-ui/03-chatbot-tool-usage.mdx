@@ -129,8 +129,10 @@ There are three things worth mentioning:
    The result is added to the chat using `addToolOutput` with the `tool` parameter for type safety.
 
 Typed tool parts also include the `approval-requested`, `approval-responded`,
-and `output-denied` states. Include these states when handling `part.state`
-exhaustively, even when a tool does not require approval. See
+`output-denied`, and `output-not-run` states. `output-not-run` means the SDK did
+not execute the tool because the model step ended with an unsafe finish reason;
+use `part.finishReason` to explain why. Include these states when handling
+`part.state` exhaustively, even when a tool does not require approval. See
 [Tool execution approval](#tool-execution-approval) for a complete approval UI.
 
 ```tsx filename='app/page.tsx' highlight="6,11,16,19-23,25-26,28-33,51,66-70,77-81"
@@ -234,6 +236,16 @@ export default function Chat() {
                     return <div key={callId}>Error: {part.errorText}</div>;
                   case 'output-denied':
                     return <div key={callId}>Tool call denied.</div>;
+                  case 'output-not-run':
+                    return (
+                      <div key={callId}>
+                        Not run (
+                        {part.finishReason === 'length'
+                          ? 'output limit'
+                          : part.finishReason}
+                        ).
+                      </div>
+                    );
                 }
                 break;
               }
@@ -262,6 +274,12 @@ export default function Chat() {
                     );
                   case 'output-denied':
                     return <div key={callId}>Location request denied.</div>;
+                  case 'output-not-run':
+                    return (
+                      <div key={callId}>
+                        Location request not run ({part.finishReason}).
+                      </div>
+                    );
                 }
                 break;
               }
@@ -300,6 +318,12 @@ export default function Chat() {
                     );
                   case 'output-denied':
                     return <div key={callId}>Weather request denied.</div>;
+                  case 'output-not-run':
+                    return (
+                      <div key={callId}>
+                        Weather request not run ({part.finishReason}).
+                      </div>
+                    );
                 }
                 break;
               }
@@ -536,6 +560,12 @@ export default function Chat() {
                         : ''}
                     </div>
                   );
+                case 'output-not-run':
+                  return (
+                    <div key={part.toolCallId}>
+                      Weather request was not run ({part.finishReason}).
+                    </div>
+                  );
               }
             }
             // Handle other part types...
@@ -696,6 +726,8 @@ export default function Chat() {
                     return <div>Error: {part.errorText}</div>;
                   case 'output-denied':
                     return <div>Tool call denied.</div>;
+                  case 'output-not-run':
+                    return <div>Tool call not run ({part.finishReason}).</div>;
                 }
             }
           })}

@@ -255,6 +255,12 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   providerExecuted?: boolean;
                   providerMetadata?: ProviderMetadata;
                 }
+              | {
+                  state: 'output-not-run';
+                  input: unknown;
+                  finishReason: FinishReason;
+                  providerExecuted?: boolean;
+                }
             ),
             existingPart?: ToolUIPart<InferUIMessageTools<UI_MESSAGE>>,
           ) {
@@ -281,6 +287,11 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 delete anyPart.inputEncoding;
               }
               anyPart.preliminary = anyOptions.preliminary;
+              if (options.state === 'output-not-run') {
+                anyPart.finishReason = anyOptions.finishReason;
+              } else {
+                delete anyPart.finishReason;
+              }
               if (options.title !== undefined) {
                 anyPart.title = options.title;
               }
@@ -324,6 +335,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 output: anyOptions.output,
                 rawInput: anyOptions.rawInput,
                 errorText: anyOptions.errorText,
+                ...(options.state === 'output-not-run'
+                  ? { finishReason: anyOptions.finishReason }
+                  : {}),
                 providerExecuted: anyOptions.providerExecuted,
                 preliminary: anyOptions.preliminary,
                 ...(anyOptions.providerMetadata != null &&
@@ -375,6 +389,11 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   errorText: string;
                   providerMetadata?: ProviderMetadata;
                 }
+              | {
+                  state: 'output-not-run';
+                  input: unknown;
+                  finishReason: FinishReason;
+                }
             ),
             existingPart?: DynamicToolUIPart,
           ) {
@@ -402,6 +421,11 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 delete anyPart.inputEncoding;
               }
               anyPart.preliminary = anyOptions.preliminary;
+              if (options.state === 'output-not-run') {
+                anyPart.finishReason = anyOptions.finishReason;
+              } else {
+                delete anyPart.finishReason;
+              }
               if (options.title !== undefined) {
                 anyPart.title = options.title;
               }
@@ -441,6 +465,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   : {}),
                 output: anyOptions.output,
                 errorText: anyOptions.errorText,
+                ...(options.state === 'output-not-run'
+                  ? { finishReason: anyOptions.finishReason }
+                  : {}),
                 preliminary: anyOptions.preliminary,
                 providerExecuted: anyOptions.providerExecuted,
                 title: options.title,
@@ -951,6 +978,41 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                     title: toolInvocation.title,
                     toolMetadata:
                       chunk.toolMetadata ?? toolInvocation.toolMetadata,
+                  },
+                  toolInvocation as ToolUIPart<InferUIMessageTools<UI_MESSAGE>>,
+                );
+              }
+
+              write();
+              break;
+            }
+
+            case 'tool-output-not-run': {
+              const toolInvocation = getToolInvocation(chunk.toolCallId);
+
+              if (toolInvocation.type === 'dynamic-tool') {
+                updateDynamicToolPart(
+                  {
+                    toolCallId: chunk.toolCallId,
+                    toolName: toolInvocation.toolName,
+                    state: 'output-not-run',
+                    input: toolInvocation.input,
+                    finishReason: chunk.finishReason,
+                    title: toolInvocation.title,
+                    toolMetadata: toolInvocation.toolMetadata,
+                  },
+                  toolInvocation,
+                );
+              } else {
+                updateToolPart(
+                  {
+                    toolCallId: chunk.toolCallId,
+                    toolName: getStaticToolName(toolInvocation),
+                    state: 'output-not-run',
+                    input: toolInvocation.input,
+                    finishReason: chunk.finishReason,
+                    title: toolInvocation.title,
+                    toolMetadata: toolInvocation.toolMetadata,
                   },
                   toolInvocation as ToolUIPart<InferUIMessageTools<UI_MESSAGE>>,
                 );

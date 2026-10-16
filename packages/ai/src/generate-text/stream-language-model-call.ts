@@ -92,6 +92,7 @@ export type LanguageModelStreamPart<TOOLS extends ToolSet = ToolSet> =
           | 'finish'
           | 'stream-start'
           | 'tool-output-denied'
+          | 'tool-output-not-run'
           | 'start-step'
           | 'finish-step'
           | 'start'

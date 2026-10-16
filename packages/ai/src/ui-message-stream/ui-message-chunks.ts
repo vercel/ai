@@ -21,6 +21,15 @@ const toolMetadataSchema: ZodType<JSONObject> = z.record(
   jsonValueSchema.optional(),
 );
 
+const finishReasonSchema = z.enum([
+  'stop',
+  'length',
+  'content-filter',
+  'tool-calls',
+  'error',
+  'other',
+] as const satisfies readonly FinishReason[]);
+
 export const uiMessageChunkSchema = lazySchema(() =>
   zodSchema<UIMessageChunk>(
     z.union([
@@ -126,6 +135,11 @@ export const uiMessageChunkSchema = lazySchema(() =>
         toolCallId: z.string(),
       }),
       z.looseObject({
+        type: z.literal('tool-output-not-run'),
+        toolCallId: z.string(),
+        finishReason: finishReasonSchema,
+      }),
+      z.looseObject({
         type: z.literal('reasoning-start'),
         id: z.string(),
         providerMetadata: providerMetadataSchema.optional(),
@@ -199,16 +213,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
       }),
       z.looseObject({
         type: z.literal('finish'),
-        finishReason: z
-          .enum([
-            'stop',
-            'length',
-            'content-filter',
-            'tool-calls',
-            'error',
-            'other',
-          ] as const satisfies readonly FinishReason[])
-          .optional(),
+        finishReason: finishReasonSchema.optional(),
         messageMetadata: z.unknown().optional(),
       }),
       z.looseObject({
@@ -341,6 +346,11 @@ export type UIMessageChunk<
   | {
       type: 'tool-output-denied';
       toolCallId: string;
+    }
+  | {
+      type: 'tool-output-not-run';
+      toolCallId: string;
+      finishReason: FinishReason;
     }
   | {
       type: 'tool-input-start';

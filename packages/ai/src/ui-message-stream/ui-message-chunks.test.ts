@@ -38,6 +38,36 @@ describe('uiMessageChunkSchema', () => {
     ).resolves.toEqual({ type: 'reset-step' });
   });
 
+  it('accepts tool output not run chunks with normalized finish reasons', async () => {
+    await expect(
+      validateTypes({
+        schema: uiMessageChunkSchema,
+        value: {
+          type: 'tool-output-not-run',
+          toolCallId: 'call-123',
+          finishReason: 'length',
+        },
+      }),
+    ).resolves.toEqual({
+      type: 'tool-output-not-run',
+      toolCallId: 'call-123',
+      finishReason: 'length',
+    });
+  });
+
+  it('rejects tool output not run chunks with unknown finish reasons', async () => {
+    await expect(
+      validateTypes({
+        schema: uiMessageChunkSchema,
+        value: {
+          type: 'tool-output-not-run',
+          toolCallId: 'call-123',
+          finishReason: 'max_tokens',
+        },
+      }),
+    ).rejects.toBeInstanceOf(TypeValidationError);
+  });
+
   it('accepts known chunks with fields added by newer servers', async () => {
     const chunk = {
       type: 'tool-output-available',
