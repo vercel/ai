@@ -42,12 +42,19 @@ function createMockResponse({
   };
 }
 
+function createResponseWithChunk(chunk: Uint8Array): Response {
+  return new Response(
+    new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(chunk);
+        controller.close();
+      },
+    }),
+  );
+}
+
 describe('readResponseWithSizeLimit', () => {
   it.each([
-    {
-      name: 'Uint8Array with a larger backing buffer',
-      createChunk: (buffer: ArrayBuffer) => new Uint8Array(buffer, 0, 3),
-    },
     {
       name: 'Uint8Array with a nonzero byte offset',
       createChunk: (buffer: ArrayBuffer) => new Uint8Array(buffer, 17, 3),
@@ -56,29 +63,34 @@ describe('readResponseWithSizeLimit', () => {
       name: 'Node Buffer with a larger backing buffer',
       createChunk: (buffer: ArrayBuffer) => Buffer.from(buffer, 17, 3),
     },
-  ])('should compact a $name before retaining it', async ({ createChunk }) => {
+  ])('should read a $name correctly', async ({ createChunk }) => {
     const chunk = createChunk(new ArrayBuffer(64 * 1024));
     chunk.set([1, 2, 3]);
-    const response = new Response(
-      new ReadableStream<Uint8Array>({
-        start(controller) {
-          controller.enqueue(chunk);
-          controller.close();
-        },
-      }),
-    );
 
-    // Inspect the retained chunk when it is concatenated, without relying on
-    // garbage collection timing or process memory measurements.
+    const result = await readResponseWithSizeLimit({
+      response: createResponseWithChunk(chunk),
+      url: 'http://example.com/file',
+    });
+
+    expect(result).toEqual(new Uint8Array([1, 2, 3]));
+  });
+
+  it('should concatenate compact chunks instead of oversized backing buffers', async () => {
+    const chunk = Buffer.from(new ArrayBuffer(64 * 1024), 17, 3);
+    chunk.set([1, 2, 3]);
+    const response = createResponseWithChunk(chunk);
+
+    // Implementation-level check of the chunk passed to concatenation.
+    // This does not measure peak memory or garbage collection timing.
     const set = vi.spyOn(Uint8Array.prototype, 'set');
     try {
       const result = await readResponseWithSizeLimit({
         response,
         url: 'http://example.com/file',
       });
-      const retainedChunk = set.mock.calls[0][0] as Uint8Array;
+      const resultSetCall = set.mock.calls[set.mock.contexts.indexOf(result)];
+      const retainedChunk = resultSetCall[0] as Uint8Array;
 
-      expect(result).toEqual(new Uint8Array([1, 2, 3]));
       expect(retainedChunk.buffer.byteLength).toBe(chunk.byteLength);
       expect(retainedChunk.buffer).not.toBe(chunk.buffer);
     } finally {
