@@ -107,6 +107,56 @@ The helper verifies signatures and echoes challenges automatically. It invokes
 processing. Processing failures return `503` so the server can retry. In your
 app, resolve `onEvent` only after processing or durably accepting the event.
 
+**Identify duplicate agent runs.** If an agent finishes inside `onEvent` but a
+later operation throws (for example, a database write), the handler returns `503`.
+Redelivery can then run the agent again for the same event, producing another
+`invoke_agent` trace. These spans do not automatically include the MCP server or
+event identity.
+
+With an [OpenTelemetry tracer provider configured](/docs/ai-sdk-core/telemetry#enabling-telemetry),
+use this pattern inside `onEvent` to attach that identity to agent spans. Here,
+`model` is your configured language model, and `subscription` and `event` are the
+callback arguments:
+
+```ts
+import { OpenTelemetry } from '@ai-sdk/otel';
+import { ToolLoopAgent } from 'ai';
+
+const agent = new ToolLoopAgent({
+  model,
+  runtimeContext: {
+    mcpServer: 'comments-server', // Identify the server this handler receives from.
+    eventName: event.name,
+    subscriptionId: subscription.id,
+    eventId: event.eventId,
+  },
+  telemetry: {
+    includeRuntimeContext: {
+      mcpServer: true,
+      eventName: true,
+      subscriptionId: true,
+      eventId: true,
+    },
+    integrations: new OpenTelemetry({
+      enrichSpan: ({ runtimeContext }) => ({
+        'app.mcp.server': runtimeContext?.mcpServer as string | undefined,
+        'app.mcp.event_name': runtimeContext?.eventName as string | undefined,
+        'app.mcp.subscription_id': runtimeContext?.subscriptionId as
+          | string
+          | undefined,
+        'app.mcp.event_id': runtimeContext?.eventId as string | undefined,
+      }),
+    }),
+  },
+});
+
+await agent.generate({ prompt: JSON.stringify(event.data) });
+```
+
+This makes duplicate runs identifiable; your application still needs to deduplicate
+processing. See [custom OpenTelemetry span attributes](/docs/ai-sdk-core/telemetry#custom-opentelemetry-span-attributes)
+for more about `enrichSpan`.
+
 Two optional callbacks handle signed subscription lifecycle messages:
 
 - `onGap({ subscription, messageId, gap })`: some events are no longer available
