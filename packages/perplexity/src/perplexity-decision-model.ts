@@ -24,16 +24,7 @@ import {
   perplexityErrorToMessage,
 } from './perplexity-agent-api';
 
-export type PerplexityDecisionModelId =
-  | 'pplx-decider-v1.2'
-  | 'pplx-decider-flash-v1.2'
-  | 'pplx-decider-latest'
-  | 'pplx-decider-flash-latest'
-  | 'perplexity/pplx-decider-latest'
-  | 'perplexity/pplx-decider-flash-latest'
-  | 'pplx-decider-v1.1-27b'
-  | 'pplx-decider-v1-27b'
-  | (string & {});
+import type { PerplexityDecisionModelId } from './perplexity-decision-model-options';
 
 type PerplexityDecisionConfig = {
   provider: string;
@@ -42,7 +33,7 @@ type PerplexityDecisionConfig = {
   fetch?: FetchFunction;
 };
 
-export class PerplexityDecisionModel implements DecisionModelV4 {
+export class DecisionPerplexityModel implements DecisionModelV4 {
   readonly specificationVersion = 'v4';
   readonly supportedQuestionTypes = ['choice', 'score', 'boolean'] as const;
 
@@ -55,7 +46,7 @@ export class PerplexityDecisionModel implements DecisionModelV4 {
     return this.config.provider;
   }
 
-  static [WORKFLOW_SERIALIZE](model: PerplexityDecisionModel) {
+  static [WORKFLOW_SERIALIZE](model: DecisionPerplexityModel) {
     return serializeModelOptions({
       modelId: model.modelId,
       config: model.config,
@@ -66,7 +57,7 @@ export class PerplexityDecisionModel implements DecisionModelV4 {
     modelId: PerplexityDecisionModelId;
     config: PerplexityDecisionConfig;
   }) {
-    return new PerplexityDecisionModel(options.modelId, options.config);
+    return new DecisionPerplexityModel(options.modelId, options.config);
   }
 
   async doDecide({

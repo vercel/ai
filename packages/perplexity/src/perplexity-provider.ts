@@ -13,10 +13,8 @@ import {
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { PerplexityEmbeddingModel } from './perplexity-embedding-model';
-import {
-  PerplexityDecisionModel,
-  type PerplexityDecisionModelId,
-} from './perplexity-decision-model';
+import { DecisionPerplexityModel } from './perplexity-decision-model';
+import type { PerplexityDecisionModelId } from './perplexity-decision-model-options';
 import type { PerplexityEmbeddingModelId } from './perplexity-embedding-model-options';
 import { PerplexityLanguageModel } from './perplexity-language-model';
 import type { PerplexityLanguageModelId } from './perplexity-options';
@@ -119,7 +117,7 @@ export function createPerplexity(
   provider.specificationVersion = 'v4' as const;
   provider.languageModel = createLanguageModel;
   provider.decisionModel = (modelId: PerplexityDecisionModelId) =>
-    new PerplexityDecisionModel(modelId, {
+    new DecisionPerplexityModel(modelId, {
       provider: 'perplexity.decision',
       baseURL,
       headers: getHeaders,

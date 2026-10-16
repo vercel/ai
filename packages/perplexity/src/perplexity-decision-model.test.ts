@@ -12,7 +12,7 @@ import {
 import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createPerplexity } from './perplexity-provider';
-import { PerplexityDecisionModel } from './perplexity-decision-model';
+import { DecisionPerplexityModel } from './perplexity-decision-model';
 
 // Illustrative response from the official OpenAPI schema, not a live capture.
 const fixture = JSON.parse(
@@ -233,18 +233,18 @@ it('loads environment authentication lazily and uses the default endpoint', asyn
 
 it('restores the endpoint and authentication across workflow serialization', async () => {
   const { model, fetch } = setup();
-  const serialized = PerplexityDecisionModel[WORKFLOW_SERIALIZE](
-    model as PerplexityDecisionModel,
+  const serialized = DecisionPerplexityModel[WORKFLOW_SERIALIZE](
+    model as DecisionPerplexityModel,
   );
   expect(serialized.config.fetch).toBeUndefined();
   expect(serialized.config.headers).toMatchObject({
     authorization: 'Bearer test-key',
   });
   vi.stubGlobal('fetch', fetch);
-  const restored = PerplexityDecisionModel[WORKFLOW_DESERIALIZE]({
+  const restored = DecisionPerplexityModel[WORKFLOW_DESERIALIZE]({
     modelId: serialized.modelId,
     config: serialized.config as unknown as Parameters<
-      (typeof PerplexityDecisionModel)[typeof WORKFLOW_DESERIALIZE]
+      (typeof DecisionPerplexityModel)[typeof WORKFLOW_DESERIALIZE]
     >[0]['config'],
   });
   await restored.doDecide(options);
