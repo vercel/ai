@@ -295,7 +295,7 @@ describe('GatewayProvider', () => {
         'custom-header': 'value',
         'ai-gateway-protocol-version': expect.any(String),
         'ai-gateway-auth-method': 'api-key',
-        'user-agent': 'ai-sdk/gateway/0.0.0-test',
+        'user-agent': 'ai-sdk-gateway/0.0.0-test',
       });
     });
 
@@ -336,7 +336,7 @@ describe('GatewayProvider', () => {
         'custom-header': 'value',
         'ai-gateway-protocol-version': expect.any(String),
         'ai-gateway-auth-method': 'oidc',
-        'user-agent': 'ai-sdk/gateway/0.0.0-test',
+        'user-agent': 'ai-sdk-gateway/0.0.0-test',
       });
     });
 
@@ -359,7 +359,7 @@ describe('GatewayProvider', () => {
         'x-vercel-ai-gateway-team': 'vercel',
         'ai-gateway-protocol-version': expect.any(String),
         'ai-gateway-auth-method': 'api-key',
-        'user-agent': 'ai-sdk/gateway/0.0.0-test',
+        'user-agent': 'ai-sdk-gateway/0.0.0-test',
       });
       expect(getVercelOidcToken).not.toHaveBeenCalled();
     });
@@ -493,7 +493,7 @@ describe('GatewayProvider', () => {
         'custom-header': 'value',
         'ai-gateway-protocol-version': expect.any(String),
         'ai-gateway-auth-method': 'api-key',
-        'user-agent': 'ai-sdk/gateway/0.0.0-test',
+        'user-agent': 'ai-sdk-gateway/0.0.0-test',
       });
       expect(config.fetch).toBe(customFetch);
 
@@ -541,7 +541,7 @@ describe('GatewayProvider', () => {
         'custom-header': 'value',
         'ai-gateway-protocol-version': expect.any(String),
         'ai-gateway-auth-method': 'api-key',
-        'user-agent': 'ai-sdk/gateway/0.0.0-test',
+        'user-agent': 'ai-sdk-gateway/0.0.0-test',
       });
       expect(config.fetch).toBe(customFetch);
 
@@ -632,7 +632,7 @@ describe('GatewayProvider', () => {
         'custom-header': 'value',
         'ai-gateway-protocol-version': expect.any(String),
         'ai-gateway-auth-method': 'api-key',
-        'user-agent': 'ai-sdk/gateway/0.0.0-test',
+        'user-agent': 'ai-sdk-gateway/0.0.0-test',
       });
       expect(config.fetch).toBe(customFetch);
     });
@@ -690,7 +690,7 @@ describe('GatewayProvider', () => {
         'custom-header': 'value',
         'ai-gateway-protocol-version': expect.any(String),
         'ai-gateway-auth-method': 'api-key',
-        'user-agent': 'ai-sdk/gateway/0.0.0-test',
+        'user-agent': 'ai-sdk-gateway/0.0.0-test',
       });
       expect(config.fetch).toBe(customFetch);
     });
@@ -1001,7 +1001,7 @@ describe('GatewayProvider', () => {
       // Verify that the API key was used in the Authorization header
       expect(headers['authorization']).toBe(`Bearer ${testApiKey}`);
       expect(headers['ai-gateway-auth-method']).toBe('api-key');
-      expect(headers['user-agent']).toBe('ai-sdk/gateway/0.0.0-test');
+      expect(headers['user-agent']).toBe('ai-sdk-gateway/0.0.0-test');
 
       // Verify getVercelOidcToken was never called
       expect(getVercelOidcToken).not.toHaveBeenCalled();
@@ -1516,6 +1516,24 @@ describe('GatewayProvider', () => {
       );
     });
 
+    it('should pass teamIdOrSlug to the credits fetcher via the team header', async () => {
+      const provider = createGateway({
+        apiKey: 'vca_test-token',
+        teamIdOrSlug: 'vercel',
+      });
+
+      await provider.getCredits();
+
+      const config = vi.mocked(GatewayFetchMetadata).mock.calls.at(-1)![0];
+      const headers = await (
+        config.headers as () => Promise<Record<string, string>>
+      )();
+      expect(headers).toMatchObject({
+        authorization: 'Bearer vca_test-token',
+        'x-vercel-ai-gateway-team': 'vercel',
+      });
+    });
+
     it('should work with custom baseURL', async () => {
       const customBaseURL = 'https://custom-gateway.example.com/v4/ai';
       const provider = createGateway({
@@ -1572,7 +1590,7 @@ describe('GatewayProvider', () => {
         'ai-gateway-protocol-version': '0.0.1',
         'ai-gateway-auth-method': 'api-key',
         'custom-header': 'custom-value',
-        'user-agent': 'ai-sdk/gateway/0.0.0-test',
+        'user-agent': 'ai-sdk-gateway/0.0.0-test',
       });
     });
 

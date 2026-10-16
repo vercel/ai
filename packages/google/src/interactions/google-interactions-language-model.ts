@@ -482,7 +482,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
   async doGenerate(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4GenerateResult> {
-    const { args, warnings, isAgent, pollingTimeoutMs } =
+    const { args, warnings, isAgent, isBackground, pollingTimeoutMs } =
       await this.getArgs(options);
 
     const url = `${this.config.baseURL}/interactions`;
@@ -511,12 +511,12 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     } = postResult;
 
     /*
-     * Agent calls may return a non-terminal status (`in_progress` /
-     * `requires_action`) when invoked with `background: true`. Poll
-     * `GET /interactions/{id}` until terminal so the user-facing surface
-     * matches a synchronous call.
+     * Agent calls and `background: true` calls (e.g. Gemini 4 long decode,
+     * where the server runs every hop) may return a non-terminal status
+     * (`in_progress` / `requires_action`). Poll `GET /interactions/{id}` until
+     * terminal so the user-facing surface matches a synchronous call.
      */
-    if (isAgent && !isTerminalStatus(response.status)) {
+    if ((isAgent || isBackground) && !isTerminalStatus(response.status)) {
       const polled = await pollGoogleInteractionUntilTerminal({
         baseURL: this.config.baseURL,
         interactionId: response.id,

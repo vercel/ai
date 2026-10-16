@@ -27,7 +27,7 @@ import {
 import {
   applyCredentialForwarding,
   classifyDiskLog,
-  createSandboxCredentialEnvironment,
+  resolveSandboxCredentialEnvironment,
   createBridgeToken,
   experimental_createBridgeUserMessageSubmitter,
   createBridgeErrorHandler,
@@ -82,7 +82,7 @@ type ClaudeCodeRespawnStrategy = 'replay' | 'rerun';
 /**
  * Value to use in User-Agent and `x-client-app` headers.
  */
-const CLAUDE_CODE_CLIENT_APP = `ai-sdk/harness-claude-code/${VERSION}`;
+const CLAUDE_CODE_CLIENT_APP = `ai-sdk-harness-claude-code/${VERSION}`;
 
 export type ClaudeCodeHarnessSettings = {
   readonly auth?: ClaudeCodeAuthenticationMode;
@@ -102,6 +102,16 @@ export type ClaudeCodeHarnessSettings = {
    * back to the caller. Unset means the CLI's default.
    */
   readonly maxTurns?: number;
+  /**
+   * Enables periodic AI-generated progress summaries for running subagents.
+   * The summaries are forwarded in raw `task_progress` stream parts.
+   */
+  readonly agentProgressSummaries?: boolean;
+  /**
+   * Forwards subagent text and thinking messages in addition to tool activity.
+   * Subagent messages are exposed as raw stream parts.
+   */
+  readonly forwardSubagentText?: boolean;
   /**
    * Environment variables for the Claude Code process. These values are
    * merged over the sandbox bridge process environment.
@@ -393,6 +403,27 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
       }),
     }),
     toolUseKind: 'bash',
+  },
+  ListAgents: {
+    ...tool({
+      description: 'List agents that can receive messages',
+      inputSchema: z.strictObject({
+        channel: z
+          .string()
+          .max(256)
+          .optional()
+          .describe('Not available in this build; leave unset.'),
+        q: z
+          .string()
+          .max(256)
+          .optional()
+          .describe('Not available in this build; leave unset.'),
+      }),
+      outputSchema: z.object({
+        listing: z.string().describe('Formatted list of reachable agents'),
+      }),
+    }),
+    toolUseKind: 'readonly',
   },
   ListMcpResources: {
     ...tool({
@@ -887,13 +918,14 @@ export function createClaudeCode(
         sandboxSession.addRequestTransformations != null
       ) {
         sandboxCredentialEnvironment =
-          resumeData?.sandboxCredentialEnvironment ??
-          (await createSandboxCredentialEnvironment({
+          await resolveSandboxCredentialEnvironment({
             environment: claudeEnvironment,
             credentialEnvironmentVariables:
               CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
             credentialForwarding: settings.credentialForwarding,
-          }));
+            previousSandboxCredentialEnvironment:
+              resumeData?.sandboxCredentialEnvironment,
+          });
         sandboxClaudeEnvironment = {
           ...claudeEnvironment,
           ...sandboxCredentialEnvironment,
@@ -1035,6 +1067,8 @@ export function createClaudeCode(
             // sandbox is left running, stopped, or destroyed.
             proc: undefined,
             maxTurns: settings.maxTurns,
+            agentProgressSummaries: settings.agentProgressSummaries,
+            forwardSubagentText: settings.forwardSubagentText,
             env: sandboxClaudeEnvironment,
             thinking,
             effort: settings.effort,
@@ -1196,6 +1230,8 @@ export function createClaudeCode(
         finishListenerAttachment,
         proc,
         maxTurns: settings.maxTurns,
+        agentProgressSummaries: settings.agentProgressSummaries,
+        forwardSubagentText: settings.forwardSubagentText,
         env: sandboxClaudeEnvironment,
         thinking,
         effort: settings.effort,
@@ -1512,6 +1548,8 @@ function createSession({
   finishListenerAttachment,
   proc,
   maxTurns,
+  agentProgressSummaries,
+  forwardSubagentText,
   env,
   thinking,
   effort,
@@ -1537,6 +1575,8 @@ function createSession({
   /** Undefined on `attach` — the live bridge was spawned by another process. */
   proc: Experimental_SandboxProcess | undefined;
   maxTurns: number | undefined;
+  agentProgressSummaries: boolean | undefined;
+  forwardSubagentText: boolean | undefined;
   env: Readonly<Record<string, string>> | undefined;
   thinking: ClaudeCodeThinkingConfig;
   effort: 'low' | 'medium' | 'high' | 'xhigh' | 'max' | undefined;
@@ -1810,6 +1850,10 @@ function createSession({
           : {}),
         model: promptOpts.model,
         maxTurns,
+        ...(agentProgressSummaries !== undefined
+          ? { agentProgressSummaries }
+          : {}),
+        ...(forwardSubagentText !== undefined ? { forwardSubagentText } : {}),
         ...(env !== undefined ? { env } : {}),
         thinking,
         ...(effort !== undefined ? { effort } : {}),
@@ -1827,6 +1871,8 @@ function createSession({
             : {}),
       };
       pendingResumeFlag = false;
+      // Recovery starts a native turn once. Later continuations attach to it.
+      rerunContinue = false;
       channel.send(startMessage);
 
       return control;
@@ -1850,6 +1896,7 @@ function createSession({
       // Same as `doPromptTurn`: an already-aborted signal settled the turn in
       // `wireTurn`, so don't re-drive the thread nobody is waiting on.
       if (rerunContinue && !continueOpts.abortSignal?.aborted) {
+        rerunContinue = false;
         pendingResumeFlag = false;
         channel.send({
           type: 'start' as const,
@@ -1874,6 +1921,10 @@ function createSession({
             : {}),
           model: continueOpts.model,
           maxTurns,
+          ...(agentProgressSummaries !== undefined
+            ? { agentProgressSummaries }
+            : {}),
+          ...(forwardSubagentText !== undefined ? { forwardSubagentText } : {}),
           ...(env !== undefined ? { env } : {}),
           thinking,
           ...(effort !== undefined ? { effort } : {}),

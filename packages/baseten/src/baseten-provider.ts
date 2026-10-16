@@ -164,7 +164,7 @@ export function createBaseten(
         })}`,
         ...options.headers,
       },
-      `ai-sdk/baseten/${VERSION}`,
+      `ai-sdk-baseten/${VERSION}`,
     );
 
   interface CommonModelConfig {

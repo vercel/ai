@@ -27,7 +27,7 @@ import {
   applyCredentialForwarding,
   classifyDiskLog,
   createBridgeToken,
-  createSandboxCredentialEnvironment,
+  resolveSandboxCredentialEnvironment,
   createBridgeErrorHandler,
   createBridgeStartupError,
   experimental_createBridgeUserMessageSubmitter,
@@ -90,7 +90,7 @@ const DEFAULT_CODEX_MODEL = 'gpt-5.5';
 /**
  * Value to use in User-Agent and `x-client-app` headers.
  */
-const CODEX_CLIENT_APP = `ai-sdk/harness-codex/${VERSION}`;
+const CODEX_CLIENT_APP = `ai-sdk-harness-codex/${VERSION}`;
 
 export type CodexHarnessSettings = {
   readonly auth?: CodexAuthenticationMode;
@@ -295,13 +295,14 @@ export function createCodex(
         sandboxSession.addRequestTransformations != null
       ) {
         sandboxCredentialEnvironment =
-          resumeData?.sandboxCredentialEnvironment ??
-          (await createSandboxCredentialEnvironment({
+          await resolveSandboxCredentialEnvironment({
             environment: resolvedAuthEnvironment,
             credentialEnvironmentVariables:
               CODEX_CREDENTIAL_ENVIRONMENT_VARIABLES,
             credentialForwarding: settings.credentialForwarding,
-          }));
+            previousSandboxCredentialEnvironment:
+              resumeData?.sandboxCredentialEnvironment,
+          });
         sandboxAuthEnvironment = {
           ...resolvedAuthEnvironment,
           ...sandboxCredentialEnvironment,
@@ -816,10 +817,12 @@ function createSession({
       instructions,
       tools,
     });
+    // Legacy fingerprints used order-sensitive JSON, so replace them once
+    // instead of restarting a thread during the fingerprint format upgrade.
     const restartThread =
       latestThreadId != null &&
       (skillsResult.changed ||
-        (latestTurnConfigurationFingerprint != null &&
+        (latestTurnConfigurationFingerprint?.startsWith('v2:') === true &&
           latestTurnConfigurationFingerprint !== nextFingerprint));
     latestTurnConfigurationFingerprint = nextFingerprint;
     if (restartThread) {
@@ -955,6 +958,7 @@ function createSession({
           toolCallId: input.toolCallId,
           output: input.output,
           isError: input.isError,
+          ...(input.toolResult != null ? { toolResult: input.toolResult } : {}),
         });
       },
       submitToolApproval: async input => {
@@ -1047,6 +1051,8 @@ function createSession({
         ...(debug ? { debug } : {}),
       };
       pendingResumeThreadId = undefined;
+      // Recovery starts a native turn once. Later continuations attach to it.
+      rerunContinue = false;
       turn.sendStart(() => channel.send(startMessage));
 
       return turn.control;
@@ -1091,6 +1097,7 @@ function createSession({
        * fallback; the common slice path is `attach`.
        */
       if (rerunContinue) {
+        rerunContinue = false;
         const threadId = pendingResumeThreadId ?? latestThreadId;
         pendingResumeThreadId = undefined;
         turn.sendStart(() =>
@@ -1350,9 +1357,20 @@ function fingerprintCodexTurnConfiguration({
     inputSchema: unknown;
   }>;
 }): string {
-  return createHash('sha256')
-    .update(JSON.stringify({ instructions: instructions ?? null, tools }))
-    .digest('hex');
+  const canonical = JSON.stringify(
+    { instructions: instructions ?? null, tools },
+    (_key, value) => {
+      if (value == null || typeof value !== 'object' || Array.isArray(value)) {
+        return value;
+      }
+      return Object.fromEntries(
+        Object.entries(value).sort(([left], [right]) =>
+          left < right ? -1 : left > right ? 1 : 0,
+        ),
+      );
+    },
+  );
+  return `v2:${createHash('sha256').update(canonical).digest('hex')}`;
 }
 
 /*

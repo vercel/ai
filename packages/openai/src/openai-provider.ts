@@ -1,6 +1,6 @@
 import type {
   Experimental_BatchV4 as BatchV4,
-  Experimental_EvaluationModelV4 as EvaluationModelV4,
+  Experimental_DecisionModelV4 as DecisionModelV4,
   EmbeddingModelV4,
   FilesV4,
   ImageModelV4,
@@ -20,9 +20,13 @@ import {
   type FetchFunction,
   type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
-import { Experimental_EvaluationLanguageModel as EvaluationLanguageModel } from '@ai-sdk/provider-utils/experimental-evaluation';
+import {
+  DecisionOpenAIModel,
+  type OpenAIDecisionModelId,
+} from './openai-decision-model';
 import { OpenAIChatLanguageModel } from './chat/openai-chat-language-model';
 import type { OpenAIChatModelId } from './chat/openai-chat-language-model-options';
+import type { OpenAICompletionModelId } from './completion/openai-completion-language-model-options';
 import { OpenAIEmbeddingModel } from './embedding/openai-embedding-model';
 import { OpenAIFiles } from './files/openai-files';
 import type { OpenAIEmbeddingModelId } from './embedding/openai-embedding-model-options';
@@ -48,8 +52,12 @@ import { VERSION } from './version';
 export interface OpenAIProvider extends ProviderV4 {
   (modelId: OpenAIResponsesModelId): LanguageModelV4;
 
-  /** Creates an experimental Choice/Score/Boolean evaluation model using the Responses API. */
-  evaluationModel(modelId: OpenAIResponsesModelId): EvaluationModelV4;
+  /** Creates an experimental Choice/Score/Boolean decision model using the Decisions API. */
+  decisionModel(modelId: OpenAIDecisionModelId): DecisionModelV4;
+  /** @deprecated Use `decisionModel` instead. */
+  evaluationModel(modelId: OpenAIDecisionModelId): DecisionModelV4 & {
+    doEvaluate: DecisionModelV4['doDecide'];
+  };
 
   /**
    * Creates an OpenAI model for text generation.
@@ -65,6 +73,13 @@ export interface OpenAIProvider extends ProviderV4 {
    * Creates an OpenAI responses API model for text generation.
    */
   responses(modelId: OpenAIResponsesModelId): LanguageModelV4;
+
+  /**
+   * @deprecated The Completions API is no longer supported. This method throws.
+   * Use `openai.chat()` or `openai.responses()` instead.
+   * Will be removed in the next major version.
+   */
+  completion(modelId: OpenAICompletionModelId): LanguageModelV4;
 
   /**
    * Creates a model for text embeddings.
@@ -148,6 +163,12 @@ export interface OpenAIProvider extends ProviderV4 {
 }
 
 export interface OpenAIProviderSettings {
+  /** Settings for downloading JSON Lines batch results. */
+  batchResultDownloads?: {
+    /** Maximum UTF-8 bytes per row, excluding LF. Defaults to 64 MiB. */
+    maxLineBytes?: number;
+  };
+
   /**
    * Base URL for the OpenAI API calls.
    */
@@ -221,7 +242,7 @@ export function createOpenAI(
         'OpenAI-Project': options.project,
         ...options.headers,
       },
-      `ai-sdk/openai/${VERSION}`,
+      `ai-sdk-openai/${VERSION}`,
     );
 
   const createChatModel = (modelId: OpenAIChatModelId) =>
@@ -317,6 +338,7 @@ export function createOpenAI(
   const createBatch = () =>
     new OpenAIBatch({
       provider: `${providerName}.batch`,
+      maxLineBytes: options.batchResultDownloads?.maxLineBytes,
       config: {
         provider: `${providerName}.responses`,
         baseURL,
@@ -335,12 +357,24 @@ export function createOpenAI(
   provider.specificationVersion = 'v4' as const;
   provider.languageModel = createLanguageModel;
   provider.chat = createChatModel;
+  provider.completion = (
+    _modelId: OpenAICompletionModelId,
+  ): LanguageModelV4 => {
+    throw new Error(
+      'The OpenAI Completions API is no longer supported. Use openai.chat() or openai.responses() instead.',
+    );
+  };
   provider.responses = createResponsesModel;
-  provider.evaluationModel = (modelId: OpenAIResponsesModelId) =>
-    new EvaluationLanguageModel({
-      model: createResponsesModel(modelId),
-      provider: `${providerName}.evaluation`,
+  provider.decisionModel = (modelId: OpenAIDecisionModelId) =>
+    new DecisionOpenAIModel(modelId, {
+      baseURL,
+      url: ({ path }) => `${baseURL}${path}`,
+      headers: getHeaders,
+      fetch: options.fetch,
+      provider: `${providerName}.decision`,
     });
+  provider.evaluationModel =
+    provider.decisionModel as OpenAIProvider['evaluationModel'];
   provider.embedding = createEmbeddingModel;
   provider.embeddingModel = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;

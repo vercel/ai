@@ -5,9 +5,9 @@ description: API Reference for uploadFile.
 
 # `uploadFile()`
 
-Uploads a file to a provider and returns a `ProviderReference` that can be used in
-subsequent API calls, such as in message content parts passed to `generateText` or
-`streamText`.
+Uploads a file to a provider and returns a result whose `providerReference` (a
+`ProviderReference`) can be used in subsequent API calls, such as in message
+content parts passed to `generateText` or `streamText`.
 
 ```ts
 import { uploadFile } from 'ai';
@@ -74,7 +74,7 @@ const { providerReference } = await uploadFile({
       type: 'ProviderOptions',
       isOptional: true,
       description:
-        'Additional provider-specific options. For example, OpenAI requires a `purpose` field.',
+        'Additional provider-specific options. For example, OpenAI accepts a `purpose` field, which defaults to `"assistants"`.',
     },
   ]}
 />

@@ -100,7 +100,7 @@ Spans appear in the [Respan traces page](https://platform.respan.ai/platform/tra
 
 ## Gateway routing (optional)
 
-To use Respan as a unified gateway across providers, point any AI SDK provider at `https://api.respan.ai/api` with your `RESPAN_API_KEY`. Provider keys are managed in Respan; only the Respan key is needed at runtime.
+To use Respan as a unified gateway across providers, point your AI SDK provider at the Respan gateway with your `RESPAN_API_KEY`. For the OpenAI provider, use `https://api.respan.ai/api` as the base URL. Provider keys are managed in Respan; only the Respan key is needed at runtime.
 
 ```ts
 import { createOpenAI } from '@ai-sdk/openai';

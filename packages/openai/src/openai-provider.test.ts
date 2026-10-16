@@ -30,6 +30,18 @@ const createFetchMock = () =>
   vi.fn().mockResolvedValue(createSuccessfulResponse());
 
 describe('createOpenAI', () => {
+  describe('completion', () => {
+    it('throws with migration guidance without making a request', () => {
+      const fetch = vi.fn();
+      const openai = createOpenAI({ fetch });
+
+      expect(() => openai.completion('gpt-3.5-turbo-instruct')).toThrow(
+        'The OpenAI Completions API is no longer supported. Use openai.chat() or openai.responses() instead.',
+      );
+      expect(fetch).not.toHaveBeenCalled();
+    });
+  });
+
   describe('baseURL configuration', () => {
     const originalBaseUrl = process.env.OPENAI_BASE_URL;
 

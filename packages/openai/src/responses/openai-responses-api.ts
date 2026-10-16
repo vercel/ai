@@ -6,6 +6,7 @@ import {
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import type { OpenAIResponsesToolResultOptions } from './openai-responses-language-model-options';
 
 const jsonValueSchema: z.ZodType<JSONValue> = z.lazy(() =>
   z.union([
@@ -162,6 +163,11 @@ export type OpenAIResponsesInputItem =
   | OpenAIResponsesAssistantMessage
   | OpenAIResponsesFunctionCall
   | OpenAIResponsesFunctionCallOutput
+  | {
+      type: 'additional_tools';
+      role: 'developer';
+      tools: NonNullable<OpenAIResponsesToolResultOptions['additionalTools']>;
+    }
   | OpenAIResponsesProgram
   | OpenAIResponsesProgramOutput
   | OpenAIResponsesCustomToolCall
@@ -177,6 +183,7 @@ export type OpenAIResponsesInputItem =
   | OpenAIResponsesApplyPatchCallOutput
   | OpenAIResponsesToolSearchCall
   | OpenAIResponsesToolSearchOutput
+  | OpenAIResponsesWebSearchCall
   | OpenAIResponsesReasoning
   | OpenAIResponsesItemReference
   | OpenAIResponsesCompactionItem
@@ -340,6 +347,13 @@ export type OpenAIResponsesProgramOutput = {
   call_id: string;
   result: string;
   status: 'completed' | 'incomplete';
+};
+
+export type OpenAIResponsesWebSearchCall = {
+  type: 'web_search_call';
+  id: string;
+  status: 'completed';
+  action: OpenAIResponsesWebSearchAction;
 };
 
 export type OpenAIResponsesCustomToolCall = {

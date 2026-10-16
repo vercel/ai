@@ -82,7 +82,8 @@ export default function Page() {
       {messages.map(message => message)}
 
       <form
-        onSubmit={async () => {
+        onSubmit={async event => {
+          event.preventDefault();
           const response: ReactNode = await sendMessage(input);
           setMessages(msgs => [...msgs, response]);
         }}
@@ -642,9 +643,9 @@ export async function generateSampleNotifications() {
     for await (const partialObject of partialOutputStream) {
       stream.update(partialObject);
     }
-  })();
 
-  stream.done();
+    stream.done();
+  })();
 
   return { partialNotificationsStream: stream.value };
 }

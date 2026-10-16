@@ -13,7 +13,7 @@ import { z } from 'zod/v4';
 import { VERSION } from './version';
 import { resolveCursorSubscriptionEnvironment } from './cursor-subscription';
 
-const CURSOR_CLIENT_APP = `ai-sdk/harness-cursor/${VERSION}`;
+const CURSOR_CLIENT_APP = `ai-sdk-harness-cursor/${VERSION}`;
 
 export type CursorAuthenticationMode = ACPAuthenticationMode;
 
@@ -356,6 +356,7 @@ export function createCursor(
   }
 
   return createACP({
+    nonTextContentTypes: ['image'],
     auth: settings.auth,
     resolveAuthenticationEnvironment: resolveCursorSubscriptionEnvironment,
     credentialForwarding: settings.credentialForwarding,

@@ -15,6 +15,7 @@ export type { OpenAIRealtimeModelConfig as Experimental_OpenAIRealtimeModelConfi
 export type {
   OpenAILanguageModelResponsesOptions,
   OpenAIResponsesSystemMessageOptions,
+  OpenAIResponsesToolResultOptions,
   /** @deprecated Use `OpenAILanguageModelResponsesOptions` instead. */
   OpenAILanguageModelResponsesOptions as OpenAIResponsesProviderOptions,
 } from './responses/openai-responses-language-model-options';
@@ -29,6 +30,7 @@ export type {
   OpenAIImageModelGenerationOptions,
   OpenAIImageModelEditOptions,
 } from './image/openai-image-model-options';
+export type { OpenAILanguageModelCompletionOptions } from './completion/openai-completion-language-model-options';
 export type { OpenAIEmbeddingModelOptions } from './embedding/openai-embedding-model-options';
 export type { OpenAISpeechModelOptions } from './speech/openai-speech-model-options';
 export type { OpenAITranscriptionModelOptions } from './transcription/openai-transcription-model-options';
@@ -59,3 +61,5 @@ export type {
   OpenaiResponsesSourceDocumentProviderMetadata,
 } from './responses/openai-responses-provider-metadata';
 export { VERSION } from './version';
+export type { OpenAIDecisionModelId } from './openai-decision-model';
+export type { OpenAIDecisionModelOptions } from './openai-decision-model-options';

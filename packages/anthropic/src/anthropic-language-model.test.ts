@@ -18,6 +18,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import type { AnthropicLanguageModelOptions } from './anthropic-language-model-options';
 import { getModelCapabilities } from './anthropic-language-model';
+import type { AnthropicTextProviderMetadata } from './anthropic-provider-metadata';
 import { anthropic, createAnthropic } from './anthropic-provider';
 
 vi.mock('./version', () => ({
@@ -195,7 +196,167 @@ describe('AnthropicLanguageModel', () => {
     );
   });
 
+  describe.each(['generate', 'stream'] as const)(
+    'JSON response tool with manual thinking (%s)',
+    method => {
+      it.each([
+        { modelId: 'claude-sonnet-4-20250514', structuredOutputMode: 'auto' },
+        { modelId: 'claude-sonnet-4-5', structuredOutputMode: 'jsonTool' },
+      ] as const)(
+        'should fall back to auto tool choice for $modelId in $structuredOutputMode mode',
+        async ({ modelId, structuredOutputMode }) => {
+          const options = {
+            prompt: TEST_PROMPT,
+            maxOutputTokens: 1000,
+            providerOptions: {
+              anthropic: {
+                structuredOutputMode,
+                thinking: { type: 'enabled', budgetTokens: 5000 },
+              },
+            },
+            responseFormat: {
+              type: 'json' as const,
+              schema: { type: 'object' as const, properties: {} },
+            },
+          };
+          const warnings = [
+            {
+              type: 'unsupported',
+              feature: 'toolChoice',
+              details: expect.stringContaining(
+                'not supported with this model or thinking configuration',
+              ),
+            },
+          ];
+
+          if (method === 'generate') {
+            prepareJsonFixtureResponse('anthropic-json-tool.1');
+            const result = await provider(modelId).doGenerate(options);
+            expect(result.warnings).toEqual(warnings);
+            expect(result.content).toEqual([
+              { type: 'text', text: expect.stringContaining('"elements"') },
+            ]);
+            expect(result.finishReason.unified).toBe('stop');
+          } else {
+            prepareChunksFixtureResponse('anthropic-json-tool.1');
+            const result = await provider(modelId).doStream(options);
+            const chunks = await convertReadableStreamToArray(result.stream);
+            expect(chunks[0]).toEqual({ type: 'stream-start', warnings });
+            expect(chunks.some(chunk => chunk.type === 'error')).toBe(false);
+          }
+
+          const body = await server.calls[0].requestBodyJson;
+          expect(body.thinking).toEqual({
+            type: 'enabled',
+            budget_tokens: 5000,
+          });
+          expect(body.tool_choice).toEqual({
+            type: 'auto',
+            disable_parallel_tool_use: true,
+          });
+          expect(body.tools).toMatchObject([
+            {
+              name: 'json',
+              description: 'Respond with a JSON object.',
+              input_schema: options.responseFormat.schema,
+            },
+          ]);
+        },
+      );
+    },
+  );
+
   describe('doGenerate', () => {
+    describe('forced tool choice with thinking', () => {
+      const tools = ['lookup', 'other'].map(name => ({
+        type: 'function' as const,
+        name,
+        inputSchema: { type: 'object' as const, properties: {} },
+      }));
+
+      describe.each([
+        { type: 'required' as const },
+        { type: 'tool' as const, toolName: 'lookup' },
+      ])('$type', toolChoice => {
+        it.each(['providerOptions', 'reasoning'] as const)(
+          'should fall back to auto for manual thinking set through %s',
+          async source => {
+            prepareJsonFixtureResponse('anthropic-text');
+
+            const result = await provider('claude-haiku-4-5').doGenerate({
+              prompt: TEST_PROMPT,
+              tools,
+              toolChoice,
+              ...(source === 'reasoning'
+                ? { reasoning: 'low' as const }
+                : {
+                    providerOptions: {
+                      anthropic: {
+                        thinking: { type: 'enabled', budgetTokens: 5000 },
+                      },
+                    },
+                  }),
+            });
+
+            const body = await server.calls[0].requestBodyJson;
+            expect(body.thinking.type).toBe('enabled');
+            expect(body.tool_choice).toEqual({ type: 'auto' });
+            expect(
+              body.tools.map((tool: { name: string }) => tool.name),
+            ).toEqual(
+              toolChoice.type === 'tool' ? ['lookup'] : ['lookup', 'other'],
+            );
+            expect(result.warnings).toEqual([
+              {
+                type: 'unsupported',
+                feature: 'toolChoice',
+                details: expect.stringContaining(
+                  'not supported with this model or thinking configuration',
+                ),
+              },
+            ]);
+          },
+        );
+
+        it.each([
+          { modelId: 'claude-haiku-4-5', thinkingType: 'disabled' },
+          { modelId: 'claude-sonnet-4-6', thinkingType: 'adaptive' },
+          // Budget thinking is normalized to adaptive on this model.
+          { modelId: 'claude-haiku-5-5', thinkingType: 'enabled' },
+        ])(
+          'should preserve forced tool choice for $modelId with $thinkingType thinking',
+          async ({ modelId, thinkingType }) => {
+            prepareJsonFixtureResponse('anthropic-text');
+
+            const result = await provider(modelId).doGenerate({
+              prompt: TEST_PROMPT,
+              tools,
+              toolChoice,
+              providerOptions: {
+                anthropic: {
+                  thinking: { type: thinkingType },
+                },
+              },
+            });
+
+            const body = await server.calls[0].requestBodyJson;
+            expect(body.thinking.type).toBe(
+              thinkingType === 'disabled' ? 'disabled' : 'adaptive',
+            );
+            expect(body.tool_choice).toEqual(
+              toolChoice.type === 'tool'
+                ? { type: 'tool', name: 'lookup' }
+                : { type: 'any' },
+            );
+            expect(body.tools).toHaveLength(2);
+            expect(result.warnings).not.toContainEqual(
+              expect.objectContaining({ feature: 'toolChoice' }),
+            );
+          },
+        );
+      });
+    });
+
     describe('reasoning (thinking enabled)', () => {
       it('should pass thinking config; add budget tokens; clear out temperature, top_p, top_k; and return warnings', async () => {
         prepareJsonFixtureResponse('anthropic-text');
@@ -537,6 +698,22 @@ describe('AnthropicLanguageModel', () => {
           details:
             'reasoning "xhigh" is not directly supported by this model. mapped to effort "max".',
         });
+      });
+
+      it('should map reasoning "max" directly to adaptive thinking with effort "max"', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const result = await provider('claude-sonnet-4-6').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'max',
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody).toMatchObject({
+          thinking: { type: 'adaptive', display: 'summarized' },
+          output_config: { effort: 'max' },
+        });
+        expect(result.warnings).toEqual([]);
       });
 
       it('should map reasoning "minimal" to adaptive thinking with effort "low" and emit compatibility warning', async () => {
@@ -2077,16 +2254,76 @@ describe('AnthropicLanguageModel', () => {
         ).toBeUndefined();
       });
 
-      it('should drop the fallback content block and surface the fallback iteration', async () => {
+      it('should add the fallback beta when replaying a fallback block without a fallback chain', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await provider('claude-opus-4-8').doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'question' }],
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'custom',
+                  kind: 'anthropic.fallback',
+                  providerOptions: {
+                    anthropic: {
+                      type: 'fallback',
+                      from: { model: 'claude-opus-5-5' },
+                      to: { model: 'claude-opus-4-8' },
+                    },
+                  },
+                },
+                { type: 'text', text: 'the answer' },
+              ],
+            },
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'follow-up' }],
+            },
+          ],
+          maxOutputTokens: 16,
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.fallbacks).toBeUndefined();
+        expect(body.messages[1].content[0]).toEqual({
+          type: 'fallback',
+          from: { model: 'claude-opus-5-5' },
+          to: { model: 'claude-opus-4-8' },
+        });
+        expect(server.calls[0].requestHeaders['anthropic-beta']).toBe(
+          'server-side-fallback-2026-06-01',
+        );
+      });
+
+      it('should preserve the fallback content block and surface the fallback iteration', async () => {
         prepareJsonFixtureResponse('anthropic-fallback');
 
         const result = await provider('claude-fable-5').doGenerate({
           prompt: TEST_PROMPT,
         });
 
-        // The `fallback` content block is dropped; only the served answer text remains.
         expect(result.content).toMatchInlineSnapshot(`
           [
+            {
+              "kind": "anthropic.fallback",
+              "providerMetadata": {
+                "anthropic": {
+                  "from": {
+                    "model": "claude-fable-5",
+                  },
+                  "to": {
+                    "model": "claude-opus-4-8",
+                  },
+                  "type": "fallback",
+                },
+              },
+              "type": "custom",
+            },
             {
               "text": "The printing press was invented by Johannes Gutenberg around 1440.",
               "type": "text",
@@ -2149,7 +2386,7 @@ describe('AnthropicLanguageModel', () => {
         'test-header': 'test-value',
       });
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/anthropic/0.0.0-test`,
+        `ai-sdk-anthropic/0.0.0-test`,
       );
     });
 
@@ -2930,6 +3167,43 @@ describe('AnthropicLanguageModel', () => {
       expect(result.content).toMatchInlineSnapshot(`
         [
           {
+            "citations": [
+              {
+                "citedText": "Revenue increased by 25% year over year",
+                "source": {
+                  "filename": "financial-report.pdf",
+                  "id": "0",
+                  "mediaType": "application/pdf",
+                  "providerMetadata": {
+                    "anthropic": {
+                      "cited_text": "Revenue increased by 25% year over year",
+                      "document_index": 0,
+                      "document_title": "Financial Report 2023",
+                      "end_page_number": 6,
+                      "start_page_number": 5,
+                      "type": "page_location",
+                    },
+                  },
+                  "sourceType": "document",
+                  "title": "Financial Report 2023",
+                  "type": "source",
+                },
+              },
+            ],
+            "providerMetadata": {
+              "anthropic": {
+                "citations": [
+                  {
+                    "cited_text": "Revenue increased by 25% year over year",
+                    "document_index": 0,
+                    "document_title": "Financial Report 2023",
+                    "end_page_number": 6,
+                    "start_page_number": 5,
+                    "type": "page_location",
+                  },
+                ],
+              },
+            },
             "text": "Based on the document, the results show positive growth.",
             "type": "text",
           },
@@ -3019,6 +3293,43 @@ describe('AnthropicLanguageModel', () => {
       expect(result.content).toMatchInlineSnapshot(`
         [
           {
+            "citations": [
+              {
+                "citedText": "important information",
+                "source": {
+                  "filename": "test.txt",
+                  "id": "0",
+                  "mediaType": "text/plain",
+                  "providerMetadata": {
+                    "anthropic": {
+                      "cited_text": "important information",
+                      "document_index": 0,
+                      "document_title": "Test Document",
+                      "end_char_index": 35,
+                      "start_char_index": 15,
+                      "type": "char_location",
+                    },
+                  },
+                  "sourceType": "document",
+                  "title": "Test Document",
+                  "type": "source",
+                },
+              },
+            ],
+            "providerMetadata": {
+              "anthropic": {
+                "citations": [
+                  {
+                    "cited_text": "important information",
+                    "document_index": 0,
+                    "document_title": "Test Document",
+                    "end_char_index": 35,
+                    "start_char_index": 15,
+                    "type": "char_location",
+                  },
+                ],
+              },
+            },
             "text": "The text shows important information.",
             "type": "text",
           },
@@ -3452,6 +3763,31 @@ describe('AnthropicLanguageModel', () => {
 
         it('should include web search tool call and result in content', async () => {
           expect(result.content).toMatchSnapshot();
+        });
+
+        it('should expose search results as sources and keep citations in text metadata', () => {
+          const sources = result.content.filter(
+            part => part.type === 'source' && part.sourceType === 'url',
+          );
+          const textParts = result.content.filter(part => part.type === 'text');
+
+          expect(
+            result.content
+              .filter(part => part.type === 'text')
+              .flatMap(part => part.citations ?? []),
+          ).toHaveLength(3);
+          expect(sources).toHaveLength(10);
+          expect(new Set(sources.map(source => source.url)).size).toBe(10);
+          expect(
+            textParts.flatMap(
+              part =>
+                (
+                  part.providerMetadata as
+                    | AnthropicTextProviderMetadata
+                    | undefined
+                )?.anthropic.citations ?? [],
+            ),
+          ).toHaveLength(3);
         });
       });
 
@@ -7124,6 +7460,149 @@ describe('AnthropicLanguageModel', () => {
   });
 
   describe('doStream', () => {
+    it.each([
+      {
+        type: 'page_location',
+        cited_text: 'Supporting passage',
+        document_index: 0,
+        document_title: 'Report',
+        start_page_number: 1,
+        end_page_number: 2,
+      },
+      {
+        type: 'char_location',
+        cited_text: 'Supporting passage',
+        document_index: 0,
+        document_title: 'Report',
+        start_char_index: 0,
+        end_char_index: 18,
+      },
+      {
+        type: 'content_block_location',
+        cited_text: 'Supporting passage',
+        document_index: 0,
+        document_title: 'Report',
+        start_block_index: 0,
+        end_block_index: 1,
+        file_id: null,
+      },
+      {
+        type: 'web_search_result_location',
+        cited_text: 'Supporting passage',
+        title: 'Report',
+        url: 'https://example.com/report',
+        encrypted_index: 'opaque',
+      },
+      {
+        type: 'search_result_location',
+        cited_text: 'Supporting passage',
+        title: 'Report',
+        source: 'https://example.com/report',
+        search_result_index: 0,
+        start_block_index: 0,
+        end_block_index: 1,
+      },
+    ])(
+      'preserves $type citations on streamed text with generation parity',
+      async citation => {
+        const prompt: LanguageModelV4Prompt = [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: { type: 'data', data: 'base64PDFdata' },
+                mediaType: 'application/pdf',
+                filename: 'report.pdf',
+                providerOptions: {
+                  anthropic: { citations: { enabled: true } },
+                },
+              },
+            ],
+          },
+        ];
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            id: 'msg_citations',
+            type: 'message',
+            role: 'assistant',
+            model: 'claude-3-haiku-20240307',
+            content: [{ type: 'text', text: 'Answer', citations: [citation] }],
+            stop_reason: 'end_turn',
+            stop_sequence: null,
+            usage: { input_tokens: 1, output_tokens: 1 },
+          },
+        };
+        const generated = await model.doGenerate({ prompt });
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            {
+              type: 'message_start',
+              message: {
+                id: 'msg_citations',
+                model: 'claude-3-haiku-20240307',
+                usage: { input_tokens: 1, output_tokens: 0 },
+              },
+            },
+            {
+              type: 'content_block_start',
+              index: 0,
+              content_block: { type: 'text', text: '' },
+            },
+            {
+              type: 'content_block_delta',
+              index: 0,
+              delta: { type: 'text_delta', text: 'Answer' },
+            },
+            {
+              type: 'content_block_delta',
+              index: 0,
+              delta: { type: 'citations_delta', citation },
+            },
+            { type: 'content_block_stop', index: 0 },
+            {
+              type: 'message_delta',
+              delta: { stop_reason: 'end_turn', stop_sequence: null },
+              usage: { output_tokens: 1 },
+            },
+            { type: 'message_stop' },
+          ].map(event => `data: ${JSON.stringify(event)}\n\n`),
+        };
+        const { stream } = await model.doStream({ prompt });
+        const events = await convertReadableStreamToArray(stream);
+        expect(events.filter(event => event.type === 'error')).toEqual([]);
+        const end = events.find(event => event.type === 'text-end');
+        const text = generated.content.find(part => part.type === 'text');
+        expect(end?.citations).toEqual(text?.citations);
+        expect(end?.citations).toEqual([
+          expect.objectContaining({
+            citedText: 'Supporting passage',
+            source: expect.objectContaining({ title: 'Report' }),
+          }),
+        ]);
+        expect(end?.providerMetadata).toEqual({
+          anthropic: { citations: [citation] },
+        });
+        if (citation.type === 'web_search_result_location') {
+          const expectedMetadata = {
+            anthropic: {
+              citedText: 'Supporting passage',
+              encryptedIndex: 'opaque',
+            },
+          };
+          expect(
+            events.find(event => event.type === 'source')?.providerMetadata,
+          ).toEqual(expectedMetadata);
+          expect(
+            generated.content.find(part => part.type === 'source')
+              ?.providerMetadata,
+          ).toEqual(expectedMetadata);
+        }
+      },
+    );
+
     describe('json schema response format (unsupported model)', () => {
       let result: Array<LanguageModelV4StreamPart>;
 
@@ -7205,6 +7684,27 @@ describe('AnthropicLanguageModel', () => {
               "id": "msg_01K2JbSUMYhez5RHoK9ZCj9U",
               "modelId": "claude-haiku-4-5-20251001",
               "type": "response-metadata",
+            },
+            {
+              "kind": "anthropic.message_start",
+              "providerMetadata": {
+                "anthropic": {
+                  "id": "msg_01K2JbSUMYhez5RHoK9ZCj9U",
+                  "model": "claude-haiku-4-5-20251001",
+                  "usage": {
+                    "cache_creation": {
+                      "ephemeral_1h_input_tokens": 0,
+                      "ephemeral_5m_input_tokens": 0,
+                    },
+                    "cache_creation_input_tokens": 0,
+                    "cache_read_input_tokens": 0,
+                    "input_tokens": 849,
+                    "output_tokens": 10,
+                    "service_tier": "standard",
+                  },
+                },
+              },
+              "type": "custom",
             },
             {
               "id": "0",
@@ -7360,6 +7860,27 @@ describe('AnthropicLanguageModel', () => {
               "id": "msg_01K2JbSUMYhez5RHoK9ZCj9U",
               "modelId": "claude-haiku-4-5-20251001",
               "type": "response-metadata",
+            },
+            {
+              "kind": "anthropic.message_start",
+              "providerMetadata": {
+                "anthropic": {
+                  "id": "msg_01K2JbSUMYhez5RHoK9ZCj9U",
+                  "model": "claude-haiku-4-5-20251001",
+                  "usage": {
+                    "cache_creation": {
+                      "ephemeral_1h_input_tokens": 0,
+                      "ephemeral_5m_input_tokens": 0,
+                    },
+                    "cache_creation_input_tokens": 0,
+                    "cache_read_input_tokens": 0,
+                    "input_tokens": 849,
+                    "output_tokens": 10,
+                    "service_tier": "standard",
+                  },
+                },
+              },
+              "type": "custom",
             },
             {
               "id": "1",
@@ -7553,6 +8074,27 @@ describe('AnthropicLanguageModel', () => {
                 "id": "msg_01CD3XaZfhNabxRt1SG5ybtK",
                 "modelId": "claude-haiku-4-5-20251001",
                 "type": "response-metadata",
+              },
+              {
+                "kind": "anthropic.message_start",
+                "providerMetadata": {
+                  "anthropic": {
+                    "id": "msg_01CD3XaZfhNabxRt1SG5ybtK",
+                    "model": "claude-haiku-4-5-20251001",
+                    "usage": {
+                      "cache_creation": {
+                        "ephemeral_1h_input_tokens": 0,
+                        "ephemeral_5m_input_tokens": 0,
+                      },
+                      "cache_creation_input_tokens": 0,
+                      "cache_read_input_tokens": 0,
+                      "input_tokens": 843,
+                      "output_tokens": 16,
+                      "service_tier": "standard",
+                    },
+                  },
+                },
+                "type": "custom",
               },
               {
                 "id": "toolu_019Zvehfe1XQWweT1pm7okyt",
@@ -7767,6 +8309,20 @@ describe('AnthropicLanguageModel', () => {
             "type": "response-metadata",
           },
           {
+            "kind": "anthropic.message_start",
+            "providerMetadata": {
+              "anthropic": {
+                "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
+                "model": "claude-3-haiku-20240307",
+                "usage": {
+                  "input_tokens": 17,
+                  "output_tokens": 1,
+                },
+              },
+            },
+            "type": "custom",
+          },
+          {
             "id": "0",
             "type": "text-start",
           },
@@ -7829,6 +8385,95 @@ describe('AnthropicLanguageModel', () => {
       `);
     });
 
+    it.each([2, 0, undefined])(
+      'should emit raw message-start usage with output tokens %s by default',
+      async outputTokens => {
+        const initialUsage = {
+          input_tokens: 10,
+          output_tokens: outputTokens,
+          cache_read_input_tokens: 20,
+          cache_creation_input_tokens: 30,
+          service_tier: 'standard',
+        };
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            {
+              type: 'message_start',
+              message: {
+                id: 'msg_initial_usage',
+                model: 'claude-haiku-4-5',
+                usage: initialUsage,
+              },
+            },
+            {
+              type: 'message_delta',
+              delta: { stop_reason: 'end_turn', stop_sequence: null },
+              usage: {
+                input_tokens: 12,
+                output_tokens: 7,
+                cache_read_input_tokens: 22,
+                cache_creation_input_tokens: 32,
+              },
+            },
+            { type: 'message_stop' },
+          ].map(chunk => `data: ${JSON.stringify(chunk)}\n\n`),
+        };
+
+        const { stream } = await model.doStream({
+          prompt: TEST_PROMPT,
+        });
+        const reader = stream.getReader();
+        try {
+          expect((await reader.read()).value?.type).toBe('stream-start');
+          expect((await reader.read()).value).toEqual({
+            type: 'response-metadata',
+            id: 'msg_initial_usage',
+            modelId: 'claude-haiku-4-5',
+          });
+          const start = (await reader.read()).value;
+          const expectedUsage = {
+            input_tokens: 10,
+            ...(outputTokens != null ? { output_tokens: outputTokens } : {}),
+            cache_read_input_tokens: 20,
+            cache_creation_input_tokens: 30,
+            service_tier: 'standard',
+          };
+          expect(start).toEqual({
+            type: 'custom',
+            kind: 'anthropic.message_start',
+            providerMetadata: {
+              anthropic: {
+                id: 'msg_initial_usage',
+                model: 'claude-haiku-4-5',
+                usage: expectedUsage,
+              },
+            },
+          });
+          expect((await reader.read()).value).toMatchObject({
+            type: 'finish',
+            usage: {
+              inputTokens: {
+                total: 66,
+                noCache: 12,
+                cacheRead: 22,
+                cacheWrite: 32,
+              },
+              outputTokens: { total: 7 },
+            },
+          });
+          expect((await reader.read()).done).toBe(true);
+          // Terminal deltas must not mutate the initial snapshot.
+          expect(
+            start?.type === 'custom' &&
+              start.providerMetadata?.anthropic?.usage,
+          ).toEqual(expectedUsage);
+        } finally {
+          reader.releaseLock();
+        }
+      },
+    );
+
     it('should use input_tokens from message_delta when different from message_start', async () => {
       // Fixture has message_start.usage.input_tokens=43, message_delta.usage.input_tokens=61
       // The final usage should use the value from message_delta (61)
@@ -7885,7 +8530,7 @@ describe('AnthropicLanguageModel', () => {
       `);
     });
 
-    it('should drop the streamed fallback content block and surface the fallback iteration', async () => {
+    it('should preserve the streamed fallback content block and surface the fallback iteration', async () => {
       prepareChunksFixtureResponse('anthropic-fallback');
 
       const { stream } = await provider('claude-fable-5').doStream({
@@ -7894,8 +8539,18 @@ describe('AnthropicLanguageModel', () => {
 
       const result = await convertReadableStreamToArray(stream);
 
-      // No content parts are emitted for the dropped `fallback` block; only
-      // the served answer text streams through.
+      expect(result).toContainEqual({
+        type: 'custom',
+        kind: 'anthropic.fallback',
+        providerMetadata: {
+          anthropic: {
+            type: 'fallback',
+            from: { model: 'claude-fable-5' },
+            to: { model: 'claude-opus-4-8' },
+          },
+        },
+      });
+
       const textDeltas = result
         .filter(part => part.type === 'text-delta')
         .map(part => (part.type === 'text-delta' ? part.delta : ''))
@@ -7925,6 +8580,40 @@ describe('AnthropicLanguageModel', () => {
           },
         ]
       `);
+    });
+
+    it('should preserve a mid-output fallback boundary between reasoning blocks', async () => {
+      prepareChunksFixtureResponse('anthropic-fallback-mid-output');
+
+      const { stream } = await provider('claude-opus-5-5').doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+      const firstReasoningEnd = result.findIndex(
+        part => part.type === 'reasoning-end' && part.id === '0',
+      );
+      const fallback = result.findIndex(
+        part => part.type === 'custom' && part.kind === 'anthropic.fallback',
+      );
+      const secondReasoningStart = result.findIndex(
+        part => part.type === 'reasoning-start' && part.id === '2',
+      );
+
+      expect(firstReasoningEnd).toBeGreaterThan(-1);
+      expect(fallback).toBeGreaterThan(firstReasoningEnd);
+      expect(secondReasoningStart).toBeGreaterThan(fallback);
+      expect(result[fallback]).toEqual({
+        type: 'custom',
+        kind: 'anthropic.fallback',
+        providerMetadata: {
+          anthropic: {
+            type: 'fallback',
+            from: { model: 'claude-opus-5-5' },
+            to: { model: 'claude-opus-4-8' },
+          },
+        },
+      });
     });
 
     it('should stream reasoning deltas', async () => {
@@ -7959,6 +8648,20 @@ describe('AnthropicLanguageModel', () => {
             "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
             "modelId": "claude-3-haiku-20240307",
             "type": "response-metadata",
+          },
+          {
+            "kind": "anthropic.message_start",
+            "providerMetadata": {
+              "anthropic": {
+                "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
+                "model": "claude-3-haiku-20240307",
+                "usage": {
+                  "input_tokens": 17,
+                  "output_tokens": 1,
+                },
+              },
+            },
+            "type": "custom",
           },
           {
             "id": "0",
@@ -8135,6 +8838,20 @@ describe('AnthropicLanguageModel', () => {
             "type": "response-metadata",
           },
           {
+            "kind": "anthropic.message_start",
+            "providerMetadata": {
+              "anthropic": {
+                "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
+                "model": "claude-3-haiku-20240307",
+                "usage": {
+                  "input_tokens": 17,
+                  "output_tokens": 1,
+                },
+              },
+            },
+            "type": "custom",
+          },
+          {
             "id": "0",
             "providerMetadata": {
               "anthropic": {
@@ -8228,6 +8945,20 @@ describe('AnthropicLanguageModel', () => {
             "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
             "modelId": "claude-3-haiku-20240307",
             "type": "response-metadata",
+          },
+          {
+            "kind": "anthropic.message_start",
+            "providerMetadata": {
+              "anthropic": {
+                "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
+                "model": "claude-3-haiku-20240307",
+                "usage": {
+                  "input_tokens": 17,
+                  "output_tokens": 1,
+                },
+              },
+            },
+            "type": "custom",
           },
           {
             "id": "0",
@@ -8791,6 +9522,20 @@ describe('AnthropicLanguageModel', () => {
             "type": "response-metadata",
           },
           {
+            "kind": "anthropic.message_start",
+            "providerMetadata": {
+              "anthropic": {
+                "id": "msg_01GouTqNCGXzrj5LQ5jEkw67",
+                "model": "claude-3-haiku-20240307",
+                "usage": {
+                  "input_tokens": 441,
+                  "output_tokens": 2,
+                },
+              },
+            },
+            "type": "custom",
+          },
+          {
             "id": "0",
             "type": "text-start",
           },
@@ -8914,6 +9659,20 @@ describe('AnthropicLanguageModel', () => {
             "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
             "modelId": "claude-3-haiku-20240307",
             "type": "response-metadata",
+          },
+          {
+            "kind": "anthropic.message_start",
+            "providerMetadata": {
+              "anthropic": {
+                "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
+                "model": "claude-3-haiku-20240307",
+                "usage": {
+                  "input_tokens": 17,
+                  "output_tokens": 1,
+                },
+              },
+            },
+            "type": "custom",
           },
           {
             "id": "0",
@@ -9218,6 +9977,22 @@ describe('AnthropicLanguageModel', () => {
             "type": "response-metadata",
           },
           {
+            "kind": "anthropic.message_start",
+            "providerMetadata": {
+              "anthropic": {
+                "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
+                "model": "claude-3-haiku-20240307",
+                "usage": {
+                  "cache_creation_input_tokens": 10,
+                  "cache_read_input_tokens": 5,
+                  "input_tokens": 17,
+                  "output_tokens": 1,
+                },
+              },
+            },
+            "type": "custom",
+          },
+          {
             "id": "0",
             "type": "text-start",
           },
@@ -9307,6 +10082,26 @@ describe('AnthropicLanguageModel', () => {
             "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
             "modelId": "claude-3-haiku-20240307",
             "type": "response-metadata",
+          },
+          {
+            "kind": "anthropic.message_start",
+            "providerMetadata": {
+              "anthropic": {
+                "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
+                "model": "claude-3-haiku-20240307",
+                "usage": {
+                  "cache_creation": {
+                    "ephemeral_1h_input_tokens": 10,
+                    "ephemeral_5m_input_tokens": 0,
+                  },
+                  "cache_creation_input_tokens": 10,
+                  "cache_read_input_tokens": 5,
+                  "input_tokens": 17,
+                  "output_tokens": 1,
+                },
+              },
+            },
+            "type": "custom",
           },
           {
             "id": "0",
@@ -9404,6 +10199,20 @@ describe('AnthropicLanguageModel', () => {
             "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
             "modelId": "claude-3-haiku-20240307",
             "type": "response-metadata",
+          },
+          {
+            "kind": "anthropic.message_start",
+            "providerMetadata": {
+              "anthropic": {
+                "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
+                "model": "claude-3-haiku-20240307",
+                "usage": {
+                  "input_tokens": 17,
+                  "output_tokens": 1,
+                },
+              },
+            },
+            "type": "custom",
           },
           {
             "id": "0",
@@ -9770,8 +10579,8 @@ describe('AnthropicLanguageModel', () => {
             `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
             `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Based on the document"}}\n\n`,
             `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":", results show growth."}}\n\n`,
-            `data: {"type":"content_block_stop","index":0}\n\n`,
             `data: {"type":"content_block_delta","index":0,"delta":{"type":"citations_delta","citation":{"type":"page_location","cited_text":"Revenue increased by 25% year over year","document_index":0,"document_title":"Financial Report 2023","start_page_number":5,"end_page_number":6}}}\n\n`,
+            `data: {"type":"content_block_stop","index":0}\n\n`,
             `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":227}}\n\n`,
             `data: {"type":"message_stop"}\n\n`,
           ],
@@ -9816,6 +10625,20 @@ describe('AnthropicLanguageModel', () => {
               "type": "response-metadata",
             },
             {
+              "kind": "anthropic.message_start",
+              "providerMetadata": {
+                "anthropic": {
+                  "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
+                  "model": "claude-3-haiku-20240307",
+                  "usage": {
+                    "input_tokens": 17,
+                    "output_tokens": 1,
+                  },
+                },
+              },
+              "type": "custom",
+            },
+            {
               "id": "0",
               "type": "text-start",
             },
@@ -9828,10 +10651,6 @@ describe('AnthropicLanguageModel', () => {
               "delta": ", results show growth.",
               "id": "0",
               "type": "text-delta",
-            },
-            {
-              "id": "0",
-              "type": "text-end",
             },
             {
               "filename": "financial-report.pdf",
@@ -9847,6 +10666,47 @@ describe('AnthropicLanguageModel', () => {
               "sourceType": "document",
               "title": "Financial Report 2023",
               "type": "source",
+            },
+            {
+              "citations": [
+                {
+                  "citedText": "Revenue increased by 25% year over year",
+                  "source": {
+                    "filename": "financial-report.pdf",
+                    "id": "0",
+                    "mediaType": "application/pdf",
+                    "providerMetadata": {
+                      "anthropic": {
+                        "cited_text": "Revenue increased by 25% year over year",
+                        "document_index": 0,
+                        "document_title": "Financial Report 2023",
+                        "end_page_number": 6,
+                        "start_page_number": 5,
+                        "type": "page_location",
+                      },
+                    },
+                    "sourceType": "document",
+                    "title": "Financial Report 2023",
+                    "type": "source",
+                  },
+                },
+              ],
+              "id": "0",
+              "providerMetadata": {
+                "anthropic": {
+                  "citations": [
+                    {
+                      "cited_text": "Revenue increased by 25% year over year",
+                      "document_index": 0,
+                      "document_title": "Financial Report 2023",
+                      "end_page_number": 6,
+                      "start_page_number": 5,
+                      "type": "page_location",
+                    },
+                  ],
+                },
+              },
+              "type": "text-end",
             },
             {
               "finishReason": {
@@ -10169,6 +11029,20 @@ describe('AnthropicLanguageModel', () => {
                 "type": "response-metadata",
               },
               {
+                "kind": "anthropic.message_start",
+                "providerMetadata": {
+                  "anthropic": {
+                    "id": "msg_01GouTqNCGXzrj5LQ5jEkw67",
+                    "model": "claude-3-haiku-20240307",
+                    "usage": {
+                      "input_tokens": 441,
+                      "output_tokens": 2,
+                    },
+                  },
+                },
+                "type": "custom",
+              },
+              {
                 "id": "0",
                 "type": "text-start",
               },
@@ -10298,6 +11172,27 @@ describe('AnthropicLanguageModel', () => {
                 "id": "msg_01GE2RKp1VYsPzdFs3sS9z5S",
                 "modelId": "claude-sonnet-4-5-20250929",
                 "type": "response-metadata",
+              },
+              {
+                "kind": "anthropic.message_start",
+                "providerMetadata": {
+                  "anthropic": {
+                    "id": "msg_01GE2RKp1VYsPzdFs3sS9z5S",
+                    "model": "claude-sonnet-4-5-20250929",
+                    "usage": {
+                      "cache_creation": {
+                        "ephemeral_1h_input_tokens": 0,
+                        "ephemeral_5m_input_tokens": 0,
+                      },
+                      "cache_creation_input_tokens": 0,
+                      "cache_read_input_tokens": 0,
+                      "input_tokens": 565,
+                      "output_tokens": 7,
+                      "service_tier": "standard",
+                    },
+                  },
+                },
+                "type": "custom",
               },
               {
                 "id": "0",
@@ -11521,6 +12416,7 @@ describe('AnthropicLanguageModel', () => {
             id: 'msg_01KfpJoAEabmH2iHRRFjQMAG',
             modelId: 'claude-3-haiku-20240307',
           },
+          { type: 'custom', kind: 'anthropic.message_start' },
           { type: 'text-start', id: '0' },
           { type: 'text-delta', id: '0', delta: 'Hello' },
           { type: 'error' },
@@ -11978,6 +12874,7 @@ describe('getModelCapabilities', () => {
       {
         "isKnownModel": true,
         "maxOutputTokens": 128000,
+        "rejectsBudgetThinking": false,
         "rejectsForcedToolUse": false,
         "rejectsSamplingParameters": true,
         "rejectsThinkingDisabled": false,
@@ -11995,6 +12892,7 @@ describe('getModelCapabilities', () => {
       {
         "isKnownModel": true,
         "maxOutputTokens": 128000,
+        "rejectsBudgetThinking": true,
         "rejectsForcedToolUse": false,
         "rejectsSamplingParameters": true,
         "rejectsThinkingDisabled": true,
@@ -12012,6 +12910,7 @@ describe('getModelCapabilities', () => {
       {
         "isKnownModel": true,
         "maxOutputTokens": 128000,
+        "rejectsBudgetThinking": true,
         "rejectsForcedToolUse": true,
         "rejectsSamplingParameters": true,
         "rejectsThinkingDisabled": true,
@@ -12029,6 +12928,7 @@ describe('getModelCapabilities', () => {
       {
         "isKnownModel": true,
         "maxOutputTokens": 128000,
+        "rejectsBudgetThinking": false,
         "rejectsForcedToolUse": false,
         "rejectsSamplingParameters": true,
         "rejectsThinkingDisabled": false,
@@ -12046,6 +12946,7 @@ describe('getModelCapabilities', () => {
       {
         "isKnownModel": true,
         "maxOutputTokens": 128000,
+        "rejectsBudgetThinking": false,
         "rejectsForcedToolUse": false,
         "rejectsSamplingParameters": true,
         "rejectsThinkingDisabled": false,
@@ -12077,6 +12978,7 @@ describe('getModelCapabilities', () => {
       {
         "isKnownModel": true,
         "maxOutputTokens": 128000,
+        "rejectsBudgetThinking": false,
         "rejectsForcedToolUse": false,
         "rejectsSamplingParameters": true,
         "rejectsThinkingDisabled": false,
@@ -12094,6 +12996,7 @@ describe('getModelCapabilities', () => {
       {
         "isKnownModel": false,
         "maxOutputTokens": 128000,
+        "rejectsBudgetThinking": false,
         "rejectsForcedToolUse": false,
         "rejectsSamplingParameters": true,
         "rejectsThinkingDisabled": false,
@@ -12112,6 +13015,7 @@ describe('getModelCapabilities', () => {
         {
           "isKnownModel": false,
           "maxOutputTokens": 128000,
+          "rejectsBudgetThinking": false,
           "rejectsForcedToolUse": false,
           "rejectsSamplingParameters": true,
           "rejectsThinkingDisabled": false,
@@ -12136,6 +13040,7 @@ describe('getModelCapabilities', () => {
         {
           "isKnownModel": false,
           "maxOutputTokens": 4096,
+          "rejectsBudgetThinking": false,
           "rejectsForcedToolUse": false,
           "rejectsSamplingParameters": false,
           "rejectsThinkingDisabled": false,
@@ -12154,6 +13059,7 @@ describe('getModelCapabilities', () => {
       {
         "isKnownModel": true,
         "maxOutputTokens": 64000,
+        "rejectsBudgetThinking": false,
         "rejectsForcedToolUse": false,
         "rejectsSamplingParameters": false,
         "rejectsThinkingDisabled": false,
@@ -12182,6 +13088,7 @@ describe('getModelCapabilities', () => {
         {
           "isKnownModel": false,
           "maxOutputTokens": 4096,
+          "rejectsBudgetThinking": false,
           "rejectsForcedToolUse": false,
           "rejectsSamplingParameters": false,
           "rejectsThinkingDisabled": false,
@@ -12666,6 +13573,7 @@ describe('claude-opus-5-5 specific behavior', () => {
       {
         "isKnownModel": true,
         "maxOutputTokens": 128000,
+        "rejectsBudgetThinking": true,
         "rejectsForcedToolUse": true,
         "rejectsSamplingParameters": true,
         "rejectsThinkingDisabled": true,
@@ -12849,7 +13757,7 @@ describe('claude-opus-5-5 specific behavior', () => {
     expect(result.warnings).toMatchInlineSnapshot(`
       [
         {
-          "details": "toolChoice 'required' is not supported by this model because it rejects forced tool use. Using 'auto' instead. Instruct the model to use a tool in the prompt and verify that a tool call was made.",
+          "details": "toolChoice 'required' is not supported with this model or thinking configuration. Using 'auto' instead. Instruct the model to use a tool in the prompt and verify that a tool call was made.",
           "feature": "toolChoice",
           "type": "unsupported",
         },
@@ -12874,7 +13782,7 @@ describe('claude-opus-5-5 specific behavior', () => {
     expect(result.warnings).toMatchInlineSnapshot(`
       [
         {
-          "details": "toolChoice 'tool' is not supported by this model because it rejects forced tool use. Only the 'otherTool' tool is sent with 'auto' tool choice. Instruct the model to use the tool in the prompt and verify that a tool call was made.",
+          "details": "toolChoice 'tool' is not supported with this model or thinking configuration. Only the 'otherTool' tool is sent with 'auto' tool choice. Instruct the model to use the tool in the prompt and verify that a tool call was made.",
           "feature": "toolChoice",
           "type": "unsupported",
         },
@@ -12985,6 +13893,7 @@ describe('claude-sonnet-5-5 specific behavior', () => {
       {
         "isKnownModel": true,
         "maxOutputTokens": 128000,
+        "rejectsBudgetThinking": true,
         "rejectsForcedToolUse": true,
         "rejectsSamplingParameters": true,
         "rejectsThinkingDisabled": true,
@@ -13223,6 +14132,179 @@ describe('claude-sonnet-5-5 specific behavior', () => {
     const requestBody = await server.calls[0].requestBodyJson;
     expect(requestBody.thinking).toEqual({ type: 'disabled' });
     expect(result.warnings).toEqual([]);
+  });
+});
+
+describe('claude-haiku-5-5 specific behavior', () => {
+  const server = createTestServer({
+    'https://api.anthropic.com/v1/messages': {},
+  });
+
+  function prepareJsonFixtureResponse(filename: string) {
+    server.urls['https://api.anthropic.com/v1/messages'].response = {
+      type: 'json-value',
+      body: JSON.parse(
+        fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
+      ),
+    };
+  }
+
+  it('should return known capabilities that allow disabling thinking up to high effort', () => {
+    expect(getModelCapabilities('claude-haiku-5-5')).toMatchInlineSnapshot(`
+      {
+        "isKnownModel": true,
+        "maxOutputTokens": 128000,
+        "rejectsBudgetThinking": true,
+        "rejectsForcedToolUse": false,
+        "rejectsSamplingParameters": true,
+        "rejectsThinkingDisabled": false,
+        "rejectsThinkingDisabledAboveHighEffort": true,
+        "supportsAdaptiveThinking": true,
+        "supportsBetweenToolsThinking": false,
+        "supportsStructuredOutput": true,
+        "supportsXhighEffort": true,
+      }
+    `);
+  });
+
+  it('should not warn about an unknown model and use the 128k output limit', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-haiku-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.max_tokens).toBe(128000);
+    expect(requestBody.thinking).toBeUndefined();
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('should send disabled thinking at low effort', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-haiku-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        anthropic: {
+          thinking: { type: 'disabled' },
+          effort: 'low',
+        } satisfies AnthropicLanguageModelOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toEqual({ type: 'disabled' });
+    expect(requestBody.output_config).toEqual({ effort: 'low' });
+    expect(result.warnings).toEqual([]);
+  });
+
+  it.each(['xhigh', 'max'] as const)(
+    'should lower effort "%s" to "high" when thinking is disabled',
+    async effort => {
+      prepareJsonFixtureResponse('anthropic-text');
+
+      const result = await provider('claude-haiku-5-5').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            thinking: { type: 'disabled' },
+            effort,
+          } satisfies AnthropicLanguageModelOptions,
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.thinking).toEqual({ type: 'disabled' });
+      expect(requestBody.output_config).toEqual({ effort: 'high' });
+      expect(result.warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'providerOptions.anthropic.effort',
+          details: `effort '${effort}' is not supported by claude-haiku-5-5 when thinking is disabled. The effort has been lowered to 'high'.`,
+        },
+      ]);
+    },
+  );
+
+  it('should send adaptive thinking with xhigh effort', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-haiku-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        anthropic: {
+          thinking: { type: 'adaptive' },
+          effort: 'xhigh',
+        } satisfies AnthropicLanguageModelOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toEqual({ type: 'adaptive' });
+    expect(requestBody.output_config).toEqual({ effort: 'xhigh' });
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('should convert budget-based thinking to adaptive thinking', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-haiku-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        anthropic: {
+          thinking: { type: 'enabled', budgetTokens: 4000 },
+        } satisfies AnthropicLanguageModelOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toEqual({ type: 'adaptive' });
+    expect(requestBody.thinking.budget_tokens).toBeUndefined();
+    expect(result.warnings).toEqual([
+      {
+        type: 'unsupported',
+        feature: 'providerOptions.anthropic.thinking',
+        details:
+          "budget-based thinking is not supported by claude-haiku-5-5. Using adaptive thinking instead. Use 'effort' to control how much the model thinks.",
+      },
+    ]);
+  });
+
+  it('should map reasoning "none" to disabled thinking', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-haiku-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      reasoning: 'none',
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toEqual({ type: 'disabled' });
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('should use native structured outputs', async () => {
+    prepareJsonFixtureResponse('anthropic-json-output-format.1');
+
+    await provider('claude-haiku-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { name: { type: 'string' } },
+          required: ['name'],
+          additionalProperties: false,
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.output_config?.format).toMatchObject({
+      type: 'json_schema',
+    });
+    expect(requestBody.tools).toBeUndefined();
   });
 });
 
@@ -13485,6 +14567,7 @@ describe('computer toolset', () => {
             {
               "id": "toolu_click",
               "input": {
+                "action": "left_click",
                 "coordinate": [
                   640,
                   60,
@@ -13496,7 +14579,9 @@ describe('computer toolset', () => {
             },
             {
               "id": "toolu_screenshot",
-              "input": {},
+              "input": {
+                "action": "screenshot",
+              },
               "name": "screenshot",
               "toolset_name": "computer",
               "type": "tool_use",

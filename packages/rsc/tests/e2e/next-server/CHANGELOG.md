@@ -4,6 +4,219 @@
 
 ### Patch Changes
 
+- Updated dependencies [130e871]
+  - ai@7.0.142
+  - @ai-sdk/rsc@3.0.142
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [88ea0d7]
+  - ai@7.0.141
+  - @ai-sdk/rsc@3.0.141
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [9523eb0]
+  - ai@7.0.140
+  - @ai-sdk/rsc@3.0.140
+
+## 0.0.1
+
+### Patch Changes
+
+- ai@7.0.139
+- @ai-sdk/rsc@3.0.139
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [eab278a]
+- Updated dependencies [26d64e9]
+- Updated dependencies [75b3ea2]
+- Updated dependencies [69f4b82]
+- Updated dependencies [e57803c]
+- Updated dependencies [4c705d9]
+- Updated dependencies [5150d50]
+- Updated dependencies [9aef724]
+- Updated dependencies [7d0458b]
+  - ai@7.0.138
+  - @ai-sdk/rsc@3.0.138
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [e27cc64]
+  - ai@7.0.137
+  - @ai-sdk/rsc@3.0.137
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [7b5497c]
+  - ai@7.0.136
+  - @ai-sdk/rsc@3.0.136
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [5ddbb70]
+- Updated dependencies [7c40a09]
+- Updated dependencies [4dbc902]
+- Updated dependencies [ff18b73]
+- Updated dependencies [9be846c]
+  - ai@7.0.135
+  - @ai-sdk/rsc@3.0.135
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [8281ec4]
+- Updated dependencies [46c2b05]
+  - ai@7.0.134
+  - @ai-sdk/rsc@3.0.134
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - ai@7.0.133
+  - @ai-sdk/rsc@3.0.133
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [3ebefff]
+  - ai@7.0.132
+  - @ai-sdk/rsc@3.0.132
+
+## 0.0.1
+
+### Patch Changes
+
+- ai@7.0.131
+- @ai-sdk/rsc@3.0.131
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [6f6b9c0]
+- Updated dependencies [d3bcad9]
+  - ai@7.0.130
+  - @ai-sdk/rsc@3.0.130
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [e37d213]
+- Updated dependencies [73d8343]
+- Updated dependencies [268225c]
+- Updated dependencies [d83366e]
+- Updated dependencies [34905a2]
+- Updated dependencies [16ab882]
+- Updated dependencies [f810ea3]
+- Updated dependencies [19a127b]
+- Updated dependencies [0af2f7c]
+- Updated dependencies [4c6979c]
+  - ai@7.0.129
+  - @ai-sdk/rsc@3.0.129
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [0fe8c67]
+- Updated dependencies [2959d35]
+- Updated dependencies [0ca1ab9]
+- Updated dependencies [d6b42fd]
+- Updated dependencies [ed6e72d]
+- Updated dependencies [2136151]
+  - ai@7.0.128
+  - @ai-sdk/rsc@3.0.128
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [158a718]
+- Updated dependencies [bb8d33e]
+- Updated dependencies [284dc11]
+- Updated dependencies [ba8afe9]
+  - ai@7.0.127
+  - @ai-sdk/rsc@3.0.127
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [4f3d236]
+  - ai@7.0.126
+  - @ai-sdk/rsc@3.0.126
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [ff3dcef]
+  - ai@7.0.125
+  - @ai-sdk/rsc@3.0.125
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [8c65988]
+  - ai@7.0.124
+  - @ai-sdk/rsc@3.0.124
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [05cdac6]
+- Updated dependencies [4514fc1]
+- Updated dependencies [ede5b89]
+- Updated dependencies [2a625cf]
+- Updated dependencies [50a26d5]
+  - ai@7.0.123
+  - @ai-sdk/rsc@3.0.123
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [f3575f8]
+- Updated dependencies [27ab8d4]
+  - ai@7.0.122
+  - @ai-sdk/rsc@3.0.122
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [c5e90bb]
+- Updated dependencies [868c475]
+- Updated dependencies [119536f]
+- Updated dependencies [9941f32]
+  - ai@7.0.121
+  - @ai-sdk/rsc@3.0.121
+
+## 0.0.1
+
+### Patch Changes
+
 - Updated dependencies [b032d70]
 - Updated dependencies [e21b98b]
   - ai@7.0.120

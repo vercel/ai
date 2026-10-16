@@ -1,5 +1,242 @@
 # @ai-sdk/harness-fx
 
+## 1.0.68
+
+### Patch Changes
+
+- a0cd442: feat(harness-fx): reimplement adapter to use `libfx`, achieving clean host-sandbox separation and unlocking additional capabilities
+
+## 1.0.67
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+  - @ai-sdk/harness@1.0.153
+  - @ai-sdk/provider-utils@5.0.61
+  - @ai-sdk/harness-acp@1.0.92
+
+## 1.0.66
+
+### Patch Changes
+
+- Updated dependencies [2e89fa4]
+  - @ai-sdk/provider-utils@5.0.60
+  - @ai-sdk/harness@1.0.152
+  - @ai-sdk/harness-acp@1.0.91
+
+## 1.0.65
+
+### Patch Changes
+
+- ce45d8e: fix(harness-fx): use pinned latest fx release instead of uncontrolled latest
+- 1bebfcf: feat(harness): add support for tools with `toModelOutput()` transformation
+- Updated dependencies [6c65131]
+- Updated dependencies [1bebfcf]
+  - @ai-sdk/harness-acp@1.0.90
+  - @ai-sdk/harness@1.0.151
+
+## 1.0.64
+
+### Patch Changes
+
+- Updated dependencies [6617f11]
+- Updated dependencies [aae69cb]
+- Updated dependencies [a7a66f5]
+- Updated dependencies [52e3f53]
+- Updated dependencies [6c0295c]
+  - @ai-sdk/harness@1.0.150
+  - @ai-sdk/harness-acp@1.0.89
+
+## 1.0.63
+
+### Patch Changes
+
+- Updated dependencies [9667bf2]
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/provider@4.0.27
+  - @ai-sdk/harness@1.0.149
+  - @ai-sdk/harness-acp@1.0.88
+
+## 1.0.62
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.148
+- @ai-sdk/harness-acp@1.0.87
+
+## 1.0.61
+
+### Patch Changes
+
+- d108786: fix(harness-fx): fix `skill` tool input schema to follow latest upstream shape
+- Updated dependencies [c357e52]
+  - @ai-sdk/harness-acp@1.0.86
+  - @ai-sdk/harness@1.0.147
+
+## 1.0.60
+
+### Patch Changes
+
+- Updated dependencies [0637573]
+- Updated dependencies [4dbc902]
+  - @ai-sdk/harness-acp@1.0.85
+  - @ai-sdk/provider@4.0.26
+  - @ai-sdk/harness@1.0.146
+  - @ai-sdk/provider-utils@5.0.58
+
+## 1.0.59
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.145
+- @ai-sdk/harness-acp@1.0.84
+
+## 1.0.58
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider@4.0.25
+  - @ai-sdk/provider-utils@5.0.57
+  - @ai-sdk/harness@1.0.144
+  - @ai-sdk/harness-acp@1.0.83
+
+## 1.0.57
+
+### Patch Changes
+
+- Updated dependencies [c4a5c8d]
+- Updated dependencies [50ac48b]
+- Updated dependencies [e8af189]
+- Updated dependencies [9d84fad]
+  - @ai-sdk/harness@1.0.143
+  - @ai-sdk/harness-acp@1.0.82
+
+## 1.0.56
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.142
+- @ai-sdk/harness-acp@1.0.81
+
+## 1.0.55
+
+### Patch Changes
+
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/harness@1.0.141
+  - @ai-sdk/provider-utils@5.0.56
+  - @ai-sdk/harness-acp@1.0.80
+
+## 1.0.54
+
+### Patch Changes
+
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+- Updated dependencies [4c6979c]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/provider@4.0.23
+  - @ai-sdk/harness@1.0.140
+  - @ai-sdk/harness-acp@1.0.79
+
+## 1.0.53
+
+### Patch Changes
+
+- Updated dependencies [2959d35]
+- Updated dependencies [e7da240]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+  - @ai-sdk/harness@1.0.139
+  - @ai-sdk/harness-acp@1.0.78
+
+## 1.0.52
+
+### Patch Changes
+
+- Updated dependencies [58030b5]
+  - @ai-sdk/harness-acp@1.0.77
+
+## 1.0.51
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.138
+- @ai-sdk/harness-acp@1.0.76
+
+## 1.0.50
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.137
+- @ai-sdk/harness-acp@1.0.75
+
+## 1.0.49
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.136
+- @ai-sdk/harness-acp@1.0.74
+
+## 1.0.48
+
+### Patch Changes
+
+- Updated dependencies [8c65988]
+- Updated dependencies [8182916]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+  - @ai-sdk/harness@1.0.135
+  - @ai-sdk/harness-acp@1.0.73
+
+## 1.0.47
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [ede5b89]
+  - @ai-sdk/harness@1.0.134
+  - @ai-sdk/harness-acp@1.0.72
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
+## 1.0.46
+
+### Patch Changes
+
+- Updated dependencies [b2049fa]
+- Updated dependencies [11f0e71]
+- Updated dependencies [2b9195b]
+- Updated dependencies [446725d]
+  - @ai-sdk/harness-acp@1.0.71
+  - @ai-sdk/harness@1.0.133
+
+## 1.0.45
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.132
+- @ai-sdk/harness-acp@1.0.70
+
+## 1.0.44
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/harness-acp@1.0.69
+  - @ai-sdk/provider-utils@5.0.51
+  - @ai-sdk/harness@1.0.131
+
 ## 1.0.43
 
 ### Patch Changes

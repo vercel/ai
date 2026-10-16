@@ -24,6 +24,26 @@ const config: NextConfig = {
         hostname: 'e742qlubrjnjqpp0.public.blob.vercel-storage.com',
         protocol: 'https',
       },
+      {
+        hostname: 'langfuse.com',
+        pathname: '/images/docs/**',
+        protocol: 'https',
+      },
+      {
+        hostname: 'mintlify.s3.us-west-1.amazonaws.com',
+        pathname: '/langwatch/images/integration/**',
+        protocol: 'https',
+      },
+      {
+        hostname: 'confident-docs.s3.us-east-1.amazonaws.com',
+        pathname: '/confident-trace-workflows.png',
+        protocol: 'https',
+      },
+      {
+        hostname: 'cdn.getmaxim.ai',
+        pathname: '/public/images/maxim_vercel.gif',
+        protocol: 'https',
+      },
     ],
   },
   headers: () => [

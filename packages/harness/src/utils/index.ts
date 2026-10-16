@@ -28,7 +28,7 @@ export {
 export { isLinux, isMacOS, isWindows } from './os';
 export {
   applyCredentialForwarding,
-  createSandboxCredentialEnvironment,
+  resolveSandboxCredentialEnvironment,
 } from './credential-forwarding';
 export {
   createCredentialRequestTransformation,
@@ -71,3 +71,8 @@ export {
 export { resolveSandboxDefaultWorkingDirectory } from './resolve-sandbox-default-working-directory';
 export { getRestrictedSandboxSession } from './get-restricted-sandbox-session';
 export { sleep } from './sleep';
+export { normalizeHarnessToolModelOutput } from './normalize-harness-tool-model-output';
+export {
+  convertHarnessToolModelOutput,
+  type HarnessToolModelOutputContent,
+} from './convert-harness-tool-model-output';

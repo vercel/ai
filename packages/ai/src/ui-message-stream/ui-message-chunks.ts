@@ -1,3 +1,4 @@
+import { citationSchema, type Citation } from '../types/citation';
 import type { JSONObject } from '@ai-sdk/provider';
 import {
   providerMetadataSchema,
@@ -37,6 +38,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
       z.looseObject({
         type: z.literal('text-end'),
         id: z.string(),
+        citations: z.array(citationSchema).optional(),
         providerMetadata: providerMetadataSchema.optional(),
       }),
       z.looseObject({
@@ -47,6 +49,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
         type: z.literal('tool-input-start'),
         toolCallId: z.string(),
         toolName: z.string(),
+        inputEncoding: z.enum(['json', 'text']).optional(),
         providerExecuted: z.boolean().optional(),
         providerMetadata: providerMetadataSchema.optional(),
         toolMetadata: toolMetadataSchema.optional(),
@@ -246,6 +249,7 @@ export type UIMessageChunk<
     }
   | {
       type: 'text-end';
+      citations?: Array<Citation>;
       id: string;
       providerMetadata?: ProviderMetadata;
     }
@@ -342,6 +346,8 @@ export type UIMessageChunk<
       type: 'tool-input-start';
       toolCallId: string;
       toolName: string;
+      /** Encoding of the input deltas. Defaults to JSON when omitted. */
+      inputEncoding?: 'json' | 'text';
       providerExecuted?: boolean;
       providerMetadata?: ProviderMetadata;
       toolMetadata?: JSONObject;

@@ -1,5 +1,6 @@
 export * from '../chat/openai-chat-language-model';
 export * from '../chat/openai-chat-language-model-options';
+export * from '../completion/openai-completion-language-model-options';
 export * from '../embedding/openai-embedding-model';
 export * from '../embedding/openai-embedding-model-options';
 export * from '../image/openai-image-model';

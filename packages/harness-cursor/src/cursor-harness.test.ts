@@ -19,6 +19,7 @@ describe('createCursor', () => {
     createCursor();
 
     const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
+    expect(settings.nonTextContentTypes).toEqual(['image']);
     expect({
       version: settings.version,
       harnessId: settings.harnessId,
@@ -70,7 +71,7 @@ describe('createCursor', () => {
           "reportBugfixResults",
         ],
         "clientApp": {
-          "name": "ai-sdk/harness-cursor",
+          "name": "ai-sdk-harness-cursor",
           "version": "0.0.0-test",
         },
         "credentialEnv": [

@@ -42,10 +42,5 @@
     "./src/**/*.ts",
     "./src/**/*.svelte"
   ],
-  "exclude": [
-    "dist",
-    "build",
-    "node_modules",
-    "tsup.config.ts"
-  ]
+  "exclude": ["dist", "build", "node_modules"]
 }

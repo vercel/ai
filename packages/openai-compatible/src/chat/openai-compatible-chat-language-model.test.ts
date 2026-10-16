@@ -65,6 +65,54 @@ function prepareSseFixtureResponse(filename: string) {
   };
 }
 
+describe.each(['doGenerate', 'doStream'] as const)(
+  'file references (%s)',
+  method => {
+    it('should resolve file IDs using the provider name even with camelCase options', async () => {
+      if (method === 'doGenerate') {
+        prepareJsonFixtureResponse('xai-text');
+      } else {
+        prepareChunksFixtureResponse('xai-text');
+      }
+
+      const result = await model[method]({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: {
+                  type: 'reference',
+                  reference: {
+                    'test-provider': 'file-pdf-123',
+                    testProvider: 'file-wrong-provider',
+                  },
+                },
+                mediaType: 'application/pdf',
+              },
+            ],
+          },
+        ],
+        providerOptions: { testProvider: { user: 'test-user' } },
+      });
+
+      if ('stream' in result) {
+        await convertReadableStreamToArray(result.stream);
+      }
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        messages: [
+          {
+            role: 'user',
+            content: [{ type: 'file', file: { file_id: 'file-pdf-123' } }],
+          },
+        ],
+      });
+    });
+  },
+);
+
 describe('config', () => {
   it('should extract base name from provider string', () => {
     const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
@@ -552,6 +600,60 @@ describe('doGenerate', () => {
             {
               type: 'video_url',
               video_url: { url: 'data:video/mp4;base64,AAECAw==' },
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('should pass multi-part tool content when supported', async () => {
+    prepareJsonResponse({ content: '' });
+
+    const multiPartProvider = createOpenAICompatible({
+      baseURL: 'https://my.api.com/v1/',
+      name: 'test-provider',
+      supportsMultiPartToolContent: true,
+    });
+
+    await multiPartProvider('grok-3').doGenerate({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'useImage',
+              output: {
+                type: 'content',
+                value: [
+                  { type: 'text', text: 'image result' },
+                  {
+                    type: 'file',
+                    data: { type: 'data', data: 'iVBORw0KGgo=' },
+                    mediaType: 'image/png',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      messages: [
+        {
+          role: 'tool',
+          tool_call_id: 'call-1',
+          content: [
+            { type: 'text', text: 'image result' },
+            {
+              type: 'image_url',
+              image_url: {
+                url: 'data:image/png;base64,iVBORw0KGgo=',
+              },
             },
           ],
         },
@@ -1404,6 +1506,19 @@ describe('doGenerate', () => {
 
       expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
         'medium',
+      );
+    });
+
+    it('should pass top-level max reasoning as reasoning_effort', async () => {
+      prepareJsonResponse({ content: 'test' });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'max',
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'max',
       );
     });
 
@@ -4427,6 +4542,7 @@ describe('transformRequestBody', () => {
         model: 'grok-3',
         messages: [{ role: 'user', content: 'Hello' }],
       }),
+      [],
     );
 
     // Verify transformed body was sent
@@ -4465,6 +4581,7 @@ describe('transformRequestBody', () => {
         messages: [{ role: 'user', content: 'Hello' }],
         stream: true,
       }),
+      [],
     );
 
     // Verify transformed body was sent

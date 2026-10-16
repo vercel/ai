@@ -1254,6 +1254,17 @@ describe('OpenResponsesLanguageModel', () => {
         );
       });
 
+      it('should pass max directly', async () => {
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'max',
+        });
+
+        expect((await server.calls[0].requestBodyJson).reasoning).toStrictEqual(
+          { effort: 'max' },
+        );
+      });
+
       it('should not set reasoning when not specified', async () => {
         await createModel().doGenerate({
           prompt: TEST_PROMPT,
