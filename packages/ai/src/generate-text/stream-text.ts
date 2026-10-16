@@ -155,6 +155,7 @@ import {
   type Experimental_ToolCallers,
 } from './tool-caller-configuration';
 import type { TypedToolCall } from './tool-call';
+import { hasToolCallNotExecutedError } from './tool-call-not-executed';
 import type { ToolCallRepairFunction } from './tool-call-repair-function';
 import type {
   OnToolExecutionEndCallback,
@@ -3104,6 +3105,8 @@ class DefaultStreamTextResult<
                         deniedToolApprovalResponses.length &&
                     (clientToolCalls.length > 0 ||
                       pendingDeferredToolCalls.size > 0) &&
+                    // do not continue after tool calls that were skipped for the finish reason:
+                    !hasToolCallNotExecutedError(clientToolOutputs) &&
                     // continue until a stop condition is met:
                     !(await isStopConditionMet({
                       stopConditions,
