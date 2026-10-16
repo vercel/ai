@@ -1,5 +1,14 @@
 # @ai-sdk/google
 
+## 4.0.99
+
+### Patch Changes
+
+- ae42699: fix(google): surface in-stream errors
+- Updated dependencies [0957554]
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+
 ## 4.0.98
 
 ### Patch Changes

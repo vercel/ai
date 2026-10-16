@@ -1,5 +1,17 @@
 # ai
 
+## 7.0.143
+
+### Patch Changes
+
+- 8a5233b: Generate default chat IDs on first access so `useChat()` can prerender without reading a random value when the ID is not used during rendering.
+- 894e130: fix(ai): add `experimental_lowMemory: true` to `streamText` for single-consumer streaming without a replay buffer or retained final-content results, reducing memory retention.
+- 0957554: Add `box` decision question type with image bounds for TypeSafe AI.
+- Updated dependencies [0957554]
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+  - @ai-sdk/gateway@4.0.116
+
 ## 7.0.142
 
 ### Patch Changes

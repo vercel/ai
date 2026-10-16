@@ -1,5 +1,18 @@
 # @ai-sdk/google-vertex
 
+## 5.0.115
+
+### Patch Changes
+
+- ae42699: fix(google): surface in-stream errors
+- Updated dependencies [ae42699]
+- Updated dependencies [0957554]
+  - @ai-sdk/google@4.0.99
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+  - @ai-sdk/anthropic@4.0.82
+  - @ai-sdk/openai-compatible@3.0.71
+
 ## 5.0.114
 
 ### Patch Changes

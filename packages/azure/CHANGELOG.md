@@ -1,5 +1,18 @@
 # @ai-sdk/azure
 
+## 4.0.104
+
+### Patch Changes
+
+- 70a6398: Deprecate `azure.tools.webSearchPreview()` in favor of `azure.tools.webSearch()`.
+- Updated dependencies [2be133e]
+- Updated dependencies [0957554]
+- Updated dependencies [fa98094]
+  - @ai-sdk/openai@4.0.96
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+  - @ai-sdk/deepseek@3.0.67
+
 ## 4.0.103
 
 ### Patch Changes
