@@ -1,0 +1,27 @@
+{
+  "request_id": "test-request-id",
+  "output": {
+    "rewrite_status": "success",
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "message": {
+          "role": "assistant",
+          "content": [
+            {
+              "image": "iVBORw0KGgoAAAANSUhEUgAABAAAAAQACAIAAADwf7zUAAAB2GNhQlgAAYHZqdW1kYzJwYQARABCAAACqADibcQNj"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "usage": {
+    "output_width": 1024,
+    "output_height": 1024,
+    "input_image_count": 1,
+    "input_image_type": "base64",
+    "output_image_count": 1,
+    "output_image_type": "base64"
+  }
+}

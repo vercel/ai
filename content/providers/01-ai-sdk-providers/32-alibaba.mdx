@@ -639,6 +639,97 @@ The following provider options are available via `providerOptions.alibaba`:
   You can also pass any available provider model ID as a string if needed.
 </Note>
 
+## Image Models
+
+You can create [Qwen](https://www.alibabacloud.com/help/en/model-studio/qwen-image-generation-and-editing-api-reference) image generation 
+and editing models that call the Alibaba Cloud DashScope API using the `.image()` factory method. For more on video generation with the 
+AI SDK see [generateVideo()](/docs/reference/ai-sdk-core/generate-video).
+
+Qwen image generation and editing models support text-to-image (T2I) and image-to-image/image editing (I2I).
+
+### Text-to-Image (T2I)
+
+```ts
+import { alibaba, type AlibabaImageModelOptions } from '@ai-sdk/alibaba';
+import { generateImage } from 'ai';
+
+const { images } = await generateImage({
+  model: alibaba.image('qwen-image-3.0'),
+  prompt: 'A serene mountain lake at sunset with gentle ripples on the water.',
+  size: '1024x1024',
+  n: 1,
+  providerOptions: {
+    alibaba: {
+      prompt_extend_mode: 'agent',
+    } satisfies AlibabaImageModelOptions,
+  },
+});
+```
+
+### Image-to-Image (I2I)
+
+```ts
+import { alibaba, type AlibabaImageModelOptions } from '@ai-sdk/alibaba';
+import { generateImage } from 'ai';
+import { readFileSync } from "node:fs"
+
+const { images } = await generateImage({
+  model: alibaba.image('qwen-image-3.0'),
+  prompt: {
+    text: 'A serene mountain lake at sunset with gentle ripples on the water.',
+    images: [readFileSync("local-image.png")]
+  },
+  size: '1024x1024',
+  n: 1,
+  image: 'https://example.com/first-frame.jpg',
+  providerOptions: {
+    alibaba: {
+      prompt_extend_mode: 'agent',
+    } satisfies AlibabaImageModelOptions,
+  },
+});
+```
+
+### Image Generation Provider Options
+
+- **prompt_extend** _boolean_
+
+  Enables intelligent prompt rewriting. When enabled, the model optimizes the positive prompt using the method specified by **prompt_extend_mode**. Defaults to `true`.
+
+- **prompt_extend_mode** _string_
+
+  The prompt rewriting method. Valid values are:
+
+  - `direct`: Direct Prompt Enhancement (DPE), suitable for most scenarios. Supported for both `T2I` and `I2I`.
+  - `agent`: Agent Prompt Enhancement (APE), which provides more refined prompt rewriting. Supported only for `T2I`.
+
+  Defaults to `direct`.
+
+- **enable_thinking** _boolean_
+
+  Enables thinking mode. When enabled, the model uses additional reasoning to improve image quality, but generation may take longer.
+
+- **n** _number_
+
+  The number of output images to generate. A maximum of 6 images can be generated in a single request. Defaults to `1`.
+
+- **size** _string_
+
+  The output image resolution in the format `width*height`.
+
+- **negative_prompt** _string_
+
+  Describes the content to avoid in the generated image.
+
+- **seed** _number_
+
+  The random seed. The value must be between `0` and `2147483647`.
+
+- **watermark** _boolean_
+
+  Whether to add a watermark to the generated image. Defaults to `false`.
+
+
 ## Model Capabilities
 
 Please see the [Alibaba Cloud Model Studio docs](https://www.alibabacloud.com/help/en/model-studio/models) for a full
