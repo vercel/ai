@@ -592,15 +592,6 @@ describe('pruneMessages', () => {
             {
               "content": [
                 {
-                  "text": "I need to get the weather in Tokyo and Busan.",
-                  "type": "reasoning",
-                },
-              ],
-              "role": "assistant",
-            },
-            {
-              "content": [
-                {
                   "text": "I have got the weather in Tokyo and Busan.",
                   "type": "reasoning",
                 },
@@ -1113,6 +1104,211 @@ describe('pruneMessages', () => {
             },
           ]
         `);
+      });
+    });
+    describe('orphaned reasoning', () => {
+      it('should remove reasoning when all following tool calls are pruned', () => {
+        const messages: ModelMessage[] = [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Weather in Tokyo?' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'I need to get the weather in Tokyo.',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'get-weather-tool',
+                input: '{"city": "Tokyo"}',
+              },
+            ],
+          },
+        ];
+
+        // the reasoning no longer explains anything, so the assistant message
+        // is left empty and removed by the emptyMessages handling:
+        expect(
+          pruneMessages({
+            messages,
+            toolCalls: 'all',
+          }),
+        ).toEqual([
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Weather in Tokyo?' }],
+          },
+        ]);
+      });
+
+      it('should remove reasoning-file parts when all following tool calls are pruned', () => {
+        const messages: ModelMessage[] = [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning-file',
+                mediaType: 'image/png',
+                data: 'reasoning-image',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'get-weather-tool',
+                input: '{"city": "Tokyo"}',
+              },
+            ],
+          },
+        ];
+
+        expect(
+          pruneMessages({
+            messages,
+            toolCalls: 'all',
+          }),
+        ).toEqual([]);
+      });
+
+      it('should keep reasoning that is still followed by text', () => {
+        const messages: ModelMessage[] = [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'I need to get the weather in Tokyo.',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'get-weather-tool',
+                input: '{"city": "Tokyo"}',
+              },
+              {
+                type: 'text',
+                text: 'The weather in Tokyo is sunny.',
+              },
+            ],
+          },
+        ];
+
+        expect(
+          pruneMessages({
+            messages,
+            toolCalls: 'all',
+          }),
+        ).toEqual([
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'I need to get the weather in Tokyo.',
+              },
+              {
+                type: 'text',
+                text: 'The weather in Tokyo is sunny.',
+              },
+            ],
+          },
+        ]);
+      });
+
+      it('should keep reasoning that is followed by a kept tool call during selective pruning', () => {
+        const messages: ModelMessage[] = [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'I need to get the weather in Tokyo and Busan.',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'get-weather-tool-1',
+                input: '{"city": "Tokyo"}',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-2',
+                toolName: 'get-weather-tool-2',
+                input: '{"city": "Busan"}',
+              },
+            ],
+          },
+        ];
+
+        expect(
+          pruneMessages({
+            messages,
+            toolCalls: [{ type: 'all', tools: ['get-weather-tool-2'] }],
+          }),
+        ).toEqual([
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'I need to get the weather in Tokyo and Busan.',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'get-weather-tool-1',
+                input: '{"city": "Tokyo"}',
+              },
+            ],
+          },
+        ]);
+      });
+
+      it('should only remove the trailing reasoning part when reasoning is followed by another reasoning part', () => {
+        const messages: ModelMessage[] = [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'I should check the weather.',
+              },
+              {
+                type: 'reasoning',
+                text: 'I need to get the weather in Tokyo.',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'get-weather-tool',
+                input: '{"city": "Tokyo"}',
+              },
+            ],
+          },
+        ];
+
+        // the second reasoning part directly preceded the pruned tool call and
+        // is orphaned; the first reasoning part is not followed by any removed
+        // part and stays:
+        expect(
+          pruneMessages({
+            messages,
+            toolCalls: 'all',
+          }),
+        ).toEqual([
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'I should check the weather.',
+              },
+            ],
+          },
+        ]);
       });
     });
   });
