@@ -163,6 +163,19 @@ const model = azure('your-deployment-name');
 
 You need to pass your deployment name as the first argument.
 
+You can optionally pass the underlying model ID in a settings object:
+
+```ts
+const model = azure('production-chat', { modelId: 'gpt-5' });
+```
+
+The SDK uses the model ID as the model identity, including in telemetry, and
+to detect model capabilities such as reasoning support. API requests still use the deployment name.
+The model ID returned by Azure in response metadata is preserved.
+
+If omitted, the deployment name is used for model identity and capability detection.
+Keep the supplied model ID aligned with the model running in your deployment.
+
 ### Reasoning Models
 
 Azure exposes the thinking of `DeepSeek-R1` in the generated text using the `<think>` tag.
@@ -480,13 +493,13 @@ guide](/providers/ai-sdk-providers/openai#changing-reasoning-effort-mid-conversa
 for continuation, compaction, and configuration restrictions.
 
 <Note>
-  The SDK infers support for effort updates from the deployment name passed to
-  `azure.responses()`. The name must identify a supported GPT-6-or-later model
-  family, such as `gpt-6-astra`. A custom name such as `production` is not
-  recognized, even when the underlying deployment runs GPT-6. In that case,
-  message-level updates throw, and request-level updates are omitted with a
-  warning. Setting `forceReasoning: true` does not override this capability
-  check.
+  The SDK infers support for effort updates from the optional `modelId` setting
+  passed to `azure.responses()`, falling back to the deployment name. The ID must identify
+  a supported GPT-6-or-later model family, such as `gpt-6-astra`. A custom name
+  such as `production` is not recognized, even when the underlying deployment
+  runs GPT-6. Pass the underlying model ID, for example
+  `azure.responses('production', { modelId: 'gpt-6-astra' })`, to enable detection
+  for a custom deployment name.
 </Note>
 
 #### Web Search Tool
