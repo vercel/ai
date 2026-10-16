@@ -246,4 +246,57 @@ describe('readResponseWithSizeLimit', () => {
       return true;
     });
   });
+
+  it('should correctly read streamed chunks when Content-Length is absent', async () => {
+    const data = new Uint8Array([10, 20, 30, 40, 50]);
+    // Create large backing buffer where chunk is a small sub-slice (simulating Deno reader behavior)
+    const largeBuffer = new ArrayBuffer(65536);
+    const view = new Uint8Array(largeBuffer, 0, data.length);
+    view.set(data);
+
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(view);
+        controller.close();
+      },
+    });
+
+    const response = {
+      headers: new Headers(),
+      body: stream,
+    } as unknown as Response;
+
+    const result = await readResponseWithSizeLimit({
+      response,
+      url: 'http://example.com/chunked',
+    });
+
+    expect(result).toEqual(data);
+  });
+
+  it('should handle Content-Length where stream closes early with fewer bytes', async () => {
+    const data = new Uint8Array([1, 2, 3]);
+    const headers = new Headers();
+    headers.set('content-length', '10');
+
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(data);
+        controller.close();
+      },
+    });
+
+    const response = {
+      headers,
+      body: stream,
+    } as unknown as Response;
+
+    const result = await readResponseWithSizeLimit({
+      response,
+      url: 'http://example.com/short',
+      maxBytes: 100,
+    });
+
+    expect(result).toEqual(data);
+  });
 });
