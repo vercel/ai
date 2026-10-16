@@ -65,7 +65,7 @@
         "!packages/sandbox-*",
         "!packages/svelte",
         "!packages/test-server",
-        "!packages/*-tool",
+        "!packages/tool-*",
         "!packages/tui",
         "!packages/valibot",
         "!packages/vue",
