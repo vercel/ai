@@ -976,11 +976,6 @@ const { image } = await generateImage({
 
 xAI supports image editing through the `grok-imagine-image` model. Pass input images via `prompt.images` to transform or edit existing images.
 
-<Note>
-  xAI image editing does not support masks. Editing is prompt-driven - describe
-  what you want to change in the text prompt.
-</Note>
-
 #### Basic Image Editing
 
 Transform an existing image using text prompts:
@@ -997,6 +992,30 @@ const { images } = await generateImage({
   prompt: {
     text: 'Turn the cat into a golden retriever dog',
     images: [imageBuffer],
+  },
+});
+```
+
+#### Mask Inpainting
+
+Use a mask to restrict edits to a specific region of the image. The mask is a
+grayscale image where **white pixels mark the area to be edited** and black
+pixels mark the area to keep unchanged.
+
+```ts
+import { xai } from '@ai-sdk/xai';
+import { generateImage } from 'ai';
+import { readFileSync } from 'fs';
+
+const imageBuffer = readFileSync('./input-image.png');
+const maskBuffer = readFileSync('./mask.png'); // white = edit, black = keep
+
+const { images } = await generateImage({
+  model: xai.image('grok-imagine-image'),
+  prompt: {
+    text: 'Replace the masked area with a sunflower field',
+    images: [imageBuffer],
+    mask: maskBuffer,
   },
 });
 ```
