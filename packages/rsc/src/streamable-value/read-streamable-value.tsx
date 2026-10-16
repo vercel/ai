@@ -48,8 +48,8 @@ export function readStreamableValue<T = unknown>(
       let isDone = false;
       let isFirstIteration = true;
 
-      return {
-        async next() {
+      const iterator = {
+        async next(): Promise<IteratorResult<T | undefined, T | undefined>> {
           // the iteration is done already, return the last value:
           if (isDone) return { value, done: true };
 
@@ -106,6 +106,21 @@ export function readStreamableValue<T = unknown>(
           }
 
           return { value, done: false };
+        },
+      };
+
+      let pending = Promise.resolve();
+
+      return {
+        next() {
+          // Read each row only after the previous next call has finished.
+          const result = pending.then(() => iterator.next());
+          // A failed read must not prevent later calls from replaying the error.
+          pending = result.then(
+            () => undefined,
+            () => undefined,
+          );
+          return result;
         },
       };
     },
