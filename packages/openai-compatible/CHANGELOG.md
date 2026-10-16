@@ -1,5 +1,32 @@
 # @ai-sdk/openai-compatible
 
+## 3.0.70
+
+### Patch Changes
+
+- d6ed4b9: feat(openai-compatible): support URL-based image responses
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+  - @ai-sdk/provider-utils@5.0.61
+
+## 3.0.69
+
+### Patch Changes
+
+- Updated dependencies [2e89fa4]
+  - @ai-sdk/provider-utils@5.0.60
+
+## 3.0.68
+
+### Patch Changes
+
+- 2c6996e: feat(openai-compatible): support uploaded file references via file_id
+- Updated dependencies [9667bf2]
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/provider@4.0.27
+
 ## 3.0.67
 
 ### Patch Changes

@@ -1,5 +1,66 @@
 # ai
 
+## 7.0.142
+
+### Patch Changes
+
+- 130e871: Restore raw OpenAI custom-tool input deltas for consumers that forward them to Responses API clients. Mark streamed input with `inputEncoding: 'text'` so UI clients can display it progressively without JSON parsing. Preserve the encoding when partial UI messages are saved and resumed. Final provider tool-call inputs remain JSON-encoded.
+- Updated dependencies [130e871]
+- Updated dependencies [5bdb816]
+  - @ai-sdk/provider@4.0.28
+  - @ai-sdk/gateway@4.0.115
+  - @ai-sdk/provider-utils@5.0.61
+
+## 7.0.141
+
+### Patch Changes
+
+- 88ea0d7: fix(workflow): pass runtime context allowed by 'telemetry.includeRuntimeContext'
+- Updated dependencies [2e89fa4]
+- Updated dependencies [b658e85]
+  - @ai-sdk/provider-utils@5.0.60
+  - @ai-sdk/gateway@4.0.114
+
+## 7.0.140
+
+### Patch Changes
+
+- 9523eb0: feat(ai): add configurable tool call execution concurrency
+- Updated dependencies [42a2895]
+  - @ai-sdk/gateway@4.0.113
+
+## 7.0.139
+
+### Patch Changes
+
+- Updated dependencies [685667c]
+- Updated dependencies [bdbeba3]
+- Updated dependencies [ec2af7b]
+  - @ai-sdk/gateway@4.0.112
+
+## 7.0.138
+
+### Patch Changes
+
+- eab278a: fix: resume interrupted chat streams when the page becomes visible again
+
+  `useChat` with `resume: true` no longer starts a second resume request on mount when the chat is already submitted or streaming, e.g. when remounting with a shared `Chat` instance mid-stream.
+
+- 26d64e9: fix(ai): update tool outputs in the message containing the matching tool call
+- 75b3ea2: fix(ai): prevent duplicate message parts when resuming replayed streams
+- 69f4b82: fix(ai): prevent global type conflicts across SDK versions
+- e57803c: Add an optional shared citation representation to generated text and text-end stream events, separate from retrieved sources. Preserve citations in core result content and UI message text parts, including validation and persistence, without changing content or stream event discriminants.
+- 4c705d9: Fix validation of rounded choice probabilities in `experimental_decide`.
+- 5150d50: fix(ai): update streaming chat messages by stable ID
+- 9aef724: fix(workflow): report incomplete no-output model streams as errors
+- 7d0458b: fix(ai): reject approved tool calls without results before sending later context to providers
+- Updated dependencies [9667bf2]
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/provider@4.0.27
+  - @ai-sdk/gateway@4.0.111
+
 ## 7.0.137
 
 ### Patch Changes

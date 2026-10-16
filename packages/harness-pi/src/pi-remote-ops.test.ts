@@ -16,7 +16,7 @@ import { shellQuote } from '@ai-sdk/harness/utils';
 import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
 import { createJustBashNetworkSandboxSession } from '@ai-sdk/sandbox-just-bash';
 import { describe, expect, it, vi } from 'vitest';
-import { createPiPathMapper } from './pi-paths';
+import { createPiPathMapper, type PiFileToolPathPolicy } from './pi-paths';
 import {
   createPiRemoteOps,
   resolvePiSandboxPathOrParent,
@@ -104,24 +104,24 @@ function mockRealpathCommand(
     return undefined;
   }
 
-  const target = command.match(/target='([^']+)'/)?.[1];
-  if (!target) {
-    return undefined;
-  }
-
-  const resolvedPath = resolvePath?.(target) ?? target;
-  if (resolvedPath === null) {
-    return { stdout: '__PI_REALPATH_NOT_FOUND__\n', exitCode: 2 };
-  }
+  const targets = [...command.matchAll(/target='([^']+)'/g)].map(
+    match => match[1]!,
+  );
+  if (targets.length === 0) return undefined;
   const frame = command.match(/realpath_marker='([^']+)'/)?.[1];
-  const resolvedBytes =
-    resolveBytes?.(target) ?? Buffer.from(resolvedPath, 'utf8');
-  const outputPath = command.includes('base64')
-    ? Buffer.from(resolvedBytes).toString('base64')
-    : new TextDecoder().decode(resolvedBytes);
-  return {
-    stdout: frame == null ? `${resolvedPath}\n` : `${outputPath}${frame}`,
-  };
+  let stdout = '';
+  for (const target of targets) {
+    const resolvedPath = resolvePath ? resolvePath(target) : target;
+    if (resolvedPath === null)
+      return { stdout: stdout + '__PI_REALPATH_NOT_FOUND__\n', exitCode: 2 };
+    const resolvedBytes =
+      resolveBytes?.(target) ?? Buffer.from(resolvedPath, 'utf8');
+    const outputPath = command.includes('base64')
+      ? Buffer.from(resolvedBytes).toString('base64')
+      : new TextDecoder().decode(resolvedBytes);
+    stdout += frame == null ? resolvedPath + '\n' : outputPath + frame;
+  }
+  return { stdout };
 }
 
 const hostWorkDir = '/tmp/pi-test-host';
@@ -664,6 +664,48 @@ describe('createPiRemoteOps.readBuffer', () => {
     expect(env.readCalls).toEqual([]);
     expect(env.writeCalls).toEqual([]);
   });
+
+  it.each([
+    { name: 'malformed base64', record: 'not-base64!' },
+    { name: 'invalid UTF-8', record: Buffer.from([0xff]).toString('base64') },
+    {
+      name: 'relative path',
+      record: Buffer.from('relative').toString('base64'),
+    },
+  ])(
+    'rejects a later configured root record with $name',
+    async ({ record }) => {
+      const root = '/tmp/pi-artifacts';
+      const { sandbox, readCalls, writeCalls } = makeMockSandbox({});
+      vi.mocked(sandbox.run).mockResolvedValue({
+        exitCode: 0,
+        stdout: [
+          Buffer.from(`${sandboxWorkDir}/notes.txt`).toString('base64'),
+          Buffer.from(sandboxWorkDir).toString('base64'),
+          record,
+          '',
+        ].join('__PI_REALPATH_FRAME__'),
+        stderr: '',
+      });
+      const ops = createPiRemoteOps({
+        sandbox,
+        paths: createPiPathMapper({
+          hostWorkDir,
+          sandboxWorkDir,
+          writableRoots: [root],
+        }),
+      });
+
+      await expect(ops.readBuffer('notes.txt')).rejects.toThrow(
+        `Unable to resolve path: ${root}`,
+      );
+      await expect(ops.writeFile('notes.txt', 'blocked')).rejects.toThrow(
+        `Unable to resolve path: ${root}`,
+      );
+      expect(readCalls).toEqual([]);
+      expect(writeCalls).toEqual([]);
+    },
+  );
 
   it('rejects invalid UTF-8 paths from native shell output', async () => {
     const workDir = await mkdtemp(path.join(tmpdir(), 'pi-invalid-path-'));
@@ -1328,6 +1370,11 @@ describe('createPiRemoteOps with denied roots', () => {
     const fixture = await makePathPolicyFixture();
     try {
       await symlink(fixture.denied, path.join(fixture.home, 'alias'));
+      await mkdir(path.join(fixture.home, 'docs', 'credentials'));
+      await writeFile(
+        path.join(fixture.home, 'docs', 'credentials', 'public.txt'),
+        'needle nested public\n',
+      );
       await mkdir(path.join(fixture.workspace, 'credentials'));
       await writeFile(
         path.join(fixture.workspace, 'credentials', 'public.txt'),
@@ -1336,7 +1383,7 @@ describe('createPiRemoteOps with denied roots', () => {
 
       await expect(
         fixture.ops.findFiles('**/*.txt', fixture.home),
-      ).resolves.toEqual(['docs/notes.txt']);
+      ).resolves.toEqual(['docs/credentials/public.txt', 'docs/notes.txt']);
       await expect(
         fixture.ops.findFiles('..private/*.txt', fixture.home),
       ).resolves.toEqual([]);
@@ -1346,6 +1393,9 @@ describe('createPiRemoteOps with denied roots', () => {
         literal: true,
       });
       expect(output).toContain('notes.txt:1:needle notes');
+      expect(output).toContain(
+        'docs/credentials/public.txt:1:needle nested public',
+      );
       expect(output).not.toContain('needle token');
       expect(output).not.toContain('needle dotted secret');
 
@@ -1500,5 +1550,97 @@ describe('createPiRemoteOps with denied roots', () => {
     expect(commands).toContain("'-r' '-n' '-m' '100' -e 'needle' '.'");
     expect(commands).toContain("find '.' -type f -exec");
     expect(commands).not.toContain('-prune');
+  });
+});
+
+describe('createPiRemoteOps configured writable roots', () => {
+  function makePolicyOps(input: {
+    behaviors: Parameters<typeof makeMockSandbox>[0];
+    policy: PiFileToolPathPolicy;
+    onFileChange?: Parameters<typeof createPiRemoteOps>[0]['onFileChange'];
+  }) {
+    const env = makeMockSandbox(input.behaviors);
+    const paths = createPiPathMapper({
+      hostWorkDir,
+      sandboxWorkDir,
+      readableRoots: input.policy.readableRoots?.map(sandboxDir => ({
+        sandboxDir,
+      })),
+      writableRoots: input.policy.writableRoots,
+      deniedRoots: input.policy.deniedRoots,
+    });
+    return {
+      ...env,
+      ops: createPiRemoteOps({
+        sandbox: env.sandbox,
+        paths,
+        onFileChange: input.onFileChange,
+      }),
+    };
+  }
+
+  it('batches configured roots and the target in one sandbox call', async () => {
+    const env = makePolicyOps({
+      behaviors: { readBinary: () => Buffer.from('reference') },
+      policy: {
+        readableRoots: ['/mnt/reference', '/mnt/other-reference'],
+        writableRoots: ['/tmp'],
+        deniedRoots: ['/tmp/private'],
+      },
+    });
+    await env.ops.readBuffer('/mnt/reference/info.txt');
+    expect(env.runCalls).toHaveLength(1);
+    expect(env.runCalls[0]!.command).toContain("target='/mnt/reference'");
+    expect(env.runCalls[0]!.command).toContain("target='/tmp/private'");
+  });
+
+  it('allows external writes and edits without workspace file-change events', async () => {
+    const onFileChange = vi.fn();
+    const env = makePolicyOps({
+      behaviors: {
+        readBinary: filePath =>
+          filePath === '/tmp/existing.txt' ? Buffer.from('old value') : null,
+      },
+      policy: {
+        readableRoots: ['/mnt/reference'],
+        writableRoots: ['/tmp'],
+        deniedRoots: ['/tmp/private'],
+      },
+      onFileChange,
+    });
+    await env.ops.writeFile('/tmp/new.txt', 'new value');
+    await expect(
+      env.ops.editFile('/tmp/existing.txt', 'old', 'updated'),
+    ).resolves.toBe('updated value');
+    expect(env.writeCalls).toEqual([
+      { path: '/tmp/new.txt', content: 'new value' },
+      { path: '/tmp/existing.txt', content: 'updated value' },
+    ]);
+    expect(onFileChange).not.toHaveBeenCalled();
+    await expect(
+      env.ops.writeFile('/mnt/reference/no-write.txt', 'no'),
+    ).rejects.toThrow(/escapes the workspace/);
+    await expect(env.ops.readBuffer('/tmp/private/token')).rejects.toThrow(
+      /inside a denied root/,
+    );
+  });
+
+  it('rechecks missing write paths through their canonical parents', async () => {
+    const env = makePolicyOps({
+      behaviors: {
+        realpath: filePath =>
+          filePath === '/tmp/link/missing/output.json'
+            ? '/etc/missing/output.json'
+            : filePath,
+      },
+      policy: { writableRoots: ['/tmp'] },
+    });
+    await expect(
+      env.ops.writeFile('/tmp/link/missing/output.json', '{}'),
+    ).rejects.toThrow(/escapes the workspace/);
+    expect(env.writeCalls).toEqual([]);
+    expect(env.runCalls[0]!.command).toContain(
+      'while [ ! -e "$dir" ] && [ ! -L "$dir" ]',
+    );
   });
 });
