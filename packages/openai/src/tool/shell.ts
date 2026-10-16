@@ -21,6 +21,7 @@ export const shellInputSchema = lazySchema(() =>
 export const shellOutputSchema = lazySchema(() =>
   zodSchema(
     z.object({
+      maxOutputLength: z.number().optional(),
       output: z.array(
         z.object({
           stdout: z.string(),

@@ -1055,6 +1055,8 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             status: z.enum(['in_progress', 'completed', 'incomplete']),
             action: z.object({
               commands: z.array(z.string()),
+              timeout_ms: z.number().nullish(),
+              max_output_length: z.number().nullish(),
             }),
           }),
           z.object({
@@ -1067,6 +1069,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             id: z.string(),
             call_id: z.string(),
             status: z.enum(['in_progress', 'completed', 'incomplete']),
+            max_output_length: z.number().nullish(),
             output: z.array(
               z.object({
                 stdout: z.string(),
@@ -1290,6 +1293,8 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             status: z.enum(['in_progress', 'completed', 'incomplete']),
             action: z.object({
               commands: z.array(z.string()),
+              timeout_ms: z.number().nullish(),
+              max_output_length: z.number().nullish(),
             }),
           }),
           z.object({
@@ -1302,6 +1307,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             id: z.string(),
             call_id: z.string(),
             status: z.enum(['in_progress', 'completed', 'incomplete']),
+            max_output_length: z.number().nullish(),
             output: z.array(
               z.object({
                 stdout: z.string(),
@@ -1731,6 +1737,8 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
               status: z.enum(['in_progress', 'completed', 'incomplete']),
               action: z.object({
                 commands: z.array(z.string()),
+                timeout_ms: z.number().nullish(),
+                max_output_length: z.number().nullish(),
               }),
             }),
             z.object({
@@ -1743,6 +1751,7 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
               id: z.string(),
               call_id: z.string(),
               status: z.enum(['in_progress', 'completed', 'incomplete']),
+              max_output_length: z.number().nullish(),
               output: z.array(
                 z.object({
                   stdout: z.string(),
