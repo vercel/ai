@@ -1,19 +1,61 @@
 ---
 title: DeepSeek
-description: Learn how to use DeepSeek's models with the AI SDK.
+description: Learn how to use DeepSeek with AI Gateway and the direct provider.
 ---
 
 # DeepSeek Provider
 
 The [DeepSeek](https://www.deepseek.com) provider offers access to powerful language models through the DeepSeek API.
+You can use DeepSeek models through [AI Gateway](/providers/ai-sdk-providers/ai-gateway) (recommended) or connect directly with `@ai-sdk/deepseek`.
+
+```ts provider="deepseek" model="deepseek/deepseek-v4-flash"
+import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
+
+const { text } = await generateText({
+  model: __MODEL__,
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+
+console.log(text);
+```
+
+## Using AI Gateway
+
+The AI SDK uses AI Gateway by default for model strings. Gateway provides access to models across providers through a single API key, with usage and cost tracking. Install `ai`:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
+
+Gateway feature and provider-option support depends on the model and the provider serving the request. See [Gateway provider options](https://vercel.com/docs/ai-gateway/models-and-providers/provider-options).
+
+## Using `@ai-sdk/deepseek`
+
+For direct access to DeepSeek, install `ai` and `@ai-sdk/deepseek`:
+
+<InstallPackages packages="ai @ai-sdk/deepseek" />
+
+Set your DeepSeek API credential in the `DEEPSEEK_API_KEY` environment variable:
+
+```bash
+export DEEPSEEK_API_KEY=your_api_key_here
+```
+
+AI Gateway does not expose every API in `@ai-sdk/deepseek`. Use the direct provider for provider-specific APIs or custom connection settings.
+
+<Note>
+  The following sections document the direct `@ai-sdk/deepseek` provider, including its model factories and settings. Gateway model and feature availability can differ.
+</Note>
 
 API keys can be obtained from the [DeepSeek Platform](https://platform.deepseek.com/api_keys).
-
-## Setup
-
-The DeepSeek provider is available via the `@ai-sdk/deepseek` module. You can install it with:
-
-<InstallPackages packages="@ai-sdk/deepseek" />
 
 ## Provider Instance
 
