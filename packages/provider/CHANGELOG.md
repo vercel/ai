@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 4.0.30
+
+### Patch Changes
+
+- 60cc252: feat(perplexity): add decisions api support
+
 ## 4.0.29
 
 ### Patch Changes
