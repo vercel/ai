@@ -21,6 +21,14 @@ export const perplexitySearchResultSchema = z.looseObject({
   source: z.string().optional(),
 });
 
+export const perplexityImageResultSchema = z.looseObject({
+  image_url: z.string(),
+  origin_url: z.string(),
+  width: z.number().nullish(),
+  height: z.number().nullish(),
+  title: z.string().nullish(),
+});
+
 const perplexityFetchedContentSchema = z.looseObject({
   title: z.string(),
   url: z.string(),
@@ -44,6 +52,7 @@ const perplexityContentPartSchema = z.looseObject({
 const handledOutputTypes = [
   'message',
   'search_results',
+  'image_search_results',
   'fetch_url_results',
   'function_call',
 ];
@@ -57,6 +66,10 @@ export const perplexityOutputItemSchema = z.union([
   z.looseObject({
     type: z.literal('search_results'),
     results: z.array(perplexitySearchResultSchema).nullish(),
+  }),
+  z.looseObject({
+    type: z.literal('image_search_results'),
+    results: z.array(perplexityImageResultSchema).nullish(),
   }),
   z.looseObject({
     type: z.literal('fetch_url_results'),
@@ -152,7 +165,11 @@ export const perplexityAgentChunkSchema = z.looseObject({
   thought: z.string().nullish(),
   queries: z.array(z.string()).nullish(),
   urls: z.array(z.string()).nullish(),
-  results: z.array(perplexitySearchResultSchema).nullish(),
+  // `response.reasoning.search_results` carries web search results and
+  // `response.reasoning.image_search_results` carries image results.
+  results: z
+    .array(z.union([perplexitySearchResultSchema, perplexityImageResultSchema]))
+    .nullish(),
   contents: z.array(perplexityFetchedContentSchema).nullish(),
   error: z
     .looseObject({

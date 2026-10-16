@@ -1,0 +1,113 @@
+{
+  "background": false,
+  "completed_at": 1792038776,
+  "created_at": 1792038776,
+  "error": null,
+  "frequency_penalty": 0,
+  "id": "resp_9d315515-5612-4f9e-a9ff-d8f92d7913dc",
+  "incomplete_details": null,
+  "instructions": null,
+  "max_output_tokens": 1024,
+  "max_tool_calls": null,
+  "metadata": {},
+  "model": "openai/gpt-6-luna",
+  "object": "response",
+  "output": [
+    {
+      "queries": [
+        "Golden Gate Bridge photo view from Marin Headlands",
+        "Golden Gate Bridge photo fog towers deck"
+      ],
+      "results": [
+        {
+          "height": 3000,
+          "image_url": "https://khou22.github.io/photography/san_francisco/Golden%20Gate%20Bridge%20Marin%20Headlands%20at%20Sunset.jpg",
+          "origin_url": "https://khou22.com/photography/photo/Golden_Gate_Bridge_Marin_Headlands_at_Sunset_jpg",
+          "title": "Golden Gate Bridge Marin Headlands at Sunset | Kevin Hou Photography",
+          "width": 4500
+        },
+        {
+          "height": 683,
+          "image_url": "https://yrofthemonkey.com/wp-content/uploads/2018/02/GoldenGateBridgeSF.jpg",
+          "origin_url": "https://yrofthemonkey.com/best-golden-gate-bridge-views-marin-headlands-sausalito/",
+          "title": "The best Golden Gate Bridge views in Marin Headlands (near Sausalito)",
+          "width": 1024
+        },
+        {
+          "height": 683,
+          "image_url": "https://yrofthemonkey.com/wp-content/uploads/2022/04/Goldengatebridge.jpg",
+          "origin_url": "https://yrofthemonkey.com/best-golden-gate-bridge-views-marin-headlands-sausalito/",
+          "title": "The best Golden Gate Bridge views in Marin Headlands (near Sausalito)",
+          "width": 1024
+        }
+      ],
+      "type": "image_search_results"
+    },
+    {
+      "content": [
+        {
+          "annotations": [],
+          "text": "![Golden Gate Bridge at sunset from the Marin Headlands](https://khou22.github.io/photography/san_francisco/Golden%20Gate%20Bridge%20Marin%20Headlands%20at%20Sunset.jpg)  \nThis photo shows the Golden Gate Bridge glowing in the sunset from the Marin Headlands.\n\n![Golden Gate Bridge viewed from the Marin Headlands](https://yrofthemonkey.com/wp-content/uploads/2018/02/GoldenGateBridgeSF.jpg)  \nThis photo shows the bridge spanning the water, seen from a scenic viewpoint in the Marin Headlands.",
+          "type": "output_text"
+        }
+      ],
+      "id": "msg_3cf4c90d-b8ad-472a-ac7b-6c4917d3aa47",
+      "role": "assistant",
+      "status": "completed",
+      "type": "message"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "presence_penalty": 0,
+  "previous_response_id": null,
+  "prompt_cache_key": null,
+  "reasoning": null,
+  "safety_identifier": null,
+  "service_tier": "default",
+  "status": "completed",
+  "store": false,
+  "temperature": 1,
+  "text": {
+    "format": {
+      "type": "text"
+    }
+  },
+  "tool_choice": "auto",
+  "tools": [
+    {
+      "type": "image_search",
+      "max_results": 3
+    }
+  ],
+  "top_logprobs": 0,
+  "top_p": 1,
+  "truncation": "",
+  "usage": {
+    "cost": {
+      "currency": "USD",
+      "input_cost": 0.0001,
+      "output_cost": 0.00013,
+      "tool_calls_cost": 0.0025,
+      "tool_calls_cost_details": {
+        "search_images": 0.0025
+      },
+      "total_cost": 0.00273
+    },
+    "input_tokens": 954,
+    "input_tokens_details": {
+      "cached_tokens": 0
+    },
+    "output_tokens": 257,
+    "output_tokens_details": {
+      "reasoning_tokens": 61
+    },
+    "tool_calls_details": {
+      "search_images": {
+        "cost_usd": 0.0025,
+        "invocation": 1
+      }
+    },
+    "total_tokens": 1211
+  },
+  "user": null
+}

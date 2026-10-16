@@ -36,6 +36,7 @@ import {
   perplexityErrorSchema,
   perplexityErrorToMessage,
   type PerplexityAgentTool,
+  type perplexityImageResultSchema,
   type perplexityOutputItemSchema,
   type perplexitySearchResultSchema,
   type perplexityUsageSchema,
@@ -56,6 +57,7 @@ type PerplexityAgentConfig = {
 
 type PerplexityOutputItem = z.infer<typeof perplexityOutputItemSchema>;
 type PerplexitySearchResult = z.infer<typeof perplexitySearchResultSchema>;
+type PerplexityImageResult = z.infer<typeof perplexityImageResultSchema>;
 type PerplexityUsage = z.infer<typeof perplexityUsageSchema>;
 type PerplexityUrlSource = Extract<
   LanguageModelV4Content,
@@ -93,8 +95,41 @@ function getResponseMetadata(response: {
   });
 }
 
+type PerplexityImageMetadata = {
+  imageUrl: string;
+  originUrl: string;
+  width: number | null;
+  height: number | null;
+  title: string | null;
+};
+
+/**
+ * The images found by `image_search` calls, or `null` when no image search
+ * ran. A search that ran and matched nothing gives an empty array.
+ */
+function getImages(
+  output: PerplexityOutputItem[],
+): PerplexityImageMetadata[] | null {
+  const imageSearches = output.flatMap(item =>
+    item.type === 'image_search_results' ? [item] : [],
+  );
+  if (imageSearches.length === 0) {
+    return null;
+  }
+  return imageSearches.flatMap(item =>
+    (item.results ?? []).map(image => ({
+      imageUrl: image.image_url,
+      originUrl: image.origin_url,
+      width: image.width ?? null,
+      height: image.height ?? null,
+      title: image.title ?? null,
+    })),
+  );
+}
+
 function getProviderMetadata(
   usage: PerplexityUsage | null | undefined,
+  images: PerplexityImageMetadata[] | null,
 ): SharedV4ProviderMetadata {
   const cost = usage?.cost;
   const numSearchQueries = usage?.tool_calls_details
@@ -109,7 +144,7 @@ function getProviderMetadata(
         citationTokens: null,
         numSearchQueries,
       },
-      images: null,
+      images,
       cost:
         cost == null
           ? null
@@ -162,6 +197,12 @@ function createSource(
 
 function hasSearchResultId(source: PerplexityUrlSource): boolean {
   return typeof source.providerMetadata?.perplexity?.resultId === 'number';
+}
+
+function isSearchResult(
+  result: PerplexitySearchResult | PerplexityImageResult,
+): result is PerplexitySearchResult {
+  return typeof result.url === 'string';
 }
 
 function getSearchResults(item: PerplexityOutputItem) {
@@ -453,7 +494,10 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
         body: rawResponse,
       },
       warnings,
-      providerMetadata: getProviderMetadata(response.usage),
+      providerMetadata: getProviderMetadata(
+        response.usage,
+        getImages(response.output),
+      ),
     };
   }
 
@@ -483,6 +527,7 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
       raw: undefined,
     };
     let usage: PerplexityUsage | undefined;
+    let images: PerplexityImageMetadata[] | null = null;
     let hasFunctionCall = false;
     let hasResponseMetadata = false;
     let activeReasoningId: string | undefined;
@@ -741,6 +786,8 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
               }
 
               case 'response.reasoning.search_queries':
+              case 'response.reasoning.image_search_queries':
+              case 'response.reasoning.image_search_results':
               case 'response.reasoning.fetch_url_queries': {
                 emitReasoningThought(value.thought);
                 break;
@@ -749,7 +796,9 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
               case 'response.reasoning.search_results': {
                 emitReasoningThought(value.thought);
                 for (const result of value.results ?? []) {
-                  emitSource(createSource(result, generateId));
+                  if (isSearchResult(result)) {
+                    emitSource(createSource(result, generateId));
+                  }
                 }
                 break;
               }
@@ -811,6 +860,7 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
                     emitFunctionCall(item);
                   }
                   usage = value.response.usage ?? undefined;
+                  images = getImages(value.response.output);
                   const rawFinishReason =
                     value.response.incomplete_details?.reason ??
                     value.response.status;
@@ -857,7 +907,7 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
               type: 'finish',
               finishReason,
               usage: convertPerplexityUsage(usage),
-              providerMetadata: getProviderMetadata(usage),
+              providerMetadata: getProviderMetadata(usage, images),
             });
           },
         }),

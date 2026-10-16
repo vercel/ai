@@ -107,6 +107,33 @@ function createResponse(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function readImageSearchFixture() {
+  const response = JSON.parse(
+    readFileSync('src/__fixtures__/agent-image-search.json', 'utf8'),
+  );
+  const events = readFileSync(
+    'src/__fixtures__/agent-image-search.chunks.txt',
+    'utf8',
+  )
+    .split('\n')
+    .filter(Boolean)
+    .map(line => JSON.parse(line));
+  return { response, events };
+}
+
+function expectedImages(response: { output: any[] }) {
+  return response.output
+    .filter(item => item.type === 'image_search_results')
+    .flatMap(item => item.results)
+    .map((image: any) => ({
+      imageUrl: image.image_url,
+      originUrl: image.origin_url,
+      width: image.width,
+      height: image.height,
+      title: image.title,
+    }));
+}
+
 function prepareJsonResponse(
   body: Record<string, unknown> = createResponse(),
   headers?: Record<string, string>,
@@ -203,6 +230,34 @@ describe('doGenerate', () => {
     ).toBe(true);
     expect(result.usage.raw).toEqual(response.usage);
     expect(result.finishReason.unified).toBe('stop');
+  });
+
+  it('returns the images of a captured Agent API image search response', async () => {
+    const { response } = readImageSearchFixture();
+    prepareJsonResponse(response);
+
+    const result = await model.doGenerate({ prompt: TEST_PROMPT });
+
+    expect(result.providerMetadata?.perplexity?.images).toEqual(
+      expectedImages(response),
+    );
+    expect(expectedImages(response).length).toBeGreaterThan(0);
+    expect(result.finishReason.unified).toBe('stop');
+  });
+
+  it('returns an empty image list when an image search finds nothing', async () => {
+    prepareJsonResponse(
+      createResponse({
+        output: [
+          { type: 'image_search_results', results: [] },
+          ...createResponse().output,
+        ],
+      }),
+    );
+
+    const result = await model.doGenerate({ prompt: TEST_PROMPT });
+
+    expect(result.providerMetadata?.perplexity?.images).toEqual([]);
   });
 
   it('accepts native tool results without treating them as web search results', async () => {
@@ -410,6 +465,41 @@ describe('doGenerate', () => {
         },
       ],
     });
+  });
+
+  it('passes the native image_search tool', async () => {
+    prepareJsonResponse();
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        perplexity: {
+          tools: [
+            {
+              type: 'image_search',
+              max_results: 3,
+              filters: {
+                domain_filter: ['nasa.gov'],
+                format_filter: ['png'],
+                safe_search: true,
+              },
+            },
+          ],
+        },
+      },
+    });
+
+    expect((await server.calls[0].requestBodyJson).tools).toEqual([
+      {
+        type: 'image_search',
+        max_results: 3,
+        filters: {
+          domain_filter: ['nasa.gov'],
+          format_filter: ['png'],
+          safe_search: true,
+        },
+      },
+    ]);
   });
 
   it('coerces top-level max reasoning to xhigh with a warning', async () => {
@@ -684,6 +774,30 @@ describe('doStream', () => {
       expect.objectContaining({
         type: 'finish',
         finishReason: { unified: 'stop', raw: 'completed' },
+      }),
+    );
+  });
+
+  it('parses captured Agent API image search events', async () => {
+    const { events } = readImageSearchFixture();
+    prepareStream(events);
+
+    const result = await model.doStream({ prompt: TEST_PROMPT });
+    const chunks = await convertReadableStreamToArray(result.stream);
+    const response = events.find(
+      event => event.type === 'response.completed',
+    ).response;
+
+    expect(chunks.filter(chunk => chunk.type === 'error')).toEqual([]);
+    expect(chunks).toContainEqual(
+      expect.objectContaining({
+        type: 'finish',
+        finishReason: { unified: 'stop', raw: 'completed' },
+        providerMetadata: {
+          perplexity: expect.objectContaining({
+            images: expectedImages(response),
+          }),
+        },
       }),
     );
   });

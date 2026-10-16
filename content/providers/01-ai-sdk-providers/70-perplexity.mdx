@@ -134,8 +134,8 @@ const { text, sources } = await generateText({
 });
 ```
 
-Supported native tools are `web_search`, `fetch_url`, `people_search`,
-`finance_search`, `sandbox`, `mcp`, and `connector`. Agent API presets include
+Supported native tools are `web_search`, `image_search`, `fetch_url`,
+`people_search`, `finance_search`, `sandbox`, `mcp`, and `connector`. Agent API presets include
 preconfigured tools that remain enabled; the `tools` option can add explicit
 tools or supply tools when using a direct model ID.
 
@@ -164,6 +164,44 @@ const result = await generateText({
   },
 });
 ```
+
+### Image Search
+
+The `image_search` tool finds images on the web. Its results are returned in
+`providerMetadata.perplexity.images`:
+
+```ts
+import {
+  perplexity,
+  type PerplexityLanguageModelOptions,
+} from '@ai-sdk/perplexity';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: perplexity('openai/gpt-6-luna'),
+  prompt: 'Find two photos of the Golden Gate Bridge.',
+  providerOptions: {
+    perplexity: {
+      tools: [
+        {
+          type: 'image_search',
+          max_results: 3,
+          filters: { format_filter: ['jpeg', 'png'] },
+        },
+      ],
+    } satisfies PerplexityLanguageModelOptions,
+  },
+});
+
+console.log(result.providerMetadata?.perplexity?.images);
+// [{ imageUrl: 'https://…', originUrl: 'https://…', width: 1024, height: 683, title: '…' }, …]
+```
+
+`max_results` is 1 to 30 (5 by default). `filters.domain_filter` takes up to
+10 domains to include, or to exclude when prefixed with `-`;
+`filters.format_filter` takes image formats such as `jpeg` and `png`; and
+`filters.safe_search` defaults to `true`. See Perplexity's [Image Search
+documentation](https://docs.perplexity.ai/docs/agent-api/tools/image-search).
 
 ### Provider Options and Metadata
 
@@ -265,7 +303,9 @@ The response metadata includes:
   number of search queries
 - `cost`: Token, tool, and total costs returned by Perplexity
 - `toolCalls`: Invocation counts grouped by native tool
-- `images`: Always `null`; the Agent API does not return Sonar image results
+- `images`: The results of `image_search` calls (`imageUrl`, `originUrl`,
+  `width`, `height`, and `title`), an empty array when an image search found
+  nothing, or `null` when no image search ran
 
 ### Structured Output
 
@@ -325,13 +365,15 @@ Move Sonar search and reasoning options to their Agent API locations:
 | `web_search_options.user_location`       | `tools[].user_location`                |
 | `reasoning_effort`                       | `reasoning.effort`                     |
 | `disable_search`                         | Omit `web_search` for direct model IDs |
+| `return_images`                          | The `image_search` tool                |
 
 Preset tools cannot be removed individually. Use a direct model ID without a
 `web_search` tool when search must be disabled, or set `max_tool_calls: 0` to
 disable all preset tool calls.
 
-The Agent API has no equivalent for Sonar PDF or video inputs, image or video
-results, `search_language_filter`, or `stream_mode`. Related questions require
+The Agent API has no equivalent for Sonar PDF or video inputs, video results,
+`search_language_filter`, or `stream_mode`. Sonar image results come from the
+`image_search` tool instead; see [Image Search](#image-search). Related questions require
 prompting or structured output. Remove these options during migration.
 
 Language requests now use `/v1/agent`. Custom `baseURL` proxies must route that
@@ -340,7 +382,7 @@ formats, and Perplexity provider metadata, usage, cost, and source identifiers
 can differ. The embeddings API is unchanged.
 
 For PDF inputs, extract the document text before sending it to the Agent API,
-or choose another provider that supports PDF input. Move image/video retrieval
+or choose another provider that supports PDF input. Move video retrieval
 and language-filtered search to a separate service if your application requires
 those features. Rework consumers of raw Sonar stream events for typed Agent
 events. See Perplexity's [migration
