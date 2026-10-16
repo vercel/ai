@@ -4,6 +4,70 @@ import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { describe, it, expect } from 'vitest';
 
 describe('prepareResponsesTools', () => {
+  describe('omitFromRequestTools', () => {
+    const tools = [
+      {
+        type: 'function' as const,
+        name: 'search',
+        inputSchema: { type: 'object' as const },
+      },
+      {
+        type: 'function' as const,
+        name: 'list_issues',
+        inputSchema: { type: 'object' as const },
+        providerOptions: { openai: { omitFromRequestTools: true } },
+      },
+    ];
+
+    it('omits only the marked function from the top-level tools', async () => {
+      const result = await prepareResponsesTools({
+        tools,
+        toolChoice: { type: 'auto' },
+      });
+      expect(
+        result.tools?.map(tool => ('name' in tool ? tool.name : tool.type)),
+      ).toEqual(['search']);
+      expect(result.toolChoice).toBe('auto');
+      expect(result.toolWarnings).toEqual([]);
+      expect(tools).toHaveLength(2);
+    });
+
+    it('supports having only history-loaded functions', async () => {
+      const result = await prepareResponsesTools({
+        tools: [tools[1]],
+        toolChoice: undefined,
+      });
+      expect(result.tools).toEqual([]);
+    });
+
+    it('rejects forcing a function absent from the top-level tools', async () => {
+      await expect(
+        prepareResponsesTools({
+          tools,
+          toolChoice: { type: 'tool', toolName: 'list_issues' },
+        }),
+      ).rejects.toThrow('forcing tool "list_issues"');
+    });
+
+    it('does not put history-loaded functions in allowed_tools', async () => {
+      const result = await prepareResponsesTools({
+        tools,
+        toolChoice: undefined,
+        allowedTools: { toolNames: ['search', 'list_issues'] },
+      });
+      expect(result.toolChoice).toEqual({
+        type: 'allowed_tools',
+        mode: 'auto',
+        tools: [{ type: 'function', name: 'search' }],
+      });
+      expect(result.toolWarnings).toEqual([
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'allowedTools entry "list_issues"',
+        }),
+      ]);
+    });
+  });
   it('should remove string propertyNames from function tools and warn', async () => {
     const result = await prepareResponsesTools({
       tools: [

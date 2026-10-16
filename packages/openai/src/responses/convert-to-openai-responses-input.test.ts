@@ -3,6 +3,7 @@ import {
   type LanguageModelV4Prompt,
   type LanguageModelV4ToolResultOutput,
   type LanguageModelV4ToolResultPart,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import type { ToolNameMapping } from '@ai-sdk/provider-utils';
 import { describe, it, expect } from 'vitest';
@@ -104,6 +105,136 @@ function createExpandedParallelToolCallPrompt({
 const parallelToolCallOutput = '{"temperature":72}\nColosseum';
 
 describe('convertToOpenAIResponsesInput', () => {
+  describe('additional tools after ordinary tool results', () => {
+    const definition = {
+      type: 'function',
+      name: 'list_issues',
+      description: 'List issues',
+      parameters: {
+        type: 'object',
+        properties: {},
+        additionalProperties: false,
+      },
+      strict: true,
+    };
+    const output = [
+      { connection: 'linear' },
+      { connection: 'github', error: 'Not authorized' },
+    ];
+    const convert = (
+      prompt: LanguageModelV4Prompt,
+      providerOptionsName = 'openai',
+    ) =>
+      convertToOpenAIResponsesInput({
+        prompt,
+        providerOptionsName,
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'developer',
+        store: false,
+      });
+    const result = (
+      additionalTools: JSONValue,
+      provider = 'openai',
+    ): LanguageModelV4ToolResultPart => ({
+      type: 'tool-result',
+      toolName: 'search',
+      toolCallId: 'search-call',
+      output: { type: 'json', value: output },
+      providerOptions: { [provider]: { additionalTools } },
+    });
+
+    it.each(['openai', 'azure'])(
+      'preserves the result and inserts definitions immediately after it for %s',
+      async provider => {
+        const { input } = await convert(
+          [
+            {
+              role: 'tool',
+              content: [
+                result([definition], provider),
+                {
+                  type: 'tool-result',
+                  toolName: 'other',
+                  toolCallId: 'other-call',
+                  output: { type: 'text', value: 'other result' },
+                },
+              ],
+            },
+          ],
+          provider,
+        );
+        expect(input).toEqual([
+          {
+            type: 'function_call_output',
+            call_id: 'search-call',
+            output: JSON.stringify(output),
+          },
+          { type: 'additional_tools', role: 'developer', tools: [definition] },
+          {
+            type: 'function_call_output',
+            call_id: 'other-call',
+            output: 'other result',
+          },
+        ]);
+      },
+    );
+
+    it('preserves multiple insertion points when replaying and extending history', async () => {
+      const prompt: LanguageModelV4Prompt = [
+        { role: 'tool', content: [result([definition])] },
+      ];
+      const first = await convert(prompt);
+      prompt.push(
+        { role: 'user', content: [{ type: 'text', text: 'Search again' }] },
+        {
+          role: 'tool',
+          content: [
+            {
+              ...result([{ ...definition, name: 'get_issue' }]),
+              toolCallId: 'second-search',
+            },
+          ],
+        },
+      );
+      const second = await convert(prompt);
+      expect(second.input.slice(0, first.input.length)).toEqual(first.input);
+      expect(second.input.at(-1)).toEqual({
+        type: 'additional_tools',
+        role: 'developer',
+        tools: [{ ...definition, name: 'get_issue' }],
+      });
+      expect((await convert(prompt)).input).toEqual(second.input);
+    });
+
+    it('does not emit an item for an empty list', async () => {
+      expect(
+        (await convert([{ role: 'tool', content: [result([])] }])).input,
+      ).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'search-call',
+          output: JSON.stringify(output),
+        },
+      ]);
+    });
+
+    it.each(
+      [
+        null,
+        'invalid',
+        [{ type: 'function', name: 'missing_parameters' }],
+        [{ ...definition, strict: 'yes' }],
+        [{ ...definition, unsupported: true }],
+      ].map(additionalTools => ({ additionalTools })),
+    )(
+      'rejects malformed definitions: $additionalTools',
+      async ({ additionalTools }) => {
+        await expect(
+          convert([{ role: 'tool', content: [result(additionalTools)] }]),
+        ).rejects.toThrow();
+      },
+    );
+  });
   describe('explicit message item types', () => {
     it('should add the message type to system, user, and assistant messages', async () => {
       const result = await convertToOpenAIResponsesInput({
