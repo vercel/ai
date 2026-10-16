@@ -837,6 +837,19 @@ Local tools execute only after approval validation; denied tools produce an exec
 
 Inside a workflow, `timeout` sets an absolute deadline for model calls. Each model step checks it before dispatch, before SDK retry attempts, and after the provider returns. The same deadline remains in effect after a tool suspends and resumes. SDK `maxRetries` governs model retries; the durable model step does not add another retry layer. Expiration before dispatch rejects with `TimeoutError`; expiration during SDK retry backoff rejects with `AbortError`. Neither starts a new retry.
 
+`maxRetries` only covers failures before the model response stream opens. To retry provider errors received after streaming starts, including a dropped connection while reading the response stream, set `streamRetries`, which works like the [`streamText` option](/docs/reference/ai-sdk-core/stream-text) of the same name. Each retry runs the current model step again as a new durable step, so a run does not lose its earlier steps to one transient stream error. When `streamRetries` is configured, `onError` is called for every model stream error. It can return `{ retry: true }` to request one more retry after the automatic retries are exhausted, for example to retry only errors your application knows are transient:
+
+```ts
+const result = await agent.stream({
+  messages,
+  writable: getWritable<ModelCallStreamPart>(),
+  streamRetries: 0,
+  onError: ({ error }) => (isTransient(error) ? { retry: true } : undefined),
+});
+```
+
+Retries start immediately, without backoff. Every attempt starts with a `reset-step` chunk so UI consumers discard partial output from the failed attempt, and the error chunk of a retried attempt is not written to the writable. Provider-executed tool work cannot be undone and may repeat.
+
 A model deadline does not cancel a tool waiting on a Workflow hook. The run can remain suspended after that deadline. Once the hook resumes, any subsequent model call fails before dispatch if the deadline has expired. To stop the suspended run, use the Workflow runtime's `run.cancel()` API. Cancellation does not undo external side effects that already happened.
 
 Workflow reuses completed durable model and tool steps on replay. Put external side effects inside step functions and use the external service's idempotency mechanism where necessary: completed-step replay does not guarantee exactly-once effects for an interrupted attempt.

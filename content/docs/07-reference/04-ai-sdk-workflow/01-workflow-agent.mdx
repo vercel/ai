@@ -447,7 +447,14 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
       type: 'number',
       isOptional: true,
       description:
-        'How many times to retry retryable model-call failures. Set to 0 to disable retries. Retry-After response headers are respected, and durable workflow step retries are not stacked. Default: 2.',
+        'How many times to retry retryable model-call failures before the response stream opens. Set to 0 to disable retries. Retry-After response headers are respected, and durable workflow step retries are not stacked. Use `streamRetries` for provider errors received after streaming starts. Default: 2.',
+    },
+    {
+      name: 'streamRetries',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Default `streamRetries` for every `stream()` call on this agent. See `stream()` for details. Per-call values override this default.',
     },
     {
       name: 'headers',
@@ -582,6 +589,13 @@ const result = await agent.stream({
       isOptional: true,
       description:
         'Override the local tool call concurrency limit for this call. Must be a positive integer. Set to 1 for sequential execution in model order, including approved calls. Takes precedence over the constructor and prepareCall.',
+    },
+    {
+      name: 'streamRetries',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Maximum number of automatic retries for provider errors received after response streaming begins, either as error events or as a failed read of the response stream. Aborts and timeouts are not retried. A failed read that is not retried rejects as before. Each retry reruns only the current model step as a new durable step and preserves completed earlier steps and their tool results. Every attempt starts with a `reset-step` chunk so UI consumers discard partial output from the failed attempt. Error chunks of retried attempts are not written to the writable, and tool calls from failed attempts are discarded. Provider-executed tool work cannot be undone and may repeat. Retries start immediately, without backoff. Tool choice violations and streams that end without output are not retried. Set to 0 to disable automatic retries while allowing onError to request one callback-directed retry. With automatic retries configured, onError can request at most one additional retry after they are exhausted, bounding total recovery calls to streamRetries + 1. Omit to disable all stream retry behavior. Overrides the constructor default. Default: 0.',
     },
     {
       name: 'activeTools',
@@ -745,9 +759,10 @@ const result = await agent.stream({
     },
     {
       name: 'onError',
-      type: 'WorkflowAgentOnErrorCallback',
+      type: 'WorkflowAgentOnErrorCallback | WorkflowAgentOnErrorRetryCallback',
       isOptional: true,
-      description: 'Callback invoked when an error occurs during streaming.',
+      description:
+        'Callback invoked when an error occurs during streaming. When streamRetries is explicitly configured, it is called for every model stream error, including errors of attempts that are retried, and can return `{ retry: true }` to request one callback-directed retry for the current model step after automatic retries are exhausted. Other return values do not request a retry.',
     },
     {
       name: 'onAbort',
