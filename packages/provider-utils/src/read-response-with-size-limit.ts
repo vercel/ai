@@ -15,6 +15,12 @@ import { DownloadError } from './download-error';
 export const DEFAULT_MAX_DOWNLOAD_SIZE = 2 * 1024 * 1024 * 1024;
 
 /**
+ * Starting capacity for a body of unknown length. Sized to cover a typical
+ * response without growing; the buffer doubles from here when it has to.
+ */
+const INITIAL_BUFFER_BYTES = 64 * 1024;
+
+/**
  * Reads a fetch Response body with a size limit to prevent memory exhaustion.
  *
  * Checks the Content-Length header for early rejection, then reads the body
@@ -38,6 +44,7 @@ export async function readResponseWithSizeLimit({
 }): Promise<Uint8Array> {
   // Early rejection based on Content-Length header
   const contentLength = response.headers.get('content-length');
+  let declaredLength: number | undefined;
   if (contentLength != null) {
     const length = parseInt(contentLength, 10);
     if (!isNaN(length) && length > maxBytes) {
@@ -49,6 +56,9 @@ export async function readResponseWithSizeLimit({
         message: `Download of ${url} exceeded maximum size of ${maxBytes} bytes (Content-Length: ${length}).`,
       });
     }
+    if (!isNaN(length) && length >= 0) {
+      declaredLength = length;
+    }
   }
 
   const body = response.body;
@@ -59,7 +69,14 @@ export async function readResponseWithSizeLimit({
   }
 
   const reader = body.getReader();
-  const chunks: Uint8Array[] = [];
+  // Copy every read into a buffer we own instead of retaining the reader's
+  // views. A runtime that hands back a view over a fixed-size backing buffer
+  // (Deno's chunked bodies, one ~64 KiB buffer per read) keeps that buffer
+  // alive for as long as the view is held, so collecting the views makes peak
+  // memory chunk count x buffer size rather than the body's size. A declared
+  // Content-Length is allocated exactly; otherwise the buffer grows
+  // geometrically, which keeps the amortized copy cost linear.
+  let buffer = new Uint8Array(declaredLength ?? INITIAL_BUFFER_BYTES);
   let totalBytes = 0;
 
   try {
@@ -70,16 +87,27 @@ export async function readResponseWithSizeLimit({
         break;
       }
 
-      totalBytes += value.length;
+      const end = totalBytes + value.length;
 
-      if (totalBytes > maxBytes) {
+      if (end > maxBytes) {
         throw new DownloadError({
           url,
           message: `Download of ${url} exceeded maximum size of ${maxBytes} bytes.`,
         });
       }
 
-      chunks.push(value);
+      if (end > buffer.length) {
+        let capacity = buffer.length;
+        while (capacity < end) {
+          capacity *= 2;
+        }
+        const grown = new Uint8Array(capacity);
+        grown.set(buffer.subarray(0, totalBytes));
+        buffer = grown;
+      }
+
+      buffer.set(value, totalBytes);
+      totalBytes = end;
     }
   } finally {
     try {
@@ -91,13 +119,11 @@ export async function readResponseWithSizeLimit({
     }
   }
 
-  // Concatenate chunks into a single Uint8Array
-  const result = new Uint8Array(totalBytes);
-  let offset = 0;
-  for (const chunk of chunks) {
-    result.set(chunk, offset);
-    offset += chunk.length;
+  // Return an exactly sized array so an over-allocated buffer is not retained.
+  if (totalBytes === buffer.length) {
+    return buffer;
   }
-
+  const result = new Uint8Array(totalBytes);
+  result.set(buffer.subarray(0, totalBytes));
   return result;
 }
