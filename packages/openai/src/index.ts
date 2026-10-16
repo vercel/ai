@@ -3,6 +3,7 @@ export type { OpenAIProvider, OpenAIProviderSettings } from './openai-provider';
 export type {
   OpenAILanguageModelResponsesOptions,
   OpenAIResponsesSystemMessageOptions,
+  OpenAIResponsesToolResultOptions,
   /** @deprecated Use `OpenAILanguageModelResponsesOptions` instead. */
   OpenAILanguageModelResponsesOptions as OpenAIResponsesProviderOptions,
 } from './responses/openai-responses-options';
