@@ -687,6 +687,33 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       thinkingType === 'enabled' ||
       thinkingType === 'adaptive' ||
       thinkingType === 'between_tools';
+
+    // Anthropic does not allow forced tool use while thinking is enabled.
+    // Keep the JSON response tool available, but let the model choose it and
+    // explicitly ask for it so structured output can still work.
+    const useOptionalJsonResponseTool =
+      jsonResponseTool != null && thinkingType === 'enabled';
+
+    if (useOptionalJsonResponseTool) {
+      messagesPrompt.messages.push({
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Once you have your answer, please use the json tool to provide it. No other text is needed.',
+            cache_control: undefined,
+          },
+        ],
+      });
+
+      warnings.push({
+        type: 'compatibility',
+        feature: 'responseFormat',
+        details:
+          'Anthropic does not support forced tool use when thinking is enabled. The JSON response tool is offered with automatic tool choice instead.',
+      });
+    }
+
     const thinkingBlockBinding =
       anthropicOptions?.thinking != null &&
       'blockBinding' in anthropicOptions.thinking
@@ -1067,7 +1094,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       jsonResponseTool != null
         ? {
             tools: [...(tools ?? []), jsonResponseTool],
-            toolChoice: { type: 'required' },
+            toolChoice: useOptionalJsonResponseTool
+              ? { type: 'auto' }
+              : { type: 'required' },
             disableParallelToolUse: true,
             cacheControlValidator,
             supportsStructuredOutput: false,
@@ -1110,6 +1139,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       toolNameMapping,
       providerOptionsName,
       usedCustomProviderKey,
+      usesOptionalJsonResponseTool: useOptionalJsonResponseTool,
     };
   }
 
@@ -1231,6 +1261,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       warnings,
       betas,
       usesJsonResponseTool,
+      usesOptionalJsonResponseTool,
       toolNameMapping,
       providerOptionsName,
       usedCustomProviderKey,
@@ -1272,6 +1303,11 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     const mcpToolCalls: Record<string, LanguageModelV4ToolCall> = {};
     const serverToolCalls: Record<string, string> = {}; // tool_use_id -> provider tool name
     let isJsonResponseFromTool = false;
+    let jsonResponseText: LanguageModelV4Content | undefined;
+    const optionalTextCitations = new Map<
+      LanguageModelV4Content,
+      Array<Citation>
+    >();
 
     const hasWebSearchResults = response.content.some(
       part =>
@@ -1283,10 +1319,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     for (const part of response.content) {
       switch (part.type) {
         case 'text': {
-          if (!usesJsonResponseTool) {
+          if (!usesJsonResponseTool || usesOptionalJsonResponseTool) {
             const citations = part.citations ?? [];
 
-            content.push({
+            const textContent: LanguageModelV4Content = {
               type: 'text',
               text: part.text,
               ...(citations.length > 0 && {
@@ -1301,25 +1337,30 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                   },
                 } satisfies AnthropicTextProviderMetadata,
               }),
-            });
+            };
+            content.push(textContent);
 
             // Process citations if present
             if (part.citations) {
-              for (const citation of part.citations) {
-                if (
-                  citation.type === 'web_search_result_location' &&
-                  hasWebSearchResults
-                ) {
-                  continue;
-                }
-                const source = createCitationSource(
-                  citation,
-                  citationDocuments,
-                  this.generateId,
-                );
+              if (usesOptionalJsonResponseTool) {
+                optionalTextCitations.set(textContent, part.citations);
+              } else {
+                for (const citation of part.citations) {
+                  if (
+                    citation.type === 'web_search_result_location' &&
+                    hasWebSearchResults
+                  ) {
+                    continue;
+                  }
+                  const source = createCitationSource(
+                    citation,
+                    citationDocuments,
+                    this.generateId,
+                  );
 
-                if (source) {
-                  content.push(source);
+                  if (source) {
+                    content.push(source);
+                  }
                 }
               }
             }
@@ -1379,16 +1420,20 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         }
         case 'tool_use': {
           const isJsonResponseTool =
-            usesJsonResponseTool && part.name === 'json';
+            (usesJsonResponseTool || usesOptionalJsonResponseTool) &&
+            part.name === 'json';
 
           if (isJsonResponseTool) {
             isJsonResponseFromTool = true;
 
             // when a json response tool is used, the tool call becomes the text:
-            content.push({
+            jsonResponseText = {
               type: 'text',
               text: JSON.stringify(part.input),
-            });
+            };
+            if (!usesOptionalJsonResponseTool) {
+              content.push(jsonResponseText);
+            }
           } else if (part.toolset_name != null) {
             // toolset member calls (e.g. the computer toolset) are mapped to
             // the toolset tool with the member name as the `action`:
@@ -1783,6 +1828,46 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       }
     }
 
+    if (usesOptionalJsonResponseTool && jsonResponseText != null) {
+      // If the model used the JSON tool, discard any explanatory text and
+      // expose only the structured response to the core object parser.
+      for (let index = content.length - 1; index >= 0; index--) {
+        if (content[index]?.type === 'text') {
+          content.splice(index, 1);
+        }
+      }
+      content.push(jsonResponseText);
+    } else if (usesOptionalJsonResponseTool) {
+      // The model did not use the JSON tool, so preserve citations from the
+      // buffered text while keeping their source order next to that text.
+      for (const [textContent, citations] of optionalTextCitations) {
+        const textIndex = content.indexOf(textContent);
+        if (textIndex === -1) {
+          continue;
+        }
+
+        let insertIndex = textIndex + 1;
+        for (const citation of citations) {
+          if (
+            citation.type === 'web_search_result_location' &&
+            hasWebSearchResults
+          ) {
+            continue;
+          }
+
+          const source = createCitationSource(
+            citation,
+            citationDocuments,
+            this.generateId,
+          );
+          if (source) {
+            content.splice(insertIndex, 0, source);
+            insertIndex++;
+          }
+        }
+      }
+    }
+
     return {
       content,
       finishReason: {
@@ -1878,6 +1963,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       warnings,
       betas,
       usesJsonResponseTool,
+      usesOptionalJsonResponseTool,
       toolNameMapping,
       providerOptionsName,
       usedCustomProviderKey,
@@ -1948,7 +2034,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
             toolId?: string;
           };
         }
-      | { type: 'text'; citations: Citation[] }
+      | { type: 'text'; citations: Citation[]; text?: string }
       | { type: 'reasoning' }
     > = {};
     const mcpToolCalls: Record<string, LanguageModelV4ToolCall> = {};
@@ -1968,6 +2054,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     const fallbackWebCitations: Citation[] = [];
     let isMessageOpen = false;
     let activeMessageId: string | null | undefined;
+    let messageStopReason: string | undefined;
     let hasInvalidMessageSequence = false;
 
     let blockType:
@@ -2045,18 +2132,23 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 case 'text': {
                   // when a json response tool is used, the tool call is returned as text,
                   // so we ignore the text content:
-                  if (usesJsonResponseTool) {
+                  if (usesJsonResponseTool && !usesOptionalJsonResponseTool) {
                     return;
                   }
 
                   contentBlocks[value.index] = {
                     type: 'text',
                     citations: [],
+                    ...(usesOptionalJsonResponseTool
+                      ? { text: part.text }
+                      : {}),
                   };
-                  controller.enqueue({
-                    type: 'text-start',
-                    id: String(value.index),
-                  });
+                  if (!usesOptionalJsonResponseTool) {
+                    controller.enqueue({
+                      type: 'text-start',
+                      id: String(value.index),
+                    });
+                  }
                   return;
                 }
 
@@ -2120,7 +2212,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
                 case 'tool_use': {
                   const isJsonResponseTool =
-                    usesJsonResponseTool && part.name === 'json';
+                    (usesJsonResponseTool || usesOptionalJsonResponseTool) &&
+                    part.name === 'json';
 
                   if (isJsonResponseTool) {
                     isJsonResponseFromTool = true;
@@ -2624,20 +2717,25 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
                 switch (contentBlock.type) {
                   case 'text': {
-                    controller.enqueue({
-                      type: 'text-end',
-                      id: String(value.index),
-                      ...(contentBlock.citations.length > 0 && {
-                        citations: contentBlock.citations.map(citation =>
-                          mapAnthropicCitation(citation, citationDocuments),
-                        ),
-                        providerMetadata: {
-                          anthropic: {
-                            citations: contentBlock.citations,
-                          },
-                        } satisfies AnthropicTextProviderMetadata,
-                      }),
-                    });
+                    if (
+                      !usesOptionalJsonResponseTool ||
+                      contentBlock.text == null
+                    ) {
+                      controller.enqueue({
+                        type: 'text-end',
+                        id: String(value.index),
+                        ...(contentBlock.citations.length > 0 && {
+                          citations: contentBlock.citations.map(citation =>
+                            mapAnthropicCitation(citation, citationDocuments),
+                          ),
+                          providerMetadata: {
+                            anthropic: {
+                              citations: contentBlock.citations,
+                            },
+                          } satisfies AnthropicTextProviderMetadata,
+                        }),
+                      });
+                    }
                     break;
                   }
 
@@ -2653,7 +2751,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                     // when a json response tool is used, the tool call is returned as text,
                     // so we ignore the tool call content:
                     const isJsonResponseTool =
-                      usesJsonResponseTool && contentBlock.toolName === 'json';
+                      (usesJsonResponseTool || usesOptionalJsonResponseTool) &&
+                      contentBlock.toolName === 'json';
 
                     if (!isJsonResponseTool) {
                       // toolset member calls: emit the accumulated input with
@@ -2746,7 +2845,15 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                     break;
                 }
 
-                delete contentBlocks[value.index];
+                if (
+                  !(
+                    usesOptionalJsonResponseTool &&
+                    contentBlock.type === 'text' &&
+                    contentBlock.text != null
+                  )
+                ) {
+                  delete contentBlocks[value.index];
+                }
               }
 
               blockType = undefined; // reset block type
@@ -2761,8 +2868,19 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 case 'text_delta': {
                   // when a json response tool is used, the tool call is returned as text,
                   // so we ignore the text content:
-                  if (usesJsonResponseTool) {
+                  if (usesJsonResponseTool && !usesOptionalJsonResponseTool) {
                     return; // excluding the text-start will also exclude the text-end
+                  }
+
+                  if (usesOptionalJsonResponseTool) {
+                    const contentBlock = contentBlocks[value.index];
+                    if (
+                      contentBlock?.type === 'text' &&
+                      contentBlock.text != null
+                    ) {
+                      contentBlock.text += value.delta.text;
+                    }
+                    return;
                   }
 
                   controller.enqueue({
@@ -2871,9 +2989,20 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 case 'citations_delta': {
                   const citation = value.delta.citation;
                   const contentBlock = contentBlocks[value.index];
+                  const isBufferedOptionalText =
+                    usesOptionalJsonResponseTool &&
+                    contentBlock?.type === 'text' &&
+                    contentBlock.text != null;
 
                   if (contentBlock?.type === 'text') {
                     contentBlock.citations.push(citation);
+                  }
+
+                  if (isBufferedOptionalText) {
+                    if (citation.type === 'web_search_result_location') {
+                      fallbackWebCitations.push(citation);
+                    }
+                    return;
                   }
 
                   if (citation.type === 'web_search_result_location') {
@@ -2944,6 +3073,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               }
 
               if (value.message.stop_reason != null) {
+                messageStopReason = value.message.stop_reason;
                 finishReason = {
                   unified: mapAnthropicStopReason({
                     finishReason: value.message.stop_reason,
@@ -3053,6 +3183,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 raw: value.delta.stop_reason ?? undefined,
               };
 
+              if (value.delta.stop_reason != null) {
+                messageStopReason = value.delta.stop_reason;
+              }
+
               stopSequence = value.delta.stop_sequence ?? null;
               stopDetails = mapAnthropicStopDetails(value.delta.stop_details);
               container =
@@ -3096,6 +3230,79 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
             case 'message_stop': {
               isMessageOpen = false;
               activeMessageId = undefined;
+              const shouldFlushOptionalText =
+                usesOptionalJsonResponseTool &&
+                !isJsonResponseFromTool &&
+                messageStopReason !== 'tool_use';
+
+              if (shouldFlushOptionalText) {
+                for (const [index, contentBlock] of Object.entries(
+                  contentBlocks,
+                ).sort(([left], [right]) => Number(left) - Number(right))) {
+                  if (
+                    contentBlock.type !== 'text' ||
+                    contentBlock.text == null
+                  ) {
+                    continue;
+                  }
+
+                  controller.enqueue({
+                    type: 'text-start',
+                    id: index,
+                  });
+                  if (contentBlock.text.length > 0) {
+                    controller.enqueue({
+                      type: 'text-delta',
+                      id: index,
+                      delta: contentBlock.text,
+                    });
+                  }
+
+                  for (const citation of contentBlock.citations) {
+                    if (citation.type === 'web_search_result_location') {
+                      // Web-search citations are emitted below, after the
+                      // response tells us whether actual search results were
+                      // included in the message.
+                      continue;
+                    }
+
+                    const source = createCitationSource(
+                      citation,
+                      citationDocuments,
+                      generateId,
+                    );
+                    if (source) controller.enqueue(source);
+                  }
+
+                  controller.enqueue({
+                    type: 'text-end',
+                    id: index,
+                    ...(contentBlock.citations.length > 0 && {
+                      citations: contentBlock.citations.map(citation =>
+                        mapAnthropicCitation(citation, citationDocuments),
+                      ),
+                      providerMetadata: {
+                        anthropic: {
+                          citations: contentBlock.citations,
+                        },
+                      } satisfies AnthropicTextProviderMetadata,
+                    }),
+                  });
+                }
+              }
+
+              if (usesOptionalJsonResponseTool) {
+                for (const [index, contentBlock] of Object.entries(
+                  contentBlocks,
+                )) {
+                  if (
+                    contentBlock.type === 'text' &&
+                    contentBlock.text != null
+                  ) {
+                    delete contentBlocks[Number(index)];
+                  }
+                }
+              }
 
               const anthropicMetadata = {
                 usage: (rawUsage as JSONObject) ?? null,
@@ -3143,7 +3350,13 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 providerMetadata[providerOptionsName] = anthropicMetadata;
               }
 
-              if (!hasWebSearchResults) {
+              if (
+                !hasWebSearchResults &&
+                !(
+                  usesOptionalJsonResponseTool &&
+                  (isJsonResponseFromTool || messageStopReason === 'tool_use')
+                )
+              ) {
                 for (const citation of fallbackWebCitations) {
                   const source = createCitationSource(
                     citation,
@@ -3154,6 +3367,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 }
               }
               fallbackWebCitations.length = 0;
+              messageStopReason = undefined;
               controller.enqueue({
                 type: 'finish',
                 finishReason,
