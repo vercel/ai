@@ -2,6 +2,7 @@ export type GatewayDecisionModelId =
   | 'convaiinnovations/laya'
   | 'convaiinnovations/laya-free'
   | 'liquid/d1'
+  | 'liquid/d1-ultra'
   | 'microsoft/microsoft-decision-1'
   | 'openai/gpt-6-luna-decisions'
   | 'perplexity/pplx-decider-v1.1-27b'
