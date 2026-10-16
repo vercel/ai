@@ -60,7 +60,7 @@ export async function POST(req: Request) {
   }
 
   // save the user message
-  saveChat({ id, messages, activeStreamId: null });
+  await saveChat({ id, messages, activeStreamId: null });
 
   const userStopSignal = new AbortController();
 
@@ -90,8 +90,8 @@ export async function POST(req: Request) {
           return { createdAt: Date.now() };
         }
       },
-      onFinish: ({ messages }) => {
-        saveChat({ id, messages, activeStreamId: null });
+      onFinish: async ({ messages }) => {
+        await saveChat({ id, messages, activeStreamId: null });
       },
     }),
     async consumeSseStream({ stream }) {
@@ -102,7 +102,7 @@ export async function POST(req: Request) {
       await streamContext.createNewResumableStream(streamId, () => stream);
 
       // update the chat with the streamId
-      saveChat({ id, activeStreamId: streamId });
+      await saveChat({ id, activeStreamId: streamId });
     },
   });
 }
