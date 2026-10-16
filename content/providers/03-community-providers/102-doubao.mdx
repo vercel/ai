@@ -1,0 +1,109 @@
+---
+title: Doubao
+description: Doubao Provider for the AI SDK
+---
+
+# Doubao AI Provider
+
+[Doubao AI Provider](https://github.com/wangyucode/doubao-ai-provider) is a community provider for language model support for the Bytedance's [Doubao](https://www.volcengine.com/product/doubao) models.
+
+## Setup
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add doubao-ai-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm i doubao-ai-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add doubao-ai-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add doubao-ai-provider" dark />
+  </Tab>
+</Tabs>
+
+Set up your `.env` file / environment with your API key.
+
+```bash
+DOUBAO_API_KEY=<your-api-key>
+```
+
+## Provider Instance
+
+You can import the default provider instance `doubao` from `doubao-ai-provider` (This automatically reads the API key from the environment variable `DOUBAO_API_KEY`):
+
+```ts
+import { doubao } from 'doubao-ai-provider';
+```
+
+Alternatively, you can create a provider instance with custom configuration with `createDoubao`:
+
+```ts
+import { createDoubao } from 'doubao-ai-provider';
+
+const doubao = createDoubao({
+  baseURL: 'https://ark.cn-beijing.volces.com/api/v3',
+  apiKey: 'your-api-key',
+});
+```
+
+You can use the following optional settings to customize the Doubao provider instance:
+
+- **baseURL**: _string_
+
+  - Use a different URL prefix for API calls, e.g. to use proxy servers. The default prefix is `https://ark.cn-beijing.volces.com/api/v3`.
+
+- **apiKey**: _string_
+
+  - Your API key for Doubao [Doubao](https://www.volcengine.com/product/doubao). If not provided, the provider will attempt to read the API key from the environment variable `DOUBAO_API_KEY`.
+
+- **headers**: _Record\<string, string\>_
+  - Custom headers to include in the requests.
+
+## Example
+
+```ts
+import { generateText } from "ai";
+import { doubao } from 'doubao-ai-provider';
+
+const { text, reasoningText } = await generateText({
+  model: doubao("doubao-seed-1-6-251015"),
+  prompt: 'What is the time?',
+});
+```
+
+## Additional Body Field
+
+`doubao-seed-1-6-251015` and `doubao-seed-1-6-lite-251015` support to customize the effort of reasoning.
+We can add the additional body field `reasoning_effort` by using a customize fetch function
+
+```ts
+const doubaoFetch = (url: RequestInfo | URL, options?: RequestInit) => {
+  if (options?.body) {
+    try {
+      const body = JSON.parse(options.body.toString());
+      // doubao-seed-1-6-lite-251015, doubao-seed-1-6-251015 support `minimal`, `low`, `medium`, `high`.
+      body.reasoning_effort = "minimal"; 
+      options.body = JSON.stringify(body);
+    } catch (error) {
+      console.error("Error adding body field:", error);
+    }
+  }
+  return fetch(url, options);
+}
+
+const doubao = createDoubao({
+  fetch: doubaoFetch,
+});
+```
+
+## Supported Models
+- `doubao-seed-1-6-251015`
+- `doubao-seed-1-6-lite-251015`
+- `doubao-seed-1-6-flash-250828`
+
+## Documentation
+
+- **[Doubao documentation](https://www.volcengine.com/docs/82379/)**
