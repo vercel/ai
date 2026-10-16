@@ -1,0 +1,155 @@
+---
+title: Onyx
+description: Learn how to use the Onyx provider for the AI SDK.
+---
+
+# Onyx
+
+[ofekashery/onyx-ai-sdk-provider](https://github.com/ofekashery/onyx-ai-sdk-provider) is a community provider that lets you chat with your [Onyx](https://onyx.app) agents through the AI SDK.
+
+Onyx is an open-source AI platform that connects to your enterprise knowledge and gives humans and agents accurate, fast, and token-efficient context.
+The provider streams these tool runs back as provider-executed tool calls.
+
+## Setup
+
+The Onyx provider is available in the `onyx-ai-sdk-provider` module. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add onyx-ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install onyx-ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add onyx-ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add onyx-ai-sdk-provider" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+Create a provider instance with `createOnyx`:
+
+```ts
+import { createOnyx } from 'onyx-ai-sdk-provider';
+
+const onyx = createOnyx({
+  apiKey: process.env.NEXT_PUBLIC_ONYX_API_KEY!,
+  backendBaseUrl: process.env.ONYX_BACKEND_BASE_URL, // optional
+});
+```
+
+You can use the following settings to customize the Onyx provider instance:
+
+- **apiKey** _string_
+
+  A valid Onyx API key for authenticating widget requests. This key is visible in client-side code, so always use a limited-scope key. Required.
+
+- **backendBaseUrl** _string_
+
+  The URL of your Onyx backend API.
+  - **Onyx Cloud:** Use `https://cloud.onyx.app/api` or your tenant-specific URL
+  - **Self-hosted:** Use your Onyx instance URL (e.g., `https://onyx.yourcompany.com/api`)
+
+## Language Models
+
+Each Onyx agent is a language model. Pass the agent ID to `onyx.chat()`, or call it with no ID to use the workspace's default agent:
+
+```ts
+const defaultAgent = onyx.chat(); // same as onyx.chat('default')
+const supportAgent = onyx.chat('123');
+```
+
+`onyx(modelId)` and `onyx.languageModel(modelId)` are aliases for `onyx.chat(modelId)`.
+
+You can pass chat settings as the second argument:
+
+```ts
+const model = onyx.chat('123', { includeCitations: true });
+```
+
+### Example
+
+```ts
+import { createOnyx } from 'onyx-ai-sdk-provider';
+import { streamText } from 'ai';
+
+const onyx = createOnyx({ apiKey: process.env.ONYX_API_KEY! });
+
+const result = streamText({
+  model: onyx.chat(),
+  prompt: "What is our company's mission statement?",
+});
+
+for await (const text of result.textStream) {
+  process.stdout.write(text);
+}
+```
+
+`generateText` works the same way.
+
+### Tools and Sources
+
+Onyx runs the tools configured on the agent on its own servers. The provider reports each tool run as a provider-executed `tool-call` and `tool-result` pair. Tool names include `internal_search`, `web_search`, `open_url`, `image_generation`, `python`, `file_reader`, `memory`, `research_agent`, `coding_agent`, and `bash`. Custom tools keep the name configured in Onyx.
+
+When citations are on, each cited document becomes a `source` part. Documents that have a link become URL sources. Other documents become document sources.
+
+```ts
+import { createOnyx } from 'onyx-ai-sdk-provider';
+import { generateText } from 'ai';
+
+const onyx = createOnyx({ apiKey: process.env.ONYX_API_KEY! });
+
+const { text, sources, toolCalls } = await generateText({
+  model: onyx.chat('123', { includeCitations: true }),
+  prompt: 'Summarize our latest security policy.',
+});
+
+console.log(text);
+console.log(toolCalls.map((call) => call.toolName));
+console.log(sources);
+```
+
+### Conversations
+
+Onyx stores each conversation as a chat session on the server. The AI SDK sends the full message history on every call. The provider handles the difference for you:
+
+- If the history matches a reply from the same provider instance, the provider continues that Onyx chat session and sends only the newest user message.
+- Otherwise, it starts a new chat session and adds the earlier turns to the first message. It also returns a `compatibility` warning.
+
+The prompt must end with a user message.
+
+To continue a specific session, use provider options:
+
+```ts
+const result = await generateText({
+  model: onyx.chat(),
+  prompt: 'And what about last quarter?',
+  providerOptions: {
+    onyx: {
+      chatSessionId: 'your-chat-session-id',
+      parentMessageId: 42,
+    },
+  },
+});
+```
+
+Each response includes the session and message IDs in its provider metadata. Use them to continue the conversation later:
+
+```ts
+const { providerMetadata } = await generateText({
+  model: onyx.chat(),
+  prompt: 'Who owns the billing service?',
+});
+
+const { chatSessionId, assistantMessageId } = providerMetadata?.onyx ?? {};
+```
+
+## Additional Resources
+
+- [Provider Repository](https://github.com/ofekashery/onyx-ai-sdk-provider)
+- [npm Package](https://www.npmjs.com/package/onyx-ai-sdk-provider)
+- [Onyx Documentation](https://docs.onyx.app)
