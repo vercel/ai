@@ -22,6 +22,9 @@
 /**
  * Create a union of the given object's values, and optionally specify which keys to get the values from.
  *
+ * Unlike type-fest, optional keys don't add `undefined`, so a tool set with an optional
+ * tool still gives a union of tool calls without `undefined`.
+ *
  * Please upvote [this issue](https://github.com/microsoft/TypeScript/issues/31438) if you want to have this type as a built-in in TypeScript.
  *
  * @example
@@ -62,4 +65,4 @@
 export type ValueOf<
   ObjectType,
   ValueType extends keyof ObjectType = keyof ObjectType,
-> = ObjectType[ValueType];
+> = Required<ObjectType>[ValueType];
