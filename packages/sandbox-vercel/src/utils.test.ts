@@ -49,6 +49,32 @@ describe('Vercel template snapshots', () => {
     expect(snapshotCache.get('prepared-template')).toBe('snap_derived');
   });
 
+  it('snapshots a template created from a snapshot source instead of reusing the source snapshot', async () => {
+    const stop = vi.fn(async () => ({ snapshot: { id: 'snap_derived' } }));
+    getOrCreateMock.mockImplementation(
+      async (opts: { onCreate: (sandbox: Sandbox) => Promise<void> }) => {
+        const prepared = { currentSnapshotId: 'snap_source', stop };
+        await opts.onCreate(prepared as unknown as Sandbox);
+        return prepared;
+      },
+    );
+    const onCreate = vi.fn(async (_sandbox: Sandbox) => {});
+
+    const snapshotId = await ensureTemplateSnapshot({
+      baseParams: {
+        source: { type: 'snapshot', snapshotId: 'snap_source' },
+        timeout: 60_000,
+      },
+      templateName: 'prepared-template',
+      lookupParams: {},
+      onCreate,
+    });
+
+    expect(onCreate).toHaveBeenCalledOnce();
+    expect(stop).toHaveBeenCalledOnce();
+    expect(snapshotId).toBe('snap_derived');
+  });
+
   it('forks a live sandbox with the derived snapshot and its own name', async () => {
     await createLiveSandboxFromSnapshot({
       baseParams: {
