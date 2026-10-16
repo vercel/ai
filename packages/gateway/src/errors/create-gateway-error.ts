@@ -14,6 +14,10 @@ import {
   GatewayForbiddenError,
   forbiddenParamSchema,
 } from './gateway-forbidden-error';
+import {
+  GatewayBillingError,
+  isGatewayBillingErrorType,
+} from './gateway-billing-error';
 import { GatewayResponseError } from './gateway-response-error';
 import {
   lazySchema,
@@ -65,6 +69,16 @@ export async function createGatewayErrorFromResponse({
   const errorType = validatedResponse.error.type;
   const message = validatedResponse.error.message;
   const generationId = validatedResponse.generationId ?? undefined;
+
+  if (isGatewayBillingErrorType(errorType)) {
+    return new GatewayBillingError({
+      message,
+      statusCode,
+      type: errorType,
+      cause,
+      generationId,
+    });
+  }
 
   switch (errorType) {
     case 'authentication_error':
