@@ -196,6 +196,79 @@ it('rejects an unsupported model version', async () => {
 });
 
 describe('input validation', () => {
+  it.each([{}, { instructions: undefined }, { instructions: null }])(
+    'accepts criteria-only questions with %j and forwards them unchanged',
+    async instructionFields => {
+      const { model, doDecide } = setup();
+      const criteriaOnly = {
+        topic: {
+          type: 'choice',
+          criteria: questions.topic.criteria,
+          ...instructionFields,
+        },
+        severity: {
+          type: 'score',
+          criteria: questions.severity.criteria,
+          ...instructionFields,
+        },
+        refund: {
+          type: 'boolean',
+          criteria: questions.refund.criteria,
+          ...instructionFields,
+        },
+      } as const;
+      const result = await decide({
+        model,
+        state: 'text',
+        questions: criteriaOnly,
+      });
+      expect(result.answers).toEqual(answers);
+      expect(doDecide.mock.calls[0][0].questions).toBe(criteriaOnly);
+    },
+  );
+
+  it.each([
+    { true: ['Refund requested'] },
+    { false: { intent: 'Status inquiry' } },
+  ])('accepts a single Boolean criterion: %j', async criteria => {
+    const { model } = setup({
+      answers: { refund: answers.refund },
+      warnings: [],
+    });
+    await expect(
+      decide({
+        model,
+        state: 'text',
+        questions: { refund: { type: 'boolean', criteria } },
+      }),
+    ).resolves.toBeDefined();
+  });
+
+  it.each([{}, { instructions: undefined }, { instructions: null }])(
+    'rejects Boolean questions without instructions or a described criterion: %j',
+    async instructionFields => {
+      const { model, doDecide } = setup();
+      for (const criteria of [
+        undefined,
+        {},
+        { true: null },
+        { false: null },
+        { true: null, false: null },
+      ]) {
+        await expect(
+          decide({
+            model,
+            state: 'text',
+            questions: {
+              refund: { type: 'boolean', ...instructionFields, criteria },
+            },
+          }),
+        ).rejects.toBeInstanceOf(InvalidArgumentError);
+      }
+      expect(doDecide).not.toHaveBeenCalled();
+    },
+  );
+
   const cyclic: Record<string, unknown> = {};
   cyclic.self = cyclic;
   it.each([
@@ -223,6 +296,19 @@ describe('input validation', () => {
     null,
     { test: { type: 'other', instructions: 'test' } },
     { test: { type: 'boolean', instructions: null } },
+    { test: { type: 'box' } },
+    { test: { type: 'box', instructions: null } },
+    { test: { type: 'choice', instructions: 42, criteria: { a: null } } },
+    { test: { type: 'score', instructions: false, criteria: ['Low', 'High'] } },
+    {
+      test: {
+        type: 'boolean',
+        instructions: () => true,
+        criteria: { true: 'Yes' },
+      },
+    },
+    { test: { type: 'boolean', criteria: { true: 42 } } },
+    { test: { type: 'boolean', criteria: { yes: 'Yes' } } },
     {
       test: { type: 'boolean', instructions: 'test', criteria: { yes: 'yes' } },
     },

@@ -459,3 +459,38 @@ it('forwards cancellation without retrying inside the provider', async () => {
   ).rejects.toThrow('Cancelled');
   expect(fetch).toHaveBeenCalledTimes(1);
 });
+
+it.each([{}, { instructions: undefined }, { instructions: null }])(
+  'preserves criteria-only questions on the wire with %j',
+  async instructionFields => {
+    const { model, fetch } = setup();
+    const questions = {
+      defect: {
+        type: 'boolean',
+        criteria: { true: ['Broken'], false: null },
+        ...instructionFields,
+      },
+      sentiment: {
+        type: 'choice',
+        criteria: options.questions.sentiment.criteria,
+        ...instructionFields,
+      },
+      severity: {
+        type: 'score',
+        criteria: options.questions.severity.criteria,
+        ...instructionFields,
+      },
+    } as const;
+    await model.doDecide({ ...options, questions });
+    expect(
+      JSON.parse(fetch.mock.calls[0][1]?.body as string).questions,
+    ).toStrictEqual(
+      JSON.parse(
+        JSON.stringify({
+          ...questions,
+          defect: { ...questions.defect, type: 'noul' },
+        }),
+      ),
+    );
+  },
+);

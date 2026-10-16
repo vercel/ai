@@ -84,7 +84,11 @@ export function validateDecisionInput({
 
   for (const [id, question] of Object.entries(questions)) {
     const parameter = `questions.${id}`;
-    if (!isRecord(question) || !isInput(question.instructions)) {
+    if (
+      !isRecord(question) ||
+      ((question.type === 'box' || question.instructions != null) &&
+        !isInput(question.instructions))
+    ) {
       invalidInput(
         parameter,
         question,
@@ -113,6 +117,17 @@ export function validateDecisionInput({
         }
         break;
       case 'boolean':
+        if (
+          question.instructions == null &&
+          (!isRecord(criteria) ||
+            !Object.values(criteria).some(value => value != null))
+        ) {
+          invalidInput(
+            parameter,
+            question,
+            'boolean questions require instructions or at least one non-null criterion',
+          );
+        }
         if (criteria === undefined) continue;
         if (
           !isRecord(criteria) ||
