@@ -1,0 +1,8 @@
+{"id":"chunk-1","object":"chat.completion.chunk","created":1781932150,"model":"Qwen/Qwen2.5-7B-Instruct","choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}],"usage":null}
+{"id":"chunk-1","object":"chat.completion.chunk","created":1781932150,"model":"Qwen/Qwen2.5-7B-Instruct","choices":[{"index":0,"delta":{"content":"Paris"},"finish_reason":null}],"usage":null}
+{"id":"chunk-1","object":"chat.completion.chunk","created":1781932150,"model":"Qwen/Qwen2.5-7B-Instruct","choices":[{"index":0,"delta":{"content":" is"},"finish_reason":null}],"usage":null}
+{"id":"chunk-1","object":"chat.completion.chunk","created":1781932150,"model":"Qwen/Qwen2.5-7B-Instruct","choices":[{"index":0,"delta":{"content":" the"},"finish_reason":null}],"usage":null}
+{"id":"chunk-1","object":"chat.completion.chunk","created":1781932150,"model":"Qwen/Qwen2.5-7B-Instruct","choices":[{"index":0,"delta":{"content":" capital"},"finish_reason":null}],"usage":null}
+{"id":"chunk-1","object":"chat.completion.chunk","created":1781932150,"model":"Qwen/Qwen2.5-7B-Instruct","choices":[{"index":0,"delta":{"content":" of"},"finish_reason":null}],"usage":null}
+{"id":"chunk-1","object":"chat.completion.chunk","created":1781932150,"model":"Qwen/Qwen2.5-7B-Instruct","choices":[{"index":0,"delta":{"content":" France"},"finish_reason":null}],"usage":null}
+{"id":"chunk-1","object":"chat.completion.chunk","created":1781932150,"model":"Qwen/Qwen2.5-7B-Instruct","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":37,"completion_tokens":23,"total_tokens":60}}
