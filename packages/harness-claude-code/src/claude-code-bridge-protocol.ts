@@ -30,7 +30,24 @@ const thinkingSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('disabled') }),
 ]);
 
+const promptSchema = z.union([
+  z.string(),
+  z.array(
+    z.discriminatedUnion('type', [
+      z.object({ type: z.literal('text'), text: z.string() }),
+      z.object({
+        type: z.literal('image'),
+        data: z.string(),
+        mediaType: z.string(),
+      }),
+    ]),
+  ),
+]);
+
+export type PromptContent = z.infer<typeof promptSchema>;
+
 export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
+  prompt: promptSchema,
   instructions: z.string().optional(),
   thinking: thinkingSchema,
   effort: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).optional(),

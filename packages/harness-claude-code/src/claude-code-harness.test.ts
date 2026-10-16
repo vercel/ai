@@ -1,8 +1,10 @@
 import {
   HarnessCapabilityUnsupportedError,
   type HarnessV1NetworkSandboxSession,
+  type HarnessV1Prompt,
 } from '@ai-sdk/harness';
 import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
 import type * as NodeFsPromises from 'node:fs/promises';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -1458,6 +1460,123 @@ describe('createClaudeCode adapter', () => {
     expect(message).toContain(
       'Cannot find module @anthropic-ai/claude-agent-sdk',
     );
+  });
+
+  describe('user message content', () => {
+    const png =
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+
+    async function promptTurn(prompt: HarnessV1Prompt) {
+      const session = await createClaudeCode().doStart({
+        sessionId: 's1',
+        sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+          bridgePortUrl: 'ws://127.0.0.1:1',
+          writes: [],
+          runs: [],
+        }),
+        sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      });
+      try {
+        const control = await session.doPromptTurn({
+          skills: [],
+          tools: [],
+          prompt,
+          emit: () => {},
+        });
+        void Promise.resolve(control.done).catch(() => {});
+      } finally {
+        await session.doDestroy();
+      }
+    }
+
+    it('sends a text-only user message as a string prompt', async () => {
+      await promptTurn({
+        role: 'user',
+        content: [
+          { type: 'text', text: 'First' },
+          { type: 'text', text: 'Second' },
+        ],
+      });
+
+      expect(lastStart().prompt).toBe('First\n\nSecond');
+    });
+
+    it('sends inline images as image blocks', async () => {
+      await promptTurn({
+        role: 'user',
+        content: [
+          { type: 'text', text: 'What is in these images?' },
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: { type: 'url', url: new URL(`data:image/png;base64,${png}`) },
+          },
+          {
+            type: 'file',
+            mediaType: 'image',
+            data: { type: 'data', data: convertBase64ToUint8Array(png) },
+          },
+          { type: 'file', mediaType: 'image/png', data: png },
+          { type: 'image', image: png },
+        ],
+      });
+
+      expect(lastStart().prompt).toEqual([
+        { type: 'text', text: 'What is in these images?' },
+        { type: 'image', mediaType: 'image/png', data: png },
+        { type: 'image', mediaType: 'image/png', data: png },
+        { type: 'image', mediaType: 'image/png', data: png },
+        { type: 'image', mediaType: 'image/png', data: png },
+      ]);
+    });
+
+    it.each([
+      {
+        name: 'remote image URLs',
+        part: {
+          type: 'file',
+          mediaType: 'image/png',
+          data: { type: 'url', url: new URL('https://example.com/a.png') },
+        },
+      },
+      {
+        name: 'provider references',
+        part: {
+          type: 'file',
+          mediaType: 'image/png',
+          data: { type: 'reference', reference: { anthropic: 'file_1' } },
+        },
+      },
+      {
+        name: 'non-image files',
+        part: {
+          type: 'file',
+          mediaType: 'application/pdf',
+          data: { type: 'data', data: png },
+        },
+      },
+      {
+        name: 'data URLs that are not base64 encoded',
+        part: {
+          type: 'file',
+          mediaType: 'image/svg+xml',
+          data: new URL('data:image/svg+xml,%3Csvg%3E%3C/svg%3E'),
+        },
+      },
+      {
+        name: 'images whose media type cannot be detected',
+        part: {
+          type: 'file',
+          mediaType: 'image',
+          data: { type: 'data', data: 'aGVsbG8=' },
+        },
+      },
+    ] as const)('rejects $name', async ({ part }) => {
+      await expect(
+        promptTurn({ role: 'user', content: [part] }),
+      ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
+      expect(sentMessages.filter(m => m.type === 'start')).toHaveLength(0);
+    });
   });
 
   describe('bridge WebSocket startup', () => {

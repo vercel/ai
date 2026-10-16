@@ -47,10 +47,18 @@ import {
   type SandboxChannelReconnectOptions,
 } from '@ai-sdk/harness/utils';
 import {
+  convertInlineFileDataToUint8Array,
+  convertUint8ArrayToBase64,
+  detectMediaType,
+  getTopLevelMediaType,
+  isFullMediaType,
+  isProviderReference,
   safeParseJSON,
   tool,
   type Experimental_SandboxSession as SandboxSession,
   type Experimental_SandboxProcess,
+  type FilePart,
+  type TextPart,
 } from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
 import { z } from 'zod/v4';
@@ -72,6 +80,7 @@ import {
   outboundMessageSchema,
   type InboundMessage,
   type OutboundMessage,
+  type PromptContent,
 } from './claude-code-bridge-protocol';
 import type { ClaudeCodeThinkingConfig } from './claude-code-thinking';
 import { VERSION } from './version';
@@ -1836,7 +1845,7 @@ function createSession({
 
       const startMessage = {
         type: 'start' as const,
-        prompt: extractUserText(promptOpts.prompt),
+        prompt: convertUserPrompt(promptOpts.prompt),
         tools: (promptOpts.tools ?? []).map(t => ({
           name: t.name,
           description: t.description,
@@ -2149,25 +2158,110 @@ function createSession({
 }
 
 /*
- * Reduce a `HarnessV1Prompt` to the plain user text the bridge forwards
- * to the Claude SDK. File and image parts on the message are not yet
- * supported by the underlying runtime — throw rather than silently drop
- * them so callers learn about the gap instead of seeing mysteriously
- * truncated prompts.
+ * Reduce a `HarnessV1Prompt` to the prompt the bridge forwards to the Claude
+ * SDK: plain text when every part is text, otherwise text and inline image
+ * blocks. Remote URLs, provider references, and non-image files are not
+ * supported: throw rather than silently drop them so callers learn about the
+ * gap instead of seeing mysteriously truncated prompts.
  */
-function extractUserText(prompt: HarnessV1Prompt): string {
+function convertUserPrompt(prompt: HarnessV1Prompt): PromptContent {
   if (typeof prompt === 'string') return prompt;
   const { content } = prompt;
   if (typeof content === 'string') return content;
-  const parts: string[] = [];
-  for (const part of content) {
-    if (part.type !== 'text') {
-      throw new HarnessCapabilityUnsupportedError({
-        harnessId: 'claude-code',
-        message: `The claude-code harness does not yet support user message parts of type '${part.type}'. Pass a string or a user message whose content contains only text parts.`,
-      });
-    }
-    parts.push(part.text);
+  if (content.every((part): part is TextPart => part.type === 'text')) {
+    return content.map(part => part.text).join('\n\n');
   }
-  return parts.join('\n\n');
+  return content.map(part => {
+    switch (part.type) {
+      case 'text':
+        return { type: 'text', text: part.text };
+      case 'image':
+        return convertUserImage({
+          data: part.image,
+          mediaType: part.mediaType ?? 'image',
+        });
+      case 'file':
+        return convertUserImage(part);
+    }
+  });
+}
+
+function convertUserImage({
+  data,
+  mediaType,
+}: {
+  data: FilePart['data'];
+  mediaType: string;
+}): Exclude<PromptContent, string>[number] {
+  if (getTopLevelMediaType(mediaType) !== 'image') {
+    throw unsupportedUserContent(`files of media type '${mediaType}'`);
+  }
+  const image = getInlineImage(data);
+  const resolvedMediaType = isFullMediaType(mediaType)
+    ? mediaType
+    : (image.mediaType ??
+      detectMediaType({ data: image.data, topLevelType: 'image' }));
+  if (resolvedMediaType == null) {
+    throw unsupportedUserContent('images whose media type cannot be detected');
+  }
+  return { type: 'image', data: image.data, mediaType: resolvedMediaType };
+}
+
+function getInlineImage(data: FilePart['data']): {
+  data: string;
+  mediaType?: string;
+} {
+  if (data instanceof URL) return getDataUrlImage(data);
+  if (typeof data === 'string') {
+    let url: URL | undefined;
+    try {
+      url = new URL(data);
+    } catch {
+      return { data };
+    }
+    return getDataUrlImage(url);
+  }
+  if (data instanceof Uint8Array || data instanceof ArrayBuffer) {
+    return {
+      data: convertUint8ArrayToBase64(
+        convertInlineFileDataToUint8Array({ type: 'data', data }),
+      ),
+    };
+  }
+  if (isProviderReference(data)) {
+    throw unsupportedUserContent('provider references');
+  }
+  switch (data.type) {
+    case 'data':
+      return typeof data.data === 'string'
+        ? { data: data.data }
+        : getInlineImage(data.data);
+    case 'url':
+      return getDataUrlImage(data.url);
+    case 'reference':
+      throw unsupportedUserContent('provider references');
+    case 'text':
+      throw unsupportedUserContent('text data for images');
+  }
+}
+
+function getDataUrlImage(url: URL): { data: string; mediaType?: string } {
+  if (url.protocol !== 'data:') {
+    throw unsupportedUserContent('remote image URLs');
+  }
+  const [header, data] = url.href.split(',', 2);
+  if (!header.endsWith(';base64') || data == null) {
+    throw unsupportedUserContent('data URLs that are not base64 encoded');
+  }
+  const mediaType = header.slice('data:'.length).split(';')[0];
+  return { data, ...(mediaType ? { mediaType } : {}) };
+}
+
+function unsupportedUserContent(
+  description: string,
+): HarnessCapabilityUnsupportedError {
+  return new HarnessCapabilityUnsupportedError({
+    harnessId: 'claude-code',
+    message: `The claude-code harness does not support ${description} in user messages. Pass text parts and inline images as bytes, base64 strings, or data URLs.`,
+  });
 }
