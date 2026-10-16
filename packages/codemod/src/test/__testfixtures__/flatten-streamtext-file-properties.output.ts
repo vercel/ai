@@ -8,29 +8,29 @@ function processFile(mediaType: string, data: any) {
 
 function handleStreamDelta(delta: any) {
   // Should be transformed: delta.file.mediaType -> delta.mediaType
-  if (delta.mediaType === 'application/pdf') {
+  if (delta.file.mediaType === 'application/pdf') {
     console.log('PDF file detected');
   }
 
   // Should be transformed: delta.file.data -> delta.data
-  const fileData = delta.data;
+  const fileData = delta.file.data;
   
   // Should be transformed in expressions
-  const mediaTypeCheck = delta.mediaType || 'unknown';
-  const hasData = !!delta.data;
+  const mediaTypeCheck = delta.file.mediaType || 'unknown';
+  const hasData = !!delta.file.data;
   
   // Should be transformed in function calls
-  processFile(delta.mediaType, delta.data);
+  processFile(delta.file.mediaType, delta.file.data);
   
   // Should be transformed in object properties
   const fileInfo = {
-    type: delta.mediaType,
-    content: delta.data,
-    size: delta.data?.length
+    type: delta.file.mediaType,
+    content: delta.file.data,
+    size: delta.file.data?.length
   };
   
   // Should be transformed in conditional expressions
-  const result = delta.mediaType ? delta.data : null;
+  const result = delta.file.mediaType ? delta.file.data : null;
   
   // Should NOT be transformed - different object name
   const response = { file: { mediaType: 'test' } };
@@ -52,7 +52,7 @@ function handleStreamDelta(delta: any) {
 // Additional patterns that should be transformed
 function anotherHandler(delta: any) {
   return {
-    mediaType: delta.mediaType,
-    data: delta.data
+    mediaType: delta.file.mediaType,
+    data: delta.file.data
   };
 }
