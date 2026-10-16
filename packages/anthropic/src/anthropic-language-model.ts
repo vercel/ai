@@ -41,7 +41,10 @@ import {
   type ParseResult,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
-import { anthropicFailedResponseHandler } from './anthropic-error';
+import {
+  anthropicFailedResponseHandler,
+  getAnthropicErrorReason,
+} from './anthropic-error';
 import type {
   AnthropicMessageMetadata,
   AnthropicUsageIteration,
@@ -90,6 +93,7 @@ function createAnthropicStreamError(error: {
     code: error.code ?? undefined,
     statusCode: error.statusCode ?? inferredMetadata.statusCode,
     isRetryable: error.isRetryable ?? inferredMetadata.isRetryable,
+    failureReason: getAnthropicErrorReason(error.message),
     data: 'data' in error ? error.data : error,
   });
 }
@@ -3212,6 +3216,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           responseHeaders,
           responseBody: JSON.stringify(error.data),
           isRetryable: error.isRetryable ?? false,
+          failureReason: error.failureReason,
         });
       }
     } finally {

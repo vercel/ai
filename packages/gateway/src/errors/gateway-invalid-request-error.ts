@@ -1,3 +1,4 @@
+import type { ProviderFailureReason } from '@ai-sdk/provider';
 import { GatewayError } from './gateway-error';
 
 const name = 'GatewayInvalidRequestError';
@@ -18,13 +19,21 @@ export class GatewayInvalidRequestError extends GatewayError {
     statusCode = 400,
     cause,
     generationId,
+    failureReason,
   }: {
     message?: string;
     statusCode?: number;
     cause?: unknown;
     generationId?: string;
+    failureReason?: ProviderFailureReason;
   } = {}) {
-    super({ message, statusCode, cause, generationId });
+    super({
+      message,
+      statusCode,
+      cause,
+      generationId,
+      failureReason,
+    });
   }
 
   static isInstance(error: unknown): error is GatewayInvalidRequestError {

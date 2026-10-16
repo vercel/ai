@@ -66,3 +66,45 @@ describe('xaiFailedResponseHandler', () => {
     expect(value.message).toBe('speed must be between 0.7 and 1.5');
   });
 });
+
+describe('xaiFailedResponseHandler failureReason', () => {
+  const call = async (body: object) =>
+    (
+      await xaiFailedResponseHandler({
+        url: 'https://api.x.ai/v1/responses',
+        requestBodyValues: {},
+        response: makeResponse(body),
+      })
+    ).value;
+
+  it.each([
+    {
+      shape: 'API error',
+      body: {
+        error: {
+          message: 'This model’s maximum prompt length is 131072.',
+          type: 'invalid_request_error',
+          code: 'context_length_exceeded',
+        },
+      },
+    },
+    {
+      shape: 'Responses error',
+      body: {
+        code: 'context_length_exceeded',
+        error: 'This model’s maximum prompt length is 131072.',
+      },
+    },
+  ])('flags context_length_exceeded in the $shape shape', async ({ body }) => {
+    expect((await call(body)).failureReason).toBe('context-length-exceeded');
+  });
+
+  it('does not flag other errors', async () => {
+    const value = await call({
+      code: 'invalid_value',
+      error: 'Invalid value.',
+    });
+
+    expect(value.failureReason).toBeUndefined();
+  });
+});

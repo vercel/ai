@@ -75,6 +75,11 @@ function createDeepSeekStreamError(
     type: error.type ?? undefined,
     code: error.code ?? undefined,
     ...metadata,
+    failureReason:
+      error.type === 'context_length_exceeded' ||
+      error.code === 'context_length_exceeded'
+        ? 'context-length-exceeded'
+        : undefined,
     data,
   });
 }
@@ -214,6 +219,11 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
       errorSchema: deepSeekErrorSchema,
       errorToMessage: (error: InferSchema<typeof deepSeekErrorSchema>) =>
         error.error.message,
+      failureReason: (_response, error) =>
+        error.error.code === 'context_length_exceeded' ||
+        error.error.type === 'context_length_exceeded'
+          ? 'context-length-exceeded'
+          : undefined,
     });
   }
 

@@ -59,6 +59,8 @@ export function normalizeStreamProviderError(error: unknown): unknown {
       explicitRetryability ??
       messageMetadata?.isRetryable ??
       isRetryableStatusCode(statusCode),
+    // Only provider adapters classify the reason; raw payloads stay unclassified.
+    failureReason: providerStreamError ? error.failureReason : undefined,
     data: providerStreamError ? error.data : error,
   });
 }

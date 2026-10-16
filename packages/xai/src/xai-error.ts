@@ -36,4 +36,15 @@ export const xaiFailedResponseHandler = createJsonErrorResponseHandler({
     }
     return data.error.message;
   },
+  failureReason: (_response, data) => {
+    const code =
+      'code' in data
+        ? data.code
+        : typeof data.error === 'string'
+          ? undefined
+          : (data.error.code ?? data.error.type);
+    return code === 'context_length_exceeded'
+      ? 'context-length-exceeded'
+      : undefined;
+  },
 });

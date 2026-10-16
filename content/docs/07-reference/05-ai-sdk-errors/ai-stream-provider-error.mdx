@@ -16,6 +16,7 @@ parts and callbacks such as the `streamText` `onError` callback.
 - `code`: The provider-defined error code as a string or number (optional)
 - `statusCode`: The HTTP-equivalent status code when supplied by or inferable from provider metadata (optional)
 - `isRetryable`: Whether retrying the model call may succeed
+- `failureReason`: Why the provider rejected the request, when the provider adapter recognizes the rejection (optional). See [`APICallError`](/docs/reference/ai-sdk-errors/ai-api-call-error).
 - `data`: The original provider error payload (optional)
 - `cause`: The underlying error that caused the failure (optional)
 

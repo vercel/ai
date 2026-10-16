@@ -15,6 +15,7 @@ This error occurs when an API call fails.
 - `responseHeaders`: The response headers returned by the API (optional)
 - `responseBody`: The response body returned by the API (optional)
 - `isRetryable`: Whether the request can be retried based on the status code
+- `failureReason`: Why the provider rejected the request, when the provider adapter recognizes the rejection (optional). `'context-length-exceeded'` means the input plus the reserved output tokens exceed the model's context window.
 - `data`: Any additional data associated with the error (optional)
 - `cause`: The underlying error that caused the API call to fail (optional)
 
@@ -33,3 +34,9 @@ if (APICallError.isInstance(error)) {
   // Handle the error
 }
 ```
+
+## Handling context window errors
+
+Use [`isContextLengthExceededError`](/docs/reference/ai-sdk-core/is-context-length-exceeded-error)
+to detect context window rejections. It also covers AI Gateway errors and
+errors reported after a stream has started, which are not `APICallError`s.

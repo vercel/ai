@@ -20,6 +20,7 @@ export {
 } from '@ai-sdk/provider';
 
 export { InvalidArgumentError } from './invalid-argument-error';
+export { isContextLengthExceededError } from './is-context-length-exceeded-error';
 export { InvalidStreamPartError } from './invalid-stream-part-error';
 export { InvalidToolApprovalError } from './invalid-tool-approval-error';
 export { InvalidToolApprovalSignatureError } from './invalid-tool-approval-signature-error';
