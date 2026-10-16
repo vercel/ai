@@ -314,7 +314,7 @@ describe('input validation', () => {
     },
     { test: { type: 'choice', instructions: 'test', criteria: {} } },
     { test: { type: 'choice', instructions: 'test', criteria: { a: 42 } } },
-    { test: { type: 'score', instructions: 'test', criteria: ['Only one'] } },
+    { test: { type: 'score', instructions: 'test', criteria: [] } },
     {
       test: {
         type: 'score',
@@ -1073,5 +1073,39 @@ it.each([
 ])('rejects malformed box coordinates: %j', async box => {
   await expect(
     decide({ model: boxModel(box), state: '', questions: boxQuestions }),
+  ).rejects.toBeInstanceOf(InvalidResponseDataError);
+});
+
+it('passes a single Score level to the provider and accepts its zero score', async () => {
+  const answers = {
+    severity: { type: 'score', score: 0, probabilities: { '0': 1 } },
+  } as const;
+  const { model, doDecide } = setup({ answers, warnings: [] });
+  const questions = {
+    severity: { type: 'score', criteria: ['Product unusable'] },
+  } as const;
+  const result = await decide({
+    model,
+    state: 'The product is broken.',
+    questions,
+  });
+  expect(doDecide.mock.calls[0][0].questions).toBe(questions);
+  expect(result.answers).toEqual(answers);
+});
+
+it.each<DecisionModelV4Result['answers'][string]>([
+  { type: 'score', score: 1, probabilities: { '0': 1 } },
+  { type: 'score', score: 0, probabilities: { '0': 0.5 } },
+  { type: 'score', score: 0, probabilities: { '0': 0.5, '1': 0.5 } },
+])('rejects invalid single-level Score answers: %j', async answer => {
+  const { model } = setup({ answers: { severity: answer }, warnings: [] });
+  await expect(
+    decide({
+      model,
+      state: 'The product is broken.',
+      questions: {
+        severity: { type: 'score', criteria: ['Product unusable'] },
+      },
+    }),
   ).rejects.toBeInstanceOf(InvalidResponseDataError);
 });

@@ -19,7 +19,7 @@ export type DecisionModelV4Question =
       readonly type: 'score';
       /** May be omitted or null when supported by the provider and criteria define the judgment. */
       readonly instructions?: DecisionModelV4Input | null;
-      /** At least two ordered levels, indexed from zero. */
+      /** At least one ordered level, indexed from zero. Providers may require more. */
       readonly criteria: readonly (DecisionModelV4Input | null)[];
     }
   | {

@@ -108,11 +108,11 @@ export function validateDecisionInput({
         }
         break;
       case 'score':
-        if (!Array.isArray(criteria) || criteria.length < 2) {
+        if (!Array.isArray(criteria) || criteria.length === 0) {
           invalidInput(
             parameter,
             question,
-            'score criteria must contain at least two ordered levels',
+            'score criteria must contain at least one ordered level',
           );
         }
         break;

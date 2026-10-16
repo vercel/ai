@@ -273,7 +273,7 @@ describe('request limits', () => {
         ),
       },
     },
-    { severity: { ...options.questions.severity, criteria: ['Only'] } },
+    { severity: { ...options.questions.severity, criteria: [] } },
     { severity: { ...options.questions.severity, criteria: ['Low', null] } },
     {
       severity: {
@@ -494,3 +494,35 @@ it.each([{}, { instructions: undefined }, { instructions: null }])(
     );
   },
 );
+
+it('sends a single Score level and preserves its zero score and unit probability', async () => {
+  const { model, fetch } = setup({
+    model: 'pplx-decider-latest',
+    answers: {
+      severity: {
+        type: 'score',
+        score: 0,
+        probabilities: { '0': 1 },
+        confidence: 1,
+        legend: { '0': 'Product unusable' },
+      },
+    },
+  });
+  const questions = {
+    severity: { type: 'score', criteria: ['Product unusable'] },
+  } as const;
+  const result = await model.doDecide({ ...options, questions });
+  expect(fetch).toHaveBeenCalledTimes(1);
+  expect(JSON.parse(fetch.mock.calls[0][1]?.body as string).questions).toEqual(
+    questions,
+  );
+  expect(result.answers).toEqual({
+    severity: { type: 'score', score: 0, probabilities: { '0': 1 } },
+  });
+  expect(result.providerMetadata).toEqual({
+    perplexity: {
+      confidence: { severity: 1 },
+      legend: { severity: { '0': 'Product unusable' } },
+    },
+  });
+});

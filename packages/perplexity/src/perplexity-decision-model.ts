@@ -124,14 +124,14 @@ export class PerplexityDecisionModel implements DecisionModelV4 {
           }
           case 'score':
             if (
-              question.criteria.length < 2 ||
+              question.criteria.length === 0 ||
               question.criteria.length > 10 ||
               question.criteria.some(level => level === null)
             ) {
               throw new InvalidArgumentError({
                 argument: `questions.${id}.criteria`,
                 message:
-                  'Perplexity Score questions require 2 to 10 non-null levels through the decision model interface.',
+                  'Perplexity Score questions require 1 to 10 non-null levels.',
               });
             }
             return [
