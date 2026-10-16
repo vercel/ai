@@ -35,6 +35,7 @@ export async function validateApprovedToolApprovals<
   runtimeContext,
   toolApprovalSecret,
   refineToolInput,
+  abortSignal,
 }: {
   approvedToolApprovals: Array<CollectedToolApprovals<TOOLS>>;
   tools: TOOLS | undefined;
@@ -44,6 +45,7 @@ export async function validateApprovedToolApprovals<
   runtimeContext: RUNTIME_CONTEXT;
   toolApprovalSecret?: string | Uint8Array;
   refineToolInput?: ToolInputRefinement<TOOLS>;
+  abortSignal?: AbortSignal;
 }): Promise<{
   approvedToolApprovals: Array<CollectedToolApprovals<TOOLS>>;
   deniedToolApprovals: Array<CollectedToolApprovals<TOOLS>>;
@@ -115,6 +117,7 @@ export async function validateApprovedToolApprovals<
               input: validation.value,
             },
             refineToolInput,
+            abortSignal,
           });
 
           // Clone both inputs into the current realm before comparing them.
@@ -129,6 +132,7 @@ export async function validateApprovedToolApprovals<
             );
           }
         } catch (error) {
+          abortSignal?.throwIfAborted();
           validationError = error;
         }
       }

@@ -2033,6 +2033,7 @@ class DefaultStreamTextResult<
           runtimeContext,
           toolApprovalSecret: experimental_toolApprovalSecret,
           refineToolInput,
+          abortSignal,
         });
 
         const localDeniedToolApprovals = [
