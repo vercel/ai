@@ -11,6 +11,7 @@ This error occurs when invalid tool input was provided.
 
 - `toolName`: The name of the tool with invalid inputs
 - `toolInput`: The invalid tool inputs
+- `truncated`: Whether the tool input contains unfinished structured JSON from a generation step that ended with `finishReason: 'length'`
 - `message`: The error message
 - `cause`: The cause of the error
 
@@ -22,6 +23,10 @@ You can check if an error is an instance of `AI_InvalidToolInputError` using:
 import { InvalidToolInputError } from 'ai';
 
 if (InvalidToolInputError.isInstance(error)) {
-  // Handle the error
+  if (error.truncated) {
+    // Retry or repair input that was cut off by the model's output limit.
+  } else {
+    // Handle malformed or schema-invalid input.
+  }
 }
 ```

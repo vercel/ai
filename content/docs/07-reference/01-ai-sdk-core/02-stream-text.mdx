@@ -985,7 +985,7 @@ To see `streamText` in action, check out [these examples](#examples).
               name: 'error',
               type: 'NoSuchToolError | InvalidToolInputError',
               description:
-                'The error that occurred while parsing the tool call.',
+                'The error that occurred while parsing the tool call. InvalidToolInputError.truncated is true when unfinished structured JSON is associated with a length-limited generation step.',
             },
             {
               name: 'abortSignal',

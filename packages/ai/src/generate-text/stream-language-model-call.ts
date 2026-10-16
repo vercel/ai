@@ -46,6 +46,7 @@ import { ToolChoiceViolationError } from '../error';
 import { calculateTokensPerSecond } from './calculate-tokens-per-second';
 import type { ContentPart } from './content-part';
 import { DefaultGeneratedFileWithType } from './generated-file';
+import { isToolInputStructurallyIncomplete } from './is-tool-input-structurally-incomplete';
 import type { OutputChunkTimingStats } from './step-result';
 import type {
   OnLanguageModelCallEndCallback,
@@ -427,11 +428,20 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   callStartTimestampMs: number;
   onLanguageModelCallEnd?: Arrayable<OnLanguageModelCallEndCallback<TOOLS>>;
 }) {
+  type PendingToolCall = {
+    type: 'pending-tool-call';
+    toolCall: Extract<LanguageModelV4StreamPart, { type: 'tool-call' }>;
+  };
+
   // keep track of parsed tool calls so provider-emitted approval requests can reference them
   // keep track of tool inputs for provider-side tool results
   const toolCallsByToolCallId = new Map<string, TypedToolCall<TOOLS>>();
-  const modelCallContent: Array<ContentPart<TOOLS>> = [];
+  const modelCallContent: Array<ContentPart<TOOLS> | PendingToolCall> = [];
   const rawModelCallContent: Array<LanguageModelV4Content> = [];
+  const pendingToolCalls: Array<{
+    toolCall: Extract<LanguageModelV4StreamPart, { type: 'tool-call' }>;
+    contentIndex: number;
+  }> = [];
   const textPartIndexes = new Map<string, number>();
   const reasoningPartIndexes = new Map<string, number>();
   const rawTextPartIndexes = new Map<string, number>();
@@ -441,6 +451,80 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   let timeToFirstOutputMs: number | undefined;
   let previousOutputChunkTimestampMs: number | undefined;
   const timeBetweenOutputChunksMs: number[] = [];
+
+  async function processToolCall({
+    toolCall: rawToolCall,
+    controller,
+    finishReason,
+    contentIndex,
+  }: {
+    toolCall: Extract<LanguageModelV4StreamPart, { type: 'tool-call' }>;
+    controller: TransformStreamDefaultController<
+      LanguageModelStreamPart<TOOLS>
+    >;
+    finishReason: FinishReason | undefined;
+    contentIndex?: number;
+  }) {
+    try {
+      const toolCall = await parseToolCall({
+        toolCall: rawToolCall,
+        tools,
+        repairToolCall,
+        refineToolInput,
+        instructions,
+        messages,
+        abortSignal,
+        finishReason,
+      });
+
+      toolCallsByToolCallId.set(toolCall.toolCallId, toolCall);
+      controller.enqueue(toolCall);
+
+      if (contentIndex == null) {
+        modelCallContent.push(toolCall);
+      } else {
+        modelCallContent[contentIndex] = toolCall;
+      }
+
+      if (toolCall.invalid && !toolCall.providerExecuted) {
+        controller.enqueue({
+          type: 'tool-error',
+          toolCallId: toolCall.toolCallId,
+          toolName: toolCall.toolName,
+          input: toolCall.input,
+          error: getErrorMessage(toolCall.error!),
+          dynamic: true,
+          title: toolCall.title,
+          ...(toolCall.toolMetadata != null
+            ? { toolMetadata: toolCall.toolMetadata }
+            : {}),
+        });
+      }
+    } catch (error) {
+      if (contentIndex != null) {
+        modelCallContent.splice(contentIndex, 1);
+      }
+      controller.enqueue({ type: 'error', error });
+    }
+  }
+
+  async function processPendingToolCalls({
+    controller,
+    finishReason,
+  }: {
+    controller: TransformStreamDefaultController<
+      LanguageModelStreamPart<TOOLS>
+    >;
+    finishReason: FinishReason | undefined;
+  }) {
+    for (const pendingToolCall of pendingToolCalls.splice(0)) {
+      await processToolCall({
+        ...pendingToolCall,
+        controller,
+        finishReason,
+      });
+    }
+  }
 
   return new TransformStream<
     LanguageModelV4StreamPart,
@@ -591,6 +675,11 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
         }
 
         case 'finish': {
+          await processPendingToolCalls({
+            controller,
+            finishReason: chunk.finishReason.unified,
+          });
+
           const usage = asLanguageModelUsage(chunk.usage);
           const responseTimeMs = now() - callStartTimestampMs;
           const performance = {
@@ -631,7 +720,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
               modelId: responseModelId,
               finishReason: chunk.finishReason.unified,
               usage,
-              content: modelCallContent,
+              content: modelCallContent as Array<ContentPart<TOOLS>>,
               responseId,
               ...(chunk.providerMetadata != null
                 ? { providerMetadata: chunk.providerMetadata }
@@ -691,41 +780,31 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
         case 'tool-call': {
           rawModelCallContent.push(chunk);
 
-          try {
-            const toolCall = await parseToolCall({
+          const tool = getOwn(tools, chunk.toolName);
+          const canHaveInvalidInput =
+            tool != null || (chunk.providerExecuted && chunk.dynamic);
+
+          // The normalized finish reason arrives after tool-call parts. Defer
+          // structurally unfinished inputs until then so parsing and repair
+          // receive accurate truncation metadata without delaying valid calls.
+          if (
+            canHaveInvalidInput &&
+            isToolInputStructurallyIncomplete(chunk.input)
+          ) {
+            const contentIndex = modelCallContent.length;
+            modelCallContent.push({
+              type: 'pending-tool-call',
               toolCall: chunk,
-              tools,
-              repairToolCall,
-              refineToolInput,
-              instructions,
-              messages,
-              abortSignal,
             });
-
-            toolCallsByToolCallId.set(toolCall.toolCallId, toolCall);
-            controller.enqueue(toolCall);
-            modelCallContent.push(toolCall);
-
-            if (toolCall.invalid) {
-              if (!toolCall.providerExecuted) {
-                controller.enqueue({
-                  type: 'tool-error',
-                  toolCallId: toolCall.toolCallId,
-                  toolName: toolCall.toolName,
-                  input: toolCall.input,
-                  error: getErrorMessage(toolCall.error!),
-                  dynamic: true,
-                  title: toolCall.title,
-                  ...(toolCall.toolMetadata != null
-                    ? { toolMetadata: toolCall.toolMetadata }
-                    : {}),
-                });
-              }
-              break;
-            }
-          } catch (error) {
-            controller.enqueue({ type: 'error', error });
+            pendingToolCalls.push({ toolCall: chunk, contentIndex });
+            break;
           }
+
+          await processToolCall({
+            toolCall: chunk,
+            controller,
+            finishReason: undefined,
+          });
 
           break;
         }
@@ -844,6 +923,12 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
           break;
       }
     },
+    async flush(controller) {
+      await processPendingToolCalls({
+        controller,
+        finishReason: undefined,
+      });
+    },
   });
 }
 
@@ -899,7 +984,7 @@ function upsertTextContentPart<TOOLS extends ToolSet>({
   textDelta,
   providerMetadata,
 }: {
-  content: Array<ContentPart<TOOLS>>;
+  content: Array<ContentPart<TOOLS> | { type: 'pending-tool-call' }>;
   rawContent: Array<LanguageModelV4Content>;
   partIndexes: Map<string, number>;
   rawPartIndexes: Map<string, number>;

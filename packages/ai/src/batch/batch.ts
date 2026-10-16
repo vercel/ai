@@ -631,6 +631,7 @@ async function convertGenerateResult<TOOLS extends ToolSet>({
           refineToolInput: undefined,
           instructions: undefined,
           messages: [],
+          finishReason: result.finishReason.unified,
         }),
       ),
   );
