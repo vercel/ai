@@ -353,6 +353,11 @@ const result = await generateText({
 
 Azure OpenAI uses responses API as default with the `azure(deploymentName)` factory method.
 
+For [positioned tool additions](/providers/ai-sdk-providers/openai#adding-tools-mid-conversation),
+use `providerOptions.azure.additionalTools` on an empty system message.
+Message options prefer the `azure` namespace when present, including `{ azure: {} }`;
+otherwise they fall back to `openai`.
+
 ```ts
 const model = azure('your-deployment-name');
 ```
