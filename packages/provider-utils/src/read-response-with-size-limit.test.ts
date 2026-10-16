@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { readResponseWithSizeLimit } from './read-response-with-size-limit';
 import { DownloadError } from './download-error';
 
@@ -43,6 +43,49 @@ function createMockResponse({
 }
 
 describe('readResponseWithSizeLimit', () => {
+  it.each([
+    {
+      name: 'Uint8Array with a larger backing buffer',
+      createChunk: (buffer: ArrayBuffer) => new Uint8Array(buffer, 0, 3),
+    },
+    {
+      name: 'Uint8Array with a nonzero byte offset',
+      createChunk: (buffer: ArrayBuffer) => new Uint8Array(buffer, 17, 3),
+    },
+    {
+      name: 'Node Buffer with a larger backing buffer',
+      createChunk: (buffer: ArrayBuffer) => Buffer.from(buffer, 17, 3),
+    },
+  ])('should compact a $name before retaining it', async ({ createChunk }) => {
+    const chunk = createChunk(new ArrayBuffer(64 * 1024));
+    chunk.set([1, 2, 3]);
+    const response = new Response(
+      new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(chunk);
+          controller.close();
+        },
+      }),
+    );
+
+    // Inspect the retained chunk when it is concatenated, without relying on
+    // garbage collection timing or process memory measurements.
+    const set = vi.spyOn(Uint8Array.prototype, 'set');
+    try {
+      const result = await readResponseWithSizeLimit({
+        response,
+        url: 'http://example.com/file',
+      });
+      const retainedChunk = set.mock.calls[0][0] as Uint8Array;
+
+      expect(result).toEqual(new Uint8Array([1, 2, 3]));
+      expect(retainedChunk.buffer.byteLength).toBe(chunk.byteLength);
+      expect(retainedChunk.buffer).not.toBe(chunk.buffer);
+    } finally {
+      set.mockRestore();
+    }
+  });
+
   it('should read response within limit successfully', async () => {
     const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
     const { response } = createMockResponse({
