@@ -4769,6 +4769,94 @@ describe('convertToOpenAIResponsesInput', () => {
           ],
         });
       });
+
+      it('should round-trip maxOutputLength as max_output_length with store: false', async () => {
+        const callId = 'call_shell';
+
+        const result = await convertToOpenAIResponsesInput({
+          toolNameMapping: testToolNameMapping,
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: callId,
+                  toolName: 'shell',
+                  input: {
+                    action: {
+                      commands: ['printf hello'],
+                      timeoutMs: 1000,
+                      maxOutputLength: 10000,
+                    },
+                  },
+                  providerExecuted: true,
+                  providerOptions: {
+                    openai: {
+                      itemId: 'shell_item',
+                    },
+                  },
+                },
+                {
+                  type: 'tool-result',
+                  toolCallId: callId,
+                  toolName: 'shell',
+                  output: {
+                    type: 'json',
+                    value: {
+                      maxOutputLength: 10000,
+                      output: [
+                        {
+                          stdout: 'hello',
+                          stderr: '',
+                          outcome: { type: 'exit', exitCode: 0 },
+                        },
+                      ],
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+          providerOptionsName: 'openai',
+          store: false,
+          hasShellTool: true,
+        });
+
+        expect(result.input).toMatchInlineSnapshot(`
+          [
+            {
+              "action": {
+                "commands": [
+                  "printf hello",
+                ],
+                "max_output_length": 10000,
+                "timeout_ms": 1000,
+              },
+              "call_id": "call_shell",
+              "id": "shell_item",
+              "status": "completed",
+              "type": "shell_call",
+            },
+            {
+              "call_id": "call_shell",
+              "max_output_length": 10000,
+              "output": [
+                {
+                  "outcome": {
+                    "exit_code": 0,
+                    "type": "exit",
+                  },
+                  "stderr": "",
+                  "stdout": "hello",
+                },
+              ],
+              "type": "shell_call_output",
+            },
+          ]
+        `);
+      });
     });
 
     describe('local shell', () => {
@@ -5141,6 +5229,104 @@ describe('convertToOpenAIResponsesInput', () => {
   });
 
   describe('provider tool outputs', () => {
+    it('should include max_output_length in shell_call_output when the tool result has maxOutputLength', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-shell',
+                toolName: 'shell',
+                output: {
+                  type: 'json',
+                  value: {
+                    maxOutputLength: 10000,
+                    output: [
+                      {
+                        stdout: 'hi\n',
+                        stderr: '',
+                        outcome: { type: 'exit', exitCode: 0 },
+                      },
+                    ],
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasShellTool: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'shell_call_output',
+          call_id: 'call-shell',
+          max_output_length: 10000,
+          output: [
+            {
+              stdout: 'hi\n',
+              stderr: '',
+              outcome: { type: 'exit', exit_code: 0 },
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should omit max_output_length from shell_call_output when the tool result has no maxOutputLength', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-shell',
+                toolName: 'shell',
+                output: {
+                  type: 'json',
+                  value: {
+                    output: [
+                      {
+                        stdout: 'hi\n',
+                        stderr: '',
+                        outcome: { type: 'exit', exitCode: 0 },
+                      },
+                    ],
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasShellTool: true,
+      });
+
+      expect(result.input).toStrictEqual([
+        {
+          type: 'shell_call_output',
+          call_id: 'call-shell',
+          output: [
+            {
+              stdout: 'hi\n',
+              stderr: '',
+              outcome: { type: 'exit', exit_code: 0 },
+            },
+          ],
+        },
+      ]);
+    });
+
     it('should include apply_patch output when multiple tool results are present', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
