@@ -1,9 +1,19 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { cline, createCline } from './index';
+import type * as ClineSessionModule from './cline-session';
 import {
   resolveActiveClineBuiltinNames,
   CLINE_NATIVE_BUILTIN_NAMES,
 } from './cline-tools';
+
+const mocks = vi.hoisted(() => ({
+  createClineSession: vi.fn(async () => ({})),
+}));
+
+vi.mock('./cline-session', async importOriginal => {
+  const actual = await importOriginal<typeof ClineSessionModule>();
+  return { ...actual, createClineSession: mocks.createClineSession };
+});
 
 describe('createCline', () => {
   it('returns a harness-v1 spec', () => {
@@ -14,9 +24,12 @@ describe('createCline', () => {
     expect(harness.supportsBuiltinToolFiltering).toBe(true);
   });
 
-  it('declares the seven built-in tools', () => {
+  it('declares the built-in tools', () => {
     expect(Object.keys(createCline().builtinTools).sort()).toEqual(
-      [...CLINE_NATIVE_BUILTIN_NAMES].sort(),
+      [
+        ...CLINE_NATIVE_BUILTIN_NAMES.filter(name => name !== 'ask_question'),
+        'askUserQuestions',
+      ].sort(),
     );
   });
 
@@ -49,6 +62,15 @@ describe('resolveActiveClineBuiltinNames', () => {
   it('applies deny filtering', () => {
     expect(
       resolveActiveClineBuiltinNames({ mode: 'deny', toolNames: ['bash'] }),
-    ).toEqual(['read', 'write', 'edit', 'grep', 'glob', 'ls']);
+    ).toEqual([
+      'ask_question',
+      'read',
+      'write',
+      'edit',
+      'grep',
+      'glob',
+      'ls',
+      'skills',
+    ]);
   });
 });

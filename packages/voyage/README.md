@@ -33,7 +33,7 @@ import { voyage } from '@ai-sdk/voyage';
 import { embedMany } from 'ai';
 
 const { embeddings } = await embedMany({
-  model: voyage.textEmbedding('voyage-3'),
+  model: voyage.textEmbedding('voyage-4'),
   values: [
     'Sunny days are great for hiking',
     'Machine learning is a subset of AI',

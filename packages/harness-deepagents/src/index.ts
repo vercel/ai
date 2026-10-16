@@ -9,7 +9,4 @@ export type {
   DeepAgentsHarnessSettings,
   DeepAgentsThinkingConfig,
 } from './deepagents-harness';
-export type {
-  DeepAgentsAuthenticationMode,
-  DeepAgentsAuthOptions,
-} from './deepagents-auth';
+export type { DeepAgentsAuthenticationMode } from './deepagents-auth';

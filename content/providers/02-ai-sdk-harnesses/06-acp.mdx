@@ -31,18 +31,19 @@ pass it to `HarnessAgent`:
 
 ```ts
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 import { codexACPHarness } from './codex-acp-harness';
 
 const agent = new HarnessAgent({
   harness: codexACPHarness,
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-  }),
 });
 
-const session = await agent.createSession();
+const sandboxSession = await createVercelNetworkSandboxSession({
+  runtime: 'node24',
+  ports: [4000],
+  template: await agent.getSandboxTemplate(),
+});
+const session = await agent.createSession({ sandboxSession });
 try {
   const result = await agent.generate({
     session,
@@ -51,6 +52,7 @@ try {
   console.log(result.text);
 } finally {
   await session.destroy();
+  await sandboxSession.destroy();
 }
 ```
 
@@ -70,15 +72,33 @@ try {
   the sandbox.
 - `credentialEnv`: host credential environment variable names. Configure this
   together with `credentialBrokering`.
-- `credentialBrokering`: function that receives the effective runtime
-  environment and returns additive outbound request transformations containing
-  the real credential values.
+- `credentialBrokering`: function that receives the effective host runtime
+  environment as `env` and the environment forwarded to the sandbox as
+  `sandboxEnv`, then returns additive outbound request transformations. Use the
+  credential from `sandboxEnv` in exact request header matches and the real
+  credential from `env` in transformed request headers.
+- `credentialForwarding`: optional synchronous or asynchronous callback that
+  customizes each credential immediately before the harness adapter forwards it
+  into a sandbox process. It receives the credential value that would otherwise
+  be forwarded (either the real credential or a masked value) and the
+  environment variable name used to expose it. This callback only controls the
+  value forwarded into the sandbox process. It does not restrict which
+  credentials the harness adapter can discover, read, or otherwise access in
+  the host process.
 - `env`: persistent environment values written at bootstrap.
 - `builtinTools`: optional native tool definitions for static typing and exact
   name matching.
 - `mcpServers`: MCP server definitions keyed by server name.
+- `hostToolMcpTransport`: transport used for the harness-owned MCP server that
+  exposes host tools to the ACP implementation. It defaults to `'stdio'`. Set
+  this to `'http'` for implementations that only accept HTTP or SSE MCP servers
+  from the client, which requires the implementation to advertise
+  `agentCapabilities.mcpCapabilities.http`.
 - `authentication`: advertised ACP authentication method, metadata, and client
   capabilities.
+- `nonTextContentTypes`: non-text tool model output the implementation can
+  deliver to the model. Currently accepts `['image']`. Text is always supported.
+  Defaults to an empty list; undeclared images are omitted with a warning.
 - `auth`: downstream provider authentication mode:
   - `auto` (default): use AI Gateway when Gateway credentials and a
     `providerAuthentication` configuration are available; otherwise use direct
@@ -87,17 +107,31 @@ try {
     are available.
   - `ai-gateway`: always use AI Gateway and throw when Gateway credentials are
     unavailable. This requires `providerAuthentication` configuration.
+  - An authentication environment: auto-detect from the supplied record
+    instead of the host process environment.
 - `providerAuthentication`: declarative runtime-specific Gateway environment.
-- `modelId`: a known implementation model identifier for Harness metadata.
+- `modelMapping`: required static mapping from the `model` supplied to
+  `HarnessAgent` to the ACP operation used by the implementation. Use
+  `session-config-option` with its configuration option ID as `path`, or
+  `session-model` with the `session/set_model` request property as `path`.
+- `skillsDirectory`: native skills directory relative to the implementation's
+  effective `$HOME`. It defaults to `.agents/skills`; override it for runtimes
+  that use a different location.
 - `instructionMapping`: optional mapping from `HarnessAgent` instructions to
   an implementation's native system or developer prompt. Use `session-meta`
-  for a path below the ACP session request's `_meta` field, or
-  `launch-env-json` for a path within a JSON launch environment variable. When
-  omitted, instructions are prepended to the first user prompt.
+  for a path below the ACP session request's `_meta` field, `launch-env-json`
+  for a path within a JSON launch environment variable, or `filesystem` with a
+  relative `path` to write instructions to a file under the implementation's
+  effective `$HOME`. When omitted, instructions are prepended to the first user
+  prompt.
 - `outputSchemaMapping`: optional implementation-specific mapping from a
   structured output JSON Schema to a path below the ACP `session/prompt`
   request's `_meta` field. ACP does not standardize structured output, so omit
   this unless the selected implementation documents that private extension.
+- `askUserQuestions`: optional translation between an implementation-specific
+  ACP client request for questions and the Harness `askUserQuestions` tool.
+  Configure it only when the ACP implementation exposes a native request that
+  waits for the client's response.
 - `permissionModeMapping`: mappings from all three Harness permission modes to
   advertised ACP session modes or configuration options. Set an entry to
   `null` when the ACP implementation does not support that mode. When omitted,
@@ -106,12 +140,19 @@ try {
   creation and restoration.
 - `port`: exposed bridge port override.
 - `startupTimeoutMs`: bridge startup timeout. The default is 120 seconds.
+- `reconnect`: reconnect timing after an established bridge WebSocket
+  connection drops. `maxElapsedMs` controls the total retry window, including
+  connection establishment and backoff delays, and defaults to 30 seconds.
+  `initialDelayMs` defaults to 50 milliseconds, and `maxDelayMs` defaults to
+  2 seconds. These retries use exponential backoff and are separate from
+  `startupTimeoutMs`. They cannot recover when the sandbox, bridge process, or
+  bridge endpoint is permanently unavailable.
 - `mintBridgeToken`: synchronous function that receives the sandbox id and
   returns the bridge authentication token. By default, the adapter generates a
   random 32-byte token. Custom implementations must return a suitably secret
   token.
 - `clientApp`: optional client attribution with `name` and `version`. It
-  defaults to the installed `ai-sdk/harness-acp/<version>` identity and is
+  defaults to the installed `ai-sdk-harness-acp/<version>` identity and is
   available to Gateway environment placeholders.
 
 Runtime-specific package names, environment variables, modes, and session
@@ -130,6 +171,10 @@ const harness = createACP({
     packageName: '@example/acp-agent',
   },
   executable: 'example-acp',
+  modelMapping: {
+    type: 'session-config-option',
+    path: 'model',
+  },
   outputSchemaMapping: {
     type: 'session-prompt-meta',
     path: ['outputSchema'],
@@ -170,11 +215,18 @@ const source = {
   type: 'npm-locked',
   packageJson: packageJsonContents,
   pnpmLockYaml: pnpmLockYamlContents,
+  pnpmWorkspaceYaml: pnpmWorkspaceYamlContents,
 } as const;
 ```
 
 A locked source installs the supplied files with
-`pnpm install --frozen-lockfile`.
+`pnpm install --frozen-lockfile`. `pnpmWorkspaceYaml` is optional; provide it
+when the locked installation needs workspace-level pnpm configuration, such as
+an exact-version `allowBuilds` policy for a required dependency build script.
+
+The manifest, lockfile, and optional workspace configuration are persisted
+bootstrap artifacts and participate in lifecycle identity. Do not include
+credentials in these strings.
 
 An install command source runs a trusted Bash command inside the harness's
 deterministic bootstrap directory:
@@ -217,14 +269,33 @@ With the default `auth: 'auto'`, the adapter uses AI Gateway when
 `AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN` is available and otherwise uses
 direct authentication.
 
+Applications that resolve credentials at runtime can pass them without
+mutating `process.env`:
+
+```ts
+const harness = createACP({
+  // ...implementation settings
+  auth: {
+    AI_GATEWAY_API_KEY: await resolveGatewayToken(),
+    AI_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh',
+  },
+});
+```
+
+The supplied record replaces the host environment for authentication
+discovery. `credentialEnv` reads from this record while `forwardEnv` continues
+to read non-authentication runtime configuration from the host. Credential
+values are excluded from bootstrap and lifecycle identity.
+
 For direct authentication, configure `credentialEnv` with the host environment
 variable names that the underlying ACP implementation reads, and use
 `credentialBrokering` to map their values to outbound request headers. When the
 network sandbox supports additive request transformations, the ACP process sees
-only same-name placeholders and the real values are injected after requests
-leave the sandbox. Sandboxes without that capability retain the legacy behavior
-of forwarding the real values. Use `forwardEnv` only for non-credential runtime
-configuration.
+the values from `sandboxEnv`, which are ephemeral placeholders by default. The
+real values are injected after requests leave the sandbox, and only when the
+request contains the exact expected value. Sandboxes without that capability
+retain the legacy behavior of forwarding the real values. Use `forwardEnv` only
+for non-credential runtime configuration.
 
 ### Gateway environment
 
@@ -246,9 +317,10 @@ Every ACP harness requires a network sandbox with at least one exposed port,
 e.g. `@ai-sdk/sandbox-vercel`:
 
 ```ts
-const sandbox = createVercelSandbox({
+const sandboxSession = await createVercelNetworkSandboxSession({
   runtime: 'node24',
   ports: [4000],
+  template: await agent.getSandboxTemplate(),
 });
 ```
 
@@ -256,9 +328,10 @@ By default, the adapter uses the first exposed port. Set `port` on `createACP`
 to select another exposed port. If neither is available, session startup throws
 `HarnessCapabilityUnsupportedError` with instructions to configure one.
 
-Bridge packages, ACP installations, state, replay logs, and projected skills
-live in adapter-owned directories outside the session project. The session
-workspace starts empty.
+Bridge packages, ACP installations, and replay state live in adapter-owned
+directories outside the session project. Skills are written to the configured
+native directory below the implementation's `$HOME`. The session workspace
+starts empty.
 
 ## Tools and Approvals
 
@@ -307,25 +380,41 @@ export const claudeCodeACPHarness = createACP({
     packageVersion: '0.61.0',
   },
   executable: 'claude-agent-acp',
+  modelMapping: {
+    type: 'session-config-option',
+    path: 'model',
+  },
+  skillsDirectory: '.claude/skills',
   credentialEnv: ['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN'],
-  credentialBrokering: ({ env }) => {
+  credentialBrokering: ({ env, sandboxEnv }) => {
     const apiKey = env.ANTHROPIC_API_KEY;
     const authToken = env.ANTHROPIC_AUTH_TOKEN;
+    const sandboxApiKey = sandboxEnv?.ANTHROPIC_API_KEY;
+    const sandboxAuthToken = sandboxEnv?.ANTHROPIC_AUTH_TOKEN;
     if (!apiKey && !authToken) return [];
 
-    const headers: Record<string, string> = {};
-    if (apiKey) {
-      headers['x-api-key'] = apiKey;
+    const transformations = [];
+    if (apiKey && sandboxApiKey) {
+      transformations.push(
+        createCredentialRequestTransformation({
+          matchUrl: env.ANTHROPIC_BASE_URL ?? 'https://api.anthropic.com',
+          matchHeaders: { 'x-api-key': sandboxApiKey },
+          transformHeaders: { 'x-api-key': apiKey },
+        }),
+      );
     }
-    if (authToken) {
-      headers.Authorization = `Bearer ${authToken}`;
+    if (authToken && sandboxAuthToken) {
+      transformations.push(
+        createCredentialRequestTransformation({
+          matchUrl: env.ANTHROPIC_BASE_URL ?? 'https://api.anthropic.com',
+          matchHeaders: {
+            Authorization: `Bearer ${sandboxAuthToken}`,
+          },
+          transformHeaders: { Authorization: `Bearer ${authToken}` },
+        }),
+      );
     }
-    return [
-      createCredentialRequestTransformation({
-        baseUrl: env.ANTHROPIC_BASE_URL ?? 'https://api.anthropic.com',
-        headers,
-      }),
-    ];
+    return transformations;
   },
   env: {
     IS_SANDBOX: '1',
@@ -370,6 +459,7 @@ import { secureJsonParse } from '@ai-sdk/provider-utils';
 
 export const codexACPHarness = createACP({
   harnessId: 'acp-codex',
+  nonTextContentTypes: ['image'],
   // Define the runtime's built-in tool names and input schemas to expose
   // provider-executed calls as typed HarnessAgent tools.
   // builtinTools: { ... },
@@ -379,11 +469,19 @@ export const codexACPHarness = createACP({
     packageVersion: '1.1.4',
   },
   executable: 'codex-acp',
+  modelMapping: {
+    type: 'session-config-option',
+    path: 'model',
+  },
   forwardEnv: ['CODEX_CONFIG'],
   credentialEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
-  credentialBrokering: ({ env }) => {
-    const credential = env.CODEX_API_KEY ?? env.OPENAI_API_KEY;
-    if (!credential) return [];
+  credentialBrokering: ({ env, sandboxEnv }) => {
+    const environmentVariableName = env.CODEX_API_KEY
+      ? 'CODEX_API_KEY'
+      : 'OPENAI_API_KEY';
+    const credential = env[environmentVariableName];
+    const sandboxCredential = sandboxEnv?.[environmentVariableName];
+    if (!credential || !sandboxCredential) return [];
     const config =
       env.CODEX_CONFIG == null
         ? undefined
@@ -396,8 +494,11 @@ export const codexACPHarness = createACP({
       'https://api.openai.com/v1';
     return [
       createCredentialRequestTransformation({
-        baseUrl,
-        headers: { Authorization: `Bearer ${credential}` },
+        matchUrl: baseUrl,
+        matchHeaders: {
+          Authorization: `Bearer ${sandboxCredential}`,
+        },
+        transformHeaders: { Authorization: `Bearer ${credential}` },
       }),
     ];
   },
@@ -451,7 +552,7 @@ modes enable Codex's internal sandbox, which must not run inside the sandbox
 already provided to `HarnessAgent`.
 
 The `client-app` placeholder resolves to the versioned
-`ai-sdk/harness-acp/<version>` identifier and sends it as both `User-Agent` and
+`ai-sdk-harness-acp/<version>` identifier and sends it as both `User-Agent` and
 `x-client-app`.
 Without Gateway credentials, this profile uses direct `CODEX_API_KEY` or
 `OPENAI_API_KEY` authentication. Gateway `env` values are added to the
@@ -468,21 +569,35 @@ import { createACP } from '@ai-sdk/harness-acp';
 
 export const cursorACPHarness = createACP({
   harnessId: 'cursor-acp',
+  nonTextContentTypes: ['image'],
   source: {
     type: 'install-command',
     command: 'curl https://cursor.com/install -fsS | bash',
   },
   executable: 'agent',
   args: ['--disable-auto-update', 'acp'],
+  modelMapping: {
+    type: 'session-config-option',
+    path: 'model',
+  },
+  clientCapabilities: {
+    _meta: { parameterizedModelPicker: true },
+  },
   credentialEnv: ['CURSOR_API_KEY'],
-  credentialBrokering: ({ env }) => {
-    if (!env.CURSOR_API_KEY) return [];
+  credentialBrokering: ({ env, sandboxEnv }) => {
+    if (!env.CURSOR_API_KEY || !sandboxEnv?.CURSOR_API_KEY) return [];
     return [
       {
         match: {
           host: 'api2.cursor.sh',
           path: { exact: '/auth/exchange_user_api_key' },
           method: ['POST'],
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: `Bearer ${sandboxEnv.CURSOR_API_KEY}` },
+            },
+          ],
         },
         transform: {
           headers: {
@@ -528,19 +643,28 @@ export const grokBuildACPHarness = createACP({
   },
   executable: 'grok',
   args: ['agent', 'stdio'],
+  modelMapping: {
+    type: 'session-model',
+    path: 'modelId',
+  },
   credentialEnv: ['XAI_API_KEY'],
-  credentialBrokering: ({ env }) => {
-    if (!env.XAI_API_KEY) return [];
+  credentialBrokering: ({ env, sandboxEnv }) => {
+    if (!env.XAI_API_KEY || !sandboxEnv?.XAI_API_KEY) return [];
     return [
       createCredentialRequestTransformation({
-        baseUrl: env.GROK_XAI_API_BASE_URL ?? 'https://api.x.ai/v1',
-        headers: { Authorization: `Bearer ${env.XAI_API_KEY}` },
+        matchUrl: env.GROK_XAI_API_BASE_URL ?? 'https://api.x.ai/v1',
+        matchHeaders: {
+          Authorization: `Bearer ${sandboxEnv.XAI_API_KEY}`,
+        },
+        transformHeaders: {
+          Authorization: `Bearer ${env.XAI_API_KEY}`,
+        },
       }),
     ];
   },
   instructionMapping: {
-    type: 'session-meta',
-    path: ['rules'],
+    type: 'filesystem',
+    path: '.grok/AGENTS.md',
   },
   providerAuthentication: {
     gateway: {

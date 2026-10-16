@@ -15,10 +15,15 @@ import {
   parseProviderOptions,
   resolveFullMediaType,
   resolveProviderReference,
+  safeValidateTypes,
   validateTypes,
   type ToolNameMapping,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import {
+  openaiResponsesSystemMessageOptionsSchema,
+  openaiResponsesToolResultOptionsSchema,
+} from './openai-responses-language-model-options';
 import {
   applyPatchInputSchema,
   applyPatchOutputSchema,
@@ -36,6 +41,7 @@ import type {
   OpenAIResponsesInput,
   OpenAIResponsesReasoning,
   OpenAIResponsesToolCaller,
+  OpenAIResponsesWebSearchCall,
 } from './openai-responses-api';
 import {
   toolSearchInputSchema,
@@ -45,6 +51,7 @@ import {
   programmaticToolCallingInputSchema,
   programmaticToolCallingOutputSchema,
 } from '../tool/programmatic-tool-calling';
+import { webSearchOutputSchema } from '../tool/web-search';
 import {
   getParallelToolCallMetadata,
   type ParallelToolCallMetadata,
@@ -67,16 +74,77 @@ function mapToolCaller(
       : caller;
 }
 
+async function convertWebSearchToolResultOutput({
+  output,
+  id,
+}: {
+  output: LanguageModelV4ToolResultOutput;
+  id: string;
+}): Promise<OpenAIResponsesWebSearchCall | undefined> {
+  if (output.type !== 'json') {
+    return undefined;
+  }
+
+  const validation = await safeValidateTypes({
+    value: output.value,
+    schema: webSearchOutputSchema,
+  });
+
+  if (!validation.success || validation.value.action == null) {
+    return undefined;
+  }
+
+  const { action, sources } = validation.value;
+
+  switch (action.type) {
+    case 'search':
+      return {
+        type: 'web_search_call',
+        id,
+        status: 'completed',
+        action: {
+          type: 'search',
+          ...(action.query != null && { query: action.query }),
+          ...(action.queries != null && { queries: action.queries }),
+          ...(sources != null && { sources }),
+        },
+      };
+    case 'openPage':
+      return {
+        type: 'web_search_call',
+        id,
+        status: 'completed',
+        action: {
+          type: 'open_page',
+          url: action.url,
+        },
+      };
+    case 'findInPage':
+      return {
+        type: 'web_search_call',
+        id,
+        status: 'completed',
+        action: {
+          type: 'find_in_page',
+          url: action.url,
+          pattern: action.pattern,
+        },
+      };
+  }
+}
+
 async function convertFunctionToolResultOutput({
   output,
   toolName,
   outputSchemaToolNames,
+  promptCacheBreakpoint,
   providerOptionsName,
   warnings,
 }: {
   output: LanguageModelV4ToolResultOutput;
   toolName: string;
   outputSchemaToolNames: Set<string> | undefined;
+  promptCacheBreakpoint?: OpenAIPromptCacheBreakpoint;
   providerOptionsName: string;
   warnings: Array<SharedV4Warning>;
 }): Promise<OpenAIResponsesFunctionCallOutput['output']> {
@@ -84,18 +152,35 @@ async function convertFunctionToolResultOutput({
   // parses the contents of that string as JSON. Text-like results therefore
   // need JSON.stringify to become valid JSON string literals.
   const hasOutputSchema = outputSchemaToolNames?.has(toolName);
+  const convertScalarOutput = (
+    value: string,
+  ): OpenAIResponsesFunctionCallOutput['output'] =>
+    promptCacheBreakpoint == null
+      ? value
+      : [
+          {
+            type: 'input_text',
+            text: value,
+            prompt_cache_breakpoint: promptCacheBreakpoint,
+          },
+        ];
 
   switch (output.type) {
     case 'text':
+      return convertScalarOutput(
+        hasOutputSchema ? JSON.stringify(output.value) : output.value,
+      );
     case 'error-text':
-      return hasOutputSchema ? JSON.stringify(output.value) : output.value;
+    case 'error-json':
+      return convertScalarOutput(JSON.stringify({ error: output.value }));
     case 'execution-denied': {
       const reason = output.reason ?? 'Tool call execution denied.';
-      return hasOutputSchema ? JSON.stringify(reason) : reason;
+      return convertScalarOutput(
+        hasOutputSchema ? JSON.stringify(reason) : reason,
+      );
     }
     case 'json':
-    case 'error-json':
-      return JSON.stringify(output.value);
+      return convertScalarOutput(JSON.stringify(output.value));
     case 'content':
       return output.value
         .map(item => {
@@ -118,6 +203,32 @@ async function convertFunctionToolResultOutput({
               const topLevel = getTopLevelMediaType(item.mediaType);
               const imageDetail =
                 item.providerOptions?.[providerOptionsName]?.imageDetail;
+
+              if (item.data.type === 'reference') {
+                const fileId = resolveProviderReference({
+                  reference: item.data.reference,
+                  provider: providerOptionsName,
+                });
+
+                if (topLevel === 'image') {
+                  return {
+                    type: 'input_image' as const,
+                    file_id: fileId,
+                    detail: imageDetail,
+                    ...(promptCacheBreakpoint != null && {
+                      prompt_cache_breakpoint: promptCacheBreakpoint,
+                    }),
+                  };
+                }
+
+                return {
+                  type: 'input_file' as const,
+                  file_id: fileId,
+                  ...(promptCacheBreakpoint != null && {
+                    prompt_cache_breakpoint: promptCacheBreakpoint,
+                  }),
+                };
+              }
 
               if (item.data.type === 'data') {
                 const fullMediaType = resolveFullMediaType({ part: item });
@@ -289,6 +400,24 @@ function getPromptCacheBreakpoint(
     | undefined;
 }
 
+function getScalarToolResultPromptCacheBreakpoint({
+  output,
+  toolResultProviderOptions,
+  providerOptionsName,
+}: {
+  output: LanguageModelV4ToolResultOutput;
+  toolResultProviderOptions: SharedV4ProviderOptions | undefined;
+  providerOptionsName: string;
+}): OpenAIPromptCacheBreakpoint | undefined {
+  return output.type === 'content'
+    ? undefined
+    : (getPromptCacheBreakpoint(output.providerOptions, providerOptionsName) ??
+        getPromptCacheBreakpoint(
+          toolResultProviderOptions,
+          providerOptionsName,
+        ));
+}
+
 /**
  * This is soft-deprecated. Use provider references instead. Kept for backward compatibility
  * with the `fileIdPrefixes` option.
@@ -305,34 +434,42 @@ export async function convertToOpenAIResponsesInput({
   toolNameMapping,
   systemMessageMode,
   providerOptionsName,
+  explicitMessageItemType = false,
   fileIdPrefixes,
   passThroughUnsupportedFiles = false,
   store,
+  isReasoningModel = false,
   hasConversation = false,
   hasPreviousResponseId = false,
   hasLocalShellTool = false,
   hasShellTool = false,
   hasApplyPatchTool = false,
   hasComputerTool = false,
+  toolSearchToolName,
   customProviderToolNames,
   outputSchemaToolNames,
+  configurationUpdateUnsupportedReason,
 }: {
   prompt: LanguageModelV4Prompt;
   toolNameMapping: ToolNameMapping;
   systemMessageMode: 'system' | 'developer' | 'remove';
   providerOptionsName: string;
+  explicitMessageItemType?: boolean;
   /** @deprecated Use provider references instead. */
   fileIdPrefixes?: readonly string[];
   passThroughUnsupportedFiles?: boolean;
   store: boolean;
+  isReasoningModel?: boolean; // when true, stored assistant messages are only referenced together with their reasoning
   hasConversation?: boolean; // when true, skip assistant messages that already have item IDs
   hasPreviousResponseId?: boolean; // when true, skip reasoning and function-call items that already exist in the previous response chain
   hasLocalShellTool?: boolean;
   hasShellTool?: boolean;
   hasApplyPatchTool?: boolean;
   hasComputerTool?: boolean;
+  toolSearchToolName?: string;
   customProviderToolNames?: Set<string>;
   outputSchemaToolNames?: Set<string>;
+  configurationUpdateUnsupportedReason?: string;
 }): Promise<{
   input: OpenAIResponsesInput;
   warnings: Array<SharedV4Warning>;
@@ -340,6 +477,7 @@ export async function convertToOpenAIResponsesInput({
   let input: OpenAIResponsesInput = [];
   const warnings: Array<SharedV4Warning> = [];
   const processedApprovalIds = new Set<string>();
+  const programmaticToolCallIds = new Set<string>();
   const parallelToolResultGroups =
     hasConversation || hasPreviousResponseId
       ? collectCompleteParallelToolResultGroups({
@@ -353,6 +491,42 @@ export async function convertToOpenAIResponsesInput({
   for (const { role, content, providerOptions } of prompt) {
     switch (role) {
       case 'system': {
+        // Keep effort updates at their original positions so they apply to
+        // the same parts of the conversation when the history is sent again.
+        let options = await parseProviderOptions({
+          provider: providerOptionsName,
+          providerOptions,
+          schema: openaiResponsesSystemMessageOptionsSchema,
+        });
+        if (options == null && providerOptionsName !== 'openai') {
+          options = await parseProviderOptions({
+            provider: 'openai',
+            providerOptions,
+            schema: openaiResponsesSystemMessageOptionsSchema,
+          });
+        }
+        const effort = options?.reasoningEffortUpdate;
+        if (effort != null) {
+          const unsupportedReason =
+            content !== ''
+              ? 'Message-level reasoningEffortUpdate requires empty system message content.'
+              : configurationUpdateUnsupportedReason;
+
+          if (unsupportedReason != null) {
+            throw new UnsupportedFunctionalityError({
+              functionality: 'Message-level reasoningEffortUpdate',
+              message: unsupportedReason,
+            });
+          }
+
+          input.push({
+            type: 'configuration_update',
+            reasoning: { effort },
+          });
+          // The control is independent of systemMessageMode's text handling.
+          break;
+        }
+
         switch (systemMessageMode) {
           case 'system': {
             const promptCacheBreakpoint = getPromptCacheBreakpoint(
@@ -360,6 +534,7 @@ export async function convertToOpenAIResponsesInput({
               providerOptionsName,
             );
             input.push({
+              ...(explicitMessageItemType && { type: 'message' as const }),
               role: 'system',
               content:
                 promptCacheBreakpoint == null
@@ -380,6 +555,7 @@ export async function convertToOpenAIResponsesInput({
               providerOptionsName,
             );
             input.push({
+              ...(explicitMessageItemType && { type: 'message' as const }),
               role: 'developer',
               content:
                 promptCacheBreakpoint == null
@@ -413,6 +589,7 @@ export async function convertToOpenAIResponsesInput({
 
       case 'user': {
         input.push({
+          ...(explicitMessageItemType && { type: 'message' as const }),
           role: 'user',
           content: content.map((part, index) => {
             switch (part.type) {
@@ -540,6 +717,14 @@ export async function convertToOpenAIResponsesInput({
 
       case 'assistant': {
         const reasoningMessages: Record<string, OpenAIResponsesReasoning> = {};
+        const emittedTextItemIds = new Set<string>();
+
+        // Stored messages of reasoning models are bound to the reasoning item
+        // that produced them. When the reasoning has been removed (e.g. with
+        // `pruneMessages`), referencing the message fails with "Item 'msg_...'
+        // of type 'message' was provided without its required 'reasoning'
+        // item", so it is sent with its content instead.
+        let hasPrecedingReasoning = false;
 
         for (const part of content) {
           switch (part.type) {
@@ -559,15 +744,22 @@ export async function convertToOpenAIResponsesInput({
               }
 
               // item references reduce the payload size
-              if (store && id != null) {
-                input.push({ type: 'item_reference', id });
+              if (
+                store &&
+                id != null &&
+                (!isReasoningModel || hasPrecedingReasoning)
+              ) {
+                if (!emittedTextItemIds.has(id)) {
+                  emittedTextItemIds.add(id);
+                  input.push({ type: 'item_reference', id });
+                }
                 break;
               }
 
               input.push({
+                ...(explicitMessageItemType && { type: 'message' as const }),
                 role: 'assistant',
-                content: [{ type: 'output_text', text: part.text }],
-                id,
+                content: part.text,
                 ...(phase != null && { phase }),
               });
 
@@ -639,11 +831,26 @@ export async function convertToOpenAIResponsesInput({
                 ).providerMetadata?.[providerOptionsName]?.namespace) as
                 | string
                 | undefined;
+              const isAsync = (part.providerOptions?.[providerOptionsName]
+                ?.async ??
+                (
+                  part as {
+                    providerMetadata?: {
+                      [providerOptionsName]?: { async?: boolean };
+                    };
+                  }
+                ).providerMetadata?.[providerOptionsName]?.async) as
+                | boolean
+                | undefined;
               const caller = part.providerOptions?.[providerOptionsName]
                 ?.caller as
                 | { type: 'direct' }
                 | { type: 'program'; callerId: string }
                 | undefined;
+
+              if (caller?.type === 'program') {
+                programmaticToolCallIds.add(part.toolCallId);
+              }
 
               if (hasConversation && id != null) {
                 break;
@@ -653,7 +860,7 @@ export async function convertToOpenAIResponsesInput({
                 part.toolName,
               );
 
-              if (resolvedToolName === 'tool_search') {
+              if (part.toolName === toolSearchToolName) {
                 if (store && id != null) {
                   input.push({ type: 'item_reference', id });
                   break;
@@ -866,6 +1073,7 @@ export async function convertToOpenAIResponsesInput({
                     typeof part.input === 'string'
                       ? part.input
                       : JSON.stringify(part.input),
+                  ...(isAsync != null && { async: isAsync }),
                   id,
                 });
                 break;
@@ -876,6 +1084,7 @@ export async function convertToOpenAIResponsesInput({
                 call_id: part.toolCallId,
                 name: resolvedToolName,
                 arguments: serializeToolCallArguments(part.input),
+                ...(isAsync != null && { async: isAsync }),
                 ...(namespace != null && { namespace }),
                 ...(caller != null && {
                   caller: mapToolCaller(caller),
@@ -908,7 +1117,34 @@ export async function convertToOpenAIResponsesInput({
                 part.toolName,
               );
 
-              if (resolvedResultToolName === 'tool_search') {
+              if (
+                resolvedResultToolName === 'web_search' ||
+                resolvedResultToolName === 'web_search_preview'
+              ) {
+                const itemId =
+                  (
+                    part.providerOptions?.[providerOptionsName] as
+                      | { itemId?: string }
+                      | undefined
+                  )?.itemId ?? part.toolCallId;
+
+                if (store) {
+                  input.push({ type: 'item_reference', id: itemId });
+                  break;
+                }
+
+                const webSearchCall = await convertWebSearchToolResultOutput({
+                  output: part.output,
+                  id: itemId,
+                });
+
+                if (webSearchCall != null) {
+                  input.push(webSearchCall);
+                  break;
+                }
+              }
+
+              if (part.toolName === toolSearchToolName) {
                 const itemId = (part.providerOptions?.[providerOptionsName]
                   ?.itemId ??
                   (
@@ -1023,6 +1259,8 @@ export async function convertToOpenAIResponsesInput({
             }
 
             case 'reasoning': {
+              hasPrecedingReasoning = true;
+
               const providerOptions = await parseProviderOptions({
                 provider: providerOptionsName,
                 providerOptions: part.providerOptions,
@@ -1216,15 +1454,31 @@ export async function convertToOpenAIResponsesInput({
               );
 
               const toolOutputs = await Promise.all(
-                parallelToolResultGroup.results.map(async result =>
-                  convertFunctionToolResultOutput({
-                    output: result.output,
-                    toolName: result.toolName,
-                    outputSchemaToolNames,
-                    providerOptionsName,
-                    warnings,
-                  }),
-                ),
+                parallelToolResultGroup.results.map(async result => {
+                  const promptCacheBreakpoint =
+                    getScalarToolResultPromptCacheBreakpoint({
+                      output: result.output,
+                      toolResultProviderOptions: result.providerOptions,
+                      providerOptionsName,
+                    });
+
+                  return {
+                    output: await convertFunctionToolResultOutput({
+                      output: result.output,
+                      toolName: result.toolName,
+                      outputSchemaToolNames,
+                      providerOptionsName,
+                      warnings,
+                    }),
+                    promptCacheBreakpoint,
+                  };
+                }),
+              );
+              const serializedToolOutputs = toolOutputs.map(({ output }) =>
+                typeof output === 'string' ? output : JSON.stringify(output),
+              );
+              const hasPromptCacheBreakpoint = toolOutputs.some(
+                ({ promptCacheBreakpoint }) => promptCacheBreakpoint != null,
               );
 
               input.push({
@@ -1232,13 +1486,16 @@ export async function convertToOpenAIResponsesInput({
                 call_id: parallelToolResultGroup.metadata.toolCallId,
                 // The internal wrapper returns one output containing the child
                 // results in the same order as the original tool_uses array.
-                output: toolOutputs
-                  .map(output =>
-                    typeof output === 'string'
-                      ? output
-                      : JSON.stringify(output),
-                  )
-                  .join('\n'),
+                output: hasPromptCacheBreakpoint
+                  ? serializedToolOutputs.map((text, index) => ({
+                      type: 'input_text',
+                      text: index === 0 ? text : `\n${text}`,
+                      ...(toolOutputs[index].promptCacheBreakpoint != null && {
+                        prompt_cache_breakpoint:
+                          toolOutputs[index].promptCacheBreakpoint,
+                      }),
+                    }))
+                  : serializedToolOutputs.join('\n'),
               });
             }
             continue;
@@ -1261,7 +1518,7 @@ export async function convertToOpenAIResponsesInput({
             part.toolName,
           );
 
-          if (resolvedToolName === 'tool_search' && output.type === 'json') {
+          if (part.toolName === toolSearchToolName && output.type === 'json') {
             const parsedOutput = await validateTypes({
               value: output.value,
               schema: toolSearchOutputSchema,
@@ -1372,18 +1629,42 @@ export async function convertToOpenAIResponsesInput({
           }
 
           if (customProviderToolNames?.has(resolvedToolName)) {
+            const promptCacheBreakpoint =
+              getScalarToolResultPromptCacheBreakpoint({
+                output,
+                toolResultProviderOptions: part.providerOptions,
+                providerOptionsName,
+              });
+            const convertScalarOutput = (
+              value: string,
+            ): OpenAIResponsesCustomToolCallOutput['output'] =>
+              promptCacheBreakpoint == null
+                ? value
+                : [
+                    {
+                      type: 'input_text',
+                      text: value,
+                      prompt_cache_breakpoint: promptCacheBreakpoint,
+                    },
+                  ];
             let outputValue: OpenAIResponsesCustomToolCallOutput['output'];
             switch (output.type) {
               case 'text':
+                outputValue = convertScalarOutput(output.value);
+                break;
               case 'error-text':
-                outputValue = output.value;
+              case 'error-json':
+                outputValue = convertScalarOutput(
+                  JSON.stringify({ error: output.value }),
+                );
                 break;
               case 'execution-denied':
-                outputValue = output.reason ?? 'Tool call execution denied.';
+                outputValue = convertScalarOutput(
+                  output.reason ?? 'Tool call execution denied.',
+                );
                 break;
               case 'json':
-              case 'error-json':
-                outputValue = JSON.stringify(output.value);
+                outputValue = convertScalarOutput(JSON.stringify(output.value));
                 break;
               case 'content':
                 outputValue = output.value
@@ -1478,20 +1759,37 @@ export async function convertToOpenAIResponsesInput({
             continue;
           }
 
+          const resultCaller = part.providerOptions?.[providerOptionsName]
+            ?.caller as
+            | { type: 'direct' }
+            | { type: 'program'; callerId: string }
+            | undefined;
+
+          if (
+            output.type === 'execution-denied' &&
+            (resultCaller?.type === 'program' ||
+              programmaticToolCallIds.has(part.toolCallId))
+          ) {
+            throw new UnsupportedFunctionalityError({
+              functionality:
+                'execution-denied results for programmatic tool calls',
+            });
+          }
+
           const contentValue = await convertFunctionToolResultOutput({
             output,
             toolName: part.toolName,
             outputSchemaToolNames,
+            promptCacheBreakpoint: getScalarToolResultPromptCacheBreakpoint({
+              output,
+              toolResultProviderOptions: part.providerOptions,
+              providerOptionsName,
+            }),
             providerOptionsName,
             warnings,
           });
 
-          const caller = mapToolCaller(
-            part.providerOptions?.[providerOptionsName]?.caller as
-              | { type: 'direct' }
-              | { type: 'program'; callerId: string }
-              | undefined,
-          );
+          const caller = mapToolCaller(resultCaller);
 
           input.push({
             type: 'function_call_output',
@@ -1499,6 +1797,19 @@ export async function convertToOpenAIResponsesInput({
             output: contentValue,
             ...(caller != null && { caller }),
           });
+
+          const options = await parseProviderOptions({
+            provider: providerOptionsName,
+            providerOptions: part.providerOptions,
+            schema: openaiResponsesToolResultOptionsSchema,
+          });
+          if (options?.additionalTools?.length) {
+            input.push({
+              type: 'additional_tools',
+              role: 'developer',
+              tools: options.additionalTools,
+            });
+          }
         }
 
         break;

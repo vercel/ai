@@ -21,6 +21,7 @@ import { shellArgsSchema } from '../tool/shell';
 import { toolSearchArgsSchema } from '../tool/tool-search';
 import { webSearchArgsSchema } from '../tool/web-search';
 import { webSearchPreviewArgsSchema } from '../tool/web-search-preview';
+import { normalizeOpenAIJsonSchema } from '../normalize-openai-json-schema';
 import type {
   OpenAIResponsesAllowedTool,
   OpenAIResponsesFunctionTool,
@@ -33,7 +34,18 @@ type AllowedToolResolution =
 
 export type OpenAIToolOptions = {
   allowedCallers?: Array<'direct' | 'programmatic'>;
+  /**
+   * Whether the model can continue generating after calling this tool without
+   * waiting for its result.
+   */
+  async?: boolean;
   deferLoading?: boolean;
+  /**
+   * Omit this function from the Responses request's top-level tools array.
+   * Use for tools supplied in history through additionalTools. Keep the tool
+   * active in the SDK so its calls can still be validated and executed.
+   */
+  omitFromRequestTools?: boolean;
   outputSchema?: JSONObject;
   namespace?: {
     name: string;
@@ -48,6 +60,7 @@ export async function prepareResponsesTools({
   toolNameMapping,
   customProviderToolNames,
   outputSchemaToolNames,
+  supportsAsyncToolCalling = true,
 }: {
   tools: LanguageModelV4CallOptions['tools'];
   toolChoice: LanguageModelV4CallOptions['toolChoice'] | undefined;
@@ -58,6 +71,7 @@ export async function prepareResponsesTools({
   toolNameMapping?: ToolNameMapping;
   customProviderToolNames?: Set<string>;
   outputSchemaToolNames?: Set<string>;
+  supportsAsyncToolCalling?: boolean;
 }): Promise<{
   tools?: Array<OpenAIResponsesTool>;
   toolChoice?:
@@ -137,9 +151,37 @@ export async function prepareResponsesTools({
         if (openaiOptions?.outputSchema != null) {
           outputSchemaToolNames?.add(tool.name);
         }
+        if (openaiOptions?.omitFromRequestTools === true) {
+          recordAllowedTool(
+            tool.name,
+            {
+              supported: false,
+              reason:
+                'tools omitted from the request tools array cannot be allow-listed',
+            },
+            undefined,
+          );
+          if (
+            allowedTools == null &&
+            toolChoice?.type === 'tool' &&
+            toolChoice.toolName === tool.name
+          ) {
+            throw new UnsupportedFunctionalityError({
+              functionality: `forcing tool "${tool.name}" omitted from the request tools array; use automatic tool choice for history-loaded tools`,
+            });
+          }
+          break;
+        }
         const openaiFunctionTool = prepareFunctionTool({
           tool,
           options: openaiOptions,
+          toolWarnings,
+          async: resolveAsyncToolOption({
+            value: openaiOptions?.async,
+            supportsAsyncToolCalling,
+            toolName: tool.name,
+            toolWarnings,
+          }),
         });
         const namespace = openaiOptions?.namespace;
 
@@ -302,6 +344,7 @@ export async function prepareResponsesTools({
 
             openaiTools.push({
               type: 'image_generation',
+              action: args.action,
               background: args.background,
               input_fidelity: args.inputFidelity,
               input_image_mask: args.inputImageMask
@@ -377,6 +420,14 @@ export async function prepareResponsesTools({
               type: 'custom',
               name: tool.name,
               description: args.description,
+              ...(resolveAsyncToolOption({
+                value: args.async,
+                supportsAsyncToolCalling,
+                toolName: tool.name,
+                toolWarnings,
+              }) != null
+                ? { async: args.async }
+                : {}),
               format: args.format,
             });
             resolvedCustomProviderToolNames.add(tool.name);
@@ -605,26 +656,63 @@ function toAllowedToolResolution(
 function prepareFunctionTool({
   tool,
   options,
+  toolWarnings,
+  async,
 }: {
   tool: LanguageModelV4FunctionTool;
   options: OpenAIToolOptions | undefined;
+  toolWarnings: SharedV4Warning[];
+  async: boolean | undefined;
 }): OpenAIResponsesFunctionTool {
   const deferLoading = options?.deferLoading;
+  const normalizedInputSchema = normalizeOpenAIJsonSchema(tool.inputSchema);
+  const normalizedOutputSchema =
+    options?.outputSchema != null
+      ? normalizeOpenAIJsonSchema(options.outputSchema as JSONSchema7)
+      : undefined;
+
+  toolWarnings.push(
+    ...normalizedInputSchema.warnings,
+    ...(normalizedOutputSchema?.warnings ?? []),
+  );
 
   return {
     type: 'function',
     name: tool.name,
     description: tool.description,
-    parameters: tool.inputSchema,
-    ...(tool.strict != null ? { strict: tool.strict } : {}),
+    parameters: normalizedInputSchema.schema,
+    ...(async != null ? { async } : {}),
+    strict: tool.strict ?? false,
     ...(deferLoading != null ? { defer_loading: deferLoading } : {}),
     ...(options?.allowedCallers != null
       ? { allowed_callers: options.allowedCallers }
       : {}),
     ...(options?.outputSchema != null
-      ? { output_schema: options.outputSchema as JSONSchema7 }
+      ? { output_schema: normalizedOutputSchema?.schema }
       : {}),
   };
+}
+
+function resolveAsyncToolOption({
+  value,
+  supportsAsyncToolCalling,
+  toolName,
+  toolWarnings,
+}: {
+  value: boolean | undefined;
+  supportsAsyncToolCalling: boolean;
+  toolName: string;
+  toolWarnings: SharedV4Warning[];
+}): boolean | undefined {
+  if (value !== true || supportsAsyncToolCalling) {
+    return value;
+  }
+
+  toolWarnings.push({
+    type: 'unsupported',
+    feature: `async tool calling for "${toolName}"`,
+    details: 'Async tool calling is only supported by GPT-6 and later models.',
+  });
 }
 
 function mapShellEnvironment(environment: {

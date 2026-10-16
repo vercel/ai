@@ -4,8 +4,10 @@ import type {
   ACPProviderAuthenticationCompatibility,
 } from '../acp-auth';
 import type {
+  ACPModelMapping,
   ACPNpmSimpleSource,
   ACPPermissionModeMapping,
+  ACPSerializableValue,
   ACPSource,
   ACPV1Settings,
 } from './acp-v1-settings';
@@ -60,6 +62,9 @@ export function validateACPV1Implementation(
     if (source.pnpmLockYaml.length === 0) {
       throw new Error('ACP source.pnpmLockYaml must not be empty.');
     }
+    if (source.pnpmWorkspaceYaml?.length === 0) {
+      throw new Error('ACP source.pnpmWorkspaceYaml must not be empty.');
+    }
   } else if (source.type === 'npm-simple') {
     validateNpmSimpleSource({ source });
   } else if (source.command.trim().length === 0) {
@@ -74,8 +79,8 @@ export function validateACPV1Implementation(
   validateForwardEnvironment({ forwardEnv: implementation.forwardEnv });
   validateForwardEnvironment({ forwardEnv: implementation.credentialEnv });
   validateEnvironment({ env: implementation.env });
-  const forwardedKeys = new Set(implementation.forwardEnv ?? []);
-  const credentialKeys = new Set(implementation.credentialEnv ?? []);
+  const forwardedKeys = new Set(implementation.forwardEnv);
+  const credentialKeys = new Set(implementation.credentialEnv);
   for (const key of credentialKeys) {
     if (forwardedKeys.has(key)) {
       throw new Error(
@@ -133,6 +138,15 @@ export function getImplementationLockfile({
   return source.type === 'npm-locked' ? source.pnpmLockYaml : undefined;
 }
 
+export function getImplementationWorkspaceFile({
+  implementation,
+}: {
+  implementation: ACPImplementation;
+}): string | undefined {
+  const { source } = implementation;
+  return source.type === 'npm-locked' ? source.pnpmWorkspaceYaml : undefined;
+}
+
 export function createImplementationDescriptor({
   implementation,
 }: {
@@ -160,15 +174,21 @@ export function createImplementationIdentity({
   acpVersion,
   implementation,
   clientApp,
+  clientCapabilities,
+  modelMapping,
   providerAuthentication,
   permissionModeMapping,
+  nonTextContentTypes,
 }: {
   harnessId: string;
   acpVersion: 'v1';
   implementation: ACPImplementation;
   clientApp: ACPClientApp;
+  clientCapabilities?: Readonly<Record<string, ACPSerializableValue>>;
+  modelMapping: ACPModelMapping;
   providerAuthentication: ACPProviderAuthenticationCompatibility | undefined;
   permissionModeMapping?: ACPPermissionModeMapping;
+  nonTextContentTypes?: ACPV1Settings['nonTextContentTypes'];
 }): string {
   const { source } = implementation;
   const sourceIdentity =
@@ -177,6 +197,7 @@ export function createImplementationIdentity({
           type: source.type,
           packageJson: source.packageJson,
           pnpmLockYaml: source.pnpmLockYaml,
+          pnpmWorkspaceYaml: source.pnpmWorkspaceYaml,
         }
       : source.type === 'npm-simple'
         ? {
@@ -190,11 +211,9 @@ export function createImplementationIdentity({
             type: source.type,
             command: source.command,
           };
-  const forwardedEnvironment = [
-    ...new Set(implementation.forwardEnv ?? []),
-  ].sort();
+  const forwardedEnvironment = [...new Set(implementation.forwardEnv)].sort();
   const credentialEnvironment = [
-    ...new Set(implementation.credentialEnv ?? []),
+    ...new Set(implementation.credentialEnv),
   ].sort();
   const literalEnvironment = Object.fromEntries(
     Object.entries(implementation.env ?? {})
@@ -208,6 +227,8 @@ export function createImplementationIdentity({
     executable: implementation.executable,
     args: implementation.args ?? [],
     clientApp,
+    clientCapabilities: clientCapabilities ?? null,
+    modelMapping,
     environment: {
       forwarded: forwardedEnvironment,
       credential: credentialEnvironment,
@@ -215,6 +236,9 @@ export function createImplementationIdentity({
     },
     providerAuthentication: providerAuthentication ?? null,
     permissionModeMapping: permissionModeMapping ?? null,
+    ...(nonTextContentTypes == null || nonTextContentTypes.length === 0
+      ? {}
+      : { nonTextContentTypes: [...new Set(nonTextContentTypes)].sort() }),
   };
   return createHash('sha256')
     .update(stableStringify({ value: payload }))
@@ -264,16 +288,21 @@ ${implementation.source.command}
 export function resolveImplementationEnvironment({
   implementation,
   env,
+  credentialEnv = env,
 }: {
   implementation: ACPImplementation;
   env: Readonly<Record<string, string | undefined>>;
+  credentialEnv?: Readonly<Record<string, string | undefined>>;
 }): Record<string, string> {
   const forwardedEnvironment: Record<string, string> = {};
-  for (const name of [
-    ...(implementation.forwardEnv ?? []),
-    ...(implementation.credentialEnv ?? []),
-  ]) {
+  for (const name of implementation.forwardEnv ?? []) {
     const value = env[name];
+    if (value != null && value.length > 0) {
+      forwardedEnvironment[name] = value;
+    }
+  }
+  for (const name of implementation.credentialEnv ?? []) {
+    const value = credentialEnv[name];
     if (value != null && value.length > 0) {
       forwardedEnvironment[name] = value;
     }

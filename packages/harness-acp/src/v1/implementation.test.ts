@@ -3,7 +3,11 @@ import type {
   ACPClientApp,
   ACPProviderAuthenticationCompatibility,
 } from '../acp-auth';
-import type { ACPPermissionModeMapping } from './acp-v1-settings';
+import type {
+  ACPModelMapping,
+  ACPPermissionModeMapping,
+  ACPSerializableValue,
+} from './acp-v1-settings';
 import {
   type ACPImplementation,
   createImplementationDescriptor,
@@ -85,7 +89,7 @@ const installCommandImplementation = {
 } as const satisfies ACPImplementation;
 
 const clientApp = {
-  name: 'ai-sdk/harness-acp',
+  name: 'ai-sdk-harness-acp',
   version: '0.0.0-test',
 } as const satisfies ACPClientApp;
 
@@ -93,26 +97,46 @@ function identity({
   implementation = simpleImplementation,
   harnessId = 'example-acp',
   clientApp: clientAppOverride = clientApp,
+  clientCapabilities,
+  modelMapping = {
+    type: 'session-config-option',
+    path: 'model',
+  },
   providerAuthentication,
   permissionModeMapping,
+  nonTextContentTypes,
 }: {
   implementation?: ACPImplementation;
   harnessId?: string;
   clientApp?: ACPClientApp;
+  clientCapabilities?: Readonly<Record<string, ACPSerializableValue>>;
+  modelMapping?: ACPModelMapping;
   providerAuthentication?: ACPProviderAuthenticationCompatibility;
   permissionModeMapping?: ACPPermissionModeMapping;
+  nonTextContentTypes?: ReadonlyArray<'image'>;
 } = {}): string {
   return createImplementationIdentity({
     harnessId,
     acpVersion: 'v1',
     implementation,
     clientApp: clientAppOverride,
+    clientCapabilities,
+    modelMapping,
     providerAuthentication,
     permissionModeMapping,
+    nonTextContentTypes,
   });
 }
 
 describe('ACP implementation', () => {
+  it('includes declared non-text output support in the implementation identity', () => {
+    expect(identity({ nonTextContentTypes: [] })).toBe(identity());
+    expect(identity({ nonTextContentTypes: ['image'] })).not.toBe(identity());
+    expect(identity({ nonTextContentTypes: ['image', 'image'] })).toBe(
+      identity({ nonTextContentTypes: ['image'] }),
+    );
+  });
+
   it('creates a manifest for a simple exact-version installation', () => {
     expect(
       createImplementationManifest({
@@ -367,6 +391,26 @@ describe('ACP implementation', () => {
       SECOND_PROVIDER_API_KEY: 'second-provider-secret',
       PROVIDER_BASE_URL: 'https://provider.example',
     });
+    expect(
+      resolveImplementationEnvironment({
+        implementation: {
+          ...simpleImplementation,
+          forwardEnv: ['SECOND_PROVIDER_API_KEY'],
+          credentialEnv: ['PROVIDER_API_KEY'],
+        },
+        env: {
+          PROVIDER_API_KEY: 'ambient-provider-secret',
+          SECOND_PROVIDER_API_KEY: 'forwarded-value',
+        },
+        credentialEnv: {
+          PROVIDER_API_KEY: 'programmatic-provider-secret',
+        },
+      }),
+    ).toEqual({
+      PROVIDER_API_KEY: 'programmatic-provider-secret',
+      SECOND_PROVIDER_API_KEY: 'forwarded-value',
+      PROVIDER_BASE_URL: 'https://provider.example',
+    });
   });
 
   it('keeps sensitive values out of immutable descriptors', () => {
@@ -511,6 +555,21 @@ describe('ACP implementation', () => {
     ).not.toBe(baseIdentity);
     expect(
       identity({
+        clientCapabilities: {
+          _meta: { parameterizedModelPicker: true },
+        },
+      }),
+    ).not.toBe(baseIdentity);
+    expect(
+      identity({
+        modelMapping: {
+          type: 'session-model',
+          path: 'modelId',
+        },
+      }),
+    ).not.toBe(baseIdentity);
+    expect(
+      identity({
         permissionModeMapping: {
           'allow-reads': { type: 'session-mode', modeId: 'read-only' },
           'allow-edits': { type: 'session-mode', modeId: 'agent' },
@@ -520,7 +579,7 @@ describe('ACP implementation', () => {
     ).not.toBe(baseIdentity);
   });
 
-  it('identifies locked manifest and lockfile content independently', () => {
+  it('identifies every locked acquisition artifact independently', () => {
     const lockedIdentity = identity({
       implementation: lockedImplementation,
     });
@@ -543,6 +602,18 @@ describe('ACP implementation', () => {
           source: {
             ...lockedImplementation.source,
             pnpmLockYaml: `${pnpmLockYaml}\n# changed\n`,
+          },
+        },
+      }),
+    ).not.toBe(lockedIdentity);
+    expect(
+      identity({
+        implementation: {
+          ...lockedImplementation,
+          source: {
+            ...lockedImplementation.source,
+            pnpmWorkspaceYaml:
+              "allowBuilds:\n  '@example/acp-agent@1.2.3': true\n",
           },
         },
       }),

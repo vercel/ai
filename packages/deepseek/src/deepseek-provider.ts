@@ -82,7 +82,7 @@ export function createDeepSeek(
         })}`,
         ...options.headers,
       },
-      `ai-sdk/deepseek/${VERSION}`,
+      `ai-sdk-deepseek/${VERSION}`,
     );
 
   const createLanguageModel = (modelId: DeepSeekChatModelId) => {
@@ -91,6 +91,8 @@ export function createDeepSeek(
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
+      supportsAssistantPrefixCompletion: baseURL.endsWith('/beta'),
+      supportsStrictToolCalls: baseURL.endsWith('/beta'),
     });
   };
 

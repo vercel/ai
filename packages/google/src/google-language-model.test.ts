@@ -4,6 +4,11 @@ import {
   type LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import {
+  isProviderStreamError,
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
+} from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import {
   GoogleLanguageModel,
@@ -46,6 +51,29 @@ const SAFETY_RATINGS = [
   },
 ];
 
+const COMPLETE_USAGE_METADATA = {
+  promptTokenCount: 12,
+  cachedContentTokenCount: 4,
+  candidatesTokenCount: 71,
+  toolUsePromptTokenCount: 65,
+  thoughtsTokenCount: 89,
+  totalTokenCount: 237,
+  promptTokensDetails: [
+    { modality: 'TEXT', tokenCount: 12, nestedSentinel: 'prompt' },
+  ],
+  cacheTokensDetails: [
+    { modality: 'TEXT', tokenCount: 4, nestedSentinel: 'cache' },
+  ],
+  candidatesTokensDetails: [
+    { modality: 'TEXT', tokenCount: 71, nestedSentinel: 'candidate' },
+  ],
+  toolUsePromptTokensDetails: [
+    { modality: 'TEXT', tokenCount: 65, nestedSentinel: 'tool' },
+  ],
+  serviceTier: 'standard',
+  topLevelSentinel: 'preserve-me',
+};
+
 const provider = createGoogle({
   apiKey: 'test-api-key',
   generateId: () => 'test-id',
@@ -55,7 +83,72 @@ const model = provider.chat('gemini-pro');
 const groundingMetadataSchema = getGroundingMetadataSchema();
 const urlContextMetadataSchema = getUrlContextMetadataSchema();
 
+const FILE_SEARCH_GROUNDING_METADATA = {
+  groundingChunks: [
+    {
+      retrievedContext: {
+        title: 'I, Claudius',
+        text: 'A historical novel about the Roman emperor Claudius.',
+        fileSearchStore: 'fileSearchStores/test-store',
+        customMetadata: [
+          { key: 'author', stringValue: 'Robert Graves' },
+          { key: 'year', numericValue: 1934 },
+          {
+            key: 'genres',
+            stringListValue: { values: ['historical fiction', 'novel'] },
+          },
+          { key: 'page', numericValue: 0 },
+          { key: 'description', stringValue: '' },
+          { key: 'tags', stringListValue: { values: [] } },
+        ],
+      },
+    },
+  ],
+};
+
 describe('groundingMetadataSchema', () => {
+  it('preserves custom metadata on retrieved context chunks', () => {
+    expect(
+      groundingMetadataSchema.parse(FILE_SEARCH_GROUNDING_METADATA),
+    ).toEqual(FILE_SEARCH_GROUNDING_METADATA);
+  });
+
+  it.each([
+    { name: 'missing', customMetadata: undefined },
+    { name: 'null', customMetadata: null },
+    { name: 'empty', customMetadata: [] },
+  ])('accepts $name custom metadata', ({ customMetadata }) => {
+    const metadata = {
+      groundingChunks: [{ retrievedContext: { customMetadata } }],
+    };
+
+    expect(groundingMetadataSchema.parse(metadata)).toEqual(metadata);
+  });
+
+  it('accepts nullish custom metadata values', () => {
+    const metadata = {
+      groundingChunks: [
+        {
+          retrievedContext: {
+            customMetadata: [
+              { key: 'missing' },
+              {
+                key: 'null',
+                stringValue: null,
+                numericValue: null,
+                stringListValue: null,
+              },
+              { key: 'missing-list', stringListValue: {} },
+              { key: 'null-list', stringListValue: { values: null } },
+            ],
+          },
+        },
+      ],
+    };
+
+    expect(groundingMetadataSchema.parse(metadata)).toEqual(metadata);
+  });
+
   it('validates complete grounding metadata with web search results', () => {
     const metadata = {
       webSearchQueries: ["What's the weather in Chicago this weekend?"],
@@ -341,7 +434,7 @@ describe('urlContextMetadata', () => {
 });
 
 describe('doGenerate', () => {
-  it('should associate multiple generated and streamed code execution results with the same tool call', async () => {
+  it('should use the custom code execution tool name for generated and streamed results', async () => {
     const response = {
       candidates: [
         {
@@ -399,7 +492,7 @@ describe('doGenerate', () => {
           {
             type: 'provider',
             id: 'google.code_execution',
-            name: 'code_execution',
+            name: 'CodeExecutionTool',
             args: {},
           },
         ],
@@ -413,7 +506,7 @@ describe('doGenerate', () => {
           "input": "{"language":"PYTHON","code":"print('ok')\\nprint(1/0)"}",
           "providerExecuted": true,
           "toolCallId": "test-id",
-          "toolName": "code_execution",
+          "toolName": "CodeExecutionTool",
           "type": "tool-call",
         },
         {
@@ -423,7 +516,7 @@ describe('doGenerate', () => {
       ",
           },
           "toolCallId": "test-id",
-          "toolName": "code_execution",
+          "toolName": "CodeExecutionTool",
           "type": "tool-result",
         },
         {
@@ -433,7 +526,7 @@ describe('doGenerate', () => {
       ",
           },
           "toolCallId": "test-id",
-          "toolName": "code_execution",
+          "toolName": "CodeExecutionTool",
           "type": "tool-result",
         },
       ]
@@ -446,7 +539,7 @@ describe('doGenerate', () => {
           {
             type: 'provider',
             id: 'google.code_execution',
-            name: 'code_execution',
+            name: 'CodeExecutionTool',
             args: {},
           },
         ],
@@ -465,7 +558,7 @@ describe('doGenerate', () => {
           "input": "{"language":"PYTHON","code":"print('ok')\\nprint(1/0)"}",
           "providerExecuted": true,
           "toolCallId": "test-id",
-          "toolName": "code_execution",
+          "toolName": "CodeExecutionTool",
           "type": "tool-call",
         },
         {
@@ -475,7 +568,7 @@ describe('doGenerate', () => {
       ",
           },
           "toolCallId": "test-id",
-          "toolName": "code_execution",
+          "toolName": "CodeExecutionTool",
           "type": "tool-result",
         },
         {
@@ -485,7 +578,7 @@ describe('doGenerate', () => {
       ",
           },
           "toolCallId": "test-id",
-          "toolName": "code_execution",
+          "toolName": "CodeExecutionTool",
           "type": "tool-result",
         },
       ]
@@ -528,6 +621,8 @@ describe('doGenerate', () => {
   const TEST_URL_GEMINI_2_5_FLASH_LITE =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent';
 
+  const TEST_TOOL_RESULT_FILE_URL = 'https://example.com/tool-result-image.jpg';
+
   const server = createTestServer({
     [TEST_URL_GEMINI_PRO]: {},
     [TEST_URL_GEMINI_2_0_PRO]: {},
@@ -541,6 +636,7 @@ describe('doGenerate', () => {
     [TEST_URL_GEMINI_2_5_PRO]: {},
     [TEST_URL_GEMINI_2_5_FLASH_LITE]: {},
     [TEST_URL_GEMINI_2_5_FLASH]: {},
+    [TEST_TOOL_RESULT_FILE_URL]: {},
   });
 
   function prepareJsonFixtureResponse(
@@ -555,7 +651,10 @@ describe('doGenerate', () => {
         | typeof TEST_URL_GEMINI_2_0_PRO
         | typeof TEST_URL_GEMINI_2_0_FLASH_EXP
         | typeof TEST_URL_GEMINI_1_0_PRO
-        | typeof TEST_URL_GEMINI_1_5_FLASH;
+        | typeof TEST_URL_GEMINI_1_5_FLASH
+        | typeof TEST_URL_GEMINI_2_5_PRO
+        | typeof TEST_URL_GEMINI_2_5_FLASH
+        | typeof TEST_URL_GEMINI_2_5_FLASH_LITE;
     } = {},
   ) {
     server.urls[url].response = {
@@ -670,6 +769,327 @@ describe('doGenerate', () => {
         name: 'lookup',
         content: { answer: 'known' },
       },
+    });
+  });
+
+  it('should forward supported Vertex tool result URLs as function response file data', async () => {
+    server.urls[TEST_URL_GEMINI_3_7_FLASH].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [{ text: 'done' }],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            index: 0,
+          },
+        ],
+      },
+    };
+
+    const vertexModel = new GoogleLanguageModel('gemini-3.7-flash', {
+      provider: 'google.vertex.chat',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: { 'x-goog-api-key': 'test-api-key' },
+      generateId: () => 'test-id',
+      downloadToolResultFiles: {
+        maxBytes: 7 * 1024 * 1024,
+        supportsGoogleCloudStorageUrls: true,
+      },
+    });
+
+    await vertexModel.doGenerate({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'testCallId',
+              toolName: 'viewFiles',
+              output: {
+                type: 'content',
+                value: [
+                  { type: 'text', text: 'hero.png activated' },
+                  {
+                    type: 'file',
+                    data: {
+                      type: 'url',
+                      url: new URL('gs://example-bucket/renditions/hero.png'),
+                    },
+                    mediaType: 'image/png',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect((await server.calls[0].requestBodyJson).contents[0]).toEqual({
+      role: 'user',
+      parts: [
+        {
+          functionResponse: {
+            name: 'viewFiles',
+            response: {
+              name: 'viewFiles',
+              content: 'hero.png activated',
+            },
+            parts: [
+              {
+                fileData: {
+                  mimeType: 'image/png',
+                  fileUri: 'gs://example-bucket/renditions/hero.png',
+                },
+              },
+            ],
+          },
+        },
+      ],
+    });
+  });
+
+  it.each([
+    'image/png',
+    'image/jpeg',
+    'image/webp',
+    'application/pdf',
+    'text/plain',
+  ])(
+    'should forward supported Vertex %s tool result URLs as function response file data',
+    async mediaType => {
+      server.urls[TEST_URL_GEMINI_3_7_FLASH].response = {
+        type: 'json-value',
+        body: {
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'done' }],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              index: 0,
+            },
+          ],
+        },
+      };
+
+      const vertexModel = new GoogleLanguageModel('gemini-3.7-flash', {
+        provider: 'google.vertex.chat',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+        downloadToolResultFiles: {
+          maxBytes: 7 * 1024 * 1024,
+          supportsGoogleCloudStorageUrls: true,
+        },
+      });
+
+      await vertexModel.doGenerate({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'testCallId',
+                toolName: 'viewFiles',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file',
+                      data: {
+                        type: 'url',
+                        url: new URL('gs://example-bucket/result'),
+                      },
+                      mediaType,
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.contents[0].parts[0].functionResponse.parts).toEqual([
+        {
+          fileData: {
+            mimeType: mediaType,
+            fileUri: 'gs://example-bucket/result',
+          },
+        },
+      ]);
+    },
+  );
+
+  it.each([
+    'video/mp4',
+    'image/png-not-supported',
+    'application/pdf-not-supported',
+  ])(
+    'should not forward unsupported Vertex %s tool result URLs',
+    async mediaType => {
+      const vertexModel = new GoogleLanguageModel('gemini-3.7-flash', {
+        provider: 'google.vertex.chat',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+        downloadToolResultFiles: {
+          maxBytes: 7 * 1024 * 1024,
+          supportsGoogleCloudStorageUrls: true,
+        },
+      });
+
+      await expect(
+        vertexModel.doGenerate({
+          prompt: [
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'testCallId',
+                  toolName: 'viewFiles',
+                  output: {
+                    type: 'content',
+                    value: [
+                      {
+                        type: 'file',
+                        data: {
+                          type: 'url',
+                          url: new URL('gs://example-bucket/result'),
+                        },
+                        mediaType,
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        }),
+      ).rejects.toThrow('URL scheme must be http, https, or data, got gs:');
+
+      expect(server.calls).toHaveLength(0);
+    },
+  );
+
+  it('should preserve Vertex tool result URL handling across workflow serialization', async () => {
+    server.urls[TEST_TOOL_RESULT_FILE_URL].response = {
+      type: 'binary',
+      headers: { 'content-type': 'image/jpeg' },
+      body: Buffer.from([0xff, 0xd8, 0xff]),
+    };
+    server.urls[TEST_URL_GEMINI_3_7_FLASH].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [{ text: 'done' }],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            index: 0,
+          },
+        ],
+      },
+    };
+
+    const originalModel = new GoogleLanguageModel('gemini-3.7-flash', {
+      provider: 'google.vertex.chat',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: { 'x-goog-api-key': 'test-api-key' },
+      generateId: () => 'test-id',
+      downloadToolResultFiles: {
+        maxBytes: 7 * 1024 * 1024,
+        supportsGoogleCloudStorageUrls: true,
+      },
+    });
+
+    const serialized = GoogleLanguageModel[WORKFLOW_SERIALIZE](originalModel);
+
+    expect(serialized.config.downloadToolResultFiles).toEqual({
+      maxBytes: 7 * 1024 * 1024,
+      supportsGoogleCloudStorageUrls: true,
+    });
+
+    const restoredModel = GoogleLanguageModel[WORKFLOW_DESERIALIZE](
+      serialized as never,
+    );
+
+    await restoredModel.doGenerate({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'testCallId',
+              toolName: 'viewFiles',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'file',
+                    data: {
+                      type: 'url',
+                      url: new URL('gs://example-bucket/result.png'),
+                    },
+                    mediaType: 'image/png',
+                  },
+                  {
+                    type: 'file',
+                    data: {
+                      type: 'url',
+                      url: new URL(TEST_TOOL_RESULT_FILE_URL),
+                    },
+                    mediaType: 'image/jpeg',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(server.calls.map(call => call.requestUrl)).toEqual([
+      TEST_TOOL_RESULT_FILE_URL,
+      TEST_URL_GEMINI_3_7_FLASH,
+    ]);
+    expect(await server.calls[1].requestBodyJson).toMatchObject({
+      contents: [
+        {
+          parts: [
+            {
+              functionResponse: {
+                parts: [
+                  {
+                    fileData: {
+                      mimeType: 'image/png',
+                      fileUri: 'gs://example-bucket/result.png',
+                    },
+                  },
+                  {
+                    inlineData: {
+                      mimeType: 'image/jpeg',
+                      data: '/9j/',
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
     });
   });
 
@@ -866,6 +1286,40 @@ describe('doGenerate', () => {
       expect(usage).toMatchSnapshot();
     });
 
+    it('should preserve complete raw usage metadata', async () => {
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'json-value',
+        body: {
+          candidates: [
+            {
+              content: { parts: [{ text: 'Blue.' }], role: 'model' },
+              finishReason: 'STOP',
+            },
+          ],
+          usageMetadata: COMPLETE_USAGE_METADATA,
+        },
+      };
+
+      const { usage } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(usage).toEqual({
+        inputTokens: {
+          total: 77,
+          noCache: 73,
+          cacheRead: 4,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: 160,
+          text: 71,
+          reasoning: 89,
+        },
+        raw: COMPLETE_USAGE_METADATA,
+      });
+    });
+
     it('should send additional response information', async () => {
       const { response } = await model.doGenerate({
         prompt: TEST_PROMPT,
@@ -884,6 +1338,39 @@ describe('doGenerate', () => {
       `);
     });
   });
+
+  it.each([
+    { toolUsePromptTokenCount: '65' },
+    {
+      cacheTokensDetails: [{ modality: 'TEXT', tokenCount: '4' }],
+    },
+    {
+      toolUsePromptTokensDetails: [{ modality: 1, tokenCount: 65 }],
+    },
+  ])('should reject invalid usage metadata values: %j', async invalidUsage => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: { parts: [{ text: 'Blue.' }], role: 'model' },
+            finishReason: 'STOP',
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 12,
+          ...invalidUsage,
+        },
+      },
+    };
+
+    await expect(
+      model.doGenerate({
+        prompt: TEST_PROMPT,
+      }),
+    ).rejects.toThrow();
+  });
+
   it('should handle MALFORMED_FUNCTION_CALL finish reason and empty content object', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'json-value',
@@ -1145,6 +1632,180 @@ describe('doGenerate', () => {
     expect(providerMetadata?.google.serviceTier).toBeNull();
   });
 
+  it('should send providerOptions.google.continuationToken as a top-level body field', async () => {
+    prepareJsonResponse({ content: 'test response' });
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      maxOutputTokens: 600,
+      providerOptions: { google: { continuationToken: 'token-1' } },
+    });
+
+    const body = (await server.calls[0].requestBodyJson) as Record<string, any>;
+    expect(body.continuationToken).toBe('token-1');
+    expect(body.generationConfig.maxOutputTokens).toBe(600);
+  });
+
+  it('should omit continuationToken from the request body when not set', async () => {
+    prepareJsonResponse({ content: 'test response' });
+
+    await model.doGenerate({ prompt: TEST_PROMPT });
+
+    const body = (await server.calls[0].requestBodyJson) as Record<
+      string,
+      unknown
+    >;
+    expect(body).not.toHaveProperty('continuationToken');
+  });
+
+  it('should expose the candidate continuationToken on a MAX_TOKENS response', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: { parts: [{ text: 'Partial' }], role: 'model' },
+            finishReason: 'MAX_TOKENS',
+            index: 0,
+            continuationToken: 'token-2',
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 1,
+          candidatesTokenCount: 2,
+          totalTokenCount: 3,
+        },
+      },
+    };
+
+    const { providerMetadata, finishReason } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(finishReason).toEqual({ unified: 'length', raw: 'MAX_TOKENS' });
+    expect(providerMetadata?.google.continuationToken).toBe('token-2');
+  });
+
+  it('should not expose continuationToken in provider metadata when absent', async () => {
+    prepareJsonResponse({ content: 'test response' });
+
+    const { providerMetadata } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(providerMetadata?.google).not.toHaveProperty('continuationToken');
+  });
+
+  describe('long decode continuation', () => {
+    const continuationResponse = {
+      type: 'json-value' as const,
+      body: {
+        candidates: [
+          {
+            content: { parts: [{ text: 'Hello' }], role: 'model' },
+            finishReason: 'CONTINUATION',
+            index: 0,
+            continuationToken: 'token-1',
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 10,
+          candidatesTokenCount: 5,
+          thoughtsTokenCount: 20,
+          totalTokenCount: 35,
+        },
+      },
+    };
+
+    it('should resend the same request with the continuation token on CONTINUATION', async () => {
+      server.urls[TEST_URL_GEMINI_PRO].response = [
+        continuationResponse,
+        {
+          type: 'json-value',
+          body: {
+            candidates: [
+              {
+                content: { parts: [{ text: ', world' }], role: 'model' },
+                finishReason: 'STOP',
+                index: 0,
+              },
+            ],
+            usageMetadata: {
+              promptTokenCount: 35,
+              candidatesTokenCount: 7,
+              totalTokenCount: 42,
+            },
+          },
+        },
+      ];
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        maxOutputTokens: 100_000,
+      });
+
+      expect(server.calls.length).toBe(2);
+      const firstBody = (await server.calls[0].requestBodyJson) as Record<
+        string,
+        any
+      >;
+      const secondBody = (await server.calls[1].requestBodyJson) as Record<
+        string,
+        any
+      >;
+      expect(firstBody).not.toHaveProperty('continuationToken');
+      expect(secondBody).toEqual({
+        ...firstBody,
+        continuationToken: 'token-1',
+      });
+      expect(secondBody.generationConfig.maxOutputTokens).toBe(100_000);
+
+      expect(result.content).toMatchObject([
+        { type: 'text', text: 'Hello' },
+        { type: 'text', text: ', world' },
+      ]);
+      expect(result.finishReason).toEqual({ unified: 'stop', raw: 'STOP' });
+      expect(result.usage.inputTokens.total).toBe(45);
+      expect(result.usage.outputTokens).toMatchObject({
+        total: 32,
+        text: 12,
+        reasoning: 20,
+      });
+      expect(result.providerMetadata?.google).not.toHaveProperty(
+        'continuationToken',
+      );
+      expect(result.providerMetadata?.google.initialPromptTokenCount).toBe(10);
+    });
+
+    it('should return the continuation token when the budget is used up after continuing', async () => {
+      server.urls[TEST_URL_GEMINI_PRO].response = [
+        continuationResponse,
+        {
+          type: 'json-value',
+          body: {
+            candidates: [
+              {
+                content: { parts: [{ text: ', wor' }], role: 'model' },
+                finishReason: 'MAX_TOKENS',
+                index: 0,
+                continuationToken: 'token-2',
+              },
+            ],
+          },
+        },
+      ];
+
+      const result = await model.doGenerate({ prompt: TEST_PROMPT });
+
+      expect(server.calls.length).toBe(2);
+      expect(result.finishReason).toEqual({
+        unified: 'length',
+        raw: 'MAX_TOKENS',
+      });
+      expect(result.providerMetadata?.google.continuationToken).toBe('token-2');
+    });
+  });
+
   describe('tool-call', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('google-tool-call');
@@ -1341,6 +2002,89 @@ describe('doGenerate', () => {
     `);
   });
 
+  it.each([
+    ['frequencyPenalty', 'gemini-2.5-pro', TEST_URL_GEMINI_2_5_PRO],
+    ['presencePenalty', 'gemini-2.5-pro', TEST_URL_GEMINI_2_5_PRO],
+    ['frequencyPenalty', 'gemini-2.5-flash', TEST_URL_GEMINI_2_5_FLASH],
+    ['presencePenalty', 'gemini-2.5-flash', TEST_URL_GEMINI_2_5_FLASH],
+    [
+      'frequencyPenalty',
+      'gemini-2.5-flash-lite',
+      TEST_URL_GEMINI_2_5_FLASH_LITE,
+    ],
+    [
+      'presencePenalty',
+      'gemini-2.5-flash-lite',
+      TEST_URL_GEMINI_2_5_FLASH_LITE,
+    ],
+  ] as const)(
+    'should omit unsupported %s for %s',
+    async (penalty, modelId, url) => {
+      prepareJsonFixtureResponse('google-text', { url });
+
+      const result = await provider.languageModel(modelId).doGenerate({
+        prompt: TEST_PROMPT,
+        [penalty]: 0.5,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.generationConfig).toEqual({});
+      expect(result.warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: penalty,
+        },
+      ]);
+    },
+  );
+
+  it('should pass penalty settings for Gemini 2.0 models', async () => {
+    prepareJsonFixtureResponse('google-text', {
+      url: TEST_URL_GEMINI_2_0_PRO,
+    });
+
+    const result = await provider.languageModel('gemini-2.0-pro').doGenerate({
+      prompt: TEST_PROMPT,
+      frequencyPenalty: 0.5,
+      presencePenalty: 0.5,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {
+        frequencyPenalty: 0.5,
+        presencePenalty: 0.5,
+      },
+    });
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('should pass penalty settings for Vertex Gemini 2.5 models', async () => {
+    prepareJsonFixtureResponse('google-text', {
+      url: TEST_URL_GEMINI_2_5_FLASH,
+    });
+
+    const vertexModel = new GoogleLanguageModel('gemini-2.5-flash', {
+      provider: 'google.vertex.chat',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: { 'x-goog-api-key': 'test-api-key' },
+      generateId: () => 'test-id',
+    });
+
+    const result = await vertexModel.doGenerate({
+      prompt: TEST_PROMPT,
+      frequencyPenalty: 0.5,
+      presencePenalty: 0.5,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {
+        frequencyPenalty: 0.5,
+        presencePenalty: 0.5,
+      },
+    });
+    expect(result.warnings).toEqual([]);
+  });
+
   it('should only pass valid provider options', async () => {
     prepareJsonFixtureResponse('google-text');
 
@@ -1506,7 +2250,9 @@ describe('doGenerate', () => {
               {
                 "description": "",
                 "name": "test-tool",
-                "parameters": {
+                "parametersJsonSchema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
                   "properties": {
                     "value": {
                       "type": "string",
@@ -1541,7 +2287,7 @@ describe('doGenerate', () => {
         }),
     },
   ])(
-    'should inline local JSON Schema references in $name tool requests',
+    'should preserve local JSON Schema references in $name tool requests',
     async ({ createModel }) => {
       prepareJsonFixtureResponse('google-text');
 
@@ -1572,20 +2318,67 @@ describe('doGenerate', () => {
 
       expect(
         (await server.calls[0].requestBodyJson).tools[0].functionDeclarations[0]
-          .parameters,
+          .parametersJsonSchema,
       ).toEqual({
         type: 'object',
         properties: {
           locale: {
-            type: 'string',
-            enum: ['de', 'en'],
+            $ref: '#/$defs/Locale',
             description: 'Locale for formatting',
           },
         },
         required: ['locale'],
+        additionalProperties: false,
+        $defs: {
+          Locale: { type: 'string', enum: ['de', 'en'] },
+        },
       });
     },
   );
+
+  it('should send recursive tool schemas as JSON Schema', async () => {
+    prepareJsonFixtureResponse('google-text');
+
+    const inputSchema = {
+      type: 'object',
+      properties: {
+        condition: { $ref: '#/$defs/Condition' },
+      },
+      required: ['condition'],
+      $defs: {
+        Condition: {
+          type: 'object',
+          properties: {
+            children: {
+              type: 'array',
+              items: { $ref: '#/$defs/Condition' },
+            },
+          },
+        },
+      },
+    } as JSONSchema7;
+
+    await model.doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'search',
+          description: 'Search with a condition tree',
+          inputSchema,
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    expect(server.calls).toHaveLength(1);
+    expect(
+      (await server.calls[0].requestBodyJson).tools[0].functionDeclarations[0],
+    ).toEqual({
+      name: 'search',
+      description: 'Search with a condition tree',
+      parametersJsonSchema: inputSchema,
+    });
+  });
 
   it('should set response mime type with responseFormat', async () => {
     prepareJsonFixtureResponse('google-text');
@@ -1614,8 +2407,7 @@ describe('doGenerate', () => {
           },
         ],
         "generationConfig": {
-          "responseMimeType": "application/json",
-          "responseSchema": {
+          "responseJsonSchema": {
             "properties": {
               "location": {
                 "type": "string",
@@ -1623,12 +2415,52 @@ describe('doGenerate', () => {
             },
             "type": "object",
           },
+          "responseMimeType": "application/json",
         },
       }
     `);
   });
 
-  it('should inline local JSON Schema references in response schemas', async () => {
+  it('should pass array length constraints in response schemas', async () => {
+    prepareJsonFixtureResponse('google-text');
+
+    await model.doGenerate({
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            elements: {
+              type: 'array',
+              items: { type: 'string' },
+              minItems: 2,
+              maxItems: 4,
+            },
+          },
+          required: ['elements'],
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(
+      (await server.calls[0].requestBodyJson).generationConfig
+        .responseJsonSchema,
+    ).toEqual({
+      type: 'object',
+      properties: {
+        elements: {
+          type: 'array',
+          items: { type: 'string' },
+          minItems: 2,
+          maxItems: 4,
+        },
+      },
+      required: ['elements'],
+    });
+  });
+
+  it('should preserve local JSON Schema references in response schemas', async () => {
     prepareJsonFixtureResponse('google-text');
 
     await model.doGenerate({
@@ -1649,13 +2481,17 @@ describe('doGenerate', () => {
     });
 
     expect(
-      (await server.calls[0].requestBodyJson).generationConfig.responseSchema,
+      (await server.calls[0].requestBodyJson).generationConfig
+        .responseJsonSchema,
     ).toEqual({
       type: 'object',
       properties: {
-        locale: { type: 'string', enum: ['de', 'en'] },
+        locale: { $ref: '#/$defs/Locale' },
       },
       required: ['locale'],
+      $defs: {
+        Locale: { type: 'string', enum: ['de', 'en'] },
+      },
     });
   });
 
@@ -1691,8 +2527,8 @@ describe('doGenerate', () => {
           },
         ],
         "generationConfig": {
-          "responseMimeType": "application/json",
-          "responseSchema": {
+          "responseJsonSchema": {
+            "additionalProperties": false,
             "properties": {
               "property1": {
                 "type": "string",
@@ -1707,6 +2543,7 @@ describe('doGenerate', () => {
             ],
             "type": "object",
           },
+          "responseMimeType": "application/json",
         },
       }
     `);
@@ -1802,7 +2639,8 @@ describe('doGenerate', () => {
               {
                 "description": "",
                 "name": "test-tool",
-                "parameters": {
+                "parametersJsonSchema": {
+                  "additionalProperties": false,
                   "properties": {
                     "property1": {
                       "type": "string",
@@ -1853,7 +2691,7 @@ describe('doGenerate', () => {
       }
     `);
     expect(server.calls[0].requestUserAgent).toContain(
-      `ai-sdk/google/0.0.0-test`,
+      `ai-sdk-google/0.0.0-test`,
     );
   });
 
@@ -1887,8 +2725,7 @@ describe('doGenerate', () => {
           },
         ],
         "generationConfig": {
-          "responseMimeType": "application/json",
-          "responseSchema": {
+          "responseJsonSchema": {
             "properties": {
               "text": {
                 "type": "string",
@@ -1899,6 +2736,7 @@ describe('doGenerate', () => {
             ],
             "type": "object",
           },
+          "responseMimeType": "application/json",
         },
       }
     `);
@@ -2520,6 +3358,94 @@ describe('doGenerate', () => {
         ],
       }
     `);
+  });
+
+  it('should surface prompt-level blocks without candidates', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        promptFeedback: {
+          blockReason: 'PROHIBITED_CONTENT',
+        },
+        usageMetadata: {
+          promptTokenCount: 9,
+          totalTokenCount: 9,
+          serviceTier: 'standard',
+        },
+        responseId: 'blocked-response-id',
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toEqual([]);
+    expect(result.finishReason).toEqual({
+      unified: 'content-filter',
+      raw: 'PROHIBITED_CONTENT',
+    });
+    expect(result.providerMetadata?.google).toMatchObject({
+      promptFeedback: {
+        blockReason: 'PROHIBITED_CONTENT',
+      },
+      groundingMetadata: null,
+      urlContextMetadata: null,
+      safetyRatings: null,
+      usageMetadata: {
+        promptTokenCount: 9,
+        totalTokenCount: 9,
+        serviceTier: 'standard',
+      },
+      finishMessage: null,
+      serviceTier: 'standard',
+    });
+    expect(result.response?.id).toBe('blocked-response-id');
+  });
+
+  it.each(['', 'BLOCK_REASON_UNSPECIFIED', 'BLOCKED_REASON_UNSPECIFIED'])(
+    'should not classify the default prompt block reason %j as a content filter',
+    async blockReason => {
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'json-value',
+        body: {
+          candidates: [],
+          promptFeedback: { blockReason },
+          usageMetadata: {
+            promptTokenCount: 9,
+            totalTokenCount: 9,
+          },
+        },
+      };
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toEqual([]);
+      expect(result.finishReason).toEqual({
+        unified: 'other',
+        raw: undefined,
+      });
+      expect(result.providerMetadata?.google.promptFeedback).toEqual({
+        blockReason,
+      });
+    },
+  );
+
+  it('should preserve File Search custom metadata in provider metadata', async () => {
+    prepareJsonResponse({
+      content: 'test response',
+      groundingMetadata: FILE_SEARCH_GROUNDING_METADATA,
+    });
+
+    const { providerMetadata } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(providerMetadata?.google.groundingMetadata).toEqual(
+      FILE_SEARCH_GROUNDING_METADATA,
+    );
   });
 
   it('should expose grounding metadata in provider metadata', async () => {
@@ -3452,6 +4378,25 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass AUDIO responseModalities in provider options', async () => {
+    prepareJsonFixtureResponse('google-text');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          responseModalities: ['TEXT', 'AUDIO'],
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {
+        responseModalities: ['TEXT', 'AUDIO'],
+      },
+    });
+  });
+
   it('should pass mediaResolution in provider options', async () => {
     prepareJsonFixtureResponse('google-text');
 
@@ -3721,6 +4666,58 @@ describe('doGenerate', () => {
       ]
     `);
   });
+
+  it('should include audio inlineData parts', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                { text: 'Here is audio:' },
+                {
+                  inlineData: {
+                    mimeType: 'audio/wav',
+                    data: 'audiodata',
+                  },
+                },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            index: 0,
+            safetyRatings: SAFETY_RATINGS,
+          },
+        ],
+        promptFeedback: { safetyRatings: SAFETY_RATINGS },
+      },
+    };
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "providerMetadata": undefined,
+          "text": "Here is audio:",
+          "type": "text",
+        },
+        {
+          "data": {
+            "data": "audiodata",
+            "type": "data",
+          },
+          "mediaType": "audio/wav",
+          "providerMetadata": undefined,
+          "type": "file",
+        },
+      ]
+    `);
+  });
+
   it('should correctly parse and separate reasoning parts from text output', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'json-value',
@@ -4072,7 +5069,7 @@ describe('doGenerate', () => {
       const gemini3Model = provider.chat('gemini-3-pro-preview');
       const gemini37FlashModel = provider.chat('gemini-3.7-flash');
 
-      it('should map reasoning "minimal" to thinkingLevel "minimal"', async () => {
+      it('should map reasoning "minimal" to thinkingLevel "low"', async () => {
         server.urls[TEST_URL_GEMINI_3_PRO].response = {
           type: 'json-value',
           body: simpleResponseBody,
@@ -4085,7 +5082,7 @@ describe('doGenerate', () => {
 
         expect(await server.calls[0].requestBodyJson).toMatchObject({
           generationConfig: {
-            thinkingConfig: { thinkingLevel: 'minimal' },
+            thinkingConfig: { thinkingLevel: 'low' },
           },
         });
       });
@@ -4144,7 +5141,7 @@ describe('doGenerate', () => {
         });
       });
 
-      it('should map reasoning "none" to thinkingLevel "minimal"', async () => {
+      it('should map reasoning "none" to thinkingLevel "low"', async () => {
         server.urls[TEST_URL_GEMINI_3_PRO].response = {
           type: 'json-value',
           body: simpleResponseBody,
@@ -4157,7 +5154,7 @@ describe('doGenerate', () => {
 
         expect(await server.calls[0].requestBodyJson).toMatchObject({
           generationConfig: {
-            thinkingConfig: { thinkingLevel: 'minimal' },
+            thinkingConfig: { thinkingLevel: 'low' },
           },
         });
       });
@@ -4184,6 +5181,30 @@ describe('doGenerate', () => {
           feature: 'reasoning',
           details:
             'reasoning "xhigh" is not directly supported by this model. mapped to effort "high".',
+        });
+      });
+
+      it('should coerce reasoning "max" to "high" with compatibility warning', async () => {
+        server.urls[TEST_URL_GEMINI_3_PRO].response = {
+          type: 'json-value',
+          body: simpleResponseBody,
+        };
+
+        const result = await gemini3Model.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'max',
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          generationConfig: {
+            thinkingConfig: { thinkingLevel: 'high' },
+          },
+        });
+        expect(result.warnings).toContainEqual({
+          type: 'compatibility',
+          feature: 'reasoning',
+          details:
+            'reasoning "max" is not directly supported by this model. mapped to effort "high".',
         });
       });
 
@@ -4295,6 +5316,41 @@ describe('doGenerate', () => {
           modelId: 'gemini-flash-lite-latest',
           reasoning: 'minimal' as const,
           expectedThinkingLevel: 'minimal',
+        },
+        {
+          modelId: 'au.gemini-3.5-flash',
+          reasoning: 'none' as const,
+          expectedThinkingLevel: 'minimal',
+        },
+        {
+          modelId: 'eu.gemini-3.5-flash',
+          reasoning: 'none' as const,
+          expectedThinkingLevel: 'minimal',
+        },
+        {
+          modelId: 'us.gemini-3.1-pro',
+          reasoning: 'none' as const,
+          expectedThinkingLevel: 'low',
+        },
+        {
+          modelId: 'gemini-3.5-pro',
+          reasoning: 'none' as const,
+          expectedThinkingLevel: 'low',
+        },
+        {
+          modelId: 'gemini-3.5-pro',
+          reasoning: 'minimal' as const,
+          expectedThinkingLevel: 'low',
+        },
+        {
+          modelId: 'gemini-3.1-pro',
+          reasoning: 'none' as const,
+          expectedThinkingLevel: 'low',
+        },
+        {
+          modelId: 'gemini-3.1-pro',
+          reasoning: 'minimal' as const,
+          expectedThinkingLevel: 'low',
         },
       ])(
         'should map reasoning "$reasoning" to thinkingLevel "$expectedThinkingLevel" for $modelId',
@@ -4488,10 +5544,14 @@ describe('doGenerate', () => {
     });
 
     describe('providerOptions precedence', () => {
-      it('should use providerOptions thinkingConfig when both reasoning and providerOptions are set', async () => {
-        prepareJsonFixtureResponse('google-text');
+      it('should not combine a resolved thinkingLevel with an explicit thinkingBudget', async () => {
+        const gemini3Model = provider.chat('gemini-3-pro-preview');
+        server.urls[TEST_URL_GEMINI_3_PRO].response = {
+          type: 'json-value',
+          body: simpleResponseBody,
+        };
 
-        await model.doGenerate({
+        await gemini3Model.doGenerate({
           prompt: TEST_PROMPT,
           reasoning: 'high',
           providerOptions: {
@@ -4504,14 +5564,9 @@ describe('doGenerate', () => {
         });
 
         const body = await server.calls[0].requestBodyJson;
-        expect(body).toMatchObject({
-          generationConfig: {
-            thinkingConfig: { thinkingBudget: 999 },
-          },
+        expect(body.generationConfig.thinkingConfig).toEqual({
+          thinkingBudget: 999,
         });
-        expect(
-          body.generationConfig.thinkingConfig.thinkingLevel,
-        ).toBeUndefined();
       });
 
       it('should not set thinkingConfig when neither reasoning nor providerOptions are set', async () => {
@@ -4830,6 +5885,94 @@ describe('doStream', () => {
       ),
     };
   };
+
+  describe('in-stream errors', () => {
+    it.each([
+      {
+        partialText: false,
+        code: 503,
+        status: 'UNAVAILABLE',
+        isRetryable: true,
+      },
+      {
+        partialText: true,
+        code: 503,
+        status: 'UNAVAILABLE',
+        isRetryable: true,
+      },
+      {
+        partialText: false,
+        code: 400,
+        status: 'INVALID_ARGUMENT',
+        isRetryable: false,
+      },
+      { partialText: false, code: null, status: 'UNKNOWN', isRetryable: false },
+    ])(
+      'should surface $status and finish with error (partial text: $partialText)',
+      async ({ partialText, code, status, isRetryable }) => {
+        const error = {
+          code,
+          message: 'Provider error',
+          status,
+          details: [{ '@type': 'type.googleapis.com/google.rpc.RetryInfo' }],
+        };
+        server.urls[TEST_URL_GEMINI_PRO].response = {
+          type: 'stream-chunks',
+          chunks: [
+            ...(partialText
+              ? [
+                  {
+                    candidates: [
+                      { content: { parts: [{ text: 'Partial answer' }] } },
+                    ],
+                    usageMetadata: {
+                      promptTokenCount: 10,
+                      candidatesTokenCount: 2,
+                      totalTokenCount: 12,
+                    },
+                  },
+                ]
+              : []),
+            { error },
+          ].map(chunk => `data: ${JSON.stringify(chunk)}\n\n`),
+        };
+
+        const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+        const events = await convertReadableStreamToArray(stream);
+
+        expect(events.map(event => event.type)).toEqual([
+          'stream-start',
+          ...(partialText ? ['text-start', 'text-delta'] : []),
+          'error',
+          ...(partialText ? ['text-end'] : []),
+          'finish',
+        ]);
+        const errorEvent = events.find(event => event.type === 'error');
+        expect(errorEvent).toEqual({
+          type: 'error',
+          error: {
+            message: error.message,
+            type: status,
+            code: code ?? undefined,
+            statusCode: code ?? undefined,
+            isRetryable,
+            data: error,
+          },
+        });
+        expect(isProviderStreamError(errorEvent?.error)).toBe(true);
+        expect(events.at(-1)).toMatchObject({
+          type: 'finish',
+          finishReason: { unified: 'error', raw: undefined },
+          ...(partialText && {
+            usage: {
+              inputTokens: { total: 10 },
+              outputTokens: { total: 2 },
+            },
+          }),
+        });
+      },
+    );
+  });
 
   describe('text', () => {
     beforeEach(() => {
@@ -5237,6 +6380,21 @@ describe('doStream', () => {
     });
   });
 
+  it('should preserve File Search custom metadata in provider metadata on finish', async () => {
+    prepareStreamResponse({
+      content: ['test'],
+      groundingMetadata: FILE_SEARCH_GROUNDING_METADATA,
+    });
+
+    const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(finishEvent?.providerMetadata?.google.groundingMetadata).toEqual(
+      FILE_SEARCH_GROUNDING_METADATA,
+    );
+  });
+
   it('should expose grounding metadata in provider metadata on finish', async () => {
     prepareStreamResponse({
       content: ['test'],
@@ -5564,6 +6722,205 @@ describe('doStream', () => {
     `);
   });
 
+  it('should surface streamed prompt-level blocks without candidates', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          promptFeedback: {
+            blockReason: 'PROHIBITED_CONTENT',
+          },
+          usageMetadata: {
+            promptTokenCount: 9,
+            totalTokenCount: 9,
+            serviceTier: 'standard',
+          },
+          responseId: 'blocked-response-id',
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    expect(events).toContainEqual({
+      type: 'response-metadata',
+      id: 'blocked-response-id',
+    });
+    expect(events.find(event => event.type === 'finish')).toMatchObject({
+      type: 'finish',
+      finishReason: {
+        unified: 'content-filter',
+        raw: 'PROHIBITED_CONTENT',
+      },
+      providerMetadata: {
+        google: {
+          promptFeedback: {
+            blockReason: 'PROHIBITED_CONTENT',
+          },
+          groundingMetadata: null,
+          urlContextMetadata: null,
+          safetyRatings: null,
+          usageMetadata: {
+            promptTokenCount: 9,
+            totalTokenCount: 9,
+            serviceTier: 'standard',
+          },
+          finishMessage: null,
+          serviceTier: 'standard',
+        },
+      },
+    });
+  });
+
+  it.each(['', 'BLOCK_REASON_UNSPECIFIED', 'BLOCKED_REASON_UNSPECIFIED'])(
+    'should not classify the default prompt block reason %j as a content filter',
+    async blockReason => {
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            candidates: [],
+            promptFeedback: { blockReason },
+            usageMetadata: {
+              promptTokenCount: 9,
+              totalTokenCount: 9,
+            },
+          })}\n\n`,
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const finishEvent = (await convertReadableStreamToArray(stream)).find(
+        event => event.type === 'finish',
+      );
+
+      expect(finishEvent?.finishReason).toEqual({
+        unified: 'other',
+        raw: undefined,
+      });
+    },
+  );
+
+  it('should preserve prompt feedback and trailing usage from separate chunks', async () => {
+    const promptFeedback = {
+      blockReason: 'BLOCK_REASON_UNSPECIFIED',
+      safetyRatings: [],
+    };
+    const usageMetadata = {
+      promptTokenCount: 10,
+      candidatesTokenCount: 3,
+      totalTokenCount: 13,
+    };
+
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({ promptFeedback })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                role: 'model',
+                parts: [{ text: 'Fixture text.' }],
+              },
+              finishReason: 'STOP',
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({ usageMetadata })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const finishEvent = (await convertReadableStreamToArray(stream)).find(
+      event => event.type === 'finish',
+    );
+
+    expect(finishEvent).toMatchObject({
+      type: 'finish',
+      finishReason: {
+        unified: 'stop',
+        raw: 'STOP',
+      },
+      usage: {
+        outputTokens: {
+          total: 3,
+        },
+      },
+      providerMetadata: {
+        google: {
+          promptFeedback,
+          usageMetadata,
+        },
+      },
+    });
+  });
+
+  it('should keep a confirmed prompt block terminal across later chunks', async () => {
+    const usageMetadata = {
+      promptTokenCount: 10,
+      candidatesTokenCount: 0,
+      totalTokenCount: 10,
+    };
+
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          promptFeedback: { blockReason: 'SAFETY' },
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                role: 'model',
+                parts: [{ text: 'Fixture text.' }],
+              },
+              finishReason: 'STOP',
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          promptFeedback: {
+            blockReason: 'BLOCK_REASON_UNSPECIFIED',
+          },
+          usageMetadata,
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    expect(events.filter(event => event.type === 'text-delta')).toEqual([]);
+    expect(events.find(event => event.type === 'finish')).toMatchObject({
+      type: 'finish',
+      finishReason: {
+        unified: 'content-filter',
+        raw: 'SAFETY',
+      },
+      providerMetadata: {
+        google: {
+          promptFeedback: { blockReason: 'SAFETY' },
+          usageMetadata,
+        },
+      },
+    });
+  });
+
   it('should expose finishMessage in provider metadata on finish', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'stream-chunks',
@@ -5650,6 +7007,316 @@ describe('doStream', () => {
       finishEvent?.type === 'finish' &&
         finishEvent.providerMetadata?.google.serviceTier,
     ).toBe('priority');
+  });
+
+  it('should expose the continuationToken from the final chunk on finish', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'Partial' }], role: 'model' },
+              index: 0,
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: '' }], role: 'model' },
+              finishReason: 'MAX_TOKENS',
+              index: 0,
+              continuationToken: 'token-3',
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 10,
+            candidatesTokenCount: 300,
+            totalTokenCount: 310,
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      providerOptions: { google: { continuationToken: 'token-prev' } },
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(finishEvent?.type === 'finish' && finishEvent.finishReason).toEqual({
+      unified: 'length',
+      raw: 'MAX_TOKENS',
+    });
+    expect(
+      finishEvent?.type === 'finish' &&
+        finishEvent.providerMetadata?.google.continuationToken,
+    ).toBe('token-3');
+
+    const body = (await server.calls[0].requestBodyJson) as Record<
+      string,
+      unknown
+    >;
+    expect(body.continuationToken).toBe('token-prev');
+  });
+
+  it('should not expose continuationToken on finish when absent', async () => {
+    prepareStreamResponse({ content: ['Hello'] });
+
+    const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(
+      finishEvent?.type === 'finish' && finishEvent.providerMetadata?.google,
+    ).not.toHaveProperty('continuationToken');
+  });
+
+  it('should continue the stream automatically on CONTINUATION', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = [
+      {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            candidates: [
+              {
+                content: { parts: [{ text: 'Hello' }], role: 'model' },
+                index: 0,
+              },
+            ],
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            candidates: [
+              {
+                content: { parts: [{ text: '' }], role: 'model' },
+                index: 0,
+                continuationToken: 'checkpoint-1',
+              },
+            ],
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            candidates: [
+              {
+                content: { parts: [{ text: '' }], role: 'model' },
+                finishReason: 'CONTINUATION',
+                index: 0,
+                continuationToken: 'token-1',
+              },
+            ],
+            usageMetadata: {
+              promptTokenCount: 10,
+              candidatesTokenCount: 5,
+              thoughtsTokenCount: 20,
+              totalTokenCount: 35,
+            },
+          })}\n\n`,
+        ],
+      },
+      {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            candidates: [
+              {
+                content: { parts: [{ text: ', world' }], role: 'model' },
+                finishReason: 'STOP',
+                index: 0,
+              },
+            ],
+            usageMetadata: {
+              promptTokenCount: 35,
+              candidatesTokenCount: 7,
+              totalTokenCount: 42,
+            },
+          })}\n\n`,
+        ],
+      },
+    ];
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      maxOutputTokens: 100_000,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    expect(server.calls.length).toBe(2);
+    const firstBody = (await server.calls[0].requestBodyJson) as Record<
+      string,
+      unknown
+    >;
+    expect(await server.calls[1].requestBodyJson).toEqual({
+      ...firstBody,
+      continuationToken: 'token-1',
+    });
+
+    expect(
+      events
+        .filter(event => event.type === 'text-delta')
+        .map(event => event.delta),
+    ).toEqual(['Hello', ', world']);
+    expect(events.filter(event => event.type === 'text-start')).toHaveLength(1);
+
+    const finishEvent = events.find(event => event.type === 'finish');
+    expect(finishEvent?.type === 'finish' && finishEvent.finishReason).toEqual({
+      unified: 'stop',
+      raw: 'STOP',
+    });
+    expect(
+      finishEvent?.type === 'finish' && finishEvent.usage.inputTokens.total,
+    ).toBe(45);
+    expect(
+      finishEvent?.type === 'finish' && finishEvent.usage.outputTokens.total,
+    ).toBe(32);
+    expect(
+      finishEvent?.type === 'finish' && finishEvent.providerMetadata?.google,
+    ).toMatchObject({ initialPromptTokenCount: 10 });
+    expect(
+      finishEvent?.type === 'finish' && finishEvent.providerMetadata?.google,
+    ).not.toHaveProperty('continuationToken');
+  });
+
+  it('should not expose checkpoint tokens or initialPromptTokenCount on a stream that finishes in one request', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'Hello' }], role: 'model' },
+              index: 0,
+              continuationToken: 'checkpoint-1',
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: ', world' }], role: 'model' },
+              finishReason: 'STOP',
+              index: 0,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 10,
+            candidatesTokenCount: 40_000,
+            totalTokenCount: 40_010,
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+    const metadata =
+      finishEvent?.type === 'finish' && finishEvent.providerMetadata?.google;
+
+    expect(metadata).not.toHaveProperty('continuationToken');
+    expect(metadata).not.toHaveProperty('initialPromptTokenCount');
+  });
+
+  it('should finish with the last continuation token when continuing the stream fails', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = [
+      {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            candidates: [
+              {
+                content: { parts: [{ text: 'Hello' }], role: 'model' },
+                finishReason: 'CONTINUATION',
+                index: 0,
+                continuationToken: 'token-1',
+              },
+            ],
+          })}\n\n`,
+        ],
+      },
+      {
+        type: 'error',
+        status: 400,
+        body: JSON.stringify({
+          error: {
+            code: 400,
+            message: 'Invalid continuation token',
+            status: 'INVALID_ARGUMENT',
+          },
+        }),
+      },
+    ];
+
+    const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    expect(events.some(event => event.type === 'error')).toBe(true);
+    const finishEvent = events.find(event => event.type === 'finish');
+    expect(finishEvent?.type === 'finish' && finishEvent.finishReason).toEqual({
+      unified: 'length',
+      raw: 'CONTINUATION',
+    });
+    expect(
+      finishEvent?.type === 'finish' &&
+        finishEvent.providerMetadata?.google.continuationToken,
+    ).toBe('token-1');
+  });
+
+  it('should preserve the final complete raw usage metadata', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'Blue' }], role: 'model' },
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 1,
+            candidatesTokenCount: 1,
+            totalTokenCount: 2,
+          },
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: '.' }], role: 'model' },
+              finishReason: 'STOP',
+            },
+          ],
+          usageMetadata: COMPLETE_USAGE_METADATA,
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const finishEvent = (await convertReadableStreamToArray(stream)).find(
+      event => event.type === 'finish',
+    );
+
+    expect(finishEvent?.usage).toEqual({
+      inputTokens: {
+        total: 77,
+        noCache: 73,
+        cacheRead: 4,
+        cacheWrite: undefined,
+      },
+      outputTokens: {
+        total: 160,
+        text: 71,
+        reasoning: 89,
+      },
+      raw: COMPLETE_USAGE_METADATA,
+    });
   });
 
   it('should expose null serviceTier in provider metadata on finish when not present', async () => {
@@ -6418,7 +8085,11 @@ describe('doStream', () => {
               ],
               "serviceTier": null,
               "urlContextMetadata": null,
-              "usageMetadata": null,
+              "usageMetadata": {
+                "candidatesTokenCount": 233,
+                "promptTokenCount": 294,
+                "totalTokenCount": 527,
+              },
             },
           },
           "type": "finish",
@@ -6781,7 +8452,9 @@ describe('doStream', () => {
               {
                 "description": "",
                 "name": "test-tool",
-                "parameters": {
+                "parametersJsonSchema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
                   "properties": {
                     "value": {
                       "type": "string",
@@ -7178,7 +8851,9 @@ describe('doStream', () => {
               {
                 "description": "",
                 "name": "test-tool",
-                "parameters": {
+                "parametersJsonSchema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
                   "properties": {
                     "value": {
                       "type": "string",
@@ -7269,6 +8944,30 @@ describe('doStream', () => {
       ],
       generationConfig: {
         responseModalities: ['TEXT', 'IMAGE'],
+      },
+    });
+  });
+
+  it('should only pass valid provider options with AUDIO responseModalities', async () => {
+    prepareChunksFixtureResponse('google-text');
+
+    await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+      providerOptions: {
+        google: { foo: 'bar', responseModalities: ['TEXT', 'AUDIO'] },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: 'Hello' }],
+        },
+      ],
+      generationConfig: {
+        responseModalities: ['TEXT', 'AUDIO'],
       },
     });
   });

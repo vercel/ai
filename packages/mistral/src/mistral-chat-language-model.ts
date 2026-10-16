@@ -29,6 +29,7 @@ import {
 import { z } from 'zod/v4';
 import {
   convertMistralUsage,
+  mistralUsageSchema,
   type MistralUsage,
 } from './convert-mistral-usage';
 import { convertToMistralChatMessages } from './convert-to-mistral-chat-messages';
@@ -48,6 +49,25 @@ type MistralChatConfig = {
   fetch?: FetchFunction;
   generateId?: () => string;
 };
+
+// Known non-reasoning models from https://api.mistral.ai/v1/models
+// (2026-10-06). Unknown IDs inherit current reasoning configuration support.
+const modelsWithoutReasoningEffort = new Set<MistralChatModelId>([
+  'codestral-2508',
+  'codestral-latest',
+  'ministral-14b-2512',
+  'ministral-14b-latest',
+  'ministral-3b-2512',
+  'ministral-3b-latest',
+  'ministral-8b-2512',
+  'ministral-8b-latest',
+  'mistral-code-fim-latest',
+  'mistral-code-latest',
+  'mistral-large-latest',
+  'mistral-large-2512',
+  'voxtral-small-2507',
+  'voxtral-small-latest',
+]);
 
 export class MistralChatLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
@@ -114,11 +134,9 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
       warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
-    const supportsReasoningEffort =
-      this.modelId === 'mistral-small-latest' ||
-      this.modelId === 'mistral-small-2603' ||
-      this.modelId === 'mistral-medium-3' ||
-      this.modelId === 'mistral-medium-3.5';
+    const supportsReasoningEffort = !modelsWithoutReasoningEffort.has(
+      this.modelId,
+    );
 
     let resolvedReasoningEffort: string | undefined;
     if (supportsReasoningEffort) {
@@ -135,6 +153,7 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
                   medium: 'high',
                   high: 'high',
                   xhigh: 'high',
+                  max: 'high',
                 },
                 warnings,
               })
@@ -150,9 +169,12 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
     const structuredOutputs = options.structuredOutputs ?? true;
     const strictJsonSchema = options.strictJsonSchema ?? false;
 
-    // For Mistral we need to need to instruct the model to return a JSON object.
+    // For Mistral we need to instruct the model when using JSON Object mode.
     // https://docs.mistral.ai/capabilities/structured-output/structured_output_overview/
-    if (responseFormat?.type === 'json' && !responseFormat?.schema) {
+    if (
+      responseFormat?.type === 'json' &&
+      (!structuredOutputs || responseFormat.schema == null)
+    ) {
       prompt = injectJsonInstructionIntoMessages({
         messages: prompt,
         schema: responseFormat.schema,
@@ -197,6 +219,9 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
       // mistral-specific provider options:
       document_image_limit: options.documentImageLimit,
       document_page_limit: options.documentPageLimit,
+      ...(options.promptCacheKey !== undefined
+        ? { prompt_cache_key: options.promptCacheKey }
+        : {}),
 
       // messages:
       messages: convertToMistralChatMessages(prompt),
@@ -549,19 +574,6 @@ const mistralContentSchema = z
     ),
   ])
   .nullish();
-
-const mistralUsageSchema = z.object({
-  prompt_tokens: z.number(),
-  completion_tokens: z.number(),
-  total_tokens: z.number(),
-  num_cached_tokens: z.number().nullish(),
-  prompt_tokens_details: z
-    .object({ cached_tokens: z.number().nullish() })
-    .nullish(),
-  prompt_token_details: z
-    .object({ cached_tokens: z.number().nullish() })
-    .nullish(),
-});
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency

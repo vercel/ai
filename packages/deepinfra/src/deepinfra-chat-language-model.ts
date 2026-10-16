@@ -33,10 +33,6 @@ export class DeepInfraChatLanguageModel extends OpenAICompatibleChatLanguageMode
     return new DeepInfraChatLanguageModel(options.modelId, options.config);
   }
 
-  constructor(modelId: string, config: DeepInfraChatConfig) {
-    super(modelId, config);
-  }
-
   /**
    * Fixes incorrect token usage for Gemini/Gemma models from DeepInfra.
    *

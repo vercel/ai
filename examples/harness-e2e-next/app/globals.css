@@ -2,8 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@source "../node_modules/streamdown/dist/index.js";
-
 @layer base {
   :root {
     --background: 0 0% 100%;

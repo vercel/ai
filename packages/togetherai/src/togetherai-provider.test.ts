@@ -20,7 +20,10 @@ import {
 } from 'vitest';
 import { TogetherAIRerankingModel } from './reranking/togetherai-reranking-model';
 import { TogetherAIImageModel } from './togetherai-image-model';
-import { createTogetherAI } from './togetherai-provider';
+import {
+  createTogetherAI,
+  getModelStructuredOutputSupport,
+} from './togetherai-provider';
 
 // Add type assertion for the mocked class
 const OpenAICompatibleChatLanguageModelMock =
@@ -204,6 +207,20 @@ describe('TogetherAIProvider', () => {
       const config = OpenAICompatibleChatLanguageModelMock.mock.calls[0][1];
       expect(config.includeUsage).toBe(true);
     });
+
+    it.each([
+      ['deepseek-ai/DeepSeek-V4-Flash-0731', true],
+      ['custom-model-id', false],
+    ] as const)(
+      'should set supportsStructuredOutputs for %s to %s',
+      (modelId, expected) => {
+        const provider = createTogetherAI();
+        provider.chatModel(modelId);
+
+        const config = OpenAICompatibleChatLanguageModelMock.mock.calls[0][1];
+        expect(config.supportsStructuredOutputs).toBe(expected);
+      },
+    );
   });
 
   describe('completionModel', () => {
@@ -288,4 +305,16 @@ describe('TogetherAIProvider', () => {
       expect(model).toBeInstanceOf(TogetherAIRerankingModel);
     });
   });
+});
+
+describe('getModelStructuredOutputSupport', () => {
+  it.each([
+    ['deepseek-ai/DeepSeek-V4-Flash-0731', true],
+    ['custom-model-id', false],
+  ] as const)(
+    'returns structured output support for %s as %s',
+    (modelId, expected) => {
+      expect(getModelStructuredOutputSupport(modelId)).toBe(expected);
+    },
+  );
 });

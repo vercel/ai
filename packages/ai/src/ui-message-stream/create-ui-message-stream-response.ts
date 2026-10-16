@@ -1,4 +1,5 @@
 import { prepareHeaders } from '../util/prepare-headers';
+import { createSseStreamWithKeepAlive } from './create-sse-stream-with-keep-alive';
 import { JsonToSseTransformStream } from './json-to-sse-transform-stream';
 import { UI_MESSAGE_STREAM_HEADERS } from './ui-message-stream-headers';
 import type { UIMessageChunk } from './ui-message-chunks';
@@ -12,6 +13,7 @@ import type { UIMessageStreamResponseInit } from './ui-message-stream-response-i
  * @param options.statusText - The HTTP status text for the response.
  * @param options.headers - Additional HTTP headers to include in the response.
  * @param options.stream - The UI message chunk stream to send.
+ * @param options.keepAliveMs - Optional interval for sending SSE keep-alive comments.
  * @param options.consumeSseStream - Optional callback to consume a copy of the SSE stream independently.
  *
  * @returns A `Response` object with the UI message stream as the body.
@@ -21,11 +23,15 @@ export function createUIMessageStreamResponse({
   statusText,
   headers,
   stream,
+  keepAliveMs,
   consumeSseStream,
 }: UIMessageStreamResponseInit & {
   stream: ReadableStream<UIMessageChunk>;
 }): Response {
-  let sseStream = stream.pipeThrough(new JsonToSseTransformStream());
+  let sseStream = createSseStreamWithKeepAlive({
+    stream: stream.pipeThrough(new JsonToSseTransformStream()),
+    keepAliveMs,
+  });
 
   // when the consumeSseStream is provided, we need to tee the stream
   // and send the second part to the consumeSseStream function

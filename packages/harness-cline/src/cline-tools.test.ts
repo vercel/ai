@@ -6,6 +6,7 @@ import {
   buildBuiltinAgentTools,
   buildUserAgentTools,
   createClineToolResult,
+  toClineQuestionResult,
   unwrapClineToolResult,
   type PendingToolResult,
 } from './cline-tools';
@@ -121,5 +122,36 @@ describe('Cline tool result envelope', () => {
         isError: true,
       }),
     ).toBeUndefined();
+  });
+});
+
+describe('Cline question translation', () => {
+  it('maps the canonical answer to the selected native option', () => {
+    expect(
+      toClineQuestionResult({
+        nativeInput: {
+          question: 'Which framework?',
+          options: ['React', 'Vue'],
+        },
+        output: {
+          action: 'answered',
+          answers: {
+            'question-1': { optionIds: ['option-2'] },
+          },
+        },
+      }),
+    ).toBe('Vue');
+  });
+
+  it('returns a native string for declined questions', () => {
+    expect(
+      toClineQuestionResult({
+        nativeInput: {
+          question: 'Which framework?',
+          options: ['React', 'Vue'],
+        },
+        output: { action: 'declined' },
+      }),
+    ).toBe('The user declined the question.');
   });
 });

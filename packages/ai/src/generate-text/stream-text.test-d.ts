@@ -8,7 +8,14 @@ import {
 } from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod/v4';
-import { Output, streamText } from '../generate-text';
+import {
+  Output,
+  streamText,
+  type StreamTextEndEvent,
+  type StreamTextOnEndCallback,
+  type StreamTextOnErrorCallback,
+  type StreamTextOnErrorRetryCallback,
+} from '../generate-text';
 import type { Instructions } from '../prompt';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import type { ProviderMetadata } from '../types';
@@ -19,11 +26,87 @@ import type {
 } from '../ui-message-stream';
 import type { AsyncIterableStream } from '../util';
 import type { DeepPartial } from '../util/deep-partial';
-import type { GenerateTextEndEvent } from './generate-text-events';
+import type {
+  GenerateTextAbortEvent,
+  GenerateTextEndEvent,
+} from './generate-text-events';
 import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
 
 describe('streamText types', () => {
+  it('should accept toolCallConcurrency', () => {
+    streamText({
+      model: new MockLanguageModelV4(),
+      prompt: 'Hello',
+      toolCallConcurrency: 1,
+    });
+  });
+
+  describe('stream retries', () => {
+    it('should accept streamRetries and an onError retry result', () => {
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        streamRetries: 2,
+        onError: () => ({ retry: true }),
+      });
+    });
+
+    it('should preserve the existing async void callback contract', () => {
+      expectTypeOf<
+        ReturnType<StreamTextOnErrorCallback>
+      >().toEqualTypeOf<PromiseLike<void> | void>();
+
+      const callbackResult: ReturnType<StreamTextOnErrorCallback> =
+        Promise.resolve();
+
+      expectTypeOf(callbackResult).toMatchTypeOf<PromiseLike<void> | void>();
+    });
+
+    it('should accept existing value-returning callbacks', () => {
+      const errors: unknown[] = [];
+
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        onError: () => 'replacement text',
+      });
+
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        onError: async () => 'replacement text',
+      });
+
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        onError: ({ error }) => errors.push(error),
+      });
+
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        onError: () => ({ ignored: true }),
+      });
+    });
+
+    it('should accept a conditional async retry result', () => {
+      const onError: StreamTextOnErrorRetryCallback = async ({ error }) => {
+        if (error instanceof Error) {
+          return { retry: true } as const;
+        }
+      };
+
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        streamRetries: 0,
+        onError,
+      });
+    });
+  });
+
   describe('onLanguageModelCallEnd', () => {
     it('should expose provider metadata', () => {
       streamText({
@@ -82,6 +165,20 @@ describe('streamText types', () => {
     });
   });
 
+  describe('onAbort', () => {
+    it('should expose call metadata and the abort reason', () => {
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        onAbort: event => {
+          expectTypeOf(event).toMatchTypeOf<GenerateTextAbortEvent>();
+          expectTypeOf(event.callId).toEqualTypeOf<string>();
+          expectTypeOf(event.reason).toEqualTypeOf<unknown>();
+        },
+      });
+    });
+  });
+
   describe('onEnd', () => {
     it('should expose end event properties', () => {
       streamText({
@@ -106,6 +203,31 @@ describe('streamText types', () => {
             StepResult<any>['providerMetadata']
           >();
         },
+      });
+    });
+
+    it('should infer structured output for reusable callbacks', () => {
+      const output = Output.object({
+        schema: z.object({ value: z.string() }),
+      });
+      const onEnd: StreamTextOnEndCallback<
+        {},
+        Context,
+        typeof output
+      > = event => {
+        expectTypeOf(event).toEqualTypeOf<
+          StreamTextEndEvent<{}, Context, typeof output>
+        >();
+        expectTypeOf(event.output).toEqualTypeOf<
+          { value: string } | undefined
+        >();
+      };
+
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        output,
+        onEnd,
       });
     });
   });
@@ -136,9 +258,79 @@ describe('streamText types', () => {
         },
       });
     });
+
+    it('should infer structured output', () => {
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        output: Output.object({
+          schema: z.object({ value: z.string() }),
+        }),
+        onFinish: event => {
+          expectTypeOf(event.output).toEqualTypeOf<
+            { value: string } | undefined
+          >();
+        },
+      });
+    });
   });
 
   describe('toUIMessageStream options', () => {
+    it('preserves custom UI message types in step callbacks across all conversion methods', () => {
+      type Message = UIMessage<
+        { totalTokens: number },
+        { context: { project: string } },
+        {
+          weather: {
+            input: { location: string };
+            output: { temperature: number };
+          };
+        }
+      >;
+      const result = streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+      });
+      const checkSnapshot = (message: Message) => {
+        expectTypeOf(message.metadata).toEqualTypeOf<
+          { totalTokens: number } | undefined
+        >();
+        for (const part of message.parts) {
+          if (part.type === 'data-context') {
+            expectTypeOf(part.data).toEqualTypeOf<{ project: string }>();
+          }
+          if (
+            part.type === 'tool-weather' &&
+            part.state === 'output-available'
+          ) {
+            expectTypeOf(part.input).toEqualTypeOf<{ location: string }>();
+            expectTypeOf(part.output).toEqualTypeOf<{ temperature: number }>();
+          }
+        }
+      };
+      result.toUIMessageStream<Message>({
+        onStepEnd: event => {
+          expectTypeOf(event.responseMessage).toEqualTypeOf<Message>();
+          expectTypeOf(event.messages).toEqualTypeOf<Message[]>();
+          checkSnapshot(event.responseMessage);
+        },
+      });
+      result.toUIMessageStreamResponse<Message>({
+        onStepEnd: event => {
+          expectTypeOf(event.responseMessage).toEqualTypeOf<Message>();
+          expectTypeOf(event.messages).toEqualTypeOf<Message[]>();
+          checkSnapshot(event.responseMessage);
+        },
+      });
+      result.pipeUIMessageStreamToResponse<Message>(null as never, {
+        onStepFinish: event => {
+          expectTypeOf(event.responseMessage).toEqualTypeOf<Message>();
+          expectTypeOf(event.messages).toEqualTypeOf<Message[]>();
+          checkSnapshot(event.responseMessage);
+        },
+      });
+    });
+
     it('should support onEnd and deprecated onFinish', () => {
       const result = streamText({
         model: new MockLanguageModelV4(),
@@ -719,7 +911,7 @@ describe('streamText types', () => {
             frequencyPenalty: 0,
             stopSequences: ['stop'],
             seed: 0,
-            reasoning: 'high',
+            reasoning: 'max',
           }),
         });
       });

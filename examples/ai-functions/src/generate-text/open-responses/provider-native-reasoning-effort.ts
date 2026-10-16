@@ -63,7 +63,7 @@ const openResponses = createOpenResponses({
 
 run(async () => {
   const { text } = await generateText({
-    model: openResponses('deepseek-reasoner'),
+    model: openResponses('deepseek-v4-flash'),
     prompt: 'Explain why the sky appears blue.',
     reasoning: 'low',
     providerOptions: {

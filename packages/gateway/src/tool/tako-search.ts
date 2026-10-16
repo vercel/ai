@@ -14,15 +14,28 @@ export type TakoContentFormat =
   | 'json_records';
 
 export interface TakoDataSourceConfig {
-  /** Maximum number of data cards to return (1-20). */
+  /**
+   * Maximum number of data results to return (1-20). When includeContents is
+   * true, each additional result adds its own data surcharge.
+   */
   count?: number;
-  /** Inline underlying card data in the response. This can add a data charge. */
+  /**
+   * Inline rows for each data result. This adds a data surcharge based on row
+   * count and dataset source. To estimate cost, search with includeContents
+   * disabled and inspect cards.content.export_pricing. This applies to every
+   * returned card; limit sources.data.count and sources.data.maxRows to control
+   * cost.
+   */
   includeContents?: boolean;
   /** Requested delivery mode for card data. Search cards are always inlined. */
   mode?: 'inline' | 'url';
   /** Serialization for inlined card data. */
   contentFormat?: TakoContentFormat;
-  /** Maximum rows for inlined card data. The service clamps large values. */
+  /**
+   * Maximum rows to inline per result. Omit to use the allowance in
+   * cards.content.export_pricing. A data surcharge applies per 1,000 exported
+   * rows; lower values reduce cost.
+   */
   maxRows?: number;
   /** Data Graph node IDs to prioritize. */
   nodeIds?: string[];
@@ -190,7 +203,6 @@ export interface TakoCard {
   relevance?: 'High' | 'Low' | 'Medium' | null;
   content?: TakoResultContent | null;
   exportable?: boolean;
-  relevance_score?: number | null;
   nodes?: Array<{
     id: string;
     type: 'entity' | 'metric';
@@ -215,7 +227,6 @@ export interface TakoWebResult {
   source_name?: string | null;
   publish_date?: string | null;
   content?: TakoResultContent | null;
-  citation_number?: number | null;
 }
 
 export interface TakoSearchResponse {
@@ -254,11 +265,15 @@ const takoDataSourceInputSchema = z.object({
   count: z
     .number()
     .optional()
-    .describe('Maximum number of data cards to return (1-20).'),
+    .describe(
+      'Maximum number of data results to return (1-20). When include_contents is true, each additional result adds its own data surcharge.',
+    ),
   include_contents: z
     .boolean()
     .optional()
-    .describe('Inline underlying card data. This can add a data charge.'),
+    .describe(
+      'Inline rows for each data result. This adds a data surcharge based on row count and dataset source. To estimate cost, search with include_contents disabled and inspect cards.content.export_pricing. This applies to every returned card; limit sources.data.count and sources.data.max_rows to control cost.',
+    ),
   mode: z
     .enum(['inline', 'url'])
     .optional()
@@ -272,7 +287,9 @@ const takoDataSourceInputSchema = z.object({
   max_rows: z
     .number()
     .optional()
-    .describe('Maximum rows for inlined card data.'),
+    .describe(
+      'Maximum rows to inline per result. Omit to use the allowance in cards.content.export_pricing. A data surcharge applies per 1,000 exported rows; lower values reduce cost.',
+    ),
   node_ids: z
     .array(z.string())
     .optional()
@@ -493,7 +510,6 @@ const takoCardSchema = z
     relevance: z.enum(['High', 'Low', 'Medium']).nullish(),
     content: takoResultContentSchema.nullish(),
     exportable: z.boolean().optional(),
-    relevance_score: z.number().nullish(),
     nodes: z
       .array(
         z.object({
@@ -525,7 +541,6 @@ const takoWebResultSchema = z
     source_name: z.string().nullish(),
     publish_date: z.string().nullish(),
     content: takoResultContentSchema.nullish(),
-    citation_number: z.number().nullish(),
   })
   .passthrough();
 

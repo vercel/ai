@@ -22,6 +22,7 @@ export function createCursorACP({
   source = CURSOR_ACP_SOURCE,
 }: CursorACPHarnessSettings = {}) {
   return createACP({
+    nonTextContentTypes: ['image'],
     harnessId: 'cursor-acp',
     mcpServers,
     mintBridgeToken,
@@ -30,16 +31,30 @@ export function createCursorACP({
     source,
     executable: 'agent',
     args: ['--disable-auto-update', 'acp'],
+    modelMapping: {
+      type: 'session-config-option',
+      path: 'model',
+    },
+    clientCapabilities: {
+      _meta: { parameterizedModelPicker: true },
+    },
     credentialEnv: ['CURSOR_API_KEY'],
-    credentialBrokering: ({ env }) => {
+    credentialBrokering: ({ env, sandboxEnv }) => {
       const credential = env.CURSOR_API_KEY;
-      if (!credential) return [];
+      const sandboxCredential = sandboxEnv?.CURSOR_API_KEY;
+      if (!credential || !sandboxCredential) return [];
       return [
         {
           match: {
             host: 'api2.cursor.sh',
             path: { exact: '/auth/exchange_user_api_key' },
             method: ['POST'],
+            headers: [
+              {
+                key: { exact: 'Authorization' },
+                value: { exact: `Bearer ${sandboxCredential}` },
+              },
+            ],
           },
           transform: {
             headers: { Authorization: `Bearer ${credential}` },

@@ -136,6 +136,7 @@ export function openTelemetryChannelSpanContext({
   completion: PromiseLike<unknown>;
 }): TracingChannelContext | undefined {
   if (!isNodeRuntime()) {
+    Promise.resolve(completion).catch(() => {});
     return undefined;
   }
 

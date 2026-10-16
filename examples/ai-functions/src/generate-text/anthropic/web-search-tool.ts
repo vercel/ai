@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: anthropic('claude-sonnet-4-20250514'),
+    model: anthropic('claude-sonnet-5-5'),
     prompt: 'What happened in tech news today?',
     tools: {
       web_search: anthropic.tools.webSearch_20250305({
@@ -21,4 +21,13 @@ run(async () => {
 
   console.dir(result.response.body, { depth: Infinity });
   console.dir(result.content, { depth: Infinity });
+  console.dir(
+    {
+      sources: result.sources,
+      citations: result.content.flatMap(part =>
+        part.type === 'text' ? (part.citations ?? []) : [],
+      ),
+    },
+    { depth: Infinity },
+  );
 });

@@ -111,7 +111,7 @@ describe('doGenerate', () => {
         'custom-request-header': 'request-header-value',
       });
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/gladia/0.0.0-test`,
+        `ai-sdk-gladia/0.0.0-test`,
       );
     });
 
@@ -124,6 +124,55 @@ describe('doGenerate', () => {
       expect(result.text).toBe(
         resultFixture.result.transcription.full_transcript,
       );
+    });
+
+    it('should preserve utterance metadata in provider metadata', async () => {
+      const utterances = resultFixture.result.transcription.utterances.map(
+        (utterance: Record<string, unknown>, index: number) => ({
+          ...utterance,
+          speaker: index === 0 ? 0 : `speaker-${index}`,
+        }),
+      );
+      server.urls[initiateFixture.result_url].response = {
+        type: 'json-value',
+        body: {
+          ...resultFixture,
+          result: {
+            ...resultFixture.result,
+            transcription: {
+              ...resultFixture.result.transcription,
+              utterances,
+            },
+          },
+        },
+      };
+
+      const result = await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+      const gladiaMetadata = result.providerMetadata?.gladia;
+      expect(gladiaMetadata).toBeDefined();
+      const metadataUtterances = (
+        gladiaMetadata as {
+          result: {
+            transcription: {
+              utterances: Record<string, unknown>[];
+            };
+          };
+        }
+      ).result.transcription.utterances;
+
+      expect(metadataUtterances[0]).toMatchObject({
+        speaker: 0,
+        confidence: utterances[0].confidence,
+        language: utterances[0].language,
+        words: utterances[0].words,
+      });
+      expect(metadataUtterances[1]).toMatchObject({
+        speaker: 'speaker-1',
+      });
     });
 
     it('should generate full response', async () => {
@@ -142,7 +191,9 @@ describe('doGenerate', () => {
         mediaType: 'audio/wav',
       });
 
-      expect(result).toMatchSnapshot();
+      expect(result).toMatchSnapshot({
+        providerMetadata: expect.anything(),
+      });
     });
   });
 

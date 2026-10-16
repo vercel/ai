@@ -19,7 +19,7 @@ Use of LangChain's open-source frameworks is not necessary.
 
 ## Setup
 
-<Note>The steps in this guide assume you are using `langsmith>=0.3.63.`.</Note>
+<Note>The steps in this guide assume you are using `langsmith>=0.3.63`.</Note>
 
 Install an [AI SDK model provider](/providers/ai-sdk-providers) and the [LangSmith client SDK](https://npmjs.com/package/langsmith).
 The code snippets below will use the [AI SDK's OpenAI provider](/providers/ai-sdk-providers/openai), but you can use any [other supported provider](/providers/ai-sdk-providers) as well.
@@ -48,7 +48,7 @@ import { wrapAISDK } from 'langsmith/experimental/vercel';
 const { generateText, streamText } = wrapAISDK(ai);
 
 await generateText({
-  model: openai('gpt-5-nano'),
+  model: openai('gpt-5.4-nano'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -68,7 +68,7 @@ import { wrapAISDK } from 'langsmith/experimental/vercel';
 const { generateText, streamText } = wrapAISDK(ai);
 
 await generateText({
-  model: openai('gpt-5-nano'),
+  model: openai('gpt-5.4-nano'),
   messages: [
     {
       role: 'user',
@@ -116,7 +116,7 @@ const { generateText, streamText } = wrapAISDK(ai);
 const wrapper = traceable(
   async (input: string) => {
     const { text } = await generateText({
-      model: openai('gpt-5-nano'),
+      model: openai('gpt-5.4-nano'),
       messages: [
         {
           role: 'user',
