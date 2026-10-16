@@ -516,9 +516,9 @@ importers:
       '@ai-sdk/togetherai':
         specifier: workspace:*
         version: link:../../packages/togetherai
-      '@ai-sdk/bash-tool':
+      '@ai-sdk/tool-bash':
         specifier: workspace:*
-        version: link:../../packages/bash-tool
+        version: link:../../packages/tool-bash
       '@ai-sdk/topaz':
         specifier: workspace:*
         version: link:../../packages/topaz
@@ -4304,7 +4304,7 @@ importers:
         specifier: 3.25.76
         version: 3.25.76
 
-  packages/bash-tool:
+  packages/tool-bash:
     dependencies:
       zod:
         specifier: 3.25.76

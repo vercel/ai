@@ -2,7 +2,7 @@
 
 A first-party, provider-independent bash tool for the [AI SDK](https://ai-sdk.dev/docs).
 
-The `@ai-sdk/bash-tool` entry point provides a bash tool for any model supporting
+The `@ai-sdk/tool-bash` entry point provides a bash tool for any model supporting
 function calling. Supply an `Experimental_SandboxSession` to choose where commands
 run. Use `@ai-sdk/sandbox-just-bash` for an in-memory environment,
 `@ai-sdk/sandbox-vercel` for Vercel Sandbox, or your own implementation.
@@ -14,7 +14,7 @@ The tool has no direct dependency on either runtime.
 Install the tool and the sandbox adapter you want to use:
 
 ```sh
-pnpm add ai @ai-sdk/bash-tool @ai-sdk/sandbox-just-bash
+pnpm add ai @ai-sdk/tool-bash @ai-sdk/sandbox-just-bash
 ```
 
 Requires Node.js 22.13 or newer.
@@ -23,7 +23,7 @@ Requires Node.js 22.13 or newer.
 
 ```ts
 import { createJustBashNetworkSandboxSession } from '@ai-sdk/sandbox-just-bash';
-import { bashTool } from '@ai-sdk/bash-tool';
+import { bashTool } from '@ai-sdk/tool-bash';
 import { generateText, isStepCount } from 'ai';
 
 const session = await createJustBashNetworkSandboxSession();
@@ -69,7 +69,7 @@ Vercel Sandbox. Wrap it with the adapter before passing it to the tool:
 
 ```ts
 import { createVercelSandboxSessionFromNativeSandbox } from '@ai-sdk/sandbox-vercel';
-import { bashTool } from '@ai-sdk/bash-tool';
+import { bashTool } from '@ai-sdk/tool-bash';
 import { Sandbox } from '@vercel/sandbox';
 
 const nativeSandbox = await Sandbox.create();

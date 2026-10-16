@@ -1,5 +1,5 @@
 import { createJustBashNetworkSandboxSession } from '@ai-sdk/sandbox-just-bash';
-import { bashTool } from '@ai-sdk/bash-tool';
+import { bashTool } from '@ai-sdk/tool-bash';
 import { isStepCount, ToolLoopAgent } from 'ai';
 import { run } from '../../lib/run';
 

@@ -217,7 +217,7 @@
       "path": "packages/togetherai"
     },
     {
-      "path": "packages/bash-tool"
+      "path": "packages/tool-bash"
     },
     {
       "path": "packages/topaz"
