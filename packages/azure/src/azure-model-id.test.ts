@@ -42,7 +42,11 @@ describe('separate Azure deployment and model IDs', () => {
     '%s reports the supplied model ID and falls back to the deployment ID',
     factory => {
       const createModel = factory === 'default' ? provider : provider[factory];
-      expect(createModel(deploymentId, modelId).modelId).toBe(modelId);
+      expect(createModel(deploymentId, { modelId }).modelId).toBe(modelId);
+      expect(createModel(deploymentId, {}).modelId).toBe(deploymentId);
+      expect(createModel(deploymentId, { modelId: undefined }).modelId).toBe(
+        deploymentId,
+      );
       expect(createModel(deploymentId).modelId).toBe(deploymentId);
       expect(createModel(deploymentId, undefined).modelId).toBe(deploymentId);
     },
@@ -93,7 +97,7 @@ describe('separate Azure deployment and model IDs', () => {
         it.each(['generate', 'stream'] as const)(
           '%s routes by deployment and infers capabilities from the model ID',
           async operation => {
-            const model = provider[api](deploymentId, modelId);
+            const model = provider[api](deploymentId, { modelId });
             if (operation === 'generate') {
               server.urls[url].response = {
                 type: 'json-value',

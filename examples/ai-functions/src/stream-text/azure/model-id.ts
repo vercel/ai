@@ -5,10 +5,9 @@ import { run } from '../../lib/run';
 
 run(async () => {
   // Set AZURE_DEPLOYMENT_ID to your deployment of AZURE_MODEL_ID.
-  const model = azure(
-    process.env.AZURE_DEPLOYMENT_ID ?? 'gpt-4.1-mini',
-    process.env.AZURE_MODEL_ID ?? 'gpt-4.1-mini',
-  );
+  const model = azure(process.env.AZURE_DEPLOYMENT_ID ?? 'gpt-4.1-mini', {
+    modelId: process.env.AZURE_MODEL_ID ?? 'gpt-4.1-mini',
+  });
   const result = streamText({
     model,
     prompt: 'Invent a new holiday and describe its traditions.',

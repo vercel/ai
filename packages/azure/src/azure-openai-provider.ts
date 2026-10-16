@@ -53,24 +53,41 @@ import {
 } from './azure-transcription-model-options';
 import { VERSION } from './version';
 
+export interface AzureOpenAILanguageModelSettings {
+  /**
+   * Underlying model ID used for reported identity and capability detection.
+   * Defaults to the deployment ID. Requests always use the deployment ID.
+   */
+  modelId?: string;
+}
+
 export interface AzureOpenAIProvider extends ProviderV4 {
   /**
    * Creates a Responses API model. The optional model ID is used for reported
    * identity and capability detection; requests always use the deployment ID.
    */
-  (deploymentId: string, modelId?: string): LanguageModelV4;
+  (
+    deploymentId: string,
+    settings?: AzureOpenAILanguageModelSettings,
+  ): LanguageModelV4;
 
   /**
    * Creates an Azure OpenAI responses API model for text generation.
    * The optional model ID is used for reported identity and capability detection.
    */
-  languageModel(deploymentId: string, modelId?: string): LanguageModelV4;
+  languageModel(
+    deploymentId: string,
+    settings?: AzureOpenAILanguageModelSettings,
+  ): LanguageModelV4;
 
   /**
    * Creates an Azure OpenAI chat model for text generation.
    * The optional model ID is used for reported identity and capability detection.
    */
-  chat(deploymentId: string, modelId?: string): LanguageModelV4;
+  chat(
+    deploymentId: string,
+    settings?: AzureOpenAILanguageModelSettings,
+  ): LanguageModelV4;
 
   /**
    * Creates an Azure-hosted DeepSeek chat model for text generation.
@@ -81,13 +98,19 @@ export interface AzureOpenAIProvider extends ProviderV4 {
    * Creates an Azure OpenAI responses API model for text generation.
    * The optional model ID is used for reported identity and capability detection.
    */
-  responses(deploymentId: string, modelId?: string): LanguageModelV4;
+  responses(
+    deploymentId: string,
+    settings?: AzureOpenAILanguageModelSettings,
+  ): LanguageModelV4;
 
   /**
    * Creates an Azure OpenAI completion model for text generation.
    * The optional model ID is used for reported identity.
    */
-  completion(deploymentId: string, modelId?: string): LanguageModelV4;
+  completion(
+    deploymentId: string,
+    settings?: AzureOpenAILanguageModelSettings,
+  ): LanguageModelV4;
 
   /**
    * Creates an Azure OpenAI model for text embeddings.
@@ -367,8 +390,11 @@ export function createAzure(
     return fullUrl.toString();
   };
 
-  const createChatModel = (deploymentId: string, modelId?: string) =>
-    new OpenAIChatLanguageModel(modelId ?? deploymentId, {
+  const createChatModel = (
+    deploymentId: string,
+    settings?: AzureOpenAILanguageModelSettings,
+  ) =>
+    new OpenAIChatLanguageModel(settings?.modelId ?? deploymentId, {
       provider: 'azure.chat',
       requestModelId: deploymentId,
       url,
@@ -388,8 +414,11 @@ export function createAzure(
       supportsStructuredOutputs: true,
     });
 
-  const createCompletionModel = (deploymentId: string, modelId?: string) =>
-    new OpenAICompletionLanguageModel(modelId ?? deploymentId, {
+  const createCompletionModel = (
+    deploymentId: string,
+    settings?: AzureOpenAILanguageModelSettings,
+  ) =>
+    new OpenAICompletionLanguageModel(settings?.modelId ?? deploymentId, {
       provider: 'azure.completion',
       requestModelId: deploymentId,
       url,
@@ -405,8 +434,11 @@ export function createAzure(
       fetch,
     });
 
-  const createResponsesModel = (deploymentId: string, modelId?: string) =>
-    new OpenAIResponsesLanguageModel(modelId ?? deploymentId, {
+  const createResponsesModel = (
+    deploymentId: string,
+    settings?: AzureOpenAILanguageModelSettings,
+  ) =>
+    new OpenAIResponsesLanguageModel(settings?.modelId ?? deploymentId, {
       provider: 'azure.responses',
       requestModelId: deploymentId,
       url,
@@ -494,14 +526,17 @@ export function createAzure(
       }),
     );
 
-  const provider = function (deploymentId: string, modelId?: string) {
+  const provider = function (
+    deploymentId: string,
+    settings?: AzureOpenAILanguageModelSettings,
+  ) {
     if (new.target) {
       throw new Error(
         'The Azure OpenAI model function cannot be called with the new keyword.',
       );
     }
 
-    return createResponsesModel(deploymentId, modelId);
+    return createResponsesModel(deploymentId, settings);
   };
 
   provider.specificationVersion = 'v4' as const;

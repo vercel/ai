@@ -163,10 +163,10 @@ const model = azure('your-deployment-name');
 
 You need to pass your deployment name as the first argument.
 
-You can optionally pass the underlying model ID as the second argument:
+You can optionally pass the underlying model ID in a settings object:
 
 ```ts
-const model = azure('production-chat', 'gpt-5');
+const model = azure('production-chat', { modelId: 'gpt-5' });
 ```
 
 The SDK uses the model ID as the model identity, including in telemetry, and
@@ -493,13 +493,13 @@ guide](/providers/ai-sdk-providers/openai#changing-reasoning-effort-mid-conversa
 for continuation, compaction, and configuration restrictions.
 
 <Note>
-  The SDK infers support for effort updates from the optional model ID passed to
-  `azure.responses()`, falling back to the deployment name. The ID must identify
+  The SDK infers support for effort updates from the optional `modelId` setting
+  passed to `azure.responses()`, falling back to the deployment name. The ID must identify
   a supported GPT-6-or-later model family, such as `gpt-6-astra`. A custom name
   such as `production` is not recognized, even when the underlying deployment
   runs GPT-6. Pass the underlying model ID, for example
-  `azure.responses('production', 'gpt-6-astra')`, to enable detection for a
-  custom deployment name.
+  `azure.responses('production', { modelId: 'gpt-6-astra' })`, to enable detection
+  for a custom deployment name.
 </Note>
 
 #### Web Search Tool
