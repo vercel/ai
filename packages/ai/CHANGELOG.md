@@ -1,5 +1,15 @@
 # ai
 
+## 7.0.144
+
+### Patch Changes
+
+- 60cc252: feat(perplexity): add decisions api support
+- Updated dependencies [60cc252]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/gateway@4.0.117
+  - @ai-sdk/provider-utils@5.0.63
+
 ## 7.0.143
 
 ### Patch Changes

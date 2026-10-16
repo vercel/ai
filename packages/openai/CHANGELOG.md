@@ -1,5 +1,14 @@
 # @ai-sdk/openai
 
+## 4.0.97
+
+### Patch Changes
+
+- 60cc252: feat(perplexity): add decisions api support
+- Updated dependencies [60cc252]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/provider-utils@5.0.63
+
 ## 4.0.96
 
 ### Patch Changes
