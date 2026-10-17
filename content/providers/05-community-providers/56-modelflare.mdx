@@ -1,0 +1,112 @@
+---
+title: Modelflare
+description: Learn how to use the Modelflare provider for the AI SDK.
+---
+
+# Modelflare Provider
+
+[Modelflare](https://modelflare.dev) is an OpenAI-compatible AI API gateway. The Modelflare provider gives the AI SDK access to the chat and image models available to your Modelflare account through a single API key. See the [Modelflare docs](https://docs.modelflare.dev) and the [pricing page](https://modelflare.dev/pricing) for the current model list.
+
+## Setup
+
+The Modelflare provider is available in the `@modelflare/ai-sdk-provider` module. You can install it with
+
+<InstallPackages packages="@modelflare/ai-sdk-provider" />
+
+## Provider Instance
+
+You can import the default provider instance `modelflare` from `@modelflare/ai-sdk-provider`:
+
+```ts
+import { modelflare } from '@modelflare/ai-sdk-provider';
+```
+
+The default instance reads your API key from the `MODELFLARE_API_KEY` environment variable:
+
+```bash
+# .env
+MODELFLARE_API_KEY=your_api_key_here
+```
+
+If you need a customized setup, use `createModelflare` and create a provider instance with your settings:
+
+```ts
+import { createModelflare } from '@modelflare/ai-sdk-provider';
+
+const modelflare = createModelflare({
+  apiKey: process.env.MODELFLARE_API_KEY,
+});
+```
+
+You can use the following optional settings to customize the Modelflare provider instance:
+
+- **apiKey** _string_
+
+  API key that is sent using the `Authorization` header.
+  It defaults to the `MODELFLARE_API_KEY` environment variable.
+
+- **baseURL** _string_
+
+  `'global'` (default, `https://modelflare.dev/v1`), `'china'` (`https://origin.modelflare.dev/v1`), or a custom URL.
+  It defaults to the `MODELFLARE_BASE_URL` environment variable.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+
+You can create an API key in the [Modelflare console](https://modelflare.dev/keys).
+
+## Language Models
+
+Pass a model ID to the provider instance (or to `modelflare.chatModel`). Model IDs are the ones listed for your key by `GET https://modelflare.dev/v1/models`.
+
+```ts
+import { modelflare } from '@modelflare/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: modelflare('gpt-5.6-sol'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+### Streaming
+
+```ts
+import { modelflare } from '@modelflare/ai-sdk-provider';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: modelflare('gpt-5.6-sol'),
+  prompt: 'Write a short story about a robot learning to paint.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+## Image Models
+
+OpenAI-compatible image models (not Gemini image models) can be used with `modelflare.imageModel`:
+
+```ts
+import { modelflare } from '@modelflare/ai-sdk-provider';
+import { generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: modelflare.imageModel('gpt-image-2'),
+  prompt: 'A red paper kite over a quiet harbour at dusk.',
+  size: '1024x1024',
+});
+```
+
+## Additional Resources
+
+- [Modelflare Provider Repository](https://github.com/castaly-ai/modelflare-ai-sdk)
+- [Modelflare Documentation](https://docs.modelflare.dev)
+- [Modelflare Dashboard](https://modelflare.dev)
