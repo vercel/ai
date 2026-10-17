@@ -5,6 +5,8 @@ packages:
   - 'examples/*'
   - 'packages/rsc/tests/e2e/next-server'
 
+virtualStoreType: global
+
 overrides:
   shell-quote: 1.11.0
   'piscina@4': 4.9.4
