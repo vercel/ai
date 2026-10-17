@@ -49,6 +49,7 @@ export interface AnthropicUserMessage {
     | AnthropicTextContent
     | AnthropicImageContent
     | AnthropicDocumentContent
+    | AnthropicSearchResultContent
     | AnthropicContainerUploadContent
     | AnthropicToolResultContent
   >;
@@ -102,6 +103,11 @@ export interface AnthropicTextContent {
   cache_control: AnthropicCacheControl | undefined;
 }
 
+type AnthropicTextBlock = {
+  type: 'text';
+  text: string;
+};
+
 export interface AnthropicThinkingContent {
   type: 'thinking';
   thinking: string;
@@ -135,6 +141,10 @@ type AnthropicContentSource =
       data: string;
     }
   | {
+      type: 'content';
+      content: AnthropicTextBlock[];
+    }
+  | {
       type: 'file';
       file_id: string;
     };
@@ -150,6 +160,15 @@ export interface AnthropicDocumentContent {
   source: AnthropicContentSource;
   title?: string;
   context?: string;
+  citations?: { enabled: boolean };
+  cache_control: AnthropicCacheControl | undefined;
+}
+
+export interface AnthropicSearchResultContent {
+  type: 'search_result';
+  source: string;
+  title: string;
+  content: AnthropicTextBlock[];
   citations?: { enabled: boolean };
   cache_control: AnthropicCacheControl | undefined;
 }
@@ -239,6 +258,13 @@ type AnthropicNestedDocumentContent = Omit<
   cache_control?: never;
 };
 
+type AnthropicNestedSearchResultContent = Omit<
+  AnthropicSearchResultContent,
+  'cache_control'
+> & {
+  cache_control?: never;
+};
+
 export interface AnthropicToolReferenceContent {
   type: 'tool_reference';
   tool_name: string;
@@ -257,6 +283,7 @@ export interface AnthropicToolResultContent {
         | AnthropicNestedTextContent
         | AnthropicNestedImageContent
         | AnthropicNestedDocumentContent
+        | AnthropicNestedSearchResultContent
         | AnthropicToolReferenceContent
       >;
   is_error: boolean | undefined;

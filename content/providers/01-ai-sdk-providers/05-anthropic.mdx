@@ -1170,6 +1170,179 @@ For more on prompt caching with Anthropic, see [Anthropic's Cache Control docume
   [here](/docs/foundations/prompts#provider-options).
 </Note>
 
+### Search Results and Citations
+
+Anthropic supports search result blocks and custom content documents that enable Claude to cite specific passages in its responses, matching the citation quality of web search. You can provide search results as file parts with the `providerOptions` property:
+
+```ts highlight="12-19"
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: anthropic('claude-sonnet-5'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'file',
+          mediaType: 'text/plain',
+          data: new TextEncoder().encode(
+            'Search result snippet about quarterly revenue growth.',
+          ),
+          providerOptions: {
+            anthropic: {
+              type: 'search_result',
+              source: 'https://example.com/search/result1',
+              title: 'Quarterly Results',
+              citations: { enabled: true },
+            },
+          },
+        },
+        {
+          type: 'text',
+          text: 'Summarize the search result and include citations.',
+        },
+      ],
+    },
+  ],
+});
+```
+
+The following options are available for search result blocks:
+
+- **type** _'search_result'_
+
+  Required. Indicates this is a search result block.
+
+- **source** _string_
+
+  Required. The URL or identifier for the search result.
+
+- **title** _string_
+
+  A title for the search result. Prefer `title` over `filename`.
+
+- **citations** _object_
+
+  Set `{ enabled: true }` to enable citations. Anthropic's API requires this setting to be consistent across all search results in a request; inconsistent values result in an API error.
+
+- **content** _array_
+
+  Custom content blocks (`{ type: 'text', text: string }`). If not provided, a single text block is derived from the file `data`.
+
+#### Search Results in Tool Results
+
+Tools can return search results directly in their results, so that RAG tool output becomes citable without any additional message content. Use the `toModelOutput` function of the tool to return a `content` output whose text parts carry the search result provider options:
+
+```ts highlight="14-27"
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: anthropic('claude-sonnet-5'),
+  tools: {
+    search_docs: tool({
+      description: 'Search the internal knowledge base.',
+      inputSchema: z.object({ query: z.string() }),
+      execute: async ({ query }) => ({
+        results: await searchKnowledgeBase(query),
+      }),
+      toModelOutput: ({ output }) => ({
+        type: 'content',
+        value: output.results.map(item => ({
+          type: 'text',
+          text: item.text,
+          providerOptions: {
+            anthropic: {
+              type: 'search_result',
+              source: item.url,
+              title: item.title,
+              citations: { enabled: true },
+            },
+          },
+        })),
+      }),
+    }),
+  },
+  prompt: 'What does the documentation say about deployment?',
+});
+```
+
+Because the search results live inside the tool result, this also works in turns that mix server tools (such as web search) and client tools: the follow-up message that carries the tool results does not need any additional content blocks.
+
+#### Custom Content Documents
+
+For pre-chunked text blocks that should be used as-is for citations, use `source: { type: 'content', content: [...] }` with a `text/plain` file part. Claude cites these blocks via `content_block_location` citations:
+
+```ts highlight="14-21"
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: anthropic('claude-sonnet-5'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'file',
+          mediaType: 'text/plain',
+          data: new TextEncoder().encode('Placeholder text for the file part.'),
+          providerOptions: {
+            anthropic: {
+              source: {
+                type: 'content',
+                content: [
+                  { type: 'text', text: 'First custom chunk.' },
+                  { type: 'text', text: 'Second custom chunk.' },
+                ],
+              },
+              title: 'Custom Content Doc',
+              citations: { enabled: true },
+            },
+          },
+        },
+        {
+          type: 'text',
+          text: 'Summarize the custom content and include citations.',
+        },
+      ],
+    },
+  ],
+});
+```
+
+#### Citation Metadata
+
+When citations are enabled, the cited passages are attached to the generated text as `part.citations` (and to streamed text as `text-end.citations`). Search result citations reference the search result's `source` as a URL. The raw `search_result_location` and `content_block_location` citations remain available as `text.providerMetadata.anthropic.citations` (see [Sources and Citations](#sources-and-citations)):
+
+```ts
+import type { AnthropicTextProviderMetadata } from '@ai-sdk/anthropic';
+
+for (const part of result.content) {
+  if (part.type === 'text') {
+    for (const citation of part.citations ?? []) {
+      console.log(`Cited: "${citation.citedText}"`);
+      console.log(`Title: ${citation.source.title}`);
+    }
+
+    const metadata = part.providerMetadata as
+      | AnthropicTextProviderMetadata
+      | undefined;
+    for (const citation of metadata?.anthropic.citations ?? []) {
+      if (citation.type === 'search_result_location') {
+        console.log(`Source: ${citation.source}`);
+        console.log(`Search result index: ${citation.search_result_index}`);
+      }
+    }
+  }
+}
+```
+
+For more details, see [Anthropic's Search Results documentation](https://platform.claude.com/docs/en/build-with-claude/search-results) and [Citations documentation](https://platform.claude.com/docs/en/build-with-claude/citations).
+
 ### Bash Tool
 
 The Bash Tool allows running bash commands. By default, the tool executes

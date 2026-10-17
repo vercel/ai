@@ -1188,7 +1188,13 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     const isCitationPart = (part: {
       type: string;
       mediaType?: string;
-      providerOptions?: { anthropic?: { citations?: { enabled?: boolean } } };
+      providerOptions?: {
+        anthropic?: {
+          citations?: { enabled?: boolean };
+          title?: string;
+          type?: string;
+        };
+      };
     }) => {
       if (part.type !== 'file') {
         return false;
@@ -1205,7 +1211,18 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       const citationsConfig = anthropic?.citations as
         | { enabled?: boolean }
         | undefined;
-      return citationsConfig?.enabled ?? false;
+      if (citationsConfig?.enabled !== true) {
+        return false;
+      }
+
+      // Search result blocks are not documents: their citations use
+      // search_result_location (search_result_index) instead of
+      // document_index, so they must not shift document indices.
+      if (anthropic?.type === 'search_result') {
+        return false;
+      }
+
+      return true;
     };
 
     return prompt
@@ -1215,8 +1232,11 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       .map(part => {
         // TypeScript knows this is a file part due to our filter
         const filePart = part as Extract<typeof part, { type: 'file' }>;
+        const anthropic = filePart.providerOptions?.anthropic as
+          | { title?: string }
+          | undefined;
         return {
-          title: filePart.filename ?? 'Untitled Document',
+          title: anthropic?.title ?? filePart.filename ?? 'Untitled Document',
           filename: filePart.filename,
           mediaType: filePart.mediaType,
         };
