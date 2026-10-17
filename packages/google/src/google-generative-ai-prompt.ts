@@ -22,7 +22,9 @@ export type GoogleGenerativeAIContent = {
 
 export type GoogleGenerativeAIContentPart =
   | { text: string; thought?: boolean; thoughtSignature?: string }
-  | { inlineData: { mimeType: string; data: string } }
+  | ({
+      inlineData: { mimeType: string; data: string };
+    } & GoogleGenerativeAIVideoPartFields)
   | {
       functionCall: { id?: string; name: string; args: unknown };
       thoughtSignature?: string;
@@ -35,7 +37,9 @@ export type GoogleGenerativeAIContentPart =
         parts?: Array<GoogleGenerativeAIFunctionResponsePart>;
       };
     }
-  | { fileData: { mimeType: string; fileUri: string } }
+  | ({
+      fileData: { mimeType: string; fileUri: string };
+    } & GoogleGenerativeAIVideoPartFields)
   | {
       toolCall: {
         toolType: string;
@@ -52,6 +56,11 @@ export type GoogleGenerativeAIContentPart =
       };
       thoughtSignature?: string;
     };
+
+export type GoogleGenerativeAIVideoPartFields = {
+  mediaProcessing?: 'AGENTIC' | 'STATIC';
+  videoMetadata?: { startOffset?: string; endOffset?: string; fps?: number };
+};
 
 export type GoogleGenerativeAIFunctionResponsePart =
   | {
