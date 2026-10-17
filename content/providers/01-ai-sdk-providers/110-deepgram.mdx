@@ -50,6 +50,11 @@ You can use the following optional settings to customize the Deepgram provider i
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
 
+- **webSocket** _WebSocketConstructor_
+
+  Custom WebSocket implementation for streaming transcription.
+  Defaults to the global `WebSocket` constructor.
+
 ## Speech Models
 
 You can create models that call the [Deepgram text-to-speech API](https://developers.deepgram.com/docs/text-to-speech)
@@ -297,6 +302,20 @@ The following provider options are available:
   String to replace redacted content with.
   Optional.
 
+- **streaming** _object_
+
+  Options that only apply to [streaming transcription](#streaming-transcription).
+  Optional.
+  - **interimResults** _boolean_
+
+    Whether to stream interim transcripts before each segment is final.
+    Defaults to `true`.
+
+  - **endpointing** _number | false_
+
+    Milliseconds of silence before Deepgram finalizes a segment.
+    Set it to `false` to turn endpointing off.
+
 ### Model Capabilities
 
 | Model                                                                                              | Transcription | Duration  | Segments  | Language  |
@@ -306,3 +325,64 @@ The following provider options are available:
 | `nova` (+ [variants](https://developers.deepgram.com/docs/models-languages-overview#nova))         | <Check />     | <Check /> | <Check /> | <Cross /> |
 | `enhanced` (+ [variants](https://developers.deepgram.com/docs/models-languages-overview#enhanced)) | <Check />     | <Check /> | <Check /> | <Cross /> |
 | `base` (+ [variants](https://developers.deepgram.com/docs/models-languages-overview#base))         | <Check />     | <Check /> | <Check /> | <Cross /> |
+
+## Streaming Transcription
+
+<Note type="warning">Streaming transcription is an experimental feature.</Note>
+
+Deepgram transcription models also work with `experimental_streamTranscribe`.
+The provider sends the audio to Deepgram's live
+[`/v1/listen` WebSocket](https://developers.deepgram.com/reference/speech-to-text/listen-streaming)
+and returns interim and final transcripts while the speaker is still talking:
+
+```ts
+import { deepgram } from '@ai-sdk/deepgram';
+import { experimental_streamTranscribe as streamTranscribe } from 'ai';
+
+const result = streamTranscribe({
+  model: deepgram.transcription('nova-3'),
+  audio, // ReadableStream<Uint8Array | string> containing raw audio chunks
+  inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+  providerOptions: {
+    deepgram: {
+      smartFormat: true,
+      streaming: { endpointing: 300 },
+    },
+  },
+});
+
+for await (const part of result.fullStream) {
+  if (part.type === 'transcript-partial') {
+    console.log('partial:', part.text);
+  }
+
+  if (part.type === 'transcript-final') {
+    console.log('final:', part.text);
+  }
+}
+```
+
+Send audio continuously. Deepgram closes the connection with a `NET-0001` error
+after 10 seconds without audio, and the stream then ends with an error.
+Deepgram `Error` messages are non-fatal. They arrive as `error` parts in
+`fullStream`, and the stream continues.
+
+The provider maps `audio/pcm`, `audio/pcmu`, and `audio/pcma` to Deepgram's
+`linear16`, `mulaw`, and `alaw` encodings. Set `inputAudioFormat.rate` to the
+sample rate of your audio. It defaults to 16000 Hz for `audio/pcm` and 8000 Hz
+for the G.711 formats.
+
+The API key is sent in the `Sec-WebSocket-Protocol` header (`token, <key>`)
+instead of the `Authorization` header, so a `WebSocket` implementation that
+cannot set headers, such as the global `WebSocket`, can still authenticate.
+
+The final transcript text joins the final segments. The segments contain the
+words of the final segments with their timings, and `durationInSeconds` is the
+audio duration that Deepgram reports when the stream closes.
+`detectLanguage`, `paragraphs`, `summarize`, `topics`, `intents`, `sentiment`,
+`utterances`, and `uttSplit` apply only to pre-recorded audio. The provider
+ignores them for streaming and returns a warning. Set `includeRawChunks: true`
+to receive Deepgram's raw messages, for example `speech_final` on each result.
+
+See [Transcription](/docs/ai-sdk-core/transcription) for more information about
+streaming transcription.
