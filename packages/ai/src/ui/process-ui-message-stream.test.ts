@@ -6341,6 +6341,55 @@ describe('processUIMessageStream', () => {
     `);
   });
 
+  describe('static tool names', () => {
+    it.each(['renamedTool', 'originalTool'])(
+      'updates the streamed tool part type when the available tool name is %s',
+      async toolName => {
+        state = createStreamingUIMessageState({
+          messageId: 'msg-123',
+          lastMessage: undefined,
+        });
+
+        await consumeStream({
+          stream: processUIMessageStream({
+            stream: createUIMessageStream([
+              {
+                type: 'tool-input-start',
+                toolCallId: 'tool-call-1',
+                toolName: 'originalTool',
+              },
+              {
+                type: 'tool-input-available',
+                toolCallId: 'tool-call-1',
+                toolName,
+                input: { query: 'test' },
+              },
+            ]),
+            runUpdateMessageJob,
+            onError: error => {
+              throw error;
+            },
+          }),
+        });
+
+        expect(writeCalls[0].message.parts).toEqual([
+          expect.objectContaining({
+            type: 'tool-originalTool',
+            state: 'input-streaming',
+          }),
+        ]);
+        expect(state.message.parts).toEqual([
+          expect.objectContaining({
+            type: `tool-${toolName}`,
+            toolCallId: 'tool-call-1',
+            state: 'input-available',
+            input: { query: 'test' },
+          }),
+        ]);
+      },
+    );
+  });
+
   describe('dynamic tools', () => {
     let onToolCallInvoked: boolean;
 
