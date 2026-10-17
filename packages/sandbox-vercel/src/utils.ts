@@ -239,8 +239,11 @@ export async function ensureTemplateSnapshot({
     onCreate,
     ...(abortSignal ? { signal: abortSignal } : {}),
   });
+  // A template created from a snapshot source reports that source snapshot as
+  // its current snapshot until it is stopped, so it is not the template's own.
+  const sourceSnapshotId = getSourceSnapshotId(baseParams);
   let snapshotId = prepared.currentSnapshotId;
-  if (snapshotId == null) {
+  if (snapshotId == null || snapshotId === sourceSnapshotId) {
     const stopped = await prepared.stop(
       abortSignal ? { signal: abortSignal } : undefined,
     );
@@ -250,6 +253,7 @@ export async function ensureTemplateSnapshot({
         name: templateName,
         lookupParams,
         abortSignal,
+        ignoreSnapshotId: sourceSnapshotId,
       }));
   }
   snapshotCache?.set(templateName, snapshotId);
@@ -282,14 +286,31 @@ export function createLiveSandboxFromSnapshot({
   });
 }
 
+// `BaseCreateSandboxParams` excludes the snapshot-source variant from its
+// type, but callers pass snapshot sources through it at run time.
+function getSourceSnapshotId(params: object): string | undefined {
+  if (!('source' in params)) return undefined;
+  const source = params.source;
+  return typeof source === 'object' &&
+    source != null &&
+    'type' in source &&
+    source.type === 'snapshot' &&
+    'snapshotId' in source &&
+    typeof source.snapshotId === 'string'
+    ? source.snapshotId
+    : undefined;
+}
+
 export async function pollForTemplateSnapshot({
   name,
   lookupParams,
   abortSignal,
+  ignoreSnapshotId,
 }: {
   name: string;
   lookupParams: SandboxLookupParams;
   abortSignal: AbortSignal | undefined;
+  ignoreSnapshotId?: string;
 }): Promise<string> {
   const deadline = Date.now() + SNAPSHOT_POLL_TIMEOUT_MS;
   while (Date.now() < deadline) {
@@ -300,7 +321,10 @@ export async function pollForTemplateSnapshot({
       resume: false,
       ...(abortSignal ? { signal: abortSignal } : {}),
     });
-    if (refreshed.currentSnapshotId) {
+    if (
+      refreshed.currentSnapshotId &&
+      refreshed.currentSnapshotId !== ignoreSnapshotId
+    ) {
       return refreshed.currentSnapshotId;
     }
     await new Promise<void>(resolve =>

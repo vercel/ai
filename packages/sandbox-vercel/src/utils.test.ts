@@ -1,6 +1,10 @@
 import type { Sandbox } from '@vercel/sandbox';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createLiveSandboxFromSnapshot, ensureTemplateSnapshot } from './utils';
+import {
+  type BaseCreateSandboxParams,
+  createLiveSandboxFromSnapshot,
+  ensureTemplateSnapshot,
+} from './utils';
 
 const { createMock, getOrCreateMock } = vi.hoisted(() => ({
   createMock: vi.fn(),
@@ -47,6 +51,33 @@ describe('Vercel template snapshots', () => {
     expect(stop).toHaveBeenCalledOnce();
     expect(stop).toHaveBeenCalledWith({ signal: abortSignal });
     expect(snapshotCache.get('prepared-template')).toBe('snap_derived');
+  });
+
+  it('snapshots a template created from a snapshot source instead of reusing the source snapshot', async () => {
+    const stop = vi.fn(async () => ({ snapshot: { id: 'snap_derived' } }));
+    getOrCreateMock.mockImplementation(
+      async (opts: { onCreate: (sandbox: Sandbox) => Promise<void> }) => {
+        const prepared = { currentSnapshotId: 'snap_source', stop };
+        await opts.onCreate(prepared as unknown as Sandbox);
+        return prepared;
+      },
+    );
+    const onCreate = vi.fn(async (_sandbox: Sandbox) => {});
+
+    const snapshotId = await ensureTemplateSnapshot({
+      // Snapshot sources reach this function at run time, outside its type.
+      baseParams: {
+        source: { type: 'snapshot', snapshotId: 'snap_source' },
+        timeout: 60_000,
+      } as unknown as BaseCreateSandboxParams,
+      templateName: 'prepared-template',
+      lookupParams: {},
+      onCreate,
+    });
+
+    expect(onCreate).toHaveBeenCalledOnce();
+    expect(stop).toHaveBeenCalledOnce();
+    expect(snapshotId).toBe('snap_derived');
   });
 
   it('forks a live sandbox with the derived snapshot and its own name', async () => {
