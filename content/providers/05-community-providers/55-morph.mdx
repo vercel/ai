@@ -1,0 +1,167 @@
+---
+title: Morph
+description: Learn how to use the Morph provider for the AI SDK.
+---
+
+# Morph Provider
+
+The [Morph](https://www.morphllm.com/) provider gives the AI SDK access to open weight models through Morph's OpenAI compatible API. It supports text generation, streaming, structured outputs, and tool calls.
+
+## Setup
+
+The provider is available through the `@morphllm/morphsdk` package. It works with AI SDK 6 and newer.
+
+<InstallPackages packages="@morphllm/morphsdk" />
+
+### API Key
+
+Create an API key in the [Morph dashboard](https://www.morphllm.com/dashboard/api-keys), then set the `MORPH_API_KEY` environment variable.
+
+```bash
+export MORPH_API_KEY="YOUR_MORPH_API_KEY"
+```
+
+## Provider Instance
+
+Import the default provider instance from `@morphllm/morphsdk/ai-sdk`:
+
+```ts
+import { morph } from '@morphllm/morphsdk/ai-sdk';
+```
+
+You can also create a provider instance with custom settings:
+
+```ts
+import { createMorph } from '@morphllm/morphsdk/ai-sdk';
+
+const morph = createMorph({
+  apiKey: process.env.MORPH_API_KEY,
+  headers: {
+    'x-request-source': 'my-app',
+  },
+});
+```
+
+The `createMorph` function accepts these settings:
+
+<PropertiesTable
+  content={[
+    {
+      name: 'apiKey',
+      type: 'string',
+      isOptional: true,
+      description:
+        'Morph API key. It defaults to the MORPH_API_KEY environment variable.',
+    },
+    {
+      name: 'baseURL',
+      type: 'string',
+      isOptional: true,
+      description:
+        'Base URL for API calls. It defaults to https://api.morphllm.com/v1.',
+    },
+    {
+      name: 'headers',
+      type: 'Record<string, string>',
+      isOptional: true,
+      description: 'Custom headers to include with every request.',
+    },
+    {
+      name: 'fetch',
+      type: 'FetchFunction',
+      isOptional: true,
+      description: 'Custom fetch implementation for middleware or testing.',
+    },
+  ]}
+/>
+
+## Language Models
+
+Create a model by passing its model identifier to the provider:
+
+```ts
+const model = morph('morph-glm53-744b');
+```
+
+Morph currently serves these general models through its shared API:
+
+| Model                       | Model ID               |
+| --------------------------- | ---------------------- |
+| Kimi K3 2.8T                | `morph-kimik3`          |
+| GLM 5.3 744B                | `morph-glm53-744b`      |
+| GLM 5.3 Flash               | `morph-glm53flash`      |
+| DeepSeek V4 Flash 0731      | `morph-dsv4flash`       |
+
+See the [Morph model documentation](https://docs.morphllm.com/sdk/components/fast-models) for current model details.
+
+### Text Generation
+
+```ts
+import { morph } from '@morphllm/morphsdk/ai-sdk';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: morph('morph-glm53-744b'),
+  prompt: 'Write a TypeScript rate limiter.',
+});
+
+console.log(text);
+```
+
+### Streaming
+
+```ts
+import { morph } from '@morphllm/morphsdk/ai-sdk';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: morph('morph-glm53flash'),
+  prompt: 'Explain prefix caching in three paragraphs.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+### Tool Calls
+
+```ts
+import { morph } from '@morphllm/morphsdk/ai-sdk';
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: morph('morph-kimik3'),
+  prompt: 'What is the weather in San Francisco?',
+  tools: {
+    getWeather: tool({
+      description: 'Get the weather for a city',
+      inputSchema: z.object({
+        city: z.string(),
+      }),
+    }),
+  },
+});
+
+console.log(result.toolCalls);
+```
+
+## Dedicated Inference Endpoints
+
+[Morph dedicated inference](https://www.morphllm.com/dedicated-inference) provides reserved capacity behind an isolated OpenAI compatible endpoint. Pass the endpoint base URL to `createMorph` and use the model identifier assigned to that endpoint.
+
+```ts
+import { createMorph } from '@morphllm/morphsdk/ai-sdk';
+import { generateText } from 'ai';
+
+const morph = createMorph({
+  apiKey: process.env.MORPH_API_KEY,
+  baseURL: 'https://your-endpoint.morphllm.com/v1',
+});
+
+const { text } = await generateText({
+  model: morph('your-dedicated-model'),
+  prompt: 'Review this pull request.',
+});
+```
