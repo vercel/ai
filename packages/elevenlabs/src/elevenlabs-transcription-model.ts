@@ -22,7 +22,7 @@ const elevenLabsTranscriptionModelOptionsSchema = z.object({
     .enum(['none', 'word', 'character'])
     .nullish()
     .default('word'),
-  diarize: z.boolean().nullish().default(false),
+  diarize: z.boolean().nullish().default(true),
   fileFormat: z.enum(['pcm_s16le_16', 'other']).nullish().default('other'),
 });
 
@@ -76,7 +76,7 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV3 {
       new File([blob], 'audio', { type: mediaType }),
       `audio.${fileExtension}`,
     );
-    formData.append('diarize', 'true');
+    formData.append('diarize', String(elevenlabsOptions?.diarize ?? true));
 
     // Add provider-specific options
     if (elevenlabsOptions) {
@@ -88,10 +88,6 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV3 {
           elevenlabsOptions.timestampsGranularity ?? undefined,
         file_format: elevenlabsOptions.fileFormat ?? undefined,
       };
-
-      if (typeof elevenlabsOptions.diarize === 'boolean') {
-        formData.append('diarize', String(elevenlabsOptions.diarize));
-      }
 
       for (const key in transcriptionModelOptions) {
         const value =
