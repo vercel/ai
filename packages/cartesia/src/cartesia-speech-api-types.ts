@@ -51,6 +51,16 @@ export type CartesiaSpeechAPITypes = {
   language?: string;
 
   /**
+   * The regional locale to generate speech in.
+   */
+  locale?: string;
+
+  /**
+   * Controls text normalization.
+   */
+  normalization?: string;
+
+  /**
    * The output audio format.
    */
   output_format: CartesiaSpeechOutputFormat;

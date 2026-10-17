@@ -345,5 +345,74 @@ describe('CartesiaSpeechModel', () => {
         },
       });
     });
+
+    it('should support locale and normalization in providerOptions', async () => {
+      prepareAudioResponse();
+
+      await model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+        providerOptions: {
+          cartesia: {
+            locale: 'en-GB',
+            normalization: 'off',
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        locale: 'en-GB',
+        normalization: 'off',
+      });
+    });
+
+    it('should throw InvalidArgumentError when both locale and language are passed in providerOptions', async () => {
+      prepareAudioResponse();
+
+      await expect(
+        model.doGenerate({
+          text: 'Hello, world!',
+          voice: 'test-voice-id',
+          providerOptions: {
+            cartesia: {
+              locale: 'en-GB',
+              language: 'en',
+            },
+          },
+        }),
+      ).rejects.toThrow(
+        'providerOptions.cartesia.locale cannot be combined with providerOptions.cartesia.language',
+      );
+    });
+
+    it('should prioritize providerOptions locale over generic language and emit a warning', async () => {
+      prepareAudioResponse();
+
+      const result = await model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+        language: 'en',
+        providerOptions: {
+          cartesia: {
+            locale: 'en-GB',
+          },
+        },
+      });
+
+      const body = (await server.calls[0].requestBodyJson) as Record<
+        string,
+        unknown
+      >;
+      expect(body.locale).toBe('en-GB');
+      expect(body.language).toBeUndefined();
+      expect(result.warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'language',
+          details:
+            'Cartesia does not support both locale and language. The language option was ignored in favor of providerOptions.cartesia.locale.',
+        },
+      ]);
+    });
   });
 });
