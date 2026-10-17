@@ -4,7 +4,9 @@ export {
   type AgentStreamParameters,
 } from './agent';
 export {
+  type ToolLoopAgentCallParameters,
   type ToolLoopAgentSettings,
+  type ToolLoopAgentStreamParameters,
 
   /**
    * @deprecated Use `ToolLoopAgentSettings` instead.

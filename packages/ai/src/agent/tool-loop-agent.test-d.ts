@@ -18,7 +18,11 @@ import type { AsyncIterableStream } from '../util/async-iterable-stream';
 import type { DeepPartial } from '../util/deep-partial';
 import type { AgentCallParameters, AgentStreamParameters } from './agent';
 import { ToolLoopAgent } from './tool-loop-agent';
-import type { ToolLoopAgentSettings } from './tool-loop-agent-settings';
+import type {
+  ToolLoopAgentCallParameters,
+  ToolLoopAgentSettings,
+  ToolLoopAgentStreamParameters,
+} from './tool-loop-agent-settings';
 
 describe('ToolLoopAgent', () => {
   describe('onFinish callback type compatibility', () => {
@@ -85,7 +89,7 @@ describe('ToolLoopAgent', () => {
       });
 
       expectTypeOf<Parameters<typeof agent.generate>[0]>().toEqualTypeOf<
-        AgentCallParameters<{ callOption: string }>
+        ToolLoopAgentCallParameters<{ callOption: string }, {}>
       >();
     });
 
@@ -95,7 +99,7 @@ describe('ToolLoopAgent', () => {
       });
 
       expectTypeOf<Parameters<typeof agent.generate>[0]>().toEqualTypeOf<
-        AgentCallParameters<never>
+        ToolLoopAgentCallParameters<never, {}>
       >();
     });
 
@@ -323,7 +327,7 @@ describe('ToolLoopAgent', () => {
       });
 
       expectTypeOf<Parameters<typeof agent.stream>[0]>().toEqualTypeOf<
-        AgentStreamParameters<{ callOption: string }, {}>
+        ToolLoopAgentStreamParameters<{ callOption: string }, {}>
       >();
     });
 
@@ -333,7 +337,7 @@ describe('ToolLoopAgent', () => {
       });
 
       expectTypeOf<Parameters<typeof agent.stream>[0]>().toEqualTypeOf<
-        AgentStreamParameters<never, {}>
+        ToolLoopAgentStreamParameters<never, {}>
       >();
     });
 
@@ -665,6 +669,24 @@ describe('ToolLoopAgent', () => {
         >().toEqualTypeOf<never>();
       });
 
+      it('should expose runtimeContext and toolsContext in options', () => {
+        type Settings = ToolLoopAgentSettings<
+          never,
+          typeof mixedTools,
+          { requestId: string }
+        >;
+        type PrepareCallOptions = Parameters<
+          NonNullable<Settings['prepareCall']>
+        >[0];
+
+        expectTypeOf<PrepareCallOptions['runtimeContext']>().toEqualTypeOf<
+          { requestId: string } | undefined
+        >();
+        expectTypeOf<PrepareCallOptions['toolsContext']>().toEqualTypeOf<{
+          weather: { weatherApiKey: string };
+        }>();
+      });
+
       it('should type reasoning in input and return values', () => {
         type PrepareCallResult = Awaited<
           ReturnType<NonNullable<ToolLoopAgentSettings['prepareCall']>>
@@ -898,6 +920,236 @@ describe('ToolLoopAgent', () => {
 
             return {};
           },
+        });
+      });
+    });
+
+    describe('call-level toolsContext', () => {
+      it('should accept toolsContext on generate()', async () => {
+        const agent = new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+          tools: twoToolsWithContext,
+          toolsContext: {
+            weather: { weatherApiKey: 'constructor-key' },
+            db: { dbUrl: 'constructor-url' },
+          },
+        });
+
+        await agent.generate({
+          prompt: 'Hello',
+          toolsContext: {
+            weather: { weatherApiKey: 'call-key' },
+            db: { dbUrl: 'call-url' },
+          },
+        });
+      });
+
+      it('should accept toolsContext on stream()', async () => {
+        const agent = new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+          tools: twoToolsWithContext,
+          toolsContext: {
+            weather: { weatherApiKey: 'constructor-key' },
+            db: { dbUrl: 'constructor-url' },
+          },
+        });
+
+        await agent.stream({
+          prompt: 'Hello',
+          toolsContext: {
+            weather: { weatherApiKey: 'call-key' },
+            db: { dbUrl: 'call-url' },
+          },
+        });
+      });
+
+      it('should not accept toolsContext through the Agent interface', async () => {
+        type CallParameters = AgentCallParameters<
+          never,
+          typeof mixedTools,
+          { requestId: string }
+        >;
+        type StreamParameters = AgentStreamParameters<
+          never,
+          typeof mixedTools,
+          { requestId: string }
+        >;
+
+        expectTypeOf<
+          Extract<'runtimeContext' | 'toolsContext', keyof CallParameters>
+        >().toEqualTypeOf<never>();
+        expectTypeOf<
+          Extract<'runtimeContext' | 'toolsContext', keyof StreamParameters>
+        >().toEqualTypeOf<never>();
+      });
+
+      it('should still require toolsContext in the constructor when the call supplies it', async () => {
+        // @ts-expect-error toolsContext is required in the constructor even if it is also passed per call
+        const agent = new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+          tools: mixedTools,
+          prepareCall: options => {
+            expectTypeOf(options.toolsContext).toEqualTypeOf<{
+              weather: { weatherApiKey: string };
+            }>();
+
+            return options;
+          },
+        });
+
+        await agent.generate({
+          prompt: 'Hello',
+          toolsContext: { weather: { weatherApiKey: 'call-key' } },
+        });
+      });
+
+      it('should reject unknown tool keys', async () => {
+        const agent = new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+          tools: mixedTools,
+          toolsContext: { weather: { weatherApiKey: 'constructor-key' } },
+        });
+
+        await agent.generate({
+          prompt: 'Hello',
+          // @ts-expect-error unknown tool key
+          toolsContext: { unknown: { weatherApiKey: 'key' } },
+        });
+      });
+
+      it('should reject wrong value shape for a known tool key', async () => {
+        const agent = new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+          tools: mixedTools,
+          toolsContext: { weather: { weatherApiKey: 'constructor-key' } },
+        });
+
+        await agent.generate({
+          prompt: 'Hello',
+          // @ts-expect-error missing required weather.weatherApiKey
+          toolsContext: { weather: { wrong: 'value' } },
+        });
+      });
+
+      it('should reject a partial toolsContext map', async () => {
+        const agent = new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+          tools: twoToolsWithContext,
+          toolsContext: {
+            weather: { weatherApiKey: 'constructor-key' },
+            db: { dbUrl: 'constructor-url' },
+          },
+        });
+
+        await agent.generate({
+          prompt: 'Hello',
+          // @ts-expect-error the call-level map replaces the constructor-level map, so db is missing
+          toolsContext: { weather: { weatherApiKey: 'call-key' } },
+        });
+      });
+
+      it('should reject toolsContext when no tool declares a context', async () => {
+        const agent = new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+          tools: toolWithoutContext,
+        });
+
+        await agent.generate({
+          prompt: 'Hello',
+          // @ts-expect-error toolsContext is not accepted when no tools require it
+          toolsContext: {},
+        });
+      });
+
+      it('should reject toolsContext when there are no tools', async () => {
+        const agent = new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+        });
+
+        await agent.stream({
+          prompt: 'Hello',
+          // @ts-expect-error toolsContext is not accepted when no tools are provided
+          toolsContext: {},
+        });
+      });
+
+      it('should type toolsContext in prepareCall as the complete map', async () => {
+        const agent = new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+          tools: mixedTools,
+          toolsContext: { weather: { weatherApiKey: 'constructor-key' } },
+          prepareCall: options => {
+            expectTypeOf(options.toolsContext).toEqualTypeOf<{
+              weather: { weatherApiKey: string };
+            }>();
+
+            return options;
+          },
+        });
+
+        await agent.generate({
+          prompt: 'Hello',
+          toolsContext: { weather: { weatherApiKey: 'call-key' } },
+        });
+      });
+    });
+
+    describe('call-level runtimeContext', () => {
+      it('should accept runtimeContext on generate() and stream()', async () => {
+        const agent = new ToolLoopAgent<never, {}, { requestId: string }>({
+          model: new MockLanguageModelV4(),
+          prepareStep: ({ runtimeContext }) => {
+            expectTypeOf(runtimeContext).toEqualTypeOf<{
+              requestId: string;
+            }>();
+
+            return {};
+          },
+        });
+
+        await agent.generate({
+          prompt: 'Hello',
+          runtimeContext: { requestId: 'req_1' },
+          onEnd: ({ runtimeContext }) => {
+            expectTypeOf(runtimeContext).toEqualTypeOf<{
+              requestId: string;
+            }>();
+          },
+        });
+
+        await agent.stream({
+          prompt: 'Hello',
+          runtimeContext: { requestId: 'req_1' },
+        });
+      });
+
+      it('should accept runtimeContext and toolsContext together on generate()', async () => {
+        const agent = new ToolLoopAgent<
+          never,
+          typeof mixedTools,
+          { requestId: string }
+        >({
+          model: new MockLanguageModelV4(),
+          tools: mixedTools,
+          toolsContext: { weather: { weatherApiKey: 'constructor-key' } },
+        });
+
+        await agent.generate({
+          prompt: 'Hello',
+          runtimeContext: { requestId: 'req_1' },
+          toolsContext: { weather: { weatherApiKey: 'call-key' } },
+        });
+      });
+
+      it('should reject wrong runtimeContext shape', async () => {
+        const agent = new ToolLoopAgent<never, {}, { requestId: string }>({
+          model: new MockLanguageModelV4(),
+        });
+
+        await agent.generate({
+          prompt: 'Hello',
+          // @ts-expect-error requestId must be a string
+          runtimeContext: { requestId: 123 },
         });
       });
     });

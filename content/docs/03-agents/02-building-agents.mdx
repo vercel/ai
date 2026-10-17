@@ -131,8 +131,27 @@ const result = await agent.generate({
 });
 ```
 
-For context that changes with each invocation, use `callOptionsSchema` and
-`prepareCall`. See [Configuring Call Options](/docs/agents/configuring-call-options).
+To override the context for a single call, pass `runtimeContext` or
+`toolsContext` to `generate()` or `stream()`. A call-level `toolsContext`
+replaces the constructor-level map for that call. For context derived from
+custom call options, use `callOptionsSchema` and `prepareCall`. See
+[Configuring Call Options](/docs/agents/configuring-call-options).
+
+```ts
+const result = await agent.generate({
+  prompt: 'Find open billing tickets for this account.',
+  runtimeContext: {
+    requestId: 'req_def',
+    escalated: true,
+  },
+  toolsContext: {
+    searchTickets: {
+      apiKey: process.env.SUPPORT_API_KEY!,
+      accountId: 'acct_456',
+    },
+  },
+});
+```
 
 Model call settings returned from `prepareStep`, such as `temperature`, apply
 only to the current step. Later steps use the agent's top-level setting unless
