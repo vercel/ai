@@ -1911,10 +1911,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
-      raw: undefined,
-    };
+    let finishReason: LanguageModelV4FinishReason | undefined;
     const usage: AnthropicUsage = {
       input_tokens: 0,
       output_tokens: 0,
@@ -3097,6 +3094,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               isMessageOpen = false;
               activeMessageId = undefined;
 
+              if (finishReason == null) {
+                finishReason = { unified: 'other', raw: undefined };
+              }
+
               const anthropicMetadata = {
                 usage: (rawUsage as JSONObject) ?? null,
                 stopSequence,
@@ -3164,6 +3165,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
             }
 
             case 'error': {
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({
                 type: 'error',
                 error: createAnthropicStreamError(value.error),
@@ -3176,6 +3178,26 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               throw new Error(`Unsupported chunk type: ${_exhaustiveCheck}`);
             }
           }
+        },
+
+        flush(controller) {
+          if (finishReason != null) {
+            return;
+          }
+
+          finishReason = { unified: 'error', raw: undefined };
+          controller.enqueue({
+            type: 'error',
+            error: new InvalidResponseDataError({
+              data: undefined,
+              message: 'Response stream ended without a finish reason.',
+            }),
+          });
+          controller.enqueue({
+            type: 'finish',
+            finishReason,
+            usage: convertAnthropicUsage({ usage, rawUsage }),
+          });
         },
       }),
     );

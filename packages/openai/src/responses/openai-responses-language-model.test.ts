@@ -1,4 +1,5 @@
 import {
+  InvalidResponseDataError,
   type LanguageModelV4Content,
   type LanguageModelV4FunctionTool,
   type LanguageModelV4GenerateResult,
@@ -6911,6 +6912,43 @@ describe('OpenAIResponsesLanguageModel', () => {
   });
 
   describe('doStream', () => {
+    it('should report an error when the stream ends without a finish reason', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            type: 'response.output_text.delta',
+            item_id: 'message',
+            delta: 'Hello',
+          })}\n\n`,
+        ],
+      };
+
+      const { stream } = await createModel('gpt-4o').doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+
+      expect(events.filter(event => event.type === 'text-delta')).toStrictEqual(
+        [{ type: 'text-delta', id: 'message', delta: 'Hello' }],
+      );
+
+      const errors = events.filter(event => event.type === 'error');
+      expect(errors).toHaveLength(1);
+      expect(InvalidResponseDataError.isInstance(errors[0].error)).toBe(true);
+      expect(errors[0].error).toMatchObject({
+        message: 'Response stream ended without a finish reason.',
+      });
+
+      expect(events.filter(event => event.type === 'finish')).toStrictEqual([
+        expect.objectContaining({
+          type: 'finish',
+          finishReason: { unified: 'error', raw: undefined },
+        }),
+      ]);
+    });
+
     it('preserves repeated citation ranges and versioned fragment URLs with Unicode text in generation and streaming', async () => {
       const text = '🧪 café — 東京 café';
       const url = 'https://example.com/article?oldid=42#:~:text=caf%C3%A9';
@@ -7003,6 +7041,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             output_index: 0,
             item: { type: 'message', id: 'message' },
           },
+          { type: 'response.completed', response: {} },
         ].map(event => `data: ${JSON.stringify(event)}\n\n`),
       };
       const { stream } = await createModel('gpt-5-nano').doStream({
@@ -8287,6 +8326,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 delta,
               })),
               { type: 'response.output_item.done', output_index: 0, item },
+              { type: 'response.completed', response: {} },
             ].map(chunk => `data: ${JSON.stringify(chunk)}\n\n`),
           };
 
@@ -8626,6 +8666,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 item: { type: 'message', id: 'message' },
               },
               { type: 'response.output_item.done', output_index: 1, item },
+              { type: 'response.completed', response: {} },
             ].map(event => `data: ${JSON.stringify(event)}\n\n`),
           };
           const { stream } = await createModel('gpt-5-nano').doStream({

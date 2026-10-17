@@ -1,16 +1,17 @@
-import type {
-  LanguageModelV4,
-  LanguageModelV4CallOptions,
-  LanguageModelV4Content,
-  LanguageModelV4FunctionTool,
-  LanguageModelV4FinishReason,
-  LanguageModelV4GenerateResult,
-  LanguageModelV4Source,
-  LanguageModelV4StreamPart,
-  LanguageModelV4StreamResult,
-  JSONObject,
-  SharedV4ProviderMetadata,
-  SharedV4Warning,
+import {
+  InvalidResponseDataError,
+  type JSONObject,
+  type LanguageModelV4,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4Content,
+  type LanguageModelV4FinishReason,
+  type LanguageModelV4FunctionTool,
+  type LanguageModelV4GenerateResult,
+  type LanguageModelV4Source,
+  type LanguageModelV4StreamPart,
+  type LanguageModelV4StreamResult,
+  type SharedV4ProviderMetadata,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -901,10 +902,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         (await streamGenerateContent({ ...args, continuationToken })).value,
     });
 
-    let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
-      raw: undefined,
-    };
+    let finishReason: LanguageModelV4FinishReason | undefined;
     let usage: GoogleUsageMetadata | undefined = undefined;
     // Usage of the completed requests of an automatically continued response.
     let continuedUsage: GoogleUsageMetadata | undefined = undefined;
@@ -1049,6 +1047,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                   unified: 'content-filter',
                   raw: confirmedPromptBlockReason,
                 };
+              } else if (value.candidates?.[0] == null) {
+                finishReason = { unified: 'other', raw: undefined };
               }
             }
 
@@ -1479,6 +1479,17 @@ export class GoogleLanguageModel implements LanguageModelV4 {
               controller.enqueue({
                 type: 'reasoning-end',
                 id: currentReasoningBlockId,
+              });
+            }
+
+            if (finishReason == null) {
+              finishReason = { unified: 'error', raw: undefined };
+              controller.enqueue({
+                type: 'error',
+                error: new InvalidResponseDataError({
+                  data: undefined,
+                  message: 'Response stream ended without a finish reason.',
+                }),
               });
             }
 
