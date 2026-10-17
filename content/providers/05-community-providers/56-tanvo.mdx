@@ -1,0 +1,108 @@
+---
+title: Tanvo
+description: Tanvo provider for AI SDK 7 (image and video generation)
+---
+
+# Tanvo
+
+[Tanvo](https://tanvo.ai) is an AI image, video and music studio. The community provider [`@tanvoai/ai-provider`](https://www.npmjs.com/package/@tanvoai/ai-provider) brings its image and video models to the AI SDK: Nano Banana, Seedream, GPT Image, Qwen Image and Grok Imagine for images; Kling, Veo, Seedance, Wan, MiniMax and LTX for video, behind one API key and one credit balance.
+
+The Tanvo provider is a good fit if you want:
+
+- **Many image and video models through one package**, with the price of each run reported back
+- **Image editing and image-to-video**, including first and last frames and native audio
+- **A free tier for trying it out**: the house image engine runs without an API key
+
+## Setup
+
+The `@tanvoai/ai-provider` package supports AI SDK 7 and the Provider V4 specification.
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @tanvoai/ai-provider ai@^7 zod" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @tanvoai/ai-provider ai@^7 zod" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @tanvoai/ai-provider ai@^7 zod" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @tanvoai/ai-provider ai@^7 zod" dark />
+  </Tab>
+</Tabs>
+
+Create an API key in [Tanvo settings](https://tanvo.ai/settings/apikeys) and set it as an environment variable:
+
+```bash
+export TANVO_API_KEY="sk_..."
+```
+
+Without a key, the provider uses Tanvo's anonymous free tier, which covers the `studio-image-v1` model only.
+
+## Provider Instance
+
+You can import the default provider instance `tanvo`, which reads `TANVO_API_KEY`:
+
+```ts
+import { tanvo } from '@tanvoai/ai-provider';
+```
+
+For custom settings, use `createTanvo`:
+
+```ts
+import { createTanvo } from '@tanvoai/ai-provider';
+
+const tanvo = createTanvo({
+  apiKey: process.env.TANVO_API_KEY,
+});
+```
+
+## Image Models
+
+```ts
+import { tanvo } from '@tanvoai/ai-provider';
+import { generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: tanvo.image('nano-banana-2'),
+  prompt: 'isometric cutaway of a tiny ramen shop at night, warm light',
+  aspectRatio: '16:9',
+  providerOptions: { tanvo: { resolution: '2K' } },
+});
+```
+
+To edit or combine photos, pass them in the prompt (`prompt: { text, images }`); local bytes are uploaded for you.
+
+Supported provider options (`providerOptions.tanvo`): `resolution` (`1K`, `2K`, `4K`), `format` (`PNG`, `JPG`, `WEBP`), `negativePrompt`, `requestKey` (idempotency), `timeoutMs` and `pollIntervalMs`.
+
+## Video Models
+
+```ts
+import { tanvo } from '@tanvoai/ai-provider';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { video } = await generateVideo({
+  model: tanvo.video('kling-3-0'),
+  prompt: 'slow dolly-in on a lighthouse in a storm, waves crashing, cinematic',
+  aspectRatio: '16:9',
+  resolution: '1280x720',
+  duration: 5,
+});
+```
+
+Image-to-video (`prompt: { image, text }`), first and last frames (`frameImages`) and `generateAudio` are supported. The provider implements the start/status flow, so `poll` and `webhook` options work.
+
+## Model Capabilities
+
+| Model                                                                                  | Type  | Image input |
+| -------------------------------------------------------------------------------------- | ----- | ----------- |
+| `studio-image-v1` (free tier, no key needed)                                           | image | yes         |
+| `nano-banana-2`, `nano-banana-pro`, `nano-banana-2-lite`, `nano-banana`                | image | yes         |
+| `seedream-5-pro`, `seedream-5-lite`, `seedream-4-5`, `seedream-4`                      | image | yes         |
+| `gpt-image-2-5`, `gpt-image-2`, `qwen-image-3`, `qwen-image-2-1`, `grok-imagine-2`     | image | yes         |
+| `seedance-2-5`, `seedance-2`, `seedance-2-fast`, `seedance-2-mini`, `seedance-1-5-pro` | video | yes         |
+| `kling-3-0`, `kling-3-turbo`, `kling-2-6`, `veo-3-1`                                   | video | yes         |
+| `wan-3-0`, `minimax-h3`, `ltx-2-5`, `flux-3`, `studio-video-v1`                        | video | yes         |
+
+Resolutions, durations, audio and end-frame support differ by model. The full list with options and prices is at `GET https://tanvo.ai/api/v1/models`; see the [Tanvo API reference](https://tanvo.ai/developers/api) for details.
