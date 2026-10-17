@@ -164,7 +164,9 @@ function processLangGraphUpdate(
 
         const msgId = getMessageId(messageChunk);
         const alreadyStreamedText =
-          msgId != null && state.messageSeen.get(msgId)?.text === true;
+          msgId != null &&
+          (state.messageSeen.get(msgId)?.text === true ||
+            state.emittedUpdateTextMessageIds.has(msgId));
 
         if (!alreadyStreamedText) {
           processLangGraphEvent(
@@ -172,6 +174,10 @@ function processLangGraphUpdate(
             state,
             controller,
           );
+
+          if (msgId != null && state.messageSeen.get(msgId)?.text === true) {
+            state.emittedUpdateTextMessageIds.add(msgId);
+          }
         }
       }
     }
@@ -539,6 +545,7 @@ export function toUIMessageStream<TState = unknown>(
     currentStepsByNamespace: new Map(),
     emittedToolCallsByKey: new Map<string, string>(),
     emittedSourceIds: new Set<string>(),
+    emittedUpdateTextMessageIds: new Set<string>(),
   };
 
   /**

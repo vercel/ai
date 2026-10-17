@@ -221,6 +221,39 @@ describe('toUIMessageStream', () => {
     `);
   });
 
+  it('should not duplicate text across multi-step default update streams', async () => {
+    const inputStream = convertArrayToReadableStream([
+      {
+        agent: {
+          messages: [
+            new HumanMessage({ content: 'step1' }),
+            new AIMessage({ content: 'First', id: 'ai-1' }),
+          ],
+        },
+      },
+      {
+        agent: {
+          messages: [
+            new HumanMessage({ content: 'step1' }),
+            new AIMessage({ content: 'First', id: 'ai-1' }),
+            new HumanMessage({ content: 'step2' }),
+            new AIMessage({ content: 'Second', id: 'ai-2' }),
+          ],
+        },
+      },
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    const textDeltas = result.filter(chunk => chunk.type === 'text-delta');
+    expect(textDeltas).toEqual([
+      { delta: 'First', id: 'ai-1', type: 'text-delta' },
+      { delta: 'Second', id: 'ai-2', type: 'text-delta' },
+    ]);
+  });
+
   it('should not duplicate text when updates follow messages mode for the same id', async () => {
     const inputStream = convertArrayToReadableStream([
       ['messages', [new AIMessageChunk({ content: 'Hello', id: 'msg-1' })]],
