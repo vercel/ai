@@ -5,6 +5,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { azureMaiTranscriptionModelOptionsShape } from './azure-mai-transcription-model-options';
+import { azureOpenAITranscriptionModelOptionsShape } from './azure-openai-transcription-model-options';
 import { azureSpeechTranscriptionModelOptionsShape } from './azure-speech-transcription-model-options';
 
 export const azureTranscriptionModelOptions = lazySchema(() =>
@@ -15,6 +16,7 @@ export const azureTranscriptionModelOptions = lazySchema(() =>
        * MAI-Transcribe-2-Streaming, and OpenAI otherwise.
        */
       api: z.enum(['openai', 'speech', 'mai']).optional(),
+      ...azureOpenAITranscriptionModelOptionsShape(),
       ...azureSpeechTranscriptionModelOptionsShape(),
       ...azureMaiTranscriptionModelOptionsShape(),
     }),
