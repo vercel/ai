@@ -62,6 +62,13 @@ export default function Chat() {
         'Maximum number of consecutive errors allowed during reconnection attempts before giving up. Streams that end without receiving any UI message chunks count as errors. Default: 3.',
     },
     {
+      name: 'waitUntilReconnectAllowed',
+      type: '({ abortSignal }: { abortSignal: AbortSignal }) => void | Promise<void>',
+      isOptional: true,
+      description:
+        'Called before every reconnection GET request. Return immediately when reconnection is allowed, or return a promise that resolves when it is allowed again. While pending, the transport makes no reconnection requests and does not consume the consecutive error budget.',
+    },
+    {
       name: 'initialStartIndex',
       type: 'number',
       isOptional: true,
@@ -202,6 +209,27 @@ The transport follows this flow:
 5. **Retry**: If the reconnection stream also interrupts, resume from the updated chunk index. Streams that end without receiving any UI message chunks count toward `maxConsecutiveErrors`, as do stream parsing errors. A successfully parsed stream that receives chunks resets the consecutive error count.
 6. **Complete**: Once a `finish` event is received, call `onChatEnd` and close the stream.
 
+### Pausing and Resuming Reconnection
+
+Use `waitUntilReconnectAllowed` when the application knows reconnection cannot
+succeed, such as while the browser is offline. The callback runs before every
+automatic or explicit reconnection GET request. It can return immediately to
+allow the request, or return a promise to pause until reconnection is allowed.
+
+While paused, the transport:
+
+- sends no reconnection requests;
+- preserves the current chunk cursor;
+- preserves the current `maxConsecutiveErrors` count without incrementing it;
+- does not call `onChatEnd`.
+
+The callback receives an `AbortSignal`. Aborting the chat request, calling
+`stop` from `useChat`, or cancelling the returned `ReadableStream` interrupts
+the wait. If permission and cancellation happen at the same time, cancellation
+takes precedence. A rejected callback promise errors the stream without using
+the reconnection error budget. Without this option, reconnection remains
+immediate.
+
 ### Negative Start Index
 
 When `initialStartIndex` is negative (e.g., `-50`), the transport sends it as-is in the first reconnection request. The server should resolve this to an absolute position and return the `x-workflow-stream-tail-index` response header so the transport can compute the correct position for subsequent retries.
@@ -293,6 +321,55 @@ export default function Chat() {
 
   const { messages, sendMessage } = useChat({ transport });
 
+  // ... render chat UI
+}
+```
+
+### Pause Reconnection While Offline
+
+```tsx
+'use client';
+
+import { useChat } from '@ai-sdk/react';
+import { WorkflowChatTransport } from '@ai-sdk/workflow/client';
+import { useMemo } from 'react';
+
+function waitUntilOnline(abortSignal: AbortSignal) {
+  if (navigator.onLine) return;
+
+  return new Promise<void>((resolve, reject) => {
+    const cleanup = () => {
+      window.removeEventListener('online', onOnline);
+      abortSignal.removeEventListener('abort', onAbort);
+    };
+    const onOnline = () => {
+      cleanup();
+      resolve();
+    };
+    const onAbort = () => {
+      cleanup();
+      reject(abortSignal.reason);
+    };
+
+    window.addEventListener('online', onOnline, { once: true });
+    abortSignal.addEventListener('abort', onAbort, { once: true });
+  });
+}
+
+export default function Chat() {
+  const transport = useMemo(
+    () =>
+      new WorkflowChatTransport({
+        api: '/api/chat',
+        waitUntilReconnectAllowed: ({ abortSignal }) =>
+          waitUntilOnline(abortSignal),
+      }),
+    [],
+  );
+
+  const { messages, sendMessage, stop } = useChat({ transport });
+
+  // `stop()` also cancels a pending wait for the browser to come online.
   // ... render chat UI
 }
 ```
