@@ -29,6 +29,35 @@ export const cartesiaTranscriptionModelOptionsSchema = z.object({
        * Disable this to finalize the transcript only when the audio stream ends.
        */
       turnDetection: z.boolean().optional(),
+      /**
+       * Words or phrases the model should favor, such as product names or
+       * jargon. Up to 100 terms and 1200 characters in total.
+       */
+      keyterms: z.array(z.string()).max(100).optional(),
+      /**
+       * Turn detection: the turn starts when the likelihood that the user is
+       * speaking rises above this value. Ignored when `turnDetection` is
+       * false.
+       */
+      turnStartThreshold: z.number().optional(),
+      /**
+       * Turn detection: an early end of turn is signaled when the likelihood
+       * that the user is speaking falls below this value. Ignored when
+       * `turnDetection` is false.
+       */
+      turnEagerEndThreshold: z.number().optional(),
+      /**
+       * Turn detection: the turn ends when the likelihood that the user is
+       * speaking falls below this value. Ignored when `turnDetection` is
+       * false.
+       */
+      turnEndThreshold: z.number().optional(),
+      /**
+       * Turn detection: the longest time in milliseconds to wait after the user
+       * stops speaking before the turn ends. Ignored when `turnDetection` is
+       * false.
+       */
+      turnEndTimeoutMs: z.number().int().optional(),
     })
     .optional(),
 });
