@@ -158,6 +158,85 @@ describe('CartesiaSpeechModel', () => {
       `);
     });
 
+    it('should send volume in generation_config', async () => {
+      prepareAudioResponse();
+
+      await model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+        providerOptions: { cartesia: { volume: 1.5 } },
+      });
+
+      expect((await server.calls[0].requestBodyJson).generation_config).toEqual(
+        { volume: 1.5 },
+      );
+    });
+
+    it('should send emotion in generation_config', async () => {
+      prepareAudioResponse();
+
+      await model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+        providerOptions: { cartesia: { emotion: 'calm' } },
+      });
+
+      expect((await server.calls[0].requestBodyJson).generation_config).toEqual(
+        { emotion: 'calm' },
+      );
+    });
+
+    it('should combine speed, volume and emotion in one generation_config', async () => {
+      prepareAudioResponse();
+
+      await model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+        speed: 1.2,
+        providerOptions: { cartesia: { volume: 0.8, emotion: 'sad' } },
+      });
+
+      expect((await server.calls[0].requestBodyJson).generation_config).toEqual(
+        { speed: 1.2, volume: 0.8, emotion: 'sad' },
+      );
+    });
+
+    it('should keep volume when an out-of-range generic speed is ignored', async () => {
+      prepareAudioResponse();
+
+      const result = await model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+        speed: 2,
+        providerOptions: { cartesia: { volume: 1.5 } },
+      });
+
+      expect((await server.calls[0].requestBodyJson).generation_config).toEqual(
+        { volume: 1.5 },
+      );
+      expect(result.warnings).toHaveLength(1);
+      expect(result.warnings[0]).toMatchObject({ feature: 'speed' });
+    });
+
+    it.each([
+      ['volume below the range', { volume: 0.4 }],
+      ['volume above the range', { volume: 2.1 }],
+      ['an unknown emotion', { emotion: 'banana' }],
+    ])('should reject %s before sending a request', async (_, options) => {
+      prepareAudioResponse();
+
+      await expect(
+        model.doGenerate({
+          text: 'Hello, world!',
+          voice: 'test-voice-id',
+          providerOptions: { cartesia: options },
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_InvalidArgumentError',
+      });
+      expect(server.calls).toHaveLength(0);
+    });
+
     it('should warn about unsupported instructions parameter', async () => {
       prepareAudioResponse();
 
