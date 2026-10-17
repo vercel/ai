@@ -34,7 +34,10 @@ export function wrapProvider({
         model: providerV4.languageModel(modelId),
         middleware: languageModelMiddleware,
       }),
-    embeddingModel: providerV4.embeddingModel,
+    // Call the forwarded factories through the provider rather than copying the
+    // method references: a class-based provider keeps its configuration in
+    // private fields, and a copied reference runs with the wrapper as `this`.
+    embeddingModel: (modelId: string) => providerV4.embeddingModel(modelId),
     imageModel: (modelId: string) => {
       let model = providerV4.imageModel(modelId);
 
@@ -44,9 +47,15 @@ export function wrapProvider({
 
       return model;
     },
-    transcriptionModel: providerV4.transcriptionModel,
-    speechModel: providerV4.speechModel,
-    rerankingModel: providerV4.rerankingModel,
+    transcriptionModel: providerV4.transcriptionModel
+      ? (modelId: string) => providerV4.transcriptionModel!(modelId)
+      : undefined,
+    speechModel: providerV4.speechModel
+      ? (modelId: string) => providerV4.speechModel!(modelId)
+      : undefined,
+    rerankingModel: providerV4.rerankingModel
+      ? (modelId: string) => providerV4.rerankingModel!(modelId)
+      : undefined,
     ...(providerV4.files != null ? { files: providerV4.files } : {}),
     ...(providerV4.skills != null ? { skills: providerV4.skills } : {}),
   };

@@ -1,4 +1,9 @@
-import type { FilesV4, ProviderV4, SkillsV4 } from '@ai-sdk/provider';
+import type {
+  EmbeddingModelV4,
+  FilesV4,
+  ProviderV4,
+  SkillsV4,
+} from '@ai-sdk/provider';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { MockImageModelV4 } from '../test/mock-image-model-v4';
@@ -173,5 +178,43 @@ describe('wrapProvider', () => {
 
     expect(wrappedProvider.files).toBeUndefined();
     expect(wrappedProvider.skills).toBeUndefined();
+  });
+
+  it('should keep the receiver of class-based forwarded model factories', () => {
+    // A class-based provider keeps its configuration in private fields. Copying
+    // the factory off the provider (rather than calling it through it) runs it
+    // with the wrapper as `this`, so those fields throw (#23294).
+    class ClassProvider implements ProviderV4 {
+      specificationVersion = 'v4' as const;
+      #providerName = 'synthetic';
+
+      languageModel(): never {
+        throw new Error('unused');
+      }
+
+      imageModel(): never {
+        throw new Error('unused');
+      }
+
+      embeddingModel(modelId: string): EmbeddingModelV4 {
+        return {
+          specificationVersion: 'v4',
+          provider: this.#providerName,
+          modelId,
+          maxEmbeddingsPerCall: 1,
+          supportsParallelCalls: true,
+          doEmbed: async () => ({ embeddings: [[1, 2]], warnings: [] }),
+        };
+      }
+    }
+
+    const provider = new ClassProvider();
+
+    const wrappedProvider = wrapProvider({
+      provider,
+      languageModelMiddleware: { specificationVersion: 'v4' },
+    });
+
+    expect(wrappedProvider.embeddingModel('test').provider).toBe('synthetic');
   });
 });
