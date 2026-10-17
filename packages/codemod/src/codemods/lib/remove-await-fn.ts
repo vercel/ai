@@ -1,4 +1,23 @@
+import type { ASTPath } from 'jscodeshift';
 import { createTransformer } from './create-transformer';
+
+/**
+ * Returns true when `name` is re-declared by a binding between `path` and the
+ * module scope (a parameter, variable, function or class), i.e. when a call to
+ * `name` at `path` would not resolve to the top-level import.
+ */
+function isShadowed(path: ASTPath<any>, name: string): boolean {
+  let scope = path.scope;
+
+  while (scope && !scope.isGlobal) {
+    if (scope.declares(name)) {
+      return true;
+    }
+    scope = scope.parent;
+  }
+
+  return false;
+}
 
 export function removeAwaitFn(functionName: string) {
   return createTransformer((fileInfo, api, options, context) => {
@@ -34,7 +53,10 @@ export function removeAwaitFn(functionName: string) {
             argument.type === 'CallExpression' &&
             argument.callee.type === 'Identifier'
           ) {
-            return functionImportNames.has(argument.callee.name);
+            const name = argument.callee.name;
+            // Only touch calls that resolve to the SDK import. A parameter or
+            // local declaration with the same name is an unrelated function.
+            return functionImportNames.has(name) && !isShadowed(path, name);
           }
           return false;
         })
