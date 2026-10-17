@@ -81,9 +81,6 @@ export class CartesiaRealtimeModel implements RealtimeModelV4 {
 
     const sessionConfig = options.sessionConfig;
     const language = sessionConfig?.inputAudioTranscription?.language;
-    if (language != null && language !== 'en') {
-      throw new Error('Cartesia Ink 2 currently supports English only.');
-    }
 
     const fetchFn = this.config.fetch ?? fetch;
     const response = await fetchFn(`${this.config.baseURL}/access-token`, {

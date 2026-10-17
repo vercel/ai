@@ -184,13 +184,13 @@ const token = await cartesia.experimental_realtime.getToken({
   model: 'ink-2',
   sessionConfig: {
     inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
-    inputAudioTranscription: { language: 'en' },
     turnDetection: { type: 'server-vad' },
   },
 });
 ```
 
-Ink 2 produces input transcription events and supports English audio. Turn
+Ink 2 produces input transcription events. It supports English, French, Hindi,
+Japanese and Spanish audio and detects the language automatically. Turn
 detection is enabled by default. To use manual finalization instead, set
 `turnDetection` to `null` in the session config and call `commitAudio()` when
 the current input is complete.
@@ -219,11 +219,6 @@ const result = streamTranscribe({
   model: cartesia.transcription('ink-2'),
   audio, // ReadableStream<Uint8Array | string> containing raw audio chunks
   inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
-  providerOptions: {
-    cartesia: {
-      language: 'en',
-    },
-  },
 });
 
 for await (const part of result.fullStream) {
@@ -242,8 +237,9 @@ opening the WebSocket, so the API key is not included in the WebSocket URL.
 Send audio chunks at approximately their playback rate; Cartesia's realtime
 endpoint is intended for live audio rather than bulk file upload.
 
-Ink 2 supports English audio and uses Cartesia's native turn detection by
-default. To finalize only when the input audio stream ends, pass
+Ink 2 supports English, French, Hindi, Japanese and Spanish audio, detects the
+language automatically, and uses Cartesia's native turn detection by default.
+To finalize only when the input audio stream ends, pass
 `providerOptions.cartesia.streaming.turnDetection: false`.
 
 By default, the provider maps `audio/pcm`, `audio/pcmu`, and `audio/pcma` to
@@ -325,6 +321,7 @@ The following provider options are available:
 - **language** _string_
 
   The language of the audio (ISO 639-1 code). If not specified, it defaults to English.
+  Ink 2 with turn detection detects the language automatically and does not send this value.
   Optional.
 
 - **timestampGranularities** _array of strings_

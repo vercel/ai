@@ -520,7 +520,7 @@ describe('doStream', () => {
     await reader.cancel();
   });
 
-  it('rejects unsupported model operations and Ink 2 languages', async () => {
+  it('rejects unsupported model operations', async () => {
     const provider = createCartesia({
       apiKey: 'test-api-key',
       webSocket: MockWebSocket,
@@ -539,15 +539,57 @@ describe('doStream', () => {
         mediaType: 'audio/wav',
       }),
     ).rejects.toMatchObject({ name: 'AI_UnsupportedFunctionalityError' });
+  });
 
-    await expect(
-      provider.transcription('ink-2').doStream!({
-        audio: convertArrayToReadableStream([]),
-        inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
-        providerOptions: { cartesia: { language: 'es' } },
-      }),
-    ).rejects.toThrow('currently supports English only');
-    expect(MockWebSocket.instances).toHaveLength(0);
+  it('accepts non-English languages for Ink 2 streaming', async () => {
+    const model = createCartesia({
+      apiKey: 'test-api-key',
+      webSocket: MockWebSocket,
+    }).transcription('ink-2');
+
+    const result = await model.doStream!({
+      audio: convertArrayToReadableStream([]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      providerOptions: { cartesia: { language: 'es' } },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    const url = new URL(ws.url);
+    expect(url.pathname).toBe('/stt/turns/websocket');
+    expect(url.searchParams.has('language')).toBe(false);
+
+    ws.open();
+    await flush();
+    ws.serverClose();
+
+    await expect(partsPromise).resolves.toEqual([
+      { type: 'stream-start', warnings: [] },
+      { type: 'finish', text: '', segments: [], language: 'es' },
+    ]);
+  });
+
+  it('omits the language from the finish part when none is set', async () => {
+    const model = createCartesia({
+      apiKey: 'test-api-key',
+      webSocket: MockWebSocket,
+    }).transcription('ink-2');
+
+    const result = await model.doStream!({
+      audio: convertArrayToReadableStream([]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    await flush();
+    ws.serverClose();
+
+    const parts = await partsPromise;
+    const finish = parts.find(part => part.type === 'finish');
+    expect(finish).toBeDefined();
+    expect(finish).not.toHaveProperty('language');
   });
 
   it('closes the WebSocket and stops reading audio when cancelled', async () => {
