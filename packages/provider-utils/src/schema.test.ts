@@ -356,6 +356,44 @@ describe('StandardSchema (StandardJSONSchemaV1)', () => {
       });
     });
 
+    it('should keep object branches of an allOf open', async () => {
+      const standardSchema = createStandardSchema<{ a: string; b: number }>({
+        jsonSchema: {
+          allOf: [
+            {
+              type: 'object',
+              properties: { a: { type: 'string' } },
+              required: ['a'],
+            },
+            {
+              type: 'object',
+              properties: { b: { type: 'number' } },
+              required: ['b'],
+            },
+          ],
+        },
+        validate: async value => ({ value: value as { a: string; b: number } }),
+      });
+
+      const schema = asSchema(standardSchema);
+
+      // each branch must still accept the property the other branch requires
+      expect(await schema.jsonSchema).toStrictEqual({
+        allOf: [
+          {
+            type: 'object',
+            properties: { a: { type: 'string' } },
+            required: ['a'],
+          },
+          {
+            type: 'object',
+            properties: { b: { type: 'number' } },
+            required: ['b'],
+          },
+        ],
+      });
+    });
+
     it('should pass target draft-07 to jsonSchema.input()', async () => {
       let capturedTarget: string | undefined;
 

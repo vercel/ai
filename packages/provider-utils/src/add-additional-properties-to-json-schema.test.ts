@@ -140,7 +140,7 @@ describe('addAdditionalPropertiesToJsonSchema', () => {
     });
   });
 
-  it('adds additionalProperties: false to objects inside allOf', () => {
+  it('leaves object branches of allOf open so the intersection stays satisfiable', () => {
     const schema: JSONSchema7 = {
       type: 'object',
       properties: {
@@ -159,19 +159,133 @@ describe('addAdditionalPropertiesToJsonSchema', () => {
       properties: {
         response: {
           allOf: [
-            {
+            { type: 'object', properties: { name: { type: 'string' } } },
+            { type: 'object', properties: { age: { type: 'number' } } },
+          ],
+        },
+      },
+    });
+  });
+
+  it('keeps a top-level allOf of required objects satisfiable', () => {
+    const schema: JSONSchema7 = {
+      allOf: [
+        {
+          type: 'object',
+          properties: { a: { type: 'string' } },
+          required: ['a'],
+        },
+        {
+          type: 'object',
+          properties: { b: { type: 'number' } },
+          required: ['b'],
+        },
+      ],
+    };
+
+    expect(addAdditionalPropertiesToJsonSchema(schema)).toEqual({
+      allOf: [
+        {
+          type: 'object',
+          properties: { a: { type: 'string' } },
+          required: ['a'],
+        },
+        {
+          type: 'object',
+          properties: { b: { type: 'number' } },
+          required: ['b'],
+        },
+      ],
+    });
+  });
+
+  it('still closes objects nested inside an allOf branch', () => {
+    const schema: JSONSchema7 = {
+      allOf: [
+        {
+          type: 'object',
+          properties: {
+            user: { type: 'object', properties: { name: { type: 'string' } } },
+            tags: {
+              type: 'array',
+              items: { type: 'object', properties: { id: { type: 'string' } } },
+            },
+          },
+        },
+        { type: 'object', properties: { b: { type: 'number' } } },
+      ],
+    };
+
+    expect(addAdditionalPropertiesToJsonSchema(schema)).toEqual({
+      allOf: [
+        {
+          type: 'object',
+          properties: {
+            user: {
               type: 'object',
               additionalProperties: false,
               properties: { name: { type: 'string' } },
             },
-            {
-              type: 'object',
-              additionalProperties: false,
-              properties: { age: { type: 'number' } },
+            tags: {
+              type: 'array',
+              items: {
+                type: 'object',
+                additionalProperties: false,
+                properties: { id: { type: 'string' } },
+              },
             },
+          },
+        },
+        { type: 'object', properties: { b: { type: 'number' } } },
+      ],
+    });
+  });
+
+  it('leaves anyOf alternatives inside an allOf branch open as well', () => {
+    const schema: JSONSchema7 = {
+      allOf: [
+        {
+          anyOf: [
+            { type: 'object', properties: { kind: { const: 'a' } } },
+            { type: 'object', properties: { kind: { const: 'b' } } },
           ],
         },
-      },
+        { type: 'object', properties: { shared: { type: 'string' } } },
+      ],
+    };
+
+    expect(addAdditionalPropertiesToJsonSchema(schema)).toEqual({
+      allOf: [
+        {
+          anyOf: [
+            { type: 'object', properties: { kind: { const: 'a' } } },
+            { type: 'object', properties: { kind: { const: 'b' } } },
+          ],
+        },
+        { type: 'object', properties: { shared: { type: 'string' } } },
+      ],
+    });
+  });
+
+  it('keeps an explicit additionalProperties: false on an allOf branch', () => {
+    const schema: JSONSchema7 = {
+      allOf: [
+        {
+          type: 'object',
+          properties: { a: { type: 'string' } },
+          additionalProperties: false,
+        },
+      ],
+    };
+
+    expect(addAdditionalPropertiesToJsonSchema(schema)).toEqual({
+      allOf: [
+        {
+          type: 'object',
+          properties: { a: { type: 'string' } },
+          additionalProperties: false,
+        },
+      ],
     });
   });
 
