@@ -4,9 +4,11 @@ import { NoSuchModelError } from '@ai-sdk/provider';
 import { AnthropicLanguageModel } from '@ai-sdk/anthropic/internal';
 import { createMiniMax } from './minimax-provider';
 import { MiniMaxVideoModel } from './minimax-video-model';
+import { MinimaxSpeechModel } from './speech/minimax-speech-model';
 
 const AnthropicLanguageModelMock = AnthropicLanguageModel as unknown as Mock;
 const MiniMaxVideoModelMock = MiniMaxVideoModel as unknown as Mock;
+const MinimaxSpeechModelMock = MinimaxSpeechModel as unknown as Mock;
 
 vi.mock('@ai-sdk/anthropic/internal', () => {
   const mockConstructor = vi.fn().mockImplementation(function (
@@ -35,6 +37,21 @@ vi.mock('./minimax-video-model', () => {
   });
   return {
     MiniMaxVideoModel: mockConstructor,
+  };
+});
+
+vi.mock('./speech/minimax-speech-model', () => {
+  const mockConstructor = vi.fn().mockImplementation(function (
+    this: any,
+    modelId: string,
+    config: any,
+  ) {
+    this.provider = config.provider;
+    this.modelId = modelId;
+    this.config = config;
+  });
+  return {
+    MinimaxSpeechModel: mockConstructor,
   };
 });
 
@@ -234,6 +251,112 @@ describe('MiniMaxProvider', () => {
       const constructorCall = MiniMaxVideoModelMock.mock.calls[0];
       expect(constructorCall[1].baseURL).toBe(
         'https://custom-video.example.com',
+      );
+    });
+  });
+
+  describe('speech', () => {
+    it('should construct a speech model with the speech provider id', () => {
+      const provider = createMiniMax();
+      const model = provider.speech('speech-2.8-hd');
+
+      expect(model).toBeInstanceOf(MinimaxSpeechModel);
+
+      const constructorCall = MinimaxSpeechModelMock.mock.calls[0];
+      expect(constructorCall[0]).toBe('speech-2.8-hd');
+      expect(constructorCall[1].provider).toBe('minimax.speech');
+    });
+
+    it('should use the default speech base URL', () => {
+      const provider = createMiniMax();
+      provider.speech('speech-2.8-hd');
+
+      const constructorCall = MinimaxSpeechModelMock.mock.calls[0];
+      expect(constructorCall[1].baseURL).toBe('https://api.minimax.io');
+    });
+
+    it('should use a custom speechBaseURL', () => {
+      const provider = createMiniMax({
+        speechBaseURL: 'https://api.minimaxi.com',
+      });
+      provider.speech('speech-2.8-hd');
+
+      const constructorCall = MinimaxSpeechModelMock.mock.calls[0];
+      expect(constructorCall[1].baseURL).toBe('https://api.minimaxi.com');
+    });
+
+    it('should not derive the speech base URL from the chat baseURL', () => {
+      const provider = createMiniMax({
+        baseURL: 'https://custom.url/anthropic/v1',
+      });
+      provider.speech('speech-2.8-hd');
+
+      const constructorCall = MinimaxSpeechModelMock.mock.calls[0];
+      expect(constructorCall[1].baseURL).toBe('https://api.minimax.io');
+    });
+
+    it('should send a bearer token for authentication', () => {
+      const provider = createMiniMax({ apiKey: 'test-key' });
+      provider.speech('speech-2.8-hd');
+
+      const constructorCall = MinimaxSpeechModelMock.mock.calls[0];
+      const headers = constructorCall[1].headers();
+
+      expect(headers).toMatchObject({
+        authorization: 'Bearer mock-api-key',
+      });
+      expect(loadApiKey).toHaveBeenCalledWith({
+        apiKey: 'test-key',
+        environmentVariableName: 'MINIMAX_API_KEY',
+        description: 'MiniMax API key',
+      });
+    });
+
+    it('should merge custom headers into the speech headers', () => {
+      const provider = createMiniMax({
+        headers: { 'Custom-Header': 'value' },
+      });
+      provider.speech('speech-2.8-hd');
+
+      const constructorCall = MinimaxSpeechModelMock.mock.calls[0];
+      expect(constructorCall[1].headers()).toMatchObject({
+        authorization: 'Bearer mock-api-key',
+        'custom-header': 'value',
+      });
+    });
+
+    it('should pass a custom fetch to the speech model', () => {
+      const customFetch = vi.fn();
+      const provider = createMiniMax({ fetch: customFetch });
+      provider.speech('speech-2.8-hd');
+
+      const constructorCall = MinimaxSpeechModelMock.mock.calls[0];
+      expect(constructorCall[1].fetch).toBe(customFetch);
+    });
+  });
+
+  describe('speechModel', () => {
+    it('should construct the same speech model as speech()', () => {
+      const provider = createMiniMax();
+      const model = provider.speechModel('speech-2.8-hd');
+
+      expect(model).toBeInstanceOf(MinimaxSpeechModel);
+
+      const constructorCall = MinimaxSpeechModelMock.mock.calls[0];
+      expect(constructorCall[0]).toBe('speech-2.8-hd');
+      expect(constructorCall[1].provider).toBe('minimax.speech');
+      expect(constructorCall[1].baseURL).toBe('https://api.minimax.io');
+    });
+
+    it('should use the same custom speechBaseURL as speech()', () => {
+      const provider = createMiniMax({
+        speechBaseURL: 'https://custom-speech.example.com',
+      });
+      provider.speechModel('speech-2.8-hd');
+
+      const constructorCall = MinimaxSpeechModelMock.mock.calls[0];
+      expect(constructorCall[1].baseURL).toBe(
+        'https://custom-speech.example.com',
       );
     });
   });
