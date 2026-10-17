@@ -111,6 +111,28 @@ describe('inboundMessageSchema', () => {
     ).not.toThrow();
   });
 
+  it('keeps the fallback model on a start message', () => {
+    const parsed = inboundMessageSchema.parse({
+      type: 'start',
+      prompt: 'hi',
+      thinking: { type: 'disabled' },
+      fallbackModel: 'claude-haiku-4-5',
+    });
+
+    expect(parsed).toMatchObject({ fallbackModel: 'claude-haiku-4-5' });
+  });
+
+  it('rejects a non-string fallbackModel', () => {
+    expect(() =>
+      inboundMessageSchema.parse({
+        type: 'start',
+        prompt: 'hi',
+        thinking: { type: 'disabled' },
+        fallbackModel: 123,
+      }),
+    ).toThrow();
+  });
+
   it('accepts a start message naming the exact conversation to resume', () => {
     expect(() =>
       inboundMessageSchema.parse({
