@@ -1,6 +1,10 @@
 import type { Sandbox } from '@vercel/sandbox';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createLiveSandboxFromSnapshot, ensureTemplateSnapshot } from './utils';
+import {
+  type BaseCreateSandboxParams,
+  createLiveSandboxFromSnapshot,
+  ensureTemplateSnapshot,
+} from './utils';
 
 const { createMock, getOrCreateMock } = vi.hoisted(() => ({
   createMock: vi.fn(),
@@ -61,10 +65,11 @@ describe('Vercel template snapshots', () => {
     const onCreate = vi.fn(async (_sandbox: Sandbox) => {});
 
     const snapshotId = await ensureTemplateSnapshot({
+      // Snapshot sources reach this function at run time, outside its type.
       baseParams: {
         source: { type: 'snapshot', snapshotId: 'snap_source' },
         timeout: 60_000,
-      },
+      } as unknown as BaseCreateSandboxParams,
       templateName: 'prepared-template',
       lookupParams: {},
       onCreate,

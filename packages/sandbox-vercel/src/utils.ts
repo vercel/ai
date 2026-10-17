@@ -286,11 +286,18 @@ export function createLiveSandboxFromSnapshot({
   });
 }
 
-function getSourceSnapshotId(
-  params: BaseCreateSandboxParams,
-): string | undefined {
-  return params.source?.type === 'snapshot'
-    ? params.source.snapshotId
+// `BaseCreateSandboxParams` excludes the snapshot-source variant from its
+// type, but callers pass snapshot sources through it at run time.
+function getSourceSnapshotId(params: object): string | undefined {
+  if (!('source' in params)) return undefined;
+  const source = params.source;
+  return typeof source === 'object' &&
+    source != null &&
+    'type' in source &&
+    source.type === 'snapshot' &&
+    'snapshotId' in source &&
+    typeof source.snapshotId === 'string'
+    ? source.snapshotId
     : undefined;
 }
 
