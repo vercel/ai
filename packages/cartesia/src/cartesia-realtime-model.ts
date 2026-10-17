@@ -56,6 +56,8 @@ export class CartesiaRealtimeModel implements RealtimeModelV4 {
   };
   private sessionCreated = false;
   private useTurnDetection = true;
+  private turnCount = 0;
+  private connectionId: string | undefined;
 
   constructor(
     modelId: CartesiaRealtimeModelId,
@@ -172,6 +174,8 @@ export class CartesiaRealtimeModel implements RealtimeModelV4 {
     switch (event.type) {
       case 'connected':
         this.sessionCreated = true;
+        this.connectionId = event.request_id;
+        this.turnCount = 0;
         return {
           type: 'session-created',
           sessionId: event.request_id,
@@ -179,22 +183,27 @@ export class CartesiaRealtimeModel implements RealtimeModelV4 {
         };
 
       case 'turn.start':
-        mapped = { type: 'speech-started', itemId: requestId, raw };
+        this.turnCount += 1;
+        mapped = {
+          type: 'speech-started',
+          itemId: this.turnItemId(event),
+          raw,
+        };
         break;
 
       case 'turn.resume':
         mapped = [
-          { type: 'speech-started', itemId: requestId, raw },
+          { type: 'speech-started', itemId: this.turnItemId(event), raw },
           { type: 'custom', rawType: event.type, raw },
         ];
         break;
 
       case 'turn.end':
         mapped = [
-          { type: 'speech-stopped', itemId: requestId, raw },
+          { type: 'speech-stopped', itemId: this.turnItemId(event), raw },
           {
             type: 'input-transcription-completed',
-            itemId: requestId,
+            itemId: this.turnItemId(event),
             transcript: event.transcript ?? '',
             raw,
           },
@@ -262,6 +271,11 @@ export class CartesiaRealtimeModel implements RealtimeModelV4 {
 
   buildSessionConfig(_config: RealtimeModelV4SessionConfig): null {
     return null;
+  }
+
+  private turnItemId(event: CartesiaRealtimeWireEvent): string {
+    const id = event.request_id ?? this.connectionId ?? 'cartesia-realtime';
+    return `${id}:${this.turnCount}`;
   }
 
   private finishManualTranscript(
