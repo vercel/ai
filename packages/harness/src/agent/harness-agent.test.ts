@@ -26,6 +26,7 @@ import { describe, expect, expectTypeOf, test, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { HarnessAgent } from './harness-agent';
 import { HarnessAgentSession } from './harness-agent-session';
+import { createLazyNetworkSandboxSession } from './create-lazy-network-sandbox-session';
 import { HarnessCapabilityUnsupportedError } from '../errors/harness-capability-unsupported-error';
 import { hashHarnessBootstrap } from './internal/bootstrap-recipe';
 
@@ -248,6 +249,31 @@ function makeSandboxSession(
     ...options,
   } as unknown as HarnessV1NetworkSandboxSession;
   return sandboxSession;
+}
+
+function withBootstrapRecipe(harness: HarnessV1): HarnessV1 {
+  return {
+    ...harness,
+    getBootstrap: vi.fn(async () => ({
+      harnessId: 'mock',
+      bootstrapDir: '.harness-bootstrap/mock',
+      files: [],
+      commands: [],
+    })),
+  };
+}
+
+function getStartedSandbox(
+  doStart: ReturnType<typeof mockHarness>['doStart'],
+): HarnessV1NetworkSandboxSession {
+  return doStart.mock.calls[0]![0]
+    .sandboxSession as HarnessV1NetworkSandboxSession;
+}
+
+async function touchStartedSandbox(
+  doStart: ReturnType<typeof mockHarness>['doStart'],
+) {
+  await getStartedSandbox(doStart).readTextFile({ path: '/work/touch.txt' });
 }
 
 function zeroUsage() {
@@ -3383,14 +3409,12 @@ describe('HarnessAgent', () => {
     await session.destroy();
   });
 
-  test('sandboxConfig.onSession runs after the session work dir exists and before harness start', async () => {
-    const { harness, doStart } = mockHarness({ script: () => [] });
-    const run = vi.fn(async () => ({ exitCode: 0, stdout: '', stderr: '' }));
-    const restrictedSession = { label: 'restricted', run };
-    const sandboxSession = makeSandboxSession({
-      run,
-      restricted: () => restrictedSession as never,
-    });
+  test('sandboxConfig.onSession runs after the session work dir exists and before harness start for a harness with a bootstrap recipe', async () => {
+    const base = mockHarness({ script: () => [] });
+    const harness = withBootstrapRecipe(base.harness);
+    const doStart = base.doStart;
+    const sandboxSession = makeSandboxSession();
+    const run = vi.mocked(sandboxSession.run);
     const onSandboxSession = vi.fn(async () => {});
     const agent = new HarnessAgent({
       harness,
@@ -3408,11 +3432,14 @@ describe('HarnessAgent', () => {
       abortSignal: undefined,
     });
     expect(onSandboxSession).toHaveBeenCalledWith({
-      session: restrictedSession,
+      session: expect.any(Object),
       sessionWorkDir: '/work/mock-s1',
       abortSignal: undefined,
     });
-    expect(run.mock.invocationCallOrder[0]!).toBeLessThan(
+    const mkdirCall = run.mock.calls.findIndex(
+      ([args]) => args.command === 'mkdir -p "$WORK_DIR"',
+    );
+    expect(run.mock.invocationCallOrder[mkdirCall]!).toBeLessThan(
       onSandboxSession.mock.invocationCallOrder[0]!,
     );
     expect(onSandboxSession.mock.invocationCallOrder[0]!).toBeLessThan(
@@ -3440,6 +3467,7 @@ describe('HarnessAgent', () => {
       sessionId: 's1',
       sandboxSession,
     });
+    await touchStartedSandbox(doStart);
 
     expect(run).toHaveBeenCalledWith({
       command: 'mkdir -p "$WORK_DIR"',
@@ -3461,7 +3489,7 @@ describe('HarnessAgent', () => {
   test('deprecated top-level onSandboxSession warns and still runs', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     try {
-      const { harness } = mockHarness({ script: () => [] });
+      const { harness, doStart } = mockHarness({ script: () => [] });
       const onSandboxSession = vi.fn(async () => {});
       const agent = new HarnessAgent({
         harness,
@@ -3472,6 +3500,7 @@ describe('HarnessAgent', () => {
         sessionId: 's1',
         sandboxSession: makeSandboxSession(),
       });
+      await touchStartedSandbox(doStart);
 
       expect(warn).toHaveBeenCalledWith(
         'HarnessAgent: `onSandboxSession` is deprecated. Use `sandboxConfig.onSession` instead.',
@@ -3667,7 +3696,7 @@ describe('HarnessAgent', () => {
   });
 
   test('deprecated constructor sandbox provider runs sandboxConfig.onBootstrap during onFirstCreate', async () => {
-    const { harness } = mockHarness({ script: () => [] });
+    const { harness, doStart } = mockHarness({ script: () => [] });
     const run = vi.fn(async (args: { command: string }) => {
       if (args.command === 'pwd') {
         return { exitCode: 0, stdout: '/work\n', stderr: '' };
@@ -3720,6 +3749,7 @@ describe('HarnessAgent', () => {
     });
 
     const session = await agent.createSession({ sessionId: 's1' });
+    await touchStartedSandbox(doStart);
 
     expect(createSession.mock.calls[0]![0]).toEqual({
       sessionId: 's1',
@@ -3742,7 +3772,7 @@ describe('HarnessAgent', () => {
   });
 
   test('sandboxConfig.onBootstrap runs for a resumed session missing its marker while onSession still runs', async () => {
-    const { harness } = mockHarness({ script: () => [] });
+    const { harness, doStart } = mockHarness({ script: () => [] });
     const onSandboxBootstrap = vi.fn(async () => {});
     const onSandboxSession = vi.fn(async () => {});
     const agent = new HarnessAgent({
@@ -3765,6 +3795,7 @@ describe('HarnessAgent', () => {
         data: {},
       },
     });
+    await touchStartedSandbox(doStart);
 
     expect(onSandboxBootstrap).toHaveBeenCalledOnce();
     expect(onSandboxSession).toHaveBeenCalledWith({
@@ -3989,7 +4020,7 @@ describe('HarnessAgent', () => {
   });
 
   test('sandboxConfig.onSession runs for resumed sessions', async () => {
-    const { harness } = mockHarness({ script: () => [] });
+    const { harness, doStart } = mockHarness({ script: () => [] });
     const sandboxSessionEvents: Array<{ sessionWorkDir: string }> = [];
     const onSandboxSession = vi.fn(async (opts: { sessionWorkDir: string }) => {
       sandboxSessionEvents.push({ sessionWorkDir: opts.sessionWorkDir });
@@ -4009,9 +4040,256 @@ describe('HarnessAgent', () => {
         data: {},
       },
     });
+    await touchStartedSandbox(doStart);
 
     expect(onSandboxSession).toHaveBeenCalledTimes(1);
     expect(sandboxSessionEvents).toEqual([{ sessionWorkDir: '/work/mock-s1' }]);
+
+    await session.destroy();
+  });
+
+  test('for a harness without a bootstrap recipe, sandbox setup runs on the first sandbox operation, not at createSession()', async () => {
+    const { harness, doStart } = mockHarness({ script: () => [] });
+    const run = vi.fn(async () => ({ exitCode: 0, stdout: '', stderr: '' }));
+    const readTextFile = vi.fn(async () => 'content');
+    const restrictedSession = { label: 'restricted', run, readTextFile };
+    const sandboxSession = makeSandboxSession({
+      run,
+      readTextFile,
+      restricted: () => restrictedSession as never,
+    });
+    const onSession = vi.fn(async () => {});
+    const agent = new HarnessAgent({
+      harness,
+      sandboxConfig: { onSession },
+    });
+
+    const session = await agent.createSession({
+      sessionId: 's1',
+      sandboxSession,
+    });
+
+    expect(doStart).toHaveBeenCalledTimes(1);
+    expect(run).not.toHaveBeenCalled();
+    expect(onSession).not.toHaveBeenCalled();
+
+    const startedSandbox = getStartedSandbox(doStart);
+    await expect(
+      startedSandbox.readTextFile({ path: '/work/mock-s1/a.txt' }),
+    ).resolves.toBe('content');
+
+    expect(run).toHaveBeenCalledTimes(1);
+    expect(run).toHaveBeenCalledWith({
+      command: 'mkdir -p "$WORK_DIR"',
+      env: { WORK_DIR: '/work/mock-s1' },
+      abortSignal: undefined,
+    });
+    expect(onSession).toHaveBeenCalledWith({
+      session: restrictedSession,
+      sessionWorkDir: '/work/mock-s1',
+      abortSignal: undefined,
+    });
+    expect(run.mock.invocationCallOrder[0]!).toBeLessThan(
+      onSession.mock.invocationCallOrder[0]!,
+    );
+    expect(onSession.mock.invocationCallOrder[0]!).toBeLessThan(
+      readTextFile.mock.invocationCallOrder[0]!,
+    );
+
+    await session.destroy();
+  });
+
+  test('for a harness without a bootstrap recipe, concurrent first operations on the sandbox and its restricted view share one setup', async () => {
+    const { harness, doStart } = mockHarness({ script: () => [] });
+    const sandboxSession = makeSandboxSession();
+    const agent = new HarnessAgent({
+      harness,
+    });
+
+    const session = await agent.createSession({
+      sessionId: 's1',
+      sandboxSession,
+    });
+    expect(sandboxSession.run).not.toHaveBeenCalled();
+    const startedSandbox = getStartedSandbox(doStart);
+
+    await Promise.all([
+      startedSandbox.readTextFile({ path: '/work/mock-s1/a.txt' }),
+      startedSandbox.restricted().writeTextFile({
+        path: '/work/mock-s1/b.txt',
+        content: 'b',
+      }),
+      startedSandbox.restricted().run({ command: 'true' }),
+    ]);
+
+    const mkdirCalls = vi
+      .mocked(sandboxSession.run)
+      .mock.calls.filter(([args]) => args.command === 'mkdir -p "$WORK_DIR"');
+    expect(mkdirCalls).toHaveLength(1);
+    expect(sandboxSession.run).toHaveBeenCalledWith({ command: 'true' });
+
+    await session.destroy();
+  });
+
+  test('for a harness without a bootstrap recipe, a failed sandbox setup rejects its operation and is retried on the next one', async () => {
+    const { harness, doStart } = mockHarness({ script: () => [] });
+    const run = vi
+      .fn()
+      .mockResolvedValueOnce({ exitCode: 1, stdout: '', stderr: 'denied' })
+      .mockResolvedValue({ exitCode: 0, stdout: '', stderr: '' });
+    const readTextFile = vi.fn(async () => 'content');
+    const sandboxSession = makeSandboxSession({ run, readTextFile });
+    const agent = new HarnessAgent({
+      harness,
+    });
+
+    const session = await agent.createSession({
+      sessionId: 's1',
+      sandboxSession,
+    });
+    const startedSandbox = getStartedSandbox(doStart);
+
+    await expect(
+      startedSandbox.readTextFile({ path: '/work/mock-s1/a.txt' }),
+    ).rejects.toThrow(
+      'Failed to create sandbox work directory /work/mock-s1 (exit 1): denied',
+    );
+    expect(readTextFile).not.toHaveBeenCalled();
+
+    await expect(
+      startedSandbox.readTextFile({ path: '/work/mock-s1/a.txt' }),
+    ).resolves.toBe('content');
+    expect(run).toHaveBeenCalledTimes(2);
+    expect(readTextFile).toHaveBeenCalledTimes(1);
+
+    await session.destroy();
+  });
+
+  test('for a harness without a bootstrap recipe, stopping and destroying the sandbox does not run setup', async () => {
+    const { harness, doStart } = mockHarness({ script: () => [] });
+    const sandboxSession = makeSandboxSession();
+    const { run, stop, destroy } = sandboxSession;
+    const onSession = vi.fn(async () => {});
+    const agent = new HarnessAgent({
+      harness,
+      sandboxConfig: { onSession },
+    });
+
+    const session = await agent.createSession({
+      sessionId: 's1',
+      sandboxSession,
+    });
+    const startedSandbox = getStartedSandbox(doStart);
+
+    await startedSandbox.stop();
+    await startedSandbox.destroy();
+
+    expect(stop).toHaveBeenCalledTimes(1);
+    expect(destroy).toHaveBeenCalledTimes(1);
+    expect(run).not.toHaveBeenCalled();
+    expect(onSession).not.toHaveBeenCalled();
+
+    await session.destroy();
+  });
+
+  test('createSession() reports a missing sandbox before it asks the harness for a bootstrap recipe', async () => {
+    const harness = withBootstrapRecipe(
+      mockHarness({ script: () => [] }).harness,
+    );
+
+    await expect(new HarnessAgent({ harness }).createSession()).rejects.toThrow(
+      'HarnessAgent.createSession: configure `sandbox` on HarnessAgent or pass `sandboxSession` to createSession().',
+    );
+
+    expect(harness.getBootstrap).not.toHaveBeenCalled();
+  });
+
+  test('for a harness without a bootstrap recipe, a sandbox provider is still called at createSession() while the work dir waits', async () => {
+    const { harness, doStart } = mockHarness({ script: () => [] });
+    const sandboxSession = makeSandboxSession();
+    const run = vi.mocked(sandboxSession.run);
+    const createSession = vi.fn(async () => sandboxSession);
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: {
+        specificationVersion: 'harness-sandbox-v1',
+        providerId: 'mock-sandbox',
+        createSession,
+      },
+    });
+
+    const session = await agent.createSession({ sessionId: 's1' });
+
+    expect(createSession).toHaveBeenCalledTimes(1);
+    expect(run).not.toHaveBeenCalled();
+
+    const startedSandbox = getStartedSandbox(doStart);
+    await startedSandbox.run({ command: 'ls' });
+
+    expect(run.mock.calls).toEqual([
+      [
+        {
+          command: 'mkdir -p "$WORK_DIR"',
+          env: { WORK_DIR: '/work/mock-s1' },
+          abortSignal: undefined,
+        },
+      ],
+      [{ command: 'ls' }],
+    ]);
+
+    await session.destroy();
+  });
+
+  test('for a harness without a bootstrap recipe, a lazy network sandbox session acquires no sandbox for a chat-only turn', async () => {
+    const { harness, doStart } = mockHarness({
+      script: () => [
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'hello' },
+        { type: 'text-end', id: 'text-1' },
+        {
+          type: 'finish-step',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          usage: zeroUsage(),
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          totalUsage: zeroUsage(),
+        },
+      ],
+    });
+    const run = vi.fn(async () => ({ exitCode: 0, stdout: '', stderr: '' }));
+    const readTextFile = vi.fn(async () => 'content');
+    const acquiredSandbox = makeSandboxSession({ run, readTextFile });
+    const acquire = vi.fn(async () => acquiredSandbox);
+    const agent = new HarnessAgent({
+      harness,
+    });
+
+    const session = await agent.createSession({
+      sessionId: 's1',
+      sandboxSession: createLazyNetworkSandboxSession({
+        acquire,
+        defaultWorkingDirectory: '/work',
+      }),
+    });
+    const generated = await agent.generate({ session, prompt: 'hi' });
+
+    expect(generated.text).toBe('hello');
+    expect(acquire).not.toHaveBeenCalled();
+
+    const startedSandbox = getStartedSandbox(doStart);
+    await startedSandbox.readTextFile({ path: '/work/mock-s1/a.txt' });
+
+    expect(acquire).toHaveBeenCalledTimes(1);
+    expect(run).toHaveBeenCalledWith({
+      command: 'mkdir -p "$WORK_DIR"',
+      env: { WORK_DIR: '/work/mock-s1' },
+      abortSignal: undefined,
+    });
+    expect(run.mock.invocationCallOrder[0]!).toBeLessThan(
+      readTextFile.mock.invocationCallOrder[0]!,
+    );
 
     await session.destroy();
   });

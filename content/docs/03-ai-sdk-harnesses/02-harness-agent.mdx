@@ -547,6 +547,76 @@ to `'.'` to use the sandbox's default working directory itself. When omitted,
 regular sessions use the default `<harnessId>-<sessionId>` directory, while
 `onBootstrap` receives the sandbox's default working directory.
 
+When the harness declares a sandbox bootstrap recipe, as Claude Code and Codex
+do, `createSession()` runs the session's sandbox setup before the harness
+starts: it runs `onBootstrap` when its marker is missing, creates the session
+working directory, and calls `onSession`. For any other harness, such as Pi,
+the setup runs on the first file, exec, or spawn operation that the harness or
+a host tool performs on the sandbox. A session whose turns never touch the
+sandbox then makes no setup calls. If the setup fails, the operation that
+triggered it rejects, and the next operation runs the setup again. A sandbox
+session without `defaultWorkingDirectory` still answers one `pwd` in
+`createSession()`, because the session working directory is derived from it.
+
+## Start the Sandbox on First Use
+
+Deferring the setup does not defer the sandbox itself: `createSession()` still
+creates or resumes a sandbox session. To defer creating the sandbox as well,
+pass a session from `createLazyNetworkSandboxSession()`. Its `acquire` function creates or resumes
+the sandbox the first time the harness or a host tool performs a file, exec,
+spawn, or port operation. Whether a turn that only chats calls it depends on the
+harness: a harness that reads the sandbox when a session starts acquires it
+during `createSession()`.
+
+```ts
+import {
+  createLazyNetworkSandboxSession,
+  HarnessAgent,
+} from '@ai-sdk/harness/agent';
+import { pi } from '@ai-sdk/harness-pi';
+import {
+  createVercelNetworkSandboxSession,
+  resumeVercelNetworkSandboxSession,
+} from '@ai-sdk/sandbox-vercel';
+
+const agent = new HarnessAgent({ harness: pi });
+
+const sandboxId = `harness-${sessionId}`;
+const session = await agent.createSession({
+  sessionId,
+  sandboxSession: createLazyNetworkSandboxSession({
+    defaultWorkingDirectory: '/vercel/sandbox',
+    acquire: async () => {
+      const sandboxSession = isFirstTurn
+        ? await createVercelNetworkSandboxSession({
+            sandboxId,
+            runtime: 'node24',
+          })
+        : await resumeVercelNetworkSandboxSession({ sandboxId });
+      await saveSandboxId(sessionId, sandboxSession.id);
+      return sandboxSession;
+    },
+  }),
+});
+```
+
+Keep the following constraints in mind:
+
+- The harness must not declare a sandbox bootstrap recipe. A harness with one
+  sets up its sandbox during `createSession()`, which acquires it.
+- `defaultWorkingDirectory`, `ports`, and `description` are fixed when you
+  create the session. `defaultWorkingDirectory` must match what the acquired
+  sandbox reports, because `createSession()` derives the session working
+  directory from it.
+- `acquire` runs at most once. If it rejects, every later operation rejects
+  with the same error, because the sandbox may or may not exist and must not
+  be created twice.
+- `id` throws until `acquire` resolves, so record the sandbox id inside
+  `acquire`.
+- The session does not provide `setNetworkPolicy`, request transformations, or
+  `setPorts`. A harness that needs them needs an eagerly created session.
+- `stop()` and `destroy()` do nothing when the sandbox was never acquired.
+
 ## Prepare Reusable Sandboxes
 
 Use `agent.getSandboxTemplate()` to resolve one harness's bootstrap recipe and
