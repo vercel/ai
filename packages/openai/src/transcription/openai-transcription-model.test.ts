@@ -647,6 +647,88 @@ describe('doGenerate', () => {
     expect(result.language).toBeUndefined();
     expect(result.durationInSeconds).toBeUndefined();
   });
+
+  it('should resolve language when response returns language code directly', async () => {
+    server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
+      type: 'json-value',
+      body: {
+        task: 'transcribe',
+        text: 'Hello world',
+        language: 'en',
+      },
+    };
+
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    expect(result.language).toBe('en');
+  });
+
+  it('should resolve language and metadata from languages array when single language object is returned', async () => {
+    server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
+      type: 'json-value',
+      body: {
+        task: 'transcribe',
+        text: 'Hello world',
+        languages: [{ code: 'en', probability: 0.99 }],
+      },
+    };
+
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    expect(result.language).toBe('en');
+    expect(result.providerMetadata?.openai?.languages).toEqual([
+      { code: 'en', probability: 0.99 },
+    ]);
+  });
+
+  it('should preserve languages array in providerMetadata and leave language undefined when multiple languages are detected', async () => {
+    server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
+      type: 'json-value',
+      body: {
+        task: 'transcribe',
+        text: 'Hello world',
+        languages: [{ code: 'en' }, { code: 'es' }],
+      },
+    };
+
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    expect(result.language).toBeUndefined();
+    expect(result.providerMetadata?.openai?.languages).toEqual([
+      { code: 'en' },
+      { code: 'es' },
+    ]);
+  });
+
+  it('should preserve regional codes in providerMetadata and leave language undefined when not fitting ISO-639-1', async () => {
+    server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
+      type: 'json-value',
+      body: {
+        task: 'transcribe',
+        text: 'Hello world',
+        languages: [{ code: 'en-US' }],
+      },
+    };
+
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    expect(result.language).toBeUndefined();
+    expect(result.providerMetadata?.openai?.languages).toEqual([
+      { code: 'en-US' },
+    ]);
+  });
 });
 
 describe('doStream', () => {
