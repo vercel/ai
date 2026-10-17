@@ -879,6 +879,60 @@ describe('Claude Code bridge configuration', () => {
     },
   );
 
+  test('re-emits a native call before its approval request when an earlier approval paused the step', async () => {
+    state.start.permissionMode = 'allow-reads';
+    state.createQuery = args =>
+      (async function* () {
+        const canUseTool = args.options.canUseTool as (
+          name: string,
+          input: Record<string, unknown>,
+          options: { toolUseID: string },
+        ) => Promise<unknown>;
+        yield { type: 'stream_event', event: { type: 'message_start' } };
+        yield {
+          type: 'assistant',
+          message: {
+            content: ['first', 'second'].map(id => ({
+              type: 'tool_use',
+              id,
+              name: 'Bash',
+              input: { command: id },
+            })),
+          },
+        };
+        yield { type: 'stream_event', event: { type: 'message_stop' } };
+        for (const id of ['first', 'second']) {
+          await canUseTool('Bash', { command: id }, { toolUseID: id });
+        }
+        yield { type: 'result', subtype: 'success', result: 'done' };
+      })();
+
+    await import('./index');
+
+    expect(
+      state.emitted
+        .filter(event =>
+          ['tool-call', 'tool-approval-request', 'finish-step'].includes(
+            event.type as string,
+          ),
+        )
+        .map(event =>
+          event.type === 'finish-step'
+            ? `finish-step:${(event.finishReason as { raw: string }).raw}`
+            : `${event.type}:${event.toolCallId}`,
+        ),
+    ).toEqual([
+      'tool-call:first',
+      'tool-call:second',
+      'tool-approval-request:first',
+      'finish-step:host-input',
+      'tool-call:second',
+      'tool-approval-request:second',
+      'finish-step:host-input',
+      'finish-step:stop',
+    ]);
+  });
+
   test('allows ListAgents without approval in allow-reads mode', async () => {
     state.start = {
       ...state.start,
