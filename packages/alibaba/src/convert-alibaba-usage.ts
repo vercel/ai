@@ -1,6 +1,15 @@
 import { convertOpenAICompatibleChatUsage } from '@ai-sdk/openai-compatible/internal';
 import type { LanguageModelV3Usage } from '@ai-sdk/provider';
 
+/**
+ * Usage as reported by Alibaba's OpenAI-compatible chat completions API.
+ *
+ * The fields below are the ones this provider maps onto the standard usage
+ * shape. Alibaba returns more than this, and `alibabaUsageSchema` parses
+ * loosely so that anything undeclared survives into `raw` rather than being
+ * dropped. Declared fields are therefore a subset of what a caller may find
+ * there.
+ */
 export type AlibabaUsage = {
   prompt_tokens?: number | null;
   completion_tokens?: number | null;
@@ -8,6 +17,14 @@ export type AlibabaUsage = {
   prompt_tokens_details?: {
     cached_tokens?: number | null;
     cache_creation_input_tokens?: number | null;
+    /**
+     * Which caching mode served the request. Alibaba populates this only under
+     * explicit context caching, which sending `cache_control` selects; under
+     * implicit caching the field is absent. The two modes are mutually
+     * exclusive and priced differently, so this is the discriminator for
+     * attributing cache reads to a rate.
+     */
+    cache_type?: string | null;
   } | null;
   completion_tokens_details?: {
     reasoning_tokens?: number | null;
