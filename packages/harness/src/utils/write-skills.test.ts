@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest';
 import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
 import { writeSkills } from './write-skills';
 
-function makeSandbox({ supportsBatchWrites = true } = {}) {
+function makeSandbox({
+  supportsBatchWrites = true,
+  failFirstBatchAfter,
+}: {
+  supportsBatchWrites?: boolean;
+  failFirstBatchAfter?: number;
+} = {}) {
   const files = new Map<string, string>();
   const directories = new Set<string>();
   const runs: string[] = [];
@@ -66,7 +72,16 @@ function makeSandbox({ supportsBatchWrites = true } = {}) {
             files: Array<{ path: string; content: string }>;
           }) {
             batchWrites.push(batch);
-            for (const file of batch) writeTextFile(file);
+            for (const [index, file] of batch.entries()) {
+              if (
+                batchWrites.length === 1 &&
+                failFirstBatchAfter !== undefined &&
+                index === failFirstBatchAfter
+              ) {
+                throw new Error('batch write failed');
+              }
+              writeTextFile(file);
+            }
           },
         }
       : {}),
@@ -309,6 +324,48 @@ describe('writeSkills', () => {
     );
     expect(state.files.has('/home/user/.agents/skills/demo/SKILL.md')).toBe(
       true,
+    );
+  });
+
+  it('leaves a pending manifest after partial batch failure and recovers on retry', async () => {
+    const state = makeSandbox({ failFirstBatchAfter: 1 });
+    const options = {
+      sandbox: state.sandbox,
+      homePath: '/home/user',
+      skillsDir: '.agents/skills',
+      skills: [demoSkill],
+    };
+
+    await expect(writeSkills(options)).rejects.toThrow('batch write failed');
+
+    const manifestPath =
+      '/home/user/.agents/skills/.ai-sdk-harness-skills.json';
+    expect(JSON.parse(state.files.get(manifestPath)!)).toMatchObject({
+      state: 'pending',
+      skills: [{ name: 'demo' }],
+    });
+    expect(
+      state.writes.filter(write => write.path.includes('/skills/demo/')),
+    ).toEqual([
+      {
+        path: '/home/user/.agents/skills/demo/reference.md',
+        content: '# Reference',
+      },
+    ]);
+    expect(state.batchWrites).toHaveLength(1);
+
+    await expect(writeSkills(options)).resolves.toMatchObject({
+      changed: true,
+      written: ['demo'],
+    });
+
+    expect(state.batchWrites).toHaveLength(2);
+    expect(JSON.parse(state.files.get(manifestPath)!)).toMatchObject({
+      state: 'complete',
+      skills: [{ name: 'demo' }],
+    });
+    expect(state.files.get('/home/user/.agents/skills/demo/SKILL.md')).toBe(
+      '---\nname: demo\ndescription: Demo skill.\n---\n\nUse reference.md.',
     );
   });
 

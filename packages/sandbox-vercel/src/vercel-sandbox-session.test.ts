@@ -201,6 +201,41 @@ describe('VercelSandboxSession', () => {
       ]);
     });
 
+    it('writeTextFiles rejects when parent directory creation fails', async () => {
+      const { sandbox, spies } = makeMockSandbox();
+      spies.runCommand.mockResolvedValue(
+        makeMockCommand({
+          logs: [{ stream: 'stderr', data: 'permission denied' }],
+          exitCode: 1,
+        }).handle,
+      );
+
+      await expect(
+        new VercelSandboxSession(sandbox).writeTextFiles({
+          files: [{ path: '/work/skills/demo/SKILL.md', content: 'skill' }],
+        }),
+      ).rejects.toThrow(
+        'Failed to create parent directories for sandbox files (exit 1): permission denied',
+      );
+      expect(spies.writeFiles).not.toHaveBeenCalled();
+    });
+
+    it('writeTextFiles propagates SDK batch write failures', async () => {
+      const { sandbox, spies } = makeMockSandbox();
+      spies.runCommand.mockResolvedValue(
+        makeMockCommand({ logs: [], exitCode: 0 }).handle,
+      );
+      const failure = new Error('batch upload failed');
+      spies.writeFiles.mockRejectedValueOnce(failure);
+
+      await expect(
+        new VercelSandboxSession(sandbox).writeTextFiles({
+          files: [{ path: '/work/skills/demo/SKILL.md', content: 'skill' }],
+        }),
+      ).rejects.toBe(failure);
+      expect(spies.writeFiles).toHaveBeenCalledOnce();
+    });
+
     it('readBinaryFile returns the buffer bytes', async () => {
       const { sandbox, spies } = makeMockSandbox();
       spies.readFileToBuffer.mockResolvedValueOnce(Buffer.from([1, 2, 3]));

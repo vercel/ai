@@ -215,11 +215,18 @@ export class VercelSandboxSession implements SandboxSession {
       ),
     );
     if (parents.length > 0) {
-      await this.sandbox.runCommand({
+      const command = await this.sandbox.runCommand({
         cmd: 'mkdir',
         args: ['-p', ...parents],
         ...(abortSignal !== undefined ? { signal: abortSignal } : {}),
       });
+      const { exitCode } = await command.wait();
+      if (exitCode !== 0) {
+        const stderr = await command.stderr();
+        throw new Error(
+          `Failed to create parent directories for sandbox files (exit ${exitCode})${stderr ? `: ${stderr}` : ''}`,
+        );
+      }
     }
     abortSignal?.throwIfAborted();
 
