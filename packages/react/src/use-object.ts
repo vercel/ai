@@ -231,7 +231,7 @@ function useObject<
                 schema: asSchema(schema),
               });
 
-              onFinish(
+              await onFinish(
                 validationResult.success
                   ? { object: validationResult.value, error: undefined }
                   : { object: undefined, error: validationResult.error },
