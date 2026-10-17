@@ -156,15 +156,12 @@ export async function writeSkills({
   }
 
   const previouslyOwned = new Set(previousEntries.map(entry => entry.name));
-  for (const skillName of written) {
-    if (previouslyOwned.has(skillName)) continue;
-    await assertSkillDirectoryAvailable({
-      sandbox,
-      rootDir,
-      skillName,
-      abortSignal,
-    });
-  }
+  await assertSkillDirectoriesAvailable({
+    sandbox,
+    rootDir,
+    skillNames: written.filter(skillName => !previouslyOwned.has(skillName)),
+    abortSignal,
+  });
 
   await ensureSkillsDirectory({ sandbox, rootDir, abortSignal });
 
@@ -365,23 +362,35 @@ async function writeSkillsManifest({
   });
 }
 
-async function assertSkillDirectoryAvailable({
+async function assertSkillDirectoriesAvailable({
   sandbox,
   rootDir,
-  skillName,
+  skillNames,
   abortSignal,
 }: {
   sandbox: Experimental_SandboxSession;
   rootDir: string;
-  skillName: string;
+  skillNames: ReadonlyArray<string>;
   abortSignal?: AbortSignal;
 }): Promise<void> {
-  const skillDir = path.posix.join(rootDir, skillName);
+  if (skillNames.length === 0) return;
+  const directories = skillNames.map(name => ({
+    name,
+    path: path.posix.join(rootDir, name),
+  }));
   const result = await sandbox.run({
-    command: `test ! -e ${shellQuote(skillDir)}`,
+    command: `for skill_dir in ${directories
+      .map(({ path }) => shellQuote(path))
+      .join(
+        ' ',
+      )}; do if [ -e "$skill_dir" ]; then printf '%s' "$skill_dir"; exit 1; fi; done`,
     abortSignal,
   });
   if (result.exitCode !== 0) {
+    const conflictingPath = result.stdout.trim();
+    const conflict = directories.find(({ path }) => path === conflictingPath);
+    const skillName = conflict?.name ?? skillNames[0]!;
+    const skillDir = conflict?.path ?? directories[0]!.path;
     throw new Error(
       `Cannot write harness skill '${skillName}': ${skillDir} already exists and is not owned by the AI SDK harness.`,
     );
@@ -423,15 +432,21 @@ async function writeProjectedSkills({
   skills: ReadonlyArray<ProjectedSkill>;
   abortSignal?: AbortSignal;
 }): Promise<void> {
-  for (const skill of skills) {
-    const skillDir = path.posix.join(rootDir, skill.name);
-    for (const file of skill.files) {
-      await sandbox.writeTextFile({
-        path: path.posix.join(skillDir, file.path),
-        content: file.content,
-        abortSignal,
-      });
-    }
+  const files = skills.flatMap(skill =>
+    skill.files.map(file => ({
+      path: path.posix.join(rootDir, skill.name, file.path),
+      content: file.content,
+    })),
+  );
+  if (files.length === 0) return;
+
+  if (sandbox.writeTextFiles != null) {
+    await sandbox.writeTextFiles({ files, abortSignal });
+    return;
+  }
+
+  for (const file of files) {
+    await sandbox.writeTextFile({ ...file, abortSignal });
   }
 }
 

@@ -196,6 +196,48 @@ export class VercelSandboxSession implements SandboxSession {
       abortSignal,
     });
   }
+
+  async writeTextFiles({
+    files,
+    abortSignal,
+  }: {
+    files: ReadonlyArray<{ path: string; content: string }>;
+    abortSignal?: AbortSignal;
+  }): Promise<void> {
+    abortSignal?.throwIfAborted();
+    if (files.length === 0) return;
+
+    const parents = Array.from(
+      new Set(
+        files
+          .map(file => posix.dirname(file.path))
+          .filter(parent => parent !== '.' && parent !== '/'),
+      ),
+    );
+    if (parents.length > 0) {
+      await this.sandbox.runCommand({
+        cmd: 'mkdir',
+        args: ['-p', ...parents],
+        ...(abortSignal !== undefined ? { signal: abortSignal } : {}),
+      });
+    }
+    abortSignal?.throwIfAborted();
+
+    await this.sandbox.writeFiles(
+      files.map(({ path, content }) => {
+        const buffer = Buffer.from(content, 'utf-8');
+        return {
+          path,
+          content: new Uint8Array(
+            buffer.buffer,
+            buffer.byteOffset,
+            buffer.byteLength,
+          ),
+        };
+      }),
+      abortSignal ? { signal: abortSignal } : undefined,
+    );
+  }
 }
 
 function createSandboxProcess(

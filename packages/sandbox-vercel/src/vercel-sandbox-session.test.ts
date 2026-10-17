@@ -166,6 +166,41 @@ describe('VercelSandboxSession', () => {
       expect(Buffer.from(files[0].content).toString('utf8')).toBe('hi');
     });
 
+    it('writeTextFiles creates unique parent dirs and writes files together', async () => {
+      const { sandbox, spies } = makeMockSandbox();
+      spies.runCommand.mockResolvedValue(
+        makeMockCommand({ logs: [], exitCode: 0 }).handle,
+      );
+
+      await new VercelSandboxSession(sandbox).writeTextFiles({
+        files: [
+          { path: '/work/skills/one/SKILL.md', content: 'first' },
+          { path: '/work/skills/one/reference.md', content: 'second' },
+          { path: '/work/skills/two/reference.md', content: 'third' },
+        ],
+      });
+
+      expect(spies.runCommand).toHaveBeenCalledTimes(1);
+      expect(spies.runCommand).toHaveBeenCalledWith(
+        expect.objectContaining({
+          cmd: 'mkdir',
+          args: ['-p', '/work/skills/one', '/work/skills/two'],
+        }),
+      );
+      expect(spies.writeFiles).toHaveBeenCalledTimes(1);
+      const [files] = spies.writeFiles.mock.calls[0];
+      expect(
+        files.map((file: { path: string; content: Uint8Array }) => ({
+          path: file.path,
+          content: Buffer.from(file.content).toString('utf8'),
+        })),
+      ).toEqual([
+        { path: '/work/skills/one/SKILL.md', content: 'first' },
+        { path: '/work/skills/one/reference.md', content: 'second' },
+        { path: '/work/skills/two/reference.md', content: 'third' },
+      ]);
+    });
+
     it('readBinaryFile returns the buffer bytes', async () => {
       const { sandbox, spies } = makeMockSandbox();
       spies.readFileToBuffer.mockResolvedValueOnce(Buffer.from([1, 2, 3]));
