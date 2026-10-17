@@ -530,10 +530,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
 
     let toolCallTracker: StreamingToolCallTracker;
 
-    let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
-      raw: undefined,
-    };
+    let finishReason: LanguageModelV4FinishReason | undefined;
     let usage: OpenAIChatUsage | undefined = undefined;
     let metadataExtracted = false;
     let isActiveText = false;
@@ -670,6 +667,17 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
             }
 
             toolCallTracker.flush();
+
+            if (finishReason == null) {
+              finishReason = { unified: 'error', raw: undefined };
+              controller.enqueue({
+                type: 'error',
+                error: new InvalidResponseDataError({
+                  data: undefined,
+                  message: 'Response stream ended without a finish reason.',
+                }),
+              });
+            }
 
             controller.enqueue({
               type: 'finish',

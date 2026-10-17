@@ -1,4 +1,5 @@
 import {
+  InvalidResponseDataError,
   LanguageModelV4ProviderTool,
   type JSONSchema7,
   type LanguageModelV4Prompt,
@@ -5885,6 +5886,43 @@ describe('doStream', () => {
       ),
     };
   };
+
+  it('should report an error when the stream ends without a finish reason', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'Hello' }], role: 'model' },
+              index: 0,
+            },
+          ],
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+    const events = await convertReadableStreamToArray(stream);
+
+    expect(events.filter(event => event.type === 'text-delta')).toEqual([
+      expect.objectContaining({ type: 'text-delta', delta: 'Hello' }),
+    ]);
+
+    const errors = events.filter(event => event.type === 'error');
+    expect(errors).toHaveLength(1);
+    expect(InvalidResponseDataError.isInstance(errors[0].error)).toBe(true);
+    expect(errors[0].error).toMatchObject({
+      message: 'Response stream ended without a finish reason.',
+    });
+
+    expect(events.filter(event => event.type === 'finish')).toStrictEqual([
+      expect.objectContaining({
+        type: 'finish',
+        finishReason: { unified: 'error', raw: undefined },
+      }),
+    ]);
+  });
 
   describe('in-stream errors', () => {
     it.each([
