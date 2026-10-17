@@ -255,6 +255,29 @@ For a focused conceptual walkthrough of AI functions, model specifications, and 
 
 ## Contributing Guides
 
+### Bug reports and contributor credit
+
+Read [bug reports and contributor credit](contributing/bug-reports.md) before
+filing or triaging a bug report or preparing contributor credit.
+
+- Production/usage reports include an actual problem encountered while using
+  the SDK, what the contributor was building, and why they used it that way.
+  Credit the issue author with co-authorship when the report leads to a fix.
+- Agent audits without additional real usage context do not earn co-authorship
+  for the issue. Direct contributors to the
+  [audit prompt submission guide](contributing/audit-prompts/README.md).
+  Accepted new valuable prompts and meaningful improvements earn co-authorship
+  for the prompt contribution, not automatically for future fixes they find.
+- Preserve the actual discovery context. Agent-assisted investigation or writing
+  does not change a usage report into an audit. A synthetic reproduction does
+  not change an audit into a usage report. Never invent usage context.
+- Request clarification when the context is unclear. Missing logs or a
+  reproduction alone do not prove that a report is an audit. Evaluate defect
+  validity separately from contributor credit.
+- Before contributing an audit prompt, read the existing collection and prefer
+  improving an overlapping prompt. Follow the submission guide and link
+  supporting findings or validation in the pull request.
+
 | Task                  | Guide                                   |
 | --------------------- | --------------------------------------- |
 | Add new provider      | `contributing/add-new-provider.md`      |
@@ -263,6 +286,8 @@ For a focused conceptual walkthrough of AI functions, model specifications, and 
 | Provider architecture | `contributing/provider-architecture.md` |
 | Building new features | `contributing/building-new-features.md` |
 | Codemods              | `contributing/codemods.md`              |
+| Bug reports & credit  | `contributing/bug-reports.md`           |
+| Audit prompts         | `contributing/audit-prompts/README.md`  |
 
 ## Changesets
 

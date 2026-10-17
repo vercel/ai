@@ -6,9 +6,25 @@ body:
       value: |
         Use this template for bugs, feature requests, and support issues.
 
-        High-quality issues are one of the most valuable ways to contribute to AI SDK. Clear reproduction steps, minimal examples, failing tests, logs, and version details help maintainers and automated workflows resolve issues faster. If an issue leads to a bug fix pull request, we will credit the issue author with co-authorship where appropriate.
+        High-quality issues are one of the most valuable ways to contribute to AI SDK. For bugs encountered while using the SDK, share what you were building, why you used it that way, and relevant code, logs, versions, or reproductions. When a production/usage report leads to a fix, we will credit the issue author with co-authorship.
+
+        Agent audit issues without additional real usage context do not receive co-authorship. Instead, please [contribute the audit prompts you used](https://github.com/vercel/ai/blob/main/contributing/audit-prompts/README.md). We accept new valuable prompts and meaningful improvements to existing prompts, and grant co-authorship for those prompt contributions.
+
+        Using an agent to investigate or describe a usage problem does not make it an audit bug. Creating a reproduction for an audit finding does not by itself make it a usage bug. See [bug reports and contributor credit](https://github.com/vercel/ai/blob/main/contributing/bug-reports.md).
 
         If you want to share feedback about the project, community, or contribution process, please use the Feedback issue type instead.
+  - type: dropdown
+    id: discovery
+    attributes:
+      label: How was this discovered?
+      description: Select the context for a bug report. For feature requests or support questions, select Not applicable.
+      options:
+        - While using AI SDK (production or development)
+        - Through an agent audit of repository code
+        - Unsure
+        - Not applicable (feature request or support question)
+    validations:
+      required: true
   - type: textarea
     attributes:
       label: Description
@@ -17,6 +33,16 @@ body:
         Reproduction steps, code examples, expected behavior, actual behavior, background, etc...
     validations:
       required: true
+  - type: textarea
+    id: usage-context
+    attributes:
+      label: Usage or audit context
+      description: For usage bugs, explain what you were building, how and why you used the SDK, and the impact of the problem. For audits, share the prompt you used or link its contribution PR. You can skip this field for feature requests or support questions.
+      placeholder: |
+        What I was building and why I used the SDK this way...
+        Or: audit prompt and related contribution PR...
+    validations:
+      required: false
   - type: textarea
     attributes:
       label: Reproduction
