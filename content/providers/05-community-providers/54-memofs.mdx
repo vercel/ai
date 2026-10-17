@@ -1,0 +1,167 @@
+---
+title: 'MemoFS'
+description: 'Learn how to use the MemoFS memory runtime provider with the AI SDK.'
+---
+
+# MemoFS Provider
+
+[MemoFS](https://docs.memofs.dev) is an open-source, file-first memory runtime for AI agents. The `@memofs/adapter-ai-sdk` adapter bridges the MemoFS memory engine into the AI SDK, providing persistent memory tools, hybrid retrieval (BM25 + fuzzy matching + vector embeddings + recency scoring), prompt context builders, and multi-tenant scoping.
+
+Key features include:
+
+- **File-First Architecture**: Transparent, version-controlled markdown and file-backed memory storage.
+- **Hybrid Retrieval**: Combines BM25, semantic embeddings, fuzzy matching, and recency ranking.
+- **Ready-to-Use Tools**: Out-of-the-box memory tools for reading core memory, updating facts, searching notes, and recording observations.
+- **Dynamic Context Builder**: Automatically injects relevant memories and recall results into system prompts.
+- **Multi-Tenant Scoping**: Built-in access boundaries across projects, workspaces, users, and conversations.
+
+## Setup
+
+Install `@memofs/adapter-ai-sdk` along with `@memofs/core` and `ai`:
+
+<InstallPackages packages="@memofs/adapter-ai-sdk @memofs/core ai" />
+
+<Note>
+  Requires **Node.js >= 22**.
+</Note>
+
+## Provider Instance
+
+Initialize the `MemoFS` memory engine and bridge it to the AI SDK runtime:
+
+```ts
+import { MemoFS } from '@memofs/core';
+import { createNodeFsMemoryStore } from '@memofs/core/node-fs';
+import { createAiSdkRuntimeFromMemofs } from '@memofs/adapter-ai-sdk';
+
+// 1. Create a memory store backed by local filesystem or cloud storage
+const store = createNodeFsMemoryStore({ rootDir: './.memofs' });
+
+// 2. Initialize MemoFS client
+const memo = new MemoFS({ store, projectId: 'my-project' });
+
+// 3. Create the AI SDK runtime bridge
+const runtime = createAiSdkRuntimeFromMemofs(memo);
+```
+
+## Usage
+
+### 1. Memory Tools with `generateText`
+
+Use `buildRuntimeMemoryToolDefinition` to provide the model with structured memory tools (`read_core_memory`, `update_core_memory`, `remember`, `list_notes`, `search`):
+
+```ts
+import { generateText, tool } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { buildRuntimeMemoryToolDefinition } from '@memofs/adapter-ai-sdk';
+
+const memoryTool = buildRuntimeMemoryToolDefinition({
+  runtime,
+  access: { projectId: 'my-project', userId: 'user_123' },
+  allowWrites: true,
+  allowCoreUpdates: true,
+});
+
+const result = await generateText({
+  model: openai('gpt-4o'),
+  tools: {
+    memory: tool(memoryTool),
+  },
+  prompt: 'Remember that the preferred cloud provider is Cloudflare Workers.',
+});
+
+console.log(result.text);
+```
+
+### 2. Memory Tools with `ToolLoopAgent`
+
+For multi-step autonomous agents, attach the memory tool to `ToolLoopAgent`:
+
+```ts
+import { ToolLoopAgent, tool } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { buildRuntimeMemoryToolDefinition } from '@memofs/adapter-ai-sdk';
+
+const memoryTool = buildRuntimeMemoryToolDefinition({
+  runtime,
+  access: { projectId: 'my-project', userId: 'user_123' },
+  allowWrites: true,
+});
+
+const agent = new ToolLoopAgent({
+  model: openai('gpt-4o'),
+  tools: {
+    memory: tool(memoryTool),
+  },
+  instructions: 'You are an assistant with persistent file-backed memory.',
+});
+
+const { text } = await agent.generate({
+  prompt: 'What was my preferred cloud provider?',
+});
+
+console.log(text);
+```
+
+### 3. Prompt Context Injection
+
+Inject relevant core memories, notes, and semantic recall directly into the system prompt:
+
+```ts
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { buildRuntimeMemoryContext } from '@memofs/adapter-ai-sdk';
+
+// Build memory context based on the user's query
+const { text: memoryContext } = await buildRuntimeMemoryContext({
+  runtime,
+  access: { projectId: 'my-project', userId: 'user_123' },
+  query: 'cloud deployment target',
+  includeCoreMemory: true,
+  includeNotes: true,
+  includeRecall: true,
+});
+
+const result = await generateText({
+  model: openai('gpt-4o'),
+  system: `You are an expert assistant.\n\n${memoryContext}`,
+  prompt: 'Where should we deploy our backend service?',
+});
+
+console.log(result.text);
+```
+
+## Scoping & Access Control
+
+MemoFS provides access control to ensure agents only read and write to permitted boundaries:
+
+```ts
+const memoryTool = buildRuntimeMemoryToolDefinition({
+  runtime,
+  access: {
+    projectId: 'team-backend',
+    workspaceId: 'production',
+    userId: 'user_456',
+    conversationId: 'conv_789',
+  },
+  allowWrites: true,
+  allowCoreUpdates: false, // Read-only for core memory
+  allowIndexing: true,
+});
+```
+
+Available access context properties:
+
+| Property | Description |
+| --- | --- |
+| `projectId` | Root project identifier |
+| `workspaceId` | Workspace or environment boundary |
+| `userId` | User-scoped private memory partition |
+| `conversationId` | Single conversation thread boundary |
+| `tenantId` | Multi-tenant organization isolation |
+
+## References
+
+- [MemoFS Documentation](https://docs.memofs.dev)
+- [MemoFS GitHub Repository](https://github.com/memo-fs/memofs)
+- [`@memofs/adapter-ai-sdk` Package](https://www.npmjs.com/package/@memofs/adapter-ai-sdk)
