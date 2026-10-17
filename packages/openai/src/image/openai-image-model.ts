@@ -110,10 +110,10 @@ export class OpenAIImageModel implements ImageModelV3 {
                     ],
                     { type: file.mediaType },
                   )
-                : downloadBlob(file.url),
+                : downloadBlob(file.url, { abortSignal }),
             ),
           ),
-          mask: mask != null ? await fileToBlob(mask) : undefined,
+          mask: mask != null ? await fileToBlob(mask, abortSignal) : undefined,
           n,
           size,
           quality: openaiOptions.quality,
@@ -296,11 +296,12 @@ type OpenAIImageEditInput = {
 
 async function fileToBlob(
   file: ImageModelV3File | undefined,
+  abortSignal: AbortSignal | undefined,
 ): Promise<Blob | undefined> {
   if (!file) return undefined;
 
   if (file.type === 'url') {
-    return downloadBlob(file.url);
+    return downloadBlob(file.url, { abortSignal });
   }
 
   const data =
