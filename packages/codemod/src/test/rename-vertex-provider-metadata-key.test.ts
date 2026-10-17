@@ -7,6 +7,10 @@ describe('rename-vertex-provider-metadata-key', () => {
     testTransform(transformer, 'rename-vertex-provider-metadata-key');
   });
 
+  it('only renames the direct google child of providerOptions', () => {
+    testTransform(transformer, 'rename-vertex-provider-metadata-key-nested');
+  });
+
   it('does not transform files using @ai-sdk/google', () => {
     testTransform(
       transformer,
