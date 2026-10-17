@@ -1,0 +1,92 @@
+---
+title: Wallaby
+description: Learn how to use the Wallaby provider for the AI SDK.
+---
+
+# Wallaby
+
+[Wallaby](https://wallabytoken.com) is an OpenAI-compatible API gateway that serves the Kimi K3 model with pay-per-token billing and no subscription. The Wallaby provider for the AI SDK is available as the [`wallaby-ai-provider`](https://www.npmjs.com/package/wallaby-ai-provider) package.
+
+It supports text generation, streaming, and tool calls. Kimi K3 accepts up to 1,048,576 tokens of context and can return up to 131,072 output tokens in one response.
+
+## Setup
+
+The Wallaby provider is available in the [`wallaby-ai-provider`](https://www.npmjs.com/package/wallaby-ai-provider) package. Install it alongside the AI SDK with:
+
+<InstallPackages packages="ai wallaby-ai-provider" />
+
+Set your Wallaby API key as an environment variable. You can create a key at [wallabytoken.com](https://wallabytoken.com):
+
+```bash
+export WALLABY_API_KEY=sk-...
+```
+
+## Provider Instance
+
+The package exports a default `wallaby` provider. It reads `WALLABY_API_KEY` from the environment:
+
+```ts
+import { wallaby } from 'wallaby-ai-provider';
+```
+
+Use `createWallaby` when you want to pass the API key explicitly or override the endpoint:
+
+```ts
+import { createWallaby } from 'wallaby-ai-provider';
+
+const wallaby = createWallaby({
+  apiKey: process.env.WALLABY_API_KEY,
+  // baseURL defaults to https://api.wallabytoken.com/v1
+});
+```
+
+`createWallaby` also accepts custom `headers` and a custom `fetch` implementation.
+
+## Language Models
+
+Call the provider with a model ID to create a language model:
+
+```ts
+const model = wallaby('kimi-k3');
+```
+
+The model catalog is also published as the [`wallaby` provider on models.dev](https://models.dev/providers/wallaby/). Current pricing is listed on the [Wallaby pricing page](https://wallabytoken.com/pricing).
+
+## Examples
+
+### `generateText`
+
+```ts
+import { wallaby } from 'wallaby-ai-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: wallaby('kimi-k3'),
+  prompt: 'Explain what an AI gateway does in one sentence.',
+});
+
+console.log(text);
+```
+
+### `streamText`
+
+```ts
+import { wallaby } from 'wallaby-ai-provider';
+import { streamText } from 'ai';
+
+const { textStream } = streamText({
+  model: wallaby('kimi-k3'),
+  prompt: 'Write a haiku about tokens.',
+});
+
+for await (const delta of textStream) {
+  process.stdout.write(delta);
+}
+```
+
+## Additional Resources
+
+- [Wallaby Provider Repository](https://github.com/Dawncoral/wallaby-ai-provider)
+- [npm Package](https://www.npmjs.com/package/wallaby-ai-provider)
+- [Wallaby Documentation](https://wallabytoken.com/docs)
+- [Wallaby Pricing](https://wallabytoken.com/pricing)
