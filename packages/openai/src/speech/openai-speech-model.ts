@@ -73,7 +73,10 @@ export class OpenAISpeechModel implements SpeechModelV3 {
 
     // Add provider-specific options
     if (openAIOptions) {
-      const speechModelOptions: OpenAISpeechAPITypes = {};
+      const speechModelOptions: OpenAISpeechAPITypes = {
+        speed: openAIOptions.speed ?? undefined,
+        instructions: openAIOptions.instructions ?? undefined,
+      };
 
       for (const key in speechModelOptions) {
         const value = speechModelOptions[key as keyof OpenAISpeechAPITypes];
