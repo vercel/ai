@@ -33,6 +33,8 @@ export const cartesiaSpeechModelOptionsSchema = z.object({
   speed: z.number().min(0.6).max(1.5).nullish(),
   /** The language to generate speech in (ISO 639-1 code). */
   language: z.string().nullish(),
+  /** ID of a pronunciation dictionary created with the Cartesia API. Sonic 3 and newer. */
+  pronunciationDictionaryId: z.string().nullish(),
 });
 
 export type CartesiaSpeechModelOptions = z.infer<
