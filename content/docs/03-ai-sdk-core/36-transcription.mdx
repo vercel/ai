@@ -140,7 +140,8 @@ Cartesia uses `cartesia.transcription('ink-2')` for streaming-only Ink 2
 transcription. ElevenLabs uses
 `elevenLabs.transcription('scribe_v2_realtime')` for Scribe v2 Realtime. Azure
 uses `azure.transcription('mai-transcribe-2-streaming')` for streaming-only
-MAI-Transcribe-2-Streaming. xAI
+MAI-Transcribe-2-Streaming. Deepgram uses the same `deepgram.transcription()`
+model (e.g. `nova-3`) for request/response and streaming transcription. xAI
 uses the same `xai.transcription()` model for request/response and streaming
 transcription; `experimental_streamTranscribe` selects the provider's
 WebSocket STT transport.
