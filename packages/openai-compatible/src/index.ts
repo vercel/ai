@@ -22,6 +22,10 @@ export type {
 export { OpenAICompatibleImageModel } from './image/openai-compatible-image-model';
 export type { OpenAICompatibleImageModelOptions } from './image/openai-compatible-image-model-options';
 export type {
+  OpenAICompatibleVideo,
+  OpenAICompatibleVideoCreateOptions,
+} from './videos/openai-compatible-videos';
+export type {
   OpenAICompatibleErrorData,
   ProviderErrorStructure,
 } from './openai-compatible-error';
