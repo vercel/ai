@@ -197,6 +197,11 @@ export type AssemblyAITranscriptionAPITypes = {
     | 'yo';
 
   /**
+   * List of language codes for code-switching; one must be `en`.
+   */
+  language_codes?: string[];
+
+  /**
    * The confidence threshold for the automatically detected language. An error will be returned if the language confidence is below this threshold.
    * @default 0
    */
