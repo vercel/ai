@@ -1004,6 +1004,7 @@ describe('processLangGraphEvent', () => {
     currentStepsByNamespace: new Map(),
     emittedToolCallsByKey: new Map<string, string>(),
     emittedSourceIds: new Set<string>(),
+    emittedUpdateTextMessageIds: new Set<string>(),
   });
 
   it('should handle custom events without type field (fallback to data-custom)', () => {
@@ -3000,6 +3001,7 @@ describe('processLangGraphEvent - sources', () => {
     currentStepsByNamespace: new Map(),
     emittedToolCallsByKey: new Map<string, string>(),
     emittedSourceIds: new Set<string>(),
+    emittedUpdateTextMessageIds: new Set<string>(),
   });
 
   it('should emit source-url for citations in a messages event', () => {
