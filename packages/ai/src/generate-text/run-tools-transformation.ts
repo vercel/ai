@@ -1,5 +1,8 @@
 import type {
+  LanguageModelV3Content,
   LanguageModelV3StreamPart,
+  LanguageModelV3ToolChoice,
+  SharedV3ProviderMetadata,
   SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
@@ -9,6 +12,7 @@ import {
   type SystemModelMessage,
 } from '@ai-sdk/provider-utils';
 import type { Tracer } from '@opentelemetry/api';
+import { ToolChoiceViolationError } from '../error';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import type { TelemetrySettings } from '../telemetry/telemetry-settings';
 import type {
@@ -136,6 +140,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   model,
   onToolCallStart,
   onToolCallFinish,
+  toolChoice,
 }: {
   tools: TOOLS | undefined;
   generatorStream: ReadableStream<LanguageModelV3StreamPart>;
@@ -150,6 +155,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   generateId: IdGenerator;
   stepNumber?: number;
   model?: { provider: string; modelId: string };
+  toolChoice?: LanguageModelV3ToolChoice;
   onToolCallStart?:
     | StreamTextOnToolCallStartCallback<TOOLS>
     | Array<StreamTextOnToolCallStartCallback<TOOLS> | undefined | null>;
@@ -206,6 +212,13 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   // keep track of parsed tool calls so provider-emitted approval requests can reference them
   // keep track of tool inputs for provider-side tool results
   const toolCallsByToolCallId = new Map<string, TypedToolCall<TOOLS>>();
+  const enforcedToolChoice =
+    toolChoice?.type === 'required' || toolChoice?.type === 'tool'
+      ? toolChoice
+      : undefined;
+  const modelCallContent: Array<LanguageModelV3Content> = [];
+  const textPartIndexes = new Map<string, number>();
+  const reasoningPartIndexes = new Map<string, number>();
 
   let canClose = false;
   let finishChunk:
@@ -278,6 +291,15 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
     ) {
       const chunkType = chunk.type;
 
+      if (enforcedToolChoice != null) {
+        recordModelCallContent({
+          chunk,
+          content: modelCallContent,
+          textPartIndexes,
+          reasoningPartIndexes,
+        });
+      }
+
       switch (chunkType) {
         // forward:
         case 'stream-start':
@@ -343,13 +365,41 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
         }
 
         case 'finish': {
+          const toolChoiceViolationError =
+            enforcedToolChoice != null &&
+            ![...toolCallsByToolCallId.values()].some(
+              toolCall =>
+                enforcedToolChoice.type === 'required' ||
+                toolCall.toolName === enforcedToolChoice.toolName,
+            )
+              ? new ToolChoiceViolationError({
+                  toolChoice: enforcedToolChoice,
+                  finishReason: chunk.finishReason.unified,
+                  provider: model?.provider ?? 'unknown',
+                  modelId: model?.modelId ?? 'unknown',
+                  content: modelCallContent,
+                })
+              : undefined;
+
           finishChunk = {
             type: 'finish',
-            finishReason: chunk.finishReason.unified,
+            finishReason:
+              toolChoiceViolationError == null
+                ? chunk.finishReason.unified
+                : 'error',
             rawFinishReason: chunk.finishReason.raw,
             usage: asLanguageModelUsage(chunk.usage),
             providerMetadata: chunk.providerMetadata,
           };
+
+          if (toolChoiceViolationError != null) {
+            toolCallsToExecute.length = 0;
+            controller.enqueue({
+              type: 'error',
+              error: toolChoiceViolationError,
+            });
+            break;
+          }
 
           if (isToolExecutionAllowedFinishReason(chunk.finishReason.unified)) {
             for (const toolCall of toolCallsToExecute.splice(0)) {
@@ -552,4 +602,125 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
       ]);
     },
   });
+}
+
+function recordModelCallContent({
+  chunk,
+  content,
+  textPartIndexes,
+  reasoningPartIndexes,
+}: {
+  chunk: LanguageModelV3StreamPart;
+  content: Array<LanguageModelV3Content>;
+  textPartIndexes: Map<string, number>;
+  reasoningPartIndexes: Map<string, number>;
+}) {
+  switch (chunk.type) {
+    case 'text-start':
+      upsertTextContentPart({
+        content,
+        partIndexes: textPartIndexes,
+        id: chunk.id,
+        type: 'text',
+        providerMetadata: chunk.providerMetadata,
+      });
+      break;
+    case 'text-delta':
+      upsertTextContentPart({
+        content,
+        partIndexes: textPartIndexes,
+        id: chunk.id,
+        type: 'text',
+        textDelta: chunk.delta,
+        providerMetadata: chunk.providerMetadata,
+      });
+      break;
+    case 'text-end':
+      upsertTextContentPart({
+        content,
+        partIndexes: textPartIndexes,
+        id: chunk.id,
+        type: 'text',
+        providerMetadata: chunk.providerMetadata,
+      });
+      textPartIndexes.delete(chunk.id);
+      break;
+    case 'reasoning-start':
+      upsertTextContentPart({
+        content,
+        partIndexes: reasoningPartIndexes,
+        id: chunk.id,
+        type: 'reasoning',
+        providerMetadata: chunk.providerMetadata,
+      });
+      break;
+    case 'reasoning-delta':
+      upsertTextContentPart({
+        content,
+        partIndexes: reasoningPartIndexes,
+        id: chunk.id,
+        type: 'reasoning',
+        textDelta: chunk.delta,
+        providerMetadata: chunk.providerMetadata,
+      });
+      break;
+    case 'reasoning-end':
+      upsertTextContentPart({
+        content,
+        partIndexes: reasoningPartIndexes,
+        id: chunk.id,
+        type: 'reasoning',
+        providerMetadata: chunk.providerMetadata,
+      });
+      reasoningPartIndexes.delete(chunk.id);
+      break;
+    case 'file':
+    case 'source':
+    case 'tool-call':
+    case 'tool-approval-request':
+    case 'tool-result':
+      content.push(chunk);
+      break;
+  }
+}
+
+function upsertTextContentPart({
+  content,
+  partIndexes,
+  id,
+  type,
+  textDelta,
+  providerMetadata,
+}: {
+  content: Array<LanguageModelV3Content>;
+  partIndexes: Map<string, number>;
+  id: string;
+  type: 'text' | 'reasoning';
+  textDelta?: string;
+  providerMetadata?: SharedV3ProviderMetadata;
+}) {
+  let partIndex = partIndexes.get(id);
+
+  if (partIndex == null) {
+    partIndex =
+      content.push({
+        type,
+        text: '',
+        ...(providerMetadata != null ? { providerMetadata } : {}),
+      }) - 1;
+    partIndexes.set(id, partIndex);
+  }
+
+  const part = content[partIndex] as {
+    text: string;
+    providerMetadata?: SharedV3ProviderMetadata;
+  };
+
+  if (textDelta != null) {
+    part.text += textDelta;
+  }
+
+  if (providerMetadata != null) {
+    part.providerMetadata = providerMetadata;
+  }
 }
