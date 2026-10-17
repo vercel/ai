@@ -10,4 +10,8 @@ describe('replace-zod-import-with-v3', () => {
   it('transforms default imports correctly', () => {
     testTransform(transformer, 'replace-zod-import-with-v3-default');
   });
+
+  it('aliases non-z default imports to the z export', () => {
+    testTransform(transformer, 'replace-zod-import-with-v3-default-aliased');
+  });
 });
