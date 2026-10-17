@@ -136,6 +136,20 @@ const languageMap = {
   welsh: 'cy',
 };
 
+const supportedLanguageCodes = new Set(Object.values(languageMap));
+
+function resolveLanguage(lang: string | null | undefined): string | undefined {
+  if (lang == null) return undefined;
+  const normalized = lang.trim().toLowerCase();
+  if (normalized in languageMap) {
+    return languageMap[normalized as keyof typeof languageMap];
+  }
+  if (supportedLanguageCodes.has(normalized) || /^[a-z]{2}$/.test(normalized)) {
+    return normalized;
+  }
+  return undefined;
+}
+
 export class OpenAITranscriptionModel implements TranscriptionModelV4 {
   readonly specificationVersion = 'v4';
 
@@ -298,10 +312,12 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
       fetch: this.config.fetch,
     });
 
-    const language =
-      response.language != null && response.language in languageMap
-        ? languageMap[response.language as keyof typeof languageMap]
-        : undefined;
+    let language = resolveLanguage(response.language);
+    if (language === undefined && response.languages?.length === 1) {
+      const first = response.languages[0];
+      const code = typeof first === 'string' ? first : first.code;
+      language = resolveLanguage(code);
+    }
 
     const diarizedSegments = response.segments?.flatMap(segment =>
       'speaker' in segment
@@ -315,6 +331,11 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
           ]
         : [],
     );
+
+    const hasDiarizedSegments =
+      diarizedSegments != null && diarizedSegments.length > 0;
+    const hasLanguages =
+      response.languages != null && response.languages.length > 0;
 
     return {
       text: response.text,
@@ -340,14 +361,18 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
         headers: responseHeaders,
         body: rawResponse,
       },
-      ...(diarizedSegments != null &&
-        diarizedSegments.length > 0 && {
-          providerMetadata: {
-            openai: {
+      ...((hasDiarizedSegments || hasLanguages) && {
+        providerMetadata: {
+          openai: {
+            ...(hasDiarizedSegments && {
               segments: diarizedSegments,
-            },
+            }),
+            ...(hasLanguages && {
+              languages: response.languages,
+            }),
           },
-        }),
+        },
+      }),
     };
   }
 
