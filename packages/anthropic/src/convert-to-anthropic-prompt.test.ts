@@ -1700,6 +1700,73 @@ describe('tool messages', () => {
     `);
   });
 
+  it.each([
+    { mediaType: 'application/pdf', type: 'document' },
+    { mediaType: 'image/png', type: 'image' },
+  ])(
+    'should handle tool result with $mediaType provider file reference',
+    async ({ mediaType, type }) => {
+      const warnings: SharedV4Warning[] = [];
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolName: 'file-generator',
+                toolCallId: 'file-gen-1',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file',
+                      data: {
+                        type: 'reference',
+                        reference: { anthropic: 'file-123' },
+                      },
+                      mediaType,
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings,
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result).toEqual({
+        prompt: {
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'tool_result',
+                  tool_use_id: 'file-gen-1',
+                  is_error: undefined,
+                  cache_control: undefined,
+                  content: [
+                    {
+                      type,
+                      source: { type: 'file', file_id: 'file-123' },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+          system: undefined,
+        },
+        betas: new Set(['files-api-2025-04-14']),
+      });
+      expect(warnings).toEqual([]);
+    },
+  );
+
   it('should handle tool result with PDF content', async () => {
     const result = await convertToAnthropicPrompt({
       prompt: [
