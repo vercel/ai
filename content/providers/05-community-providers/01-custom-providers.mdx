@@ -754,31 +754,25 @@ private createTransformer(warnings: SharedV4Warning[]) {
 
 ### Step 5: Handle Errors
 
-Use standardized AI SDK errors for consistent error handling:
+Use standardized AI SDK errors for consistent error handling. `APICallError` automatically marks `408`, `409`, `429`, and `5xx` responses as retryable, so rate limits do not need a separate error class:
 
 ```ts filename="custom-chat-language-model.ts#L250-280"
 import {
   APICallError,
   InvalidResponseDataError,
-  TooManyRequestsError,
 } from '@ai-sdk/provider';
 
 private handleError(error: unknown): never {
   if (error instanceof Response) {
     const status = error.status;
 
-    if (status === 429) {
-      throw new TooManyRequestsError({
-        cause: error,
-        retryAfter: this.getRetryAfter(error),
-      });
-    }
-
     throw new APICallError({
+      message: error.statusText || `Request failed with status ${status}`,
+      url: error.url,
+      requestBodyValues: undefined,
       statusCode: status,
-      statusText: error.statusText,
+      responseHeaders: Object.fromEntries(error.headers.entries()),
       cause: error,
-      isRetryable: status >= 500 && status < 600,
     });
   }
 
@@ -806,8 +800,7 @@ Then add the static serialization methods to your model class:
 
 ```ts filename="custom-chat-language-model.ts"
 import {
-  serializeModel,
-  deserializeModel,
+  serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -816,21 +809,24 @@ class CustomChatLanguageModel implements LanguageModelV4 {
   // Note: classId is generated automatically by the workflow SWC compiler at build time
 
   static [WORKFLOW_SERIALIZE](model: CustomChatLanguageModel) {
-    return serializeModel(model);
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: string;
     config: CustomChatConfig;
   }) {
-    return deserializeModel(CustomChatLanguageModel, options);
+    return new CustomChatLanguageModel(options.modelId, options.config);
   }
 
   // ... rest of class
 }
 ```
 
-`serializeModel()` automatically extracts only serializable config properties (strings, numbers, booleans), filtering out functions like `headers`, `fetch`, and `generateId`.
+`serializeModelOptions()` automatically extracts only serializable config properties (strings, numbers, booleans), filtering out functions like `headers`, `fetch`, and `generateId`.
 
 Since headers are not serialized, update any call sites to use optional chaining:
 
