@@ -38,16 +38,20 @@ export async function readResponseWithSizeLimit({
 }): Promise<Uint8Array> {
   // Early rejection based on Content-Length header
   const contentLength = response.headers.get('content-length');
+  let expectedLength: number | null = null;
   if (contentLength != null) {
     const length = parseInt(contentLength, 10);
-    if (!isNaN(length) && length > maxBytes) {
-      // Cancel the body so the underlying connection is released back to the
-      // pool instead of being left open until the socket is exhausted.
-      await cancelResponseBody(response);
-      throw new DownloadError({
-        url,
-        message: `Download of ${url} exceeded maximum size of ${maxBytes} bytes (Content-Length: ${length}).`,
-      });
+    if (!isNaN(length)) {
+      if (length > maxBytes) {
+        // Cancel the body so the underlying connection is released back to the
+        // pool instead of being left open until the socket is exhausted.
+        await cancelResponseBody(response);
+        throw new DownloadError({
+          url,
+          message: `Download of ${url} exceeded maximum size of ${maxBytes} bytes (Content-Length: ${length}).`,
+        });
+      }
+      expectedLength = length;
     }
   }
 
@@ -59,10 +63,52 @@ export async function readResponseWithSizeLimit({
   }
 
   const reader = body.getReader();
-  const chunks: Uint8Array[] = [];
-  let totalBytes = 0;
 
   try {
+    if (expectedLength != null) {
+      let result = new Uint8Array(expectedLength);
+      let totalBytes = 0;
+
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) {
+          break;
+        }
+
+        totalBytes += value.length;
+
+        if (totalBytes > maxBytes) {
+          throw new DownloadError({
+            url,
+            message: `Download of ${url} exceeded maximum size of ${maxBytes} bytes.`,
+          });
+        }
+
+        if (totalBytes > result.length) {
+          // Lying Content-Length: body exceeded header, expand buffer
+          const newResult = new Uint8Array(
+            Math.max(result.length * 2, totalBytes),
+          );
+          newResult.set(result.subarray(0, totalBytes - value.length), 0);
+          result = newResult;
+        }
+
+        result.set(value, totalBytes - value.length);
+      }
+
+      return totalBytes === result.length
+        ? result
+        : result.slice(0, totalBytes);
+    }
+
+    // Chunked or unknown Content-Length:
+    // Copy each chunk if it is a sub-view over a larger backing buffer
+    // (e.g. Deno ~64 KiB reader buffers) so the reader's backing buffers
+    // become immediately garbage collectable instead of being retained.
+    const chunks: Uint8Array[] = [];
+    let totalBytes = 0;
+
     while (true) {
       const { done, value } = await reader.read();
 
@@ -79,8 +125,23 @@ export async function readResponseWithSizeLimit({
         });
       }
 
-      chunks.push(value);
+      // Detach from larger backing buffer if value is a sub-slice view
+      chunks.push(
+        value.byteLength < value.buffer.byteLength
+          ? new Uint8Array(value)
+          : value,
+      );
     }
+
+    // Concatenate chunks into a single Uint8Array
+    const result = new Uint8Array(totalBytes);
+    let offset = 0;
+    for (const chunk of chunks) {
+      result.set(chunk, offset);
+      offset += chunk.length;
+    }
+
+    return result;
   } finally {
     try {
       await reader.cancel();
@@ -90,14 +151,4 @@ export async function readResponseWithSizeLimit({
       reader.releaseLock();
     }
   }
-
-  // Concatenate chunks into a single Uint8Array
-  const result = new Uint8Array(totalBytes);
-  let offset = 0;
-  for (const chunk of chunks) {
-    result.set(chunk, offset);
-    offset += chunk.length;
-  }
-
-  return result;
 }
