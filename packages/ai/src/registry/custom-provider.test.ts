@@ -3,9 +3,11 @@ import { describe, expect, it, vi } from 'vitest';
 import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
 import { MockImageModelV3 } from '../test/mock-image-model-v3';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
+import { MockProviderV3 } from '../test/mock-provider-v3';
 import { MockRerankingModelV3 } from '../test/mock-reranking-model-v3';
 import { MockSpeechModelV3 } from '../test/mock-speech-model-v3';
 import { MockTranscriptionModelV3 } from '../test/mock-transcription-model-v3';
+import { MockVideoModelV3 } from '../test/mock-video-model-v3';
 import { customProvider } from './custom-provider';
 
 const mockLanguageModel = new MockLanguageModelV3();
@@ -207,5 +209,21 @@ describe('rerankingModel', () => {
     expect(() => provider.rerankingModel('test-model')).toThrow(
       NoSuchModelError,
     );
+  });
+});
+
+describe('videoModel', () => {
+  it('should preserve the v3 fallback provider receiver', () => {
+    const fallbackProvider = Object.assign(new MockProviderV3(), {
+      videoModel(modelId: string) {
+        expect(this).toBe(fallbackProvider);
+        expect(modelId).toBe('test-model');
+        return new MockVideoModelV3();
+      },
+    });
+
+    const provider = customProvider({ fallbackProvider });
+
+    expect(provider.videoModel('test-model').specificationVersion).toBe('v3');
   });
 });
