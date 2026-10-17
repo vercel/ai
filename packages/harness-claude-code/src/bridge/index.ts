@@ -172,6 +172,7 @@ function createPermissionOptions(input: {
   nativeToolCallNames: Map<string, string>;
   approvalRequestedToolUseIds: Set<string>;
   emittedToolCallIds: Set<string>;
+  hostInputPausedToolCallIds: Set<string>;
 }): Record<string, unknown> {
   const permissionMode = input.start.permissionMode ?? 'allow-all';
   const inactiveNativeTools = new Set(input.inactiveNativeTools);
@@ -227,7 +228,10 @@ function createPermissionOptions(input: {
       const approvalId = options.toolUseID;
       input.approvalRequestedToolUseIds.add(approvalId);
       input.nativeToolCallNames.set(approvalId, toolName);
-      if (!input.emittedToolCallIds.has(approvalId)) {
+      if (
+        !input.emittedToolCallIds.has(approvalId) ||
+        input.hostInputPausedToolCallIds.delete(approvalId)
+      ) {
         input.emittedToolCallIds.add(approvalId);
         input.emit({
           type: 'tool-call',
@@ -554,6 +558,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     nativeToolCallNames: streamEventState.nativeToolCallNames,
     approvalRequestedToolUseIds: streamEventState.approvalRequestedToolUseIds,
     emittedToolCallIds: streamEventState.emittedToolCallIds,
+    hostInputPausedToolCallIds: streamEventState.hostInputPausedToolCallIds,
   });
   const questionPreToolUseHook = createQuestionPreToolUseHook({
     turn,
