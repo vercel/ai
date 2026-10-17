@@ -106,6 +106,8 @@ Settings:
   the host process.
 - `mcpServers`: MCP server definitions keyed by server name.
 - `maxTurns`: maximum internal turns before yielding.
+- `settings`: invocation-specific native Claude Code settings, provided as an
+  inline JSON object or a settings file path inside the sandbox.
 - `agentProgressSummaries`: enables periodic AI-generated summaries for running
   sub-agents. Summaries are available on raw `task_progress` stream parts.
 - `forwardSubagentText`: forwards sub-agent text and thinking messages as raw
@@ -129,6 +131,44 @@ Settings:
   returns the bridge authentication token. By default, the adapter generates a
   random 32-byte token. Custom implementations must return a suitably secret
   token.
+
+### Native Settings
+
+Use `settings` to pass invocation-specific native Claude Code settings without
+changing shared user-level configuration. For example, selectively disable
+bundled skills that are not appropriate for an embedded agent:
+
+```ts
+const harness = createClaudeCode({
+  settings: {
+    skillOverrides: {
+      'update-config': 'off',
+      'fewer-permission-prompts': 'off',
+      'keybindings-help': 'off',
+      init: 'off',
+    },
+  },
+});
+```
+
+Skills without an override keep their Claude Code defaults, so other bundled
+skills such as `code-review`, `simplify`, and `claude-api` remain available
+when provided by the installed Claude Code runtime.
+
+`settings` also accepts a file path:
+
+```ts
+const harness = createClaudeCode({
+  settings: '/vercel/sandbox/claude-settings.json',
+});
+```
+
+The path is resolved by Claude Code inside the sandbox, not on the host running
+your application. Inline settings and settings files can configure
+permissions, hooks, commands, environment values, and other executable
+behavior, so only supply trusted values. The adapter continues to enforce the
+configured harness permission mode and built-in tool approval boundaries in
+addition to the native settings.
 
 ## Structured Output
 

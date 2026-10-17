@@ -11,6 +11,7 @@ import {
   claudeCode,
   createClaudeCode,
   type ClaudeCodeHarnessSettings,
+  type ClaudeCodeSettings,
 } from './index';
 
 /*
@@ -99,6 +100,33 @@ describe('claudeCode ↔ HarnessAgent harness setting', () => {
         credentialForwarding: async ({ credential }) => credential,
       }),
     ).toExtend<HarnessAgentAdapter<any>>();
+  });
+
+  test('createClaudeCode accepts native settings', () => {
+    const settings: ClaudeCodeSettings = {
+      skillOverrides: {
+        'update-config': 'off',
+        'fewer-permission-prompts': 'off',
+        'keybindings-help': 'off',
+        init: 'off',
+      },
+    };
+
+    expectTypeOf(createClaudeCode({ settings })).toExtend<
+      HarnessAgentAdapter<any>
+    >();
+    expectTypeOf(
+      createClaudeCode({
+        settings: '/vercel/sandbox/claude-settings.json',
+      }),
+    ).toExtend<HarnessAgentAdapter<any>>();
+  });
+
+  test('createClaudeCode rejects non-JSON inline settings', () => {
+    createClaudeCode({
+      // @ts-expect-error - native settings must be JSON serializable
+      settings: { hook: () => {} },
+    });
   });
 
   test('createClaudeCode accepts sandbox bridge reconnect settings', () => {
