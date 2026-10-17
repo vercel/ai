@@ -14,6 +14,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { GatewayConfig } from './gateway-config';
+import { mapGatewayWarnings } from './map-gateway-warnings';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 
@@ -82,7 +83,7 @@ export class GatewayImageModel implements ImageModelV2 {
         ...(responseBody.isRetryable != null && {
           isRetryable: responseBody.isRetryable,
         }),
-        warnings: responseBody.warnings ?? [],
+        warnings: mapGatewayWarnings(responseBody.warnings),
         providerMetadata:
           responseBody.providerMetadata as ImageModelV2ProviderMetadata,
         response: {
@@ -132,10 +133,17 @@ const gatewayImageResponseSchema = z.object({
   isRetryable: z.boolean().optional(),
   warnings: z
     .array(
-      z.object({
-        type: z.literal('other'),
-        message: z.string(),
-      }),
+      z.discriminatedUnion('type', [
+        z.object({
+          type: z.literal('deprecated'),
+          setting: z.string(),
+          message: z.string(),
+        }),
+        z.object({
+          type: z.literal('other'),
+          message: z.string(),
+        }),
+      ]),
     )
     .optional(),
   providerMetadata: z
