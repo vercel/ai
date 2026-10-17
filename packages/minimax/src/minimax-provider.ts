@@ -1,6 +1,7 @@
 import {
   NoSuchModelError,
   type Experimental_VideoModelV4,
+  type FilesV4,
   type LanguageModelV4,
   type ProviderV4,
 } from '@ai-sdk/provider';
@@ -15,6 +16,7 @@ import { AnthropicLanguageModel } from '@ai-sdk/anthropic/internal';
 import type { MiniMaxChatModelId } from './minimax-chat-options';
 import { MiniMaxVideoModel } from './minimax-video-model';
 import type { MiniMaxVideoModelId } from './minimax-video-settings';
+import { MiniMaxFiles } from './files/minimax-files';
 import { VERSION } from './version';
 
 export interface MiniMaxProviderSettings {
@@ -33,6 +35,21 @@ export interface MiniMaxProviderSettings {
    * The default prefix is `https://api.minimax.io`.
    */
   videoBaseURL?: string;
+  /**
+   * Use a different URL prefix for speech generation API calls.
+   * The default prefix is `https://api.minimax.io`.
+   */
+  speechBaseURL?: string;
+  /**
+   * Use a different URL prefix for image generation API calls.
+   * The default prefix is `https://api.minimax.io`.
+   */
+  imageBaseURL?: string;
+  /**
+   * Use a different URL prefix for files API calls.
+   * The default prefix is `https://api.minimax.io`.
+   */
+  filesBaseURL?: string;
   /**
    * Custom headers to include in the requests.
    */
@@ -71,6 +88,11 @@ export interface MiniMaxProvider extends ProviderV4 {
   videoModel(modelId: MiniMaxVideoModelId): Experimental_VideoModelV4;
 
   /**
+   * Creates a MiniMax files instance for file operations.
+   */
+  files(): FilesV4;
+
+  /**
    * @deprecated Use `embeddingModel` instead.
    */
   textEmbeddingModel(modelId: string): never;
@@ -78,6 +100,7 @@ export interface MiniMaxProvider extends ProviderV4 {
 
 const defaultBaseURL = 'https://api.minimax.io/anthropic/v1';
 const defaultVideoBaseURL = 'https://api.minimax.io';
+const defaultFilesBaseURL = 'https://api.minimax.io';
 
 export function createMiniMax(
   options: MiniMaxProviderSettings = {},
@@ -88,6 +111,10 @@ export function createMiniMax(
   const videoBaseURL =
     withoutTrailingSlash(options.videoBaseURL ?? defaultVideoBaseURL) ??
     defaultVideoBaseURL;
+
+  const filesBaseURL =
+    withoutTrailingSlash(options.filesBaseURL ?? defaultFilesBaseURL) ??
+    defaultFilesBaseURL;
 
   const getHeaders = () =>
     withUserAgentSuffix(
@@ -134,6 +161,14 @@ export function createMiniMax(
       fetch: options.fetch,
     });
 
+  const createFiles = () =>
+    new MiniMaxFiles({
+      provider: 'minimax.files',
+      baseURL: filesBaseURL,
+      headers: getVideoHeaders,
+      fetch: options.fetch,
+    });
+
   const provider = (modelId: MiniMaxChatModelId) => createChatModel(modelId);
 
   provider.specificationVersion = 'v4' as const;
@@ -141,14 +176,16 @@ export function createMiniMax(
   provider.chat = createChatModel;
   provider.video = createVideoModel;
   provider.videoModel = createVideoModel;
+  provider.files = createFiles;
+
+  provider.imageModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
+  };
 
   provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
   };
   provider.textEmbeddingModel = provider.embeddingModel;
-  provider.imageModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
-  };
 
   return provider;
 }
