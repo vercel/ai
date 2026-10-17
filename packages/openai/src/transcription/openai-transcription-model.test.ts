@@ -283,6 +283,85 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should keep verbose_json and segment timestamps for whisper-1 when only a prompt is set', async () => {
+    prepareJsonFixtureResponse('openai-transcription');
+
+    await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: { openai: { prompt: 'A spoken recording.' } },
+    });
+
+    const body = await server.calls[0].requestBodyMultipart;
+    const { file: _, ...rest } = body!;
+    expect(rest).toEqual({
+      model: 'whisper-1',
+      prompt: 'A spoken recording.',
+      response_format: 'verbose_json',
+      temperature: '0',
+      'timestamp_granularities[]': 'segment',
+    });
+  });
+
+  it.each(['gpt-transcribe', 'gpt-4o-mini-transcribe-2025-12-15'])(
+    'should default %s to json without timestamp granularities when only a prompt is set',
+    async modelId => {
+      prepareJsonFixtureResponse('openai-transcription');
+
+      await provider.transcription(modelId).doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: { openai: { prompt: 'A spoken recording.' } },
+      });
+
+      const body = await server.calls[0].requestBodyMultipart;
+      const { file: _, ...rest } = body!;
+      expect(rest).toEqual({
+        model: modelId,
+        prompt: 'A spoken recording.',
+        response_format: 'json',
+        temperature: '0',
+      });
+    },
+  );
+
+  it('should not set response_format or timestamp granularities for unknown model ids when only a prompt is set', async () => {
+    prepareJsonFixtureResponse('openai-transcription');
+
+    await provider.transcription('my-transcription-deployment').doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: { openai: { prompt: 'A spoken recording.' } },
+    });
+
+    const body = await server.calls[0].requestBodyMultipart;
+    const { file: _, ...rest } = body!;
+    expect(rest).toEqual({
+      model: 'my-transcription-deployment',
+      prompt: 'A spoken recording.',
+      temperature: '0',
+    });
+  });
+
+  it('should default unknown model ids to verbose_json when timestamp granularities are requested', async () => {
+    prepareJsonFixtureResponse('openai-transcription');
+
+    await provider.transcription('my-transcription-deployment').doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: { openai: { timestampGranularities: ['word'] } },
+    });
+
+    const body = await server.calls[0].requestBodyMultipart;
+    const { file: _, ...rest } = body!;
+    expect(rest).toEqual({
+      model: 'my-transcription-deployment',
+      response_format: 'verbose_json',
+      temperature: '0',
+      'timestamp_granularities[]': 'word',
+    });
+  });
+
   it('should support gpt-4o-transcribe-diarize', async () => {
     prepareJsonFixtureResponse('openai-diarized-transcription');
 
@@ -363,7 +442,6 @@ describe('doGenerate', () => {
         "model": "gpt-4o-transcribe-diarize",
         "response_format": "json",
         "temperature": "0",
-        "timestamp_granularities[]": "segment",
       }
     `);
   });
