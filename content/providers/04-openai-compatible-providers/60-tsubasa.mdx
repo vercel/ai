@@ -9,9 +9,8 @@ description: Configure Tsubasa's Chat Completions API with the AI SDK.
 Use the existing `@ai-sdk/openai-compatible` module to create a named provider.
 
 <Note>
-  Tsubasa is currently in website-only mode. API access is unavailable, and
-  these examples require the service to be enabled. Live model qualification for
-  tool calling and structured output is pending.
+  This guide covers text generation and streaming. Tool calling and structured
+  output have not been qualified for this configuration.
 </Note>
 
 ## Setup
@@ -20,7 +19,7 @@ Install the OpenAI Compatible provider and the AI SDK:
 
 <InstallPackages packages="ai @ai-sdk/openai-compatible" />
 
-Once API access is available, store your Tsubasa key in the server-side
+Store your Tsubasa key in the server-side
 `TSUBASA_API_KEY` environment variable. See the [API documentation](https://tsubasa.sh/docs)
 for access and model availability.
 
@@ -75,5 +74,5 @@ for await (const part of result.textStream) {
 
 This configuration targets Chat Completions only. Tsubasa does not expose
 Responses, embeddings, images, audio, or legacy text-completion endpoints.
-Model discovery uses `GET https://api.tsubasa.sh/v1/models` when the service is
-enabled. A configuration test does not establish live model compatibility.
+Model discovery uses `GET https://api.tsubasa.sh/v1/models`. A configuration test
+does not establish live model compatibility.
