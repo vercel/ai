@@ -36,10 +36,10 @@ function createStreamableValue<T = any, E = any>(
   streamableValue[STREAMABLE_VALUE_INTERNAL_LOCK] = true;
 
   (async () => {
-    try {
-      // Consume the readable stream and update the value.
-      const reader = initialValue.getReader();
+    // Consume the readable stream and update the value.
+    const reader = initialValue.getReader();
 
+    try {
       while (true) {
         const { value, done } = await reader.read();
         if (done) {
@@ -62,6 +62,10 @@ function createStreamableValue<T = any, E = any>(
     } catch (e) {
       streamableValue[STREAMABLE_VALUE_INTERNAL_LOCK] = false;
       streamableValue.error(e);
+    } finally {
+      // Release the reader so the source stream is usable again once the
+      // streamable value has been finalized.
+      reader.releaseLock();
     }
   })();
 

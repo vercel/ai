@@ -177,6 +177,39 @@ describe('createStreamableValue', () => {
     ]);
   });
 
+  it('should release the source stream once it has been consumed', async () => {
+    const source = convertArrayToReadableStream(['hello', ' world']);
+    const streamable = createStreamableValue(source);
+
+    expect(source.locked).toBe(true);
+
+    expect(await getRawChunks(streamable.value)).toStrictEqual([
+      { curr: undefined, type: STREAMABLE_VALUE_TYPE },
+      { curr: 'hello' },
+      { diff: [0, ' world'] },
+      {},
+    ]);
+
+    expect(source.locked).toBe(false);
+    await expect(source.cancel()).resolves.toBeUndefined();
+  });
+
+  it('should release the source stream when reading it fails', async () => {
+    const source = new ReadableStream({
+      pull(controller) {
+        controller.error(new Error('source failed'));
+      },
+    });
+    const streamable = createStreamableValue(source);
+
+    expect(await getRawChunks(streamable.value)).toStrictEqual([
+      { curr: undefined, type: STREAMABLE_VALUE_TYPE },
+      { error: new Error('source failed') },
+    ]);
+
+    expect(source.locked).toBe(false);
+  });
+
   it('should lock the streamable if from readableStream', async () => {
     const streamable = createStreamableValue(
       new ReadableStream({
