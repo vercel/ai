@@ -416,11 +416,12 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               break;
             }
 
-            const tool = tools![toolCall.toolName];
-
             toolInputs.set(toolCall.toolCallId, toolCall.input);
 
-            if (tool.onInputAvailable != null) {
+            // provider-executed dynamic tools are not part of the tool set:
+            const tool = tools?.[toolCall.toolName];
+
+            if (tool?.onInputAvailable != null) {
               await tool.onInputAvailable({
                 input: toolCall.input,
                 toolCallId: toolCall.toolCallId,
@@ -431,7 +432,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
             }
 
             // Only execute tools that are not provider-executed:
-            if (tool.execute != null && toolCall.providerExecuted !== true) {
+            if (tool?.execute != null && toolCall.providerExecuted !== true) {
               pendingToolCalls.push({ ...toolCall });
             }
           } catch (error) {
