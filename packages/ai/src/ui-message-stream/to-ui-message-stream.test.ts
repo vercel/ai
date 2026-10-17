@@ -523,6 +523,12 @@ describe('toUIMessageStream', () => {
       rawFinishReason: 'stop',
       totalUsage: testUsage,
     };
+    const truncatedFinishPart: TextStreamPart<{}> = {
+      type: 'finish',
+      finishReason: 'length',
+      rawFinishReason: 'length',
+      totalUsage: testUsage,
+    };
     const abortPart: TextStreamPart<{}> = {
       type: 'abort',
       reason: 'user cancelled',
@@ -534,9 +540,16 @@ describe('toUIMessageStream', () => {
 
     expect({
       completed: await observe([finishPart]),
+      truncated: await observe([truncatedFinishPart]),
       failed: await observe([errorPart]),
       aborted: await observe([abortPart]),
       unknown: await observe([]),
+      finalFinishReasonWins: await observe([
+        { ...testStep, finishReason: 'length' },
+        finishPart,
+      ]),
+      truncatedBeforeError: await observe([truncatedFinishPart, errorPart]),
+      truncatedAfterError: await observe([errorPart, truncatedFinishPart]),
       completedBeforeError: await observe([finishPart, errorPart]),
       completedAfterError: await observe([errorPart, finishPart]),
     }).toMatchInlineSnapshot(`
@@ -560,6 +573,22 @@ describe('toUIMessageStream', () => {
         "failed": {
           "errorMessage": "generation failed",
           "status": "failed",
+        },
+        "finalFinishReasonWins": {
+          "errorMessage": undefined,
+          "status": "completed",
+        },
+        "truncated": {
+          "errorMessage": undefined,
+          "status": "truncated",
+        },
+        "truncatedAfterError": {
+          "errorMessage": undefined,
+          "status": "truncated",
+        },
+        "truncatedBeforeError": {
+          "errorMessage": undefined,
+          "status": "truncated",
         },
         "unknown": {
           "errorMessage": undefined,
@@ -642,8 +671,8 @@ describe('toUIMessageStream', () => {
           if (pullCount++ === 0) {
             controller.enqueue({
               type: 'finish',
-              finishReason: 'stop',
-              rawFinishReason: 'stop',
+              finishReason: 'length',
+              rawFinishReason: 'length',
               totalUsage: testUsage,
             });
           } else {

@@ -247,6 +247,7 @@ describe('data protocol stream', () => {
       isAbort: false,
       isDisconnect: false,
       isError: false,
+      outcome: { status: 'completed' },
       message: {
         id: 'id-1',
         metadata: {
@@ -449,6 +450,7 @@ describe('text stream', () => {
       isAbort: false,
       isDisconnect: false,
       isError: false,
+      outcome: { status: 'completed' },
       message: {
         id: expect.any(String),
         role: 'assistant',

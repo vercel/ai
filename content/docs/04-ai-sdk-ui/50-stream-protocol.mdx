@@ -471,14 +471,16 @@ data: {"type":"reset-step"}
 
 ### Finish Message Part
 
-A part indicating the completion of a message.
+A part indicating the end of a message. The optional `finishReason` contains the
+normalized model finish reason. Chat `onFinish` callbacks expose a
+`{ status: 'truncated' }` outcome when this value is `length`.
 
 Format: Server-Sent Event with JSON object
 
 Example:
 
 ```
-data: {"type":"finish"}
+data: {"type":"finish","finishReason":"length"}
 
 ```
 

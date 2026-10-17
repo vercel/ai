@@ -178,9 +178,11 @@ describe('data protocol stream', () => {
     });
 
     expect(onFinish).toHaveBeenCalledExactlyOnceWith({
+      finishReason: undefined,
       isAbort: false,
       isDisconnect: false,
       isError: false,
+      outcome: { status: 'completed' },
       message: {
         id: 'id-1',
         metadata: {
@@ -188,6 +190,7 @@ describe('data protocol stream', () => {
         },
         parts: [
           {
+            providerMetadata: undefined,
             text: 'Hello, world.',
             type: 'text',
             state: 'done',
@@ -214,6 +217,7 @@ describe('data protocol stream', () => {
           },
           parts: [
             {
+              providerMetadata: undefined,
               text: 'Hello, world.',
               type: 'text',
               state: 'done',
@@ -377,16 +381,23 @@ describe('text stream', () => {
     });
 
     expect(onFinish).toHaveBeenCalledExactlyOnceWith({
+      finishReason: undefined,
       isAbort: false,
       isDisconnect: false,
       isError: false,
+      outcome: { status: 'completed' },
       message: {
         id: expect.any(String),
         role: 'assistant',
         metadata: undefined,
         parts: [
           { type: 'step-start' },
-          { text: 'Hello, world.', type: 'text', state: 'done' },
+          {
+            providerMetadata: undefined,
+            text: 'Hello, world.',
+            type: 'text',
+            state: 'done',
+          },
         ],
       },
       messages: [
@@ -402,7 +413,12 @@ describe('text stream', () => {
           metadata: undefined,
           parts: [
             { type: 'step-start' },
-            { text: 'Hello, world.', type: 'text', state: 'done' },
+            {
+              providerMetadata: undefined,
+              text: 'Hello, world.',
+              type: 'text',
+              state: 'done',
+            },
           ],
         },
       ],
