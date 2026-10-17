@@ -36,6 +36,25 @@ describe('asSchema', () => {
       value: { model: 'test-model' },
     });
   });
+
+  it('should pass Zod schema options through to conversion', async () => {
+    const schema = asSchema(z4.object({ id: z4.uuid() }), {
+      override({ jsonSchema }) {
+        if (jsonSchema.format === 'uuid') {
+          delete jsonSchema.pattern;
+        }
+      },
+    });
+
+    const jsonSchema = await schema.jsonSchema;
+    const idSchema = jsonSchema.properties?.id as {
+      format?: string;
+      pattern?: string;
+    };
+
+    expect(idSchema.format).toBe('uuid');
+    expect(idSchema.pattern).toBeUndefined();
+  });
 });
 
 describe('zodSchema', () => {
@@ -168,6 +187,24 @@ describe('zodSchema', () => {
         );
 
         expect(schema.jsonSchema).toMatchSnapshot();
+      });
+
+      it('should apply override when converting to JSON Schema', () => {
+        const schema = zodSchema(z4.object({ id: z4.uuid() }), {
+          override({ jsonSchema }) {
+            if (jsonSchema.format === 'uuid') {
+              delete jsonSchema.pattern;
+            }
+          },
+        });
+
+        const idSchema = schema.jsonSchema.properties?.id as {
+          format?: string;
+          pattern?: string;
+        };
+
+        expect(idSchema.format).toBe('uuid');
+        expect(idSchema.pattern).toBeUndefined();
       });
 
       it('should support nullable', () => {
