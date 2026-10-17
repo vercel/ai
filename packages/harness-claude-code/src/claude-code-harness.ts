@@ -156,11 +156,13 @@ export type ClaudeCodeHarnessSettings = {
 };
 
 /*
- * Every native tool the Claude Code CLI can invoke, declared as a `ToolSet`
- * keyed by what the bridge emits as `toolName` on the wire
- * (`commonName ?? nativeName`). Schemas are transcribed from the generated
- * `sdk-tools.d.ts` and the conditionally registered tool definitions in the
- * pinned Claude Code executable.
+ * Native tools supported by this adapter, declared as a `ToolSet` keyed by
+ * what the bridge emits as `toolName` on the wire
+ * (`commonName ?? nativeName`). This is intentionally not an inventory of
+ * every tool name present in the Claude Code executable. Schemas are
+ * transcribed from the generated `sdk-tools.d.ts` and, for supported tools
+ * without generated types, conditionally registered definitions in the
+ * pinned executable.
  *
  * `MCP` (the generic proxy tool inside the Claude Code SDK) is intentionally
  * omitted — the bridge filters out `mcp__harness-tools__*` tool names before

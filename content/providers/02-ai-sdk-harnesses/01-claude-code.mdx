@@ -214,6 +214,55 @@ not fit a common tool shape.
 Claude Code supports built-in tool approval requests when `permissionMode` is
 `allow-reads` or `allow-edits`.
 
+### Built-in Catalog Scope
+
+The adapter's typed built-in catalog covers native tools with an established
+Claude Agent SDK or host contract. It is intentionally not an inventory of
+every name present in the Claude Code executable. A generated type or an
+executable-native name alone does not establish that a tool is available to
+public SDK consumers.
+
+The following reviewed conditional names are therefore not declared:
+
+- `Projects` has generated input types, but the public SDK does not document a
+  supported project-attachment flow. In the pinned runtime, activation also
+  requires project policy, credentials and service access, and a non-empty
+  effective `CLAUDE_PROJECT_UUID` environment value. Not setting an `env`
+  override does not remove a value inherited by the launched process.
+  Preventing project attachment affects the whole project feature, not only
+  this tool.
+- `ClaudeDesign` has generated input types, but no supported standalone Agent
+  SDK activation contract is documented. Runtime availability also depends on
+  account policy, a first-party provider, nonessential network traffic, and a
+  rollout. Setting `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1` prevents the
+  feature in a new process, but also disables unrelated nonessential traffic;
+  it is not a per-tool control.
+- `SendFile`, `SendUserMessage`, `memory_list`, `memory_read`, `memory_write`,
+  and `GetTask` do not have supported public Agent SDK input contracts in the
+  pinned version. `GetTask` is distinct from the declared `TaskGet` built-in.
+
+Internal runner administration, host-specific UI and device integrations,
+child-session protocols, diagnostics, and CLI-only tools are likewise not
+declared as ordinary harness built-ins.
+
+Names outside the declared catalog cannot be passed to `activeTools` or
+`inactiveTools`; `HarnessAgent` rejects unknown names during construction. The
+direct Claude Agent SDK accepts native strings in `disallowedTools`, but this
+adapter does not currently expose arbitrary undeclared native names through
+its typed filtering settings. The SDK's `allowedTools` option controls
+permission auto-approval, not tool availability.
+
+For declared tools, `activeTools` is broader than a per-tool deny switch. A
+proper subset forwards a native `tools` allowlist and excludes every other
+declared built-in; application-provided tools must also be listed if they
+should remain available. Listing every declared built-in does not forward a
+native allowlist because no declared tool was excluded, while
+`activeTools: []` forwards an empty native tool list. `inactiveTools` forwards
+the selected declared built-ins through the native deny path.
+
+The catalog may expand when a native tool gains a supported SDK or host
+contract with an authoritative schema and reproducible activation path.
+
 ## Related
 
 - [HarnessAgent](/docs/ai-sdk-harnesses/harness-agent)
