@@ -4900,6 +4900,88 @@ describe('convertToOpenAIResponsesInput', () => {
           ],
         });
       });
+
+      it('should reconstruct shell call and output with timeout_ms and max_output_length', async () => {
+        const callId = 'call_custom_shell';
+        const result = await convertToOpenAIResponsesInput({
+          toolNameMapping: testToolNameMapping,
+          prompt: [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Run command' }],
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: callId,
+                  toolName: 'shell',
+                  input: {
+                    action: {
+                      commands: ['sleep 1'],
+                      timeoutMs: 5000,
+                      maxOutputLength: 1024,
+                    },
+                  },
+                  providerExecuted: true,
+                  providerOptions: {
+                    openai: {
+                      itemId: 'shell_item_2',
+                    },
+                  },
+                },
+                {
+                  type: 'tool-result',
+                  toolCallId: callId,
+                  toolName: 'shell',
+                  output: {
+                    type: 'json',
+                    value: {
+                      maxOutputLength: 1024,
+                      output: [
+                        {
+                          stdout: 'done',
+                          stderr: '',
+                          outcome: { type: 'exit', exitCode: 0 },
+                        },
+                      ],
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+          providerOptionsName: 'openai',
+          store: false,
+          hasShellTool: true,
+        });
+
+        expect(result.input).toContainEqual({
+          type: 'shell_call',
+          call_id: callId,
+          id: 'shell_item_2',
+          status: 'completed',
+          action: {
+            commands: ['sleep 1'],
+            timeout_ms: 5000,
+            max_output_length: 1024,
+          },
+        });
+        expect(result.input).toContainEqual({
+          type: 'shell_call_output',
+          call_id: callId,
+          max_output_length: 1024,
+          output: [
+            {
+              stdout: 'done',
+              stderr: '',
+              outcome: { type: 'exit', exit_code: 0 },
+            },
+          ],
+        });
+      });
     });
 
     describe('local shell', () => {

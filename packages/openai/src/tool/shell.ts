@@ -21,6 +21,7 @@ export const shellInputSchema = lazySchema(() =>
 export const shellOutputSchema = lazySchema(() =>
   zodSchema(
     z.object({
+      maxOutputLength: z.number().optional(),
       output: z.array(
         z.object({
           stdout: z.string(),
@@ -180,6 +181,11 @@ export const shell = createProviderDefinedToolFactoryWithOutputSchema<
     };
   },
   {
+    /**
+     * Optional maximum output length in characters.
+     */
+    maxOutputLength?: number;
+
     /**
      * An array of shell call output contents.
      */
