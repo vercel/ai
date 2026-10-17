@@ -115,7 +115,8 @@ export interface AzureOpenAIProvider extends ProviderV4 {
   /**
    * Creates an Azure transcription model. MAI-Transcribe models use the Speech
    * API and MAI-Transcribe-2-Streaming the MAI realtime API by default; other
-   * IDs use OpenAI. Override with providerOptions.azure.api.
+   * IDs use OpenAI. Override with providerOptions.azure.api. Options can be
+   * provided in providerOptions.azure (which takes precedence) or providerOptions.openai.
    */
   transcription(deploymentId: string): TranscriptionModelV4;
 
@@ -546,50 +547,80 @@ class AzureTranscriptionModel implements TranscriptionModelV4 {
   }
 
   async doGenerate(options: Parameters<TranscriptionModelV4['doGenerate']>[0]) {
-    const { api, speechOptions, maiOptions } = await this.getOptions(
-      options.providerOptions,
-    );
+    const { api, speechOptions, openAIOptions, maiOptions } =
+      await this.getOptions(options.providerOptions);
     if (api === 'mai') {
       return this.mai.doGenerate();
     }
     if (api === 'speech') {
       const result = await this.speech.doGenerate(options, speechOptions);
+      const openAIOnlyOptions = { ...openAIOptions };
+      delete openAIOnlyOptions.language;
       return {
         ...result,
-        warnings: [...result.warnings, ...maiOnlyWarnings(maiOptions)],
+        warnings: [
+          ...result.warnings,
+          ...maiOnlyWarnings(maiOptions),
+          ...openAIOnlyWarnings(openAIOnlyOptions),
+        ],
       };
     }
 
-    const result = await this.openai.doGenerate(options);
+    const mergedOpenAIOptions = {
+      ...(options.providerOptions?.openai as Record<string, unknown>),
+      ...openAIOptions,
+    };
+    const callOptions =
+      Object.keys(openAIOptions).length === 0
+        ? options
+        : {
+            ...options,
+            providerOptions: {
+              ...options.providerOptions,
+              openai: mergedOpenAIOptions,
+            },
+          };
+
+    const result = await this.openai.doGenerate(callOptions);
     return {
       ...result,
-      warnings: [
-        ...result.warnings,
-        ...speechOnlyWarnings(speechOptions),
-        ...maiOnlyWarnings(maiOptions),
-      ],
+      warnings: [...result.warnings, ...speechOnlyWarnings(speechOptions)],
     };
   }
 
   async doStream(
     options: Parameters<NonNullable<TranscriptionModelV4['doStream']>>[0],
   ) {
-    const { api, speechOptions, maiOptions } = await this.getOptions(
-      options.providerOptions,
-    );
+    const { api, speechOptions, openAIOptions, maiOptions } =
+      await this.getOptions(options.providerOptions);
     if (api === 'speech') {
       throw new UnsupportedFunctionalityError({
         functionality: 'streaming transcription with the Azure Speech API',
       });
     }
     if (api === 'mai') {
-      return this.mai.doStream(
-        options,
-        maiOptions,
-        speechOnlyWarnings(speechOptions),
-      );
+      const openAIOnlyOptions = { ...openAIOptions };
+      delete openAIOnlyOptions.language;
+      return this.mai.doStream(options, maiOptions, [
+        ...speechOnlyWarnings(speechOptions),
+        ...openAIOnlyWarnings(openAIOnlyOptions),
+      ]);
     }
-    return this.openai.doStream(options);
+    const mergedOpenAIOptions = {
+      ...(options.providerOptions?.openai as Record<string, unknown>),
+      ...openAIOptions,
+    };
+    const callOptions =
+      Object.keys(openAIOptions).length === 0
+        ? options
+        : {
+            ...options,
+            providerOptions: {
+              ...options.providerOptions,
+              openai: mergedOpenAIOptions,
+            },
+          };
+    return this.openai.doStream(callOptions);
   }
 
   private async getOptions(
@@ -597,12 +628,36 @@ class AzureTranscriptionModel implements TranscriptionModelV4 {
       TranscriptionModelV4['doGenerate']
     >[0]['providerOptions'],
   ) {
-    const { api, language, ...speechOptions } =
+    const parsed =
       (await parseProviderOptions({
         provider: 'azure',
         providerOptions,
         schema: azureTranscriptionModelOptions,
       })) ?? {};
+    const { api, ...rest } = parsed;
+
+    const speechOptions: Record<string, unknown> = {};
+    const openAIOptions: Record<string, unknown> = {};
+    const maiOptions: Record<string, unknown> = {};
+
+    for (const [key, value] of Object.entries(rest)) {
+      if (value === undefined) continue;
+      if (key === 'language') {
+        maiOptions.language = value;
+        openAIOptions.language = value;
+      } else if (
+        key === 'timestamps' ||
+        key === 'transcribeStyle' ||
+        key === 'locales' ||
+        key === 'diarization' ||
+        key === 'phraseList'
+      ) {
+        speechOptions[key] = value;
+      } else {
+        openAIOptions[key] = value;
+      }
+    }
+
     return {
       api:
         api ??
@@ -612,7 +667,8 @@ class AzureTranscriptionModel implements TranscriptionModelV4 {
             ? ('speech' as const)
             : ('openai' as const)),
       speechOptions,
-      maiOptions: language != null ? { language } : {},
+      openAIOptions,
+      maiOptions,
     };
   }
 }
@@ -744,6 +800,13 @@ function maiOnlyWarnings(options: Record<string, unknown>) {
   return unsupportedOptionWarnings(
     options,
     'This option requires MAI streaming transcription.',
+  );
+}
+
+function openAIOnlyWarnings(options: Record<string, unknown>) {
+  return unsupportedOptionWarnings(
+    options,
+    'This option requires the Azure OpenAI transcription API.',
   );
 }
 
