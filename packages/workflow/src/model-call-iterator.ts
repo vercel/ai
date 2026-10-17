@@ -15,6 +15,7 @@ import {
   experimental_filterActiveTools as filterActiveTools,
   InvalidToolInputError,
   isDeepEqualData,
+  TypeValidationError,
   type ActiveTools,
   type Experimental_SandboxSession as SandboxSession,
   type Instructions,
@@ -466,17 +467,20 @@ export async function* modelCallIterator({
         ),
         abortSignal: currentGenerationSettings.abortSignal,
       });
-      if (mode === 'stream' && writable != null) {
-        // Replace the tool-call chunk deferred inside the model step with the
-        // original schema's validated, normalized, or repaired result.
-        await writeDeferredToolCalls(
-          writable,
-          toolCalls.filter(
-            (_, index) =>
-              serializedTools[serializedToolCalls[index].toolName]
-                ?.hasOwnValidator,
-          ),
-        );
+      // Replace the tool-call chunks deferred inside the model step with the
+      // original schema's validated, normalized, or repaired result.
+      const deferredToolCalls = toolCalls.filter(
+        (toolCall, index) =>
+          !toolCall.providerExecuted &&
+          serializedTools[serializedToolCalls[index].toolName]?.hasOwnValidator,
+      );
+      // Writing is a durable step, so skip it when nothing was deferred.
+      if (
+        mode === 'stream' &&
+        writable != null &&
+        deferredToolCalls.length > 0
+      ) {
+        await writeDeferredToolCalls(writable, deferredToolCalls);
       }
       await invokeToolInputLifecycleCallbacks({
         events: toolInputLifecycleEvents ?? [],
@@ -775,6 +779,15 @@ async function validateToolCallInputs({
                     toolName: options.toolCall.toolName,
                     toolInput: options.toolCall.input,
                     message: getErrorMessage(options.error),
+                    ...(TypeValidationError.isInstance(options.error.cause)
+                      ? {
+                          typeValidationError: {
+                            value: options.error.cause.value,
+                            message: getErrorMessage(options.error.cause.cause),
+                            context: options.error.cause.context,
+                          },
+                        }
+                      : {}),
                   },
                   instructions,
                   messages: options.messages,
@@ -828,7 +841,16 @@ async function repairToolCallInStep({
   repairToolCall: ToolCallRepairFunction<ToolSet>;
   serializedTools: Record<string, SerializableToolDef>;
   toolCall: LanguageModelV4ToolCall;
-  error: { toolName: string; toolInput: string; message: string };
+  error: {
+    toolName: string;
+    toolInput: string;
+    message: string;
+    typeValidationError?: {
+      value: unknown;
+      message: string;
+      context?: TypeValidationError['context'];
+    };
+  };
   instructions?: Instructions;
   messages: ModelMessage[];
 }): Promise<LanguageModelV4ToolCall | null> {
@@ -843,11 +865,21 @@ async function repairToolCallInStep({
     system: instructions,
     messages,
     // Errors are passed as plain data and rebuilt so that
-    // `InvalidToolInputError.isInstance` keeps working in the callback.
+    // `InvalidToolInputError.isInstance` and
+    // `TypeValidationError.isInstance(error.cause)` keep working in the
+    // callback. The schema library's own error cannot cross the boundary, so
+    // only its message is kept.
     error: new InvalidToolInputError({
       toolName: error.toolName,
       toolInput: error.toolInput,
-      cause: new Error(error.message),
+      cause:
+        error.typeValidationError != null
+          ? new TypeValidationError({
+              value: error.typeValidationError.value,
+              cause: new Error(error.typeValidationError.message),
+              context: error.typeValidationError.context,
+            })
+          : new Error(error.message),
       message: error.message,
     }),
   });

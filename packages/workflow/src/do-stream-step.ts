@@ -468,10 +468,11 @@ async function streamModelStep(
           // well, so `writeDeferredToolCalls` stays the sole emitter.
           // Otherwise the UI stream would receive a duplicate `tool-error`
           // chunk, and the one written here would arrive before its deferred
-          // `tool-call`.
+          // `tool-call`. Provider-executed calls are not validated locally and
+          // stream in place, so they stay ahead of their provider tool result.
           !(
-            (part.type === 'tool-call' ||
-              (part.type === 'tool-error' && !part.providerExecuted)) &&
+            (part.type === 'tool-call' || part.type === 'tool-error') &&
+            !part.providerExecuted &&
             serializedTools?.[part.toolName]?.hasOwnValidator
           )
         ) {
