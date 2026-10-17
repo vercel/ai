@@ -182,6 +182,11 @@ export const shell = createProviderDefinedToolFactoryWithOutputSchema<
   },
   {
     /**
+     * Optional maximum output length in characters.
+     */
+    maxOutputLength?: number;
+
+    /**
      * An array of shell call output contents.
      */
     output: Array<{
