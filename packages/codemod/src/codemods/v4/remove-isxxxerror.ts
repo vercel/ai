@@ -1,83 +1,97 @@
 import type { MemberExpression } from 'jscodeshift';
 import { createTransformer } from '../lib/create-transformer';
 
-const ERROR_METHOD_MAPPINGS: Record<string, string> = {
-  isAPICallError: 'APICallError.isInstance',
-  isEmptyResponseBodyError: 'EmptyResponseBodyError.isInstance',
-  isInvalidArgumentError: 'InvalidArgumentError.isInstance',
-  isInvalidPromptError: 'InvalidPromptError.isInstance',
-  isInvalidResponseDataError: 'InvalidResponseDataError.isInstance',
-  isJSONParseError: 'JSONParseError.isInstance',
-  isLoadAPIKeyError: 'LoadAPIKeyError.isInstance',
-  isLoadSettingError: 'LoadSettingError.isInstance',
-  isNoContentGeneratedError: 'NoContentGeneratedError.isInstance',
-  isNoObjectGeneratedError: 'NoObjectGeneratedError.isInstance',
-  isNoSuchModelError: 'NoSuchModelError.isInstance',
-  isNoSuchProviderError: 'NoSuchProviderError.isInstance',
-  isNoSuchToolError: 'NoSuchToolError.isInstance',
-  isTooManyEmbeddingValuesForCallError:
-    'TooManyEmbeddingValuesForCallError.isInstance',
-  isTypeValidationError: 'TypeValidationError.isInstance',
-  isUnsupportedFunctionalityError: 'UnsupportedFunctionalityError.isInstance',
-  isInvalidDataContentError: 'InvalidDataContentError.isInstance',
-  isInvalidMessageRoleError: 'InvalidMessageRoleError.isInstance',
-  isDownloadError: 'DownloadError.isInstance',
-  isRetryError: 'RetryError.isInstance',
-};
+const ERROR_METHODS = new Set<string>([
+  'isAPICallError',
+  'isEmptyResponseBodyError',
+  'isInvalidArgumentError',
+  'isInvalidPromptError',
+  'isInvalidResponseDataError',
+  'isJSONParseError',
+  'isLoadAPIKeyError',
+  'isLoadSettingError',
+  'isNoContentGeneratedError',
+  'isNoObjectGeneratedError',
+  'isNoSuchModelError',
+  'isNoSuchProviderError',
+  'isNoSuchToolError',
+  'isTooManyEmbeddingValuesForCallError',
+  'isTypeValidationError',
+  'isUnsupportedFunctionalityError',
+  'isInvalidDataContentError',
+  'isInvalidMessageRoleError',
+  'isDownloadError',
+  'isRetryError',
+]);
+
+function isSdkPackage(source: unknown): boolean {
+  return (
+    typeof source === 'string' &&
+    (source === 'ai' || source.startsWith('@ai-sdk/'))
+  );
+}
 
 export default createTransformer((fileInfo, api, options, context) => {
   const { j, root } = context;
 
-  // Track imports from ai packages
-  const targetImports = new Set<string>();
+  // Local names that are bound by imports from packages other than the SDK.
+  // A static `isXxxError` method on one of these is not an SDK error class,
+  // so it must not be rewritten.
+  const foreignImportNames = new Set<string>();
 
-  // Collect imports from ai packages
-  root
-    .find(j.ImportDeclaration)
-    .filter(
-      path =>
-        path.node.source.value === 'ai' ||
-        (typeof path.node.source.value === 'string' &&
-          path.node.source.value.startsWith('@ai-sdk/')),
-    )
-    .forEach(path => {
-      path.node.specifiers?.forEach(spec => {
-        if (spec.type === 'ImportSpecifier') {
-          const name = spec.imported.name;
-          if (Object.keys(ERROR_METHOD_MAPPINGS).includes(name)) {
-            context.hasChanges = true;
-            targetImports.add(spec.local?.name || name);
-          }
-        }
-      });
+  root.find(j.ImportDeclaration).forEach(path => {
+    if (isSdkPackage(path.node.source.value)) {
+      return;
+    }
+
+    path.node.specifiers?.forEach(specifier => {
+      if (specifier.local) {
+        foreignImportNames.add(specifier.local.name);
+      }
     });
+  });
 
-  // Replace method calls
+  // Classes declared in this file are not SDK error classes either.
+  const localClassNames = new Set<string>();
+
+  root.find(j.ClassDeclaration).forEach(path => {
+    if (path.node.id?.type === 'Identifier') {
+      localClassNames.add(path.node.id.name);
+    }
+  });
+
+  // Rewrite `Receiver.isXxxError(value)` to `Receiver.isInstance(value)`.
+  // The receiver is kept as written so that import aliases
+  // (`import { APICallError as APIError }`) and namespace imports
+  // (`ai.APICallError`) stay bound after the migration.
   root
     .find(j.CallExpression)
     .filter(path => {
       const callee = path.node.callee;
-      return (
-        callee.type === 'MemberExpression' &&
-        'property' in callee &&
-        callee.property.type === 'Identifier' &&
-        Object.keys(ERROR_METHOD_MAPPINGS).includes(callee.property.name)
-      );
+
+      if (
+        callee.type !== 'MemberExpression' ||
+        callee.computed ||
+        callee.property.type !== 'Identifier' ||
+        !ERROR_METHODS.has(callee.property.name)
+      ) {
+        return false;
+      }
+
+      const receiver = callee.object;
+
+      if (receiver.type === 'Identifier') {
+        return (
+          !foreignImportNames.has(receiver.name) &&
+          !localClassNames.has(receiver.name)
+        );
+      }
+
+      return receiver.type === 'MemberExpression';
     })
     .forEach(path => {
+      const callee = path.node.callee as MemberExpression;
+      callee.property = j.identifier('isInstance');
       context.hasChanges = true;
-      const property = (path.node.callee as MemberExpression).property;
-      const methodName = property.type === 'Identifier' ? property.name : '';
-      const newMethodPath = ERROR_METHOD_MAPPINGS[methodName].split('.');
-
-      j(path).replaceWith(
-        j.callExpression(
-          j.memberExpression(
-            j.identifier(newMethodPath[0]),
-            j.identifier(newMethodPath[1]),
-          ),
-          path.node.arguments,
-        ),
-      );
     });
 });
