@@ -32,6 +32,7 @@ import {
   postJsonToApi,
   resolve,
   resolveProviderReference,
+  parseJSON,
   secureJsonParse,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
@@ -73,6 +74,11 @@ import { convertToAnthropicPrompt } from './convert-to-anthropic-prompt';
 import { CacheControlValidator } from './get-cache-control';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 import { sanitizeJsonSchema } from './sanitize-json-schema';
+import {
+  needsToolInputWrapping,
+  unwrapToolInput,
+  wrapToolInputSchema,
+} from './anthropic-tool-input';
 
 function createAnthropicStreamError(error: {
   message: string;
@@ -518,6 +524,24 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       });
     }
 
+    const wrappedToolNames = new Set<string>();
+    tools = tools?.map(tool => {
+      if (
+        tool.type !== 'function' ||
+        !needsToolInputWrapping(tool.inputSchema) ||
+        (jsonResponseTool == null &&
+          (toolChoice?.type === 'none' ||
+            (rejectsForcedToolUse &&
+              toolChoice?.type === 'tool' &&
+              toolChoice.toolName !== tool.name)))
+      ) {
+        return tool;
+      }
+
+      wrappedToolNames.add(tool.name);
+      return wrapToolInputSchema(tool);
+    });
+
     const contextManagement = anthropicOptions?.contextManagement;
     const compaction = anthropicOptions?.compaction;
 
@@ -570,6 +594,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       cacheControlValidator,
       toolNameMapping,
       toolsetNames,
+      wrappedToolNames,
     });
 
     /*
@@ -1107,6 +1132,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         ...(anthropicOptions?.anthropicBeta ?? []),
       ]),
       usesJsonResponseTool: jsonResponseTool != null,
+      wrappedToolNames,
       toolNameMapping,
       providerOptionsName,
       usedCustomProviderKey,
@@ -1231,6 +1257,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       warnings,
       betas,
       usesJsonResponseTool,
+      wrappedToolNames,
       toolNameMapping,
       providerOptionsName,
       usedCustomProviderKey,
@@ -1411,12 +1438,26 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               },
             });
           } else {
+            const toolInputWrapped = wrappedToolNames.has(part.name);
             content.push({
               type: 'tool-call',
               toolCallId: part.id,
               toolName: part.name,
-              input: JSON.stringify(part.input),
+              input: JSON.stringify(
+                toolInputWrapped
+                  ? unwrapToolInput(part.input, part.name)
+                  : part.input,
+              ),
               ...getAnthropicCallerMetadata(part.caller),
+              ...(toolInputWrapped && {
+                providerMetadata: {
+                  anthropic: {
+                    ...getAnthropicCallerMetadata(part.caller).providerMetadata
+                      ?.anthropic,
+                    toolInputWrapped: true,
+                  },
+                },
+              }),
             });
           }
 
@@ -1878,6 +1919,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       warnings,
       betas,
       usesJsonResponseTool,
+      wrappedToolNames,
       toolNameMapping,
       providerOptionsName,
       usedCustomProviderKey,
@@ -1934,6 +1976,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           firstDelta: boolean;
           providerToolName?: string;
           providerToolInputType?: string;
+          toolInputWrapped?: boolean;
           /**
            * Set for toolset member calls (e.g. the computer toolset). The raw
            * member input is accumulated and emitted as a single delta with the
@@ -1999,7 +2042,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           controller.enqueue({ type: 'stream-start', warnings });
         },
 
-        transform(chunk, controller) {
+        async transform(chunk, controller) {
           if (hasInvalidMessageSequence) {
             return;
           }
@@ -2180,6 +2223,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       toolName: part.name,
                       input: initialInput,
                       firstDelta: initialInput.length === 0,
+                      ...(wrappedToolNames.has(part.name) && {
+                        toolInputWrapped: true,
+                      }),
                       ...(callerInfo && { caller: callerInfo }),
                     };
 
@@ -2656,6 +2702,30 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       usesJsonResponseTool && contentBlock.toolName === 'json';
 
                     if (!isJsonResponseTool) {
+                      if (contentBlock.toolInputWrapped) {
+                        try {
+                          contentBlock.input = JSON.stringify(
+                            unwrapToolInput(
+                              await parseJSON({ text: contentBlock.input }),
+                              contentBlock.toolName,
+                            ),
+                          );
+                        } catch (error) {
+                          controller.enqueue({
+                            type: 'tool-input-end',
+                            id: contentBlock.toolCallId,
+                          });
+                          controller.enqueue({ type: 'error', error });
+                          break;
+                        }
+
+                        controller.enqueue({
+                          type: 'tool-input-delta',
+                          id: contentBlock.toolCallId,
+                          delta: contentBlock.input,
+                        });
+                      }
+
                       // toolset member calls: emit the accumulated input with
                       // the member name injected as `action` in one delta.
                       if (contentBlock.toolset != null) {
@@ -2729,9 +2799,14 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                         contentBlock.providerToolName === 'code_execution'
                           ? { dynamic: true }
                           : {}),
-                        ...((contentBlock.caller || contentBlock.toolset) && {
+                        ...((contentBlock.caller ||
+                          contentBlock.toolset ||
+                          contentBlock.toolInputWrapped) && {
                           providerMetadata: {
                             anthropic: {
+                              ...(contentBlock.toolInputWrapped && {
+                                toolInputWrapped: true,
+                              }),
                               ...(contentBlock.toolset && {
                                 toolsetName: contentBlock.toolset.name,
                               }),
@@ -2839,9 +2914,11 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       return;
                     }
 
-                    // toolset member input is emitted as a single delta once
-                    // the block is complete (the member name is injected):
-                    if (contentBlock.toolset != null) {
+                    // Emit transformed inputs once the complete JSON is available.
+                    if (
+                      contentBlock.toolset != null ||
+                      contentBlock.toolInputWrapped
+                    ) {
                       contentBlock.input += delta;
                       return;
                     }
@@ -2989,7 +3066,22 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       toolName: part.name,
                     });
 
-                    const inputStr = JSON.stringify(part.input ?? {});
+                    const toolInputWrapped = wrappedToolNames.has(part.name);
+                    let inputStr: string;
+                    try {
+                      inputStr = JSON.stringify(
+                        toolInputWrapped
+                          ? unwrapToolInput(part.input, part.name)
+                          : (part.input ?? {}),
+                      );
+                    } catch (error) {
+                      controller.enqueue({
+                        type: 'tool-input-end',
+                        id: part.id,
+                      });
+                      controller.enqueue({ type: 'error', error });
+                      continue;
+                    }
                     controller.enqueue({
                       type: 'tool-input-delta',
                       id: part.id,
@@ -3006,10 +3098,11 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       toolCallId: part.id,
                       toolName: part.name,
                       input: inputStr,
-                      ...(callerInfo && {
+                      ...((callerInfo || toolInputWrapped) && {
                         providerMetadata: {
                           anthropic: {
-                            caller: callerInfo,
+                            ...(callerInfo && { caller: callerInfo }),
+                            ...(toolInputWrapped && { toolInputWrapped: true }),
                           },
                         },
                       }),
