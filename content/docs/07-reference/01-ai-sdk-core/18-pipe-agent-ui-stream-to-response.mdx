@@ -125,6 +125,13 @@ export async function handler(req, res) {
         'Callback invoked after each UI message step is assembled. It receives `messages`, `isContinuation`, and the accumulated `responseMessage` for intermediate persistence.',
     },
     {
+      name: 'keepAliveMs',
+      type: 'number',
+      isRequired: false,
+      description:
+        'Interval in milliseconds for sending SSE keep-alive comments. When set, an opening comment is sent immediately and additional comments are sent after the stream has been idle for the configured interval.',
+    },
+    {
       name: '...UIMessageStreamResponseInit & AgentUIMessageStreamOptions',
       type: 'object',
       isRequired: false,
