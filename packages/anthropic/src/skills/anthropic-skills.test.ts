@@ -103,9 +103,13 @@ describe('AnthropicSkills', () => {
             return callCount === 1
               ? new Response(
                   JSON.stringify({
+                    type: 'skill',
                     id: skillId,
-                    latest_version: version,
-                    source: 'custom',
+                    display_name: 'Test Skill',
+                    latest_version_id: version,
+                    source: {
+                      type: 'custom',
+                    },
                     created_at: '2026-08-24T00:00:00Z',
                     updated_at: '2026-08-24T00:00:00Z',
                   }),
@@ -117,9 +121,11 @@ describe('AnthropicSkills', () => {
               : new Response(
                   JSON.stringify({
                     type: 'skill_version',
+                    id: 'version-1',
                     skill_id: skillId,
                     name: 'test-skill',
                     description: 'test skill',
+                    created_at: '2026-08-24T00:00:00Z',
                   }),
                   {
                     status: 200,
@@ -217,14 +223,16 @@ describe('AnthropicSkills', () => {
       expect(result.latestVersion).toBe('1772078378207930');
       expect(result.providerMetadata).toEqual({
         anthropic: {
-          source: 'custom',
+          source: {
+            type: 'custom',
+          },
           createdAt: '2026-02-26T03:59:39.314772Z',
           updatedAt: '2026-02-26T03:59:39.314772Z',
         },
       });
     });
 
-    it('should send display_title in form data when displayTitle is provided', async () => {
+    it('should send display_name in form data when displayTitle is provided', async () => {
       prepareResponse({
         url: 'https://api.anthropic.com/v1/skills',
         filename: 'anthropic-skill-create',
@@ -243,10 +251,10 @@ describe('AnthropicSkills', () => {
       });
 
       const body = await server.calls[0].requestBodyMultipart;
-      expect(body!.display_title).toBe('My Custom Title');
+      expect(body!.display_name).toBe('My Custom Title');
     });
 
-    it('should not send display_title when displayTitle is not provided', async () => {
+    it('should not send display_name when displayTitle is not provided', async () => {
       prepareResponse({
         url: 'https://api.anthropic.com/v1/skills',
         filename: 'anthropic-skill-create',
@@ -264,7 +272,7 @@ describe('AnthropicSkills', () => {
       });
 
       const body = await server.calls[0].requestBodyMultipart;
-      expect(body!.display_title).toBeUndefined();
+      expect(body!.display_name).toBeUndefined();
     });
 
     it('should return no warnings', async () => {
