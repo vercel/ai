@@ -777,8 +777,8 @@ const { text } = await generateText({
 });
 
 console.log(text);`,
-    docsUrl: 'https://www.npmjs.com/package/shapelessai-ai-sdk',
-    apiKeyUrl: 'https://shapelessai.com/docs/api',
+    docsUrl: 'https://shapelessai.com/docs/ai-sdk',
+    apiKeyUrl: 'https://shapelessai.com/studio/api-keys',
     websiteUrl: 'https://shapelessai.com',
     npmUrl: 'https://www.npmjs.com/package/shapelessai-ai-sdk',
   },
