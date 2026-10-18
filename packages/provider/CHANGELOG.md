@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 4.0.29
+
+### Patch Changes
+
+- 0957554: Add `box` decision question type with image bounds for TypeSafe AI.
+
 ## 4.0.28
 
 ### Patch Changes

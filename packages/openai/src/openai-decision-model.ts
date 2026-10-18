@@ -180,7 +180,10 @@ export class DecisionOpenAIModel implements DecisionModelV4 {
           },
         ],
         questions: Object.entries(questions).map(([name, question]) => {
-          const instructions = toText(question.instructions);
+          const instructions =
+            question.instructions == null
+              ? question.instructions
+              : toText(question.instructions);
           switch (question.type) {
             case 'boolean':
               return {
@@ -195,7 +198,7 @@ export class DecisionOpenAIModel implements DecisionModelV4 {
                     ? undefined
                     : `Criteria for false:\n${toText(question.criteria.false)}`,
                 ]
-                  .filter(part => part !== undefined)
+                  .filter(part => part != null)
                   .join('\n\n'),
               };
             case 'choice':
