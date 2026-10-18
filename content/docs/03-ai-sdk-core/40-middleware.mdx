@@ -294,7 +294,31 @@ const model = wrapLanguageModel({
 
 Find more examples at this [link](https://github.com/minpeter/ai-sdk-tool-call-middleware/tree/main/examples/core/src).
 
-## Implementing Language Model Middleware
+### Tracekit
+
+[Tracekit](https://github.com/Cygnux-Labs/Tracekit) checks each tool call against a policy before it runs and records every call, decision, and result in a signed, tamper-evident log that can be verified offline.
+Its middleware records each model response, and its `toolApproval` function maps the policy's decisions onto AI SDK tool approval: allowed calls run, denied calls are refused with the policy's reason, and calls that need a person end the step with a `tool-approval-request`.
+
+```ts
+import { generateText, wrapLanguageModel } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { Client } from '@cygnuxlabs/tracekit';
+import { tracekitAI } from '@cygnuxlabs/tracekit/v2/vercel-ai';
+
+const tk = tracekitAI(await new Client().registerRun('assistant'));
+
+const result = await generateText({
+  model: wrapLanguageModel({
+    model: openai('gpt-5'),
+    middleware: tk.middleware,
+  }),
+  tools: tk.tools({ runCommand }), // any AI SDK tools
+  toolApproval: tk.toolApproval,
+  prompt: 'Clean up the build directory.',
+});
+```
+
+See the [Tracekit TypeScript SDK guide](https://github.com/Cygnux-Labs/Tracekit/blob/main/sdk/typescript/README.md) for approvals, streaming, and verifying a run.
 
 <Note>
   Implementing language model middleware is advanced functionality and requires
