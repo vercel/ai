@@ -53,6 +53,7 @@ export const DEFAULT_SANDBOX_RUNTIME = 'node24';
 
 const SNAPSHOT_POLL_INTERVAL_MS = 500;
 const SNAPSHOT_POLL_TIMEOUT_MS = 30_000;
+const TEMPLATE_SNAPSHOT_WAIT_TIMEOUT_MS = 60_000;
 
 type SandboxLookupParams = {
   fetch?: typeof fetch;
@@ -256,22 +257,15 @@ export async function ensureTemplateSnapshot({
     if (onCreateStarted || !isSandboxNameConflictError(error)) {
       throw error;
     }
-
-    const snapshotId = await pollForTemplateSnapshot({
-      name: templateName,
-      lookupParams,
-      abortSignal,
-    });
-    snapshotCache?.set(templateName, snapshotId);
-    return snapshotId;
   }
 
   const snapshotId =
     createdSnapshotId ??
-    (await pollForTemplateSnapshot({
+    (await pollForTemplateSnapshotWithTimeout({
       name: templateName,
       lookupParams,
       abortSignal,
+      timeoutMs: TEMPLATE_SNAPSHOT_WAIT_TIMEOUT_MS,
     }));
   snapshotCache?.set(templateName, snapshotId);
   return snapshotId;
@@ -312,7 +306,26 @@ export async function pollForTemplateSnapshot({
   lookupParams: SandboxLookupParams;
   abortSignal: AbortSignal | undefined;
 }): Promise<string> {
-  const deadline = Date.now() + SNAPSHOT_POLL_TIMEOUT_MS;
+  return pollForTemplateSnapshotWithTimeout({
+    name,
+    lookupParams,
+    abortSignal,
+    timeoutMs: SNAPSHOT_POLL_TIMEOUT_MS,
+  });
+}
+
+async function pollForTemplateSnapshotWithTimeout({
+  name,
+  lookupParams,
+  abortSignal,
+  timeoutMs,
+}: {
+  name: string;
+  lookupParams: SandboxLookupParams;
+  abortSignal: AbortSignal | undefined;
+  timeoutMs: number;
+}): Promise<string> {
+  const deadline = Date.now() + timeoutMs;
 
   while (Date.now() < deadline) {
     abortSignal?.throwIfAborted();

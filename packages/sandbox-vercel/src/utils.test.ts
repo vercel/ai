@@ -1,6 +1,10 @@
 import type { Sandbox } from '@vercel/sandbox';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createLiveSandboxFromSnapshot, ensureTemplateSnapshot } from './utils';
+import {
+  createLiveSandboxFromSnapshot,
+  ensureTemplateSnapshot,
+  pollForTemplateSnapshot,
+} from './utils';
 
 const { createMock, getOrCreateMock, snapshotListMock } = vi.hoisted(() => ({
   createMock: vi.fn(),
@@ -137,6 +141,7 @@ describe('Vercel template snapshots', () => {
   it('waits for the winner when concurrent builders hit a name conflict', async () => {
     vi.useFakeTimers();
     const sandbox = createSandboxMock();
+    const snapshotCache = new Map<string, string>();
     const conflict = Object.assign(
       new Error(
         "Status code 400 is not ok: A sandbox with the name 'prepared-template' already exists for this project.",
@@ -164,12 +169,36 @@ describe('Vercel template snapshots', () => {
         ]),
       );
 
-    const pending = ensureTemplateSnapshot(createOptions());
+    const pending = ensureTemplateSnapshot(createOptions({ snapshotCache }));
     await vi.advanceTimersByTimeAsync(500);
     await expect(pending).resolves.toBe('snap_manual');
     expect(getOrCreateMock).toHaveBeenCalledOnce();
     expect(snapshotListMock).toHaveBeenCalledTimes(2);
+    expect(snapshotCache.get('prepared-template')).toBe('snap_manual');
     expect(sandbox.snapshot).not.toHaveBeenCalled();
+  });
+
+  it('waits for a manual snapshot published after 30 seconds', async () => {
+    vi.useFakeTimers();
+    getOrCreateMock.mockResolvedValue(createSandboxMock());
+    const snapshotAvailableAt = Date.now() + 30_500;
+    snapshotListMock.mockImplementation(async () =>
+      createSnapshotPage(
+        Date.now() >= snapshotAvailableAt
+          ? [
+              {
+                id: 'snap_manual',
+                status: 'created',
+                creationMethod: 'manual',
+              },
+            ]
+          : [],
+      ),
+    );
+
+    const pending = ensureTemplateSnapshot(createOptions());
+    await vi.advanceTimersByTimeAsync(31_000);
+    await expect(pending).resolves.toBe('snap_manual');
   });
 
   it('ignores automatic snapshots while waiting for a prepared template', async () => {
@@ -204,6 +233,21 @@ describe('Vercel template snapshots', () => {
     getOrCreateMock.mockResolvedValue(createSandboxMock());
 
     const pending = ensureTemplateSnapshot(createOptions());
+    const rejection = expect(pending).rejects.toThrow(
+      'Timed out waiting for snapshot',
+    );
+    await vi.advanceTimersByTimeAsync(60_000);
+    await rejection;
+  });
+
+  it('keeps the default timeout when polling for a snapshot directly', async () => {
+    vi.useFakeTimers();
+
+    const pending = pollForTemplateSnapshot({
+      name: 'prepared-template',
+      lookupParams: {},
+      abortSignal: undefined,
+    });
     const rejection = expect(pending).rejects.toThrow(
       'Timed out waiting for snapshot',
     );
