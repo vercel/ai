@@ -39,7 +39,7 @@
     "@ai-sdk/mcp": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
-    "libfx": "0.0.13"
+    "libfx": "0.0.14"
   },
   "peerDependencies": {
     "zod": "^3.25.76 || ^4.1.8"

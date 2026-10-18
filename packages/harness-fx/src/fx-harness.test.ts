@@ -298,6 +298,10 @@ describe('fx harness', () => {
       'read',
       'custom',
     ]);
+    expect(runtime.options[0].tools.map(tool => tool.idempotent)).toEqual([
+      false,
+      false,
+    ]);
     expect(runtime.options[0].tools[1].inputSchema).toEqual(schema);
     await session.doDestroy();
   });

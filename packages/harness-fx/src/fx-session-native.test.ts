@@ -864,6 +864,7 @@ describe('stable fx continuation', () => {
             type: 'object',
             properties: { command: { type: 'string' } },
           },
+          idempotent: false,
           execute: async () => ({
             type: 'libfx.tool-result',
             text: 'marker',

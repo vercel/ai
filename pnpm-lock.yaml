@@ -3153,8 +3153,8 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
       libfx:
-        specifier: 0.0.13
-        version: 0.0.13
+        specifier: 0.0.14
+        version: 0.0.14
     devDependencies:
       '@types/node':
         specifier: 22.19.19
@@ -19122,8 +19122,8 @@ packages:
     resolution: {integrity: sha512-+bT2uH4E5LGE7h/n3evcS/sQlJXCpIp6ym8OWJ5eV6+67Dsql/LaaT7qJBAt2rzfoa/5QBGBhxDix1dMt2kQKQ==}
     engines: {node: '>= 0.8.0'}
 
-  libfx@0.0.13:
-    resolution: {integrity: sha512-Tyc+3soT61Ij9LeTnSTyX3efEx+XNwQ58k1V5X52jmixii+ITqCPi9X4uQHOqfk05tGqr0x1y1hAVGAbjG8v6Q==}
+  libfx@0.0.14:
+    resolution: {integrity: sha512-8wIEkRlKuQnbueyt6NBwi4xEiEnoRpwvAocKolzzmyz/r14s4gXiE3XivGk4QJpNnMMGHAJRKlH0WhW//q7B5Q==}
     engines: {node: '>=20'}
 
   license-webpack-plugin@4.0.2:
@@ -20881,7 +20881,7 @@ packages:
   phase@0.5.4:
     resolution: {integrity: sha512-3nCOrMZ/dW1q0nLCbVZBcGW/60TEApcoBPCT7s8SsQ2I0/rHLeSMkxlPhaGfW/yEKgkLkCfmd+YGss65ZwR77Q==}
     engines: {node: 24.x}
-    deprecated: phase is now the scan tool; the runtime library moved to @usephase/core and @usephase/react
+    deprecated: 'phase is now the scan tool; the runtime library moved to @usephase/core and @usephase/react. Run: npx @usephase/codemod@latest migrate-phase-to-usephase .'
     peerDependencies:
       react: '>=18'
     peerDependenciesMeta:
@@ -43901,7 +43901,7 @@ snapshots:
       type-check: 0.4.0
     optional: true
 
-  libfx@0.0.13: {}
+  libfx@0.0.14: {}
 
   license-webpack-plugin@4.0.2(webpack@5.105.2(@swc/core@1.15.3(@swc/helpers@0.5.23))(cssnano@7.1.9(postcss@8.5.23))(csso@5.0.5)(esbuild@0.28.1)(lightningcss@1.32.0)(postcss@8.5.23)(uglify-js@3.19.3)):
     dependencies:

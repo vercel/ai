@@ -14,6 +14,7 @@ export type FxTool = {
   name: string;
   description: string;
   inputSchema: unknown;
+  idempotent: boolean;
   execute: (
     input: unknown,
     context: { signal: AbortSignal },
@@ -53,7 +54,7 @@ export type FxTurn = AsyncIterable<FxRuntimeEvent> & {
   result: Promise<{ stopReason: string; usage?: Record<string, number> }>;
 };
 
-export type FxAgent = {
+export type FxEngine = {
   prompt(input: FxPrompt, options?: { signal?: AbortSignal }): FxTurn;
   checkpoint(): Promise<Uint8Array>;
   close(): Promise<void>;
@@ -82,10 +83,10 @@ export type FxRuntimeOptions = {
  */
 export async function createFxRuntime(
   options: FxRuntimeOptions,
-): Promise<FxAgent> {
+): Promise<FxEngine> {
   const packageName: string = 'libfx';
   const runtime = (await import(packageName)) as {
-    createFxAgent(options: FxRuntimeOptions): Promise<FxAgent>;
+    createFxEngine(options: FxRuntimeOptions): Promise<FxEngine>;
   };
-  return runtime.createFxAgent(options);
+  return runtime.createFxEngine(options);
 }

@@ -24,7 +24,7 @@ import {
 } from './fx-resume-state';
 import {
   createFxRuntime,
-  type FxAgent,
+  type FxEngine,
   type FxPrompt,
   type FxTool,
   type FxToolResult,
@@ -195,7 +195,7 @@ export async function createFxSession(options: {
     const signal = opts.abortSignal
       ? AbortSignal.any([controller.signal, opts.abortSignal])
       : controller.signal;
-    let runtime: FxAgent | undefined;
+    let runtime: FxEngine | undefined;
     let runtimeTurn: FxTurn | undefined;
     let transport: ReturnType<typeof createFxTransport> | undefined;
     let mcp: Awaited<ReturnType<typeof createFxMcpRuntime>> | undefined;
@@ -522,6 +522,7 @@ export async function createFxSession(options: {
                 ? builtin.description
                 : name,
             inputSchema: await asSchema(builtin.inputSchema).jsonSchema,
+            idempotent: false,
             execute: async (value, context) => {
               const operation = remote[name as keyof typeof remote];
               if (!operation)
@@ -552,6 +553,7 @@ export async function createFxSession(options: {
             name: spec.name,
             description: spec.description ?? spec.name,
             inputSchema: spec.inputSchema ?? { type: 'object', properties: {} },
+            idempotent: false,
             execute: async () => undefined,
           };
           registeredTools.set(spec.name, {
@@ -773,6 +775,7 @@ export async function createFxSession(options: {
         );
         pendingSteers.push(text);
         await runtimeTurn!.steer(text);
+        recordSteer(text);
         await save();
       },
     };
