@@ -267,3 +267,55 @@ Common provider options for image generation:
 - **strength** _number (0-1)_ - Strength of the transformation for img2img. Lower values keep more of the original image.
 
 For more details, see the [Replicate models page](https://replicate.com/explore).
+
+## Video Models
+
+You can create video models that call the [Replicate API](https://replicate.com/collections/text-to-video)
+using the `.video()` factory method. For more on video generation with the AI SDK see [generateVideo()](/docs/reference/ai-sdk-core/generate-video).
+
+```ts
+import { replicate } from '@ai-sdk/replicate';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { video } = await generateVideo({
+  model: replicate.video('minimax/video-01'),
+  prompt: 'A bumblebee on a dandelion surrounded by pollen dust',
+  aspectRatio: '16:9',
+});
+```
+
+You can pass any video model ID from [Replicate](https://replicate.com/collections/text-to-video),
+for example `minimax/video-01` or `kwaivgi/kling-v2.5-turbo-pro`.
+Versioned model IDs (`owner/model:version`) are also supported.
+
+### Provider Options
+
+Further configuration can be done using Replicate provider options. You can validate the provider options using the `ReplicateVideoModelOptions` type.
+
+```ts
+import { replicate, type ReplicateVideoModelOptions } from '@ai-sdk/replicate';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { video } = await generateVideo({
+  model: replicate.video('minimax/video-01'),
+  prompt: 'A bumblebee on a dandelion surrounded by pollen dust',
+  providerOptions: {
+    replicate: {
+      prompt_optimizer: true,
+      pollTimeoutMs: 600000, // 10 minutes
+    } satisfies ReplicateVideoModelOptions,
+  },
+});
+```
+
+Common provider options for video generation:
+
+- **pollIntervalMs** _number_ - How often to check the status of the prediction, in milliseconds.
+- **pollTimeoutMs** _number_ - How long to wait for the prediction to finish before giving up, in milliseconds.
+- **maxWaitTimeInSeconds** _number_ - Maximum time in seconds to wait for the prediction to complete in sync mode.
+- **guidance_scale** _number_ - Guidance scale for classifier-free guidance.
+- **num_inference_steps** _number_ - Number of denoising steps.
+- **prompt_optimizer** _boolean_ - Whether to optimize the prompt (MiniMax models).
+- **motion_bucket_id**, **cond_aug**, **decoding_t**, **video_length**, **sizing_strategy**, **frames_per_second** - Stable Video Diffusion parameters.
+
+Other model-specific parameters are passed through to the Replicate API. Check the model's page on [Replicate](https://replicate.com/explore) for details.
