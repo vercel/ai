@@ -408,9 +408,7 @@ export function streamText<
   OUTPUT extends Output = Output<string, string, never>,
 >(
   options: StreamTextOptions<TOOLS, RUNTIME_CONTEXT, OUTPUT>,
-):
-  | StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>
-  | StreamTextSingleConsumerResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
+): StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
 export function streamText<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context = Context,

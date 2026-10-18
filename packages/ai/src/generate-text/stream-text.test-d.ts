@@ -1200,4 +1200,56 @@ describe('streamText types', () => {
       });
     });
   });
+
+  describe('experimental_lowMemory return type', () => {
+    const model = new MockLanguageModelV4();
+
+    it('keeps output accessible when the flag is omitted', () => {
+      const result = streamText({ model, prompt: 'Hello' });
+      expectTypeOf(result.output).toMatchTypeOf<PromiseLike<unknown>>();
+    });
+
+    it('keeps output accessible when the flag is a literal false', () => {
+      const result = streamText({
+        model,
+        prompt: 'Hello',
+        experimental_lowMemory: false,
+      });
+      expectTypeOf(result.output).toMatchTypeOf<PromiseLike<unknown>>();
+    });
+
+    it('keeps output accessible when the flag is a widened boolean (vercel/ai#23522)', () => {
+      const lowMemory: boolean = Math.random() > 0.5;
+      const result = streamText({
+        model,
+        prompt: 'Hello',
+        experimental_lowMemory: lowMemory,
+      });
+      expectTypeOf(result.output).toMatchTypeOf<PromiseLike<unknown>>();
+    });
+
+    it('keeps output accessible when options come from Parameters<typeof streamText> (vercel/ai#23522)', () => {
+      const options: Parameters<typeof streamText>[0] = {
+        model,
+        prompt: 'Hello',
+      };
+      const result = streamText(options);
+      expectTypeOf(result.output).toMatchTypeOf<PromiseLike<unknown>>();
+    });
+
+    it('keeps output accessible on ReturnType<typeof streamText> (vercel/ai#23522)', () => {
+      type Result = ReturnType<typeof streamText>;
+      expectTypeOf<Result>().toMatchTypeOf<{ output: PromiseLike<unknown> }>();
+    });
+
+    it('narrows to the single-consumer result for a literal true', () => {
+      const result = streamText({
+        model,
+        prompt: 'Hello',
+        experimental_lowMemory: true,
+      });
+      // @ts-expect-error output is not available in low-memory mode
+      result.output;
+    });
+  });
 });
