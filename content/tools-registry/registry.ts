@@ -775,29 +775,6 @@ console.log(text);`,
     "npmUrl": "https://www.npmjs.com/package/@acedatacloud/ai-sdk-suno"
   },
   {
-    "slug": "seedance-by-acedatacloud",
-    "name": "Seedance by Ace Data Cloud",
-    "description": "Seedance tools for AI SDK applications using Ace Data Cloud hosted MCP. Connect read-only task lookup by default; enable service generation with an application-controlled per-call authorization callback. Preserve original task IDs for asynchronous results.",
-    "packageName": "@acedatacloud/ai-sdk-seedance",
-    "tags": [
-      "seedance",
-      "video",
-      "mcp"
-    ],
-    "apiKeyEnvName": "ACEDATACLOUD_API_KEY",
-    "installCommand": {
-      "pnpm": "pnpm add @acedatacloud/ai-sdk-seedance ai zod",
-      "npm": "npm install @acedatacloud/ai-sdk-seedance ai zod",
-      "yarn": "yarn add @acedatacloud/ai-sdk-seedance ai zod",
-      "bun": "bun add @acedatacloud/ai-sdk-seedance ai zod"
-    },
-    "codeExample": "import { createSeedanceTools } from '@acedatacloud/ai-sdk-seedance';\n\n// Reads tool definitions only. Set the server-side application API key first.\nconst connection = await createSeedanceTools();\ntry {\n  console.log(Object.keys(connection.tools));\n} finally {\n  await connection.close();\n}",
-    "docsUrl": "https://acedatacloud.github.io/AISDK/seedance.html",
-    "apiKeyUrl": "https://platform.acedata.cloud/console/applications?utm_source=vercel_ai_sdk&utm_medium=integration&utm_campaign=evergreen&utm_content=seedance_registry_api_key",
-    "websiteUrl": "https://platform.acedata.cloud?utm_source=vercel_ai_sdk&utm_medium=integration&utm_campaign=evergreen&utm_content=seedance_registry_overview",
-    "npmUrl": "https://www.npmjs.com/package/@acedatacloud/ai-sdk-seedance"
-  },
-  {
     "slug": "happyhorse-by-acedatacloud",
     "name": "HappyHorse by Ace Data Cloud",
     "description": "HappyHorse tools for AI SDK applications using Ace Data Cloud hosted MCP. Connect read-only task lookup by default; enable service generation with an application-controlled per-call authorization callback. Preserve original task IDs for asynchronous results.",
