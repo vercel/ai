@@ -1,5 +1,5 @@
 import { HarnessSandboxAuthenticationError } from '@ai-sdk/harness';
-import { Sandbox } from '@vercel/sandbox';
+import { Sandbox, Snapshot } from '@vercel/sandbox';
 
 /**
  * Flattens an intersection of object types into a single object type so the
@@ -231,27 +231,48 @@ export async function ensureTemplateSnapshot({
     return cachedSnapshotId;
   }
 
-  const prepared = await Sandbox.getOrCreate({
-    ...baseParams,
-    name: templateName,
-    persistent: true,
-    snapshotExpiration: baseParams.snapshotExpiration ?? 0,
-    onCreate,
-    ...(abortSignal ? { signal: abortSignal } : {}),
-  });
-  let snapshotId = prepared.currentSnapshotId;
-  if (snapshotId == null) {
-    const stopped = await prepared.stop(
-      abortSignal ? { signal: abortSignal } : undefined,
-    );
-    snapshotId =
-      stopped.snapshot?.id ??
-      (await pollForTemplateSnapshot({
-        name: templateName,
-        lookupParams,
-        abortSignal,
-      }));
+  const snapshotExpiration = baseParams.snapshotExpiration ?? 0;
+  let createdSnapshotId: string | undefined;
+  let onCreateStarted = false;
+
+  try {
+    await Sandbox.getOrCreate({
+      ...baseParams,
+      name: templateName,
+      persistent: false,
+      snapshotExpiration,
+      onCreate: async sandbox => {
+        onCreateStarted = true;
+        await onCreate(sandbox);
+        const snapshot = await sandbox.snapshot({
+          expiration: snapshotExpiration,
+          ...(abortSignal ? { signal: abortSignal } : {}),
+        });
+        createdSnapshotId = snapshot.snapshotId;
+      },
+      ...(abortSignal ? { signal: abortSignal } : {}),
+    });
+  } catch (error) {
+    if (onCreateStarted || !isSandboxNameConflictError(error)) {
+      throw error;
+    }
+
+    const snapshotId = await pollForTemplateSnapshot({
+      name: templateName,
+      lookupParams,
+      abortSignal,
+    });
+    snapshotCache?.set(templateName, snapshotId);
+    return snapshotId;
   }
+
+  const snapshotId =
+    createdSnapshotId ??
+    (await pollForTemplateSnapshot({
+      name: templateName,
+      lookupParams,
+      abortSignal,
+    }));
   snapshotCache?.set(templateName, snapshotId);
   return snapshotId;
 }
@@ -292,22 +313,52 @@ export async function pollForTemplateSnapshot({
   abortSignal: AbortSignal | undefined;
 }): Promise<string> {
   const deadline = Date.now() + SNAPSHOT_POLL_TIMEOUT_MS;
+
   while (Date.now() < deadline) {
     abortSignal?.throwIfAborted();
-    const refreshed = await Sandbox.get({
+
+    const snapshots = await Snapshot.list({
       ...lookupParams,
       name,
-      resume: false,
+      sortOrder: 'desc',
       ...(abortSignal ? { signal: abortSignal } : {}),
     });
-    if (refreshed.currentSnapshotId) {
-      return refreshed.currentSnapshotId;
+    for await (const snapshot of snapshots) {
+      if (
+        snapshot.status === 'created' &&
+        snapshot.creationMethod === 'manual'
+      ) {
+        return snapshot.id;
+      }
     }
+
     await new Promise<void>(resolve =>
       setTimeout(resolve, SNAPSHOT_POLL_INTERVAL_MS),
     );
   }
   throw new Error(
     `Timed out waiting for snapshot of template "${name}" to publish.`,
+  );
+}
+
+function isSandboxNameConflictError(error: unknown): boolean {
+  if (typeof error !== 'object' || error == null) {
+    return false;
+  }
+
+  const candidate = error as {
+    message?: unknown;
+    response?: { status?: unknown };
+    json?: { error?: { message?: unknown } };
+  };
+  const messages = [candidate.message, candidate.json?.error?.message];
+  return (
+    (candidate.response?.status === 400 ||
+      candidate.response?.status === 409) &&
+    messages.some(
+      message =>
+        typeof message === 'string' &&
+        /sandbox.*name.*already exists/i.test(message),
+    )
   );
 }
