@@ -14,7 +14,7 @@ export const openaiTranscriptionResponseSchema = lazySchema(() =>
               .object({
                 code: z.string().nullish(),
               })
-              .passthrough(),
+              .catchall(z.json()),
           ]),
         )
         .nullish(),
