@@ -3,13 +3,8 @@ import type {
   LanguageModelV4FinishReason,
   LanguageModelV4Usage,
 } from '@ai-sdk/provider';
-import type { FxGatewayPart } from './fx-transport';
-
-export type FxGatewayToolCall = {
-  toolCallId: string;
-  toolName: string;
-  input: unknown;
-};
+import type { FxModelRecord } from './fx-resume-state';
+import type { FxModelEnd, FxRuntimeEvent } from './fx-runtime';
 
 export function emptyFxUsage(): LanguageModelV4Usage {
   return {
@@ -26,59 +21,80 @@ export function emptyFxUsage(): LanguageModelV4Usage {
 export function createFxTranslator(options: {
   turnId: string;
   emit(part: HarnessV1StreamPart): void;
+  emitOnce(input: { key: string; part: HarnessV1StreamPart }): void;
 }) {
-  const toolCalls = new Map<number, FxGatewayToolCall[]>();
   const steps = new Map<
     number,
     { finishReason: LanguageModelV4FinishReason; usage: LanguageModelV4Usage }
   >();
-  function onPart(input: {
-    part: FxGatewayPart;
+  const offsets = new Map<string, number>();
+
+  function onDelta(input: {
+    event: Extract<FxRuntimeEvent, { delta: string }>;
     requestIndex: number;
-    attempt: number;
-    suppress: boolean;
+    record: FxModelRecord;
   }) {
-    const { part } = input;
-    if (
-      part.type === 'tool-call' &&
-      part.providerExecuted !== true &&
-      typeof part.toolCallId === 'string' &&
-      typeof part.toolName === 'string'
-    ) {
-      const calls = toolCalls.get(input.requestIndex) ?? [];
-      if (!calls.some(call => call.toolCallId === part.toolCallId)) {
-        calls.push({
-          toolCallId: part.toolCallId,
-          toolName: part.toolName,
-          input: part.input,
+    const { event, record, requestIndex } = input;
+    const type = event.type === 'text_delta' ? 'text' : 'reasoning';
+    const delta = event.delta;
+    const id = `${options.turnId}:${requestIndex}:${record.attempt}:${type}`;
+    const start = offsets.get(id) ?? 0;
+    offsets.set(id, start + delta.length);
+    const output = (record.emittedOutput ??= { text: 0, reasoning: 0 });
+    const unseen = delta.slice(Math.max(0, output[type] - start));
+    if (!unseen) return;
+    if (output[type] === 0)
+      options.emitOnce({
+        key: `${id}:start`,
+        part: { type: `${type}-start`, id },
+      });
+    output[type] = start + delta.length;
+    options.emit({ type: `${type}-delta`, id, delta: unseen });
+  }
+
+  function endOutput(input: { requestIndex: number; record: FxModelRecord }) {
+    const { record, requestIndex } = input;
+    const output = record.emittedOutput;
+    if (output && !output.finished) {
+      for (const type of ['text', 'reasoning'] as const) {
+        if (output[type] === 0) continue;
+        const id = `${options.turnId}:${requestIndex}:${record.attempt}:${type}`;
+        options.emitOnce({
+          key: `${id}:end`,
+          part: { type: `${type}-end`, id },
         });
       }
-      toolCalls.set(input.requestIndex, calls);
-    }
-    if (part.type === 'finish') {
-      steps.set(input.requestIndex, {
-        finishReason: part.finishReason as LanguageModelV4FinishReason,
-        usage: (part.usage as LanguageModelV4Usage) ?? emptyFxUsage(),
-      });
-    }
-    if (input.suppress) return;
-    const id = `${options.turnId}:${input.requestIndex}:${input.attempt}:${String(part.id ?? '0')}`;
-    switch (part.type) {
-      case 'text-start':
-      case 'text-end':
-      case 'reasoning-start':
-      case 'reasoning-end':
-        options.emit({ type: part.type, id });
-        break;
-      case 'text-delta':
-      case 'reasoning-delta':
-        options.emit({ type: part.type, id, delta: String(part.delta ?? '') });
-        break;
-      case 'error':
-        options.emit({ type: 'error', error: part.error });
-        break;
+      output.finished = true;
     }
   }
+
+  function onModelEnd(input: { data: FxModelEnd; requestIndex: number }) {
+    const { data, requestIndex } = input;
+    if (!data.usage && !data.finishReason) return;
+    const usage = emptyFxUsage();
+    usage.inputTokens.total = data.usage?.inputTokens ?? undefined;
+    usage.inputTokens.cacheRead = data.usage?.cacheReadTokens ?? undefined;
+    usage.inputTokens.cacheWrite = data.usage?.cacheWriteTokens ?? undefined;
+    usage.outputTokens.total = data.usage?.outputTokens ?? undefined;
+    usage.outputTokens.reasoning = data.usage?.reasoningTokens ?? undefined;
+    if (usage.inputTokens.total != null)
+      usage.inputTokens.noCache =
+        usage.inputTokens.total -
+        (usage.inputTokens.cacheRead ?? 0) -
+        (usage.inputTokens.cacheWrite ?? 0);
+    if (usage.outputTokens.total != null)
+      usage.outputTokens.text =
+        usage.outputTokens.total - (usage.outputTokens.reasoning ?? 0);
+    steps.set(requestIndex, {
+      finishReason: {
+        unified: (data.finishReason ??
+          'other') as LanguageModelV4FinishReason['unified'],
+        raw: data.finishReason ?? undefined,
+      },
+      usage,
+    });
+  }
+
   function totalUsage(): LanguageModelV4Usage {
     const total = emptyFxUsage();
     for (const step of steps.values()) {
@@ -92,5 +108,5 @@ export function createFxTranslator(options: {
     }
     return total;
   }
-  return { onPart, steps, toolCalls, totalUsage };
+  return { onDelta, endOutput, onModelEnd, steps, totalUsage };
 }

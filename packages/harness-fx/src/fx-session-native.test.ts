@@ -10,6 +10,167 @@ import { z } from 'zod/v4';
 import { createFx } from './fx-harness';
 import { createFxRuntime } from './fx-runtime';
 import type { FxStoredState } from './fx-resume-state';
+import * as subscriptions from './fx-subscription';
+
+describe('native libfx subscription engines', () => {
+  it.each([
+    { provider: 'codex', refresh: 'expiry' },
+    { provider: 'codex', refresh: '401' },
+    { provider: 'grok', refresh: 'expiry' },
+    { provider: 'grok', refresh: '401' },
+  ] as const)(
+    'uses $provider subscriptions with libfx-owned $refresh refresh',
+    async ({ provider, refresh }) => {
+      const { sandbox, files } = createParallelFixtureContext({
+        kind: 'custom',
+      });
+      const lines = readFileSync(
+        new URL(
+          `./__fixtures__/responses-${provider === 'codex' ? 'openai' : 'xai'}.chunks.txt`,
+          import.meta.url,
+        ),
+        'utf8',
+      )
+        .trim()
+        .split('\n');
+      const fixtures: string[] = [];
+      let body = '';
+      for (const line of lines) {
+        const part = secureJsonParse(line) as {
+          type: string;
+          item?: { type: string };
+        };
+        /*
+         * This older OpenAI capture repeats reasoning snapshots with different
+         * encrypted content. Keep the terminal snapshot, which libfx uses for
+         * replay, and omit the redundant intermediate reasoning snapshot.
+         */
+        if (
+          provider === 'codex' &&
+          part.type === 'response.output_item.done' &&
+          part.item?.type === 'reasoning'
+        )
+          continue;
+        body += `data: ${line}\n\n`;
+        if (part.type === 'response.completed') {
+          fixtures.push(body);
+          body = '';
+        }
+      }
+      const rotatedToken = `header.${Buffer.from(
+        JSON.stringify({
+          sub: 'account',
+          exp: 2_000_000_000,
+          'https://api.openai.com/auth': { chatgpt_account_id: 'account' },
+        }),
+      ).toString('base64url')}.signature`;
+      let credentials: subscriptions.FxProviderCredentials = {
+        accessToken: 'test-access-secret',
+        refreshToken: 'test-refresh-secret',
+        accountId: 'account',
+        expiresAt:
+          refresh === 'expiry' ? Date.now() + 60_000 : 2_000_000_000_000,
+      };
+      const write = vi.fn(
+        async ({
+          credentials: next,
+        }: {
+          credentials: subscriptions.FxProviderCredentials;
+        }) => {
+          credentials = next;
+        },
+      );
+      const auth = vi
+        .spyOn(subscriptions, 'resolveFxAuthentication')
+        .mockResolvedValue({
+          provider,
+          subscription: { provider, read: async () => credentials, write },
+        });
+      let modelRequests = 0;
+      let rejected = false;
+      const refreshRequests: string[] = [];
+      const modelHeaders: string[] = [];
+      const fetch = vi.fn<typeof globalThis.fetch>(async (input, init) => {
+        const url = String(input);
+        if (
+          url === 'https://auth.openai.com/oauth/token' ||
+          url === 'https://auth.x.ai/oauth2/token'
+        ) {
+          refreshRequests.push(url);
+          return Response.json({
+            access_token: rotatedToken,
+            refresh_token: 'rotated-refresh-secret',
+            expires_in: 3600,
+          });
+        }
+        if (url === 'https://auth.x.ai/oauth2/userinfo')
+          return Response.json({ sub: 'account' });
+        if (url === 'https://x.ai/cli/stable') return new Response('1.0.13\n');
+        if (!url.split('?')[0].endsWith('/responses'))
+          return new Response(null, { status: 404 });
+        modelHeaders.push(new Headers(init?.headers).get('authorization')!);
+        if (refresh === '401' && !rejected) {
+          rejected = true;
+          return new Response('rejected test-access-secret', { status: 401 });
+        }
+        const fixture = fixtures[modelRequests++];
+        if (!fixture) throw new Error('Unexpected subscription model request');
+        return new Response(fixture, {
+          headers: { 'content-type': 'text/event-stream' },
+        });
+      });
+      vi.stubGlobal('fetch', fetch);
+      const execute = vi.fn(
+        async ({ a, b, op }: { a: number; b: number; op: string }) =>
+          op === 'add' ? a + b : a * b,
+      );
+      const agent = new HarnessAgent({
+        harness: createFx({ auth: 'direct', backend: 'native' }),
+        model: provider === 'codex' ? 'gpt-5-mini' : 'grok-code-fast-1',
+        tools: {
+          calculator: {
+            inputSchema: z.object({
+              a: z.number(),
+              b: z.number(),
+              op: z.string(),
+            }),
+            execute,
+          },
+        },
+      });
+      let session: Awaited<ReturnType<typeof agent.createSession>> | undefined;
+      try {
+        session = await agent.createSession({ sandboxSession: sandbox });
+        const result = await agent.generate({
+          session,
+          prompt: 'Calculate (12 + 7) * 3 * 10.',
+        });
+        expect(result.text.length).toBe(provider === 'codex' ? 28 : 2786);
+        expect(execute).toHaveBeenCalledTimes(provider === 'codex' ? 3 : 0);
+        expect(write).toHaveBeenCalledTimes(1);
+        expect(credentials.accessToken).toBe(rotatedToken);
+        expect(credentials.refreshToken).toBe('rotated-refresh-secret');
+        expect(refreshRequests).toHaveLength(1);
+        expect(modelRequests).toBe(fixtures.length);
+        expect(modelHeaders.at(-1)).toBe(`Bearer ${rotatedToken}`);
+        const saved = [...files.values()].join('\n');
+        for (const secret of [
+          'test-access-secret',
+          'test-refresh-secret',
+          rotatedToken,
+          'rotated-refresh-secret',
+        ])
+          expect(saved).not.toContain(secret);
+        expect(saved).not.toContain('rejected test-access-secret');
+      } finally {
+        await session?.destroy();
+        auth.mockRestore();
+        vi.unstubAllGlobals();
+      }
+    },
+    30000,
+  );
+});
 
 function createParallelFixtureContext(input: {
   kind: 'custom' | 'builtin' | 'mixed';
@@ -654,6 +815,185 @@ describe('parallel fx approvals', () => {
 });
 
 describe('stable fx continuation', () => {
+  it.each(['gateway', 'codex', 'grok'] as const)(
+    'maps parsed %s output and usage without repeating text on cold replay',
+    async provider => {
+      const { sandbox } = createParallelFixtureContext({ kind: 'custom' });
+      let fixture: string;
+      if (provider === 'gateway') {
+        fixture = readFileSync(
+          new URL('./__fixtures__/gateway-1.sse.txt', import.meta.url),
+          'utf8',
+        );
+      } else {
+        const responses: string[] = [];
+        let body = '';
+        for (const line of readFileSync(
+          new URL(
+            `./__fixtures__/responses-${provider === 'codex' ? 'openai' : 'xai'}.chunks.txt`,
+            import.meta.url,
+          ),
+          'utf8',
+        )
+          .trim()
+          .split('\n')) {
+          const part = secureJsonParse(line) as {
+            type: string;
+            item?: { type: string };
+          };
+          if (
+            provider === 'codex' &&
+            part.type === 'response.output_item.done' &&
+            part.item?.type === 'reasoning'
+          )
+            continue;
+          body += `data: ${line}\n\n`;
+          if (part.type === 'response.completed') {
+            responses.push(body);
+            body = '';
+          }
+        }
+        fixture = responses.at(-1)!;
+      }
+      const auth = vi
+        .spyOn(subscriptions, 'resolveFxAuthentication')
+        .mockResolvedValue(
+          provider === 'gateway'
+            ? {
+                provider,
+                apiKey: 'test-key',
+                baseUrl: 'https://ai-gateway.vercel.sh',
+              }
+            : {
+                provider,
+                subscription: {
+                  provider,
+                  read: async () => ({
+                    accessToken: 'test-token',
+                    refreshToken: 'test-refresh',
+                    accountId: 'account',
+                    expiresAt: 2_000_000_000_000,
+                  }),
+                  write: async () => {},
+                },
+              },
+        );
+      const fetch = vi.fn<typeof globalThis.fetch>(async (input, init) => {
+        if (String(input) === 'https://x.ai/cli/stable')
+          return new Response('1.0.13\n');
+        if (init?.method === 'GET')
+          return new Response(
+            readFileSync(
+              new URL('./__fixtures__/gateway-models.json', import.meta.url),
+              'utf8',
+            ),
+          );
+        return new Response(fixture, {
+          headers: { 'content-type': 'text/event-stream' },
+        });
+      });
+      vi.stubGlobal('fetch', fetch);
+      const harness = createFx({ auth: 'direct', backend: 'native' });
+      const start = {
+        sandboxSession: sandbox,
+        sessionId: `parsed-${provider}`,
+        sessionWorkDir: '/workspace',
+      };
+      const opts = {
+        model:
+          provider === 'gateway'
+            ? 'anthropic/claude-haiku-4-5'
+            : provider === 'codex'
+              ? 'gpt-5-mini'
+              : 'grok-code-fast-1',
+        skills: [],
+        tools: [],
+        activeTools: [],
+      };
+      const session = await harness.doStart(start);
+      const before: HarnessV1StreamPart[] = [];
+      const after: HarnessV1StreamPart[] = [];
+      let suspended: ReturnType<typeof session.doSuspendTurn> | undefined;
+      let resolveSuspending!: () => void;
+      const suspending = new Promise<void>(resolve => {
+        resolveSuspending = resolve;
+      });
+      try {
+        const control = await session.doPromptTurn({
+          ...opts,
+          prompt: 'Reply.',
+          emit: part => {
+            before.push(part);
+            if (part.type === 'text-delta' && !suspended) {
+              suspended = session.doSuspendTurn();
+              resolveSuspending();
+            }
+          },
+        });
+        await suspending;
+        const continueFrom = await suspended!;
+        await control.done;
+        const requests = fetch.mock.calls.filter(
+          ([, init]) => init?.method === 'POST',
+        ).length;
+        const resumed = await harness.doStart({ ...start, continueFrom });
+        try {
+          await (
+            await resumed.doContinueTurn({
+              ...opts,
+              emit: part => after.push(part),
+            })
+          ).done;
+          expect(
+            fetch.mock.calls.filter(([, init]) => init?.method === 'POST'),
+          ).toHaveLength(requests);
+          const all = [...before, ...after];
+          expect(
+            all
+              .filter(part => part.type === 'text-delta')
+              .map(part => part.delta)
+              .join('').length,
+          ).toBe(provider === 'gateway' ? 5 : provider === 'codex' ? 28 : 2786);
+          expect(all.filter(part => part.type === 'text-start')).toHaveLength(
+            1,
+          );
+          expect(all.filter(part => part.type === 'text-end')).toHaveLength(1);
+          expect(after.some(part => part.type === 'error')).toBe(false);
+          const finish = after.find(part => part.type === 'finish');
+          expect(finish?.finishReason).toMatchInlineSnapshot(`
+            {
+              "raw": "stop",
+              "unified": "stop",
+            }
+          `);
+          expect(finish?.totalUsage.inputTokens.total).toBeGreaterThan(0);
+          if (provider === 'grok')
+            expect(finish?.totalUsage).toMatchInlineSnapshot(`
+            {
+              "inputTokens": {
+                "cacheRead": 192,
+                "cacheWrite": undefined,
+                "noCache": 24,
+                "total": 216,
+              },
+              "outputTokens": {
+                "reasoning": 253,
+                "text": 578,
+                "total": 831,
+              },
+            }
+          `);
+        } finally {
+          await resumed.doDestroy();
+        }
+      } finally {
+        await session.doDestroy();
+        auth.mockRestore();
+        vi.unstubAllGlobals();
+      }
+    },
+  );
+
   it('accepts a new prompt on the same session after a caller abort', async () => {
     const fixture = readFileSync(
       new URL('./__fixtures__/gateway-1.sse.txt', import.meta.url),
