@@ -67,9 +67,9 @@ console.log(text);
 
 ## Supported Models and Capabilities
 
-This integration uses WebWright's OpenAI-compatible Chat Completions endpoint for text generation. The production chat model is `wren-r1`, which accepts text messages and returns text, with a 200K token context window.
+This integration uses WebWright's OpenAI-compatible Chat Completions endpoint for text generation. The chat model ids are `wren-r1` on the Standard plan and `wren-r1-fast` on the Premium plan. Both accept text messages and return text, with a 200K token context window.
 
-The documented request body for `POST /v1/chat/completions` accepts `model`, `messages`, `max_tokens`, `temperature`, `stream`, and `reasoning_effort`. The endpoint supports tool calling. Inputs and outputs are text only. WebWright also exposes a separate `POST /v1/audio/transcriptions` endpoint for audio transcription, which is outside the scope of this chat integration.
+The documented request body for `POST /v1/chat/completions` accepts `model`, `messages`, `max_tokens`, `temperature`, `top_p`, `stop`, `stream`, `tools`, `tool_choice`, `response_format`, and `reasoning_effort`. The endpoint supports tool calling, structured outputs, and reasoning. Inputs and outputs are text only.
 
 ## Resources
 
