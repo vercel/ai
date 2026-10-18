@@ -751,4 +751,119 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    "slug": "suno-by-acedatacloud",
+    "name": "Suno by Ace Data Cloud",
+    "description": "Suno tools for AI SDK applications using Ace Data Cloud hosted MCP. Connect read-only task lookup by default; enable service generation with an application-controlled per-call authorization callback. Preserve original task IDs for asynchronous results.",
+    "packageName": "@acedatacloud/ai-sdk-suno",
+    "tags": [
+      "suno",
+      "music",
+      "mcp"
+    ],
+    "apiKeyEnvName": "ACEDATACLOUD_API_KEY",
+    "installCommand": {
+      "pnpm": "pnpm add @acedatacloud/ai-sdk-suno ai zod",
+      "npm": "npm install @acedatacloud/ai-sdk-suno ai zod",
+      "yarn": "yarn add @acedatacloud/ai-sdk-suno ai zod",
+      "bun": "bun add @acedatacloud/ai-sdk-suno ai zod"
+    },
+    "codeExample": "import { createSunoTools } from '@acedatacloud/ai-sdk-suno';\n\n// Reads tool definitions only. Set the server-side application API key first.\nconst connection = await createSunoTools();\ntry {\n  console.log(Object.keys(connection.tools));\n} finally {\n  await connection.close();\n}",
+    "docsUrl": "https://acedatacloud.github.io/AISDK/suno.html",
+    "apiKeyUrl": "https://platform.acedata.cloud/console/applications?utm_source=vercel_ai_sdk&utm_medium=integration&utm_campaign=evergreen&utm_content=suno_registry_api_key",
+    "websiteUrl": "https://platform.acedata.cloud?utm_source=vercel_ai_sdk&utm_medium=integration&utm_campaign=evergreen&utm_content=suno_registry_overview",
+    "npmUrl": "https://www.npmjs.com/package/@acedatacloud/ai-sdk-suno"
+  },
+  {
+    "slug": "seedance-by-acedatacloud",
+    "name": "Seedance by Ace Data Cloud",
+    "description": "Seedance tools for AI SDK applications using Ace Data Cloud hosted MCP. Connect read-only task lookup by default; enable service generation with an application-controlled per-call authorization callback. Preserve original task IDs for asynchronous results.",
+    "packageName": "@acedatacloud/ai-sdk-seedance",
+    "tags": [
+      "seedance",
+      "video",
+      "mcp"
+    ],
+    "apiKeyEnvName": "ACEDATACLOUD_API_KEY",
+    "installCommand": {
+      "pnpm": "pnpm add @acedatacloud/ai-sdk-seedance ai zod",
+      "npm": "npm install @acedatacloud/ai-sdk-seedance ai zod",
+      "yarn": "yarn add @acedatacloud/ai-sdk-seedance ai zod",
+      "bun": "bun add @acedatacloud/ai-sdk-seedance ai zod"
+    },
+    "codeExample": "import { createSeedanceTools } from '@acedatacloud/ai-sdk-seedance';\n\n// Reads tool definitions only. Set the server-side application API key first.\nconst connection = await createSeedanceTools();\ntry {\n  console.log(Object.keys(connection.tools));\n} finally {\n  await connection.close();\n}",
+    "docsUrl": "https://acedatacloud.github.io/AISDK/seedance.html",
+    "apiKeyUrl": "https://platform.acedata.cloud/console/applications?utm_source=vercel_ai_sdk&utm_medium=integration&utm_campaign=evergreen&utm_content=seedance_registry_api_key",
+    "websiteUrl": "https://platform.acedata.cloud?utm_source=vercel_ai_sdk&utm_medium=integration&utm_campaign=evergreen&utm_content=seedance_registry_overview",
+    "npmUrl": "https://www.npmjs.com/package/@acedatacloud/ai-sdk-seedance"
+  },
+  {
+    "slug": "happyhorse-by-acedatacloud",
+    "name": "HappyHorse by Ace Data Cloud",
+    "description": "HappyHorse tools for AI SDK applications using Ace Data Cloud hosted MCP. Connect read-only task lookup by default; enable service generation with an application-controlled per-call authorization callback. Preserve original task IDs for asynchronous results.",
+    "packageName": "@acedatacloud/ai-sdk-happyhorse",
+    "tags": [
+      "happyhorse",
+      "video",
+      "mcp"
+    ],
+    "apiKeyEnvName": "ACEDATACLOUD_API_KEY",
+    "installCommand": {
+      "pnpm": "pnpm add @acedatacloud/ai-sdk-happyhorse ai zod",
+      "npm": "npm install @acedatacloud/ai-sdk-happyhorse ai zod",
+      "yarn": "yarn add @acedatacloud/ai-sdk-happyhorse ai zod",
+      "bun": "bun add @acedatacloud/ai-sdk-happyhorse ai zod"
+    },
+    "codeExample": "import { createHappyHorseTools } from '@acedatacloud/ai-sdk-happyhorse';\n\n// Reads tool definitions only. Set the server-side application API key first.\nconst connection = await createHappyHorseTools();\ntry {\n  console.log(Object.keys(connection.tools));\n} finally {\n  await connection.close();\n}",
+    "docsUrl": "https://acedatacloud.github.io/AISDK/happyhorse.html",
+    "apiKeyUrl": "https://platform.acedata.cloud/console/applications?utm_source=vercel_ai_sdk&utm_medium=integration&utm_campaign=evergreen&utm_content=happyhorse_registry_api_key",
+    "websiteUrl": "https://platform.acedata.cloud?utm_source=vercel_ai_sdk&utm_medium=integration&utm_campaign=evergreen&utm_content=happyhorse_registry_overview",
+    "npmUrl": "https://www.npmjs.com/package/@acedatacloud/ai-sdk-happyhorse"
+  },
+  {
+    "slug": "gpt-image-by-acedatacloud",
+    "name": "GPT Image by Ace Data Cloud",
+    "description": "GPT Image tools for AI SDK applications using Ace Data Cloud hosted MCP. Connect read-only task lookup by default; enable service generation with an application-controlled per-call authorization callback. Preserve original task IDs for asynchronous results.",
+    "packageName": "@acedatacloud/ai-sdk-gpt-image",
+    "tags": [
+      "gpt-image",
+      "image",
+      "mcp"
+    ],
+    "apiKeyEnvName": "ACEDATACLOUD_API_KEY",
+    "installCommand": {
+      "pnpm": "pnpm add @acedatacloud/ai-sdk-gpt-image ai zod",
+      "npm": "npm install @acedatacloud/ai-sdk-gpt-image ai zod",
+      "yarn": "yarn add @acedatacloud/ai-sdk-gpt-image ai zod",
+      "bun": "bun add @acedatacloud/ai-sdk-gpt-image ai zod"
+    },
+    "codeExample": "import { createGPTImageTools } from '@acedatacloud/ai-sdk-gpt-image';\n\n// Reads tool definitions only. Set the server-side application API key first.\nconst connection = await createGPTImageTools();\ntry {\n  console.log(Object.keys(connection.tools));\n} finally {\n  await connection.close();\n}",
+    "docsUrl": "https://acedatacloud.github.io/AISDK/gpt-image.html",
+    "apiKeyUrl": "https://platform.acedata.cloud/console/applications?utm_source=vercel_ai_sdk&utm_medium=integration&utm_campaign=evergreen&utm_content=gpt-image_registry_api_key",
+    "websiteUrl": "https://platform.acedata.cloud?utm_source=vercel_ai_sdk&utm_medium=integration&utm_campaign=evergreen&utm_content=gpt-image_registry_overview",
+    "npmUrl": "https://www.npmjs.com/package/@acedatacloud/ai-sdk-gpt-image"
+  },
+  {
+    "slug": "nano-banana-by-acedatacloud",
+    "name": "Nano Banana by Ace Data Cloud",
+    "description": "Nano Banana tools for AI SDK applications using Ace Data Cloud hosted MCP. Connect read-only task lookup by default; enable service generation with an application-controlled per-call authorization callback. Preserve original task IDs for asynchronous results.",
+    "packageName": "@acedatacloud/ai-sdk-nano-banana",
+    "tags": [
+      "nano-banana",
+      "image",
+      "mcp"
+    ],
+    "apiKeyEnvName": "ACEDATACLOUD_API_KEY",
+    "installCommand": {
+      "pnpm": "pnpm add @acedatacloud/ai-sdk-nano-banana ai zod",
+      "npm": "npm install @acedatacloud/ai-sdk-nano-banana ai zod",
+      "yarn": "yarn add @acedatacloud/ai-sdk-nano-banana ai zod",
+      "bun": "bun add @acedatacloud/ai-sdk-nano-banana ai zod"
+    },
+    "codeExample": "import { createNanoBananaTools } from '@acedatacloud/ai-sdk-nano-banana';\n\n// Reads tool definitions only. Set the server-side application API key first.\nconst connection = await createNanoBananaTools();\ntry {\n  console.log(Object.keys(connection.tools));\n} finally {\n  await connection.close();\n}",
+    "docsUrl": "https://acedatacloud.github.io/AISDK/nano-banana.html",
+    "apiKeyUrl": "https://platform.acedata.cloud/console/applications?utm_source=vercel_ai_sdk&utm_medium=integration&utm_campaign=evergreen&utm_content=nano-banana_registry_api_key",
+    "websiteUrl": "https://platform.acedata.cloud?utm_source=vercel_ai_sdk&utm_medium=integration&utm_campaign=evergreen&utm_content=nano-banana_registry_overview",
+    "npmUrl": "https://www.npmjs.com/package/@acedatacloud/ai-sdk-nano-banana"
+  },
 ];
