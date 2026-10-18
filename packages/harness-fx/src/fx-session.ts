@@ -219,7 +219,33 @@ export async function createFxSession(options: {
       });
     }
     let emitTarget = opts.emit;
+    let pinnedCheckpoint:
+      | { emittedKeys: string[]; modelParts: number[] }
+      | undefined;
     const emit = (part: HarnessV1StreamPart) => {
+      if (part.type === 'finish-step') {
+        const checkpoint = {
+          emittedKeys: [...turnState.emittedKeys],
+          modelParts: turnState.models.map(model => model.emittedParts),
+        };
+        // The harness reads one event past a step boundary before suspending.
+        // Use its channel checkpoint protocol so that lookahead is replayed.
+        Object.defineProperty(
+          part,
+          Symbol.for('vercel.ai.harness.sandboxChannelEventCheckpoint'),
+          {
+            value: {
+              pin: () => {
+                pinnedCheckpoint = checkpoint;
+                return () => {
+                  if (pinnedCheckpoint === checkpoint)
+                    pinnedCheckpoint = undefined;
+                };
+              },
+            },
+          },
+        );
+      }
       if (!suspending) emitTarget(part);
     };
     function emitOnce(input: { key: string; part: HarnessV1StreamPart }) {
@@ -788,6 +814,14 @@ export async function createFxSession(options: {
         runtimeTurn?.cancel();
         notify();
         await done;
+        if (pinnedCheckpoint) {
+          // Rewind display cursors only. Recorded model responses and tool
+          // outcomes stay intact, so replay never repeats completed operations.
+          turnState.emittedKeys = pinnedCheckpoint.emittedKeys;
+          for (const [index, model] of turnState.models.entries()) {
+            model.emittedParts = pinnedCheckpoint.modelParts[index] ?? 0;
+          }
+        }
       },
     };
     return control;
