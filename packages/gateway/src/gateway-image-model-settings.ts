@@ -5,6 +5,7 @@ export type GatewayImageModelId =
   | 'bfl/flux-2-max'
   | 'bfl/flux-2-pro'
   | 'bfl/flux-3-image'
+  | 'bfl/flux-3-image-klein'
   | 'bfl/flux-kontext-max'
   | 'bfl/flux-kontext-pro'
   | 'bfl/flux-pro-1.0-fill'
