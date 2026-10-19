@@ -76,6 +76,96 @@ function prepareJsonFixtureResponse(
 }
 
 describe('doGenerate', () => {
+  describe('detected languages', () => {
+    it.each([
+      { language: 'english', expected: 'en' },
+      { language: 'en', expected: 'en' },
+      { language: 'bn', expected: 'bn' },
+      { language: 'unknown', expected: undefined },
+      { language: 'en-US', expected: undefined },
+      { language: 'constructor', expected: undefined },
+      { languages: [{ code: 'en' }], expected: 'en' },
+      { languages: [{ code: 'fr' }], expected: 'fr' },
+      { languages: [{ code: 'en' }, { code: 'fr' }], expected: undefined },
+      { languages: [{ code: 'en-US' }], expected: undefined },
+      { languages: [{ code: 'english' }], expected: undefined },
+      { languages: [], expected: undefined },
+      { language: null, languages: null, expected: undefined },
+      { language: 'unknown', languages: [{ code: 'en' }], expected: 'en' },
+      { language: 'french', languages: [{ code: 'en' }], expected: 'fr' },
+    ])(
+      'normalizes $language / $languages to $expected',
+      async ({ expected, ...fields }) => {
+        const body = { text: 'Hello world', ...fields };
+        server.urls['https://api.openai.com/v1/audio/transcriptions'].response =
+          {
+            type: 'json-value',
+            body,
+          };
+
+        const result = await provider
+          .transcription('gpt-transcribe')
+          .doGenerate({
+            audio: audioData,
+            mediaType: 'audio/mpeg',
+            providerOptions: {
+              openai: { responseFormat: 'json', timestampGranularities: [] },
+            },
+          });
+
+        expect(result.language).toBe(expected);
+        expect(result.response.body).toEqual(body);
+        expect(result.warnings).toEqual([]);
+        expect(result.providerMetadata).toEqual(
+          fields.languages == null
+            ? undefined
+            : { openai: { languages: fields.languages } },
+        );
+      },
+    );
+
+    it('preserves detected languages alongside diarized segments', async () => {
+      const languages = [{ code: 'en' }, { code: 'fr-CA' }];
+      server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
+        type: 'json-value',
+        body: {
+          text: 'Hello world',
+          languages,
+          segments: [
+            {
+              type: 'transcript.text.segment',
+              id: 'segment-0',
+              start: 0,
+              end: 1,
+              text: 'Hello world',
+              speaker: 'A',
+            },
+          ],
+        },
+      };
+
+      const result = await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/mpeg',
+      });
+
+      expect(result.language).toBeUndefined();
+      expect(result.providerMetadata).toEqual({
+        openai: {
+          languages,
+          segments: [
+            {
+              text: 'Hello world',
+              startSecond: 0,
+              endSecond: 1,
+              speaker: 'A',
+            },
+          ],
+        },
+      });
+    });
+  });
+
   it('should reject gpt-realtime-whisper for non-streaming transcription', async () => {
     await expect(
       provider.transcription('gpt-realtime-whisper').doGenerate({
