@@ -114,6 +114,56 @@ const server = createTestServer({
 });
 
 describe('Chat', () => {
+  describe('id generation', () => {
+    it('generates the default id only on first access and keeps it stable', () => {
+      const generateId = vi.fn(mockId());
+      const chat = new TestChat({ generateId });
+
+      expect(generateId).not.toHaveBeenCalled();
+      const id = chat.id;
+      expect(id).toBe('id-0');
+      expect(chat.id).toBe(id);
+      expect(generateId).toHaveBeenCalledOnce();
+    });
+
+    it.each(['existing-chat', ''])('preserves the explicit id %j', id => {
+      const generateId = vi.fn(mockId());
+      const chat = new TestChat({ id, generateId });
+
+      expect(chat.id).toBe(id);
+      expect(generateId).not.toHaveBeenCalled();
+    });
+
+    it('uses the same lazily generated id for sending and resuming', async () => {
+      const sendMessages = vi.fn(
+        async () =>
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              controller.close();
+            },
+          }),
+      );
+      const reconnectToStream = vi.fn(async () => null);
+      const generateId = vi.fn(mockId());
+      const chat = new TestChat({
+        generateId,
+        transport: { sendMessages, reconnectToStream },
+      });
+
+      expect(generateId).not.toHaveBeenCalled();
+      await chat.resumeStream();
+      expect(reconnectToStream).toHaveBeenCalledWith(
+        expect.objectContaining({ chatId: 'id-0' }),
+      );
+
+      await chat.sendMessage({ text: 'Hello' });
+      expect(sendMessages).toHaveBeenCalledWith(
+        expect.objectContaining({ chatId: 'id-0' }),
+      );
+      expect(chat.id).toBe('id-0');
+    });
+  });
+
   beforeEach(() => {
     vi.useFakeTimers();
   });

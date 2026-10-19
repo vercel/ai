@@ -1471,6 +1471,42 @@ describe('Claude Code bridge configuration', () => {
     });
   });
 
+  test('sends image prompt content as Claude image blocks', async () => {
+    state.createQuery = args =>
+      (async function* () {
+        const input = args.prompt[Symbol.asyncIterator]();
+        state.queryInputs.push((await input.next()).value);
+        yield { type: 'result', subtype: 'success', result: 'done' };
+      })();
+    state.start = {
+      ...state.start,
+      prompt: [
+        { type: 'text', text: 'What is in this image?' },
+        { type: 'image', mediaType: 'image/png', data: 'iVBORw0KGgo=' },
+      ],
+    };
+
+    await import('./index');
+
+    expect(state.queryInputs[0]).toMatchObject({
+      type: 'user',
+      message: {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'What is in this image?' },
+          {
+            type: 'image',
+            source: {
+              type: 'base64',
+              media_type: 'image/png',
+              data: 'iVBORw0KGgo=',
+            },
+          },
+        ],
+      },
+    });
+  });
+
   test('keeps the query open past the first result for an accepted steering message', async () => {
     state.steering = true;
 

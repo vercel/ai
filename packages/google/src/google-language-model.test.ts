@@ -5,6 +5,7 @@ import {
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
+  isProviderStreamError,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -30,6 +31,17 @@ vi.mock('./version', () => ({
 const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
+
+function readContinuationGroundingResponses() {
+  return [1, 2].map(index =>
+    JSON.parse(
+      fs.readFileSync(
+        `src/__fixtures__/google-continuation-grounding-${index}.json`,
+        'utf8',
+      ),
+    ),
+  );
+}
 
 const SAFETY_RATINGS = [
   {
@@ -1696,6 +1708,39 @@ describe('doGenerate', () => {
   });
 
   describe('long decode continuation', () => {
+    it.each([false, true])(
+      'preserves grounding per request (terminal grounding: %s)',
+      async terminalGrounding => {
+        const [first, last] = readContinuationGroundingResponses();
+        if (terminalGrounding) {
+          last.candidates[0].groundingMetadata =
+            first.candidates[0].groundingMetadata;
+        }
+        server.urls[TEST_URL_GEMINI_PRO].response = [first, last].map(body => ({
+          type: 'json-value',
+          body,
+        }));
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          maxOutputTokens: 33_280,
+        });
+
+        expect(server.calls).toHaveLength(2);
+        expect(
+          result.providerMetadata?.google.groundingMetadataPerRequest,
+        ).toEqual([
+          first.candidates[0].groundingMetadata,
+          last.candidates[0].groundingMetadata ?? null,
+        ]);
+        expect(result.providerMetadata?.google.groundingMetadata).toEqual(
+          last.candidates[0].groundingMetadata ?? null,
+        );
+        expect(result.usage.inputTokens.total).toBe(33_246);
+        expect(result.usage.outputTokens.total).toBe(33_306);
+      },
+    );
+
     const continuationResponse = {
       type: 'json-value' as const,
       body: {
@@ -5885,6 +5930,94 @@ describe('doStream', () => {
     };
   };
 
+  describe('in-stream errors', () => {
+    it.each([
+      {
+        partialText: false,
+        code: 503,
+        status: 'UNAVAILABLE',
+        isRetryable: true,
+      },
+      {
+        partialText: true,
+        code: 503,
+        status: 'UNAVAILABLE',
+        isRetryable: true,
+      },
+      {
+        partialText: false,
+        code: 400,
+        status: 'INVALID_ARGUMENT',
+        isRetryable: false,
+      },
+      { partialText: false, code: null, status: 'UNKNOWN', isRetryable: false },
+    ])(
+      'should surface $status and finish with error (partial text: $partialText)',
+      async ({ partialText, code, status, isRetryable }) => {
+        const error = {
+          code,
+          message: 'Provider error',
+          status,
+          details: [{ '@type': 'type.googleapis.com/google.rpc.RetryInfo' }],
+        };
+        server.urls[TEST_URL_GEMINI_PRO].response = {
+          type: 'stream-chunks',
+          chunks: [
+            ...(partialText
+              ? [
+                  {
+                    candidates: [
+                      { content: { parts: [{ text: 'Partial answer' }] } },
+                    ],
+                    usageMetadata: {
+                      promptTokenCount: 10,
+                      candidatesTokenCount: 2,
+                      totalTokenCount: 12,
+                    },
+                  },
+                ]
+              : []),
+            { error },
+          ].map(chunk => `data: ${JSON.stringify(chunk)}\n\n`),
+        };
+
+        const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+        const events = await convertReadableStreamToArray(stream);
+
+        expect(events.map(event => event.type)).toEqual([
+          'stream-start',
+          ...(partialText ? ['text-start', 'text-delta'] : []),
+          'error',
+          ...(partialText ? ['text-end'] : []),
+          'finish',
+        ]);
+        const errorEvent = events.find(event => event.type === 'error');
+        expect(errorEvent).toEqual({
+          type: 'error',
+          error: {
+            message: error.message,
+            type: status,
+            code: code ?? undefined,
+            statusCode: code ?? undefined,
+            isRetryable,
+            data: error,
+          },
+        });
+        expect(isProviderStreamError(errorEvent?.error)).toBe(true);
+        expect(events.at(-1)).toMatchObject({
+          type: 'finish',
+          finishReason: { unified: 'error', raw: undefined },
+          ...(partialText && {
+            usage: {
+              inputTokens: { total: 10 },
+              outputTokens: { total: 2 },
+            },
+          }),
+        });
+      },
+    );
+  });
+
   describe('text', () => {
     beforeEach(() => {
       prepareChunksFixtureResponse('google-text');
@@ -6986,6 +7119,38 @@ describe('doStream', () => {
       finishEvent?.type === 'finish' && finishEvent.providerMetadata?.google,
     ).not.toHaveProperty('continuationToken');
   });
+
+  it.each([false, true])(
+    'preserves grounding per streamed request (terminal grounding: %s)',
+    async terminalGrounding => {
+      const [first, last] = readContinuationGroundingResponses();
+      if (terminalGrounding) {
+        last.candidates[0].groundingMetadata =
+          first.candidates[0].groundingMetadata;
+      }
+      server.urls[TEST_URL_GEMINI_PRO].response = [first, last].map(body => ({
+        type: 'stream-chunks',
+        chunks: [`data: ${JSON.stringify(body)}\n\n`],
+      }));
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        maxOutputTokens: 33_280,
+      });
+      const events = await convertReadableStreamToArray(stream);
+      const finish = events.find(event => event.type === 'finish');
+
+      expect(server.calls).toHaveLength(2);
+      expect(
+        finish?.providerMetadata?.google.groundingMetadataPerRequest,
+      ).toEqual([
+        first.candidates[0].groundingMetadata,
+        last.candidates[0].groundingMetadata ?? null,
+      ]);
+      expect(finish?.usage.inputTokens.total).toBe(33_246);
+      expect(finish?.usage.outputTokens.total).toBe(33_306);
+    },
+  );
 
   it('should continue the stream automatically on CONTINUATION', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = [

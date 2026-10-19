@@ -111,6 +111,19 @@ describe('inboundMessageSchema', () => {
     ).not.toThrow();
   });
 
+  it('accepts a start message with text and image prompt content', () => {
+    expect(() =>
+      inboundMessageSchema.parse({
+        type: 'start',
+        prompt: [
+          { type: 'text', text: 'What is in this image?' },
+          { type: 'image', mediaType: 'image/png', data: 'iVBORw0KGgo=' },
+        ],
+        thinking: { type: 'disabled' },
+      }),
+    ).not.toThrow();
+  });
+
   it('accepts a start message naming the exact conversation to resume', () => {
     expect(() =>
       inboundMessageSchema.parse({

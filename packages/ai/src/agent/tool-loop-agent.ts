@@ -315,9 +315,11 @@ export class ToolLoopAgent<
     };
 
     return await stream({
-      ...preparedCall,
-      ...callbackArgs,
-      headers: this.agentHeaders(preparedCall),
-    } as unknown as Parameters<typeof stream>[0]);
+      ...({
+        ...preparedCall,
+        ...callbackArgs,
+        headers: this.agentHeaders(preparedCall),
+      } as unknown as Parameters<typeof stream>[0]),
+    });
   }
 }

@@ -84,7 +84,11 @@ export function validateDecisionInput({
 
   for (const [id, question] of Object.entries(questions)) {
     const parameter = `questions.${id}`;
-    if (!isRecord(question) || !isInput(question.instructions)) {
+    if (
+      !isRecord(question) ||
+      ((question.type === 'box' || question.instructions != null) &&
+        !isInput(question.instructions))
+    ) {
       invalidInput(
         parameter,
         question,
@@ -104,15 +108,26 @@ export function validateDecisionInput({
         }
         break;
       case 'score':
-        if (!Array.isArray(criteria) || criteria.length < 2) {
+        if (!Array.isArray(criteria) || criteria.length === 0) {
           invalidInput(
             parameter,
             question,
-            'score criteria must contain at least two ordered levels',
+            'score criteria must contain at least one ordered level',
           );
         }
         break;
       case 'boolean':
+        if (
+          question.instructions == null &&
+          (!isRecord(criteria) ||
+            !Object.values(criteria).some(value => value != null))
+        ) {
+          invalidInput(
+            parameter,
+            question,
+            'boolean questions require instructions or at least one non-null criterion',
+          );
+        }
         if (criteria === undefined) continue;
         if (
           !isRecord(criteria) ||

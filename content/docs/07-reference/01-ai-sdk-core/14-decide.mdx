@@ -31,6 +31,29 @@ state. See [Decisions](/docs/ai-sdk-core/decisions) for examples and semantics.
 See [Lifecycle Callbacks](/docs/ai-sdk-core/lifecycle-callbacks#experimental_decide)
 for the complete `onStart` and `onEnd` event fields.
 
+## Questions
+
+Each question has a `type` and can include `instructions` and `criteria` as
+described below.
+Instructions and criterion descriptions accept strings, JSON objects, or JSON
+arrays.
+
+| Type      | Instructions            | Criteria                                                                                                            |
+| --------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `choice`  | Optional; may be `null` | Required nonempty map of option names to descriptions                                                               |
+| `score`   | Optional; may be `null` | Required nonempty array of levels, indexed from zero                                                                |
+| `boolean` | Optional; may be `null` | Optional object with `true` and/or `false` descriptions; at least one must be non-null when instructions are absent |
+| `box`     | Required and non-null   | None                                                                                                                |
+
+Criterion descriptions may be `null` in the shared type, but providers can impose
+stricter limits. Perplexity requires non-null Score levels and accepts 1–10 levels;
+a single level yields score `0` and probability `1`. Other providers may require
+at least two levels. Optional instructions also remain subject to the provider's
+API contract.
+
+See [question semantics](/docs/ai-sdk-core/decisions#question-types) and
+[Perplexity decision examples](/providers/ai-sdk-providers/perplexity#decision-models).
+
 ## Result
 
 Returns `Promise<Experimental_DecisionResult<QUESTIONS>>`:

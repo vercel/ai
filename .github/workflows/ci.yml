@@ -203,31 +203,9 @@ jobs:
         if: steps.docs-changes.outputs.changed == 'true'
         run: pnpm install --frozen-lockfile
 
-      - name: Restore docs build cache
+      - name: Test docs
         if: steps.docs-changes.outputs.changed == 'true'
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: apps/docs/.next/cache
-          key: ${{ runner.os }}-docs-site-next-${{ hashFiles('pnpm-lock.yaml', 'apps/docs/package.json') }}
-          restore-keys: |
-            ${{ runner.os }}-docs-site-next-
-
-      # The docs build peaks above the standard runner's 16 GB of RAM
-      # (every versioned content family is compiled into one app), which
-      # OOM-kills the runner agent mid-compile. Swap absorbs the peak, the
-      # same way Vercel's build machines handle it.
-      - name: Add swap space
-        if: steps.docs-changes.outputs.changed == 'true'
-        run: |
-          sudo fallocate -l 12G /mnt/swapfile
-          sudo chmod 600 /mnt/swapfile
-          sudo mkswap /mnt/swapfile
-          sudo swapon /mnt/swapfile
-          free -h
-
-      - name: Test and build docs
-        if: steps.docs-changes.outputs.changed == 'true'
-        run: pnpm --filter ai-sdk-docs validate:site
+        run: pnpm --filter ai-sdk-docs test:site
 
   build-packages:
     name: 'Build Packages'

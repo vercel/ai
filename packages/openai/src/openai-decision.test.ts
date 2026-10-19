@@ -598,3 +598,64 @@ it('fails the decision when an unnamed question is refused', async () => {
     data: body,
   });
 });
+
+it.each([{}, { instructions: undefined }, { instructions: null }])(
+  'sends criteria-only questions without locally rejecting missing instructions: %j',
+  async instructionFields => {
+    const { model, fetch } = setup();
+    await model.doDecide({
+      ...options,
+      questions: {
+        department: {
+          type: 'choice',
+          criteria: options.questions.department.criteria,
+          ...instructionFields,
+        },
+        severity: {
+          type: 'score',
+          criteria: options.questions.severity.criteria,
+          ...instructionFields,
+        },
+        refund: {
+          type: 'boolean',
+          criteria: { true: 'Requests money back', false: ['Status inquiry'] },
+          ...instructionFields,
+        },
+      },
+    });
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(
+      JSON.parse(fetch.mock.calls[0][1]?.body as string).questions,
+    ).toStrictEqual(
+      JSON.parse(
+        JSON.stringify([
+          {
+            type: 'choice',
+            name: 'department',
+            ...instructionFields,
+            choices: [
+              { value: 'technical', description: 'Bugs' },
+              { value: 'billing', description: 'Charges' },
+            ],
+          },
+          {
+            type: 'score',
+            name: 'severity',
+            ...instructionFields,
+            levels: [
+              { label: '0', description: 'Low' },
+              { label: '1', description: 'Medium' },
+              { label: '2', description: 'High' },
+            ],
+          },
+          {
+            type: 'predicate',
+            name: 'refund',
+            instructions:
+              'Criteria for true:\nRequests money back\n\nCriteria for false:\n["Status inquiry"]',
+          },
+        ]),
+      ),
+    );
+  },
+);
