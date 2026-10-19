@@ -1,0 +1,64 @@
+---
+title: AxioRank
+description: Learn how to use the AxioRank guardrail middleware for the AI SDK.
+---
+
+# AxioRank
+
+[AxioRank](https://axiorank.com) is the security gateway for AI agents. Its AI SDK middleware wraps any language model so every `generateText`, `streamText`, and `generateObject` call is governed:
+
+- **Prompt inspection** for prompt injection, jailbreaks, and secrets or PII leaking into the model.
+- **Completion inspection and redaction** for leaked secrets and PII in the model's output.
+- **Tool-call inspection** that strips a proposed tool call before the AI SDK executes it.
+- **Local or hosted**: run the bundled detectors in-process with no key, or point at the hosted AxioRank gateway for your workspace's real policy, audit trail, and completion redaction.
+
+Because it is a `LanguageModelMiddleware`, it composes with any provider through `wrapLanguageModel`.
+
+## Setup
+
+The AxioRank middleware is available in the `@axiorank/ai-sdk` module. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @axiorank/ai-sdk" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @axiorank/ai-sdk" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @axiorank/ai-sdk" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @axiorank/ai-sdk" dark />
+  </Tab>
+</Tabs>
+
+## Usage
+
+Wrap any model with `wrapLanguageModel` and the AxioRank middleware:
+
+```ts
+import { generateText, wrapLanguageModel } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { createAxioRankMiddleware } from '@axiorank/ai-sdk';
+
+const model = wrapLanguageModel({
+  model: openai('gpt-4o'),
+  middleware: createAxioRankMiddleware({ apiKey: process.env.AXIORANK_API_KEY }),
+});
+
+// The prompt, the completion, and any proposed tool calls are all governed.
+const { text } = await generateText({ model, prompt: 'Hello!' });
+```
+
+Leave the API key off to run the detectors locally, with no key and no network:
+
+```ts
+const model = wrapLanguageModel({
+  model: openai('gpt-4o'),
+  middleware: createAxioRankMiddleware(),
+});
+```
+
+You can obtain an API key from the [AxioRank dashboard](https://app.axiorank.com). Learn more in the [AxioRank documentation](https://axiorank.com/docs).
+
