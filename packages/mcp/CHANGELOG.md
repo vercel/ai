@@ -1,5 +1,22 @@
 # @ai-sdk/mcp
 
+## 2.0.79
+
+### Patch Changes
+
+- fce9210: fix(mcp): support shell option in stdio transport and extract response body in SSE transport errors
+- Updated dependencies [60cc252]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/provider-utils@5.0.63
+
+## 2.0.78
+
+### Patch Changes
+
+- Updated dependencies [0957554]
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+
 ## 2.0.77
 
 ### Patch Changes

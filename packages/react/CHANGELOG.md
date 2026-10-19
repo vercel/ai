@@ -1,5 +1,36 @@
 # @ai-sdk/react
 
+## 4.0.149
+
+### Patch Changes
+
+- ai@7.0.145
+
+## 4.0.148
+
+### Patch Changes
+
+- Updated dependencies [60cc252]
+- Updated dependencies [fce9210]
+- Updated dependencies [0ed59e2]
+  - @ai-sdk/provider@4.0.30
+  - ai@7.0.144
+  - @ai-sdk/mcp@2.0.79
+  - @ai-sdk/provider-utils@5.0.63
+
+## 4.0.147
+
+### Patch Changes
+
+- 8a5233b: Generate default chat IDs on first access so `useChat()` can prerender without reading a random value when the ID is not used during rendering.
+- Updated dependencies [8a5233b]
+- Updated dependencies [894e130]
+- Updated dependencies [0957554]
+  - ai@7.0.143
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+  - @ai-sdk/mcp@2.0.78
+
 ## 4.0.146
 
 ### Patch Changes

@@ -1,5 +1,32 @@
 # @ai-sdk/workflow
 
+## 2.0.77
+
+### Patch Changes
+
+- ai@7.0.145
+
+## 2.0.76
+
+### Patch Changes
+
+- Updated dependencies [60cc252]
+- Updated dependencies [0ed59e2]
+  - @ai-sdk/provider@4.0.30
+  - ai@7.0.144
+  - @ai-sdk/provider-utils@5.0.63
+
+## 2.0.75
+
+### Patch Changes
+
+- Updated dependencies [8a5233b]
+- Updated dependencies [894e130]
+- Updated dependencies [0957554]
+  - ai@7.0.143
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+
 ## 2.0.74
 
 ### Patch Changes

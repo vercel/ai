@@ -8,6 +8,8 @@ description: Learn how to use Perplexity's Agent API with the AI SDK.
 The [Perplexity](https://www.perplexity.ai) provider offers access to the
 [Agent API](https://docs.perplexity.ai/docs/agent-api/quickstart). The Agent API
 can route across models, search the web, call tools, and return cited answers.
+The provider also supports embeddings and experimental decision models for
+classification, scoring, and Boolean judgments.
 
 API keys can be obtained from the [Perplexity Platform](https://docs.perplexity.ai).
 
@@ -419,6 +421,138 @@ The following optional provider options are available for embedding models:
 | -------------------- | ---------- | ------------------- |
 | `pplx-embed-v1-0.6b` | 1024       | 512                 |
 | `pplx-embed-v1-4b`   | 2560       | 512                 |
+
+## Decision Models
+
+Use `perplexity.decisionModel()` with
+[`experimental_decide`](/docs/reference/ai-sdk-core/decide) to call the
+[Perplexity Decisions API](https://docs.perplexity.ai/docs/decisions/quickstart).
+This API is experimental and may change in patch releases.
+
+```ts
+import { perplexity } from '@ai-sdk/perplexity';
+import { experimental_decide as decide } from 'ai';
+
+const result = await decide({
+  model: perplexity.decisionModel('pplx-decider-latest'),
+  state: { review: 'Great sound, but the battery stopped charging.' },
+  questions: {
+    defect: {
+      type: 'boolean',
+      instructions: 'Does the review report a product defect?',
+    },
+    sentiment: {
+      type: 'choice',
+      instructions: 'What is the overall sentiment?',
+      criteria: {
+        positive: 'Mostly satisfied',
+        mixed: 'Praise and complaints',
+        negative: 'Mostly dissatisfied',
+      },
+    },
+    severity: {
+      type: 'score',
+      instructions: 'How severe is the problem?',
+      criteria: ['Cosmetic', 'Inconvenient', 'Product unusable'],
+    },
+  },
+});
+
+result.answers.defect.probability; // P(true), from 0 to 1
+result.answers.sentiment.choice; // 'positive' | 'mixed' | 'negative'
+result.answers.sentiment.probabilities;
+result.answers.severity.score; // Expected zero-based level, from 0 to 2
+result.answers.severity.probabilities;
+```
+
+The provider maps SDK `boolean` questions to Perplexity's native `noul` type
+and maps the returned `noul` value to `probability`. Choice and Score answers
+include the API's probability distributions without rounding or normalization.
+Box questions are unsupported.
+
+### Images and structured state
+
+Use ordered text, JSON, and file parts to combine images with other evidence.
+PNG, JPEG, and WebP images are supported, with at most eight images in the shared
+state. Core downloads file URLs before the provider converts the image bytes to
+base64 data URLs:
+
+```ts
+const result = await decide({
+  model: perplexity.decisionModel('pplx-decider-latest'),
+  state: [
+    { type: 'text', text: 'Inspect the product for damage.' },
+    { type: 'json', value: { product: 'glass vase' } },
+    {
+      type: 'file',
+      mediaType: 'image/png',
+      data: new URL('https://example.com/product.png'),
+    },
+  ],
+  questions: {
+    damaged: { type: 'boolean', instructions: 'Is the vase damaged?' },
+  },
+});
+```
+
+You can also preserve an image's position inside a JSON object using Perplexity's
+native image shape. Such images must already contain base64 data URLs; the SDK
+does not download URLs embedded inside JSON. Given a base64-encoded PNG in
+`imageBase64`:
+
+```ts
+const state = {
+  product: 'glass vase',
+  evidence: {
+    photo: {
+      type: 'image_url',
+      image_url: { url: `data:image/png;base64,${imageBase64}` },
+    },
+  },
+};
+```
+
+Pass this object as `state` to `decide`. To send a JSON array instead, wrap it in
+`{ type: 'json', value: records }` within the state parts array. Arrays passed
+directly as `state` are interpreted as SDK parts.
+
+### Confidence, legends, and response metadata
+
+Perplexity's separate confidence values and Score legends are available in
+`providerMetadata.perplexity`, keyed by question ID. Confidence is distinct from
+the selected option's probability. Legends preserve the original rubric entries,
+including structured descriptions.
+
+Using the first example's result:
+
+```ts
+const metadata = result.providerMetadata?.perplexity;
+console.log(metadata?.confidence); // Choice and Score confidence by question ID
+console.log(metadata?.legend); // Score index-to-description maps by question ID
+console.log(result.usage.inputTokens);
+console.log(result.usage.outputTokens);
+console.log(result.response.id); // x-request-id, when returned
+console.log(result.response.modelId); // Model returned by the API
+```
+
+### Decision limits and options
+
+The provider validates these limits before sending the decision request:
+
+| Input                  | Limit                         |
+| ---------------------- | ----------------------------- |
+| Questions              | 1–128, with nonempty names    |
+| Choice options         | 1–255                         |
+| Score levels           | 1–10, all non-null            |
+| Images in shared state | At most 8; PNG, JPEG, or WebP |
+
+See Perplexity's [request limits](https://docs.perplexity.ai/docs/decisions/quickstart#request-limits)
+for API-enforced body, token, and image-size limits. The SDK does not resize images.
+
+Decision models have no Perplexity-specific provider options. Entries passed in
+`providerOptions.perplexity` produce unsupported-option warnings and are not sent
+to the API. Use the standard `abortSignal`, `headers`, and `maxRetries` options on
+`decide` for cancellation, request headers, and retries.
 
 ## Model Capabilities
 

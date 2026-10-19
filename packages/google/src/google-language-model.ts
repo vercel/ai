@@ -18,6 +18,7 @@ import {
   createToolNameMapping,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  createProviderStreamError,
   generateId,
   isCustomReasoning,
   lazySchema,
@@ -45,7 +46,10 @@ import {
 import { convertToGoogleMessages } from './convert-to-google-messages';
 import { downloadToolResultFiles } from './download-tool-result-files';
 import { getModelPath } from './get-model-path';
-import { googleFailedResponseHandler } from './google-error';
+import {
+  getGoogleErrorSchema,
+  googleFailedResponseHandler,
+} from './google-error';
 import { sanitizeResponseJsonSchema } from './sanitize-response-json-schema';
 import {
   googleLanguageModelOptions,
@@ -516,6 +520,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     toolNameMapping,
     jsonResponseToolName,
     initialPromptTokenCount,
+    groundingMetadataPerRequest,
   }: {
     config: GoogleLanguageModelConfig;
     response: InferSchema<typeof responseSchema>;
@@ -524,6 +529,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     toolNameMapping?: ReturnType<typeof createToolNameMapping>;
     jsonResponseToolName?: string;
     initialPromptTokenCount?: number | null;
+    groundingMetadataPerRequest?: Array<GroundingMetadataSchema | null>;
   }): LanguageModelV4GenerateResult {
     const wrapProviderMetadata = (payload: Record<string, unknown>) =>
       Object.fromEntries(
@@ -714,6 +720,9 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       providerMetadata: wrapProviderMetadata({
         promptFeedback: response.promptFeedback ?? null,
         groundingMetadata: candidate?.groundingMetadata ?? null,
+        ...(groundingMetadataPerRequest != null
+          ? { groundingMetadataPerRequest }
+          : {}),
         urlContextMetadata: candidate?.urlContextMetadata ?? null,
         safetyRatings: candidate?.safetyRatings ?? null,
         usageMetadata: usageMetadata ?? null,
@@ -777,12 +786,15 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     // the prompt plus all output so far as input, so the first request's
     // prompt token count is kept separately for context window checks.
     const content: LanguageModelV4Content[] = [];
+    const groundingMetadataPerRequest: Array<GroundingMetadataSchema | null> =
+      [];
     let usageMetadata: GoogleUsageMetadata | undefined;
     const firstPromptTokenCount = response.usageMetadata?.promptTokenCount;
     let isContinued = false;
 
     while (true) {
       const candidate = response.candidates?.[0];
+      groundingMetadataPerRequest.push(candidate?.groundingMetadata ?? null);
       const continuationToken =
         candidate?.finishReason === 'CONTINUATION'
           ? candidate.continuationToken
@@ -824,6 +836,9 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       toolNameMapping,
       jsonResponseToolName,
       initialPromptTokenCount: isContinued ? firstPromptTokenCount : undefined,
+      groundingMetadataPerRequest: isContinued
+        ? groundingMetadataPerRequest
+        : undefined,
     });
 
     const result = {
@@ -881,6 +896,10 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     const { responseHeaders, value: firstResponse } =
       await streamGenerateContent(args);
 
+    const groundingMetadataPerRequest: Array<GroundingMetadataSchema | null> =
+      [];
+    let requestGroundingMetadata: GroundingMetadataSchema | null = null;
+
     // Gemini 4 long decode: when a stream reaches the per-request cap while
     // `maxOutputTokens` budget remains, its last chunk finishes with
     // `CONTINUATION`. Resend the same request with the continuation token and
@@ -889,12 +908,22 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       stream: firstResponse,
       getContinuationToken: chunk => {
         const candidate = chunk.candidates?.[0];
+        if (candidate?.groundingMetadata != null) {
+          requestGroundingMetadata = candidate.groundingMetadata;
+        }
         return candidate?.finishReason === 'CONTINUATION'
           ? (candidate.continuationToken ?? undefined)
           : undefined;
       },
-      continueStream: async continuationToken =>
-        (await streamGenerateContent({ ...args, continuationToken })).value,
+      continueStream: async continuationToken => {
+        const { value } = await streamGenerateContent({
+          ...args,
+          continuationToken,
+        });
+        groundingMetadataPerRequest.push(requestGroundingMetadata);
+        requestGroundingMetadata = null;
+        return value;
+      },
     });
 
     let finishReason: LanguageModelV4FinishReason = {
@@ -994,6 +1023,28 @@ export class GoogleLanguageModel implements LanguageModelV4 {
             }
 
             const value = chunk.value;
+
+            if (value.error != null) {
+              finishReason = { unified: 'error', raw: undefined };
+              const error = value.error;
+              controller.enqueue({
+                type: 'error',
+                error: createProviderStreamError({
+                  message: error.message,
+                  type: error.status,
+                  code: error.code ?? undefined,
+                  statusCode: error.code ?? undefined,
+                  isRetryable:
+                    error.code != null &&
+                    (error.code === 408 ||
+                      error.code === 409 ||
+                      error.code === 429 ||
+                      error.code >= 500),
+                  data: error,
+                }),
+              });
+              return;
+            }
 
             if (!hasEmittedResponseMetadata && value.responseId != null) {
               hasEmittedResponseMetadata = true;
@@ -1463,6 +1514,14 @@ export class GoogleLanguageModel implements LanguageModelV4 {
               providerMetadata: wrapProviderMetadata({
                 promptFeedback,
                 groundingMetadata: lastGroundingMetadata,
+                ...(groundingMetadataPerRequest.length > 0
+                  ? {
+                      groundingMetadataPerRequest: [
+                        ...groundingMetadataPerRequest,
+                        requestGroundingMetadata,
+                      ],
+                    }
+                  : {}),
                 urlContextMetadata: lastUrlContextMetadata,
                 safetyRatings: lastSafetyRatings,
                 usageMetadata: usage ?? null,
@@ -2012,6 +2071,7 @@ export type UsageMetadataSchema = NonNullable<
 const chunkSchema = lazySchema(() =>
   zodSchema(
     z.object({
+      error: getGoogleErrorSchema().nullish(),
       responseId: z.string().nullish(),
       candidates: z
         .array(

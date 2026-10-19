@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/harness';
 import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { resolveFxEnv, type FxAuthenticationMode } from './fx-auth';
+import type { FxAuthenticationMode } from './fx-auth';
 import { fxResumeStateSchema } from './fx-resume-state';
 import { createFxSession } from './fx-session';
 import { VERSION } from './version';
@@ -109,7 +109,6 @@ export function createFx(
       createFxSession({
         startOpts,
         settings,
-        environment: resolveFxEnv({ auth: settings.auth }),
         builtinTools: FX_BUILTIN_TOOLS,
         clientApp: FX_CLIENT_APP,
       }),

@@ -1,5 +1,28 @@
 # @ai-sdk/openai
 
+## 4.0.97
+
+### Patch Changes
+
+- acbc819: Add an optional `modelId` setting to Azure OpenAI language-model factories for
+  accurate telemetry and capability detection with custom deployment names. Keep
+  the deployment ID for API routing and preserve existing behavior when the model
+  ID is omitted.
+- 60cc252: feat(perplexity): add decisions api support
+- Updated dependencies [60cc252]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/provider-utils@5.0.63
+
+## 4.0.96
+
+### Patch Changes
+
+- 2be133e: chore(openai): deprecate 'webSearchPreview()' tool
+- fa98094: feat(openai): support ordered 'additional_tools' from tool results
+- Updated dependencies [0957554]
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+
 ## 4.0.95
 
 ### Patch Changes
