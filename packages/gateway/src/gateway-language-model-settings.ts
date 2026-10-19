@@ -142,6 +142,7 @@ export type GatewayModelId =
   | 'minimax/minimax-m2.7'
   | 'minimax/minimax-m2.7-highspeed'
   | 'minimax/minimax-m3'
+  | 'minimax/minimax-m3.1-flash'
   | 'mistral/codestral'
   | 'mistral/ministral-14b'
   | 'mistral/ministral-3b'

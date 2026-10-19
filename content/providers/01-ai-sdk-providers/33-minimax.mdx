@@ -133,6 +133,7 @@ The following optional provider options are available for MiniMax language model
   <Note>
     Thinking control is only supported on `minimax-m3`. The M2.x models always
     think, so `'disabled'` has no effect on them.
+    `MiniMax-M3.1-Flash` always thinks and returns an error if `'disabled'` is sent.
   </Note>
 
 ## Video Models
@@ -364,6 +365,7 @@ MiniMax video results include `providerMetadata.minimax`:
 
 | Model                    | Image Input | Object Generation | Tool Usage | Tool Streaming |
 | ------------------------ | ----------- | ----------------- | ---------- | -------------- |
+| `MiniMax-M3.1-Flash`     | <Check />   | <Check />         | <Check />  | <Check />      |
 | `minimax-m3`             | <Cross />   | <Check />         | <Check />  | <Check />      |
 | `minimax-m2.7`           | <Cross />   | <Check />         | <Check />  | <Check />      |
 | `minimax-m2.7-highspeed` | <Cross />   | <Check />         | <Check />  | <Check />      |
