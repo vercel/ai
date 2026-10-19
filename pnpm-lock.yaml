@@ -516,6 +516,9 @@ importers:
       '@ai-sdk/togetherai':
         specifier: workspace:*
         version: link:../../packages/togetherai
+      '@ai-sdk/tool-bash':
+        specifier: workspace:*
+        version: link:../../packages/tool-bash
       '@ai-sdk/topaz':
         specifier: workspace:*
         version: link:../../packages/topaz
@@ -4513,6 +4516,37 @@ importers:
       zod:
         specifier: 3.25.76
         version: 3.25.76
+
+  packages/tool-bash:
+    dependencies:
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+    devDependencies:
+      '@ai-sdk/sandbox-just-bash':
+        specifier: workspace:*
+        version: link:../sandbox-just-bash
+      '@ai-sdk/sandbox-vercel':
+        specifier: workspace:*
+        version: link:../sandbox-vercel
+      '@types/node':
+        specifier: 22.19.19
+        version: 22.19.19
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
+      ai:
+        specifier: workspace:*
+        version: link:../ai
+      tsdown:
+        specifier: ^0.23.0
+        version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
 
   packages/topaz:
     dependencies:
