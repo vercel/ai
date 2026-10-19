@@ -418,6 +418,29 @@ it('restores the wrapped model and provider across workflow hooks', async () => 
   expect(doGenerate).toHaveBeenCalledTimes(1);
 });
 
+it('passes maxOutputTokens to doGenerate when configured', async () => {
+  const { languageModel, doGenerate } = setup();
+  const model = new DecisionLanguageModel({
+    model: languageModel,
+    maxOutputTokens: 512,
+  });
+  await model.doDecide(options);
+  expect(doGenerate).toHaveBeenCalledTimes(1);
+  expect(doGenerate.mock.calls[0][0].maxOutputTokens).toBe(512);
+});
+
+it('restores maxOutputTokens across workflow serialization hooks', async () => {
+  const { languageModel } = setup();
+  const model = new DecisionLanguageModel({
+    model: languageModel,
+    maxOutputTokens: 256,
+  });
+  const serialized = DecisionLanguageModel[WORKFLOW_SERIALIZE](model);
+  expect(serialized.maxOutputTokens).toBe(256);
+  const restored = DecisionLanguageModel[WORKFLOW_DESERIALIZE](serialized);
+  expect((restored as any).maxOutputTokens).toBe(256);
+});
+
 it('sends images as files and preserves state part order in the prompt', async () => {
   const { model, doGenerate } = setup();
   const image = {

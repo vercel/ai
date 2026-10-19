@@ -20,13 +20,16 @@ export class DecisionLanguageModel implements DecisionModelV4 {
   readonly supportedQuestionTypes = ['choice', 'score', 'boolean'] as const;
   readonly provider: string;
   private readonly model: LanguageModelV4;
+  private readonly maxOutputTokens?: number;
 
   constructor({
     model,
     provider = `${model.provider}.decision`,
+    maxOutputTokens,
   }: {
     model: LanguageModelV4;
     provider?: string;
+    maxOutputTokens?: number;
   }) {
     if (model.specificationVersion !== 'v4') {
       throw new InvalidArgumentError({
@@ -36,6 +39,7 @@ export class DecisionLanguageModel implements DecisionModelV4 {
     }
     this.model = model;
     this.provider = provider;
+    this.maxOutputTokens = maxOutputTokens;
   }
 
   get modelId() {
@@ -44,12 +48,17 @@ export class DecisionLanguageModel implements DecisionModelV4 {
 
   static [WORKFLOW_SERIALIZE](model: DecisionLanguageModel) {
     // Workflow recursively serializes the wrapped provider model using its hooks.
-    return { model: model.model, provider: model.provider };
+    return {
+      model: model.model,
+      provider: model.provider,
+      maxOutputTokens: model.maxOutputTokens,
+    };
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     model: LanguageModelV4;
     provider: string;
+    maxOutputTokens?: number;
   }) {
     return new DecisionLanguageModel(options);
   }
@@ -149,6 +158,7 @@ export class DecisionLanguageModel implements DecisionModelV4 {
     );
     const result = await this.model.doGenerate({
       reasoning: 'none',
+      maxOutputTokens: this.maxOutputTokens,
       prompt: [
         {
           role: 'system',
