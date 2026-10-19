@@ -1574,7 +1574,7 @@ describe('createClaudeCode adapter', () => {
     ] as const)('rejects $name', async ({ part }) => {
       await expect(
         promptTurn({ role: 'user', content: [part] }),
-      ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
+      ).rejects.toSatisfy(HarnessCapabilityUnsupportedError.isInstance);
       expect(sentMessages.filter(m => m.type === 'start')).toHaveLength(0);
     });
   });
