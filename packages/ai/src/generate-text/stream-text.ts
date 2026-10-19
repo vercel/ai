@@ -1411,14 +1411,29 @@ class DefaultStreamTextResult<
       },
     });
 
-    // transform the stream before output parsing
-    // to enable replacement of stream segments:
+    // Prevent chunks queued by the source stream from being emitted after a
+    // transform stops it. The guard deliberately sits before user transforms
+    // so the chunk that calls stopStream can still emit its replacement parts.
+    let isRunning = true;
+    stream = stream.pipeThrough(
+      new TransformStream({
+        transform(chunk, controller) {
+          if (isRunning) {
+            controller.enqueue(chunk);
+          }
+        },
+      }),
+    );
+
+    // Transform the stream before output parsing to enable replacement of
+    // stream segments:
     for (const transform of transforms) {
       stream = stream.pipeThrough(
         transform({
           tools: tools as TOOLS,
           stopStream() {
             stitchableStream.terminate();
+            isRunning = false;
           },
         }),
       );

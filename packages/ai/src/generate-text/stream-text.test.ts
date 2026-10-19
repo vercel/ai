@@ -16624,85 +16624,8 @@ describe('streamText', () => {
           experimental_transform: stopWordTransform(),
         });
 
-        const fullStream = await convertAsyncIterableToArray(result.fullStream);
-
-        if (nodeVersionIs24_15) {
-          expect(fullStream).toMatchInlineSnapshot(`
-            [
-              {
-                "type": "start",
-              },
-              {
-                "request": {},
-                "type": "start-step",
-                "warnings": [],
-              },
-              {
-                "id": "1",
-                "type": "text-start",
-              },
-              {
-                "id": "1",
-                "providerMetadata": undefined,
-                "text": "Hello, ",
-                "type": "text-delta",
-              },
-              {
-                "finishReason": "stop",
-                "providerMetadata": undefined,
-                "rawFinishReason": undefined,
-                "response": {
-                  "id": "response-id",
-                  "modelId": "mock-model-id",
-                  "timestamp": 1970-01-01T00:00:00.000Z,
-                },
-                "type": "finish-step",
-                "usage": {
-                  "inputTokenDetails": {
-                    "cacheReadTokens": undefined,
-                    "cacheWriteTokens": undefined,
-                    "noCacheTokens": undefined,
-                  },
-                  "inputTokens": undefined,
-                  "outputTokenDetails": {
-                    "reasoningTokens": undefined,
-                    "textTokens": undefined,
-                  },
-                  "outputTokens": undefined,
-                  "raw": undefined,
-                  "totalTokens": undefined,
-                },
-              },
-              {
-                "finishReason": "stop",
-                "rawFinishReason": undefined,
-                "totalUsage": {
-                  "inputTokenDetails": {
-                    "cacheReadTokens": undefined,
-                    "cacheWriteTokens": undefined,
-                    "noCacheTokens": undefined,
-                  },
-                  "inputTokens": undefined,
-                  "outputTokenDetails": {
-                    "reasoningTokens": undefined,
-                    "textTokens": undefined,
-                  },
-                  "outputTokens": undefined,
-                  "raw": undefined,
-                  "totalTokens": undefined,
-                },
-                "type": "finish",
-              },
-              {
-                "id": "1",
-                "providerMetadata": undefined,
-                "text": " World",
-                "type": "text-delta",
-              },
-            ]
-          `);
-        } else {
-          expect(fullStream).toMatchInlineSnapshot(`
+        expect(await convertAsyncIterableToArray(result.fullStream))
+          .toMatchInlineSnapshot(`
             [
               {
                 "type": "start",
@@ -16770,7 +16693,6 @@ describe('streamText', () => {
               },
             ]
           `);
-        }
       });
 
       it('options.onStepFinish should be called', async () => {
