@@ -51,6 +51,7 @@
   "devDependencies": {
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
+    "@vercel/ai-tsdown-config": "workspace:*",
     "ai": "workspace:*",
     "tsdown": "^0.23.0",
     "typescript": "6.0.3",
