@@ -79,6 +79,25 @@ const harness = createClaudeCode({
 });
 ```
 
+Pass invocation-specific native Claude Code settings with `settings`. This can
+selectively disable bundled skills without changing shared user settings:
+
+```ts
+const harness = createClaudeCode({
+  settings: {
+    skillOverrides: {
+      'update-config': 'off',
+      'fewer-permission-prompts': 'off',
+      init: 'off',
+    },
+  },
+});
+```
+
+`settings` also accepts a settings file path resolved inside the sandbox. Only
+supply trusted settings because native Claude Code settings can configure
+permissions, hooks, commands, and environment values.
+
 Sub-agent messages and task/background notifications are surfaced as `raw`
 stream parts. `agentProgressSummaries` adds periodic summaries to raw
 `task_progress` messages, while `forwardSubagentText` includes sub-agent text

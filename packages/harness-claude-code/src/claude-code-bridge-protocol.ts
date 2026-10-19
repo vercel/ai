@@ -30,11 +30,16 @@ const thinkingSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('disabled') }),
 ]);
 
+// Bridge frames have already passed through JSON serialization. Keep this
+// forward-compatible with Claude Code settings keys added by future runtimes.
+const settingsSchema = z.record(z.string(), z.unknown());
+
 export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
   instructions: z.string().optional(),
   thinking: thinkingSchema,
   effort: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).optional(),
   maxTurns: z.number().optional(),
+  settings: z.union([z.string(), settingsSchema]).optional(),
   agentProgressSummaries: z.boolean().optional(),
   forwardSubagentText: z.boolean().optional(),
   env: z.record(z.string(), z.string()).optional(),
