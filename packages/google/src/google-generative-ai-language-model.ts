@@ -315,11 +315,14 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     // the prompt plus all output so far as input, so the first request's
     // prompt token count is kept separately for context window checks.
     const continuedParts: NonNullable<ContentSchema['parts']> = [];
+    const groundingMetadataPerRequest: Array<GroundingMetadataSchema | null> =
+      [];
     let continuedUsageMetadata: UsageMetadataSchema | undefined;
     const firstPromptTokenCount = response.usageMetadata?.promptTokenCount;
 
     while (true) {
       const candidate = response.candidates?.[0];
+      groundingMetadataPerRequest.push(candidate?.groundingMetadata ?? null);
       const continuationToken =
         candidate?.finishReason === 'CONTINUATION'
           ? candidate.continuationToken
@@ -451,6 +454,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
         google: {
           promptFeedback: response.promptFeedback ?? null,
           groundingMetadata: candidate?.groundingMetadata ?? null,
+          ...(groundingMetadataPerRequest.length > 1
+            ? { groundingMetadataPerRequest }
+            : {}),
           urlContextMetadata: candidate?.urlContextMetadata ?? null,
           safetyRatings: candidate?.safetyRatings ?? null,
           serviceTier: response.serviceTier ?? null,
@@ -501,6 +507,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     const { responseHeaders, value: firstResponse } =
       await streamGenerateContent(args);
 
+    const groundingMetadataPerRequest: Array<GroundingMetadataSchema | null> =
+      [];
+    let requestGroundingMetadata: GroundingMetadataSchema | null = null;
+
     // Gemini 4 long decode: when a stream reaches the per-request cap while
     // `maxOutputTokens` budget remains, its last chunk finishes with
     // `CONTINUATION`. Resend the same request with the continuation token and
@@ -509,12 +519,22 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       stream: firstResponse,
       getContinuationToken: chunk => {
         const candidate = chunk.candidates?.[0];
+        if (candidate?.groundingMetadata != null) {
+          requestGroundingMetadata = candidate.groundingMetadata;
+        }
         return candidate?.finishReason === 'CONTINUATION'
           ? (candidate.continuationToken ?? undefined)
           : undefined;
       },
-      continueStream: async continuationToken =>
-        (await streamGenerateContent({ ...args, continuationToken })).value,
+      continueStream: async continuationToken => {
+        const { value } = await streamGenerateContent({
+          ...args,
+          continuationToken,
+        });
+        groundingMetadataPerRequest.push(requestGroundingMetadata);
+        requestGroundingMetadata = null;
+        return value;
+      },
     });
 
     let finishReason: LanguageModelV2FinishReason = 'unknown';
@@ -878,6 +898,19 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                 type: 'reasoning-end',
                 id: currentReasoningBlockId,
               });
+            }
+
+            if (groundingMetadataPerRequest.length > 0) {
+              providerMetadata = {
+                ...providerMetadata,
+                google: {
+                  ...providerMetadata?.google,
+                  groundingMetadataPerRequest: [
+                    ...groundingMetadataPerRequest,
+                    requestGroundingMetadata,
+                  ],
+                },
+              };
             }
 
             controller.enqueue({

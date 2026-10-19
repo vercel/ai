@@ -17,6 +17,7 @@ import type {
 } from './google-generative-ai-prompt';
 import { createGoogleGenerativeAI } from './google-provider';
 import { describe, it, expect, vi } from 'vitest';
+import * as fs from 'node:fs';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
@@ -25,6 +26,17 @@ vi.mock('./version', () => ({
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
+
+function readContinuationGroundingResponses() {
+  return [1, 2].map(index =>
+    JSON.parse(
+      fs.readFileSync(
+        `src/__fixtures__/google-continuation-grounding-${index}.json`,
+        'utf8',
+      ),
+    ),
+  );
+}
 
 const SAFETY_RATINGS = [
   {
@@ -904,6 +916,39 @@ describe('doGenerate', () => {
 
     expect(providerMetadata?.google).not.toHaveProperty('continuationToken');
   });
+
+  it.each([false, true])(
+    'preserves grounding per request (terminal grounding: %s)',
+    async terminalGrounding => {
+      const [first, last] = readContinuationGroundingResponses();
+      if (terminalGrounding) {
+        last.candidates[0].groundingMetadata =
+          first.candidates[0].groundingMetadata;
+      }
+      server.urls[TEST_URL_GEMINI_PRO].response = [first, last].map(body => ({
+        type: 'json-value',
+        body,
+      }));
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        maxOutputTokens: 33_280,
+      });
+
+      expect(server.calls).toHaveLength(2);
+      expect(
+        result.providerMetadata?.google.groundingMetadataPerRequest,
+      ).toEqual([
+        first.candidates[0].groundingMetadata,
+        last.candidates[0].groundingMetadata ?? null,
+      ]);
+      expect(result.providerMetadata?.google.groundingMetadata).toEqual(
+        last.candidates[0].groundingMetadata ?? null,
+      );
+      expect(result.usage.inputTokens).toBe(33_246);
+      expect(result.usage.outputTokens).toBe(33_306);
+    },
+  );
 
   it('should resend the same request with the continuation token on CONTINUATION', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = [
@@ -3280,6 +3325,38 @@ describe('doStream', () => {
       finishEvent?.type === 'finish' && finishEvent.providerMetadata?.google,
     ).not.toHaveProperty('continuationToken');
   });
+
+  it.each([false, true])(
+    'preserves grounding per streamed request (terminal grounding: %s)',
+    async terminalGrounding => {
+      const [first, last] = readContinuationGroundingResponses();
+      if (terminalGrounding) {
+        last.candidates[0].groundingMetadata =
+          first.candidates[0].groundingMetadata;
+      }
+      server.urls[TEST_URL_GEMINI_PRO].response = [first, last].map(body => ({
+        type: 'stream-chunks',
+        chunks: [`data: ${JSON.stringify(body)}\n\n`],
+      }));
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        maxOutputTokens: 33_280,
+      });
+      const events = await convertReadableStreamToArray(stream);
+      const finish = events.find(event => event.type === 'finish');
+
+      expect(server.calls).toHaveLength(2);
+      expect(
+        finish?.providerMetadata?.google.groundingMetadataPerRequest,
+      ).toEqual([
+        first.candidates[0].groundingMetadata,
+        last.candidates[0].groundingMetadata ?? null,
+      ]);
+      expect(finish?.usage.inputTokens).toBe(33_246);
+      expect(finish?.usage.outputTokens).toBe(33_306);
+    },
+  );
 
   it('should continue the stream automatically on CONTINUATION', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = [
