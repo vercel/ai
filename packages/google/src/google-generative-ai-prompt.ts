@@ -47,6 +47,8 @@ export type GoogleGenerativeAISafetyRating = SafetyRatingSchema;
 
 export interface GoogleGenerativeAIProviderMetadata {
   groundingMetadata: GoogleGenerativeAIGroundingMetadata | null;
+  /** Grounding from each automatically continued request, in request order. */
+  groundingMetadataPerRequest?: Array<GoogleGenerativeAIGroundingMetadata | null>;
   urlContextMetadata: GoogleGenerativeAIUrlContextMetadata | null;
   safetyRatings: GoogleGenerativeAISafetyRating[] | null;
   serviceTier: string | null;
