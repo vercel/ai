@@ -109,12 +109,12 @@ describe('doGenerate', () => {
       expect(result.content).toMatchInlineSnapshot(`
         [
           {
-            "text": "{"result":"2026"}",
-            "type": "text",
-          },
-          {
             "text": "The function returned 2026 as the magic number. Now I need to return this as a JSON object matching the specified schema. The schema requires a "result" property of type string. So I should wrap the magic number in a string.",
             "type": "reasoning",
+          },
+          {
+            "text": "{"result":"2026"}",
+            "type": "text",
           },
         ]
       `);
@@ -139,12 +139,12 @@ describe('doGenerate', () => {
       expect(result.content).toMatchInlineSnapshot(`
         [
           {
-            "text": "{"result":"2026"}",
-            "type": "text",
-          },
-          {
             "text": "The function returned 2026 as the magic number. Now I need to return this as a JSON object matching the specified schema. The schema requires a "result" property of type string. So I should wrap the magic number in a string.",
             "type": "reasoning",
+          },
+          {
+            "text": "{"result":"2026"}",
+            "type": "text",
           },
           {
             "input": "{}",

@@ -221,12 +221,6 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
     const choice = response.choices[0];
     const content: Array<LanguageModelV3Content> = [];
 
-    // text content:
-    const text = choice.message.content;
-    if (text != null && text.length > 0) {
-      content.push({ type: 'text', text });
-    }
-
     // reasoning content (Alibaba uses 'reasoning_content' field):
     const reasoning = choice.message.reasoning_content;
     if (reasoning != null && reasoning.length > 0) {
@@ -234,6 +228,12 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
         type: 'reasoning',
         text: reasoning,
       });
+    }
+
+    // text content:
+    const text = choice.message.content;
+    if (text != null && text.length > 0) {
+      content.push({ type: 'text', text });
     }
 
     // tool calls:

@@ -192,12 +192,6 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
     const choice = response.choices[0];
     const content: Array<LanguageModelV3Content> = [];
 
-    // text content:
-    const text = choice.message.content;
-    if (text != null && text.length > 0) {
-      content.push({ type: 'text', text: text });
-    }
-
     // reasoning:
     const reasoning = choice.message.reasoning;
     if (reasoning != null && reasoning.length > 0) {
@@ -205,6 +199,12 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
         type: 'reasoning',
         text: reasoning,
       });
+    }
+
+    // text content:
+    const text = choice.message.content;
+    if (text != null && text.length > 0) {
+      content.push({ type: 'text', text: text });
     }
 
     // tool calls:

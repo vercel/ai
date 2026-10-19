@@ -324,8 +324,6 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
 
     const content: Array<LanguageModelV3Content> = [];
 
-    content.push(...convertOpenAICompatibleContent(choice.message.content));
-
     // reasoning content:
     const reasoning =
       choice.message.reasoning_content ?? choice.message.reasoning;
@@ -335,6 +333,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
         text: reasoning,
       });
     }
+
+    content.push(...convertOpenAICompatibleContent(choice.message.content));
 
     // tool calls:
     if (choice.message.tool_calls != null) {
