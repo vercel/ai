@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
+  - name: Contribute an audit prompt
+    url: https://github.com/vercel/ai/blob/main/contributing/audit-prompts/README.md
+    about: Share prompts used for agent audits. Accepted new valuable prompts and meaningful improvements receive co-authorship.
   - name: Ask a question
     url: https://community.vercel.com/ai-sdk
     about: Please ask questions in our discussions forum.

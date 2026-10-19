@@ -43,6 +43,14 @@ prompt: |
 
   bug and support are mutually exclusive.
 
+  bug report context and contributor credit:
+  follow contributing/bug-reports.md. production/usage bugs were encountered while using the sdk, including during development, and include the contributor's usage and reason for it. agent audit bugs come from scanning repository code without additional real usage context.
+  classify defect validity independently of credit. a confirmed audit defect is still a bug. do not label it support merely because it came from an audit.
+  using an agent to investigate or write up a usage problem does not make it an audit. a synthetic reproduction or failing test does not by itself make an audit finding a usage bug.
+  do not infer audit origin from writing style, missing logs, or a missing reproduction. unclear discovery context needs clarification before maintainers decide contributor credit.
+  production/usage reports that lead to fixes receive co-authorship. audit issues alone do not. accepted new valuable audit prompts and meaningful improvements in contributing/audit-prompts/ receive co-authorship for the prompt contribution.
+  audit prompt prs belong to maintenance. use only existing labels; these credit categories do not introduce new labels.
+
   triage labels:
   reproduction needed - bug reports that do not include a runnable reproduction.
   reproduction provided - only when the issue or pr includes a real code snippet, repo link, or runnable example that demonstrates the problem. prose steps alone are not enough.

@@ -6,8 +6,13 @@ We suggest you read the following contributing guide we've created before submit
 https://github.com/vercel/ai/blob/main/CONTRIBUTING.md
 
 AI SDK maintenance is becoming increasingly automated. High-quality issues, reproductions,
-failing tests, docs fixes, and focused clarifications are especially valuable. You do not
-need to send a complete bug fix for your contribution to be appreciated or credited.
+failing tests, docs fixes, audit prompts, and focused clarifications are especially valuable.
+Production/usage reports that lead to fixes receive co-authorship. Agent audit issues
+without additional usage context do not. Accepted new valuable audit prompts and meaningful
+improvements receive co-authorship for the prompt contribution.
+
+https://github.com/vercel/ai/blob/main/contributing/bug-reports.md
+https://github.com/vercel/ai/blob/main/contributing/audit-prompts/README.md
 -->
 
 ## Background
@@ -15,6 +20,8 @@ need to send a complete bug fix for your contribution to be appreciated or credi
 <!--
 Why was this change necessary?
 If this PR clarifies or reproduces an issue, please explain that context here.
+For an audit prompt, include the prompt you used, what it found, and why it adds
+value or improves an existing prompt. Follow contributing/audit-prompts/README.md.
 -->
 
 ## Summary
@@ -24,8 +31,10 @@ If this PR clarifies or reproduces an issue, please explain that context here.
 ## Contributor Credit
 
 <!--
-List issue authors, PR authors, reviewers, or community members whose report,
-reproduction, test case, review, or context should be credited.
+List contributors and link the usage report, reproduction, test case, review,
+context, or accepted audit prompt contribution supporting their credit.
+Apply contributing/bug-reports.md: audit issues alone do not earn co-authorship,
+and prompt credit does not automatically extend to future bug fixes.
 Remove the section if it's not needed.
 -->
 
@@ -44,6 +53,8 @@ Do not include integration/unit tests or linting
 Do not edit this list. Leave items unchecked that don't apply. If you need to track subtasks, create a new "## Tasks" section
 
 Please check if the PR fulfills the following requirements:
+Prompt-only PRs do not need a package changeset. Tests and end-to-end verification
+apply when the PR changes SDK behavior; describe prompt validation in Background.
 -->
 
 - [ ] All commits are signed (PRs with unsigned commits cannot be merged)
@@ -64,6 +75,8 @@ Remove the section if it's not needed.
 <!--
 List related issues here, e.g. "Fixes #1234".
 If this PR adds a failing test, reproduction, or documentation fix for an issue,
-please link the issue so maintainers can preserve contributor credit.
+please link the issue so maintainers can apply the contributor credit guidelines.
+For audit prompts, link example findings or validation; adding a prompt does not
+by itself resolve the bugs it found.
 Remove the section if it's not needed.
 -->
