@@ -17,6 +17,7 @@ import {
 import type { AuthorizationServerMetadata, OAuthTokens } from './oauth-types';
 import {
   InvalidClientError,
+  MCPClientOAuthError,
   ServerError,
   UnauthorizedClientError,
 } from '../error/oauth-error';
@@ -2030,8 +2031,6 @@ describe('auth function', () => {
     vi.clearAllMocks();
   });
 
-<<<<<<< HEAD
-=======
   function setupAuthorizationCodeFlow() {
     mockFetch.mockImplementation(url => {
       const urlString = url.toString();
@@ -2112,7 +2111,7 @@ describe('auth function', () => {
       // credentials belong to a different authorization server.
       await expect(
         auth(mockProvider, { serverUrl: 'https://api.example.com/mcp-server' }),
-      ).rejects.toThrow(AuthorizationServerMismatchError);
+      ).rejects.toThrow(MCPClientOAuthError);
 
       expect(
         mockProvider.saveAuthorizationServerInformation,
@@ -2159,7 +2158,7 @@ describe('auth function', () => {
 
       await expect(
         auth(provider, { serverUrl: 'https://api.example.com/mcp-server' }),
-      ).rejects.toThrow(AuthorizationServerMismatchError);
+      ).rejects.toThrow(MCPClientOAuthError);
 
       expect(validateAuthorizationServerURL).toHaveBeenCalledWith(
         'https://api.example.com/mcp-server',
@@ -2186,7 +2185,6 @@ describe('auth function', () => {
         issuer: 'https://legitimate-as.example',
       }),
       authorizationServerInformation: () => ({
-        issuer: 'https://auth.example.com',
         authorizationServerUrl: 'https://auth.example.com',
         tokenEndpoint: 'https://auth.example.com/token',
       }),
@@ -2197,7 +2195,7 @@ describe('auth function', () => {
         serverUrl: 'https://api.example.com/mcp-server',
         authorizationCode: 'attacker-supplied-code',
       }),
-    ).rejects.toThrow(AuthorizationServerMismatchError);
+    ).rejects.toThrow(MCPClientOAuthError);
 
     expect(
       mockFetch.mock.calls.some(([, init]) => init?.method === 'POST'),
@@ -2254,7 +2252,6 @@ describe('auth function', () => {
     },
   );
 
->>>>>>> 2b8185efdd (fix(mcp): bind OAuth client credentials to their authorization server (#23579))
   function setupClientErrorFlow({
     errorCode,
     onRegistration,
@@ -2434,7 +2431,6 @@ describe('auth function', () => {
         access_token: 'expired-token',
         refresh_token: 'rejected-refresh-token',
         token_type: 'Bearer',
-        issuer,
         authorization_server: issuer,
         token_endpoint: `${issuer}/token`,
       };
@@ -2490,14 +2486,13 @@ describe('auth function', () => {
       const result = auth(provider, options);
 
       if (changeServer) {
-        await expect(result).rejects.toThrow(AuthorizationServerMismatchError);
+        await expect(result).rejects.toThrow(MCPClientOAuthError);
         expect(provider.redirectToAuthorization).not.toHaveBeenCalled();
         expect(pin).toBeUndefined();
       } else {
         await expect(result).resolves.toBe('REDIRECT');
         expect(provider.redirectToAuthorization).toHaveBeenCalledOnce();
         expect(pin).toEqual({
-          issuer,
           authorizationServerUrl: `${issuer}/`,
           tokenEndpoint: `${issuer}/token`,
         });

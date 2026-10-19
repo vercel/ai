@@ -120,6 +120,7 @@ export const OAuthClientInformationSchema = z
     client_secret: z.string().optional(),
     client_id_issued_at: z.number().optional(),
     client_secret_expires_at: z.number().optional(),
+    issuer: SafeUrlSchema.optional(),
     authorization_server: SafeUrlSchema.optional(),
     token_endpoint: SafeUrlSchema.optional(),
   })

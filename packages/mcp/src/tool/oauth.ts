@@ -1434,17 +1434,16 @@ async function authInternal(
   if (authorizationCode === undefined) {
     clientInformation = await Promise.resolve(provider.clientInformation());
   }
-<<<<<<< HEAD
-=======
   const tokens =
     authorizationCode === undefined ? await provider.tokens() : undefined;
   if (clientInformation) {
     // A flow pin must never override the issuer attached to the credentials.
     if (
       clientInformation.issuer != null &&
-      clientInformation.issuer !== currentAuthorizationServerInformation.issuer
+      clientInformation.issuer !==
+        (metadata?.issuer ?? authorizationServerUrl.toString())
     ) {
-      throw new AuthorizationServerMismatchError({
+      throw new MCPClientOAuthError({
         message:
           'OAuth authorization server does not match the issuer of the client credentials',
       });
@@ -1483,14 +1482,13 @@ async function authInternal(
       clientInformation.issuer == null &&
       !storedAuthorizationServerInformation
     ) {
-      throw new AuthorizationServerMismatchError({
+      throw new MCPClientOAuthError({
         message:
           'OAuth client credentials must be bound to an authorization server: configure their issuer or store authorization server information',
       });
     }
   }
 
->>>>>>> 2b8185efdd (fix(mcp): bind OAuth client credentials to their authorization server (#23579))
   if (!clientInformation) {
     if (authorizationCode !== undefined) {
       throw new Error(
