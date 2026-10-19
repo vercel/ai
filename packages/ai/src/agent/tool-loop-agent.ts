@@ -320,7 +320,6 @@ export class ToolLoopAgent<
         ...callbackArgs,
         headers: this.agentHeaders(preparedCall),
       } as unknown as Parameters<typeof stream>[0]),
-      experimental_lowMemory: false,
     });
   }
 }
