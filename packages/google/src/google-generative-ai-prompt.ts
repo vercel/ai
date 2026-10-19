@@ -71,12 +71,24 @@ export type GoogleGenerativeAIPromptFeedback = PromptFeedbackSchema;
 
 export type GoogleGenerativeAIUsageMetadata = UsageMetadataSchema;
 
+<<<<<<< HEAD:packages/google/src/google-generative-ai-prompt.ts
 export interface GoogleGenerativeAIProviderMetadata {
   promptFeedback: GoogleGenerativeAIPromptFeedback | null;
   groundingMetadata: GoogleGenerativeAIGroundingMetadata | null;
   urlContextMetadata: GoogleGenerativeAIUrlContextMetadata | null;
   safetyRatings: GoogleGenerativeAISafetyRating[] | null;
   usageMetadata: GoogleGenerativeAIUsageMetadata | null;
+=======
+export interface GoogleProviderMetadata {
+  promptFeedback: GooglePromptFeedback | null;
+  groundingMetadata: GoogleGroundingMetadata | null;
+  /** Grounding from each automatically continued request, in request order. */
+  groundingMetadataPerRequest?: Array<GoogleGroundingMetadata | null>;
+  urlContextMetadata: GoogleUrlContextMetadata | null;
+  safetyRatings: GoogleSafetyRating[] | null;
+  usageMetadata: GoogleUsageMetadata | null;
+  finishReason?: string | null;
+>>>>>>> d08bb66428 (fix(google): preserve grounding metadata across continuation (#23513)):packages/google/src/google-prompt.ts
   finishMessage: string | null;
   serviceTier: string | null;
 
