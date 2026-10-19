@@ -1,0 +1,96 @@
+{
+  "id": "7f3acb7e-70bc-42aa-bbc3-87bc134ef292",
+  "object": "response",
+  "created_at": 1786786826,
+  "status": "completed",
+  "background": false,
+  "completed_at": 1786786827,
+  "content_filters": null,
+  "error": null,
+  "frequency_penalty": 0.0,
+  "incomplete_details": null,
+  "instructions": null,
+  "max_output_tokens": null,
+  "max_tool_calls": null,
+  "model": "deepseek-v4-flash",
+  "moderation": null,
+  "output": [
+    {
+      "type": "reasoning",
+      "id": "e15cb316-d537-4295-b4ff-f1da685cc912",
+      "status": "completed",
+      "content": [
+        {
+          "type": "reasoning_text",
+          "text": "The user is asking about the weather in San Francisco. I should use the weather tool to get this information."
+        }
+      ],
+      "summary": []
+    },
+    {
+      "type": "function_call",
+      "id": "b55a15a4-ff04-4534-97c5-97637465634f",
+      "status": "completed",
+      "arguments": "{\"location\": \"San Francisco\"}",
+      "call_id": "call_00_jOIPxYeE37C0EzYfZExo9482",
+      "name": "weather"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "presence_penalty": 0.0,
+  "previous_response_id": null,
+  "prompt_cache_key": null,
+  "prompt_cache_retention": null,
+  "reasoning": {
+    "effort": "low",
+    "summary": null
+  },
+  "safety_identifier": null,
+  "service_tier": "default",
+  "store": false,
+  "temperature": 1.0,
+  "text": {
+    "format": {
+      "type": "text"
+    },
+    "verbosity": null
+  },
+  "tool_choice": "auto",
+  "tools": [
+    {
+      "type": "function",
+      "name": "weather",
+      "description": null,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "location": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "location"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "strict": null
+    }
+  ],
+  "top_logprobs": 0,
+  "top_p": 1.0,
+  "truncation": "disabled",
+  "usage": {
+    "input_tokens": 296,
+    "input_tokens_details": {
+      "cached_tokens": 0
+    },
+    "output_tokens": 66,
+    "output_tokens_details": {
+      "reasoning_tokens": 22
+    },
+    "total_tokens": 362
+  },
+  "user": null,
+  "metadata": {}
+}

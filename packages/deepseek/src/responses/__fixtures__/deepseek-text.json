@@ -1,0 +1,71 @@
+{
+  "id": "9d587c35-3e50-4f3d-9791-a2cacf604aa9",
+  "object": "response",
+  "created_at": 1786786818,
+  "status": "completed",
+  "background": false,
+  "completed_at": 1786786820,
+  "content_filters": null,
+  "error": null,
+  "frequency_penalty": 0.0,
+  "incomplete_details": null,
+  "instructions": "You are a helpful assistant.",
+  "max_output_tokens": null,
+  "max_tool_calls": null,
+  "model": "deepseek-v4-flash",
+  "moderation": null,
+  "output": [
+    {
+      "type": "message",
+      "id": "6e768879-5ff0-4767-b8c6-c0dc062ee176",
+      "status": "completed",
+      "content": [
+        {
+          "type": "output_text",
+          "annotations": [],
+          "logprobs": [],
+          "text": "Introducing \"Glowmorrow,\" a holiday celebrated on the first day of spring, honoring the quiet anticipation of new beginnings. Its central tradition is the \"Lantern Vigil,\" where families write their worries and hopes on paper, fold them into small boats, and set them afloat in a shared bowl of water lit by a single candle. At midnight, everyone silently steps outside to watch the rising moon, whispering one secret wish to the wind before returning indoors to share a feast of honey-drizzled bread and warm spiced milk."
+        }
+      ],
+      "phase": "final_answer",
+      "role": "assistant"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "presence_penalty": 0.0,
+  "previous_response_id": null,
+  "prompt_cache_key": null,
+  "prompt_cache_retention": null,
+  "reasoning": {
+    "effort": "none",
+    "summary": null
+  },
+  "safety_identifier": null,
+  "service_tier": "default",
+  "store": false,
+  "temperature": 1.0,
+  "text": {
+    "format": {
+      "type": "text"
+    },
+    "verbosity": null
+  },
+  "tool_choice": "auto",
+  "tools": [],
+  "top_logprobs": 0,
+  "top_p": 1.0,
+  "truncation": "disabled",
+  "usage": {
+    "input_tokens": 22,
+    "input_tokens_details": {
+      "cached_tokens": 0
+    },
+    "output_tokens": 109,
+    "output_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "total_tokens": 131
+  },
+  "user": null,
+  "metadata": {}
+}

@@ -1,0 +1,83 @@
+{
+  "id": "99953ba8-53dd-4c76-8e47-f83941bfec7f",
+  "object": "response",
+  "created_at": 1786786822,
+  "status": "completed",
+  "background": false,
+  "completed_at": 1786786824,
+  "content_filters": null,
+  "error": null,
+  "frequency_penalty": 0.0,
+  "incomplete_details": null,
+  "instructions": null,
+  "max_output_tokens": null,
+  "max_tool_calls": null,
+  "model": "deepseek-v4-flash",
+  "moderation": null,
+  "output": [
+    {
+      "type": "reasoning",
+      "id": "2cdc8ddf-43a0-4a2b-8a28-6c7e711bdb23",
+      "status": "completed",
+      "content": [
+        {
+          "type": "reasoning_text",
+          "text": "We need answer simple. Need count r's in strawberry. Word strawberry letters: s t r a w b e r r y? Let's count: \"strawberry\" has r at position 3 and then \"rr\" near end? Actually strawberry spelling: s t r a w b e r r y. That's r after t, and double r before y? Let's parse: s(1) t(2) r(3) a(4) w(5) b(6) e(7) r(8) r(9) y(10). So 3 r's? Wait positions: r at 3, 8, 9 = 3. But \"strawberry\" common has \"straw\" + \"berry\": berry has two r's? b e r r y = two r's. straw has one r. Total 3. Need answer."
+        }
+      ],
+      "summary": []
+    },
+    {
+      "type": "message",
+      "id": "e6574157-8711-40b5-98cf-aeb2ee10a15e",
+      "status": "completed",
+      "content": [
+        {
+          "type": "output_text",
+          "annotations": [],
+          "logprobs": [],
+          "text": "There are **3** “r”s in **“strawberry”**."
+        }
+      ],
+      "phase": "final_answer",
+      "role": "assistant"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "presence_penalty": 0.0,
+  "previous_response_id": null,
+  "prompt_cache_key": null,
+  "prompt_cache_retention": null,
+  "reasoning": {
+    "effort": "low",
+    "summary": null
+  },
+  "safety_identifier": null,
+  "service_tier": "default",
+  "store": false,
+  "temperature": 1.0,
+  "text": {
+    "format": {
+      "type": "text"
+    },
+    "verbosity": null
+  },
+  "tool_choice": "auto",
+  "tools": [],
+  "top_logprobs": 0,
+  "top_p": 1.0,
+  "truncation": "disabled",
+  "usage": {
+    "input_tokens": 18,
+    "input_tokens_details": {
+      "cached_tokens": 0
+    },
+    "output_tokens": 206,
+    "output_tokens_details": {
+      "reasoning_tokens": 188
+    },
+    "total_tokens": 224
+  },
+  "user": null,
+  "metadata": {}
+}
