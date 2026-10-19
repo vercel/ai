@@ -1389,6 +1389,33 @@ describe('GatewayLanguageModel', () => {
       });
     });
 
+    it('keeps an outputTokens key when legacy usage has input tokens only', async () => {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"finish","finishReason":"stop","usage":{"prompt_tokens":10}}\n\n`,
+        ],
+      };
+
+      const { stream } = await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+
+      // `asLanguageModelUsage` dereferences `usage.outputTokens.total` on the
+      // stream finish path, so the key must exist even without a value.
+      expect(chunks[chunks.length - 1]).toEqual({
+        type: 'finish',
+        finishReason: { unified: 'stop', raw: 'stop' },
+        usage: {
+          inputTokens: { total: 10 },
+          outputTokens: {},
+          raw: { prompt_tokens: 10 },
+        },
+      });
+    });
+
     it('passes a v4-shaped finish part through unchanged', async () => {
       server.urls['https://api.test.com/language-model'].response = {
         type: 'stream-chunks',

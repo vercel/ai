@@ -91,9 +91,9 @@ function normalizeLegacyUsage(usage: any): any {
       ...(inputTokens !== undefined ? { total: inputTokens } : {}),
       ...(cached !== undefined ? { cacheRead: cached } : {}),
     },
-    ...(outputTokens !== undefined
-      ? { outputTokens: { total: outputTokens } }
-      : {}),
+    outputTokens: {
+      ...(outputTokens !== undefined ? { total: outputTokens } : {}),
+    },
     ...(Object.keys(usage).length > 0 ? { raw: usage } : {}),
   };
 }
