@@ -5,15 +5,22 @@ description: Learn how to use MiniMax provider with the AI SDK.
 
 # MiniMax Provider
 
-[vercel-minimax-ai-provider](https://github.com/MiniMax-AI/vercel-minimax-ai-provider) is a community provider that provides access to the latest [MiniMax-M2 model](https://platform.minimax.io/docs/guides/text-generation) from [MiniMax](https://www.minimax.io/).
+[@minimax-ai/ai-sdk-provider](https://github.com/MiniMax-AI/vercel-minimax-ai-provider) is a community provider that provides access to the latest [MiniMax-M2 model](https://platform.minimax.io/docs/guides/text-generation) from [MiniMax](https://www.minimax.io/).
 
 API keys can be obtained from the [MiniMax Platform](https://platform.minimax.io/user-center/basic-information/interface-key).
 
 ## Setup
 
-The MiniMax provider is available via the `vercel-minimax-ai-provider` module. You can install it with:
+The MiniMax provider is available via the `@minimax-ai/ai-sdk-provider` module. You can install it with:
 
-<InstallPackages packages="vercel-minimax-ai-provider" />
+<InstallPackages packages="@minimax-ai/ai-sdk-provider" />
+
+<Note>
+  If you are migrating from `vercel-minimax-ai-provider`, replace the dependency
+  with `@minimax-ai/ai-sdk-provider` and update your imports. See the
+  [migration guide](https://github.com/MiniMax-AI/vercel-minimax-ai-provider#migrating-from-the-unscoped-package)
+  for versioning and AI SDK compatibility notes.
+</Note>
 
 ## Provider Instance
 
@@ -21,22 +28,22 @@ The MiniMax provider supports two API compatibility modes:
 
 ### Anthropic-Compatible API (Default)
 
-You can import the default provider instance `minimax` from `vercel-minimax-ai-provider`:
+You can import the default provider instance `minimax` from `@minimax-ai/ai-sdk-provider`:
 
 ```ts
-import { minimax } from 'vercel-minimax-ai-provider';
+import { minimax } from '@minimax-ai/ai-sdk-provider';
 ```
 
 Or explicitly use the Anthropic-compatible instance:
 
 ```ts
-import { minimaxAnthropic } from 'vercel-minimax-ai-provider';
+import { minimaxAnthropic } from '@minimax-ai/ai-sdk-provider';
 ```
 
 Or OpenAI-compatible API format:
 
 ```ts
-import { minimaxOpenAI } from 'vercel-minimax-ai-provider';
+import { minimaxOpenAI } from '@minimax-ai/ai-sdk-provider';
 ```
 
 ## Custom Configuration
@@ -46,7 +53,7 @@ For custom configuration, you can use the `createMinimax` (Anthropic-compatible)
 ### Anthropic-Compatible Configuration (Default)
 
 ```ts
-import { createMinimax } from 'vercel-minimax-ai-provider';
+import { createMinimax } from '@minimax-ai/ai-sdk-provider';
 
 const minimax = createMinimax({
   apiKey: process.env.MINIMAX_API_KEY,
@@ -106,7 +113,7 @@ Both formats access the same MiniMax models with the same capabilities.
 ### Basic Text Generation
 
 ```ts
-import { minimax } from 'vercel-minimax-ai-provider';
+import { minimax } from '@minimax-ai/ai-sdk-provider';
 import { generateText } from 'ai';
 
 const result = await generateText({
@@ -120,7 +127,7 @@ console.log(result.text);
 ### Streaming
 
 ```ts
-import { minimax } from 'vercel-minimax-ai-provider';
+import { minimax } from '@minimax-ai/ai-sdk-provider';
 import { streamText } from 'ai';
 
 const result = streamText({
