@@ -1,5 +1,13 @@
 # @ai-sdk/sandbox-vercel
 
+## 1.0.155
+
+### Patch Changes
+
+- 93f688d: fix(sandbox-vercel): avoid concurrent snapshot creation race by catching duplicate-name error
+  - @ai-sdk/harness@1.0.155
+  - @ai-sdk/provider-utils@5.0.63
+
 ## 1.0.154
 
 ### Patch Changes

@@ -1,5 +1,17 @@
 # ai
 
+## 7.0.144
+
+### Patch Changes
+
+- 60cc252: feat(perplexity): add decisions api support
+- 0ed59e2: Fix `streamText` return types for reusable options and `ReturnType` by moving low-memory streaming to `experimental_streamTextLowMemory`. Replace experimental `streamText({ experimental_lowMemory: true, ...options })` calls with `experimental_streamTextLowMemory(options)`.
+- Updated dependencies [60cc252]
+- Updated dependencies [6b7fb8f]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/gateway@4.0.117
+  - @ai-sdk/provider-utils@5.0.63
+
 ## 7.0.143
 
 ### Patch Changes
