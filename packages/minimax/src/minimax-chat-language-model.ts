@@ -27,6 +27,10 @@ export class MiniMaxChatLanguageModel extends AnthropicLanguageModel {
         modelId.toLowerCase() === 'minimax-m3.1-flash'
           ? convertToMiniMaxMediaPart
           : config.convertMediaPart,
+      ...(modelId.toLowerCase() === 'minimax-m3.1-flash' && {
+        maxTemperature: 2,
+        supportsTemperatureAndTopPWithThinking: true,
+      }),
     });
   }
 

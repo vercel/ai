@@ -90,6 +90,24 @@ const model = minimax.languageModel('minimax-m3');
 MiniMax language models can be used in the `streamText` function
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
+### Sampling Parameters
+
+For `minimax-m3.1-flash`, `temperature` accepts values from `0` to `2`, and
+`topP` accepts values from `0` to `1`. Both are forwarded when adaptive thinking
+is explicitly enabled or when using the top-level `reasoning` setting.
+Omit them to use MiniMax's defaults.
+
+```ts
+const { text } = await generateText({
+  model: minimax('minimax-m3.1-flash'),
+  temperature: 1.5,
+  topP: 0.9,
+  reasoning: 'low',
+  maxOutputTokens: 16384,
+  prompt: 'Invent three names for a café on the moon.',
+});
+```
+
 ### Image and Video Input
 
 `minimax-m3.1-flash` accepts images and videos in user messages with both
