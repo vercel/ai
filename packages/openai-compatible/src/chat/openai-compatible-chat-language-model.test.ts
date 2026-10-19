@@ -369,12 +369,12 @@ describe('doGenerate', () => {
     expect(content).toMatchInlineSnapshot(`
       [
         {
-          "text": "Hello, World!",
-          "type": "text",
-        },
-        {
           "text": "This is from reasoning_content",
           "type": "reasoning",
+        },
+        {
+          "text": "Hello, World!",
+          "type": "text",
         },
       ]
     `);
