@@ -1305,11 +1305,20 @@ export async function auth(
       await provider.invalidateCredentials?.('all');
       return await authInternal(provider, options);
     } else if (error instanceof InvalidGrantError && refreshAttempt.tokens) {
+      // Keep the binding validated before the refresh, even when deleting the
+      // rejected tokens removes the provider's only copy of that binding.
+      const retryAuthorizationServerInformation =
+        getAuthorizationServerInformationFromCredentials(refreshAttempt.tokens);
       // Only invalidate the tokens used by a failed refresh.
       await provider.invalidateCredentials?.('tokens', {
         tokens: refreshAttempt.tokens,
       });
-      return await authInternal(provider, options);
+      return await authInternal(
+        provider,
+        options,
+        undefined,
+        retryAuthorizationServerInformation,
+      );
     }
 
     throw error;
@@ -1367,6 +1376,7 @@ async function authInternal(
     fetchFn?: FetchFunction;
   },
   refreshAttempt?: { tokens?: OAuthTokens },
+  retryAuthorizationServerInformation?: OAuthAuthorizationServerInformation,
 ): Promise<AuthResult> {
   let resourceMetadata: OAuthProtectedResourceMetadata | undefined;
   let authorizationServerUrl: string | URL | undefined;
@@ -1457,6 +1467,12 @@ async function authInternal(
   );
   const currentAuthorizationServerInformation =
     createAuthorizationServerInformation(authorizationServerUrl, metadata);
+  if (retryAuthorizationServerInformation) {
+    assertAuthorizationServerInformationMatches({
+      storedAuthorizationServerInformation: retryAuthorizationServerInformation,
+      currentAuthorizationServerInformation,
+    });
+  }
   const clientMetadata = provider.clientMetadata;
   const selectedScope = selectScope({
     scope,
@@ -1498,7 +1514,8 @@ async function authInternal(
         provider,
         clientInformation,
         tokens,
-      }));
+      })) ??
+      retryAuthorizationServerInformation;
     if (storedAuthorizationServerInformation) {
       assertAuthorizationServerInformationMatches({
         storedAuthorizationServerInformation,

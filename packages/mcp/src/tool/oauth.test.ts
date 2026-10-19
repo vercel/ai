@@ -14,7 +14,7 @@ import {
   type OAuthAuthorizationServerInformation,
   type AuthResult,
 } from './oauth';
-import type { AuthorizationServerMetadata } from './oauth-types';
+import type { AuthorizationServerMetadata, OAuthTokens } from './oauth-types';
 import {
   AuthorizationServerMismatchError,
   InvalidClientError,
@@ -2453,6 +2453,106 @@ describe('auth function', () => {
         clientInformation,
       );
       expect(registrationAttempted).toBe(false);
+    },
+  );
+
+  it.each([false, true])(
+    'retains a token-only binding after invalid_grant (server changes on retry: %s)',
+    async changeServer => {
+      const issuer = 'https://auth.example.com';
+      let selectedIssuer = issuer;
+      const originalTokens: OAuthTokens = {
+        access_token: 'expired-token',
+        refresh_token: 'rejected-refresh-token',
+        token_type: 'Bearer',
+        issuer,
+        authorization_server: issuer,
+        token_endpoint: `${issuer}/token`,
+      };
+      let tokens: OAuthTokens | undefined = originalTokens;
+      let pin: OAuthAuthorizationServerInformation | undefined;
+      const invalidateCredentials = vi.fn(() => {
+        tokens = undefined;
+        if (changeServer) selectedIssuer = 'https://attacker.example';
+      });
+      const provider: OAuthClientProvider = {
+        ...mockProvider,
+        clientInformation: () => ({
+          client_id: 'pre-registered-client',
+          client_secret: 'client-secret',
+        }),
+        codeVerifier: () => 'test-verifier',
+        tokens: () => tokens,
+        invalidateCredentials,
+        authorizationServerInformation: () => pin,
+        saveAuthorizationServerInformation: value => {
+          pin = value;
+        },
+      };
+      mockFetch.mockImplementation(async (input, init) => {
+        const url = String(input);
+        if (url.includes('/.well-known/oauth-protected-resource')) {
+          return Response.json({
+            resource: 'https://api.example.com/mcp-server',
+            authorization_servers: [selectedIssuer],
+          });
+        }
+        if (url.includes('/.well-known/oauth-authorization-server')) {
+          return Response.json({
+            issuer: selectedIssuer,
+            authorization_endpoint: `${selectedIssuer}/authorize`,
+            token_endpoint: `${selectedIssuer}/token`,
+            response_types_supported: ['code'],
+            code_challenge_methods_supported: ['S256'],
+          });
+        }
+        if (init?.method === 'POST') {
+          const params = init.body as URLSearchParams;
+          return params.get('grant_type') === 'refresh_token'
+            ? Response.json({ error: 'invalid_grant' }, { status: 400 })
+            : Response.json({
+                access_token: 'new-token',
+                token_type: 'Bearer',
+              });
+        }
+        return new Response(null, { status: 404 });
+      });
+      const options = { serverUrl: 'https://api.example.com/mcp-server' };
+      const result = auth(provider, options);
+
+      if (changeServer) {
+        await expect(result).rejects.toThrow(AuthorizationServerMismatchError);
+        expect(provider.redirectToAuthorization).not.toHaveBeenCalled();
+        expect(pin).toBeUndefined();
+      } else {
+        await expect(result).resolves.toBe('REDIRECT');
+        expect(provider.redirectToAuthorization).toHaveBeenCalledOnce();
+        expect(pin).toEqual({
+          issuer,
+          authorizationServerUrl: `${issuer}/`,
+          tokenEndpoint: `${issuer}/token`,
+        });
+        expect(tokens).toBeUndefined();
+        expect(
+          mockFetch.mock.calls.filter(([, init]) => init?.method === 'POST'),
+        ).toHaveLength(1);
+        await expect(
+          auth(provider, { ...options, authorizationCode: 'new-code' }),
+        ).resolves.toBe('AUTHORIZED');
+      }
+
+      expect(invalidateCredentials).toHaveBeenCalledExactlyOnceWith('tokens', {
+        tokens: originalTokens,
+      });
+      expect(
+        mockFetch.mock.calls
+          .filter(([, init]) => init?.method === 'POST')
+          .map(([url]) => String(url)),
+      ).toEqual(
+        changeServer
+          ? [`${issuer}/token`]
+          : [`${issuer}/token`, `${issuer}/token`],
+      );
     },
   );
 
