@@ -4,11 +4,9 @@ import fs from 'node:fs';
 import { createClaudeCode } from './_create';
 import { run } from '../../lib/run';
 
-const claudeCode = createClaudeCode();
-
 run(async () => {
   const agent = new HarnessAgent({
-    harness: claudeCode,
+    harness: createClaudeCode(),
   });
 
   const sandboxSession = await createVercelNetworkSandboxSession({
