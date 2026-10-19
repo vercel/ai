@@ -140,9 +140,22 @@ describe('doGenerate', () => {
       },
     });
     expect(result.usage).toEqual({
-      total_tokens: 10,
-      total_input_tokens: 10,
-      total_output_tokens: 0,
+      inputTokens: {
+        total: 10,
+        noCache: undefined,
+        cacheRead: undefined,
+        cacheWrite: undefined,
+      },
+      outputTokens: {
+        total: 0,
+        text: undefined,
+        reasoning: undefined,
+      },
+      raw: {
+        total_tokens: 10,
+        total_input_tokens: 10,
+        total_output_tokens: 0,
+      },
     });
   });
 

@@ -3,6 +3,9 @@ import {
   type Experimental_TranscriptionModelV4StreamOptions as TranscriptionModelV4StreamOptions,
   type Experimental_TranscriptionModelV4StreamPart as TranscriptionModelV4StreamPart,
   type Experimental_TranscriptionModelV4StreamResult as TranscriptionModelV4StreamResult,
+  createLanguageModelV4Usage,
+  type JSONObject,
+  type LanguageModelV4Usage,
   type SharedV4ProviderMetadata,
   type SharedV4Warning,
   type TranscriptionModelV4,
@@ -121,7 +124,9 @@ export class GatewayTranscriptionModel implements TranscriptionModelV4 {
         language: responseBody.language ?? undefined,
         durationInSeconds: responseBody.durationInSeconds ?? undefined,
         warnings,
-        ...(responseBody.usage != null && { usage: responseBody.usage }),
+        ...(responseBody.usage != null && {
+          usage: asGatewayTranscriptionUsage(responseBody.usage),
+        }),
         providerMetadata:
           responseBody.providerMetadata as SharedV4ProviderMetadata,
         response: {
@@ -553,4 +558,30 @@ async function createErrorFromServerErrorPart(
   return new Error(
     `AI Gateway transcription stream failed: ${getServerErrorMessage(error)}`,
   );
+}
+
+function readUsageNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? value
+    : undefined;
+}
+
+function asGatewayTranscriptionUsage(usage: JSONObject): LanguageModelV4Usage {
+  const nested = usage.inputTokens;
+  if (
+    nested != null &&
+    typeof nested === 'object' &&
+    !Array.isArray(nested) &&
+    'total' in nested
+  ) {
+    return usage as LanguageModelV4Usage;
+  }
+  return createLanguageModelV4Usage({
+    inputTokens:
+      readUsageNumber(usage.inputTokens) ?? readUsageNumber(usage.input_tokens),
+    outputTokens:
+      readUsageNumber(usage.outputTokens) ??
+      readUsageNumber(usage.output_tokens),
+    raw: usage,
+  });
 }

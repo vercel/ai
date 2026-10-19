@@ -17,8 +17,11 @@ import type { TranscriptionModelResponseMetadata } from '../types/transcription-
 import { createDownload } from '../util/download/create-download';
 import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
+import {
+  asLanguageModelUsage,
+  createNullLanguageModelUsage,
+} from '../types/usage';
 import type { TranscriptionResult } from './transcribe-result';
-import { asTranscriptionUsage } from './transcription-usage';
 import { VERSION } from '../version';
 import type { Warning } from '../types';
 import type {
@@ -276,7 +279,7 @@ export async function transcribe({
           segments: result.segments,
           language: result.language,
           durationInSeconds: result.durationInSeconds,
-          usage: result.usage,
+          usage: result.usage?.raw,
           warnings: result.warnings,
           providerMetadata: result.providerMetadata,
           response: result.response,
@@ -292,7 +295,10 @@ export async function transcribe({
           segments: result.segments,
           language: result.language,
           durationInSeconds: result.durationInSeconds,
-          usage: asTranscriptionUsage(result.usage),
+          usage:
+            result.usage == null
+              ? createNullLanguageModelUsage()
+              : asLanguageModelUsage(result.usage),
           warnings: result.warnings,
           responses: [result.response],
           providerMetadata: result.providerMetadata,

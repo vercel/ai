@@ -1,7 +1,7 @@
 import type { JSONObject } from '@ai-sdk/provider';
+import type { LanguageModelUsage } from '../types/usage';
 import type { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
 import type { Warning } from '../types/warning';
-import type { TranscriptionUsage } from './transcription-usage';
 
 /**
  * The result of a `transcribe` call.
@@ -45,11 +45,11 @@ export interface TranscriptionResult {
   readonly durationInSeconds: number | undefined;
 
   /**
-   * Normalized token usage when the provider reports it.
-   * Provider-specific fields remain on `usage.raw`.
-   * Undefined when the provider did not report usage.
+   * Token usage in the same shape as text generation.
+   * Counts are undefined when the provider did not report them.
+   * Provider-specific fields, including billed audio seconds, stay on `usage.raw`.
    */
-  readonly usage: TranscriptionUsage | undefined;
+  readonly usage: LanguageModelUsage;
 
   /**
    * Warnings for the call, e.g. unsupported settings.

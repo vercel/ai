@@ -137,8 +137,21 @@ describe('doGenerate', () => {
       },
     });
     expect(result.usage).toEqual({
-      promptTokenCount: 10,
-      candidatesTokenCount: 4,
+      inputTokens: {
+        total: 10,
+        noCache: undefined,
+        cacheRead: undefined,
+        cacheWrite: undefined,
+      },
+      outputTokens: {
+        total: 4,
+        text: undefined,
+        reasoning: undefined,
+      },
+      raw: {
+        promptTokenCount: 10,
+        candidatesTokenCount: 4,
+      },
     });
   });
 

@@ -221,7 +221,20 @@ describe('GatewayTranscriptionModel', () => {
         language: 'en',
         durationInSeconds: 1,
         warnings: [{ type: 'other', message: 'test warning' }],
-        usage: { inputTokens: 11 },
+        usage: {
+          inputTokens: {
+            total: 11,
+            noCache: undefined,
+            cacheRead: undefined,
+            cacheWrite: undefined,
+          },
+          outputTokens: {
+            total: undefined,
+            text: undefined,
+            reasoning: undefined,
+          },
+          raw: { inputTokens: 11 },
+        },
         providerMetadata: { gateway: { cost: '0.002' } },
       });
       expect(result.response.headers?.['x-request-id']).toBe('req-123');

@@ -171,8 +171,56 @@ describe('doGenerate', () => {
     });
 
     expect(result.usage).toStrictEqual({
-      type: 'duration',
-      seconds: 37,
+      inputTokens: {
+        total: undefined,
+        noCache: undefined,
+        cacheRead: undefined,
+        cacheWrite: undefined,
+      },
+      outputTokens: {
+        total: undefined,
+        text: undefined,
+        reasoning: undefined,
+      },
+      raw: {
+        type: 'duration',
+        seconds: 37,
+      },
+    });
+  });
+
+  it('should map token usage and keep audio token details on raw', async () => {
+    server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
+      type: 'json-value',
+      body: {
+        text: 'Hello',
+        usage: {
+          type: 'tokens',
+          input_tokens: 14,
+          output_tokens: 45,
+          total_tokens: 59,
+          input_token_details: { audio_tokens: 10, text_tokens: 4 },
+        },
+      },
+    };
+
+    const result = await provider
+      .transcription('gpt-4o-transcribe')
+      .doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+    expect(result.usage).toMatchObject({
+      inputTokens: { total: 14 },
+      outputTokens: { total: 45 },
+      raw: {
+        type: 'tokens',
+        input_tokens: 14,
+        output_tokens: 45,
+        total_tokens: 59,
+        input_token_details: { audio_tokens: 10, text_tokens: 4 },
+      },
     });
   });
 

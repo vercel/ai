@@ -1,4 +1,8 @@
-import type { SharedV4Warning, TranscriptionModelV4 } from '@ai-sdk/provider';
+import {
+  createLanguageModelV4Usage,
+  type SharedV4Warning,
+  type TranscriptionModelV4,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
@@ -147,7 +151,11 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
         response.results?.channels.at(0)?.detected_language ?? undefined,
       durationInSeconds,
       ...(durationInSeconds != null
-        ? { usage: { seconds: durationInSeconds } }
+        ? {
+            usage: createLanguageModelV4Usage({
+              raw: { seconds: durationInSeconds },
+            }),
+          }
         : {}),
       warnings,
       response: {

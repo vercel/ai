@@ -1,4 +1,5 @@
 import type { JSONObject } from '../../json-value';
+import type { LanguageModelV4Usage } from '../../language-model/v4/language-model-v4-usage';
 import type { SharedV4Headers } from '../../shared';
 import type { SharedV4Warning } from '../../shared/v4/shared-v4-warning';
 
@@ -48,10 +49,11 @@ export type TranscriptionModelV4Result = {
   warnings: Array<SharedV4Warning>;
 
   /**
-   * Usage information reported by the provider, in the provider's native
-   * JSON-compatible shape.
+   * Token usage in the shared language-model shape.
+   * Provider-specific fields, including audio seconds, stay on `usage.raw`.
+   * Omitted when the provider reported no usage.
    */
-  usage?: JSONObject;
+  usage?: LanguageModelV4Usage;
 
   /**
    * Optional request information for telemetry and debugging purposes.

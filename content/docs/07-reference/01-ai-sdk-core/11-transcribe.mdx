@@ -109,9 +109,9 @@ console.log(transcript);
     },
     {
       name: 'usage',
-      type: 'TranscriptionUsage | undefined',
+      type: 'LanguageModelUsage',
       description:
-        'Normalized token usage when the provider reports it. `inputTokens`, `outputTokens`, and `totalTokens` use the same counters as text generation. `usage.raw` is the provider usage object and can include non-token fields such as billed audio seconds. Undefined when the provider did not report usage.',
+        'Token usage in the same shape as text generation: `inputTokens`, `inputTokenDetails`, `outputTokens`, `outputTokenDetails`, and `totalTokens`. Counts are undefined when the provider did not report them. `usage.raw` is the provider usage object and can include non-token fields such as billed audio seconds.',
     },
     {
       name: 'warnings',

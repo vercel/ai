@@ -1,4 +1,8 @@
-import type { JSONObject, TranscriptionModelV4 } from '@ai-sdk/provider';
+import {
+  createLanguageModelV4Usage,
+  type JSONObject,
+  type TranscriptionModelV4,
+} from '@ai-sdk/provider';
 import {
   afterEach,
   beforeEach,
@@ -58,13 +62,11 @@ const createMockResponse = (options: {
   modelId?: string;
   headers?: Record<string, string>;
   providerMetadata?: Record<string, JSONObject>;
-  usage?: JSONObject;
 }) => ({
   text: options.text,
   segments: options.segments,
   language: options.language,
   durationInSeconds: options.durationInSeconds,
-  usage: options.usage,
   warnings: options.warnings ?? [],
   response: {
     timestamp: options.timestamp ?? new Date(),
@@ -331,62 +333,60 @@ describe('transcribe', () => {
         },
       ],
       providerMetadata: {},
-      usage: undefined,
+      usage: {
+        inputTokens: undefined,
+        inputTokenDetails: {
+          noCacheTokens: undefined,
+          cacheReadTokens: undefined,
+          cacheWriteTokens: undefined,
+        },
+        outputTokens: undefined,
+        outputTokenDetails: {
+          textTokens: undefined,
+          reasoningTokens: undefined,
+        },
+        totalTokens: undefined,
+        raw: undefined,
+      },
     });
   });
 
-  it('should normalize provider usage onto common token counters', async () => {
-    const cases: Array<{
-      usage: JSONObject;
-      expected: {
-        inputTokens: number | undefined;
-        outputTokens: number | undefined;
-        totalTokens: number | undefined;
-      };
-    }> = [
-      {
-        usage: { input_tokens: 14, output_tokens: 45, total_tokens: 59 },
-        expected: { inputTokens: 14, outputTokens: 45, totalTokens: 59 },
-      },
-      {
-        usage: { prompt_tokens: 8, completion_tokens: 3 },
-        expected: { inputTokens: 8, outputTokens: 3, totalTokens: 11 },
-      },
-      {
-        usage: {
-          promptTokenCount: 7,
-          candidatesTokenCount: 2,
-          totalTokenCount: 9,
-        },
-        expected: { inputTokens: 7, outputTokens: 2, totalTokens: 9 },
-      },
-      {
-        usage: { seconds: 12.5 },
-        expected: {
-          inputTokens: undefined,
-          outputTokens: undefined,
-          totalTokens: undefined,
-        },
-      },
-    ];
-
-    for (const { usage, expected } of cases) {
-      const result = await transcribe({
-        model: new MockTranscriptionModelV4({
-          doGenerate: async () =>
-            createMockResponse({
-              ...sampleTranscript,
-              usage,
-            }),
+  it('should return language model usage from provider usage', async () => {
+    const raw = {
+      type: 'duration',
+      seconds: 12.5,
+    };
+    const result = await transcribe({
+      model: new MockTranscriptionModelV4({
+        doGenerate: async () => ({
+          ...createMockResponse({
+            ...sampleTranscript,
+          }),
+          usage: createLanguageModelV4Usage({
+            inputTokens: 14,
+            outputTokens: 45,
+            raw,
+          }),
         }),
-        audio: audioData,
-      });
+      }),
+      audio: audioData,
+    });
 
-      expect(result.usage).toEqual({
-        ...expected,
-        raw: usage,
-      });
-    }
+    expect(result.usage).toEqual({
+      inputTokens: 14,
+      inputTokenDetails: {
+        noCacheTokens: undefined,
+        cacheReadTokens: undefined,
+        cacheWriteTokens: undefined,
+      },
+      outputTokens: 45,
+      outputTokenDetails: {
+        textTokens: undefined,
+        reasoningTokens: undefined,
+      },
+      totalTokens: 59,
+      raw,
+    });
   });
 
   it('should return an empty transcript', async () => {
@@ -605,7 +605,10 @@ describe('transcribe', () => {
             timestamp: testDate,
             providerMetadata: { mock: { traceId: 'trace-1' } },
           }),
-          usage: { inputTokens: 12 },
+          usage: createLanguageModelV4Usage({
+            inputTokens: 12,
+            raw: { inputTokens: 12 },
+          }),
         }),
       }),
       audio: audioData,

@@ -28,8 +28,8 @@ const text = transcript.text; // transcript text e.g. "Hello, world!"
 const segments = transcript.segments; // array of segments with start and end times, if available
 const language = transcript.language; // language of the transcript e.g. "en", if available
 const durationInSeconds = transcript.durationInSeconds; // duration of the transcript in seconds, if available
-const inputTokens = transcript.usage?.inputTokens; // input tokens, when the provider reports them
-const rawUsage = transcript.usage?.raw; // provider usage object, including non-token fields
+const inputTokens = transcript.usage.inputTokens; // input tokens, when the provider reports them
+const rawUsage = transcript.usage.raw; // provider usage object, including non-token fields
 ```
 
 ## Telemetry
