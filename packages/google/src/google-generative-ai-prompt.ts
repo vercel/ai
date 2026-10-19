@@ -74,6 +74,8 @@ export type GoogleGenerativeAIUsageMetadata = UsageMetadataSchema;
 export interface GoogleGenerativeAIProviderMetadata {
   promptFeedback: GoogleGenerativeAIPromptFeedback | null;
   groundingMetadata: GoogleGenerativeAIGroundingMetadata | null;
+  /** Grounding from each automatically continued request, in request order. */
+  groundingMetadataPerRequest?: Array<GoogleGenerativeAIGroundingMetadata | null>;
   urlContextMetadata: GoogleGenerativeAIUrlContextMetadata | null;
   safetyRatings: GoogleGenerativeAISafetyRating[] | null;
   usageMetadata: GoogleGenerativeAIUsageMetadata | null;
