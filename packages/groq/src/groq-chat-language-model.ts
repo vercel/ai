@@ -327,12 +327,6 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
 
     const content: Array<LanguageModelV4Content> = [];
 
-    // text content:
-    const text = choice.message.content;
-    if (jsonResponseToolName == null && text != null && text.length > 0) {
-      content.push({ type: 'text', text: text });
-    }
-
     // reasoning:
     const reasoning = choice.message.reasoning;
     if (reasoning != null && reasoning.length > 0) {
@@ -340,6 +334,12 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
         type: 'reasoning',
         text: reasoning,
       });
+    }
+
+    // text content:
+    const text = choice.message.content;
+    if (jsonResponseToolName == null && text != null && text.length > 0) {
+      content.push({ type: 'text', text: text });
     }
 
     // tool calls:
