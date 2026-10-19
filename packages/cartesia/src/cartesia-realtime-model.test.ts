@@ -79,16 +79,51 @@ describe('CartesiaRealtimeModel', () => {
       );
     });
 
-    it('rejects unsupported languages and token lifetimes', async () => {
+    it('accepts non-English languages with turn detection', async () => {
+      const mockFetch = vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ token: 'access-token' }), {
+          status: 200,
+        }),
+      );
+      const model = createModel(mockFetch as unknown as typeof fetch);
+
+      const result = await model.doCreateClientSecret({
+        sessionConfig: {
+          inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+          inputAudioTranscription: { language: 'es' },
+          turnDetection: { type: 'server-vad' },
+        },
+      });
+
+      expect(result.url).toBe(
+        'wss://api.cartesia.ai/stt/turns/websocket?model=ink-2&encoding=pcm_s16le&sample_rate=16000&cartesia_version=2026-03-01',
+      );
+    });
+
+    it('forwards non-English languages when turn detection is disabled', async () => {
+      const mockFetch = vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ token: 'access-token' }), {
+          status: 200,
+        }),
+      );
+      const model = createModel(mockFetch as unknown as typeof fetch);
+
+      const result = await model.doCreateClientSecret({
+        sessionConfig: {
+          inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+          inputAudioTranscription: { language: 'es' },
+          turnDetection: null,
+        },
+      });
+
+      expect(result.url).toBe(
+        'wss://api.cartesia.ai/stt/websocket?model=ink-2&encoding=pcm_s16le&sample_rate=16000&cartesia_version=2026-03-01&language=es',
+      );
+    });
+
+    it('rejects invalid token lifetimes', async () => {
       const model = createModel();
 
-      await expect(
-        model.doCreateClientSecret({
-          sessionConfig: {
-            inputAudioTranscription: { language: 'es' },
-          },
-        }),
-      ).rejects.toThrow('currently supports English only');
       await expect(
         model.doCreateClientSecret({ expiresAfterSeconds: 3601 }),
       ).rejects.toThrow('between 1 and 3600 seconds');
