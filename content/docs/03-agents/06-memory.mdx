@@ -207,6 +207,37 @@ The `bankId` identifies the memory store and is typically a user ID. In multi-us
 
 See the [Hindsight provider documentation](/providers/community-providers/hindsight) for full setup and configuration.
 
+### Mnemoverse
+
+[Mnemoverse](/providers/community-providers/mnemoverse) provides agents with persistent long-term memory across sessions, tools, and multi-user shared rooms.
+
+```bash
+pnpm add @mnemoverse/ai-sdk
+```
+
+```ts
+import { createMnemoverseTools, SERVER_INSTRUCTIONS } from '@mnemoverse/ai-sdk';
+import { ToolLoopAgent } from 'ai';
+
+const memory = await createMnemoverseTools({
+  apiKey: process.env.MNEMOVERSE_API_KEY,
+});
+
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
+  system: SERVER_INSTRUCTIONS,
+  tools: memory.tools,
+});
+
+const result = await agent.generate({
+  prompt: 'Remember that my favorite editor is Neovim',
+});
+
+await memory.close();
+```
+
+See the [Mnemoverse provider documentation](/providers/community-providers/mnemoverse) for full setup and configuration.
+
 ### MongoDB
 
 [`@mongodb-developer/vercel-ai-memory`](https://www.npmjs.com/package/@mongodb-developer/vercel-ai-memory) provides MongoDB Atlas-backed persistent memory with five structured tiers: **Session**, **Semantic**, **Procedural**, **Episodic**, and **Scratchpad**. Retrieval is powered by Atlas Vector Search using any AI SDK embedding model, with automatic index creation and per-type retention policies.

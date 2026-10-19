@@ -1,0 +1,100 @@
+---
+title: Mnemoverse
+description: Learn how to use Mnemoverse persistent long-term memory with the AI SDK.
+---
+
+# Mnemoverse
+
+[Mnemoverse](https://mnemoverse.com) provides persistent long-term memory for AI agents. The [`@mnemoverse/ai-sdk`](https://www.npmjs.com/package/@mnemoverse/ai-sdk) package gives your agents memory tools for `generateText`, `streamText`, and `ToolLoopAgent` across sessions and applications.
+
+Features include:
+
+- Persistent memory tools: agents save information users share and recall it in future conversations
+- Re-ranking feedback: rating whether recalled memories helped or misled adjusts future retrieval
+- Shared memory rooms: multiple users and agents can share a unified memory context
+- Full TypeScript support across AI SDK versions
+
+## Installation
+
+<InstallPackages packages="@mnemoverse/ai-sdk" />
+
+## Setup
+
+Sign up and obtain your API key from the [Mnemoverse dashboard](https://mnemoverse.com).
+
+Set the API key in your environment:
+
+```bash
+export MNEMOVERSE_API_KEY=your-api-key
+```
+
+## Creating Memory Tools
+
+Initialize Mnemoverse tools using `createMnemoverseTools`:
+
+```ts
+import { createMnemoverseTools, SERVER_INSTRUCTIONS } from '@mnemoverse/ai-sdk';
+
+const memory = await createMnemoverseTools({
+  apiKey: process.env.MNEMOVERSE_API_KEY,
+});
+```
+
+## Basic Usage
+
+### generateText
+
+Pass `memory.tools` and `SERVER_INSTRUCTIONS` into `generateText`:
+
+```ts
+import { generateText, stepCountIs } from 'ai';
+import { createMnemoverseTools, SERVER_INSTRUCTIONS } from '@mnemoverse/ai-sdk';
+
+const memory = await createMnemoverseTools({
+  apiKey: process.env.MNEMOVERSE_API_KEY,
+});
+
+const { text } = await generateText({
+  model: 'openai/gpt-4o',
+  system: SERVER_INSTRUCTIONS,
+  tools: memory.tools,
+  stopWhen: stepCountIs(5),
+  prompt: 'I switched to Neovim. Remember that.',
+});
+
+console.log(text);
+
+await memory.close();
+```
+
+### ToolLoopAgent
+
+Use Mnemoverse memory tools with `ToolLoopAgent`:
+
+```ts
+import { ToolLoopAgent } from 'ai';
+import { createMnemoverseTools, SERVER_INSTRUCTIONS } from '@mnemoverse/ai-sdk';
+
+const memory = await createMnemoverseTools({
+  apiKey: process.env.MNEMOVERSE_API_KEY,
+});
+
+const agent = new ToolLoopAgent({
+  model: 'openai/gpt-4o',
+  system: SERVER_INSTRUCTIONS,
+  tools: memory.tools,
+});
+
+const result = await agent.generate({
+  prompt: 'What editor did I say I switched to?',
+});
+
+console.log(result.text);
+
+await memory.close();
+```
+
+## Additional Resources
+
+- [Mnemoverse Documentation](https://mnemoverse.com/docs/api/vercel-ai-sdk)
+- [Mnemoverse AI SDK Repository](https://github.com/mnemoverse/ai-sdk)
