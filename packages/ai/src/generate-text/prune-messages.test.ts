@@ -555,6 +555,186 @@ describe('pruneMessages', () => {
   });
 
   describe('toolCalls', () => {
+    describe('consecutive reasoning parts', () => {
+      describe.each([
+        'all',
+        'before-last-message',
+        'before-last-2-messages',
+      ] as const)('%s', toolCalls => {
+        it.each([2, 3])('should prune all %i reasoning summaries', count => {
+          const messages: ModelMessage[] = [
+            {
+              role: 'assistant',
+              content: [
+                ...Array.from({ length: count }, (_, index) => ({
+                  type: 'reasoning' as const,
+                  text: `summary ${index}`,
+                  providerOptions: { openai: { itemId: 'rs_1' } },
+                })),
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'remove-me',
+                  input: {},
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call-1',
+                  toolName: 'remove-me',
+                  output: { type: 'text', value: 'Tool result.' },
+                },
+              ],
+            },
+            { role: 'user', content: 'Continue.' },
+            { role: 'assistant', content: 'Final answer.' },
+          ];
+
+          expect(pruneMessages({ messages, toolCalls })).toEqual(
+            messages.slice(2),
+          );
+        });
+      });
+
+      it.each(['remove', 'keep'] as const)(
+        'should prune consecutive reasoning text and files with emptyMessages: %s',
+        emptyMessages => {
+          const messages: ModelMessage[] = [
+            {
+              role: 'assistant',
+              content: [
+                { type: 'reasoning', text: 'Call the tool.' },
+                {
+                  type: 'reasoning-file',
+                  mediaType: 'image/png',
+                  data: 'reasoning-image',
+                },
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'remove-me',
+                  input: {},
+                },
+              ],
+            },
+          ];
+
+          expect(
+            pruneMessages({ messages, toolCalls: 'all', emptyMessages }),
+          ).toEqual(
+            emptyMessages === 'keep'
+              ? [{ role: 'assistant', content: [] }]
+              : [],
+          );
+        },
+      );
+
+      it('should keep the reasoning group for a retained tool during selective pruning', () => {
+        const removedReasoning = [
+          {
+            type: 'reasoning' as const,
+            text: 'Removed summary 0.',
+            providerOptions: { openai: { itemId: 'rs_removed' } },
+          },
+          {
+            type: 'reasoning' as const,
+            text: 'Removed summary 1.',
+            providerOptions: { openai: { itemId: 'rs_removed' } },
+          },
+        ];
+        const retainedContent = [
+          {
+            type: 'reasoning' as const,
+            text: 'Retained summary 0.',
+            providerOptions: { openai: { itemId: 'rs_kept' } },
+          },
+          {
+            type: 'reasoning' as const,
+            text: 'Retained summary 1.',
+            providerOptions: { openai: { itemId: 'rs_kept' } },
+          },
+          {
+            type: 'tool-call' as const,
+            toolCallId: 'call-kept',
+            toolName: 'keep-me',
+            input: {},
+          },
+        ];
+
+        expect(
+          pruneMessages({
+            messages: [
+              {
+                role: 'assistant',
+                content: [
+                  ...removedReasoning,
+                  {
+                    type: 'tool-call',
+                    toolCallId: 'call-removed',
+                    toolName: 'remove-me',
+                    input: {},
+                  },
+                  ...retainedContent,
+                ],
+              },
+            ],
+            toolCalls: [{ type: 'all', tools: ['remove-me'] }],
+          }),
+        ).toEqual([{ role: 'assistant', content: retainedContent }]);
+      });
+
+      it('should retain the entire reasoning group when text follows a pruned tool call', () => {
+        const reasoning = [
+          { type: 'reasoning' as const, text: 'First summary.' },
+          {
+            type: 'reasoning-file' as const,
+            mediaType: 'image/png',
+            data: 'reasoning-image',
+          },
+        ];
+        const text = { type: 'text' as const, text: 'Retained answer.' };
+
+        expect(
+          pruneMessages({
+            messages: [
+              {
+                role: 'assistant',
+                content: [
+                  ...reasoning,
+                  {
+                    type: 'tool-call',
+                    toolCallId: 'call-1',
+                    toolName: 'remove-me',
+                    input: {},
+                  },
+                  text,
+                ],
+              },
+            ],
+            toolCalls: 'all',
+          }),
+        ).toEqual([{ role: 'assistant', content: [...reasoning, text] }]);
+      });
+
+      it('should retain a reasoning group without following content', () => {
+        const messages: ModelMessage[] = [
+          {
+            role: 'assistant',
+            content: [
+              { type: 'reasoning', text: 'First summary.' },
+              { type: 'reasoning', text: 'Second summary.' },
+            ],
+          },
+        ];
+
+        expect(pruneMessages({ messages, toolCalls: 'all' })).toEqual(messages);
+      });
+    });
+
     describe('before-last-0-messages', () => {
       it('should prune all tool calls, results, errors, and approvals', () => {
         expect(

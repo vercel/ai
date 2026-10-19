@@ -198,8 +198,8 @@ export function pruneMessages({
         );
       });
 
-      // Reasoning belongs to the content that follows it, up to the next
-      // reasoning part. Remove it when that entire segment was pruned.
+      // Consecutive reasoning parts can belong to the same provider item.
+      // Remove the whole group when its following content was pruned.
       if (message.role === 'assistant') {
         for (
           let reasoningIndex = 0;
@@ -211,7 +211,19 @@ export function pruneMessages({
             continue;
           }
 
-          let followingPartIndex = reasoningIndex + 1;
+          let reasoningEndIndex = reasoningIndex + 1;
+          while (reasoningEndIndex < message.content.length) {
+            const nextPart = message.content[reasoningEndIndex];
+            if (
+              nextPart.type !== 'reasoning' &&
+              nextPart.type !== 'reasoning-file'
+            ) {
+              break;
+            }
+            reasoningEndIndex++;
+          }
+
+          let followingPartIndex = reasoningEndIndex;
           let hasFollowingPart = false;
           let hasKeptFollowingPart = false;
 
@@ -230,8 +242,16 @@ export function pruneMessages({
           }
 
           if (hasFollowingPart && !hasKeptFollowingPart) {
-            keepParts[reasoningIndex] = false;
+            for (
+              let index = reasoningIndex;
+              index < reasoningEndIndex;
+              index++
+            ) {
+              keepParts[index] = false;
+            }
           }
+
+          reasoningIndex = followingPartIndex - 1;
         }
       }
 
