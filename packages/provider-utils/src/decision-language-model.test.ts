@@ -461,3 +461,59 @@ it('rejects unsupported media before generating a decision', async () => {
   ).rejects.toMatchObject({ name: 'AI_UnsupportedFunctionalityError' });
   expect(doGenerate).not.toHaveBeenCalled();
 });
+
+it.each([{}, { instructions: undefined }, { instructions: null }])(
+  'includes criteria-only questions in the model prompt with %j',
+  async instructionFields => {
+    const { model, doGenerate } = setup({
+      content: [{ type: 'text', text: '{"q0":"c0","q1":0.75,"q2":0.8}' }],
+    });
+    const questions = {
+      category: {
+        type: 'choice',
+        criteria: { billing: ['Charges'], other: null },
+        ...instructionFields,
+      },
+      severity: {
+        type: 'score',
+        criteria: ['Low', 'High'],
+        ...instructionFields,
+      },
+      refund: {
+        type: 'boolean',
+        criteria: { true: { intent: 'Refund' } },
+        ...instructionFields,
+      },
+    } as const;
+    expect(await model.doDecide({ ...options, questions })).toMatchObject({
+      answers: {
+        category: { type: 'choice', choice: 'billing' },
+        severity: { type: 'score', score: 0.75 },
+        refund: { type: 'boolean', probability: 0.8 },
+      },
+    });
+    expect(doGenerate).toHaveBeenCalledTimes(1);
+    const message = doGenerate.mock.calls[0][0].prompt[1];
+    if (message.role !== 'user' || message.content[0].type !== 'text')
+      throw new Error('Expected text');
+    expect(JSON.parse(message.content[0].text)).toStrictEqual(
+      JSON.parse(
+        JSON.stringify({
+          questions: {
+            q0: {
+              id: 'category',
+              type: 'choice',
+              ...instructionFields,
+              criteria: {
+                c0: { label: 'billing', description: ['Charges'] },
+                c1: { label: 'other', description: null },
+              },
+            },
+            q1: { id: 'severity', ...questions.severity },
+            q2: { id: 'refund', ...questions.refund },
+          },
+        }),
+      ),
+    );
+  },
+);

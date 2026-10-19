@@ -94,6 +94,8 @@ export type GoogleUsageMetadata = UsageMetadataSchema;
 export interface GoogleProviderMetadata {
   promptFeedback: GooglePromptFeedback | null;
   groundingMetadata: GoogleGroundingMetadata | null;
+  /** Grounding from each automatically continued request, in request order. */
+  groundingMetadataPerRequest?: Array<GoogleGroundingMetadata | null>;
   urlContextMetadata: GoogleUrlContextMetadata | null;
   safetyRatings: GoogleSafetyRating[] | null;
   usageMetadata: GoogleUsageMetadata | null;

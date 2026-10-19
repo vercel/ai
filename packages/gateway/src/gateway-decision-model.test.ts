@@ -104,6 +104,34 @@ describe('GatewayDecisionModel', () => {
     },
   );
 
+  it.each([{}, { instructions: undefined }, { instructions: null }])(
+    'forwards criteria-only questions with %j',
+    async instructionFields => {
+      prepareJsonResponse({});
+      const questions = {
+        correct: {
+          type: 'boolean',
+          criteria: { true: 'Factually correct' },
+          ...instructionFields,
+        },
+        tone: {
+          type: 'choice',
+          criteria: testQuestions.tone.criteria,
+          ...instructionFields,
+        },
+        quality: {
+          type: 'score',
+          criteria: testQuestions.quality.criteria,
+          ...instructionFields,
+        },
+      } as const;
+      await createTestModel().doDecide({ state: testState, questions });
+      expect((await server.calls[0].requestBodyJson).questions).toStrictEqual(
+        JSON.parse(JSON.stringify(questions)),
+      );
+    },
+  );
+
   it('sends file bytes as base64 in ordered state parts', async () => {
     prepareJsonResponse({});
     await createTestModel().doDecide({

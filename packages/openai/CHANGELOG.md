@@ -1,5 +1,15 @@
 # @ai-sdk/openai
 
+## 4.0.96
+
+### Patch Changes
+
+- 2be133e: chore(openai): deprecate 'webSearchPreview()' tool
+- fa98094: feat(openai): support ordered 'additional_tools' from tool results
+- Updated dependencies [0957554]
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+
 ## 4.0.95
 
 ### Patch Changes
