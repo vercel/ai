@@ -1,3 +1,4 @@
+import type * as os from 'node:os';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import {
   secureJsonParse,
@@ -17,6 +18,7 @@ import {
 import type { FxStoredState } from './fx-resume-state';
 import { createFx } from './fx-harness';
 import { resolveFxEnv } from './fx-auth';
+import * as subscriptions from './fx-subscription';
 import {
   fxToolRequiresApproval,
   toFxToolResult,
@@ -27,6 +29,10 @@ const runtime = vi.hoisted(() => ({
   options: [] as FxRuntimeOptions[],
   run: undefined as ((options: FxRuntimeOptions) => Promise<void>) | undefined,
   close: undefined as (() => Promise<void>) | undefined,
+}));
+vi.mock('node:os', async importOriginal => ({
+  ...(await importOriginal<typeof os>()),
+  homedir: () => '/nonexistent-ai-sdk-fx-test-home',
 }));
 vi.mock('./fx-runtime', () => ({
   createFxRuntime: vi.fn(async (options: FxRuntimeOptions) => {
@@ -144,6 +150,154 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllEnvs());
 
 describe('fx harness', () => {
+  it.each(['read', 'write'] as const)(
+    'surfaces selected subscription %s failures without switching providers',
+    async operation => {
+      const failure = new Error('Selected credential store unavailable');
+      const read = vi.fn(async () => {
+        if (operation === 'read') throw failure;
+        return { accessToken: 'secret', accountId: 'account' };
+      });
+      const write = vi.fn(async () => {
+        throw failure;
+      });
+      const auth = vi
+        .spyOn(subscriptions, 'resolveFxAuthentication')
+        .mockResolvedValue({
+          provider: 'codex',
+          subscription: { provider: 'codex', read, write },
+        });
+      runtime.run = async options => {
+        try {
+          if (options.provider !== 'codex')
+            throw new Error('Expected subscription');
+          if (operation === 'read')
+            await options.credentials({ provider: 'codex' });
+          else
+            await options.onCredentials!(
+              { accessToken: 'rotated' },
+              { provider: 'codex' },
+            );
+        } catch {
+          throw new Error('HostStreamFailed');
+        }
+      };
+      const { sandbox } = createSandbox();
+      const session = await createFx({ auth: 'direct' }).doStart({
+        sandboxSession: sandbox,
+        sessionId: 'credential-failure',
+        sessionWorkDir: '/workspace',
+      });
+      const events: HarnessV1StreamPart[] = [];
+      try {
+        const control = await session.doPromptTurn({
+          ...turnOptions,
+          prompt: 'test',
+          emit: event => events.push(event),
+        });
+        await expect(control.done).rejects.toBe(failure);
+        expect(events).toContainEqual({ type: 'error', error: failure });
+        expect(auth).toHaveBeenCalledTimes(1);
+        expect(runtime.options).toHaveLength(1);
+      } finally {
+        await session.doDestroy();
+        auth.mockRestore();
+      }
+    },
+  );
+
+  it('pins subscription providers across session resume', async () => {
+    const auth = vi
+      .spyOn(subscriptions, 'resolveFxAuthentication')
+      .mockResolvedValue({
+        provider: 'grok',
+        subscription: {
+          provider: 'grok',
+          read: async () => ({ accessToken: 'secret', accountId: 'account' }),
+          write: async () => {},
+        },
+      });
+    const { sandbox, files } = createSandbox();
+    const harness = createFx();
+    const start = {
+      sandboxSession: sandbox,
+      sessionId: 'subscription-resume',
+      sessionWorkDir: '/workspace',
+    };
+    const session = await harness.doStart(start);
+    try {
+      const resumeFrom = await session.doStop();
+      expect([...files.values()].join('\n')).toContain('"provider":"grok"');
+      const resumed = await harness.doStart({ ...start, resumeFrom });
+      try {
+        expect(auth).toHaveBeenLastCalledWith({
+          auth: undefined,
+          requiredProvider: 'grok',
+        });
+        await (
+          await resumed.doPromptTurn({
+            ...turnOptions,
+            prompt: 'test',
+            emit() {},
+          })
+        ).done;
+        expect(runtime.options[0].provider).toBe('grok');
+      } finally {
+        await resumed.doDestroy();
+      }
+    } finally {
+      await session.doDestroy();
+      auth.mockRestore();
+    }
+  });
+
+  it.each(['codex', 'grok'] as const)(
+    'forwards supplied and omitted models unchanged for %s subscriptions',
+    async provider => {
+      const auth = vi
+        .spyOn(subscriptions, 'resolveFxAuthentication')
+        .mockResolvedValue({
+          provider,
+          subscription: {
+            provider,
+            read: async () => ({ accessToken: 'secret', accountId: 'account' }),
+            write: async () => {},
+          },
+        });
+      const { sandbox } = createSandbox();
+      const session = await createFx({ auth: 'direct' }).doStart({
+        sandboxSession: sandbox,
+        sessionId: 'subscription-model',
+        sessionWorkDir: '/workspace',
+      });
+      try {
+        for (const model of [undefined, 'caller-supplied-model']) {
+          await (
+            await session.doPromptTurn({
+              ...turnOptions,
+              ...(model == null ? {} : { model }),
+              prompt: 'test',
+              emit() {},
+            })
+          ).done;
+        }
+        expect(
+          runtime.options.map(options => ({
+            provider: options.provider,
+            model: options.model,
+            apiKey: options.apiKey,
+          })),
+        ).toEqual([
+          { provider, model: undefined, apiKey: undefined },
+          { provider, model: 'caller-supplied-model', apiKey: undefined },
+        ]);
+      } finally {
+        await session.doDestroy();
+        auth.mockRestore();
+      }
+    },
+  );
+
   it('constructs without a bridge or bootstrap', () => {
     const harness = createFx();
     expect({
@@ -297,6 +451,10 @@ describe('fx harness', () => {
     expect(runtime.options[0].tools.map(tool => tool.name)).toEqual([
       'read',
       'custom',
+    ]);
+    expect(runtime.options[0].tools.map(tool => tool.idempotent)).toEqual([
+      false,
+      false,
     ]);
     expect(runtime.options[0].tools[1].inputSchema).toEqual(schema);
     await session.doDestroy();
