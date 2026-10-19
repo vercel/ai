@@ -94,6 +94,11 @@ export interface OAuthClientProvider {
   ): void | Promise<void>;
   get redirectUrl(): string | URL;
   get clientMetadata(): OAuthClientMetadata;
+  /**
+   * Returns client credentials. Pre-registered confidential clients must specify
+   * their authorization server's `issuer`, provide stored authorization server
+   * information, or implement `validateAuthorizationServerURL` to validate it.
+   */
   clientInformation():
     | OAuthClientInformation
     | undefined
@@ -1462,17 +1467,56 @@ async function authInternal(
   if (authorizationCode === undefined) {
     clientInformation = await Promise.resolve(provider.clientInformation());
   }
-  if (clientInformation?.issuer != null) {
+  const tokens =
+    authorizationCode === undefined ? await provider.tokens() : undefined;
+  if (clientInformation) {
+    // A flow pin must never override the issuer attached to the credentials.
+    if (
+      clientInformation.issuer != null &&
+      clientInformation.issuer !== currentAuthorizationServerInformation.issuer
+    ) {
+      throw new AuthorizationServerMismatchError({
+        message:
+          'OAuth authorization server does not match the issuer of the client credentials',
+      });
+    }
+
+    const clientAuthorizationServerInformation =
+      getAuthorizationServerInformationFromCredentials(clientInformation);
+    if (clientAuthorizationServerInformation) {
+      assertAuthorizationServerInformationMatches({
+        storedAuthorizationServerInformation:
+          clientAuthorizationServerInformation,
+        currentAuthorizationServerInformation,
+      });
+    }
+
     const storedAuthorizationServerInformation =
       callbackAuthorizationServerInformation ??
       (await getStoredAuthorizationServerInformation({
         provider,
         clientInformation,
+        tokens,
       }));
     if (storedAuthorizationServerInformation) {
       assertAuthorizationServerInformationMatches({
         storedAuthorizationServerInformation,
         currentAuthorizationServerInformation,
+      });
+    }
+
+    // Do not turn an MCP server's choice of AS into a trust binding for an
+    // existing secret. Dynamic registration below binds newly issued credentials.
+    if (
+      (clientInformation.client_secret != null ||
+        provider.addClientAuthentication) &&
+      clientInformation.issuer == null &&
+      !storedAuthorizationServerInformation &&
+      !provider.validateAuthorizationServerURL
+    ) {
+      throw new AuthorizationServerMismatchError({
+        message:
+          'OAuth client credentials must be bound to an authorization server: configure their issuer, store authorization server information, or implement validateAuthorizationServerURL',
       });
     }
   }
@@ -1561,8 +1605,6 @@ async function authInternal(
     );
     return 'AUTHORIZED';
   }
-
-  const tokens = await provider.tokens();
 
   /** Refresh only when stored credentials match the current AS pin */
   if (tokens?.refresh_token) {

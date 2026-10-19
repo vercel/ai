@@ -210,6 +210,32 @@ tokens are invalid.
 
 ### OAuth Authorization Server Validation
 
+Pre-registered confidential clients must be bound to their authorization server
+before starting OAuth. Set `issuer` on the credentials returned by
+`clientInformation()` to the issuer of the server that registered the client:
+
+```typescript
+clientInformation() {
+  return {
+    client_id: process.env.OAUTH_CLIENT_ID!,
+    client_secret: process.env.OAUTH_CLIENT_SECRET!,
+    issuer: 'https://accounts.example.com',
+  };
+}
+```
+
+The issuer must exactly match the discovered issuer. The SDK rejects a mismatch
+before redirecting or sending credentials, even if a stored authorization flow
+pin names the discovered server. Dynamic client registration attaches this
+binding automatically.
+
+Existing complete authorization server bindings on credentials, stored tokens,
+or `authorizationServerInformation()` are also supported. Alternatively, use
+`validateAuthorizationServerURL` to explicitly validate the selected server.
+Without a binding or this validation hook, a pre-registered client secret or
+custom `addClientAuthentication` handler is rejected. Do not derive the credential
+issuer from the MCP server's metadata; configure it from the client's registration.
+
 When using MCP OAuth in server-side applications, the MCP server can advertise
 the OAuth authorization server to use. If you connect to MCP servers outside
 your control, implement `validateAuthorizationServerURL` on your
@@ -237,8 +263,8 @@ const myOAuthClientProvider = {
 ```
 
 This hook is called before the SDK fetches authorization server metadata, so a
-rejected URL is not requested. It is optional and does not change existing OAuth
-flows unless you implement it.
+rejected URL is not requested. It is optional for clients with an authorization
+server binding and for public clients without custom authentication.
 
 ### OAuth Callback Issuer Validation
 

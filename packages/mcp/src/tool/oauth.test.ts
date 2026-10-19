@@ -2117,6 +2117,123 @@ describe('auth function', () => {
     (mockProvider.saveTokens as Mock).mockResolvedValue(undefined);
   }
 
+  it.each([
+    { name: 'unbound credentials', binding: {} },
+    {
+      name: 'an issuer without endpoint metadata',
+      binding: { issuer: 'https://legitimate-as.example' },
+    },
+    {
+      name: 'endpoint metadata without an issuer',
+      binding: {
+        authorization_server: 'https://legitimate-as.example',
+        token_endpoint: 'https://legitimate-as.example/token',
+      },
+    },
+  ])(
+    'rejects an attacker-selected authorization server for $name',
+    async ({ binding }) => {
+      setupAuthorizationCodeFlow();
+      (mockProvider.clientInformation as Mock).mockResolvedValue({
+        client_id: 'legitimate-client',
+        client_secret: 'secret-registered-with-legitimate-as',
+        ...binding,
+      });
+
+      // The MCP server advertises auth.example.com, but the pre-registered
+      // credentials belong to a different authorization server.
+      await expect(
+        auth(mockProvider, { serverUrl: 'https://api.example.com/mcp-server' }),
+      ).rejects.toThrow(AuthorizationServerMismatchError);
+
+      expect(
+        mockProvider.saveAuthorizationServerInformation,
+      ).not.toHaveBeenCalled();
+      expect(mockProvider.redirectToAuthorization).not.toHaveBeenCalled();
+      expect(
+        mockFetch.mock.calls.some(([, init]) => init?.method === 'POST'),
+      ).toBe(false);
+    },
+  );
+
+  it('does not let a stored flow pin override the client credential issuer', async () => {
+    setupAuthorizationCodeFlow();
+    const provider: OAuthClientProvider = {
+      ...mockProvider,
+      clientInformation: () => ({
+        client_id: 'legitimate-client',
+        client_secret: 'legitimate-secret',
+        issuer: 'https://legitimate-as.example',
+      }),
+      authorizationServerInformation: () => ({
+        issuer: 'https://auth.example.com',
+        authorizationServerUrl: 'https://auth.example.com',
+        tokenEndpoint: 'https://auth.example.com/token',
+      }),
+    };
+
+    await expect(
+      auth(provider, {
+        serverUrl: 'https://api.example.com/mcp-server',
+        authorizationCode: 'attacker-supplied-code',
+      }),
+    ).rejects.toThrow(AuthorizationServerMismatchError);
+
+    expect(
+      mockFetch.mock.calls.some(([, init]) => init?.method === 'POST'),
+    ).toBe(false);
+  });
+
+  it.each(['client_secret_basic', 'client_secret_post'])(
+    'exchanges credentials bound only by issuer using %s',
+    async authenticationMethod => {
+      setupAuthorizationCodeFlow();
+      const discoveryFetch = mockFetch.getMockImplementation()!;
+      mockFetch.mockImplementation(async (url, init) => {
+        const response = await discoveryFetch(url, init);
+        if (String(url).includes('/.well-known/oauth-authorization-server')) {
+          return Response.json({
+            ...(await response.json()),
+            token_endpoint_auth_methods_supported: [authenticationMethod],
+          });
+        }
+        return response;
+      });
+      let pin: OAuthAuthorizationServerInformation | undefined;
+      const provider: OAuthClientProvider = {
+        ...mockProvider,
+        clientInformation: () => ({
+          client_id: 'test-client',
+          client_secret: 'test-secret',
+          issuer: 'https://auth.example.com',
+        }),
+        authorizationServerInformation: () => pin,
+        saveAuthorizationServerInformation: value => {
+          pin = value;
+        },
+      };
+      const options = { serverUrl: 'https://api.example.com/mcp-server' };
+
+      expect(await auth(provider, options)).toBe('REDIRECT');
+      expect(
+        await auth(provider, { ...options, authorizationCode: 'test-code' }),
+      ).toBe('AUTHORIZED');
+      const tokenCall = mockFetch.mock.calls.find(
+        ([, init]) => init?.method === 'POST',
+      )!;
+      expect(String(tokenCall[0])).toBe('https://auth.example.com/token');
+      if (authenticationMethod === 'client_secret_basic') {
+        expect(new Headers(tokenCall[1].headers).get('authorization')).toBe(
+          `Basic ${btoa('test-client:test-secret')}`,
+        );
+      } else {
+        expect(
+          (tokenCall[1].body as URLSearchParams).get('client_secret'),
+        ).toBe('test-secret');
+      }
+    },
+  );
+
   function setupClientErrorFlow({
     errorCode,
     onRegistration,
@@ -2543,6 +2660,7 @@ describe('auth function', () => {
     (mockProvider.clientInformation as Mock).mockResolvedValue({
       client_id: 'test-client',
       client_secret: 'test-secret',
+      issuer: 'https://auth.example.com',
     });
     (mockProvider.tokens as Mock).mockResolvedValue(undefined);
     (mockProvider.saveCodeVerifier as Mock).mockResolvedValue(undefined);
@@ -2884,7 +3002,7 @@ describe('auth function', () => {
     (mockProvider.clientInformation as Mock).mockResolvedValue({
       client_id: 'test-client',
       client_secret: 'test-secret',
-      authorization_server: 'https://api.example.com/mcp-server',
+      authorization_server: 'https://auth.example.com/',
       token_endpoint: 'https://auth.example.com/token',
     });
     (mockProvider.tokens as Mock).mockResolvedValue({
@@ -3195,6 +3313,7 @@ describe('auth function', () => {
     (providerWithCustomValidation.clientInformation as Mock).mockResolvedValue({
       client_id: 'test-client',
       client_secret: 'test-secret',
+      issuer: 'https://auth.example.com',
     });
     (providerWithCustomValidation.tokens as Mock).mockResolvedValue(undefined);
     (providerWithCustomValidation.saveCodeVerifier as Mock).mockResolvedValue(
@@ -3256,6 +3375,7 @@ describe('auth function', () => {
     (mockProvider.clientInformation as Mock).mockResolvedValue({
       client_id: 'test-client',
       client_secret: 'test-secret',
+      issuer: 'https://auth.example.com',
     });
     (mockProvider.tokens as Mock).mockResolvedValue(undefined);
     (mockProvider.saveCodeVerifier as Mock).mockResolvedValue(undefined);
@@ -3319,6 +3439,7 @@ describe('auth function', () => {
     (mockProvider.clientInformation as Mock).mockResolvedValue({
       client_id: 'test-client',
       client_secret: 'test-secret',
+      issuer: 'https://api.example.com/mcp-server',
     });
     (mockProvider.tokens as Mock).mockResolvedValue(undefined);
     (mockProvider.saveCodeVerifier as Mock).mockResolvedValue(undefined);
@@ -3530,6 +3651,7 @@ describe('auth function', () => {
     (mockProvider.clientInformation as Mock).mockResolvedValue({
       client_id: 'test-client',
       client_secret: 'test-secret',
+      issuer: 'https://auth.example.com/oauth',
     });
     (mockProvider.tokens as Mock).mockResolvedValue(undefined);
     (mockProvider.saveCodeVerifier as Mock).mockResolvedValue(undefined);
@@ -3596,6 +3718,7 @@ describe('auth function', () => {
       clientInformation: vi.fn().mockResolvedValue({
         client_id: 'client123',
         client_secret: 'secret123',
+        issuer: 'https://auth.example.com',
       }),
       tokens: vi.fn().mockResolvedValue(undefined),
       saveTokens: vi.fn(),
