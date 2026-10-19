@@ -329,7 +329,29 @@ describe('transcribe', () => {
         },
       ],
       providerMetadata: {},
+      words: [],
     });
+  });
+
+  it('should return word timings separately from segments', async () => {
+    const words = [
+      { text: 'Hello', startSecond: 0, endSecond: 0.4 },
+      { text: 'world', startSecond: 0.4, endSecond: 1 },
+    ];
+    const result = await transcribe({
+      model: new MockTranscriptionModelV4({
+        doGenerate: async () => ({
+          ...createMockResponse({
+            ...sampleTranscript,
+          }),
+          words,
+        }),
+      }),
+      audio: audioData,
+    });
+
+    expect(result.segments).toEqual(sampleTranscript.segments);
+    expect(result.words).toEqual(words);
   });
 
   it('should return an empty transcript', async () => {

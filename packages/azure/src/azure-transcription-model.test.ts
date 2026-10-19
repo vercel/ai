@@ -575,6 +575,11 @@ describe('recorded MAI-Transcribe-2 responses', () => {
       offsetMilliseconds: 120,
       durationMilliseconds: 220,
     });
+    expect(result.words?.[0]).toEqual({
+      text: 'Um,',
+      startSecond: 0.12,
+      endSecond: 0.34,
+    });
   });
 
   it('maps a timestamps=none result to one segment spanning the audio', async () => {

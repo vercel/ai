@@ -97,6 +97,12 @@ console.log(transcript);
         'An array of transcript segments, each containing a portion of the transcribed text along with its start and end times in seconds.',
     },
     {
+      name: 'words',
+      type: 'Array<{ text: string; startSecond: number; endSecond: number }>',
+      description:
+        'Word-level timings when the provider returns them. Empty when word timestamps were not requested or the provider did not report them. Segments stay phrase- or utterance-level.',
+    },
+    {
       name: 'language',
       type: 'string | undefined',
       description:

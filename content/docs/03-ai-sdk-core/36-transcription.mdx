@@ -26,6 +26,7 @@ To access the generated transcript:
 ```ts
 const text = transcript.text; // transcript text e.g. "Hello, world!"
 const segments = transcript.segments; // array of segments with start and end times, if available
+const words = transcript.words; // word timings, when the provider returns them separately from segments
 const language = transcript.language; // language of the transcript e.g. "en", if available
 const durationInSeconds = transcript.durationInSeconds; // duration of the transcript in seconds, if available
 ```

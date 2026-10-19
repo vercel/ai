@@ -95,8 +95,24 @@ export class AzureSpeechTranscriptionModel implements TranscriptionModelV4 {
         ? language
         : undefined;
 
+    const words = phrases.flatMap(phrase =>
+      (phrase.words ?? []).flatMap(word =>
+        word.offsetMilliseconds != null && word.durationMilliseconds != null
+          ? [
+              {
+                text: word.text,
+                startSecond: word.offsetMilliseconds / 1000,
+                endSecond:
+                  (word.offsetMilliseconds + word.durationMilliseconds) / 1000,
+              },
+            ]
+          : [],
+      ),
+    );
+
     return {
       text: value.combinedPhrases.map(phrase => phrase.text).join(' '),
+      ...(words.length > 0 ? { words } : {}),
       segments: phrases.flatMap(phrase =>
         phrase.offsetMilliseconds != null && phrase.durationMilliseconds != null
           ? [

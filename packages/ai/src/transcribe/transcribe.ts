@@ -289,6 +289,7 @@ export async function transcribe({
         return new DefaultTranscriptionResult({
           text: result.text,
           segments: result.segments,
+          words: result.words ?? [],
           language: result.language,
           durationInSeconds: result.durationInSeconds,
           warnings: result.warnings,
@@ -310,6 +311,11 @@ class DefaultTranscriptionResult implements TranscriptionResult {
     startSecond: number;
     endSecond: number;
   }>;
+  readonly words: Array<{
+    text: string;
+    startSecond: number;
+    endSecond: number;
+  }>;
   readonly language: string | undefined;
   readonly durationInSeconds: number | undefined;
   readonly warnings: Array<Warning>;
@@ -323,6 +329,11 @@ class DefaultTranscriptionResult implements TranscriptionResult {
       startSecond: number;
       endSecond: number;
     }>;
+    words: Array<{
+      text: string;
+      startSecond: number;
+      endSecond: number;
+    }>;
     language: string | undefined;
     durationInSeconds: number | undefined;
     warnings: Array<Warning>;
@@ -331,6 +342,7 @@ class DefaultTranscriptionResult implements TranscriptionResult {
   }) {
     this.text = options.text;
     this.segments = options.segments;
+    this.words = options.words;
     this.language = options.language;
     this.durationInSeconds = options.durationInSeconds;
     this.warnings = options.warnings;

@@ -220,6 +220,11 @@ export class GoogleVertexGeminiTranscriptionModel implements TranscriptionModelV
       startSecond: number;
       endSecond: number;
     }> = [];
+    const words: Array<{
+      text: string;
+      startSecond: number;
+      endSecond: number;
+    }> = [];
     for (const part of parts) {
       const transcription = part.audioTranscription;
       if (transcription == null) continue;
@@ -230,13 +235,16 @@ export class GoogleVertexGeminiTranscriptionModel implements TranscriptionModelV
         if (word.word == null || startSecond == null || endSecond == null) {
           continue;
         }
-        segments.push({ text: word.word, startSecond, endSecond });
+        const timing = { text: word.word, startSecond, endSecond };
+        words.push(timing);
+        segments.push({ ...timing });
       }
     }
 
     return {
       text,
       segments,
+      ...(words.length > 0 ? { words } : {}),
       language,
       durationInSeconds: undefined,
       warnings,

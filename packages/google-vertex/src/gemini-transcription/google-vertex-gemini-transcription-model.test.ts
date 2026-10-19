@@ -220,6 +220,7 @@ describe('doGenerate', () => {
       { text: 'brown', startSecond: 0.4, endSecond: 0.7 },
       { text: 'fox.', startSecond: 0.7, endSecond: 1 },
     ]);
+    expect(result.words).toEqual(result.segments);
   });
 
   it('rejects unary transcription on live model ids', async () => {

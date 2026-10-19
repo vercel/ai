@@ -316,6 +316,12 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
         : [],
     );
 
+    const words = response.words?.map(word => ({
+      text: word.word,
+      startSecond: word.start,
+      endSecond: word.end,
+    }));
+
     return {
       text: response.text,
       segments:
@@ -324,12 +330,9 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
           startSecond: segment.start,
           endSecond: segment.end,
         })) ??
-        response.words?.map(word => ({
-          text: word.word,
-          startSecond: word.start,
-          endSecond: word.end,
-        })) ??
+        words ??
         [],
+      ...(words != null && words.length > 0 ? { words } : {}),
       language,
       durationInSeconds: response.duration ?? undefined,
       warnings,
