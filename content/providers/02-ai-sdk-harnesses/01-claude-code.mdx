@@ -106,6 +106,10 @@ Settings:
   the host process.
 - `mcpServers`: MCP server definitions keyed by server name.
 - `maxTurns`: maximum internal turns before yielding.
+- `fallbackModel`: backup model the Claude Agent SDK switches to when the
+  primary model is overloaded or unavailable. Accepts a comma-separated list
+  to try each model in order. Must differ from the primary model. The primary
+  model is tried again at the start of each user turn.
 - `agentProgressSummaries`: enables periodic AI-generated summaries for running
   sub-agents. Summaries are available on raw `task_progress` stream parts.
 - `forwardSubagentText`: forwards sub-agent text and thinking messages as raw
