@@ -1,4 +1,4 @@
-import { GoogleLanguageModel } from '@ai-sdk/google/internal';
+import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
 import { generateText } from 'ai';
 import { readFileSync } from 'node:fs';
 import { run } from '../lib/run';
@@ -19,9 +19,10 @@ const responses = [1, 2].map(index =>
 run(async () => {
   let request = 0;
   const result = await generateText({
-    model: new GoogleLanguageModel('gemini-4-argon', {
+    model: new GoogleGenerativeAILanguageModel('gemini-4-argon', {
       provider: 'google',
       baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: {},
       generateId: () => crypto.randomUUID(),
       fetch: async () => Response.json(responses[request++]),
     }),
@@ -32,6 +33,6 @@ run(async () => {
 
   console.log('Requests:', request);
   console.log('Sources:', result.sources.length);
-  console.dir(result.finalStep.providerMetadata?.google, { depth: null });
+  console.dir(result.providerMetadata?.google, { depth: null });
   console.log('Usage:', result.usage);
 });

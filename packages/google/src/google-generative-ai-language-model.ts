@@ -385,291 +385,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       warnings: [...warnings, ...toolWarnings],
       providerOptionsName,
       extraHeaders: vertexPaygoHeaders,
-<<<<<<< HEAD:packages/google/src/google-generative-ai-language-model.ts
-=======
-      toolNameMapping,
-    };
-  }
-
-  private async getArgs(
-    options: LanguageModelV4CallOptions,
-    { isStreaming = false }: { isStreaming?: boolean } = {},
-  ) {
-    const { responseFormat, tools, toolChoice } = options;
-    let jsonResponseTool: LanguageModelV4FunctionTool | undefined;
-    // Gemini models before Gemini 3 reject JSON response formatting together
-    // with function tools. Gemini 3 supports the combination only with automatic
-    // tool choice (AUTO). Forced tool choice (ANY) requires a JSON response tool.
-    if (
-      responseFormat?.type === 'json' &&
-      responseFormat.schema != null &&
-      tools?.some(tool => tool.type === 'function') &&
-      /(^|\/)gemini-/i.test(this.modelId) &&
-      (!getGoogleModelCapabilities(this.modelId).usesGemini3Features ||
-        toolChoice?.type === 'required' ||
-        toolChoice?.type === 'tool')
-    ) {
-      let name = 'json';
-      for (let suffix = 1; tools.some(tool => tool.name === name); suffix++) {
-        name = `json_${suffix}`;
-      }
-      jsonResponseTool = {
-        type: 'function',
-        name,
-        description:
-          responseFormat.description ?? 'Respond with a JSON object.',
-        inputSchema: responseFormat.schema,
-      };
-    }
-
-    const prepared = await GoogleLanguageModel.prepareRequest({
-      modelId: this.modelId,
-      config: this.config,
-      options:
-        jsonResponseTool == null
-          ? options
-          : {
-              ...options,
-              responseFormat: undefined,
-              tools: [...(tools ?? []), jsonResponseTool],
-              toolChoice:
-                toolChoice?.type === 'tool'
-                  ? toolChoice
-                  : toolChoice?.type === 'none'
-                    ? { type: 'tool', toolName: jsonResponseTool.name }
-                    : { type: 'required' },
-            },
-      isStreaming,
-    });
-    return { ...prepared, jsonResponseToolName: jsonResponseTool?.name };
-  }
-
-  static convertGenerateContentResponse({
-    config,
-    response,
-    warnings,
-    providerOptionsNames,
-    toolNameMapping,
-    jsonResponseToolName,
-    initialPromptTokenCount,
-    groundingMetadataPerRequest,
-  }: {
-    config: GoogleLanguageModelConfig;
-    response: InferSchema<typeof responseSchema>;
-    warnings: SharedV4Warning[];
-    providerOptionsNames: readonly string[];
-    toolNameMapping?: ReturnType<typeof createToolNameMapping>;
-    jsonResponseToolName?: string;
-    initialPromptTokenCount?: number | null;
-    groundingMetadataPerRequest?: Array<GroundingMetadataSchema | null>;
-  }): LanguageModelV4GenerateResult {
-    const wrapProviderMetadata = (payload: Record<string, unknown>) =>
-      Object.fromEntries(
-        providerOptionsNames.map(name => [name, payload]),
-      ) as SharedV4ProviderMetadata;
-    const candidate = response.candidates?.[0];
-    const promptBlockReason = response.promptFeedback?.blockReason;
-    const confirmedPromptBlockReason = isConfirmedPromptBlockReason(
-      promptBlockReason,
-    )
-      ? promptBlockReason
-      : undefined;
-    const isPromptBlocked =
-      candidate?.finishReason == null && confirmedPromptBlockReason != null;
-    const rawFinishReason =
-      candidate?.finishReason ?? confirmedPromptBlockReason;
-    const content: Array<LanguageModelV4Content> = [];
-
-    // map ordered parts to content:
-    const parts = candidate?.content?.parts ?? [];
-
-    const usageMetadata = response.usageMetadata;
-
-    // Associates code execution results with their preceding call.
-    let lastCodeExecutionToolCallId: string | undefined;
-    // Associates a server-side tool response with its preceding call (tool combination).
-    let lastServerToolCallId: string | undefined;
-
-    // Build content array from all parts
-    for (const part of parts) {
-      if ('executableCode' in part && part.executableCode?.code) {
-        const toolCallId = config.generateId();
-        lastCodeExecutionToolCallId = toolCallId;
-
-        content.push({
-          type: 'tool-call',
-          toolCallId,
-          toolName:
-            toolNameMapping?.toCustomToolName('code_execution') ??
-            'code_execution',
-          input: JSON.stringify(part.executableCode),
-          providerExecuted: true,
-        });
-      } else if ('codeExecutionResult' in part && part.codeExecutionResult) {
-        content.push({
-          type: 'tool-result',
-          // Results correspond to the most recent executable code part.
-          toolCallId: lastCodeExecutionToolCallId!,
-          toolName:
-            toolNameMapping?.toCustomToolName('code_execution') ??
-            'code_execution',
-          result: {
-            outcome: part.codeExecutionResult.outcome,
-            output: part.codeExecutionResult.output ?? '',
-          },
-        });
-      } else if ('text' in part && part.text != null) {
-        if (jsonResponseToolName != null && part.thought !== true) continue;
-        const thoughtSignatureMetadata = part.thoughtSignature
-          ? wrapProviderMetadata({
-              thoughtSignature: part.thoughtSignature,
-            })
-          : undefined;
-
-        if (part.text.length === 0) {
-          if (thoughtSignatureMetadata != null && content.length > 0) {
-            const lastContent = content[content.length - 1];
-            lastContent.providerMetadata = thoughtSignatureMetadata;
-          }
-        } else {
-          content.push({
-            type: part.thought === true ? 'reasoning' : 'text',
-            text: part.text,
-            providerMetadata: thoughtSignatureMetadata,
-          });
-        }
-      } else if ('functionCall' in part && part.functionCall.name != null) {
-        if (part.functionCall.name === jsonResponseToolName) {
-          content.push({
-            type: 'text',
-            text:
-              typeof part.functionCall.args === 'string'
-                ? part.functionCall.args
-                : JSON.stringify(part.functionCall.args ?? {}),
-            ...(part.thoughtSignature
-              ? {
-                  providerMetadata: wrapProviderMetadata({
-                    thoughtSignature: part.thoughtSignature,
-                  }),
-                }
-              : {}),
-          });
-          continue;
-        }
-        content.push({
-          type: 'tool-call' as const,
-          toolCallId: part.functionCall.id || config.generateId(),
-          toolName: part.functionCall.name,
-          input: JSON.stringify(part.functionCall.args ?? {}),
-          providerMetadata: part.thoughtSignature
-            ? wrapProviderMetadata({
-                thoughtSignature: part.thoughtSignature,
-              })
-            : undefined,
-        });
-      } else if ('inlineData' in part) {
-        const hasThought = part.thought === true;
-        const hasThoughtSignature = !!part.thoughtSignature;
-        content.push({
-          type: hasThought ? 'reasoning-file' : 'file',
-          data: { type: 'data', data: part.inlineData.data },
-          mediaType: part.inlineData.mimeType,
-          providerMetadata: hasThoughtSignature
-            ? wrapProviderMetadata({
-                thoughtSignature: part.thoughtSignature,
-              })
-            : undefined,
-        });
-      } else if ('toolCall' in part && part.toolCall) {
-        const toolCallId = part.toolCall.id || config.generateId();
-        lastServerToolCallId = toolCallId;
-        content.push({
-          type: 'tool-call',
-          toolCallId,
-          toolName: `server:${part.toolCall.toolType}`,
-          input: JSON.stringify(part.toolCall.args ?? {}),
-          providerExecuted: true,
-          dynamic: true,
-          providerMetadata: part.thoughtSignature
-            ? wrapProviderMetadata({
-                thoughtSignature: part.thoughtSignature,
-                serverToolCallId: toolCallId,
-                serverToolType: part.toolCall.toolType,
-              })
-            : wrapProviderMetadata({
-                serverToolCallId: toolCallId,
-                serverToolType: part.toolCall.toolType,
-              }),
-        });
-      } else if ('toolResponse' in part && part.toolResponse) {
-        const responseToolCallId =
-          lastServerToolCallId || part.toolResponse.id || config.generateId();
-        content.push({
-          type: 'tool-result',
-          toolCallId: responseToolCallId,
-          toolName: `server:${part.toolResponse.toolType}`,
-          result: (part.toolResponse.response ?? {}) as JSONObject,
-          providerMetadata: part.thoughtSignature
-            ? wrapProviderMetadata({
-                thoughtSignature: part.thoughtSignature,
-                serverToolCallId: responseToolCallId,
-                serverToolType: part.toolResponse.toolType,
-              })
-            : wrapProviderMetadata({
-                serverToolCallId: responseToolCallId,
-                serverToolType: part.toolResponse.toolType,
-              }),
-        });
-        lastServerToolCallId = undefined;
-      }
-    }
-
-    const sources =
-      extractSources({
-        groundingMetadata: candidate?.groundingMetadata,
-        generateId: config.generateId,
-      }) ?? [];
-    for (const source of sources) {
-      content.push(source);
-    }
-
-    return {
-      content,
-      finishReason: {
-        unified: isPromptBlocked
-          ? 'content-filter'
-          : mapGoogleFinishReason({
-              finishReason: rawFinishReason,
-              // Only count client-executed tool calls for finish reason determination.
-              hasToolCalls: content.some(
-                part => part.type === 'tool-call' && !part.providerExecuted,
-              ),
-            }),
-        raw: rawFinishReason,
-      },
-      usage: convertGoogleUsage(usageMetadata),
-      warnings,
-      providerMetadata: wrapProviderMetadata({
-        promptFeedback: response.promptFeedback ?? null,
-        groundingMetadata: candidate?.groundingMetadata ?? null,
-        ...(groundingMetadataPerRequest != null
-          ? { groundingMetadataPerRequest }
-          : {}),
-        urlContextMetadata: candidate?.urlContextMetadata ?? null,
-        safetyRatings: candidate?.safetyRatings ?? null,
-        usageMetadata: usageMetadata ?? null,
-        finishMessage: candidate?.finishMessage ?? null,
-        serviceTier: usageMetadata?.serviceTier ?? null,
-        ...(candidate?.continuationToken != null
-          ? { continuationToken: candidate.continuationToken }
-          : {}),
-        ...(initialPromptTokenCount != null ? { initialPromptTokenCount } : {}),
-      } satisfies GoogleProviderMetadata),
-      response: {
-        // TODO timestamp, model id
-        id: response.responseId ?? undefined,
-      },
->>>>>>> d08bb66428 (fix(google): preserve grounding metadata across continuation (#23513)):packages/google/src/google-language-model.ts
     };
   }
 
@@ -712,15 +427,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     // Usage is summed across requests (matching billing). Each request re-sends
     // the prompt plus all output so far as input, so the first request's
     // prompt token count is kept separately for context window checks.
-<<<<<<< HEAD:packages/google/src/google-generative-ai-language-model.ts
     const continuedParts: ContentPartSchema[] = [];
-    let continuedUsageMetadata: GoogleGenerativeAIUsageMetadata | undefined;
-=======
-    const content: LanguageModelV4Content[] = [];
     const groundingMetadataPerRequest: Array<GroundingMetadataSchema | null> =
       [];
-    let usageMetadata: GoogleUsageMetadata | undefined;
->>>>>>> d08bb66428 (fix(google): preserve grounding metadata across continuation (#23513)):packages/google/src/google-language-model.ts
+    let continuedUsageMetadata: GoogleGenerativeAIUsageMetadata | undefined;
     const firstPromptTokenCount = response.usageMetadata?.promptTokenCount;
 
     while (true) {
@@ -748,7 +458,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       } = await generateContent({ ...args, continuationToken }));
     }
 
-<<<<<<< HEAD:packages/google/src/google-generative-ai-language-model.ts
     const candidate = response.candidates?.[0];
     const promptBlockReason = response.promptFeedback?.blockReason;
     const confirmedPromptBlockReason = isConfirmedPromptBlockReason(
@@ -761,20 +470,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     const rawFinishReason =
       candidate?.finishReason ?? confirmedPromptBlockReason;
     const content: Array<LanguageModelV3Content> = [];
-=======
-    const lastResult = GoogleLanguageModel.convertGenerateContentResponse({
-      config: this.config,
-      response: { ...response, usageMetadata },
-      warnings,
-      providerOptionsNames,
-      toolNameMapping,
-      jsonResponseToolName,
-      initialPromptTokenCount: isContinued ? firstPromptTokenCount : undefined,
-      groundingMetadataPerRequest: isContinued
-        ? groundingMetadataPerRequest
-        : undefined,
-    });
->>>>>>> d08bb66428 (fix(google): preserve grounding metadata across continuation (#23513)):packages/google/src/google-language-model.ts
 
     // map ordered parts to content:
     const parts = [...continuedParts, ...(candidate?.content?.parts ?? [])];
@@ -950,6 +645,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
         [providerOptionsName]: {
           promptFeedback: response.promptFeedback ?? null,
           groundingMetadata: candidate?.groundingMetadata ?? null,
+          ...(groundingMetadataPerRequest.length > 1
+            ? { groundingMetadataPerRequest }
+            : {}),
           urlContextMetadata: candidate?.urlContextMetadata ?? null,
           safetyRatings: candidate?.safetyRatings ?? null,
           usageMetadata: usageMetadata ?? null,
@@ -1610,12 +1308,19 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
             controller.enqueue({
               type: 'finish',
               finishReason,
-<<<<<<< HEAD:packages/google/src/google-generative-ai-language-model.ts
               usage: convertGoogleGenerativeAIUsage(usage),
               providerMetadata: {
                 [providerOptionsName]: {
                   promptFeedback,
                   groundingMetadata: lastGroundingMetadata,
+                  ...(groundingMetadataPerRequest.length > 0
+                    ? {
+                        groundingMetadataPerRequest: [
+                          ...groundingMetadataPerRequest,
+                          requestGroundingMetadata,
+                        ],
+                      }
+                    : {}),
                   urlContextMetadata: lastUrlContextMetadata,
                   safetyRatings: lastSafetyRatings,
                   usageMetadata: usage ?? null,
@@ -1634,37 +1339,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                     : {}),
                 } satisfies GoogleGenerativeAIProviderMetadata,
               },
-=======
-              usage: convertGoogleUsage(usage),
-              providerMetadata: wrapProviderMetadata({
-                promptFeedback,
-                groundingMetadata: lastGroundingMetadata,
-                ...(groundingMetadataPerRequest.length > 0
-                  ? {
-                      groundingMetadataPerRequest: [
-                        ...groundingMetadataPerRequest,
-                        requestGroundingMetadata,
-                      ],
-                    }
-                  : {}),
-                urlContextMetadata: lastUrlContextMetadata,
-                safetyRatings: lastSafetyRatings,
-                usageMetadata: usage ?? null,
-                finishMessage: lastFinishMessage,
-                serviceTier: usage?.serviceTier ?? null,
-                // Only surface the token when the response stopped early
-                // (budget used up, or continuing failed), not for the
-                // checkpoint tokens of a stream that finished normally.
-                ...(lastContinuationToken != null &&
-                (finishReason.raw === 'MAX_TOKENS' ||
-                  finishReason.raw === 'CONTINUATION')
-                  ? { continuationToken: lastContinuationToken }
-                  : {}),
-                ...(initialPromptTokenCount != null
-                  ? { initialPromptTokenCount }
-                  : {}),
-              } satisfies GoogleProviderMetadata),
->>>>>>> d08bb66428 (fix(google): preserve grounding metadata across continuation (#23513)):packages/google/src/google-language-model.ts
             });
           },
         }),
