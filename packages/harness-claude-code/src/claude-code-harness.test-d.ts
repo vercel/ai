@@ -114,4 +114,24 @@ describe('claudeCode ↔ HarnessAgent harness setting', () => {
       SandboxChannelReconnectOptions | undefined
     >();
   });
+
+  test('createClaudeCode accepts allowedTools and disallowedTools', () => {
+    expectTypeOf(
+      createClaudeCode({
+        allowedTools: ['Bash', 'Read'],
+        disallowedTools: ['Write'],
+      }),
+    ).toExtend<HarnessAgentAdapter<any>>();
+
+    const settings: ClaudeCodeHarnessSettings = {
+      allowedTools: ['Bash'],
+      disallowedTools: ['Write'],
+    };
+    expectTypeOf(settings.allowedTools).toEqualTypeOf<
+      readonly string[] | undefined
+    >();
+    expectTypeOf(settings.disallowedTools).toEqualTypeOf<
+      readonly string[] | undefined
+    >();
+  });
 });
