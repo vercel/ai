@@ -116,9 +116,38 @@ console.log(text);
 
 See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details on how to integrate reasoning into your chatbot.
 
+### MiniMax-M3.1-Flash
+
+MiniMax-M3.1-Flash uses always-on reasoning with effort control. Set
+`providerOptions.minimax.effort` to `low`, `medium`, `high`, `xhigh`, or `max`.
+`minimal` is mapped to `low`. Omitting effort keeps the provider default of `max`.
+Disabling thinking is unsupported; use a lower effort to reduce reasoning. You
+can also set the top-level `reasoning` option to `minimal`, `low`, `medium`,
+`high`, `xhigh`, or `max`. Explicit provider effort takes precedence.
+
+```ts
+const { text, reasoningText } = await generateText({
+  model: minimax('MiniMax-M3.1-Flash'),
+  providerOptions: { minimax: { effort: 'high' } },
+  prompt: 'Explain how to optimize this algorithm.',
+});
+```
+
+For `MiniMax-M3.1-Flash`, the default output-token limit is 131,072
+and the maximum is 524,288, as documented in the
+[MiniMax API reference](https://platform.minimax.io/docs/api-reference/text-chat-anthropic).
+Other models retain the shared adapter defaults;
+set `maxOutputTokens` explicitly to use their supported output budget.
+Image input is supported. Video and audio input are not supported by this adapter.
+Existing MiniMax-M3 and M2.x behavior is unchanged.
+
 ### Provider Options
 
 The following optional provider options are available for MiniMax language models:
+
+- **effort** _'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max'_
+
+  Reasoning effort for MiniMax M3.1 and later models. `minimal` maps to `low`.
 
 - **thinking** _object_
 
@@ -131,8 +160,9 @@ The following optional provider options are available for MiniMax language model
   When omitted, the model uses its provider-side default.
 
   <Note>
-    Thinking control is only supported on `minimax-m3`. The M2.x models always
-    think, so `'disabled'` has no effect on them.
+    MiniMax-M3.1-Flash always reasons and rejects `disabled`. Thinking control
+    is only supported on `minimax-m3`. The M2.x models always think, so
+    `'disabled'` has no effect on them.
   </Note>
 
 ## Video Models
@@ -364,6 +394,7 @@ MiniMax video results include `providerMetadata.minimax`:
 
 | Model                    | Image Input | Object Generation | Tool Usage | Tool Streaming |
 | ------------------------ | ----------- | ----------------- | ---------- | -------------- |
+| `MiniMax-M3.1-Flash`     | <Check />   | <Check />         | <Check />  | <Check />      |
 | `minimax-m3`             | <Cross />   | <Check />         | <Check />  | <Check />      |
 | `minimax-m2.7`           | <Cross />   | <Check />         | <Check />  | <Check />      |
 | `minimax-m2.7-highspeed` | <Cross />   | <Check />         | <Check />  | <Check />      |
