@@ -1684,3 +1684,93 @@ describe('generateId function', () => {
     `);
   });
 });
+
+describe('AngularChatState replaceMessage', () => {
+  it('should deep clone the message when replacing to prevent mutation', () => {
+    const chat = new Chat({
+      generateId: mockId(),
+    });
+
+    // Create test messages with nested properties
+    const originalMessage = {
+      id: 'msg-1',
+      role: 'user' as const,
+      parts: [{ text: 'Hello', type: 'text' as const }],
+    };
+
+    const replacementMessage = {
+      id: 'msg-2',
+      role: 'assistant' as const,
+      parts: [{ text: 'Hi there', type: 'text' as const }],
+      metadata: { custom: 'value', nested: { deep: 'property' } },
+    };
+
+    // Access the AngularChatState through the Chat's state property
+    const chatState = chat['state'] as any;
+
+    // Set initial message
+    chatState.setMessages([originalMessage]);
+    expect(chatState.messages).toHaveLength(1);
+    expect(chatState.messages[0]).toEqual(originalMessage);
+
+    // Replace the message
+    chatState.replaceMessage(0, replacementMessage);
+
+    // Verify the message was replaced
+    expect(chatState.messages).toHaveLength(1);
+    expect(chatState.messages[0]).toEqual(replacementMessage);
+
+    // Most importantly: verify the replaced message is a deep clone
+    // Mutating the original replacement message should not affect the stored message
+    replacementMessage.parts[0].text = 'Modified text';
+    replacementMessage.metadata!.custom = 'changed';
+    replacementMessage.metadata!.nested.deep = 'modified';
+
+    // The stored message should remain unchanged due to structuredClone
+    expect(chatState.messages[0].parts[0].text).toBe('Hi there');
+    expect(chatState.messages[0].metadata?.custom).toBe('value');
+    expect(chatState.messages[0].metadata?.nested.deep).toBe('property');
+
+    // Verify they are different object references (deep clone)
+    expect(chatState.messages[0]).not.toBe(replacementMessage);
+    expect(chatState.messages[0].parts).not.toBe(replacementMessage.parts);
+    expect(chatState.messages[0].parts[0]).not.toBe(
+      replacementMessage.parts[0],
+    );
+    expect(chatState.messages[0].metadata).not.toBe(
+      replacementMessage.metadata,
+    );
+    expect(chatState.messages[0].metadata?.nested).not.toBe(
+      replacementMessage.metadata?.nested,
+    );
+  });
+
+  it('should handle replacing messages without metadata', () => {
+    const chat = new Chat({
+      generateId: mockId(),
+    });
+
+    const simpleMessage = {
+      id: 'msg-1',
+      role: 'user' as const,
+      parts: [{ text: 'Simple message', type: 'text' as const }],
+    };
+
+    const replacementMessage = {
+      id: 'msg-2',
+      role: 'assistant' as const,
+      parts: [{ text: 'Simple response', type: 'text' as const }],
+    };
+
+    const chatState = chat['state'] as any;
+
+    chatState.setMessages([simpleMessage]);
+    chatState.replaceMessage(0, replacementMessage);
+
+    // Mutate original to verify deep clone
+    replacementMessage.parts[0].text = 'Mutated';
+
+    expect(chatState.messages[0].parts[0].text).toBe('Simple response');
+    expect(chatState.messages[0]).not.toBe(replacementMessage);
+  });
+});
