@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 23329,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-23329-repaired-tool-approval.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-23329-repaired-tool-approval.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_23329: approved repaired tool call failed signature verification because the UI part retained tool-originalTool"
+  }
+}
