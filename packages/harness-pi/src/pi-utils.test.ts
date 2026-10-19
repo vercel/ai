@@ -92,7 +92,8 @@ describe('extractPiPromptContent', () => {
   });
 
   it('throws for unsupported user content parts', () => {
-    expect(() =>
+    let error: unknown;
+    try {
       extractPiPromptContent({
         prompt: {
           role: 'user',
@@ -104,8 +105,11 @@ describe('extractPiPromptContent', () => {
             },
           ],
         },
-      }),
-    ).toThrowError(HarnessCapabilityUnsupportedError);
+      });
+    } catch (caughtError) {
+      error = caughtError;
+    }
+    expect(HarnessCapabilityUnsupportedError.isInstance(error)).toBe(true);
   });
 });
 
