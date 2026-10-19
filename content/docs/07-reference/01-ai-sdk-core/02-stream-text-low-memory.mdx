@@ -1,21 +1,20 @@
 ---
-title: Low-memory streaming with streamText
+title: experimental_streamTextLowMemory
 description: Stream with the streamText execution engine without a replay buffer or unused final results.
 ---
 
-# Low-memory streaming with `streamText`
+# `experimental_streamTextLowMemory`
 
 <Note>This API is experimental and may change in future versions.</Note>
 
-Set `experimental_lowMemory: true` on [`streamText`](/docs/reference/ai-sdk-core/stream-text)
+Use `experimental_streamTextLowMemory`
 when you consume the output once and do not need to read the complete result later.
 
 ```ts
-import { streamText } from 'ai';
+import { experimental_streamTextLowMemory } from 'ai';
 __PROVIDER_IMPORT__;
 
-const result = streamText({
-  experimental_lowMemory: true,
+const result = experimental_streamTextLowMemory({
   model: __MODEL__,
   prompt: 'Describe the history of astronomy.',
 });
@@ -41,12 +40,11 @@ not silently skipped. The existing error semantics also apply: use `onError` or
 `stream` to observe provider errors; `textStream` contains only text deltas.
 
 ```ts
-import { isStepCount, streamText, tool } from 'ai';
+import { experimental_streamTextLowMemory, isStepCount, tool } from 'ai';
 import { z } from 'zod/v4';
 __PROVIDER_IMPORT__;
 
-const result = streamText({
-  experimental_lowMemory: true,
+const result = experimental_streamTextLowMemory({
   model: __MODEL__,
   prompt: 'How many characters are in astronomy?',
   tools: {
@@ -67,7 +65,7 @@ for await (const part of result.stream) {
 
 ## Memory usage
 
-`experimental_lowMemory: true` tells `streamText` not to save a copy of the
+`experimental_streamTextLowMemory` does not save a copy of the
 stream for replay. For plain text streaming, it also avoids keeping the complete
 generated text for later access.
 
@@ -77,7 +75,7 @@ appending every chunk to a string in your application still builds the full answ
 
 ## Return value
 
-When `experimental_lowMemory` is enabled, the result exposes these members:
+The result exposes these members:
 
 | Member                                                                                    | Behavior                                                                                                  |
 | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
