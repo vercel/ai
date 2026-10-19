@@ -15,6 +15,8 @@ import { logWarnings } from '../logger/log-warnings';
 import { resolveTranscriptionModel } from '../model/resolve-model';
 import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
 import type { TelemetryOptions } from '../telemetry/telemetry-options';
+import type { DataContent } from '../prompt';
+import { convertDataContentToUint8Array } from '../prompt/data-content';
 import type { TranscriptionModel } from '../types/transcription-model';
 import type { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
 import type { Warning } from '../types/warning';
@@ -46,7 +48,7 @@ const originalGenerateCallId = createIdGenerator({
  * Streams transcripts using a transcription model.
  *
  * @param model - The transcription model to use.
- * @param audio - Raw audio chunks to transcribe.
+ * @param audio - A saved recording or raw audio chunks to transcribe.
  * @param inputAudioFormat - The input audio format for the raw audio chunks.
  * @param providerOptions - Additional provider-specific options.
  * @param abortSignal - An optional abort signal that can be used to cancel the call.
@@ -75,9 +77,10 @@ export function streamTranscribe({
   model: TranscriptionModel;
 
   /**
-   * Raw audio chunks to transcribe.
+   * A saved recording (`Uint8Array`, `ArrayBuffer`, `Buffer`, or base64 `string`)
+   * or a stream of raw audio chunks.
    */
-  audio: ReadableStream<Uint8Array | string>;
+  audio: DataContent | ReadableStream<Uint8Array | string>;
 
   /**
    * The input audio format for the raw audio chunks.
@@ -149,12 +152,13 @@ export function streamTranscribe({
     (async <T>({ execute }: { execute: () => PromiseLike<T> }) =>
       await execute());
   let audioByteLength = 0;
+  const audioStream = asAudioStream(audio);
   const countedAudio =
     telemetryDispatcher.experimental_onStreamTranscriptionEnd != null
-      ? createByteCountingStream(audio, byteLength => {
+      ? createByteCountingStream(audioStream, byteLength => {
           audioByteLength += byteLength;
         })
-      : audio;
+      : audioStream;
   const startEvent: StreamTranscriptionStartEvent = {
     callId,
     operationId: 'ai.streamTranscribe',
@@ -445,6 +449,21 @@ export function streamTranscribe({
       return getFullStream();
     },
   };
+}
+
+function asAudioStream(
+  audio: DataContent | ReadableStream<Uint8Array | string>,
+): ReadableStream<Uint8Array | string> {
+  if (audio instanceof ReadableStream) {
+    return audio;
+  }
+  const bytes = convertDataContentToUint8Array(audio);
+  return new ReadableStream({
+    start(controller) {
+      controller.enqueue(bytes);
+      controller.close();
+    },
+  });
 }
 
 function createByteCountingStream(

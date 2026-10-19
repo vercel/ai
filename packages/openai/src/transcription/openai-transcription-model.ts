@@ -81,7 +81,11 @@ function isRealtimeTranscriptionModelId(modelId: string): boolean {
  * (`stream: true`). Whisper and other non-realtime models cannot.
  */
 function isUploadedFileStreamingModelId(modelId: string): boolean {
-  return modelId.startsWith('gpt-4o-') && modelId.includes('transcribe');
+  return (
+    modelId === 'gpt-transcribe' ||
+    modelId.startsWith('gpt-transcribe-') ||
+    (modelId.startsWith('gpt-4o-') && modelId.includes('transcribe'))
+  );
 }
 
 interface OpenAITranscriptionModelConfig extends OpenAIConfig {

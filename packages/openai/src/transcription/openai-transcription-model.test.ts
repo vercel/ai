@@ -659,6 +659,31 @@ describe('doStream', () => {
     ).rejects.toBeInstanceOf(UnsupportedFunctionalityError);
   });
 
+  it('should stream an uploaded file for gpt-transcribe', async () => {
+    server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        'data: {"type":"transcript.text.delta","delta":"Hi"}\n\n',
+        'data: {"type":"transcript.text.done","text":"Hi"}\n\n',
+      ],
+    };
+
+    const result = await provider.transcription('gpt-transcribe').doStream({
+      audio: convertArrayToReadableStream([audioData]),
+      inputAudioFormat: { type: 'audio/mpeg' },
+    });
+    const parts = await convertReadableStreamToArray(result.stream);
+
+    expect(parts).toContainEqual({
+      type: 'transcript-delta',
+      delta: 'Hi',
+    });
+    expect(parts.at(-1)).toMatchObject({ type: 'finish', text: 'Hi' });
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body?.model).toBe('gpt-transcribe');
+    expect(body?.stream).toBe('true');
+  });
+
   it('should stream an uploaded file for gpt-4o-transcribe', async () => {
     server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
       type: 'stream-chunks',

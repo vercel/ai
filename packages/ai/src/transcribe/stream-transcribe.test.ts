@@ -43,6 +43,38 @@ const createStreamResponse = (
 });
 
 describe('experimental_streamTranscribe', () => {
+  it('should stream a saved recording as one audio chunk', async () => {
+    const recording = new Uint8Array([9, 8, 7]);
+    let capturedAudio!: ReadableStream<Uint8Array | string>;
+
+    const result = streamTranscribe({
+      model: new MockTranscriptionModelV4({
+        doStream: async args => {
+          capturedAudio = args.audio;
+          return createStreamResponse([
+            { type: 'stream-start', warnings: [] },
+            { type: 'transcript-delta', delta: 'Hello' },
+            { type: 'finish', text: 'Hello', segments: [] },
+          ]);
+        },
+      }),
+      audio: recording,
+      inputAudioFormat: { type: 'audio/mpeg' },
+    });
+
+    expect(await result.text).toBe('Hello');
+    const chunks = [];
+    const reader = capturedAudio.getReader();
+    while (true) {
+      const next = await reader.read();
+      if (next.done) break;
+      chunks.push(next.value);
+    }
+    expect(chunks).toEqual([recording]);
+  });
+});
+
+describe('experimental_streamTranscribe', () => {
   let logWarningsSpy: ReturnType<typeof vitest.spyOn>;
 
   beforeEach(() => {

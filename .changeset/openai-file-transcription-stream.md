@@ -1,5 +1,6 @@
 ---
+'ai': patch
 '@ai-sdk/openai': patch
 ---
 
-Stream uploaded-file transcription for OpenAI GPT Transcribe models
+Stream uploaded recordings through experimental_streamTranscribe for OpenAI GPT Transcribe models

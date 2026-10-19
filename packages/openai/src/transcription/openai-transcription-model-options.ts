@@ -12,6 +12,7 @@ export type OpenAITranscriptionModelId =
   | 'gpt-4o-mini-transcribe-2025-12-15'
   | 'gpt-4o-transcribe'
   | 'gpt-4o-transcribe-diarize'
+  | 'gpt-transcribe'
   | 'gpt-realtime-whisper'
   | (string & {});
 
