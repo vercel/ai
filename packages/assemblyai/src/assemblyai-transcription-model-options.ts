@@ -83,6 +83,12 @@ export const assemblyaiTranscriptionModelOptionsSchema = z.object({
    */
   languageCode: z.union([z.literal('en'), z.string()]).nullish(),
   /**
+   * Language codes for code switching. One of the values must be `en`.
+   * When provided, enables transcription of multiple languages in the same
+   * audio file.
+   */
+  languageCodes: z.array(z.string()).nullish(),
+  /**
    * Confidence threshold for language detection.
    */
   languageConfidenceThreshold: z.number().nullish(),

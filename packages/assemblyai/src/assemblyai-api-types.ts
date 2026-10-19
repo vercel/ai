@@ -89,6 +89,11 @@ export type AssemblyAITranscriptionAPITypes = {
   iab_categories?: boolean;
 
   /**
+   * Language codes for code switching. One of the values must be `en`.
+   */
+  language_codes?: string[];
+
+  /**
    * The language of your audio file. Possible values are found in Supported Languages.
    * @default 'en_us'
    */
