@@ -60,5 +60,7 @@ export type CartesiaSpeechAPITypes = {
    */
   generation_config?: {
     speed?: number;
+    volume?: number;
+    emotion?: string;
   };
 };
