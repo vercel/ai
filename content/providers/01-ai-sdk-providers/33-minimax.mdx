@@ -116,9 +116,42 @@ console.log(text);
 
 See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details on how to integrate reasoning into your chatbot.
 
+#### Reasoning Effort
+
+MiniMax M3.1 Flash always reasons. Use `effort` to control reasoning depth:
+
+```ts
+import { minimax, type MiniMaxLanguageModelOptions } from '@ai-sdk/minimax';
+import { generateText } from 'ai';
+
+const { text, reasoningText } = await generateText({
+  model: minimax('minimax-m3.1-flash'),
+  maxOutputTokens: 16384,
+  providerOptions: {
+    minimax: {
+      effort: 'low',
+    } satisfies MiniMaxLanguageModelOptions,
+  },
+  prompt:
+    'What is the smallest positive integer divisible by every integer from 1 to 10?',
+});
+
+console.log(reasoningText);
+console.log(text);
+```
+
+The output token budget includes both reasoning and the final answer. Higher
+effort levels may need a larger budget.
+
 ### Provider Options
 
 The following optional provider options are available for MiniMax language models:
+
+- **effort** _'low' | 'medium' | 'high' | 'xhigh' | 'max'_
+
+  Controls reasoning depth for `minimax-m3.1-flash`. Higher levels can use more
+  reasoning tokens and increase latency. Maps to `output_config.effort` in the
+  MiniMax API. When omitted, the server uses its default (`'max'`).
 
 - **thinking** _object_
 

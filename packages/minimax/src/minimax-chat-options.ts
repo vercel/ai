@@ -14,6 +14,11 @@ export type MiniMaxChatModelId =
   | (string & {});
 
 export const minimaxLanguageModelOptions = z.object({
+  /**
+   * Reasoning effort for MiniMax M3.1 Flash. Higher levels can use more
+   * reasoning tokens and increase latency. Defaults to the server's setting.
+   */
+  effort: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).optional(),
   thinking: z
     .object({
       type: z.enum(['adaptive', 'disabled']),

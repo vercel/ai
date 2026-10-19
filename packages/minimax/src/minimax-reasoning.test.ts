@@ -1,6 +1,10 @@
 import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
+import {
+  minimaxLanguageModelOptions,
+  type MiniMaxLanguageModelOptions,
+} from './minimax-chat-options';
 import { createMiniMax } from './minimax-provider';
 
 // MiniMax-specific behavior: the provider delegates to the Anthropic message
@@ -18,6 +22,39 @@ describe('MiniMax reasoning', () => {
   const server = createTestServer({
     'https://api.minimax.io/anthropic/v1/messages': {},
   });
+
+  it.each(['low', 'medium', 'high', 'xhigh', 'max'] as const)(
+    'sends M3.1 Flash effort %s through the public MiniMax options',
+    async effort => {
+      server.urls['https://api.minimax.io/anthropic/v1/messages'].response = {
+        type: 'json-value',
+        body: {
+          id: 'msg_minimax_effort',
+          type: 'message',
+          role: 'assistant',
+          content: [{ type: 'text', text: 'Hello!' }],
+          model: 'minimax-m3.1-flash',
+          stop_reason: 'end_turn',
+          stop_sequence: null,
+          usage: { input_tokens: 4, output_tokens: 10 },
+        },
+      };
+
+      const options = { effort } satisfies MiniMaxLanguageModelOptions;
+
+      await provider('minimax-m3.1-flash').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          minimax: minimaxLanguageModelOptions.parse(options),
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        model: 'minimax-m3.1-flash',
+        output_config: { effort },
+      });
+    },
+  );
 
   it('sends thinking via the minimax provider option and returns a reasoning part', async () => {
     server.urls['https://api.minimax.io/anthropic/v1/messages'].response = {
