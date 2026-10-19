@@ -1,0 +1,16 @@
+{
+  "name": "@example/gemini-tts-demo",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local browser demo for Gemini text-to-speech via @ai-sdk/google and @ai-sdk/google-vertex (uses workspace source).",
+  "scripts": {
+    "prestart": "pnpm --filter ai... --filter @ai-sdk/google-vertex... build",
+    "start": "node --env-file-if-exists=.env server.mjs"
+  },
+  "dependencies": {
+    "ai": "workspace:*",
+    "@ai-sdk/google": "workspace:*",
+    "@ai-sdk/google-vertex": "workspace:*"
+  }
+}
