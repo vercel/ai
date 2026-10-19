@@ -16,7 +16,7 @@ runs:
     - if: env.TURBO_CACHE == 'local:rw,remote:rw'
       uses: vercel/setup-turborepo-remote-cache-action@49d7b1b46ba4c9251e1977986bfe18336feabc8f # v1.1.0
       with:
-        team: ${{ vars.TURBO_TEAM }}
+        team: vercel
     - name: Identify test runtime
       shell: bash
       run: echo "TEST_NODE_VERSION=$(node --version)" >> "$GITHUB_ENV"
