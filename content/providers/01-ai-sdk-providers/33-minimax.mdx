@@ -143,6 +143,25 @@ console.log(text);
 The output token budget includes both reasoning and the final answer. Higher
 effort levels may need a larger budget.
 
+You can also use the top-level `reasoning` setting with `minimax-m3.1-flash`:
+
+```ts
+const { text } = await generateText({
+  model: minimax('minimax-m3.1-flash'),
+  reasoning: 'high',
+  maxOutputTokens: 16384,
+  prompt:
+    'What is the smallest positive integer divisible by every integer from 1 to 10?',
+});
+```
+
+The levels `'low'`, `'medium'`, `'high'`, `'xhigh'`, and `'max'` map directly to
+MiniMax's effort levels. `'minimal'` maps to `'low'` with a compatibility warning.
+Because Flash cannot disable reasoning, `'none'` also maps to `'low'` with a
+compatibility warning. Omitting `reasoning` or setting it to `'provider-default'`
+leaves the server default unchanged. An explicit `providerOptions.minimax.effort`
+takes precedence over `reasoning`.
+
 ### Provider Options
 
 The following optional provider options are available for MiniMax language models:
