@@ -1078,6 +1078,7 @@ export async function createPiSession(
         try {
           const control = await runTurn({
             text: '',
+            images: [],
             ...(continueOpts.model ? { model: continueOpts.model } : {}),
             skills: continueOpts.skills,
             tools: continueOpts.tools ?? [],
@@ -1403,7 +1404,7 @@ export async function createPiSession(
    */
   async function runTurn(turnOpts: {
     text: string;
-    images?: PiPromptContent['images'];
+    images: PiPromptContent['images'];
     model?: string;
     skills: ReadonlyArray<HarnessV1Skill>;
     tools: ReadonlyArray<HarnessV1ToolSpec>;
@@ -1421,6 +1422,17 @@ export async function createPiSession(
     if (turnOpts.model != null && nextModel == null) {
       throw new HarnessCapabilityUnsupportedError({
         message: `Harness 'pi' has no model '${turnOpts.model}' in its catalog.`,
+        harnessId: HARNESS_ID,
+      });
+    }
+    const turnModel = nextModel ?? activeResolvedModel;
+    if (
+      turnOpts.images.length > 0 &&
+      turnModel != null &&
+      !turnModel.input.includes('image')
+    ) {
+      throw new HarnessCapabilityUnsupportedError({
+        message: `Harness 'pi' model '${turnModel.id}' does not support image input.`,
         harnessId: HARNESS_ID,
       });
     }
@@ -1559,11 +1571,7 @@ export async function createPiSession(
             replayingAssistantMessage = false;
           }
         } else {
-          if (turnOpts.images == null || turnOpts.images.length === 0) {
-            await session.prompt(turnOpts.text);
-          } else {
-            await session.prompt(turnOpts.text, { images: turnOpts.images });
-          }
+          await session.prompt(turnOpts.text, { images: turnOpts.images });
         }
 
         const terminalError = turnState.lastAssistantError;
@@ -1734,6 +1742,7 @@ export async function createPiSession(
        */
       return runTurn({
         text: '',
+        images: [],
         ...(continueOpts.model ? { model: continueOpts.model } : {}),
         skills: continueOpts.skills,
         tools: continueOpts.tools ?? [],
