@@ -393,6 +393,119 @@ describe('doStream', () => {
     });
   });
 
+  it('sends keyterms as repeated query parameters', async () => {
+    const provider = createCartesia({
+      apiKey: 'test-api-key',
+      webSocket: MockWebSocket,
+    });
+    await provider.transcription('ink-2').doStream!({
+      audio: convertArrayToReadableStream([]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+      providerOptions: {
+        cartesia: {
+          streaming: { keyterms: ['Cartesia', 'Sonic 3'] },
+        },
+      },
+    });
+
+    const url = new URL(MockWebSocket.instances[0].url);
+    expect(url.pathname).toBe('/stt/turns/websocket');
+    expect(url.searchParams.getAll('keyterm')).toEqual(['Cartesia', 'Sonic 3']);
+  });
+
+  it('sends keyterms when turn detection is disabled', async () => {
+    const provider = createCartesia({
+      apiKey: 'test-api-key',
+      webSocket: MockWebSocket,
+    });
+    await provider.transcription('ink-2').doStream!({
+      audio: convertArrayToReadableStream([]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+      providerOptions: {
+        cartesia: {
+          streaming: { turnDetection: false, keyterms: ['Cartesia'] },
+        },
+      },
+    });
+
+    const url = new URL(MockWebSocket.instances[0].url);
+    expect(url.pathname).toBe('/stt/websocket');
+    expect(url.searchParams.getAll('keyterm')).toEqual(['Cartesia']);
+  });
+
+  it('sends turn thresholds with turn detection enabled', async () => {
+    const provider = createCartesia({
+      apiKey: 'test-api-key',
+      webSocket: MockWebSocket,
+    });
+    await provider.transcription('ink-2').doStream!({
+      audio: convertArrayToReadableStream([]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+      providerOptions: {
+        cartesia: {
+          streaming: {
+            turnStartThreshold: 0.5,
+            turnEagerEndThreshold: 0.4,
+            turnEndThreshold: 0.3,
+            turnEndTimeoutMs: 800,
+          },
+        },
+      },
+    });
+
+    const params = new URL(MockWebSocket.instances[0].url).searchParams;
+    expect(params.get('turn_start_threshold')).toBe('0.5');
+    expect(params.get('turn_eager_end_threshold')).toBe('0.4');
+    expect(params.get('turn_end_threshold')).toBe('0.3');
+    expect(params.get('turn_end_timeout_ms')).toBe('800');
+  });
+
+  it('omits turn thresholds and warns when turn detection is disabled', async () => {
+    const provider = createCartesia({
+      apiKey: 'test-api-key',
+      webSocket: MockWebSocket,
+    });
+    const result = await provider.transcription('ink-2').doStream!({
+      audio: convertArrayToReadableStream([]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+      providerOptions: {
+        cartesia: {
+          streaming: {
+            turnDetection: false,
+            turnStartThreshold: 0.5,
+            turnEndTimeoutMs: 800,
+          },
+        },
+      },
+    });
+
+    const ws = MockWebSocket.instances[0];
+    const params = new URL(ws.url).searchParams;
+    expect(params.has('turn_start_threshold')).toBe(false);
+    expect(params.has('turn_end_timeout_ms')).toBe(false);
+
+    const reader = result.stream.getReader();
+    ws.open();
+    await flush();
+    const first = await reader.read();
+    expect(first.value).toEqual({
+      type: 'stream-start',
+      warnings: [
+        {
+          type: 'unsupported',
+          feature: 'providerOptions.cartesia.streaming.turnStartThreshold',
+          details: 'Turn thresholds require turnDetection to be enabled.',
+        },
+        {
+          type: 'unsupported',
+          feature: 'providerOptions.cartesia.streaming.turnEndTimeoutMs',
+          details: 'Turn thresholds require turnDetection to be enabled.',
+        },
+      ],
+    });
+    await reader.cancel();
+  });
+
   it.each(['pcm_f16le', 'pcm_f32le', 'pcm_s32le'] as const)(
     'supports the %s streaming PCM encoding without a warning',
     async encoding => {
