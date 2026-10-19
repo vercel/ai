@@ -85,6 +85,35 @@ describe('doGenerate', () => {
     ).rejects.toBeInstanceOf(UnsupportedFunctionalityError);
   });
 
+  it('should map shared timestampGranularities when the provider option is omitted', async () => {
+    prepareJsonFixtureResponse('openai-transcription');
+
+    await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      timestampGranularities: ['word'],
+    });
+
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body?.['timestamp_granularities[]']).toBe('word');
+  });
+
+  it('should let the OpenAI timestamp option win over the shared option', async () => {
+    prepareJsonFixtureResponse('openai-transcription');
+
+    await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      timestampGranularities: ['segment'],
+      providerOptions: {
+        openai: { timestampGranularities: ['word'] },
+      },
+    });
+
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body?.['timestamp_granularities[]']).toBe('word');
+  });
+
   it('should pass the model', async () => {
     prepareJsonFixtureResponse('openai-transcription');
 

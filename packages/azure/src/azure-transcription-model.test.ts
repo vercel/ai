@@ -206,6 +206,34 @@ describe('Speech requests', () => {
     },
   );
 
+  it('maps shared timestampGranularities onto Azure timestamps', async () => {
+    const { provider, definition } = setup();
+    const result = await provider.transcription('mai-transcribe-2').doGenerate({
+      ...input,
+      timestampGranularities: ['word', 'segment'],
+    });
+    expect(definition().enhancedMode.modelOptions.timestamps).toBe('word');
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('warns when shared timings are requested from a model that cannot return them', async () => {
+    const { provider, definition } = setup();
+    const result = await provider
+      .transcription('mai-transcribe-1.5')
+      .doGenerate({
+        ...input,
+        timestampGranularities: ['word'],
+      });
+    expect(definition().enhancedMode.modelOptions.timestamps).toBeUndefined();
+    expect(result.warnings).toEqual([
+      {
+        type: 'unsupported',
+        feature: 'timestampGranularities',
+        details: 'MAI-Transcribe-1.5 cannot return word or segment timings.',
+      },
+    ]);
+  });
+
   it.each(['word', 'segment', 'none'] as const)(
     'serializes all options with %s timestamps',
     async timestamps => {

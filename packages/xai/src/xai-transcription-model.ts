@@ -137,14 +137,24 @@ export class XaiTranscriptionModel implements TranscriptionModelV4 {
       fetch: this.config.fetch,
     });
 
+    if (options.timestampGranularities?.includes('segment')) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'timestampGranularities',
+        details:
+          'xAI transcription returns word timings and does not provide separate caption segments.',
+      });
+    }
+    const words = response.words?.map(word => ({
+      text: word.text,
+      startSecond: word.start,
+      endSecond: word.end,
+    }));
+
     return {
       text: response.text,
-      segments:
-        response.words?.map(word => ({
-          text: word.text,
-          startSecond: word.start,
-          endSecond: word.end,
-        })) ?? [],
+      segments: words ?? [],
+      ...(words != null && words.length > 0 ? { words } : {}),
       language: response.language || undefined,
       durationInSeconds: response.duration ?? undefined,
       warnings,

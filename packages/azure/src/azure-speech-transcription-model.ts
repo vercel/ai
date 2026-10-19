@@ -1,4 +1,4 @@
-import type { TranscriptionModelV4 } from '@ai-sdk/provider';
+import type { SharedV4Warning, TranscriptionModelV4 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
@@ -32,6 +32,26 @@ export class AzureSpeechTranscriptionModel implements TranscriptionModelV4 {
   ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
     const timestamp = new Date();
     const maiModel = getMAITranscribeModel(this.modelId);
+    const warnings: SharedV4Warning[] = [];
+    let timestamps = azureOptions.timestamps;
+    if (timestamps == null && options.timestampGranularities != null) {
+      const wantsWord = options.timestampGranularities.includes('word');
+      const wantsSegment = options.timestampGranularities.includes('segment');
+      if (
+        maiModel?.supportsTimestamps === false &&
+        (wantsWord || wantsSegment)
+      ) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'timestampGranularities',
+          details: `${maiModel.name} cannot return word or segment timings.`,
+        });
+      } else if (wantsWord) {
+        timestamps = 'word';
+      } else if (wantsSegment) {
+        timestamps = 'segment';
+      }
+    }
     const formData = new FormData();
     formData.append(
       'audio',
@@ -53,7 +73,7 @@ export class AzureSpeechTranscriptionModel implements TranscriptionModelV4 {
           model: maiModel?.name ?? this.modelId,
           modelOptions: {
             timestamps:
-              azureOptions.timestamps ??
+              timestamps ??
               (maiModel?.supportsTimestamps === false ? undefined : 'segment'),
             transcribeStyle: azureOptions.transcribeStyle,
           },
@@ -131,7 +151,7 @@ export class AzureSpeechTranscriptionModel implements TranscriptionModelV4 {
         value.durationMilliseconds != null
           ? value.durationMilliseconds / 1000
           : undefined,
-      warnings: [],
+      warnings,
       providerMetadata: {
         azure: { phrases },
       } satisfies AzureTranscriptionProviderMetadata,

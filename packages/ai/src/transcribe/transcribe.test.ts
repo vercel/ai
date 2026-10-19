@@ -119,6 +119,25 @@ describe('transcribe', () => {
     });
   });
 
+  it('should pass timestampGranularities to the model', async () => {
+    let capturedArgs!: Parameters<TranscriptionModelV4['doGenerate']>[0];
+
+    await transcribe({
+      model: new MockTranscriptionModelV4({
+        doGenerate: async args => {
+          capturedArgs = args;
+          return createMockResponse({
+            ...sampleTranscript,
+          });
+        },
+      }),
+      audio: audioData,
+      timestampGranularities: ['word', 'segment'],
+    });
+
+    expect(capturedArgs.timestampGranularities).toEqual(['word', 'segment']);
+  });
+
   it('should detect MP4 audio with an ftyp box', async () => {
     const mp4AudioData = new Uint8Array([
       0x00,

@@ -4,6 +4,7 @@
 '@ai-sdk/openai': patch
 '@ai-sdk/google-vertex': patch
 '@ai-sdk/azure': patch
+'@ai-sdk/xai': patch
 ---
 
-Expose transcription word timings separately from segments for providers that return them
+Expose transcription word timings separately from segments and accept shared timestampGranularities

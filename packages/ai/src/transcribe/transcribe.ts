@@ -1,4 +1,7 @@
-import type { JSONObject } from '@ai-sdk/provider';
+import type {
+  JSONObject,
+  TranscriptionModelV4TimestampGranularity,
+} from '@ai-sdk/provider';
 import {
   createIdGenerator,
   detectMediaType,
@@ -49,6 +52,7 @@ export async function transcribe({
   model,
   audio,
   providerOptions = {},
+  timestampGranularities,
   maxRetries: maxRetriesArg,
   abortSignal,
   headers,
@@ -81,6 +85,15 @@ export async function transcribe({
    * ```
    */
   providerOptions?: ProviderOptions;
+
+  /**
+   * Word and segment timings to request.
+   *
+   * Each provider maps this onto its native control when the matching provider
+   * option is omitted. An explicit provider option wins. Providers that cannot
+   * return a requested granularity add a warning.
+   */
+  timestampGranularities?: Array<TranscriptionModelV4TimestampGranularity>;
 
   /**
    * Maximum number of retries per transcript model call. Set to 0 to disable retries.
@@ -247,6 +260,9 @@ export async function transcribe({
             headers: headersWithUserAgent,
             providerOptions,
             mediaType,
+            ...(timestampGranularities != null
+              ? { timestampGranularities }
+              : {}),
           }),
         );
 

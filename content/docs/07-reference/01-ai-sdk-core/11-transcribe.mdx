@@ -41,6 +41,13 @@ console.log(transcript);
       description: 'The audio file to generate the transcript from.',
     },
     {
+      name: 'timestampGranularities',
+      type: "Array<'word' | 'segment'>",
+      isOptional: true,
+      description:
+        'Word and segment timings to request. Providers map this onto their native control when the matching provider option is omitted. An explicit provider option wins. A warning is returned when a provider cannot supply a requested granularity.',
+    },
+    {
       name: 'providerOptions',
       type: 'Record<string, JSONObject>',
       isOptional: true,

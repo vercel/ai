@@ -166,8 +166,21 @@ export class GoogleVertexGeminiTranscriptionModel implements TranscriptionModelV
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV4Warning[] = [];
     const googleOptions = await this.parseOptions(options.providerOptions);
+    if (options.timestampGranularities?.includes('segment')) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'timestampGranularities',
+        details:
+          'Vertex Gemini transcription returns word timings and does not provide separate caption segments.',
+      });
+    }
+    const resolvedOptions =
+      googleOptions?.wordTimestamp == null &&
+      options.timestampGranularities?.includes('word')
+        ? { ...googleOptions, wordTimestamp: true }
+        : googleOptions;
     const audioTranscriptionConfig =
-      buildAudioTranscriptionConfig(googleOptions);
+      buildAudioTranscriptionConfig(resolvedOptions);
 
     const requestBody = {
       contents: [

@@ -166,6 +166,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
     audio,
     mediaType,
     providerOptions,
+    timestampGranularities,
   }: OpenAITranscriptionCallOptions) {
     const warnings: SharedV4Warning[] = [];
 
@@ -223,7 +224,10 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
                 : 'verbose_json'),
         }),
         temperature: openAIOptions.temperature,
-        timestamp_granularities: openAIOptions.timestampGranularities,
+        timestamp_granularities:
+          providerOptions?.openai?.timestampGranularities ??
+          timestampGranularities ??
+          openAIOptions.timestampGranularities,
       };
 
       for (const [key, value] of Object.entries(transcriptionModelOptions)) {
@@ -239,6 +243,10 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
       }
     } else if (isDiarizationModel) {
       formData.append('response_format', 'diarized_json');
+    } else if (timestampGranularities != null) {
+      for (const item of timestampGranularities) {
+        formData.append('timestamp_granularities[]', item);
+      }
     }
 
     if (chunkingStrategy != null) {

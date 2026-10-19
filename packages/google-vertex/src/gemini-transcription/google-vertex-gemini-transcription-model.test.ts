@@ -223,6 +223,33 @@ describe('doGenerate', () => {
     expect(result.words).toEqual(result.segments);
   });
 
+  it('maps shared word timings and warns that caption segments are unavailable', async () => {
+    server.urls[
+      `${BASE_URL}/models/gemini-3.5-transcribe:generateContent`
+    ].response = {
+      type: 'json-value',
+      body: { candidates: [{ content: { parts: [{ text: 'Hello' }] } }] },
+    };
+    const model = createModel('gemini-3.5-transcribe');
+    const result = await model.doGenerate({
+      audio: new Uint8Array([1, 2, 3, 4]),
+      mediaType: 'audio/wav',
+      timestampGranularities: ['word', 'segment'],
+    });
+
+    expect((await server.calls[0].requestBodyJson).generationConfig).toEqual({
+      audioTranscriptionConfig: { wordTimestamp: true },
+    });
+    expect(result.warnings).toEqual([
+      {
+        type: 'unsupported',
+        feature: 'timestampGranularities',
+        details:
+          'Vertex Gemini transcription returns word timings and does not provide separate caption segments.',
+      },
+    ]);
+  });
+
   it('rejects unary transcription on live model ids', async () => {
     const model = createModel('gemini-3.5-transcribe-live');
 
