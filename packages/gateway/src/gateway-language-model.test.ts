@@ -688,7 +688,10 @@ describe('GatewayLanguageModel', () => {
             "type": "text-delta",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "type": "finish",
             "usage": {
               "completion_tokens": 20,
@@ -1220,6 +1223,152 @@ describe('GatewayLanguageModel', () => {
     });
   });
 
+  describe('legacy finish reason and usage shapes', () => {
+    const v4FinishReason = { unified: 'tool-calls', raw: 'tool_use' };
+    const v4Usage = {
+      inputTokens: {
+        total: 552,
+        noCache: 552,
+        cacheRead: 0,
+        cacheWrite: 0,
+      },
+      outputTokens: { total: 68, text: 68, reasoning: undefined },
+    };
+
+    it('should convert a v2 finish stream part to the v4 shape', async () => {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"tool-call","toolCallId":"call-1","toolName":"researcher","input":"{\\"chatInput\\":\\"What is 2 plus 2?\\"}"}\n\n`,
+          `data: {"type":"finish","finishReason":"tool-calls","usage":{"inputTokens":552,"outputTokens":68,"totalTokens":620,"cachedInputTokens":0},"providerMetadata":{"gateway":{"routing":{}}}}\n\n`,
+        ],
+      };
+
+      const { stream } = await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts.at(-1)).toEqual({
+        type: 'finish',
+        finishReason: { unified: 'tool-calls', raw: undefined },
+        usage: {
+          inputTokens: {
+            total: 552,
+            noCache: undefined,
+            cacheRead: 0,
+            cacheWrite: undefined,
+          },
+          outputTokens: { total: 68, text: undefined, reasoning: undefined },
+          raw: {
+            inputTokens: 552,
+            outputTokens: 68,
+            totalTokens: 620,
+            cachedInputTokens: 0,
+          },
+        },
+        providerMetadata: { gateway: { routing: {} } },
+      });
+    });
+
+    it('should map the v2 unknown finish reason to other', async () => {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"finish","finishReason":"unknown","usage":{"inputTokens":1,"outputTokens":2}}\n\n`,
+        ],
+      };
+
+      const { stream } = await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: { unified: 'other', raw: undefined },
+      });
+    });
+
+    it('should pass a v4 finish stream part through unchanged', async () => {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            type: 'finish',
+            finishReason: v4FinishReason,
+            usage: v4Usage,
+          })}\n\n`,
+        ],
+      };
+
+      const { stream } = await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts.at(-1)).toEqual({
+        type: 'finish',
+        finishReason: v4FinishReason,
+        usage: {
+          inputTokens: v4Usage.inputTokens,
+          outputTokens: { total: 68, text: 68 },
+        },
+      });
+    });
+
+    it('should convert a v2 generate response to the v4 shape', async () => {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'json-value',
+        body: {
+          content: [],
+          finishReason: 'tool-calls',
+          usage: { inputTokens: 552, outputTokens: 68, reasoningTokens: 3 },
+        },
+      };
+
+      const { finishReason, usage } = await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(finishReason).toEqual({ unified: 'tool-calls', raw: undefined });
+      expect(usage).toEqual({
+        inputTokens: {
+          total: 552,
+          noCache: undefined,
+          cacheRead: undefined,
+          cacheWrite: undefined,
+        },
+        outputTokens: { total: 68, text: undefined, reasoning: 3 },
+        raw: { inputTokens: 552, outputTokens: 68, reasoningTokens: 3 },
+      });
+    });
+
+    it('should pass a v4 generate response through unchanged', async () => {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'json-value',
+        body: {
+          content: [],
+          finishReason: v4FinishReason,
+          usage: v4Usage,
+        },
+      };
+
+      const { finishReason, usage } = await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(finishReason).toEqual(v4FinishReason);
+      expect(usage).toEqual({
+        inputTokens: v4Usage.inputTokens,
+        outputTokens: { total: 68, text: 68 },
+      });
+    });
+  });
+
   describe('raw chunks filtering', () => {
     it('should filter raw chunks based on includeRawChunks option', async () => {
       server.urls['https://api.test.com/language-model'].response = {
@@ -1256,7 +1405,10 @@ describe('GatewayLanguageModel', () => {
             "type": "text-delta",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "type": "finish",
             "usage": {
               "completion_tokens": 5,
@@ -1310,7 +1462,10 @@ describe('GatewayLanguageModel', () => {
             "type": "text-delta",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "type": "finish",
             "usage": {
               "completion_tokens": 5,
@@ -1487,7 +1642,10 @@ describe('GatewayLanguageModel', () => {
             "type": "text-delta",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "timestamp": "2023-12-07T10:30:00.000Z",
             "type": "finish",
             "usage": {

@@ -1,9 +1,12 @@
 import type {
+  JSONObject,
   LanguageModelV4,
   LanguageModelV4CallOptions,
+  LanguageModelV4FinishReason,
   LanguageModelV4StreamPart,
   LanguageModelV4GenerateResult,
   LanguageModelV4StreamResult,
+  LanguageModelV4Usage,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -101,6 +104,8 @@ export class GatewayLanguageModel implements LanguageModelV4 {
 
       return {
         ...responseBody,
+        finishReason: normalizeFinishReason(responseBody.finishReason),
+        usage: normalizeUsage(responseBody.usage),
         request: { body: args },
         response: { headers: responseHeaders, body: rawResponse },
         warnings: [...(responseBody.warnings ?? []), ...warnings],
@@ -169,6 +174,13 @@ export class GatewayLanguageModel implements LanguageModelV4 {
                   typeof streamPart.timestamp === 'string'
                 ) {
                   streamPart.timestamp = new Date(streamPart.timestamp);
+                }
+
+                if (streamPart.type === 'finish') {
+                  streamPart.finishReason = normalizeFinishReason(
+                    streamPart.finishReason,
+                  );
+                  streamPart.usage = normalizeUsage(streamPart.usage);
                 }
 
                 controller.enqueue(streamPart);
@@ -242,4 +254,58 @@ function maybeBase64EncodeFileData<T extends { type: string }>(data: T): T {
     }
   }
   return data;
+}
+
+/**
+ * The Gateway can send the finish reason and usage in the older v2 shape
+ * (a string finish reason and flat token counts) even though the request
+ * asks for specification version 4. Convert those to the v4 shape so that
+ * core can read `finishReason.unified` and the nested usage. Values that are
+ * already in the v4 shape are returned unchanged.
+ */
+function normalizeFinishReason(
+  finishReason: LanguageModelV4FinishReason | string,
+): LanguageModelV4FinishReason {
+  if (typeof finishReason !== 'string') {
+    return finishReason;
+  }
+
+  return {
+    unified:
+      finishReason === 'unknown'
+        ? 'other'
+        : (finishReason as LanguageModelV4FinishReason['unified']),
+    raw: undefined,
+  };
+}
+
+function normalizeUsage(usage: LanguageModelV4Usage): LanguageModelV4Usage {
+  const legacy = usage as unknown as Record<string, unknown> | undefined;
+
+  if (
+    legacy == null ||
+    typeof legacy !== 'object' ||
+    (typeof legacy.inputTokens !== 'number' &&
+      typeof legacy.outputTokens !== 'number')
+  ) {
+    return usage;
+  }
+
+  const asNumber = (value: unknown) =>
+    typeof value === 'number' ? value : undefined;
+
+  return {
+    inputTokens: {
+      total: asNumber(legacy.inputTokens),
+      noCache: undefined,
+      cacheRead: asNumber(legacy.cachedInputTokens),
+      cacheWrite: undefined,
+    },
+    outputTokens: {
+      total: asNumber(legacy.outputTokens),
+      text: undefined,
+      reasoning: asNumber(legacy.reasoningTokens),
+    },
+    raw: legacy as JSONObject,
+  };
 }
