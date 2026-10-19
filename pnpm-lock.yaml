@@ -507,6 +507,9 @@ importers:
       '@ai-sdk/revai':
         specifier: workspace:*
         version: link:../../packages/revai
+      '@ai-sdk/sandbox-e2b':
+        specifier: workspace:*
+        version: link:../../packages/sandbox-e2b
       '@ai-sdk/sandbox-just-bash':
         specifier: workspace:*
         version: link:../../packages/sandbox-just-bash
@@ -585,6 +588,9 @@ importers:
       dotenv:
         specifier: 16.4.5
         version: 16.4.5
+      e2b:
+        specifier: ^2.51.0
+        version: 2.51.0
       effect:
         specifier: 3.21.3
         version: 3.21.3
@@ -4347,6 +4353,31 @@ importers:
         specifier: rc
         version: 19.0.0-rc.1(react@19.0.0-rc.1)
 
+  packages/sandbox-e2b:
+    dependencies:
+      '@ai-sdk/harness':
+        specifier: workspace:*
+        version: link:../harness
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../provider-utils
+      e2b:
+        specifier: ^2.51.0
+        version: 2.51.0
+    devDependencies:
+      '@types/node':
+        specifier: 22.19.19
+        version: 22.19.19
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      tsdown:
+        specifier: ^0.23.0
+        version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@6.0.3)
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+
   packages/sandbox-just-bash:
     dependencies:
       '@ai-sdk/harness':
@@ -6565,6 +6596,9 @@ packages:
   '@braintree/sanitize-url@7.1.2':
     resolution: {integrity: sha512-jigsZK+sMF/cuiB7sERuo9V7N9jx+dhmHHnQyDSVdpZwVutaBu7WvNYqMDLSgFgfB30n452TP3vjDAvFC973mA==}
 
+  '@bufbuild/protobuf@2.15.0':
+    resolution: {integrity: sha512-DAheWUkVr/SJTWCc+lg9dhY0eN4SaWlf4+bG1KzHeXbnqt0AfB/NX0Z+VunGlM1ki1B4zVvye27MpKh/svySUA==}
+
   '@bundled-es-modules/cookie@2.0.1':
     resolution: {integrity: sha512-8o+5fRPLNbjbdGRRmJj3h6Hh1AQJf2dk3qQ/5ZFb+PXkRNiSoMGGUKlsgLfrxneb72axVJyIYji64E2+nNfYyw==}
 
@@ -6742,6 +6776,17 @@ packages:
     resolution: {integrity: sha512-q5P52BYb1hwVWE6dtID7VvuJWrlfbCv4klj7BjUUOqMz4jbSZD4C9fJ9lRjL2jnBGTg+gDDlaXN51rkWcLk4fg==}
     peerDependencies:
       commander: ~13.1.0
+
+  '@connectrpc/connect-web@2.2.0':
+    resolution: {integrity: sha512-uuBUcBTYfb/r1o98LzCCZk1H90yx0vmZ5m21dpw/q4EUwsKwkCDGI8H0aEdjcZld+Q2jJ5A5ADvPqfb6lzQ/sg==}
+    peerDependencies:
+      '@bufbuild/protobuf': ^2.7.0
+      '@connectrpc/connect': 2.2.0
+
+  '@connectrpc/connect@2.2.0':
+    resolution: {integrity: sha512-M63OQ1ZFcPUm85CuewJ9G9CMV8LjzGR9935xOnXNQGSazAbwMb3x2W7vXBYM1zqrP7XFD8uxp/dUAhirclgwnQ==}
+    peerDependencies:
+      '@bufbuild/protobuf': ^2.7.0
 
   '@cspotcode/source-map-support@0.8.1':
     resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==}
@@ -16261,6 +16306,9 @@ packages:
   commondir@1.0.1:
     resolution: {integrity: sha512-W9pAhw0ja1Edb5GVdIF1mjZw/ASI0AlShXM83UUGe2DVr5TdAPEA1OA8m/g8zWp9x6On7gqufY+FatDbC3MDQg==}
 
+  compare-versions@6.1.1:
+    resolution: {integrity: sha512-4hm4VPpIecmlg59CHXnRDnqGplJFrbLG4aFEl5vl6cK1u76ws3LLvX7ikFnTDl5vo39sjWD6AaDPYodJp/NNHg==}
+
   compatx@0.2.0:
     resolution: {integrity: sha512-6gLRNt4ygsi5NyMVhceOCFv14CIdDFN7fQjX1U4+47qVE/+kjPoXMK65KWK+dWxmFzMTuKazoQ9sch6pM0p5oA==}
 
@@ -17012,6 +17060,9 @@ packages:
     resolution: {integrity: sha512-l4gcSouhcgIKRvyy99RNVOgxXiicE+2jZoNmaNmZ6JXiGajBOJAesk1OBlJuM5k2c+eudGdLxDqXuPCKIj6kpw==}
     engines: {node: '>=6'}
 
+  dockerfile-ast@0.7.1:
+    resolution: {integrity: sha512-oX/A4I0EhSkGqrFv0YuvPkBUSYp1XiY8O8zAKc8Djglx8ocz+JfOr8gP0ryRMC2myqvDLagmnZaU9ot1vG2ijw==}
+
   dom-accessibility-api@0.5.16:
     resolution: {integrity: sha512-X7BJ2yElsnOJ30pZF4uIIDfBEVgF4XEBxL9Bxhy6dnrm5hkzqmsWHGTiHqRiITNhMyFLyAiWndIJP7Z1NTteDg==}
 
@@ -17068,6 +17119,10 @@ packages:
 
   duplexer@0.1.2:
     resolution: {integrity: sha512-jtD6YG370ZCIi/9GTaJKQxWTZD045+4R4hTk/x1UyoqadyJ9x9CgSi1RlVDQF8U2sxLLSnFkCaMihqljHIWgMg==}
+
+  e2b@2.51.0:
+    resolution: {integrity: sha512-P+50lx1nOYpgCFyE1xuz6JVN/TqJivMUiH7v+RW0CUSfb4+NCu8IkC5KruT2sNPgp6aexddQQ77+OZKGpZZJ+Q==}
+    engines: {node: '>=20.18.1 <21 || >=22'}
 
   eastasianwidth@0.2.0:
     resolution: {integrity: sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==}
@@ -20794,6 +20849,12 @@ packages:
       zod:
         optional: true
 
+  openapi-fetch@0.14.1:
+    resolution: {integrity: sha512-l7RarRHxlEZYjMLd/PR0slfMVse2/vvIAGm75/F7J6MlQ8/b9uUQmUF2kCPrQhJqMXSxmYWObVgeYXbFYzZR+A==}
+
+  openapi-typescript-helpers@0.0.15:
+    resolution: {integrity: sha512-opyTPaunsklCBpTK8JGef6mfPhLSnyy5a0IN9vKtx3+4aExf+KxEqYwIy3hqkedXIB97u357uLMJsOnm3GVjsw==}
+
   opossum@10.0.0:
     resolution: {integrity: sha512-sghtqL8Usj+et06Zui0nyn0R6FFsl7cyuoU+d7MctYU0nbS7Htzjleh+tWohFqk1Rp1srrFwbFa8Vxd0O64w6A==}
     engines: {node: ^26 || ^24 || ^22}
@@ -21224,6 +21285,9 @@ packages:
   pkijs@3.4.1:
     resolution: {integrity: sha512-Oo/NZcSWccq8KyoG7gLE9fnltgHns+pNCjCAp/WmjsUySi+sX7y4z4Xqu4fVb42CDHzRPl33fjzT15V1wvcyhA==}
     engines: {node: '>=16.0.0'}
+
+  platform@1.3.6:
+    resolution: {integrity: sha512-fnWVljUchTro6RiCFvCXBbNhJc2NijN7oIQxbwsyL0buWJPG85v81ehlHI9fXrJsMNgTofEoWIQeClKpgxFLrg==}
 
   player.style@0.3.4:
     resolution: {integrity: sha512-5O9bkbq0APQIkhptyZwp0gUgheCeImGPFo4hvPF2M5xBmgsUYzsUPHCfMye2xyeRE1zvQBKtziaC3jPgnHE1tw==}
@@ -24287,6 +24351,12 @@ packages:
   vscode-jsonrpc@9.0.1:
     resolution: {integrity: sha512-rfuA6T75H6m5EkbhtEPzre9pT0HPcDI2MMy4+nPFIBks5J8JBAUHD4tRYSgaBOijIEC7SRkC1kKyXTLqbmh9jw==}
     engines: {node: '>=14.0.0'}
+
+  vscode-languageserver-textdocument@1.0.15:
+    resolution: {integrity: sha512-Gsfr9S8LU3S6885cS+NaleasJ0n3V5y/SOTqHCifQiXWFw3G9w9/YItDfwHrlCz+dSZWWZ8ilYVMcJe7Sz7Sxw==}
+
+  vscode-languageserver-types@3.18.4:
+    resolution: {integrity: sha512-nQsacoiijvl0fRf2q28uFDrAVwRhdCa3QveiF7/CX0r18mLR5FU/1WskSsCKOjmEbtteKUnY8x8Yzxop+k0zwg==}
 
   vue-bundle-renderer@2.3.2:
     resolution: {integrity: sha512-BtazFw0lm3N/ZE4+tre2g8G+c5wolfizu+e5jxZAcao0gcy5KJei9Yopl1svDato2poeFldVLfmLMk57Sg8rLg==}
@@ -27532,6 +27602,8 @@ snapshots:
 
   '@braintree/sanitize-url@7.1.2': {}
 
+  '@bufbuild/protobuf@2.15.0': {}
+
   '@bundled-es-modules/cookie@2.0.1':
     dependencies:
       cookie: 0.7.2
@@ -27916,6 +27988,15 @@ snapshots:
   '@commander-js/extra-typings@13.1.0(commander@13.1.0)':
     dependencies:
       commander: 13.1.0
+
+  '@connectrpc/connect-web@2.2.0(@bufbuild/protobuf@2.15.0)(@connectrpc/connect@2.2.0(@bufbuild/protobuf@2.15.0))':
+    dependencies:
+      '@bufbuild/protobuf': 2.15.0
+      '@connectrpc/connect': 2.2.0(@bufbuild/protobuf@2.15.0)
+
+  '@connectrpc/connect@2.2.0(@bufbuild/protobuf@2.15.0)':
+    dependencies:
+      '@bufbuild/protobuf': 2.15.0
 
   '@cspotcode/source-map-support@0.8.1':
     dependencies:
@@ -39934,6 +40015,8 @@ snapshots:
 
   commondir@1.0.1: {}
 
+  compare-versions@6.1.1: {}
+
   compatx@0.2.0: {}
 
   complex.js@2.4.3: {}
@@ -40826,6 +40909,11 @@ snapshots:
     dependencies:
       '@leichtgewicht/ip-codec': 2.0.5
 
+  dockerfile-ast@0.7.1:
+    dependencies:
+      vscode-languageserver-textdocument: 1.0.15
+      vscode-languageserver-types: 3.18.4
+
   dom-accessibility-api@0.5.16: {}
 
   dom-accessibility-api@0.6.3: {}
@@ -40873,6 +40961,22 @@ snapshots:
       gopd: 1.2.0
 
   duplexer@0.1.2: {}
+
+  e2b@2.51.0:
+    dependencies:
+      '@bufbuild/protobuf': 2.15.0
+      '@connectrpc/connect': 2.2.0(@bufbuild/protobuf@2.15.0)
+      '@connectrpc/connect-web': 2.2.0(@bufbuild/protobuf@2.15.0)(@connectrpc/connect@2.2.0(@bufbuild/protobuf@2.15.0))
+      chalk: 5.6.2
+      compare-versions: 6.1.1
+      dockerfile-ast: 0.7.1
+      glob: 13.0.6
+      openapi-fetch: 0.14.1
+      platform: 1.3.6
+      tar: 7.5.19
+      undici: 7.29.1
+    optionalDependencies:
+      undici8: undici@8.10.2
 
   eastasianwidth@0.2.0: {}
 
@@ -46300,6 +46404,12 @@ snapshots:
       zod: 3.25.76
     optional: true
 
+  openapi-fetch@0.14.1:
+    dependencies:
+      openapi-typescript-helpers: 0.0.15
+
+  openapi-typescript-helpers@0.0.15: {}
+
   opossum@10.0.0: {}
 
   optionator@0.9.4:
@@ -46810,6 +46920,8 @@ snapshots:
       pvtsutils: 1.3.6
       pvutils: 1.2.0
       tslib: 2.8.1
+
+  platform@1.3.6: {}
 
   player.style@0.3.4(react@19.2.6):
     dependencies:
@@ -50920,6 +51032,10 @@ snapshots:
   voca@1.4.1: {}
 
   vscode-jsonrpc@9.0.1: {}
+
+  vscode-languageserver-textdocument@1.0.15: {}
+
+  vscode-languageserver-types@3.18.4: {}
 
   vue-bundle-renderer@2.3.2:
     dependencies:

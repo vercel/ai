@@ -166,3 +166,4 @@ Use the network layer when consumers need ports, network policy or request trans
 - Template creation - [`packages/harness/src/agent/create-harness-sandbox-template.ts`](../packages/harness/src/agent/create-harness-sandbox-template.ts)
 - Vercel sandbox sessions - [`packages/sandbox-vercel/src/vercel-sandbox.ts`](../packages/sandbox-vercel/src/vercel-sandbox.ts)
 - Just Bash sandbox sessions - [`packages/sandbox-just-bash/src/just-bash-sandbox.ts`](../packages/sandbox-just-bash/src/just-bash-sandbox.ts)
+- E2B sandbox sessions - [`packages/sandbox-e2b/src/e2b-sandbox.ts`](../packages/sandbox-e2b/src/e2b-sandbox.ts)
