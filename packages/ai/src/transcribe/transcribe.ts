@@ -18,6 +18,7 @@ import { createDownload } from '../util/download/create-download';
 import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
 import type { TranscriptionResult } from './transcribe-result';
+import { asTranscriptionUsage } from './transcription-usage';
 import { VERSION } from '../version';
 import type { Warning } from '../types';
 import type {
@@ -291,6 +292,7 @@ export async function transcribe({
           segments: result.segments,
           language: result.language,
           durationInSeconds: result.durationInSeconds,
+          usage: asTranscriptionUsage(result.usage),
           warnings: result.warnings,
           responses: [result.response],
           providerMetadata: result.providerMetadata,
@@ -312,6 +314,7 @@ class DefaultTranscriptionResult implements TranscriptionResult {
   }>;
   readonly language: string | undefined;
   readonly durationInSeconds: number | undefined;
+  readonly usage: TranscriptionResult['usage'];
   readonly warnings: Array<Warning>;
   readonly responses: Array<TranscriptionModelResponseMetadata>;
   readonly providerMetadata: Record<string, JSONObject>;
@@ -325,6 +328,7 @@ class DefaultTranscriptionResult implements TranscriptionResult {
     }>;
     language: string | undefined;
     durationInSeconds: number | undefined;
+    usage: TranscriptionResult['usage'];
     warnings: Array<Warning>;
     responses: Array<TranscriptionModelResponseMetadata>;
     providerMetadata: Record<string, JSONObject> | undefined;
@@ -333,6 +337,7 @@ class DefaultTranscriptionResult implements TranscriptionResult {
     this.segments = options.segments;
     this.language = options.language;
     this.durationInSeconds = options.durationInSeconds;
+    this.usage = options.usage;
     this.warnings = options.warnings;
     this.responses = options.responses;
     this.providerMetadata = options.providerMetadata ?? {};

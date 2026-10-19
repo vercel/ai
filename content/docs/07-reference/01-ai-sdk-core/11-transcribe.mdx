@@ -108,6 +108,12 @@ console.log(transcript);
       description: 'The duration of the transcript in seconds.',
     },
     {
+      name: 'usage',
+      type: 'TranscriptionUsage | undefined',
+      description:
+        'Normalized token usage when the provider reports it. `inputTokens`, `outputTokens`, and `totalTokens` use the same counters as text generation. `usage.raw` is the provider usage object and can include non-token fields such as billed audio seconds. Undefined when the provider did not report usage.',
+    },
+    {
       name: 'warnings',
       type: 'Warning[]',
       description:

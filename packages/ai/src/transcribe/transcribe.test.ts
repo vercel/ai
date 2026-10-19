@@ -58,11 +58,13 @@ const createMockResponse = (options: {
   modelId?: string;
   headers?: Record<string, string>;
   providerMetadata?: Record<string, JSONObject>;
+  usage?: JSONObject;
 }) => ({
   text: options.text,
   segments: options.segments,
   language: options.language,
   durationInSeconds: options.durationInSeconds,
+  usage: options.usage,
   warnings: options.warnings ?? [],
   response: {
     timestamp: options.timestamp ?? new Date(),
@@ -329,7 +331,62 @@ describe('transcribe', () => {
         },
       ],
       providerMetadata: {},
+      usage: undefined,
     });
+  });
+
+  it('should normalize provider usage onto common token counters', async () => {
+    const cases: Array<{
+      usage: JSONObject;
+      expected: {
+        inputTokens: number | undefined;
+        outputTokens: number | undefined;
+        totalTokens: number | undefined;
+      };
+    }> = [
+      {
+        usage: { input_tokens: 14, output_tokens: 45, total_tokens: 59 },
+        expected: { inputTokens: 14, outputTokens: 45, totalTokens: 59 },
+      },
+      {
+        usage: { prompt_tokens: 8, completion_tokens: 3 },
+        expected: { inputTokens: 8, outputTokens: 3, totalTokens: 11 },
+      },
+      {
+        usage: {
+          promptTokenCount: 7,
+          candidatesTokenCount: 2,
+          totalTokenCount: 9,
+        },
+        expected: { inputTokens: 7, outputTokens: 2, totalTokens: 9 },
+      },
+      {
+        usage: { seconds: 12.5 },
+        expected: {
+          inputTokens: undefined,
+          outputTokens: undefined,
+          totalTokens: undefined,
+        },
+      },
+    ];
+
+    for (const { usage, expected } of cases) {
+      const result = await transcribe({
+        model: new MockTranscriptionModelV4({
+          doGenerate: async () =>
+            createMockResponse({
+              ...sampleTranscript,
+              usage,
+            }),
+        }),
+        audio: audioData,
+      });
+
+      expect(result.usage).toEqual({
+        ...expected,
+        raw: usage,
+      });
+    }
   });
 
   it('should return an empty transcript', async () => {
