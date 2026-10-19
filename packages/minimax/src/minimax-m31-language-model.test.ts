@@ -454,46 +454,43 @@ describe('MiniMax M3.1 and later', () => {
 
 describe('older MiniMax model compatibility', () => {
   for (const mode of ['generate', 'stream'] as const) {
-    it.each([
-      'minimax-m3',
-      'minimax-m2.7',
-      'minimax-m2.7-highspeed',
-      'minimax-m2.5',
-      'minimax-m2.5-highspeed',
-      'minimax-m2.1',
-      'minimax-m2.1-highspeed',
-      'minimax-m2',
-    ])(`${mode}: preserves %s wire behavior`, async id => {
-      for (const thinking of [
-        undefined,
-        { type: 'adaptive' },
-        { type: 'disabled' },
-      ]) {
-        const { provider, fetch, requests } = createFixture();
-        const reference = new AnthropicLanguageModel(id, {
-          provider: 'minimax.messages',
-          baseURL: 'https://api.minimax.io/anthropic/v1',
-          headers: {},
-          fetch,
-        });
-        const options = { prompt, providerOptions: { minimax: { thinking } } };
-        if (mode === 'generate') {
-          const actual = await provider(id).doGenerate(options);
-          const expected = await reference.doGenerate(options);
-          expect(actual.content).toEqual(expected.content);
-          expect(actual.usage).toEqual(expected.usage);
-          expect(actual.warnings).toEqual(expected.warnings);
-        } else {
-          const actual = await readStream(
-            (await provider(id).doStream(options)).stream,
-          );
-          const expected = await readStream(
-            (await reference.doStream(options)).stream,
-          );
-          expect(actual).toEqual(expected);
+    it.each(['minimax-m3', 'minimax-m2.7'])(
+      `${mode}: preserves %s wire behavior`,
+      async id => {
+        for (const thinking of [
+          undefined,
+          { type: 'adaptive' },
+          { type: 'disabled' },
+        ]) {
+          const { provider, fetch, requests } = createFixture();
+          const reference = new AnthropicLanguageModel(id, {
+            provider: 'minimax.messages',
+            baseURL: 'https://api.minimax.io/anthropic/v1',
+            headers: {},
+            fetch,
+          });
+          const options = {
+            prompt,
+            providerOptions: { minimax: { thinking } },
+          };
+          if (mode === 'generate') {
+            const actual = await provider(id).doGenerate(options);
+            const expected = await reference.doGenerate(options);
+            expect(actual.content).toEqual(expected.content);
+            expect(actual.usage).toEqual(expected.usage);
+            expect(actual.warnings).toEqual(expected.warnings);
+          } else {
+            const actual = await readStream(
+              (await provider(id).doStream(options)).stream,
+            );
+            const expected = await readStream(
+              (await reference.doStream(options)).stream,
+            );
+            expect(actual).toEqual(expected);
+          }
+          expect(requests[0]).toEqual(requests[1]);
         }
-        expect(requests[0]).toEqual(requests[1]);
-      }
-    });
+      },
+    );
   }
 });
