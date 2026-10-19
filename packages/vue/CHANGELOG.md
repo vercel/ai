@@ -1,5 +1,12 @@
 # @ai-sdk/vue
 
+## 3.0.311
+
+### Patch Changes
+
+- Updated dependencies [af9972b]
+  - ai@6.0.311
+
 ## 3.0.310
 
 ### Patch Changes
