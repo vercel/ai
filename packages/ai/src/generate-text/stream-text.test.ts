@@ -16626,151 +16626,74 @@ describe('streamText', () => {
 
         const fullStream = await convertAsyncIterableToArray(result.fullStream);
 
-        if (nodeVersionIs24_15) {
-          expect(fullStream).toMatchInlineSnapshot(`
-            [
-              {
-                "type": "start",
+        expect(fullStream).toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": "Hello, ",
+              "type": "text-delta",
+            },
+            {
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "rawFinishReason": undefined,
+              "response": {
+                "id": "response-id",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
               },
-              {
-                "request": {},
-                "type": "start-step",
-                "warnings": [],
-              },
-              {
-                "id": "1",
-                "type": "text-start",
-              },
-              {
-                "id": "1",
-                "providerMetadata": undefined,
-                "text": "Hello, ",
-                "type": "text-delta",
-              },
-              {
-                "finishReason": "stop",
-                "providerMetadata": undefined,
-                "rawFinishReason": undefined,
-                "response": {
-                  "id": "response-id",
-                  "modelId": "mock-model-id",
-                  "timestamp": 1970-01-01T00:00:00.000Z,
+              "type": "finish-step",
+              "usage": {
+                "inputTokenDetails": {
+                  "cacheReadTokens": undefined,
+                  "cacheWriteTokens": undefined,
+                  "noCacheTokens": undefined,
                 },
-                "type": "finish-step",
-                "usage": {
-                  "inputTokenDetails": {
-                    "cacheReadTokens": undefined,
-                    "cacheWriteTokens": undefined,
-                    "noCacheTokens": undefined,
-                  },
-                  "inputTokens": undefined,
-                  "outputTokenDetails": {
-                    "reasoningTokens": undefined,
-                    "textTokens": undefined,
-                  },
-                  "outputTokens": undefined,
-                  "raw": undefined,
-                  "totalTokens": undefined,
+                "inputTokens": undefined,
+                "outputTokenDetails": {
+                  "reasoningTokens": undefined,
+                  "textTokens": undefined,
                 },
+                "outputTokens": undefined,
+                "raw": undefined,
+                "totalTokens": undefined,
               },
-              {
-                "finishReason": "stop",
-                "rawFinishReason": undefined,
-                "totalUsage": {
-                  "inputTokenDetails": {
-                    "cacheReadTokens": undefined,
-                    "cacheWriteTokens": undefined,
-                    "noCacheTokens": undefined,
-                  },
-                  "inputTokens": undefined,
-                  "outputTokenDetails": {
-                    "reasoningTokens": undefined,
-                    "textTokens": undefined,
-                  },
-                  "outputTokens": undefined,
-                  "raw": undefined,
-                  "totalTokens": undefined,
+            },
+            {
+              "finishReason": "stop",
+              "rawFinishReason": undefined,
+              "totalUsage": {
+                "inputTokenDetails": {
+                  "cacheReadTokens": undefined,
+                  "cacheWriteTokens": undefined,
+                  "noCacheTokens": undefined,
                 },
-                "type": "finish",
-              },
-              {
-                "id": "1",
-                "providerMetadata": undefined,
-                "text": " World",
-                "type": "text-delta",
-              },
-            ]
-          `);
-        } else {
-          expect(fullStream).toMatchInlineSnapshot(`
-            [
-              {
-                "type": "start",
-              },
-              {
-                "request": {},
-                "type": "start-step",
-                "warnings": [],
-              },
-              {
-                "id": "1",
-                "type": "text-start",
-              },
-              {
-                "id": "1",
-                "providerMetadata": undefined,
-                "text": "Hello, ",
-                "type": "text-delta",
-              },
-              {
-                "finishReason": "stop",
-                "providerMetadata": undefined,
-                "rawFinishReason": undefined,
-                "response": {
-                  "id": "response-id",
-                  "modelId": "mock-model-id",
-                  "timestamp": 1970-01-01T00:00:00.000Z,
+                "inputTokens": undefined,
+                "outputTokenDetails": {
+                  "reasoningTokens": undefined,
+                  "textTokens": undefined,
                 },
-                "type": "finish-step",
-                "usage": {
-                  "inputTokenDetails": {
-                    "cacheReadTokens": undefined,
-                    "cacheWriteTokens": undefined,
-                    "noCacheTokens": undefined,
-                  },
-                  "inputTokens": undefined,
-                  "outputTokenDetails": {
-                    "reasoningTokens": undefined,
-                    "textTokens": undefined,
-                  },
-                  "outputTokens": undefined,
-                  "raw": undefined,
-                  "totalTokens": undefined,
-                },
+                "outputTokens": undefined,
+                "raw": undefined,
+                "totalTokens": undefined,
               },
-              {
-                "finishReason": "stop",
-                "rawFinishReason": undefined,
-                "totalUsage": {
-                  "inputTokenDetails": {
-                    "cacheReadTokens": undefined,
-                    "cacheWriteTokens": undefined,
-                    "noCacheTokens": undefined,
-                  },
-                  "inputTokens": undefined,
-                  "outputTokenDetails": {
-                    "reasoningTokens": undefined,
-                    "textTokens": undefined,
-                  },
-                  "outputTokens": undefined,
-                  "raw": undefined,
-                  "totalTokens": undefined,
-                },
-                "type": "finish",
-              },
-            ]
-          `);
-        }
+              "type": "finish",
+            },
+          ]
+        `);
       });
 
       it('options.onStepFinish should be called', async () => {
@@ -16802,75 +16725,62 @@ describe('streamText', () => {
 
         await resultObject.consumeStream();
 
-        if (nodeVersionIs24_15) {
-          expect(result.content[0]).toMatchObject({
-            providerMetadata: undefined,
-            text: 'Hello,  World',
-            type: 'text',
-          });
-          expect(result.response.messages[0].content[0]).toMatchObject({
-            providerOptions: undefined,
-            text: 'Hello, ',
-            type: 'text',
-          });
-        } else {
-          expect(result).toMatchInlineSnapshot(`
-          DefaultStepResult {
-            "content": [
+        expect(result).toMatchInlineSnapshot(`
+        DefaultStepResult {
+          "content": [
+            {
+              "providerMetadata": undefined,
+              "text": "Hello, ",
+              "type": "text",
+            },
+          ],
+          "experimental_context": undefined,
+          "finishReason": "stop",
+          "functionId": undefined,
+          "metadata": undefined,
+          "model": {
+            "modelId": "mock-model-id",
+            "provider": "mock-provider",
+          },
+          "providerMetadata": undefined,
+          "rawFinishReason": undefined,
+          "request": {},
+          "response": {
+            "id": "response-id",
+            "messages": [
               {
-                "providerMetadata": undefined,
-                "text": "Hello, ",
-                "type": "text",
+                "content": [
+                  {
+                    "providerOptions": undefined,
+                    "text": "Hello, ",
+                    "type": "text",
+                  },
+                ],
+                "role": "assistant",
               },
             ],
-            "experimental_context": undefined,
-            "finishReason": "stop",
-            "functionId": undefined,
-            "metadata": undefined,
-            "model": {
-              "modelId": "mock-model-id",
-              "provider": "mock-provider",
+            "modelId": "mock-model-id",
+            "timestamp": 1970-01-01T00:00:00.000Z,
+          },
+          "stepNumber": 0,
+          "usage": {
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": undefined,
             },
-            "providerMetadata": undefined,
-            "rawFinishReason": undefined,
-            "request": {},
-            "response": {
-              "id": "response-id",
-              "messages": [
-                {
-                  "content": [
-                    {
-                      "providerOptions": undefined,
-                      "text": "Hello, ",
-                      "type": "text",
-                    },
-                  ],
-                  "role": "assistant",
-                },
-              ],
-              "modelId": "mock-model-id",
-              "timestamp": 1970-01-01T00:00:00.000Z,
+            "inputTokens": undefined,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": undefined,
             },
-            "stepNumber": 0,
-            "usage": {
-              "inputTokenDetails": {
-                "cacheReadTokens": undefined,
-                "cacheWriteTokens": undefined,
-                "noCacheTokens": undefined,
-              },
-              "inputTokens": undefined,
-              "outputTokenDetails": {
-                "reasoningTokens": undefined,
-                "textTokens": undefined,
-              },
-              "outputTokens": undefined,
-              "raw": undefined,
-              "totalTokens": undefined,
-            },
-            "warnings": [],
-          }
-        `);
+            "outputTokens": undefined,
+            "raw": undefined,
+            "totalTokens": undefined,
+          },
+          "warnings": [],
         }
+      `);
       });
     });
   });
