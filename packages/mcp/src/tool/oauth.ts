@@ -92,6 +92,11 @@ export interface OAuthClientProvider {
   ): void | Promise<void>;
   get redirectUrl(): string | URL;
   get clientMetadata(): OAuthClientMetadata;
+  /**
+   * Returns client credentials. Pre-registered confidential clients must specify
+   * their authorization server's `issuer` or provide stored authorization server
+   * information. `validateAuthorizationServerURL` does not replace this binding.
+   */
   clientInformation():
     | OAuthClientInformation
     | undefined
@@ -119,6 +124,7 @@ export interface OAuthClientProvider {
   /**
    * Validates an authorization server URL discovered from MCP protected resource
    * metadata before the client fetches its OAuth metadata.
+   * This additional restriction does not bind client credentials to that server.
    */
   validateAuthorizationServerURL?(
     serverUrl: string | URL,
@@ -1251,11 +1257,20 @@ export async function auth(
       await provider.invalidateCredentials?.('all');
       return await authInternal(provider, options);
     } else if (error instanceof InvalidGrantError && refreshAttempt.tokens) {
+      // Keep the binding validated before the refresh, even when deleting the
+      // rejected tokens removes the provider's only copy of that binding.
+      const retryAuthorizationServerInformation =
+        getAuthorizationServerInformationFromCredentials(refreshAttempt.tokens);
       // Only invalidate the tokens used by a failed refresh.
       await provider.invalidateCredentials?.('tokens', {
         tokens: refreshAttempt.tokens,
       });
-      return await authInternal(provider, options);
+      return await authInternal(
+        provider,
+        options,
+        undefined,
+        retryAuthorizationServerInformation,
+      );
     }
 
     throw error;
@@ -1311,6 +1326,7 @@ async function authInternal(
     fetchFn?: FetchFunction;
   },
   refreshAttempt?: { tokens?: OAuthTokens },
+  retryAuthorizationServerInformation?: OAuthAuthorizationServerInformation,
 ): Promise<AuthResult> {
   let resourceMetadata: OAuthProtectedResourceMetadata | undefined;
   let authorizationServerUrl: string | URL | undefined;
@@ -1401,6 +1417,12 @@ async function authInternal(
   );
   const currentAuthorizationServerInformation =
     createAuthorizationServerInformation(authorizationServerUrl, metadata);
+  if (retryAuthorizationServerInformation) {
+    assertAuthorizationServerInformationMatches({
+      storedAuthorizationServerInformation: retryAuthorizationServerInformation,
+      currentAuthorizationServerInformation,
+    });
+  }
   const clientMetadata = provider.clientMetadata;
   const selectedScope = selectScope({
     scope,
@@ -1412,6 +1434,63 @@ async function authInternal(
   if (authorizationCode === undefined) {
     clientInformation = await Promise.resolve(provider.clientInformation());
   }
+<<<<<<< HEAD
+=======
+  const tokens =
+    authorizationCode === undefined ? await provider.tokens() : undefined;
+  if (clientInformation) {
+    // A flow pin must never override the issuer attached to the credentials.
+    if (
+      clientInformation.issuer != null &&
+      clientInformation.issuer !== currentAuthorizationServerInformation.issuer
+    ) {
+      throw new AuthorizationServerMismatchError({
+        message:
+          'OAuth authorization server does not match the issuer of the client credentials',
+      });
+    }
+
+    const clientAuthorizationServerInformation =
+      getAuthorizationServerInformationFromCredentials(clientInformation);
+    if (clientAuthorizationServerInformation) {
+      assertAuthorizationServerInformationMatches({
+        storedAuthorizationServerInformation:
+          clientAuthorizationServerInformation,
+        currentAuthorizationServerInformation,
+      });
+    }
+
+    const storedAuthorizationServerInformation =
+      callbackAuthorizationServerInformation ??
+      (await getStoredAuthorizationServerInformation({
+        provider,
+        clientInformation,
+        tokens,
+      })) ??
+      retryAuthorizationServerInformation;
+    if (storedAuthorizationServerInformation) {
+      assertAuthorizationServerInformationMatches({
+        storedAuthorizationServerInformation,
+        currentAuthorizationServerInformation,
+      });
+    }
+
+    // Do not turn an MCP server's choice of AS into a trust binding for an
+    // existing secret. Dynamic registration below binds newly issued credentials.
+    if (
+      (clientInformation.client_secret != null ||
+        provider.addClientAuthentication) &&
+      clientInformation.issuer == null &&
+      !storedAuthorizationServerInformation
+    ) {
+      throw new AuthorizationServerMismatchError({
+        message:
+          'OAuth client credentials must be bound to an authorization server: configure their issuer or store authorization server information',
+      });
+    }
+  }
+
+>>>>>>> 2b8185efdd (fix(mcp): bind OAuth client credentials to their authorization server (#23579))
   if (!clientInformation) {
     if (authorizationCode !== undefined) {
       throw new Error(
@@ -1489,8 +1568,6 @@ async function authInternal(
     );
     return 'AUTHORIZED';
   }
-
-  const tokens = await provider.tokens();
 
   /** Refresh only when stored credentials match the current AS pin */
   if (tokens?.refresh_token) {
