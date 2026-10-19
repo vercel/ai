@@ -196,7 +196,7 @@ export type ChatOnFinishCallback<UI_MESSAGE extends UIMessage> = (options: {
 export interface ChatInit<UI_MESSAGE extends UIMessage> {
   /**
    * A unique identifier for the chat. If not provided, a random one will be
-   * generated.
+   * generated when first accessed.
    */
   id?: string;
 
@@ -249,7 +249,12 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
 }
 
 export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
-  readonly id: string;
+  private _id: string | undefined;
+
+  get id(): string {
+    return (this._id ??= this.generateId());
+  }
+
   readonly generateId: IdGenerator;
 
   protected state: ChatState<UI_MESSAGE>;
@@ -280,7 +285,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
   constructor({
     generateId = generateIdFunc,
-    id = generateId(),
+    id,
     transport = new DefaultChatTransport(),
     messageMetadataSchema,
     dataPartSchemas,
@@ -293,7 +298,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   }: Omit<ChatInit<UI_MESSAGE>, 'messages'> & {
     state: ChatState<UI_MESSAGE>;
   }) {
-    this.id = id;
+    this._id = id;
     this.transport = transport;
     this.generateId = generateId;
     this.messageMetadataSchema = messageMetadataSchema;
@@ -539,6 +544,33 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
    */
   resumeStream = async (options: ChatRequestOptions = {}): Promise<void> => {
     await this.makeRequest({ trigger: 'resume-stream', ...options });
+  };
+
+  /**
+   * Resume the stream if the latest response ended with a resumable network
+   * disconnect. If a response is still active, wait for it to settle first so
+   * disconnects reported shortly after the caller's trigger are handled.
+   *
+   * @internal
+   */
+  '~resumeStreamIfDisconnected' = async ({
+    shouldResume = () => true,
+  }: {
+    shouldResume?: () => boolean;
+  } = {}): Promise<void> => {
+    const activeResponse = this.activeResponse;
+
+    if (this.resumableStreamState == null && activeResponse != null) {
+      await activeResponse.completionPromise;
+
+      if (this.resumableStreamState !== activeResponse.state) {
+        return;
+      }
+    }
+
+    if (this.resumableStreamState != null && shouldResume()) {
+      await this.resumeStream();
+    }
   };
 
   /**

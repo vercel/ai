@@ -1,5 +1,42 @@
 # @ai-sdk/provider-utils
 
+## 5.0.63
+
+### Patch Changes
+
+- Updated dependencies [60cc252]
+  - @ai-sdk/provider@4.0.30
+
+## 5.0.62
+
+### Patch Changes
+
+- 0957554: Add `box` decision question type with image bounds for TypeSafe AI.
+- Updated dependencies [0957554]
+  - @ai-sdk/provider@4.0.29
+
+## 5.0.61
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+
+## 5.0.60
+
+### Patch Changes
+
+- 2e89fa4: fix(provider-utils): keep case-sensitive url paths and query values
+
+## 5.0.59
+
+### Patch Changes
+
+- 9667bf2: docs(provider-utils): clarify how `ToolApprovalResponse.reason` is handled for approved and denied tool calls
+- 81663cc: fix(provider-utils): accept exact criteria labels in decision choice responses
+- Updated dependencies [e57803c]
+  - @ai-sdk/provider@4.0.27
+
 ## 5.0.58
 
 ### Patch Changes

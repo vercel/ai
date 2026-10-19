@@ -10,6 +10,7 @@ contains language model support for Perplexity's Agent API, including web search
 - Direct access to supported third-party models through Perplexity
 - Native tools for web search, URL fetching, code execution, finance, MCP, and connectors
 - AI SDK function tools, structured output, reasoning streams, and multi-turn tool calls
+- Native Choice, Score, and Boolean decisions with probability distributions and image input
 
 > **Deploying to Vercel?** With Vercel's AI Gateway you can access Perplexity (and hundreds of models from other providers) — no additional packages, API keys, or extra cost. [Get started with AI Gateway](https://vercel.com/ai-gateway).
 
@@ -57,6 +58,31 @@ before upgrading an existing application.
 Perplexity supports Sonar Chat Completions only until September 27, 2026.
 Remaining on version 4 will not preserve language generation after that date.
 Migrate unsupported Sonar features using the alternatives in the migration notes.
+
+## Decisions
+
+```ts
+import { perplexity } from '@ai-sdk/perplexity';
+import { experimental_decide as decide } from 'ai';
+
+const result = await decide({
+  model: perplexity.decisionModel('pplx-decider-latest'),
+  state: 'I was charged twice.',
+  questions: {
+    team: {
+      type: 'choice',
+      criteria: { billing: 'Payments and refunds', support: 'Other requests' },
+    },
+  },
+});
+
+console.log(result.answers.team.choice);
+console.log(result.answers.team.probabilities);
+```
+
+See [decision model documentation](https://ai-sdk.dev/providers/ai-sdk-providers/perplexity#decision-models)
+for optional instructions, structured criteria, single-level Score rubrics,
+images, limits, and provider metadata.
 
 ## Documentation
 

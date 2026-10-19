@@ -1,5 +1,76 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.119
+
+### Patch Changes
+
+- Updated dependencies [acbc819]
+- Updated dependencies [60cc252]
+  - @ai-sdk/openai@4.0.97
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/anthropic@4.0.83
+  - @ai-sdk/provider-utils@5.0.63
+
+## 5.0.118
+
+### Patch Changes
+
+- Updated dependencies [2be133e]
+- Updated dependencies [0957554]
+- Updated dependencies [fa98094]
+  - @ai-sdk/openai@4.0.96
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+  - @ai-sdk/anthropic@4.0.82
+
+## 5.0.117
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+- Updated dependencies [e254e96]
+  - @ai-sdk/provider@4.0.28
+  - @ai-sdk/openai@4.0.95
+  - @ai-sdk/anthropic@4.0.81
+  - @ai-sdk/provider-utils@5.0.61
+
+## 5.0.116
+
+### Patch Changes
+
+- Updated dependencies [2e89fa4]
+- Updated dependencies [40d0aec]
+- Updated dependencies [40a4ce1]
+  - @ai-sdk/provider-utils@5.0.60
+  - @ai-sdk/anthropic@4.0.80
+  - @ai-sdk/openai@4.0.94
+
+## 5.0.115
+
+### Patch Changes
+
+- Updated dependencies [216e2c9]
+  - @ai-sdk/openai@4.0.93
+
+## 5.0.114
+
+### Patch Changes
+
+- 6971b00: Use known supported Claude models for native structured output and strict tools on Bedrock. Future Claude model IDs omit those unsupported fields and use JSON instructions for structured output by default.
+- Updated dependencies [1ccc7fb]
+- Updated dependencies [6aedb07]
+- Updated dependencies [9667bf2]
+- Updated dependencies [c91c857]
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+- Updated dependencies [e57803c]
+- Updated dependencies [1f7e5ad]
+- Updated dependencies [e57803c]
+  - @ai-sdk/anthropic@4.0.79
+  - @ai-sdk/openai@4.0.92
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/provider@4.0.27
+
 ## 5.0.113
 
 ### Patch Changes

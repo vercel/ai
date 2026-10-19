@@ -71,3 +71,14 @@ export {
 export { resolveSandboxDefaultWorkingDirectory } from './resolve-sandbox-default-working-directory';
 export { getRestrictedSandboxSession } from './get-restricted-sandbox-session';
 export { sleep } from './sleep';
+export { normalizeHarnessToolModelOutput } from './normalize-harness-tool-model-output';
+export {
+  harnessPromptContentSchema,
+  extractHarnessPromptContent,
+  type HarnessPromptContent,
+  type HarnessPromptContentPart,
+} from './extract-harness-prompt-content';
+export {
+  convertHarnessToolModelOutput,
+  type HarnessToolModelOutputContent,
+} from './convert-harness-tool-model-output';

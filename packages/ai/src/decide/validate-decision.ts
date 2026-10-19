@@ -84,13 +84,18 @@ export function validateDecisionInput({
 
   for (const [id, question] of Object.entries(questions)) {
     const parameter = `questions.${id}`;
-    if (!isRecord(question) || !isInput(question.instructions)) {
+    if (
+      !isRecord(question) ||
+      ((question.type === 'box' || question.instructions != null) &&
+        !isInput(question.instructions))
+    ) {
       invalidInput(
         parameter,
         question,
         'instructions must be a JSON-compatible string, object, or array',
       );
     }
+    if (question.type === 'box') continue;
     const criteria = question.criteria;
     switch (question.type) {
       case 'choice':
@@ -103,15 +108,26 @@ export function validateDecisionInput({
         }
         break;
       case 'score':
-        if (!Array.isArray(criteria) || criteria.length < 2) {
+        if (!Array.isArray(criteria) || criteria.length === 0) {
           invalidInput(
             parameter,
             question,
-            'score criteria must contain at least two ordered levels',
+            'score criteria must contain at least one ordered level',
           );
         }
         break;
       case 'boolean':
+        if (
+          question.instructions == null &&
+          (!isRecord(criteria) ||
+            !Object.values(criteria).some(value => value != null))
+        ) {
+          invalidInput(
+            parameter,
+            question,
+            'boolean questions require instructions or at least one non-null criterion',
+          );
+        }
         if (criteria === undefined) continue;
         if (
           !isRecord(criteria) ||
@@ -128,7 +144,7 @@ export function validateDecisionInput({
         invalidInput(
           parameter,
           question,
-          'question type must be choice, score, or boolean',
+          'question type must be choice, score, boolean, or box',
         );
     }
     if (
@@ -304,6 +320,25 @@ export function validateDecisionAnswers({
               `Question "${id}" score must equal the probability-weighted mean within the declared rounding precision.`,
             );
           }
+        }
+        break;
+      }
+      case 'box': {
+        const box = answer.box;
+        if (
+          !isRecord(box) ||
+          !hasExactKeys(box, ['top', 'bottom', 'left', 'right']) ||
+          !isProbability(box.left) ||
+          !isProbability(box.right) ||
+          !isProbability(box.top) ||
+          !isProbability(box.bottom) ||
+          !(box.left < box.right) ||
+          !(box.top < box.bottom)
+        ) {
+          invalidAnswer(
+            answers,
+            `Question "${id}" must return box edges in [0, 1] with left < right and top < bottom.`,
+          );
         }
         break;
       }

@@ -1,5 +1,93 @@
 # @ai-sdk/harness-fx
 
+## 1.0.71
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.156
+
+## 1.0.70
+
+### Patch Changes
+
+- 984d1dd: feat(harness-fx): support native subscriptions with libfx 0.0.14 update
+- Updated dependencies [60cc252]
+- Updated dependencies [fce9210]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/mcp@2.0.79
+  - @ai-sdk/harness@1.0.155
+  - @ai-sdk/provider-utils@5.0.63
+
+## 1.0.69
+
+### Patch Changes
+
+- Updated dependencies [0957554]
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+  - @ai-sdk/harness@1.0.154
+  - @ai-sdk/mcp@2.0.78
+
+## 1.0.68
+
+### Patch Changes
+
+- a0cd442: feat(harness-fx): reimplement adapter to use `libfx`, achieving clean host-sandbox separation and unlocking additional capabilities
+
+## 1.0.67
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+  - @ai-sdk/harness@1.0.153
+  - @ai-sdk/provider-utils@5.0.61
+  - @ai-sdk/harness-acp@1.0.92
+
+## 1.0.66
+
+### Patch Changes
+
+- Updated dependencies [2e89fa4]
+  - @ai-sdk/provider-utils@5.0.60
+  - @ai-sdk/harness@1.0.152
+  - @ai-sdk/harness-acp@1.0.91
+
+## 1.0.65
+
+### Patch Changes
+
+- ce45d8e: fix(harness-fx): use pinned latest fx release instead of uncontrolled latest
+- 1bebfcf: feat(harness): add support for tools with `toModelOutput()` transformation
+- Updated dependencies [6c65131]
+- Updated dependencies [1bebfcf]
+  - @ai-sdk/harness-acp@1.0.90
+  - @ai-sdk/harness@1.0.151
+
+## 1.0.64
+
+### Patch Changes
+
+- Updated dependencies [6617f11]
+- Updated dependencies [aae69cb]
+- Updated dependencies [a7a66f5]
+- Updated dependencies [52e3f53]
+- Updated dependencies [6c0295c]
+  - @ai-sdk/harness@1.0.150
+  - @ai-sdk/harness-acp@1.0.89
+
+## 1.0.63
+
+### Patch Changes
+
+- Updated dependencies [9667bf2]
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/provider@4.0.27
+  - @ai-sdk/harness@1.0.149
+  - @ai-sdk/harness-acp@1.0.88
+
 ## 1.0.62
 
 ### Patch Changes

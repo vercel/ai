@@ -224,6 +224,21 @@ not fit a common tool shape.
 OpenCode supports built-in tool approval requests when `permissionMode` is
 `allow-reads` or `allow-edits`. Host-executed AI SDK tool approvals also work.
 
+## Built-in Tool Filtering
+
+The adapter supports `activeTools` and `inactiveTools` for OpenCode built-in
+tools. It uses OpenCode's native `permission: 'deny'` rules, which keep inactive
+built-ins out of the model-facing tool list.
+
+OpenCode groups its native `write` and `edit` tools under the same `edit`
+permission. Keep the Harness `write` and `edit` tools in the same active or
+inactive state. Filtering only one of them causes session startup to throw a
+`HarnessCapabilityUnsupportedError`.
+
+## Known Limitations
+
+Image inputs are currently not supported by the OpenCode adapter.
+
 ## Related
 
 - [HarnessAgent](/docs/ai-sdk-harnesses/harness-agent)

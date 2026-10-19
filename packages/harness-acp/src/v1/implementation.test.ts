@@ -104,6 +104,7 @@ function identity({
   },
   providerAuthentication,
   permissionModeMapping,
+  nonTextContentTypes,
 }: {
   implementation?: ACPImplementation;
   harnessId?: string;
@@ -112,6 +113,7 @@ function identity({
   modelMapping?: ACPModelMapping;
   providerAuthentication?: ACPProviderAuthenticationCompatibility;
   permissionModeMapping?: ACPPermissionModeMapping;
+  nonTextContentTypes?: ReadonlyArray<'image'>;
 } = {}): string {
   return createImplementationIdentity({
     harnessId,
@@ -122,10 +124,19 @@ function identity({
     modelMapping,
     providerAuthentication,
     permissionModeMapping,
+    nonTextContentTypes,
   });
 }
 
 describe('ACP implementation', () => {
+  it('includes declared non-text output support in the implementation identity', () => {
+    expect(identity({ nonTextContentTypes: [] })).toBe(identity());
+    expect(identity({ nonTextContentTypes: ['image'] })).not.toBe(identity());
+    expect(identity({ nonTextContentTypes: ['image', 'image'] })).toBe(
+      identity({ nonTextContentTypes: ['image'] }),
+    );
+  });
+
   it('creates a manifest for a simple exact-version installation', () => {
     expect(
       createImplementationManifest({

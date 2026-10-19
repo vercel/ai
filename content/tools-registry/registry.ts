@@ -720,4 +720,35 @@ console.log(text);`,
     websiteUrl: 'https://pexafy.com',
     npmUrl: 'https://www.npmjs.com/package/pexafy-ai-sdk',
   },
+  {
+    slug: 'agentmail',
+    name: 'AgentMail',
+    description:
+      'Give your agents real email inboxes. Create inboxes programmatically, send, receive, reply, search, and manage threaded email conversations.',
+    packageName: 'agentmail-toolkit',
+    tags: ['email', 'inbox', 'agents', 'automation'],
+    apiKeyEnvName: 'AGENTMAIL_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add agentmail-toolkit',
+      npm: 'npm install agentmail-toolkit',
+      yarn: 'yarn add agentmail-toolkit',
+      bun: 'bun add agentmail-toolkit',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { AgentMailToolkit } from 'agentmail-toolkit/ai-sdk';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-4-5',
+  tools: new AgentMailToolkit().getTools(),
+  stopWhen: isStepCount(5),
+  prompt:
+    'Create an inbox for yourself, then check it for new messages and reply to anything urgent.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.agentmail.to/integrations/ai-sdk',
+    apiKeyUrl: 'https://console.agentmail.to',
+    websiteUrl: 'https://agentmail.to',
+    npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
+  },
 ];

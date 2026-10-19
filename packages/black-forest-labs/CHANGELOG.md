@@ -1,5 +1,52 @@
 # @ai-sdk/black-forest-labs
 
+## 2.0.65
+
+### Patch Changes
+
+- Updated dependencies [60cc252]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/provider-utils@5.0.63
+
+## 2.0.64
+
+### Patch Changes
+
+- Updated dependencies [0957554]
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+
+## 2.0.63
+
+### Patch Changes
+
+- 66c7df2: Default unknown image model IDs to the latest supported FLUX image API, currently FLUX 3 Image Klein, while retaining older families' request formats and the original FLUX 3 Image controls. Forward resolution tiers and reference images using the supported API fields, preserve exact dimensions, seed, output format and steps, and support the documented 0–7 safety tolerance range for FLUX 3 Image models.
+
+## 2.0.62
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+  - @ai-sdk/provider-utils@5.0.61
+
+## 2.0.61
+
+### Patch Changes
+
+- Updated dependencies [2e89fa4]
+  - @ai-sdk/provider-utils@5.0.60
+
+## 2.0.60
+
+### Patch Changes
+
+- Updated dependencies [9667bf2]
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/provider@4.0.27
+
 ## 2.0.59
 
 ### Patch Changes
