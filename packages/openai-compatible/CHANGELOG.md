@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 2.0.86
+
+### Patch Changes
+
+- b3c2bb4: fix(openai-compatible, groq, alibaba): put reasoning before text in doGenerate
+
 ## 2.0.85
 
 ### Patch Changes

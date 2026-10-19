@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.311
+
+### Patch Changes
+
+- af9972b: fix(ai): stop emitting buffered stream parts after a `streamText` transform calls `stopStream`
+
 ## 6.0.310
 
 ### Patch Changes
