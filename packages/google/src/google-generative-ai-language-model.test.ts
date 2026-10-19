@@ -17,6 +17,7 @@ import type {
 } from './google-generative-ai-prompt';
 import { createGoogleGenerativeAI } from './google-provider';
 import { describe, it, expect, vi } from 'vitest';
+import * as fs from 'node:fs';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
@@ -916,7 +917,39 @@ describe('doGenerate', () => {
     expect(providerMetadata?.google).not.toHaveProperty('continuationToken');
   });
 
-<<<<<<< HEAD
+  it.each([false, true])(
+    'preserves grounding per request (terminal grounding: %s)',
+    async terminalGrounding => {
+      const [first, last] = readContinuationGroundingResponses();
+      if (terminalGrounding) {
+        last.candidates[0].groundingMetadata =
+          first.candidates[0].groundingMetadata;
+      }
+      server.urls[TEST_URL_GEMINI_PRO].response = [first, last].map(body => ({
+        type: 'json-value',
+        body,
+      }));
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        maxOutputTokens: 33_280,
+      });
+
+      expect(server.calls).toHaveLength(2);
+      expect(
+        result.providerMetadata?.google.groundingMetadataPerRequest,
+      ).toEqual([
+        first.candidates[0].groundingMetadata,
+        last.candidates[0].groundingMetadata ?? null,
+      ]);
+      expect(result.providerMetadata?.google.groundingMetadata).toEqual(
+        last.candidates[0].groundingMetadata ?? null,
+      );
+      expect(result.usage.inputTokens).toBe(33_246);
+      expect(result.usage.outputTokens).toBe(33_306);
+    },
+  );
+
   it('should resend the same request with the continuation token on CONTINUATION', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = [
       {
@@ -935,51 +968,6 @@ describe('doGenerate', () => {
             candidatesTokenCount: 5,
             thoughtsTokenCount: 20,
             totalTokenCount: 35,
-=======
-  describe('long decode continuation', () => {
-    it.each([false, true])(
-      'preserves grounding per request (terminal grounding: %s)',
-      async terminalGrounding => {
-        const [first, last] = readContinuationGroundingResponses();
-        if (terminalGrounding) {
-          last.candidates[0].groundingMetadata =
-            first.candidates[0].groundingMetadata;
-        }
-        server.urls[TEST_URL_GEMINI_PRO].response = [first, last].map(body => ({
-          type: 'json-value',
-          body,
-        }));
-
-        const result = await model.doGenerate({
-          prompt: TEST_PROMPT,
-          maxOutputTokens: 33_280,
-        });
-
-        expect(server.calls).toHaveLength(2);
-        expect(
-          result.providerMetadata?.google.groundingMetadataPerRequest,
-        ).toEqual([
-          first.candidates[0].groundingMetadata,
-          last.candidates[0].groundingMetadata ?? null,
-        ]);
-        expect(result.providerMetadata?.google.groundingMetadata).toEqual(
-          last.candidates[0].groundingMetadata ?? null,
-        );
-        expect(result.usage.inputTokens.total).toBe(33_246);
-        expect(result.usage.outputTokens.total).toBe(33_306);
-      },
-    );
-
-    const continuationResponse = {
-      type: 'json-value' as const,
-      body: {
-        candidates: [
-          {
-            content: { parts: [{ text: 'Hello' }], role: 'model' },
-            finishReason: 'CONTINUATION',
-            index: 0,
-            continuationToken: 'token-1',
->>>>>>> 8fccc63474 (Backport: fix(google): preserve grounding metadata across continuation (#23549))
           },
         },
       },
@@ -3338,6 +3326,38 @@ describe('doStream', () => {
     ).not.toHaveProperty('continuationToken');
   });
 
+  it.each([false, true])(
+    'preserves grounding per streamed request (terminal grounding: %s)',
+    async terminalGrounding => {
+      const [first, last] = readContinuationGroundingResponses();
+      if (terminalGrounding) {
+        last.candidates[0].groundingMetadata =
+          first.candidates[0].groundingMetadata;
+      }
+      server.urls[TEST_URL_GEMINI_PRO].response = [first, last].map(body => ({
+        type: 'stream-chunks',
+        chunks: [`data: ${JSON.stringify(body)}\n\n`],
+      }));
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        maxOutputTokens: 33_280,
+      });
+      const events = await convertReadableStreamToArray(stream);
+      const finish = events.find(event => event.type === 'finish');
+
+      expect(server.calls).toHaveLength(2);
+      expect(
+        finish?.providerMetadata?.google.groundingMetadataPerRequest,
+      ).toEqual([
+        first.candidates[0].groundingMetadata,
+        last.candidates[0].groundingMetadata ?? null,
+      ]);
+      expect(finish?.usage.inputTokens).toBe(33_246);
+      expect(finish?.usage.outputTokens).toBe(33_306);
+    },
+  );
+
   it('should continue the stream automatically on CONTINUATION', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = [
       {
@@ -3905,353 +3925,7 @@ describe('doStream', () => {
     expect(
       finishEvent?.type === 'finish' &&
         finishEvent.providerMetadata?.google.serviceTier,
-<<<<<<< HEAD
     ).toBe('flex');
-=======
-    ).toBe('priority');
-  });
-
-  it('should expose the continuationToken from the final chunk on finish', async () => {
-    server.urls[TEST_URL_GEMINI_PRO].response = {
-      type: 'stream-chunks',
-      chunks: [
-        `data: ${JSON.stringify({
-          candidates: [
-            {
-              content: { parts: [{ text: 'Partial' }], role: 'model' },
-              index: 0,
-            },
-          ],
-        })}\n\n`,
-        `data: ${JSON.stringify({
-          candidates: [
-            {
-              content: { parts: [{ text: '' }], role: 'model' },
-              finishReason: 'MAX_TOKENS',
-              index: 0,
-              continuationToken: 'token-3',
-            },
-          ],
-          usageMetadata: {
-            promptTokenCount: 10,
-            candidatesTokenCount: 300,
-            totalTokenCount: 310,
-          },
-        })}\n\n`,
-      ],
-    };
-
-    const { stream } = await model.doStream({
-      prompt: TEST_PROMPT,
-      providerOptions: { google: { continuationToken: 'token-prev' } },
-    });
-
-    const events = await convertReadableStreamToArray(stream);
-    const finishEvent = events.find(event => event.type === 'finish');
-
-    expect(finishEvent?.type === 'finish' && finishEvent.finishReason).toEqual({
-      unified: 'length',
-      raw: 'MAX_TOKENS',
-    });
-    expect(
-      finishEvent?.type === 'finish' &&
-        finishEvent.providerMetadata?.google.continuationToken,
-    ).toBe('token-3');
-
-    const body = (await server.calls[0].requestBodyJson) as Record<
-      string,
-      unknown
-    >;
-    expect(body.continuationToken).toBe('token-prev');
-  });
-
-  it('should not expose continuationToken on finish when absent', async () => {
-    prepareStreamResponse({ content: ['Hello'] });
-
-    const { stream } = await model.doStream({ prompt: TEST_PROMPT });
-
-    const events = await convertReadableStreamToArray(stream);
-    const finishEvent = events.find(event => event.type === 'finish');
-
-    expect(
-      finishEvent?.type === 'finish' && finishEvent.providerMetadata?.google,
-    ).not.toHaveProperty('continuationToken');
-  });
-
-  it.each([false, true])(
-    'preserves grounding per streamed request (terminal grounding: %s)',
-    async terminalGrounding => {
-      const [first, last] = readContinuationGroundingResponses();
-      if (terminalGrounding) {
-        last.candidates[0].groundingMetadata =
-          first.candidates[0].groundingMetadata;
-      }
-      server.urls[TEST_URL_GEMINI_PRO].response = [first, last].map(body => ({
-        type: 'stream-chunks',
-        chunks: [`data: ${JSON.stringify(body)}\n\n`],
-      }));
-
-      const { stream } = await model.doStream({
-        prompt: TEST_PROMPT,
-        maxOutputTokens: 33_280,
-      });
-      const events = await convertReadableStreamToArray(stream);
-      const finish = events.find(event => event.type === 'finish');
-
-      expect(server.calls).toHaveLength(2);
-      expect(
-        finish?.providerMetadata?.google.groundingMetadataPerRequest,
-      ).toEqual([
-        first.candidates[0].groundingMetadata,
-        last.candidates[0].groundingMetadata ?? null,
-      ]);
-      expect(finish?.usage.inputTokens.total).toBe(33_246);
-      expect(finish?.usage.outputTokens.total).toBe(33_306);
-    },
-  );
-
-  it('should continue the stream automatically on CONTINUATION', async () => {
-    server.urls[TEST_URL_GEMINI_PRO].response = [
-      {
-        type: 'stream-chunks',
-        chunks: [
-          `data: ${JSON.stringify({
-            candidates: [
-              {
-                content: { parts: [{ text: 'Hello' }], role: 'model' },
-                index: 0,
-              },
-            ],
-          })}\n\n`,
-          `data: ${JSON.stringify({
-            candidates: [
-              {
-                content: { parts: [{ text: '' }], role: 'model' },
-                index: 0,
-                continuationToken: 'checkpoint-1',
-              },
-            ],
-          })}\n\n`,
-          `data: ${JSON.stringify({
-            candidates: [
-              {
-                content: { parts: [{ text: '' }], role: 'model' },
-                finishReason: 'CONTINUATION',
-                index: 0,
-                continuationToken: 'token-1',
-              },
-            ],
-            usageMetadata: {
-              promptTokenCount: 10,
-              candidatesTokenCount: 5,
-              thoughtsTokenCount: 20,
-              totalTokenCount: 35,
-            },
-          })}\n\n`,
-        ],
-      },
-      {
-        type: 'stream-chunks',
-        chunks: [
-          `data: ${JSON.stringify({
-            candidates: [
-              {
-                content: { parts: [{ text: ', world' }], role: 'model' },
-                finishReason: 'STOP',
-                index: 0,
-              },
-            ],
-            usageMetadata: {
-              promptTokenCount: 35,
-              candidatesTokenCount: 7,
-              totalTokenCount: 42,
-            },
-          })}\n\n`,
-        ],
-      },
-    ];
-
-    const { stream } = await model.doStream({
-      prompt: TEST_PROMPT,
-      maxOutputTokens: 100_000,
-    });
-
-    const events = await convertReadableStreamToArray(stream);
-
-    expect(server.calls.length).toBe(2);
-    const firstBody = (await server.calls[0].requestBodyJson) as Record<
-      string,
-      unknown
-    >;
-    expect(await server.calls[1].requestBodyJson).toEqual({
-      ...firstBody,
-      continuationToken: 'token-1',
-    });
-
-    expect(
-      events
-        .filter(event => event.type === 'text-delta')
-        .map(event => event.delta),
-    ).toEqual(['Hello', ', world']);
-    expect(events.filter(event => event.type === 'text-start')).toHaveLength(1);
-
-    const finishEvent = events.find(event => event.type === 'finish');
-    expect(finishEvent?.type === 'finish' && finishEvent.finishReason).toEqual({
-      unified: 'stop',
-      raw: 'STOP',
-    });
-    expect(
-      finishEvent?.type === 'finish' && finishEvent.usage.inputTokens.total,
-    ).toBe(45);
-    expect(
-      finishEvent?.type === 'finish' && finishEvent.usage.outputTokens.total,
-    ).toBe(32);
-    expect(
-      finishEvent?.type === 'finish' && finishEvent.providerMetadata?.google,
-    ).toMatchObject({ initialPromptTokenCount: 10 });
-    expect(
-      finishEvent?.type === 'finish' && finishEvent.providerMetadata?.google,
-    ).not.toHaveProperty('continuationToken');
-  });
-
-  it('should not expose checkpoint tokens or initialPromptTokenCount on a stream that finishes in one request', async () => {
-    server.urls[TEST_URL_GEMINI_PRO].response = {
-      type: 'stream-chunks',
-      chunks: [
-        `data: ${JSON.stringify({
-          candidates: [
-            {
-              content: { parts: [{ text: 'Hello' }], role: 'model' },
-              index: 0,
-              continuationToken: 'checkpoint-1',
-            },
-          ],
-        })}\n\n`,
-        `data: ${JSON.stringify({
-          candidates: [
-            {
-              content: { parts: [{ text: ', world' }], role: 'model' },
-              finishReason: 'STOP',
-              index: 0,
-            },
-          ],
-          usageMetadata: {
-            promptTokenCount: 10,
-            candidatesTokenCount: 40_000,
-            totalTokenCount: 40_010,
-          },
-        })}\n\n`,
-      ],
-    };
-
-    const { stream } = await model.doStream({ prompt: TEST_PROMPT });
-
-    const events = await convertReadableStreamToArray(stream);
-    const finishEvent = events.find(event => event.type === 'finish');
-    const metadata =
-      finishEvent?.type === 'finish' && finishEvent.providerMetadata?.google;
-
-    expect(metadata).not.toHaveProperty('continuationToken');
-    expect(metadata).not.toHaveProperty('initialPromptTokenCount');
-  });
-
-  it('should finish with the last continuation token when continuing the stream fails', async () => {
-    server.urls[TEST_URL_GEMINI_PRO].response = [
-      {
-        type: 'stream-chunks',
-        chunks: [
-          `data: ${JSON.stringify({
-            candidates: [
-              {
-                content: { parts: [{ text: 'Hello' }], role: 'model' },
-                finishReason: 'CONTINUATION',
-                index: 0,
-                continuationToken: 'token-1',
-              },
-            ],
-          })}\n\n`,
-        ],
-      },
-      {
-        type: 'error',
-        status: 400,
-        body: JSON.stringify({
-          error: {
-            code: 400,
-            message: 'Invalid continuation token',
-            status: 'INVALID_ARGUMENT',
-          },
-        }),
-      },
-    ];
-
-    const { stream } = await model.doStream({ prompt: TEST_PROMPT });
-
-    const events = await convertReadableStreamToArray(stream);
-
-    expect(events.some(event => event.type === 'error')).toBe(true);
-    const finishEvent = events.find(event => event.type === 'finish');
-    expect(finishEvent?.type === 'finish' && finishEvent.finishReason).toEqual({
-      unified: 'length',
-      raw: 'CONTINUATION',
-    });
-    expect(
-      finishEvent?.type === 'finish' &&
-        finishEvent.providerMetadata?.google.continuationToken,
-    ).toBe('token-1');
-  });
-
-  it('should preserve the final complete raw usage metadata', async () => {
-    server.urls[TEST_URL_GEMINI_PRO].response = {
-      type: 'stream-chunks',
-      chunks: [
-        `data: ${JSON.stringify({
-          candidates: [
-            {
-              content: { parts: [{ text: 'Blue' }], role: 'model' },
-            },
-          ],
-          usageMetadata: {
-            promptTokenCount: 1,
-            candidatesTokenCount: 1,
-            totalTokenCount: 2,
-          },
-        })}\n\n`,
-        `data: ${JSON.stringify({
-          candidates: [
-            {
-              content: { parts: [{ text: '.' }], role: 'model' },
-              finishReason: 'STOP',
-            },
-          ],
-          usageMetadata: COMPLETE_USAGE_METADATA,
-        })}\n\n`,
-      ],
-    };
-
-    const { stream } = await model.doStream({
-      prompt: TEST_PROMPT,
-    });
-
-    const finishEvent = (await convertReadableStreamToArray(stream)).find(
-      event => event.type === 'finish',
-    );
-
-    expect(finishEvent?.usage).toEqual({
-      inputTokens: {
-        total: 12,
-        noCache: 8,
-        cacheRead: 4,
-        cacheWrite: undefined,
-      },
-      outputTokens: {
-        total: 160,
-        text: 71,
-        reasoning: 89,
-      },
-      raw: COMPLETE_USAGE_METADATA,
-    });
->>>>>>> 8fccc63474 (Backport: fix(google): preserve grounding metadata across continuation (#23549))
   });
 
   it('should expose null serviceTier in provider metadata on finish when not present', async () => {
