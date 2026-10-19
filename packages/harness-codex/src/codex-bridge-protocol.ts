@@ -4,6 +4,7 @@ import {
   harnessV1BridgeReadySchema,
   harnessV1BridgeStartBaseSchema,
 } from '@ai-sdk/harness';
+import { harnessPromptContentSchema } from '@ai-sdk/harness/utils';
 import { z } from 'zod/v4';
 
 /*
@@ -16,22 +17,8 @@ import { z } from 'zod/v4';
 export const outboundMessageSchema = harnessV1BridgeOutboundMessageSchema;
 export type OutboundMessage = z.infer<typeof outboundMessageSchema>;
 
-const promptSchema = z.union([
-  z.string(),
-  z.array(
-    z.discriminatedUnion('type', [
-      z.object({ type: z.literal('text'), text: z.string() }),
-      z.object({
-        type: z.literal('image'),
-        data: z.string(),
-        mediaType: z.string(),
-      }),
-    ]),
-  ),
-]);
-
 export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
-  prompt: promptSchema,
+  prompt: harnessPromptContentSchema,
   instructions: z.string().optional(),
   reasoningEffort: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).optional(),
   webSearch: z.boolean().optional(),
