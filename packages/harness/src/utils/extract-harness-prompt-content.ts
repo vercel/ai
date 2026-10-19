@@ -8,14 +8,28 @@ import {
   type FilePart,
   type TextPart,
 } from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
 import { HarnessCapabilityUnsupportedError } from '../errors/harness-capability-unsupported-error';
 import type { HarnessV1Prompt } from '../v1/harness-v1-prompt';
 
-export type HarnessPromptContentPart =
-  | { type: 'text'; text: string }
-  | { type: 'image'; data: string; mediaType: string };
+const harnessPromptContentPartSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('text'), text: z.string() }),
+  z.object({
+    type: z.literal('image'),
+    data: z.string(),
+    mediaType: z.string(),
+  }),
+]);
 
-export type HarnessPromptContent = string | HarnessPromptContentPart[];
+export const harnessPromptContentSchema = z.union([
+  z.string(),
+  z.array(harnessPromptContentPartSchema),
+]);
+
+export type HarnessPromptContentPart = z.infer<
+  typeof harnessPromptContentPartSchema
+>;
+export type HarnessPromptContent = z.infer<typeof harnessPromptContentSchema>;
 
 export function extractHarnessPromptContent({
   prompt,

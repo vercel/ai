@@ -73,6 +73,7 @@ export { getRestrictedSandboxSession } from './get-restricted-sandbox-session';
 export { sleep } from './sleep';
 export { normalizeHarnessToolModelOutput } from './normalize-harness-tool-model-output';
 export {
+  harnessPromptContentSchema,
   extractHarnessPromptContent,
   type HarnessPromptContent,
   type HarnessPromptContentPart,

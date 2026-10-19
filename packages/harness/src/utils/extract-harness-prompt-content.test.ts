@@ -2,13 +2,34 @@ import { HarnessCapabilityUnsupportedError } from '../errors/harness-capability-
 import type { HarnessV1Prompt } from '../v1/harness-v1-prompt';
 import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
 import { describe, expect, it } from 'vitest';
-import { extractHarnessPromptContent } from './extract-harness-prompt-content';
+import {
+  extractHarnessPromptContent,
+  harnessPromptContentSchema,
+} from './extract-harness-prompt-content';
 
 const png =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
 
 const extract = (prompt: HarnessV1Prompt) =>
   extractHarnessPromptContent({ prompt });
+
+describe('harnessPromptContentSchema', () => {
+  it('accepts normalized text and image prompts', () => {
+    for (const prompt of [
+      'hello',
+      [{ type: 'text', text: 'hello' }],
+      [{ type: 'image', data: 'iVBORw0KGgo=', mediaType: 'image/png' }],
+    ]) {
+      expect(() => harnessPromptContentSchema.parse(prompt)).not.toThrow();
+    }
+  });
+
+  it('rejects unsupported prompt content parts', () => {
+    expect(() =>
+      harnessPromptContentSchema.parse([{ type: 'audio', data: 'audio-data' }]),
+    ).toThrow();
+  });
+});
 
 describe('extractHarnessPromptContent', () => {
   it('preserves string prompts and string content', () => {
