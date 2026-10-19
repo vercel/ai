@@ -684,6 +684,76 @@ describe('doStream', () => {
     expect(body?.stream).toBe('true');
   });
 
+  it('should keep diarized segments when the stream has no text deltas', async () => {
+    server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        'data: {"type":"transcript.text.segment","id":"seg_001","start":0,"end":1.5,"text":"Hello from Alice.","speaker":"A"}\n\n',
+        'data: {"type":"transcript.text.segment","id":"seg_002","start":1.5,"end":3.2,"text":"Hello from Bob.","speaker":"B"}\n\n',
+      ],
+    };
+
+    const result = await provider
+      .transcription('gpt-4o-transcribe-diarize')
+      .doStream({
+        audio: convertArrayToReadableStream([audioData]),
+        inputAudioFormat: { type: 'audio/mpeg' },
+      });
+    const parts = await convertReadableStreamToArray(result.stream);
+
+    expect(parts).toEqual([
+      { type: 'stream-start', warnings: expect.any(Array) },
+      expect.objectContaining({ type: 'response-metadata' }),
+      {
+        type: 'transcript-final',
+        id: 'seg_001',
+        text: 'Hello from Alice.',
+        startSecond: 0,
+        endSecond: 1.5,
+        providerMetadata: { openai: { speaker: 'A' } },
+      },
+      {
+        type: 'transcript-final',
+        id: 'seg_002',
+        text: 'Hello from Bob.',
+        startSecond: 1.5,
+        endSecond: 3.2,
+        providerMetadata: { openai: { speaker: 'B' } },
+      },
+      {
+        type: 'finish',
+        text: 'Hello from Alice. Hello from Bob.',
+        segments: [
+          { text: 'Hello from Alice.', startSecond: 0, endSecond: 1.5 },
+          { text: 'Hello from Bob.', startSecond: 1.5, endSecond: 3.2 },
+        ],
+        providerMetadata: {
+          openai: {
+            segments: [
+              {
+                text: 'Hello from Alice.',
+                startSecond: 0,
+                endSecond: 1.5,
+                speaker: 'A',
+              },
+              {
+                text: 'Hello from Bob.',
+                startSecond: 1.5,
+                endSecond: 3.2,
+                speaker: 'B',
+              },
+            ],
+          },
+        },
+      },
+    ]);
+
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body?.model).toBe('gpt-4o-transcribe-diarize');
+    expect(body?.stream).toBe('true');
+    expect(body?.response_format).toBe('diarized_json');
+  });
+
   it('should stream an uploaded file for gpt-4o-transcribe', async () => {
     server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
       type: 'stream-chunks',

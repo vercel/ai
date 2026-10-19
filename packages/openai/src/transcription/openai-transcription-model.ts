@@ -475,6 +475,17 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
     let text = '';
     let finalText: string | undefined;
     let usage: JSONObject | undefined;
+    const segments: Array<{
+      text: string;
+      startSecond: number;
+      endSecond: number;
+    }> = [];
+    const diarizedSegments: Array<{
+      text: string;
+      startSecond: number;
+      endSecond: number;
+      speaker: string;
+    }> = [];
 
     return {
       response: {
@@ -486,8 +497,13 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
         new TransformStream<
           ParseResult<{
             type: string;
+            id?: string | null;
             delta?: string | null;
             text?: string | null;
+            start?: number | null;
+            end?: number | null;
+            speaker?: string | null;
+            segment_id?: string | null;
             usage?: JSONObject | null;
           }>,
           TranscriptionModelV4StreamPart
@@ -519,7 +535,34 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
               text += event.delta;
               controller.enqueue({
                 type: 'transcript-delta',
+                ...(event.segment_id != null ? { id: event.segment_id } : {}),
                 delta: event.delta,
+              });
+              return;
+            }
+
+            if (
+              event.type === 'transcript.text.segment' &&
+              event.text != null &&
+              event.start != null &&
+              event.end != null
+            ) {
+              const segment = {
+                text: event.text,
+                startSecond: event.start,
+                endSecond: event.end,
+              };
+              segments.push(segment);
+              if (event.speaker != null) {
+                diarizedSegments.push({ ...segment, speaker: event.speaker });
+              }
+              controller.enqueue({
+                type: 'transcript-final',
+                ...(event.id != null ? { id: event.id } : {}),
+                ...segment,
+                ...(event.speaker != null
+                  ? { providerMetadata: { openai: { speaker: event.speaker } } }
+                  : {}),
               });
               return;
             }
@@ -534,11 +577,19 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
             }
           },
           flush(controller) {
+            const segmentText = segments.map(segment => segment.text).join(' ');
             controller.enqueue({
               type: 'finish',
-              text: finalText ?? text,
-              segments: [],
+              text: finalText ?? (text !== '' ? text : segmentText),
+              segments,
               ...(usage != null ? { usage } : {}),
+              ...(diarizedSegments.length > 0
+                ? {
+                    providerMetadata: {
+                      openai: { segments: diarizedSegments },
+                    },
+                  }
+                : {}),
             });
           },
         }),

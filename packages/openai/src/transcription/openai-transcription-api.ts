@@ -55,8 +55,13 @@ export const openaiTranscriptionStreamEventSchema = lazySchema(() =>
   zodSchema(
     z.object({
       type: z.string(),
+      id: z.string().nullish(),
       delta: z.string().nullish(),
       text: z.string().nullish(),
+      start: z.number().nullish(),
+      end: z.number().nullish(),
+      speaker: z.string().nullish(),
+      segment_id: z.string().nullish(),
       usage: z.record(z.string(), z.json()).nullish(),
     }),
   ),
