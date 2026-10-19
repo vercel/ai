@@ -1,4 +1,5 @@
 import {
+  InvalidResponseDataError,
   LanguageModelV4ProviderTool,
   type JSONSchema7,
   type LanguageModelV4Prompt,
@@ -5828,6 +5829,142 @@ describe('doGenerate', () => {
 });
 
 describe('doStream', () => {
+  describe('stream termination', () => {
+    const partialChunks = [
+      {
+        candidates: [
+          { content: { role: 'model', parts: [{ text: 'Hello' }] } },
+        ],
+      },
+    ];
+    const finalChunks = [{ candidates: [{ finishReason: 'STOP' }] }];
+
+    async function readStream(chunks: unknown[], suffix = '') {
+      server.urls[
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:streamGenerateContent'
+      ].response = {
+        type: 'stream-chunks',
+        chunks: [
+          ...chunks.map(chunk => `data: ${JSON.stringify(chunk)}\n\n`),
+          suffix,
+        ],
+      };
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      return convertReadableStreamToArray(stream);
+    }
+
+    it.each([
+      { scenario: 'partial output', chunks: partialChunks, suffix: '' },
+      { scenario: 'an empty stream', chunks: [], suffix: '' },
+    ])(
+      'should report truncation after $scenario',
+      async ({ chunks, suffix }) => {
+        const events = await readStream(chunks, suffix);
+        const errors = events.filter(event => event.type === 'error');
+        expect(errors).toHaveLength(1);
+        expect(InvalidResponseDataError.isInstance(errors[0].error)).toBe(true);
+        expect(events.at(-1)).toMatchObject({
+          type: 'finish',
+          finishReason: { unified: 'error', raw: undefined },
+        });
+        expect(events.filter(event => event.type === 'finish')).toHaveLength(1);
+        if (chunks.length > 0) {
+          expect(events).toContainEqual(
+            expect.objectContaining({ type: 'text-delta', delta: 'Hello' }),
+          );
+        }
+      },
+    );
+
+    it.each([false, true])(
+      'should detect a truncated continuation (empty: %s)',
+      async empty => {
+        server.urls[
+          'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:streamGenerateContent'
+        ].response = [
+          {
+            type: 'stream-chunks',
+            chunks: [
+              `data: ${JSON.stringify({ candidates: [{ content: { parts: [{ text: 'First' }], role: 'model' }, finishReason: 'CONTINUATION', continuationToken: 'token-1' }], usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 2, totalTokenCount: 12 } })}\n\n`,
+            ],
+          },
+          {
+            type: 'stream-chunks',
+            chunks: empty
+              ? []
+              : partialChunks.map(
+                  chunk => `data: ${JSON.stringify(chunk)}\n\n`,
+                ),
+          },
+        ];
+        const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+        const events = await convertReadableStreamToArray(stream);
+        const errors = events.filter(event => event.type === 'error');
+        expect(errors).toHaveLength(1);
+        expect(InvalidResponseDataError.isInstance(errors[0].error)).toBe(true);
+        expect(events.at(-1)).toMatchObject({
+          type: 'finish',
+          finishReason: { unified: 'error', raw: undefined },
+          usage: { inputTokens: { total: 10 }, outputTokens: { total: 2 } },
+          providerMetadata: { google: { continuationToken: 'token-1' } },
+        });
+        expect(
+          events
+            .filter(event => event.type === 'text-delta')
+            .map(event => event.delta),
+        ).toEqual(empty ? ['First'] : ['First', 'Hello']);
+      },
+    );
+
+    it('should finish normally after the terminal event', async () => {
+      const events = await readStream([...partialChunks, ...finalChunks]);
+      expect(events.filter(event => event.type === 'error')).toHaveLength(0);
+      expect(events.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: { unified: 'stop' },
+      });
+    });
+
+    it('should preserve an unknown explicit finish reason', async () => {
+      const events = await readStream([
+        ...partialChunks,
+        ...[{ candidates: [{ finishReason: 'future_reason' }] }],
+      ]);
+      expect(events.filter(event => event.type === 'error')).toHaveLength(0);
+      expect(events.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: { unified: 'other', raw: 'future_reason' },
+      });
+    });
+
+    it('should not add a truncation error after a provider error', async () => {
+      const events = await readStream([
+        ...partialChunks,
+        {
+          error: { code: 500, status: 'INTERNAL', message: 'Provider failed' },
+        },
+      ]);
+      const errors = events.filter(event => event.type === 'error');
+      expect(errors).toHaveLength(1);
+      expect(errors[0].error).toMatchObject({ message: 'Provider failed' });
+      expect(events.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: { unified: 'error' },
+      });
+    });
+
+    it('should not add a truncation error after invalid JSON', async () => {
+      const events = await readStream(partialChunks, 'data: {invalid\n\n');
+      const errors = events.filter(event => event.type === 'error');
+      expect(errors).toHaveLength(1);
+      expect(InvalidResponseDataError.isInstance(errors[0].error)).toBe(false);
+      expect(events.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: { unified: 'error' },
+      });
+    });
+  });
+
   const TEST_URL_GEMINI_PRO =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:streamGenerateContent';
 
@@ -6841,12 +6978,14 @@ describe('doStream', () => {
         prompt: TEST_PROMPT,
       });
 
-      const finishEvent = (await convertReadableStreamToArray(stream)).find(
-        event => event.type === 'finish',
-      );
+      const events = await convertReadableStreamToArray(stream);
+      const errors = events.filter(event => event.type === 'error');
+      expect(errors).toHaveLength(1);
+      expect(InvalidResponseDataError.isInstance(errors[0].error)).toBe(true);
+      const finishEvent = events.find(event => event.type === 'finish');
 
       expect(finishEvent?.finishReason).toEqual({
-        unified: 'other',
+        unified: 'error',
         raw: undefined,
       });
     },

@@ -1,16 +1,17 @@
-import type {
-  LanguageModelV4,
-  LanguageModelV4CallOptions,
-  LanguageModelV4Content,
-  LanguageModelV4FunctionTool,
-  LanguageModelV4FinishReason,
-  LanguageModelV4GenerateResult,
-  LanguageModelV4Source,
-  LanguageModelV4StreamPart,
-  LanguageModelV4StreamResult,
-  JSONObject,
-  SharedV4ProviderMetadata,
-  SharedV4Warning,
+import {
+  InvalidResponseDataError,
+  type LanguageModelV4,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4Content,
+  type LanguageModelV4FunctionTool,
+  type LanguageModelV4FinishReason,
+  type LanguageModelV4GenerateResult,
+  type LanguageModelV4Source,
+  type LanguageModelV4StreamPart,
+  type LanguageModelV4StreamResult,
+  type JSONObject,
+  type SharedV4ProviderMetadata,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -920,16 +921,14 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           ...args,
           continuationToken,
         });
+        finishReason = undefined;
         groundingMetadataPerRequest.push(requestGroundingMetadata);
         requestGroundingMetadata = null;
         return value;
       },
     });
 
-    let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
-      raw: undefined,
-    };
+    let finishReason: LanguageModelV4FinishReason | undefined;
     let usage: GoogleUsageMetadata | undefined = undefined;
     // Usage of the completed requests of an automatically continued response.
     let continuedUsage: GoogleUsageMetadata | undefined = undefined;
@@ -1018,6 +1017,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
             }
 
             if (!chunk.success) {
+              finishReason ??= { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
@@ -1492,6 +1492,17 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           },
 
           flush(controller) {
+            if (finishReason == null) {
+              finishReason = { unified: 'error', raw: undefined };
+              controller.enqueue({
+                type: 'error',
+                error: new InvalidResponseDataError({
+                  data: undefined,
+                  message: 'Response stream ended without a finish reason.',
+                }),
+              });
+            }
+
             usage = addGoogleUsageMetadata(continuedUsage, usage);
 
             if (currentTextBlockId !== null) {
@@ -1532,7 +1543,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                 // checkpoint tokens of a stream that finished normally.
                 ...(lastContinuationToken != null &&
                 (finishReason.raw === 'MAX_TOKENS' ||
-                  finishReason.raw === 'CONTINUATION')
+                  finishReason.raw === 'CONTINUATION' ||
+                  finishReason.unified === 'error')
                   ? { continuationToken: lastContinuationToken }
                   : {}),
                 ...(initialPromptTokenCount != null

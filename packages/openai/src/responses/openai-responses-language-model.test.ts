@@ -1,4 +1,5 @@
 import {
+  InvalidResponseDataError,
   type LanguageModelV4Content,
   type LanguageModelV4FunctionTool,
   type LanguageModelV4GenerateResult,
@@ -7101,6 +7102,137 @@ describe('OpenAIResponsesLanguageModel', () => {
   });
 
   describe('doStream', () => {
+    describe('stream termination', () => {
+      const partialChunks = [
+        {
+          type: 'response.created',
+          response: { id: 'r1', created_at: 1, model: 'gpt-4o' },
+        },
+        {
+          type: 'response.output_item.added',
+          output_index: 0,
+          item: { type: 'message', id: 'msg1', role: 'assistant', content: [] },
+        },
+        {
+          type: 'response.output_text.delta',
+          item_id: 'msg1',
+          output_index: 0,
+          content_index: 0,
+          delta: 'Hello',
+        },
+      ];
+      const finalChunks = [
+        {
+          type: 'response.completed',
+          response: { id: 'r1', usage: { input_tokens: 10, output_tokens: 1 } },
+        },
+      ];
+
+      async function readStream(chunks: unknown[], suffix = '') {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            ...chunks.map(chunk => `data: ${JSON.stringify(chunk)}\n\n`),
+            suffix,
+          ],
+        };
+        const { stream } = await createModel('gpt-4o').doStream({
+          prompt: TEST_PROMPT,
+        });
+        return convertReadableStreamToArray(stream);
+      }
+
+      it.each([
+        { scenario: 'partial output', chunks: partialChunks, suffix: '' },
+        { scenario: 'an empty stream', chunks: [], suffix: '' },
+      ])(
+        'should report truncation after $scenario',
+        async ({ chunks, suffix }) => {
+          const events = await readStream(chunks, suffix);
+          const errors = events.filter(event => event.type === 'error');
+          expect(errors).toHaveLength(1);
+          expect(InvalidResponseDataError.isInstance(errors[0].error)).toBe(
+            true,
+          );
+          expect(events.at(-1)).toMatchObject({
+            type: 'finish',
+            finishReason: { unified: 'error', raw: undefined },
+          });
+          expect(events.filter(event => event.type === 'finish')).toHaveLength(
+            1,
+          );
+          if (chunks.length > 0) {
+            expect(events).toContainEqual(
+              expect.objectContaining({ type: 'text-delta', delta: 'Hello' }),
+            );
+          }
+        },
+      );
+
+      it('should finish normally after the terminal event', async () => {
+        const events = await readStream([...partialChunks, ...finalChunks]);
+        expect(events.filter(event => event.type === 'error')).toHaveLength(0);
+        expect(events.at(-1)).toMatchObject({
+          type: 'finish',
+          finishReason: { unified: 'stop' },
+        });
+      });
+
+      it('should preserve an unknown explicit finish reason', async () => {
+        const events = await readStream([
+          ...partialChunks,
+          ...[
+            {
+              type: 'response.incomplete',
+              response: {
+                id: 'r1',
+                incomplete_details: { reason: 'future_reason' },
+                usage: { input_tokens: 10, output_tokens: 1 },
+              },
+            },
+          ],
+        ]);
+        expect(events.filter(event => event.type === 'error')).toHaveLength(0);
+        expect(events.at(-1)).toMatchObject({
+          type: 'finish',
+          finishReason: { unified: 'other', raw: 'future_reason' },
+        });
+      });
+
+      it('should not add a truncation error after a provider error', async () => {
+        const events = await readStream([
+          ...partialChunks,
+          {
+            type: 'error',
+            code: 'server_error',
+            message: 'Provider failed',
+            param: null,
+            sequence_number: 3,
+          },
+        ]);
+        const errors = events.filter(event => event.type === 'error');
+        expect(errors).toHaveLength(1);
+        expect(errors[0].error).toMatchObject({ message: 'Provider failed' });
+        expect(events.at(-1)).toMatchObject({
+          type: 'finish',
+          finishReason: { unified: 'error' },
+        });
+      });
+
+      it('should not add a truncation error after invalid JSON', async () => {
+        const events = await readStream(partialChunks, 'data: {invalid\n\n');
+        const errors = events.filter(event => event.type === 'error');
+        expect(errors).toHaveLength(1);
+        expect(InvalidResponseDataError.isInstance(errors[0].error)).toBe(
+          false,
+        );
+        expect(events.at(-1)).toMatchObject({
+          type: 'finish',
+          finishReason: { unified: 'error' },
+        });
+      });
+    });
+
     it('preserves repeated citation ranges and versioned fragment URLs with Unicode text in generation and streaming', async () => {
       const text = '🧪 café — 東京 café';
       const url = 'https://example.com/article?oldid=42#:~:text=caf%C3%A9';
@@ -7193,6 +7325,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             output_index: 0,
             item: { type: 'message', id: 'message' },
           },
+          { type: 'response.completed', response: { id: 'r1' } },
         ].map(event => `data: ${JSON.stringify(event)}\n\n`),
       };
       const { stream } = await createModel('gpt-5-nano').doStream({
@@ -8477,6 +8610,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 delta,
               })),
               { type: 'response.output_item.done', output_index: 0, item },
+              { type: 'response.completed', response: { id: 'r1' } },
             ].map(chunk => `data: ${JSON.stringify(chunk)}\n\n`),
           };
 
@@ -8816,6 +8950,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                 item: { type: 'message', id: 'message' },
               },
               { type: 'response.output_item.done', output_index: 1, item },
+              { type: 'response.completed', response: { id: 'r1' } },
             ].map(event => `data: ${JSON.stringify(event)}\n\n`),
           };
           const { stream } = await createModel('gpt-5-nano').doStream({

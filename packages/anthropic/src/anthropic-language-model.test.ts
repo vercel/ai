@@ -1,4 +1,5 @@
 import {
+  InvalidResponseDataError,
   APICallError,
   NoSuchProviderReferenceError,
   LanguageModelV4,
@@ -7460,6 +7461,172 @@ describe('AnthropicLanguageModel', () => {
   });
 
   describe('doStream', () => {
+    describe('stream termination', () => {
+      const partialChunks = [
+        {
+          type: 'message_start',
+          message: {
+            id: 'msg1',
+            model: 'claude-3-haiku-20240307',
+            stop_reason: null,
+            usage: { input_tokens: 10, output_tokens: 1 },
+          },
+        },
+        {
+          type: 'content_block_start',
+          index: 0,
+          content_block: { type: 'text', text: '' },
+        },
+        {
+          type: 'content_block_delta',
+          index: 0,
+          delta: { type: 'text_delta', text: 'Hello' },
+        },
+      ];
+      const finalChunks = [
+        { type: 'content_block_stop', index: 0 },
+        {
+          type: 'message_delta',
+          delta: { stop_reason: 'end_turn' },
+          usage: { output_tokens: 1 },
+        },
+        { type: 'message_stop' },
+      ];
+
+      async function readStream(chunks: unknown[], suffix = '') {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            ...chunks.map(chunk => `data: ${JSON.stringify(chunk)}\n\n`),
+            suffix,
+          ],
+        };
+        const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+        return convertReadableStreamToArray(stream);
+      }
+
+      it.each([
+        { scenario: 'partial output', chunks: partialChunks, suffix: '' },
+        { scenario: 'an empty stream', chunks: [], suffix: '' },
+        {
+          scenario: 'message_delta without message_stop',
+          chunks: [...partialChunks, ...finalChunks.slice(0, -1)],
+          suffix: '',
+        },
+        {
+          scenario: 'message_stop without a stop reason',
+          chunks: [
+            ...partialChunks,
+            { type: 'content_block_stop', index: 0 },
+            { type: 'message_stop' },
+          ],
+          suffix: '',
+        },
+      ])(
+        'should report truncation after $scenario',
+        async ({ chunks, suffix }) => {
+          const events = await readStream(chunks, suffix);
+          const errors = events.filter(event => event.type === 'error');
+          expect(errors).toHaveLength(1);
+          expect(InvalidResponseDataError.isInstance(errors[0].error)).toBe(
+            true,
+          );
+          expect(events.at(-1)).toMatchObject({
+            type: 'finish',
+            finishReason: { unified: 'error', raw: undefined },
+          });
+          expect(events.filter(event => event.type === 'finish')).toHaveLength(
+            1,
+          );
+          if (chunks.length > 0) {
+            expect(events).toContainEqual(
+              expect.objectContaining({ type: 'text-delta', delta: 'Hello' }),
+            );
+          }
+        },
+      );
+
+      it('should detect a truncated message after a completed message', async () => {
+        const events = await readStream([
+          ...partialChunks,
+          ...finalChunks,
+          ...partialChunks,
+        ]);
+        const errors = events.filter(event => event.type === 'error');
+        expect(errors).toHaveLength(1);
+        expect(InvalidResponseDataError.isInstance(errors[0].error)).toBe(true);
+        expect(
+          events
+            .filter(event => event.type === 'finish')
+            .map(event => event.finishReason.unified),
+        ).toEqual(['stop', 'error']);
+        expect(events.at(-1)).toMatchObject({
+          type: 'finish',
+          usage: { inputTokens: { total: 10 } },
+          providerMetadata: { anthropic: { usage: { input_tokens: 10 } } },
+        });
+      });
+
+      it('should finish normally after the terminal event', async () => {
+        const events = await readStream([...partialChunks, ...finalChunks]);
+        expect(events.filter(event => event.type === 'error')).toHaveLength(0);
+        expect(events.at(-1)).toMatchObject({
+          type: 'finish',
+          finishReason: { unified: 'stop' },
+        });
+      });
+
+      it('should preserve an unknown explicit finish reason', async () => {
+        const events = await readStream([
+          ...partialChunks,
+          ...[
+            { type: 'content_block_stop', index: 0 },
+            {
+              type: 'message_delta',
+              delta: { stop_reason: 'future_reason' },
+              usage: { output_tokens: 1 },
+            },
+            { type: 'message_stop' },
+          ],
+        ]);
+        expect(events.filter(event => event.type === 'error')).toHaveLength(0);
+        expect(events.at(-1)).toMatchObject({
+          type: 'finish',
+          finishReason: { unified: 'other', raw: 'future_reason' },
+        });
+      });
+
+      it('should not add a truncation error after a provider error', async () => {
+        const events = await readStream([
+          ...partialChunks,
+          {
+            type: 'error',
+            error: { type: 'api_error', message: 'Provider failed' },
+          },
+        ]);
+        const errors = events.filter(event => event.type === 'error');
+        expect(errors).toHaveLength(1);
+        expect(errors[0].error).toMatchObject({ message: 'Provider failed' });
+        expect(events.at(-1)).toMatchObject({
+          type: 'finish',
+          finishReason: { unified: 'error' },
+        });
+      });
+
+      it('should not add a truncation error after invalid JSON', async () => {
+        const events = await readStream(partialChunks, 'data: {invalid\n\n');
+        const errors = events.filter(event => event.type === 'error');
+        expect(errors).toHaveLength(1);
+        expect(InvalidResponseDataError.isInstance(errors[0].error)).toBe(
+          false,
+        );
+        expect(events.at(-1)).toMatchObject({
+          type: 'finish',
+          finishReason: { unified: 'error' },
+        });
+      });
+    });
+
     it.each([
       {
         type: 'page_location',
@@ -9691,6 +9858,42 @@ describe('AnthropicLanguageModel', () => {
               "type": "error",
             },
             "type": "error",
+          },
+          {
+            "finishReason": {
+              "raw": undefined,
+              "unified": "error",
+            },
+            "providerMetadata": {
+              "anthropic": {
+                "container": null,
+                "contextManagement": null,
+                "iterations": null,
+                "stopSequence": null,
+                "usage": {
+                  "input_tokens": 17,
+                  "output_tokens": 1,
+                },
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "noCache": 17,
+                "total": 17,
+              },
+              "outputTokens": {
+                "reasoning": undefined,
+                "text": undefined,
+                "total": 0,
+              },
+              "raw": {
+                "input_tokens": 17,
+                "output_tokens": 1,
+              },
+            },
           },
         ]
       `);
@@ -12420,6 +12623,10 @@ describe('AnthropicLanguageModel', () => {
           { type: 'text-start', id: '0' },
           { type: 'text-delta', id: '0', delta: 'Hello' },
           { type: 'error' },
+          {
+            type: 'finish',
+            finishReason: { unified: 'error', raw: undefined },
+          },
         ]);
         expect(errorPart?.type).toBe('error');
         if (errorPart?.type !== 'error') {

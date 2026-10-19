@@ -1,5 +1,6 @@
 import {
   APICallError,
+  InvalidResponseDataError,
   UnsupportedFunctionalityError,
   type JSONValue,
   type LanguageModelV4,
@@ -1599,10 +1600,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       string
     >();
 
-    let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
-      raw: undefined,
-    };
+    let finishReason: LanguageModelV4FinishReason | undefined;
     let usage: OpenAIResponsesUsage | undefined = undefined;
     const logprobs: Array<OpenAIResponsesLogprobs> = [];
     let responseId: string | null = null;
@@ -2935,6 +2933,17 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
           },
 
           flush(controller) {
+            if (finishReason == null) {
+              finishReason = { unified: 'error', raw: undefined };
+              controller.enqueue({
+                type: 'error',
+                error: new InvalidResponseDataError({
+                  data: undefined,
+                  message: 'Response stream ended without a finish reason.',
+                }),
+              });
+            }
+
             for (const annotation of fallbackAnnotations) {
               if (
                 (annotation.type === 'url_citation' &&

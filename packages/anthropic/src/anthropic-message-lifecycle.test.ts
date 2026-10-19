@@ -66,7 +66,11 @@ describe('Anthropic message lifecycle', () => {
         part => part.type === 'tool-call' && part.toolCallId === 'toolu_second',
       ),
     ).toBeFalsy();
-    expect(parts.some(part => part.type === 'finish')).toBeFalsy();
+    expect(parts.filter(part => part.type === 'finish')).toEqual([
+      expect.objectContaining({
+        finishReason: { unified: 'error', raw: undefined },
+      }),
+    ]);
   });
 
   it('ignores a duplicate message_start for the already-open message', async () => {

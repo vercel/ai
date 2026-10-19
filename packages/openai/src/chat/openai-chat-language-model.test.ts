@@ -2617,6 +2617,115 @@ describe('doGenerate', () => {
 });
 
 describe('doStream', () => {
+  describe('stream termination', () => {
+    const partialChunks = [
+      {
+        choices: [
+          { index: 0, delta: { content: 'Hello' }, finish_reason: null },
+        ],
+      },
+    ];
+    const finalChunks = [
+      { choices: [{ index: 0, delta: {}, finish_reason: 'stop' }] },
+    ];
+
+    async function readStream(chunks: unknown[], suffix = '') {
+      server.urls['https://api.openai.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          ...chunks.map(chunk => `data: ${JSON.stringify(chunk)}\n\n`),
+          suffix,
+        ],
+      };
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      return convertReadableStreamToArray(stream);
+    }
+
+    it.each([
+      { scenario: 'partial output', chunks: partialChunks, suffix: '' },
+      { scenario: 'an empty stream', chunks: [], suffix: '' },
+      {
+        scenario: '[DONE] without a finish reason',
+        chunks: partialChunks,
+        suffix: 'data: [DONE]\n\n',
+      },
+    ])(
+      'should report truncation after $scenario',
+      async ({ chunks, suffix }) => {
+        const events = await readStream(chunks, suffix);
+        const errors = events.filter(event => event.type === 'error');
+        expect(errors).toHaveLength(1);
+        expect(InvalidResponseDataError.isInstance(errors[0].error)).toBe(true);
+        expect(events.at(-1)).toMatchObject({
+          type: 'finish',
+          finishReason: { unified: 'error', raw: undefined },
+        });
+        expect(events.filter(event => event.type === 'finish')).toHaveLength(1);
+        if (chunks.length > 0) {
+          expect(events).toContainEqual(
+            expect.objectContaining({ type: 'text-delta', delta: 'Hello' }),
+          );
+        }
+      },
+    );
+
+    it('should finish normally after the terminal event', async () => {
+      const events = await readStream([...partialChunks, ...finalChunks]);
+      expect(events.filter(event => event.type === 'error')).toHaveLength(0);
+      expect(events.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: { unified: 'stop' },
+      });
+    });
+
+    it('should preserve an unknown explicit finish reason', async () => {
+      const events = await readStream([
+        ...partialChunks,
+        ...[
+          {
+            choices: [{ index: 0, delta: {}, finish_reason: 'future_reason' }],
+          },
+        ],
+      ]);
+      expect(events.filter(event => event.type === 'error')).toHaveLength(0);
+      expect(events.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: { unified: 'other', raw: 'future_reason' },
+      });
+    });
+
+    it('should not add a truncation error after a provider error', async () => {
+      const events = await readStream([
+        ...partialChunks,
+        {
+          error: {
+            message: 'Provider failed',
+            type: 'server_error',
+            code: 'server_error',
+          },
+        },
+      ]);
+      const errors = events.filter(event => event.type === 'error');
+      expect(errors).toHaveLength(1);
+      expect(errors[0].error).toMatchObject({ message: 'Provider failed' });
+      expect(events.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: { unified: 'error' },
+      });
+    });
+
+    it('should not add a truncation error after invalid JSON', async () => {
+      const events = await readStream(partialChunks, 'data: {invalid\n\n');
+      const errors = events.filter(event => event.type === 'error');
+      expect(errors).toHaveLength(1);
+      expect(InvalidResponseDataError.isInstance(errors[0].error)).toBe(false);
+      expect(events.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: { unified: 'error' },
+      });
+    });
+  });
+
   it('should stream text after Azure content filter chunks', async () => {
     server.urls['https://api.openai.com/v1/chat/completions'].response = {
       type: 'stream-chunks',

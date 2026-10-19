@@ -1934,10 +1934,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
-      raw: undefined,
-    };
+    let finishReason: LanguageModelV4FinishReason | undefined;
     const usage: AnthropicUsage = {
       input_tokens: 0,
       output_tokens: 0,
@@ -1992,6 +1989,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     let isMessageOpen = false;
     let activeMessageId: string | null | undefined;
     let hasInvalidMessageSequence = false;
+    let hasReceivedMessageStop = false;
+    let encounteredStreamError = false;
 
     let blockType:
       | 'text'
@@ -2013,6 +2012,80 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
     const generateId = this.generateId;
 
+    const emitFinish = (
+      controller: TransformStreamDefaultController<LanguageModelV4StreamPart>,
+    ) => {
+      if (finishReason == null) {
+        finishReason = { unified: 'error', raw: undefined };
+        encounteredStreamError = true;
+        controller.enqueue({
+          type: 'error',
+          error: new InvalidResponseDataError({
+            data: undefined,
+            message: 'Response stream ended without a finish reason.',
+          }),
+        });
+      }
+
+      const anthropicMetadata = {
+        usage: (rawUsage as JSONObject) ?? null,
+        stopSequence,
+        ...(stopDetails != null ? { stopDetails } : {}),
+        ...(inputTransformations != null ? { inputTransformations } : {}),
+        ...(safeguardResults != null ? { safeguardResults } : {}),
+        iterations: usage.iterations
+          ? usage.iterations.map(
+              iter =>
+                ({
+                  type: iter.type,
+                  ...(iter.model != null ? { model: iter.model } : {}),
+                  inputTokens: iter.input_tokens,
+                  outputTokens: iter.output_tokens,
+                  ...(iter.cache_creation_input_tokens
+                    ? {
+                        cacheCreationInputTokens:
+                          iter.cache_creation_input_tokens,
+                      }
+                    : {}),
+                  ...(iter.cache_read_input_tokens
+                    ? {
+                        cacheReadInputTokens: iter.cache_read_input_tokens,
+                      }
+                    : {}),
+                }) satisfies AnthropicUsageIteration,
+            )
+          : null,
+        container,
+        contextManagement,
+      } satisfies AnthropicMessageMetadata;
+
+      const providerMetadata: SharedV4ProviderMetadata = {
+        anthropic: anthropicMetadata,
+      };
+
+      if (usedCustomProviderKey && providerOptionsName !== 'anthropic') {
+        providerMetadata[providerOptionsName] = anthropicMetadata;
+      }
+
+      if (!hasWebSearchResults) {
+        for (const citation of fallbackWebCitations) {
+          const source = createCitationSource(
+            citation,
+            citationDocuments,
+            generateId,
+          );
+          if (source) controller.enqueue(source);
+        }
+      }
+      fallbackWebCitations.length = 0;
+      controller.enqueue({
+        type: 'finish',
+        finishReason,
+        usage: convertAnthropicUsage({ usage, rawUsage }),
+        providerMetadata,
+      });
+    };
+
     const transformedStream = response.pipeThrough(
       new TransformStream<
         ParseResult<InferSchema<typeof anthropicChunkSchema>>,
@@ -2032,6 +2105,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           }
 
           if (!chunk.success) {
+            encounteredStreamError = true;
+            finishReason = { unified: 'error', raw: undefined };
             controller.enqueue({ type: 'error', error: chunk.error });
             return;
           }
@@ -2929,6 +3004,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 }
 
                 hasInvalidMessageSequence = true;
+                encounteredStreamError = true;
+                finishReason = { unified: 'error', raw: undefined };
                 controller.enqueue({
                   type: 'error',
                   error: new InvalidResponseDataError({
@@ -2942,6 +3019,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               }
 
               isMessageOpen = true;
+              hasReceivedMessageStop = false;
+              if (!encounteredStreamError) {
+                finishReason = undefined;
+              }
               activeMessageId = value.message.id;
 
               usage.input_tokens = value.message.usage.input_tokens;
@@ -2966,7 +3047,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 };
               }
 
-              if (value.message.stop_reason != null) {
+              if (
+                !encounteredStreamError &&
+                value.message.stop_reason != null
+              ) {
                 finishReason = {
                   unified: mapAnthropicStopReason({
                     finishReason: value.message.stop_reason,
@@ -3068,13 +3152,15 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 usage.iterations = value.usage.iterations;
               }
 
-              finishReason = {
-                unified: mapAnthropicStopReason({
-                  finishReason: value.delta.stop_reason,
-                  isJsonResponseFromTool,
-                }),
-                raw: value.delta.stop_reason ?? undefined,
-              };
+              if (!encounteredStreamError && value.delta.stop_reason != null) {
+                finishReason = {
+                  unified: mapAnthropicStopReason({
+                    finishReason: value.delta.stop_reason,
+                    isJsonResponseFromTool,
+                  }),
+                  raw: value.delta.stop_reason ?? undefined,
+                };
+              }
 
               stopSequence = value.delta.stop_sequence ?? null;
               stopDetails = mapAnthropicStopDetails(value.delta.stop_details);
@@ -3119,74 +3205,14 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
             case 'message_stop': {
               isMessageOpen = false;
               activeMessageId = undefined;
-
-              const anthropicMetadata = {
-                usage: (rawUsage as JSONObject) ?? null,
-                stopSequence,
-                ...(stopDetails != null ? { stopDetails } : {}),
-                ...(inputTransformations != null
-                  ? { inputTransformations }
-                  : {}),
-                ...(safeguardResults != null ? { safeguardResults } : {}),
-                iterations: usage.iterations
-                  ? usage.iterations.map(
-                      iter =>
-                        ({
-                          type: iter.type,
-                          ...(iter.model != null ? { model: iter.model } : {}),
-                          inputTokens: iter.input_tokens,
-                          outputTokens: iter.output_tokens,
-                          ...(iter.cache_creation_input_tokens
-                            ? {
-                                cacheCreationInputTokens:
-                                  iter.cache_creation_input_tokens,
-                              }
-                            : {}),
-                          ...(iter.cache_read_input_tokens
-                            ? {
-                                cacheReadInputTokens:
-                                  iter.cache_read_input_tokens,
-                              }
-                            : {}),
-                        }) satisfies AnthropicUsageIteration,
-                    )
-                  : null,
-                container,
-                contextManagement,
-              } satisfies AnthropicMessageMetadata;
-
-              const providerMetadata: SharedV4ProviderMetadata = {
-                anthropic: anthropicMetadata,
-              };
-
-              if (
-                usedCustomProviderKey &&
-                providerOptionsName !== 'anthropic'
-              ) {
-                providerMetadata[providerOptionsName] = anthropicMetadata;
-              }
-
-              if (!hasWebSearchResults) {
-                for (const citation of fallbackWebCitations) {
-                  const source = createCitationSource(
-                    citation,
-                    citationDocuments,
-                    generateId,
-                  );
-                  if (source) controller.enqueue(source);
-                }
-              }
-              fallbackWebCitations.length = 0;
-              controller.enqueue({
-                type: 'finish',
-                finishReason,
-                usage: convertAnthropicUsage({ usage, rawUsage }),
-                providerMetadata,
-              });
+              hasReceivedMessageStop = true;
+              emitFinish(controller);
               return;
             }
 
             case 'error': {
+              encounteredStreamError = true;
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({
                 type: 'error',
                 error: createAnthropicStreamError(value.error),
@@ -3199,6 +3225,24 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               throw new Error(`Unsupported chunk type: ${_exhaustiveCheck}`);
             }
           }
+        },
+
+        flush(controller) {
+          if (hasReceivedMessageStop) {
+            return;
+          }
+
+          if (!encounteredStreamError) {
+            finishReason = { unified: 'error', raw: undefined };
+            controller.enqueue({
+              type: 'error',
+              error: new InvalidResponseDataError({
+                data: undefined,
+                message: 'Response stream ended without a message_stop event.',
+              }),
+            });
+          }
+          emitFinish(controller);
         },
       }),
     );
@@ -3220,12 +3264,11 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       // The Anthropic API returns 200 responses when there are overloaded errors.
       // We handle the case where the first chunk is an error here and transform
       // it into an APICallError.
-      if (result.value?.type === 'error') {
+      if (
+        result.value?.type === 'error' &&
+        isProviderStreamError(result.value.error)
+      ) {
         const error = result.value.error;
-
-        if (!isProviderStreamError(error)) {
-          throw new Error('Expected a normalized Anthropic stream error');
-        }
 
         throw new APICallError({
           message: error.message,
