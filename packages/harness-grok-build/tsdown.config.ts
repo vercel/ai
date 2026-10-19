@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { defineConfig, mergeConfig } from 'tsdown';
 
-import { tsdownBaseConfig } from '../../tools/tsdown-config.mts';
+import { tsdownBaseConfig } from '@vercel/ai-tsdown-config';
 
 const packageVersion = JSON.stringify(
   (await import('./package.json', { with: { type: 'json' } })).default.version,
