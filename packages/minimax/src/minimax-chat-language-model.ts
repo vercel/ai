@@ -20,23 +20,33 @@ type MiniMaxChatConfig = ConstructorParameters<
 >[1];
 
 export class MiniMaxChatLanguageModel extends AnthropicLanguageModel {
+  private readonly supportsM31Features: boolean;
+
   constructor(modelId: string, config: MiniMaxChatConfig) {
+    // Compare version components as integers: M3.123 is newer than M3.1.
+    // Assume later M-series models retain the M3.1 capabilities.
+    const version = /^minimax-m(\d+)(?:\.(\d+))?(?:\.\d+)*(?:-|$)/i.exec(
+      modelId,
+    );
+    const supportsM31Features =
+      version != null &&
+      (Number(version[1]) > 3 ||
+        (Number(version[1]) === 3 && Number(version[2] ?? 0) >= 1));
+
     super(modelId, {
       ...config,
-      convertMediaPart:
-        modelId.toLowerCase() === 'minimax-m3.1-flash'
-          ? convertToMiniMaxMediaPart
-          : config.convertMediaPart,
-      ...(modelId.toLowerCase() === 'minimax-m3.1-flash' && {
+      ...(supportsM31Features && {
+        convertMediaPart: convertToMiniMaxMediaPart,
         maxTemperature: 2,
         supportsTemperatureAndTopPWithThinking: true,
         cacheControlProviderOptionsName: 'minimax',
       }),
     });
+    this.supportsM31Features = supportsM31Features;
   }
 
   get supportedUrls() {
-    return this.modelId.toLowerCase() === 'minimax-m3.1-flash'
+    return this.supportsM31Features
       ? { 'image/*': [/^https?:\/\//], 'video/*': [/^https?:\/\//] }
       : super.supportedUrls;
   }
@@ -60,7 +70,7 @@ export class MiniMaxChatLanguageModel extends AnthropicLanguageModel {
     const { reasoning, providerOptions } = options;
 
     if (
-      this.modelId.toLowerCase() !== 'minimax-m3.1-flash' ||
+      !this.supportsM31Features ||
       !isCustomReasoning(reasoning) ||
       providerOptions?.minimax?.effort != null ||
       providerOptions?.anthropic?.effort != null
@@ -97,7 +107,7 @@ export class MiniMaxChatLanguageModel extends AnthropicLanguageModel {
     return {
       options: {
         ...options,
-        // Flash always reasons. Send effort without Anthropic thinking budgets.
+        // M3.1 and later use effort instead of Anthropic thinking budgets.
         reasoning: undefined,
         providerOptions: {
           ...providerOptions,

@@ -15,7 +15,7 @@ export type MiniMaxChatModelId =
 
 export const minimaxLanguageModelOptions = z.object({
   /**
-   * Reasoning effort for MiniMax M3.1 Flash. Higher levels can use more
+   * Reasoning effort for MiniMax M3.1 and later models. Higher levels can use more
    * reasoning tokens and increase latency. Defaults to the server's setting.
    */
   effort: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).optional(),
@@ -30,7 +30,7 @@ export type MiniMaxLanguageModelOptions = z.infer<
   typeof minimaxLanguageModelOptions
 >;
 
-/** Cache options for M3.1 Flash system messages and text parts. */
+/** Cache options for M3.1 and later models system messages and text parts. */
 export type MiniMaxCacheControlOptions = {
   /** Mark a stable prompt prefix for caching. A cache hit is not guaranteed. */
   cacheControl?: { type: 'ephemeral' };

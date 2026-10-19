@@ -570,7 +570,7 @@ describe('MiniMax M3.1 Flash media input', () => {
     expect(result.request?.body).toMatchObject({ messages });
   });
 
-  it('advertises native image/video URLs only for Flash', () => {
+  it('advertises native image/video URLs for M3.1 but not M3', () => {
     expect(model.supportedUrls).toEqual({
       'image/*': [/^https?:\/\//],
       'video/*': [/^https?:\/\//],
@@ -621,7 +621,7 @@ describe('MiniMax M3.1 Flash media input', () => {
     );
   });
 
-  it('does not enable video input for other model IDs', async () => {
+  it('does not enable video input for M3', async () => {
     await expect(
       provider('minimax-m3').doGenerate({
         prompt: [
@@ -690,6 +690,153 @@ describe.each(['generate', 'stream'] as const)(
 
       return { body: await server.calls[0].requestBodyJson, warnings };
     }
+
+    describe('M3.1 and later model versions', () => {
+      it.each([
+        'minimax-m3.1',
+        'MiniMax-M3.1-Flash-Preview',
+        'minimax-m3.1.1',
+        'minimax-m3.2',
+        'minimax-m3.10-flash',
+        'minimax-m3.123-flash',
+        'minimax-m4',
+        'MiniMax-M4.0-Highspeed',
+        'minimax-m10',
+      ])(
+        'applies reasoning, sampling, media, and caching capabilities to %s',
+        async modelId => {
+          const { body, warnings } = await call(
+            {
+              reasoning: 'high',
+              temperature: 2,
+              topP: 0.9,
+              providerOptions: { minimax: { thinking: { type: 'adaptive' } } },
+              prompt: [
+                {
+                  role: 'user',
+                  content: [
+                    {
+                      type: 'text',
+                      text: 'Reference.',
+                      providerOptions: {
+                        minimax: { cacheControl: { type: 'ephemeral' } },
+                      },
+                    },
+                    {
+                      type: 'file',
+                      mediaType: 'image/png',
+                      data: {
+                        type: 'url',
+                        url: new URL('https://example.com/image.png'),
+                      },
+                      providerOptions: { minimax: { detail: 'high' } },
+                    },
+                    {
+                      type: 'file',
+                      mediaType: 'video/mp4',
+                      data: {
+                        type: 'reference',
+                        reference: { minimax: '123' },
+                      },
+                      providerOptions: { minimax: { fps: 1 } },
+                    },
+                  ],
+                },
+              ],
+            },
+            modelId,
+          );
+          expect(body).toMatchObject({
+            model: modelId,
+            temperature: 2,
+            top_p: 0.9,
+            thinking: { type: 'adaptive' },
+            output_config: { effort: 'high' },
+          });
+          expect(body.messages[0].content).toEqual([
+            {
+              type: 'text',
+              text: 'Reference.',
+              cache_control: { type: 'ephemeral' },
+            },
+            {
+              type: 'image',
+              source: {
+                type: 'url',
+                url: 'https://example.com/image.png',
+                detail: 'high',
+              },
+            },
+            {
+              type: 'video',
+              source: { type: 'url', url: 'mm_file://123', fps: 1 },
+            },
+          ]);
+          expect(provider(modelId).supportedUrls).toEqual({
+            'image/*': [/^https?:\/\//],
+            'video/*': [/^https?:\/\//],
+          });
+          expect(warnings).toEqual([]);
+        },
+      );
+
+      it.each(['minimax-m3.2', 'minimax-m4'])(
+        'maps reasoning none to low effort for %s',
+        async modelId => {
+          const { body, warnings } = await call({ reasoning: 'none' }, modelId);
+          expect(body.output_config).toEqual({ effort: 'low' });
+          expect(body.thinking).toBeUndefined();
+          expect(warnings).toEqual([
+            expect.objectContaining({
+              type: 'compatibility',
+              feature: 'reasoning',
+            }),
+          ]);
+        },
+      );
+
+      it.each([
+        'minimax-m3',
+        'minimax-m3.0-flash',
+        'minimax-m2.99',
+        'custom-model',
+        'other-minimax-m4',
+        'minimax-m3.1oops',
+        'minimax-m4oops',
+      ])(
+        'does not opt older or unrecognized model IDs into the new capabilities: %s',
+        async modelId => {
+          const { body, warnings } = await call(
+            {
+              temperature: 1.5,
+              prompt: [
+                {
+                  role: 'user',
+                  content: [
+                    {
+                      type: 'text',
+                      text: 'Reference.',
+                      providerOptions: {
+                        minimax: { cacheControl: { type: 'ephemeral' } },
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+            modelId,
+          );
+          expect(body.temperature).toBe(1);
+          expect(body.messages[0].content[0]).not.toHaveProperty(
+            'cache_control',
+          );
+          expect(provider(modelId).supportedUrls).toEqual({});
+          expect(warnings).toEqual([
+            expect.objectContaining({ feature: 'temperature' }),
+          ]);
+        },
+      );
+    });
 
     describe('prompt caching', () => {
       const cacheOptions = {

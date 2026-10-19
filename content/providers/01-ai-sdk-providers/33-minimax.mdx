@@ -92,7 +92,7 @@ MiniMax language models can be used in the `streamText` function
 
 ### Sampling Parameters
 
-For `minimax-m3.1-flash`, `temperature` accepts values from `0` to `2`, and
+For MiniMax M3.1 and later model IDs, `temperature` accepts values from `0` to `2`, and
 `topP` accepts values from `0` to `1`. Both are forwarded when adaptive thinking
 is explicitly enabled or when using the top-level `reasoning` setting.
 Omit them to use MiniMax's defaults.
@@ -110,7 +110,7 @@ const { text } = await generateText({
 
 ### Prompt Caching
 
-For `minimax-m3.1-flash`, mark stable text with
+For MiniMax M3.1 and later model IDs, mark stable text with
 `providerOptions.minimax.cacheControl`. The provider forwards it as
 `cache_control` on the corresponding API content block. You can also set it on
 a system message, or on a user message to mark its final content block.
@@ -156,7 +156,7 @@ precedence.
 
 ### Image and Video Input
 
-`minimax-m3.1-flash` accepts images and videos in user messages with both
+MiniMax M3.1 and later model IDs accept images and videos in user messages with both
 `generateText` and `streamText`. Pass file bytes, base64 data, or a public HTTP(S)
 URL. URLs are sent directly to MiniMax.
 
@@ -275,7 +275,7 @@ console.log(text);
 The output token budget includes both reasoning and the final answer. Higher
 effort levels may need a larger budget.
 
-You can also use the top-level `reasoning` setting with `minimax-m3.1-flash`:
+You can also use the top-level `reasoning` setting with MiniMax M3.1 and later model IDs:
 
 ```ts
 const { text } = await generateText({
@@ -289,7 +289,7 @@ const { text } = await generateText({
 
 The levels `'low'`, `'medium'`, `'high'`, `'xhigh'`, and `'max'` map directly to
 MiniMax's effort levels. `'minimal'` maps to `'low'` with a compatibility warning.
-Because Flash cannot disable reasoning, `'none'` also maps to `'low'` with a
+For M3.1 and later model IDs, `'none'` also maps to `'low'` with a
 compatibility warning. Omitting `reasoning` or setting it to `'provider-default'`
 leaves the server default unchanged. An explicit `providerOptions.minimax.effort`
 takes precedence over `reasoning`.
@@ -300,9 +300,9 @@ The following optional provider options are available for MiniMax language model
 
 - **effort** _'low' | 'medium' | 'high' | 'xhigh' | 'max'_
 
-  Controls reasoning depth for `minimax-m3.1-flash`. Higher levels can use more
+  Controls reasoning depth for MiniMax M3.1 and later model IDs. Higher levels can use more
   reasoning tokens and increase latency. Maps to `output_config.effort` in the
-  MiniMax API. When omitted, the server uses its default (`'max'`).
+  MiniMax API. When omitted, the server uses its default (`'max'` for M3.1 Flash).
 
 - **thinking** _object_
 
