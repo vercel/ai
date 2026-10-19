@@ -17,7 +17,7 @@ import type {
   ACPModelMapping,
   ACPPermissionModeMapping,
 } from './acp-v1-settings';
-import { acpTextContentBlockSchema } from './acp-v1-prompt';
+import { acpContentBlockSchema } from './acp-v1-prompt';
 
 export type ACPBuiltinToolMapping = {
   /**
@@ -147,7 +147,7 @@ const modelMappingSchema: z.ZodType<ACPModelMapping> = z.discriminatedUnion(
 export type ACPTurnStartConfig = {
   readonly version: 1;
   readonly configurationFingerprint: string;
-  readonly prompt: Array<z.infer<typeof acpTextContentBlockSchema>>;
+  readonly prompt: Array<z.infer<typeof acpContentBlockSchema>>;
   readonly tools: Array<ACPSerializableToolSpec>;
   readonly builtinTools: Array<ACPBuiltinToolMapping>;
   readonly permissionMode: HarnessV1PermissionMode;
@@ -164,7 +164,7 @@ export type ACPTurnStartConfig = {
 export const acpTurnStartConfigSchema = z.object({
   version: z.literal(1),
   configurationFingerprint: z.string(),
-  prompt: z.array(acpTextContentBlockSchema),
+  prompt: z.array(acpContentBlockSchema),
   tools: z.array(acpSerializableToolSpecSchema).default([]),
   builtinTools: z.array(builtinToolSchema).default([]),
   permissionMode: harnessV1BridgeStartBaseSchema.shape.permissionMode.unwrap(),
@@ -234,7 +234,7 @@ export const outboundMessageSchema = z.union([
 export type OutboundMessage = z.infer<typeof outboundMessageSchema>;
 
 export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
-  prompt: z.array(acpTextContentBlockSchema),
+  prompt: z.array(acpContentBlockSchema),
   instructions: z.string().optional(),
   instructionMapping: instructionMappingSchema.optional(),
   outputSchemaMapping: outputSchemaMappingSchema.optional(),

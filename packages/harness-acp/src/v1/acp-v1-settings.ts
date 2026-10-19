@@ -246,8 +246,9 @@ export type ACPV1Settings = {
   readonly hostToolMcpTransport?: ACPHostToolMCPTransport;
   /**
    * Non-text tool model output the ACP implementation can deliver to its
-   * model. Text is always supported. Undeclared image content is omitted
-   * with a warning. Defaults to an empty list.
+   * model. Currently accepts images; undeclared image output is omitted with a
+   * warning. Also enables image prompts when the ACP agent does not advertise
+   * image prompt support. Defaults to an empty list.
    */
   readonly nonTextContentTypes?: ReadonlyArray<'image'>;
   readonly askUserQuestions?: ACPAskUserQuestionsSettings;
