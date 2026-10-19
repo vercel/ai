@@ -16724,19 +16724,7 @@ describe('streamText', () => {
 
         await resultObject.consumeStream();
 
-        if (nodeVersionIs24_15) {
-          expect(result.content[0]).toMatchObject({
-            providerMetadata: undefined,
-            text: 'Hello,  World',
-            type: 'text',
-          });
-          expect(result.response.messages[0].content[0]).toMatchObject({
-            providerOptions: undefined,
-            text: 'Hello, ',
-            type: 'text',
-          });
-        } else {
-          expect(result).toMatchInlineSnapshot(`
+        expect(result).toMatchInlineSnapshot(`
           DefaultStepResult {
             "content": [
               {
@@ -16792,7 +16780,6 @@ describe('streamText', () => {
             "warnings": [],
           }
         `);
-        }
       });
     });
   });
