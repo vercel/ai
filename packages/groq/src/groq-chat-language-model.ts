@@ -192,15 +192,6 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
     const choice = response.choices[0];
     const content: Array<LanguageModelV3Content> = [];
 
-<<<<<<< HEAD
-    // text content:
-    const text = choice.message.content;
-    if (text != null && text.length > 0) {
-      content.push({ type: 'text', text: text });
-    }
-
-=======
->>>>>>> 869601f532 (fix(openai-compatible, groq, alibaba): put reasoning before text in doGenerate (#23566))
     // reasoning:
     const reasoning = choice.message.reasoning;
     if (reasoning != null && reasoning.length > 0) {
@@ -212,7 +203,7 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
 
     // text content:
     const text = choice.message.content;
-    if (jsonResponseToolName == null && text != null && text.length > 0) {
+    if (text != null && text.length > 0) {
       content.push({ type: 'text', text: text });
     }
 
