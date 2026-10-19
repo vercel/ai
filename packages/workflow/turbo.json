@@ -1,0 +1,15 @@
+{
+  "extends": [
+    "//"
+  ],
+  "tasks": {
+    "ci:checks": {
+      "dependsOn": [
+        "build",
+        "type-check",
+        "test",
+        "test:integration"
+      ]
+    }
+  }
+}

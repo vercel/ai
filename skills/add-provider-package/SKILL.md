@@ -65,7 +65,6 @@ packages/<provider>/
 ├── tsconfig.json
 ├── tsconfig.build.json
 ├── tsdown.config.ts
-├── turbo.json
 ├── vitest.node.config.js
 └── vitest.edge.config.js
 ```
@@ -75,13 +74,13 @@ Preserve current package conventions rather than recreating configuration from m
 - Set the repository package version to exactly `2.0.0`, with no prerelease suffix.
 - Create `CHANGELOG.md` with an initial `# @ai-sdk/<provider>` heading.
 - Use the shared tsdown configuration and the current package-version injection pattern from a comparable provider package.
-- Extend `./node_modules/@vercel/ai-tsconfig/ts-library.json`, enable a composite project, and add package references for workspace dependencies.
+- Extend `./node_modules/@vercel/ai-tsconfig/ts-library.json`, check types without emitting JavaScript, and declare workspace dependencies in the package manifest.
 - Include the standard build, clean, type-check, Node test, and Edge test scripts.
 - Include the standard `files`, documentation prepack, repository, bugs, engines, and public provenance publishing metadata.
 - Use `workspace:*` for AI SDK workspace dependencies. Add `@ai-sdk/test-server` only when tests use it.
 - Support the repository's Zod 3 and Zod 4 peer dependency range and use `zod/v4` for new implementation schemas.
 
-Run `pnpm update-references` after adding or changing workspace dependencies.
+Run `pnpm type-check:full` after adding or changing workspace dependencies.
 
 ## Implement the Provider Factory
 
@@ -152,10 +151,9 @@ Put additional examples in the same provider directory with descriptive `kebab-c
 Also update the relevant repository integration points:
 
 - add `@ai-sdk/<provider>` to `examples/ai-functions/package.json`
-- add its project reference to `examples/ai-functions/tsconfig.json`
 - add required credentials to `examples/ai-functions/.env.example`
 - add credential names to the root `turbo.json` environment configuration when needed
-- run `pnpm update-references` to update root and package TypeScript references
+- run `pnpm type-check:full` to check all workspace packages
 
 Run representative examples against the real API and confirm both non-streaming and streaming behavior when supported.
 
@@ -201,7 +199,7 @@ Also run the new examples with the required provider credentials. Run the root b
 - [ ] Response parsing, error handling, and URL fetching follow repository security rules
 - [ ] Node and Edge tests pass with representative response fixtures
 - [ ] Nested AI Functions examples added and run successfully
-- [ ] Example dependencies, TypeScript references, environment variables, and Turbo configuration updated
+- [ ] Example dependencies, environment variables, and Turbo configuration updated
 - [ ] README and provider documentation added
 - [ ] Major changeset added
 - [ ] npm package and Trusted Publisher bootstrap coordinated

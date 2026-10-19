@@ -26,7 +26,7 @@
     "clean": "del-cli docs",
     "prepack": "mkdir -p docs && cp ../../content/providers/01-ai-sdk-providers/150-hume.mdx ./docs/",
     "postpack": "del-cli docs",
-    "type-check": "tsc --noEmit",
+    "type-check": "tsc --noEmit --rootDir ../..",
     "test": "pnpm test:node && pnpm test:edge",
     "test:watch": "vitest --config vitest.node.config.js --watch",
     "test:edge": "vitest --config vitest.edge.config.js --run",

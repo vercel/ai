@@ -20,7 +20,7 @@
     "build": "pnpm clean && tsdown",
     "clean": "del-cli *.tsbuildinfo",
     "dev": "tsdown --watch",
-    "type-check": "tsc --build",
+    "type-check": "tsc --noEmit --rootDir ../.. --incremental false",
     "test": "vitest --config vitest.config.ts --run",
     "test:watch": "vitest",
     "test:update": "UPDATE_SNAPSHOT=true vitest -u --run",

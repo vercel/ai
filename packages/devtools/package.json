@@ -33,10 +33,11 @@
     "build:client": "vite build",
     "build:server": "tsdown",
     "test": "pnpm test:unit",
-    "test:e2e": "pnpm build:client && playwright test",
+    "test:e2e": "pnpm test:browser",
     "test:unit": "vitest --config vitest.node.config.js --run",
     "test:watch": "vitest --config vitest.node.config.js",
-    "prepublishOnly": "pnpm build"
+    "prepublishOnly": "pnpm build",
+    "test:browser": "playwright test"
   },
   "dependencies": {
     "@ai-sdk/provider": "workspace:*",

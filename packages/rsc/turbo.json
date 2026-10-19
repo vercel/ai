@@ -3,9 +3,16 @@
     "//"
   ],
   "tasks": {
-    "build": {
-      "outputs": [
-        "**/dist/**"
+    "test:e2e": {
+      "dependsOn": [
+        "build",
+        "ai-core-e2e-next-server#build"
+      ]
+    },
+    "test:browser": {
+      "dependsOn": [
+        "build",
+        "ai-core-e2e-next-server#build"
       ]
     }
   }

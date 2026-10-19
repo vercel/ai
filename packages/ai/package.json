@@ -26,15 +26,15 @@
   "scripts": {
     "build": "pnpm clean && tsdown",
     "build:watch": "pnpm clean && tsdown --watch",
-    "clean": "del-cli docs *.tsbuildinfo",
+    "clean": "del-cli dist docs *.tsbuildinfo",
     "prepack": "cp -r ../../content/docs ./docs",
     "postpack": "del-cli docs",
-    "type-check": "tsc --build",
+    "type-check": "tsc --noEmit --rootDir ../.. --incremental false",
     "test": "pnpm test:node && pnpm test:edge",
     "test:update": "pnpm test:node -u",
     "test:watch": "vitest --config vitest.node.config.js",
-    "test:edge": "vitest --config vitest.edge.config.js --run",
-    "test:node": "vitest --config vitest.node.config.js --run",
+    "test:edge": "node ../../tools/ci/run-vitest-shard.mjs vitest.edge.config.js",
+    "test:node": "node ../../tools/ci/run-vitest-shard.mjs vitest.node.config.js",
     "check-bundle-size": "tsx scripts/check-bundle-size.ts"
   },
   "exports": {

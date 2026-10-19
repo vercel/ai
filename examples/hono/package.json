@@ -13,7 +13,7 @@
     "dev": "tsx watch src/server.ts",
     "dev:streaming": "tsx watch src/hono-streaming.ts",
     "curl": "curl -i -X POST http://localhost:8080/text",
-    "type-check": "tsc --build"
+    "type-check": "tsc --noEmit --rootDir ../.. --incremental false"
   },
   "devDependencies": {
     "@types/node": "22.19.19",

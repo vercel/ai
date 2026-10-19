@@ -9,7 +9,7 @@
     "zod": "3.25.76"
   },
   "scripts": {
-    "type-check": "tsc --build",
+    "type-check": "tsc --noEmit --rootDir ../.. --incremental false",
     "dev": "tsx src/server.ts"
   },
   "devDependencies": {

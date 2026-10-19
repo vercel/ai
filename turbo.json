@@ -1,9 +1,29 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalEnv": ["CI", "PORT"],
+  "globalEnv": [
+    "CI",
+    "RUNNER_OS",
+    "RUNNER_ARCH"
+  ],
   "tasks": {
+    "ci:checks": {
+      "dependsOn": [
+        "build",
+        "type-check",
+        "test"
+      ]
+    },
+    "//#check": {},
+    "//#validate:docs": {
+      "inputs": [
+        "tools/validate-properties-tables.mjs",
+        "content/**/*.mdx"
+      ]
+    },
     "build": {
-      "dependsOn": ["^build"],
+      "dependsOn": [
+        "^build"
+      ],
       "env": [
         "AI_GATEWAY_API_KEY",
         "AI_SDK_DEVTOOLS_PORT",
@@ -75,43 +95,183 @@
         "!.next/cache/**",
         ".nuxt/**",
         ".svelte-kit/**",
-        ".vinxi/**"
+        ".vinxi/**",
+        "!.next/dev/**",
+        ".vercel/output/**",
+        ".output/**",
+        "dist-ssr/**"
+      ],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        ".env*"
       ]
     },
     "type-check": {
-      "dependsOn": ["^build", "build"]
+      "dependsOn": [
+        "build"
+      ]
     },
     "test": {
-      "dependsOn": ["^build", "build"],
-      "env": ["SKIP_RSC_E2E", "VITEST_MAX_WORKERS", "TEST_NODE_VERSION"],
-      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/tools/setup-download-fetch.node.js"]
+      "dependsOn": [
+        "build"
+      ],
+      "env": [
+        "VITEST_MAX_WORKERS",
+        "TEST_NODE_VERSION"
+      ],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/tools/setup-download-fetch.node.js"
+      ]
     },
-    "test:e2e:ci": {
-      "env": ["SKIP_RSC_E2E"]
+    "test:node": {
+      "dependsOn": [
+        "build"
+      ],
+      "env": [
+        "VITEST_MAX_WORKERS",
+        "TEST_NODE_VERSION"
+      ],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/tools/setup-download-fetch.node.js"
+      ]
+    },
+    "test:edge": {
+      "dependsOn": [
+        "build"
+      ],
+      "env": [
+        "VITEST_MAX_WORKERS",
+        "TEST_NODE_VERSION"
+      ],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/tools/setup-download-fetch.node.js"
+      ]
+    },
+    "test:e2e": {
+      "dependsOn": [
+        "build"
+      ],
+      "env": [
+        "VITEST_MAX_WORKERS",
+        "TEST_NODE_VERSION"
+      ],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/tools/setup-download-fetch.node.js"
+      ],
+      "outputs": [
+        "test-results.json",
+        "test-results/**",
+        "playwright-report/**"
+      ]
+    },
+    "check-bundle-size": {
+      "dependsOn": [
+        "build"
+      ],
+      "outputs": [
+        "dist-bundle-check/**"
+      ]
+    },
+    "//#test:bundlers": {
+      "dependsOn": [
+        "ai#build",
+        "@ai-sdk/openai#build"
+      ],
+      "inputs": [
+        "tools/bundler-tests/**",
+        "content/docs/**",
+        "content/providers/01-ai-sdk-providers/03-openai.mdx"
+      ],
+      "env": [
+        "TEST_NODE_VERSION"
+      ]
     },
     "test:update": {
-      "dependsOn": ["^build", "build"]
+      "dependsOn": [
+        "build"
+      ],
+      "cache": false
     },
     "publint": {
-      "dependsOn": ["^build", "build"]
+      "dependsOn": [
+        "build"
+      ]
     },
     "clean": {
-      "dependsOn": ["^clean"]
+      "dependsOn": [
+        "^clean"
+      ],
+      "cache": false
     },
     "dev": {
       "cache": false,
       "persistent": true
     },
-    "integration-test": {
-      "dependsOn": ["^build", "build"]
-    },
     "//#konsistent:check": {
-      "dependsOn": ["konsistent-provider#build"],
-      "cache": false
+      "dependsOn": [
+        "konsistent-provider#build"
+      ],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "!content/**",
+        "!examples/**",
+        "!apps/**"
+      ]
     },
     "//#konsistent:validate": {
-      "dependsOn": ["konsistent-provider#build"],
-      "cache": false
+      "dependsOn": [
+        "konsistent-provider#build"
+      ],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "!content/**",
+        "!examples/**",
+        "!apps/**"
+      ]
+    },
+    "test:integration": {
+      "dependsOn": [
+        "build"
+      ],
+      "env": [
+        "TEST_NODE_VERSION"
+      ]
+    },
+    "test:browser": {
+      "dependsOn": [
+        "build"
+      ],
+      "env": [
+        "TEST_NODE_VERSION",
+        "PLAYWRIGHT_IMAGE",
+        "PORT"
+      ],
+      "passThroughEnv": [
+        "PLAYWRIGHT_BROWSERS_PATH",
+        "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD"
+      ],
+      "outputs": [
+        "test-results.json",
+        "test-results/**",
+        "playwright-report/**"
+      ]
+    },
+    "//#benchmark:load-time": {
+      "dependsOn": [
+        "ai#build",
+        "@ai-sdk/openai#build",
+        "@ai-sdk/openai-compatible#build",
+        "@ai-sdk/anthropic#build",
+        "@ai-sdk/google#build"
+      ],
+      "cache": false,
+      "passThroughEnv": [
+        "GITHUB_STEP_SUMMARY"
+      ]
     }
   }
 }

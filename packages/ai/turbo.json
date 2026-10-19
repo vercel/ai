@@ -3,9 +3,30 @@
     "//"
   ],
   "tasks": {
-    "build": {
-      "outputs": [
-        "**/dist/**"
+    "ci:checks": {
+      "dependsOn": [
+        "build",
+        "type-check"
+      ]
+    },
+    "test:node": {
+      "env": [
+        "$TURBO_EXTENDS$",
+        "VITEST_SHARD"
+      ],
+      "inputs": [
+        "$TURBO_EXTENDS$",
+        "$TURBO_ROOT$/tools/ci/run-vitest-shard.mjs"
+      ]
+    },
+    "test:edge": {
+      "env": [
+        "$TURBO_EXTENDS$",
+        "VITEST_SHARD"
+      ],
+      "inputs": [
+        "$TURBO_EXTENDS$",
+        "$TURBO_ROOT$/tools/ci/run-vitest-shard.mjs"
       ]
     }
   }

@@ -1,0 +1,22 @@
+name: Set up CI
+description: Install the workspace and connect Turbo to the shared task cache.
+inputs:
+  node-version:
+    description: Node.js version for this runner
+    default: '22'
+    required: false
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3
+      with:
+        runtime: node@${{ inputs.node-version }}
+        cache: true
+        require-lockfile: true
+    - if: env.TURBO_CACHE == 'local:rw,remote:rw'
+      uses: vercel/setup-turborepo-remote-cache-action@49d7b1b46ba4c9251e1977986bfe18336feabc8f # v1.1.0
+      with:
+        team: ${{ vars.TURBO_TEAM }}
+    - name: Identify test runtime
+      shell: bash
+      run: echo "TEST_NODE_VERSION=$(node --version)" >> "$GITHUB_ENV"

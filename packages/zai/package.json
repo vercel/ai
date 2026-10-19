@@ -26,7 +26,7 @@
     "clean": "del-cli docs *.tsbuildinfo",
     "prepack": "mkdir -p docs && cp ../../content/providers/01-ai-sdk-providers/200-zai.mdx ./docs/",
     "postpack": "del-cli docs",
-    "type-check": "tsc --build",
+    "type-check": "tsc --noEmit --rootDir ../.. --incremental false",
     "test": "pnpm test:node && pnpm test:edge",
     "test:update": "pnpm test:node -u",
     "test:watch": "vitest --config vitest.node.config.js",
