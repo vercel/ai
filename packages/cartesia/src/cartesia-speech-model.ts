@@ -1,4 +1,8 @@
-import type { SpeechModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import {
+  InvalidArgumentError,
+  type SpeechModelV4,
+  type SharedV4Warning,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
@@ -185,7 +189,10 @@ export class CartesiaSpeechModel implements SpeechModelV4 {
     });
 
     if (!voice) {
-      throw new Error('Cartesia speech models require a `voice` to be set.');
+      throw new InvalidArgumentError({
+        argument: 'voice',
+        message: 'Cartesia speech models require a `voice` to be set.',
+      });
     }
 
     const outputFormatObject = resolveOutputFormat({
