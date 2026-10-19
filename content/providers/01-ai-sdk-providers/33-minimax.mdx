@@ -90,6 +90,74 @@ const model = minimax.languageModel('minimax-m3');
 MiniMax language models can be used in the `streamText` function
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
+### Image and Video Input
+
+`minimax-m3.1-flash` accepts images and videos in user messages with both
+`generateText` and `streamText`. Pass file bytes, base64 data, or a public HTTP(S)
+URL. URLs are sent directly to MiniMax.
+
+```ts
+import { minimax, type MiniMaxVideoPartOptions } from '@ai-sdk/minimax';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: minimax('minimax-m3.1-flash'),
+  maxOutputTokens: 16384,
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Summarize this video.' },
+        {
+          type: 'file',
+          mediaType: 'video/mp4',
+          data: new URL('https://example.com/video.mp4'),
+          providerOptions: {
+            minimax: { fps: 1 } satisfies MiniMaxVideoPartOptions,
+          },
+        },
+      ],
+    },
+  ],
+});
+```
+
+Set media options on each file part under `providerOptions.minimax`:
+
+- **Video `fps`** _number_: Frame sampling rate from `0.2` to `5`. Omit it to use
+  the server default. The recommended starting value is `1`.
+- **Image `detail`** _'low' | 'default' | 'high'_: Image processing detail. Higher
+  detail can use more tokens. Use `MiniMaxImagePartOptions` for this option.
+
+For example, an image part can specify
+`providerOptions: { minimax: { detail: 'high' } }` with `mediaType: 'image/png'`.
+
+For videos already uploaded to MiniMax, pass a provider reference:
+
+```ts
+const videoPart = {
+  type: 'file' as const,
+  mediaType: 'video/mp4',
+  data: {
+    type: 'reference' as const,
+    reference: { minimax: 'your-uploaded-file-id' },
+  },
+  providerOptions: { minimax: { fps: 1 } },
+};
+```
+
+The reference becomes `mm_file://your-uploaded-file-id`. A reference already
+starting with `mm_file://` is also accepted. Use the reference object rather than
+passing an `mm_file://` string as file data. Uploads are managed separately through
+the MiniMax Files API; this provider does not upload the file automatically.
+
+MiniMax documents JPEG, PNG, GIF, and WebP images (up to 10 MB), and MP4, AVI,
+MOV, and MKV videos (up to 50 MB for inline or URL input). Uploaded videos can be
+up to 512 MB. The request body limit is 64 MB, including base64 overhead. Audio
+input is not supported. See the
+[MiniMax API docs](https://platform.minimax.io/docs/api-reference/text-anthropic-api)
+for details.
+
 ### Reasoning
 
 MiniMax-M models can produce intermediate reasoning ("thinking") before their

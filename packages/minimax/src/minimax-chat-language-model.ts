@@ -13,12 +13,29 @@ import {
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
+import { convertToMiniMaxMediaPart } from './convert-to-minimax-media-part';
 
 type MiniMaxChatConfig = ConstructorParameters<
   typeof AnthropicLanguageModel
 >[1];
 
 export class MiniMaxChatLanguageModel extends AnthropicLanguageModel {
+  constructor(modelId: string, config: MiniMaxChatConfig) {
+    super(modelId, {
+      ...config,
+      convertMediaPart:
+        modelId.toLowerCase() === 'minimax-m3.1-flash'
+          ? convertToMiniMaxMediaPart
+          : config.convertMediaPart,
+    });
+  }
+
+  get supportedUrls() {
+    return this.modelId.toLowerCase() === 'minimax-m3.1-flash'
+      ? { 'image/*': [/^https?:\/\//], 'video/*': [/^https?:\/\//] }
+      : super.supportedUrls;
+  }
+
   static [WORKFLOW_SERIALIZE](model: MiniMaxChatLanguageModel) {
     return serializeModelOptions({
       modelId: model.modelId,

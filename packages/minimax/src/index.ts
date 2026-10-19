@@ -11,4 +11,8 @@ export type {
 } from './minimax-chat-options';
 export type { MiniMaxVideoModelId } from './minimax-video-settings';
 export type { MiniMaxVideoModelOptions } from './minimax-video-model-options';
+export type {
+  MiniMaxImagePartOptions,
+  MiniMaxVideoPartOptions,
+} from './minimax-media-options';
 export { VERSION } from './version';

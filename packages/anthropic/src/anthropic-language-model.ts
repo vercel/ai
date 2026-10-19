@@ -69,7 +69,10 @@ import {
   convertAnthropicUsage,
   type AnthropicUsage,
 } from './convert-anthropic-usage';
-import { convertToAnthropicPrompt } from './convert-to-anthropic-prompt';
+import {
+  convertToAnthropicPrompt,
+  type AnthropicMediaPartConverter,
+} from './convert-to-anthropic-prompt';
 import { CacheControlValidator } from './get-cache-control';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 import { sanitizeJsonSchema } from './sanitize-json-schema';
@@ -251,6 +254,8 @@ export type AnthropicLanguageModelConfig = {
   headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   buildRequestUrl?: (baseURL: string, isStreaming: boolean) => string;
+  /** Custom media conversion for compatible providers; undefined uses the default. */
+  convertMediaPart?: AnthropicMediaPartConverter;
   transformRequestBody?: (
     args: Record<string, any>,
     betas: Set<string>,
@@ -570,6 +575,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       cacheControlValidator,
       toolNameMapping,
       toolsetNames,
+      convertMediaPart: config.convertMediaPart,
     });
 
     /*
