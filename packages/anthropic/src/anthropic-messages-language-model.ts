@@ -56,7 +56,10 @@ import {
   convertAnthropicMessagesUsage,
   type AnthropicMessagesUsage,
 } from './convert-anthropic-messages-usage';
-import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
+import {
+  convertToAnthropicMessagesPrompt,
+  type AnthropicMediaPartConverter,
+} from './convert-to-anthropic-messages-prompt';
 import { CacheControlValidator } from './get-cache-control';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 import { sanitizeJsonSchema } from './sanitize-json-schema';
@@ -186,6 +189,14 @@ type AnthropicMessagesConfig = {
   headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   buildRequestUrl?: (baseURL: string, isStreaming: boolean) => string;
+  /** Custom media conversion for compatible providers. */
+  convertMediaPart?: AnthropicMediaPartConverter;
+  /** Maximum temperature for compatible providers. Defaults to 1. */
+  maxTemperature?: number;
+  /** Preserve temperature and topP with thinking for compatible providers. */
+  supportsTemperatureAndTopPWithThinking?: boolean;
+  /** Cache option namespace for compatible providers. Defaults to anthropic. */
+  cacheControlProviderOptionsName?: string;
   transformRequestBody?: (
     args: Record<string, any>,
     betas: Set<string>,
@@ -278,18 +289,24 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       warnings.push({ type: 'unsupported', feature: 'seed' });
     }
 
-    if (temperature != null && temperature > 1) {
+    const maxTemperature = this.config.maxTemperature ?? 1;
+    const temperatureProvider =
+      this.config.maxTemperature == null
+        ? 'anthropic'
+        : this.providerOptionsName;
+
+    if (temperature != null && temperature > maxTemperature) {
       warnings.push({
         type: 'unsupported',
         feature: 'temperature',
-        details: `${temperature} exceeds anthropic maximum of 1.0. clamped to 1.0`,
+        details: `${temperature} exceeds ${temperatureProvider} maximum of ${maxTemperature.toFixed(1)}. clamped to ${maxTemperature.toFixed(1)}`,
       });
-      temperature = 1;
+      temperature = maxTemperature;
     } else if (temperature != null && temperature < 0) {
       warnings.push({
         type: 'unsupported',
         feature: 'temperature',
-        details: `${temperature} is below anthropic minimum of 0. clamped to 0`,
+        details: `${temperature} is below ${temperatureProvider} minimum of 0. clamped to 0`,
       });
       temperature = 0;
     }
@@ -448,7 +465,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     const contextManagement = anthropicOptions?.contextManagement;
 
     // Create a shared cache control validator to track breakpoints across tools and messages
-    const cacheControlValidator = new CacheControlValidator();
+    const cacheControlValidator = new CacheControlValidator(
+      this.config.cacheControlProviderOptionsName,
+    );
 
     const toolNameMapping = createToolNameMapping({
       tools,
@@ -487,6 +506,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         cacheControlValidator,
         toolNameMapping,
         toolsetNames,
+        convertMediaPart: this.config.convertMediaPart,
       });
 
     // Some models always run adaptive thinking and reject `disabled` thinking
@@ -799,7 +819,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         thinkingBudget = 1024;
       }
 
-      if (baseArgs.temperature != null) {
+      if (
+        baseArgs.temperature != null &&
+        !this.config.supportsTemperatureAndTopPWithThinking
+      ) {
         baseArgs.temperature = undefined;
         warnings.push({
           type: 'unsupported',
@@ -817,7 +840,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         });
       }
 
-      if (topP != null) {
+      if (topP != null && !this.config.supportsTemperatureAndTopPWithThinking) {
         baseArgs.top_p = undefined;
         warnings.push({
           type: 'unsupported',
