@@ -7,6 +7,8 @@ import { run } from '../../lib/run';
 run(async () => {
   const agent = new HarnessAgent({
     harness: createFx(),
+    // libfx incorrectly withholds images from the default Grok model because its catalog entry lacks the file-input tag.
+    model: 'anthropic/claude-haiku-4.5',
   });
 
   const sandboxSession = await createVercelNetworkSandboxSession({
