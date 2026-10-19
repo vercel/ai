@@ -96,8 +96,8 @@ export interface OAuthClientProvider {
   get clientMetadata(): OAuthClientMetadata;
   /**
    * Returns client credentials. Pre-registered confidential clients must specify
-   * their authorization server's `issuer`, provide stored authorization server
-   * information, or implement `validateAuthorizationServerURL` to validate it.
+   * their authorization server's `issuer` or provide stored authorization server
+   * information. `validateAuthorizationServerURL` does not replace this binding.
    */
   clientInformation():
     | OAuthClientInformation
@@ -126,6 +126,7 @@ export interface OAuthClientProvider {
   /**
    * Validates an authorization server URL discovered from MCP protected resource
    * metadata before the client fetches its OAuth metadata.
+   * This additional restriction does not bind client credentials to that server.
    */
   validateAuthorizationServerURL?(
     serverUrl: string | URL,
@@ -1511,12 +1512,11 @@ async function authInternal(
       (clientInformation.client_secret != null ||
         provider.addClientAuthentication) &&
       clientInformation.issuer == null &&
-      !storedAuthorizationServerInformation &&
-      !provider.validateAuthorizationServerURL
+      !storedAuthorizationServerInformation
     ) {
       throw new AuthorizationServerMismatchError({
         message:
-          'OAuth client credentials must be bound to an authorization server: configure their issuer, store authorization server information, or implement validateAuthorizationServerURL',
+          'OAuth client credentials must be bound to an authorization server: configure their issuer or store authorization server information',
       });
     }
   }

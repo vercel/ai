@@ -1979,7 +1979,7 @@ describe('auth function', () => {
         },
         clientInformation: () => ({
           client_id: 'test-client',
-          ...(confidential ? { client_secret: 'test-secret' } : {}),
+          ...(confidential ? { client_secret: 'test-secret', issuer } : {}),
         }),
         tokens: () => undefined,
         saveTokens: vi.fn(),
@@ -2150,6 +2150,58 @@ describe('auth function', () => {
         mockProvider.saveAuthorizationServerInformation,
       ).not.toHaveBeenCalled();
       expect(mockProvider.redirectToAuthorization).not.toHaveBeenCalled();
+      expect(
+        mockFetch.mock.calls.some(([, init]) => init?.method === 'POST'),
+      ).toBe(false);
+    },
+  );
+
+  it.each([false, true])(
+    'requires credential binding even when the selected server is allowlisted (custom authentication: %s)',
+    async customAuthentication => {
+      setupAuthorizationCodeFlow();
+      const allowedOrigins = new Set([
+        'https://legitimate-as.example',
+        'https://auth.example.com',
+      ]);
+      const validateAuthorizationServerURL = vi.fn(
+        (_serverUrl: string | URL, authorizationServerUrl: string | URL) => {
+          if (!allowedOrigins.has(new URL(authorizationServerUrl).origin)) {
+            throw new Error('Unexpected authorization server');
+          }
+        },
+      );
+      const addClientAuthentication = vi.fn(
+        (_headers: Headers, params: URLSearchParams) => {
+          params.set('client_secret', 'secret-registered-with-legitimate-as');
+        },
+      );
+      const provider: OAuthClientProvider = {
+        ...mockProvider,
+        clientInformation: () => ({
+          client_id: 'legitimate-client',
+          ...(customAuthentication
+            ? {}
+            : { client_secret: 'secret-registered-with-legitimate-as' }),
+        }),
+        tokens: () => undefined,
+        validateAuthorizationServerURL,
+        ...(customAuthentication ? { addClientAuthentication } : {}),
+      };
+
+      await expect(
+        auth(provider, { serverUrl: 'https://api.example.com/mcp-server' }),
+      ).rejects.toThrow(AuthorizationServerMismatchError);
+
+      expect(validateAuthorizationServerURL).toHaveBeenCalledWith(
+        'https://api.example.com/mcp-server',
+        'https://auth.example.com',
+      );
+      expect(
+        provider.saveAuthorizationServerInformation,
+      ).not.toHaveBeenCalled();
+      expect(provider.redirectToAuthorization).not.toHaveBeenCalled();
+      expect(addClientAuthentication).not.toHaveBeenCalled();
       expect(
         mockFetch.mock.calls.some(([, init]) => init?.method === 'POST'),
       ).toBe(false);

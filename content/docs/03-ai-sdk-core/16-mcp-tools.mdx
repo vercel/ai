@@ -230,11 +230,12 @@ pin names the discovered server. Dynamic client registration attaches this
 binding automatically.
 
 Existing complete authorization server bindings on credentials, stored tokens,
-or `authorizationServerInformation()` are also supported. Alternatively, use
-`validateAuthorizationServerURL` to explicitly validate the selected server.
-Without a binding or this validation hook, a pre-registered client secret or
-custom `addClientAuthentication` handler is rejected. Do not derive the credential
-issuer from the MCP server's metadata; configure it from the client's registration.
+or `authorizationServerInformation()` are also supported. Without a binding,
+a pre-registered client secret or custom `addClientAuthentication` handler is
+rejected, even when `validateAuthorizationServerURL` accepts the selected server.
+Approving a server does not establish that the credentials belong to it.
+Do not derive the credential issuer from the MCP server's metadata; configure it
+from the client's registration.
 
 When using MCP OAuth in server-side applications, the MCP server can advertise
 the OAuth authorization server to use. If you connect to MCP servers outside
@@ -263,8 +264,8 @@ const myOAuthClientProvider = {
 ```
 
 This hook is called before the SDK fetches authorization server metadata, so a
-rejected URL is not requested. It is optional for clients with an authorization
-server binding and for public clients without custom authentication.
+rejected URL is not requested. The hook is an optional additional restriction;
+it does not replace the credential binding required for confidential clients.
 
 ### OAuth Callback Issuer Validation
 
