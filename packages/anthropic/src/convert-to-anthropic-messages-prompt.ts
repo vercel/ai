@@ -2,6 +2,7 @@ import {
   UnsupportedFunctionalityError,
   type SharedV3Warning,
   type LanguageModelV3DataContent,
+  type LanguageModelV3FilePart,
   type LanguageModelV3Message,
   type LanguageModelV3Prompt,
   type SharedV3ProviderMetadata,
@@ -19,6 +20,7 @@ import {
 import {
   anthropicReasoningMetadataSchema,
   type AnthropicAssistantMessage,
+  type AnthropicImageContent,
   type AnthropicMessagesPrompt,
   type AnthropicSystemMessage,
   type AnthropicTextContent,
@@ -26,6 +28,7 @@ import {
   type AnthropicToolCallCaller,
   type AnthropicToolResultContent,
   type AnthropicUserMessage,
+  type AnthropicVideoContent,
   type AnthropicWebFetchToolResultContent,
   type Citation,
 } from './anthropic-messages-api';
@@ -109,6 +112,14 @@ async function extractErrorValue(
   return {};
 }
 
+/** Return undefined to use the default file conversion. */
+export type AnthropicMediaPartConverter = (
+  part: LanguageModelV3FilePart,
+) => PromiseLike<
+  | Omit<AnthropicImageContent | AnthropicVideoContent, 'cache_control'>
+  | undefined
+>;
+
 export async function convertToAnthropicMessagesPrompt({
   prompt,
   sendReasoning,
@@ -116,12 +127,14 @@ export async function convertToAnthropicMessagesPrompt({
   cacheControlValidator,
   toolNameMapping,
   toolsetNames = {},
+  convertMediaPart,
 }: {
   prompt: LanguageModelV3Prompt;
   sendReasoning: boolean;
   warnings: SharedV3Warning[];
   cacheControlValidator?: CacheControlValidator;
   toolNameMapping: ToolNameMapping;
+  convertMediaPart?: AnthropicMediaPartConverter;
 
   /**
    * Maps custom tool names of toolset tools (e.g. the computer toolset) to
@@ -336,6 +349,15 @@ export async function convertToAnthropicMessagesPrompt({
                   }
 
                   case 'file': {
+                    const customContent = await convertMediaPart?.(part);
+                    if (customContent != null) {
+                      anthropicContent.push({
+                        ...customContent,
+                        cache_control: cacheControl,
+                      });
+                      break;
+                    }
+
                     if (part.mediaType.startsWith('image/')) {
                       anthropicContent.push({
                         type: 'image',

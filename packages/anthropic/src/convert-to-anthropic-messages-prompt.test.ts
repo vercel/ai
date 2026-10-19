@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import type { LanguageModelV3Prompt, SharedV3Warning } from '@ai-sdk/provider';
+import type {
+  LanguageModelV3FilePart,
+  LanguageModelV3Prompt,
+  SharedV3Warning,
+} from '@ai-sdk/provider';
 import { createToolNameMapping } from '@ai-sdk/provider-utils';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { CacheControlValidator } from './get-cache-control';
@@ -8,6 +12,92 @@ import { CacheControlValidator } from './get-cache-control';
 const defaultToolNameMapping = createToolNameMapping({
   tools: [],
   providerToolNames: {},
+});
+
+describe('custom media conversion', () => {
+  it.each(['part', 'message'] as const)(
+    'converts the original file part and preserves %s cache control',
+    async cacheControlLocation => {
+      const cacheOptions = {
+        anthropic: { cacheControl: { type: 'ephemeral' } },
+      };
+      const file: LanguageModelV3FilePart = {
+        type: 'file',
+        mediaType: 'video/mp4',
+        data: new URL('https://example.com/video.mp4'),
+        providerOptions: {
+          custom: { fps: 2 },
+          ...(cacheControlLocation === 'part' ? cacheOptions : {}),
+        },
+      };
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Describe.' }, file],
+            providerOptions:
+              cacheControlLocation === 'message' ? cacheOptions : undefined,
+          },
+        ],
+        sendReasoning: false,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+        convertMediaPart: async part => {
+          expect(part).toBe(file);
+          return {
+            type: 'video',
+            source: { type: 'url', url: 'https://example.com/video.mp4' },
+          };
+        },
+      });
+
+      expect(result.prompt.messages).toEqual([
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Describe.', cache_control: undefined },
+            {
+              type: 'video',
+              source: { type: 'url', url: 'https://example.com/video.mp4' },
+              cache_control: { type: 'ephemeral' },
+            },
+          ],
+        },
+      ]);
+      expect(result.betas.size).toBe(0);
+    },
+  );
+
+  it('uses default file conversion when the hook returns undefined', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'application/pdf',
+              data: new URL('https://example.com/doc.pdf'),
+            },
+          ],
+        },
+      ],
+      sendReasoning: false,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+      convertMediaPart: async () => undefined,
+    });
+
+    expect(result.prompt.messages[0].content).toEqual([
+      {
+        type: 'document',
+        source: { type: 'url', url: 'https://example.com/doc.pdf' },
+        title: undefined,
+        cache_control: undefined,
+      },
+    ]);
+    expect(result.betas).toContain('pdfs-2024-09-25');
+  });
 });
 
 describe('orphaned programmatic callers', () => {
