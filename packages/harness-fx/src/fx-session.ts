@@ -12,7 +12,10 @@ import {
   type HarnessV1StartOptions,
   type HarnessV1StreamPart,
 } from '@ai-sdk/harness';
-import { getRestrictedSandboxSession } from '@ai-sdk/harness/utils';
+import {
+  extractHarnessPromptContent,
+  getRestrictedSandboxSession,
+} from '@ai-sdk/harness/utils';
 import { asSchema, secureJsonParse } from '@ai-sdk/provider-utils';
 import type { FxHarnessSettings } from './fx-harness';
 import { createFxMcpRuntime } from './fx-mcp';
@@ -50,35 +53,17 @@ type FxRegisteredTool = {
 };
 
 function toPrompt(prompt: HarnessV1PromptTurnOptions['prompt']): FxPrompt {
-  if (typeof prompt === 'string') return prompt;
-  if (typeof prompt.content === 'string') return prompt.content;
-  return prompt.content.map(part => {
-    if (part.type === 'text') return { type: 'text' as const, text: part.text };
-    if (
-      part.type === 'image' &&
-      (typeof part.image === 'string' ||
-        part.image instanceof Uint8Array ||
-        part.image instanceof ArrayBuffer)
-    ) {
-      return {
-        type: 'image' as const,
-        data:
-          typeof part.image === 'string'
-            ? part.image
-            : Buffer.from(
-                part.image instanceof ArrayBuffer
-                  ? new Uint8Array(part.image)
-                  : part.image,
-              ).toString('base64'),
-        mimeType: part.mediaType ?? 'image/png',
-      };
-    }
-    throw new HarnessCapabilityUnsupportedError({
-      harnessId: 'fx',
-      message:
-        'fx prompts support text and inline images, not files or image URLs.',
-    });
-  });
+  const content = extractHarnessPromptContent({ prompt });
+  if (typeof content === 'string') return content;
+  return content.map(part =>
+    part.type === 'text'
+      ? { type: 'text' as const, text: part.text }
+      : {
+          type: 'image' as const,
+          data: part.data,
+          mimeType: part.mediaType,
+        },
+  );
 }
 
 export async function createFxSession(options: {

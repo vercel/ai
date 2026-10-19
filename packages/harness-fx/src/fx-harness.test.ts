@@ -27,6 +27,7 @@ import {
 
 const runtime = vi.hoisted(() => ({
   options: [] as FxRuntimeOptions[],
+  prompts: [] as unknown[],
   run: undefined as ((options: FxRuntimeOptions) => Promise<void>) | undefined,
   close: undefined as (() => Promise<void>) | undefined,
 }));
@@ -40,7 +41,8 @@ vi.mock('./fx-runtime', () => ({
     return {
       checkpoint: async () => new Uint8Array([1, 2, 3]),
       close: async () => runtime.close?.(),
-      prompt: (_prompt: unknown, input: { signal: AbortSignal }) => {
+      prompt: (prompt: unknown, input: { signal: AbortSignal }) => {
+        runtime.prompts.push(prompt);
         const result = Promise.race([
           Promise.resolve()
             .then(() => runtime.run?.(options))
@@ -143,6 +145,7 @@ beforeEach(() => {
   vi.stubEnv('AI_GATEWAY_API_KEY', 'test-key');
   vi.stubEnv('VERCEL_OIDC_TOKEN', undefined);
   runtime.options.length = 0;
+  runtime.prompts.length = 0;
   runtime.run = undefined;
   runtime.close = undefined;
 });
@@ -367,6 +370,42 @@ describe('fx harness', () => {
     await session.doStop();
     expect(stop).not.toHaveBeenCalled();
     expect(destroy).not.toHaveBeenCalled();
+  });
+
+  it('forwards inline image file prompts to libfx', async () => {
+    const { sandbox } = createSandbox();
+    const session = await createFx().doStart({
+      sandboxSession: sandbox,
+      sessionId: 'image-input',
+      sessionWorkDir: '/workspace',
+    });
+    try {
+      await (
+        await session.doPromptTurn({
+          ...turnOptions,
+          prompt: {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'What is in this image?' },
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: new Uint8Array([1, 2, 3]),
+              },
+            ],
+          },
+          emit() {},
+        })
+      ).done;
+      expect(runtime.prompts).toEqual([
+        [
+          { type: 'text', text: 'What is in this image?' },
+          { type: 'image', data: 'AQID', mimeType: 'image/png' },
+        ],
+      ]);
+    } finally {
+      await session.doDestroy();
+    }
   });
 
   it('maps service tiers to mutually exclusive libfx flags', async () => {
