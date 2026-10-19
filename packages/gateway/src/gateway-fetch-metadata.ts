@@ -29,6 +29,23 @@ export interface GatewayCreditsResponse {
   totalUsed: string;
 }
 
+/** The raw response from the AI Gateway `GET /v1/credits` REST endpoint. */
+export interface GatewayRestCreditsResponse {
+  /** The remaining gateway credit balance available for API usage. */
+  balance: string;
+  /** The total amount of gateway credits that have been consumed. */
+  total_used: string;
+}
+
+export function convertGatewayRestCreditsResponse(
+  response: GatewayRestCreditsResponse,
+): GatewayCreditsResponse {
+  return {
+    balance: response.balance,
+    totalUsed: response.total_used,
+  };
+}
+
 export class GatewayFetchMetadata {
   constructor(private readonly config: GatewayFetchMetadataConfig) {}
 
@@ -164,9 +181,6 @@ const gatewayCreditsResponseSchema = lazySchema(() =>
         balance: z.string(),
         total_used: z.string(),
       })
-      .transform(({ balance, total_used }) => ({
-        balance,
-        totalUsed: total_used,
-      })),
+      .transform(convertGatewayRestCreditsResponse),
   ),
 );
