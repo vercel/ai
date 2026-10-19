@@ -4,6 +4,7 @@ import {
   imageGeneration,
   webSearch,
   webSearchPreview,
+  mcp,
 } from '@ai-sdk/openai/internal';
 
 export const azureOpenaiTools: {
@@ -15,10 +16,12 @@ export const azureOpenaiTools: {
    * @deprecated Use `webSearch` instead.
    */
   webSearchPreview: typeof webSearchPreview;
+  mcp: typeof mcp;
 } = {
   codeInterpreter,
   fileSearch,
   imageGeneration,
   webSearch,
   webSearchPreview,
+  mcp,
 };
