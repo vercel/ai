@@ -15,7 +15,7 @@ import {
   minimaxLanguageModelOptions,
   type MiniMaxLanguageModelOptions,
   type MiniMaxCacheControlOptions,
-} from './minimax-chat-options';
+} from './minimax-chat-language-model-options';
 import { createMiniMax } from './minimax-provider';
 import { MiniMaxChatLanguageModel } from './minimax-chat-language-model';
 

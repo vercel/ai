@@ -12,7 +12,7 @@ import {
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { MiniMaxChatLanguageModel } from './minimax-chat-language-model';
-import type { MiniMaxChatModelId } from './minimax-chat-options';
+import type { MiniMaxChatModelId } from './minimax-chat-language-model-options';
 import { MiniMaxVideoModel } from './minimax-video-model';
 import type { MiniMaxVideoModelId } from './minimax-video-settings';
 import { VERSION } from './version';

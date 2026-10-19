@@ -1,5 +1,6 @@
 import { AnthropicLanguageModel } from '@ai-sdk/anthropic/internal';
 import type {
+  LanguageModelV4,
   LanguageModelV4CallOptions,
   LanguageModelV4GenerateResult,
   LanguageModelV4StreamPart,
@@ -19,7 +20,10 @@ type MiniMaxChatConfig = ConstructorParameters<
   typeof AnthropicLanguageModel
 >[1];
 
-export class MiniMaxChatLanguageModel extends AnthropicLanguageModel {
+export class MiniMaxChatLanguageModel
+  extends AnthropicLanguageModel
+  implements LanguageModelV4
+{
   private readonly supportsM31Features: boolean;
 
   constructor(modelId: string, config: MiniMaxChatConfig) {

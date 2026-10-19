@@ -26,9 +26,11 @@ export const minimaxLanguageModelOptions = z.object({
     .optional(),
 });
 
-export type MiniMaxLanguageModelOptions = z.infer<
+export type MiniMaxLanguageModelChatOptions = z.infer<
   typeof minimaxLanguageModelOptions
 >;
+
+export type MiniMaxLanguageModelOptions = MiniMaxLanguageModelChatOptions;
 
 /** Cache options for M3.1 and later models system messages and text parts. */
 export type MiniMaxCacheControlOptions = {
