@@ -3,6 +3,7 @@ import {
   type AgentSession,
   type ExtensionAPI,
   type ExtensionFactory,
+  type PromptOptions,
   type ProviderConfig,
   type ToolDefinition,
   ModelRuntime,
@@ -260,6 +261,45 @@ describe('createPiSession', () => {
           "Harness 'pi' has no model 'openai/not-a-real-model' in its catalog.",
       });
       expect(prompt).not.toHaveBeenCalled();
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('passes inline images to the Pi session', async () => {
+    const { session: fakePiSession, prompt } = createFakePiSession();
+    piMock.session = fakePiSession;
+    const session = await createPiSession({
+      sessionId: 'session-image-input',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+      settings: {},
+      clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+      isResume: false,
+    });
+
+    try {
+      const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Describe this image.' },
+            {
+              type: 'image',
+              image: new Uint8Array([1, 2, 3]),
+              mediaType: 'image/png',
+            },
+          ],
+        },
+        emit: vi.fn(),
+      });
+      await control.done;
+
+      expect(prompt).toHaveBeenCalledWith('Describe this image.', {
+        images: [{ type: 'image', data: 'AQID', mimeType: 'image/png' }],
+      });
     } finally {
       await session.doDestroy();
     }
@@ -3191,7 +3231,7 @@ function createFakePiSession({
       subscriber(event);
     }
   };
-  const prompt = vi.fn(async (text: string) => {
+  const prompt = vi.fn(async (text: string, _options?: PromptOptions) => {
     if (promptImplementation) return promptImplementation(text, emitEvent);
     for (const event of promptEvents) emitEvent(event);
   });

@@ -86,9 +86,10 @@ import {
 } from './pi-translate';
 import { toolSpecToTypeBoxParameters } from './pi-typebox-adapter';
 import {
-  extractUserText,
+  extractPiPromptContent,
   safePiMetadataSegment,
   serializeToolOutput,
+  type PiPromptContent,
 } from './pi-utils';
 import { PiWorkspaceVfs } from './pi-workspace-vfs';
 import { syncHostWorkspaceFromSandbox } from './pi-workspace-mirror';
@@ -1402,6 +1403,7 @@ export async function createPiSession(
    */
   async function runTurn(turnOpts: {
     text: string;
+    images?: PiPromptContent['images'];
     model?: string;
     skills: ReadonlyArray<HarnessV1Skill>;
     tools: ReadonlyArray<HarnessV1ToolSpec>;
@@ -1557,7 +1559,11 @@ export async function createPiSession(
             replayingAssistantMessage = false;
           }
         } else {
-          await session.prompt(turnOpts.text);
+          if (turnOpts.images == null || turnOpts.images.length === 0) {
+            await session.prompt(turnOpts.text);
+          } else {
+            await session.prompt(turnOpts.text, { images: turnOpts.images });
+          }
         }
 
         const terminalError = turnState.lastAssistantError;
@@ -1674,8 +1680,12 @@ export async function createPiSession(
       }
       pendingToolBatchToReplay = undefined;
       replayBarrier?.cancel();
+      const { text, images } = extractPiPromptContent({
+        prompt: promptOpts.prompt,
+      });
       return runTurn({
-        text: extractUserText(promptOpts.prompt),
+        text,
+        images,
         ...(promptOpts.model ? { model: promptOpts.model } : {}),
         skills: promptOpts.skills,
         tools: promptOpts.tools ?? [],
