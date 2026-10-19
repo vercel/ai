@@ -13,6 +13,55 @@ import type { FxStoredState } from './fx-resume-state';
 import * as subscriptions from './fx-subscription';
 
 describe('native libfx subscription engines', () => {
+  it('surfaces rejected native model response status', async () => {
+    const { sandbox } = createParallelFixtureContext({ kind: 'custom' });
+    const auth = vi
+      .spyOn(subscriptions, 'resolveFxAuthentication')
+      .mockResolvedValue({
+        provider: 'grok',
+        subscription: {
+          provider: 'grok',
+          read: async () => ({
+            accessToken: 'test-access-secret',
+            refreshToken: 'test-refresh-secret',
+            accountId: 'account',
+            expiresAt: 2_000_000_000_000,
+          }),
+          write: async () => {},
+        },
+      });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof globalThis.fetch>(async input => {
+        const url = String(input);
+        if (url === 'https://x.ai/cli/stable') return new Response('1.0.13\n');
+        if (url.endsWith('/responses'))
+          return Response.json(
+            { error: { code: 'not-found', message: 'Model not found.' } },
+            { status: 404 },
+          );
+        return Response.json({ data: [] });
+      }),
+    );
+    const agent = new HarnessAgent({
+      harness: createFx({ auth: 'direct', backend: 'native' }),
+      model: 'spacexai/grok-4.7',
+    });
+    let session: Awaited<ReturnType<typeof agent.createSession>> | undefined;
+    try {
+      session = await agent.createSession({ sandboxSession: sandbox });
+      await expect(
+        agent.generate({ session, prompt: 'Reply.' }),
+      ).rejects.toThrow(
+        'fx grok model request spacexai/grok-4.7 failed with HTTP 404.',
+      );
+    } finally {
+      await session?.destroy();
+      auth.mockRestore();
+      vi.unstubAllGlobals();
+    }
+  });
+
   it.each([
     { provider: 'codex', refresh: 'expiry' },
     { provider: 'codex', refresh: '401' },

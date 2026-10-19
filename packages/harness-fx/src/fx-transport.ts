@@ -184,6 +184,10 @@ export function createFxTransport(options: {
 }) {
   let requestIndex = -1;
   let active = true;
+  const rejectedResponses = new Map<
+    number,
+    { modelId?: string; status: number }
+  >();
   const tasks = new Set<Promise<void>>();
   const networkFetch = options.fetch ?? globalThis.fetch;
   const provider = options.provider ?? 'gateway';
@@ -284,6 +288,7 @@ export function createFxTransport(options: {
       });
     }
     const index = ++requestIndex;
+    rejectedResponses.delete(index);
     const inputBody =
       typeof init.body === 'string'
         ? init.body
@@ -386,6 +391,7 @@ export function createFxTransport(options: {
      * and redact credentials that an upstream error body may repeat.
      */
     if (protocol.preserveRejectedResponses && !response.ok) {
+      rejectedResponses.set(index, { modelId, status: response.status });
       if (previous) options.turn.models[index] = previous;
       else options.turn.models.splice(index, 1);
       requestIndex--;
@@ -478,6 +484,7 @@ export function createFxTransport(options: {
     get requestIndex() {
       return requestIndex;
     },
+    rejectedResponses,
     async stop() {
       active = false;
       await Promise.allSettled([...tasks]);

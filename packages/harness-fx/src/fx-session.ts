@@ -764,10 +764,18 @@ export async function createFxSession(options: {
               event.type === 'reasoning_delta'
             ) {
               const context = pendingOutput.shift();
-              if (!context || typeof context === 'function')
+              if (!context || typeof context === 'function') {
+                const failedRequest = transport?.rejectedResponses.get(
+                  transport.requestIndex + 1,
+                );
+                if (failedRequest)
+                  throw new Error(
+                    `fx ${authentication.provider} model request ${failedRequest.modelId ?? '(unknown model)'} failed with HTTP ${failedRequest.status}.`,
+                  );
                 throw new Error(
                   'fx parsed output could not be matched to its model request.',
                 );
+              }
               if (!suspending) translator.onDelta({ event, ...context });
             }
             if (event.type === 'user_message') recordSteer(event.text);
