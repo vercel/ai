@@ -8,6 +8,156 @@ export type FxGatewayPart = { type: string; [key: string]: unknown };
 
 type FxToolCall = { toolCallId: string; toolName: string; input: unknown };
 
+type FxTransportProtocol = {
+  label: string;
+  preserveRejectedResponses: boolean;
+  isGatewayRequest(url: URL): boolean;
+  rewriteUrl(input: { url: URL; baseUrl?: string }): URL;
+  applyHeaders(input: {
+    headers: Headers;
+    gatewayRequest: boolean;
+    gatewayHeaders: Record<string, string>;
+  }): void;
+  isModelRequest(input: { url: URL; gatewayRequest: boolean }): boolean;
+  prepareBody(input: {
+    body: string;
+    responseFormat?: HarnessV1ResponseFormat;
+  }): string;
+  getModelId(input: { headers: Headers; body: string }): string | undefined;
+  getFingerprint(input: {
+    url: URL;
+    headers: Headers;
+    body: string;
+  }): Record<string, unknown>;
+  isTerminalEvent(part: FxGatewayPart | undefined): boolean;
+  shouldHoldFrame(input: {
+    part: FxGatewayPart | undefined;
+    terminal: boolean;
+  }): boolean;
+};
+
+function createFxTransportProtocol(input: {
+  provider: FxProvider;
+}): FxTransportProtocol {
+  if (input.provider === 'gateway') {
+    return {
+      label: 'Gateway',
+      preserveRejectedResponses: false,
+      isGatewayRequest(url) {
+        return url.origin === 'https://ai-gateway.vercel.sh';
+      },
+      rewriteUrl({ url, baseUrl }) {
+        if (url.origin !== 'https://ai-gateway.vercel.sh') return url;
+        const gatewayBaseUrl = baseUrl ?? 'https://ai-gateway.vercel.sh';
+        const base = new URL(
+          gatewayBaseUrl.endsWith('/') ? gatewayBaseUrl : `${gatewayBaseUrl}/`,
+        );
+        return new URL(url.pathname.slice(1) + url.search, base);
+      },
+      applyHeaders({ headers, gatewayRequest, gatewayHeaders }) {
+        if (gatewayRequest)
+          for (const [name, value] of Object.entries(gatewayHeaders))
+            headers.set(name, value);
+      },
+      isModelRequest({ url, gatewayRequest }) {
+        return gatewayRequest && url.pathname.endsWith('/ai/language-model');
+      },
+      prepareBody({ body, responseFormat }) {
+        if (responseFormat?.type !== 'json') return body;
+        const parsed = secureJsonParse(body) as Record<string, unknown>;
+        return JSON.stringify({ ...parsed, responseFormat });
+      },
+      getModelId({ headers }) {
+        return headers.get('ai-language-model-id') ?? undefined;
+      },
+      getFingerprint({ url, headers, body }) {
+        return {
+          path: url.pathname,
+          model: headers.get('ai-language-model-id'),
+          body,
+        };
+      },
+      isTerminalEvent(part) {
+        return part?.type === 'finish' || part?.type === 'error';
+      },
+      shouldHoldFrame({ part, terminal }) {
+        return Boolean(part && (part.type.startsWith('tool-') || terminal));
+      },
+    };
+  }
+
+  const endpoint =
+    input.provider === 'codex'
+      ? 'https://chatgpt.com/backend-api/codex/responses'
+      : 'https://cli-chat-proxy.grok.com/v1/responses';
+
+  return {
+    label: input.provider,
+    preserveRejectedResponses: true,
+    isGatewayRequest() {
+      return false;
+    },
+    rewriteUrl({ url }) {
+      return url;
+    },
+    applyHeaders() {},
+    isModelRequest({ url }) {
+      return url.href.split('?')[0] === endpoint;
+    },
+    prepareBody({ body, responseFormat }) {
+      if (responseFormat?.type !== 'json') return body;
+      const parsed = secureJsonParse(body) as Record<string, unknown>;
+      return JSON.stringify({
+        ...parsed,
+        text: {
+          ...(isRecord(parsed.text) ? parsed.text : {}),
+          format:
+            responseFormat.schema == null
+              ? { type: 'json_object' }
+              : {
+                  type: 'json_schema',
+                  name: responseFormat.name ?? 'response',
+                  ...(responseFormat.description == null
+                    ? {}
+                    : { description: responseFormat.description }),
+                  schema: responseFormat.schema,
+                  strict: true,
+                },
+        },
+      });
+    },
+    getModelId({ body }) {
+      return (secureJsonParse(body) as { model?: string }).model;
+    },
+    getFingerprint({ url, headers, body }) {
+      return {
+        path: url.pathname,
+        model: headers.get('ai-language-model-id'),
+        provider: input.provider,
+        origin: url.origin,
+        body,
+      };
+    },
+    isTerminalEvent(part) {
+      return [
+        'response.completed',
+        'response.done',
+        'response.incomplete',
+        'response.failed',
+      ].includes(part?.type ?? '');
+    },
+    shouldHoldFrame({ part, terminal }) {
+      return Boolean(
+        part &&
+        (part.type.startsWith('tool-') ||
+          terminal ||
+          part.type.startsWith('response.function_call_arguments.') ||
+          (isRecord(part.item) && part.item.type === 'function_call')),
+      );
+    },
+  };
+}
+
 export function parseFxEvent(frame: string): FxGatewayPart | undefined {
   const data = frame
     .split(/\r?\n/)
@@ -37,6 +187,7 @@ export function createFxTransport(options: {
   const tasks = new Set<Promise<void>>();
   const networkFetch = options.fetch ?? globalThis.fetch;
   const provider = options.provider ?? 'gateway';
+  const protocol = createFxTransportProtocol({ provider });
   const toolCalls = new Map<number, FxToolCall[]>();
 
   /*
@@ -91,34 +242,26 @@ export function createFxTransport(options: {
       input instanceof Request ? input.url : String(input),
     );
     const url = new URL(originalUrl);
-    const gatewayRequest =
-      provider === 'gateway' &&
-      originalUrl.origin === 'https://ai-gateway.vercel.sh';
-    if (gatewayRequest) {
-      const baseUrl = options.baseUrl ?? 'https://ai-gateway.vercel.sh';
-      const base = new URL(baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`);
-      url.href = new URL(
-        originalUrl.pathname.slice(1) + originalUrl.search,
-        base,
-      ).href;
-    }
+    const gatewayRequest = protocol.isGatewayRequest(originalUrl);
+    url.href = protocol.rewriteUrl({
+      url: originalUrl,
+      baseUrl: options.baseUrl,
+    }).href;
     const headers = new Headers(
       init.headers ?? (input instanceof Request ? input.headers : undefined),
     );
-    if (gatewayRequest) {
-      for (const [name, value] of Object.entries(options.headers))
-        headers.set(name, value);
-    }
+    protocol.applyHeaders({
+      headers,
+      gatewayRequest,
+      gatewayHeaders: options.headers,
+    });
     const method = (
       init.method ?? (input instanceof Request ? input.method : 'GET')
     ).toUpperCase();
-    const modelRequest =
-      provider === 'gateway'
-        ? gatewayRequest && originalUrl.pathname.endsWith('/ai/language-model')
-        : originalUrl.href.split('?')[0] ===
-          (provider === 'codex'
-            ? 'https://chatgpt.com/backend-api/codex/responses'
-            : 'https://cli-chat-proxy.grok.com/v1/responses');
+    const modelRequest = protocol.isModelRequest({
+      url: originalUrl,
+      gatewayRequest,
+    });
     if (method !== 'POST' || !modelRequest) {
       if (!(input instanceof Request)) {
         return networkFetch(url, { ...init, headers });
@@ -149,47 +292,20 @@ export function createFxTransport(options: {
           : input instanceof Request
             ? await input.clone().text()
             : String(init.body ?? '');
-    let body = inputBody;
-    if (options.responseFormat?.type === 'json') {
-      const parsed = secureJsonParse(inputBody) as Record<string, unknown>;
-      const format = options.responseFormat;
-      body = JSON.stringify(
-        provider === 'gateway'
-          ? { ...parsed, responseFormat: format }
-          : {
-              ...parsed,
-              text: {
-                ...(isRecord(parsed.text) ? parsed.text : {}),
-                format:
-                  format.schema == null
-                    ? { type: 'json_object' }
-                    : {
-                        type: 'json_schema',
-                        name: format.name ?? 'response',
-                        ...(format.description == null
-                          ? {}
-                          : { description: format.description }),
-                        schema: format.schema,
-                        strict: true,
-                      },
-              },
-            },
-      );
-    }
-    const modelId =
-      provider === 'gateway'
-        ? (headers.get('ai-language-model-id') ?? undefined)
-        : (secureJsonParse(body) as { model?: string }).model;
+    const body = protocol.prepareBody({
+      body: inputBody,
+      responseFormat: options.responseFormat,
+    });
+    const modelId = protocol.getModelId({ headers, body });
     const fingerprint = createHash('sha256')
       .update(
-        JSON.stringify({
-          path: originalUrl.pathname,
-          model: headers.get('ai-language-model-id'),
-          ...(provider === 'gateway'
-            ? {}
-            : { provider, origin: originalUrl.origin }),
-          body,
-        }),
+        JSON.stringify(
+          protocol.getFingerprint({
+            url: originalUrl,
+            headers,
+            body,
+          }),
+        ),
       )
       .digest('hex');
     options.onRequest({
@@ -269,7 +385,7 @@ export function createFxTransport(options: {
      * receive rejected responses before journaling so it can refresh a token
      * and redact credentials that an upstream error body may repeat.
      */
-    if (provider !== 'gateway' && !response.ok) {
+    if (protocol.preserveRejectedResponses && !response.ok) {
       if (previous) options.turn.models[index] = previous;
       else options.turn.models.splice(index, 1);
       requestIndex--;
@@ -312,26 +428,9 @@ export function createFxTransport(options: {
             const frame = pending.slice(0, end);
             pending = pending.slice(end);
             const part = parseFxEvent(frame);
-            const terminalPart =
-              part?.type === 'finish' ||
-              part?.type === 'error' ||
-              (provider !== 'gateway' &&
-                [
-                  'response.completed',
-                  'response.done',
-                  'response.incomplete',
-                  'response.failed',
-                ].includes(part?.type ?? ''));
+            const terminalPart = protocol.isTerminalEvent(part);
             if (terminalPart) terminal = true;
-            if (
-              part &&
-              (part.type.startsWith('tool-') ||
-                terminalPart ||
-                (provider !== 'gateway' &&
-                  (part.type.startsWith('response.function_call_arguments.') ||
-                    (isRecord(part.item) &&
-                      part.item.type === 'function_call'))))
-            )
+            if (protocol.shouldHoldFrame({ part, terminal: terminalPart }))
               holding = true;
             if (holding) held += frame;
             else {
@@ -342,11 +441,11 @@ export function createFxTransport(options: {
         }
         if (pending.trim())
           throw new Error(
-            `${provider === 'gateway' ? 'Gateway' : provider} stream ended with an incomplete event.`,
+            `${protocol.label} stream ended with an incomplete event.`,
           );
         if (!terminal)
           throw new Error(
-            `${provider === 'gateway' ? 'Gateway' : provider} stream ended before a terminal event.`,
+            `${protocol.label} stream ended before a terminal event.`,
           );
         record.complete = true;
         await options.save();
