@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 23503,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-23503.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-23503.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_23503: stream remained open after the built-in approval request and completed host tool execution"
+  }
+}
