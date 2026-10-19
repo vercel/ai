@@ -66,15 +66,18 @@ const ParameterEntry = ({
 
   return (
     <div
-      className={`flex flex-col gap-1 border-gray-alpha-400 border-b ${rowClassName}`}
+      className={`flex min-w-0 max-w-full flex-col gap-1 border-gray-alpha-400 border-b ${rowClassName}`}
       id={id}
     >
-      <a className="flex flex-row items-start gap-2" href={`#${id}`}>
-        <h3 className="font-medium font-mono text-sm">
+      <a
+        className="flex min-w-0 w-full flex-row items-start gap-2"
+        href={`#${id}`}
+      >
+        <h3 className="min-w-0 max-w-[calc(100%-12rem)] break-words font-medium font-mono text-sm">
           {parameter.name}
           {parameter.isOptional ? '?:' : parameter.name === '' ? '' : ':'}
         </h3>
-        <div className="w-full font-mono text-gray-900 text-sm">
+        <div className="min-w-0 flex-1 break-words font-mono text-gray-900 text-sm">
           {parameter.type}
         </div>
       </a>
@@ -119,7 +122,7 @@ export const PropertiesTable = ({
   const descriptionComponents = createDescriptionComponents(versionPrefix);
 
   return (
-    <div className="not-prose flex flex-col gap-6">
+    <div className="not-prose flex min-w-0 max-w-full flex-col gap-6">
       <div>
         {typeof content === 'string'
           ? content
