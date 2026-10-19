@@ -32,6 +32,7 @@
     "build": "pnpm build:client && pnpm build:server",
     "build:client": "vite build",
     "build:server": "tsdown",
+    "type-check": "tsc --noEmit --rootDir ../.. --incremental false",
     "test": "pnpm test:unit",
     "test:e2e": "pnpm test:browser",
     "test:unit": "vitest --config vitest.node.config.js --run",
