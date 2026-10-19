@@ -206,6 +206,55 @@ describe('CartesiaSpeechModel', () => {
       });
     });
 
+    it('should pass pronunciationDictionaryId as pronunciation_dict_id', async () => {
+      prepareAudioResponse();
+
+      await model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+        providerOptions: {
+          cartesia: {
+            pronunciationDictionaryId: 'pdict_test',
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        pronunciation_dict_id: 'pdict_test',
+      });
+    });
+
+    it('should not send pronunciation_dict_id when it is null', async () => {
+      prepareAudioResponse();
+
+      await model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+        providerOptions: {
+          cartesia: {
+            pronunciationDictionaryId: null,
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'pronunciation_dict_id',
+      );
+    });
+
+    it('should not send pronunciation_dict_id by default', async () => {
+      prepareAudioResponse();
+
+      await model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+      });
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'pronunciation_dict_id',
+      );
+    });
+
     it('should ignore encoding for mp3 output', async () => {
       prepareAudioResponse();
 
