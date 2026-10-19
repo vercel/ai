@@ -14,6 +14,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import {
   minimaxLanguageModelOptions,
   type MiniMaxLanguageModelOptions,
+  type MiniMaxCacheControlOptions,
 } from './minimax-chat-options';
 import { createMiniMax } from './minimax-provider';
 import { MiniMaxChatLanguageModel } from './minimax-chat-language-model';
@@ -642,7 +643,7 @@ describe('MiniMax M3.1 Flash media input', () => {
 });
 
 describe.each(['generate', 'stream'] as const)(
-  'MiniMax sampling (%s)',
+  'MiniMax chat options (%s)',
   mode => {
     const server = createTestServer({ [url]: {} });
 
@@ -690,104 +691,306 @@ describe.each(['generate', 'stream'] as const)(
       return { body: await server.calls[0].requestBodyJson, warnings };
     }
 
-    it.each([0, 0.5, 1.5, 2])(
-      'preserves temperature %s and topP with default thinking',
-      async temperature => {
-        const { body, warnings } = await call({ temperature, topP: 0.9 });
-        expect(body).toMatchObject({ temperature, top_p: 0.9 });
-        expect(warnings).toEqual([]);
-      },
-    );
+    describe('prompt caching', () => {
+      const cacheOptions = {
+        cacheControl: { type: 'ephemeral' },
+      } satisfies MiniMaxCacheControlOptions;
 
-    it.each(['minimax', 'anthropic'])(
-      'preserves sampling with explicit adaptive thinking in %s options',
-      async namespace => {
-        const { body, warnings } = await call({
-          temperature: 1.5,
-          topP: 0.9,
-          providerOptions: { [namespace]: { thinking: { type: 'adaptive' } } },
-        });
-        expect(body).toMatchObject({
-          temperature: 1.5,
-          top_p: 0.9,
-          thinking: { type: 'adaptive' },
-        });
-        expect(warnings).toEqual([]);
-      },
-    );
-
-    it('preserves sampling with top-level reasoning and the canonical model ID', async () => {
-      const { body, warnings } = await call(
-        { temperature: 2, topP: 0.8, reasoning: 'high' },
-        'MiniMax-M3.1-Flash',
-      );
-      expect(body).toMatchObject({
-        temperature: 2,
-        top_p: 0.8,
-        output_config: { effort: 'high' },
-      });
-      expect(warnings).toEqual([]);
-    });
-
-    it('leaves omitted sampling parameters unset with adaptive thinking', async () => {
-      const { body, warnings } = await call({
-        providerOptions: { minimax: { thinking: { type: 'adaptive' } } },
-      });
-      expect(body.temperature).toBeUndefined();
-      expect(body.top_p).toBeUndefined();
-      expect(warnings).toEqual([]);
-    });
-
-    it.each([
-      { temperature: -0.5, expected: 0 },
-      { temperature: 2.5, expected: 2 },
-    ])(
-      'clamps temperature $temperature to $expected',
-      async ({ temperature, expected }) => {
-        const { body, warnings } = await call({
-          temperature,
-          topP: 0.9,
-          providerOptions: { minimax: { thinking: { type: 'adaptive' } } },
-        });
-        expect(body).toMatchObject({ temperature: expected, top_p: 0.9 });
-        expect(warnings).toEqual([
+      it('forwards cache control on system messages and individual text blocks', async () => {
+        const prompt: LanguageModelV4Prompt = [
           {
-            type: 'unsupported',
-            feature: 'temperature',
-            details: expect.stringContaining('minimax'),
+            role: 'system',
+            content: 'Stable instructions.',
+            providerOptions: { minimax: cacheOptions },
+          },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'Stable reference.',
+                providerOptions: { minimax: cacheOptions },
+              },
+              { type: 'text', text: 'Changing question.' },
+            ],
+          },
+        ];
+        const original = structuredClone(prompt);
+        const { body, warnings } = await call({ prompt });
+
+        expect(body.system).toEqual([
+          {
+            type: 'text',
+            text: 'Stable instructions.',
+            cache_control: { type: 'ephemeral' },
           },
         ]);
-      },
-    );
-
-    it.each(['minimax-m3', 'MiniMax-M2.7'])(
-      'preserves existing sampling behavior for %s',
-      async modelId => {
-        const { body, warnings } = await call({ temperature: 1.5 }, modelId);
-        expect(body.temperature).toBe(1);
-        expect(warnings).toContainEqual(
-          expect.objectContaining({ feature: 'temperature' }),
-        );
-      },
-    );
-
-    it.each(['minimax-m3', 'MiniMax-M2.7'])(
-      'preserves sampling restrictions with adaptive thinking for %s',
-      async modelId => {
-        const { body, warnings } = await call(
+        expect(body.messages[0].content).toEqual([
           {
-            temperature: 0.5,
-            topP: 0.9,
-            providerOptions: { minimax: { thinking: { type: 'adaptive' } } },
+            type: 'text',
+            text: 'Stable reference.',
+            cache_control: { type: 'ephemeral' },
           },
-          modelId,
+          { type: 'text', text: 'Changing question.' },
+        ]);
+        expect(warnings).toEqual([]);
+        expect(prompt).toEqual(original);
+      });
+
+      it('applies message cache control to the final block', async () => {
+        const { body, warnings } = await call({
+          prompt: [
+            {
+              role: 'user',
+              providerOptions: { minimax: cacheOptions },
+              content: [
+                { type: 'text', text: 'First.' },
+                { type: 'text', text: 'Last.' },
+              ],
+            },
+          ],
+        });
+        expect(body.messages[0].content).toEqual([
+          { type: 'text', text: 'First.' },
+          { type: 'text', text: 'Last.', cache_control: { type: 'ephemeral' } },
+        ]);
+        expect(warnings).toEqual([]);
+      });
+
+      it.each(['cacheControl', 'cache_control'])(
+        'prefers minimax.%s over the anthropic namespace',
+        async key => {
+          const { body, warnings } = await call({
+            prompt: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'text',
+                    text: 'Reference.',
+                    providerOptions: {
+                      minimax: { [key]: { type: 'ephemeral' } },
+                      anthropic: {
+                        cacheControl: { type: 'ephemeral', ttl: '1h' },
+                      },
+                    },
+                  },
+                ],
+              },
+            ],
+          });
+          expect(body.messages[0].content[0].cache_control).toEqual({
+            type: 'ephemeral',
+          });
+          expect(warnings).toEqual([]);
+        },
+      );
+
+      it.each(['cacheControl', 'cache_control'])(
+        'falls back to anthropic.%s when minimax has no cache setting',
+        async key => {
+          const { body, warnings } = await call({
+            prompt: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'text',
+                    text: 'Reference.',
+                    providerOptions: {
+                      minimax: {},
+                      anthropic: { [key]: { type: 'ephemeral' } },
+                    },
+                  },
+                ],
+              },
+            ],
+          });
+          expect(body.messages[0].content[0].cache_control).toEqual({
+            type: 'ephemeral',
+          });
+          expect(warnings).toEqual([]);
+        },
+      );
+
+      it('counts one breakpoint per block across both namespaces', async () => {
+        const { body, warnings } = await call({
+          prompt: [
+            {
+              role: 'user',
+              content: Array.from({ length: 5 }, (_, index) => ({
+                type: 'text',
+                text: `Reference ${index}.`,
+                providerOptions: {
+                  minimax: cacheOptions,
+                  anthropic: cacheOptions,
+                },
+              })),
+            },
+          ],
+        });
+        expect(
+          body.messages[0].content.map(
+            (part: { cache_control?: unknown }) => part.cache_control,
+          ),
+        ).toEqual([
+          { type: 'ephemeral' },
+          { type: 'ephemeral' },
+          { type: 'ephemeral' },
+          { type: 'ephemeral' },
+          undefined,
+        ]);
+        expect(warnings).toEqual([
+          expect.objectContaining({ feature: 'cacheControl breakpoint limit' }),
+        ]);
+      });
+
+      it('does not add cache control when no marker is supplied', async () => {
+        const { body, warnings } = await call();
+        expect(body.messages[0].content[0]).not.toHaveProperty('cache_control');
+        expect(warnings).toEqual([]);
+      });
+
+      it.each(['minimax-m3', 'MiniMax-M2.7'])(
+        'keeps the existing cache namespace behavior for %s',
+        async modelId => {
+          const { body, warnings } = await call(
+            {
+              prompt: [
+                {
+                  role: 'user',
+                  content: [
+                    {
+                      type: 'text',
+                      text: 'MiniMax marker.',
+                      providerOptions: { minimax: cacheOptions },
+                    },
+                    {
+                      type: 'text',
+                      text: 'Anthropic marker.',
+                      providerOptions: { anthropic: cacheOptions },
+                    },
+                  ],
+                },
+              ],
+            },
+            modelId,
+          );
+          expect(body.messages[0].content).toEqual([
+            { type: 'text', text: 'MiniMax marker.' },
+            {
+              type: 'text',
+              text: 'Anthropic marker.',
+              cache_control: { type: 'ephemeral' },
+            },
+          ]);
+          expect(warnings).toEqual([]);
+        },
+      );
+    });
+
+    describe('sampling', () => {
+      it.each([0, 0.5, 1.5, 2])(
+        'preserves temperature %s and topP with default thinking',
+        async temperature => {
+          const { body, warnings } = await call({ temperature, topP: 0.9 });
+          expect(body).toMatchObject({ temperature, top_p: 0.9 });
+          expect(warnings).toEqual([]);
+        },
+      );
+
+      it.each(['minimax', 'anthropic'])(
+        'preserves sampling with explicit adaptive thinking in %s options',
+        async namespace => {
+          const { body, warnings } = await call({
+            temperature: 1.5,
+            topP: 0.9,
+            providerOptions: {
+              [namespace]: { thinking: { type: 'adaptive' } },
+            },
+          });
+          expect(body).toMatchObject({
+            temperature: 1.5,
+            top_p: 0.9,
+            thinking: { type: 'adaptive' },
+          });
+          expect(warnings).toEqual([]);
+        },
+      );
+
+      it('preserves sampling with top-level reasoning and the canonical model ID', async () => {
+        const { body, warnings } = await call(
+          { temperature: 2, topP: 0.8, reasoning: 'high' },
+          'MiniMax-M3.1-Flash',
         );
+        expect(body).toMatchObject({
+          temperature: 2,
+          top_p: 0.8,
+          output_config: { effort: 'high' },
+        });
+        expect(warnings).toEqual([]);
+      });
+
+      it('leaves omitted sampling parameters unset with adaptive thinking', async () => {
+        const { body, warnings } = await call({
+          providerOptions: { minimax: { thinking: { type: 'adaptive' } } },
+        });
         expect(body.temperature).toBeUndefined();
         expect(body.top_p).toBeUndefined();
-        expect(
-          warnings.map(warning => 'feature' in warning && warning.feature),
-        ).toEqual(['temperature', 'topP']);
-      },
-    );
+        expect(warnings).toEqual([]);
+      });
+
+      it.each([
+        { temperature: -0.5, expected: 0 },
+        { temperature: 2.5, expected: 2 },
+      ])(
+        'clamps temperature $temperature to $expected',
+        async ({ temperature, expected }) => {
+          const { body, warnings } = await call({
+            temperature,
+            topP: 0.9,
+            providerOptions: { minimax: { thinking: { type: 'adaptive' } } },
+          });
+          expect(body).toMatchObject({ temperature: expected, top_p: 0.9 });
+          expect(warnings).toEqual([
+            {
+              type: 'unsupported',
+              feature: 'temperature',
+              details: expect.stringContaining('minimax'),
+            },
+          ]);
+        },
+      );
+
+      it.each(['minimax-m3', 'MiniMax-M2.7'])(
+        'preserves existing sampling behavior for %s',
+        async modelId => {
+          const { body, warnings } = await call({ temperature: 1.5 }, modelId);
+          expect(body.temperature).toBe(1);
+          expect(warnings).toContainEqual(
+            expect.objectContaining({ feature: 'temperature' }),
+          );
+        },
+      );
+
+      it.each(['minimax-m3', 'MiniMax-M2.7'])(
+        'preserves sampling restrictions with adaptive thinking for %s',
+        async modelId => {
+          const { body, warnings } = await call(
+            {
+              temperature: 0.5,
+              topP: 0.9,
+              providerOptions: { minimax: { thinking: { type: 'adaptive' } } },
+            },
+            modelId,
+          );
+          expect(body.temperature).toBeUndefined();
+          expect(body.top_p).toBeUndefined();
+          expect(
+            warnings.map(warning => 'feature' in warning && warning.feature),
+          ).toEqual(['temperature', 'topP']);
+        },
+      );
+    });
   },
 );

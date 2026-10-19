@@ -108,6 +108,52 @@ const { text } = await generateText({
 });
 ```
 
+### Prompt Caching
+
+For `minimax-m3.1-flash`, mark stable text with
+`providerOptions.minimax.cacheControl`. The provider forwards it as
+`cache_control` on the corresponding API content block. You can also set it on
+a system message, or on a user message to mark its final content block.
+
+```ts
+import { minimax, type MiniMaxCacheControlOptions } from '@ai-sdk/minimax';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: minimax('minimax-m3.1-flash'),
+  reasoning: 'low',
+  maxOutputTokens: 16384,
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: 'Long reference material reused across requests...',
+          providerOptions: {
+            minimax: {
+              cacheControl: { type: 'ephemeral' },
+            } satisfies MiniMaxCacheControlOptions,
+          },
+        },
+        { type: 'text', text: 'Summarize the reference material.' },
+      ],
+    },
+  ],
+});
+
+console.log(result.usage.inputTokenDetails.cacheReadTokens);
+console.log(result.usage.inputTokenDetails.cacheWriteTokens);
+```
+
+Keep the stable prefix unchanged and place the changing question after it.
+A cache marker does not guarantee a hit; inspect cache-read token usage to check
+whether cached content was reused. This option does not specify a cache lifetime.
+
+Existing `providerOptions.anthropic.cacheControl` settings continue to work.
+When both namespaces specify cache control on the same block, `minimax` takes
+precedence.
+
 ### Image and Video Input
 
 `minimax-m3.1-flash` accepts images and videos in user messages with both

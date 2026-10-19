@@ -274,6 +274,8 @@ export type AnthropicLanguageModelConfig = {
   maxTemperature?: number;
   /** Preserve temperature and topP with thinking for compatible providers. */
   supportsTemperatureAndTopPWithThinking?: boolean;
+  /** Cache option namespace for compatible providers. Defaults to anthropic. */
+  cacheControlProviderOptionsName?: string;
 };
 
 export class AnthropicLanguageModel implements LanguageModelV4 {
@@ -545,7 +547,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     }
 
     // Create a shared cache control validator to track breakpoints across tools and messages
-    const cacheControlValidator = new CacheControlValidator();
+    const cacheControlValidator = new CacheControlValidator(
+      config.cacheControlProviderOptionsName,
+    );
 
     const toolNameMapping = createToolNameMapping({
       tools,

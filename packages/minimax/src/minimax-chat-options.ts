@@ -29,3 +29,9 @@ export const minimaxLanguageModelOptions = z.object({
 export type MiniMaxLanguageModelOptions = z.infer<
   typeof minimaxLanguageModelOptions
 >;
+
+/** Cache options for M3.1 Flash system messages and text parts. */
+export type MiniMaxCacheControlOptions = {
+  /** Mark a stable prompt prefix for caching. A cache hit is not guaranteed. */
+  cacheControl?: { type: 'ephemeral' };
+};

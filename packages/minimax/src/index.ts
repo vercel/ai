@@ -5,6 +5,7 @@ export type {
 } from './minimax-provider';
 export type {
   MiniMaxChatModelId,
+  MiniMaxCacheControlOptions,
   MiniMaxLanguageModelOptions,
   /** @deprecated Use `MiniMaxLanguageModelOptions` instead. */
   MiniMaxLanguageModelOptions as MiniMaxProviderOptions,
