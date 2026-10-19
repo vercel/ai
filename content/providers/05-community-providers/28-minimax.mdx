@@ -5,7 +5,7 @@ description: Learn how to use MiniMax provider with the AI SDK.
 
 # MiniMax Provider
 
-[@minimax-ai/ai-sdk-provider](https://github.com/MiniMax-AI/vercel-minimax-ai-provider) is a community provider that provides access to the latest [MiniMax-M2 model](https://platform.minimax.io/docs/guides/text-generation) from [MiniMax](https://www.minimax.io/).
+[@minimax-ai/ai-sdk-provider](https://github.com/MiniMax-AI/vercel-minimax-ai-provider) is a community provider for [MiniMax](https://www.minimax.io/) language, image, speech, and video models.
 
 API keys can be obtained from the [MiniMax Platform](https://platform.minimax.io/user-center/basic-information/interface-key).
 
@@ -14,6 +14,8 @@ API keys can be obtained from the [MiniMax Platform](https://platform.minimax.io
 The MiniMax provider is available via the `@minimax-ai/ai-sdk-provider` module. You can install it with:
 
 <InstallPackages packages="@minimax-ai/ai-sdk-provider" />
+
+Set the `MINIMAX_API_KEY` environment variable, or pass `apiKey` when creating a provider instance.
 
 <Note>
   If you are migrating from `vercel-minimax-ai-provider`, replace the dependency
@@ -24,33 +26,26 @@ The MiniMax provider is available via the `@minimax-ai/ai-sdk-provider` module. 
 
 ## Provider Instance
 
-The MiniMax provider supports two API compatibility modes:
-
-### Anthropic-Compatible API (Default)
-
-You can import the default provider instance `minimax` from `@minimax-ai/ai-sdk-provider`:
+The default `minimax` instance uses the Anthropic-compatible API for language models:
 
 ```ts
 import { minimax } from '@minimax-ai/ai-sdk-provider';
 ```
 
-Or explicitly use the Anthropic-compatible instance:
+You can also select the API format explicitly:
 
 ```ts
-import { minimaxAnthropic } from '@minimax-ai/ai-sdk-provider';
+import {
+  minimaxAnthropic,
+  minimaxOpenAI,
+} from '@minimax-ai/ai-sdk-provider';
 ```
 
-Or OpenAI-compatible API format:
-
-```ts
-import { minimaxOpenAI } from '@minimax-ai/ai-sdk-provider';
-```
+Both instances expose `.image()`, `.speech()`, and `.video()` for MiniMax's native media APIs.
 
 ## Custom Configuration
 
-For custom configuration, you can use the `createMinimax` (Anthropic-compatible) or `createMinimaxOpenAI` (OpenAI-compatible) functions:
-
-### Anthropic-Compatible Configuration (Default)
+Use `createMinimax` for the Anthropic-compatible API or `createMinimaxOpenAI` for the OpenAI-compatible API:
 
 ```ts
 import { createMinimax } from '@minimax-ai/ai-sdk-provider';
@@ -62,8 +57,6 @@ const minimax = createMinimax({
 
 ### Configuration Options
 
-You can use the following optional settings to customize the MiniMax provider instance:
-
 - **baseURL** _string_
 
   Use a different URL prefix for API calls.
@@ -72,8 +65,9 @@ You can use the following optional settings to customize the MiniMax provider in
 
 - **apiKey** _string_
 
-  API key that is being sent using the `Authorization` header. It defaults to
-  the `MINIMAX_API_KEY` environment variable.
+  The API key. Defaults to the `MINIMAX_API_KEY` environment variable.
+  Anthropic-compatible language requests use `x-api-key`; OpenAI-compatible
+  language requests and native media requests use Bearer authentication.
 
 - **headers** _Record&lt;string,string&gt;_
 
@@ -83,46 +77,57 @@ You can use the following optional settings to customize the MiniMax provider in
 
   Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
 
-## API Compatibility
+### Region and Base URL
 
-MiniMax provides two API formats. Both are included in this package.
+The default instances use the international endpoint (`https://api.minimax.io`).
+Use an API key from the platform matching your endpoint. For accounts on the
+[China platform](https://platform.minimax.cn), configure the China base URL:
 
-The main difference is the API request/response format:
+```ts
+import { createMinimax, createMinimaxOpenAI } from '@minimax-ai/ai-sdk-provider';
 
-- **Anthropic format** (default): Uses Anthropic Messages API format with `anthropic-version` header
-- **OpenAI format**: Uses standard OpenAI chat completion format
+const minimax = createMinimax({
+  baseURL: 'https://api.minimax.cn/anthropic/v1',
+  apiKey: process.env.MINIMAX_API_KEY,
+});
 
-Both formats access the same MiniMax models with the same capabilities.
+const minimaxOpenAI = createMinimaxOpenAI({
+  baseURL: 'https://api.minimax.cn/v1',
+  apiKey: process.env.MINIMAX_API_KEY,
+});
+```
 
-## Model Capabilities
+Include `/v1` in the base URL. The provider appends the API endpoint path.
+The Anthropic-compatible provider derives the native media base URL from this
+setting, so its image, speech, and video requests use the same region.
 
-| Model               | Text Generation | Object Generation | Image Input | Tool Usage | Tool Streaming |
-| ------------------- | --------------- | ----------------- | ----------- | ---------- | -------------- |
-| `MiniMax-M2`        | <Check />       | <Check />         | <Cross />   | <Check />  | <Check />      |
-| `MiniMax-M2-Stable` | <Check />       | <Check />         | <Cross />   | <Check />  | <Check />      |
+## Language Models
 
-<Note>
-  Please see the [MiniMax
-  docs](https://platform.minimax.io/docs/api-reference/text-intro) for a full
-  list of available models and their capabilities. The provider accepts any
-  model ID as a string for forward compatibility.
-</Note>
+The provider includes model IDs for `MiniMax-M3.1-Flash` and `MiniMax-M3`.
+It also accepts other model IDs as strings. See the
+[MiniMax model documentation](https://platform.minimax.io/docs/guides/text-generation)
+for current model availability and capabilities.
 
-## Example Usage
+Language models can use either the Anthropic Messages API format or the
+OpenAI chat completions format. The examples below use the default
+Anthropic-compatible instance; use `minimaxOpenAI` for OpenAI-compatible requests.
 
-### Basic Text Generation
+### Text Generation
 
 ```ts
 import { minimax } from '@minimax-ai/ai-sdk-provider';
 import { generateText } from 'ai';
 
-const result = await generateText({
-  model: minimax('MiniMax-M2'),
-  prompt: 'Explain quantum computing in simple terms.',
+const { text, reasoningText } = await generateText({
+  model: minimax('MiniMax-M3.1-Flash'),
+  prompt: 'Write a JavaScript function that sorts a list.',
 });
 
-console.log(result.text);
+console.log(reasoningText);
+console.log(text);
 ```
+
+When the model returns thinking content, it is available as `reasoningText`.
 
 ### Streaming
 
@@ -131,11 +136,124 @@ import { minimax } from '@minimax-ai/ai-sdk-provider';
 import { streamText } from 'ai';
 
 const result = streamText({
-  model: minimax('MiniMax-M2'),
-  prompt: 'Write a short story about a robot learning to paint.',
+  model: minimax('MiniMax-M3.1-Flash'),
+  prompt: 'Write a JavaScript function that sorts a list.',
 });
 
-for await (const chunk of result.textStream) {
-  console.log(chunk);
+for await (const part of result.fullStream) {
+  if (part.type === 'reasoning-delta' || part.type === 'text-delta') {
+    process.stdout.write(part.text);
+  }
 }
+
+console.log(await result.usage);
 ```
+
+## Image Generation
+
+Use `.image()` with `generateImage`. The provider includes the model IDs
+`image-01` and `image-01-live`.
+
+```ts
+import { minimax } from '@minimax-ai/ai-sdk-provider';
+import { generateImage } from 'ai';
+
+const { images } = await generateImage({
+  model: minimax.image('image-01'),
+  prompt: 'A serene mountain lake at sunrise',
+  size: '1024x1024',
+  n: 2,
+  providerOptions: { minimax: { promptOptimizer: true } },
+});
+
+// images[0].uint8Array / images[0].base64
+```
+
+For image-to-image generation, pass reference images in a structured prompt:
+
+```ts
+const { images } = await generateImage({
+  model: minimax.image('image-01'),
+  prompt: {
+    text: 'The same character riding a bicycle',
+    images: [new URL('https://example.com/character.png')],
+  },
+});
+```
+
+See the [image generation guide](https://github.com/MiniMax-AI/vercel-minimax-ai-provider#image-generation)
+for subject references and additional provider options.
+
+## Speech Generation
+
+Use `.speech()` with `generateSpeech` for text-to-speech. The provider includes
+`speech-2.8-hd`, `speech-2.8-turbo`, `speech-2.6-hd`, `speech-2.6-turbo`,
+`speech-02-hd`, and `speech-02-turbo` model IDs.
+
+```ts
+import { minimax } from '@minimax-ai/ai-sdk-provider';
+import { generateSpeech } from 'ai';
+
+const { audio } = await generateSpeech({
+  model: minimax.speech('speech-2.6-hd'),
+  text: 'Hello, welcome to MiniMax speech generation.',
+  voice: 'male-qn-qingse',
+  outputFormat: 'mp3',
+  providerOptions: { minimax: { emotion: 'happy', sampleRate: 32000 } },
+});
+
+// audio.uint8Array
+```
+
+Choose a voice ID from the [MiniMax speech documentation](https://platform.minimax.io/docs/api-reference/speech-t2a-http).
+See the [speech guide](https://github.com/MiniMax-AI/vercel-minimax-ai-provider#speech-text-to-speech)
+for additional options.
+
+## Video Generation
+
+Use `.video()` with `experimental_generateVideo`. The provider includes
+`MiniMax-Hailuo-2.3` and `MiniMax-Hailuo-02` for text/image-to-video, and
+`MiniMax-Hailuo-2.3-Fast` for image-to-video.
+
+```ts
+import { minimax } from '@minimax-ai/ai-sdk-provider';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { videos } = await generateVideo({
+  model: minimax.video('MiniMax-Hailuo-2.3'),
+  prompt: 'A dog running through a field of flowers',
+  duration: 6,
+  resolution: '1920x1080',
+  providerOptions: {
+    minimax: {
+      pollIntervalMs: 5000,
+      pollTimeoutMs: 600000,
+    },
+  },
+});
+
+// videos[0] is a URL-backed video
+```
+
+The provider creates a generation task, polls for completion, and returns the
+video URL. For image-to-video, supply the first frame in a structured prompt:
+
+```ts
+const { videos } = await generateVideo({
+  model: minimax.video('MiniMax-Hailuo-2.3-Fast'),
+  prompt: {
+    text: 'Animate this photo with a gentle zoom',
+    image: 'https://example.com/first-frame.jpg',
+  },
+});
+```
+
+<Note>
+  `MiniMax-Hailuo-2.3-Fast` requires an input image. Choose duration and resolution
+  settings supported by the selected model. MiniMax fetches image URLs and invokes
+  callbacks from its servers; validate untrusted input before forwarding it in
+  provider options such as `callbackUrl`.
+</Note>
+
+See the [video generation guide](https://github.com/MiniMax-AI/vercel-minimax-ai-provider#video-generation)
+for resolution settings and additional provider options.
