@@ -1,5 +1,5 @@
 import { createJustBashNetworkSandboxSession } from '@ai-sdk/sandbox-just-bash';
-import { bashTool } from '@ai-sdk/tool-bash';
+import { createBashTool } from '@ai-sdk/tool-bash';
 import { isStepCount, ToolLoopAgent } from 'ai';
 import { run } from '../../lib/run';
 
@@ -15,7 +15,7 @@ run(async () => {
         { product: 'Pears', revenue: 80 },
       ]),
     });
-    const bash = await bashTool({ sandbox });
+    const bash = await createBashTool({ sandbox });
 
     const agent = new ToolLoopAgent({
       model: 'openai/gpt-6-astra',

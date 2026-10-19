@@ -17,7 +17,7 @@ For defining your own tools and configuring tool execution, see
 
 ## Bash Tool
 
-`bashTool` lets agents run Bash commands to search, analyze, and transform files.
+`createBashTool` lets agents run Bash commands to search, analyze, and transform files.
 Supply an `Experimental_SandboxSession` to choose where commands run. Use
 `@ai-sdk/sandbox-just-bash` for an in-memory environment,
 `@ai-sdk/sandbox-vercel` for Vercel Sandbox, or your own implementation.
@@ -38,7 +38,7 @@ Requires Node.js 22.13 or newer.
 
 ```ts
 import { createJustBashNetworkSandboxSession } from '@ai-sdk/sandbox-just-bash';
-import { bashTool } from '@ai-sdk/tool-bash';
+import { createBashTool } from '@ai-sdk/tool-bash';
 import { generateText, isStepCount } from 'ai';
 
 const session = await createJustBashNetworkSandboxSession();
@@ -49,7 +49,7 @@ try {
     path: 'notes.txt',
     content: 'Apples: 10\nPears: 20\n',
   });
-  const bash = await bashTool({ sandbox });
+  const bash = await createBashTool({ sandbox });
 
   const result = await generateText({
     model, // Your configured model with function calling support.
@@ -72,7 +72,7 @@ Vercel Sandbox. Wrap it with the adapter before passing it to the tool:
 
 ```ts
 import { createVercelSandboxSessionFromNativeSandbox } from '@ai-sdk/sandbox-vercel';
-import { bashTool } from '@ai-sdk/tool-bash';
+import { createBashTool } from '@ai-sdk/tool-bash';
 import { Sandbox } from '@vercel/sandbox';
 
 const nativeSandbox = await Sandbox.create();
@@ -83,7 +83,7 @@ try {
     path: 'notes.txt',
     content: 'Hello from Vercel Sandbox',
   });
-  const bash = await bashTool({ sandbox });
+  const bash = await createBashTool({ sandbox });
 
   // Use bash with generateText, streamText, or ToolLoopAgent here.
 } finally {
@@ -100,7 +100,7 @@ Raw runtime instances need their respective adapters; a custom
 
 ### Options
 
-`bashTool()` requires an options object:
+`createBashTool()` requires an options object:
 
 | Option             | Type                          | Description                                                                                                                   |
 | ------------------ | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
@@ -129,7 +129,7 @@ Tools using the same session share files. Creating a tool does not reset existin
 files or create a new sandbox. Use separate sessions for independent workflows.
 The caller creates, reconnects, and destroys the sandbox.
 
-`bashTool()` returns the tool directly, ready to use as `tools: { bash }`.
+`createBashTool()` returns the tool directly, ready to use as `tools: { bash }`.
 Use the supplied sandbox's `readTextFile({ path })` to read generated text files;
 it returns `null` if the file is missing. Relative read paths depend on the
 sandbox adapter; just-bash resolves them against its default directory. With an

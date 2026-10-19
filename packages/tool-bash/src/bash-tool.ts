@@ -43,7 +43,7 @@ function limitOutput(output: string, maxLength: number): string {
  * @param maxOutputLength - Maximum characters retained from each output stream
  * before appending a truncation notice. Defaults to 30,000.
  */
-export async function bashTool({
+export async function createBashTool({
   sandbox,
   workingDirectory,
   maxOutputLength = 30_000,

@@ -23,7 +23,7 @@ Requires Node.js 22.13 or newer.
 
 ```ts
 import { createJustBashNetworkSandboxSession } from '@ai-sdk/sandbox-just-bash';
-import { bashTool } from '@ai-sdk/tool-bash';
+import { createBashTool } from '@ai-sdk/tool-bash';
 import { generateText, isStepCount } from 'ai';
 
 const session = await createJustBashNetworkSandboxSession();
@@ -34,7 +34,7 @@ try {
     path: 'notes.txt',
     content: 'Apples: 10\nPears: 20\n',
   });
-  const bash = await bashTool({ sandbox });
+  const bash = await createBashTool({ sandbox });
 
   const result = await generateText({
     model, // Your configured model with function calling support.
@@ -50,7 +50,7 @@ try {
 }
 ```
 
-`bashTool()` returns the tool directly. Read generated files through the
+`createBashTool()` returns the tool directly. Read generated files through the
 supplied sandbox using `readTextFile({ path })`, which returns `null` if missing.
 The just-bash adapter resolves relative read paths against its default directory.
 When overriding `workingDirectory`, use absolute paths to read files there.
@@ -69,7 +69,7 @@ Vercel Sandbox. Wrap it with the adapter before passing it to the tool:
 
 ```ts
 import { createVercelSandboxSessionFromNativeSandbox } from '@ai-sdk/sandbox-vercel';
-import { bashTool } from '@ai-sdk/tool-bash';
+import { createBashTool } from '@ai-sdk/tool-bash';
 import { Sandbox } from '@vercel/sandbox';
 
 const nativeSandbox = await Sandbox.create();
@@ -80,7 +80,7 @@ try {
     path: 'notes.txt',
     content: 'Hello from Vercel Sandbox',
   });
-  const bash = await bashTool({ sandbox });
+  const bash = await createBashTool({ sandbox });
 
   // Use bash with generateText, streamText, or ToolLoopAgent here.
 } finally {
