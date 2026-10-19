@@ -1,5 +1,20 @@
 # @ai-sdk/azure
 
+## 4.0.105
+
+### Patch Changes
+
+- acbc819: Add an optional `modelId` setting to Azure OpenAI language-model factories for
+  accurate telemetry and capability detection with custom deployment names. Keep
+  the deployment ID for API routing and preserve existing behavior when the model
+  ID is omitted.
+- Updated dependencies [acbc819]
+- Updated dependencies [60cc252]
+  - @ai-sdk/openai@4.0.97
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/deepseek@3.0.68
+  - @ai-sdk/provider-utils@5.0.63
+
 ## 4.0.104
 
 ### Patch Changes
