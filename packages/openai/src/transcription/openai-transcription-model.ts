@@ -1,14 +1,17 @@
 import {
   UnsupportedFunctionalityError,
   type Experimental_TranscriptionModelV4StreamOptions as TranscriptionModelV4StreamOptions,
+  type JSONObject,
   type SharedV4Warning,
   type TranscriptionModelV4,
   type TranscriptionModelV4CallOptions,
+  type Experimental_TranscriptionModelV4StreamPart as TranscriptionModelV4StreamPart,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
   convertToBase64,
+  createEventSourceResponseHandler,
   createJsonResponseHandler,
   connectToWebSocket,
   mediaTypeToExtension,
@@ -20,12 +23,16 @@ import {
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
   waitForWebSocketBufferDrain,
+  type ParseResult,
   type WebSocketConnection,
   type WebSocketLike,
 } from '@ai-sdk/provider-utils';
 import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
-import { openaiTranscriptionResponseSchema } from './openai-transcription-api';
+import {
+  openaiTranscriptionResponseSchema,
+  openaiTranscriptionStreamEventSchema,
+} from './openai-transcription-api';
 import {
   openAITranscriptionModelOptions,
   type OpenAITranscriptionModelId,
@@ -67,6 +74,14 @@ function isRealtimeTranscriptionModelId(modelId: string): boolean {
     modelId === 'gpt-realtime-whisper' ||
     modelId.startsWith('gpt-realtime-whisper-')
   );
+}
+
+/**
+ * GPT Transcribe models can stream an uploaded file over the REST endpoint
+ * (`stream: true`). Whisper and other non-realtime models cannot.
+ */
+function isUploadedFileStreamingModelId(modelId: string): boolean {
+  return modelId.startsWith('gpt-4o-') && modelId.includes('transcribe');
 }
 
 interface OpenAITranscriptionModelConfig extends OpenAIConfig {
@@ -357,6 +372,9 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
     Awaited<ReturnType<NonNullable<TranscriptionModelV4['doStream']>>>
   > {
     if (!isRealtimeTranscriptionModelId(this.modelId)) {
+      if (isUploadedFileStreamingModelId(this.modelId)) {
+        return this.doStreamUploadedFile(options);
+      }
       throw new UnsupportedFunctionalityError({
         functionality: `streaming transcription with ${this.modelId}`,
       });
@@ -419,6 +437,139 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
       }),
     };
   }
+
+  private async doStreamUploadedFile(
+    options: OpenAITranscriptionStreamOptions,
+  ): Promise<
+    Awaited<ReturnType<NonNullable<TranscriptionModelV4['doStream']>>>
+  > {
+    const audio = await readAudioStream(options.audio);
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const modelId = this.modelId;
+    const { formData, warnings } = await this.getArgs({
+      audio,
+      mediaType: options.inputAudioFormat.type,
+      providerOptions: options.providerOptions,
+    });
+    formData.append('stream', 'true');
+
+    const { value: eventStream, responseHeaders } = await postFormDataToApi({
+      url: this.config.url({
+        path: '/audio/transcriptions',
+        modelId,
+      }),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
+      formData,
+      failedResponseHandler: openaiFailedResponseHandler,
+      successfulResponseHandler: createEventSourceResponseHandler(
+        openaiTranscriptionStreamEventSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    let text = '';
+    let finalText: string | undefined;
+    let usage: JSONObject | undefined;
+
+    return {
+      response: {
+        timestamp: currentDate,
+        modelId,
+        headers: responseHeaders,
+      },
+      stream: eventStream.pipeThrough(
+        new TransformStream<
+          ParseResult<{
+            type: string;
+            delta?: string | null;
+            text?: string | null;
+            usage?: JSONObject | null;
+          }>,
+          TranscriptionModelV4StreamPart
+        >({
+          start(controller) {
+            controller.enqueue({ type: 'stream-start', warnings });
+            controller.enqueue({
+              type: 'response-metadata',
+              timestamp: currentDate,
+              modelId,
+              headers: responseHeaders,
+            });
+          },
+          transform(chunk, controller) {
+            if (options.includeRawChunks) {
+              controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
+            }
+            if (!chunk.success) {
+              controller.enqueue({ type: 'error', error: chunk.error });
+              return;
+            }
+
+            const event = chunk.value;
+            if (
+              event.type === 'transcript.text.delta' &&
+              event.delta != null &&
+              event.delta !== ''
+            ) {
+              text += event.delta;
+              controller.enqueue({
+                type: 'transcript-delta',
+                delta: event.delta,
+              });
+              return;
+            }
+
+            if (event.type === 'transcript.text.done') {
+              if (event.text != null) {
+                finalText = event.text;
+              }
+              if (event.usage != null) {
+                usage = event.usage;
+              }
+            }
+          },
+          flush(controller) {
+            controller.enqueue({
+              type: 'finish',
+              text: finalText ?? text,
+              segments: [],
+              ...(usage != null ? { usage } : {}),
+            });
+          },
+        }),
+      ),
+    };
+  }
+}
+
+async function readAudioStream(
+  audio: ReadableStream<Uint8Array | string>,
+): Promise<Uint8Array> {
+  const reader = audio.getReader();
+  const chunks: Uint8Array[] = [];
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+      chunks.push(
+        typeof value === 'string' ? convertBase64ToUint8Array(value) : value,
+      );
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const length = chunks.reduce((total, chunk) => total + chunk.byteLength, 0);
+  const bytes = new Uint8Array(length);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return bytes;
 }
 
 function createOpenAIRealtimeTranscriptionStream({

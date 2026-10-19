@@ -46,3 +46,18 @@ export const openaiTranscriptionResponseSchema = lazySchema(() =>
     }),
   ),
 );
+
+/**
+ * Server-sent events from `POST /audio/transcriptions` when `stream` is true.
+ * https://platform.openai.com/docs/guides/speech-to-text#streaming-transcriptions
+ */
+export const openaiTranscriptionStreamEventSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      type: z.string(),
+      delta: z.string().nullish(),
+      text: z.string().nullish(),
+      usage: z.record(z.string(), z.json()).nullish(),
+    }),
+  ),
+);

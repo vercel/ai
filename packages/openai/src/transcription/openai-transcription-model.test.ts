@@ -650,6 +650,63 @@ describe('doGenerate', () => {
 });
 
 describe('doStream', () => {
+  it('should reject streaming for whisper-1', async () => {
+    await expect(
+      model.doStream({
+        audio: convertArrayToReadableStream([audioData]),
+        inputAudioFormat: { type: 'audio/wav' },
+      }),
+    ).rejects.toBeInstanceOf(UnsupportedFunctionalityError);
+  });
+
+  it('should stream an uploaded file for gpt-4o-transcribe', async () => {
+    server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        'data: {"type":"transcript.text.delta","delta":"Hello"}\n\n',
+        'data: {"type":"transcript.text.delta","delta":" world"}\n\n',
+        'data: {"type":"transcript.text.done","text":"Hello world","usage":{"type":"tokens","input_tokens":4,"output_tokens":2,"total_tokens":6}}\n\n',
+      ],
+    };
+
+    const result = await provider.transcription('gpt-4o-transcribe').doStream({
+      audio: convertArrayToReadableStream([audioData]),
+      inputAudioFormat: { type: 'audio/mpeg' },
+    });
+    const parts = await convertReadableStreamToArray(result.stream);
+
+    expect(parts.map(part => part.type)).toEqual([
+      'stream-start',
+      'response-metadata',
+      'transcript-delta',
+      'transcript-delta',
+      'finish',
+    ]);
+    expect(parts[2]).toMatchObject({
+      type: 'transcript-delta',
+      delta: 'Hello',
+    });
+    expect(parts[3]).toMatchObject({
+      type: 'transcript-delta',
+      delta: ' world',
+    });
+    expect(parts[4]).toEqual({
+      type: 'finish',
+      text: 'Hello world',
+      segments: [],
+      usage: {
+        type: 'tokens',
+        input_tokens: 4,
+        output_tokens: 2,
+        total_tokens: 6,
+      },
+    });
+
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body?.model).toBe('gpt-4o-transcribe');
+    expect(body?.stream).toBe('true');
+  });
+
   it('should stream gpt-realtime-whisper using OpenAI realtime transcription', async () => {
     MockWebSocket.instances = [];
     const testDate = new Date(0);

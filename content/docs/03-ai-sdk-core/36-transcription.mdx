@@ -72,6 +72,8 @@ complete.
 
 Use `experimental_streamTranscribe` when you have live raw audio and need transcript updates before the full audio stream is complete. The function uses transcription models with streaming support; provider options configure provider-specific behavior, but the streaming operation is selected by the function itself.
 
+GPT Transcribe models (`gpt-4o-transcribe`, `gpt-4o-mini-transcribe`, and `gpt-4o-transcribe-diarize`) also stream an uploaded audio file. Pass the file bytes as the audio stream. The provider sends `stream: true` to `POST /audio/transcriptions` and emits `transcript-delta` parts as OpenAI sends `transcript.text.delta` events. `whisper-1` does not support this REST stream. Realtime models such as `gpt-realtime-whisper` still use the WebSocket path below.
+
 ```ts
 import { openai } from '@ai-sdk/openai';
 import { experimental_streamTranscribe as streamTranscribe } from 'ai';
