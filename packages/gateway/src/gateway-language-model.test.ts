@@ -688,11 +688,22 @@ describe('GatewayLanguageModel', () => {
             "type": "text-delta",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "stop",
+              "unified": "stop",
+            },
             "type": "finish",
             "usage": {
-              "completion_tokens": 20,
-              "prompt_tokens": 10,
+              "inputTokens": {
+                "total": 10,
+              },
+              "outputTokens": {
+                "total": 20,
+              },
+              "raw": {
+                "completion_tokens": 20,
+                "prompt_tokens": 10,
+              },
             },
           },
         ]
@@ -1256,11 +1267,22 @@ describe('GatewayLanguageModel', () => {
             "type": "text-delta",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "stop",
+              "unified": "stop",
+            },
             "type": "finish",
             "usage": {
-              "completion_tokens": 5,
-              "prompt_tokens": 10,
+              "inputTokens": {
+                "total": 10,
+              },
+              "outputTokens": {
+                "total": 5,
+              },
+              "raw": {
+                "completion_tokens": 5,
+                "prompt_tokens": 10,
+              },
             },
           },
         ]
@@ -1310,15 +1332,105 @@ describe('GatewayLanguageModel', () => {
             "type": "text-delta",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "stop",
+              "unified": "stop",
+            },
             "type": "finish",
             "usage": {
-              "completion_tokens": 5,
-              "prompt_tokens": 10,
+              "inputTokens": {
+                "total": 10,
+              },
+              "outputTokens": {
+                "total": 5,
+              },
+              "raw": {
+                "completion_tokens": 5,
+                "prompt_tokens": 10,
+              },
             },
           },
         ]
       `);
+    });
+  });
+
+  describe('legacy v2 finish part normalization (#23533)', () => {
+    it('normalizes a string finishReason and flat usage into the v4 shape', async () => {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"stream-start","warnings":[]}\n\n`,
+          `data: {"type":"tool-call","toolCallId":"call_1","toolName":"weather","input":{"city":"SF"}}\n\n`,
+          `data: {"type":"finish","finishReason":"tool-calls","usage":{"inputTokens":552,"outputTokens":68,"totalTokens":620,"cachedInputTokens":0},"providerMetadata":{}}\n\n`,
+        ],
+      };
+
+      const { stream } = await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+
+      expect(chunks[chunks.length - 1]).toEqual({
+        type: 'finish',
+        finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+        usage: {
+          inputTokens: { total: 552, cacheRead: 0 },
+          outputTokens: { total: 68 },
+          raw: {
+            inputTokens: 552,
+            outputTokens: 68,
+            totalTokens: 620,
+            cachedInputTokens: 0,
+          },
+        },
+        providerMetadata: {},
+      });
+    });
+
+    it('passes a v4-shaped finish part through unchanged', async () => {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"finish","finishReason":{"unified":"stop","raw":"end_turn"},"usage":{"inputTokens":{"total":10},"outputTokens":{"total":5}}}\n\n`,
+        ],
+      };
+
+      const { stream } = await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+
+      expect(chunks[chunks.length - 1]).toEqual({
+        type: 'finish',
+        finishReason: { unified: 'stop', raw: 'end_turn' },
+        usage: {
+          inputTokens: { total: 10 },
+          outputTokens: { total: 5 },
+        },
+      });
+    });
+
+    it('maps an unrecognized string finishReason to other', async () => {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"finish","finishReason":"unknown_reason","usage":{}}\n\n`,
+        ],
+      };
+
+      const { stream } = await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+
+      expect(chunks[chunks.length - 1]).toMatchObject({
+        type: 'finish',
+        finishReason: { unified: 'other', raw: 'unknown_reason' },
+      });
     });
   });
 
@@ -1487,12 +1599,23 @@ describe('GatewayLanguageModel', () => {
             "type": "text-delta",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "stop",
+              "unified": "stop",
+            },
             "timestamp": "2023-12-07T10:30:00.000Z",
             "type": "finish",
             "usage": {
-              "completion_tokens": 5,
-              "prompt_tokens": 10,
+              "inputTokens": {
+                "total": 10,
+              },
+              "outputTokens": {
+                "total": 5,
+              },
+              "raw": {
+                "completion_tokens": 5,
+                "prompt_tokens": 10,
+              },
             },
           },
         ]

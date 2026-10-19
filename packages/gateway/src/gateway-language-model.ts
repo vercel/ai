@@ -30,6 +30,74 @@ export type GatewayChatConfig = GatewayConfig & {
   o11yHeaders: Resolvable<Record<string, string>>;
 };
 
+/**
+ * The gateway server can send the final `finish` part in the older v2 shape
+ * (string `finishReason`, flat usage) even when the client requested
+ * specification version 4 (#23533). ai@7 reads `finishReason.unified` to decide
+ * whether queued tool calls may run, so an unnormalized part silently disables
+ * tool execution through the gateway.
+ */
+const V2_FINISH_REASONS = new Set([
+  'stop',
+  'length',
+  'content-filter',
+  'tool-calls',
+  'error',
+]);
+
+function normalizeLegacyFinishPart(streamPart: any): any {
+  if (
+    streamPart?.type !== 'finish' ||
+    typeof streamPart.finishReason !== 'string'
+  ) {
+    return streamPart;
+  }
+  const raw = streamPart.finishReason;
+  const usage = streamPart.usage;
+  return {
+    ...streamPart,
+    finishReason: {
+      unified: V2_FINISH_REASONS.has(raw) ? raw : 'other',
+      raw,
+    },
+    usage: normalizeLegacyUsage(usage),
+  };
+}
+
+function normalizeLegacyUsage(usage: any): any {
+  if (usage == null || typeof usage !== 'object') {
+    return usage;
+  }
+  // Already the v4 nested shape.
+  if (usage.inputTokens?.total !== undefined) {
+    return usage;
+  }
+  const flat: Record<string, number | undefined> = usage;
+  const inputTokens: number | undefined =
+    flat.inputTokens ?? flat.prompt_tokens ?? flat.totalTokens;
+  const outputTokens: number | undefined =
+    flat.outputTokens ?? flat.completion_tokens;
+  const cached: number | undefined =
+    flat.cachedInputTokens ?? flat.cached_input_tokens;
+  const hasAny =
+    inputTokens !== undefined ||
+    outputTokens !== undefined ||
+    cached !== undefined;
+  if (!hasAny) {
+    return usage;
+  }
+  return {
+    inputTokens: {
+      ...(inputTokens !== undefined ? { total: inputTokens } : {}),
+      ...(cached !== undefined ? { cacheRead: cached } : {}),
+    },
+    ...(outputTokens !== undefined
+      ? { outputTokens: { total: outputTokens } }
+      : {}),
+    ...(Object.keys(usage).length > 0 ? { raw: usage } : {}),
+  };
+}
+
 export class GatewayLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
   readonly supportedUrls = { '*/*': [/.*/] };
@@ -171,7 +239,11 @@ export class GatewayLanguageModel implements LanguageModelV4 {
                   streamPart.timestamp = new Date(streamPart.timestamp);
                 }
 
-                controller.enqueue(streamPart);
+                controller.enqueue(
+                  normalizeLegacyFinishPart(
+                    streamPart,
+                  ) as LanguageModelV4StreamPart,
+                );
               } else {
                 controller.error(
                   (chunk as { success: false; error: unknown }).error,
