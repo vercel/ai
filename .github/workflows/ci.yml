@@ -22,6 +22,23 @@ env:
         'local:rw,remote:rw' || 'local:rw' }}
 
 jobs:
+  checks:
+    name: Repository checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      VITEST_MAX_WORKERS: '2'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup-ci
+      - run: pnpm ci:check
+      - name: Upload bundle diagnostics
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: bundle-size-metafiles
+          path: packages/ai/dist-bundle-check/*.json
+
   packages:
     name: Packages (Node ${{ matrix.node }})
     runs-on: ubuntu-latest
@@ -37,18 +54,7 @@ jobs:
       - uses: ./.github/actions/setup-ci
         with:
           node-version: ${{ matrix.node }}
-      - name: Check packages and repository
-        if: matrix.node == 22
-        run: pnpm ci:check
-      - name: Check runtime compatibility
-        if: matrix.node != 22
-        run: pnpm exec turbo run test --filter=!@example/* --filter=!ai --concurrency=100% --continue=dependencies-successful
-      - name: Upload bundle diagnostics
-        if: always() && matrix.node == 22
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: bundle-size-metafiles
-          path: packages/ai/dist-bundle-check/*.json
+      - run: pnpm ci:test
 
   ai:
     name: AI (Node ${{ matrix.node }}, shard ${{ matrix.shard }})

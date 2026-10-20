@@ -27,7 +27,8 @@
     "konsistent:check": "konsistent --config-path .github/konsistent.json",
     "konsistent:validate": "konsistent validate --config-path .github/konsistent.json",
     "worktree:setup": "bash tools/worktree-setup.sh",
-    "ci:check": "turbo run ci:checks check validate:docs konsistent:check konsistent:validate test:site check-bundle-size test:bundlers --filter=!@example/* --concurrency=100% --continue=dependencies-successful",
+    "ci:check": "turbo run build type-check check validate:docs konsistent:check konsistent:validate test:site check-bundle-size test:bundlers --filter=!@example/* --concurrency=100% --continue=dependencies-successful",
+    "ci:test": "turbo run test test:integration --filter=!@example/* --filter=!ai --concurrency=100% --continue=dependencies-successful",
     "ci:examples": "turbo run build type-check --filter=@example/* --concurrency=2 --continue=dependencies-successful",
     "ci:browser": "turbo run test:browser --filter=@ai-sdk/rsc --filter=@ai-sdk/devtools --concurrency=2 --continue=dependencies-successful",
     "benchmark:load-time": "node tools/ci/check-load-time.mjs"
