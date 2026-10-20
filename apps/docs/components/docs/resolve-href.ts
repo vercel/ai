@@ -1,20 +1,16 @@
-const externalFamilies = [
-  '/providers',
-  '/cookbook',
-  '/resources',
-  '/playground',
-  '/elements',
-  '/getting-started',
-  '/showcase',
-  '/examples',
-];
+import { resolvePlaygroundHref } from '@/lib/playground-urls';
+
+const versionedFamilies = ['/docs', '/providers', '/cookbook'];
+
+export type ResolveHref = (href: string) => string;
 
 export const resolveDocsHref = (href: string, versionPrefix: string) => {
-  if (href.startsWith('/docs')) {
+  const playgroundHref = resolvePlaygroundHref(href);
+  if (playgroundHref) return playgroundHref;
+
+  if (versionedFamilies.some(family => href.startsWith(family))) {
     return `${versionPrefix}${href}`;
   }
-  if (externalFamilies.some(family => href.startsWith(family))) {
-    return `https://ai-sdk.dev${href}`;
-  }
+
   return href;
 };

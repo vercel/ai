@@ -1,0 +1,9 @@
+{
+  "name": "memory-benchmark-fixture",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "check": "node --check index.js",
+    "start": "node index.js"
+  }
+}

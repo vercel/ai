@@ -1,10 +1,12 @@
 import { codexHarnessAgent } from '@/agent/harness/codex/basic-agent';
+import { getHarnessE2EErrorMessage } from '@/util/harness-ui-stream';
 import {
   resumeOrCreateSession,
   stopAndPersist,
 } from '@/util/harness-resume-store';
 import {
   convertToModelMessages,
+  createUIMessageStream,
   createUIMessageStreamResponse,
   toUIMessageStream,
   type UIMessage,
@@ -22,16 +24,30 @@ export async function POST(request: Request) {
   const chatId = body.id;
   const messages = await convertToModelMessages(body.messages);
 
-  const session = await resumeOrCreateSession(codexHarnessAgent, chatId);
-
-  const result = await codexHarnessAgent.stream({ session, messages });
-
   return createUIMessageStreamResponse({
-    stream: toUIMessageStream({
-      stream: result.stream,
-      // Stop the session at the end of the turn so the next request resumes
-      // from the persisted snapshot rather than attaching to a parked bridge.
-      onFinish: () => stopAndPersist(chatId, session),
+    stream: createUIMessageStream({
+      execute: async ({ writer }) => {
+        const { session, sandboxSession } = await resumeOrCreateSession({
+          agent: codexHarnessAgent,
+          chatId,
+          ports: [4000],
+        });
+
+        const result = await codexHarnessAgent.stream({ session, messages });
+
+        writer.merge(
+          toUIMessageStream({
+            stream: result.stream,
+            onError: getHarnessE2EErrorMessage,
+            /*
+             * Stop the harness and sandbox after the turn. The next request
+             * resumes the sandbox before starting the harness again.
+             */
+            onFinish: () => stopAndPersist({ chatId, session, sandboxSession }),
+          }),
+        );
+      },
+      onError: getHarnessE2EErrorMessage,
     }),
   });
 }

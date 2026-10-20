@@ -81,10 +81,18 @@ export type FinishReason =
   | 'other';
 
 /**
+ * Registry for call warning variants. Packages that expose additional warning
+ * protocols can augment this interface.
+ */
+export interface CallWarningRegistry {
+  sharedV4: SharedV4Warning;
+}
+
+/**
  * Warning from the model provider for this call. The call will proceed, but e.g.
  * some settings might not be supported, which can lead to suboptimal results.
  */
-export type CallWarning = SharedV4Warning;
+export type CallWarning = CallWarningRegistry[keyof CallWarningRegistry];
 
 /**
  * A source that has been used as input to generate the response.

@@ -1,9 +1,11 @@
 import {
   convertToModelMessages,
+  createUIMessageStream,
   createUIMessageStreamResponse,
   type UIMessage,
   type UIMessageChunk,
 } from 'ai';
+import { getHarnessE2EErrorMessage } from '@/util/harness-ui-stream';
 import { start } from 'workflow/api';
 import { timeSliceWorkflow } from './workflow';
 
@@ -23,17 +25,22 @@ export async function POST(request: Request) {
     return new Response('Missing chat id', { status: 400 });
   }
 
+  const chatId = body.id;
   const messages = await convertToModelMessages(body.messages);
   /*
    * The chat id is the stable harness session id across turns; the workflow
    * loads and persists its resume handle by that id. Passing the complete
    * message list also preserves tool approval and tool result continuations.
    */
-  const run = await start(timeSliceWorkflow, [
-    { messages, sessionId: body.id },
-  ]);
-
   return createUIMessageStreamResponse({
-    stream: run.readable as ReadableStream<UIMessageChunk>,
+    stream: createUIMessageStream({
+      execute: async ({ writer }) => {
+        const run = await start(timeSliceWorkflow, [
+          { messages, sessionId: chatId },
+        ]);
+        writer.merge(run.readable as ReadableStream<UIMessageChunk>);
+      },
+      onError: getHarnessE2EErrorMessage,
+    }),
   });
 }

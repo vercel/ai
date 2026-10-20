@@ -45,6 +45,12 @@ describe('OpenCode bridge protocol', () => {
     expect(inboundMessageSchema.parse({ type: 'abort' })).toEqual({
       type: 'abort',
     });
+    expect(inboundMessageSchema.parse({ type: 'stop' })).toEqual({
+      type: 'stop',
+    });
+    expect(inboundMessageSchema.parse({ type: 'destroy' })).toEqual({
+      type: 'destroy',
+    });
     expect(
       inboundMessageSchema.parse({
         type: 'tool-result',

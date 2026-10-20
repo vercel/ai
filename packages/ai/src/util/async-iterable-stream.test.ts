@@ -3,8 +3,19 @@ import {
   convertAsyncIterableToArray,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { createAsyncIterableStream } from './async-iterable-stream';
+import {
+  asAsyncIterableStream,
+  createAsyncIterableStream,
+  type AsyncIterableStream,
+} from './async-iterable-stream';
 import { describe, it, expect } from 'vitest';
+
+type StreamFactory = <T>(stream: ReadableStream<T>) => AsyncIterableStream<T>;
+
+const streamFactories: Array<[name: string, createStream: StreamFactory]> = [
+  ['createAsyncIterableStream()', createAsyncIterableStream],
+  ['asAsyncIterableStream()', asAsyncIterableStream],
+];
 
 describe('createAsyncIterableStream()', () => {
   it('should read all chunks from a non-empty stream using async iteration', async () => {
@@ -256,6 +267,104 @@ describe('createAsyncIterableStream()', () => {
     expect(output).toEqual(input);
 
     expect(await asyncIterator.return?.()).toEqual({
+      done: true,
+      value: undefined,
+    });
+  });
+});
+
+describe.each(streamFactories)('%s read error cleanup', (_, createStream) => {
+  it('should release the reader and preserve the source error', async () => {
+    const sourceError = new Error('source failed');
+    let controller!: ReadableStreamDefaultController<string>;
+    let cancelCalls = 0;
+    const stream = createStream(
+      new ReadableStream<string>({
+        start(controllerParam) {
+          controller = controllerParam;
+        },
+        cancel() {
+          cancelCalls++;
+        },
+      }),
+    );
+    const iterator = stream[Symbol.asyncIterator]();
+
+    const failedRead = iterator.next();
+    controller.error(sourceError);
+
+    await expect(failedRead).rejects.toBe(sourceError);
+    expect(stream.locked).toBe(false);
+    expect(cancelCalls).toBe(0);
+    expect(await iterator.next()).toEqual({
+      done: true,
+      value: undefined,
+    });
+
+    const reader = stream.getReader();
+    await expect(reader.read()).rejects.toBe(sourceError);
+    reader.releaseLock();
+
+    expect(await iterator.return?.()).toEqual({
+      done: true,
+      value: undefined,
+    });
+  });
+
+  it('should release the reader when the source error is undefined', async () => {
+    let controller!: ReadableStreamDefaultController<string>;
+    const stream = createStream(
+      new ReadableStream<string>({
+        start(controllerParam) {
+          controller = controllerParam;
+        },
+      }),
+    );
+    const iterator = stream[Symbol.asyncIterator]();
+
+    const failedRead = iterator.next();
+    controller.error(undefined);
+
+    expect(await Promise.allSettled([failedRead])).toEqual([
+      { status: 'rejected', reason: undefined },
+    ]);
+    expect(stream.locked).toBe(false);
+    expect(await iterator.next()).toEqual({
+      done: true,
+      value: undefined,
+    });
+  });
+
+  it('should preserve the source error for concurrent reads and release the reader once', async () => {
+    const sourceError = new Error('source failed');
+    let controller!: ReadableStreamDefaultController<string>;
+    let cancelCalls = 0;
+    const stream = createStream(
+      new ReadableStream<string>({
+        start(controllerParam) {
+          controller = controllerParam;
+        },
+        cancel() {
+          cancelCalls++;
+        },
+      }),
+    );
+    const iterator = stream[Symbol.asyncIterator]();
+
+    const firstRead = iterator.next();
+    const secondRead = iterator.next();
+    controller.error(sourceError);
+
+    const outcomes = await Promise.allSettled([firstRead, secondRead]);
+    for (const outcome of outcomes) {
+      expect(outcome.status).toBe('rejected');
+      if (outcome.status === 'rejected') {
+        expect(outcome.reason).toBe(sourceError);
+      }
+    }
+    expect(stream.locked).toBe(false);
+    expect(cancelCalls).toBe(0);
+    expect(await iterator.next()).toEqual({
       done: true,
       value: undefined,
     });

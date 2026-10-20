@@ -13,7 +13,7 @@ export class AppController {
   @Post('/')
   async root(@Res() res: Response) {
     const result = streamText({
-      model: openai('gpt-4o'),
+      model: openai('gpt-6-astra'),
       prompt: 'Invent a new holiday and describe its traditions.',
     });
 
@@ -38,7 +38,7 @@ export class AppController {
         });
 
         const result = streamText({
-          model: openai('gpt-4o'),
+          model: openai('gpt-6-astra'),
           prompt: 'Invent a new holiday and describe its traditions.',
         });
         writer.merge(

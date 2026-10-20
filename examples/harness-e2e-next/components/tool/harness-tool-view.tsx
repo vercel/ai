@@ -15,18 +15,26 @@ const PRE_CLASS =
 export default function HarnessToolView({
   toolName,
   toolArg,
+  input,
   state,
   output,
   errorText,
 }: {
   toolName: string;
   toolArg?: string;
+  input?: unknown;
   state: DynamicToolUIPart['state'];
   output?: unknown;
   errorText?: string;
 }) {
   const running = state === 'input-streaming' || state === 'input-available';
 
+  const inputText =
+    input === undefined
+      ? undefined
+      : typeof input === 'string'
+        ? input
+        : JSON.stringify(input, null, 2);
   const outputText =
     output === undefined
       ? undefined
@@ -40,8 +48,17 @@ export default function HarnessToolView({
       <div>
         <strong>{toolName}</strong>(<code>{toolArg}</code>)
       </div>
+      {inputText && (
+        <div className="mt-1 ml-4">
+          <div className="mb-1 text-xs font-medium text-black">Input</div>
+          <CollapsibleOutput content={inputText} className={PRE_CLASS} />
+        </div>
+      )}
       {state !== 'output-error' && outputText && (
         <div className="mt-1 ml-4">
+          {inputText && (
+            <div className="mb-1 text-xs font-medium text-black">Output</div>
+          )}
           <CollapsibleOutput content={outputText} className={PRE_CLASS} />
         </div>
       )}

@@ -1,7 +1,9 @@
 import type { SharedV4Warning, SpeechModelV4 } from '@ai-sdk/provider';
 import {
   combineHeaders,
+  convertBase64ToUint8Array,
   createBinaryResponseHandler,
+  createJsonResponseHandler,
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -11,6 +13,7 @@ import {
   type FetchFunction,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
 import { xaiFailedResponseHandler } from './xai-error';
 import { xaiSpeechModelOptionsSchema } from './xai-speech-model-options';
 
@@ -122,22 +125,30 @@ export class XaiSpeechModel implements SpeechModelV4 {
       speed,
       optimize_streaming_latency: xaiOptions?.optimizeStreamingLatency,
       text_normalization: xaiOptions?.textNormalization,
+      with_timestamps: xaiOptions?.withTimestamps,
+      replace: xaiOptions?.replace,
     };
 
-    return { requestBody, warnings };
+    return {
+      requestBody,
+      warnings,
+      withTimestamps: xaiOptions?.withTimestamps === true,
+    };
   }
 
   async doGenerate(
     options: Parameters<SpeechModelV4['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<SpeechModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { requestBody, warnings } = await this.getArgs(options);
+    const { requestBody, warnings, withTimestamps } =
+      await this.getArgs(options);
 
-    const {
-      value: audio,
-      responseHeaders,
-      rawValue: rawResponse,
-    } = await postJsonToApi({
+    // With `with_timestamps` the API returns a JSON envelope carrying
+    // base64-encoded audio plus character-level timings instead of raw
+    // audio bytes.
+    const { value, responseHeaders, rawValue } = await postJsonToApi<
+      Uint8Array | XaiSpeechTimestampsResponse
+    >({
       url: `${this.config.baseURL}/tts`,
       headers: combineHeaders(
         this.config.headers ? await resolve(this.config.headers) : undefined,
@@ -145,10 +156,29 @@ export class XaiSpeechModel implements SpeechModelV4 {
       ),
       body: requestBody,
       failedResponseHandler: xaiFailedResponseHandler,
-      successfulResponseHandler: createBinaryResponseHandler(),
+      successfulResponseHandler: withTimestamps
+        ? createJsonResponseHandler(xaiSpeechTimestampsResponseSchema)
+        : createBinaryResponseHandler(),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
+
+    let audio: Uint8Array;
+    let envelope: XaiSpeechTimestampsResponse | undefined;
+    if (value instanceof Uint8Array) {
+      audio = value;
+    } else {
+      envelope = value;
+      // Empty audio is returned as-is so the core layer throws
+      // NoSpeechGeneratedError.
+      audio =
+        envelope.audio != null
+          ? convertBase64ToUint8Array(envelope.audio)
+          : new Uint8Array(0);
+    }
+
+    // xAI returns a trace id on every response (success and error).
+    const traceId = responseHeaders?.['x-trace-id'];
 
     return {
       audio,
@@ -160,8 +190,46 @@ export class XaiSpeechModel implements SpeechModelV4 {
         timestamp: currentDate,
         modelId: this.modelId,
         headers: responseHeaders,
-        body: rawResponse,
+        body: rawValue,
+      },
+      providerMetadata: {
+        xai: {
+          ...(traceId != null ? { traceId } : {}),
+          ...(envelope?.duration != null
+            ? { duration: envelope.duration }
+            : {}),
+          ...(envelope?.content_type != null
+            ? { contentType: envelope.content_type }
+            : {}),
+          ...(envelope?.audio_timestamps != null
+            ? {
+                audioTimestamps: {
+                  graphChars: envelope.audio_timestamps.graph_chars,
+                  graphTimes: envelope.audio_timestamps.graph_times,
+                },
+              }
+            : {}),
+        },
       },
     };
   }
 }
+
+// Minimal schema for the `with_timestamps` JSON envelope: only the fields
+// the implementation reads, with `.nullish()` so provider API changes don't
+// break parsing.
+const xaiSpeechTimestampsResponseSchema = z.object({
+  audio: z.string().nullish(),
+  content_type: z.string().nullish(),
+  duration: z.number().nullish(),
+  audio_timestamps: z
+    .object({
+      graph_chars: z.array(z.string()),
+      graph_times: z.array(z.tuple([z.number(), z.number()])),
+    })
+    .nullish(),
+});
+
+type XaiSpeechTimestampsResponse = z.infer<
+  typeof xaiSpeechTimestampsResponseSchema
+>;

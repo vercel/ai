@@ -108,7 +108,7 @@ export function createCohere(
         })}`,
         ...options.headers,
       },
-      `ai-sdk/cohere/${VERSION}`,
+      `ai-sdk-cohere/${VERSION}`,
     );
 
   const createChatModel = (modelId: CohereChatModelId) =>

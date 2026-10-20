@@ -24,12 +24,11 @@ specification (`Experimental_SpeechTranslationModelV4`).
 </Note>
 
 ```ts
+import { openai } from '@ai-sdk/openai';
 import { experimental_streamTranslate as streamTranslate } from 'ai';
 
 const result = streamTranslate({
-  // any provider model instance that implements the experimental
-  // speech translation model specification (Experimental_SpeechTranslationModelV4):
-  model: translationModel,
+  model: openai.translation('gpt-realtime-translate'),
   audio: audioStream, // ReadableStream<Uint8Array | string>
   inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
   targetLanguage: 'es',
@@ -108,11 +107,12 @@ part for output text by design for now.
 Use `outputAudioFormat` to request a specific audio format for translated
 audio chunks. When absent, the provider default output format is used.
 
-```ts highlight="6"
+```ts highlight="8"
+import { openai } from '@ai-sdk/openai';
 import { experimental_streamTranslate as streamTranslate } from 'ai';
 
 const result = streamTranslate({
-  model: translationModel,
+  model: openai.translation('gpt-realtime-translate'),
   audio: audioStream,
   inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
   outputAudioFormat: { type: 'audio/pcm', rate: 24000 },
@@ -125,16 +125,17 @@ const result = streamTranslate({
 Translation models often have provider or model-specific settings which you can
 set using the `providerOptions` parameter.
 
-```ts highlight="8-12"
+```ts highlight="9-13"
+import { openai } from '@ai-sdk/openai';
 import { experimental_streamTranslate as streamTranslate } from 'ai';
 
 const result = streamTranslate({
-  model: translationModel,
+  model: openai.translation('gpt-realtime-translate'),
   audio: audioStream,
   inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
   targetLanguage: 'es',
   providerOptions: {
-    'provider-name': {
+    openai: {
       // provider-specific options
     },
   },
@@ -145,11 +146,12 @@ const result = streamTranslate({
 
 Pass an `abortSignal` to cancel the translation:
 
-```ts highlight="8"
+```ts highlight="9"
+import { openai } from '@ai-sdk/openai';
 import { experimental_streamTranslate as streamTranslate } from 'ai';
 
 const result = streamTranslate({
-  model: translationModel,
+  model: openai.translation('gpt-realtime-translate'),
   audio: audioStream,
   inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
   targetLanguage: 'es',
@@ -172,6 +174,7 @@ The error preserves the following information to help you log the issue:
   handling.
 
 ```ts
+import { openai } from '@ai-sdk/openai';
 import {
   experimental_streamTranslate as streamTranslate,
   NoTranslationGeneratedError,
@@ -179,7 +182,7 @@ import {
 
 try {
   const result = streamTranslate({
-    model: translationModel,
+    model: openai.translation('gpt-realtime-translate'),
     audio: audioStream,
     inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
     targetLanguage: 'es',
@@ -194,3 +197,13 @@ try {
   }
 }
 ```
+
+## Translation Models
+
+| Provider                                                        | Model                               |
+| --------------------------------------------------------------- | ----------------------------------- |
+| [OpenAI](/providers/ai-sdk-providers/openai#translation-models) | `gpt-realtime-translate`            |
+| [Google](/providers/ai-sdk-providers/google#translation-models) | `gemini-3.5-live-translate-preview` |
+
+Above are a small subset of the translation models supported by the AI SDK
+providers. For more, see the respective provider documentation.
