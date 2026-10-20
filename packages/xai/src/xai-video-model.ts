@@ -9,6 +9,9 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
   combineHeaders,
   convertUint8ArrayToBase64,
   createJsonResponseHandler,
@@ -774,44 +777,52 @@ export class XaiVideoModel implements VideoModelV4 {
   }
 }
 
-const xaiCreateVideoResponseSchema = z.object({
-  request_id: z.string().nullish(),
-});
+const xaiCreateVideoResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      request_id: z.string().nullish(),
+    }),
+  ),
+);
 
-const xaiVideoStatusResponseSchema = z.object({
-  status: z.string().nullish(),
-  video: z
-    .object({
-      url: z.string().nullish(),
-      duration: z.number().nullish(),
-      respect_moderation: z.boolean().nullish(),
-      file_output: z
+const xaiVideoStatusResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      status: z.string().nullish(),
+      video: z
         .object({
-          file_id: z.string(),
-          filename: z.string(),
-          expires_at: z.number().nullish(),
-          public_url: z.string().nullish(),
-          public_url_error: z.string().nullish(),
-          public_url_expires_at: z.number().nullish(),
+          url: z.string().nullish(),
+          duration: z.number().nullish(),
+          respect_moderation: z.boolean().nullish(),
+          file_output: z
+            .object({
+              file_id: z.string(),
+              filename: z.string(),
+              expires_at: z.number().nullish(),
+              public_url: z.string().nullish(),
+              public_url_error: z.string().nullish(),
+              public_url_expires_at: z.number().nullish(),
+            })
+            .nullish(),
+          storage_error: z.string().nullish(),
         })
         .nullish(),
-      storage_error: z.string().nullish(),
-    })
-    .nullish(),
-  model: z.string().nullish(),
-  usage: z
-    .object({
-      cost_in_usd_ticks: z.number().nullish(),
-    })
-    .nullish(),
-  progress: z.number().nullish(),
-  error: z
-    .object({
-      code: z.string().nullish(),
-      message: z.string().nullish(),
-    })
-    .nullish(),
-});
+      model: z.string().nullish(),
+      usage: z
+        .object({
+          cost_in_usd_ticks: z.number().nullish(),
+        })
+        .nullish(),
+      progress: z.number().nullish(),
+      error: z
+        .object({
+          code: z.string().nullish(),
+          message: z.string().nullish(),
+        })
+        .nullish(),
+    }),
+  ),
+);
 
 const xaiVideoStatusJsonResponseHandler = createJsonResponseHandler(
   xaiVideoStatusResponseSchema,
@@ -870,7 +881,7 @@ async function readPendingBody({
 }
 
 const xaiVideoStatusResponseHandler: ResponseHandler<
-  z.infer<typeof xaiVideoStatusResponseSchema>
+  InferSchema<typeof xaiVideoStatusResponseSchema>
 > = async options => {
   // xAI answers 202 while a generation is still running, sometimes with an
   // empty body. Read it rather than cancelling: `body.cancel()` never settles
