@@ -2189,6 +2189,25 @@ describe('ToolLoopAgent', () => {
       expect(onError).toHaveBeenCalledWith({ error: providerError });
     });
 
+    it('should rethrow the generate error when onError throws', async () => {
+      const providerError = new Error('provider failure');
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => {
+            throw providerError;
+          },
+        }),
+        maxRetries: 0,
+        onError: () => {
+          throw new Error('callback failure');
+        },
+      });
+
+      await expect(agent.generate({ prompt: 'Hello, world!' })).rejects.toBe(
+        providerError,
+      );
+    });
+
     it('should keep the default stream error logging when no onError is set', async () => {
       const consoleError = vi
         .spyOn(console, 'error')

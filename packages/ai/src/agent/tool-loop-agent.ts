@@ -17,6 +17,7 @@ import { streamText } from '../generate-text/stream-text';
 import type { StreamTextResult } from '../generate-text/stream-text-result';
 import type { Prompt } from '../prompt';
 import { mergeCallbacks } from '../util/merge-callbacks';
+import { notify } from '../util/notify';
 import type {
   Agent,
   AgentCallParameters,
@@ -258,7 +259,7 @@ export class ToolLoopAgent<
       } as unknown as Parameters<typeof generate>[0]);
     } catch (error) {
       // generateText has no onError option, so report the error before it is thrown:
-      await this.settings.onError?.({ error });
+      await notify({ event: { error }, callbacks: this.settings.onError });
       throw error;
     }
   }
