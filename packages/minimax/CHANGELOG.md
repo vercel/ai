@@ -1,5 +1,17 @@
 # @ai-sdk/minimax
 
+## 3.0.61
+
+### Patch Changes
+
+- 9d13c4d: Add the MiniMax M3.1 Flash model ID to the MiniMax and AI Gateway providers.
+- Updated dependencies [9d13c4d]
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+  - @ai-sdk/anthropic@4.0.84
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+
 ## 3.0.60
 
 ### Patch Changes

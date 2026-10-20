@@ -1,5 +1,17 @@
 # @ai-sdk/harness-codex
 
+## 1.0.159
+
+### Patch Changes
+
+- 184b9d3: feat(harness-codex): add support for image input
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+- Updated dependencies [ca2a9f7]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+  - @ai-sdk/harness@1.0.157
+
 ## 1.0.158
 
 ### Patch Changes

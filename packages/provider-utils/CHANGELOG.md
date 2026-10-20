@@ -1,5 +1,14 @@
 # @ai-sdk/provider-utils
 
+## 5.0.64
+
+### Patch Changes
+
+- 0c2a9de: Add `maxOutputTokens` and `reasoning` to experimental decision calls and forward them to language-model-backed decisions. Language-model adapters keep reasoning disabled when omitted. Native decision providers warn when either setting is unsupported.
+- 200c47f: Avoid retaining oversized backing buffers when reading response bodies, reducing memory usage for responses delivered in small chunks on runtimes such as Deno.
+- Updated dependencies [0c2a9de]
+  - @ai-sdk/provider@4.0.31
+
 ## 5.0.63
 
 ### Patch Changes
