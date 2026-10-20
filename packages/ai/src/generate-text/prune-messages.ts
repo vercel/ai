@@ -105,68 +105,23 @@ export function pruneMessages({
         return message;
       }
 
-<<<<<<< HEAD
-      const toolCallIdToToolName: Record<string, string> = {};
-
-      return {
-        ...message,
-        content: message.content.filter(part => {
-          // keep non-tool parts:
-          if (part.type !== 'tool-call' && part.type !== 'tool-result') {
-            return true;
-          }
-
-          // track tool calls and approvals:
-          if (part.type === 'tool-call') {
-            toolCallIdToToolName[part.toolCallId] = part.toolName;
-          }
-
-          // keep parts that are associated with a tool call or approval that needs to be kept:
-          if (
-            (part.type === 'tool-call' || part.type === 'tool-result') &&
-            keptToolCallIds.has(part.toolCallId)
-          ) {
-            return true;
-          }
-
-          // keep parts that are not associated with a tool that should be removed:
-          return (
-            toolCall.tools != null && !toolCall.tools.includes(part.toolName)
-          );
-        }),
-=======
       const keepParts = message.content.map(part => {
         // keep non-tool parts:
-        if (
-          part.type !== 'tool-call' &&
-          part.type !== 'tool-result' &&
-          part.type !== 'tool-approval-request' &&
-          part.type !== 'tool-approval-response'
-        ) {
+        if (part.type !== 'tool-call' && part.type !== 'tool-result') {
           return true;
         }
 
-        // keep parts that are associated with a tool call or approval that needs to be kept:
+        // keep parts that are associated with a tool call that needs to be kept:
         if (
-          ((part.type === 'tool-call' || part.type === 'tool-result') &&
-            keptToolCallIds.has(part.toolCallId)) ||
-          ((part.type === 'tool-approval-request' ||
-            part.type === 'tool-approval-response') &&
-            keptApprovalIds.has(part.approvalId))
+          (part.type === 'tool-call' || part.type === 'tool-result') &&
+          keptToolCallIds.has(part.toolCallId)
         ) {
           return true;
         }
 
         // keep parts that are not associated with a tool that should be removed:
-        const partToolName =
-          part.type === 'tool-call' || part.type === 'tool-result'
-            ? part.toolName
-            : approvalIdToToolName.get(part.approvalId);
-
         return (
-          toolCall.tools != null &&
-          partToolName != null &&
-          !toolCall.tools.includes(partToolName)
+          toolCall.tools != null && !toolCall.tools.includes(part.toolName)
         );
       });
 
@@ -179,17 +134,14 @@ export function pruneMessages({
           reasoningIndex++
         ) {
           const part = message.content[reasoningIndex];
-          if (part.type !== 'reasoning' && part.type !== 'reasoning-file') {
+          if (part.type !== 'reasoning') {
             continue;
           }
 
           let reasoningEndIndex = reasoningIndex + 1;
           while (reasoningEndIndex < message.content.length) {
             const nextPart = message.content[reasoningEndIndex];
-            if (
-              nextPart.type !== 'reasoning' &&
-              nextPart.type !== 'reasoning-file'
-            ) {
+            if (nextPart.type !== 'reasoning') {
               break;
             }
             reasoningEndIndex++;
@@ -201,10 +153,7 @@ export function pruneMessages({
 
           while (followingPartIndex < message.content.length) {
             const followingPart = message.content[followingPartIndex];
-            if (
-              followingPart.type === 'reasoning' ||
-              followingPart.type === 'reasoning-file'
-            ) {
+            if (followingPart.type === 'reasoning') {
               break;
             }
 
@@ -230,7 +179,6 @@ export function pruneMessages({
       return {
         ...message,
         content: message.content.filter((_, index) => keepParts[index]),
->>>>>>> 3785b2e1c2 (fix: pruneMessages leaves orphaned reasoning after pruning associated tool calls (#23128))
       } as AssistantModelMessage | ToolModelMessage;
     });
   }

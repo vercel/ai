@@ -351,8 +351,6 @@ describe('pruneMessages', () => {
   });
 
   describe('toolCalls', () => {
-<<<<<<< HEAD
-=======
     describe('consecutive reasoning parts', () => {
       describe.each([
         'all',
@@ -399,18 +397,14 @@ describe('pruneMessages', () => {
       });
 
       it.each(['remove', 'keep'] as const)(
-        'should prune consecutive reasoning text and files with emptyMessages: %s',
+        'should prune consecutive reasoning parts with emptyMessages: %s',
         emptyMessages => {
           const messages: ModelMessage[] = [
             {
               role: 'assistant',
               content: [
                 { type: 'reasoning', text: 'Call the tool.' },
-                {
-                  type: 'reasoning-file',
-                  mediaType: 'image/png',
-                  data: 'reasoning-image',
-                },
+                { type: 'reasoning', text: 'Use the result.' },
                 {
                   type: 'tool-call',
                   toolCallId: 'call-1',
@@ -488,11 +482,7 @@ describe('pruneMessages', () => {
       it('should retain the entire reasoning group when text follows a pruned tool call', () => {
         const reasoning = [
           { type: 'reasoning' as const, text: 'First summary.' },
-          {
-            type: 'reasoning-file' as const,
-            mediaType: 'image/png',
-            data: 'reasoning-image',
-          },
+          { type: 'reasoning' as const, text: 'Second summary.' },
         ];
         const text = { type: 'text' as const, text: 'Retained answer.' };
 
@@ -533,23 +523,6 @@ describe('pruneMessages', () => {
       });
     });
 
-    describe('before-last-0-messages', () => {
-      it('should prune all tool calls, results, errors, and approvals', () => {
-        expect(
-          pruneMessages({
-            messages: messagesFixture1,
-            toolCalls: 'before-last-0-messages',
-          }),
-        ).toEqual(
-          pruneMessages({
-            messages: messagesFixture1,
-            toolCalls: 'all',
-          }),
-        );
-      });
-    });
-
->>>>>>> 3785b2e1c2 (fix: pruneMessages leaves orphaned reasoning after pruning associated tool calls (#23128))
     describe('all', () => {
       it('should prune all tool calls, results, errors, and approvals', () => {
         const result = pruneMessages({
@@ -601,9 +574,8 @@ describe('pruneMessages', () => {
                 input: {},
               },
               {
-                type: 'reasoning-file',
-                mediaType: 'image/png',
-                data: 'reasoning-image',
+                type: 'reasoning',
+                text: 'Call the second tool.',
               },
               {
                 type: 'tool-call',
