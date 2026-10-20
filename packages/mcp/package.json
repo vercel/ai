@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/mcp",
-  "version": "2.0.78",
+  "version": "2.0.80",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -52,6 +52,7 @@
     "@types/cross-spawn": "^6.0.6",
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
+    "@vercel/ai-tsdown-config": "workspace:*",
     "tsdown": "^0.23.0",
     "typescript": "6.0.3",
     "vitest": "^4.1.11",

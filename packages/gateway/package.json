@@ -1,7 +1,7 @@
 {
   "name": "@ai-sdk/gateway",
   "private": false,
-  "version": "4.0.116",
+  "version": "4.0.119",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -52,6 +52,7 @@
     "@ai-sdk/test-server": "workspace:*",
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
+    "@vercel/ai-tsdown-config": "workspace:*",
     "tsdown": "^0.23.0",
     "tsx": "4.23.12",
     "typescript": "6.0.3",

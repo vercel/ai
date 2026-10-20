@@ -1,5 +1,33 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.161
+
+### Patch Changes
+
+- ca2a9f7: feat(harness): add `extractHarnessPromptContent()` helper and use it for image prompt support
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+- Updated dependencies [ca2a9f7]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+  - @ai-sdk/harness@1.0.157
+
+## 1.0.160
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.156
+
+## 1.0.159
+
+### Patch Changes
+
+- dc1d7a6: support inline images in user messages
+- Updated dependencies [60cc252]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/harness@1.0.155
+  - @ai-sdk/provider-utils@5.0.63
+
 ## 1.0.158
 
 ### Patch Changes

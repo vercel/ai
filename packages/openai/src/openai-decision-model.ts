@@ -114,6 +114,8 @@ export class DecisionOpenAIModel implements DecisionModelV4 {
   async doDecide({
     state,
     questions,
+    maxOutputTokens,
+    reasoning,
     headers,
     abortSignal,
     providerOptions,
@@ -302,12 +304,20 @@ export class DecisionOpenAIModel implements DecisionModelV4 {
             },
       // The Decisions API reports probabilities and scores to two decimal places.
       rounding: { probabilityDecimals: 2, scoreDecimals: 2 },
-      warnings: Object.keys(providerOptions?.openai ?? {})
-        .filter(option => option !== 'safetyIdentifier')
-        .map(option => ({
-          type: 'unsupported',
-          feature: `providerOptions.openai.${option}`,
-        })),
+      warnings: [
+        ...(maxOutputTokens != null
+          ? [{ type: 'unsupported' as const, feature: 'maxOutputTokens' }]
+          : []),
+        ...(reasoning != null
+          ? [{ type: 'unsupported' as const, feature: 'reasoning' }]
+          : []),
+        ...Object.keys(providerOptions?.openai ?? {})
+          .filter(option => option !== 'safetyIdentifier')
+          .map(option => ({
+            type: 'unsupported' as const,
+            feature: `providerOptions.openai.${option}`,
+          })),
+      ],
       providerMetadata: {
         openai: {
           ...(response.usage == null ? {} : { usage: response.usage }),

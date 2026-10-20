@@ -216,6 +216,46 @@ describe('createClineSession instructions', () => {
     }
   });
 
+  it('passes inline image prompts to the Cline runtime as ordered message content', async () => {
+    const session = await createSession();
+
+    try {
+      const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'before' },
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: 'iVBORw0KGgo=',
+            },
+            { type: 'text', text: 'after' },
+          ],
+        },
+        emit: vi.fn(),
+      });
+      await control.done;
+
+      expect(clineMock.runInputs).toEqual([
+        {
+          id: expect.any(String),
+          role: 'user',
+          content: [
+            { type: 'text', text: 'before' },
+            { type: 'image', image: 'iVBORw0KGgo=', mediaType: 'image/png' },
+            { type: 'text', text: 'after' },
+          ],
+          createdAt: expect.any(Number),
+        },
+      ]);
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
   it('reuses the configured prompt across turns and tool-driven rebuilds', async () => {
     const session = await createSession();
 

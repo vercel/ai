@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/anthropic-aws",
-  "version": "2.0.75",
+  "version": "2.0.77",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -51,6 +51,7 @@
     "@ai-sdk/test-server": "workspace:*",
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
+    "@vercel/ai-tsdown-config": "workspace:*",
     "tsdown": "^0.23.0",
     "typescript": "6.0.3",
     "zod": "3.25.76"

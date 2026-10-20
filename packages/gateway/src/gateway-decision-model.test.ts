@@ -264,6 +264,49 @@ describe('GatewayDecisionModel', () => {
   });
 
   describe('doDecide', () => {
+    it.each([
+      undefined,
+      'provider-default',
+      'none',
+      'minimal',
+      'low',
+      'medium',
+      'high',
+      'xhigh',
+      'max',
+    ] as const)('forwards reasoning when supplied: %s', async reasoning => {
+      prepareJsonResponse();
+      await createTestModel().doDecide({
+        state: testState,
+        questions: testQuestions,
+        reasoning,
+      });
+      const body = await server.calls[0].requestBodyJson;
+      if (reasoning == null) {
+        expect(body).not.toHaveProperty('reasoning');
+      } else {
+        expect(body.reasoning).toBe(reasoning);
+      }
+    });
+
+    it.each([undefined, 512])(
+      'forwards maxOutputTokens when supplied: %s',
+      async maxOutputTokens => {
+        prepareJsonResponse();
+        await createTestModel().doDecide({
+          state: testState,
+          questions: testQuestions,
+          maxOutputTokens,
+        });
+        const body = await server.calls[0].requestBodyJson;
+        if (maxOutputTokens == null) {
+          expect(body).not.toHaveProperty('maxOutputTokens');
+        } else {
+          expect(body.maxOutputTokens).toBe(maxOutputTokens);
+        }
+      },
+    );
+
     it('should pass headers correctly', async () => {
       prepareJsonResponse();
 

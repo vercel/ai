@@ -63,6 +63,8 @@ export class DecisionPerplexityModel implements DecisionModelV4 {
   async doDecide({
     state,
     questions,
+    maxOutputTokens,
+    reasoning,
     headers,
     abortSignal,
     providerOptions,
@@ -209,10 +211,18 @@ export class DecisionPerplexityModel implements DecisionModelV4 {
               outputTokens: response.usage.output_tokens ?? undefined,
             },
       // Perplexity returns full-precision probabilities; no rounding allowance.
-      warnings: Object.keys(providerOptions?.perplexity ?? {}).map(option => ({
-        type: 'unsupported',
-        feature: `providerOptions.perplexity.${option}`,
-      })),
+      warnings: [
+        ...(maxOutputTokens != null
+          ? [{ type: 'unsupported' as const, feature: 'maxOutputTokens' }]
+          : []),
+        ...(reasoning != null
+          ? [{ type: 'unsupported' as const, feature: 'reasoning' }]
+          : []),
+        ...Object.keys(providerOptions?.perplexity ?? {}).map(option => ({
+          type: 'unsupported' as const,
+          feature: `providerOptions.perplexity.${option}`,
+        })),
+      ],
       providerMetadata: {
         perplexity: {
           confidence: Object.fromEntries(

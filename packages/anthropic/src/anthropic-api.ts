@@ -48,6 +48,7 @@ export interface AnthropicUserMessage {
   content: Array<
     | AnthropicTextContent
     | AnthropicImageContent
+    | AnthropicVideoContent
     | AnthropicDocumentContent
     | AnthropicContainerUploadContent
     | AnthropicToolResultContent
@@ -141,6 +142,13 @@ type AnthropicContentSource =
 
 export interface AnthropicImageContent {
   type: 'image';
+  source: AnthropicContentSource;
+  cache_control: AnthropicCacheControl | undefined;
+}
+
+/** Video blocks supplied by compatible providers through custom media conversion. */
+export interface AnthropicVideoContent {
+  type: 'video';
   source: AnthropicContentSource;
   cache_control: AnthropicCacheControl | undefined;
 }

@@ -65,6 +65,7 @@ export {
 } from './stream-language-model-call';
 export {
   streamText,
+  streamTextLowMemory as experimental_streamTextLowMemory,
   type StreamTextEndEvent,
   type StreamTextInclude,
   type StreamTextOnChunkCallback,

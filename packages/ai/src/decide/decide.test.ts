@@ -1109,3 +1109,53 @@ it.each<DecisionModelV4Result['answers'][string]>([
     }),
   ).rejects.toBeInstanceOf(InvalidResponseDataError);
 });
+
+it.each([undefined, 1, 512])(
+  'forwards maxOutputTokens: %s',
+  async maxOutputTokens => {
+    const { model, doDecide } = setup();
+    await decide({ model, state: 'test', questions, maxOutputTokens });
+    expect(doDecide.mock.calls[0][0].maxOutputTokens).toBe(maxOutputTokens);
+  },
+);
+
+it.each([0, -1, 1.5, NaN, Infinity])(
+  'rejects invalid maxOutputTokens before calling the model: %s',
+  async maxOutputTokens => {
+    const { model, doDecide } = setup();
+    await expect(
+      decide({ model, state: 'test', questions, maxOutputTokens }),
+    ).rejects.toBeInstanceOf(InvalidArgumentError);
+    expect(doDecide).not.toHaveBeenCalled();
+  },
+);
+
+it.each([
+  undefined,
+  'provider-default',
+  'none',
+  'minimal',
+  'low',
+  'medium',
+  'high',
+  'xhigh',
+  'max',
+] as const)(
+  'forwards reasoning and reports it in lifecycle callbacks: %s',
+  async reasoning => {
+    const { model, doDecide } = setup();
+    const onStart = vi.fn();
+    const onEnd = vi.fn();
+    await decide({
+      model,
+      state: 'test',
+      questions,
+      reasoning,
+      onStart,
+      onEnd,
+    });
+    expect(doDecide.mock.calls[0][0].reasoning).toBe(reasoning);
+    expect(onStart.mock.calls[0][0].reasoning).toBe(reasoning);
+    expect(onEnd.mock.calls[0][0].reasoning).toBe(reasoning);
+  },
+);

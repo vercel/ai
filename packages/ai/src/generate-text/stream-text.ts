@@ -303,16 +303,7 @@ type StreamTextOptions<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context,
   OUTPUT extends Output,
-> = Parameters<typeof streamTextInternal<TOOLS, RUNTIME_CONTEXT, OUTPUT>>[0] & {
-  /**
-   * Consume the stream once without replay or final-content getters.
-   * Content is collected only when required by tools, output parsing,
-   * full-content callbacks, or telemetry integrations.
-   *
-   * @default false
-   */
-  experimental_lowMemory?: boolean;
-};
+> = Parameters<typeof streamTextInternal<TOOLS, RUNTIME_CONTEXT, OUTPUT>>[0];
 
 /**
  * Generate a text and call tools for a given prompt using a language model.
@@ -360,8 +351,6 @@ type StreamTextOptions<
  * @param runtimeContext - User-defined runtime context that flows through the entire generation lifecycle.
  * @param experimental_refineToolInput - Optional mapping of tool names to functions that refine parsed tool inputs before tools are executed and before outputs, callbacks, and telemetry are recorded.
  *
- * @param experimental_lowMemory - Consume the stream once without replay or final-content getters. Default: false.
- *
  * @param onChunk - Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.
  * @param onError - Callback that is called when an error occurs during streaming. You can use it to log errors.
  * @param onStart - Callback invoked when generation begins, before any LLM calls.
@@ -389,42 +378,22 @@ export function streamText<
   RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output<string, string, never>,
 >(
-  options: StreamTextOptions<TOOLS, RUNTIME_CONTEXT, OUTPUT> & {
-    experimental_lowMemory?: false;
-  },
-): StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
-export function streamText<
-  TOOLS extends ToolSet,
-  RUNTIME_CONTEXT extends Context = Context,
-  OUTPUT extends Output = Output<string, string, never>,
->(
-  options: StreamTextOptions<TOOLS, RUNTIME_CONTEXT, OUTPUT> & {
-    experimental_lowMemory: true;
-  },
-): StreamTextSingleConsumerResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
-export function streamText<
+  options: StreamTextOptions<TOOLS, RUNTIME_CONTEXT, OUTPUT>,
+): StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
+  return streamTextInternal<TOOLS, RUNTIME_CONTEXT, OUTPUT>(options);
+}
+
+/**
+ * Stream text with a single consumer, without replay or final-content getters.
+ * Accepts the same options as streamText and uses the same execution engine.
+ */
+export function streamTextLowMemory<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output<string, string, never>,
 >(
   options: StreamTextOptions<TOOLS, RUNTIME_CONTEXT, OUTPUT>,
-):
-  | StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>
-  | StreamTextSingleConsumerResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
-export function streamText<
-  TOOLS extends ToolSet,
-  RUNTIME_CONTEXT extends Context = Context,
-  OUTPUT extends Output = Output<string, string, never>,
->({
-  experimental_lowMemory = false,
-  ...options
-}: StreamTextOptions<TOOLS, RUNTIME_CONTEXT, OUTPUT>):
-  | StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>
-  | StreamTextSingleConsumerResult<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
-  if (!experimental_lowMemory) {
-    return streamTextInternal<TOOLS, RUNTIME_CONTEXT, OUTPUT>({ ...options });
-  }
-
+): StreamTextSingleConsumerResult<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
   const telemetry = options.telemetry ?? options.experimental_telemetry;
   const integrations =
     telemetry?.integrations != null
@@ -3589,7 +3558,7 @@ class DefaultStreamTextResult<
     if (!this.retention.replay && this.outputSpecification == null) {
       throw new UnsupportedFunctionalityError({
         functionality:
-          'partialOutputStream without an explicit output specification with experimental_lowMemory enabled',
+          'partialOutputStream without an explicit output specification with experimental_streamTextLowMemory',
       });
     }
     return this.asIterableStream(

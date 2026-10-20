@@ -1,5 +1,37 @@
 # @ai-sdk/harness-fx
 
+## 1.0.72
+
+### Patch Changes
+
+- ca2a9f7: feat(harness): add `extractHarnessPromptContent()` helper and use it for image prompt support
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+- Updated dependencies [2b8185e]
+- Updated dependencies [ca2a9f7]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+  - @ai-sdk/mcp@2.0.80
+  - @ai-sdk/harness@1.0.157
+
+## 1.0.71
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.156
+
+## 1.0.70
+
+### Patch Changes
+
+- 984d1dd: feat(harness-fx): support native subscriptions with libfx 0.0.14 update
+- Updated dependencies [60cc252]
+- Updated dependencies [fce9210]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/mcp@2.0.79
+  - @ai-sdk/harness@1.0.155
+  - @ai-sdk/provider-utils@5.0.63
+
 ## 1.0.69
 
 ### Patch Changes
