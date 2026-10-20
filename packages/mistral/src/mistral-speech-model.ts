@@ -1,5 +1,7 @@
 import type { SpeechModelV2, SpeechModelV2CallWarning } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createJsonResponseHandler,
   parseProviderOptions,
@@ -157,6 +159,10 @@ export class MistralSpeechModel implements SpeechModelV2 {
   }
 }
 
-const mistralSpeechResponseSchema = z.object({
-  audio_data: z.string(),
-});
+const mistralSpeechResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      audio_data: z.string(),
+    }),
+  ),
+);
