@@ -333,6 +333,10 @@ jobs:
           cache: true
           require-lockfile: true
 
+      # pnpm's Node.js runtime excludes npm/npx, which the Windows spawn test uses.
+      - name: Install npm and npx
+        run: pnpm add --global npm@11.19.0
+
       - name: Download package build artifacts
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
