@@ -4,6 +4,7 @@ import {
   harnessV1BridgeReadySchema,
   harnessV1BridgeStartBaseSchema,
 } from '@ai-sdk/harness';
+import { harnessPromptContentSchema } from '@ai-sdk/harness/utils';
 import { z } from 'zod/v4';
 
 export const outboundMessageSchema = harnessV1BridgeOutboundMessageSchema;
@@ -31,6 +32,7 @@ export type OpenCodeBuiltinToolName = z.infer<
 export const startMessageSchema = harnessV1BridgeStartBaseSchema
   .omit({ builtinToolFiltering: true })
   .extend({
+    prompt: harnessPromptContentSchema,
     operation: z.enum(['prompt', 'compact']).optional(),
     provider: z.string().optional(),
     variant: z.string().optional(),
