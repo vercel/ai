@@ -173,9 +173,12 @@ export function createTestServer<
           case 'controlled-stream': {
             if (request.signal) {
               request.signal.addEventListener('abort', () => {
-                response.controller.error(
-                  new DOMException('Aborted', 'AbortError'),
-                );
+                // the writer may already be closed (e.g. the signal aborts
+                // during teardown after the stream completed) — swallow the
+                // rejection so it cannot surface as an unhandled rejection:
+                response.controller
+                  .error(new DOMException('Aborted', 'AbortError'))
+                  .catch(() => {});
               });
             }
 
@@ -194,10 +197,13 @@ export function createTestServer<
           }
 
           case 'binary': {
-            return HttpResponse.arrayBuffer(response.body, {
-              status: 200,
-              headers: response.headers,
-            });
+            return HttpResponse.arrayBuffer(
+              response.body as unknown as ArrayBuffer,
+              {
+                status: 200,
+                headers: response.headers,
+              },
+            );
           }
 
           case 'error':

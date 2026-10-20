@@ -74,6 +74,9 @@ export class ProdiaLanguageModel implements LanguageModelV4 {
     if (options.topK !== undefined) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
     }
+    if (options.seed !== undefined) {
+      warnings.push({ type: 'unsupported', feature: 'seed' });
+    }
     if (options.maxOutputTokens !== undefined) {
       warnings.push({ type: 'unsupported', feature: 'maxOutputTokens' });
     }
@@ -231,7 +234,9 @@ export class ProdiaLanguageModel implements LanguageModelV4 {
               : '';
       formData.append(
         'input',
-        new Blob([imageBytes], { type: imageMediaType }),
+        new Blob([imageBytes as Uint8Array<ArrayBuffer>], {
+          type: imageMediaType,
+        }),
         'input' + fileExtension,
       );
     }

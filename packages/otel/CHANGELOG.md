@@ -1,5 +1,1301 @@
 # @ai-sdk/otel
 
+## 1.0.146
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [3785b2e]
+- Updated dependencies [ab8eb61]
+  - ai@7.0.146
+  - @ai-sdk/provider@4.0.31
+
+## 1.0.145
+
+### Patch Changes
+
+- ai@7.0.145
+
+## 1.0.144
+
+### Patch Changes
+
+- Updated dependencies [60cc252]
+- Updated dependencies [0ed59e2]
+  - @ai-sdk/provider@4.0.30
+  - ai@7.0.144
+
+## 1.0.143
+
+### Patch Changes
+
+- Updated dependencies [8a5233b]
+- Updated dependencies [894e130]
+- Updated dependencies [0957554]
+  - ai@7.0.143
+  - @ai-sdk/provider@4.0.29
+
+## 1.0.142
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+  - ai@7.0.142
+
+## 1.0.141
+
+### Patch Changes
+
+- Updated dependencies [88ea0d7]
+  - ai@7.0.141
+
+## 1.0.140
+
+### Patch Changes
+
+- Updated dependencies [9523eb0]
+  - ai@7.0.140
+
+## 1.0.139
+
+### Patch Changes
+
+- ai@7.0.139
+
+## 1.0.138
+
+### Patch Changes
+
+- ba05943: fix(otel): record decision model response identifiers
+- Updated dependencies [eab278a]
+- Updated dependencies [26d64e9]
+- Updated dependencies [75b3ea2]
+- Updated dependencies [69f4b82]
+- Updated dependencies [e57803c]
+- Updated dependencies [4c705d9]
+- Updated dependencies [5150d50]
+- Updated dependencies [9aef724]
+- Updated dependencies [7d0458b]
+  - ai@7.0.138
+  - @ai-sdk/provider@4.0.27
+
+## 1.0.137
+
+### Patch Changes
+
+- Updated dependencies [e27cc64]
+  - ai@7.0.137
+
+## 1.0.136
+
+### Patch Changes
+
+- Updated dependencies [7b5497c]
+  - ai@7.0.136
+
+## 1.0.135
+
+### Patch Changes
+
+- Updated dependencies [5ddbb70]
+- Updated dependencies [7c40a09]
+- Updated dependencies [4dbc902]
+- Updated dependencies [ff18b73]
+- Updated dependencies [9be846c]
+  - ai@7.0.135
+  - @ai-sdk/provider@4.0.26
+
+## 1.0.134
+
+### Patch Changes
+
+- Updated dependencies [8281ec4]
+- Updated dependencies [46c2b05]
+  - ai@7.0.134
+
+## 1.0.133
+
+### Patch Changes
+
+- 9184a35: Add ordered text, file, and JSON parts to experimental decision state. Support image input in OpenAI Decisions and language model adapters. Gateway retains its existing string and JSON request format and rejects files, as does TypeSafe AI.
+
+  Arrays passed directly as state now contain decision state parts. Wrap JSON arrays in an object or a json part.
+
+  Normalize all public state forms into an array of parts before calling decision providers. Providers receive text and JSON objects as text and json parts.
+
+  Serialize decision file bytes as base64 in OpenTelemetry state attributes. Model-call spans record normalized state parts, while outer spans retain public state inputs.
+
+  Preserve native JSON state in TypeSafe AI when state contains one JSON part. Label shared state in language-model decision prompts.
+
+- Updated dependencies [9184a35]
+  - ai@7.0.133
+  - @ai-sdk/provider@4.0.25
+
+## 1.0.132
+
+### Patch Changes
+
+- Updated dependencies [3ebefff]
+  - ai@7.0.132
+
+## 1.0.131
+
+### Patch Changes
+
+- ai@7.0.131
+
+## 1.0.130
+
+### Patch Changes
+
+- Updated dependencies [6f6b9c0]
+- Updated dependencies [d3bcad9]
+  - ai@7.0.130
+  - @ai-sdk/provider@4.0.24
+
+## 1.0.129
+
+### Patch Changes
+
+- Updated dependencies [e37d213]
+- Updated dependencies [73d8343]
+- Updated dependencies [268225c]
+- Updated dependencies [d83366e]
+- Updated dependencies [34905a2]
+- Updated dependencies [16ab882]
+- Updated dependencies [f810ea3]
+- Updated dependencies [19a127b]
+- Updated dependencies [0af2f7c]
+- Updated dependencies [4c6979c]
+  - ai@7.0.129
+  - @ai-sdk/provider@4.0.23
+
+## 1.0.128
+
+### Patch Changes
+
+- 2959d35: feat: rename `evaluate` to `decide`
+- 51e1763: fix(otel): mark span status as `ERROR` when finish reason is `error`
+- Updated dependencies [0fe8c67]
+- Updated dependencies [2959d35]
+- Updated dependencies [0ca1ab9]
+- Updated dependencies [d6b42fd]
+- Updated dependencies [ed6e72d]
+- Updated dependencies [2136151]
+  - ai@7.0.128
+  - @ai-sdk/provider@4.0.22
+
+## 1.0.127
+
+### Patch Changes
+
+- Updated dependencies [158a718]
+- Updated dependencies [bb8d33e]
+- Updated dependencies [284dc11]
+- Updated dependencies [ba8afe9]
+  - ai@7.0.127
+
+## 1.0.126
+
+### Patch Changes
+
+- Updated dependencies [4f3d236]
+  - ai@7.0.126
+
+## 1.0.125
+
+### Patch Changes
+
+- Updated dependencies [ff3dcef]
+  - ai@7.0.125
+
+## 1.0.124
+
+### Patch Changes
+
+- 8c65988: feat(ai): add telemetry to speech generation and transcription, including
+  provider usage propagation and experimental streaming lifecycle callbacks
+- Updated dependencies [8c65988]
+  - ai@7.0.124
+  - @ai-sdk/provider@4.0.21
+
+## 1.0.123
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [05cdac6]
+- Updated dependencies [4514fc1]
+- Updated dependencies [ede5b89]
+- Updated dependencies [2a625cf]
+- Updated dependencies [50a26d5]
+  - ai@7.0.123
+  - @ai-sdk/provider@4.0.20
+
+## 1.0.122
+
+### Patch Changes
+
+- Updated dependencies [f3575f8]
+- Updated dependencies [27ab8d4]
+  - ai@7.0.122
+
+## 1.0.121
+
+### Patch Changes
+
+- Updated dependencies [c5e90bb]
+- Updated dependencies [868c475]
+- Updated dependencies [119536f]
+- Updated dependencies [9941f32]
+  - ai@7.0.121
+
+## 1.0.120
+
+### Patch Changes
+
+- Updated dependencies [b032d70]
+- Updated dependencies [e21b98b]
+  - ai@7.0.120
+
+## 1.0.119
+
+### Patch Changes
+
+- Updated dependencies [33e94ba]
+- Updated dependencies [34d869e]
+- Updated dependencies [def4df8]
+- Updated dependencies [525efc5]
+  - ai@7.0.119
+  - @ai-sdk/provider@4.0.19
+
+## 1.0.118
+
+### Patch Changes
+
+- ai@7.0.118
+
+## 1.0.117
+
+### Patch Changes
+
+- ai@7.0.117
+
+## 1.0.116
+
+### Patch Changes
+
+- af9597b: Compile packages for ES2022 runtime target
+- Updated dependencies [af9597b]
+- Updated dependencies [bc49f78]
+  - ai@7.0.116
+
+## 1.0.115
+
+### Patch Changes
+
+- Updated dependencies [be877ff]
+  - ai@7.0.115
+
+## 1.0.114
+
+### Patch Changes
+
+- Updated dependencies [b5679a7]
+- Updated dependencies [ca31b89]
+  - ai@7.0.114
+
+## 1.0.113
+
+### Patch Changes
+
+- 771e74b: chore: enable dead code lint rules
+- Updated dependencies [dcdb011]
+- Updated dependencies [8f72832]
+- Updated dependencies [fe07867]
+- Updated dependencies [b74c0cb]
+- Updated dependencies [a4b0940]
+- Updated dependencies [2693319]
+- Updated dependencies [c93ee90]
+- Updated dependencies [771e74b]
+  - ai@7.0.113
+
+## 1.0.112
+
+### Patch Changes
+
+- Updated dependencies [9a98fd9]
+- Updated dependencies [a0553d6]
+- Updated dependencies [ffb0e76]
+- Updated dependencies [fde0d66]
+  - ai@7.0.112
+  - @ai-sdk/provider@4.0.18
+
+## 1.0.111
+
+### Patch Changes
+
+- 31d24ce: feat: add telemetry support to `experimental_evaluate`
+- Updated dependencies [31d24ce]
+- Updated dependencies [a65bfd9]
+  - ai@7.0.111
+
+## 1.0.110
+
+### Patch Changes
+
+- ai@7.0.110
+
+## 1.0.109
+
+### Patch Changes
+
+- Updated dependencies [0343bb1]
+- Updated dependencies [2b105fa]
+- Updated dependencies [125f493]
+  - ai@7.0.109
+
+## 1.0.108
+
+### Patch Changes
+
+- Updated dependencies [3f6852a]
+- Updated dependencies [6317504]
+- Updated dependencies [3cb2dcd]
+- Updated dependencies [ccf98e7]
+  - ai@7.0.108
+
+## 1.0.107
+
+### Patch Changes
+
+- Updated dependencies [79681c4]
+- Updated dependencies [98c7275]
+- Updated dependencies [a105059]
+- Updated dependencies [31532f3]
+- Updated dependencies [e61cbd8]
+- Updated dependencies [8ade040]
+- Updated dependencies [970a01e]
+- Updated dependencies [85539c5]
+- Updated dependencies [611d301]
+- Updated dependencies [c415657]
+  - ai@7.0.107
+
+## 1.0.106
+
+### Patch Changes
+
+- Updated dependencies [4775577]
+- Updated dependencies [6696728]
+- Updated dependencies [09516a1]
+- Updated dependencies [1aef01e]
+- Updated dependencies [9c1ea74]
+- Updated dependencies [107343a]
+- Updated dependencies [03c3e33]
+- Updated dependencies [5d42ebd]
+- Updated dependencies [4a67783]
+- Updated dependencies [1058ed5]
+- Updated dependencies [84f5d1b]
+- Updated dependencies [2d53a5d]
+- Updated dependencies [2a5ed55]
+  - ai@7.0.106
+
+## 1.0.105
+
+### Patch Changes
+
+- Updated dependencies [6982e9d]
+  - ai@7.0.105
+
+## 1.0.104
+
+### Patch Changes
+
+- Updated dependencies [a7dd893]
+- Updated dependencies [227f3b0]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - ai@7.0.104
+  - @ai-sdk/provider@4.0.17
+
+## 1.0.103
+
+### Patch Changes
+
+- Updated dependencies [91c2128]
+- Updated dependencies [25a0447]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+  - ai@7.0.103
+  - @ai-sdk/provider@4.0.16
+
+## 1.0.102
+
+### Patch Changes
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+- Updated dependencies [8b92ba9]
+- Updated dependencies [4b306c2]
+- Updated dependencies [4b306c2]
+  - @ai-sdk/provider@4.0.15
+  - ai@7.0.102
+
+## 1.0.101
+
+### Patch Changes
+
+- Updated dependencies [6aa7c54]
+  - ai@7.0.101
+
+## 1.0.100
+
+### Patch Changes
+
+- Updated dependencies [6431635]
+  - ai@7.0.100
+
+## 1.0.99
+
+### Patch Changes
+
+- Updated dependencies [615ac89]
+  - ai@7.0.99
+
+## 1.0.98
+
+### Patch Changes
+
+- db59d78: feat(ai): add runtime context attribution to embed, embedMany and rerank
+- eb70e72: fix(otel): attribute fallback spans to the successful provider
+- 2dd0244: fix(otel): preserve HTTP status codes on API error spans
+- Updated dependencies [5ec21a6]
+- Updated dependencies [db59d78]
+- Updated dependencies [7469a3b]
+- Updated dependencies [f87bf07]
+- Updated dependencies [bc5cb7a]
+- Updated dependencies [a5f449a]
+  - @ai-sdk/provider@4.0.14
+  - ai@7.0.98
+
+## 1.0.97
+
+### Patch Changes
+
+- Updated dependencies [ef3bac4]
+- Updated dependencies [9942196]
+  - ai@7.0.97
+  - @ai-sdk/provider@4.0.13
+
+## 1.0.96
+
+### Patch Changes
+
+- Updated dependencies [912fb01]
+- Updated dependencies [c595e6e]
+  - @ai-sdk/provider@4.0.12
+  - ai@7.0.96
+
+## 1.0.95
+
+### Patch Changes
+
+- Updated dependencies [27f6d7a]
+  - ai@7.0.95
+
+## 1.0.94
+
+### Patch Changes
+
+- Updated dependencies [a4ba394]
+- Updated dependencies [36b3364]
+- Updated dependencies [45099da]
+  - ai@7.0.94
+  - @ai-sdk/provider@4.0.11
+
+## 1.0.93
+
+### Patch Changes
+
+- Updated dependencies [df6c009]
+- Updated dependencies [6ee74a3]
+- Updated dependencies [f13d371]
+- Updated dependencies [d4485fe]
+- Updated dependencies [4f201cc]
+- Updated dependencies [8cdb2a7]
+- Updated dependencies [0f2281e]
+- Updated dependencies [fc8e8ac]
+- Updated dependencies [ee8391e]
+  - ai@7.0.93
+
+## 1.0.92
+
+### Patch Changes
+
+- Updated dependencies [a51cc94]
+- Updated dependencies [d1904d3]
+- Updated dependencies [84e5a79]
+- Updated dependencies [a8e8ad0]
+  - ai@7.0.92
+
+## 1.0.91
+
+### Patch Changes
+
+- Updated dependencies [802af1e]
+  - ai@7.0.91
+
+## 1.0.90
+
+### Patch Changes
+
+- ai@7.0.90
+
+## 1.0.89
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - ai@7.0.89
+
+## 1.0.88
+
+### Patch Changes
+
+- Updated dependencies [8b6b756]
+- Updated dependencies [e07b577]
+  - ai@7.0.88
+
+## 1.0.87
+
+### Patch Changes
+
+- Updated dependencies [850d863]
+  - ai@7.0.87
+
+## 1.0.86
+
+### Patch Changes
+
+- Updated dependencies [11109ae]
+  - ai@7.0.86
+
+## 1.0.85
+
+### Patch Changes
+
+- Updated dependencies [55a9981]
+- Updated dependencies [dd32de2]
+- Updated dependencies [aa45741]
+- Updated dependencies [cc29073]
+  - ai@7.0.85
+  - @ai-sdk/provider@4.0.9
+
+## 1.0.84
+
+### Patch Changes
+
+- Updated dependencies [6669d69]
+- Updated dependencies [a6463ca]
+- Updated dependencies [e604532]
+  - ai@7.0.84
+
+## 1.0.83
+
+### Patch Changes
+
+- Updated dependencies [8dd86a9]
+- Updated dependencies [fda13b3]
+- Updated dependencies [957146c]
+- Updated dependencies [ce6849a]
+  - ai@7.0.83
+
+## 1.0.82
+
+### Patch Changes
+
+- Updated dependencies [3e125ba]
+  - ai@7.0.82
+
+## 1.0.81
+
+### Patch Changes
+
+- ai@7.0.81
+
+## 1.0.80
+
+### Patch Changes
+
+- 0651c5f: Include configured runtime context attributes on legacy tool call spans.
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+- Updated dependencies [eed7950]
+  - ai@7.0.80
+
+## 1.0.79
+
+### Patch Changes
+
+- Updated dependencies [b251584]
+- Updated dependencies [591d25b]
+- Updated dependencies [9de0baf]
+  - ai@7.0.79
+  - @ai-sdk/provider@4.0.8
+
+## 1.0.78
+
+### Patch Changes
+
+- Updated dependencies [96970bb]
+  - ai@7.0.78
+
+## 1.0.77
+
+### Patch Changes
+
+- ai@7.0.77
+
+## 1.0.76
+
+### Patch Changes
+
+- Updated dependencies [c6d57f3]
+- Updated dependencies [677a707]
+  - ai@7.0.76
+
+## 1.0.75
+
+### Patch Changes
+
+- c0a42bc: fix(otel): prevent embedding usage double counting by reporting usage only on provider request spans
+- Updated dependencies [8978ad8]
+  - ai@7.0.75
+
+## 1.0.74
+
+### Patch Changes
+
+- ai@7.0.74
+
+## 1.0.73
+
+### Patch Changes
+
+- ai@7.0.73
+
+## 1.0.72
+
+### Patch Changes
+
+- ai@7.0.72
+
+## 1.0.71
+
+### Patch Changes
+
+- Updated dependencies [9a37469]
+  - ai@7.0.71
+
+## 1.0.70
+
+### Patch Changes
+
+- 37b75e8: feat(otel): add spans for providerExecuted tools
+- Updated dependencies [9566914]
+- Updated dependencies [b181020]
+- Updated dependencies [7054073]
+- Updated dependencies [a828527]
+- Updated dependencies [d3cc3fe]
+  - ai@7.0.70
+
+## 1.0.69
+
+### Patch Changes
+
+- 5ad6abf: fix(otel): record provider-executed tool results and defs
+  - ai@7.0.69
+
+## 1.0.68
+
+### Patch Changes
+
+- ai@7.0.68
+
+## 1.0.67
+
+### Patch Changes
+
+- ai@7.0.67
+
+## 1.0.66
+
+### Patch Changes
+
+- Updated dependencies [0782259]
+- Updated dependencies [2fd1214]
+  - ai@7.0.66
+
+## 1.0.65
+
+### Patch Changes
+
+- 50ab016: fix(otel): omit non-finite numeric span attributes
+- Updated dependencies [dc8caae]
+- Updated dependencies [72ec74f]
+- Updated dependencies [c5b0515]
+  - ai@7.0.65
+
+## 1.0.64
+
+### Patch Changes
+
+- ai@7.0.64
+
+## 1.0.63
+
+### Patch Changes
+
+- Updated dependencies [d0a5807]
+- Updated dependencies [dcf33e8]
+  - ai@7.0.63
+
+## 1.0.62
+
+### Patch Changes
+
+- Updated dependencies [e0bcf52]
+  - ai@7.0.62
+
+## 1.0.61
+
+### Patch Changes
+
+- Updated dependencies [326054b]
+- Updated dependencies [975bb28]
+  - ai@7.0.61
+
+## 1.0.60
+
+### Patch Changes
+
+- Updated dependencies [79c52ef]
+  - ai@7.0.60
+
+## 1.0.59
+
+### Patch Changes
+
+- ai@7.0.59
+
+## 1.0.58
+
+### Patch Changes
+
+- Updated dependencies [72ad23f]
+- Updated dependencies [ad6a650]
+- Updated dependencies [81cd026]
+  - ai@7.0.58
+  - @ai-sdk/provider@4.0.7
+
+## 1.0.57
+
+### Patch Changes
+
+- ai@7.0.57
+
+## 1.0.56
+
+### Patch Changes
+
+- 25c9120: Expose provider metadata on language-model-call end callbacks and telemetry spans.
+- Updated dependencies [25c9120]
+- Updated dependencies [89080c8]
+- Updated dependencies [79d6195]
+  - ai@7.0.56
+
+## 1.0.55
+
+### Patch Changes
+
+- Updated dependencies [3469d0c]
+  - @ai-sdk/provider@4.0.6
+  - ai@7.0.55
+
+## 1.0.54
+
+### Patch Changes
+
+- 12cfe40: Record separately supplied system instructions on OpenTelemetry chat spans and preserve system messages in chat history order.
+- Updated dependencies [a6b17a2]
+- Updated dependencies [5615eb7]
+- Updated dependencies [36a3ff6]
+  - ai@7.0.54
+
+## 1.0.53
+
+### Patch Changes
+
+- Updated dependencies [cd0177b]
+- Updated dependencies [a09fdef]
+  - ai@7.0.53
+
+## 1.0.52
+
+### Patch Changes
+
+- Updated dependencies [3836a85]
+  - ai@7.0.52
+
+## 1.0.51
+
+### Patch Changes
+
+- ai@7.0.51
+
+## 1.0.50
+
+### Patch Changes
+
+- Updated dependencies [79e133c]
+- Updated dependencies [da64b51]
+  - @ai-sdk/provider@4.0.5
+  - ai@7.0.50
+
+## 1.0.49
+
+### Patch Changes
+
+- ai@7.0.49
+
+## 1.0.48
+
+### Patch Changes
+
+- ai@7.0.48
+
+## 1.0.47
+
+### Patch Changes
+
+- ai@7.0.47
+
+## 1.0.46
+
+### Patch Changes
+
+- ai@7.0.46
+
+## 1.0.45
+
+### Patch Changes
+
+- Updated dependencies [d6ce0ee]
+- Updated dependencies [fa95504]
+- Updated dependencies [349afe7]
+  - ai@7.0.45
+
+## 1.0.44
+
+### Patch Changes
+
+- 015acb4: fix telemetry attribution for language model calls that resolve to a different response model
+- Updated dependencies [015acb4]
+  - ai@7.0.44
+
+## 1.0.43
+
+### Patch Changes
+
+- Updated dependencies [b192878]
+  - ai@7.0.43
+
+## 1.0.42
+
+### Patch Changes
+
+- Updated dependencies [1659cd5]
+- Updated dependencies [60f97f6]
+- Updated dependencies [6a5bdff]
+- Updated dependencies [6de2ec1]
+  - ai@7.0.42
+
+## 1.0.41
+
+### Patch Changes
+
+- Updated dependencies [2e2224b]
+  - ai@7.0.41
+
+## 1.0.40
+
+### Patch Changes
+
+- Updated dependencies [c3782a6]
+  - ai@7.0.40
+
+## 1.0.39
+
+### Patch Changes
+
+- Updated dependencies [09a52cb]
+  - ai@7.0.39
+
+## 1.0.38
+
+### Patch Changes
+
+- Updated dependencies [7bd6bdd]
+- Updated dependencies [1e2f324]
+  - ai@7.0.38
+  - @ai-sdk/provider@4.0.4
+
+## 1.0.37
+
+### Patch Changes
+
+- ai@7.0.37
+
+## 1.0.36
+
+### Patch Changes
+
+- Updated dependencies [7fa85b2]
+  - ai@7.0.36
+
+## 1.0.35
+
+### Patch Changes
+
+- Updated dependencies [7f6650b]
+- Updated dependencies [106ea59]
+  - ai@7.0.35
+
+## 1.0.34
+
+### Patch Changes
+
+- ai@7.0.34
+
+## 1.0.33
+
+### Patch Changes
+
+- Updated dependencies [76cb673]
+- Updated dependencies [e808fa5]
+- Updated dependencies [33647d7]
+  - ai@7.0.33
+
+## 1.0.32
+
+### Patch Changes
+
+- Updated dependencies [6cd7c74]
+- Updated dependencies [e35bcae]
+- Updated dependencies [a4eb3f3]
+  - ai@7.0.32
+
+## 1.0.31
+
+### Patch Changes
+
+- Updated dependencies [70f18c3]
+- Updated dependencies [cd06458]
+  - ai@7.0.31
+
+## 1.0.30
+
+### Patch Changes
+
+- ai@7.0.30
+
+## 1.0.29
+
+### Patch Changes
+
+- ai@7.0.29
+
+## 1.0.28
+
+### Patch Changes
+
+- Updated dependencies [0bc8d4f]
+  - ai@7.0.28
+
+## 1.0.27
+
+### Patch Changes
+
+- Updated dependencies [ac01b79]
+- Updated dependencies [2696562]
+  - ai@7.0.27
+
+## 1.0.26
+
+### Patch Changes
+
+- 27d294d: feat(ai): group orphaned tool calls after tool approvals under parent span
+- Updated dependencies [27d294d]
+  - ai@7.0.26
+
+## 1.0.25
+
+### Patch Changes
+
+- Updated dependencies [7805e4a]
+- Updated dependencies [f8e82fd]
+  - ai@7.0.25
+
+## 1.0.24
+
+### Patch Changes
+
+- Updated dependencies [e193290]
+  - ai@7.0.24
+
+## 1.0.23
+
+### Patch Changes
+
+- Updated dependencies [930f949]
+  - ai@7.0.23
+
+## 1.0.22
+
+### Patch Changes
+
+- Updated dependencies [8f89c25]
+  - ai@7.0.22
+
+## 1.0.21
+
+### Patch Changes
+
+- Updated dependencies [308a519]
+  - ai@7.0.21
+
+## 1.0.20
+
+### Patch Changes
+
+- Updated dependencies [b9ac19f]
+- Updated dependencies [a4186d6]
+  - ai@7.0.20
+
+## 1.0.19
+
+### Patch Changes
+
+- Updated dependencies [be7f05a]
+- Updated dependencies [ee55a07]
+- Updated dependencies [aad737d]
+- Updated dependencies [0f93c57]
+  - ai@7.0.19
+  - @ai-sdk/provider@4.0.3
+
+## 1.0.18
+
+### Patch Changes
+
+- ai@7.0.18
+
+## 1.0.17
+
+### Patch Changes
+
+- ai@7.0.17
+
+## 1.0.16
+
+### Patch Changes
+
+- Updated dependencies [a8f9b6d]
+  - ai@7.0.16
+
+## 1.0.15
+
+### Patch Changes
+
+- ai@7.0.15
+
+## 1.0.14
+
+### Patch Changes
+
+- 5c5c0f5: Add experimental streaming transcription support for transcription models, including OpenAI `gpt-realtime-whisper` and xAI WebSocket STT.
+- Updated dependencies [5c5c0f5]
+  - ai@7.0.14
+  - @ai-sdk/provider@4.0.2
+
+## 1.0.13
+
+### Patch Changes
+
+- ai@7.0.13
+
+## 1.0.12
+
+### Patch Changes
+
+- Updated dependencies [ecfeb6f]
+- Updated dependencies [a193137]
+  - ai@7.0.12
+
+## 1.0.11
+
+### Patch Changes
+
+- Updated dependencies [0a87626]
+  - ai@7.0.11
+
+## 1.0.10
+
+### Patch Changes
+
+- Updated dependencies [8c616f0]
+  - ai@7.0.10
+
+## 1.0.9
+
+### Patch Changes
+
+- ai@7.0.9
+
+## 1.0.8
+
+### Patch Changes
+
+- Updated dependencies [0274f34]
+  - @ai-sdk/provider@4.0.1
+  - ai@7.0.8
+
+## 1.0.7
+
+### Patch Changes
+
+- Updated dependencies [d598481]
+  - ai@7.0.7
+
+## 1.0.6
+
+### Patch Changes
+
+- Updated dependencies [989402d]
+  - ai@7.0.6
+
+## 1.0.5
+
+### Patch Changes
+
+- Updated dependencies [a2750db]
+  - ai@7.0.5
+
+## 1.0.4
+
+### Patch Changes
+
+- ai@7.0.4
+
+## 1.0.3
+
+### Patch Changes
+
+- ai@7.0.3
+
+## 1.0.2
+
+### Patch Changes
+
+- ai@7.0.2
+
+## 1.0.1
+
+### Patch Changes
+
+- ai@7.0.1
+
+## 1.0.0
+
+### Major Changes
+
+- 6542d93: feat(ai): change naming nomenclature for `*TelemetryIntegration` to `*Telemetry`
+- cf93359: feat(ai): remove/refactor event data sent via callbacks
+- 8284dfa: feat(otel): rename OpenTelemetry to LegacyOpenTelemetry
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+- 116c89f: feat(ai): remove telemetry data from the user-facing event data
+- b3c9f6a: feat(ai): create new opentelemetry package (@ai-sdk/otel)
+
+### Patch Changes
+
+- b94d22f: Sanitize OpenTelemetry span array attributes so they no longer emit invalid OTLP values (arrays containing `undefined`/`null`/objects, or arrays mixing primitive types). Such values previously failed telemetry ingestion with `deserializing message invalid value: map, expected map with a single key` and flooded function logs with errors.
+- 19736ee: feat(ai): rename onStepFinish to onStepEnd
+- 4757690: feat(ai): rename onObjectStepFinish to onObjectStepEnd
+- 382d53b: refactoring: rename context to runtimeContext
+- 7bf7d7f: feat(ai): enable:true for telemetry by default
+- c025d60: feat(otel): add option for custom span attributes
+- 1db29c8: feat(ai): break `CallSettings` apart into `LanguageModelCallOptions` and `RequestOptions`
+- eea8d98: refactoring: rename tool execution events
+- 5d0f18e: feat(ai): move opentelemetry to new package
+- 1582efa: chore(ai): remove the metadata field from the telemetry settings
+- 98627e5: feat(ai): remove onChunk event from telemetry
+- 9f0e36c: trigger release for all packages after provenance setup
+- 1e200eb: fix(otel): ensure nested context object creates separate attribute
+- 29d8cf4: feat(ai): rename the core-event types
+- 18651f6: feat(otel): add opt-in options for supplemental AI SDK attributes on OpenTelemetry spans
+- e4182bd: chore: rm export of OutputInterface
+- 1043274: feat(ai): add a ModelCall start/end event
+- 476e1ca: feat(ai): remove telemetry dependency on onChunk callback
+- 7fc6bd6: Raise minimum supported Node.js version to 22. Supported versions: 22, 24, and 26.
+- 594029e: feat(ai): wrap the model call in telemetry context
+- eaf849f: Rename rerank telemetry finish callback to `onRerankEnd`.
+- 0c4c275: trigger initial canary release
+- fc15550: feat(otel): add the genAI semantic otel integration
+- 9bd6512: feat(provider): change file part data property to be tagged with a type and remove the image part type
+- 258c093: chore: ensure consistent import handling and avoid import duplicates or cycles
+- 8565dcb: fix: rename onEmbedFinish to onEmbedEnd
+- 152c67c: feat(otel): add a step level span
+- e1bfb9c: feat(ai): remove unnecessary data from events
+- 334ae5d: Update step performance metrics with explicit effective, input, output, and total token throughput fields.
+- b8396f0: trigger initial beta release
+- d5cac7c: feat(otel): emit performance metrics via gen ai semantics
+- c3d4019: chore(ai): rename 'TelemetrySettings' to 'TelemetryOptions'
+- e92fc45: feat(ai): introduce onAbort hook to close telemetry spans
+- 083947b: feat(ai): separate toolsContext from context
+- 64de016: feat(otel): rename GenAIOpenTelemetry to OpenTelemetry
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+
+## 1.0.0-beta.133
+
+### Patch Changes
+
+- ai@7.0.0-beta.187
+
+## 1.0.0-beta.132
+
+### Patch Changes
+
+- ai@7.0.0-beta.186
+
+## 1.0.0-beta.131
+
+### Patch Changes
+
+- Updated dependencies [75763b0]
+  - ai@7.0.0-beta.185
+
+## 1.0.0-beta.130
+
+### Patch Changes
+
+- b94d22f: Sanitize OpenTelemetry span array attributes so they no longer emit invalid OTLP values (arrays containing `undefined`/`null`/objects, or arrays mixing primitive types). Such values previously failed telemetry ingestion with `deserializing message invalid value: map, expected map with a single key` and flooded function logs with errors.
+- d5cac7c: feat(otel): emit performance metrics via gen ai semantics
+- Updated dependencies [0416e3e]
+  - @ai-sdk/provider@4.0.0-beta.20
+  - ai@7.0.0-beta.184
+
 ## 1.0.0-beta.129
 
 ### Patch Changes

@@ -11,6 +11,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { MessageConversionError } from '../prompt/message-conversion-error';
+import { getOwn } from '../util/get-own';
 import {
   getToolName,
   isCustomContentUIPart,
@@ -32,6 +33,8 @@ import {
   type ToolUIPart,
   type UIMessage,
 } from './ui-messages';
+import { isToolPartFromUnavailableTool } from './unavailable-tool';
+import { warnIfUIMessageHasDeprecatedRawInput } from './warn-if-ui-message-has-deprecated-raw-input';
 /**
  * Converts an array of UI messages from useChat into an array of ModelMessages that can be used
  * with the AI functions (e.g. `streamText`, `generateText`).
@@ -55,16 +58,65 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
 ): Promise<ModelMessage[]> {
   const modelMessages: ModelMessage[] = [];
 
-  if (options?.ignoreIncompleteToolCalls) {
-    messages = messages.map(message => ({
+  warnIfUIMessageHasDeprecatedRawInput(messages);
+
+  // A later user message supersedes unresolved approval requests. Keeping
+  // those requests would leave unmatched tool calls at the user boundary.
+  const lastUserMessageIndex = messages.reduce(
+    (lastIndex, message, index) =>
+      message.role === 'user' ? index : lastIndex,
+    -1,
+  );
+
+  if (options?.ignoreIncompleteToolCalls || lastUserMessageIndex > 0) {
+    messages = messages.map((message, messageIndex) => ({
       ...message,
       parts: message.parts.filter(
         part =>
           !isToolUIPart(part) ||
-          (part.state !== 'input-streaming' &&
-            part.state !== 'input-available'),
+          ((part.state !== 'approval-requested' ||
+            messageIndex >= lastUserMessageIndex) &&
+            (!options?.ignoreIncompleteToolCalls ||
+              part.state === 'approval-responded' ||
+              (part.state === 'output-available' &&
+                part.preliminary !== true) ||
+              part.state === 'output-error' ||
+              part.state === 'output-denied')),
       ),
     }));
+  }
+
+  async function createModelOutput({
+    toolPart,
+    toolName,
+    output,
+    errorMode,
+  }: {
+    toolPart: ToolUIPart<InferUIMessageTools<UI_MESSAGE>> | DynamicToolUIPart;
+    toolName: string;
+    output: unknown;
+    errorMode: 'none' | 'text' | 'json';
+  }) {
+    const tool = getOwn(options?.tools, toolName);
+
+    if (
+      errorMode === 'none' &&
+      tool == null &&
+      isToolPartFromUnavailableTool(toolPart)
+    ) {
+      return {
+        type: 'text' as const,
+        value: 'Tool output omitted because the tool is no longer available.',
+      };
+    }
+
+    return createToolModelOutput({
+      toolCallId: toolPart.toolCallId,
+      input: toolPart.input,
+      output,
+      tool,
+      errorMode,
+    });
   }
 
   for (const message of messages) {
@@ -209,6 +261,12 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                 const toolName = getToolName(part);
 
                 if (part.state !== 'input-streaming') {
+                  const callProviderMetadata =
+                    part.callProviderMetadata ??
+                    (part.state === 'output-error'
+                      ? part.resultProviderMetadata
+                      : undefined);
+
                   content.push({
                     type: 'tool-call' as const,
                     toolCallId: part.toolCallId,
@@ -219,8 +277,8 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                           ('rawInput' in part ? part.rawInput : undefined))
                         : part.input,
                     providerExecuted: part.providerExecuted,
-                    ...(part.callProviderMetadata != null
-                      ? { providerOptions: part.callProviderMetadata }
+                    ...(callProviderMetadata != null
+                      ? { providerOptions: callProviderMetadata }
                       : {}),
                   });
 
@@ -230,6 +288,17 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                       approvalId: part.approval.id,
                       toolCallId: part.toolCallId,
                       isAutomatic: part.approval.isAutomatic,
+                      ...(part.approval.requestReason != null
+                        ? { reason: part.approval.requestReason }
+                        : {}),
+                      ...(Object.prototype.hasOwnProperty.call(
+                        part.approval,
+                        'inputSchemaInput',
+                      )
+                        ? {
+                            inputSchemaInput: part.approval.inputSchemaInput,
+                          }
+                        : {}),
                       ...(part.approval.signature != null
                         ? { signature: part.approval.signature }
                         : {}),
@@ -249,14 +318,13 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                       type: 'tool-result',
                       toolCallId: part.toolCallId,
                       toolName,
-                      output: await createToolModelOutput({
-                        toolCallId: part.toolCallId,
-                        input: part.input,
+                      output: await createModelOutput({
+                        toolPart: part,
+                        toolName,
                         output:
                           part.state === 'output-error'
                             ? part.errorText
                             : part.output,
-                        tool: options?.tools?.[toolName],
                         errorMode:
                           part.state === 'output-error' ? 'json' : 'none',
                       }),
@@ -280,10 +348,12 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
               }
             }
 
-            modelMessages.push({
-              role: 'assistant',
-              content,
-            });
+            if (content.length > 0) {
+              modelMessages.push({
+                role: 'assistant',
+                content,
+              });
+            }
 
             // check if there are tool invocations with results in the block
             // Include non-provider-executed tools, OR provider-executed tools with approval responses
@@ -366,14 +436,13 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                         type: 'tool-result',
                         toolCallId: toolPart.toolCallId,
                         toolName,
-                        output: await createToolModelOutput({
-                          toolCallId: toolPart.toolCallId,
-                          input: toolPart.input,
+                        output: await createModelOutput({
+                          toolPart,
+                          toolName,
                           output:
                             toolPart.state === 'output-error'
                               ? toolPart.errorText
                               : toolPart.output,
-                          tool: options?.tools?.[toolName],
                           errorMode:
                             toolPart.state === 'output-error' ? 'text' : 'none',
                         }),

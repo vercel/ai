@@ -14,7 +14,7 @@ export function mergeAbortSignals(
   ...signals: (AbortSignal | null | undefined | number)[]
 ): AbortSignal | undefined {
   const validSignals = filterNullable(...signals).map(signal =>
-    signal instanceof AbortSignal ? signal : AbortSignal.timeout(signal),
+    typeof signal === 'number' ? AbortSignal.timeout(signal) : signal,
   );
 
   return validSignals.length === 0

@@ -20,14 +20,18 @@ import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { openaiImageResponseSchema } from './openai-image-api';
 import {
+  getMaxImagesPerCall,
   hasDefaultResponseFormat,
-  modelMaxImagesPerCall,
   openaiImageModelEditOptions,
   openaiImageModelGenerationOptions,
   type OpenAIImageModelEditOptions,
   type OpenAIImageModelId,
 } from './openai-image-model-options';
 interface OpenAIImageModelConfig extends OpenAIConfig {
+  imageInputCapabilities?: {
+    supportsFileInputs: boolean | undefined;
+    supportsMaskInputs: boolean | undefined;
+  };
   _internal?: {
     currentDate?: () => Date;
   };
@@ -51,7 +55,40 @@ export class OpenAIImageModel implements ImageModelV4 {
   }
 
   get maxImagesPerCall(): number {
-    return modelMaxImagesPerCall[this.modelId] ?? 1;
+    return getMaxImagesPerCall(this.modelId);
+  }
+
+  get supportsFileInputs(): boolean | undefined {
+    if (this.config.imageInputCapabilities != null) {
+      return this.config.imageInputCapabilities.supportsFileInputs;
+    }
+
+    if (
+      [
+        'dall-e-2',
+        'gpt-image-1',
+        'gpt-image-1-mini',
+        'gpt-image-1.5',
+        'gpt-image-2',
+        'gpt-image-2.5-flare',
+        'gpt-image-2.5-flare-2026-09-08',
+        'gpt-image-2.5-sunburst',
+        'gpt-image-2.5-sunburst-2026-09-08',
+        'chatgpt-image-latest',
+      ].includes(this.modelId)
+    ) {
+      return true;
+    }
+
+    return this.modelId === 'dall-e-3' ? false : undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    if (this.config.imageInputCapabilities != null) {
+      return this.config.imageInputCapabilities.supportsMaskInputs;
+    }
+
+    return this.supportsFileInputs;
   }
 
   get provider(): string {
@@ -126,10 +163,10 @@ export class OpenAIImageModel implements ImageModelV4 {
                     ],
                     { type: file.mediaType },
                   )
-                : downloadBlob(file.url),
+                : downloadBlob(file.url, { abortSignal }),
             ),
           ),
-          mask: mask != null ? await fileToBlob(mask) : undefined,
+          mask: mask != null ? await fileToBlob(mask, abortSignal) : undefined,
           n,
           size,
           quality: openaiOptions.quality,
@@ -312,11 +349,12 @@ type OpenAIImageEditInput = {
 
 async function fileToBlob(
   file: ImageModelV4File | undefined,
+  abortSignal: AbortSignal | undefined,
 ): Promise<Blob | undefined> {
   if (!file) return undefined;
 
   if (file.type === 'url') {
-    return downloadBlob(file.url);
+    return downloadBlob(file.url, { abortSignal });
   }
 
   const data =

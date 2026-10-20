@@ -44,6 +44,16 @@ export class LumaImageModel implements ImageModelV4 {
   readonly pollIntervalMillis = DEFAULT_POLL_INTERVAL_MILLIS;
   readonly maxPollAttempts = DEFAULT_MAX_POLL_ATTEMPTS;
 
+  get supportsFileInputs(): boolean | undefined {
+    return this.modelId === 'photon-1' || this.modelId === 'photon-flash-1'
+      ? true
+      : undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    return this.supportsFileInputs === true ? false : undefined;
+  }
+
   get provider(): string {
     return this.config.provider;
   }
@@ -181,6 +191,7 @@ export class LumaImageModel implements ImageModelV4 {
     for (let i = 0; i < maxPollAttempts; i++) {
       const { value: statusResponse } = await getFromApi({
         url,
+        validateUrl: false,
         headers,
         abortSignal,
         fetch: this.config.fetch,
@@ -345,6 +356,9 @@ export class LumaImageModel implements ImageModelV4 {
   ): Promise<Uint8Array> {
     const { value: response } = await getFromApi({
       url,
+      // url is a generated-image URL from the provider response; validate it.
+      validateUrl: true,
+      trustedOrigin: this.config.baseURL,
       // No specific headers should be needed for this request as it's a
       // generated image provided by Luma.
       abortSignal,

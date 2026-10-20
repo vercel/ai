@@ -31,12 +31,9 @@ async function loadDiagnosticsChannel(): Promise<
   }
 
   if (diagnosticsChannelPromise == null) {
-    diagnosticsChannelPromise = (
-      import(
-        /* webpackIgnore: true */
-        'node:diagnostics_channel'
-      ) as Promise<DiagnosticsChannel>
-    ).catch(() => undefined);
+    diagnosticsChannelPromise = Promise.resolve(
+      loadBuiltinModule<DiagnosticsChannel>('node:diagnostics_channel'),
+    );
   }
 
   return diagnosticsChannelPromise;
@@ -139,6 +136,7 @@ export function openTelemetryChannelSpanContext({
   completion: PromiseLike<unknown>;
 }): TracingChannelContext | undefined {
   if (!isNodeRuntime()) {
+    Promise.resolve(completion).catch(() => {});
     return undefined;
   }
 

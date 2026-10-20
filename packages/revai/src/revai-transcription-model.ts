@@ -73,7 +73,7 @@ export class RevaiTranscriptionModel implements TranscriptionModelV4 {
     const formData = new FormData();
     const blob =
       audio instanceof Uint8Array
-        ? new Blob([audio])
+        ? new Blob([audio as Uint8Array<ArrayBuffer>])
         : new Blob([convertBase64ToUint8Array(audio)]);
 
     const fileExtension = mediaTypeToExtension(mediaType);
@@ -187,6 +187,7 @@ export class RevaiTranscriptionModel implements TranscriptionModelV4 {
           path: `/speechtotext/v1/jobs/${jobId}`,
           modelId: this.modelId,
         }),
+        validateUrl: false,
         headers: combineHeaders(this.config.headers?.(), options.headers),
         failedResponseHandler: revaiFailedResponseHandler,
         successfulResponseHandler: createJsonResponseHandler(
@@ -221,6 +222,7 @@ export class RevaiTranscriptionModel implements TranscriptionModelV4 {
         path: `/speechtotext/v1/jobs/${jobId}/transcript`,
         modelId: this.modelId,
       }),
+      validateUrl: false,
       headers: combineHeaders(this.config.headers?.(), options.headers),
       failedResponseHandler: revaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(

@@ -1,17 +1,24 @@
 import { InvalidArgumentError } from '../error/invalid-argument-error';
-import {
-  retryWithExponentialBackoffRespectingRetryHeaders,
-  type RetryFunction,
-} from '../util/retry-with-exponential-backoff';
+import type {
+  RetryFunction,
+  ShouldRetryFunction,
+} from '@ai-sdk/provider-utils';
+import { retryWithExponentialBackoffRespectingRetryHeaders } from '../util/retry-with-exponential-backoff';
 /**
  * Validate and prepare retries.
  */
 export function prepareRetries({
   maxRetries,
   abortSignal,
+  additionalRetryableError,
+  parameter = 'maxRetries',
+  defaultMaxRetries = 2,
 }: {
   maxRetries: number | undefined;
   abortSignal: AbortSignal | undefined;
+  additionalRetryableError?: ShouldRetryFunction;
+  parameter?: string;
+  defaultMaxRetries?: number;
 }): {
   maxRetries: number;
   retry: RetryFunction;
@@ -19,28 +26,29 @@ export function prepareRetries({
   if (maxRetries != null) {
     if (!Number.isInteger(maxRetries)) {
       throw new InvalidArgumentError({
-        parameter: 'maxRetries',
+        parameter,
         value: maxRetries,
-        message: 'maxRetries must be an integer',
+        message: `${parameter} must be an integer`,
       });
     }
 
     if (maxRetries < 0) {
       throw new InvalidArgumentError({
-        parameter: 'maxRetries',
+        parameter,
         value: maxRetries,
-        message: 'maxRetries must be >= 0',
+        message: `${parameter} must be >= 0`,
       });
     }
   }
 
-  const maxRetriesResult = maxRetries ?? 2;
+  const maxRetriesResult = maxRetries ?? defaultMaxRetries;
 
   return {
     maxRetries: maxRetriesResult,
     retry: retryWithExponentialBackoffRespectingRetryHeaders({
       maxRetries: maxRetriesResult,
       abortSignal,
+      additionalRetryableError,
     }),
   };
 }

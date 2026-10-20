@@ -7,7 +7,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: openai('gpt-4.1-mini'),
+    model: openai('gpt-6-luna'),
     prompt:
       'Create a program that generates five random numbers between 1 and 100 with two decimal places, and show me the execution results. Also save the result to a file.',
     tools: {
@@ -26,6 +26,10 @@ run(async () => {
         if (!providerMetadata) continue;
         const annotation = providerMetadata.openai;
         switch (annotation.type) {
+          case 'file_search':
+            // Retrieved file-search result; provides fileId.
+            // The filename is available as part.filename.
+            break;
           case 'file_citation':
             // file_citation is returned from file_search and provides:
             // properties: type, fileId and index

@@ -1,5 +1,6 @@
 import {
   validateTypes,
+  withUserAgentSuffix,
   type Context,
   type Experimental_SandboxSession as SandboxSession,
   type ModelMessage,
@@ -12,7 +13,6 @@ import type {
 } from '../generate-text/generate-text-events';
 import type { GenerateTextResult } from '../generate-text/generate-text-result';
 import type { Output } from '../generate-text/output';
-import { isStepCount } from '../generate-text/stop-condition';
 import { streamText } from '../generate-text/stream-text';
 import type { StreamTextResult } from '../generate-text/stream-text-result';
 import type { Prompt } from '../prompt';
@@ -23,6 +23,7 @@ import type {
   AgentStreamParameters,
 } from './agent';
 import type { ToolLoopAgentSettings } from './tool-loop-agent-settings';
+import { createDefaultStopCondition } from './default-stop-condition';
 
 /**
  * A tool loop agent is an agent that runs tools in a loop. In each step,
@@ -128,7 +129,7 @@ export class ToolLoopAgent<
 
     const baseCallArgs = {
       ...settingsWithoutCallbacks,
-      stopWhen: this.settings.stopWhen ?? isStepCount(20),
+      stopWhen: this.settings.stopWhen ?? createDefaultStopCondition(20),
       ...options,
     };
 
@@ -177,6 +178,20 @@ export class ToolLoopAgent<
   }
 
   /**
+   * Tags outgoing requests so usage can be attributed to ToolLoopAgent. Chains
+   * with the `ai/<version>` and `ai-sdk/<provider>/<version>` suffixes added
+   * downstream by generateText/streamText and the provider.
+   */
+  private agentHeaders(preparedCall: {
+    headers?: unknown;
+  }): Record<string, string> {
+    return withUserAgentSuffix(
+      (preparedCall.headers as Record<string, string | undefined>) ?? {},
+      'ai-sdk-agent/tool-loop',
+    );
+  }
+
+  /**
    * Generates an output from the agent (non-streaming).
    */
   async generate({
@@ -204,7 +219,7 @@ export class ToolLoopAgent<
     });
     const callbackArgs = {
       abortSignal,
-      timeout,
+      timeout: timeout ?? preparedCall.timeout,
       experimental_sandbox: sandbox,
       onStart: mergeCallbacks(
         this.settings.onStart ?? this.settings.experimental_onStart,
@@ -236,6 +251,7 @@ export class ToolLoopAgent<
     return await generate({
       ...preparedCall,
       ...callbackArgs,
+      headers: this.agentHeaders(preparedCall),
     } as unknown as Parameters<typeof generate>[0]);
   }
 
@@ -268,7 +284,7 @@ export class ToolLoopAgent<
     });
     const callbackArgs = {
       abortSignal,
-      timeout,
+      timeout: timeout ?? preparedCall.timeout,
       experimental_sandbox: sandbox,
       experimental_transform,
       onStart: mergeCallbacks(
@@ -299,8 +315,11 @@ export class ToolLoopAgent<
     };
 
     return await stream({
-      ...preparedCall,
-      ...callbackArgs,
-    } as unknown as Parameters<typeof stream>[0]);
+      ...({
+        ...preparedCall,
+        ...callbackArgs,
+        headers: this.agentHeaders(preparedCall),
+      } as unknown as Parameters<typeof stream>[0]),
+    });
   }
 }

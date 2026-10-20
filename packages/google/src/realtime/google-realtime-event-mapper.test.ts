@@ -1,4 +1,5 @@
 import { beforeEach, describe, it, expect } from 'vitest';
+import type { JSONSchema7 } from '@ai-sdk/provider';
 import {
   GoogleRealtimeEventMapper,
   buildGoogleSessionConfig,
@@ -108,6 +109,35 @@ describe('GoogleRealtimeEventMapper', () => {
       });
     });
 
+    it('increments top-level input transcription IDs after turnComplete', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+
+      mapper.parseServerEvent({
+        inputTranscription: { text: 'What time is it?' },
+      });
+      mapper.parseServerEvent({
+        serverContent: {
+          modelTurn: {
+            parts: [{ inlineData: { data: 'audio1' } }],
+          },
+        },
+      });
+      mapper.parseServerEvent({
+        serverContent: { turnComplete: true },
+      });
+
+      const raw = {
+        inputTranscription: { text: 'And the date?' },
+      };
+
+      expect(mapper.parseServerEvent(raw)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-1',
+        transcript: 'And the date?',
+        raw,
+      });
+    });
+
     it('maps serverContent with interrupted to speech-started', () => {
       const mapper = new GoogleRealtimeEventMapper();
       const raw = {
@@ -211,6 +241,456 @@ describe('GoogleRealtimeEventMapper', () => {
         itemId: 'google-item-1',
         delta: 'audio2',
         raw,
+      });
+    });
+
+    it('increments input transcription IDs after turnComplete', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+
+      mapper.parseServerEvent({
+        serverContent: {
+          inputTranscription: { text: 'What time is it?' },
+        },
+      });
+      mapper.parseServerEvent({
+        serverContent: {
+          modelTurn: {
+            parts: [{ inlineData: { data: 'audio1' } }],
+          },
+        },
+      });
+      mapper.parseServerEvent({
+        serverContent: { turnComplete: true },
+      });
+
+      const raw = {
+        serverContent: {
+          inputTranscription: { text: 'And the date?' },
+        },
+      };
+
+      expect(mapper.parseServerEvent(raw)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-1',
+        transcript: 'And the date?',
+        raw,
+      });
+      expect(
+        mapper.parseServerEvent({
+          serverContent: {
+            modelTurn: {
+              parts: [{ inlineData: { data: 'audio2' } }],
+            },
+          },
+        }),
+      ).toMatchObject({
+        responseId: 'google-resp-1',
+        itemId: 'google-item-1',
+      });
+    });
+
+    it('keeps the interrupted response active until its trailing turnComplete', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+
+      mapper.parseServerEvent({
+        serverContent: {
+          inputTranscription: { text: 'Tell me a story.' },
+        },
+      });
+      mapper.parseServerEvent({
+        serverContent: {
+          modelTurn: {
+            parts: [{ inlineData: { data: 'audio1' } }],
+          },
+        },
+      });
+      mapper.parseServerEvent({
+        serverContent: { interrupted: true },
+      });
+
+      const raw = {
+        serverContent: {
+          inputTranscription: { text: 'Stop.' },
+        },
+      };
+
+      expect(mapper.parseServerEvent(raw)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-1',
+        transcript: 'Stop.',
+        raw,
+      });
+
+      const turnCompleteRaw = {
+        serverContent: { turnComplete: true },
+      };
+      expect(mapper.parseServerEvent(turnCompleteRaw)).toEqual([
+        {
+          type: 'audio-done',
+          responseId: 'google-resp-0',
+          itemId: 'google-item-0',
+          raw: turnCompleteRaw,
+        },
+        {
+          type: 'response-done',
+          responseId: 'google-resp-0',
+          status: 'completed',
+          raw: turnCompleteRaw,
+        },
+      ]);
+
+      expect(
+        mapper.parseServerEvent({
+          serverContent: {
+            modelTurn: {
+              parts: [{ inlineData: { data: 'audio2' } }],
+            },
+          },
+        }),
+      ).toMatchObject({
+        responseId: 'google-resp-1',
+        itemId: 'google-item-1',
+      });
+    });
+
+    it('keeps an interrupting utterance together across the trailing turnComplete', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+
+      mapper.parseServerEvent({
+        serverContent: {
+          inputTranscription: { text: 'Tell me a story.' },
+        },
+      });
+      mapper.parseServerEvent({
+        serverContent: {
+          modelTurn: {
+            parts: [{ inlineData: { data: 'audio1' } }],
+          },
+        },
+      });
+      mapper.parseServerEvent({
+        serverContent: { interrupted: true },
+      });
+
+      const firstFragment = {
+        serverContent: {
+          inputTranscription: { text: 'Stop', finished: false },
+        },
+      };
+      expect(mapper.parseServerEvent(firstFragment)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-1',
+        transcript: 'Stop',
+        raw: firstFragment,
+      });
+
+      mapper.parseServerEvent({
+        serverContent: { turnComplete: true },
+      });
+
+      const finalFragment = {
+        serverContent: {
+          inputTranscription: { text: ' now.', finished: true },
+        },
+      };
+      expect(mapper.parseServerEvent(finalFragment)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-1',
+        transcript: 'Stop now.',
+        raw: finalFragment,
+      });
+    });
+
+    it('keeps a delayed final fragment with its utterance and separates the next one', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+
+      mapper.parseServerEvent({
+        serverContent: {
+          inputTranscription: { text: 'What time', finished: false },
+        },
+      });
+      mapper.parseServerEvent({
+        serverContent: {
+          modelTurn: {
+            parts: [{ inlineData: { data: 'audio1' } }],
+          },
+        },
+      });
+      mapper.parseServerEvent({
+        serverContent: { turnComplete: true },
+      });
+
+      const delayedFinalFragment = {
+        serverContent: {
+          inputTranscription: { text: ' is it?', finished: true },
+        },
+      };
+      expect(mapper.parseServerEvent(delayedFinalFragment)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-0',
+        transcript: 'What time is it?',
+        raw: delayedFinalFragment,
+      });
+
+      const nextUtterance = {
+        serverContent: {
+          inputTranscription: { text: 'And the date?', finished: true },
+        },
+      };
+      expect(mapper.parseServerEvent(nextUtterance)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-1',
+        transcript: 'And the date?',
+        raw: nextUtterance,
+      });
+    });
+
+    it('assigns separate IDs to consecutive finished transcriptions', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+
+      const first = {
+        serverContent: {
+          inputTranscription: { text: 'First utterance.', finished: true },
+        },
+      };
+      expect(mapper.parseServerEvent(first)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-0',
+        transcript: 'First utterance.',
+        raw: first,
+      });
+
+      const second = {
+        serverContent: {
+          inputTranscription: { text: 'Second utterance.', finished: true },
+        },
+      };
+      expect(mapper.parseServerEvent(second)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-1',
+        transcript: 'Second utterance.',
+        raw: second,
+      });
+    });
+
+    describe.each(['serverContent', 'top-level'] as const)(
+      '%s input transcription boundaries',
+      location => {
+        const wrap = (inputTranscription: {
+          text?: string;
+          finished?: boolean;
+        }) =>
+          location === 'serverContent'
+            ? { serverContent: { inputTranscription } }
+            : { inputTranscription };
+
+        it.each([{ finished: true }, { text: '', finished: true }])(
+          'honors a standalone completion marker %j after turnComplete',
+          completion => {
+            const mapper = new GoogleRealtimeEventMapper();
+            mapper.parseServerEvent(wrap({ text: 'First', finished: false }));
+            mapper.parseServerEvent({ serverContent: { turnComplete: true } });
+
+            // Completion-only messages must not create an empty user message.
+            expect(mapper.parseServerEvent(wrap(completion))).toMatchObject({
+              type: 'custom',
+            });
+
+            const next = wrap({ text: 'Second', finished: true });
+            expect(mapper.parseServerEvent(next)).toEqual({
+              type: 'input-transcription-completed',
+              itemId: 'google-input-1',
+              transcript: 'Second',
+              raw: next,
+            });
+          },
+        );
+
+        it('separates utterances using standalone completion markers without response events', () => {
+          const mapper = new GoogleRealtimeEventMapper();
+          mapper.parseServerEvent(wrap({ text: 'First' }));
+          mapper.parseServerEvent(wrap({ finished: true }));
+          // Empty or repeated markers must not consume another ID or reopen
+          // the completed utterance.
+          mapper.parseServerEvent(wrap({ finished: true }));
+          mapper.parseServerEvent(wrap({ text: '', finished: false }));
+
+          const next = wrap({ text: 'Second' });
+          expect(mapper.parseServerEvent(next)).toEqual({
+            type: 'input-transcription-completed',
+            itemId: 'google-input-1',
+            transcript: 'Second',
+            raw: next,
+          });
+        });
+
+        it('does not allocate an utterance for empty input', () => {
+          const mapper = new GoogleRealtimeEventMapper();
+          for (const transcription of [
+            {},
+            { finished: false },
+            { finished: true },
+            { text: '', finished: true },
+          ]) {
+            expect(mapper.parseServerEvent(wrap(transcription))).toMatchObject({
+              type: 'custom',
+            });
+          }
+
+          expect(
+            mapper.parseServerEvent(wrap({ text: 'First' })),
+          ).toMatchObject({
+            itemId: 'google-input-0',
+            transcript: 'First',
+          });
+        });
+
+        it('preserves an interrupting utterance until its standalone completion marker', () => {
+          const mapper = new GoogleRealtimeEventMapper();
+          mapper.parseServerEvent(wrap({ text: 'First' }));
+          mapper.parseServerEvent({ serverContent: { interrupted: true } });
+          mapper.parseServerEvent(wrap({ text: 'Stop' }));
+          mapper.parseServerEvent({ serverContent: { turnComplete: true } });
+          expect(mapper.parseServerEvent(wrap({ text: ' now' }))).toMatchObject(
+            {
+              itemId: 'google-input-1',
+              transcript: 'Stop now',
+            },
+          );
+          mapper.parseServerEvent(wrap({ finished: true }));
+          expect(mapper.parseServerEvent(wrap({ text: 'Next' }))).toMatchObject(
+            {
+              itemId: 'google-input-2',
+              transcript: 'Next',
+            },
+          );
+        });
+      },
+    );
+
+    it('starts a new response after interruption without a trailing turnComplete', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+      mapper.parseServerEvent({
+        serverContent: {
+          inputTranscription: { text: 'Tell me a story.' },
+          modelTurn: { parts: [{ text: 'Once upon a time' }] },
+        },
+      });
+      mapper.parseServerEvent({ serverContent: { interrupted: true } });
+      expect(
+        mapper.parseServerEvent({
+          serverContent: { inputTranscription: { text: 'Stop.' } },
+        }),
+      ).toMatchObject({ itemId: 'google-input-1', transcript: 'Stop.' });
+
+      expect(
+        mapper.parseServerEvent({
+          serverContent: { modelTurn: { parts: [{ text: 'OK.' }] } },
+        }),
+      ).toMatchObject({ responseId: 'google-resp-1', itemId: 'google-item-1' });
+      mapper.parseServerEvent({ serverContent: { turnComplete: true } });
+      expect(
+        mapper.parseServerEvent({
+          serverContent: { inputTranscription: { text: 'Next question.' } },
+        }),
+      ).toMatchObject({
+        itemId: 'google-input-2',
+        transcript: 'Next question.',
+      });
+    });
+
+    it('accumulates consecutive input transcription fragments into one utterance', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+
+      const fragment1 = {
+        serverContent: {
+          inputTranscription: { text: 'The quick brown fox' },
+        },
+      };
+      expect(mapper.parseServerEvent(fragment1)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-0',
+        transcript: 'The quick brown fox',
+        raw: fragment1,
+      });
+
+      const fragment2 = {
+        serverContent: {
+          inputTranscription: { text: ' jumps over the' },
+        },
+      };
+      expect(mapper.parseServerEvent(fragment2)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-0',
+        transcript: 'The quick brown fox jumps over the',
+        raw: fragment2,
+      });
+
+      const fragment3 = {
+        serverContent: {
+          inputTranscription: { text: ' lazy dog.' },
+        },
+      };
+      expect(mapper.parseServerEvent(fragment3)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-0',
+        transcript: 'The quick brown fox jumps over the lazy dog.',
+        raw: fragment3,
+      });
+    });
+
+    it('starts a fresh accumulation for the next utterance after a completed turn', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+
+      mapper.parseServerEvent({
+        serverContent: {
+          modelTurn: {
+            parts: [{ inlineData: { data: 'audio1' } }],
+          },
+        },
+      });
+      mapper.parseServerEvent({
+        serverContent: { turnComplete: true },
+      });
+
+      // A late transcript for the just-completed turn still opens at index 0.
+      const delayed = {
+        serverContent: {
+          inputTranscription: { text: 'What time is it?' },
+        },
+      };
+      expect(mapper.parseServerEvent(delayed)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-0',
+        transcript: 'What time is it?',
+        raw: delayed,
+      });
+
+      // A second fragment with no intervening turn boundary is part of the
+      // same utterance and accumulates under the same id.
+      const continued = {
+        serverContent: {
+          inputTranscription: { text: ' And the date?' },
+        },
+      };
+      expect(mapper.parseServerEvent(continued)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-0',
+        transcript: 'What time is it? And the date?',
+        raw: continued,
+      });
+
+      expect(
+        mapper.parseServerEvent({
+          serverContent: {
+            modelTurn: {
+              parts: [{ inlineData: { data: 'audio2' } }],
+            },
+          },
+        }),
+      ).toMatchObject({
+        responseId: 'google-resp-1',
+        itemId: 'google-item-1',
       });
     });
 
@@ -344,6 +824,105 @@ describe('GoogleRealtimeEventMapper', () => {
       });
     });
 
+    it('maps goAway to a stable custom lifecycle event', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+      const raw = { goAway: { timeLeft: '30s' } };
+
+      expect(mapper.parseServerEvent(raw)).toEqual({
+        type: 'custom',
+        rawType: 'goAway',
+        raw,
+      });
+    });
+
+    it('maps sessionResumptionUpdate to a stable custom lifecycle event', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+      const raw = {
+        sessionResumptionUpdate: {
+          newHandle: 'resume-handle',
+          resumable: true,
+          lastConsumedClientMessageIndex: '42',
+        },
+      };
+
+      expect(mapper.parseServerEvent(raw)).toEqual({
+        type: 'custom',
+        rawType: 'sessionResumptionUpdate',
+        raw,
+      });
+    });
+
+    it('surfaces interactionStatus as a custom event', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+      const raw = { serverContent: { interactionStatus: 'IN_PROGRESS' } };
+
+      expect(mapper.parseServerEvent(raw)).toEqual({
+        type: 'custom',
+        rawType: 'interactionStatus',
+        raw,
+      });
+    });
+
+    it('emits interactionStatus alongside turnComplete events', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+      mapper.parseServerEvent({
+        serverContent: {
+          modelTurn: { parts: [{ inlineData: { data: 'AAAA' } }] },
+        },
+      });
+      const raw = {
+        serverContent: { turnComplete: true, interactionStatus: 'IDLE' },
+      };
+
+      const events = mapper.parseServerEvent(raw);
+      expect(Array.isArray(events)).toBe(true);
+      if (Array.isArray(events)) {
+        expect(events).toContainEqual({
+          type: 'custom',
+          rawType: 'interactionStatus',
+          raw,
+        });
+        expect(events).toContainEqual({
+          type: 'response-done',
+          responseId: 'google-resp-0',
+          status: 'completed',
+          raw,
+        });
+      }
+    });
+
+    it('surfaces waitingForInput as a custom event', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+      const raw = { serverContent: { waitingForInput: true } };
+
+      expect(mapper.parseServerEvent(raw)).toEqual({
+        type: 'custom',
+        rawType: 'waitingForInput',
+        raw,
+      });
+    });
+
+    it('keeps generationComplete distinct from turnComplete', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+      const raw = { serverContent: { generationComplete: true } };
+
+      expect(mapper.parseServerEvent(raw)).toEqual({
+        type: 'custom',
+        rawType: 'generationComplete',
+        raw,
+      });
+
+      const next = mapper.parseServerEvent({
+        serverContent: {
+          modelTurn: { parts: [{ text: 'still turn zero' }] },
+        },
+      });
+      expect(next).toMatchObject({
+        type: 'text-delta',
+        responseId: 'google-resp-0',
+      });
+    });
+
     it('maps unrecognized top-level key to custom event', () => {
       const mapper = new GoogleRealtimeEventMapper();
       const raw = { somethingNew: { data: 123 } };
@@ -429,7 +1008,7 @@ describe('GoogleRealtimeEventMapper', () => {
                 {
                   name: 'getWeather',
                   description: 'Get weather',
-                  parameters: {
+                  parametersJsonSchema: {
                     type: 'object',
                     properties: {
                       city: { type: 'string' },
@@ -566,7 +1145,39 @@ describe('GoogleRealtimeEventMapper', () => {
       });
     });
 
-    it('falls back to empty object for malformed function-call-output', async () => {
+    it.each([
+      ['a string', '"SEARCH_UNAVAILABLE"', { output: 'SEARCH_UNAVAILABLE' }],
+      ['a number', '42', { output: 42 }],
+      ['an array', '["a","b"]', { output: ['a', 'b'] }],
+      ['null', 'null', { output: null }],
+      ['a boolean', 'false', { output: false }],
+    ])(
+      'wraps %s tool result so the response stays an object',
+      async (_label, output, expected) => {
+        const result = await mapper.serializeClientEvent(
+          {
+            type: 'conversation-item-create',
+            item: {
+              type: 'function-call-output',
+              callId: 'call_1',
+              name: 'getWeather',
+              output,
+            },
+          },
+          'model',
+        );
+
+        expect(result).toEqual({
+          toolResponse: {
+            functionResponses: [
+              { id: 'call_1', name: 'getWeather', response: expected },
+            ],
+          },
+        });
+      },
+    );
+
+    it('keeps unparseable function-call-output as text instead of an empty object', async () => {
       const result = await mapper.serializeClientEvent(
         {
           type: 'conversation-item-create',
@@ -586,7 +1197,7 @@ describe('GoogleRealtimeEventMapper', () => {
             {
               id: 'call_1',
               name: 'getWeather',
-              response: {},
+              response: { output: '{' },
             },
           ],
         },
@@ -688,7 +1299,7 @@ describe('buildGoogleSessionConfig', () => {
             {
               "description": "Get weather",
               "name": "getWeather",
-              "parameters": {
+              "parametersJsonSchema": {
                 "properties": {
                   "city": {
                     "type": "string",
@@ -704,6 +1315,52 @@ describe('buildGoogleSessionConfig', () => {
         },
       ]
     `);
+  });
+
+  it('builds config with preserved local JSON Schema references', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        tools: [
+          {
+            type: 'function',
+            name: 'formatDate',
+            description: 'Format a date',
+            parameters: {
+              type: 'object',
+              properties: {
+                locale: { $ref: '#/$defs/Locale' },
+              },
+              required: ['locale'],
+              $defs: {
+                Locale: { type: 'string', enum: ['de', 'en'] },
+              },
+            } as JSONSchema7,
+          },
+        ],
+      },
+      'gemini-2.0-flash',
+    );
+
+    expect(result.tools).toEqual([
+      {
+        functionDeclarations: [
+          {
+            name: 'formatDate',
+            description: 'Format a date',
+            parametersJsonSchema: {
+              type: 'object',
+              properties: {
+                locale: { $ref: '#/$defs/Locale' },
+              },
+              required: ['locale'],
+              $defs: {
+                Locale: { type: 'string', enum: ['de', 'en'] },
+              },
+            },
+          },
+        ],
+      },
+    ]);
   });
 
   it('maps output modalities to uppercase', () => {
@@ -787,6 +1444,340 @@ describe('buildGoogleSessionConfig', () => {
         targetLanguageCode: 'fr',
       },
     });
+  });
+
+  it('maps providerOptions.google.thinkingConfig to generationConfig', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        providerOptions: {
+          google: {
+            thinkingConfig: {
+              thinkingLevel: 'high',
+              includeThoughts: true,
+            },
+          } satisfies GoogleRealtimeModelOptions,
+        },
+      },
+      'gemini-3.8-live-extended-thinking',
+    );
+
+    expect(result).toEqual({
+      model: 'models/gemini-3.8-live-extended-thinking',
+      generationConfig: {
+        responseModalities: ['AUDIO'],
+        thinkingConfig: {
+          thinkingLevel: 'high',
+          includeThoughts: true,
+        },
+      },
+    });
+  });
+
+  it('defaults thinkingLevel to low on background-reasoning Live models', () => {
+    for (const modelId of [
+      'gemini-3.8-live-extended-thinking',
+      'models/gemini-3.8-live-extended-thinking',
+    ]) {
+      expect(buildGoogleSessionConfig(undefined, modelId)).toEqual({
+        model: 'models/gemini-3.8-live-extended-thinking',
+        generationConfig: {
+          responseModalities: ['AUDIO'],
+          thinkingConfig: { thinkingLevel: 'low' },
+        },
+      });
+    }
+
+    expect(
+      buildGoogleSessionConfig(
+        { outputModalities: ['audio'], instructions: 'Be brief.' },
+        'gemini-3.8-live-extended-thinking',
+      ).generationConfig,
+    ).toEqual({
+      responseModalities: ['AUDIO'],
+      thinkingConfig: { thinkingLevel: 'low' },
+    });
+  });
+
+  it('does not default thinkingConfig on Live models without background reasoning', () => {
+    for (const modelId of [
+      'gemini-3.8-live',
+      'gemini-3.1-flash-live-preview',
+      'gemini-3.5-live-translate-preview',
+    ]) {
+      expect(
+        buildGoogleSessionConfig({ outputModalities: ['audio'] }, modelId)
+          .generationConfig,
+      ).toEqual({ responseModalities: ['AUDIO'] });
+    }
+  });
+
+  it('does not add a default thinkingLevel when thinkingBudget is set', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        providerOptions: {
+          google: {
+            thinkingConfig: { thinkingBudget: 256 },
+          } satisfies GoogleRealtimeModelOptions,
+        },
+      },
+      'gemini-3.8-live-extended-thinking',
+    );
+
+    expect(result.generationConfig).toEqual({
+      responseModalities: ['AUDIO'],
+      thinkingConfig: { thinkingBudget: 256 },
+    });
+  });
+
+  it('keeps the default thinkingLevel under a raw generationConfig provider option', () => {
+    const result = buildGoogleSessionConfig(
+      { providerOptions: { generationConfig: { temperature: 0.2 } } },
+      'gemini-3.8-live-extended-thinking',
+    );
+
+    expect(result.generationConfig).toEqual({
+      temperature: 0.2,
+      thinkingConfig: { thinkingLevel: 'low' },
+    });
+  });
+
+  it('merges thinking config into raw generationConfig provider options', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        providerOptions: {
+          generationConfig: {
+            responseModalities: ['AUDIO'],
+            temperature: 0.2,
+          },
+          google: {
+            thinkingConfig: { thinkingBudget: 512 },
+          } satisfies GoogleRealtimeModelOptions,
+        },
+      },
+      'gemini-3.8-live-extended-thinking',
+    );
+
+    expect(result.generationConfig).toEqual({
+      responseModalities: ['AUDIO'],
+      temperature: 0.2,
+      thinkingConfig: { thinkingBudget: 512 },
+    });
+  });
+
+  it('merges translation and thinking config together into generationConfig', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        providerOptions: {
+          google: {
+            translationConfig: { targetLanguageCode: 'fr' },
+            thinkingConfig: { thinkingBudget: 1024 },
+          } satisfies GoogleRealtimeModelOptions,
+        },
+      },
+      'gemini-3.8-live-extended-thinking',
+    );
+
+    expect(result.generationConfig).toEqual({
+      responseModalities: ['AUDIO'],
+      translationConfig: { targetLanguageCode: 'fr' },
+      thinkingConfig: { thinkingBudget: 1024 },
+    });
+  });
+
+  it('adds the default thinkingLevel when thinkingConfig sets neither thinkingLevel nor thinkingBudget', () => {
+    for (const modelId of [
+      'gemini-3.8-live-extended-thinking',
+      'models/gemini-3.8-live-extended-thinking',
+    ]) {
+      expect(
+        buildGoogleSessionConfig(
+          {
+            providerOptions: {
+              google: {
+                thinkingConfig: { includeThoughts: true },
+              } satisfies GoogleRealtimeModelOptions,
+            },
+          },
+          modelId,
+        ).generationConfig,
+      ).toEqual({
+        responseModalities: ['AUDIO'],
+        thinkingConfig: { includeThoughts: true, thinkingLevel: 'low' },
+      });
+    }
+
+    for (const thinkingConfig of [{}, { thinkingLevel: undefined }]) {
+      expect(
+        buildGoogleSessionConfig(
+          {
+            providerOptions: {
+              google: { thinkingConfig } satisfies GoogleRealtimeModelOptions,
+            },
+          },
+          'gemini-3.8-live-extended-thinking',
+        ).generationConfig,
+      ).toEqual({
+        responseModalities: ['AUDIO'],
+        thinkingConfig: { thinkingLevel: 'low' },
+      });
+    }
+  });
+
+  it('keeps thinkingBudget: 0 without adding a default thinkingLevel', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        providerOptions: {
+          google: {
+            thinkingConfig: { thinkingBudget: 0 },
+          } satisfies GoogleRealtimeModelOptions,
+        },
+      },
+      'gemini-3.8-live-extended-thinking',
+    );
+
+    expect(result.generationConfig).toEqual({
+      responseModalities: ['AUDIO'],
+      thinkingConfig: { thinkingBudget: 0 },
+    });
+  });
+
+  it('does not overwrite a raw generationConfig.thinkingConfig that sets thinkingLevel or thinkingBudget', () => {
+    for (const thinkingConfig of [
+      { thinkingLevel: 'high' },
+      { thinkingBudget: 1024, includeThoughts: true },
+    ]) {
+      expect(
+        buildGoogleSessionConfig(
+          {
+            providerOptions: {
+              generationConfig: {
+                responseModalities: ['AUDIO'],
+                thinkingConfig,
+              },
+            },
+          },
+          'gemini-3.8-live-extended-thinking',
+        ).generationConfig,
+      ).toEqual({
+        responseModalities: ['AUDIO'],
+        thinkingConfig,
+      });
+    }
+  });
+
+  it('adds the default thinkingLevel to a raw generationConfig.thinkingConfig that sets neither', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        providerOptions: {
+          generationConfig: {
+            temperature: 0.2,
+            thinkingConfig: { includeThoughts: true },
+          },
+        },
+      },
+      'gemini-3.8-live-extended-thinking',
+    );
+
+    expect(result.generationConfig).toEqual({
+      temperature: 0.2,
+      thinkingConfig: { includeThoughts: true, thinkingLevel: 'low' },
+    });
+  });
+
+  it('prefers a typed thinkingConfig over a raw generationConfig.thinkingConfig', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        providerOptions: {
+          generationConfig: {
+            thinkingConfig: { thinkingLevel: 'high' },
+          },
+          google: {
+            thinkingConfig: { thinkingBudget: 512 },
+          } satisfies GoogleRealtimeModelOptions,
+        },
+      },
+      'gemini-3.8-live-extended-thinking',
+    );
+
+    expect(result.generationConfig).toEqual({
+      thinkingConfig: { thinkingBudget: 512 },
+    });
+  });
+
+  it('does not add a default thinkingLevel on Live models without background reasoning', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        providerOptions: {
+          google: {
+            thinkingConfig: { includeThoughts: true },
+          } satisfies GoogleRealtimeModelOptions,
+        },
+      },
+      'gemini-3.8-live',
+    );
+
+    expect(result.generationConfig).toEqual({
+      responseModalities: ['AUDIO'],
+      thinkingConfig: { includeThoughts: true },
+    });
+  });
+
+  it('stamps defaultToolBehavior onto every function declaration', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        tools: [
+          {
+            type: 'function',
+            name: 'getWeather',
+            description: 'Get weather',
+            parameters: {
+              type: 'object',
+              properties: { city: { type: 'string' } },
+              required: ['city'],
+            },
+          },
+          {
+            type: 'function',
+            name: 'getTime',
+            parameters: { type: 'object', properties: {} },
+          },
+        ],
+        providerOptions: {
+          google: {
+            defaultToolBehavior: 'BLOCKING',
+          } satisfies GoogleRealtimeModelOptions,
+        },
+      },
+      'gemini-3.8-live',
+    );
+
+    const tools = result.tools as Array<{
+      functionDeclarations: Array<Record<string, unknown>>;
+    }>;
+    expect(tools[0].functionDeclarations.map(d => d.behavior)).toEqual([
+      'BLOCKING',
+      'BLOCKING',
+    ]);
+  });
+
+  it('omits behavior from function declarations when defaultToolBehavior is unset', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        tools: [
+          {
+            type: 'function',
+            name: 'getWeather',
+            parameters: { type: 'object', properties: {} },
+          },
+        ],
+      },
+      'gemini-3.8-live',
+    );
+
+    const tools = result.tools as Array<{
+      functionDeclarations: Array<Record<string, unknown>>;
+    }>;
+    expect('behavior' in tools[0].functionDeclarations[0]).toBe(false);
   });
 
   it('preserves model path that already includes slash', () => {

@@ -6,14 +6,14 @@ This example shows how to use the [AI SDK](https://ai-sdk.dev/docs) with [Next.j
 
 Deploy the example using [Vercel](https://vercel.com?utm_source=github&utm_medium=readme&utm_campaign=ai-sdk-example):
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fai%2Ftree%2Fmain%2Fexamples%2Fnext-google-vertex-edge&env=GOOGLE_VERTEX_API_KEY&project-name=ai-sdk-vertex-edge&repository-name=ai-sdk-vertex-edge)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fai%2Ftree%2Fmain%2Fexamples%2Fnext-google-vertex&env=GOOGLE_VERTEX_API_KEY&project-name=ai-sdk-vertex-edge&repository-name=ai-sdk-vertex-edge)
 
 ## How to use
 
 Execute [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app) with [npm](https://docs.npmjs.com/cli/init), [Yarn](https://yarnpkg.com/lang/en/docs/cli/create/), or [pnpm](https://pnpm.io) to bootstrap the example:
 
 ```bash
-npx create-next-app --example https://github.com/vercel/ai/tree/main/examples/next-google-vertex-edge next-vertex-edge-app
+npx create-next-app --example https://github.com/vercel/ai/tree/main/examples/next-google-vertex next-vertex-edge-app
 ```
 
 To run the example locally you need to:

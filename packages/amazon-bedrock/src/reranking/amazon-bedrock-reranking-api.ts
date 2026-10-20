@@ -7,7 +7,7 @@ export type AmazonBedrockRerankingInput = {
   queries: [{ type: 'TEXT'; textQuery: { text: string } }];
   rerankingConfiguration: {
     type: 'BEDROCK_RERANKING_MODEL';
-    amazonBedrockRerankingConfiguration: {
+    bedrockRerankingConfiguration: {
       modelConfiguration: {
         modelArn: string;
         additionalModelRequestFields?: Record<string, unknown>;

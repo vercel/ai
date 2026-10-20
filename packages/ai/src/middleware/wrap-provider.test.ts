@@ -1,12 +1,25 @@
+import type { FilesV4, ProviderV4, SkillsV4 } from '@ai-sdk/provider';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { MockImageModelV4 } from '../test/mock-image-model-v4';
 import { MockProviderV2 } from '../test/mock-provider-v2';
 import { MockProviderV4 } from '../test/mock-provider-v4';
 import { wrapProvider } from './wrap-provider';
-import { describe, it, expect, vi } from 'vitest';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 
 describe('wrapProvider', () => {
+  let mockProcessEmitWarning: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    mockProcessEmitWarning = vi
+      .spyOn(process, 'emitWarning')
+      .mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    mockProcessEmitWarning.mockRestore();
+  });
+
   it('should wrap all language models in the provider', () => {
     const model1 = new MockLanguageModelV4({ modelId: 'model-1' });
     const model2 = new MockLanguageModelV4({ modelId: 'model-2' });
@@ -116,5 +129,49 @@ describe('wrapProvider', () => {
     expect(overrideModelId.mock.calls[0][0].model.modelId).toBe('model-1');
     expect(overrideModelId.mock.calls[1][0].model.modelId).toBe('model-2');
     expect(overrideModelId.mock.calls[2][0].model.modelId).toBe('model-3');
+  });
+
+  it('should preserve file and skill upload interfaces', () => {
+    const files: FilesV4 = {
+      specificationVersion: 'v4',
+      provider: 'mock-provider',
+      uploadFile: vi.fn(),
+    };
+    const skills: SkillsV4 = {
+      specificationVersion: 'v4',
+      provider: 'mock-provider',
+      uploadSkill: vi.fn(),
+    };
+    const provider = {
+      specificationVersion: 'v4',
+      languageModel: vi.fn(),
+      embeddingModel: vi.fn(),
+      imageModel: vi.fn(),
+      files() {
+        return files;
+      },
+      skills() {
+        return skills;
+      },
+    } satisfies ProviderV4;
+    const wrappedProvider = wrapProvider({
+      provider,
+      languageModelMiddleware: { specificationVersion: 'v4' },
+    });
+
+    expect(wrappedProvider.files?.()).toBe(files);
+    expect(wrappedProvider.skills?.()).toBe(skills);
+  });
+
+  it('should not add file and skill upload interfaces when unsupported', () => {
+    const provider = new MockProviderV4();
+
+    const wrappedProvider = wrapProvider({
+      provider,
+      languageModelMiddleware: { specificationVersion: 'v4' },
+    });
+
+    expect(wrappedProvider.files).toBeUndefined();
+    expect(wrappedProvider.skills).toBeUndefined();
   });
 });

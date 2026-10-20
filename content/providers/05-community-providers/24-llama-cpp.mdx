@@ -45,20 +45,7 @@ brew install cmake
 
 The llama.cpp provider is available in the `ai-sdk-llama-cpp` module. You can install it with:
 
-<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
-  <Tab>
-    <Snippet text="pnpm add ai-sdk-llama-cpp" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="npm install ai-sdk-llama-cpp" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="yarn add ai-sdk-llama-cpp" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="bun add ai-sdk-llama-cpp" dark />
-  </Tab>
-</Tabs>
+<InstallPackages packages="ai-sdk-llama-cpp" />
 
 The installation will automatically compile llama.cpp as a static library with Metal support and build the native Node.js addon.
 
@@ -70,7 +57,7 @@ You can import `llamaCpp` from `ai-sdk-llama-cpp` and create a model instance:
 import { llamaCpp } from 'ai-sdk-llama-cpp';
 
 const model = llamaCpp({
-  modelPath: './models/llama-3.2-1b-instruct.Q4_K_M.gguf',
+  modelPath: './models/Llama-3.2-1B-Instruct-Q4_K_M.gguf',
 });
 ```
 
@@ -123,7 +110,7 @@ import { generateText } from 'ai';
 import { llamaCpp } from 'ai-sdk-llama-cpp';
 
 const model = llamaCpp({
-  modelPath: './models/llama-3.2-1b-instruct.Q4_K_M.gguf',
+  modelPath: './models/Llama-3.2-1B-Instruct-Q4_K_M.gguf',
 });
 
 try {
@@ -147,7 +134,7 @@ import { streamText } from 'ai';
 import { llamaCpp } from 'ai-sdk-llama-cpp';
 
 const model = llamaCpp({
-  modelPath: './models/llama-3.2-1b-instruct.Q4_K_M.gguf',
+  modelPath: './models/Llama-3.2-1B-Instruct-Q4_K_M.gguf',
 });
 
 try {

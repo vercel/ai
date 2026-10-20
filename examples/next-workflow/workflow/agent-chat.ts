@@ -132,7 +132,7 @@ const repairToolCall: ToolCallRepairFunction<typeof tools> = async ({
  * workflow. Demonstrates the two complementary context APIs:
  *
  * - `runtimeContext` — shared agent state that flows through `prepareStep`,
- *   lifecycle callbacks, and `onFinish`. Not added to the prompt.
+ *   lifecycle callbacks, and `onEnd`. Not added to the prompt.
  * - `toolsContext` — per-tool, schema-validated state. Each tool's
  *   `execute` only sees its own validated entry as `context`.
  */
@@ -160,7 +160,7 @@ export async function chat(messages: UIMessage[], request: ChatRequestContext) {
     tools,
 
     // Shared agent state. Available in `prepareStep`, lifecycle callbacks,
-    // and `onFinish`. Treat as immutable — return a new value from
+    // and `onEnd`. Treat as immutable — return a new value from
     // `prepareStep` to update it between steps.
     runtimeContext: {
       tenantId: request.tenantId,
@@ -203,7 +203,7 @@ export async function chat(messages: UIMessage[], request: ChatRequestContext) {
   const result = await agent.stream({
     messages: modelMessages,
     writable: getWritable<ModelCallStreamPart>(),
-    experimental_repairToolCall: repairToolCall as any,
+    repairToolCall: repairToolCall as any,
   });
 
   return { messages: result.messages };

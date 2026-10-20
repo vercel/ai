@@ -1,5 +1,16 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createPi } from './pi-harness';
+import type { PiCredentialStore } from './pi-auth';
+import type * as PiSessionModule from './pi-session';
+
+const mocks = vi.hoisted(() => ({
+  createPiSession: vi.fn(async () => ({})),
+}));
+
+vi.mock('./pi-session', async importOriginal => {
+  const actual = await importOriginal<typeof PiSessionModule>();
+  return { ...actual, createPiSession: mocks.createPiSession };
+});
 
 describe('createPi adapter', () => {
   it('declares the harness id and builtin tools', () => {
@@ -7,6 +18,7 @@ describe('createPi adapter', () => {
     expect(harness.harnessId).toBe('pi');
     expect(harness.specificationVersion).toBe('harness-v1');
     expect(harness.supportsBuiltinToolApprovals).toBe(true);
+    expect(harness.supportsBuiltinToolFiltering).toBe(true);
     expect(Object.keys(harness.builtinTools).sort()).toEqual([
       'bash',
       'edit',
@@ -37,5 +49,78 @@ describe('createPi adapter', () => {
   it('omits getBootstrap (no in-sandbox install needed)', () => {
     const harness = createPi();
     expect(harness.getBootstrap).toBeUndefined();
+  });
+
+  it.each(['continue-turn', 'resume-session'] as const)(
+    'forwards %s lifecycle state and stateless runtime settings',
+    async resumeStateType => {
+      mocks.createPiSession.mockClear();
+      const credentials = {} as PiCredentialStore;
+      const fileToolPathPolicy = {
+        readableRoots: ['/mnt/reference'],
+        writableRoots: ['/tmp/artifacts'],
+        deniedRoots: ['/tmp/artifacts/private'],
+      };
+      const harness = createPi({
+        credentials,
+        reattachInProcess: false,
+        fileToolPathPolicy,
+      });
+      const lifecycleState = {
+        harnessId: 'pi',
+        specificationVersion: 'harness-v1',
+        data: {},
+      } as const;
+
+      const startOptions = {
+        sessionId: `session-${resumeStateType}`,
+        sandboxSession: {} as never,
+        sessionWorkDir: '/sandbox/work',
+      };
+      if (resumeStateType === 'continue-turn') {
+        await harness.doStart({
+          ...startOptions,
+          continueFrom: { ...lifecycleState, type: 'continue-turn' },
+        });
+      } else {
+        await harness.doStart({
+          ...startOptions,
+          resumeFrom: { ...lifecycleState, type: 'resume-session' },
+        });
+      }
+
+      expect(mocks.createPiSession).toHaveBeenCalledWith(
+        expect.objectContaining({
+          isResume: true,
+          resumeStateType,
+          settings: expect.objectContaining({
+            credentials,
+            reattachInProcess: false,
+            fileToolPathPolicy,
+          }),
+        }),
+      );
+    },
+  );
+  it('forwards the native file-tool path policy to the Pi session', async () => {
+    mocks.createPiSession.mockClear();
+    const fileToolPathPolicy = {
+      readableRoots: ['/mnt/reference'],
+      writableRoots: ['/tmp', '/mnt/artifacts'],
+      deniedRoots: ['/tmp/private'],
+    };
+    const harness = createPi({ fileToolPathPolicy });
+
+    await harness.doStart({
+      sessionId: 'session-with-file-tool-policy',
+      sandboxSession: {} as never,
+      sessionWorkDir: '/sandbox/work',
+    });
+
+    expect(mocks.createPiSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        settings: expect.objectContaining({ fileToolPathPolicy }),
+      }),
+    );
   });
 });

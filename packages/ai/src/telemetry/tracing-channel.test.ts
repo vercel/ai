@@ -5,6 +5,8 @@ import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
 import { embed } from '../embed/embed';
+import { embedMany } from '../embed/embed-many';
+import { decide } from '../decide/decide';
 import { generateText } from '../generate-text';
 import { streamText } from '../generate-text/stream-text';
 import { isStepCount } from '../generate-text/stop-condition';
@@ -12,6 +14,7 @@ import { rerank } from '../rerank/rerank';
 import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { MockRerankingModelV4 } from '../test/mock-reranking-model-v4';
+import { DecisionMockModelV4 } from '../test/decision-mock-model-v4';
 import { createTelemetryDispatcher } from './create-telemetry-dispatcher';
 import {
   AI_SDK_TELEMETRY_TRACING_CHANNEL,
@@ -175,7 +178,7 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
     const messages = await collectTracingChannelStartMessages(async () => {
       const telemetry = createTelemetryDispatcher({});
 
-      await telemetry.onStart!(event as any);
+      await telemetry.onStart?.(event as any);
     });
 
     expect(messages).toEqual([]);
@@ -558,6 +561,188 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
     `);
   });
 
+  it('filters tracing context using telemetry allowlists', async () => {
+    const usage = {
+      inputTokens: {
+        total: 3,
+        noCache: 3,
+        cacheRead: undefined,
+        cacheWrite: undefined,
+      },
+      outputTokens: {
+        total: 1,
+        text: 1,
+        reasoning: undefined,
+      },
+    };
+    const tools = {
+      weather: tool({
+        inputSchema: z.object({ city: z.string() }),
+        contextSchema: z.object({
+          tenantId: z.string(),
+          apiKey: z.string(),
+        }),
+        execute: async () => 'sunny',
+      }),
+    };
+    const runtimeContext = {
+      requestId: 'request-1',
+      accessToken: 'secret-token',
+    };
+    const telemetry = {
+      includeRuntimeContext: { requestId: true },
+    } as const;
+    const textContextOptions = {
+      runtimeContext: {
+        ...runtimeContext,
+      },
+      toolsContext: {
+        weather: {
+          tenantId: 'tenant-1',
+          apiKey: 'secret-key',
+        },
+      },
+      telemetry: {
+        ...telemetry,
+        includeToolsContext: { weather: { tenantId: true } },
+      },
+    } as const;
+
+    const messages = await collectTracingChannelStartMessages(async () => {
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+            usage,
+            warnings: [],
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'generate-weather-call',
+                toolName: 'weather',
+                input: JSON.stringify({ city: 'Berlin' }),
+              },
+            ],
+          }),
+        }),
+        prompt: 'What is the weather?',
+        tools,
+        ...textContextOptions,
+      });
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              {
+                type: 'tool-call',
+                toolCallId: 'stream-weather-call',
+                toolName: 'weather',
+                input: JSON.stringify({ city: 'Berlin' }),
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+                usage,
+              },
+            ]),
+          }),
+        }),
+        prompt: 'What is the weather?',
+        tools,
+        ...textContextOptions,
+      });
+
+      await result.consumeStream();
+
+      const embeddingModel = new MockEmbeddingModelV4({
+        doEmbed: async ({ values }) => ({
+          embeddings: values.map(() => [0.1, 0.2, 0.3]),
+          usage: { tokens: 10 },
+          warnings: [],
+        }),
+      });
+
+      await embed({
+        model: embeddingModel,
+        value: 'sunny day at the beach',
+        runtimeContext,
+        telemetry,
+      });
+
+      await embedMany({
+        model: embeddingModel,
+        values: ['sunny day at the beach', 'rainy day in the city'],
+        runtimeContext,
+        telemetry,
+      });
+
+      await rerank({
+        model: new MockRerankingModelV4({
+          doRerank: async () => ({
+            ranking: [{ index: 0, relevanceScore: 0.9 }],
+            warnings: [],
+          }),
+        }),
+        documents: ['sunny day at the beach'],
+        query: 'weather',
+        runtimeContext,
+        telemetry,
+      });
+
+      await decide({
+        model: new DecisionMockModelV4({
+          doDecide: async () => ({
+            answers: {
+              refund: { type: 'boolean', probability: 0.9 },
+            },
+            warnings: [],
+          }),
+        }),
+        state: 'Please refund me',
+        questions: {
+          refund: { type: 'boolean', instructions: 'Refund?' },
+        },
+        runtimeContext,
+        telemetry,
+      });
+    });
+
+    for (const type of [
+      'generateText',
+      'streamText',
+      'embed',
+      'embedMany',
+      'rerank',
+      'experimental_decide',
+    ] as const) {
+      const startMessage = messages.find(message => message.type === type);
+      expect(startMessage?.event).toEqual(
+        expect.objectContaining({
+          runtimeContext: { requestId: 'request-1' },
+        }),
+      );
+    }
+
+    for (const type of ['generateText', 'streamText'] as const) {
+      const startMessage = messages.find(message => message.type === type);
+      expect(startMessage?.event).toEqual(
+        expect.objectContaining({
+          toolsContext: { weather: { tenantId: 'tenant-1' } },
+        }),
+      );
+    }
+
+    expect(
+      messages
+        .filter(message => message.type === 'executeTool')
+        .map(
+          message => (message.event as { toolContext: unknown }).toolContext,
+        ),
+    ).toEqual([{ tenantId: 'tenant-1' }, { tenantId: 'tenant-1' }]);
+  });
+
   it('traces the current embed lifecycle sequence', async () => {
     const sequence = await collectTracingChannelEventSequence(async () => {
       await embed({
@@ -579,6 +764,36 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
       [
         "bindStart embed",
         "asyncEnd embed",
+      ]
+    `);
+  });
+
+  it('traces the current embedMany lifecycle sequence', async () => {
+    const sequence = await collectTracingChannelEventSequence(async () => {
+      await embedMany({
+        model: new MockEmbeddingModelV4({
+          maxEmbeddingsPerCall: 2,
+          doEmbed: async ({ values }) => ({
+            embeddings: values.map(() => [0.1, 0.2, 0.3]),
+            usage: { tokens: 10 },
+            warnings: [],
+          }),
+        }),
+        values: [
+          'sunny day at the beach',
+          'rainy day in the city',
+          'cloudy day in the mountains',
+        ],
+        telemetry: {
+          functionId: 'tracing-channel-embed-many-test',
+        },
+      });
+    });
+
+    expect(sequence).toMatchInlineSnapshot(`
+      [
+        "bindStart embedMany",
+        "asyncEnd embedMany",
       ]
     `);
   });
@@ -615,6 +830,97 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
     `);
   });
 
+  it('traces the current decide lifecycle sequence', async () => {
+    const sequence = await collectTracingChannelEventSequence(async () => {
+      await decide({
+        model: new DecisionMockModelV4({
+          doDecide: async () => ({
+            answers: {
+              refund: { type: 'boolean', probability: 0.9 },
+            },
+            warnings: [],
+          }),
+        }),
+        state: 'Please refund me',
+        questions: {
+          refund: { type: 'boolean', instructions: 'Refund?' },
+        },
+      });
+    });
+
+    expect(sequence).toMatchInlineSnapshot(`
+      [
+        "bindStart experimental_decide",
+        "asyncEnd experimental_decide",
+      ]
+    `);
+  });
+
+  it.each([
+    { name: 'an omitted allowlist', telemetry: undefined },
+    { name: 'an empty allowlist', telemetry: {} },
+    {
+      name: 'an explicitly excluded field',
+      telemetry: { includeRuntimeContext: { secret: false } },
+    },
+  ])('excludes decide runtime context with $name', async ({ telemetry }) => {
+    const messages = await collectTracingChannelStartMessages(async () => {
+      await decide({
+        model: new DecisionMockModelV4({
+          doDecide: async () => ({
+            answers: {
+              refund: { type: 'boolean', probability: 0.9 },
+            },
+            warnings: [],
+          }),
+        }),
+        state: 'Please refund me',
+        questions: {
+          refund: { type: 'boolean', instructions: 'Refund?' },
+        },
+        telemetry,
+        runtimeContext: { secret: 'hidden' },
+      });
+    });
+
+    const decideMessage = messages.find(
+      message => message.type === 'experimental_decide',
+    );
+
+    expect(
+      (decideMessage?.event as { runtimeContext?: unknown })?.runtimeContext,
+    ).toEqual({});
+  });
+
+  it('includes only allowlisted decide runtime context in tracing', async () => {
+    const messages = await collectTracingChannelStartMessages(async () => {
+      await decide({
+        model: new DecisionMockModelV4({
+          doDecide: async () => ({
+            answers: {
+              refund: { type: 'boolean', probability: 0.9 },
+            },
+            warnings: [],
+          }),
+        }),
+        state: 'Please refund me',
+        questions: {
+          refund: { type: 'boolean', instructions: 'Refund?' },
+        },
+        telemetry: { includeRuntimeContext: { requestId: true } },
+        runtimeContext: { requestId: 'request-1', secret: 'hidden' },
+      });
+    });
+
+    const decideMessage = messages.find(
+      message => message.type === 'experimental_decide',
+    );
+
+    expect(
+      (decideMessage?.event as { runtimeContext?: unknown })?.runtimeContext,
+    ).toEqual({ requestId: 'request-1' });
+  });
+
   it('publishes the embed result on asyncEnd', async () => {
     const messages = await collectTracingChannelAsyncEndMessages(async () => {
       await embed({
@@ -639,6 +945,47 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
       embedding: [0.1, 0.2, 0.3],
       usage: { tokens: 10 },
       warnings: [],
+    });
+  });
+
+  it('publishes the embedMany result on asyncEnd', async () => {
+    const messages = await collectTracingChannelAsyncEndMessages(async () => {
+      await embedMany({
+        model: new MockEmbeddingModelV4({
+          maxEmbeddingsPerCall: 2,
+          doEmbed: async ({ values }) => ({
+            embeddings: values.map(() => [0.1, 0.2, 0.3]),
+            usage: { tokens: 10 },
+            warnings: [],
+          }),
+        }),
+        values: [
+          'sunny day at the beach',
+          'rainy day in the city',
+          'cloudy day in the mountains',
+        ],
+        telemetry: {
+          functionId: 'tracing-channel-embed-many-result-test',
+        },
+      });
+    });
+
+    const embedManyMessage = messages.find(
+      message => message.type === 'embedMany',
+    );
+
+    expect(embedManyMessage?.result).toMatchObject({
+      values: [
+        'sunny day at the beach',
+        'rainy day in the city',
+        'cloudy day in the mountains',
+      ],
+      embeddings: [
+        [0.1, 0.2, 0.3],
+        [0.1, 0.2, 0.3],
+        [0.1, 0.2, 0.3],
+      ],
+      usage: { tokens: 20 },
     });
   });
 

@@ -13,21 +13,7 @@ API keys can be obtained from the [SambaNova Cloud Platform](https://cloud.samba
 
 The SambaNova provider is available via the `sambanova-ai-provider` module. You can install it with:
 
-<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
-  <Tab>
-    <Snippet text="pnpm add sambanova-ai-provider" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="npm install sambanova-ai-provider" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="yarn add sambanova-ai-provider" dark />
-  </Tab>
-
-  <Tab>
-    <Snippet text="bun add sambanova-ai-provider" dark />
-  </Tab>
-</Tabs>
+<InstallPackages packages="sambanova-ai-provider" />
 
 ### Environment variables
 
@@ -87,11 +73,11 @@ const model = sambanova('Meta-Llama-3.1-70B-Instruct');
 
 This provider is capable of generating and streaming text, and interpreting image inputs.
 
-At least it has been tested with the following features (which use the `/chat/completion` endpoint):
+At least it has been tested with the following features (which use the `/chat/completions` endpoint):
 
-| Chat completion     | Image input         |
-| ------------------- | ------------------- |
-| <Check size={18} /> | <Check size={18} /> |
+| Chat completion | Image input |
+| --------------- | ----------- |
+| <Check />       | <Check />   |
 
 ### Image input
 

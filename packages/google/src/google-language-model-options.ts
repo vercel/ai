@@ -31,6 +31,12 @@ export type GoogleModelId =
   | 'gemini-3.1-flash-lite-preview'
   | 'gemini-3.1-flash-tts-preview'
   | 'gemini-3.5-flash'
+  | 'gemini-3.5-flash-lite'
+  | 'gemini-3.6-flash'
+  | 'gemini-3.7-flash'
+  | 'gemini-3.8-flash'
+  | 'gemini-4-argon'
+  | 'gemini-nano-banana-2.1'
   // latest version
   // https://ai.google.dev/gemini-api/docs/models#latest
   | 'gemini-pro-latest'
@@ -55,7 +61,9 @@ export type GoogleModelId =
 export const googleLanguageModelOptions = lazySchema(() =>
   zodSchema(
     z.object({
-      responseModalities: z.array(z.enum(['TEXT', 'IMAGE'])).optional(),
+      responseModalities: z
+        .array(z.enum(['TEXT', 'IMAGE', 'AUDIO']))
+        .optional(),
 
       thinkingConfig: z
         .object({
@@ -176,6 +184,46 @@ export const googleLanguageModelOptions = lazySchema(() =>
             ])
             .optional(),
           imageSize: z.enum(['1K', '2K', '4K', '512']).optional(),
+
+          /**
+           * Optional. Controls the generation of people in images.
+           * Vertex AI only.
+           */
+          personGeneration: z
+            .enum([
+              'PERSON_GENERATION_UNSPECIFIED',
+              'ALLOW_ALL',
+              'ALLOW_ADULT',
+              'ALLOW_NONE',
+            ])
+            .optional(),
+
+          /**
+           * Optional. Controls whether generation of prominent people
+           * (celebrities) is allowed. When set together with
+           * `personGeneration`, `personGeneration` takes precedence.
+           * Vertex AI only.
+           *
+           * https://docs.cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1/GenerationConfig
+           */
+          prominentPeople: z
+            .enum([
+              'PROMINENT_PEOPLE_UNSPECIFIED',
+              'ALLOW_PROMINENT_PEOPLE',
+              'BLOCK_PROMINENT_PEOPLE',
+            ])
+            .optional(),
+
+          /**
+           * Optional. The image output format for generated images.
+           * Vertex AI only.
+           */
+          imageOutputOptions: z
+            .object({
+              mimeType: z.enum(['image/jpeg', 'image/png']).optional(),
+              compressionQuality: z.number().optional(),
+            })
+            .optional(),
         })
         .optional(),
 
@@ -213,6 +261,17 @@ export const googleLanguageModelOptions = lazySchema(() =>
        * `serviceTier` body field. Gemini API only.
        */
       serviceTier: z.enum(['standard', 'flex', 'priority']).optional(),
+
+      /**
+       * Optional. Resumes a response that stopped with `MAX_TOKENS` because it
+       * used up its `maxOutputTokens` budget (Gemini 4 long decode). Pass the
+       * `continuationToken` from the previous response's provider metadata
+       * together with the original prompt and a higher `maxOutputTokens` (the
+       * budget is cumulative across requests). Requests that reach the
+       * per-request cap while budget remains (`CONTINUATION`) are continued
+       * automatically. Sent as the `continuationToken` body field.
+       */
+      continuationToken: z.string().optional(),
 
       /**
        * Optional. Vertex AI only. Sent as the

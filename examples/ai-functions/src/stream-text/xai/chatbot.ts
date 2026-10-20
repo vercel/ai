@@ -18,7 +18,7 @@ run(async () => {
     messages.push({ role: 'user', content: userInput });
 
     const result = streamText({
-      model: xai('grok-3-beta'),
+      model: xai('grok-4.7'),
       tools: {
         weather: tool({
           description: 'Get the weather in a location',

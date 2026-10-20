@@ -11,21 +11,7 @@ description: Track, monitor, guardrail and evaluate your AI SDK applications wit
 
 Obtain your `LANGWATCH_API_KEY` from the [LangWatch dashboard](https://app.langwatch.com/).
 
-<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
-  <Tab>
-    <Snippet text="pnpm add langwatch" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="npm install langwatch" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="yarn add langwatch" dark />
-  </Tab>
-
-  <Tab>
-    <Snippet text="bun add langwatch" dark />
-  </Tab>
-</Tabs>
+<InstallPackages packages="langwatch" />
 
 Ensure `LANGWATCH_API_KEY` is set:
 
@@ -118,7 +104,7 @@ import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const result = await generateText({
-  model: openai('gpt-4o-mini'),
+  model: openai('gpt-6-luna'),
   prompt:
     'Explain why a chicken would make a terrible astronaut, be creative and humorous about it.',
   telemetry: {

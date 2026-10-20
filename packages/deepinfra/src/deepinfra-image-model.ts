@@ -10,6 +10,7 @@ import {
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   downloadBlob,
+  parseProviderOptions,
   postFormDataToApi,
   postJsonToApi,
   serializeModelOptions,
@@ -17,8 +18,12 @@ import {
   WORKFLOW_DESERIALIZE,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import type { DeepInfraImageModelId } from './deepinfra-image-settings';
 import { z } from 'zod/v4';
+import {
+  deepInfraImageModelOptionsSchema,
+  type DeepInfraImageModelOptions,
+} from './deepinfra-image-model-options';
+import type { DeepInfraImageModelId } from './deepinfra-image-settings';
 
 interface DeepInfraImageModelConfig {
   provider: string;
@@ -33,6 +38,27 @@ interface DeepInfraImageModelConfig {
 export class DeepInfraImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 1;
+
+  get supportsFileInputs(): boolean | undefined {
+    return [
+      'stabilityai/sd3.5',
+      'black-forest-labs/FLUX-1.1-pro',
+      'black-forest-labs/FLUX-1-schnell',
+      'black-forest-labs/FLUX-1-dev',
+      'black-forest-labs/FLUX-pro',
+      'black-forest-labs/FLUX.1-Kontext-dev',
+      'black-forest-labs/FLUX.1-Kontext-pro',
+      'Qwen/Qwen-Image-Edit',
+      'stabilityai/sd3.5-medium',
+      'stabilityai/sdxl-turbo',
+    ].includes(this.modelId)
+      ? true
+      : undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    return this.supportsFileInputs;
+  }
 
   get provider(): string {
     return this.config.provider;
@@ -73,6 +99,11 @@ export class DeepInfraImageModel implements ImageModelV4 {
   > {
     const warnings: Array<SharedV4Warning> = [];
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const deepInfraOptions = (await parseProviderOptions({
+      provider: 'deepinfra',
+      providerOptions,
+      schema: deepInfraImageModelOptionsSchema,
+    })) as DeepInfraImageModelOptions | undefined;
 
     // Image editing mode - use OpenAI-compatible /images/edits endpoint
     if (files != null && files.length > 0) {
@@ -87,7 +118,7 @@ export class DeepInfraImageModel implements ImageModelV4 {
             mask: mask != null ? await fileToBlob(mask) : undefined,
             n,
             size,
-            ...(providerOptions.deepinfra ?? {}),
+            ...deepInfraOptions,
           },
           { useArrayBrackets: false },
         ),
@@ -126,7 +157,7 @@ export class DeepInfraImageModel implements ImageModelV4 {
         ...(aspectRatio && { aspect_ratio: aspectRatio }),
         ...(splitSize && { width: splitSize[0], height: splitSize[1] }),
         ...(seed != null && { seed }),
-        ...(providerOptions.deepinfra ?? {}),
+        ...deepInfraOptions,
       },
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: deepInfraErrorSchema,

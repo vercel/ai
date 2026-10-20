@@ -5,7 +5,7 @@ import * as z from 'zod';
 
 async function main() {
   const result = await generateText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     prompt: 'What is the weather in San Francisco?',
     tools: {
       getWeather: tool({
@@ -55,8 +55,8 @@ async function main() {
       console.log('Input tokens:', event.usage.inputTokens);
       console.log('Output tokens:', event.usage.outputTokens);
     },
-    onFinish: event => {
-      console.log('\n--- onFinish ---');
+    onEnd: event => {
+      console.log('\n--- onEnd ---');
       console.log('Total steps:', event.steps.length);
       console.log('Total input tokens:', event.usage.inputTokens);
       console.log('Total output tokens:', event.usage.outputTokens);

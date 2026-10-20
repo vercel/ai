@@ -22,11 +22,11 @@ async function main() {
     const tools = await mcpClient.tools();
 
     const result = streamText({
-      model: openai('gpt-4o-mini'),
+      model: openai('gpt-6-luna'),
       tools,
       instructions: 'You are a helpful chatbot',
       prompt: 'What tools are available for me to call?',
-      onFinish: async () => {
+      onEnd: async () => {
         await mcpClient.close();
       },
     });

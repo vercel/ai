@@ -10,7 +10,7 @@ const errorMessage = fs.readFileSync('data/error-message.txt', 'utf8');
 
 run(async () => {
   const result = streamText({
-    model: anthropic('claude-3-5-sonnet-20240620'),
+    model: anthropic('claude-sonnet-5-5'),
     messages: [
       {
         role: 'user',
@@ -35,9 +35,9 @@ run(async () => {
         ],
       },
     ],
-    onFinish({ finalStep }) {
+    onEnd({ finalStep }) {
       console.log();
-      console.log('=== onFinish ===');
+      console.log('=== onEnd ===');
       console.log(finalStep.providerMetadata?.anthropic);
     },
   });

@@ -1,55 +1,75 @@
-import { z } from 'zod';
+import { z } from 'zod/v4';
+
+/**
+ * Pi's `input` excludes cached tokens; `reasoning` is a subset of `output`,
+ * set only by providers that report it.
+ */
+const piUsageSchema = z
+  .looseObject({
+    input: z.number(),
+    output: z.number(),
+    cacheRead: z.number(),
+    cacheWrite: z.number(),
+    reasoning: z.number().optional(),
+  })
+  .optional()
+  .catch(undefined);
+
+export type PiUsage = NonNullable<z.infer<typeof piUsageSchema>>;
 
 /**
  * Pi `session.subscribe` emits a discriminated union of events. The exact
- * shape evolves with Pi versions; we accept the events with `passthrough()`
- * and extract only the fields we recognise. The `type` field is required
- * and stringly-typed because Pi may add new types we want to ignore.
+ * shape evolves with Pi versions; we accept loose objects and extract only
+ * the fields we recognise. The `type` field is required and stringly-typed
+ * because Pi may add new types we want to ignore.
  */
-export const piSessionEventSchema = z
-  .object({
-    type: z.string(),
-    assistantMessageEvent: z
-      .object({
-        type: z.string().optional(),
-        delta: z.string().optional(),
-      })
-      .passthrough()
-      .optional(),
-    toolCallId: z.string().optional(),
-    toolName: z.string().optional(),
-    args: z.unknown().optional(),
-    input: z.unknown().optional(),
-    result: z.unknown().optional(),
-    content: z.unknown().optional(),
-    isError: z.boolean().optional(),
-    // Compaction events (`compaction_start` / `compaction_end`). `result` (a
-    // `CompactionResult`) rides the shared `result` field above; `reason`
-    // distinguishes manual vs automatic (threshold/overflow) compaction.
-    reason: z.string().optional(),
-    aborted: z.boolean().optional(),
-    error: z
-      .union([
-        z.string(),
-        z
-          .object({
-            errorMessage: z.string().optional(),
-            stopReason: z.string().optional(),
-          })
-          .passthrough(),
-      ])
-      .optional(),
-    message: z
-      .object({
-        role: z.string().optional(),
-        content: z.unknown().optional(),
-        stopReason: z.string().optional(),
+export const piSessionEventSchema = z.looseObject({
+  type: z.string(),
+  assistantMessageEvent: z
+    .looseObject({
+      type: z.string().optional(),
+      delta: z.string().optional(),
+      // `toolcall_start` / `toolcall_delta` / `toolcall_end` address a content
+      // block by index rather than by tool call id. The id and name live in the
+      // partial assistant message at that index, which Pi fills in before the
+      // first delta arrives.
+      contentIndex: z.number().optional(),
+      partial: z
+        .looseObject({ content: z.array(z.unknown()).optional() })
+        .optional(),
+    })
+    .optional(),
+  toolCallId: z.string().optional(),
+  toolName: z.string().optional(),
+  args: z.unknown().optional(),
+  input: z.unknown().optional(),
+  result: z.unknown().optional(),
+  content: z.unknown().optional(),
+  isError: z.boolean().optional(),
+  // Compaction events (`compaction_start` / `compaction_end`). `result` (a
+  // `CompactionResult`) rides the shared `result` field above; `reason`
+  // distinguishes manual vs automatic (threshold/overflow) compaction.
+  reason: z.string().optional(),
+  aborted: z.boolean().optional(),
+  error: z
+    .union([
+      z.string(),
+      z.looseObject({
         errorMessage: z.string().optional(),
-      })
-      .passthrough()
-      .optional(),
-  })
-  .passthrough();
+        stopReason: z.string().optional(),
+      }),
+    ])
+    .optional(),
+  message: z
+    .looseObject({
+      role: z.string().optional(),
+      content: z.unknown().optional(),
+      stopReason: z.string().optional(),
+      errorMessage: z.string().optional(),
+      usage: piUsageSchema,
+    })
+    .optional(),
+});
 
 export type PiSessionEvent = z.infer<typeof piSessionEventSchema>;
 
@@ -103,8 +123,6 @@ export function getPiTerminalError(event: PiSessionEvent): string | undefined {
   ) {
     return event.content.trim();
   }
-
-  return undefined;
 }
 
 /** Pull the assistant text from a `turn_end` / `message_end` event payload. */

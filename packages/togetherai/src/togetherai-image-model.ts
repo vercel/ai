@@ -25,9 +25,48 @@ interface TogetherAIImageModelConfig {
   };
 }
 
+const nonDiffusionImageModels = new Set<string>(['google/gemini-3-pro-image']);
+
 export class TogetherAIImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 1;
+
+  get supportsFileInputs(): boolean | undefined {
+    if (
+      [
+        'black-forest-labs/FLUX.1-kontext-pro',
+        'black-forest-labs/FLUX.1-kontext-max',
+        'black-forest-labs/FLUX.1-kontext-dev',
+        'black-forest-labs/FLUX.1-canny',
+        'black-forest-labs/FLUX.1-depth',
+        'black-forest-labs/FLUX.1-redux',
+        // These FLUX.2 models accept the single image_url sent by doGenerate.
+        'black-forest-labs/FLUX.2-pro',
+        'black-forest-labs/FLUX.2-flex',
+      ].includes(this.modelId)
+    ) {
+      return true;
+    }
+
+    return [
+      'stabilityai/stable-diffusion-xl-base-1.0',
+      'black-forest-labs/FLUX.1-dev',
+      'black-forest-labs/FLUX.1-dev-lora',
+      'black-forest-labs/FLUX.1-schnell',
+      'black-forest-labs/FLUX.1.1-pro',
+      'black-forest-labs/FLUX.1-pro',
+      'black-forest-labs/FLUX.1-schnell-Free',
+      // These models require reference_images, which doGenerate does not send.
+      'black-forest-labs/FLUX.2-dev',
+      'google/gemini-3-pro-image',
+    ].includes(this.modelId)
+      ? false
+      : undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    return this.supportsFileInputs == null ? undefined : false;
+  }
 
   get provider(): string {
     return this.config.provider;
@@ -92,6 +131,24 @@ export class TogetherAIImageModel implements ImageModelV4 {
       schema: togetheraiImageModelOptionsSchema,
     });
 
+    const isNonDiffusionModel = nonDiffusionImageModels.has(this.modelId);
+
+    const modelOptions = { ...togetheraiOptions };
+    if (isNonDiffusionModel) {
+      delete modelOptions.steps;
+      delete modelOptions.guidance;
+      delete modelOptions.negative_prompt;
+      delete modelOptions.disable_safety_checker;
+
+      if (seed != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'seed',
+          details: `The ${this.modelId} model does not support the \`seed\` option.`,
+        });
+      }
+    }
+
     // Handle image input from files
     let imageUrl: string | undefined;
     if (files != null && files.length > 0) {
@@ -114,7 +171,7 @@ export class TogetherAIImageModel implements ImageModelV4 {
       body: {
         model: this.modelId,
         prompt,
-        ...(seed != null ? { seed } : {}),
+        ...(seed != null && !isNonDiffusionModel ? { seed } : {}),
         ...(n > 1 ? { n } : {}),
         ...(splitSize && {
           width: parseInt(splitSize[0]),
@@ -122,7 +179,7 @@ export class TogetherAIImageModel implements ImageModelV4 {
         }),
         ...(imageUrl != null ? { image_url: imageUrl } : {}),
         response_format: 'base64',
-        ...(togetheraiOptions ?? {}),
+        ...modelOptions,
       },
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: togetheraiErrorSchema,

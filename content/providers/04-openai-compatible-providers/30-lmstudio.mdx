@@ -8,28 +8,14 @@ description: Use the LM Studio OpenAI compatible API with the AI SDK.
 [LM Studio](https://lmstudio.ai/) is a user interface for running local models.
 
 It contains an OpenAI compatible API server that you can use with the AI SDK.
-You can start the local server under the [Local Server tab](https://lmstudio.ai/docs/basics/server) in the LM Studio UI ("Start Server" button).
+You can start the local server under the [Local Server tab](https://lmstudio.ai/docs/developer/core/server) in the LM Studio UI ("Start Server" button).
 
 ## Setup
 
 The LM Studio provider is available via the `@ai-sdk/openai-compatible` module as it is compatible with the OpenAI API.
 You can install it with
 
-<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
-  <Tab>
-    <Snippet text="pnpm add @ai-sdk/openai-compatible" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="npm install @ai-sdk/openai-compatible" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="yarn add @ai-sdk/openai-compatible" dark />
-  </Tab>
-
-  <Tab>
-    <Snippet text="bun add @ai-sdk/openai-compatible" dark />
-  </Tab>
-</Tabs>
+<InstallPackages packages="@ai-sdk/openai-compatible" />
 
 ## Provider Instance
 
@@ -70,13 +56,13 @@ import { generateText } from 'ai';
 
 const lmstudio = createOpenAICompatible({
   name: 'lmstudio',
-  baseURL: 'https://localhost:1234/v1',
+  baseURL: 'http://localhost:1234/v1',
 });
 
 const { text } = await generateText({
   model: lmstudio('llama-3.2-1b'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
-  maxRetries: 1, // immediately error if the server is not running
+  maxRetries: 0, // immediately error if the server is not running
 });
 ```
 
@@ -99,7 +85,7 @@ import { embed } from 'ai';
 
 const lmstudio = createOpenAICompatible({
   name: 'lmstudio',
-  baseURL: 'https://localhost:1234/v1',
+  baseURL: 'http://localhost:1234/v1',
 });
 
 // 'embedding' is a single embedding object (number[])
@@ -124,7 +110,7 @@ import { embedMany } from 'ai';
 
 const lmstudio = createOpenAICompatible({
   name: 'lmstudio',
-  baseURL: 'https://localhost:1234/v1',
+  baseURL: 'http://localhost:1234/v1',
 });
 
 // 'embeddings' is an array of embedding objects (number[][]).

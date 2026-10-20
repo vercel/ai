@@ -11,20 +11,7 @@ description: Monitor and optimize your AI SDK applications with minimal configur
 
 The Helicone provider is available in the `@helicone/ai-sdk-provider` package. Install it with:
 
-<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
-  <Tab>
-    <Snippet text="pnpm add @helicone/ai-sdk-provider" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="npm install @helicone/ai-sdk-provider" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="yarn add @helicone/ai-sdk-provider" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="bun add @helicone/ai-sdk-provider" dark />
-  </Tab>
-</Tabs>
+<InstallPackages packages="@helicone/ai-sdk-provider" />
 
 Setting up Helicone:
 
@@ -108,7 +95,7 @@ const helicone = createHelicone({
 });
 
 const result = await generateText({
-  model: helicone('gpt-4o-mini', {
+  model: helicone('gpt-6-luna', {
     extraBody: {
       helicone: {
         userId: 'user@example.com',
@@ -141,7 +128,7 @@ const helicone = createHelicone({
 });
 
 const result = await generateText({
-  model: helicone('gpt-4o-mini', {
+  model: helicone('gpt-6-luna', {
     extraBody: {
       helicone: {
         properties: {
@@ -179,7 +166,7 @@ const helicone = createHelicone({
 });
 
 const result = await generateText({
-  model: helicone('gpt-4o-mini', {
+  model: helicone('gpt-6-luna', {
     extraBody: {
       helicone: {
         sessionId: 'convo-123',
@@ -217,7 +204,7 @@ const helicone = createHelicone({
 });
 
 const result = await generateText({
-  model: helicone('gpt-4o-mini', {
+  model: helicone('gpt-6-luna', {
     extraBody: {
       helicone: {
         tags: ['customer-support', 'urgent'],
@@ -255,7 +242,7 @@ const helicone = createHelicone({
 });
 
 const result = await streamText({
-  model: helicone('gpt-4o-mini', {
+  model: helicone('gpt-6-luna', {
     extraBody: {
       helicone: {
         userId: 'user@example.com',

@@ -1,5 +1,6 @@
 import {
   isAbortError,
+  normalizeHeaders,
   safeValidateTypes,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
@@ -17,10 +18,7 @@ import { ref, type Ref } from 'vue';
 // use function to allow for mocking in tests
 const getOriginalFetch = () => fetch;
 
-export type Experimental_UseObjectOptions<
-  SCHEMA extends FlexibleSchema,
-  RESULT,
-> = {
+export type UseObjectOptions<SCHEMA extends FlexibleSchema, RESULT> = {
   /** API endpoint that streams JSON chunks matching the schema */
   api: string;
 
@@ -52,7 +50,7 @@ export type Experimental_UseObjectOptions<
   credentials?: RequestCredentials;
 };
 
-export type Experimental_UseObjectHelpers<RESULT, INPUT> = {
+export type UseObjectHelpers<RESULT, INPUT> = {
   /** POST the input and start streaming */
   submit: (input: INPUT) => void;
 
@@ -78,7 +76,7 @@ let uniqueId = 0;
 const useSWRV = (swrv.default as (typeof SwrvModule)['default']) || swrv;
 const store: Record<string, any> = {};
 
-export const experimental_useObject = function useObject<
+export function useObject<
   SCHEMA extends FlexibleSchema,
   RESULT = InferSchema<SCHEMA>,
   INPUT = any,
@@ -92,10 +90,7 @@ export const experimental_useObject = function useObject<
   onFinish,
   headers,
   credentials,
-}: Experimental_UseObjectOptions<
-  SCHEMA,
-  RESULT
->): Experimental_UseObjectHelpers<RESULT, INPUT> {
+}: UseObjectOptions<SCHEMA, RESULT>): UseObjectHelpers<RESULT, INPUT> {
   // Generate an unique id for the object if not provided.
   const completionId = id || `completion-${uniqueId++}`;
 
@@ -147,21 +142,34 @@ export const experimental_useObject = function useObject<
   };
 
   const submit = async (input: INPUT) => {
+    const currentAbortController = new AbortController();
+    abortController = currentAbortController;
+
     try {
       await clearObject();
+
+      if (currentAbortController.signal.aborted) {
+        return;
+      }
+
       await mutateLoading(() => true);
 
-      abortController = new AbortController();
+      if (currentAbortController.signal.aborted) {
+        if (abortController === null) {
+          await mutateLoading(() => false);
+        }
+        return;
+      }
 
       const actualFetch = fetch ?? getOriginalFetch();
       const response = await actualFetch(api, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          ...(headers as any),
+          'content-type': 'application/json',
+          ...normalizeHeaders(headers),
         },
         credentials: credentials ?? 'same-origin',
-        signal: abortController.signal,
+        signal: currentAbortController.signal,
         body: JSON.stringify(input),
       });
 
@@ -190,8 +198,10 @@ export const experimental_useObject = function useObject<
             }
           },
           async close() {
-            await mutateLoading(() => false);
-            abortController = null;
+            if (abortController === currentAbortController) {
+              abortController = null;
+              await mutateLoading(() => false);
+            }
 
             if (onFinish) {
               const validationResult = await safeValidateTypes({
@@ -229,4 +239,4 @@ export const experimental_useObject = function useObject<
     stop,
     clear,
   };
-};
+}

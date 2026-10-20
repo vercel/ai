@@ -10,7 +10,6 @@ import {
   mediaTypeToExtension,
   delay,
   getFromApi,
-  isSameOrigin,
   parseProviderOptions,
   postFormDataToApi,
   postJsonToApi,
@@ -206,7 +205,7 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
     const formData = new FormData();
     const blob =
       options.audio instanceof Uint8Array
-        ? new Blob([options.audio])
+        ? new Blob([options.audio as Uint8Array<ArrayBuffer>])
         : new Blob([convertBase64ToUint8Array(options.audio)]);
 
     const fileExtension = mediaTypeToExtension(options.mediaType);
@@ -274,9 +273,11 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
 
       const response = await getFromApi({
         url: resultUrl,
-        headers: isSameOrigin(resultUrl, apiOrigin)
-          ? combineHeaders(this.config.headers?.(), options.headers)
-          : undefined,
+        // resultUrl comes from the provider response body.
+        validateUrl: true,
+        credentialedOrigin: apiOrigin,
+        trustedOrigin: apiOrigin,
+        headers: combineHeaders(this.config.headers?.(), options.headers),
         failedResponseHandler: gladiaFailedResponseHandler,
         successfulResponseHandler: createJsonResponseHandler(
           gladiaTranscriptionResultResponseSchema,
@@ -360,6 +361,19 @@ const gladiaTranscriptionResultResponseSchema = z.object({
             start: z.number(),
             end: z.number(),
             text: z.string(),
+            speaker: z.union([z.string(), z.number()]).nullish(),
+            confidence: z.number().nullish(),
+            language: z.string().nullish(),
+            words: z
+              .array(
+                z.object({
+                  word: z.string(),
+                  start: z.number(),
+                  end: z.number(),
+                  confidence: z.number().nullish(),
+                }),
+              )
+              .nullish(),
           }),
         ),
       }),

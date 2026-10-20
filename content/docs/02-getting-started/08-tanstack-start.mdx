@@ -16,7 +16,7 @@ If you are unfamiliar with the concepts of [Prompt Engineering](/docs/advanced/p
 To follow this quickstart, you'll need:
 
 - Node.js 22+ and pnpm installed on your local development machine.
-- A [ Vercel AI Gateway ](https://vercel.com/ai-gateway) API key.
+- A [Vercel AI Gateway](https://vercel.com/ai-gateway) API key.
 
 If you haven't obtained your Vercel AI Gateway API key, you can do so by [signing up](https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai&title=Go+to+AI+Gateway) on the Vercel website.
 
@@ -32,7 +32,7 @@ Navigate to the newly created directory:
 
 ### Install dependencies
 
-Install `ai` and `@ai-sdk/react`, the AI package and AI SDK's React hooks. The AI SDK's [ Vercel AI Gateway provider ](/providers/ai-sdk-providers/ai-gateway) ships with the `ai` package. You'll also install `zod`, a schema validation library used for defining tool inputs.
+Install `ai` and `@ai-sdk/react`, the AI package and AI SDK's React hooks. The AI SDK's [Vercel AI Gateway provider](/providers/ai-sdk-providers/ai-gateway) ships with the `ai` package. You'll also install `zod`, a schema validation library used for defining tool inputs.
 
 <Note>
   This guide uses the Vercel AI Gateway provider so you can access hundreds of
@@ -41,24 +41,7 @@ Install `ai` and `@ai-sdk/react`, the AI package and AI SDK's React hooks. The A
   providers](/providers/ai-sdk-providers) for more information.
 </Note>
 
-<div className="my-4">
-  <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
-    <Tab>
-      <Snippet text="pnpm add ai @ai-sdk/react zod" dark />
-    </Tab>
-    <Tab>
-      <Snippet text="npm install ai @ai-sdk/react zod" dark />
-    </Tab>
-    <Tab>
-      <Snippet text="yarn add ai @ai-sdk/react zod" dark />
-    </Tab>
-
-    <Tab>
-      <Snippet text="bun add ai @ai-sdk/react zod" dark />
-    </Tab>
-
-  </Tabs>
-</div>
+<InstallPackages packages="ai @ai-sdk/react zod" />
 
 ### Configure your AI Gateway API key
 
@@ -125,7 +108,7 @@ This Route Handler creates a POST request endpoint at `/api/chat`.
 
 ## Choosing a Provider
 
-The AI SDK supports dozens of model providers through [first-party](/providers/ai-sdk-providers), [OpenAI-compatible](/providers/openai-compatible-providers), and [ community ](/providers/community-providers) packages.
+The AI SDK supports dozens of model providers through [first-party](/providers/ai-sdk-providers), [OpenAI-compatible](/providers/openai-compatible-providers), and [community](/providers/community-providers) packages.
 
 This quickstart uses the [Vercel AI Gateway](https://vercel.com/ai-gateway) provider, which is the default [global provider](/docs/ai-sdk-core/provider-management#global-provider-configuration). This means you can access models using a simple string in the model configuration:
 
@@ -138,40 +121,23 @@ You can also explicitly import and use the gateway provider in two other equival
 ```ts
 // Option 1: Import from 'ai' package (included by default)
 import { gateway } from 'ai';
-model: gateway('anthropic/claude-sonnet-4.5');
+model: gateway('anthropic/claude-sonnet-5.5');
 
 // Option 2: Install and import from '@ai-sdk/gateway' package
 import { gateway } from '@ai-sdk/gateway';
-model: gateway('anthropic/claude-sonnet-4.5');
+model: gateway('anthropic/claude-sonnet-5.5');
 ```
 
 ### Using other providers
 
 To use a different provider, install its package and create a provider instance. For example, to use OpenAI directly:
 
-<div className="my-4">
-  <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
-    <Tab>
-      <Snippet text="pnpm add @ai-sdk/openai" dark />
-    </Tab>
-    <Tab>
-      <Snippet text="npm install @ai-sdk/openai" dark />
-    </Tab>
-    <Tab>
-      <Snippet text="yarn add @ai-sdk/openai" dark />
-    </Tab>
-
-    <Tab>
-      <Snippet text="bun add @ai-sdk/openai" dark />
-    </Tab>
-
-  </Tabs>
-</div>
+<InstallPackages packages="@ai-sdk/openai" />
 
 ```ts
 import { openai } from '@ai-sdk/openai';
 
-model: openai('gpt-5.1');
+model: openai('gpt-6-astra');
 ```
 
 #### Updating the global provider
@@ -182,7 +148,7 @@ Pick the approach that best matches how you want to manage providers across your
 
 ## Wire up the UI
 
-Now that you have a Route Handler that can query an LLM, it's time to setup your frontend. The AI SDK's [ UI ](/docs/ai-sdk-ui) package abstracts the complexity of a chat interface into one hook, [`useChat`](/docs/reference/ai-sdk-ui/use-chat).
+Now that you have a Route Handler that can query an LLM, it's time to set up your frontend. The AI SDK's [UI](/docs/ai-sdk-ui) package abstracts the complexity of a chat interface into one hook, [`useChat`](/docs/reference/ai-sdk-ui/use-chat).
 
 Update your index route (`src/routes/index.tsx`) with the following code to show a list of chat messages and provide a user message input:
 
@@ -262,7 +228,7 @@ Let's enhance your chatbot by adding a simple weather tool.
 
 Modify your `src/routes/api/chat.ts` file to include the new weather tool:
 
-```tsx filename="src/routes/api/chat.ts" highlight="9,20-34"
+```tsx filename="src/routes/api/chat.ts" highlight="9,22-38"
 import {
   streamText,
   UIMessage,
@@ -336,7 +302,7 @@ Notice the blank response in the UI? This is because instead of generating a tex
 
 To display the tool invocation in your UI, update your `src/routes/index.tsx` file:
 
-```tsx filename="src/routes/index.tsx" highlight="16-21"
+```tsx filename="src/routes/index.tsx" highlight="21-26"
 import { createFileRoute } from '@tanstack/react-router';
 import { useChat } from '@ai-sdk/react';
 import { useState } from 'react';
@@ -457,13 +423,13 @@ In this updated code, you set `stopWhen` to be when `isStepCount(5)`, allowing t
 
 Head back to the browser and ask about the weather in a location. You should now see the model using the weather tool results to answer your question.
 
-By setting `stopWhen: isStepCount(5)`, you're allowing the model to use up to 5 "steps" for any given generation. This enables more complex interactions and allows the model to gather and process information over several steps if needed. You can see this in action by adding another tool to convert the temperature from Celsius to Fahrenheit.
+By setting `stopWhen: isStepCount(5)`, you're allowing the model to use up to 5 "steps" for any given generation. This enables more complex interactions and allows the model to gather and process information over several steps if needed. You can see this in action by adding another tool to convert the temperature from Fahrenheit to Celsius.
 
 ### Add another tool
 
 Update your `src/routes/api/chat.ts` file to add a new tool to convert the temperature from Fahrenheit to Celsius:
 
-```tsx filename="src/routes/api/chat.ts" highlight="36-49"
+```tsx filename="src/routes/api/chat.ts" highlight="40-53"
 import {
   streamText,
   UIMessage,
@@ -533,7 +499,7 @@ export const Route = createFileRoute('/api/chat')({
 
 update your `src/routes/index.tsx` file to render the new temperature conversion tool:
 
-```tsx filename="src/routes/index.tsx" highlight="21"
+```tsx filename="src/routes/index.tsx" highlight="21-26"
 import { createFileRoute } from '@tanstack/react-router';
 import { useChat } from '@ai-sdk/react';
 import { useState } from 'react';

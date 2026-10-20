@@ -13,20 +13,7 @@ Raindrop supports the AI SDK v7 telemetry interface directly, so you can use `re
 
 Install the Raindrop AI SDK integration:
 
-<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
-  <Tab>
-    <Snippet text="pnpm add @raindrop-ai/ai-sdk" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="npm install @raindrop-ai/ai-sdk" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="yarn add @raindrop-ai/ai-sdk" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="bun add @raindrop-ai/ai-sdk" dark />
-  </Tab>
-</Tabs>
+<InstallPackages packages="@raindrop-ai/ai-sdk" />
 
 Set your Raindrop write key (create one in the [Raindrop dashboard](https://www.raindrop.ai/)):
 
@@ -52,7 +39,7 @@ import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const { text } = await generateText({
-  model: openai('gpt-5-mini'),
+  model: openai('gpt-6-luna'),
   prompt: 'Write a short welcome message for a new user.',
   telemetry: {
     functionId: 'welcome-message',
@@ -66,7 +53,7 @@ Raindrop records an event once a `userId` is available, so set the Raindrop `con
 
 If Raindrop event fields such as `userId`, `convoId`, or `eventName` change per request, pass a Raindrop integration through `telemetry.integrations` for that call:
 
-```ts highlight="12-22"
+```ts highlight="8-10,15-19,21"
 import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { raindrop } from '@raindrop-ai/ai-sdk';
@@ -79,7 +66,7 @@ const raindropTelemetry = raindrop({
 });
 
 const { text } = await generateText({
-  model: openai('gpt-5-mini'),
+  model: openai('gpt-6-luna'),
   prompt: 'Summarize the latest support ticket.',
   telemetry: {
     functionId: 'support-summary',
@@ -123,7 +110,7 @@ export async function POST(req: Request) {
   });
 
   const result = streamText({
-    model: openai('gpt-5-mini'),
+    model: openai('gpt-6-luna'),
     messages: await convertToModelMessages(messages),
     telemetry: {
       functionId: 'chat-route',
@@ -146,7 +133,7 @@ export async function POST(req: Request) {
 
 ```ts
 const result = await generateText({
-  model: openai('gpt-5-mini'),
+  model: openai('gpt-6-luna'),
   prompt: 'Summarize this private document.',
   telemetry: {
     recordInputs: false,

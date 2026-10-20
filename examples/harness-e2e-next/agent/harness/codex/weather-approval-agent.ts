@@ -11,7 +11,6 @@ import {
   createTraceTreeReporter,
 } from '@ai-sdk/harness/agent';
 import { codex } from '@ai-sdk/harness-codex';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import type { InferUITools, UIMessage } from 'ai';
 
 export const weatherApprovalCodexHarnessAgent = new HarnessAgent({
@@ -24,16 +23,14 @@ export const weatherApprovalCodexHarnessAgent = new HarnessAgent({
   },
   // Codex harness currently only supports the default of "allow-all".
   // permissionMode: 'allow-edits',
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-  }),
-  onSandboxSession: async ({ session, sessionWorkDir, abortSignal }) => {
-    await session.writeTextFile({
-      path: `${sessionWorkDir}/weather-codes.md`,
-      content: WEATHER_CODES_REFERENCE,
-      abortSignal,
-    });
+  sandboxConfig: {
+    onSession: async ({ session, sessionWorkDir, abortSignal }) => {
+      await session.writeTextFile({
+        path: `${sessionWorkDir}/weather-codes.md`,
+        content: WEATHER_CODES_REFERENCE,
+        abortSignal,
+      });
+    },
   },
   debug: { enabled: true },
   telemetry: {

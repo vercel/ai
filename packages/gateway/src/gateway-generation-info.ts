@@ -1,12 +1,13 @@
 import {
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  getErrorMessage,
   getFromApi,
   lazySchema,
   resolve,
   zodSchema,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import { z } from './zod';
 import { asGatewayError } from './errors';
 import type { GatewayConfig } from './gateway-config';
 
@@ -65,6 +66,7 @@ export class GatewayGenerationInfoFetcher {
 
       const { value } = await getFromApi({
         url: `${baseUrl.origin}/v1/generation?id=${encodeURIComponent(params.id)}`,
+        validateUrl: false,
         headers: this.config.headers
           ? await resolve(this.config.headers)
           : undefined,
@@ -73,7 +75,7 @@ export class GatewayGenerationInfoFetcher {
         ),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
-          errorToMessage: data => data,
+          errorToMessage: data => getErrorMessage(data) ?? 'unknown error',
         }),
         fetch: this.config.fetch,
       });

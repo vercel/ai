@@ -40,7 +40,7 @@ const memory = anthropic.tools.memory_20250818({
 });
 
 const agent = new ToolLoopAgent({
-  model: 'anthropic/claude-haiku-4.5',
+  model: 'anthropic/claude-haiku-5.5',
   tools: { memory },
 });
 
@@ -129,7 +129,7 @@ const mem0 = createMem0({
 });
 
 const agent = new ToolLoopAgent({
-  model: mem0('gpt-4.1', { user_id: 'user-123' }),
+  model: mem0('gpt-6-astra', { user_id: 'user-123' }),
 });
 
 const { text } = await agent.generate({
@@ -240,7 +240,7 @@ const mongodbMemory = createMongoDBMemory({
 
 // Scope to a user and session per request
 const agent = new ToolLoopAgent({
-  model: openai('gpt-4.1'),
+  model: openai('gpt-6-astra'),
   tools: mongodbMemory({ userId: 'alice', sessionId: 'sess-001' }),
   stopWhen: isLoopFinished(),
 });
@@ -252,7 +252,7 @@ const result = await agent.generate({
 
 `isLoopFinished()` lets the agent keep running until the tool loop naturally finishes, which is useful when memory tools need to read and write before the final response.
 
-Session memory supports two modes: **tool-driven** (the LLM decides when to read/write — good for prototypes) and **hook-driven** (the runtime persists every turn via `prepareCall` + `onFinish` hooks — recommended for production). The other memory tiers (semantic, procedural, episodic, scratchpad) are always LLM-controlled and selective by design.
+Session memory supports two modes: **tool-driven** (the LLM decides when to read/write — good for prototypes) and **hook-driven** (the runtime persists every turn via `prepareCall` + `onEnd` hooks — recommended for production). The other memory tiers (semantic, procedural, episodic, scratchpad) are always LLM-controlled and selective by design.
 
 MongoDB memory works with any AI SDK model and embedding provider, with no vendor lock-in beyond MongoDB Atlas.
 

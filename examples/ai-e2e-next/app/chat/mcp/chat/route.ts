@@ -26,7 +26,7 @@ export async function POST(req: Request) {
     const tools = await client.tools();
 
     const result = streamText({
-      model: openai('gpt-4o-mini'),
+      model: openai('gpt-6-luna'),
       tools,
       stopWhen: isStepCount(5),
       onStepFinish: async ({ toolResults }) => {
@@ -35,7 +35,7 @@ export async function POST(req: Request) {
       instructions:
         'You are a helpful chatbot capable of basic arithmetic problems',
       messages: await convertToModelMessages(messages),
-      onFinish: async () => {
+      onEnd: async () => {
         await client.close();
       },
       // Optional, enables immediate clean up of resources but connection will not be retained for retries:

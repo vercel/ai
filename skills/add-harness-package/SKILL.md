@@ -9,6 +9,8 @@ metadata:
 
 This guide covers creating a new `@ai-sdk/harness-<name>` package for an agent harness.
 
+Before evaluating a runtime, read [Harness Requirements](references/harness-requirements.md) for feasibility criteria and capability gaps to document. Follow the requirements while implementing the harness package.
+
 A harness can be **host-driven**, where the runtime runs in the host process and uses the sandbox remotely, or **bridge-backed**, where a small bridge runs inside the sandbox because the runtime needs local access to the sandbox filesystem or process environment.
 Prefer host-driven when the runtime supports it.
 
@@ -16,6 +18,10 @@ Prefer host-driven when the runtime supports it.
 
 - **Third-party packages**: Any runtime can publish an external harness package.
 - **First-party `@ai-sdk/harness-<name>` packages**: Create an issue first to discuss whether the runtime belongs in this repo.
+
+## Reference Example
+
+See https://github.com/vercel/ai/pull/16255/changes for a complete example of adding a new harness.
 
 ## Harness Architecture
 
@@ -42,7 +48,7 @@ packages/harness-<name>/
 ├── package.json
 ├── tsconfig.json
 ├── tsconfig.build.json
-├── tsup.config.ts
+├── tsdown.config.ts
 ├── turbo.json
 ├── vitest.node.config.js
 └── README.md
@@ -84,8 +90,8 @@ For bridge packages, add any bridge asset copy step required for files under `sr
 Bridge dependency rules (bridge-backed harnesses):
 
 - The bridge's runtime deps live in `src/bridge/package.json` (installed in-sandbox at bootstrap), not the main package.json. After changing them, regenerate `src/bridge/pnpm-lock.yaml` with `pnpm --dir packages/harness-<name>/src/bridge install --lockfile-only --ignore-workspace` (runnable from the repo root).
-- For every third-party import in `src/bridge/`, keep three things in sync: the import, the `external` array in `tsup.config.ts`, and the dep in `src/bridge/package.json`. A missing entry shows up only at sandbox runtime as a module-resolution error.
-- Include packages the runtime _lazily_ imports — e.g. provider SDKs (`@anthropic-ai/sdk`, `openai`) resolved from the model id at runtime — even though nothing imports them directly. These fail only when a model of that provider is actually used.
+- For every third-party import in `src/bridge/`, add the dependency to `src/bridge/package.json` so it is installed in the sandbox. tsdown automatically externalizes dependencies, peer dependencies, and optional dependencies declared by the main package; add bridge-only dependencies that are not declared there to `deps.neverBundle` in `tsdown.config.ts`. A missing dependency or required exclusion may show up only at sandbox runtime as a module-resolution error.
+- Include packages the runtime _lazily_ imports — e.g. provider SDKs (`@anthropic-ai/sdk`, `openai`) resolved from the model id at runtime — in `src/bridge/package.json` even though nothing imports them directly. They do not need a `neverBundle` entry unless the bridge source imports them. These fail only when a model of that provider is actually used.
 - Match shared dependency versions (transport, schema, tooling, runtime SDKs) to what the other harness packages currently use — copy from a sibling package rather than choosing your own pins. Stale pins drift from security patches and can desync from the shared bridge runtime; check the current versions at creation time.
 
 ### 3. Create TypeScript, Build, and Test Configs
@@ -94,7 +100,7 @@ Copy the nearest existing harness package config files and adjust paths/package 
 
 - `tsconfig.json`
 - `tsconfig.build.json`
-- `tsup.config.ts`
+- `tsdown.config.ts`
 - `turbo.json`
 - `vitest.node.config.js`
 
@@ -123,6 +129,7 @@ If the runtime needs in-sandbox setup, expose `getBootstrap()`.
 Add only the concerns the runtime needs:
 
 - auth resolution — for AI Gateway support, use the central `getAiGatewayAuthFromEnv()` helper rather than reading env directly. This ensures both `VERCEL_OIDC_TOKEN` and `AI_GATEWAY_API_KEY` are accepted as Gateway credential. When the runtime resolves provider per model, resolve the provider from the model id and set that provider's env; if routing through the gateway, note that base-URL conventions differ per provider (e.g. an Anthropic client appends `/v1/messages` to a root base, an OpenAI client appends to a `/v1` base);
+- AI Gateway client attribution — follow the convention in existing harness packages: define a versioned client app value such as `ai-sdk/harness-<name>/${VERSION}` and use it for Gateway requests. Configure both `User-Agent` and `x-client-app` headers when the underlying runtime/SDK supports both; at least one of those two headers is required. If the runtime cannot set arbitrary headers directly, use the runtime-supported equivalent that produces one of those headers (e.g. an SDK client-app environment variable);
 - custom-tool schema translation — if you convert host tools' JSON Schema into the runtime's tool format, convert _recursively_ (nested objects, array `items`, enums, descriptions); a flat top-level-only conversion silently drops the model's structured guidance. Passing the JSON Schema through directly, if the runtime accepts it, avoids the problem;
 - skill or discovery-file materialization;
 - native protocol to harness stream/control translation;
@@ -165,8 +172,7 @@ Link to the main harness docs for broader concepts.
 
 Add relevant examples for the new harness.
 
-- Add API/function examples under `examples/ai-functions` when the harness package needs a scriptable provider-behavior example.
-- Add interactive examples mirroring the existing harness examples in `examples/harness-e2e-next` (Next.js) and `examples/harness-e2e-tui` (TUI).
+- Add required API/function examples under `examples/ai-functions/src/harness-agent` and interactive examples under `examples/harness-e2e-next`.
 
 ### 9. Add Documentation
 
@@ -204,12 +210,13 @@ Run relevant harness examples against a live sandbox **early** — don't rely on
 - [ ] Package structure created in `packages/harness-<name>`
 - [ ] `package.json` configured with correct dependencies
 - [ ] TypeScript configs set up (`tsconfig.json`, `tsconfig.build.json`)
-- [ ] Build configuration (`tsup.config.ts`)
+- [ ] Build configuration (`tsdown.config.ts`)
 - [ ] Test configuration (`vitest.node.config.js`)
 - [ ] Harness adapter implementation complete
 - [ ] Runtime placement handled without creating a hidden sandbox
 - [ ] Bridge assets copied during build, if bridge-backed
 - [ ] Auth resolution implemented, if needed
+- [ ] AI Gateway requests include `User-Agent` and/or `x-client-app` client attribution
 - [ ] Harness infra, skills, bridge code, and secrets kept out of `sessionWorkDir`
 - [ ] Session resume and turn continuation tested
 - [ ] Unit tests written and passing

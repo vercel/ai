@@ -178,31 +178,12 @@ describe('createEventSourceResponseHandler', () => {
     expect((value as { success: false; error: Error }).error).toBeDefined();
   });
 
-  it('handles partial messages correctly', async () => {
-    // In this test, we simulate a partial message followed by a complete one.
-    // The first invocation of decode will throw an error (simulated incomplete message),
-    // and the subsequent invocation returns a valid event.
-    const message = {
-      headers: {
-        ':message-type': { value: 'event' },
-        ':event-type': { value: 'chunk' },
-      },
-      body: new TextEncoder().encode(
-        JSON.stringify({ content: 'complete message' }),
-      ),
-    };
-
-    const dummyPayload1 = new Uint8Array([13, 14]); // too short, part of a frame
-    const frame1 = createFrame(dummyPayload1);
-    const dummyPayload2 = new Uint8Array([15, 16, 17, 18]);
-    const frame2 = createFrame(dummyPayload2);
-
-    const mockDecode = vi
-      .fn()
-      .mockImplementationOnce(() => {
-        throw new Error('Incomplete data');
-      })
-      .mockReturnValue(message);
+  it('surfaces event stream decoding failures', async () => {
+    const frame = createFrame(new Uint8Array([13, 14]));
+    const decodeError = new Error('Invalid event stream frame');
+    const mockDecode = vi.fn().mockImplementation(() => {
+      throw decodeError;
+    });
     (EventStreamCodec as unknown as MockInstance).mockImplementation(
       function () {
         return { decode: mockDecode };
@@ -211,10 +192,7 @@ describe('createEventSourceResponseHandler', () => {
 
     const stream = new ReadableStream({
       start(controller) {
-        // Send first, incomplete frame (decode will throw error).
-        controller.enqueue(frame1);
-        // Then send a proper frame.
-        controller.enqueue(frame2);
+        controller.enqueue(frame);
         controller.close();
       },
     });
@@ -228,13 +206,7 @@ describe('createEventSourceResponseHandler', () => {
     });
 
     const reader = result.value.getReader();
-    const { done, value } = await reader.read();
 
-    expect(done).toBe(false);
-    expect(value).toEqual({
-      success: true,
-      value: { chunk: { content: 'complete message' } },
-      rawValue: { chunk: { content: 'complete message' } },
-    });
+    await expect(reader.read()).rejects.toBe(decodeError);
   });
 });

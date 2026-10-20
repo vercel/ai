@@ -7,7 +7,12 @@ export type TelemetryTracingEventType =
   | 'languageModelCall'
   | 'executeTool'
   | 'embed'
-  | 'rerank';
+  | 'embedMany'
+  | 'rerank'
+  | 'generateSpeech'
+  | 'transcribe'
+  | 'streamTranscribe'
+  | 'experimental_decide';
 
 export type TelemetryTracingChannelMessage<EVENT = unknown> = {
   readonly type: TelemetryTracingEventType;

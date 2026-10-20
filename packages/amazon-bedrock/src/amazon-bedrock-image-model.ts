@@ -6,8 +6,8 @@ import type {
 import {
   combineHeaders,
   convertUint8ArrayToBase64,
-  createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  parseProviderOptions,
   postJsonToApi,
   resolve,
   serializeModelOptions,
@@ -20,7 +20,8 @@ import {
   modelMaxImagesPerCall,
   type AmazonBedrockImageModelId,
 } from './amazon-bedrock-image-settings';
-import { AmazonBedrockErrorSchema } from './amazon-bedrock-error';
+import { amazonBedrockImageModelOptionsSchema } from './amazon-bedrock-image-model-options';
+import { amazonBedrockFailedResponseHandler } from './amazon-bedrock-error';
 import { z } from 'zod/v4';
 
 type AmazonBedrockImageModelConfig = {
@@ -54,6 +55,14 @@ export class AmazonBedrockImageModel implements ImageModelV4 {
     return modelMaxImagesPerCall[this.modelId] ?? 1;
   }
 
+  get supportsFileInputs(): boolean | undefined {
+    return this.modelId === 'amazon.nova-canvas-v1:0' ? true : undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    return this.modelId === 'amazon.nova-canvas-v1:0' ? true : undefined;
+  }
+
   private getUrl(modelId: string): string {
     const encodedModelId = encodeURIComponent(modelId);
     return `${this.config.baseUrl()}/model/${encodedModelId}/invoke`;
@@ -85,8 +94,18 @@ export class AmazonBedrockImageModel implements ImageModelV4 {
 
     // Prefer the new `amazonBedrock` providerOptions key; fall back to the
     // legacy `bedrock` key for backward compatibility.
-    const amazonBedrockOptions = (providerOptions?.amazonBedrock ??
-      providerOptions?.bedrock) as Record<string, any> | undefined;
+    const amazonBedrockOptions =
+      (await parseProviderOptions({
+        provider: 'amazonBedrock',
+        providerOptions,
+        schema: amazonBedrockImageModelOptionsSchema,
+      })) ??
+      (await parseProviderOptions({
+        provider: 'bedrock',
+        providerOptions,
+        schema: amazonBedrockImageModelOptionsSchema,
+      })) ??
+      {};
 
     // Build image generation config (common to most modes)
     const imageGenerationConfig = {
@@ -247,10 +266,7 @@ export class AmazonBedrockImageModel implements ImageModelV4 {
         ),
       ),
       body: args,
-      failedResponseHandler: createJsonErrorResponseHandler({
-        errorSchema: AmazonBedrockErrorSchema,
-        errorToMessage: error => `${error.type}: ${error.message}`,
-      }),
+      failedResponseHandler: amazonBedrockFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         amazonBedrockImageResponseSchema,
       ),

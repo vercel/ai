@@ -31,7 +31,7 @@ run(async () => {
   console.log('\n=== Other Outputs ===');
   console.log(await result.toolCalls);
   console.log(await result.toolResults);
-  console.log('\n=== Web Search Preview Annotations ===');
+  console.log('\n=== Web Search Annotations ===');
   for await (const part of result.fullStream) {
     switch (part.type) {
       case 'text-end':

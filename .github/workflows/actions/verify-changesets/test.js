@@ -337,3 +337,296 @@ test('error does not include raw file content', async () => {
     assert.strictEqual(error.content, undefined);
   }
 });
+
+test('package code change with matching changeset', async () => {
+  const event = { pull_request: { labels: [] } };
+  const env = {
+    CHANGED_FILES: '.changeset/new-feature.md',
+    CHANGED_PACKAGE_FILES: 'packages/ai/src/index.ts',
+  };
+
+  const readFile = mockReadFile(async path => {
+    if (path.endsWith('package.json')) {
+      return JSON.stringify({ name: 'ai' });
+    }
+
+    return `---\nai: patch\n---\n## New feature`;
+  });
+  const lstat = mockLstat();
+
+  await verifyChangesets(event, env, readFile, lstat);
+});
+
+test('package code change with quoted package name in changeset', async () => {
+  const event = { pull_request: { labels: [] } };
+  const env = {
+    CHANGED_FILES: '.changeset/new-feature.md',
+    CHANGED_PACKAGE_FILES: 'packages/openai/src/openai-provider.ts',
+  };
+
+  const readFile = mockReadFile(async path => {
+    if (path.endsWith('package.json')) {
+      return JSON.stringify({ name: '@ai-sdk/openai' });
+    }
+
+    return `---\n'@ai-sdk/openai': patch\n---\n## New feature`;
+  });
+  const lstat = mockLstat();
+
+  await verifyChangesets(event, env, readFile, lstat);
+});
+
+test('package code change without any changeset file', async () => {
+  const event = { pull_request: { labels: [] } };
+  const env = {
+    CHANGED_FILES: '',
+    CHANGED_PACKAGE_FILES: 'packages/ai/src/index.ts',
+  };
+
+  const readFile = mockReadFile(async path => {
+    if (path.endsWith('package.json')) {
+      return JSON.stringify({ name: 'ai' });
+    }
+  });
+  const lstat = mockLstat();
+
+  await assert.rejects(
+    () => verifyChangesets(event, env, readFile, lstat),
+    new Error(
+      `Missing changeset - packages were modified but no .changeset/*.md file was found. Run 'pnpm changeset' to create one.`,
+    ),
+  );
+});
+
+test('package code change but changeset missing that package', async () => {
+  const event = { pull_request: { labels: [] } };
+  const env = {
+    CHANGED_FILES: '.changeset/partial.md',
+    CHANGED_PACKAGE_FILES:
+      'packages/ai/src/index.ts packages/openai/src/openai-provider.ts',
+  };
+
+  const readFile = mockReadFile(async path => {
+    if (path.includes('packages/ai/')) {
+      return JSON.stringify({ name: 'ai' });
+    }
+    if (path.includes('packages/openai/')) {
+      return JSON.stringify({ name: '@ai-sdk/openai' });
+    }
+
+    return `---\nai: patch\n---\n## Partial changeset`;
+  });
+  const lstat = mockLstat();
+
+  await assert.rejects(
+    () => verifyChangesets(event, env, readFile, lstat),
+    new Error(
+      `Missing changeset entries for packages: @ai-sdk/openai. Make sure all modified packages are listed in a .changeset/*.md file.`,
+    ),
+  );
+});
+
+test('package script-only change does not require changeset', async () => {
+  const event = { pull_request: { labels: [] } };
+  const env = {
+    CHANGED_FILES: '',
+    CHANGED_PACKAGE_FILES: 'packages/ai/scripts/check-bundle-size.ts',
+  };
+
+  const readFile = mockReadFile(() => {});
+  const lstat = mockLstat();
+
+  await verifyChangesets(event, env, readFile, lstat);
+  assert.strictEqual(readFile.mock.callCount(), 1);
+  assert.strictEqual(lstat.mock.callCount(), 0);
+});
+
+test('package script and source changes still require changeset', async () => {
+  const event = { pull_request: { labels: [] } };
+  const env = {
+    CHANGED_FILES: '',
+    CHANGED_PACKAGE_FILES:
+      'packages/ai/scripts/check-bundle-size.ts packages/ai/src/index.ts',
+  };
+
+  const readFile = mockReadFile(async path => {
+    if (path.endsWith('package.json')) {
+      return JSON.stringify({ name: 'ai' });
+    }
+  });
+  const lstat = mockLstat();
+
+  await assert.rejects(
+    () => verifyChangesets(event, env, readFile, lstat),
+    new Error(
+      `Missing changeset - packages were modified but no .changeset/*.md file was found. Run 'pnpm changeset' to create one.`,
+    ),
+  );
+});
+
+test('package test-only change does not require changeset', async () => {
+  const event = { pull_request: { labels: [] } };
+  const env = {
+    CHANGED_FILES: '',
+    CHANGED_PACKAGE_FILES: 'packages/ai/src/index.test.ts',
+  };
+
+  const readFile = mockReadFile(() => {});
+  const lstat = mockLstat();
+
+  await verifyChangesets(event, env, readFile, lstat);
+  assert.strictEqual(readFile.mock.callCount(), 1);
+  assert.strictEqual(lstat.mock.callCount(), 0);
+});
+
+test('package markdown-only change does not require changeset', async () => {
+  const event = { pull_request: { labels: [] } };
+  const env = {
+    CHANGED_FILES: '',
+    CHANGED_PACKAGE_FILES: 'packages/ai/README.md',
+  };
+
+  const readFile = mockReadFile(() => {});
+  const lstat = mockLstat();
+
+  await verifyChangesets(event, env, readFile, lstat);
+  assert.strictEqual(readFile.mock.callCount(), 1);
+  assert.strictEqual(lstat.mock.callCount(), 0);
+});
+
+test('package example and docs changes do not require changesets', async t => {
+  for (const dir of ['examples', 'docs']) {
+    for (const ext of ['ts', 'tsx', 'js', 'jsx', 'mts', 'mjs', 'cts', 'cjs']) {
+      await t.test(`${dir}/basic/index.${ext}`, async () => {
+        const event = { pull_request: { labels: [] } };
+        const env = {
+          CHANGED_FILES: '',
+          CHANGED_PACKAGE_FILES: `packages/devtools/${dir}/basic/index.${ext} packages/devtools/README.md`,
+        };
+
+        const readFile = mockReadFile(async path => {
+          if (path.endsWith('package.json')) {
+            return JSON.stringify({ name: '@ai-sdk/devtools' });
+          }
+        });
+        const lstat = mockLstat();
+
+        await verifyChangesets(event, env, readFile, lstat);
+        assert.strictEqual(readFile.mock.callCount(), 1);
+        assert.strictEqual(lstat.mock.callCount(), 0);
+      });
+    }
+  }
+});
+
+test('package example and docs changes do not exempt source changes', async () => {
+  const event = { pull_request: { labels: [] } };
+  const env = {
+    CHANGED_FILES: '',
+    CHANGED_PACKAGE_FILES:
+      'packages/devtools/examples/basic/index.ts packages/devtools/docs/basic.ts packages/devtools/src/index.ts',
+  };
+
+  const readFile = mockReadFile(async path => {
+    if (path.endsWith('package.json')) {
+      return JSON.stringify({ name: '@ai-sdk/devtools' });
+    }
+  });
+  const lstat = mockLstat();
+
+  await assert.rejects(
+    () => verifyChangesets(event, env, readFile, lstat),
+    new Error(
+      `Missing changeset - packages were modified but no .changeset/*.md file was found. Run 'pnpm changeset' to create one.`,
+    ),
+  );
+});
+
+test('package examples do not require an entry alongside other package changesets', async () => {
+  const event = { pull_request: { labels: [] } };
+  const env = {
+    CHANGED_FILES: '.changeset/feature.md',
+    CHANGED_PACKAGE_FILES:
+      'packages/ai/src/index.ts packages/devtools/examples/basic/index.ts packages/devtools/docs/basic.ts',
+  };
+
+  const readFile = mockReadFile(async path => {
+    if (path.endsWith('package.json')) {
+      return JSON.stringify({
+        name: path.includes('packages/ai/') ? 'ai' : '@ai-sdk/devtools',
+      });
+    }
+
+    return `---\nai: patch\n---\n## New feature`;
+  });
+  const lstat = mockLstat();
+
+  await verifyChangesets(event, env, readFile, lstat);
+});
+
+test('other source directories still require changesets', async t => {
+  for (const dir of [
+    'src/examples',
+    'src/docs',
+    'examples-helper',
+    'docs-helper',
+  ]) {
+    await t.test(dir, async () => {
+      const event = { pull_request: { labels: [] } };
+      const env = {
+        CHANGED_FILES: '',
+        CHANGED_PACKAGE_FILES: `packages/ai/${dir}/index.ts`,
+      };
+
+      const readFile = mockReadFile(async path => {
+        if (path.endsWith('package.json')) {
+          return JSON.stringify({ name: 'ai' });
+        }
+      });
+      const lstat = mockLstat();
+
+      await assert.rejects(
+        () => verifyChangesets(event, env, readFile, lstat),
+        new Error(
+          `Missing changeset - packages were modified but no .changeset/*.md file was found. Run 'pnpm changeset' to create one.`,
+        ),
+      );
+    });
+  }
+});
+
+test('package code change bypassed with "minor" label', async () => {
+  const event = { pull_request: { labels: [{ name: 'minor' }] } };
+  const env = {
+    CHANGED_FILES: '',
+    CHANGED_PACKAGE_FILES: 'packages/ai/src/index.ts',
+  };
+
+  const readFile = mock.fn(() => {});
+  const lstat = mockLstat();
+
+  const message = await verifyChangesets(event, env, readFile, lstat);
+  assert.strictEqual(
+    message,
+    'Skipping changeset verification - "minor" label found',
+  );
+  assert.strictEqual(readFile.mock.callCount(), 0);
+  assert.strictEqual(lstat.mock.callCount(), 0);
+});
+
+test('private package code change does not require changeset', async () => {
+  const event = { pull_request: { labels: [] } };
+  const env = {
+    CHANGED_FILES: '',
+    CHANGED_PACKAGE_FILES: 'packages/internal-tool/src/index.ts',
+  };
+
+  const readFile = mockReadFile(async path => {
+    if (path.endsWith('package.json')) {
+      return JSON.stringify({ name: 'internal-tool', private: true });
+    }
+  });
+  const lstat = mockLstat();
+
+  await verifyChangesets(event, env, readFile, lstat);
+});
