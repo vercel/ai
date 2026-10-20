@@ -66,8 +66,18 @@ export default function ACPHarnessChat({
                   </Response>
                 );
               case 'file':
-              case 'reasoning-file':
-                return null;
+              case 'reasoning-file': {
+                if (!part.mediaType.startsWith('image/')) return null;
+                return (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    key={index}
+                    src={part.url}
+                    alt="Image attachment"
+                    className="mb-2 max-w-full max-h-64 rounded"
+                  />
+                );
+              }
               case 'tool-getUserName':
                 return (
                   <GetUserNameToolView
@@ -125,7 +135,7 @@ export default function ACPHarnessChat({
       <ChatInput
         status={status}
         maxWidth="5xl"
-        onSubmit={text => sendMessage({ text })}
+        onSubmit={parts => sendMessage({ parts })}
       />
     </div>
   );
