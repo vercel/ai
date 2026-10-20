@@ -1,5 +1,8 @@
 import type { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
   type Resolvable,
   combineHeaders,
   createJsonResponseHandler,
@@ -131,38 +134,46 @@ export class GoogleVertexImageModel implements ImageModelV2 {
 
 // minimal version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const vertexImageResponseSchema = z.object({
-  predictions: z
-    .array(
-      z.union([
-        z.object({
-          bytesBase64Encoded: z.string(),
-          mimeType: z.string(),
-          prompt: z.string().nullish(),
-        }),
-        z.object({ raiFilteredReason: z.string() }),
-      ]),
-    )
-    .nullish(),
-});
+const vertexImageResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      predictions: z
+        .array(
+          z.union([
+            z.object({
+              bytesBase64Encoded: z.string(),
+              mimeType: z.string(),
+              prompt: z.string().nullish(),
+            }),
+            z.object({ raiFilteredReason: z.string() }),
+          ]),
+        )
+        .nullish(),
+    }),
+  ),
+);
 
-const vertexImageProviderOptionsSchema = z.object({
-  negativePrompt: z.string().nullish(),
-  personGeneration: z
-    .enum(['dont_allow', 'allow_adult', 'allow_all'])
-    .nullish(),
-  safetySetting: z
-    .enum([
-      'block_low_and_above',
-      'block_medium_and_above',
-      'block_only_high',
-      'block_none',
-    ])
-    .nullish(),
-  addWatermark: z.boolean().nullish(),
-  storageUri: z.string().nullish(),
-  sampleImageSize: z.enum(['1K', '2K']).nullish(),
-});
-export type GoogleVertexImageProviderOptions = z.infer<
+const vertexImageProviderOptionsSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      negativePrompt: z.string().nullish(),
+      personGeneration: z
+        .enum(['dont_allow', 'allow_adult', 'allow_all'])
+        .nullish(),
+      safetySetting: z
+        .enum([
+          'block_low_and_above',
+          'block_medium_and_above',
+          'block_only_high',
+          'block_none',
+        ])
+        .nullish(),
+      addWatermark: z.boolean().nullish(),
+      storageUri: z.string().nullish(),
+      sampleImageSize: z.enum(['1K', '2K']).nullish(),
+    }),
+  ),
+);
+export type GoogleVertexImageProviderOptions = InferSchema<
   typeof vertexImageProviderOptionsSchema
 >;
