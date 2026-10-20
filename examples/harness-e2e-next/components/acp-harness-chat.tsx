@@ -1,6 +1,6 @@
 'use client';
 
-import type { ClaudeCodeACPHarnessAgentMessage } from '@/agent/harness/acp-claude-code/basic-agent';
+import type { ClaudeCodeHarnessAgentMessage } from '@/agent/harness/claude-code/basic-agent';
 import { Response } from '@/components/ai-elements/response';
 import { useChatId } from '@/components/chat-id-provider';
 import ChatInput from '@/components/chat-input';
@@ -25,7 +25,7 @@ export default function ACPHarnessChat({
 }) {
   const { chatId, resetChatId } = useChatId();
   const { error, status, sendMessage, messages, regenerate, addToolOutput } =
-    useChat<ClaudeCodeACPHarnessAgentMessage>({
+    useChat<ClaudeCodeHarnessAgentMessage>({
       id: chatId,
       transport: new DefaultChatTransport({
         api: apiRoute,

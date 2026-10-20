@@ -1,6 +1,6 @@
 'use client';
 
-import type { WeatherClaudeCodeACPHarnessAgentMessage } from '@/agent/harness/acp-claude-code/weather-agent';
+import type { WeatherClaudeCodeHarnessAgentMessage } from '@/agent/harness/claude-code/weather-agent';
 import { Response } from '@/components/ai-elements/response';
 import { useChatId } from '@/components/chat-id-provider';
 import ChatInput from '@/components/chat-input';
@@ -29,7 +29,7 @@ export default function WeatherACPHarnessChat({
     messages,
     regenerate,
     addToolApprovalResponse,
-  } = useChat<WeatherClaudeCodeACPHarnessAgentMessage>({
+  } = useChat<WeatherClaudeCodeHarnessAgentMessage>({
     id: chatId,
     transport: new DefaultChatTransport({
       api: apiRoute,
