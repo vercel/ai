@@ -1187,27 +1187,29 @@ const getSafetyRatingSchema = () =>
     blocked: z.boolean().nullish(),
   });
 
-const tokenDetailsSchema = z
-  .array(
-    z.object({
-      modality: z.string(),
-      tokenCount: z.number(),
-    }),
-  )
-  .nullish();
+const tokenDetailsSchema = () =>
+  z
+    .array(
+      z.object({
+        modality: z.string(),
+        tokenCount: z.number(),
+      }),
+    )
+    .nullish();
 
-const usageSchema = z.object({
-  cachedContentTokenCount: z.number().nullish(),
-  thoughtsTokenCount: z.number().nullish(),
-  promptTokenCount: z.number().nullish(),
-  candidatesTokenCount: z.number().nullish(),
-  totalTokenCount: z.number().nullish(),
-  // https://cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1/GenerateContentResponse#TrafficType
-  trafficType: z.string().nullish(),
-  // https://ai.google.dev/api/generate-content#Modality
-  promptTokensDetails: tokenDetailsSchema,
-  candidatesTokensDetails: tokenDetailsSchema,
-});
+const usageSchema = () =>
+  z.object({
+    cachedContentTokenCount: z.number().nullish(),
+    thoughtsTokenCount: z.number().nullish(),
+    promptTokenCount: z.number().nullish(),
+    candidatesTokenCount: z.number().nullish(),
+    totalTokenCount: z.number().nullish(),
+    // https://cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1/GenerateContentResponse#TrafficType
+    trafficType: z.string().nullish(),
+    // https://ai.google.dev/api/generate-content#Modality
+    promptTokensDetails: tokenDetailsSchema(),
+    candidatesTokensDetails: tokenDetailsSchema(),
+  });
 
 // https://ai.google.dev/api/generate-content#UrlRetrievalMetadata
 export const getUrlContextMetadataSchema = () =>
@@ -1235,7 +1237,7 @@ const responseSchema = lazySchema(() =>
           }),
         )
         .nullish(),
-      usageMetadata: usageSchema.nullish(),
+      usageMetadata: usageSchema().nullish(),
       promptFeedback: z
         .object({
           blockReason: z.string().nullish(),
@@ -1253,7 +1255,7 @@ type CandidateSchema = NonNullable<
 
 type ContentSchema = NonNullable<CandidateSchema['content']>;
 
-type UsageMetadataSchema = z.infer<typeof usageSchema>;
+type UsageMetadataSchema = z.infer<ReturnType<typeof usageSchema>>;
 export type GroundingMetadataSchema = NonNullable<
   CandidateSchema['groundingMetadata']
 >;
@@ -1287,7 +1289,7 @@ const chunkSchema = lazySchema(() =>
           }),
         )
         .nullish(),
-      usageMetadata: usageSchema.nullish(),
+      usageMetadata: usageSchema().nullish(),
       promptFeedback: z
         .object({
           blockReason: z.string().nullish(),
