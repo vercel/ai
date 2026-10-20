@@ -17,6 +17,7 @@ import type { MetadataExtractor } from './chat/openai-compatible-metadata-extrac
 import { OpenAICompatibleCompletionLanguageModel } from './completion/openai-compatible-completion-language-model';
 import { OpenAICompatibleEmbeddingModel } from './embedding/openai-compatible-embedding-model';
 import { OpenAICompatibleImageModel } from './image/openai-compatible-image-model';
+import { OpenAICompatibleVideos } from './videos/openai-compatible-videos';
 import { VERSION } from './version';
 
 export interface OpenAICompatibleProvider<
@@ -25,6 +26,8 @@ export interface OpenAICompatibleProvider<
   EMBEDDING_MODEL_IDS extends string = string,
   IMAGE_MODEL_IDS extends string = string,
 > extends ProviderV4 {
+  videos: OpenAICompatibleVideos;
+
   (modelId: CHAT_MODEL_IDS): LanguageModelV4;
 
   languageModel(
@@ -160,15 +163,17 @@ export function createOpenAICompatible<
   const getHeaders = () =>
     withUserAgentSuffix(headers, `ai-sdk-openai-compatible/${VERSION}`);
 
+  const getUrl = (path: string) => {
+    const url = new URL(`${baseURL}${path}`);
+    if (options.queryParams) {
+      url.search = new URLSearchParams(options.queryParams).toString();
+    }
+    return url.toString();
+  };
+
   const getCommonModelConfig = (modelType: string): CommonModelConfig => ({
     provider: `${providerName}.${modelType}`,
-    url: ({ path }) => {
-      const url = new URL(`${baseURL}${path}`);
-      if (options.queryParams) {
-        url.search = new URLSearchParams(options.queryParams).toString();
-      }
-      return url.toString();
-    },
+    url: ({ path }) => getUrl(path),
     headers: getHeaders,
     fetch: options.fetch,
   });
@@ -202,9 +207,16 @@ export function createOpenAICompatible<
   const createImageModel = (modelId: IMAGE_MODEL_IDS) =>
     new OpenAICompatibleImageModel(modelId, getCommonModelConfig('image'));
 
+  const videos = new OpenAICompatibleVideos({
+    url: ({ path }) => getUrl(path),
+    headers: getHeaders,
+    fetch: options.fetch,
+  });
+
   const provider = (modelId: CHAT_MODEL_IDS) => createLanguageModel(modelId);
 
   provider.specificationVersion = 'v4' as const;
+  provider.videos = videos;
   provider.languageModel = createLanguageModel;
   provider.chatModel = createChatModel;
   provider.completionModel = createCompletionModel;
