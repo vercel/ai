@@ -1,6 +1,9 @@
 import {
   UnsupportedFunctionalityError,
+  createLanguageModelV4Usage,
   type Experimental_TranscriptionModelV4StreamOptions as TranscriptionModelV4StreamOptions,
+  type JSONObject,
+  type LanguageModelV4Usage,
   type SharedV4Warning,
   type TranscriptionModelV4,
   type TranscriptionModelV4CallOptions,
@@ -346,7 +349,9 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
       language,
       durationInSeconds: response.duration ?? undefined,
       warnings,
-      ...(response.usage != null && { usage: response.usage }),
+      ...(response.usage != null && {
+        usage: asOpenAITranscriptionUsage(response.usage),
+      }),
       response: {
         timestamp: currentDate,
         modelId: this.modelId,
@@ -668,4 +673,34 @@ function getOpenAIRealtimeConnection(
       ),
     ),
   };
+}
+
+function readUsageNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? value
+    : undefined;
+}
+
+function usageRecord(value: unknown): Record<string, unknown> | undefined {
+  return value != null && typeof value === 'object'
+    ? (value as Record<string, unknown>)
+    : undefined;
+}
+
+function asOpenAITranscriptionUsage(
+  usage: Record<string, unknown>,
+): LanguageModelV4Usage {
+  const inputDetails = usageRecord(usage.input_token_details);
+  const outputDetails = usageRecord(usage.output_token_details);
+  return createLanguageModelV4Usage({
+    inputTokens:
+      readUsageNumber(usage.input_tokens) ??
+      readUsageNumber(usage.prompt_tokens),
+    outputTokens:
+      readUsageNumber(usage.output_tokens) ??
+      readUsageNumber(usage.completion_tokens),
+    cacheReadTokens: readUsageNumber(inputDetails?.cached_tokens),
+    reasoningTokens: readUsageNumber(outputDetails?.reasoning_tokens),
+    raw: usage as JSONObject,
+  });
 }

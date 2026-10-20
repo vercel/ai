@@ -2,6 +2,7 @@ import {
   InvalidArgumentError,
   type Experimental_TranscriptionModelV4StreamOptions as TranscriptionModelV4StreamOptions,
   type Experimental_TranscriptionModelV4StreamPart as TranscriptionModelV4StreamPart,
+  createLanguageModelV4Usage,
   type JSONObject,
   type SharedV4Warning,
   type TranscriptionModelV4,
@@ -217,7 +218,9 @@ export class GoogleTranscriptionModel implements TranscriptionModelV4 {
       language: undefined,
       durationInSeconds: undefined,
       warnings,
-      ...(response.usage != null && { usage: response.usage }),
+      ...(response.usage != null && {
+        usage: asGoogleTranscriptionUsage(response.usage),
+      }),
       response: {
         timestamp: currentDate,
         modelId: this.modelId,
@@ -714,3 +717,22 @@ const googleInteractionsTranscriptionResponseSchema = z.object({
     .nullish(),
   usage: z.record(z.string(), z.json()).nullish(),
 });
+
+function readUsageNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? value
+    : undefined;
+}
+
+function asGoogleTranscriptionUsage(usage: JSONObject) {
+  return createLanguageModelV4Usage({
+    inputTokens:
+      readUsageNumber(usage.total_input_tokens) ??
+      readUsageNumber(usage.promptTokenCount),
+    outputTokens:
+      readUsageNumber(usage.total_output_tokens) ??
+      readUsageNumber(usage.candidatesTokenCount),
+    reasoningTokens: readUsageNumber(usage.thoughtsTokenCount),
+    raw: usage,
+  });
+}

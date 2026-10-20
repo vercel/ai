@@ -1,4 +1,7 @@
-import { InvalidArgumentError } from '@ai-sdk/provider';
+import {
+  InvalidArgumentError,
+  createLanguageModelV4Usage,
+} from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
@@ -263,7 +266,13 @@ describe('doGenerate', () => {
       ),
     );
     expect(result.durationInSeconds).toBe(36);
-    expect(result.usage).toStrictEqual(transcriptionResponse.usage);
+    expect(result.usage).toStrictEqual(
+      createLanguageModelV4Usage({
+        inputTokens: 13,
+        outputTokens: 151,
+        raw: transcriptionResponse.usage,
+      }),
+    );
     expect(result.warnings).toEqual([]);
     expect(result.response).toEqual({
       timestamp: testDate,

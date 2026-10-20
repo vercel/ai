@@ -2,6 +2,7 @@ import {
   InvalidArgumentError,
   type Experimental_TranscriptionModelV4StreamOptions as TranscriptionModelV4StreamOptions,
   type Experimental_TranscriptionModelV4StreamPart as TranscriptionModelV4StreamPart,
+  createLanguageModelV4Usage,
   type JSONObject,
   type SharedV4Warning,
   type TranscriptionModelV4,
@@ -248,7 +249,9 @@ export class GoogleVertexGeminiTranscriptionModel implements TranscriptionModelV
       },
       ...(response.usageMetadata != null
         ? {
-            usage: response.usageMetadata as JSONObject,
+            usage: asGoogleTranscriptionUsage(
+              response.usageMetadata as JSONObject,
+            ),
             providerMetadata: {
               google: { usageMetadata: response.usageMetadata as JSONObject },
             },
@@ -710,3 +713,22 @@ const googleVertexGeminiTranscriptionResponseSchema = z.object({
     .nullish(),
   usageMetadata: z.record(z.string(), z.unknown()).nullish(),
 });
+
+function readUsageNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? value
+    : undefined;
+}
+
+function asGoogleTranscriptionUsage(usage: JSONObject) {
+  return createLanguageModelV4Usage({
+    inputTokens:
+      readUsageNumber(usage.total_input_tokens) ??
+      readUsageNumber(usage.promptTokenCount),
+    outputTokens:
+      readUsageNumber(usage.total_output_tokens) ??
+      readUsageNumber(usage.candidatesTokenCount),
+    reasoningTokens: readUsageNumber(usage.thoughtsTokenCount),
+    raw: usage,
+  });
+}

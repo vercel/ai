@@ -1,5 +1,6 @@
 import {
   InvalidArgumentError,
+  createLanguageModelV4Usage,
   type JSONObject,
   type SharedV4Warning,
   type TranscriptionModelV4,
@@ -194,7 +195,13 @@ export class MistralTranscriptionModel implements TranscriptionModelV4 {
         segments.at(-1)?.endSecond ??
         undefined,
       warnings,
-      ...(response.usage != null && { usage: response.usage }),
+      ...(response.usage != null && {
+        usage: createLanguageModelV4Usage({
+          inputTokens: response.usage.prompt_tokens ?? undefined,
+          outputTokens: response.usage.completion_tokens ?? undefined,
+          raw: response.usage,
+        }),
+      }),
       response: {
         timestamp: currentDate,
         modelId: response.model,

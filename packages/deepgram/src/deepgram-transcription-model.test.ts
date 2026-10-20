@@ -88,7 +88,20 @@ describe('doGenerate', () => {
         mediaType: 'audio/wav',
       });
 
-      expect(result.usage).toStrictEqual({ seconds: 36.744 });
+      expect(result.usage).toStrictEqual({
+        inputTokens: {
+          total: undefined,
+          noCache: undefined,
+          cacheRead: undefined,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: undefined,
+          text: undefined,
+          reasoning: undefined,
+        },
+        raw: { seconds: 36.744 },
+      });
     });
 
     it('should pass detectLanguage as detect_language query parameter', async () => {

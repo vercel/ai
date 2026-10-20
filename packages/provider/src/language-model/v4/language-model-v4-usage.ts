@@ -57,3 +57,42 @@ export type LanguageModelV4Usage = {
    */
   raw?: JSONObject;
 };
+
+/**
+ * Builds a language-model usage object. Omitted counters stay undefined.
+ * Provider-specific fields belong on `raw`.
+ */
+export function createLanguageModelV4Usage({
+  inputTokens,
+  noCacheTokens,
+  cacheReadTokens,
+  cacheWriteTokens,
+  outputTokens,
+  textTokens,
+  reasoningTokens,
+  raw,
+}: {
+  inputTokens?: number;
+  noCacheTokens?: number;
+  cacheReadTokens?: number;
+  cacheWriteTokens?: number;
+  outputTokens?: number;
+  textTokens?: number;
+  reasoningTokens?: number;
+  raw?: JSONObject;
+}): LanguageModelV4Usage {
+  return {
+    inputTokens: {
+      total: inputTokens,
+      noCache: noCacheTokens,
+      cacheRead: cacheReadTokens,
+      cacheWrite: cacheWriteTokens,
+    },
+    outputTokens: {
+      total: outputTokens,
+      text: textTokens,
+      reasoning: reasoningTokens,
+    },
+    ...(raw != null ? { raw } : {}),
+  };
+}
