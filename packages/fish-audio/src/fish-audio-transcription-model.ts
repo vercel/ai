@@ -1,5 +1,7 @@
 import type { SharedV3Warning, TranscriptionModelV3 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonResponseHandler,
@@ -129,21 +131,25 @@ export class FishAudioTranscriptionModel implements TranscriptionModelV3 {
   }
 }
 
-const fishAudioTranscriptionResponseSchema = z.object({
-  text: z.string(),
-  // `language` and `language_code` are undocumented but returned in practice.
-  // Human-readable name, e.g. `English`.
-  language: z.string().nullish(),
-  // ISO-639-1 code, e.g. `en`.
-  language_code: z.string().nullish(),
-  duration: z.number().nullish(),
-  segments: z
-    .array(
-      z.object({
-        text: z.string(),
-        start: z.number(),
-        end: z.number(),
-      }),
-    )
-    .nullish(),
-});
+const fishAudioTranscriptionResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      text: z.string(),
+      // `language` and `language_code` are undocumented but returned in practice.
+      // Human-readable name, e.g. `English`.
+      language: z.string().nullish(),
+      // ISO-639-1 code, e.g. `en`.
+      language_code: z.string().nullish(),
+      duration: z.number().nullish(),
+      segments: z
+        .array(
+          z.object({
+            text: z.string(),
+            start: z.number(),
+            end: z.number(),
+          }),
+        )
+        .nullish(),
+    }),
+  ),
+);
