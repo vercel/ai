@@ -40,6 +40,8 @@ const state = vi.hoisted(() => ({
     | { type: 'json'; schema: Record<string, unknown> }
     | undefined,
   headers: undefined as Record<string, string> | undefined,
+  prompt: undefined as unknown,
+  streamInputs: [] as Array<unknown>,
   hostToolResponse: undefined as
     | { output: unknown; isError?: boolean; toolResult?: unknown }
     | undefined,
@@ -52,7 +54,8 @@ vi.mock('deepagents', () => ({
   createDeepAgent: (options: DeepAgentOptions) => {
     state.createDeepAgentOptions.push(options);
     return {
-      streamEvents: async function* () {
+      streamEvents: async function* (input: unknown) {
+        state.streamInputs.push(input);
         if (state.hostToolResponse !== undefined) {
           const hostTool = options.tools?.find(tool => tool.name === 'weather');
           if (!hostTool)
@@ -87,7 +90,7 @@ vi.mock('@ai-sdk/harness/bridge', async importOriginal => ({
   }) => {
     await onStart(
       {
-        prompt: 'What is the capital of France?',
+        prompt: state.prompt,
         instructions: 'Answer every question in German.',
         thinking: { type: 'adaptive', display: 'summarized' },
         effort: 'max',
@@ -181,6 +184,8 @@ describe('Deep Agents bridge instructions', () => {
     state.createDeepAgentOptions = [];
     state.responseFormat = undefined;
     state.headers = undefined;
+    state.prompt = 'What is the capital of France?';
+    state.streamInputs = [];
     state.hostToolResponse = undefined;
     state.hostToolOutput = undefined;
     state.receivedToolCallId = undefined;
@@ -408,6 +413,29 @@ describe('Deep Agents bridge instructions', () => {
     expect(state.emitted.filter(event => event.type === 'tool-result')).toEqual(
       [expect.objectContaining({ result: { status: 'ready' } })],
     );
+  });
+
+  it('passes user text and inline images as LangChain content blocks', async () => {
+    state.prompt = [
+      { type: 'text', text: 'Describe this image.' },
+      { type: 'image', data: 'AQID', mediaType: 'image/png' },
+    ];
+
+    await import('./index');
+
+    expect(state.streamInputs).toEqual([
+      {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Describe this image.' },
+              { type: 'image', mimeType: 'image/png', data: 'AQID' },
+            ],
+          },
+        ],
+      },
+    ]);
   });
 
   it('emits one errored host-tool result without duplicating on_tool_end', async () => {

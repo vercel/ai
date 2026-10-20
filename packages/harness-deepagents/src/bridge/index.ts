@@ -395,7 +395,23 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   };
 
   let resumeInput: unknown = {
-    messages: [{ role: 'user', content: start.prompt }],
+    messages: [
+      {
+        role: 'user',
+        content:
+          typeof start.prompt === 'string'
+            ? start.prompt
+            : start.prompt.map(part =>
+                part.type === 'text'
+                  ? part
+                  : {
+                      type: 'image' as const,
+                      mimeType: part.mediaType,
+                      data: part.data,
+                    },
+              ),
+      },
+    ],
   };
   let emittedStructuredOutput = false;
 
