@@ -1843,6 +1843,15 @@ class DefaultStreamTextResult<
                   message: 'No output generated. Check the stream for errors.',
                 }));
 
+            // an incomplete model stream is not reported to telemetry by the
+            // stream itself, so report it here to close open spans:
+            if (recordedNoOutputError != null && !abortSignal?.aborted) {
+              await telemetryDispatcher.onError?.({
+                callId,
+                error: recordedNoOutputError,
+              });
+            }
+
             self.rejectResultPromises(error);
 
             return; // no steps recorded (e.g. in error scenario)
@@ -3284,6 +3293,8 @@ class DefaultStreamTextResult<
                         }),
                       );
                     } catch (error) {
+                      await telemetryDispatcher.onError?.({ callId, error });
+
                       enqueueStepPart(controller, {
                         type: 'error',
                         error,
