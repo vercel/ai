@@ -1,0 +1,94 @@
+---
+title: Agent Pulse
+description: Record AI SDK spend and enforce budgets with Agent Pulse
+---
+
+# Agent Pulse Observability
+
+[Agent Pulse](https://dev.agentspulse.ai/docs/vercel-ai-sdk) ([GitHub](https://github.com/techbridgeinnovation/agentpulse)) records what an AI agent spends on models and tools, and can attribute that spend to the request, user, and workspace it was for. It integrates with the AI SDK in two ways, which can be used alone or together:
+
+- **Telemetry** (AI SDK 7) records every model, embedding, and tool call the AI SDK reports. It records a call after it has happened, so it cannot block or change one.
+- **Middleware** (AI SDK 7 and 6) wraps a model, records that model's calls, and checks your budgets before each call is sent to the provider.
+
+Agent Pulse records the model, provider, token counts, durations, finish reasons, failure codes, and the size of tool results. It does not record prompts, responses, tool arguments, or tool results.
+
+## Setup
+
+Install the Agent Pulse recorder:
+
+<InstallPackages packages="techbridge-agentpulse" />
+
+The recorder reads four settings from the environment, and `connect` fails at startup if one is missing:
+
+```bash filename=".env"
+AP_GATEWAY="gateway.agentspulse.ai"
+AP_API_KEY="organisations/<organisation>/apiKeys/<key>"
+AP_API_SECRET="..."
+AP_AGENT="organisations/<organisation>/agents/<agent>"
+```
+
+## Record with Telemetry
+
+Register the Agent Pulse telemetry integration once at startup. Every `generateText`, `streamText`, `generateObject`, `embed`, and `embedMany` call is then recorded, along with the tools the model calls:
+
+```ts
+import { registerTelemetry, generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { connect } from 'techbridge-agentpulse';
+
+const reporter = connect('research-agent');
+const telemetry = reporter.aiSdkTelemetry();
+
+registerTelemetry(telemetry);
+
+const { text } = await generateText({
+  model: openai('gpt-5'),
+  prompt: 'Hello',
+});
+
+await telemetry.flush();
+```
+
+The integration implements the AI SDK telemetry interface directly, so `@ai-sdk/otel` is not needed. Records are sent in batches in the background. On serverless platforms, or before calling `process.exit`, await `telemetry.flush()` before returning.
+
+## Enforce Budgets with Middleware
+
+To let a budget stop a call before it is sent, make the reporter governed and wrap the model with the Agent Pulse middleware:
+
+```ts
+import { registerTelemetry, generateText, wrapLanguageModel } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { connect, denied } from 'techbridge-agentpulse';
+
+const reporter = connect('research-agent').governed();
+registerTelemetry(reporter.aiSdkTelemetry());
+
+const model = wrapLanguageModel({
+  model: openai('gpt-5'),
+  middleware: reporter.aiSdkMiddleware(),
+});
+
+try {
+  const { text } = await generateText({ model, prompt: 'Hello' });
+} catch (error) {
+  if (!denied(error)) throw error;
+  // A budget stopped the call. Nothing was sent to the provider.
+}
+```
+
+Before each call made with the wrapped model, the middleware checks your budgets. A stopped call throws `SpendDenied`, which `denied(error)` recognizes. If no budget answer arrives within 1.5 seconds, the call goes ahead. When telemetry and middleware are both set up, each call is recorded once: the middleware records the wrapped model's calls, and telemetry records everything else.
+
+On AI SDK 6, telemetry is not available. Use the middleware alone with `specificationVersion: 'v3'`:
+
+```ts
+const model = wrapLanguageModel({
+  model: openai('gpt-5'),
+  middleware: reporter.aiSdkMiddleware({ specificationVersion: 'v3' }),
+});
+```
+
+## Resources
+
+- [Agent Pulse Vercel AI SDK guide](https://dev.agentspulse.ai/docs/vercel-ai-sdk)
+- [GitHub repository](https://github.com/techbridgeinnovation/agentpulse)
+- [`techbridge-agentpulse` on npm](https://www.npmjs.com/package/techbridge-agentpulse)
