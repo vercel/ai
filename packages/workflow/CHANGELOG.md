@@ -1,5 +1,60 @@
 # @ai-sdk/workflow
 
+## 2.0.77
+
+### Patch Changes
+
+- ai@7.0.145
+
+## 2.0.76
+
+### Patch Changes
+
+- Updated dependencies [60cc252]
+- Updated dependencies [0ed59e2]
+  - @ai-sdk/provider@4.0.30
+  - ai@7.0.144
+  - @ai-sdk/provider-utils@5.0.63
+
+## 2.0.75
+
+### Patch Changes
+
+- Updated dependencies [8a5233b]
+- Updated dependencies [894e130]
+- Updated dependencies [0957554]
+  - ai@7.0.143
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+
+## 2.0.74
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+  - ai@7.0.142
+  - @ai-sdk/provider-utils@5.0.61
+
+## 2.0.73
+
+### Patch Changes
+
+- 88ea0d7: fix(workflow): pass runtime context allowed by 'telemetry.includeRuntimeContext'
+- 6ac1ee1: fix(workflow): validate and normalize tool inputs with the original tool schema in `WorkflowAgent`, matching `streamText`. Defaults, transforms, coercion, refinements, unknown-key handling, custom validators, `repairToolCall`, and lifecycle callbacks now behave the same in durable runs, and approval requests retain the pre-transform input so transforms do not run twice on resume.
+- Updated dependencies [2e89fa4]
+- Updated dependencies [88ea0d7]
+  - @ai-sdk/provider-utils@5.0.60
+  - ai@7.0.141
+
+## 2.0.72
+
+### Patch Changes
+
+- 9523eb0: feat(ai): add configurable tool call execution concurrency
+- Updated dependencies [9523eb0]
+  - ai@7.0.140
+
 ## 2.0.71
 
 ### Patch Changes

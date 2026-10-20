@@ -1,4 +1,14 @@
+import path from 'node:path';
+import { rgPath } from '@vscode/ripgrep';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { SANDBOX_PATH_FALLBACK } from './local-shell-backend';
+
+const originalPath = process.env.PATH;
+
+function restorePath() {
+  if (originalPath === undefined) delete process.env.PATH;
+  else process.env.PATH = originalPath;
+}
 
 type DeepAgentOptions = {
   tools?: Array<{
@@ -167,6 +177,7 @@ vi.mock('langchain', () => ({
 
 describe('Deep Agents bridge instructions', () => {
   beforeEach(() => {
+    restorePath();
     state.createDeepAgentOptions = [];
     state.responseFormat = undefined;
     state.headers = undefined;
@@ -189,8 +200,30 @@ describe('Deep Agents bridge instructions', () => {
 
   afterEach(() => {
     process.argv.splice(0, process.argv.length, ...state.originalArgv);
+    restorePath();
     vi.unstubAllEnvs();
     vi.resetModules();
+  });
+
+  it('adds packaged ripgrep after the existing PATH for built-in tools', async () => {
+    const existingPath = ['/sandbox/bin', '/usr/bin'].join(path.delimiter);
+    process.env.PATH = existingPath;
+
+    await import('./index');
+
+    expect(process.env.PATH).toBe(
+      [existingPath, path.dirname(rgPath)].join(path.delimiter),
+    );
+  });
+
+  it('keeps a usable fallback PATH when PATH is unavailable', async () => {
+    delete process.env.PATH;
+
+    await import('./index');
+
+    expect(process.env.PATH).toBe(
+      [SANDBOX_PATH_FALLBACK, path.dirname(rgPath)].join(path.delimiter),
+    );
   });
 
   it('appends instructions to the native system prompt', async () => {

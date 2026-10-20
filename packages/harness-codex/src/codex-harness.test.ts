@@ -1,7 +1,9 @@
 import {
   HarnessCapabilityUnsupportedError,
   type HarnessV1NetworkSandboxSession,
+  type HarnessV1Prompt,
 } from '@ai-sdk/harness';
+import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
 import type * as NodeFsPromises from 'node:fs/promises';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -493,6 +495,51 @@ describe('createCodex adapter', () => {
       expect(sentMessages.at(-1)).toMatchObject({
         type: 'start',
         model: 'agent-model',
+      });
+    });
+    await session.doDestroy();
+  });
+
+  it('forwards inline image content to the bridge', async () => {
+    const png =
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+    const session = await createCodex().doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        runs: [],
+        spawns: [],
+        writes: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/codex-s1',
+    });
+    const prompt: HarnessV1Prompt = {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'What is in this image?' },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: convertBase64ToUint8Array(png),
+        },
+      ],
+    };
+
+    const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt,
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    await vi.waitFor(() => {
+      expect(sentMessages.at(-1)).toMatchObject({
+        type: 'start',
+        prompt: [
+          { type: 'text', text: 'What is in this image?' },
+          { type: 'image', mediaType: 'image/png', data: png },
+        ],
       });
     });
     await session.doDestroy();

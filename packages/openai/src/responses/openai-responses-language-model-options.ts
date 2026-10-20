@@ -457,3 +457,26 @@ export const openaiResponsesSystemMessageOptionsSchema = lazySchema(() =>
 export type OpenAIResponsesSystemMessageOptions = InferSchema<
   typeof openaiResponsesSystemMessageOptionsSchema
 >;
+
+export const openaiResponsesToolResultOptionsSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      /** Function definitions to load immediately after this ordinary tool result. */
+      additionalTools: z
+        .array(
+          z.strictObject({
+            type: z.literal('function'),
+            name: z.string().min(1),
+            description: z.string().optional(),
+            parameters: z.record(z.string(), z.json()),
+            strict: z.boolean().optional(),
+          }),
+        )
+        .optional(),
+    }),
+  ),
+);
+
+export type OpenAIResponsesToolResultOptions = InferSchema<
+  typeof openaiResponsesToolResultOptionsSchema
+>;

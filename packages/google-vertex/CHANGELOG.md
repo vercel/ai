@@ -1,5 +1,70 @@
 # @ai-sdk/google-vertex
 
+## 5.0.117
+
+### Patch Changes
+
+- Updated dependencies [869601f]
+  - @ai-sdk/openai-compatible@3.0.73
+
+## 5.0.116
+
+### Patch Changes
+
+- Updated dependencies [60cc252]
+- Updated dependencies [d08bb66]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/google@4.0.100
+  - @ai-sdk/anthropic@4.0.83
+  - @ai-sdk/openai-compatible@3.0.72
+  - @ai-sdk/provider-utils@5.0.63
+
+## 5.0.115
+
+### Patch Changes
+
+- ae42699: fix(google): surface in-stream errors
+- Updated dependencies [ae42699]
+- Updated dependencies [0957554]
+  - @ai-sdk/google@4.0.99
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+  - @ai-sdk/anthropic@4.0.82
+  - @ai-sdk/openai-compatible@3.0.71
+
+## 5.0.114
+
+### Patch Changes
+
+- Updated dependencies [4cb3dec]
+  - @ai-sdk/google@4.0.98
+
+## 5.0.113
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+- Updated dependencies [d6ed4b9]
+- Updated dependencies [e254e96]
+  - @ai-sdk/provider@4.0.28
+  - @ai-sdk/openai-compatible@3.0.70
+  - @ai-sdk/anthropic@4.0.81
+  - @ai-sdk/google@4.0.97
+  - @ai-sdk/provider-utils@5.0.61
+
+## 5.0.112
+
+### Patch Changes
+
+- 40d0aec: feat(vertex-anthropic): forward 'providerOptions.vertex.labels' as a header
+- Updated dependencies [2e89fa4]
+- Updated dependencies [40d0aec]
+- Updated dependencies [40a4ce1]
+  - @ai-sdk/provider-utils@5.0.60
+  - @ai-sdk/anthropic@4.0.80
+  - @ai-sdk/google@4.0.96
+  - @ai-sdk/openai-compatible@3.0.69
+
 ## 5.0.111
 
 ### Patch Changes

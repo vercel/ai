@@ -20,6 +20,17 @@ export const typesafeDecisionResponseSchema = z.object({
         probabilities: z.record(z.string(), z.number()),
         confidence: z.number().nullish(),
       }),
+      // https://docs.typesafe.ai/primitives/box
+      z.object({
+        type: z.literal('box'),
+        box: z.object({
+          top: z.number(),
+          bottom: z.number(),
+          left: z.number(),
+          right: z.number(),
+        }),
+        confidence: z.number().nullish(),
+      }),
       z.object({ type: z.literal('noul'), noul: z.number() }),
     ]),
   ),

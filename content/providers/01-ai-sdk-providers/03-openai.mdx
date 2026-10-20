@@ -720,6 +720,12 @@ the operation is idempotent, and set explicit step limits.
 
 The OpenAI responses API supports web search through the `openai.tools.webSearch` tool.
 
+<Note>
+  `openai.tools.webSearchPreview()` is deprecated. Use
+  `openai.tools.webSearch()` instead. The existing `searchContextSize` and
+  `userLocation` options are supported by both tools.
+</Note>
+
 ```ts
 const result = await generateText({
   model: openai('gpt-6-astra'),
@@ -1538,6 +1544,111 @@ In client mode, the flow spans two steps:
 
 For more details, see the [OpenAI Tool Search documentation](https://platform.openai.com/docs/guides/tools-tool-search).
 
+##### Load tools after an ordinary tool result
+
+When your own search function discovers tools, attach
+`providerOptions.openai.additionalTools` to its tool-result part. The Responses
+provider preserves the ordinary result and emits an `additional_tools` item
+immediately after it. Replaying the same messages preserves that insertion point.
+
+```ts
+import {
+  openai,
+  type OpenAIResponsesToolResultOptions,
+  type OpenAIToolOptions,
+} from '@ai-sdk/openai';
+import { generateText, tool, type ModelMessage } from 'ai';
+import { z } from 'zod/v4';
+
+const messages: ModelMessage[] = [
+  { role: 'user', content: 'Find Linear and list my issues.' },
+  {
+    role: 'assistant',
+    content: [
+      {
+        type: 'tool-call',
+        toolCallId: 'search-1',
+        toolName: 'search',
+        input: {},
+      },
+    ],
+  },
+  {
+    role: 'tool',
+    content: [
+      {
+        type: 'tool-result',
+        toolCallId: 'search-1',
+        toolName: 'search',
+        output: {
+          type: 'json',
+          value: { connection: 'linear', connected: true },
+        },
+        providerOptions: {
+          openai: {
+            additionalTools: [
+              {
+                type: 'function',
+                name: 'list_issues',
+                description: 'List Linear issues.',
+                parameters: {
+                  type: 'object',
+                  properties: {},
+                  additionalProperties: false,
+                },
+              },
+            ],
+          } satisfies OpenAIResponsesToolResultOptions,
+        },
+      },
+    ],
+  },
+];
+
+const tools = {
+  search: tool({ inputSchema: z.object({}) }),
+  list_issues: tool({
+    inputSchema: z.object({}),
+    execute: async () => ({ issues: ['Example issue'] }),
+    providerOptions: {
+      openai: { omitFromRequestTools: true } satisfies OpenAIToolOptions,
+    },
+  }),
+};
+
+const result = await generateText({
+  model: openai.responses('gpt-5.4'),
+  tools,
+  messages,
+  providerOptions: { openai: { store: false } },
+});
+
+// Keep the original messages, including the additionalTools option, on replay.
+messages.push(...result.responseMessages);
+messages.push({ role: 'user', content: 'List my issues again.' });
+await generateText({
+  model: openai.responses('gpt-5.4'),
+  tools,
+  messages,
+  providerOptions: { openai: { store: false } },
+});
+```
+
+`additionalTools` currently accepts function definitions with `type: 'function'`,
+`name`, `parameters`, and optional `description` and `strict`. An empty array emits
+no item. These are OpenAI-format definitions; keep their names and schemas aligned
+with the SDK tools used for local validation and execution.
+
+`omitFromRequestTools: true` omits only the function's top-level Responses tool
+definition. Keep the function in `tools` and, if you use `activeTools`, include it
+there too: inactive tools cannot be executed. Use automatic tool choice for these
+functions; OpenAI cannot force or allow-list a tool absent from the top-level list.
+
+Both `generateText` and `streamText` support this representation. For streaming,
+append `await result.responseMessages` when replaying the conversation. This
+support is for direct `@ai-sdk/openai` Responses requests; AI Gateway support is
+not guaranteed by this provider option.
+
 #### Custom Tool
 
 The OpenAI Responses API supports
@@ -1657,12 +1768,12 @@ canonical name — two MCP servers, for example — that name is ambiguous, so i
 name those tools as you declared them instead.
 
 <Note>
-  Three kinds of tools cannot be allow-listed, because OpenAI's `allowed_tools`
-  only sees the eagerly-loaded tool list: the [tool search tool](#tool-search),
-  tools marked with `deferLoading`, and tools grouped into a namespace. Naming
-  one of these in `allowedTools` removes it from the allow-list and emits a
-  warning; if that leaves no tools at all, the request fails with an error
-  instead of silently sending no restriction.
+  Some tools cannot be allow-listed, because OpenAI's `allowed_tools` only sees
+  the eagerly-loaded tool list: the [tool search tool](#tool-search), tools
+  marked with `deferLoading` or `omitFromRequestTools`, and tools grouped into a
+  namespace. Naming one of these in `allowedTools` removes it from the
+  allow-list and emits a warning; if that leaves no tools at all, the request
+  fails with an error instead of silently sending no restriction.
 </Note>
 
 <Note>

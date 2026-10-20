@@ -107,6 +107,8 @@ export const openaiTools = {
    * Web search allows models to access up-to-date information from the internet
    * and provide answers with sourced citations.
    *
+   * @deprecated Use `webSearch` instead.
+   *
    * @param searchContextSize - The search context size to use for the web search.
    * @param userLocation - The user location to use for the web search.
    */

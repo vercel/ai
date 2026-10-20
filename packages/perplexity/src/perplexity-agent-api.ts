@@ -168,7 +168,7 @@ export const perplexityErrorSchema = z.looseObject({
     .union([
       z.string(),
       z.looseObject({
-        code: z.union([z.string(), z.number()]).optional(),
+        code: z.union([z.string(), z.number()]).nullish(),
         message: z.string().nullish(),
         type: z.string().nullish(),
       }),

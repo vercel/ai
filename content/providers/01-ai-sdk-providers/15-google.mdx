@@ -223,7 +223,7 @@ The following optional provider options are available for Google models:
     - `OFF`
 
 - **responseModalities** _string[]_
-  The modalities to use for the response. The following modalities are supported: `TEXT`, `IMAGE`. When not defined or empty, the model defaults to returning only text.
+  The modalities to use for the response. Valid values are `TEXT`, `IMAGE`, and `AUDIO`, but support is model-dependent. When not defined or empty, the model defaults to returning only text.
 
 - **thinkingConfig** _\{ thinkingLevel?: 'minimal' | 'low' | 'medium' | 'high'; thinkingBudget?: number; includeThoughts?: boolean \}_
 
@@ -394,6 +394,14 @@ and long coding or agentic tasks.
   thinks. `thinkingBudget` is not supported by these models.
 - Complex requests can run for several minutes. Make sure your HTTP client
   allows read timeouts of at least 15 to 20 minutes.
+
+**Grounding across requests.** When a response is continued automatically,
+`providerMetadata.google.groundingMetadataPerRequest` contains the grounding
+metadata from each request, in order. An entry is `null` if that request did
+not return grounding metadata. This preserves earlier Search results even if
+the final request returns none, and keeps citation indices scoped to their
+original request. The existing `groundingMetadata` field keeps its current
+behavior; use the per-request array when inspecting a continued response.
 
 **Usage across requests.** Each continued request re-sends the prompt plus all
 output so far as input, so its prompt token count includes everything

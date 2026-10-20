@@ -1,5 +1,65 @@
 # ai
 
+## 7.0.145
+
+### Patch Changes
+
+- Updated dependencies [1c47fee]
+  - @ai-sdk/gateway@4.0.118
+
+## 7.0.144
+
+### Patch Changes
+
+- 60cc252: feat(perplexity): add decisions api support
+- 0ed59e2: Fix `streamText` return types for reusable options and `ReturnType` by moving low-memory streaming to `experimental_streamTextLowMemory`. Replace experimental `streamText({ experimental_lowMemory: true, ...options })` calls with `experimental_streamTextLowMemory(options)`.
+- Updated dependencies [60cc252]
+- Updated dependencies [6b7fb8f]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/gateway@4.0.117
+  - @ai-sdk/provider-utils@5.0.63
+
+## 7.0.143
+
+### Patch Changes
+
+- 8a5233b: Generate default chat IDs on first access so `useChat()` can prerender without reading a random value when the ID is not used during rendering.
+- 894e130: fix(ai): add `experimental_lowMemory: true` to `streamText` for single-consumer streaming without a replay buffer or retained final-content results, reducing memory retention.
+- 0957554: Add `box` decision question type with image bounds for TypeSafe AI.
+- Updated dependencies [0957554]
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+  - @ai-sdk/gateway@4.0.116
+
+## 7.0.142
+
+### Patch Changes
+
+- 130e871: Restore raw OpenAI custom-tool input deltas for consumers that forward them to Responses API clients. Mark streamed input with `inputEncoding: 'text'` so UI clients can display it progressively without JSON parsing. Preserve the encoding when partial UI messages are saved and resumed. Final provider tool-call inputs remain JSON-encoded.
+- Updated dependencies [130e871]
+- Updated dependencies [5bdb816]
+  - @ai-sdk/provider@4.0.28
+  - @ai-sdk/gateway@4.0.115
+  - @ai-sdk/provider-utils@5.0.61
+
+## 7.0.141
+
+### Patch Changes
+
+- 88ea0d7: fix(workflow): pass runtime context allowed by 'telemetry.includeRuntimeContext'
+- Updated dependencies [2e89fa4]
+- Updated dependencies [b658e85]
+  - @ai-sdk/provider-utils@5.0.60
+  - @ai-sdk/gateway@4.0.114
+
+## 7.0.140
+
+### Patch Changes
+
+- 9523eb0: feat(ai): add configurable tool call execution concurrency
+- Updated dependencies [42a2895]
+  - @ai-sdk/gateway@4.0.113
+
 ## 7.0.139
 
 ### Patch Changes

@@ -1,5 +1,61 @@
 # @ai-sdk/harness-cursor
 
+## 1.0.70
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.156
+- @ai-sdk/harness-acp@1.0.95
+
+## 1.0.69
+
+### Patch Changes
+
+- Updated dependencies [60cc252]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/harness@1.0.155
+  - @ai-sdk/provider-utils@5.0.63
+  - @ai-sdk/harness-acp@1.0.94
+
+## 1.0.68
+
+### Patch Changes
+
+- Updated dependencies [0957554]
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+  - @ai-sdk/harness@1.0.154
+  - @ai-sdk/harness-acp@1.0.93
+
+## 1.0.67
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+  - @ai-sdk/harness@1.0.153
+  - @ai-sdk/provider-utils@5.0.61
+  - @ai-sdk/harness-acp@1.0.92
+
+## 1.0.66
+
+### Patch Changes
+
+- Updated dependencies [2e89fa4]
+  - @ai-sdk/provider-utils@5.0.60
+  - @ai-sdk/harness@1.0.152
+  - @ai-sdk/harness-acp@1.0.91
+
+## 1.0.65
+
+### Patch Changes
+
+- 1bebfcf: feat(harness): add support for tools with `toModelOutput()` transformation
+- Updated dependencies [6c65131]
+- Updated dependencies [1bebfcf]
+  - @ai-sdk/harness-acp@1.0.90
+  - @ai-sdk/harness@1.0.151
+
 ## 1.0.64
 
 ### Patch Changes

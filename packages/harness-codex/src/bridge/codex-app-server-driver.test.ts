@@ -868,6 +868,34 @@ describe('Codex app-server sandbox configuration', () => {
     });
   });
 
+  it('maps text and inline images to Codex turn input in order', () => {
+    const startWithImage = {
+      ...start,
+      prompt: [
+        { type: 'text', text: 'What is in this image?' },
+        { type: 'image', mediaType: 'image/png', data: 'iVBORw0KGgo=' },
+      ],
+    } as StartMessage;
+
+    expect(
+      createTurnParams({
+        threadId: 'thread-1',
+        start: startWithImage,
+        codexModel: 'gpt-5.3-codex',
+      }).input,
+    ).toEqual([
+      {
+        type: 'text',
+        text: 'What is in this image?',
+        text_elements: [],
+      },
+      {
+        type: 'image',
+        url: 'data:image/png;base64,iVBORw0KGgo=',
+      },
+    ]);
+  });
+
   it('fails before a turn if Codex did not disable its sandbox', () => {
     expect(() =>
       assertCodexThreadPermissions({

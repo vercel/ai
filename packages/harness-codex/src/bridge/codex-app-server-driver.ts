@@ -440,7 +440,17 @@ export function createTurnParams({
   return {
     threadId,
     ...(disableEnvironments ? { environments: [] } : {}),
-    input: [{ type: 'text', text: start.prompt, text_elements: [] }],
+    input:
+      typeof start.prompt === 'string'
+        ? [{ type: 'text', text: start.prompt, text_elements: [] }]
+        : start.prompt.map(part =>
+            part.type === 'text'
+              ? { type: 'text', text: part.text, text_elements: [] }
+              : {
+                  type: 'image',
+                  url: `data:${part.mediaType};base64,${part.data}`,
+                },
+          ),
     approvalPolicy: 'never',
     sandboxPolicy: {
       type: 'externalSandbox',
