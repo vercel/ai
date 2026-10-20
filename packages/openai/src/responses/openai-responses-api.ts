@@ -6,65 +6,70 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-const jsonValueSchema: z.ZodType<JSONValue> = z.lazy(() =>
-  z.union([
-    z.string(),
-    z.number(),
-    z.boolean(),
-    z.null(),
-    z.array(jsonValueSchema),
-    z.record(z.string(), jsonValueSchema.optional()),
-  ]),
-);
+let cachedJsonValueSchema: z.ZodType<JSONValue> | undefined;
+const jsonValueSchema = (): z.ZodType<JSONValue> =>
+  (cachedJsonValueSchema ??= z.lazy(() =>
+    z.union([
+      z.string(),
+      z.number(),
+      z.boolean(),
+      z.null(),
+      z.array(jsonValueSchema()),
+      z.record(z.string(), jsonValueSchema().optional()),
+    ]),
+  ));
 
-const jsonObjectSchema = z.record(z.string(), jsonValueSchema.optional());
+const jsonObjectSchema = () =>
+  z.record(z.string(), jsonValueSchema().optional());
 
-const openaiResponsesUsageSchema = z.intersection(
-  jsonObjectSchema,
-  z.object({
-    input_tokens: z.number(),
-    input_tokens_details: z
-      .intersection(
-        jsonObjectSchema,
-        z.object({
-          cached_tokens: z.number().nullish(),
-          cache_write_tokens: z.number().nullish(),
-          orchestration_input_tokens: z.number().nullish(),
-          orchestration_input_cached_tokens: z.number().nullish(),
-        }),
-      )
-      .nullish(),
-    output_tokens: z.number(),
-    output_tokens_details: z
-      .intersection(
-        jsonObjectSchema,
-        z.object({
-          reasoning_tokens: z.number().nullish(),
-          orchestration_output_tokens: z.number().nullish(),
-        }),
-      )
-      .nullish(),
-    total_tokens: z.number().optional(),
-  }),
-);
+const openaiResponsesUsageSchema = () =>
+  z.intersection(
+    jsonObjectSchema(),
+    z.object({
+      input_tokens: z.number(),
+      input_tokens_details: z
+        .intersection(
+          jsonObjectSchema(),
+          z.object({
+            cached_tokens: z.number().nullish(),
+            cache_write_tokens: z.number().nullish(),
+            orchestration_input_tokens: z.number().nullish(),
+            orchestration_input_cached_tokens: z.number().nullish(),
+          }),
+        )
+        .nullish(),
+      output_tokens: z.number(),
+      output_tokens_details: z
+        .intersection(
+          jsonObjectSchema(),
+          z.object({
+            reasoning_tokens: z.number().nullish(),
+            orchestration_output_tokens: z.number().nullish(),
+          }),
+        )
+        .nullish(),
+      total_tokens: z.number().optional(),
+    }),
+  );
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value != null && typeof value === 'object' && !Array.isArray(value);
 }
 
-const openaiResponsesLocalShellCallSchema = z.object({
-  type: z.literal('local_shell_call'),
-  id: z.string(),
-  call_id: z.string(),
-  action: z.object({
-    type: z.literal('exec'),
-    command: z.array(z.string()),
-    timeout_ms: z.number().optional(),
-    user: z.string().optional(),
-    working_directory: z.string().optional(),
-    env: z.record(z.string(), z.string()).optional(),
-  }),
-});
+const openaiResponsesLocalShellCallSchema = () =>
+  z.object({
+    type: z.literal('local_shell_call'),
+    id: z.string(),
+    call_id: z.string(),
+    action: z.object({
+      type: z.literal('exec'),
+      command: z.array(z.string()),
+      timeout_ms: z.number().optional(),
+      user: z.string().optional(),
+      working_directory: z.string().optional(),
+      env: z.record(z.string(), z.string()).optional(),
+    }),
+  });
 
 export type OpenAIResponsesInput = Array<OpenAIResponsesInputItem>;
 
@@ -264,7 +269,7 @@ export type OpenAIResponsesComputerCall = {
 };
 
 export type OpenAIResponsesLocalShellCall = InferSchema<
-  typeof openaiResponsesLocalShellCallSchema
+  ReturnType<typeof openaiResponsesLocalShellCallSchema>
 >;
 
 export type OpenAIResponsesLocalShellCallOutput = {
@@ -615,27 +620,29 @@ export type OpenAIResponsesConfigurationUpdate = {
 // Captured from the Responses API when OpenAI returned an early
 // insufficient_quota stream error after HTTP 200. This shape differs from the
 // currently documented ResponseErrorEvent below.
-const openaiResponsesNestedErrorChunkSchema = z.object({
-  type: z.literal('error'),
-  sequence_number: z.number(),
-  error: z.object({
-    type: z.string(),
-    code: z.string().nullish(),
-    message: z.string(),
-    param: z.string().nullish(),
-  }),
-});
+const openaiResponsesNestedErrorChunkSchema = () =>
+  z.object({
+    type: z.literal('error'),
+    sequence_number: z.number(),
+    error: z.object({
+      type: z.string(),
+      code: z.string().nullish(),
+      message: z.string(),
+      param: z.string().nullish(),
+    }),
+  });
 
 // Current OpenAI OpenAPI docs define ResponseErrorEvent with top-level
 // code/message/param fields:
 // https://developers.openai.com/api/reference/resources/responses/streaming-events
-const openaiResponsesErrorChunkSchema = z.object({
-  type: z.literal('error'),
-  sequence_number: z.number(),
-  code: z.string().nullish(),
-  message: z.string(),
-  param: z.string().nullish(),
-});
+const openaiResponsesErrorChunkSchema = () =>
+  z.object({
+    type: z.literal('error'),
+    sequence_number: z.number(),
+    code: z.string().nullish(),
+    message: z.string(),
+    param: z.string().nullish(),
+  });
 
 /**
  * Chunk types explicitly modeled by openaiResponsesChunkSchema. Keep this set
@@ -739,7 +746,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
         type: z.enum(['response.completed', 'response.incomplete']),
         response: z.object({
           incomplete_details: z.object({ reason: z.string() }).nullish(),
-          usage: openaiResponsesUsageSchema.nullish(),
+          usage: openaiResponsesUsageSchema().nullish(),
           reasoning: z
             .object({
               context: z.string().nullish(),
@@ -759,7 +766,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             })
             .nullish(),
           incomplete_details: z.object({ reason: z.string() }).nullish(),
-          usage: openaiResponsesUsageSchema.nullish(),
+          usage: openaiResponsesUsageSchema().nullish(),
           reasoning: z
             .object({
               context: z.string().nullish(),
@@ -814,7 +821,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             type: z.literal('file_search_call'),
             id: z.string(),
           }),
-          openaiResponsesLocalShellCallSchema,
+          openaiResponsesLocalShellCallSchema(),
           z.object({
             type: z.literal('image_generation_call'),
             id: z.string(),
@@ -920,7 +927,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             execution: z.enum(['server', 'client']),
             call_id: z.string().nullable(),
             status: z.enum(['in_progress', 'completed', 'incomplete']),
-            tools: z.array(z.record(z.string(), jsonValueSchema.optional())),
+            tools: z.array(z.record(z.string(), jsonValueSchema().optional())),
           }),
         ]),
       }),
@@ -1026,7 +1033,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
               )
               .nullish(),
           }),
-          openaiResponsesLocalShellCallSchema,
+          openaiResponsesLocalShellCallSchema(),
           z.object({
             type: z.literal('computer_call'),
             id: z.string(),
@@ -1151,7 +1158,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             execution: z.enum(['server', 'client']),
             call_id: z.string().nullable(),
             status: z.enum(['in_progress', 'completed', 'incomplete']),
-            tools: z.array(z.record(z.string(), jsonValueSchema.optional())),
+            tools: z.array(z.record(z.string(), jsonValueSchema().optional())),
           }),
         ]),
       }),
@@ -1253,8 +1260,8 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
         output_index: z.number(),
         diff: z.string(),
       }),
-      openaiResponsesNestedErrorChunkSchema,
-      openaiResponsesErrorChunkSchema,
+      openaiResponsesNestedErrorChunkSchema(),
+      openaiResponsesErrorChunkSchema(),
       z
         .object({ type: z.string() })
         .loose()
@@ -1432,7 +1439,7 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
               id: z.string(),
               result: z.string(),
             }),
-            openaiResponsesLocalShellCallSchema,
+            openaiResponsesLocalShellCallSchema(),
             z.object({
               type: z.literal('function_call'),
               call_id: z.string(),
@@ -1585,7 +1592,9 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
               execution: z.enum(['server', 'client']),
               call_id: z.string().nullable(),
               status: z.enum(['in_progress', 'completed', 'incomplete']),
-              tools: z.array(z.record(z.string(), jsonValueSchema.optional())),
+              tools: z.array(
+                z.record(z.string(), jsonValueSchema().optional()),
+              ),
             }),
           ]),
         )
@@ -1597,7 +1606,7 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
         })
         .nullish(),
       incomplete_details: z.object({ reason: z.string() }).nullish(),
-      usage: openaiResponsesUsageSchema.nullish(),
+      usage: openaiResponsesUsageSchema().nullish(),
     }),
   ),
 );
