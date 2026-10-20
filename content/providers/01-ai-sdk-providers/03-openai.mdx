@@ -318,7 +318,7 @@ The following provider options are available:
   A cache key for manual prompt caching control. Used by OpenAI to cache responses for similar requests to optimize your cache hit rates.
 
 - **promptCacheOptions** _object_
-  Configures prompt caching for GPT-5.6 and later models. `mode` can be `'implicit'` or `'explicit'`, and `ttl` currently only supports `'30m'`. In explicit mode, only content blocks marked with a prompt cache breakpoint are cached.
+  Configures prompt caching for GPT-5.6 and later models. `mode` can be `'implicit'` or `'explicit'`. `ttl` sets the minimum cache lifetime: `'30m'` (default) or `'12h'`. Set `prewarm` to `true` to write the prompt to the cache without generating output. In explicit mode, only content blocks marked with a prompt cache breakpoint are cached.
 
 - **promptCacheRetention** _'in_memory' | '24h'_
   The legacy retention policy for models before GPT-5.6. Set to `'24h'` to enable extended prompt caching on supported models. For GPT-5.6 and later models, use `promptCacheOptions.ttl` instead.
@@ -2858,7 +2858,7 @@ including `gpt-4o` and `gpt-4o-mini`.
   not need to be explicitly enabled.
 - You can use the response `usage` to access the number of prompt tokens that were a cache hit via `usage.inputTokenDetails.cacheReadTokens`.
 - For GPT-5.6 and later models, `usage.inputTokenDetails.cacheWriteTokens` reports tokens written to the cache.
-- For GPT-5.6 and later models, `promptCacheOptions.ttl` sets a minimum cache lifetime of 30 minutes. Earlier models generally retain in-memory prefixes for 5-10 minutes of inactivity, up to one hour.
+- For GPT-5.6 and later models, `promptCacheOptions.ttl` sets a minimum cache lifetime of 30 minutes (`'30m'`, the default) or 12 hours (`'12h'`, Responses API only). 12-hour writes are billed at a higher rate. `usage.raw.input_tokens_details.cache_write_tokens_details` splits cache writes into `ttl_30m_tokens` and `ttl_12h_tokens`. Earlier models generally retain in-memory prefixes for 5-10 minutes of inactivity, up to one hour.
 
 ```ts highlight="9"
 import { openai } from '@ai-sdk/openai';
@@ -2891,7 +2891,7 @@ const { text, usage } = await generateText({
 console.log('Cached tokens:', usage.inputTokenDetails.cacheReadTokens);
 ```
 
-GPT-5.6 and later models support explicit cache breakpoints on text, image, and file content blocks. Set a request-level cache key and mark the end of each reusable prefix with `promptCacheBreakpoint`:
+GPT-5.6 and later models support explicit cache breakpoints on text, image, and file content blocks. Set a request-level cache key and mark the end of each reusable prefix with `promptCacheBreakpoint`. With Responses models, a breakpoint can set its own `ttl` (for example `{ mode: 'explicit', ttl: '12h' }`) to override the request-level `promptCacheOptions.ttl`:
 
 ```ts highlight="9-12,20-28"
 import {

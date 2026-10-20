@@ -347,6 +347,10 @@ describe('OpenAIResponsesLanguageModel', () => {
               input_tokens_details: {
                 cached_tokens: 234,
                 cache_write_tokens: 45,
+                cache_write_tokens_details: {
+                  ttl_30m_tokens: 15,
+                  ttl_12h_tokens: 30,
+                },
                 future_input_detail: {
                   tokens: 7,
                 },
@@ -412,6 +416,10 @@ describe('OpenAIResponsesLanguageModel', () => {
               "input_tokens": 345,
               "input_tokens_details": {
                 "cache_write_tokens": 45,
+                "cache_write_tokens_details": {
+                  "ttl_12h_tokens": 30,
+                  "ttl_30m_tokens": 15,
+                },
                 "cached_tokens": 234,
                 "future_input_detail": {
                   "tokens": 7,
@@ -1899,6 +1907,82 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
 
         expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send a 12h promptCacheOptions ttl and prewarm', async () => {
+        const { warnings } = await createModel('gpt-6.1-sol').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              promptCacheOptions: {
+                mode: 'implicit',
+                ttl: '12h',
+                prewarm: true,
+              },
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-6.1-sol',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          prompt_cache_options: {
+            mode: 'implicit',
+            ttl: '12h',
+            prewarm: true,
+          },
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send a 12h ttl on a prompt cache breakpoint', async () => {
+        await createModel('gpt-6.1-sol').doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Stable prefix',
+                  providerOptions: {
+                    openai: {
+                      promptCacheBreakpoint: { mode: 'explicit', ttl: '12h' },
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          input: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'input_text',
+                  text: 'Stable prefix',
+                  prompt_cache_breakpoint: { mode: 'explicit', ttl: '12h' },
+                },
+              ],
+            },
+          ],
+        });
+      });
+
+      it('should reject an unsupported promptCacheOptions ttl', async () => {
+        await expect(
+          createModel('gpt-6.1-sol').doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              openai: { promptCacheOptions: { ttl: '24h' } },
+            },
+          }),
+        ).rejects.toThrow();
       });
 
       it('should insert a reasoning effort configuration update before the prompt', async () => {
