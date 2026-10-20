@@ -637,14 +637,25 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       }
     }
 
+    const incompleteReason = response.incomplete_details?.reason;
+    const isResponseIncomplete =
+      response.status === 'incomplete' || incompleteReason != null;
+
     return {
       content,
-      finishReason: {
-        unified: hasFunctionCall
-          ? 'tool-calls'
-          : mapXaiResponsesFinishReason(response.status),
-        raw: response.status ?? undefined,
-      },
+      finishReason: isResponseIncomplete
+        ? {
+            unified: incompleteReason
+              ? mapXaiResponsesFinishReason(incompleteReason)
+              : 'other',
+            raw: incompleteReason ?? 'incomplete',
+          }
+        : {
+            unified: hasFunctionCall
+              ? 'tool-calls'
+              : mapXaiResponsesFinishReason(response.status),
+            raw: response.status ?? undefined,
+          },
       usage: response.usage
         ? convertXaiResponsesUsage(response.usage)
         : {
@@ -920,7 +931,11 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
               promptCacheKey = response.prompt_cache_key ?? undefined;
               safetyIdentifier = response.safety_identifier ?? undefined;
 
-              if (event.type === 'response.incomplete') {
+              const isResponseIncomplete =
+                event.type === 'response.incomplete' ||
+                ('status' in response && response.status === 'incomplete');
+
+              if (isResponseIncomplete) {
                 const reason =
                   'incomplete_details' in response
                     ? response.incomplete_details?.reason
