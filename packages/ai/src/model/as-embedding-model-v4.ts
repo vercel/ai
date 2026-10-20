@@ -1,4 +1,4 @@
-import {
+import type {
   EmbeddingModelV2,
   EmbeddingModelV3,
   EmbeddingModelV4,

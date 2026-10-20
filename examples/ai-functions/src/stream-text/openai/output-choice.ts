@@ -1,11 +1,14 @@
-import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
 import { Output, isStepCount, streamText } from 'ai';
 import { run } from '../../lib/run';
 import { weatherTool } from '../../tools/weather-tool';
 
 run(async () => {
   const result = streamText({
-    model: openai('gpt-4o-mini'),
+    model: openai('gpt-6-luna'),
     providerOptions: {
       openai: {
         strictJsonSchema: true,

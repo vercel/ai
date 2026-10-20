@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: provider.chat('llama-3.1-70b'),
+    model: provider.chat('gpt-oss-120b'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 

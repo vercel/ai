@@ -9,6 +9,11 @@ The AI SDK provides the [`uploadFile`](/docs/reference/ai-sdk-core/upload-file)
 function to upload files to a provider and get back a `ProviderReference` that can be
 used in subsequent API calls.
 
+In the AI SDK, the uploaded file is identified by a `ProviderReference` — a
+`Record<string, string>` mapping provider names to provider-specific identifiers.
+This concept is used for other provider specific asset references too, such as
+uploaded skills.
+
 ```ts
 import { uploadFile, generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
@@ -21,16 +26,26 @@ const { providerReference } = await uploadFile({
 });
 
 const { text } = await generateText({
-  model: openai.responses('gpt-4o-mini'),
+  model: openai.responses('gpt-6-luna'),
   messages: [
     {
       role: 'user',
       content: [
         { type: 'text', text: 'Describe what you see in this image.' },
-        { type: 'image', image: providerReference },
+        { type: 'file', mediaType: 'image', data: providerReference },
       ],
     },
   ],
+});
+```
+
+As a shorthand, you can pass a provider instance directly to `api` instead of calling `.files()` explicitly — the SDK will call `.files()` for you:
+
+```ts highlight="3"
+const { providerReference } = await uploadFile({
+  api: openai, // shorthand for openai.files()
+  data: fs.readFileSync('./photo.png'),
+  filename: 'photo.png',
 });
 ```
 
@@ -78,6 +93,31 @@ const { providerReference } = await uploadFile({
   },
 });
 ```
+
+## Streaming Uploads
+
+Providers that support streaming uploads (e.g. OpenAI, xAI) accept a tagged
+`{ type: 'stream', stream }` shape, sending the bytes without buffering the
+full file in memory. Providers without streaming support reject stream data
+with an `UnsupportedFunctionalityError`.
+
+```ts
+const { providerReference } = await uploadFile({
+  api: openai.files(),
+  data: { type: 'stream', stream: fileStream },
+  mediaType: 'application/jsonl',
+  filename: 'batch.jsonl',
+});
+```
+
+The provider consumes the stream: any failed upload — including validation
+failures before a request is made — cancels it, and it must not be reused. Stream data cannot be sniffed, so `mediaType` defaults to
+`application/octet-stream` when omitted, and multipart-based providers default
+the filename to `"blob"`.
+
+Uploads can be cancelled with `abortSignal` and carry request-specific
+`headers`. Results include `byteSize`, `createdAt`, and `expiresAt` (the
+provider-applied retention expiry) when the provider reports them.
 
 ## Provider References
 
@@ -129,12 +169,12 @@ the request — each provider will find its own file ID.
 
 The following providers support `files()` and file uploads:
 
-| Provider  | Factory Method        |
-| --------- | --------------------- |
-| Anthropic | `anthropic.files()`   |
-| Google    | `google.files()`      |
-| OpenAI    | `openai.files()`      |
-| xAI       | `xai.files()`         |
+| Provider  | Factory Method      |
+| --------- | ------------------- |
+| Anthropic | `anthropic.files()` |
+| Google    | `google.files()`    |
+| OpenAI    | `openai.files()`    |
+| xAI       | `xai.files()`       |
 
 Providers without file upload support will throw an `UnsupportedFunctionalityError`
 if they encounter a provider reference in a message.

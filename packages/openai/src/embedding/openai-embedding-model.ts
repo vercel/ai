@@ -1,28 +1,47 @@
 import {
-  EmbeddingModelV4,
   TooManyEmbeddingValuesForCallError,
+  type EmbeddingModelV4,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
+  EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL,
   parseProviderOptions,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
-import { OpenAIConfig } from '../openai-config';
+import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
 import {
-  OpenAIEmbeddingModelId,
   openaiEmbeddingModelOptions,
-} from './openai-embedding-options';
+  type OpenAIEmbeddingModelId,
+} from './openai-embedding-model-options';
 import { openaiTextEmbeddingResponseSchema } from './openai-embedding-api';
 
 export class OpenAIEmbeddingModel implements EmbeddingModelV4 {
   readonly specificationVersion = 'v4';
   readonly modelId: OpenAIEmbeddingModelId;
   readonly maxEmbeddingsPerCall = 2048;
+  readonly [EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL] = 300_000;
   readonly supportsParallelCalls = true;
 
   private readonly config: OpenAIConfig;
+
+  static [WORKFLOW_SERIALIZE](model: OpenAIEmbeddingModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: OpenAIEmbeddingModelId;
+    config: OpenAIConfig;
+  }) {
+    return new OpenAIEmbeddingModel(options.modelId, options.config);
+  }
 
   get provider(): string {
     return this.config.provider;
@@ -35,6 +54,7 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV4 {
 
   async doEmbed({
     values,
+    dimensions,
     headers,
     abortSignal,
     providerOptions,
@@ -67,12 +87,12 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV4 {
         path: '/embeddings',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), headers),
+      headers: combineHeaders(this.config.headers?.(), headers),
       body: {
         model: this.modelId,
         input: values,
         encoding_format: 'float',
-        dimensions: openaiOptions.dimensions,
+        dimensions: openaiOptions.dimensions ?? dimensions,
         user: openaiOptions.user,
       },
       failedResponseHandler: openaiFailedResponseHandler,

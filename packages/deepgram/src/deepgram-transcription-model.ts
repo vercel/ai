@@ -1,59 +1,19 @@
-import { SharedV4Warning, TranscriptionModelV4 } from '@ai-sdk/provider';
+import type { SharedV4Warning, TranscriptionModelV4 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
   parseProviderOptions,
   postToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { DeepgramTranscriptionAPITypes } from './deepgram-api-types';
-import { DeepgramConfig } from './deepgram-config';
+import type { DeepgramTranscriptionAPITypes } from './deepgram-api-types';
+import type { DeepgramConfig } from './deepgram-config';
 import { deepgramFailedResponseHandler } from './deepgram-error';
-import { DeepgramTranscriptionModelId } from './deepgram-transcription-options';
-
-// https://developers.deepgram.com/docs/pre-recorded-audio#results
-const deepgramTranscriptionModelOptionsSchema = z.object({
-  /** Language to use for transcription. If not specified, Deepgram defaults to English. Use `detectLanguage: true` to enable automatic language detection. */
-  language: z.string().nullish(),
-  /** Whether to enable automatic language detection. When true, Deepgram will detect the language of the audio. */
-  detectLanguage: z.boolean().nullish(),
-  /** Whether to use smart formatting, which formats written-out numbers, dates, times, etc. */
-  smartFormat: z.boolean().nullish(),
-  /** Whether to add punctuation to the transcript. */
-  punctuate: z.boolean().nullish(),
-  /** Whether to format the transcript into paragraphs. */
-  paragraphs: z.boolean().nullish(),
-  /** Whether to generate a summary of the transcript. Use 'v2' for the latest version or false to disable. */
-  summarize: z.union([z.literal('v2'), z.literal(false)]).nullish(),
-  /** Whether to identify topics in the transcript. */
-  topics: z.boolean().nullish(),
-  /** Whether to identify intents in the transcript. */
-  intents: z.boolean().nullish(),
-  /** Whether to analyze sentiment in the transcript. */
-  sentiment: z.boolean().nullish(),
-  /** Whether to detect and tag named entities in the transcript. */
-  detectEntities: z.boolean().nullish(),
-  /** Specify terms or patterns to redact from the transcript. Can be a string or array of strings. */
-  redact: z.union([z.string(), z.array(z.string())]).nullish(),
-  /** String to replace redacted content with. */
-  replace: z.string().nullish(),
-  /** Term or phrase to search for in the transcript. */
-  search: z.string().nullish(),
-  /** Key term to identify in the transcript. */
-  keyterm: z.string().nullish(),
-  /** Whether to identify different speakers in the audio. */
-  diarize: z.boolean().nullish(),
-  /** Whether to segment the transcript into utterances. */
-  utterances: z.boolean().nullish(),
-  /** Minimum duration of silence (in seconds) to trigger a new utterance. */
-  uttSplit: z.number().nullish(),
-  /** Whether to include filler words (um, uh, etc.) in the transcript. */
-  fillerWords: z.boolean().nullish(),
-});
-
-export type DeepgramTranscriptionModelOptions = z.infer<
-  typeof deepgramTranscriptionModelOptionsSchema
->;
+import { deepgramTranscriptionModelOptionsSchema } from './deepgram-transcription-model-options';
+import type { DeepgramTranscriptionModelId } from './deepgram-transcription-options';
 
 interface DeepgramTranscriptionModelConfig extends DeepgramConfig {
   _internal?: {
@@ -66,6 +26,20 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: DeepgramTranscriptionModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: DeepgramTranscriptionModelId;
+    config: DeepgramTranscriptionModelConfig;
+  }) {
+    return new DeepgramTranscriptionModel(options.modelId, options.config);
   }
 
   constructor(
@@ -87,27 +61,28 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
 
     const body: DeepgramTranscriptionAPITypes = {
       model: this.modelId,
-      diarize: true,
     };
 
     // Add provider-specific options
     if (deepgramOptions) {
       body.detect_entities = deepgramOptions.detectEntities ?? undefined;
       body.detect_language = deepgramOptions.detectLanguage ?? undefined;
+      body.diarize = deepgramOptions.diarize ?? undefined;
       body.filler_words = deepgramOptions.fillerWords ?? undefined;
+      body.intents = deepgramOptions.intents ?? undefined;
+      body.keyterm = deepgramOptions.keyterm ?? undefined;
       body.language = deepgramOptions.language ?? undefined;
+      body.paragraphs = deepgramOptions.paragraphs ?? undefined;
       body.punctuate = deepgramOptions.punctuate ?? undefined;
       body.redact = deepgramOptions.redact ?? undefined;
+      body.replace = deepgramOptions.replace ?? undefined;
       body.search = deepgramOptions.search ?? undefined;
+      body.sentiment = deepgramOptions.sentiment ?? undefined;
       body.smart_format = deepgramOptions.smartFormat ?? undefined;
       body.summarize = deepgramOptions.summarize ?? undefined;
       body.topics = deepgramOptions.topics ?? undefined;
       body.utterances = deepgramOptions.utterances ?? undefined;
       body.utt_split = deepgramOptions.uttSplit ?? undefined;
-
-      if (typeof deepgramOptions.diarize === 'boolean') {
-        body.diarize = deepgramOptions.diarize;
-      }
     }
 
     // Convert body to URL query parameters
@@ -143,7 +118,7 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
         '?' +
         queryParams.toString(),
       headers: {
-        ...combineHeaders(this.config.headers(), options.headers),
+        ...combineHeaders(this.config.headers?.(), options.headers),
         'Content-Type': options.mediaType,
       },
       body: {
@@ -157,6 +132,7 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
+    const durationInSeconds = response.metadata?.duration ?? undefined;
 
     return {
       text:
@@ -169,7 +145,10 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
         })) ?? [],
       language:
         response.results?.channels.at(0)?.detected_language ?? undefined,
-      durationInSeconds: response.metadata?.duration ?? undefined,
+      durationInSeconds,
+      ...(durationInSeconds != null
+        ? { usage: { seconds: durationInSeconds } }
+        : {}),
       warnings,
       response: {
         timestamp: currentDate,

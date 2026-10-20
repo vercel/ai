@@ -1,5 +1,11 @@
 import { openai } from '@ai-sdk/openai';
-import { convertToModelMessages, isStepCount, streamText } from 'ai';
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  isStepCount,
+  streamText,
+  toUIMessageStream,
+} from 'ai';
 import { createMCPClient } from '@ai-sdk/mcp';
 
 export const maxDuration = 30;
@@ -18,16 +24,18 @@ export async function POST(req: Request) {
     const zapierTools = await mcpClient.tools();
 
     const result = streamText({
-      model: openai('gpt-4o'),
+      model: openai('gpt-6-astra'),
       messages: await convertToModelMessages(messages),
       tools: zapierTools,
-      onFinish: async () => {
+      onEnd: async () => {
         await mcpClient.close();
       },
       stopWhen: isStepCount(10),
     });
 
-    return result.toUIMessageStreamResponse();
+    return createUIMessageStreamResponse({
+      stream: toUIMessageStream({ stream: result.stream }),
+    });
   } catch (error) {
     return new Response('Internal Server Error', { status: 500 });
   }

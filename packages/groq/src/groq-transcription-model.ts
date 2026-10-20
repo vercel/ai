@@ -1,20 +1,25 @@
-import { TranscriptionModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import type { TranscriptionModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
+  createBinaryResponseHandler,
   createJsonResponseHandler,
   mediaTypeToExtension,
   parseProviderOptions,
   postFormDataToApi,
+  serializeModelOptions,
+  type ResponseHandler,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { GroqConfig } from './groq-config';
+import type { GroqConfig } from './groq-config';
 import { groqFailedResponseHandler } from './groq-error';
 import {
-  GroqTranscriptionModelId,
   groqTranscriptionModelOptions,
-} from './groq-transcription-options';
-import { GroqTranscriptionAPITypes } from './groq-api-types';
+  type GroqTranscriptionModelId,
+} from './groq-transcription-model-options';
+import type { GroqTranscriptionAPITypes } from './groq-api-types';
 
 interface GroqTranscriptionModelConfig extends GroqConfig {
   _internal?: {
@@ -27,6 +32,20 @@ export class GroqTranscriptionModel implements TranscriptionModelV4 {
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: GroqTranscriptionModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: GroqTranscriptionModelId;
+    config: GroqTranscriptionModelConfig;
+  }) {
+    return new GroqTranscriptionModel(options.modelId, options.config);
   }
 
   constructor(
@@ -52,7 +71,7 @@ export class GroqTranscriptionModel implements TranscriptionModelV4 {
     const formData = new FormData();
     const blob =
       audio instanceof Uint8Array
-        ? new Blob([audio])
+        ? new Blob([audio as Uint8Array<ArrayBuffer>])
         : new Blob([convertBase64ToUint8Array(audio)]);
 
     formData.append('model', this.modelId);
@@ -96,6 +115,7 @@ export class GroqTranscriptionModel implements TranscriptionModelV4 {
 
     return {
       formData,
+      responseFormat: groqOptions?.responseFormat,
       warnings,
     };
   }
@@ -104,7 +124,12 @@ export class GroqTranscriptionModel implements TranscriptionModelV4 {
     options: Parameters<TranscriptionModelV4['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { formData, warnings } = await this.getArgs(options);
+    const { formData, responseFormat, warnings } = await this.getArgs(options);
+
+    const successfulResponseHandler: ResponseHandler<GroqTranscriptionResponse> =
+      responseFormat === 'text'
+        ? groqTextTranscriptionResponseHandler
+        : createJsonResponseHandler(groqTranscriptionResponseSchema);
 
     const {
       value: response,
@@ -115,12 +140,10 @@ export class GroqTranscriptionModel implements TranscriptionModelV4 {
         path: '/audio/transcriptions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       formData,
       failedResponseHandler: groqFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(
-        groqTranscriptionResponseSchema,
-      ),
+      successfulResponseHandler,
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
@@ -132,7 +155,13 @@ export class GroqTranscriptionModel implements TranscriptionModelV4 {
           text: segment.text,
           startSecond: segment.start,
           endSecond: segment.end,
-        })) ?? [],
+        })) ??
+        response.words?.map(word => ({
+          text: word.word,
+          startSecond: word.start,
+          endSecond: word.end,
+        })) ??
+        [],
       language: response.language ?? undefined,
       durationInSeconds: response.duration ?? undefined,
       warnings,
@@ -171,4 +200,35 @@ const groqTranscriptionResponseSchema = z.object({
       }),
     )
     .nullish(),
+  words: z
+    .array(
+      z.object({
+        word: z.string(),
+        start: z.number(),
+        end: z.number(),
+      }),
+    )
+    .nullish(),
 });
+
+type GroqTranscriptionResponse = Partial<
+  Omit<z.infer<typeof groqTranscriptionResponseSchema>, 'text'>
+> & {
+  text: string;
+};
+
+const binaryResponseHandler = createBinaryResponseHandler();
+const textDecoder = new TextDecoder();
+
+const groqTextTranscriptionResponseHandler: ResponseHandler<
+  GroqTranscriptionResponse
+> = async options => {
+  const { value, responseHeaders } = await binaryResponseHandler(options);
+  const text = textDecoder.decode(value);
+
+  return {
+    value: { text },
+    rawValue: text,
+    responseHeaders,
+  };
+};

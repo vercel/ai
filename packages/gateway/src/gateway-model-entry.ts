@@ -1,5 +1,21 @@
 import type { LanguageModelV4 } from '@ai-sdk/provider';
 
+export const KNOWN_MODEL_TYPES = [
+  'embedding',
+  'decision',
+  // Keep `evaluation` until Gateway migrates its model catalog to `decision`.
+  'evaluation',
+  'image',
+  'language',
+  'realtime',
+  'reranking',
+  'speech',
+  'transcription',
+  'video',
+] as const;
+
+export type KnownModelType = (typeof KNOWN_MODEL_TYPES)[number];
+
 export interface GatewayLanguageModelEntry {
   /**
    * The model id used by the remote provider in model settings and for specifying the
@@ -49,7 +65,7 @@ export interface GatewayLanguageModelEntry {
   /**
    * Optional field to differentiate between model types.
    */
-  modelType?: 'language' | 'embedding' | 'image' | 'video' | null;
+  modelType?: KnownModelType | null;
 }
 
 export type GatewayLanguageModelSpecification = Pick<

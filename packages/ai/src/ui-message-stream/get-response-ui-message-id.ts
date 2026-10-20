@@ -1,5 +1,5 @@
-import { IdGenerator } from '@ai-sdk/provider-utils';
-import { UIMessage } from '../ui/ui-messages';
+import type { IdGenerator } from '@ai-sdk/provider-utils';
+import type { UIMessage } from '../ui/ui-messages';
 
 /**
  * Determines the message ID to use for a response message.

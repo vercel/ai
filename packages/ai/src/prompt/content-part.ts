@@ -1,27 +1,35 @@
 import {
-  CustomPart,
-  FilePart,
-  ImagePart,
-  ProviderOptions,
-  ReasoningFilePart,
-  ReasoningPart,
-  TextPart,
-  ToolApprovalRequest,
-  ToolApprovalResponse,
-  ToolResultOutput,
-  ToolResultPart,
+  isBuffer,
+  type CustomPart,
+  type DataContent,
+  type FilePart,
+  type ImagePart,
+  type ProviderOptions,
+  type ReasoningFilePart,
+  type ReasoningPart,
+  type TextPart,
+  type ToolApprovalRequest,
+  type ToolApprovalResponse,
+  type ToolResultOutput,
+  type ToolResultPart,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
 import { jsonValueSchema } from '../types/json-value';
 import { providerMetadataSchema } from '../types/provider-metadata';
-import { dataContentSchema } from './data-content';
+import { z, type ZodType } from '../util/zod';
+
+const fileInlineDataSchema: ZodType<DataContent> = z.union([
+  z.string(),
+  z.instanceof(Uint8Array),
+  z.instanceof(ArrayBuffer),
+  z.custom<Buffer>(isBuffer, { message: 'Must be a Buffer' }),
+]);
 
 const providerReferenceSchema = z.record(z.string(), z.string());
 
 /**
  * @internal
  */
-export const textPartSchema: z.ZodType<TextPart> = z.object({
+export const textPartSchema: ZodType<TextPart> = z.object({
   type: z.literal('text'),
   text: z.string(),
   providerOptions: providerMetadataSchema.optional(),
@@ -29,11 +37,13 @@ export const textPartSchema: z.ZodType<TextPart> = z.object({
 
 /**
  * @internal
+ * @deprecated Use `filePartSchema` with `mediaType: 'image'` instead:
+ * `{ type: 'file', mediaType: 'image', data: { type: 'data', data } }`.
  */
-export const imagePartSchema: z.ZodType<ImagePart> = z.object({
+export const imagePartSchema: ZodType<ImagePart> = z.object({
   type: z.literal('image'),
   image: z.union([
-    dataContentSchema,
+    fileInlineDataSchema,
     z.instanceof(URL),
     providerReferenceSchema,
   ]),
@@ -41,13 +51,29 @@ export const imagePartSchema: z.ZodType<ImagePart> = z.object({
   providerOptions: providerMetadataSchema.optional(),
 });
 
+const taggedFileDataSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('data'), data: fileInlineDataSchema }),
+  z.object({ type: z.literal('url'), url: z.instanceof(URL) }),
+  z.object({
+    type: z.literal('reference'),
+    reference: providerReferenceSchema,
+  }),
+  z.object({ type: z.literal('text'), text: z.string() }),
+]);
+
+const taggedReasoningFileDataSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('data'), data: fileInlineDataSchema }),
+  z.object({ type: z.literal('url'), url: z.instanceof(URL) }),
+]);
+
 /**
  * @internal
  */
-export const filePartSchema: z.ZodType<FilePart> = z.object({
+export const filePartSchema: ZodType<FilePart> = z.object({
   type: z.literal('file'),
   data: z.union([
-    dataContentSchema,
+    taggedFileDataSchema,
+    fileInlineDataSchema,
     z.instanceof(URL),
     providerReferenceSchema,
   ]),
@@ -59,7 +85,7 @@ export const filePartSchema: z.ZodType<FilePart> = z.object({
 /**
  * @internal
  */
-export const reasoningPartSchema: z.ZodType<ReasoningPart> = z.object({
+export const reasoningPartSchema: ZodType<ReasoningPart> = z.object({
   type: z.literal('reasoning'),
   text: z.string(),
   providerOptions: providerMetadataSchema.optional(),
@@ -68,7 +94,7 @@ export const reasoningPartSchema: z.ZodType<ReasoningPart> = z.object({
 /**
  * @internal
  */
-export const customPartSchema: z.ZodType<CustomPart> = z.object({
+export const customPartSchema: ZodType<CustomPart> = z.object({
   type: z.literal('custom'),
   kind: z.string().transform(value => value as `${string}.${string}`),
   providerOptions: providerMetadataSchema.optional(),
@@ -77,9 +103,13 @@ export const customPartSchema: z.ZodType<CustomPart> = z.object({
 /**
  * @internal
  */
-export const reasoningFilePartSchema: z.ZodType<ReasoningFilePart> = z.object({
+export const reasoningFilePartSchema: ZodType<ReasoningFilePart> = z.object({
   type: z.literal('reasoning-file'),
-  data: z.union([dataContentSchema, z.instanceof(URL)]),
+  data: z.union([
+    taggedReasoningFileDataSchema,
+    fileInlineDataSchema,
+    z.instanceof(URL),
+  ]),
   mediaType: z.string(),
   providerOptions: providerMetadataSchema.optional(),
 });
@@ -116,19 +146,19 @@ export interface ToolCallPart {
 /**
  * @internal
  */
-export const toolCallPartSchema: z.ZodType<ToolCallPart> = z.object({
+export const toolCallPartSchema: ZodType<ToolCallPart> = z.object({
   type: z.literal('tool-call'),
   toolCallId: z.string(),
   toolName: z.string(),
   input: z.unknown(),
   providerOptions: providerMetadataSchema.optional(),
   providerExecuted: z.boolean().optional(),
-}) as z.ZodType<ToolCallPart>; // necessary bc input is optional on Zod type
+}) as ZodType<ToolCallPart>; // necessary bc input is optional on Zod type
 
 /**
  * @internal
  */
-export const outputSchema: z.ZodType<ToolResultOutput> = z.discriminatedUnion(
+export const outputSchema: ZodType<ToolResultOutput> = z.discriminatedUnion(
   'type',
   [
     z.object({
@@ -166,11 +196,14 @@ export const outputSchema: z.ZodType<ToolResultOutput> = z.discriminatedUnion(
             providerOptions: providerMetadataSchema.optional(),
           }),
           z.object({
-            type: z.literal('media'),
-            data: z.string(),
+            type: z.literal('file'),
+            data: taggedFileDataSchema,
             mediaType: z.string(),
+            filename: z.string().optional(),
+            providerOptions: providerMetadataSchema.optional(),
           }),
           z.object({
+            // Deprecated.
             type: z.literal('file-data'),
             data: z.string(),
             mediaType: z.string(),
@@ -178,37 +211,45 @@ export const outputSchema: z.ZodType<ToolResultOutput> = z.discriminatedUnion(
             providerOptions: providerMetadataSchema.optional(),
           }),
           z.object({
+            // Deprecated.
             type: z.literal('file-url'),
             url: z.string(),
+            mediaType: z.string().optional(),
             providerOptions: providerMetadataSchema.optional(),
           }),
           z.object({
+            // Deprecated.
             type: z.literal('file-id'),
             fileId: z.union([z.string(), z.record(z.string(), z.string())]),
             providerOptions: providerMetadataSchema.optional(),
           }),
           z.object({
+            // Deprecated.
             type: z.literal('file-reference'),
             providerReference: z.record(z.string(), z.string()),
             providerOptions: providerMetadataSchema.optional(),
           }),
           z.object({
+            // Deprecated.
             type: z.literal('image-data'),
             data: z.string(),
             mediaType: z.string(),
             providerOptions: providerMetadataSchema.optional(),
           }),
           z.object({
+            // Deprecated.
             type: z.literal('image-url'),
             url: z.string(),
             providerOptions: providerMetadataSchema.optional(),
           }),
           z.object({
+            // Deprecated.
             type: z.literal('image-file-id'),
             fileId: z.union([z.string(), z.record(z.string(), z.string())]),
             providerOptions: providerMetadataSchema.optional(),
           }),
           z.object({
+            // Deprecated.
             type: z.literal('image-file-reference'),
             providerReference: z.record(z.string(), z.string()),
             providerOptions: providerMetadataSchema.optional(),
@@ -226,28 +267,33 @@ export const outputSchema: z.ZodType<ToolResultOutput> = z.discriminatedUnion(
 /**
  * @internal
  */
-export const toolResultPartSchema: z.ZodType<ToolResultPart> = z.object({
+export const toolResultPartSchema: ZodType<ToolResultPart> = z.object({
   type: z.literal('tool-result'),
   toolCallId: z.string(),
   toolName: z.string(),
   output: outputSchema,
   providerOptions: providerMetadataSchema.optional(),
-}) as z.ZodType<ToolResultPart>; // necessary bc result is optional on Zod type
+}) as ZodType<ToolResultPart>; // necessary bc result is optional on Zod type
 
 /**
  * @internal
  */
-export const toolApprovalRequestSchema: z.ZodType<ToolApprovalRequest> =
-  z.object({
+export const toolApprovalRequestSchema: ZodType<ToolApprovalRequest> = z.object(
+  {
     type: z.literal('tool-approval-request'),
     approvalId: z.string(),
     toolCallId: z.string(),
-  });
+    reason: z.string().optional(),
+    isAutomatic: z.boolean().optional(),
+    signature: z.string().optional(),
+    inputSchemaInput: z.unknown().optional(),
+  },
+);
 
 /**
  * @internal
  */
-export const toolApprovalResponseSchema: z.ZodType<ToolApprovalResponse> =
+export const toolApprovalResponseSchema: ZodType<ToolApprovalResponse> =
   z.object({
     type: z.literal('tool-approval-response'),
     approvalId: z.string(),

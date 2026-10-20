@@ -16,7 +16,7 @@ run(async () => {
   console.log('Provider metadata:', providerMetadata);
 
   const result = await generateText({
-    model: google('gemini-2.5-flash'),
+    model: google('gemini-3.8-flash'),
     messages: [
       {
         role: 'user',
@@ -26,8 +26,8 @@ run(async () => {
             text: 'Describe what you see in this image.',
           },
           {
-            type: 'image',
-            image: providerReference,
+            type: 'file',
+            data: providerReference,
             mediaType: String(
               providerMetadata?.google?.mimeType || 'image/png',
             ),

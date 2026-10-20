@@ -8,6 +8,7 @@ run(async () => {
     value: 'sunny day at the beach',
   });
 
+  console.log('embedding length:', embedding.length);
   console.log(embedding);
   console.log(usage);
   console.log(warnings);

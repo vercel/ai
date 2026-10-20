@@ -1,11 +1,11 @@
-import { huggingface } from '@ai-sdk/huggingface';
+import { huggingFace } from '@ai-sdk/huggingface';
 import { Output, streamText } from 'ai';
 import { z } from 'zod/v4';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: huggingface.responses('moonshotai/Kimi-K2-Instruct'),
+    model: huggingFace.responses('moonshotai/Kimi-K2-Instruct'),
     output: Output.object({
       schema: z.object({
         cities: z.array(

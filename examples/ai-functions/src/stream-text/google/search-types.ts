@@ -1,10 +1,10 @@
-import { google, GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
+import { google, type GoogleProviderMetadata } from '@ai-sdk/google';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: google('gemini-2.5-flash'),
+    model: google('gemini-3.8-flash'),
     tools: {
       google_search: google.tools.googleSearch({
         searchTypes: { webSearch: {} },
@@ -19,7 +19,7 @@ run(async () => {
       'You must include the date of each article.',
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     if (part.type === 'text-delta') {
       process.stdout.write(part.text);
     }
@@ -33,8 +33,8 @@ run(async () => {
     }
   }
 
-  const metadata = (await result.providerMetadata)?.google as
-    | GoogleGenerativeAIProviderMetadata
+  const metadata = (await result.finalStep).providerMetadata?.google as
+    | GoogleProviderMetadata
     | undefined;
   const groundingMetadata = metadata?.groundingMetadata;
 

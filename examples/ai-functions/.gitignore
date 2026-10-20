@@ -1,2 +1,5 @@
 output
 memory
+.devtools
+.vercel
+.env*

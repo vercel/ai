@@ -1,13 +1,21 @@
 import {
-  LanguageModelV4Prompt,
-  SharedV4ProviderMetadata,
   UnsupportedFunctionalityError,
+  type LanguageModelV4FilePart,
+  type LanguageModelV4Prompt,
+  type LanguageModelV4TextPart,
+  type LanguageModelV4ToolResultOutput,
+  type SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
-import { OpenAICompatibleChatPrompt } from './openai-compatible-api-types';
+import type {
+  OpenAICompatibleChatPrompt,
+  OpenAICompatibleContentPart,
+} from './openai-compatible-api-types';
 import {
   convertBase64ToUint8Array,
   convertToBase64,
-  isProviderReference,
+  getTopLevelMediaType,
+  resolveFullMediaType,
+  resolveProviderReference,
 } from '@ai-sdk/provider-utils';
 
 function getOpenAIMetadata(message: {
@@ -28,8 +36,167 @@ function getAudioFormat(mediaType: string): 'wav' | 'mp3' | null {
   }
 }
 
+function convertToOpenAICompatibleContentPart(
+  part: LanguageModelV4TextPart | LanguageModelV4FilePart,
+  provider: string,
+): OpenAICompatibleContentPart {
+  const partMetadata = getOpenAIMetadata(part);
+
+  switch (part.type) {
+    case 'text': {
+      return { type: 'text', text: part.text, ...partMetadata };
+    }
+    case 'file': {
+      switch (part.data.type) {
+        case 'reference': {
+          return {
+            type: 'file',
+            file: {
+              file_id: resolveProviderReference({
+                reference: part.data.reference,
+                provider,
+              }),
+            },
+            ...partMetadata,
+          };
+        }
+        case 'text': {
+          throw new UnsupportedFunctionalityError({
+            functionality: 'text file parts',
+          });
+        }
+        case 'url':
+        case 'data': {
+          const topLevel = getTopLevelMediaType(part.mediaType);
+
+          if (topLevel === 'image') {
+            return {
+              type: 'image_url',
+              image_url: {
+                url:
+                  part.data.type === 'url'
+                    ? part.data.url.toString()
+                    : `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`,
+              },
+              ...partMetadata,
+            };
+          }
+
+          if (topLevel === 'video') {
+            return {
+              type: 'video_url',
+              video_url: {
+                url:
+                  part.data.type === 'url'
+                    ? part.data.url.toString()
+                    : `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`,
+              },
+              ...partMetadata,
+            };
+          }
+
+          if (topLevel === 'audio') {
+            if (part.data.type === 'url') {
+              throw new UnsupportedFunctionalityError({
+                functionality: 'audio file parts with URLs',
+              });
+            }
+
+            const fullMediaType = resolveFullMediaType({ part });
+            const format = getAudioFormat(fullMediaType);
+            if (format === null) {
+              throw new UnsupportedFunctionalityError({
+                functionality: `audio media type ${fullMediaType}`,
+              });
+            }
+
+            return {
+              type: 'input_audio',
+              input_audio: {
+                data: convertToBase64(part.data.data),
+                format,
+              },
+              ...partMetadata,
+            };
+          }
+
+          if (topLevel === 'application') {
+            if (part.data.type === 'url') {
+              throw new UnsupportedFunctionalityError({
+                functionality: 'PDF file parts with URLs',
+              });
+            }
+
+            const fullMediaType = resolveFullMediaType({ part });
+            if (fullMediaType !== 'application/pdf') {
+              throw new UnsupportedFunctionalityError({
+                functionality: `file part media type ${fullMediaType}`,
+              });
+            }
+
+            return {
+              type: 'file',
+              file: {
+                filename: part.filename ?? 'document.pdf',
+                file_data: `data:application/pdf;base64,${convertToBase64(part.data.data)}`,
+              },
+              ...partMetadata,
+            };
+          }
+
+          if (topLevel === 'text') {
+            const textContent =
+              part.data.type === 'url'
+                ? part.data.url.toString()
+                : typeof part.data.data === 'string'
+                  ? new TextDecoder().decode(
+                      convertBase64ToUint8Array(part.data.data),
+                    )
+                  : new TextDecoder().decode(part.data.data);
+
+            return {
+              type: 'text',
+              text: textContent,
+              ...partMetadata,
+            };
+          }
+
+          throw new UnsupportedFunctionalityError({
+            functionality: `file part media type ${part.mediaType}`,
+          });
+        }
+      }
+    }
+  }
+}
+
+function convertToolContentPart(
+  part: Extract<
+    LanguageModelV4ToolResultOutput,
+    { type: 'content' }
+  >['value'][number],
+  provider: string,
+): OpenAICompatibleContentPart {
+  if (part.type === 'custom') {
+    throw new UnsupportedFunctionalityError({
+      functionality: 'custom tool content parts',
+    });
+  }
+
+  return convertToOpenAICompatibleContentPart(part, provider);
+}
+
 export function convertToOpenAICompatibleChatMessages(
   prompt: LanguageModelV4Prompt,
+  {
+    provider = 'openaiCompatible',
+    providerOptionsKey = 'google',
+    supportsMultiPartToolContent = false,
+  }: {
+    provider?: string;
+    providerOptionsKey?: string;
+    supportsMultiPartToolContent?: boolean;
+  } = {},
 ): OpenAICompatibleChatPrompt {
   const messages: OpenAICompatibleChatPrompt = [];
   for (const { role, content, ...message } of prompt) {
@@ -52,102 +219,9 @@ export function convertToOpenAICompatibleChatMessages(
 
         messages.push({
           role: 'user',
-          content: content.map(part => {
-            const partMetadata = getOpenAIMetadata(part);
-            switch (part.type) {
-              case 'text': {
-                return { type: 'text', text: part.text, ...partMetadata };
-              }
-              case 'file': {
-                if (isProviderReference(part.data)) {
-                  throw new UnsupportedFunctionalityError({
-                    functionality: 'file parts with provider references',
-                  });
-                }
-
-                if (part.mediaType.startsWith('image/')) {
-                  const mediaType =
-                    part.mediaType === 'image/*'
-                      ? 'image/jpeg'
-                      : part.mediaType;
-
-                  return {
-                    type: 'image_url',
-                    image_url: {
-                      url:
-                        part.data instanceof URL
-                          ? part.data.toString()
-                          : `data:${mediaType};base64,${convertToBase64(part.data)}`,
-                    },
-                    ...partMetadata,
-                  };
-                }
-
-                if (part.mediaType.startsWith('audio/')) {
-                  if (part.data instanceof URL) {
-                    throw new UnsupportedFunctionalityError({
-                      functionality: 'audio file parts with URLs',
-                    });
-                  }
-
-                  const format = getAudioFormat(part.mediaType);
-                  if (format === null) {
-                    throw new UnsupportedFunctionalityError({
-                      functionality: `audio media type ${part.mediaType}`,
-                    });
-                  }
-
-                  return {
-                    type: 'input_audio',
-                    input_audio: {
-                      data: convertToBase64(part.data),
-                      format,
-                    },
-                    ...partMetadata,
-                  };
-                }
-
-                if (part.mediaType === 'application/pdf') {
-                  if (part.data instanceof URL) {
-                    throw new UnsupportedFunctionalityError({
-                      functionality: 'PDF file parts with URLs',
-                    });
-                  }
-
-                  return {
-                    type: 'file',
-                    file: {
-                      filename: part.filename ?? 'document.pdf',
-                      file_data: `data:application/pdf;base64,${convertToBase64(part.data)}`,
-                    },
-                    ...partMetadata,
-                  };
-                }
-
-                if (part.mediaType.startsWith('text/')) {
-                  const textContent =
-                    part.data instanceof URL
-                      ? part.data.toString()
-                      : typeof part.data === 'string'
-                        ? new TextDecoder().decode(
-                            convertBase64ToUint8Array(part.data),
-                          )
-                        : new TextDecoder().decode(part.data);
-
-                  return {
-                    type: 'text',
-                    text: textContent,
-                    ...partMetadata,
-                  };
-                }
-
-                // Unsupported type
-                throw new UnsupportedFunctionalityError({
-                  functionality: `file part media type ${part.mediaType}`,
-                });
-              }
-            }
-          }),
+          content: content.map(part =>
+            convertToOpenAICompatibleContentPart(part, provider),
+          ),
           ...metadata,
         });
 
@@ -182,6 +256,7 @@ export function convertToOpenAICompatibleChatMessages(
             case 'tool-call': {
               // TODO: thoughtSignature should be abstracted once we add support for other providers
               const thoughtSignature =
+                part.providerOptions?.[providerOptionsKey]?.thoughtSignature ??
                 part.providerOptions?.google?.thoughtSignature;
               toolCalls.push({
                 id: part.toolCallId,
@@ -209,7 +284,7 @@ export function convertToOpenAICompatibleChatMessages(
 
         messages.push({
           role: 'assistant',
-          content: text,
+          content: toolCalls.length > 0 ? text || null : text,
           ...(reasoning.length > 0 ? { reasoning_content: reasoning } : {}),
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
           ...metadata,
@@ -226,19 +301,25 @@ export function convertToOpenAICompatibleChatMessages(
 
           const output = toolResponse.output;
 
-          let contentValue: string;
+          let contentValue: string | Array<OpenAICompatibleContentPart>;
           switch (output.type) {
             case 'text':
             case 'error-text':
               contentValue = output.value;
               break;
             case 'execution-denied':
-              contentValue = output.reason ?? 'Tool execution denied.';
+              contentValue = output.reason ?? 'Tool call execution denied.';
               break;
-            case 'content':
             case 'json':
             case 'error-json':
               contentValue = JSON.stringify(output.value);
+              break;
+            case 'content':
+              contentValue = supportsMultiPartToolContent
+                ? output.value.map(part =>
+                    convertToolContentPart(part, provider),
+                  )
+                : JSON.stringify(output.value);
               break;
           }
 

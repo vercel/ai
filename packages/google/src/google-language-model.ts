@@ -1,0 +1,2111 @@
+import type {
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4Content,
+  LanguageModelV4FunctionTool,
+  LanguageModelV4FinishReason,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4Source,
+  LanguageModelV4StreamPart,
+  LanguageModelV4StreamResult,
+  JSONObject,
+  SharedV4ProviderMetadata,
+  SharedV4Warning,
+} from '@ai-sdk/provider';
+import {
+  combineHeaders,
+  convertJsonResponseToolStream,
+  createToolNameMapping,
+  createEventSourceResponseHandler,
+  createJsonResponseHandler,
+  createProviderStreamError,
+  generateId,
+  isCustomReasoning,
+  lazySchema,
+  mapReasoningToProviderBudget,
+  mapReasoningToProviderEffort,
+  parseProviderOptions,
+  postJsonToApi,
+  resolve,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  zodSchema,
+  type FetchFunction,
+  type InferSchema,
+  type ParseResult,
+  type Resolvable,
+} from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
+import { continueGoogleStream } from './continue-google-stream';
+import {
+  addGoogleUsageMetadata,
+  convertGoogleUsage,
+  type GoogleUsageMetadata,
+} from './convert-google-usage';
+import { convertToGoogleMessages } from './convert-to-google-messages';
+import { downloadToolResultFiles } from './download-tool-result-files';
+import { getModelPath } from './get-model-path';
+import {
+  getGoogleErrorSchema,
+  googleFailedResponseHandler,
+} from './google-error';
+import { sanitizeResponseJsonSchema } from './sanitize-response-json-schema';
+import {
+  googleLanguageModelOptions,
+  type GoogleLanguageModelOptions,
+  type GoogleModelId,
+} from './google-language-model-options';
+import { getGoogleModelCapabilities } from './google-model-capabilities';
+import type { GoogleProviderMetadata } from './google-prompt';
+import { prepareTools } from './google-prepare-tools';
+import {
+  GoogleJSONAccumulator,
+  type PartialArg,
+} from './google-json-accumulator';
+import { mapGoogleFinishReason } from './map-google-finish-reason';
+
+const configurableSafetySettingCategories = [
+  'HARM_CATEGORY_HATE_SPEECH',
+  'HARM_CATEGORY_DANGEROUS_CONTENT',
+  'HARM_CATEGORY_HARASSMENT',
+  'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+] as const;
+
+const gemini25ModelPattern = /(^|[/.])gemini-2\.5(?:[.-]|$)/i;
+
+const googleCloudStorageFunctionResponseUrls = {
+  'image/png': [/^gs:\/\/.*$/],
+  'image/jpeg': [/^gs:\/\/.*$/],
+  'image/webp': [/^gs:\/\/.*$/],
+  'application/pdf': [/^gs:\/\/.*$/],
+  'text/plain': [/^gs:\/\/.*$/],
+} satisfies Record<string, RegExp[]>;
+
+export type GoogleLanguageModelConfig = {
+  provider: string;
+  baseURL: string;
+  headers?: Resolvable<Record<string, string | undefined>>;
+  fetch?: FetchFunction;
+  generateId: () => string;
+
+  /**
+   * The supported URLs for the model.
+   */
+  supportedUrls?: () => LanguageModelV4['supportedUrls'];
+
+  /**
+   * Settings for downloading remote files in tool results before conversion.
+   */
+  downloadToolResultFiles?: {
+    maxBytes: number;
+    supportsGoogleCloudStorageUrls?: boolean;
+  };
+};
+
+export class GoogleLanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4';
+
+  readonly modelId: GoogleModelId;
+
+  private readonly config: GoogleLanguageModelConfig;
+  private readonly generateId: () => string;
+
+  static [WORKFLOW_SERIALIZE](model: GoogleLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: GoogleLanguageModelConfig;
+  }) {
+    return new GoogleLanguageModel(options.modelId, options.config);
+  }
+
+  constructor(modelId: GoogleModelId, config: GoogleLanguageModelConfig) {
+    this.modelId = modelId;
+    this.config = config;
+    this.generateId = config.generateId ?? generateId;
+  }
+
+  get provider(): string {
+    return this.config.provider;
+  }
+
+  get supportedUrls() {
+    return this.config.supportedUrls?.() ?? {};
+  }
+
+  static async prepareRequest({
+    modelId,
+    config,
+    options: {
+      prompt,
+      maxOutputTokens,
+      temperature,
+      topP,
+      topK,
+      frequencyPenalty,
+      presencePenalty,
+      stopSequences,
+      responseFormat,
+      seed,
+      tools,
+      toolChoice,
+      reasoning,
+      providerOptions,
+      abortSignal,
+    },
+    isStreaming = false,
+  }: {
+    modelId: GoogleModelId;
+    config: GoogleLanguageModelConfig;
+    options: LanguageModelV4CallOptions;
+    isStreaming?: boolean;
+  }) {
+    const warnings: SharedV4Warning[] = [];
+
+    // Names to look up in providerOptions and to write into providerMetadata.
+    // For the Vertex provider we read both the new `googleVertex` key and the
+    // legacy `vertex` key (new takes precedence) and write under both for
+    // backward compatibility. For other Google providers we use just `google`.
+    const providerOptionsNames: readonly string[] = config.provider.includes(
+      'vertex',
+    )
+      ? (['googleVertex', 'vertex'] as const)
+      : (['google'] as const);
+
+    let googleOptions: GoogleLanguageModelOptions | undefined;
+    for (const name of providerOptionsNames) {
+      googleOptions = await parseProviderOptions({
+        provider: name,
+        providerOptions,
+        schema: googleLanguageModelOptions,
+      });
+      if (googleOptions != null) break;
+    }
+
+    // Cross-namespace fallback: a Vertex provider may receive options under
+    // the `google` key (e.g. via the AI Gateway).
+    if (googleOptions == null && !providerOptionsNames.includes('google')) {
+      googleOptions = await parseProviderOptions({
+        provider: 'google',
+        providerOptions,
+        schema: googleLanguageModelOptions,
+      });
+    }
+
+    // Add warning if Vertex rag tools are used with a non-Vertex Google provider
+    const isVertexProvider = config.provider.startsWith('google.vertex.');
+
+    if (
+      tools?.some(
+        tool =>
+          tool.type === 'provider' && tool.id === 'google.vertex_rag_store',
+      ) &&
+      !isVertexProvider
+    ) {
+      warnings.push({
+        type: 'other',
+        message:
+          "The 'vertex_rag_store' tool is only supported with the Google Vertex provider " +
+          'and might not be supported or could behave unexpectedly with the current Google provider ' +
+          `(${config.provider}).`,
+      });
+    }
+
+    if (googleOptions?.streamFunctionCallArguments && !isVertexProvider) {
+      warnings.push({
+        type: 'other',
+        message:
+          "'streamFunctionCallArguments' is only supported on the Vertex AI API " +
+          'and will be ignored with the current Google provider ' +
+          `(${config.provider}). See https://docs.cloud.google.com/vertex-ai/generative-ai/docs/multimodal/function-calling#streaming-fc`,
+      });
+    }
+
+    if (googleOptions?.serviceTier && isVertexProvider) {
+      warnings.push({
+        type: 'other',
+        message:
+          "'serviceTier' is a Gemini API option and is not supported on Vertex AI. " +
+          "Use 'sharedRequestType' (and optionally 'requestType') instead. See " +
+          'https://docs.cloud.google.com/vertex-ai/generative-ai/docs/priority-paygo',
+      });
+    }
+    if (
+      (googleOptions?.sharedRequestType || googleOptions?.requestType) &&
+      !isVertexProvider
+    ) {
+      warnings.push({
+        type: 'other',
+        message:
+          "'sharedRequestType' and 'requestType' are Vertex AI options and " +
+          `are ignored with the current Google provider (${config.provider}).`,
+      });
+    }
+
+    const vertexPaygoHeaders: Record<string, string> | undefined =
+      isVertexProvider &&
+      (googleOptions?.sharedRequestType || googleOptions?.requestType)
+        ? {
+            ...(googleOptions.sharedRequestType && {
+              'X-Vertex-AI-LLM-Shared-Request-Type':
+                googleOptions.sharedRequestType,
+            }),
+            ...(googleOptions.requestType && {
+              'X-Vertex-AI-LLM-Request-Type': googleOptions.requestType,
+            }),
+          }
+        : undefined;
+    const bodyServiceTier = isVertexProvider
+      ? undefined
+      : googleOptions?.serviceTier;
+
+    // personGeneration, prominentPeople and imageOutputOptions are only
+    // supported by the Vertex AI API, the Gemini API rejects them.
+    let imageConfig = googleOptions?.imageConfig;
+    if (imageConfig != null && !isVertexProvider) {
+      const {
+        personGeneration,
+        prominentPeople,
+        imageOutputOptions,
+        ...geminiApiImageConfig
+      } = imageConfig;
+      const droppedImageConfigFields = Object.entries({
+        personGeneration,
+        prominentPeople,
+        imageOutputOptions,
+      })
+        .filter(([, value]) => value != null)
+        .map(([key]) => `'imageConfig.${key}'`);
+      if (droppedImageConfigFields.length > 0) {
+        warnings.push({
+          type: 'other',
+          message:
+            `${droppedImageConfigFields.join(', ')} ` +
+            `${droppedImageConfigFields.length === 1 ? 'is a Vertex AI option and is' : 'are Vertex AI options and are'} ` +
+            `ignored with the current Google provider (${config.provider}).`,
+        });
+        imageConfig = geminiApiImageConfig;
+      }
+    }
+
+    const isGemmaModel = modelId.toLowerCase().startsWith('gemma-');
+    const isGemini25DeveloperApiModel =
+      !isVertexProvider && gemini25ModelPattern.test(modelId);
+
+    if (isGemini25DeveloperApiModel && frequencyPenalty != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'frequencyPenalty',
+      });
+    }
+    if (isGemini25DeveloperApiModel && presencePenalty != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'presencePenalty',
+      });
+    }
+
+    const { usesGemini3Features } = getGoogleModelCapabilities(modelId);
+    const supportedFunctionResponseUrls =
+      usesGemini3Features &&
+      config.downloadToolResultFiles?.supportsGoogleCloudStorageUrls
+        ? googleCloudStorageFunctionResponseUrls
+        : undefined;
+
+    const promptWithDownloadedToolResultFiles = config.downloadToolResultFiles
+      ? await downloadToolResultFiles(prompt, {
+          abortSignal,
+          maxBytes: config.downloadToolResultFiles.maxBytes,
+          supportedUrls: supportedFunctionResponseUrls,
+        })
+      : prompt;
+
+    const { contents, systemInstruction } = convertToGoogleMessages(
+      promptWithDownloadedToolResultFiles,
+      {
+        isGemmaModel,
+        isGemini3Model: usesGemini3Features,
+        onWarning: warning => warnings.push(warning),
+        providerOptionsNames,
+        supportsFunctionResponseParts: usesGemini3Features,
+        includeFunctionCallIds: !isVertexProvider,
+        supportedFunctionResponseUrls,
+      },
+    );
+
+    const {
+      tools: googleTools,
+      toolConfig: googleToolConfig,
+      toolWarnings,
+    } = prepareTools({
+      tools,
+      toolChoice,
+      modelId,
+      isVertexProvider,
+    });
+    const toolNameMapping = createToolNameMapping({
+      tools,
+      providerToolNames: {
+        'google.code_execution': 'code_execution',
+      },
+    });
+
+    const resolvedThinking =
+      googleOptions?.thinkingConfig?.thinkingBudget != null ||
+      googleOptions?.thinkingConfig?.thinkingLevel != null
+        ? undefined
+        : resolveThinkingConfig({ reasoning, modelId, warnings });
+    const thinkingConfig =
+      googleOptions?.thinkingConfig || resolvedThinking
+        ? { ...resolvedThinking, ...googleOptions?.thinkingConfig }
+        : undefined;
+
+    const streamFunctionCallArguments =
+      isStreaming && isVertexProvider
+        ? (googleOptions?.streamFunctionCallArguments ?? false)
+        : undefined;
+
+    const safetyThreshold = googleOptions?.threshold;
+    const safetySettings =
+      googleOptions?.safetySettings ??
+      (safetyThreshold != null
+        ? configurableSafetySettingCategories.map(category => ({
+            category,
+            threshold: safetyThreshold,
+          }))
+        : undefined);
+
+    const toolConfig =
+      googleToolConfig ||
+      streamFunctionCallArguments ||
+      googleOptions?.retrievalConfig
+        ? {
+            ...googleToolConfig,
+            ...(streamFunctionCallArguments && {
+              functionCallingConfig: {
+                ...googleToolConfig?.functionCallingConfig,
+                streamFunctionCallArguments: true as const,
+              },
+            }),
+            ...(googleOptions?.retrievalConfig && {
+              retrievalConfig: googleOptions.retrievalConfig,
+            }),
+          }
+        : undefined;
+
+    return {
+      args: {
+        generationConfig: {
+          // standardized settings:
+          maxOutputTokens,
+          temperature,
+          topK,
+          topP,
+          frequencyPenalty: isGemini25DeveloperApiModel
+            ? undefined
+            : frequencyPenalty,
+          presencePenalty: isGemini25DeveloperApiModel
+            ? undefined
+            : presencePenalty,
+          stopSequences,
+          seed,
+
+          // response format:
+          responseMimeType:
+            responseFormat?.type === 'json' ? 'application/json' : undefined,
+          responseJsonSchema:
+            responseFormat?.type === 'json' &&
+            responseFormat.schema != null &&
+            // Google does not support all JSON Schema features in
+            // responseJsonSchema, so this is needed as an escape hatch:
+            // TODO convert into provider option
+            (googleOptions?.structuredOutputs ?? true)
+              ? sanitizeResponseJsonSchema(responseFormat.schema)
+              : undefined,
+          ...(googleOptions?.audioTimestamp && {
+            audioTimestamp: googleOptions.audioTimestamp,
+          }),
+
+          // provider options:
+          responseModalities: googleOptions?.responseModalities,
+          thinkingConfig,
+          ...(googleOptions?.mediaResolution && {
+            mediaResolution: googleOptions.mediaResolution,
+          }),
+          ...(imageConfig && { imageConfig }),
+        },
+        contents,
+        systemInstruction: isGemmaModel ? undefined : systemInstruction,
+        safetySettings,
+        tools: googleTools,
+        toolConfig,
+        cachedContent: googleOptions?.cachedContent,
+        labels: googleOptions?.labels,
+        serviceTier: bodyServiceTier,
+        ...(googleOptions?.continuationToken != null && {
+          continuationToken: googleOptions.continuationToken,
+        }),
+      },
+      warnings: [...warnings, ...toolWarnings],
+      providerOptionsNames,
+      extraHeaders: vertexPaygoHeaders,
+      toolNameMapping,
+    };
+  }
+
+  private async getArgs(
+    options: LanguageModelV4CallOptions,
+    { isStreaming = false }: { isStreaming?: boolean } = {},
+  ) {
+    const { responseFormat, tools, toolChoice } = options;
+    let jsonResponseTool: LanguageModelV4FunctionTool | undefined;
+    // Gemini models before Gemini 3 reject JSON response formatting together
+    // with function tools. Gemini 3 supports the combination only with automatic
+    // tool choice (AUTO). Forced tool choice (ANY) requires a JSON response tool.
+    if (
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null &&
+      tools?.some(tool => tool.type === 'function') &&
+      /(^|\/)gemini-/i.test(this.modelId) &&
+      (!getGoogleModelCapabilities(this.modelId).usesGemini3Features ||
+        toolChoice?.type === 'required' ||
+        toolChoice?.type === 'tool')
+    ) {
+      let name = 'json';
+      for (let suffix = 1; tools.some(tool => tool.name === name); suffix++) {
+        name = `json_${suffix}`;
+      }
+      jsonResponseTool = {
+        type: 'function',
+        name,
+        description:
+          responseFormat.description ?? 'Respond with a JSON object.',
+        inputSchema: responseFormat.schema,
+      };
+    }
+
+    const prepared = await GoogleLanguageModel.prepareRequest({
+      modelId: this.modelId,
+      config: this.config,
+      options:
+        jsonResponseTool == null
+          ? options
+          : {
+              ...options,
+              responseFormat: undefined,
+              tools: [...(tools ?? []), jsonResponseTool],
+              toolChoice:
+                toolChoice?.type === 'tool'
+                  ? toolChoice
+                  : toolChoice?.type === 'none'
+                    ? { type: 'tool', toolName: jsonResponseTool.name }
+                    : { type: 'required' },
+            },
+      isStreaming,
+    });
+    return { ...prepared, jsonResponseToolName: jsonResponseTool?.name };
+  }
+
+  static convertGenerateContentResponse({
+    config,
+    response,
+    warnings,
+    providerOptionsNames,
+    toolNameMapping,
+    jsonResponseToolName,
+    initialPromptTokenCount,
+    groundingMetadataPerRequest,
+  }: {
+    config: GoogleLanguageModelConfig;
+    response: InferSchema<typeof responseSchema>;
+    warnings: SharedV4Warning[];
+    providerOptionsNames: readonly string[];
+    toolNameMapping?: ReturnType<typeof createToolNameMapping>;
+    jsonResponseToolName?: string;
+    initialPromptTokenCount?: number | null;
+    groundingMetadataPerRequest?: Array<GroundingMetadataSchema | null>;
+  }): LanguageModelV4GenerateResult {
+    const wrapProviderMetadata = (payload: Record<string, unknown>) =>
+      Object.fromEntries(
+        providerOptionsNames.map(name => [name, payload]),
+      ) as SharedV4ProviderMetadata;
+    const candidate = response.candidates?.[0];
+    const promptBlockReason = response.promptFeedback?.blockReason;
+    const confirmedPromptBlockReason = isConfirmedPromptBlockReason(
+      promptBlockReason,
+    )
+      ? promptBlockReason
+      : undefined;
+    const isPromptBlocked =
+      candidate?.finishReason == null && confirmedPromptBlockReason != null;
+    const rawFinishReason =
+      candidate?.finishReason ?? confirmedPromptBlockReason;
+    const content: Array<LanguageModelV4Content> = [];
+
+    // map ordered parts to content:
+    const parts = candidate?.content?.parts ?? [];
+
+    const usageMetadata = response.usageMetadata;
+
+    // Associates code execution results with their preceding call.
+    let lastCodeExecutionToolCallId: string | undefined;
+    // Associates a server-side tool response with its preceding call (tool combination).
+    let lastServerToolCallId: string | undefined;
+
+    // Build content array from all parts
+    for (const part of parts) {
+      if ('executableCode' in part && part.executableCode?.code) {
+        const toolCallId = config.generateId();
+        lastCodeExecutionToolCallId = toolCallId;
+
+        content.push({
+          type: 'tool-call',
+          toolCallId,
+          toolName:
+            toolNameMapping?.toCustomToolName('code_execution') ??
+            'code_execution',
+          input: JSON.stringify(part.executableCode),
+          providerExecuted: true,
+        });
+      } else if ('codeExecutionResult' in part && part.codeExecutionResult) {
+        content.push({
+          type: 'tool-result',
+          // Results correspond to the most recent executable code part.
+          toolCallId: lastCodeExecutionToolCallId!,
+          toolName:
+            toolNameMapping?.toCustomToolName('code_execution') ??
+            'code_execution',
+          result: {
+            outcome: part.codeExecutionResult.outcome,
+            output: part.codeExecutionResult.output ?? '',
+          },
+        });
+      } else if ('text' in part && part.text != null) {
+        if (jsonResponseToolName != null && part.thought !== true) continue;
+        const thoughtSignatureMetadata = part.thoughtSignature
+          ? wrapProviderMetadata({
+              thoughtSignature: part.thoughtSignature,
+            })
+          : undefined;
+
+        if (part.text.length === 0) {
+          if (thoughtSignatureMetadata != null && content.length > 0) {
+            const lastContent = content[content.length - 1];
+            lastContent.providerMetadata = thoughtSignatureMetadata;
+          }
+        } else {
+          content.push({
+            type: part.thought === true ? 'reasoning' : 'text',
+            text: part.text,
+            providerMetadata: thoughtSignatureMetadata,
+          });
+        }
+      } else if ('functionCall' in part && part.functionCall.name != null) {
+        if (part.functionCall.name === jsonResponseToolName) {
+          content.push({
+            type: 'text',
+            text:
+              typeof part.functionCall.args === 'string'
+                ? part.functionCall.args
+                : JSON.stringify(part.functionCall.args ?? {}),
+            ...(part.thoughtSignature
+              ? {
+                  providerMetadata: wrapProviderMetadata({
+                    thoughtSignature: part.thoughtSignature,
+                  }),
+                }
+              : {}),
+          });
+          continue;
+        }
+        content.push({
+          type: 'tool-call' as const,
+          toolCallId: part.functionCall.id || config.generateId(),
+          toolName: part.functionCall.name,
+          input: JSON.stringify(part.functionCall.args ?? {}),
+          providerMetadata: part.thoughtSignature
+            ? wrapProviderMetadata({
+                thoughtSignature: part.thoughtSignature,
+              })
+            : undefined,
+        });
+      } else if ('inlineData' in part) {
+        const hasThought = part.thought === true;
+        const hasThoughtSignature = !!part.thoughtSignature;
+        content.push({
+          type: hasThought ? 'reasoning-file' : 'file',
+          data: { type: 'data', data: part.inlineData.data },
+          mediaType: part.inlineData.mimeType,
+          providerMetadata: hasThoughtSignature
+            ? wrapProviderMetadata({
+                thoughtSignature: part.thoughtSignature,
+              })
+            : undefined,
+        });
+      } else if ('toolCall' in part && part.toolCall) {
+        const toolCallId = part.toolCall.id || config.generateId();
+        lastServerToolCallId = toolCallId;
+        content.push({
+          type: 'tool-call',
+          toolCallId,
+          toolName: `server:${part.toolCall.toolType}`,
+          input: JSON.stringify(part.toolCall.args ?? {}),
+          providerExecuted: true,
+          dynamic: true,
+          providerMetadata: part.thoughtSignature
+            ? wrapProviderMetadata({
+                thoughtSignature: part.thoughtSignature,
+                serverToolCallId: toolCallId,
+                serverToolType: part.toolCall.toolType,
+              })
+            : wrapProviderMetadata({
+                serverToolCallId: toolCallId,
+                serverToolType: part.toolCall.toolType,
+              }),
+        });
+      } else if ('toolResponse' in part && part.toolResponse) {
+        const responseToolCallId =
+          lastServerToolCallId || part.toolResponse.id || config.generateId();
+        content.push({
+          type: 'tool-result',
+          toolCallId: responseToolCallId,
+          toolName: `server:${part.toolResponse.toolType}`,
+          result: (part.toolResponse.response ?? {}) as JSONObject,
+          providerMetadata: part.thoughtSignature
+            ? wrapProviderMetadata({
+                thoughtSignature: part.thoughtSignature,
+                serverToolCallId: responseToolCallId,
+                serverToolType: part.toolResponse.toolType,
+              })
+            : wrapProviderMetadata({
+                serverToolCallId: responseToolCallId,
+                serverToolType: part.toolResponse.toolType,
+              }),
+        });
+        lastServerToolCallId = undefined;
+      }
+    }
+
+    const sources =
+      extractSources({
+        groundingMetadata: candidate?.groundingMetadata,
+        generateId: config.generateId,
+      }) ?? [];
+    for (const source of sources) {
+      content.push(source);
+    }
+
+    return {
+      content,
+      finishReason: {
+        unified: isPromptBlocked
+          ? 'content-filter'
+          : mapGoogleFinishReason({
+              finishReason: rawFinishReason,
+              // Only count client-executed tool calls for finish reason determination.
+              hasToolCalls: content.some(
+                part => part.type === 'tool-call' && !part.providerExecuted,
+              ),
+            }),
+        raw: rawFinishReason,
+      },
+      usage: convertGoogleUsage(usageMetadata),
+      warnings,
+      providerMetadata: wrapProviderMetadata({
+        promptFeedback: response.promptFeedback ?? null,
+        groundingMetadata: candidate?.groundingMetadata ?? null,
+        ...(groundingMetadataPerRequest != null
+          ? { groundingMetadataPerRequest }
+          : {}),
+        urlContextMetadata: candidate?.urlContextMetadata ?? null,
+        safetyRatings: candidate?.safetyRatings ?? null,
+        usageMetadata: usageMetadata ?? null,
+        finishMessage: candidate?.finishMessage ?? null,
+        serviceTier: usageMetadata?.serviceTier ?? null,
+        ...(candidate?.continuationToken != null
+          ? { continuationToken: candidate.continuationToken }
+          : {}),
+        ...(initialPromptTokenCount != null ? { initialPromptTokenCount } : {}),
+      } satisfies GoogleProviderMetadata),
+      response: {
+        // TODO timestamp, model id
+        id: response.responseId ?? undefined,
+      },
+    };
+  }
+
+  async doGenerate(
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
+    const {
+      args,
+      warnings,
+      providerOptionsNames,
+      extraHeaders,
+      toolNameMapping,
+      jsonResponseToolName,
+    } = await this.getArgs(options);
+
+    const mergedHeaders = combineHeaders(
+      this.config.headers ? await resolve(this.config.headers) : undefined,
+      options.headers,
+      extraHeaders,
+    );
+
+    const generateContent = (body: typeof args) =>
+      postJsonToApi({
+        url: `${this.config.baseURL}/${getModelPath(
+          this.modelId,
+        )}:generateContent`,
+        headers: mergedHeaders,
+        body,
+        failedResponseHandler: googleFailedResponseHandler,
+        successfulResponseHandler: createJsonResponseHandler(responseSchema),
+        abortSignal: options.abortSignal,
+        fetch: this.config.fetch,
+      });
+
+    let {
+      responseHeaders,
+      value: response,
+      rawValue: rawResponse,
+    } = await generateContent(args);
+
+    // Gemini 4 long decode: a request that reaches the per-request cap while
+    // `maxOutputTokens` budget remains finishes with `CONTINUATION`. Resend
+    // the same request with the continuation token (the server tracks the
+    // cumulative tokens) and combine the content of all requests.
+    //
+    // Usage is summed across requests (matching billing). Each request re-sends
+    // the prompt plus all output so far as input, so the first request's
+    // prompt token count is kept separately for context window checks.
+    const content: LanguageModelV4Content[] = [];
+    const groundingMetadataPerRequest: Array<GroundingMetadataSchema | null> =
+      [];
+    let usageMetadata: GoogleUsageMetadata | undefined;
+    const firstPromptTokenCount = response.usageMetadata?.promptTokenCount;
+    let isContinued = false;
+
+    while (true) {
+      const candidate = response.candidates?.[0];
+      groundingMetadataPerRequest.push(candidate?.groundingMetadata ?? null);
+      const continuationToken =
+        candidate?.finishReason === 'CONTINUATION'
+          ? candidate.continuationToken
+          : undefined;
+
+      usageMetadata = addGoogleUsageMetadata(
+        usageMetadata,
+        response.usageMetadata ?? undefined,
+      );
+
+      if (continuationToken == null) {
+        break;
+      }
+
+      content.push(
+        ...GoogleLanguageModel.convertGenerateContentResponse({
+          config: this.config,
+          response,
+          warnings,
+          providerOptionsNames,
+          toolNameMapping,
+          jsonResponseToolName,
+        }).content,
+      );
+
+      isContinued = true;
+      ({
+        responseHeaders,
+        value: response,
+        rawValue: rawResponse,
+      } = await generateContent({ ...args, continuationToken }));
+    }
+
+    const lastResult = GoogleLanguageModel.convertGenerateContentResponse({
+      config: this.config,
+      response: { ...response, usageMetadata },
+      warnings,
+      providerOptionsNames,
+      toolNameMapping,
+      jsonResponseToolName,
+      initialPromptTokenCount: isContinued ? firstPromptTokenCount : undefined,
+      groundingMetadataPerRequest: isContinued
+        ? groundingMetadataPerRequest
+        : undefined,
+    });
+
+    const result = {
+      ...lastResult,
+      content: [...content, ...lastResult.content],
+    };
+
+    return {
+      ...result,
+      request: { body: args },
+      response: {
+        ...result.response,
+        headers: responseHeaders,
+        body: rawResponse,
+      },
+    };
+  }
+
+  async doStream(
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4StreamResult> {
+    const {
+      args,
+      warnings,
+      providerOptionsNames,
+      extraHeaders,
+      toolNameMapping,
+      jsonResponseToolName,
+    } = await this.getArgs(options, { isStreaming: true });
+    const wrapProviderMetadata = (payload: Record<string, unknown>) =>
+      Object.fromEntries(
+        providerOptionsNames.map(name => [name, payload]),
+      ) as SharedV4ProviderMetadata;
+
+    const headers = combineHeaders(
+      this.config.headers ? await resolve(this.config.headers) : undefined,
+      options.headers,
+      extraHeaders,
+    );
+
+    const streamGenerateContent = (body: typeof args) =>
+      postJsonToApi({
+        url: `${this.config.baseURL}/${getModelPath(
+          this.modelId,
+        )}:streamGenerateContent?alt=sse`,
+        headers,
+        body,
+        failedResponseHandler: googleFailedResponseHandler,
+        successfulResponseHandler:
+          createEventSourceResponseHandler(chunkSchema),
+        abortSignal: options.abortSignal,
+        fetch: this.config.fetch,
+      });
+
+    const { responseHeaders, value: firstResponse } =
+      await streamGenerateContent(args);
+
+    const groundingMetadataPerRequest: Array<GroundingMetadataSchema | null> =
+      [];
+    let requestGroundingMetadata: GroundingMetadataSchema | null = null;
+
+    // Gemini 4 long decode: when a stream reaches the per-request cap while
+    // `maxOutputTokens` budget remains, its last chunk finishes with
+    // `CONTINUATION`. Resend the same request with the continuation token and
+    // append the new stream, which contains only newly generated content.
+    const response = continueGoogleStream({
+      stream: firstResponse,
+      getContinuationToken: chunk => {
+        const candidate = chunk.candidates?.[0];
+        if (candidate?.groundingMetadata != null) {
+          requestGroundingMetadata = candidate.groundingMetadata;
+        }
+        return candidate?.finishReason === 'CONTINUATION'
+          ? (candidate.continuationToken ?? undefined)
+          : undefined;
+      },
+      continueStream: async continuationToken => {
+        const { value } = await streamGenerateContent({
+          ...args,
+          continuationToken,
+        });
+        groundingMetadataPerRequest.push(requestGroundingMetadata);
+        requestGroundingMetadata = null;
+        return value;
+      },
+    });
+
+    let finishReason: LanguageModelV4FinishReason = {
+      unified: 'other',
+      raw: undefined,
+    };
+    let usage: GoogleUsageMetadata | undefined = undefined;
+    // Usage of the completed requests of an automatically continued response.
+    let continuedUsage: GoogleUsageMetadata | undefined = undefined;
+    // Prompt token count of the first request, for context window checks.
+    let initialPromptTokenCount: number | null | undefined = undefined;
+    let promptFeedback: PromptFeedbackSchema | null = null;
+    let lastGroundingMetadata: GroundingMetadataSchema | null = null;
+    let lastUrlContextMetadata: UrlContextMetadataSchema | null = null;
+    let lastSafetyRatings: SafetyRatingSchema[] | null = null;
+    let lastFinishMessage: string | null = null;
+    let lastContinuationToken: string | null = null;
+    let confirmedPromptBlockReason: string | undefined;
+
+    const generateId = this.config.generateId;
+    let hasToolCalls = false;
+    let hasEmittedResponseMetadata = false;
+
+    // Track active blocks to group consecutive parts of same type
+    let currentTextBlockId: string | null = null;
+    let currentReasoningBlockId: string | null = null;
+    let blockCounter = 0;
+
+    // Track emitted sources to prevent duplicates
+    const emittedSourceUrls = new Set<string>();
+    // Associates code execution results with their preceding call.
+    let lastCodeExecutionToolCallId: string | undefined;
+    // Associates a server-side tool response with its preceding call (tool combination).
+    let lastServerToolCallId: string | undefined;
+
+    const activeStreamingToolCalls: Array<{
+      toolCallId: string;
+      toolName: string;
+      accumulator: GoogleJSONAccumulator;
+      providerMetadata?: SharedV4ProviderMetadata;
+    }> = [];
+
+    const finishActiveStreamingToolCall = (
+      controller: TransformStreamDefaultController<LanguageModelV4StreamPart>,
+    ) => {
+      const active = activeStreamingToolCalls.pop();
+      if (active == null) {
+        return;
+      }
+
+      const { finalJSON, closingDelta } = active.accumulator.finalize();
+
+      if (closingDelta.length > 0) {
+        controller.enqueue({
+          type: 'tool-input-delta',
+          id: active.toolCallId,
+          delta: closingDelta,
+          providerMetadata: active.providerMetadata,
+        });
+      }
+
+      controller.enqueue({
+        type: 'tool-input-end',
+        id: active.toolCallId,
+        providerMetadata: active.providerMetadata,
+      });
+
+      controller.enqueue({
+        type: 'tool-call',
+        toolCallId: active.toolCallId,
+        toolName: active.toolName,
+        input: finalJSON,
+        providerMetadata: active.providerMetadata,
+      });
+
+      hasToolCalls = true;
+    };
+
+    const result = {
+      stream: response.pipeThrough(
+        new TransformStream<
+          ParseResult<ChunkSchema>,
+          LanguageModelV4StreamPart
+        >({
+          start(controller) {
+            controller.enqueue({ type: 'stream-start', warnings });
+          },
+
+          transform(chunk, controller) {
+            if (options.includeRawChunks) {
+              controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
+            }
+
+            if (!chunk.success) {
+              controller.enqueue({ type: 'error', error: chunk.error });
+              return;
+            }
+
+            const value = chunk.value;
+
+            if (value.error != null) {
+              finishReason = { unified: 'error', raw: undefined };
+              const error = value.error;
+              controller.enqueue({
+                type: 'error',
+                error: createProviderStreamError({
+                  message: error.message,
+                  type: error.status,
+                  code: error.code ?? undefined,
+                  statusCode: error.code ?? undefined,
+                  isRetryable:
+                    error.code != null &&
+                    (error.code === 408 ||
+                      error.code === 409 ||
+                      error.code === 429 ||
+                      error.code >= 500),
+                  data: error,
+                }),
+              });
+              return;
+            }
+
+            if (!hasEmittedResponseMetadata && value.responseId != null) {
+              hasEmittedResponseMetadata = true;
+              controller.enqueue({
+                type: 'response-metadata',
+                id: value.responseId,
+              });
+            }
+
+            const usageMetadata = value.usageMetadata;
+
+            if (usageMetadata != null) {
+              usage = usageMetadata;
+            }
+
+            if (
+              value.promptFeedback != null &&
+              confirmedPromptBlockReason == null
+            ) {
+              promptFeedback = value.promptFeedback;
+
+              if (
+                isConfirmedPromptBlockReason(value.promptFeedback.blockReason)
+              ) {
+                confirmedPromptBlockReason = value.promptFeedback.blockReason;
+                finishReason = {
+                  unified: 'content-filter',
+                  raw: confirmedPromptBlockReason,
+                };
+              }
+            }
+
+            const candidate = value.candidates?.[0];
+
+            if (candidate != null) {
+              if (candidate.groundingMetadata != null) {
+                lastGroundingMetadata = candidate.groundingMetadata;
+              }
+              if (candidate.urlContextMetadata != null) {
+                lastUrlContextMetadata = candidate.urlContextMetadata;
+              }
+              if (candidate.safetyRatings != null) {
+                lastSafetyRatings = candidate.safetyRatings;
+              }
+              if (candidate.finishMessage != null) {
+                lastFinishMessage = candidate.finishMessage;
+              }
+              if (candidate.continuationToken != null) {
+                lastContinuationToken = candidate.continuationToken;
+              }
+            }
+
+            // A confirmed prompt block is terminal for generated content, but
+            // later chunks can still contribute usage and provider metadata.
+            if (confirmedPromptBlockReason != null || candidate == null) {
+              return;
+            }
+
+            const content = candidate.content;
+
+            const sources = extractSources({
+              groundingMetadata: candidate.groundingMetadata,
+              generateId,
+            });
+            if (sources != null) {
+              for (const source of sources) {
+                if (
+                  source.sourceType === 'url' &&
+                  !emittedSourceUrls.has(source.url)
+                ) {
+                  emittedSourceUrls.add(source.url);
+                  controller.enqueue(source);
+                }
+              }
+            }
+
+            // Process tool call's parts before determining finishReason to ensure hasToolCalls is properly set
+            if (content != null) {
+              // Process all parts in a single loop to preserve original order
+              const parts = content.parts ?? [];
+              for (const part of parts) {
+                if ('executableCode' in part && part.executableCode?.code) {
+                  const toolCallId = generateId();
+                  lastCodeExecutionToolCallId = toolCallId;
+
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallId,
+                    toolName:
+                      toolNameMapping.toCustomToolName('code_execution'),
+                    input: JSON.stringify(part.executableCode),
+                    providerExecuted: true,
+                  });
+                } else if (
+                  'codeExecutionResult' in part &&
+                  part.codeExecutionResult
+                ) {
+                  // Results correspond to the most recent executable code part.
+                  const toolCallId = lastCodeExecutionToolCallId;
+
+                  if (toolCallId) {
+                    controller.enqueue({
+                      type: 'tool-result',
+                      toolCallId,
+                      toolName:
+                        toolNameMapping.toCustomToolName('code_execution'),
+                      result: {
+                        outcome: part.codeExecutionResult.outcome,
+                        output: part.codeExecutionResult.output ?? '',
+                      },
+                    });
+                  }
+                } else if ('text' in part && part.text != null) {
+                  const thoughtSignatureMetadata = part.thoughtSignature
+                    ? wrapProviderMetadata({
+                        thoughtSignature: part.thoughtSignature,
+                      })
+                    : undefined;
+
+                  if (part.text.length === 0) {
+                    if (
+                      thoughtSignatureMetadata != null &&
+                      currentTextBlockId !== null
+                    ) {
+                      controller.enqueue({
+                        type: 'text-delta',
+                        id: currentTextBlockId,
+                        delta: '',
+                        providerMetadata: thoughtSignatureMetadata,
+                      });
+                    }
+                  } else if (part.thought === true) {
+                    // End any active text block before starting reasoning
+                    if (currentTextBlockId !== null) {
+                      controller.enqueue({
+                        type: 'text-end',
+                        id: currentTextBlockId,
+                      });
+                      currentTextBlockId = null;
+                    }
+
+                    // Start new reasoning block if not already active
+                    if (currentReasoningBlockId === null) {
+                      currentReasoningBlockId = String(blockCounter++);
+                      controller.enqueue({
+                        type: 'reasoning-start',
+                        id: currentReasoningBlockId,
+                        providerMetadata: thoughtSignatureMetadata,
+                      });
+                    }
+
+                    controller.enqueue({
+                      type: 'reasoning-delta',
+                      id: currentReasoningBlockId,
+                      delta: part.text,
+                      providerMetadata: thoughtSignatureMetadata,
+                    });
+                  } else {
+                    if (currentReasoningBlockId !== null) {
+                      controller.enqueue({
+                        type: 'reasoning-end',
+                        id: currentReasoningBlockId,
+                      });
+                      currentReasoningBlockId = null;
+                    }
+
+                    if (currentTextBlockId === null) {
+                      currentTextBlockId = String(blockCounter++);
+                      controller.enqueue({
+                        type: 'text-start',
+                        id: currentTextBlockId,
+                        providerMetadata: thoughtSignatureMetadata,
+                      });
+                    }
+
+                    controller.enqueue({
+                      type: 'text-delta',
+                      id: currentTextBlockId,
+                      delta: part.text,
+                      providerMetadata: thoughtSignatureMetadata,
+                    });
+                  }
+                } else if ('inlineData' in part) {
+                  // End any active text or reasoning block before starting file output.
+                  // Relevant for multimodal output models.
+                  if (currentTextBlockId !== null) {
+                    controller.enqueue({
+                      type: 'text-end',
+                      id: currentTextBlockId,
+                    });
+                    currentTextBlockId = null;
+                  }
+                  if (currentReasoningBlockId !== null) {
+                    controller.enqueue({
+                      type: 'reasoning-end',
+                      id: currentReasoningBlockId,
+                    });
+                    currentReasoningBlockId = null;
+                  }
+
+                  const hasThought = part.thought === true;
+                  const hasThoughtSignature = !!part.thoughtSignature;
+                  const fileMeta = hasThoughtSignature
+                    ? wrapProviderMetadata({
+                        thoughtSignature: part.thoughtSignature,
+                      })
+                    : undefined;
+                  controller.enqueue({
+                    type: hasThought ? 'reasoning-file' : 'file',
+                    mediaType: part.inlineData.mimeType,
+                    data: { type: 'data', data: part.inlineData.data },
+                    providerMetadata: fileMeta,
+                  });
+                } else if ('toolCall' in part && part.toolCall) {
+                  const toolCallId = part.toolCall.id || generateId();
+                  lastServerToolCallId = toolCallId;
+                  const serverMeta = wrapProviderMetadata({
+                    ...(part.thoughtSignature
+                      ? { thoughtSignature: part.thoughtSignature }
+                      : {}),
+                    serverToolCallId: toolCallId,
+                    serverToolType: part.toolCall.toolType,
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallId,
+                    toolName: `server:${part.toolCall.toolType}`,
+                    input: JSON.stringify(part.toolCall.args ?? {}),
+                    providerExecuted: true,
+                    dynamic: true,
+                    providerMetadata: serverMeta,
+                  });
+                } else if ('toolResponse' in part && part.toolResponse) {
+                  const responseToolCallId =
+                    lastServerToolCallId ||
+                    part.toolResponse.id ||
+                    generateId();
+                  const serverMeta = wrapProviderMetadata({
+                    ...(part.thoughtSignature
+                      ? { thoughtSignature: part.thoughtSignature }
+                      : {}),
+                    serverToolCallId: responseToolCallId,
+                    serverToolType: part.toolResponse.toolType,
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-result',
+                    toolCallId: responseToolCallId,
+                    toolName: `server:${part.toolResponse.toolType}`,
+                    result: (part.toolResponse.response ?? {}) as JSONObject,
+                    providerMetadata: serverMeta,
+                  });
+                  lastServerToolCallId = undefined;
+                }
+              }
+
+              // Handle streaming and complete function calls
+              for (const part of parts) {
+                if (!('functionCall' in part)) continue;
+
+                const providerMeta = part.thoughtSignature
+                  ? wrapProviderMetadata({
+                      thoughtSignature: part.thoughtSignature,
+                    })
+                  : undefined;
+
+                const isStreamingChunk =
+                  part.functionCall.partialArgs != null ||
+                  (part.functionCall.name != null &&
+                    part.functionCall.willContinue === true);
+                const isTerminalChunk =
+                  part.functionCall.name == null &&
+                  part.functionCall.args == null &&
+                  part.functionCall.partialArgs == null &&
+                  part.functionCall.willContinue == null;
+                const isCompleteCall =
+                  part.functionCall.name != null &&
+                  part.functionCall.args != null &&
+                  part.functionCall.partialArgs == null;
+                // Single-chunk no-args call: `{ name: 'X' }` with no `args`,
+                // `partialArgs`, or `willContinue`. Carries `thoughtSignature`.
+                const isNoArgsCompleteCall =
+                  part.functionCall.name != null &&
+                  part.functionCall.args == null &&
+                  part.functionCall.partialArgs == null &&
+                  part.functionCall.willContinue !== true;
+
+                if (isStreamingChunk) {
+                  if (part.functionCall.name != null) {
+                    const toolCallId = part.functionCall.id || generateId();
+                    const accumulator = new GoogleJSONAccumulator();
+                    activeStreamingToolCalls.push({
+                      toolCallId,
+                      toolName: part.functionCall.name,
+                      accumulator,
+                      providerMetadata: providerMeta,
+                    });
+
+                    controller.enqueue({
+                      type: 'tool-input-start',
+                      id: toolCallId,
+                      toolName: part.functionCall.name,
+                      providerMetadata: providerMeta,
+                    });
+
+                    if (part.functionCall.partialArgs != null) {
+                      const partialArgs = part.functionCall
+                        .partialArgs as PartialArg[];
+                      const { textDelta } =
+                        accumulator.processPartialArgs(partialArgs);
+                      if (textDelta.length > 0) {
+                        controller.enqueue({
+                          type: 'tool-input-delta',
+                          id: toolCallId,
+                          delta: textDelta,
+                          providerMetadata: providerMeta,
+                        });
+                      }
+                      if (
+                        part.functionCall.willContinue !== true &&
+                        partialArgs.every(arg => arg.willContinue !== true)
+                      ) {
+                        finishActiveStreamingToolCall(controller);
+                      }
+                    }
+                  } else if (
+                    part.functionCall.partialArgs != null &&
+                    activeStreamingToolCalls.length > 0
+                  ) {
+                    const active =
+                      activeStreamingToolCalls[
+                        activeStreamingToolCalls.length - 1
+                      ];
+                    const partialArgs = part.functionCall
+                      .partialArgs as PartialArg[];
+                    const { textDelta } =
+                      active.accumulator.processPartialArgs(partialArgs);
+                    if (textDelta.length > 0) {
+                      controller.enqueue({
+                        type: 'tool-input-delta',
+                        id: active.toolCallId,
+                        delta: textDelta,
+                        providerMetadata: providerMeta,
+                      });
+                    }
+                    if (
+                      part.functionCall.willContinue !== true &&
+                      partialArgs.every(arg => arg.willContinue !== true)
+                    ) {
+                      finishActiveStreamingToolCall(controller);
+                    }
+                  }
+                } else if (
+                  isTerminalChunk &&
+                  activeStreamingToolCalls.length > 0
+                ) {
+                  finishActiveStreamingToolCall(controller);
+                } else if (isCompleteCall) {
+                  const toolCallId = part.functionCall.id || generateId();
+                  const toolName = part.functionCall.name!;
+                  const args =
+                    typeof part.functionCall.args === 'string'
+                      ? part.functionCall.args
+                      : JSON.stringify(part.functionCall.args ?? {});
+
+                  controller.enqueue({
+                    type: 'tool-input-start',
+                    id: toolCallId,
+                    toolName,
+                    providerMetadata: providerMeta,
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-input-delta',
+                    id: toolCallId,
+                    delta: args,
+                    providerMetadata: providerMeta,
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-input-end',
+                    id: toolCallId,
+                    providerMetadata: providerMeta,
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallId,
+                    toolName,
+                    input: args,
+                    providerMetadata: providerMeta,
+                  });
+
+                  hasToolCalls = true;
+                } else if (isNoArgsCompleteCall) {
+                  const toolCallId = part.functionCall.id || generateId();
+                  const toolName = part.functionCall.name!;
+
+                  controller.enqueue({
+                    type: 'tool-input-start',
+                    id: toolCallId,
+                    toolName,
+                    providerMetadata: providerMeta,
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-input-end',
+                    id: toolCallId,
+                    providerMetadata: providerMeta,
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallId,
+                    toolName,
+                    input: '{}',
+                    providerMetadata: providerMeta,
+                  });
+
+                  hasToolCalls = true;
+                }
+              }
+            }
+
+            if (candidate.finishReason === 'CONTINUATION') {
+              // Usage metadata is per request. The next request reports its
+              // own usage, so bank the usage of this one.
+              if (continuedUsage == null) {
+                initialPromptTokenCount = usage?.promptTokenCount;
+              }
+              continuedUsage = addGoogleUsageMetadata(continuedUsage, usage);
+              usage = undefined;
+            }
+
+            if (candidate.finishReason != null) {
+              finishReason = {
+                unified: mapGoogleFinishReason({
+                  finishReason: candidate.finishReason,
+                  hasToolCalls,
+                }),
+                raw: candidate.finishReason,
+              };
+            }
+          },
+
+          flush(controller) {
+            usage = addGoogleUsageMetadata(continuedUsage, usage);
+
+            if (currentTextBlockId !== null) {
+              controller.enqueue({
+                type: 'text-end',
+                id: currentTextBlockId,
+              });
+            }
+            if (currentReasoningBlockId !== null) {
+              controller.enqueue({
+                type: 'reasoning-end',
+                id: currentReasoningBlockId,
+              });
+            }
+
+            controller.enqueue({
+              type: 'finish',
+              finishReason,
+              usage: convertGoogleUsage(usage),
+              providerMetadata: wrapProviderMetadata({
+                promptFeedback,
+                groundingMetadata: lastGroundingMetadata,
+                ...(groundingMetadataPerRequest.length > 0
+                  ? {
+                      groundingMetadataPerRequest: [
+                        ...groundingMetadataPerRequest,
+                        requestGroundingMetadata,
+                      ],
+                    }
+                  : {}),
+                urlContextMetadata: lastUrlContextMetadata,
+                safetyRatings: lastSafetyRatings,
+                usageMetadata: usage ?? null,
+                finishMessage: lastFinishMessage,
+                serviceTier: usage?.serviceTier ?? null,
+                // Only surface the token when the response stopped early
+                // (budget used up, or continuing failed), not for the
+                // checkpoint tokens of a stream that finished normally.
+                ...(lastContinuationToken != null &&
+                (finishReason.raw === 'MAX_TOKENS' ||
+                  finishReason.raw === 'CONTINUATION')
+                  ? { continuationToken: lastContinuationToken }
+                  : {}),
+                ...(initialPromptTokenCount != null
+                  ? { initialPromptTokenCount }
+                  : {}),
+              } satisfies GoogleProviderMetadata),
+            });
+          },
+        }),
+      ),
+      response: { headers: responseHeaders },
+      request: { body: args },
+    };
+    return {
+      ...result,
+      stream:
+        jsonResponseToolName == null
+          ? result.stream
+          : result.stream.pipeThrough(
+              convertJsonResponseToolStream(jsonResponseToolName),
+            ),
+    };
+  }
+}
+
+function getMaxOutputTokensForGemini25Model(): number {
+  return 65536;
+}
+
+function getMaxThinkingTokensForGemini25Model(modelId: string): number {
+  const id = modelId.toLowerCase();
+  if (id.includes('2.5-pro') || id.includes('gemini-3-pro-image')) {
+    return 32768;
+  }
+  return 24576;
+}
+
+type GoogleThinkingConfig = NonNullable<
+  InferSchema<typeof googleLanguageModelOptions>['thinkingConfig']
+>;
+
+function resolveThinkingConfig({
+  reasoning,
+  modelId,
+  warnings,
+}: {
+  reasoning: LanguageModelV4CallOptions['reasoning'];
+  modelId: string;
+  warnings: SharedV4Warning[];
+}): Omit<GoogleThinkingConfig, 'includeThoughts'> | undefined {
+  if (!isCustomReasoning(reasoning)) {
+    return undefined;
+  }
+
+  if (
+    getGoogleModelCapabilities(modelId).usesGemini3Features &&
+    !modelId.includes('gemini-3-pro-image')
+  ) {
+    return resolveGemini3ThinkingConfig({ reasoning, modelId, warnings });
+  }
+
+  return resolveGemini25ThinkingConfig({ reasoning, modelId, warnings });
+}
+
+function resolveGemini3ThinkingConfig({
+  reasoning,
+  modelId,
+  warnings,
+}: {
+  reasoning: Exclude<
+    LanguageModelV4CallOptions['reasoning'],
+    'provider-default' | undefined
+  >;
+  modelId: string;
+  warnings: SharedV4Warning[];
+}): Pick<GoogleThinkingConfig, 'thinkingLevel'> | undefined {
+  const minimumThinkingLevel = getMinimumThinkingLevelForGemini3Model(modelId);
+
+  if (reasoning === 'none') {
+    // It's not possible to fully disable thinking with Gemini 3.
+    return { thinkingLevel: minimumThinkingLevel };
+  }
+
+  const thinkingLevel = mapReasoningToProviderEffort({
+    reasoning,
+    effortMap: {
+      minimal: minimumThinkingLevel,
+      low: 'low',
+      medium: 'medium',
+      high: 'high',
+      xhigh: 'high',
+      max: 'high',
+    },
+    warnings,
+  });
+
+  if (thinkingLevel == null) {
+    return undefined;
+  }
+
+  return { thinkingLevel };
+}
+
+function getMinimumThinkingLevelForGemini3Model(
+  modelId: string,
+): 'minimal' | 'low' {
+  const modelName = /(?:^|[/.])(gemini-[^/]*)$/i
+    .exec(modelId)?.[1]
+    .toLowerCase();
+
+  if (modelName === 'gemini-flash-latest') {
+    return 'low';
+  }
+
+  const proVersionMatch = /^gemini-(\d+)(?:\.\d+)?-pro(?:$|-)/.exec(
+    modelName ?? '',
+  );
+
+  if (Number(proVersionMatch?.[1]) >= 3) {
+    return 'low';
+  }
+
+  const versionMatch = /^gemini-(\d+)\.(\d+)-flash(?:$|-(?!lite(?:-|$)))/.exec(
+    modelName ?? '',
+  );
+
+  if (versionMatch == null) {
+    return 'minimal';
+  }
+
+  const majorVersion = Number(versionMatch[1]);
+  const minorVersion = Number(versionMatch[2]);
+
+  return majorVersion > 3 || (majorVersion === 3 && minorVersion >= 7)
+    ? 'low'
+    : 'minimal';
+}
+
+function resolveGemini25ThinkingConfig({
+  reasoning,
+  modelId,
+  warnings,
+}: {
+  reasoning: Exclude<
+    LanguageModelV4CallOptions['reasoning'],
+    'provider-default' | undefined
+  >;
+  modelId: string;
+  warnings: SharedV4Warning[];
+}): Pick<GoogleThinkingConfig, 'thinkingBudget'> | undefined {
+  if (reasoning === 'none') {
+    return { thinkingBudget: 0 };
+  }
+
+  const thinkingBudget = mapReasoningToProviderBudget({
+    reasoning,
+    maxOutputTokens: getMaxOutputTokensForGemini25Model(),
+    maxReasoningBudget: getMaxThinkingTokensForGemini25Model(modelId),
+    minReasoningBudget: 0,
+    warnings,
+  });
+  if (thinkingBudget == null) {
+    return undefined;
+  }
+  return { thinkingBudget };
+}
+
+function extractSources({
+  groundingMetadata,
+  generateId,
+}: {
+  groundingMetadata: GroundingMetadataSchema | undefined | null;
+  generateId: () => string;
+}): undefined | LanguageModelV4Source[] {
+  if (!groundingMetadata?.groundingChunks) {
+    return undefined;
+  }
+
+  const sources: LanguageModelV4Source[] = [];
+
+  for (const chunk of groundingMetadata.groundingChunks) {
+    if (chunk.web != null) {
+      // Handle web chunks as URL sources
+      sources.push({
+        type: 'source',
+        sourceType: 'url',
+        id: generateId(),
+        url: chunk.web.uri,
+        title: chunk.web.title ?? undefined,
+      });
+    } else if (chunk.image != null) {
+      // Handle image chunks as image sources
+      sources.push({
+        type: 'source',
+        sourceType: 'url',
+        id: generateId(),
+        // Google requires attribution to the source URI, not the actual image URI.
+        // TODO: add another type in v7 to allow both the image and source URL to be included separately
+        url: chunk.image.sourceUri,
+        title: chunk.image.title ?? undefined,
+      });
+    } else if (chunk.retrievedContext != null) {
+      // Handle retrievedContext chunks from RAG operations
+      const uri = chunk.retrievedContext.uri;
+      const fileSearchStore = chunk.retrievedContext.fileSearchStore;
+
+      if (uri && (uri.startsWith('http://') || uri.startsWith('https://'))) {
+        // Old format: Google Search with HTTP/HTTPS URL
+        sources.push({
+          type: 'source',
+          sourceType: 'url',
+          id: generateId(),
+          url: uri,
+          title: chunk.retrievedContext.title ?? undefined,
+        });
+      } else if (uri) {
+        // Old format: Document with file path (gs://, etc.)
+        const title = chunk.retrievedContext.title ?? 'Unknown Document';
+        let mediaType = 'application/octet-stream';
+        let filename: string | undefined = undefined;
+
+        if (uri.endsWith('.pdf')) {
+          mediaType = 'application/pdf';
+          filename = uri.split('/').pop();
+        } else if (uri.endsWith('.txt')) {
+          mediaType = 'text/plain';
+          filename = uri.split('/').pop();
+        } else if (uri.endsWith('.docx')) {
+          mediaType =
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+          filename = uri.split('/').pop();
+        } else if (uri.endsWith('.doc')) {
+          mediaType = 'application/msword';
+          filename = uri.split('/').pop();
+        } else if (uri.match(/\.(md|markdown)$/)) {
+          mediaType = 'text/markdown';
+          filename = uri.split('/').pop();
+        } else {
+          filename = uri.split('/').pop();
+        }
+
+        sources.push({
+          type: 'source',
+          sourceType: 'document',
+          id: generateId(),
+          mediaType,
+          title,
+          filename,
+        });
+      } else if (fileSearchStore) {
+        // New format: File Search with fileSearchStore (no uri)
+        const title = chunk.retrievedContext.title ?? 'Unknown Document';
+        sources.push({
+          type: 'source',
+          sourceType: 'document',
+          id: generateId(),
+          mediaType: 'application/octet-stream',
+          title,
+          filename: fileSearchStore.split('/').pop(),
+        });
+      }
+    } else if (chunk.maps != null) {
+      if (chunk.maps.uri) {
+        sources.push({
+          type: 'source',
+          sourceType: 'url',
+          id: generateId(),
+          url: chunk.maps.uri,
+          title: chunk.maps.title ?? undefined,
+        });
+      }
+    }
+  }
+
+  return sources.length > 0 ? sources : undefined;
+}
+
+export const getGroundingMetadataSchema = () =>
+  z.object({
+    webSearchQueries: z.array(z.string()).nullish(),
+    imageSearchQueries: z.array(z.string()).nullish(),
+    retrievalQueries: z.array(z.string()).nullish(),
+    searchEntryPoint: z.object({ renderedContent: z.string() }).nullish(),
+    groundingChunks: z
+      .array(
+        z.object({
+          web: z
+            .object({ uri: z.string(), title: z.string().nullish() })
+            .nullish(),
+          image: z
+            .object({
+              sourceUri: z.string(),
+              imageUri: z.string(),
+              title: z.string().nullish(),
+              domain: z.string().nullish(),
+            })
+            .nullish(),
+          retrievedContext: z
+            .object({
+              uri: z.string().nullish(),
+              title: z.string().nullish(),
+              text: z.string().nullish(),
+              fileSearchStore: z.string().nullish(),
+              customMetadata: z
+                .array(
+                  z.object({
+                    key: z.string(),
+                    stringValue: z.string().nullish(),
+                    numericValue: z.number().nullish(),
+                    stringListValue: z
+                      .object({ values: z.array(z.string()).nullish() })
+                      .nullish(),
+                  }),
+                )
+                .nullish(),
+            })
+            .nullish(),
+          maps: z
+            .object({
+              uri: z.string().nullish(),
+              title: z.string().nullish(),
+              text: z.string().nullish(),
+              placeId: z.string().nullish(),
+            })
+            .nullish(),
+        }),
+      )
+      .nullish(),
+    groundingSupports: z
+      .array(
+        z.object({
+          segment: z
+            .object({
+              startIndex: z.number().nullish(),
+              endIndex: z.number().nullish(),
+              text: z.string().nullish(),
+            })
+            .nullish(),
+          segment_text: z.string().nullish(),
+          groundingChunkIndices: z.array(z.number()).nullish(),
+          supportChunkIndices: z.array(z.number()).nullish(),
+          confidenceScores: z.array(z.number()).nullish(),
+          confidenceScore: z.array(z.number()).nullish(),
+        }),
+      )
+      .nullish(),
+    retrievalMetadata: z
+      .union([
+        z.object({
+          webDynamicRetrievalScore: z.number(),
+        }),
+        z.object({}),
+      ])
+      .nullish(),
+  });
+
+const partialArgSchema = z.object({
+  jsonPath: z.string(),
+  stringValue: z.string().nullish(),
+  numberValue: z.number().nullish(),
+  boolValue: z.boolean().nullish(),
+  nullValue: z.unknown().nullish(),
+  willContinue: z.boolean().nullish(),
+});
+
+const getContentSchema = () =>
+  z.object({
+    parts: z
+      .array(
+        z.union([
+          // note: order matters since text can be fully empty
+          z.object({
+            functionCall: z.object({
+              id: z.string().nullish(),
+              name: z.string().nullish(),
+              args: z.unknown().nullish(),
+              partialArgs: z.array(partialArgSchema).nullish(),
+              willContinue: z.boolean().nullish(),
+            }),
+            thoughtSignature: z.string().nullish(),
+          }),
+          z.object({
+            inlineData: z.object({
+              mimeType: z.string(),
+              data: z.string(),
+            }),
+            thought: z.boolean().nullish(),
+            thoughtSignature: z.string().nullish(),
+          }),
+          z.object({
+            toolCall: z.object({
+              toolType: z.string(),
+              args: z.unknown().nullish(),
+              id: z.string(),
+            }),
+            thoughtSignature: z.string().nullish(),
+          }),
+          z.object({
+            toolResponse: z.object({
+              toolType: z.string(),
+              response: z.unknown().nullish(),
+              id: z.string(),
+            }),
+            thoughtSignature: z.string().nullish(),
+          }),
+          z.object({
+            executableCode: z
+              .object({
+                language: z.string(),
+                code: z.string(),
+              })
+              .nullish(),
+            codeExecutionResult: z
+              .object({
+                outcome: z.string(),
+                output: z.string().nullish(),
+              })
+              .nullish(),
+            text: z.string().nullish(),
+            thought: z.boolean().nullish(),
+            thoughtSignature: z.string().nullish(),
+          }),
+        ]),
+      )
+      .nullish(),
+  });
+
+// https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/configure-safety-filters
+const getSafetyRatingSchema = () =>
+  z.object({
+    category: z.string().nullish(),
+    probability: z.string().nullish(),
+    probabilityScore: z.number().nullish(),
+    severity: z.string().nullish(),
+    severityScore: z.number().nullish(),
+    blocked: z.boolean().nullish(),
+  });
+
+const tokenDetailsSchema = z
+  .array(
+    z
+      .object({
+        modality: z.string(),
+        tokenCount: z.number(),
+      })
+      .loose(),
+  )
+  .nullish();
+
+const usageSchema = z
+  .object({
+    cachedContentTokenCount: z.number().nullish(),
+    thoughtsTokenCount: z.number().nullish(),
+    promptTokenCount: z.number().nullish(),
+    candidatesTokenCount: z.number().nullish(),
+    toolUsePromptTokenCount: z.number().nullish(),
+    totalTokenCount: z.number().nullish(),
+    // https://cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1/GenerateContentResponse#TrafficType
+    trafficType: z.string().nullish(),
+    serviceTier: z.string().nullish(),
+    // https://ai.google.dev/api/generate-content#Modality
+    promptTokensDetails: tokenDetailsSchema,
+    cacheTokensDetails: tokenDetailsSchema,
+    candidatesTokensDetails: tokenDetailsSchema,
+    toolUsePromptTokensDetails: tokenDetailsSchema,
+  })
+  .loose();
+
+// https://ai.google.dev/api/generate-content#UrlRetrievalMetadata
+export const getUrlContextMetadataSchema = () =>
+  z.object({
+    urlMetadata: z
+      .array(
+        z.object({
+          retrievedUrl: z.string(),
+          urlRetrievalStatus: z.string(),
+        }),
+      )
+      .nullish(),
+  });
+
+export const responseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      responseId: z.string().nullish(),
+      candidates: z
+        .array(
+          z.object({
+            content: getContentSchema().nullish().or(z.object({}).strict()),
+            finishReason: z.string().nullish(),
+            finishMessage: z.string().nullish(),
+            continuationToken: z.string().nullish(),
+            safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
+            groundingMetadata: getGroundingMetadataSchema().nullish(),
+            urlContextMetadata: getUrlContextMetadataSchema().nullish(),
+          }),
+        )
+        .nullish(),
+      usageMetadata: usageSchema.nullish(),
+      promptFeedback: z
+        .object({
+          blockReason: z.string().nullish(),
+          safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
+        })
+        .nullish(),
+    }),
+  ),
+);
+
+type CandidateSchema = NonNullable<
+  InferSchema<typeof responseSchema>['candidates']
+>[number];
+
+export type GroundingMetadataSchema = NonNullable<
+  CandidateSchema['groundingMetadata']
+>;
+
+export type UrlContextMetadataSchema = NonNullable<
+  CandidateSchema['urlContextMetadata']
+>;
+
+export type SafetyRatingSchema = NonNullable<
+  CandidateSchema['safetyRatings']
+>[number];
+
+export type PromptFeedbackSchema = NonNullable<
+  InferSchema<typeof responseSchema>['promptFeedback']
+>;
+
+export type UsageMetadataSchema = NonNullable<
+  InferSchema<typeof responseSchema>['usageMetadata']
+>;
+
+// limited version of the schema, focussed on what is needed for the implementation
+// this approach limits breakages when the API changes and increases efficiency
+const chunkSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      error: getGoogleErrorSchema().nullish(),
+      responseId: z.string().nullish(),
+      candidates: z
+        .array(
+          z.object({
+            content: getContentSchema().nullish(),
+            finishReason: z.string().nullish(),
+            finishMessage: z.string().nullish(),
+            continuationToken: z.string().nullish(),
+            safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
+            groundingMetadata: getGroundingMetadataSchema().nullish(),
+            urlContextMetadata: getUrlContextMetadataSchema().nullish(),
+          }),
+        )
+        .nullish(),
+      usageMetadata: usageSchema.nullish(),
+      promptFeedback: z
+        .object({
+          blockReason: z.string().nullish(),
+          safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
+        })
+        .nullish(),
+    }),
+  ),
+);
+
+type ChunkSchema = InferSchema<typeof chunkSchema>;
+
+function isConfirmedPromptBlockReason(
+  blockReason: string | null | undefined,
+): blockReason is string {
+  return (
+    blockReason != null &&
+    blockReason !== '' &&
+    blockReason !== 'BLOCK_REASON_UNSPECIFIED' &&
+    blockReason !== 'BLOCKED_REASON_UNSPECIFIED'
+  );
+}

@@ -1,8 +1,6 @@
 import type {
   LanguageModelV4,
   LanguageModelV4CallOptions,
-  SharedV4Warning,
-  LanguageModelV4FilePart,
   LanguageModelV4StreamPart,
   LanguageModelV4GenerateResult,
   LanguageModelV4StreamResult,
@@ -12,18 +10,22 @@ import {
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  getErrorMessage,
   postJsonToApi,
   resolve,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
   type ParseResult,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import { z } from './zod';
 import type { GatewayConfig } from './gateway-config';
 import type { GatewayModelId } from './gateway-language-model-settings';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 
-type GatewayChatConfig = GatewayConfig & {
+export type GatewayChatConfig = GatewayConfig & {
   provider: string;
   o11yHeaders: Resolvable<Record<string, string>>;
 };
@@ -32,9 +34,23 @@ export class GatewayLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
   readonly supportedUrls = { '*/*': [/.*/] };
 
+  static [WORKFLOW_SERIALIZE](model: GatewayLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: GatewayModelId;
+    config: GatewayChatConfig;
+  }) {
+    return new GatewayLanguageModel(options.modelId, options.config);
+  }
+
   constructor(
     readonly modelId: GatewayModelId,
-    private readonly config: GatewayChatConfig,
+    protected readonly config: GatewayChatConfig,
   ) {}
 
   get provider(): string {
@@ -56,7 +72,9 @@ export class GatewayLanguageModel implements LanguageModelV4 {
     const { args, warnings } = await this.getArgs(options);
     const { abortSignal } = options;
 
-    const resolvedHeaders = await resolve(this.config.headers());
+    const resolvedHeaders = this.config.headers
+      ? await resolve(this.config.headers)
+      : undefined;
 
     try {
       const {
@@ -75,7 +93,7 @@ export class GatewayLanguageModel implements LanguageModelV4 {
         successfulResponseHandler: createJsonResponseHandler(z.any()),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
-          errorToMessage: data => data,
+          errorToMessage: data => getErrorMessage(data) ?? 'unknown error',
         }),
         ...(abortSignal && { abortSignal }),
         fetch: this.config.fetch,
@@ -85,10 +103,13 @@ export class GatewayLanguageModel implements LanguageModelV4 {
         ...responseBody,
         request: { body: args },
         response: { headers: responseHeaders, body: rawResponse },
-        warnings,
+        warnings: [...(responseBody.warnings ?? []), ...warnings],
       };
     } catch (error) {
-      throw await asGatewayError(error, await parseAuthMethod(resolvedHeaders));
+      throw await asGatewayError(
+        error,
+        await parseAuthMethod(resolvedHeaders ?? {}),
+      );
     }
   }
 
@@ -98,7 +119,9 @@ export class GatewayLanguageModel implements LanguageModelV4 {
     const { args, warnings } = await this.getArgs(options);
     const { abortSignal } = options;
 
-    const resolvedHeaders = await resolve(this.config.headers());
+    const resolvedHeaders = this.config.headers
+      ? await resolve(this.config.headers)
+      : undefined;
 
     try {
       const { value: response, responseHeaders } = await postJsonToApi({
@@ -113,7 +136,7 @@ export class GatewayLanguageModel implements LanguageModelV4 {
         successfulResponseHandler: createEventSourceResponseHandler(z.any()),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
-          errorToMessage: data => data,
+          errorToMessage: data => getErrorMessage(data) ?? 'unknown error',
         }),
         ...(abortSignal && { abortSignal }),
         fetch: this.config.fetch,
@@ -161,36 +184,36 @@ export class GatewayLanguageModel implements LanguageModelV4 {
         response: { headers: responseHeaders },
       };
     } catch (error) {
-      throw await asGatewayError(error, await parseAuthMethod(resolvedHeaders));
+      throw await asGatewayError(
+        error,
+        await parseAuthMethod(resolvedHeaders ?? {}),
+      );
     }
   }
 
-  private isFilePart(part: unknown) {
-    return (
-      part && typeof part === 'object' && 'type' in part && part.type === 'file'
-    );
-  }
-
   /**
-   * Encodes file parts in the prompt to base64. Mutates the passed options
-   * instance directly to avoid copying the file data.
+   * Encodes inline `Uint8Array` file data to a base64 string in place.
    * @param options - The options to encode.
-   * @returns The options with the file parts encoded.
+   * @returns The options with the file data encoded.
    */
-  private maybeEncodeFileParts(options: LanguageModelV4CallOptions) {
+  protected maybeEncodeFileParts<
+    T extends Pick<LanguageModelV4CallOptions, 'prompt'>,
+  >(options: T): T {
     for (const message of options.prompt) {
+      if (!Array.isArray(message.content)) {
+        continue;
+      }
       for (const part of message.content) {
-        if (this.isFilePart(part)) {
-          const filePart = part as LanguageModelV4FilePart;
-          // If the file part is a URL it will get cleanly converted to a string.
-          // If it's a binary file attachment we convert it to a data url.
-          // In either case, server-side we should only ever see URLs as strings.
-          if (filePart.data instanceof Uint8Array) {
-            const buffer = Uint8Array.from(filePart.data);
-            const base64Data = Buffer.from(buffer).toString('base64');
-            filePart.data = new URL(
-              `data:${filePart.mediaType || 'application/octet-stream'};base64,${base64Data}`,
-            );
+        if (part.type === 'file' || part.type === 'reasoning-file') {
+          part.data = maybeBase64EncodeFileData(part.data);
+        } else if (
+          part.type === 'tool-result' &&
+          part.output.type === 'content'
+        ) {
+          for (const contentPart of part.output.value) {
+            if (contentPart.type === 'file') {
+              contentPart.data = maybeBase64EncodeFileData(contentPart.data);
+            }
           }
         }
       }
@@ -209,4 +232,14 @@ export class GatewayLanguageModel implements LanguageModelV4 {
       'ai-language-model-streaming': String(streaming),
     };
   }
+}
+
+function maybeBase64EncodeFileData<T extends { type: string }>(data: T): T {
+  if (data.type === 'data') {
+    const bytes = (data as { data?: unknown }).data;
+    if (bytes instanceof Uint8Array) {
+      return { ...data, data: Buffer.from(bytes).toString('base64') } as T;
+    }
+  }
+  return data;
 }

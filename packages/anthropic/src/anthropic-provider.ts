@@ -1,38 +1,67 @@
 import {
-  FilesV4,
   InvalidArgumentError,
-  LanguageModelV4,
   NoSuchModelError,
-  ProviderV4,
+  type Experimental_BatchV4 as BatchV4,
+  type Experimental_DecisionModelV4 as DecisionModelV4,
+  type FilesV4,
+  type LanguageModelV4,
+  type ProviderV4,
+  type SkillsV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   generateId,
   loadApiKey,
   loadOptionalSetting,
+  validateBaseURL,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
+import { Experimental_DecisionLanguageModel as DecisionLanguageModel } from '@ai-sdk/provider-utils/experimental-decision';
 import { AnthropicFiles } from './anthropic-files';
-import { AnthropicMessagesLanguageModel } from './anthropic-messages-language-model';
-import { AnthropicMessagesModelId } from './anthropic-messages-options';
+import { AnthropicLanguageModel } from './anthropic-language-model';
+import { AnthropicBatch } from './anthropic-batch';
+import type { AnthropicModelId } from './anthropic-language-model-options';
 import { anthropicTools } from './anthropic-tools';
+import { AnthropicSkills } from './skills/anthropic-skills';
 import { VERSION } from './version';
+
+const ANTHROPIC_API_URL = 'https://api.anthropic.com';
+const ANTHROPIC_API_VERSIONED_URL = `${ANTHROPIC_API_URL}/v1`;
+
+function normalizeBaseURL(baseURL: string | undefined): string | undefined {
+  const baseURLWithoutTrailingSlash = withoutTrailingSlash(
+    validateBaseURL(baseURL),
+  );
+
+  return baseURLWithoutTrailingSlash === ANTHROPIC_API_URL
+    ? ANTHROPIC_API_VERSIONED_URL
+    : baseURLWithoutTrailingSlash;
+}
 
 export interface AnthropicProvider extends ProviderV4 {
   /**
    * Creates a model for text generation.
    */
-  (modelId: AnthropicMessagesModelId): LanguageModelV4;
+  (modelId: AnthropicModelId): LanguageModelV4;
 
   /**
    * Creates a model for text generation.
    */
-  languageModel(modelId: AnthropicMessagesModelId): LanguageModelV4;
+  languageModel(modelId: AnthropicModelId): LanguageModelV4;
 
-  chat(modelId: AnthropicMessagesModelId): LanguageModelV4;
+  chat(modelId: AnthropicModelId): LanguageModelV4;
 
-  messages(modelId: AnthropicMessagesModelId): LanguageModelV4;
+  messages(modelId: AnthropicModelId): LanguageModelV4;
+
+  /** Creates an experimental Choice/Score/Boolean decision model using Messages. */
+  decisionModel(modelId: AnthropicModelId): DecisionModelV4;
+  /** @deprecated Use `decisionModel` instead. */
+  evaluationModel(modelId: AnthropicModelId): DecisionModelV4 & {
+    doEvaluate: DecisionModelV4['doDecide'];
+  };
+
+  experimental_batch(): BatchV4<{ text: AnthropicModelId }>;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -42,12 +71,23 @@ export interface AnthropicProvider extends ProviderV4 {
   files(): FilesV4;
 
   /**
+   * Returns a SkillsV4 interface for uploading skills to Anthropic.
+   */
+  skills(): SkillsV4;
+
+  /**
    * Anthropic-specific computer use tool.
    */
   tools: typeof anthropicTools;
 }
 
 export interface AnthropicProviderSettings {
+  /** Settings for downloading JSON Lines batch results. */
+  batchResultDownloads?: {
+    /** Maximum UTF-8 bytes per row, excluding LF. Defaults to 64 MiB. */
+    maxLineBytes?: number;
+  };
+
   /**
    * Use a different URL prefix for API calls, e.g. to use proxy servers.
    * The default prefix is `https://api.anthropic.com/v1`.
@@ -95,14 +135,18 @@ export function createAnthropic(
   options: AnthropicProviderSettings = {},
 ): AnthropicProvider {
   const baseURL =
-    withoutTrailingSlash(
+    normalizeBaseURL(
       loadOptionalSetting({
         settingValue: options.baseURL,
         environmentVariableName: 'ANTHROPIC_BASE_URL',
       }),
-    ) ?? 'https://api.anthropic.com/v1';
+    ) ?? ANTHROPIC_API_VERSIONED_URL;
 
   const providerName = options.name ?? 'anthropic.messages';
+  const supportedUrls = {
+    'image/*': [/^https?:\/\/.*$/],
+    'application/pdf': [/^https?:\/\/.*$/],
+  };
 
   // Only error if both are explicitly provided in options
   if (options.apiKey && options.authToken) {
@@ -130,24 +174,39 @@ export function createAnthropic(
         ...authHeaders,
         ...options.headers,
       },
-      `ai-sdk/anthropic/${VERSION}`,
+      `ai-sdk-anthropic/${VERSION}`,
     );
   };
 
-  const createChatModel = (modelId: AnthropicMessagesModelId) =>
-    new AnthropicMessagesLanguageModel(modelId, {
-      provider: providerName,
+  const languageModelConfig = {
+    provider: providerName,
+    baseURL,
+    headers: getHeaders,
+    fetch: options.fetch,
+    generateId: options.generateId ?? generateId,
+    supportedUrls: () => supportedUrls,
+  };
+
+  const createChatModel = (modelId: AnthropicModelId) =>
+    new AnthropicLanguageModel(modelId, languageModelConfig);
+
+  const createBatch = () =>
+    new AnthropicBatch({
+      provider: `${providerName.replace(/\.messages$/, '')}.batch`,
+      maxLineBytes: options.batchResultDownloads?.maxLineBytes,
+      config: languageModelConfig,
+      supportedUrls,
+    });
+
+  const createSkills = () =>
+    new AnthropicSkills({
+      provider: `${providerName.replace('.messages', '')}.skills`,
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
-      generateId: options.generateId ?? generateId,
-      supportedUrls: () => ({
-        'image/*': [/^https?:\/\/.*$/],
-        'application/pdf': [/^https?:\/\/.*$/],
-      }),
     });
 
-  const provider = function (modelId: AnthropicMessagesModelId) {
+  const provider = function (modelId: AnthropicModelId) {
     if (new.target) {
       throw new Error(
         'The Anthropic model function cannot be called with the new keyword.',
@@ -161,6 +220,14 @@ export function createAnthropic(
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.messages = createChatModel;
+  provider.decisionModel = (modelId: AnthropicModelId) =>
+    new DecisionLanguageModel({
+      model: createChatModel(modelId),
+      provider: `${providerName.replace(/\.messages$/, '')}.decision`,
+    });
+  provider.evaluationModel =
+    provider.decisionModel as AnthropicProvider['evaluationModel'];
+  provider.experimental_batch = createBatch;
 
   provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
@@ -177,6 +244,8 @@ export function createAnthropic(
       headers: getHeaders,
       fetch: options.fetch,
     });
+
+  provider.skills = createSkills;
 
   provider.tools = anthropicTools;
 

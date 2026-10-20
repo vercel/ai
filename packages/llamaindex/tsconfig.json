@@ -8,20 +8,17 @@
       "dom",
       "dom.iterable",
       "esnext"
-    ],
+    ]
   },
   "exclude": [
     "dist",
     "build",
     "node_modules",
-    "tsup.config.ts"
+    "tsdown.config.ts"
   ],
   "references": [
     {
       "path": "../ai"
-    },
-    {
-      "path": "../provider-utils"
     }
   ]
 }

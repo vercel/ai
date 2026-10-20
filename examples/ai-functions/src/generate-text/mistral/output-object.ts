@@ -1,11 +1,11 @@
-import { mistral, type MistralLanguageModelOptions } from '@ai-sdk/mistral';
+import { mistral, type MistralLanguageModelChatOptions } from '@ai-sdk/mistral';
 import { generateText, Output } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: mistral('open-mistral-7b'),
+    model: mistral('mistral-small-latest'),
     output: Output.object({
       schema: z.object({
         recipe: z.object({
@@ -24,7 +24,7 @@ run(async () => {
     providerOptions: {
       mistral: {
         strictJsonSchema: true,
-      } satisfies MistralLanguageModelOptions,
+      } satisfies MistralLanguageModelChatOptions,
     },
   });
 

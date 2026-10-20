@@ -24,7 +24,8 @@ do {
      filter raw chunks when not enabled
      add finish-step
      add finish
-   bookkeeping
+   bookkeeping:
+     keep track of tool calls/outputs/errors
    timeout mgmt
    events:
      telemetry, tool input delta
@@ -57,7 +58,7 @@ stream 1 -- stream 2 -- stream 3
 
 # Stream Pipeline Structure
 
-````
+```
 ┌────────────────────────────────────────────────────────────┐
 │           FUNNEL IN: N STEP STREAMS                        │
 │          (sequential, not parallel)                        │
@@ -135,4 +136,4 @@ stream 1 -- stream 2 -- stream 3
         deltas parts) parse) spec) to UI) stream,
         only)                             resolves
                                           promises)
-````
+```

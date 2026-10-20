@@ -15,9 +15,10 @@ run(async () => {
         content: [
           { type: 'text', text: 'Describe the image in detail.' },
           {
-            type: 'image',
+            type: 'file',
+            mediaType: 'image',
             // Internally, MIME type is automatically detected:
-            image: imageBase64_string,
+            data: imageBase64_string,
             providerOptions: {
               // When using the Azure OpenAI provider, the imageDetail option can be configured under the `openai` key:
               azure: {

@@ -1,9 +1,9 @@
 import {
   JSONParseError,
-  SharedV4Warning,
-  LanguageModelV4StreamPart,
   TypeValidationError,
-  LanguageModelV4Usage,
+  type SharedV4Warning,
+  type LanguageModelV4StreamPart,
+  type LanguageModelV4Usage,
 } from '@ai-sdk/provider';
 import { jsonSchema } from '@ai-sdk/provider-utils';
 import {
@@ -19,10 +19,13 @@ import { verifyNoObjectGeneratedError } from '../error/verify-no-object-generate
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { createMockServerResponse } from '../test/mock-server-response';
-import { AsyncIterableStream } from '../util/async-iterable-stream';
+import type { AsyncIterableStream } from '../util/async-iterable-stream';
 import { streamObject } from './stream-object';
-import { StreamObjectResult } from './stream-object-result';
-import { asLanguageModelUsage } from '../types/usage';
+import type { StreamObjectResult } from './stream-object-result';
+import {
+  asLanguageModelUsage,
+  createNullLanguageModelUsage,
+} from '../types/usage';
 
 const testUsage: LanguageModelV4Usage = {
   inputTokens: {
@@ -103,6 +106,16 @@ describe('streamObject', () => {
           model: mockModel,
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
+        });
+
+        expect(logWarningsSpy).toHaveBeenNthCalledWith(1, {
+          warnings: [
+            {
+              type: 'deprecated',
+              setting: 'streamObject',
+              message: 'Use streamText with an output setting instead.',
+            },
+          ],
         });
 
         expect(await convertAsyncIterableToArray(result.partialObjectStream))
@@ -360,7 +373,6 @@ describe('streamObject', () => {
 
         expect(await result.usage).toMatchInlineSnapshot(`
           {
-            "cachedInputTokens": undefined,
             "inputTokenDetails": {
               "cacheReadTokens": undefined,
               "cacheWriteTokens": undefined,
@@ -373,7 +385,6 @@ describe('streamObject', () => {
             },
             "outputTokens": 10,
             "raw": undefined,
-            "reasoningTokens": undefined,
             "totalTokens": 13,
           }
         `);
@@ -560,7 +571,7 @@ describe('streamObject', () => {
         // consume stream (runs in parallel)
         convertAsyncIterableToArray(result.partialObjectStream);
 
-        expect(result.object).rejects.toThrow(NoObjectGeneratedError);
+        await expect(result.object).rejects.toThrow(NoObjectGeneratedError);
       });
 
       it('should not lead to unhandled promise rejections when the streamed object does not match the schema', async () => {
@@ -862,6 +873,241 @@ describe('streamObject', () => {
     });
 
     describe('error handling', () => {
+      it('should reject pending result promises when doStream throws', async () => {
+        const error = new Error('test error');
+        const result = streamObject({
+          model: new MockLanguageModelV4({
+            doStream: async () => {
+              throw error;
+            },
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          onError: () => {},
+        });
+
+        await Promise.all(
+          [
+            result.object,
+            result.usage,
+            result.providerMetadata,
+            result.warnings,
+            result.request,
+            result.response,
+            result.finishReason,
+          ].map(promise => expect(promise).rejects.toBe(error)),
+        );
+      });
+
+      it('should not emit an unhandled rejection when a result promise is awaited after failure', async () => {
+        const error = new Error('test error');
+        const unhandledRejections: unknown[] = [];
+        const onUnhandledRejection = (reason: unknown) => {
+          unhandledRejections.push(reason);
+        };
+
+        process.on('unhandledRejection', onUnhandledRejection);
+
+        try {
+          const result = streamObject({
+            model: new MockLanguageModelV4({
+              doStream: async () => {
+                throw error;
+              },
+            }),
+            schema: z.object({ content: z.string() }),
+            prompt: 'prompt',
+            onError: () => {},
+          });
+          const objectPromise = result.object;
+
+          await convertAsyncIterableToArray(result.fullStream);
+          await new Promise(resolve => setTimeout(resolve, 0));
+
+          await expect(objectPromise).rejects.toBe(error);
+          expect(unhandledRejections).toStrictEqual([]);
+        } finally {
+          process.off('unhandledRejection', onUnhandledRejection);
+        }
+      });
+
+      it('should not emit background errors when cancelled before the provider stream is registered', async () => {
+        const backgroundErrors: unknown[] = [];
+        const onUnhandledRejection = (error: unknown) => {
+          backgroundErrors.push(error);
+        };
+        const onUncaughtException = (error: unknown) => {
+          backgroundErrors.push(error);
+        };
+        let releaseProvider!: () => void;
+        const providerGate = new Promise<void>(resolve => {
+          releaseProvider = resolve;
+        });
+        let providerStreamCreated!: () => void;
+        const providerStreamCreation = new Promise<void>(resolve => {
+          providerStreamCreated = resolve;
+        });
+        let providerStreamCancelled = false;
+
+        process.on('unhandledRejection', onUnhandledRejection);
+        process.on('uncaughtException', onUncaughtException);
+
+        try {
+          const result = streamObject({
+            model: new MockLanguageModelV4({
+              doStream: async () => {
+                await providerGate;
+
+                return {
+                  stream: new ReadableStream({
+                    start() {
+                      providerStreamCreated();
+                    },
+                    cancel() {
+                      providerStreamCancelled = true;
+                    },
+                  }),
+                };
+              },
+            }),
+            schema: z.object({ content: z.string() }),
+            prompt: 'prompt',
+            onError: () => {},
+          });
+
+          const reader = result.partialObjectStream.getReader();
+          const pendingRead = reader.read().catch(() => undefined);
+
+          await reader.cancel();
+          releaseProvider();
+
+          await pendingRead;
+          await providerStreamCreation;
+          await new Promise(resolve => setTimeout(resolve, 0));
+
+          expect(providerStreamCancelled).toBe(true);
+          expect(backgroundErrors).toStrictEqual([]);
+        } finally {
+          process.off('unhandledRejection', onUnhandledRejection);
+          process.off('uncaughtException', onUncaughtException);
+        }
+      });
+
+      it('should reject pending result promises and report failure for an error stream part', async () => {
+        const error = new Error('test error');
+        const onError = vitest.fn();
+        const onStepFinish = vitest.fn();
+        const onFinish = vitest.fn();
+        const result = streamObject({
+          model: new MockLanguageModelV4({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([{ type: 'error', error }]),
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          onError,
+          onStepFinish,
+          onFinish,
+        });
+
+        expect(
+          await convertAsyncIterableToArray(result.fullStream),
+        ).toStrictEqual([{ type: 'error', error }]);
+
+        expect(onError).toHaveBeenCalledWith({ error });
+        expect(onStepFinish).toHaveBeenCalledWith(
+          expect.objectContaining({
+            finishReason: 'error',
+            usage: createNullLanguageModelUsage(),
+          }),
+        );
+        expect(onFinish).toHaveBeenCalledWith(
+          expect.objectContaining({
+            object: undefined,
+            error,
+            finishReason: 'error',
+            usage: createNullLanguageModelUsage(),
+          }),
+        );
+
+        await Promise.all(
+          [
+            result.object,
+            result.usage,
+            result.providerMetadata,
+            result.warnings,
+            result.response,
+            result.finishReason,
+          ].map(promise => expect(promise).rejects.toBe(error)),
+        );
+        await expect(result.request).resolves.toStrictEqual({});
+      });
+
+      it('should preserve error parts and finish callbacks when onError throws', async () => {
+        const error = new Error('provider error');
+        const onStepFinish = vitest.fn();
+        const onFinish = vitest.fn();
+        const result = streamObject({
+          model: new MockLanguageModelV4({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([{ type: 'error', error }]),
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          onError() {
+            throw new Error('callback error');
+          },
+          onStepFinish,
+          onFinish,
+        });
+
+        await expect(
+          convertAsyncIterableToArray(result.fullStream),
+        ).resolves.toStrictEqual([{ type: 'error', error }]);
+        expect(onStepFinish).toHaveBeenCalledOnce();
+        expect(onFinish).toHaveBeenCalledOnce();
+      });
+
+      it('should preserve raw stream errors when onError throws', async () => {
+        const error = new Error('test error');
+        const onError = vitest.fn(() => {
+          throw new Error('callback error');
+        });
+        const result = streamObject({
+          model: new MockLanguageModelV4({
+            doStream: async () => ({
+              stream: new ReadableStream({
+                start(controller) {
+                  controller.error(error);
+                },
+              }),
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          onError,
+        });
+
+        await expect(
+          convertAsyncIterableToArray(result.fullStream),
+        ).rejects.toBe(error);
+        expect(onError).toHaveBeenCalledWith({ error });
+
+        await Promise.all(
+          [
+            result.object,
+            result.usage,
+            result.providerMetadata,
+            result.warnings,
+            result.response,
+            result.finishReason,
+          ].map(promise => expect(promise).rejects.toBe(error)),
+        );
+        await expect(result.request).resolves.toStrictEqual({});
+      });
+
       it('should throw NoObjectGeneratedError when schema validation fails', async () => {
         const result = streamObject({
           model: new MockLanguageModelV4({
@@ -1462,7 +1708,7 @@ describe('streamObject', () => {
     });
   });
 
-  describe('options.experimental_repairText', () => {
+  describe('options.repairText', () => {
     it('should be able to repair a JSONParseError', async () => {
       const result = streamObject({
         model: new MockLanguageModelV4({
@@ -1491,7 +1737,7 @@ describe('streamObject', () => {
         }),
         schema: z.object({ content: z.string() }),
         prompt: 'prompt',
-        experimental_repairText: async ({ text, error }) => {
+        repairText: async ({ text, error }) => {
           expect(error).toBeInstanceOf(JSONParseError);
           expect(text).toStrictEqual('{ "content": "provider metadata test" ');
           return text + '}';
@@ -1534,7 +1780,7 @@ describe('streamObject', () => {
         }),
         schema: z.object({ content: z.string() }),
         prompt: 'prompt',
-        experimental_repairText: async ({ text, error }) => {
+        repairText: async ({ text, error }) => {
           expect(error).toBeInstanceOf(TypeValidationError);
           expect(text).toStrictEqual(
             '{ "content-a": "provider metadata test" }',
@@ -1579,7 +1825,7 @@ describe('streamObject', () => {
         }),
         schema: z.object({ content: z.string() }),
         prompt: 'prompt',
-        experimental_repairText: async ({ text, error }) => {
+        repairText: async ({ text, error }) => {
           expect(error).toBeInstanceOf(TypeValidationError);
           expect(text).toStrictEqual(
             '{ "content-a": "provider metadata test" }',
@@ -1591,7 +1837,7 @@ describe('streamObject', () => {
       // consume stream
       await convertAsyncIterableToArray(result.partialObjectStream);
 
-      expect(result.object).rejects.toThrow(
+      await expect(result.object).rejects.toThrow(
         'No object generated: response did not match schema.',
       );
     });
@@ -1624,7 +1870,7 @@ describe('streamObject', () => {
         }),
         schema: z.object({ content: z.string() }),
         prompt: 'prompt',
-        experimental_repairText: async ({ text, error }) => {
+        repairText: async ({ text, error }) => {
           expect(error).toBeInstanceOf(JSONParseError);
           expect(text).toStrictEqual(
             '```json\n{ "content": "test message" }\n```',
@@ -1670,7 +1916,7 @@ describe('streamObject', () => {
         }),
         schema: z.object({ content: z.string() }),
         prompt: 'prompt',
-        experimental_repairText: async ({ text }) => text + '{',
+        repairText: async ({ text }) => text + '{',
       });
 
       try {
@@ -1689,6 +1935,69 @@ describe('streamObject', () => {
           finishReason: 'stop',
         });
       }
+    });
+
+    it('should support the deprecated experimental_repairText option', async () => {
+      const result = streamObject({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              {
+                type: 'text-delta',
+                id: '1',
+                delta: '{ "content": "repaired"',
+              },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        schema: z.object({ content: z.string() }),
+        prompt: 'prompt',
+        experimental_repairText: async ({ text }) => text + ' }',
+      });
+
+      await convertAsyncIterableToArray(result.partialObjectStream);
+
+      expect(await result.object).toStrictEqual({ content: 'repaired' });
+    });
+
+    it('should prefer repairText over experimental_repairText', async () => {
+      const result = streamObject({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              {
+                type: 'text-delta',
+                id: '1',
+                delta: '{ "content": "repaired"',
+              },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        schema: z.object({ content: z.string() }),
+        prompt: 'prompt',
+        repairText: async ({ text }) => text + ' }',
+        experimental_repairText: async () => {
+          throw new Error('deprecated alias should not be called');
+        },
+      });
+
+      await convertAsyncIterableToArray(result.partialObjectStream);
+
+      expect(await result.object).toStrictEqual({ content: 'repaired' });
     });
   });
 
@@ -1771,8 +2080,8 @@ describe('streamObject', () => {
       // Consume the stream to completion
       await convertAsyncIterableToArray(result.partialObjectStream);
 
-      expect(logWarningsSpy).toHaveBeenCalledOnce();
-      expect(logWarningsSpy).toHaveBeenCalledWith({
+      expect(logWarningsSpy).toHaveBeenCalledTimes(2);
+      expect(logWarningsSpy).toHaveBeenNthCalledWith(2, {
         warnings: expectedWarnings,
         provider: 'mock-provider',
         model: 'mock-model-id',
@@ -1793,8 +2102,8 @@ describe('streamObject', () => {
       // Consume the stream to completion
       await convertAsyncIterableToArray(result.partialObjectStream);
 
-      expect(logWarningsSpy).toHaveBeenCalledOnce();
-      expect(logWarningsSpy).toHaveBeenCalledWith({
+      expect(logWarningsSpy).toHaveBeenCalledTimes(2);
+      expect(logWarningsSpy).toHaveBeenNthCalledWith(2, {
         warnings: [],
         provider: 'mock-provider',
         model: 'mock-model-id',
@@ -1803,7 +2112,7 @@ describe('streamObject', () => {
   });
 
   describe('callbacks', () => {
-    describe('experimental_onStart', () => {
+    describe('onStart', () => {
       it('should call onStart before the model call', async () => {
         const events: string[] = [];
 
@@ -1833,7 +2142,7 @@ describe('streamObject', () => {
           model,
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_onStart: () => {
+          onStart: () => {
             events.push('onStart');
           },
         });
@@ -1843,7 +2152,7 @@ describe('streamObject', () => {
         expect(events).toEqual(['onStart', 'doStream']);
       });
 
-      it('should provide the correct event properties', async () => {
+      it('should send correct information with text prompt', async () => {
         let startEvent: any;
 
         const { partialObjectStream } = streamObject({
@@ -1873,26 +2182,63 @@ describe('streamObject', () => {
           prompt: 'test-prompt',
           temperature: 0.5,
           maxOutputTokens: 100,
-          experimental_onStart: event => {
+          telemetry: {
+            functionId: 'test-function',
+          },
+          onStart: event => {
+            startEvent = event;
+          },
+          _internal: {
+            generateId: () => 'test-call-id',
+          },
+        });
+
+        await convertAsyncIterableToArray(partialObjectStream);
+
+        expect(startEvent).toMatchSnapshot();
+      });
+
+      it('should accept deprecated experimental_telemetry as an alias for telemetry', async () => {
+        let startEvent: any;
+
+        const { partialObjectStream } = streamObject({
+          model: new MockLanguageModelV4({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                {
+                  type: 'text-delta',
+                  id: '1',
+                  delta: '{ "content": "Hello, world!" }',
+                },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          experimental_telemetry: {
+            isEnabled: true,
+            functionId: 'deprecated-fn',
+          },
+          onStart: event => {
             startEvent = event;
           },
         });
 
         await convertAsyncIterableToArray(partialObjectStream);
 
-        expect(startEvent.operationId).toBe('ai.streamObject');
-        expect(startEvent.provider).toBe('test-provider');
-        expect(startEvent.modelId).toBe('test-model');
-        expect(startEvent.prompt).toBe('test-prompt');
-        expect(startEvent.temperature).toBe(0.5);
-        expect(startEvent.maxOutputTokens).toBe(100);
-        expect(startEvent.schemaName).toBe('test-schema');
-        expect(startEvent.schemaDescription).toBe('A test schema');
-        expect(startEvent.callId).toBeDefined();
+        expect(startEvent).not.toHaveProperty('isEnabled');
+        expect(startEvent).not.toHaveProperty('functionId');
       });
     });
 
-    describe('experimental_onStepStart', () => {
+    describe('onStepStart', () => {
       it('should call onStepStart before the model call', async () => {
         const events: string[] = [];
 
@@ -1922,7 +2268,7 @@ describe('streamObject', () => {
           model,
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_onStepStart: () => {
+          onStepStart: () => {
             events.push('onStepStart');
           },
         });
@@ -1958,7 +2304,7 @@ describe('streamObject', () => {
           }),
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_onStepStart: event => {
+          onStepStart: event => {
             stepStartEvent = event;
           },
         });
@@ -2088,10 +2434,10 @@ describe('streamObject', () => {
           }),
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_onStart: () => {
+          onStart: () => {
             events.push('onStart');
           },
-          experimental_onStepStart: () => {
+          onStepStart: () => {
             events.push('onStepStart');
           },
           onStepFinish: () => {
@@ -2137,10 +2483,10 @@ describe('streamObject', () => {
           }),
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_onStart: event => {
+          onStart: event => {
             callIds.push(event.callId);
           },
-          experimental_onStepStart: event => {
+          onStepStart: event => {
             callIds.push(event.callId);
           },
           onStepFinish: event => {
@@ -2181,10 +2527,10 @@ describe('streamObject', () => {
           }),
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_onStart: () => {
+          onStart: () => {
             throw new Error('onStart error');
           },
-          experimental_onStepStart: () => {
+          onStepStart: () => {
             throw new Error('onStepStart error');
           },
           onStepFinish: () => {

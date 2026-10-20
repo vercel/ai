@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: google('gemini-3-flash-preview'),
+    model: google('gemini-3.8-flash'),
     tools: {
       weather: weatherTool,
       google_search: google.tools.googleSearch({}),
@@ -15,7 +15,7 @@ run(async () => {
     stopWhen: isStepCount(5),
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'text-delta':
         process.stdout.write(part.text);

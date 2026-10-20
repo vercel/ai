@@ -1,4 +1,4 @@
-import { type AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
+import type { AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { generateText } from 'ai';
 import fs from 'node:fs';
@@ -8,7 +8,7 @@ const errorMessage = fs.readFileSync('data/error-message.txt', 'utf8');
 
 run(async () => {
   const result = await generateText({
-    model: vertexAnthropic('claude-3-5-sonnet-v2@20241022'),
+    model: vertexAnthropic('claude-sonnet-5-5'),
     messages: [
       {
         role: 'user',
@@ -36,6 +36,13 @@ run(async () => {
   });
 
   console.log(result.text);
-  console.log(result.providerMetadata?.anthropic);
-  // e.g. { cacheCreationInputTokens: 2118, cacheReadInputTokens: 0 }
+  console.log();
+  console.log(
+    'Cache read tokens:',
+    result.usage.inputTokenDetails.cacheReadTokens,
+  );
+  console.log(
+    'Cache write tokens:',
+    result.usage.inputTokenDetails.cacheWriteTokens,
+  );
 });

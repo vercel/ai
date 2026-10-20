@@ -1,15 +1,14 @@
 import { openai as provider } from '@ai-sdk/openai';
-import { LanguageModelV3, LanguageModelV4 } from '@ai-sdk/provider';
-import { APICallError } from 'ai';
+import type { LanguageModelV3, LanguageModelV4 } from '@ai-sdk/provider';
+import type { APICallError } from 'ai';
 import 'dotenv/config';
 import { expect } from 'vitest';
 import {
-  ModelWithCapabilities,
   createEmbeddingModelWithCapabilities,
   createFeatureTestSuite,
   createLanguageModelWithCapabilities,
+  type ModelWithCapabilities,
 } from './feature-test-suite';
-
 const createChatModel = (
   modelId: string,
 ): ModelWithCapabilities<LanguageModelV3 | LanguageModelV4> =>
@@ -30,6 +29,7 @@ createFeatureTestSuite({
       createChatModel('gpt-5'),
       createChatModel('gpt-5-mini'),
       createChatModel('gpt-5-nano'),
+      createChatModel('gpt-5.6'),
     ],
     embeddingModels: [
       createEmbeddingModelWithCapabilities(

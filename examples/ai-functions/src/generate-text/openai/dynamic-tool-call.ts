@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { dynamicTool, generateText, isStepCount, ToolSet } from 'ai';
+import { dynamicTool, generateText, isStepCount, type ToolSet } from 'ai';
 import { z } from 'zod';
 import { weatherTool } from '../../tools/weather-tool';
 import { run } from '../../lib/run';
@@ -21,7 +21,7 @@ function dynamicTools(): ToolSet {
 
 run(async () => {
   const result = await generateText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     stopWhen: isStepCount(5),
     tools: {
       ...dynamicTools(),

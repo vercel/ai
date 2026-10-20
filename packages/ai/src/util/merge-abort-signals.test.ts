@@ -1,7 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mergeAbortSignals } from './merge-abort-signals';
 
 describe('mergeAbortSignals', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it('should return a signal that is initially not aborted', () => {
     const controller1 = new AbortController();
     const controller2 = new AbortController();
@@ -93,6 +97,32 @@ describe('mergeAbortSignals', () => {
     expect(merged).toBeUndefined();
   });
 
+  it('should create a timeout signal from numeric input', async () => {
+    const merged = mergeAbortSignals(10);
+
+    expect(merged).toBeInstanceOf(AbortSignal);
+    expect(merged!.aborted).toBe(false);
+
+    await new Promise<void>(resolve => {
+      merged!.addEventListener('abort', () => resolve(), { once: true });
+    });
+
+    expect(merged!.aborted).toBe(true);
+    expect(merged!.reason).toBeInstanceOf(DOMException);
+    expect((merged!.reason as DOMException).name).toBe('TimeoutError');
+  });
+
+  it('should preserve the first abort reason when mixing signals and timeouts', () => {
+    const controller = new AbortController();
+    const reason = new Error('manual abort reason');
+    const merged = mergeAbortSignals(controller.signal, 100);
+
+    controller.abort(reason);
+
+    expect(merged!.aborted).toBe(true);
+    expect(merged!.reason).toBe(reason);
+  });
+
   it('should filter out null and undefined signals', () => {
     const controller = new AbortController();
     const reason = new Error('abort reason');
@@ -133,6 +163,20 @@ describe('mergeAbortSignals', () => {
 
   it('should return the original signal when only one signal provided', () => {
     const controller = new AbortController();
+
+    const merged = mergeAbortSignals(controller.signal);
+
+    expect(merged).toBe(controller.signal);
+  });
+
+  it('should accept a signal when the global AbortSignal is not a constructor', () => {
+    const controller = new AbortController();
+    const nativeAbortSignal = AbortSignal;
+
+    vi.stubGlobal('AbortSignal', {
+      any: nativeAbortSignal.any,
+      timeout: nativeAbortSignal.timeout,
+    });
 
     const merged = mergeAbortSignals(controller.signal);
 

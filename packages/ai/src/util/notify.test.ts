@@ -1,8 +1,17 @@
-import { describe, it, expect } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Callback } from './callback';
 import { notify } from './notify';
-import type { Listener } from './notify';
+import { delay } from '@ai-sdk/provider-utils';
 
 describe('notify', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   describe('callback invocation', () => {
     it('should call a single callback with the event', async () => {
       const calls: string[] = [];
@@ -57,13 +66,16 @@ describe('notify', () => {
     it('should await async callbacks before continuing', async () => {
       const calls: string[] = [];
 
-      await notify({
+      const notifyPromise = notify({
         event: 'test',
         callbacks: async () => {
-          await new Promise(resolve => setTimeout(resolve, 1));
+          await delay(1);
           calls.push('async done');
         },
       });
+
+      await vi.advanceTimersByTimeAsync(1);
+      await notifyPromise;
 
       calls.push('after notify');
 
@@ -75,26 +87,46 @@ describe('notify', () => {
       `);
     });
 
-    it('should await async callbacks sequentially', async () => {
+    it('should run async callbacks in parallel and await all of them', async () => {
       const calls: string[] = [];
+      let resolveSlowCallback!: () => void;
 
-      await notify({
+      const notifyPromise = notify({
         event: 'test',
         callbacks: [
           async () => {
-            await new Promise(resolve => setTimeout(resolve, 5));
-            calls.push('slow');
+            calls.push('slow start');
+            await new Promise<void>(resolve => {
+              resolveSlowCallback = () => {
+                calls.push('slow end');
+                resolve();
+              };
+            });
           },
           () => {
-            calls.push('fast');
+            calls.push('fast start');
+            calls.push('fast end');
           },
         ],
       });
 
       expect(calls).toMatchInlineSnapshot(`
         [
-          "slow",
-          "fast",
+          "slow start",
+          "fast start",
+          "fast end",
+        ]
+      `);
+
+      resolveSlowCallback();
+      await notifyPromise;
+
+      expect(calls).toMatchInlineSnapshot(`
+        [
+          "slow start",
+          "fast start",
+          "fast end",
+          "slow end",
         ]
       `);
     });
@@ -178,7 +210,7 @@ describe('notify', () => {
 
       const received: MyEvent[] = [];
 
-      const callback: Listener<MyEvent> = event => {
+      const callback: Callback<MyEvent> = event => {
         received.push(event);
       };
 
@@ -235,7 +267,7 @@ describe('notify', () => {
   describe('multiple sequential notifications', () => {
     it('should handle repeated calls with the same callback', async () => {
       const events: string[] = [];
-      const callback: Listener<string> = event => {
+      const callback: Callback<string> = event => {
         events.push(event);
       };
 

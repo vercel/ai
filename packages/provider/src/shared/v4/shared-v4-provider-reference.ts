@@ -11,5 +11,12 @@
  *   "anthropic": "file-xyz789"
  * }
  * ```
+ *
+ * The `type?: never` constraint excludes any object that has a `type`
+ * property, so a `SharedV4ProviderReference` cannot be confused with a
+ * tagged file-data shape (e.g. `{ type: 'data', data }` or
+ * `{ type: 'reference', reference }`) when both appear in the same union.
  */
-export type SharedV4ProviderReference = Record<string, string>;
+export type SharedV4ProviderReference = Record<string, string> & {
+  type?: never;
+};

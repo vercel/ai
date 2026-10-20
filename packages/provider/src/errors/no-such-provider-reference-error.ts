@@ -1,4 +1,4 @@
-import { SharedV4ProviderReference } from '../shared/v4/shared-v4-provider-reference';
+import type { SharedV4ProviderReference } from '../shared/v4/shared-v4-provider-reference';
 import { AISDKError } from './ai-sdk-error';
 
 const name = 'AI_NoSuchProviderReferenceError';

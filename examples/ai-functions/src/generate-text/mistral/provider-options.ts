@@ -1,10 +1,10 @@
-import { mistral, type MistralLanguageModelOptions } from '@ai-sdk/mistral';
+import { mistral, type MistralLanguageModelChatOptions } from '@ai-sdk/mistral';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: mistral('open-mistral-7b'),
+    model: mistral('mistral-small-latest'),
     prompt: 'Invent a new holiday and describe its traditions.',
     providerOptions: {
       mistral: {
@@ -13,7 +13,7 @@ run(async () => {
         documentPageLimit: 10,
         // @ts-expect-error
         invalidOption: 0,
-      } satisfies MistralLanguageModelOptions,
+      } satisfies MistralLanguageModelChatOptions,
     },
   });
 

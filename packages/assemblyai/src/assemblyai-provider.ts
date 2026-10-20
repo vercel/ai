@@ -1,20 +1,20 @@
 import {
-  TranscriptionModelV4,
-  ProviderV4,
   NoSuchModelError,
+  type TranscriptionModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   loadApiKey,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { AssemblyAITranscriptionModel } from './assemblyai-transcription-model';
-import { AssemblyAITranscriptionModelId } from './assemblyai-transcription-settings';
+import type { AssemblyAITranscriptionModelId } from './assemblyai-transcription-settings';
 import { VERSION } from './version';
 
 export interface AssemblyAIProvider extends ProviderV4 {
   (
-    modelId: 'best',
+    modelId: AssemblyAITranscriptionModelId,
     settings?: {},
   ): {
     transcription: AssemblyAITranscriptionModel;
@@ -65,7 +65,7 @@ export function createAssemblyAI(
         }),
         ...options.headers,
       },
-      `ai-sdk/assemblyai/${VERSION}`,
+      `ai-sdk-assemblyai/${VERSION}`,
     );
 
   const createTranscriptionModel = (modelId: AssemblyAITranscriptionModelId) =>

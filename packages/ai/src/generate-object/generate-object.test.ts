@@ -1,7 +1,7 @@
 import {
   JSONParseError,
-  SharedV4Warning,
   TypeValidationError,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import { jsonSchema } from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
@@ -73,6 +73,16 @@ describe('generateObject', () => {
           model,
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
+        });
+
+        expect(logWarningsSpy).toHaveBeenNthCalledWith(1, {
+          warnings: [
+            {
+              type: 'deprecated',
+              setting: 'generateObject',
+              message: 'Use generateText with an output setting instead.',
+            },
+          ],
         });
 
         expect(result.object).toMatchInlineSnapshot(`
@@ -210,8 +220,8 @@ describe('generateObject', () => {
         prompt: 'prompt',
       });
 
-      expect(logWarningsSpy).toHaveBeenCalledOnce();
-      expect(logWarningsSpy).toHaveBeenCalledWith({
+      expect(logWarningsSpy).toHaveBeenCalledTimes(2);
+      expect(logWarningsSpy).toHaveBeenNthCalledWith(2, {
         warnings: expectedWarnings,
         provider: 'mock-provider',
         model: 'mock-model-id',
@@ -231,8 +241,8 @@ describe('generateObject', () => {
         prompt: 'prompt',
       });
 
-      expect(logWarningsSpy).toHaveBeenCalledOnce();
-      expect(logWarningsSpy).toHaveBeenCalledWith({
+      expect(logWarningsSpy).toHaveBeenCalledTimes(2);
+      expect(logWarningsSpy).toHaveBeenNthCalledWith(2, {
         warnings: [],
         provider: 'mock-provider',
         model: 'mock-model-id',
@@ -591,7 +601,7 @@ describe('generateObject', () => {
           }),
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_repairText: async ({ text, error }) => {
+          repairText: async ({ text, error }) => {
             expect(error).toBeInstanceOf(JSONParseError);
             expect(text).toStrictEqual(
               '{ "content": "provider metadata test" ',
@@ -622,7 +632,7 @@ describe('generateObject', () => {
           }),
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_repairText: async ({ text, error }) => {
+          repairText: async ({ text, error }) => {
             expect(error).toBeInstanceOf(TypeValidationError);
             expect(text).toStrictEqual(
               '{ "content-a": "provider metadata test" }',
@@ -653,7 +663,7 @@ describe('generateObject', () => {
           }),
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_repairText: async ({ text, error }) => {
+          repairText: async ({ text, error }) => {
             expect(error).toBeInstanceOf(TypeValidationError);
             expect(text).toStrictEqual(
               '{ "content-a": "provider metadata test" }',
@@ -662,9 +672,54 @@ describe('generateObject', () => {
           },
         });
 
-        expect(result).rejects.toThrow(
+        await expect(result).rejects.toThrow(
           'No object generated: response did not match schema.',
         );
+      });
+
+      it('should support the deprecated experimental_repairText option', async () => {
+        const result = await generateObject({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => ({
+              ...dummyResponseValues,
+              content: [
+                {
+                  type: 'text',
+                  text: '{ "content": "repaired"',
+                },
+              ],
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          experimental_repairText: async ({ text }) => text + ' }',
+        });
+
+        expect(result.object).toStrictEqual({ content: 'repaired' });
+      });
+
+      it('should prefer repairText over experimental_repairText', async () => {
+        const result = await generateObject({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => ({
+              ...dummyResponseValues,
+              content: [
+                {
+                  type: 'text',
+                  text: '{ "content": "repaired"',
+                },
+              ],
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          repairText: async ({ text }) => text + ' }',
+          experimental_repairText: async () => {
+            throw new Error('deprecated alias should not be called');
+          },
+        });
+
+        expect(result.object).toStrictEqual({ content: 'repaired' });
       });
     });
 
@@ -726,8 +781,6 @@ describe('generateObject', () => {
               reasoningTokens: undefined,
             },
             totalTokens: 30,
-            reasoningTokens: undefined,
-            cachedInputTokens: undefined,
           },
           finishReason: 'stop',
         });
@@ -786,7 +839,7 @@ describe('generateObject', () => {
             }),
             schema: z.object({ content: z.string() }),
             prompt: 'prompt',
-            experimental_repairText: async ({ text }) => text + '{',
+            repairText: async ({ text }) => text + '{',
           });
 
           fail('must throw error');
@@ -907,6 +960,36 @@ describe('generateObject', () => {
         "type": "json",
       }
     `);
+    });
+
+    it('should return transformed array elements', async () => {
+      const model = new MockLanguageModelV4({
+        doGenerate: {
+          ...dummyResponseValues,
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                elements: [{ content: 'element 1' }, { content: 'element 2' }],
+              }),
+            },
+          ],
+        },
+      });
+
+      const result = await generateObject({
+        model,
+        schema: z.object({
+          content: z
+            .string()
+            .transform(value => value.length)
+            .pipe(z.number()),
+        }),
+        output: 'array',
+        prompt: 'prompt',
+      });
+
+      expect(result.object).toStrictEqual([{ content: 9 }, { content: 9 }]);
     });
   });
 
@@ -1096,7 +1179,7 @@ describe('generateObject', () => {
   });
 
   describe('callbacks', () => {
-    describe('experimental_onStart', () => {
+    describe('onStart', () => {
       it('should call onStart before the model call', async () => {
         const events: string[] = [];
 
@@ -1116,7 +1199,7 @@ describe('generateObject', () => {
           model,
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_onStart: () => {
+          onStart: () => {
             events.push('onStart');
           },
         });
@@ -1124,7 +1207,7 @@ describe('generateObject', () => {
         expect(events).toEqual(['onStart', 'doGenerate']);
       });
 
-      it('should provide the correct event properties', async () => {
+      it('should send correct information with text prompt', async () => {
         const model = new MockLanguageModelV4({
           provider: 'test-provider',
           modelId: 'test-model',
@@ -1144,24 +1227,87 @@ describe('generateObject', () => {
           prompt: 'test-prompt',
           temperature: 0.5,
           maxOutputTokens: 100,
-          experimental_onStart: event => {
+          telemetry: {
+            functionId: 'test-function',
+          },
+          onStart: event => {
+            startEvent = event;
+          },
+          _internal: {
+            generateId: () => 'test-call-id',
+          },
+        });
+
+        expect(startEvent).toMatchInlineSnapshot(`
+          {
+            "callId": "test-call-id",
+            "frequencyPenalty": undefined,
+            "headers": {
+              "user-agent": "ai/0.0.0-test",
+            },
+            "maxOutputTokens": 100,
+            "maxRetries": 2,
+            "messages": undefined,
+            "modelId": "test-model",
+            "operationId": "ai.generateObject",
+            "output": "object",
+            "presencePenalty": undefined,
+            "prompt": "test-prompt",
+            "provider": "test-provider",
+            "providerOptions": undefined,
+            "schema": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "additionalProperties": false,
+              "properties": {
+                "content": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "content",
+              ],
+              "type": "object",
+            },
+            "schemaDescription": "A test schema",
+            "schemaName": "test-schema",
+            "seed": undefined,
+            "system": undefined,
+            "temperature": 0.5,
+            "topK": undefined,
+            "topP": undefined,
+          }
+        `);
+      });
+
+      it('should accept deprecated experimental_telemetry as an alias for telemetry', async () => {
+        const model = new MockLanguageModelV4({
+          doGenerate: {
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: '{ "content": "Hello, world!" }' }],
+          },
+        });
+
+        let startEvent: any;
+
+        await generateObject({
+          model,
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          experimental_telemetry: {
+            isEnabled: true,
+            functionId: 'deprecated-fn',
+          },
+          onStart: event => {
             startEvent = event;
           },
         });
 
-        expect(startEvent.operationId).toBe('ai.generateObject');
-        expect(startEvent.provider).toBe('test-provider');
-        expect(startEvent.modelId).toBe('test-model');
-        expect(startEvent.prompt).toBe('test-prompt');
-        expect(startEvent.temperature).toBe(0.5);
-        expect(startEvent.maxOutputTokens).toBe(100);
-        expect(startEvent.schemaName).toBe('test-schema');
-        expect(startEvent.schemaDescription).toBe('A test schema');
-        expect(startEvent.callId).toBeDefined();
+        expect(startEvent).not.toHaveProperty('isEnabled');
+        expect(startEvent).not.toHaveProperty('functionId');
       });
     });
 
-    describe('experimental_onStepStart', () => {
+    describe('onStepStart', () => {
       it('should call onStepStart before the model call', async () => {
         const events: string[] = [];
 
@@ -1181,7 +1327,7 @@ describe('generateObject', () => {
           model,
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_onStepStart: () => {
+          onStepStart: () => {
             events.push('onStepStart');
           },
         });
@@ -1205,7 +1351,7 @@ describe('generateObject', () => {
           model,
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_onStepStart: event => {
+          onStepStart: event => {
             stepStartEvent = event;
           },
         });
@@ -1413,10 +1559,10 @@ describe('generateObject', () => {
           model,
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_onStart: () => {
+          onStart: () => {
             events.push('onStart');
           },
-          experimental_onStepStart: () => {
+          onStepStart: () => {
             events.push('onStepStart');
           },
           onStepFinish: () => {
@@ -1450,10 +1596,10 @@ describe('generateObject', () => {
           model,
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_onStart: event => {
+          onStart: event => {
             callIds.push(event.callId);
           },
-          experimental_onStepStart: event => {
+          onStepStart: event => {
             callIds.push(event.callId);
           },
           onStepFinish: event => {
@@ -1482,10 +1628,10 @@ describe('generateObject', () => {
           model,
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
-          experimental_onStart: () => {
+          onStart: () => {
             throw new Error('onStart error');
           },
-          experimental_onStepStart: () => {
+          onStepStart: () => {
             throw new Error('onStepStart error');
           },
           onStepFinish: () => {

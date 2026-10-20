@@ -1,5 +1,5 @@
 import type { Attributes, AttributeValue } from '@opentelemetry/api';
-import type { TelemetrySettings } from 'ai';
+import type { TelemetryOptions } from 'ai';
 
 type ResolvableAttributeValue = () =>
   | AttributeValue
@@ -10,7 +10,7 @@ export async function selectTelemetryAttributes({
   telemetry,
   attributes,
 }: {
-  telemetry?: TelemetrySettings;
+  telemetry?: TelemetryOptions;
   attributes: {
     [attributeKey: string]:
       | AttributeValue
@@ -20,7 +20,7 @@ export async function selectTelemetryAttributes({
   };
 }): Promise<Attributes> {
   // when telemetry is disabled, return an empty object to avoid serialization overhead:
-  if (telemetry?.isEnabled !== true) {
+  if (telemetry?.isEnabled === false) {
     return {};
   }
 

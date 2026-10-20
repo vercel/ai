@@ -1,11 +1,12 @@
 import { openai } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
+  createUIMessageStreamResponse,
   streamText,
-  UIMessage,
-  InferUITools,
+  toUIMessageStream,
+  type UIMessage,
+  type InferUITools,
 } from 'ai';
-
 export const maxDuration = 30;
 
 const tools = {
@@ -26,10 +27,12 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: openai.responses('gpt-5-mini'),
+    model: openai.responses('gpt-6-luna'),
     prompt: await convertToModelMessages(messages),
     tools,
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }

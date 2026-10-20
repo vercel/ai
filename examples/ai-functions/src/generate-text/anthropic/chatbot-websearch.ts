@@ -1,5 +1,5 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
-import { ModelMessage, generateText, isStepCount } from 'ai';
+import { generateText, isStepCount, type ModelMessage } from 'ai';
 import * as readline from 'node:readline/promises';
 import { run } from '../../lib/run';
 
@@ -25,8 +25,8 @@ run(async () => {
     const userInput = await terminal.question('You: ');
     messages.push({ role: 'user', content: userInput });
 
-    const { content, response } = await generateText({
-      model: anthropic('claude-3-5-sonnet-latest'),
+    const { content, responseMessages } = await generateText({
+      model: anthropic('claude-sonnet-5-5'),
       tools: {
         web_search: anthropic.tools.webSearch_20250305({
           onInputAvailable: async ({ input }) => {
@@ -34,7 +34,7 @@ run(async () => {
           },
         }),
       },
-      system: `You are a helpful, respectful and honest assistant.`,
+      instructions: `You are a helpful, respectful and honest assistant.`,
       messages,
       stopWhen: isStepCount(3),
     });
@@ -51,6 +51,6 @@ run(async () => {
     console.log();
     console.log();
 
-    messages.push(...response.messages);
+    messages.push(...responseMessages);
   }
 });

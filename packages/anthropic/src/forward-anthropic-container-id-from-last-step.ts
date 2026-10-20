@@ -1,5 +1,5 @@
-import { JSONObject } from '@ai-sdk/provider';
-import { AnthropicMessageMetadata } from './anthropic-message-metadata';
+import type { JSONObject } from '@ai-sdk/provider';
+import type { AnthropicMessageMetadata } from './anthropic-message-metadata';
 
 /**
  * Sets the Anthropic container ID in the provider options based on
@@ -33,6 +33,4 @@ export function forwardAnthropicContainerIdFromLastStep({
       };
     }
   }
-
-  return undefined;
 }

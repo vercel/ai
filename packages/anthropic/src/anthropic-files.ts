@@ -1,22 +1,19 @@
-import {
+import type {
   FilesV4,
   FilesV4UploadFileCallOptions,
   FilesV4UploadFileResult,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
-  convertBase64ToUint8Array,
+  convertInlineFileDataToUint8Array,
   createJsonResponseHandler,
-  FetchFunction,
   lazySchema,
-  parseProviderOptions,
   postFormDataToApi,
   zodSchema,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { anthropicFailedResponseHandler } from './anthropic-error';
-
-const anthropicUploadFileProviderOptions = z.object({});
 
 const anthropicUploadFileResponseSchema = lazySchema(() =>
   zodSchema(
@@ -52,18 +49,14 @@ export class AnthropicFiles implements FilesV4 {
     data,
     mediaType,
     filename,
-    providerOptions,
+    abortSignal,
+    headers,
   }: FilesV4UploadFileCallOptions): Promise<FilesV4UploadFileResult> {
-    const anthropicOptions = await parseProviderOptions({
-      provider: 'anthropic',
-      providerOptions,
-      schema: zodSchema(anthropicUploadFileProviderOptions),
+    const fileBytes = convertInlineFileDataToUint8Array(data);
+
+    const blob = new Blob([fileBytes as Uint8Array<ArrayBuffer>], {
+      type: mediaType,
     });
-
-    const fileBytes =
-      data instanceof Uint8Array ? data : convertBase64ToUint8Array(data);
-
-    const blob = new Blob([fileBytes], { type: mediaType });
 
     const formData = new FormData();
     if (filename != null) {
@@ -74,14 +67,17 @@ export class AnthropicFiles implements FilesV4 {
 
     const { value: response } = await postFormDataToApi({
       url: `${this.config.baseURL}/files`,
-      headers: combineHeaders(this.config.headers(), {
-        'anthropic-beta': 'files-api-2025-04-14',
-      }),
+      headers: combineHeaders(
+        this.config.headers(),
+        { 'anthropic-beta': 'files-api-2025-04-14' },
+        headers,
+      ),
       formData,
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         anthropicUploadFileResponseSchema,
       ),
+      abortSignal,
       fetch: this.config.fetch,
     });
 

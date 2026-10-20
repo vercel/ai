@@ -1,3 +1,4 @@
+import { advisor_20260301 } from './tool/advisor_20260301';
 import { bash_20241022 } from './tool/bash_20241022';
 import { bash_20250124 } from './tool/bash_20250124';
 import { codeExecution_20250522 } from './tool/code-execution_20250522';
@@ -6,6 +7,7 @@ import { codeExecution_20260120 } from './tool/code-execution_20260120';
 import { computer_20241022 } from './tool/computer_20241022';
 import { computer_20250124 } from './tool/computer_20250124';
 import { computer_20251124 } from './tool/computer_20251124';
+import { computerToolset_20260801 } from './tool/computer-toolset_20260801';
 import { memory_20250818 } from './tool/memory_20250818';
 import { textEditor_20241022 } from './tool/text-editor_20241022';
 import { textEditor_20250124 } from './tool/text-editor_20250124';
@@ -13,12 +15,46 @@ import { textEditor_20250429 } from './tool/text-editor_20250429';
 import { textEditor_20250728 } from './tool/text-editor_20250728';
 import { toolSearchBm25_20251119 } from './tool/tool-search-bm25_20251119';
 import { toolSearchRegex_20251119 } from './tool/tool-search-regex_20251119';
+import { webFetch_20260318 } from './tool/web-fetch-20260318';
 import { webFetch_20260209 } from './tool/web-fetch-20260209';
 import { webFetch_20250910 } from './tool/web-fetch-20250910';
+import { webSearch_20260318 } from './tool/web-search_20260318';
 import { webSearch_20260209 } from './tool/web-search_20260209';
 import { webSearch_20250305 } from './tool/web-search_20250305';
 
 export const anthropicTools = {
+  /**
+   * Pairs a faster executor model with a higher-intelligence advisor model
+   * that provides strategic guidance mid-generation.
+   *
+   * The advisor lets a faster, lower-cost executor model consult a
+   * higher-intelligence advisor model server-side. The advisor reads the
+   * executor's full transcript and produces a plan or course correction;
+   * the executor continues with the task, informed by the advice. All of
+   * this happens inside a single `/v1/messages` request.
+   *
+   * Beta header `advisor-tool-2026-03-01` is added automatically when this
+   * tool is included.
+   *
+   * Multi-turn conversations: pass the full assistant content (including
+   * `advisor_tool_result` blocks) back to the API on subsequent turns. If
+   * you omit the advisor tool from `tools` on a follow-up turn while the
+   * message history still contains `advisor_tool_result` blocks, the API
+   * returns a `400 invalid_request_error`.
+   *
+   * Supported executor models: Claude Haiku 4.5, Sonnet 4.6, Opus 4.6,
+   * Opus 4.7. The advisor must be at least as capable as the executor.
+   *
+   * @param model - The advisor model ID (required), e.g. `"claude-opus-4-8"`.
+   * @param maxUses - Maximum advisor calls per request (per-request cap).
+   * @param maxTokens - Maximum advisor output tokens per call, including
+   * thinking and text. Minimum 1024; Anthropic recommends starting with 2048.
+   * @param caching - Enables prompt caching for the advisor's transcript
+   * across calls within a conversation. Worthwhile from ~3 advisor calls
+   * per conversation.
+   */
+  advisor_20260301,
+
   /**
    * The bash tool enables Claude to execute shell commands in a persistent bash session,
    * allowing system operations, script execution, and command-line automation.
@@ -113,6 +149,30 @@ export const anthropicTools = {
   computer_20251124,
 
   /**
+   * The computer toolset lets Claude control a computer through screenshots,
+   * mouse, and keyboard. It replaces the versioned computer tools
+   * (`computer_20251124` and earlier) on newer models.
+   *
+   * The API returns each computer action as its own `tool_use` block with
+   * `toolset_name: 'computer'`. The AI SDK maps every member call to this tool
+   * and exposes the member name as `action`, so `execute` receives the same
+   * input shape as the older computer tools. Claude may return several actions
+   * in one turn.
+   *
+   * Coordinates are always in the pixel space of the screenshots you return;
+   * there are no display size parameters. Zoom is enabled by default.
+   *
+   * Does not require a beta header.
+   *
+   * Supported models: Claude Opus 5.5 (required; older computer tool types
+   * are rejected), Opus 5, Sonnet 5, Fable 5, Fable 5.1, Opus 4.8.
+   *
+   * @param configs - Per-member settings keyed by member name, e.g.
+   * `{ zoom: { enabled: false } }`. Omitted members keep their defaults.
+   */
+  computerToolset_20260801,
+
+  /**
    * The memory tool enables Claude to store and retrieve information across conversations through a memory file directory.
    * Claude can create, read, update, and delete files that persist between sessions,
    * allowing it to build knowledge over time without keeping everything in the context window.
@@ -187,6 +247,19 @@ export const anthropicTools = {
   webFetch_20260209,
 
   /**
+   * Creates a web fetch tool that gives Claude direct access to real-time web content.
+   *
+   * @param maxUses - The max_uses parameter limits the number of web fetches performed
+   * @param allowedDomains - Only fetch from these domains
+   * @param blockedDomains - Never fetch from these domains
+   * @param citations - Unlike web search where citations are always enabled, citations are optional for web fetch. Set "citations": {"enabled": true} to enable Claude to cite specific passages from fetched documents.
+   * @param maxContentTokens - The max_content_tokens parameter limits the amount of content that will be included in the context.
+   * @param useCache - Whether cached content may be returned. Set to false to fetch fresh content.
+   * @param responseInclusion - Whether result blocks consumed by completed code execution calls are returned. Defaults to "full".
+   */
+  webFetch_20260318,
+
+  /**
    * Creates a web search tool that gives Claude direct access to real-time web content.
    *
    * @param maxUses - Maximum number of web searches Claude can perform during the conversation.
@@ -205,6 +278,17 @@ export const anthropicTools = {
    * @param userLocation - Optional user location information to provide geographically relevant search results.
    */
   webSearch_20260209,
+
+  /**
+   * Creates a web search tool that gives Claude direct access to real-time web content.
+   *
+   * @param maxUses - Maximum number of web searches Claude can perform during the conversation.
+   * @param allowedDomains - Optional list of domains that Claude is allowed to search.
+   * @param blockedDomains - Optional list of domains that Claude should avoid when searching.
+   * @param userLocation - Optional user location information to provide geographically relevant search results.
+   * @param responseInclusion - Whether result blocks consumed by completed code execution calls are returned. Defaults to "full".
+   */
+  webSearch_20260318,
 
   /**
    * Creates a tool search tool that uses regex patterns to find tools.

@@ -1,36 +1,67 @@
-import { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertImageModelFileToDataUri,
   createBinaryResponseHandler,
   createJsonResponseHandler,
   createStatusCodeErrorResponseHandler,
-  FetchFunction,
   getFromApi,
   parseProviderOptions,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { xaiFailedResponseHandler } from './xai-error';
-import { xaiImageModelOptions } from './xai-image-options';
-import { XaiImageModelId } from './xai-image-settings';
+import { xaiImageModelOptions } from './xai-image-model-options';
+import type { XaiImageModelId } from './xai-image-settings';
 
 interface XaiImageModelConfig {
   provider: string;
   baseURL: string | undefined;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
   _internal?: {
     currentDate?: () => Date;
   };
 }
 
+const fileInputModelIds: ReadonlySet<string> = new Set<XaiImageModelId>([
+  'grok-imagine-image',
+  'grok-imagine-image-2.0',
+  'grok-imagine-image-pro',
+]);
+
 export class XaiImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 3;
 
+  get supportsFileInputs(): boolean | undefined {
+    return fileInputModelIds.has(this.modelId) ? true : undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    return this.supportsFileInputs === true ? false : undefined;
+  }
+
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: XaiImageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: XaiImageModelId;
+    config: XaiImageModelConfig;
+  }) {
+    return new XaiImageModel(options.modelId, options.config);
   }
 
   constructor(
@@ -135,7 +166,7 @@ export class XaiImageModel implements ImageModelV4 {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { value: response, responseHeaders } = await postJsonToApi({
       url: `${baseURL}${endpoint}`,
-      headers: combineHeaders(this.config.headers(), headers),
+      headers: combineHeaders(this.config.headers?.(), headers),
       body,
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -144,6 +175,12 @@ export class XaiImageModel implements ImageModelV4 {
       abortSignal,
       fetch: this.config.fetch,
     });
+
+    if (response.data.some(image => image.respect_moderation === false)) {
+      throw new Error(
+        'Image generation was blocked due to a content policy violation.',
+      );
+    }
 
     const hasAllBase64 = response.data.every(image => image.b64_json != null);
 
@@ -184,6 +221,9 @@ export class XaiImageModel implements ImageModelV4 {
   ): Promise<Uint8Array> {
     const { value } = await getFromApi({
       url,
+      // url is a generated-image URL from the provider response; validate it.
+      validateUrl: true,
+      trustedOrigin: this.config.baseURL,
       abortSignal,
       failedResponseHandler: createStatusCodeErrorResponseHandler(),
       successfulResponseHandler: createBinaryResponseHandler(),
@@ -199,6 +239,7 @@ const xaiImageResponseSchema = z.object({
       url: z.string().nullish(),
       b64_json: z.string().nullish(),
       revised_prompt: z.string().nullish(),
+      respect_moderation: z.boolean().nullish(),
     }),
   ),
   usage: z

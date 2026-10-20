@@ -1,5 +1,4 @@
 import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
-import type { Resolvable } from '@ai-sdk/provider-utils';
 import {
   combineHeaders,
   convertImageModelFileToDataUri,
@@ -7,15 +6,19 @@ import {
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   createStatusCodeErrorResponseHandler,
-  FetchFunction,
   getFromApi,
   parseProviderOptions,
   postJsonToApi,
   resolve,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  type Resolvable,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { FalImageModelId, FalImageSize } from './fal-image-settings';
-import { falImageModelOptionsSchema } from './fal-image-options';
+import type { FalImageModelId, FalImageSize } from './fal-image-settings';
+import { falImageModelOptionsSchema } from './fal-image-model-options';
 
 interface FalImageModelConfig {
   provider: string;
@@ -31,8 +34,66 @@ export class FalImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 1;
 
+  get supportsFileInputs(): boolean | undefined {
+    if (
+      [
+        'fal-ai/flux-2/edit',
+        'fal-ai/flux-pro/kontext',
+        'fal-ai/flux-pro/kontext/max',
+        'fal-ai/flux-general/image-to-image',
+        'fal-ai/flux-general/inpainting',
+        'fal-ai/flux-lora/image-to-image',
+        'fal-ai/flux-lora/inpainting',
+        'fal-ai/flux/dev/image-to-image',
+        'fal-ai/flux/krea/image-to-image',
+        'fal-ai/recraft/v3/image-to-image',
+      ].includes(this.modelId)
+    ) {
+      return true;
+    }
+
+    return [
+      'bria/text-to-image/3.2',
+      'fal-ai/bria/text-to-image/base',
+      'fal-ai/bria/text-to-image/fast',
+      'fal-ai/bria/text-to-image/hd',
+      'fal-ai/bytedance/dreamina/v3.1/text-to-image',
+      'fal-ai/flux-kontext-lora/text-to-image',
+      'fal-ai/recraft/v3/text-to-image',
+      'fal-ai/wan/v2.2-5b/text-to-image',
+      'fal-ai/wan/v2.2-a14b/text-to-image',
+    ].includes(this.modelId)
+      ? false
+      : undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    if (
+      this.modelId === 'fal-ai/flux-general/inpainting' ||
+      this.modelId === 'fal-ai/flux-lora/inpainting'
+    ) {
+      return true;
+    }
+
+    return this.supportsFileInputs == null ? undefined : false;
+  }
+
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: FalImageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: FalImageModelId;
+    config: FalImageModelConfig;
+  }) {
+    return new FalImageModel(options.modelId, options.config);
   }
 
   constructor(
@@ -157,7 +218,7 @@ export class FalImageModel implements ImageModelV4 {
     const { value, responseHeaders } = await postJsonToApi({
       url: `${this.config.baseURL}/${this.modelId}`,
       headers: combineHeaders(
-        await resolve(this.config.headers),
+        this.config.headers ? await resolve(this.config.headers) : undefined,
         options.headers,
       ),
       body: requestBody,
@@ -199,7 +260,7 @@ export class FalImageModel implements ImageModelV4 {
         fal: {
           images: targetImages.map((image, index) => {
             const {
-              url,
+              url: _url,
               content_type: contentType,
               file_name: fileName,
               file_data: fileData,
@@ -233,6 +294,9 @@ export class FalImageModel implements ImageModelV4 {
   ): Promise<Uint8Array> {
     const { value: response } = await getFromApi({
       url,
+      // url is a generated-image URL from the provider response; validate it.
+      validateUrl: true,
+      trustedOrigin: this.config.baseURL,
       // No specific headers should be needed for this request as it's a
       // generated image provided by fal.ai.
       abortSignal,
@@ -278,7 +342,6 @@ function convertAspectRatioToSize(
     case '9:21':
       return { width: 1080, height: 2560 };
   }
-  return undefined;
 }
 
 // Validation error has a particular payload to inform the exact property that is invalid

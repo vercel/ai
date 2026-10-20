@@ -1,4 +1,4 @@
-import { DeepPartial } from 'ai';
+import type { DeepPartial } from 'ai';
 import * as v from 'valibot';
 import { valibotSchema } from '@ai-sdk/valibot';
 

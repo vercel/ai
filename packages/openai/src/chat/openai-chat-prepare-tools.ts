@@ -1,12 +1,13 @@
 import {
-  LanguageModelV4CallOptions,
-  SharedV4Warning,
   UnsupportedFunctionalityError,
+  type LanguageModelV4CallOptions,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
-import {
+import type {
   OpenAIChatToolChoice,
   OpenAIChatFunctionTool,
 } from './openai-chat-api';
+import { normalizeOpenAIJsonSchema } from '../normalize-openai-json-schema';
 
 export function prepareChatTools({
   tools,
@@ -32,17 +33,23 @@ export function prepareChatTools({
 
   for (const tool of tools) {
     switch (tool.type) {
-      case 'function':
+      case 'function': {
+        const normalizedInputSchema = normalizeOpenAIJsonSchema(
+          tool.inputSchema,
+        );
+        toolWarnings.push(...normalizedInputSchema.warnings);
+
         openaiTools.push({
           type: 'function',
           function: {
             name: tool.name,
             description: tool.description,
-            parameters: tool.inputSchema,
+            parameters: normalizedInputSchema.schema,
             ...(tool.strict != null ? { strict: tool.strict } : {}),
           },
         });
         break;
+      }
       default:
         toolWarnings.push({
           type: 'unsupported',

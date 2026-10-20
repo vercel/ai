@@ -1,5 +1,5 @@
-import { ImageModelV4 } from '../../image-model/v4/image-model-v4';
-import { ImageModelV4CallOptions } from '../../image-model/v4/image-model-v4-call-options';
+import type { ImageModelV4 } from '../../image-model/v4/image-model-v4';
+import type { ImageModelV4CallOptions } from '../../image-model/v4/image-model-v4-call-options';
 
 /**
  * Middleware for ImageModelV4.
@@ -31,6 +31,24 @@ export type ImageModelV4Middleware = {
   overrideMaxImagesPerCall?: (options: {
     model: ImageModelV4;
   }) => ImageModelV4['maxImagesPerCall'];
+
+  /**
+   * Override whether the model supports image file inputs if desired.
+   * Returning `undefined` marks support as unknown.
+   * @param options.model - The image model instance.
+   */
+  overrideSupportsFileInputs?: (options: {
+    model: ImageModelV4;
+  }) => ImageModelV4['supportsFileInputs'];
+
+  /**
+   * Override whether the model supports mask inputs if desired.
+   * Returning `undefined` marks support as unknown.
+   * @param options.model - The image model instance.
+   */
+  overrideSupportsMaskInputs?: (options: {
+    model: ImageModelV4;
+  }) => ImageModelV4['supportsMaskInputs'];
 
   /**
    * Transforms the parameters before they are passed to the image model.

@@ -1,4 +1,4 @@
-import { LanguageModelV4FinishReason } from '@ai-sdk/provider';
+import type { LanguageModelV4FinishReason } from '@ai-sdk/provider';
 
 export function mapMistralFinishReason(
   finishReason: string | null | undefined,
@@ -11,6 +11,8 @@ export function mapMistralFinishReason(
       return 'length';
     case 'tool_calls':
       return 'tool-calls';
+    case 'error':
+      return 'error';
     default:
       return 'other';
   }

@@ -1,4 +1,4 @@
-import { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertImageModelFileToDataUri,
@@ -6,15 +6,20 @@ import {
   createJsonResponseHandler,
   createStatusCodeErrorResponseHandler,
   delay,
-  FetchFunction,
   getFromApi,
+  parseProviderOptions,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import {
   asyncPollResponseSchema,
   asyncSubmitResponseSchema,
 } from './fireworks-image-api';
-import { FireworksImageModelId } from './fireworks-image-options';
+import { fireworksImageModelOptionsSchema } from './fireworks-image-model-options';
+import type { FireworksImageModelId } from './fireworks-image-options';
 
 const DEFAULT_POLL_INTERVAL_MILLIS = 500;
 const DEFAULT_POLL_TIMEOUT_MILLIS = 120000; // 2 minutes for image generation
@@ -91,7 +96,7 @@ function getPollUrlForModel(
 interface FireworksImageModelConfig {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string>;
+  headers?: () => Record<string, string>;
   fetch?: FetchFunction;
   /**
    * Poll interval in milliseconds between status checks for async models.
@@ -112,8 +117,47 @@ export class FireworksImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 1;
 
+  get supportsFileInputs(): boolean | undefined {
+    if (
+      this.modelId === 'accounts/fireworks/models/flux-kontext-pro' ||
+      this.modelId === 'accounts/fireworks/models/flux-kontext-max'
+    ) {
+      return true;
+    }
+
+    return [
+      'accounts/fireworks/models/flux-1-dev-fp8',
+      'accounts/fireworks/models/flux-1-schnell-fp8',
+      'accounts/fireworks/models/playground-v2-5-1024px-aesthetic',
+      'accounts/fireworks/models/japanese-stable-diffusion-xl',
+      'accounts/fireworks/models/playground-v2-1024px-aesthetic',
+      'accounts/fireworks/models/SSD-1B',
+      'accounts/fireworks/models/stable-diffusion-xl-1024-v1-0',
+    ].includes(this.modelId)
+      ? false
+      : undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    return this.supportsFileInputs == null ? undefined : false;
+  }
+
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: FireworksImageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: FireworksImageModelId;
+    config: FireworksImageModelConfig;
+  }) {
+    return new FireworksImageModel(options.modelId, options.config);
   }
 
   constructor(
@@ -185,7 +229,13 @@ export class FireworksImageModel implements ImageModelV4 {
 
     const splitSize = size?.split('x');
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const combinedHeaders = combineHeaders(this.config.headers(), headers);
+    const combinedHeaders = combineHeaders(this.config.headers?.(), headers);
+    const fireworksOptions =
+      (await parseProviderOptions({
+        provider: 'fireworks',
+        providerOptions,
+        schema: fireworksImageModelOptionsSchema,
+      })) ?? {};
 
     const body = {
       prompt,
@@ -194,7 +244,7 @@ export class FireworksImageModel implements ImageModelV4 {
       samples: n,
       ...(inputImage && { input_image: inputImage }),
       ...(splitSize && { width: splitSize[0], height: splitSize[1] }),
-      ...(providerOptions.fireworks ?? {}),
+      ...fireworksOptions,
     };
 
     // Handle async models that require polling (e.g., flux-kontext-*)
@@ -269,9 +319,16 @@ export class FireworksImageModel implements ImageModelV4 {
       abortSignal,
     });
 
-    // Download the image from the URL
+    // Download the image from the URL. The URL comes from the provider
+    // response and typically points at a CDN, so only send credentials when it
+    // stays on the provider's own origin (never leak the API key to a CDN or an
+    // attacker-named host).
     const { value: imageBytes, responseHeaders } = await getFromApi({
       url: imageUrl,
+      // imageUrl comes from the provider response body.
+      validateUrl: true,
+      credentialedOrigin: this.config.baseURL,
+      trustedOrigin: this.config.baseURL,
       headers,
       abortSignal,
       failedResponseHandler: createStatusCodeErrorResponseHandler(),
@@ -306,49 +363,66 @@ export class FireworksImageModel implements ImageModelV4 {
       this.config.pollIntervalMillis ?? DEFAULT_POLL_INTERVAL_MILLIS;
     const pollTimeoutMillis =
       this.config.pollTimeoutMillis ?? DEFAULT_POLL_TIMEOUT_MILLIS;
-    const maxPollAttempts = Math.ceil(
-      pollTimeoutMillis / Math.max(1, pollIntervalMillis),
-    );
 
     const pollUrl = getPollUrlForModel(this.config.baseURL, this.modelId);
 
-    for (let i = 0; i < maxPollAttempts; i++) {
-      const { value: pollResponse } = await postJsonToApi({
-        url: pollUrl,
-        headers,
-        body: { id: requestId },
-        failedResponseHandler: createStatusCodeErrorResponseHandler(),
-        successfulResponseHandler: createJsonResponseHandler(
-          asyncPollResponseSchema,
-        ),
-        abortSignal,
-        fetch: this.config.fetch,
-      });
+    const timeoutController = new AbortController();
+    let didTimeout = false;
+    const timeoutId = setTimeout(() => {
+      didTimeout = true;
+      timeoutController.abort();
+    }, pollTimeoutMillis);
+    const pollingAbortSignal =
+      abortSignal == null
+        ? timeoutController.signal
+        : AbortSignal.any([abortSignal, timeoutController.signal]);
 
-      const status = pollResponse.status;
+    try {
+      while (true) {
+        const { value: pollResponse } = await postJsonToApi({
+          url: pollUrl,
+          headers,
+          body: { id: requestId },
+          failedResponseHandler: createStatusCodeErrorResponseHandler(),
+          successfulResponseHandler: createJsonResponseHandler(
+            asyncPollResponseSchema,
+          ),
+          abortSignal: pollingAbortSignal,
+          fetch: this.config.fetch,
+        });
 
-      if (status === 'Ready') {
-        const imageUrl = pollResponse.result?.sample;
-        if (typeof imageUrl === 'string') {
-          return imageUrl;
+        const status = pollResponse.status;
+
+        if (status === 'Ready') {
+          const imageUrl = pollResponse.result?.sample;
+          if (typeof imageUrl === 'string') {
+            return imageUrl;
+          }
+          throw new Error(
+            'Fireworks poll response is Ready but missing result.sample',
+          );
         }
+
+        if (status === 'Error' || status === 'Failed') {
+          throw new Error(
+            `Fireworks image generation failed with status: ${status}`,
+          );
+        }
+
+        // Wait before next poll attempt
+        await delay(pollIntervalMillis, {
+          abortSignal: pollingAbortSignal,
+        });
+      }
+    } catch (error) {
+      if (didTimeout) {
         throw new Error(
-          'Fireworks poll response is Ready but missing result.sample',
+          `Fireworks image generation timed out after ${pollTimeoutMillis}ms`,
         );
       }
-
-      if (status === 'Error' || status === 'Failed') {
-        throw new Error(
-          `Fireworks image generation failed with status: ${status}`,
-        );
-      }
-
-      // Wait before next poll attempt
-      await delay(pollIntervalMillis);
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
     }
-
-    throw new Error(
-      `Fireworks image generation timed out after ${pollTimeoutMillis}ms`,
-    );
   }
 }

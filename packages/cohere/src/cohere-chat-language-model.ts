@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV4,
   LanguageModelV4CallOptions,
   LanguageModelV4Content,
@@ -9,32 +9,36 @@ import {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
-  ParseResult,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
-  type InferSchema,
   isCustomReasoning,
   mapReasoningToProviderBudget,
   parseProviderOptions,
+  parseJSON,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  type InferSchema,
+  type FetchFunction,
+  type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
-  CohereChatModelId,
-  cohereLanguageModelOptions,
-} from './cohere-chat-options';
+  cohereLanguageModelChatOptions,
+  type CohereChatModelId,
+} from './cohere-chat-language-model-options';
 import { cohereFailedResponseHandler } from './cohere-error';
 import { prepareTools } from './cohere-prepare-tools';
-import { CohereUsageTokens, convertCohereUsage } from './convert-cohere-usage';
+import { convertCohereUsage, type CohereUsage } from './convert-cohere-usage';
 import { convertToCohereChatPrompt } from './convert-to-cohere-chat-prompt';
 import { mapCohereFinishReason } from './map-cohere-finish-reason';
 
 type CohereChatConfig = {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
   generateId: () => string;
 };
@@ -44,11 +48,25 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
 
   readonly modelId: CohereChatModelId;
 
-  readonly supportedUrls = {
-    // No URLs are supported.
+  readonly supportedUrls: Record<string, RegExp[]> = {
+    'image/*': [/^https?:\/\/.*$/],
   };
 
   private readonly config: CohereChatConfig;
+
+  static [WORKFLOW_SERIALIZE](model: CohereChatLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: CohereChatModelId;
+    config: CohereChatConfig;
+  }) {
+    return new CohereChatLanguageModel(options.modelId, options.config);
+  }
 
   constructor(modelId: CohereChatModelId, config: CohereChatConfig) {
     this.modelId = modelId;
@@ -81,14 +99,14 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
       (await parseProviderOptions({
         provider: 'cohere',
         providerOptions,
-        schema: cohereLanguageModelOptions,
+        schema: cohereLanguageModelChatOptions,
       })) ?? {};
 
     const {
       messages: chatPrompt,
       documents: cohereDocuments,
       warnings: promptWarnings,
-    } = convertToCohereChatPrompt(prompt);
+    } = await convertToCohereChatPrompt(prompt);
 
     const {
       tools: cohereTools,
@@ -151,7 +169,7 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/chat`,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: args,
       failedResponseHandler: cohereFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -213,7 +231,7 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
         unified: mapCohereFinishReason(response.finish_reason),
         raw: response.finish_reason ?? undefined,
       },
-      usage: convertCohereUsage(response.usage.tokens),
+      usage: convertCohereUsage(response.usage),
       request: { body: args },
       response: {
         // TODO timestamp, model id
@@ -232,7 +250,7 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/chat`,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: { ...args, stream: true },
       failedResponseHandler: cohereFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
@@ -246,7 +264,7 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
       unified: 'other',
       raw: undefined,
     };
-    let usage: CohereUsageTokens | undefined = undefined;
+    let usage: CohereUsage | undefined = undefined;
 
     let pendingToolCall: {
       id: string;
@@ -267,7 +285,7 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
             controller.enqueue({ type: 'stream-start', warnings });
           },
 
-          transform(chunk, controller) {
+          async transform(chunk, controller) {
             if (options.includeRawChunks) {
               controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
             }
@@ -392,7 +410,9 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
                     toolCallId: pendingToolCall.id,
                     toolName: pendingToolCall.name,
                     input: JSON.stringify(
-                      JSON.parse(pendingToolCall.arguments?.trim() || '{}'),
+                      await parseJSON({
+                        text: pendingToolCall.arguments?.trim() || '{}',
+                      }),
                     ),
                   });
 
@@ -415,12 +435,11 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
                   unified: mapCohereFinishReason(value.delta.finish_reason),
                   raw: value.delta.finish_reason,
                 };
-                usage = value.delta.usage.tokens;
+                usage = value.delta.usage;
                 return;
               }
 
               default: {
-                return;
               }
             }
           },
@@ -446,7 +465,7 @@ function resolveCohereThinking({
   warnings,
 }: {
   reasoning: LanguageModelV4CallOptions['reasoning'];
-  cohereOptions: InferSchema<typeof cohereLanguageModelOptions>;
+  cohereOptions: InferSchema<typeof cohereLanguageModelChatOptions>;
   warnings: SharedV4Warning[];
 }): { thinking?: { type: string; token_budget?: number } } {
   if (cohereOptions.thinking) {
@@ -479,6 +498,21 @@ function resolveCohereThinking({
 
   return { thinking: { type: 'enabled', token_budget: tokenBudget } };
 }
+
+// Loose, nested objects included: the parsed value is returned as `usage.raw`.
+const cohereUsageSchema = z.looseObject({
+  billed_units: z
+    .looseObject({
+      input_tokens: z.number(),
+      output_tokens: z.number(),
+    })
+    .nullish(),
+  tokens: z.looseObject({
+    input_tokens: z.number(),
+    output_tokens: z.number(),
+  }),
+  cached_tokens: z.number().nullish(),
+});
 
 const cohereChatResponseSchema = z.object({
   generation_id: z.string().nullish(),
@@ -534,16 +568,7 @@ const cohereChatResponseSchema = z.object({
       .nullish(),
   }),
   finish_reason: z.string(),
-  usage: z.object({
-    billed_units: z.object({
-      input_tokens: z.number(),
-      output_tokens: z.number(),
-    }),
-    tokens: z.object({
-      input_tokens: z.number(),
-      output_tokens: z.number(),
-    }),
-  }),
+  usage: cohereUsageSchema,
 });
 
 // limited version of the schema, focussed on what is needed for the implementation
@@ -601,12 +626,7 @@ const cohereChatChunkSchema = z.discriminatedUnion('type', [
     type: z.literal('message-end'),
     delta: z.object({
       finish_reason: z.string(),
-      usage: z.object({
-        tokens: z.object({
-          input_tokens: z.number(),
-          output_tokens: z.number(),
-        }),
-      }),
+      usage: cohereUsageSchema,
     }),
   }),
   // https://docs.cohere.com/v2/docs/streaming#tool-use-stream-events-for-tool-calling

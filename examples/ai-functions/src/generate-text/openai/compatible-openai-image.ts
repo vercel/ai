@@ -11,7 +11,7 @@ run(async () => {
       Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
     },
   });
-  const model = openai.chatModel('gpt-4o-mini');
+  const model = openai.chatModel('gpt-6-luna');
   const result = await generateText({
     model,
     messages: [
@@ -19,7 +19,11 @@ run(async () => {
         role: 'user',
         content: [
           { type: 'text', text: 'Describe the image in detail.' },
-          { type: 'image', image: fs.readFileSync('./data/comic-cat.png') },
+          {
+            type: 'file',
+            mediaType: 'image',
+            data: fs.readFileSync('./data/comic-cat.png'),
+          },
         ],
       },
     ],

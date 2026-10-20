@@ -5,11 +5,11 @@ import { useChat } from '@ai-sdk/react';
 import {
   DefaultChatTransport,
   getToolName,
+  isToolUIPart,
   type DynamicToolUIPart,
   type ToolUIPart,
-  isToolUIPart,
 } from 'ai';
-
+import type { McpProviderMetadata } from '@ai-sdk/mcp';
 export default function Chat() {
   const { error, status, sendMessage, messages, regenerate, stop } = useChat({
     transport: new DefaultChatTransport({ api: '/chat/mcp/chat' }),
@@ -44,9 +44,14 @@ export default function Chat() {
               if (isToolUIPart(part)) {
                 const toolPart = part as ToolUIPart<any> | DynamicToolUIPart;
                 const toolName = getToolName(toolPart);
+                const mcpMetadata = toolPart.toolMetadata as
+                  | McpProviderMetadata
+                  | undefined;
+                const mcpTitle = mcpMetadata?.title;
+                const mcpClientName = mcpMetadata?.clientName;
 
                 // Display tool title if available, fallback to tool name
-                const displayName = toolPart.title || toolName;
+                const displayName = mcpTitle || toolPart.title || toolName;
 
                 return (
                   <div
@@ -59,9 +64,14 @@ export default function Chat() {
                         <div className="text-sm font-semibold">
                           {displayName}
                         </div>
-                        {toolPart.title && (
+                        {displayName !== toolName && (
                           <div className="text-xs text-gray-500">
                             Tool ID: {toolName}
+                          </div>
+                        )}
+                        {mcpClientName && (
+                          <div className="text-xs text-gray-500">
+                            MCP server: {mcpClientName}
                           </div>
                         )}
                       </div>

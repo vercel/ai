@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     tools: {
       weather: tool({
         description: 'Get the weather in a location',
@@ -16,8 +16,8 @@ run(async () => {
       }),
     },
     stopWhen: isStepCount(5),
-    onFinish({ response }) {
-      console.log(JSON.stringify(response.messages, null, 2));
+    onEnd({ responseMessages }) {
+      console.log(JSON.stringify(responseMessages, null, 2));
     },
     prompt: 'What is the current weather in San Francisco?',
   });

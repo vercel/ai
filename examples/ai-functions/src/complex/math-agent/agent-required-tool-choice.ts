@@ -6,7 +6,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const { toolCalls } = await generateText({
-    model: openai('gpt-4o-2024-08-06'),
+    model: openai('gpt-6-astra'),
     tools: {
       calculate: tool({
         description:
@@ -35,7 +35,7 @@ run(async () => {
     onStepFinish: async ({ toolResults }) => {
       console.log(`STEP RESULTS: ${JSON.stringify(toolResults, null, 2)}`);
     },
-    system:
+    instructions:
       'You are solving math problems. ' +
       'Reason step by step. ' +
       'Use the calculator when necessary. ' +

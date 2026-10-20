@@ -1,4 +1,24 @@
+import type { GatewayDecisionModelId } from './gateway-decision-model-settings';
+import type { DecisionFallbackCondition } from './gateway-provider-options';
+
+export type { GatewayEmbeddingModelId } from './gateway-embedding-model-settings';
+export type { GatewayDecisionModelId } from './gateway-decision-model-settings';
+export type { GatewayImageModelId } from './gateway-image-model-settings';
 export type { GatewayModelId } from './gateway-language-model-settings';
+export {
+  GATEWAY_AUTH_SUBPROTOCOL_PREFIX,
+  GATEWAY_REALTIME_SUBPROTOCOL,
+  GATEWAY_TEAM_SUBPROTOCOL_PREFIX,
+  GATEWAY_TRANSCRIPTION_SUBPROTOCOL,
+  getGatewayRealtimeAuthToken,
+  getGatewayRealtimeProtocols,
+  getGatewayRealtimeTeamIdOrSlug,
+  getGatewayTranscriptionProtocols,
+} from './gateway-realtime-auth';
+export type { GatewayRealtimeModelId } from './gateway-realtime-model-settings';
+export type { GatewayRerankingModelId } from './gateway-reranking-model-settings';
+export type { GatewaySpeechModelId } from './gateway-speech-model-settings';
+export type { GatewayTranscriptionModelId } from './gateway-transcription-model-settings';
 export type { GatewayVideoModelId } from './gateway-video-model-settings';
 export type {
   GatewayLanguageModelEntry,
@@ -16,8 +36,9 @@ export type {
 } from './gateway-generation-info';
 export type { GatewayLanguageModelEntry as GatewayModelEntry } from './gateway-model-entry';
 export {
-  createGatewayProvider,
-  createGatewayProvider as createGateway,
+  createGateway,
+  /** @deprecated Use `createGateway` instead. */
+  createGateway as createGatewayProvider,
   gateway,
 } from './gateway-provider';
 export type {
@@ -25,6 +46,12 @@ export type {
   GatewayProviderSettings,
 } from './gateway-provider';
 export type {
+  GatewayAsyncJobMetadata,
+  GatewayProviderMetadata,
+} from './gateway-provider-metadata';
+export type {
+  DecisionFallbackCondition,
+  GatewayModelFallback,
   GatewayProviderOptions,
   /** @deprecated Use `GatewayProviderOptions` instead. */
   GatewayProviderOptions as GatewayLanguageModelOptions,
@@ -32,10 +59,20 @@ export type {
 export {
   GatewayError,
   GatewayAuthenticationError,
+  GatewayFailedDependencyError,
+  GatewayForbiddenError,
   GatewayInvalidRequestError,
   GatewayRateLimitError,
   GatewayModelNotFoundError,
+  GatewayNotFoundError,
   GatewayInternalServerError,
   GatewayResponseError,
 } from './errors';
 export type { GatewayErrorResponse } from './errors';
+export { VERSION } from './version';
+
+/** @deprecated Use `GatewayDecisionModelId` instead. */
+export type GatewayEvaluationModelId = GatewayDecisionModelId;
+/** @deprecated Use `DecisionFallbackCondition` instead. */
+export type EvaluationFallbackCondition<QUESTION_ID extends string = string> =
+  DecisionFallbackCondition<QUESTION_ID>;

@@ -2,13 +2,8 @@ import { openai } from '@ai-sdk/openai';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-node';
-import {
-  ToolLoopAgent,
-  tool,
-  isStepCount,
-  registerTelemetryIntegration,
-} from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { ToolLoopAgent, tool, isStepCount, registerTelemetry } from 'ai';
+import { LegacyOpenTelemetry } from '@ai-sdk/otel';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
@@ -18,11 +13,11 @@ const sdk = new NodeSDK({
 });
 
 sdk.start();
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetry(new LegacyOpenTelemetry());
 
 run(async () => {
   const childAgent = new ToolLoopAgent({
-    model: openai('gpt-5-mini'),
+    model: openai('gpt-6-luna'),
     instructions:
       'You are a helpful child agent. Call the simple_tool twice, then provide a summary.',
     tools: {
@@ -36,19 +31,18 @@ run(async () => {
         },
       }),
     },
+    runtimeContext: {
+      agentType: 'child',
+      agentLevel: 'L2',
+    },
     stopWhen: isStepCount(3),
-    experimental_telemetry: {
-      isEnabled: true,
+    telemetry: {
       functionId: 'child-agent',
-      metadata: {
-        agentType: 'child',
-        agentLevel: 'L2',
-      },
     },
   });
 
   const parentAgent = new ToolLoopAgent({
-    model: openai('gpt-5-mini'),
+    model: openai('gpt-6-luna'),
     instructions:
       'You are the main agent. Delegate the task to the child agent using call_child tool.',
     tools: {
@@ -66,14 +60,13 @@ run(async () => {
         },
       }),
     },
+    runtimeContext: {
+      agentType: 'parent',
+      agentLevel: 'L1',
+    },
     stopWhen: isStepCount(3),
-    experimental_telemetry: {
-      isEnabled: true,
+    telemetry: {
       functionId: 'parent-agent',
-      metadata: {
-        agentType: 'parent',
-        agentLevel: 'L1',
-      },
     },
   });
 

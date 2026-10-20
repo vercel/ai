@@ -1,4 +1,4 @@
-import { JSONObject } from '../../json-value/json-value';
+import type { JSONObject } from '../../json-value/json-value';
 
 type SpeechModelV3ProviderOptions = Record<string, JSONObject>;
 

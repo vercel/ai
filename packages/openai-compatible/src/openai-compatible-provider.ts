@@ -1,19 +1,19 @@
-import {
+import type {
   EmbeddingModelV4,
   ImageModelV4,
   LanguageModelV4,
   ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import {
-  OpenAICompatibleChatConfig,
   OpenAICompatibleChatLanguageModel,
+  type OpenAICompatibleChatConfig,
 } from './chat/openai-compatible-chat-language-model';
-import { MetadataExtractor } from './chat/openai-compatible-metadata-extractor';
+import type { MetadataExtractor } from './chat/openai-compatible-metadata-extractor';
 import { OpenAICompatibleCompletionLanguageModel } from './completion/openai-compatible-completion-language-model';
 import { OpenAICompatibleEmbeddingModel } from './embedding/openai-compatible-embedding-model';
 import { OpenAICompatibleImageModel } from './image/openai-compatible-image-model';
@@ -24,7 +24,7 @@ export interface OpenAICompatibleProvider<
   COMPLETION_MODEL_IDS extends string = string,
   EMBEDDING_MODEL_IDS extends string = string,
   IMAGE_MODEL_IDS extends string = string,
-> extends Omit<ProviderV4, 'imageModel'> {
+> extends ProviderV4 {
   (modelId: CHAT_MODEL_IDS): LanguageModelV4;
 
   languageModel(
@@ -92,11 +92,20 @@ export interface OpenAICompatibleProviderSettings {
   supportsStructuredOutputs?: boolean;
 
   /**
+   * Whether chat models support multi-part content in tool results.
+   *
+   * Enable this for providers that extend the OpenAI Chat Completions API with
+   * structured tool-result content. Defaults to `false`.
+   */
+  supportsMultiPartToolContent?: boolean;
+
+  /**
    * Optional function to transform the request body before sending it to the API.
    * This is useful for proxy providers that may require a different request format
    * than the official OpenAI API.
+   * The optional warnings array can be used to report request transformations.
    */
-  transformRequestBody?: (args: Record<string, any>) => Record<string, any>;
+  transformRequestBody?: OpenAICompatibleChatConfig['transformRequestBody'];
 
   /**
    * Optional metadata extractor to capture provider-specific metadata from API responses.
@@ -104,6 +113,17 @@ export interface OpenAICompatibleProviderSettings {
    * or provider-specific metrics from both streaming and non-streaming responses.
    */
   metadataExtractor?: MetadataExtractor;
+
+  /**
+   * The supported URLs for chat models.
+   */
+  supportedUrls?: OpenAICompatibleChatConfig['supportedUrls'];
+
+  /**
+   * Optional usage converter for providers with token accounting semantics that
+   * differ from the default OpenAI-compatible shape.
+   */
+  convertUsage?: OpenAICompatibleChatConfig['convertUsage'];
 }
 
 /**
@@ -138,7 +158,7 @@ export function createOpenAICompatible<
   };
 
   const getHeaders = () =>
-    withUserAgentSuffix(headers, `ai-sdk/openai-compatible/${VERSION}`);
+    withUserAgentSuffix(headers, `ai-sdk-openai-compatible/${VERSION}`);
 
   const getCommonModelConfig = (modelType: string): CommonModelConfig => ({
     provider: `${providerName}.${modelType}`,
@@ -161,8 +181,11 @@ export function createOpenAICompatible<
       ...getCommonModelConfig('chat'),
       includeUsage: options.includeUsage,
       supportsStructuredOutputs: options.supportsStructuredOutputs,
+      supportsMultiPartToolContent: options.supportsMultiPartToolContent,
+      supportedUrls: options.supportedUrls,
       transformRequestBody: options.transformRequestBody,
       metadataExtractor: options.metadataExtractor,
+      convertUsage: options.convertUsage,
     });
 
   const createCompletionModel = (modelId: COMPLETION_MODEL_IDS) =>

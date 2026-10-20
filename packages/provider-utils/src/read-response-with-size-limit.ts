@@ -1,3 +1,4 @@
+import { cancelResponseBody } from './cancel-response-body';
 import { DownloadError } from './download-error';
 
 /**
@@ -40,6 +41,9 @@ export async function readResponseWithSizeLimit({
   if (contentLength != null) {
     const length = parseInt(contentLength, 10);
     if (!isNaN(length) && length > maxBytes) {
+      // Cancel the body so the underlying connection is released back to the
+      // pool instead of being left open until the socket is exhausted.
+      await cancelResponseBody(response);
       throw new DownloadError({
         url,
         message: `Download of ${url} exceeded maximum size of ${maxBytes} bytes (Content-Length: ${length}).`,
@@ -75,11 +79,20 @@ export async function readResponseWithSizeLimit({
         });
       }
 
-      chunks.push(value);
+      // A small chunk can keep a much larger backing buffer alive. Copy such
+      // views before retaining them. Unlike Uint8Array, Node Buffer's slice()
+      // returns another view, so use the Uint8Array constructor to copy.
+      chunks.push(
+        value.byteLength < value.buffer.byteLength
+          ? new Uint8Array(value)
+          : value,
+      );
     }
   } finally {
     try {
       await reader.cancel();
+    } catch {
+      // Ignore cancel errors so the original rejection is preserved.
     } finally {
       reader.releaseLock();
     }

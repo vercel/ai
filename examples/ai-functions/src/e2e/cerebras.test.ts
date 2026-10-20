@@ -1,11 +1,11 @@
 import 'dotenv/config';
 import { expect } from 'vitest';
-import { CerebrasErrorData, cerebras as provider } from '@ai-sdk/cerebras';
+import { cerebras as provider, type CerebrasErrorData } from '@ai-sdk/cerebras';
 import {
   createFeatureTestSuite,
   createLanguageModelWithCapabilities,
 } from './feature-test-suite';
-import { APICallError } from '@ai-sdk/provider';
+import type { APICallError } from '@ai-sdk/provider';
 
 const createChatModel = (modelId: string) =>
   createLanguageModelWithCapabilities(provider.chat(modelId), [
@@ -19,9 +19,13 @@ createFeatureTestSuite({
   models: {
     invalidModel: provider.chat('no-such-model'),
     languageModels: [
-      createChatModel('llama3.1-8b'),
-      createChatModel('llama3.1-70b'),
-      createChatModel('llama-3.3-70b'),
+      createChatModel('gpt-oss-120b'),
+      createLanguageModelWithCapabilities(provider.chat('gemma-4-31b'), [
+        'imageInput',
+        'objectGeneration',
+        'textCompletion',
+        'toolCalls',
+      ]),
     ],
   },
   timeout: 30000,

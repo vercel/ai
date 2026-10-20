@@ -1,4 +1,4 @@
-import { experimental_transcribe as transcribe } from 'ai';
+import { transcribe } from 'ai';
 import { readFile } from 'fs/promises';
 import { registry } from './setup-registry';
 import { run } from '../lib/run';

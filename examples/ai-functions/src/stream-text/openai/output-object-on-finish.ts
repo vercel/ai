@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: openai('gpt-5-mini'),
+    model: openai('gpt-6-luna'),
     output: Output.object({
       schema: z.object({
         characters: z.array(
@@ -21,9 +21,9 @@ run(async () => {
     }),
     prompt:
       'Generate 3 character descriptions for a fantasy role playing game.',
-    onFinish({ usage }) {
+    onEnd({ usage }) {
       console.log();
-      console.log('onFinish');
+      console.log('onEnd');
       console.log('Token usage:', usage);
     },
   });

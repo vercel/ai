@@ -9,7 +9,7 @@
     "dist",
     "build",
     "node_modules",
-    "tsup.config.ts",
+    "tsdown.config.ts",
     "internal.d.ts"
   ],
   "references": [
@@ -18,6 +18,9 @@
     },
     {
       "path": "../provider-utils"
+    },
+    {
+      "path": "../test-server"
     }
   ]
 }

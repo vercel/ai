@@ -1,5 +1,5 @@
 import {
-  createProviderToolFactoryWithOutputSchema,
+  createProviderExecutedToolFactory,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -46,7 +46,7 @@ const webSearch_20250305InputSchema = lazySchema(() =>
   ),
 );
 
-const factory = createProviderToolFactoryWithOutputSchema<
+const factory = createProviderExecutedToolFactory<
   {
     /**
      * The search query to execute.

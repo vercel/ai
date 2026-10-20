@@ -1,9 +1,9 @@
-import { AIMessageChunk } from '@langchain/core/messages';
-import {
-  type UIMessage,
-  type UIMessageChunk,
-  type ChatTransport,
-  type ChatRequestOptions,
+import type { AIMessageChunk } from '@langchain/core/messages';
+import type {
+  UIMessage,
+  UIMessageChunk,
+  ChatTransport,
+  ChatRequestOptions,
 } from 'ai';
 import {
   RemoteGraph,

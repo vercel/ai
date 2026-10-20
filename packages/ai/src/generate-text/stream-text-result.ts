@@ -1,42 +1,49 @@
-import { IdGenerator } from '@ai-sdk/provider-utils';
-import { ServerResponse } from 'node:http';
-import {
+import type { Citation } from '../types/citation';
+import type { JSONObject } from '@ai-sdk/provider';
+import type { Context, IdGenerator, ToolSet } from '@ai-sdk/provider-utils';
+import type { ServerResponse } from 'node:http';
+import type {
   CallWarning,
   FinishReason,
   LanguageModelRequestMetadata,
   ProviderMetadata,
 } from '../types';
-import { Source } from '../types/language-model';
-import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
-import { LanguageModelUsage } from '../types/usage';
-import { InferUIMessageChunk } from '../ui-message-stream/ui-message-chunks';
-import { UIMessageStreamOnFinishCallback } from '../ui-message-stream/ui-message-stream-on-finish-callback';
-import { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
-import { InferUIMessageMetadata, UIMessage } from '../ui/ui-messages';
-import { AsyncIterableStream } from '../util/async-iterable-stream';
-import { ErrorHandler } from '../util/error-handler';
-import { ContentPart } from './content-part';
-import { GeneratedFile } from './generated-file';
-import { Output } from './output';
-import {
+import type { Source } from '../types/language-model';
+import type { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
+import type { LanguageModelUsage } from '../types/usage';
+import type { InferUIMessageChunk } from '../ui-message-stream/ui-message-chunks';
+import type { UIMessageStreamOnEndCallback } from '../ui-message-stream/ui-message-stream-on-end-callback';
+import type { UIMessageStreamOnStepEndCallback } from '../ui-message-stream/ui-message-stream-on-step-end-callback';
+import type { UIMessageStreamOnStepFinishCallback } from '../ui-message-stream/ui-message-stream-on-step-finish-callback';
+import type { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
+import type { InferUIMessageMetadata, UIMessage } from '../ui/ui-messages';
+import type { AsyncIterableStream } from '../util/async-iterable-stream';
+import type { ErrorHandler } from '../util/error-handler';
+import type { ContentPart } from './content-part';
+import type { GeneratedFile } from './generated-file';
+import type { Output } from './output';
+import type {
   InferCompleteOutput,
   InferElementOutput,
   InferPartialOutput,
 } from './output-utils';
-import { ReasoningOutput, ReasoningFileOutput } from './reasoning-output';
-import { ResponseMessage } from './response-message';
-import { StepResult } from './step-result';
-import { ToolApprovalRequestOutput } from './tool-approval-request-output';
-import { DynamicToolCall, StaticToolCall, TypedToolCall } from './tool-call';
-import { TypedToolError } from './tool-error';
-import { StaticToolOutputDenied } from './tool-output-denied';
-import {
+import type { ReasoningFileOutput, ReasoningOutput } from './reasoning-output';
+import type { ResponseMessage } from './response-message';
+import type { StepResult, StepResultPerformance } from './step-result';
+import type { ToolApprovalRequestOutput } from './tool-approval-request-output';
+import type { ToolApprovalResponseOutput } from './tool-approval-response-output';
+import type {
+  DynamicToolCall,
+  StaticToolCall,
+  TypedToolCall,
+} from './tool-call';
+import type { TypedToolError } from './tool-error';
+import type { StaticToolOutputDenied } from './tool-output-denied';
+import type {
   DynamicToolResult,
   StaticToolResult,
   TypedToolResult,
 } from './tool-result';
-import type { GenerationContext } from './generation-context';
-import type { ToolSet } from '@ai-sdk/provider-utils';
 
 export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
   /**
@@ -53,10 +60,24 @@ export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
    */
   generateMessageId?: IdGenerator;
 
-  onFinish?: UIMessageStreamOnFinishCallback<UI_MESSAGE>;
+  /**
+   * Called after each step is converted to UI message parts.
+   * Receives the accumulated UI message for inspection or persistence.
+   */
+  onStepEnd?: UIMessageStreamOnStepEndCallback<UI_MESSAGE>;
+
+  /** @deprecated Use `onStepEnd` instead. */
+  onStepFinish?: UIMessageStreamOnStepFinishCallback<UI_MESSAGE>;
+
+  onEnd?: UIMessageStreamOnEndCallback<UI_MESSAGE>;
 
   /**
-   * Extracts message metadata that will be send to the client.
+   * @deprecated Use `onEnd` instead.
+   */
+  onFinish?: UIMessageStreamOnEndCallback<UI_MESSAGE>;
+
+  /**
+   * Extracts message metadata that will be sent to the client.
    *
    * Called on `start` and `finish` events.
    */
@@ -95,6 +116,11 @@ export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
   /**
    * Process an error, e.g. to log it. Default to `() => 'An error occurred.'`.
    *
+   * Tool execution errors marked `providerExecuted: true` bypass this callback.
+   * Their strings pass through unchanged; other values are JSON-stringified to
+   * preserve provider error data for model-message round trips and harness
+   * runtime error messages. Stream errors and invalid tool calls still use it.
+   *
    * @returns error message to include in the data stream.
    */
   onError?: (error: unknown) => string;
@@ -109,18 +135,18 @@ export type ConsumeStreamOptions = {
  */
 export interface StreamTextResult<
   TOOLS extends ToolSet,
-  CONTEXT extends GenerationContext<TOOLS>,
+  RUNTIME_CONTEXT extends Context,
   OUTPUT extends Output,
 > {
   /**
-   * The content that was generated in the last step.
+   * The content that was generated in all steps.
    *
    * Automatically consumes the stream.
    */
   readonly content: PromiseLike<Array<ContentPart<TOOLS>>>;
 
   /**
-   * The full text that has been generated by the last step.
+   * The full text that has been generated by the final step.
    *
    * Automatically consumes the stream.
    */
@@ -130,6 +156,8 @@ export interface StreamTextResult<
    * The full reasoning that the model has generated.
    *
    * Automatically consumes the stream.
+   *
+   * @deprecated Use `finalStep.reasoning` instead.
    */
   readonly reasoning: PromiseLike<Array<ReasoningOutput | ReasoningFileOutput>>;
 
@@ -137,60 +165,62 @@ export interface StreamTextResult<
    * The reasoning that has been generated by the last step.
    *
    * Automatically consumes the stream.
+   *
+   * @deprecated Use `finalStep.reasoningText` instead.
    */
   readonly reasoningText: PromiseLike<string | undefined>;
 
   /**
-   * Files that have been generated by the model in the last step.
+   * Files that have been generated by the model in all steps.
    *
    * Automatically consumes the stream.
    */
   readonly files: PromiseLike<GeneratedFile[]>;
 
   /**
-   * Sources that have been used as references in the last step.
+   * Sources that have been used as references in all steps.
    *
    * Automatically consumes the stream.
    */
   readonly sources: PromiseLike<Source[]>;
 
   /**
-   * The tool calls that have been executed in the last step.
+   * The tool calls that have been executed in all steps.
    *
    * Automatically consumes the stream.
    */
   readonly toolCalls: PromiseLike<TypedToolCall<TOOLS>[]>;
 
   /**
-   * The static tool calls that have been executed in the last step.
+   * The static tool calls that have been executed in all steps.
    *
    * Automatically consumes the stream.
    */
   readonly staticToolCalls: PromiseLike<StaticToolCall<TOOLS>[]>;
 
   /**
-   * The dynamic tool calls that have been executed in the last step.
+   * The dynamic tool calls that have been executed in all steps.
    *
    * Automatically consumes the stream.
    */
   readonly dynamicToolCalls: PromiseLike<DynamicToolCall[]>;
 
   /**
-   * The static tool results that have been generated in the last step.
+   * The static tool results that have been generated in all steps.
    *
    * Automatically consumes the stream.
    */
   readonly staticToolResults: PromiseLike<StaticToolResult<TOOLS>[]>;
 
   /**
-   * The dynamic tool results that have been generated in the last step.
+   * The dynamic tool results that have been generated in all steps.
    *
    * Automatically consumes the stream.
    */
   readonly dynamicToolResults: PromiseLike<DynamicToolResult[]>;
 
   /**
-   * The tool results that have been generated in the last step.
+   * The tool results that have been generated in all steps.
    *
    * Automatically consumes the stream.
    */
@@ -211,7 +241,8 @@ export interface StreamTextResult<
   readonly rawFinishReason: PromiseLike<string | undefined>;
 
   /**
-   * The token usage of the last step.
+   * The total token usage of the generated response.
+   * When there are multiple steps, the usage is the sum of all step usages.
    *
    * Automatically consumes the stream.
    */
@@ -222,11 +253,13 @@ export interface StreamTextResult<
    * When there are multiple steps, the usage is the sum of all step usages.
    *
    * Automatically consumes the stream.
+   *
+   * @deprecated Use `usage` instead.
    */
   readonly totalUsage: PromiseLike<LanguageModelUsage>;
 
   /**
-   * Warnings from the model provider (e.g. unsupported settings) for the first step.
+   * Warnings from the model provider (e.g. unsupported settings) in all steps.
    *
    * Automatically consumes the stream.
    */
@@ -239,12 +272,21 @@ export interface StreamTextResult<
    *
    * Automatically consumes the stream.
    */
-  readonly steps: PromiseLike<Array<StepResult<TOOLS, CONTEXT>>>;
+  readonly steps: PromiseLike<Array<StepResult<TOOLS, RUNTIME_CONTEXT>>>;
+
+  /**
+   * The final step. This is a shortcut for `steps.at(-1)`.
+   *
+   * Automatically consumes the stream.
+   */
+  readonly finalStep: PromiseLike<StepResult<TOOLS, RUNTIME_CONTEXT>>;
 
   /**
    * Additional request information from the last step.
    *
    * Automatically consumes the stream.
+   *
+   * @deprecated Use `finalStep.request` instead.
    */
   readonly request: PromiseLike<LanguageModelRequestMetadata>;
 
@@ -252,32 +294,32 @@ export interface StreamTextResult<
    * Additional response information from the last step.
    *
    * Automatically consumes the stream.
+   *
+   * @deprecated Use `finalStep.response` instead.
    */
-  readonly response: PromiseLike<
-    LanguageModelResponseMetadata & {
-      /**
-       * The response messages that were generated during the call. It consists of an assistant message,
-       * potentially containing tool calls.
-       *
-       * When there are tool results, there is an additional tool message with the tool results that are available.
-       * If there are tools that do not have execute functions, they are not included in the tool results and
-       * need to be added separately.
-       */
-      messages: Array<ResponseMessage>;
-    }
-  >;
+  readonly response: PromiseLike<LanguageModelResponseMetadata>;
+
+  /**
+   * The accumulated response messages of all steps that were generated during the call.
+   *
+   * Automatically consumes the stream.
+   */
+  readonly responseMessages: PromiseLike<Array<ResponseMessage>>;
 
   /**
    * Additional provider-specific metadata from the last step.
    * Metadata is passed through from the provider to the AI SDK and
    * enables provider-specific results that can be fully encapsulated in the provider.
+   *
+   * @deprecated Use `finalStep.providerMetadata` instead.
    */
   readonly providerMetadata: PromiseLike<ProviderMetadata | undefined>;
 
   /**
    * A text stream that returns only the generated text deltas. You can use it
-   * as either an AsyncIterable or a ReadableStream. When an error occurs, the
-   * stream will throw the error.
+   * as either an AsyncIterable or a ReadableStream. Error parts are not
+   * surfaced in this stream. Use the `onError` callback or `stream` to observe
+   * them.
    */
   readonly textStream: AsyncIterableStream<string>;
 
@@ -286,6 +328,16 @@ export interface StreamTextResult<
    * errors.
    * You can use it as either an AsyncIterable or a ReadableStream.
    * Only errors that stop the stream, such as network errors, are thrown.
+   */
+  readonly stream: AsyncIterableStream<TextStreamPart<TOOLS>>;
+
+  /**
+   * A stream with all events, including text deltas, tool calls, tool results, and
+   * errors.
+   * You can use it as either an AsyncIterable or a ReadableStream.
+   * Only errors that stop the stream, such as network errors, are thrown.
+   *
+   * @deprecated Use `stream` instead.
    */
   readonly fullStream: AsyncIterableStream<TextStreamPart<TOOLS>>;
 
@@ -318,7 +370,7 @@ export interface StreamTextResult<
    * Consumes the stream without processing the parts.
    * This is useful to force the stream to finish.
    * It effectively removes the backpressure and allows the stream to finish,
-   * triggering the `onFinish` callback and the promise resolution.
+   * triggering the `onEnd` callback and the promise resolution.
    *
    * If an error occurs, it is passed to the optional `onError` callback.
    */
@@ -328,6 +380,10 @@ export interface StreamTextResult<
    * Converts the result to a UI message stream.
    *
    * @returns A UI message stream.
+   *
+   * @deprecated Use the standalone `toUIMessageStream` helper from
+   *   `'ai'` with `result.stream` instead. This method will be removed
+   *   in the next major release.
    */
   toUIMessageStream<UI_MESSAGE extends UIMessage>(
     options?: UIMessageStreamOptions<UI_MESSAGE>,
@@ -335,11 +391,15 @@ export interface StreamTextResult<
 
   /**
    * Writes UI message stream output to a Node.js response-like object.
+   *
+   * @deprecated Use the standalone `toUIMessageStream` and
+   *   `pipeUIMessageStreamToResponse` helpers from `'ai'` with `result.stream`
+   *   instead. This method will be removed in the next major release.
    */
   pipeUIMessageStreamToResponse<UI_MESSAGE extends UIMessage>(
     response: ServerResponse,
     options?: UIMessageStreamResponseInit & UIMessageStreamOptions<UI_MESSAGE>,
-  ): void;
+  ): Promise<void>;
 
   /**
    * Writes text delta output to a Node.js response-like object.
@@ -348,13 +408,24 @@ export interface StreamTextResult<
    *
    * @param response A Node.js response-like object (ServerResponse).
    * @param init Optional headers, status code, and status text.
+   *
+   * @deprecated Use the standalone `toTextStream` and
+   *   `pipeTextStreamToResponse` helpers from `'ai'` with `result.stream`
+   *   instead. This method will be removed in the next major release.
    */
-  pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit): void;
+  pipeTextStreamToResponse(
+    response: ServerResponse,
+    init?: ResponseInit,
+  ): Promise<void>;
 
   /**
    * Converts the result to a streamed response object with a stream data part stream.
    *
    * @returns A response object.
+   *
+   * @deprecated Use the standalone `toUIMessageStream` and
+   *   `createUIMessageStreamResponse` helpers from `'ai'` with `result.stream`
+   *   instead. This method will be removed in the next major release.
    */
   toUIMessageStreamResponse<UI_MESSAGE extends UIMessage>(
     options?: UIMessageStreamResponseInit & UIMessageStreamOptions<UI_MESSAGE>,
@@ -365,6 +436,10 @@ export interface StreamTextResult<
    * Each text delta is encoded as UTF-8 and sent as a separate chunk.
    * Non-text-delta events are ignored.
    * @param init Optional headers, status code, and status text.
+   *
+   * @deprecated Use the standalone `toTextStream` and `createTextStreamResponse`
+   *   helpers from `'ai'` with `result.stream` instead. This method will be
+   *   removed in the next major release.
    */
   toTextStreamResponse(init?: ResponseInit): Response;
 }
@@ -384,6 +459,7 @@ export type TextStreamTextStartPart = {
 
 export type TextStreamTextEndPart = {
   type: 'text-end';
+  citations?: Array<Citation>;
   id: string;
   providerMetadata?: ProviderMetadata;
 };
@@ -417,7 +493,10 @@ export type TextStreamToolInputStartPart = {
   type: 'tool-input-start';
   id: string;
   toolName: string;
+  /** Encoding of the input deltas. Defaults to JSON when omitted. */
+  inputEncoding?: 'json' | 'text';
   providerMetadata?: ProviderMetadata;
+  toolMetadata?: JSONObject;
   providerExecuted?: boolean;
   dynamic?: boolean;
   title?: string;
@@ -469,6 +548,9 @@ export type TextStreamToolOutputDeniedPart<TOOLS extends ToolSet> = {
 export type TextStreamToolApprovalRequestPart<TOOLS extends ToolSet> =
   ToolApprovalRequestOutput<TOOLS>;
 
+export type TextStreamToolApprovalResponsePart<TOOLS extends ToolSet> =
+  ToolApprovalResponseOutput<TOOLS>;
+
 export type TextStreamStartStepPart = {
   type: 'start-step';
   request: LanguageModelRequestMetadata;
@@ -477,8 +559,9 @@ export type TextStreamStartStepPart = {
 
 export type TextStreamFinishStepPart = {
   type: 'finish-step';
-  response: LanguageModelResponseMetadata;
+  response: Omit<LanguageModelResponseMetadata, 'messages' | 'body'>;
   usage: LanguageModelUsage;
+  performance: StepResultPerformance;
   finishReason: FinishReason;
   rawFinishReason: string | undefined;
   providerMetadata: ProviderMetadata | undefined;
@@ -529,6 +612,7 @@ export type TextStreamPart<TOOLS extends ToolSet> =
   | TextStreamToolErrorPart<TOOLS>
   | TextStreamToolOutputDeniedPart<TOOLS>
   | TextStreamToolApprovalRequestPart<TOOLS>
+  | TextStreamToolApprovalResponsePart<TOOLS>
   | TextStreamStartStepPart
   | TextStreamFinishStepPart
   | TextStreamStartPart

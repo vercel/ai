@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 
+import { EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { createOpenAI } from '../openai-provider';
 import { describe, it, expect, vi } from 'vitest';
@@ -17,6 +18,14 @@ const server = createTestServer({
   'https://api.openai.com/v1/embeddings': {},
 });
 
+describe('model limits', () => {
+  it('should expose the aggregate token limit', () => {
+    expect(
+      Reflect.get(model, EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL),
+    ).toBe(300_000);
+  });
+});
+
 function prepareJsonFixtureResponse(
   filename: string,
   headers?: Record<string, string>,
@@ -31,6 +40,31 @@ function prepareJsonFixtureResponse(
 }
 
 describe('doEmbed', () => {
+  it.each([
+    {
+      dimensions: undefined,
+      providerDimensions: undefined,
+      expected: undefined,
+    },
+    { dimensions: 256, providerDimensions: undefined, expected: 256 },
+    { dimensions: undefined, providerDimensions: 512, expected: 512 },
+    { dimensions: 256, providerDimensions: 512, expected: 512 },
+  ])(
+    'maps dimensions $dimensions with provider override $providerDimensions to $expected',
+    async ({ dimensions, providerDimensions, expected }) => {
+      prepareJsonFixtureResponse('openai-embedding');
+
+      await model.doEmbed({
+        values: testValues,
+        dimensions,
+        providerOptions: { openai: { dimensions: providerDimensions } },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.dimensions).toBe(expected);
+    },
+  );
+
   it('should extract embedding', async () => {
     prepareJsonFixtureResponse('openai-embedding');
 
@@ -158,7 +192,7 @@ describe('doEmbed', () => {
       'openai-project': 'test-project',
     });
     expect(server.calls[0].requestUserAgent).toContain(
-      `ai-sdk/openai/0.0.0-test`,
+      `ai-sdk-openai/0.0.0-test`,
     );
   });
 });

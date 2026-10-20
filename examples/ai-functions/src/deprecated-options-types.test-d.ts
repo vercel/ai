@@ -25,6 +25,10 @@ import type {
   BlackForestLabsImageProviderOptions,
 } from '@ai-sdk/black-forest-labs';
 import type {
+  ByteDanceVideoModelOptions,
+  ByteDanceVideoProviderOptions,
+} from '@ai-sdk/bytedance';
+import type {
   CohereChatModelOptions,
   CohereLanguageModelOptions,
   CohereRerankingModelOptions,
@@ -63,6 +67,14 @@ import type {
   GoogleImageModelOptions,
   GoogleLanguageModelOptions,
   GoogleVideoModelOptions,
+  GoogleProvider,
+  GoogleGenerativeAIProvider,
+  GoogleProviderSettings,
+  GoogleGenerativeAIProviderSettings,
+  GoogleProviderMetadata,
+  GoogleGenerativeAIProviderMetadata,
+  GoogleVideoModelId,
+  GoogleGenerativeAIVideoModelId,
 } from '@ai-sdk/google';
 import type {
   GoogleVertexImageModelOptions,
@@ -119,9 +131,7 @@ import type {
 import type {
   XaiImageModelOptions,
   XaiImageProviderOptions,
-  XaiLanguageModelChatOptions,
   XaiLanguageModelResponsesOptions,
-  XaiProviderOptions,
   XaiResponsesProviderOptions,
 } from '@ai-sdk/xai';
 import { describe, expectTypeOf, it } from 'vitest';
@@ -163,6 +173,12 @@ describe('deprecated provider options type aliases', () => {
   describe('@ai-sdk/black-forest-labs', () => {
     it('BlackForestLabsImageProviderOptions equals BlackForestLabsImageModelOptions', () => {
       expectTypeOf<BlackForestLabsImageProviderOptions>().toEqualTypeOf<BlackForestLabsImageModelOptions>();
+    });
+  });
+
+  describe('@ai-sdk/bytedance', () => {
+    it('ByteDanceVideoProviderOptions equals ByteDanceVideoModelOptions', () => {
+      expectTypeOf<ByteDanceVideoProviderOptions>().toEqualTypeOf<ByteDanceVideoModelOptions>();
     });
   });
 
@@ -223,6 +239,18 @@ describe('deprecated provider options type aliases', () => {
     });
     it('GoogleGenerativeAIVideoProviderOptions equals GoogleVideoModelOptions', () => {
       expectTypeOf<GoogleGenerativeAIVideoProviderOptions>().toEqualTypeOf<GoogleVideoModelOptions>();
+    });
+    it('GoogleGenerativeAIProvider equals GoogleProvider', () => {
+      expectTypeOf<GoogleGenerativeAIProvider>().toEqualTypeOf<GoogleProvider>();
+    });
+    it('GoogleGenerativeAIProviderSettings equals GoogleProviderSettings', () => {
+      expectTypeOf<GoogleGenerativeAIProviderSettings>().toEqualTypeOf<GoogleProviderSettings>();
+    });
+    it('GoogleGenerativeAIProviderMetadata equals GoogleProviderMetadata', () => {
+      expectTypeOf<GoogleGenerativeAIProviderMetadata>().toEqualTypeOf<GoogleProviderMetadata>();
+    });
+    it('GoogleGenerativeAIVideoModelId equals GoogleVideoModelId', () => {
+      expectTypeOf<GoogleGenerativeAIVideoModelId>().toEqualTypeOf<GoogleVideoModelId>();
     });
   });
 
@@ -305,9 +333,6 @@ describe('deprecated provider options type aliases', () => {
   });
 
   describe('@ai-sdk/xai', () => {
-    it('XaiProviderOptions equals XaiLanguageModelChatOptions', () => {
-      expectTypeOf<XaiProviderOptions>().toEqualTypeOf<XaiLanguageModelChatOptions>();
-    });
     it('XaiResponsesProviderOptions equals XaiLanguageModelResponsesOptions', () => {
       expectTypeOf<XaiResponsesProviderOptions>().toEqualTypeOf<XaiLanguageModelResponsesOptions>();
     });

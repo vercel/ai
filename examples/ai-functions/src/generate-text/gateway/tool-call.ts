@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: 'xai/grok-3',
+    model: 'spacexai/grok-4.7',
     maxOutputTokens: 512,
     tools: {
       weather: weatherTool,

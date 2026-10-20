@@ -1,16 +1,17 @@
-import { Attributes, AttributeValue } from '@opentelemetry/api';
-import type { CallSettings, TelemetrySettings } from 'ai';
+import type { Attributes, AttributeValue } from '@opentelemetry/api';
+import type { LanguageModelCallOptions } from 'ai';
+import { getRuntimeContextAttributes } from './supplemental-attributes';
 
 export function getBaseTelemetryAttributes({
   model,
   settings,
-  telemetry,
   headers,
+  context,
 }: {
   model: { modelId: string; provider: string };
-  settings: Omit<CallSettings, 'abortSignal' | 'headers' | 'temperature'>;
-  telemetry: TelemetrySettings | undefined;
+  settings: LanguageModelCallOptions;
   headers: Record<string, string | undefined> | undefined;
+  context: Record<string, unknown> | undefined;
 }): Attributes {
   return {
     'ai.model.provider': model.provider,
@@ -22,16 +23,8 @@ export function getBaseTelemetryAttributes({
       return attributes;
     }, {} as Attributes),
 
-    // add metadata as attributes:
-    ...Object.entries(telemetry?.metadata ?? {}).reduce(
-      (attributes, [key, value]) => {
-        if (value != undefined) {
-          attributes[`ai.telemetry.metadata.${key}`] = value as AttributeValue;
-        }
-        return attributes;
-      },
-      {} as Attributes,
-    ),
+    // add context as attributes:
+    ...(getRuntimeContextAttributes(context) as Attributes),
 
     // request headers
     ...Object.entries(headers ?? {}).reduce((attributes, [key, value]) => {

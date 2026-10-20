@@ -1,7 +1,7 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { DeepInfraImageModel } from './deepinfra-image-model';
-import { FetchFunction } from '@ai-sdk/provider-utils';
+import type { FetchFunction } from '@ai-sdk/provider-utils';
 
 const prompt = 'A cute baby sea otter';
 
@@ -36,6 +36,37 @@ describe('DeepInfraImageModel', () => {
         },
       },
     },
+  });
+
+  describe('capabilities', () => {
+    it.each([
+      {
+        modelId: 'black-forest-labs/FLUX.1-Kontext-pro',
+        supportsFileInputs: true,
+        supportsMaskInputs: true,
+      },
+      {
+        modelId: 'Qwen/Qwen-Image-Edit',
+        supportsFileInputs: true,
+        supportsMaskInputs: true,
+      },
+      {
+        modelId: 'custom-image-model',
+        supportsFileInputs: undefined,
+        supportsMaskInputs: undefined,
+      },
+    ] as const)(
+      'advertises file=$supportsFileInputs and mask=$supportsMaskInputs for $modelId',
+      ({ modelId, supportsFileInputs, supportsMaskInputs }) => {
+        const model = new DeepInfraImageModel(modelId, {
+          provider: 'deepinfra',
+          baseURL: 'https://api.example.com',
+        });
+
+        expect(model.supportsFileInputs).toBe(supportsFileInputs);
+        expect(model.supportsMaskInputs).toBe(supportsMaskInputs);
+      },
+    );
   });
 
   describe('doGenerate', () => {

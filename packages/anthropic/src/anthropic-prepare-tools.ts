@@ -1,13 +1,17 @@
 import {
-  LanguageModelV4CallOptions,
-  SharedV4Warning,
   UnsupportedFunctionalityError,
+  type LanguageModelV4CallOptions,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
-import { AnthropicTool, AnthropicToolChoice } from './anthropic-messages-api';
+import type { AnthropicTool, AnthropicToolChoice } from './anthropic-api';
 import { CacheControlValidator } from './get-cache-control';
+import { advisor_20260301ArgsSchema } from './tool/advisor_20260301';
+import { computerToolset_20260801ArgsSchema } from './tool/computer-toolset_20260801';
 import { textEditor_20250728ArgsSchema } from './tool/text-editor_20250728';
+import { webSearch_20260318ArgsSchema } from './tool/web-search_20260318';
 import { webSearch_20260209ArgsSchema } from './tool/web-search_20260209';
 import { webSearch_20250305ArgsSchema } from './tool/web-search_20250305';
+import { webFetch_20260318ArgsSchema } from './tool/web-fetch-20260318';
 import { webFetch_20260209ArgsSchema } from './tool/web-fetch-20260209';
 import { webFetch_20250910ArgsSchema } from './tool/web-fetch-20250910';
 import { validateTypes } from '@ai-sdk/provider-utils';
@@ -27,6 +31,8 @@ export async function prepareTools({
   cacheControlValidator,
   supportsStructuredOutput,
   supportsStrictTools,
+  defaultEagerInputStreaming = false,
+  rejectsForcedToolUse = false,
 }: {
   tools: LanguageModelV4CallOptions['tools'];
   toolChoice: LanguageModelV4CallOptions['toolChoice'] | undefined;
@@ -42,6 +48,19 @@ export async function prepareTools({
    * Whether the model supports strict mode on tool definitions.
    */
   supportsStrictTools: boolean;
+
+  /**
+   * Default for `eager_input_streaming` on function tools that do not set
+   * it explicitly. Driven by the model-level `toolStreaming` option.
+   */
+  defaultEagerInputStreaming?: boolean;
+
+  /**
+   * Whether the model or thinking configuration rejects forced tool use
+   * (`tool_choice` `any` or a named tool). When true, `required` and `tool`
+   * tool choices fall back to `auto` with a warning.
+   */
+  rejectsForcedToolUse?: boolean;
 }): Promise<{
   tools: Array<AnthropicTool> | undefined;
   toolChoice: AnthropicToolChoice | undefined;
@@ -73,12 +92,14 @@ export async function prepareTools({
         const anthropicOptions = tool.providerOptions?.anthropic as
           | AnthropicToolOptions
           | undefined;
-        // eager_input_streaming is only supported on custom (function) tools
-        const eagerInputStreaming = anthropicOptions?.eagerInputStreaming;
+        // eager_input_streaming is only supported on custom (function) tools.
+        // Fall back to the model-level default when the tool doesn't set it.
+        const eagerInputStreaming =
+          anthropicOptions?.eagerInputStreaming ?? defaultEagerInputStreaming;
         const deferLoading = anthropicOptions?.deferLoading;
         const allowedCallers = anthropicOptions?.allowedCallers;
 
-        if (!supportsStrictTools && tool.strict != null) {
+        if (!supportsStrictTools && tool.strict === true) {
           toolWarnings.push({
             type: 'unsupported',
             feature: 'strict',
@@ -169,6 +190,34 @@ export async function prepareTools({
               display_height_px: tool.args.displayHeightPx as number,
               display_number: tool.args.displayNumber as number,
               enable_zoom: tool.args.enableZoom as boolean,
+              cache_control: undefined,
+            });
+            break;
+          }
+          case 'anthropic.computer_toolset_20260801': {
+            const args = await validateTypes({
+              value: tool.args,
+              schema: computerToolset_20260801ArgsSchema,
+            });
+            const configs =
+              args.configs != null
+                ? Object.fromEntries(
+                    Object.entries(args.configs).map(([member, config]) => [
+                      member,
+                      {
+                        ...(config?.enabled != null && {
+                          enabled: config.enabled,
+                        }),
+                        ...(config?.deferLoading != null && {
+                          defer_loading: config.deferLoading,
+                        }),
+                      },
+                    ]),
+                  )
+                : undefined;
+            anthropicTools.push({
+              type: 'computer_toolset_20260801',
+              ...(configs != null && { configs }),
               cache_control: undefined,
             });
             break;
@@ -287,6 +336,25 @@ export async function prepareTools({
             });
             break;
           }
+          case 'anthropic.web_fetch_20260318': {
+            const args = await validateTypes({
+              value: tool.args,
+              schema: webFetch_20260318ArgsSchema,
+            });
+            anthropicTools.push({
+              type: 'web_fetch_20260318',
+              name: 'web_fetch',
+              max_uses: args.maxUses,
+              allowed_domains: args.allowedDomains,
+              blocked_domains: args.blockedDomains,
+              citations: args.citations,
+              max_content_tokens: args.maxContentTokens,
+              use_cache: args.useCache,
+              response_inclusion: args.responseInclusion,
+              cache_control: undefined,
+            });
+            break;
+          }
           case 'anthropic.web_search_20250305': {
             const args = await validateTypes({
               value: tool.args,
@@ -320,6 +388,23 @@ export async function prepareTools({
             });
             break;
           }
+          case 'anthropic.web_search_20260318': {
+            const args = await validateTypes({
+              value: tool.args,
+              schema: webSearch_20260318ArgsSchema,
+            });
+            anthropicTools.push({
+              type: 'web_search_20260318',
+              name: 'web_search',
+              max_uses: args.maxUses,
+              allowed_domains: args.allowedDomains,
+              blocked_domains: args.blockedDomains,
+              user_location: args.userLocation,
+              response_inclusion: args.responseInclusion,
+              cache_control: undefined,
+            });
+            break;
+          }
 
           case 'anthropic.tool_search_regex_20251119': {
             anthropicTools.push({
@@ -333,6 +418,25 @@ export async function prepareTools({
             anthropicTools.push({
               type: 'tool_search_tool_bm25_20251119',
               name: 'tool_search_tool_bm25',
+            });
+            break;
+          }
+
+          case 'anthropic.advisor_20260301': {
+            betas.add('advisor-tool-2026-03-01');
+            const args = await validateTypes({
+              value: tool.args,
+              schema: advisor_20260301ArgsSchema,
+            });
+            anthropicTools.push({
+              type: 'advisor_20260301',
+              name: 'advisor',
+              model: args.model,
+              ...(args.maxUses !== undefined && { max_uses: args.maxUses }),
+              ...(args.maxTokens !== undefined && {
+                max_tokens: args.maxTokens,
+              }),
+              ...(args.caching !== undefined && { caching: args.caching }),
             });
             break;
           }
@@ -383,6 +487,24 @@ export async function prepareTools({
         betas,
       };
     case 'required':
+      if (rejectsForcedToolUse) {
+        toolWarnings.push({
+          type: 'unsupported',
+          feature: 'toolChoice',
+          details:
+            `toolChoice 'required' is not supported with this model or thinking configuration. ` +
+            `Using 'auto' instead. Instruct the model to use a tool in the prompt and verify that a tool call was made.`,
+        });
+        return {
+          tools: anthropicTools,
+          toolChoice: {
+            type: 'auto',
+            disable_parallel_tool_use: disableParallelToolUse,
+          },
+          toolWarnings,
+          betas,
+        };
+      }
       return {
         tools: anthropicTools,
         toolChoice: {
@@ -393,9 +515,34 @@ export async function prepareTools({
         betas,
       };
     case 'none':
-      // Anthropic does not support 'none' tool choice, so we remove the tools:
-      return { tools: undefined, toolChoice: undefined, toolWarnings, betas };
+      return {
+        tools: anthropicTools,
+        toolChoice: { type: 'none' },
+        toolWarnings,
+        betas,
+      };
     case 'tool':
+      if (rejectsForcedToolUse) {
+        toolWarnings.push({
+          type: 'unsupported',
+          feature: 'toolChoice',
+          details:
+            `toolChoice 'tool' is not supported with this model or thinking configuration. ` +
+            `Only the '${toolChoice.toolName}' tool is sent with 'auto' tool choice. ` +
+            `Instruct the model to use the tool in the prompt and verify that a tool call was made.`,
+        });
+        return {
+          tools: anthropicTools.filter(
+            tool => 'name' in tool && tool.name === toolChoice.toolName,
+          ),
+          toolChoice: {
+            type: 'auto',
+            disable_parallel_tool_use: disableParallelToolUse,
+          },
+          toolWarnings,
+          betas,
+        };
+      }
       return {
         tools: anthropicTools,
         toolChoice: {

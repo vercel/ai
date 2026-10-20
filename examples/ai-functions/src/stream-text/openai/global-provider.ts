@@ -6,7 +6,7 @@ globalThis.AI_SDK_DEFAULT_PROVIDER = openai;
 
 run(async () => {
   const result = streamText({
-    model: 'gpt-4o',
+    model: 'gpt-6-astra',
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 

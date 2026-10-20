@@ -1,29 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { getRuntimeEnvironmentUserAgent } from './get-runtime-environment-user-agent';
 
 // Stabilize provider utils version used inside UA string construction
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
 }));
 
-import { getRuntimeEnvironmentUserAgent } from './get-runtime-environment-user-agent';
-
 describe('getRuntimeEnvironmentUserAgent', () => {
-  it('should return the correct user agent for browsers', () => {
+  it('should return the browser user agent', () => {
     expect(
       getRuntimeEnvironmentUserAgent({
         window: true,
-      }),
-    ).toBe('runtime/browser');
-  });
-
-  it('should return the correct user agent for test', () => {
-    expect(
-      getRuntimeEnvironmentUserAgent({
         navigator: {
-          userAgent: 'test',
+          userAgent: 'Mozilla/5.0',
         },
       }),
-    ).toBe('runtime/test');
+    ).toBe('mozilla/5.0');
   });
 
   it('should return the correct user agent for Edge Runtime', () => {
@@ -31,7 +23,7 @@ describe('getRuntimeEnvironmentUserAgent', () => {
       getRuntimeEnvironmentUserAgent({
         EdgeRuntime: true,
       }),
-    ).toBe('runtime/vercel-edge');
+    ).toBe('vercel-edge');
   });
 
   it('should return the correct user agent for Node.js', () => {
@@ -42,6 +34,10 @@ describe('getRuntimeEnvironmentUserAgent', () => {
           version: 'test',
         },
       }),
-    ).toBe('runtime/node.js/test');
+    ).toBe('node.js/test');
+  });
+
+  it('should omit the runtime when it is unknown', () => {
+    expect(getRuntimeEnvironmentUserAgent({})).toBe('');
   });
 });

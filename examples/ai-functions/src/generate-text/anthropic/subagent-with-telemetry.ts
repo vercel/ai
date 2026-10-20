@@ -1,12 +1,18 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { generateText, ToolLoopAgent, registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { generateText, ToolLoopAgent, registerTelemetry } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
 import { LangfuseSpanProcessor } from '@langfuse/otel';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { run } from '../../lib/run';
 import { z } from 'zod';
 
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetry(
+  new OpenTelemetry({
+    usage: true,
+    providerMetadata: true,
+    toolChoice: true,
+  }),
+);
 
 const sdk = new NodeSDK({
   spanProcessors: [new LangfuseSpanProcessor()],
@@ -15,7 +21,7 @@ const sdk = new NodeSDK({
 sdk.start();
 
 const weatherAgent = new ToolLoopAgent({
-  model: anthropic('claude-sonnet-4-5-20250929'),
+  model: anthropic('claude-sonnet-5-5'),
   instructions: 'You compare weather across cities. Use the researchCity tool.',
   tools: {
     researchCity: {
@@ -26,10 +32,9 @@ const weatherAgent = new ToolLoopAgent({
       }),
       execute: async ({ city }: { city: string }) => {
         const subResult = await generateText({
-          model: anthropic('claude-sonnet-4-5-20250929'),
+          model: anthropic('claude-sonnet-5-5'),
           prompt: `You are a weather expert. Provide a brief weather report for ${city} including temperature, conditions, and a fun fact about the climate.`,
-          experimental_telemetry: {
-            isEnabled: true,
+          telemetry: {
             functionId: `weather-subagent-${city.toLowerCase()}`,
           },
         });
@@ -37,12 +42,8 @@ const weatherAgent = new ToolLoopAgent({
       },
     },
   },
-  experimental_telemetry: {
-    isEnabled: true,
+  telemetry: {
     functionId: 'weather-comparison-agent',
-    metadata: {
-      environment: 'demo',
-    },
   },
 });
 

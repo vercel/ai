@@ -1,4 +1,4 @@
-import { SharedV2ProviderMetadata } from '../../shared';
+import type { SharedV2ProviderMetadata } from '../../shared';
 
 /**
  * Reasoning that the model has generated.

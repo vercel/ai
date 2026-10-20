@@ -1,5 +1,11 @@
 import { openai } from '@ai-sdk/openai';
-import { isStepCount, streamText, tool } from 'ai';
+import {
+  createUIMessageStreamResponse,
+  isStepCount,
+  streamText,
+  toUIMessageStream,
+  tool,
+} from 'ai';
 import { z } from 'zod';
 
 // Allow streaming responses up to 60 seconds
@@ -10,7 +16,7 @@ export async function POST(req: Request) {
   const { prompt } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-5-mini'),
+    model: openai('gpt-6-luna'),
     tools: {
       weather: tool({
         description: 'Get the weather in a location',
@@ -28,5 +34,7 @@ export async function POST(req: Request) {
   });
 
   // Respond with the stream
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
