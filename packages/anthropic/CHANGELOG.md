@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.134
+
+### Patch Changes
+
+- eba06d9: Add MiniMax M3.1 Flash support with reasoning effort, image detail, video input and frame sampling, prompt cache control, and sampling controls.
+
 ## 3.0.133
 
 ### Patch Changes
