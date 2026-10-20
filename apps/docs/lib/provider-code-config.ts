@@ -504,7 +504,7 @@ export const resolveGatewayOptions = (
     ? providerCodeConfigs[provider]?.gatewayProvider
     : undefined;
   return code.replace(
-    /^([ \t]*)__GATEWAY_OPTIONS__;?[ \t]*(?:\r?\n|$)/gm,
+    /^([ \t]*)__GATEWAY_OPTIONS__[,;]?[ \t]*(?:\r?\n|$)/gm,
     (_, indent: string) =>
       slug
         ? `${indent}providerOptions: {\n${indent}  gateway: {\n${indent}    order: ['${slug}'],\n${indent}  },\n${indent}},\n`
