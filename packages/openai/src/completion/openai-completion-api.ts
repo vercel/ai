@@ -71,7 +71,7 @@ export const openaiCompletionChunkSchema = lazyValidator(() =>
           })
           .nullish(),
       }),
-      openaiErrorDataSchema,
+      openaiErrorDataSchema(),
     ]),
   ),
 );

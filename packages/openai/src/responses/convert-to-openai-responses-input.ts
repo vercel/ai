@@ -7,6 +7,9 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
   convertToBase64,
   parseProviderOptions,
   safeValidateTypes,
@@ -664,11 +667,15 @@ export async function convertToOpenAIResponsesInput({
   return { input, warnings };
 }
 
-const openaiResponsesReasoningProviderOptionsSchema = z.object({
-  itemId: z.string().nullish(),
-  reasoningEncryptedContent: z.string().nullish(),
-});
+const openaiResponsesReasoningProviderOptionsSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      itemId: z.string().nullish(),
+      reasoningEncryptedContent: z.string().nullish(),
+    }),
+  ),
+);
 
-export type OpenAIResponsesReasoningProviderOptions = z.infer<
+export type OpenAIResponsesReasoningProviderOptions = InferSchema<
   typeof openaiResponsesReasoningProviderOptionsSchema
 >;
