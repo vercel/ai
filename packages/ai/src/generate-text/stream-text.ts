@@ -1557,6 +1557,20 @@ class DefaultStreamTextResult<
       | undefined;
     let lastStepError: unknown;
 
+    const notifyStepError = async (error: unknown) => {
+      if (openStep == null || abortSignal?.aborted) {
+        return;
+      }
+
+      const failedStep = openStep;
+      openStep = undefined;
+
+      await notify({
+        event: { callId, ...failedStep, error },
+        callbacks: onStepError,
+      });
+    };
+
     const eventProcessor = new TransformStream<
       InternalEnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>,
       EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
@@ -1814,24 +1828,12 @@ class DefaultStreamTextResult<
       async flush(controller) {
         try {
           // a step that started without producing a result has failed:
-          if (openStep != null && !abortSignal?.aborted) {
-            const failedStep = openStep;
-            openStep = undefined;
-
-            await notify({
-              event: {
-                callId,
-                ...failedStep,
-                error:
-                  lastStepError ??
-                  new NoOutputGeneratedError({
-                    message:
-                      'No output generated. Check the stream for errors.',
-                  }),
-              },
-              callbacks: onStepError,
-            });
-          }
+          await notifyStepError(
+            lastStepError ??
+              new NoOutputGeneratedError({
+                message: 'No output generated. Check the stream for errors.',
+              }),
+          );
 
           // reject when no output was generated or an incomplete model stream
           // ended a continuation step:
@@ -2049,6 +2051,8 @@ class DefaultStreamTextResult<
           if (isAbortError(error) && abortSignal?.aborted) {
             await abort();
           } else {
+            // an erroring stream skips the event processor flush:
+            await notifyStepError(wrapGatewayError(error));
             await telemetryDispatcher.onError?.({ callId, error });
             controller.error(error);
           }
