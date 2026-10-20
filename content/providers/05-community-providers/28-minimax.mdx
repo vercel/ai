@@ -19,8 +19,8 @@ Set the `MINIMAX_API_KEY` environment variable, or pass `apiKey` when creating a
 
 <Note>
   If you are migrating from `vercel-minimax-ai-provider`, replace the dependency
-  with `@minimax-ai/ai-sdk-provider` and update your imports. See the
-  [migration guide](https://github.com/MiniMax-AI/vercel-minimax-ai-provider#migrating-from-the-unscoped-package)
+  with `@minimax-ai/ai-sdk-provider` and update your imports. See the [migration
+  guide](https://github.com/MiniMax-AI/vercel-minimax-ai-provider#migrating-from-the-unscoped-package)
   for versioning and AI SDK compatibility notes.
 </Note>
 
@@ -35,10 +35,7 @@ import { minimax } from '@minimax-ai/ai-sdk-provider';
 You can also select the API format explicitly:
 
 ```ts
-import {
-  minimaxAnthropic,
-  minimaxOpenAI,
-} from '@minimax-ai/ai-sdk-provider';
+import { minimaxAnthropic, minimaxOpenAI } from '@minimax-ai/ai-sdk-provider';
 ```
 
 Both instances expose `.image()`, `.speech()`, and `.video()` for MiniMax's native media APIs.
@@ -84,7 +81,10 @@ Use an API key from the platform matching your endpoint. For accounts on the
 [China platform](https://platform.minimax.cn), configure the China base URL:
 
 ```ts
-import { createMinimax, createMinimaxOpenAI } from '@minimax-ai/ai-sdk-provider';
+import {
+  createMinimax,
+  createMinimaxOpenAI,
+} from '@minimax-ai/ai-sdk-provider';
 
 const minimax = createMinimax({
   baseURL: 'https://api.minimax.cn/anthropic/v1',
@@ -249,10 +249,10 @@ const { videos } = await generateVideo({
 ```
 
 <Note>
-  `MiniMax-Hailuo-2.3-Fast` requires an input image. Choose duration and resolution
-  settings supported by the selected model. MiniMax fetches image URLs and invokes
-  callbacks from its servers; validate untrusted input before forwarding it in
-  provider options such as `callbackUrl`.
+  `MiniMax-Hailuo-2.3-Fast` requires an input image. Choose duration and
+  resolution settings supported by the selected model. MiniMax fetches image
+  URLs and invokes callbacks from its servers; validate untrusted input before
+  forwarding it in provider options such as `callbackUrl`.
 </Note>
 
 See the [video generation guide](https://github.com/MiniMax-AI/vercel-minimax-ai-provider#video-generation)
