@@ -1,3 +1,8 @@
+import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 // https://docs.mistral.ai/getting-started/models/models_overview/
@@ -24,48 +29,52 @@ export type MistralChatModelId =
   | 'magistral-small-2509'
   | (string & {});
 
-export const mistralLanguageModelOptions = z.object({
-  /**
-   * Whether to inject a safety prompt before all conversations.
-   *
-   * Defaults to `false`.
-   */
-  safePrompt: z.boolean().optional(),
+export const mistralLanguageModelOptions = lazySchema(() =>
+  zodSchema(
+    z.object({
+      /**
+       * Whether to inject a safety prompt before all conversations.
+       *
+       * Defaults to `false`.
+       */
+      safePrompt: z.boolean().optional(),
 
-  documentImageLimit: z.number().optional(),
-  documentPageLimit: z.number().optional(),
+      documentImageLimit: z.number().optional(),
+      documentPageLimit: z.number().optional(),
 
-  /**
-   * Whether to use structured outputs.
-   *
-   * @default true
-   */
-  structuredOutputs: z.boolean().optional(),
+      /**
+       * Whether to use structured outputs.
+       *
+       * @default true
+       */
+      structuredOutputs: z.boolean().optional(),
 
-  /**
-   * Whether to use strict JSON schema validation.
-   *
-   * @default false
-   */
-  strictJsonSchema: z.boolean().optional(),
+      /**
+       * Whether to use strict JSON schema validation.
+       *
+       * @default false
+       */
+      strictJsonSchema: z.boolean().optional(),
 
-  /**
-   * Whether to enable parallel function calling during tool use.
-   * When set to false, the model will use at most one tool per response.
-   *
-   * @default true
-   */
-  parallelToolCalls: z.boolean().optional(),
+      /**
+       * Whether to enable parallel function calling during tool use.
+       * When set to false, the model will use at most one tool per response.
+       *
+       * @default true
+       */
+      parallelToolCalls: z.boolean().optional(),
 
-  /**
-   * Controls the reasoning effort for models that support adjustable reasoning.
-   *
-   * - `'high'`: Enable reasoning
-   * - `'none'`: Disable reasoning
-   */
-  reasoningEffort: z.enum(['high', 'none']).optional(),
-});
+      /**
+       * Controls the reasoning effort for models that support adjustable reasoning.
+       *
+       * - `'high'`: Enable reasoning
+       * - `'none'`: Disable reasoning
+       */
+      reasoningEffort: z.enum(['high', 'none']).optional(),
+    }),
+  ),
+);
 
-export type MistralLanguageModelOptions = z.infer<
+export type MistralLanguageModelOptions = InferSchema<
   typeof mistralLanguageModelOptions
 >;
