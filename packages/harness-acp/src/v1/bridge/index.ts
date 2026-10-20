@@ -20,6 +20,7 @@ import type { ACPGatewayValues } from './profile-values';
 import {
   assertACPAuthenticationMethod,
   createACPInitializeRequest,
+  isACPImagePromptSupported,
   resolveACPLaunchEnvironment,
   validateACPProtocolVersion,
   type ACPInitializeResult,
@@ -94,6 +95,7 @@ let recoveredSessionUpdates:
   | ReturnType<typeof createACPRecoveredSessionUpdates>
   | undefined;
 let recoveredSessionId: string | undefined;
+let sessionSupportsImagePrompts = false;
 let sessionConfigurationFingerprint: string | undefined;
 let streamCapture: ACPStreamCapture | undefined;
 let initializationDiagnostic: Record<string, unknown> | undefined;
@@ -148,6 +150,15 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       start,
       turn,
     }));
+    if (
+      !sessionSupportsImagePrompts &&
+      start.prompt.some(part => part.type === 'image')
+    ) {
+      throw new HarnessBridgeCapabilityUnsupportedError({
+        harnessId: bridgeType,
+        message: 'The ACP agent does not advertise support for image prompts.',
+      });
+    }
   } catch (error) {
     if (HarnessBridgeCapabilityUnsupportedError.isInstance(error)) throw error;
     throw createACPBridgeError({
@@ -597,6 +608,10 @@ async function ensureSession({
   validateACPProtocolVersion({
     requested: acp.PROTOCOL_VERSION,
     initialization,
+  });
+  sessionSupportsImagePrompts = isACPImagePromptSupported({
+    initialization,
+    nonTextContentTypes: bridgeConfiguration.nonTextContentTypes,
   });
 
   if (authentication != null) {

@@ -8,7 +8,7 @@ import {
   type ACPTurnStartConfig,
   type StartMessage,
 } from './acp-v1-bridge-protocol';
-import type { ACPTextContentBlock } from './acp-v1-prompt';
+import type { ACPContentBlock } from './acp-v1-prompt';
 import type {
   ACPInstructionMapping,
   ACPModelMapping,
@@ -33,7 +33,7 @@ export function createACPTurnStartConfig({
   model,
   modelMapping,
 }: {
-  prompt: ReadonlyArray<ACPTextContentBlock>;
+  prompt: ReadonlyArray<ACPContentBlock>;
   tools: ReadonlyArray<HarnessV1ToolSpec>;
   builtinTools: ReadonlyArray<ACPBuiltinToolMapping>;
   permissionMode: NonNullable<StartMessage['permissionMode']>;
