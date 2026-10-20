@@ -77,6 +77,15 @@ function createModel({
 
 describe('AlibabaVideoModel', () => {
   const server = createTestServer({
+    [`${TEST_BASE_URL}/api/v1/tasks/abc%2F..%2F..%2Finternal`]: {
+      response: { type: 'json-value', body: succeededTaskResponse },
+    },
+    [`${TEST_BASE_URL}/api/v1/tasks/%252E`]: {
+      response: { type: 'json-value', body: succeededTaskResponse },
+    },
+    [`${TEST_BASE_URL}/api/v1/tasks/%252E%252E`]: {
+      response: { type: 'json-value', body: succeededTaskResponse },
+    },
     [CREATE_URL]: {
       response: { type: 'json-value', body: createTaskResponse },
     },
@@ -84,6 +93,27 @@ describe('AlibabaVideoModel', () => {
       response: { type: 'json-value', body: succeededTaskResponse },
     },
   });
+
+  it.each([
+    { taskId: 'abc/../../internal', encodedTaskId: 'abc%2F..%2F..%2Finternal' },
+    { taskId: '.', encodedTaskId: '%252E' },
+    { taskId: '..', encodedTaskId: '%252E%252E' },
+  ])(
+    'encodes $taskId in the polling URL',
+    async ({ taskId, encodedTaskId }) => {
+      server.urls[CREATE_URL].response = {
+        type: 'json-value',
+        body: {
+          ...createTaskResponse,
+          output: { ...createTaskResponse.output, task_id: taskId },
+        },
+      };
+      await createModel().doGenerate({ ...defaultOptions });
+      expect(server.calls[1].requestUrl).toBe(
+        `${TEST_BASE_URL}/api/v1/tasks/${encodedTaskId}`,
+      );
+    },
+  );
 
   describe('constructor', () => {
     it('should expose correct provider and model information', () => {

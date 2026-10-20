@@ -12,6 +12,7 @@ import {
   delay,
   extractResponseHeaders,
   type FetchFunction,
+  encodePathSegment,
   getFromApi,
   parseProviderOptions,
   postJsonToApi,
@@ -526,7 +527,7 @@ export class XaiVideoModel implements Experimental_VideoModelV3 {
 
       const { value: statusResponse, responseHeaders: pollHeaders } =
         await getFromApi({
-          url: `${baseURL}/videos/${requestId}`,
+          url: `${baseURL}/videos/${encodePathSegment(requestId)}`,
           headers: combineHeaders(this.config.headers(), options.headers),
           successfulResponseHandler: xaiVideoStatusResponseHandler,
           failedResponseHandler: xaiFailedResponseHandler,

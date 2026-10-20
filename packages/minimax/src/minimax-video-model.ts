@@ -10,6 +10,7 @@ import {
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   delay,
+  encodePathSegment,
   getFromApi,
   parseProviderOptions,
   postJsonToApi,
@@ -595,7 +596,7 @@ export class MiniMaxVideoModel implements Experimental_VideoModelV3 {
 
       const { value: statusResponse, responseHeaders: pollHeaders } =
         await getFromApi({
-          url: `${baseURL}/v2/query/video_generation/${taskId}`,
+          url: `${baseURL}/v2/query/video_generation/${encodePathSegment(taskId)}`,
           headers: combineHeaders(
             await resolve(this.config.headers),
             options.headers,

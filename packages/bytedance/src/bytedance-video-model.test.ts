@@ -44,6 +44,45 @@ function createBasicModel({
 
 describe('ByteDanceVideoModel', () => {
   const server = createTestServer({
+    'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/abc%2F..%2F..%2Finternal':
+      {
+        response: {
+          type: 'json-value',
+          body: {
+            id: 'test-task-id-123',
+            status: 'succeeded',
+            content: {
+              video_url: 'https://bytedance.cdn/files/video-output.mp4',
+            },
+          },
+        },
+      },
+    'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/%252E':
+      {
+        response: {
+          type: 'json-value',
+          body: {
+            id: 'test-task-id-123',
+            status: 'succeeded',
+            content: {
+              video_url: 'https://bytedance.cdn/files/video-output.mp4',
+            },
+          },
+        },
+      },
+    'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/%252E%252E':
+      {
+        response: {
+          type: 'json-value',
+          body: {
+            id: 'test-task-id-123',
+            status: 'succeeded',
+            content: {
+              video_url: 'https://bytedance.cdn/files/video-output.mp4',
+            },
+          },
+        },
+      },
     'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks':
       {
         response: {
@@ -73,6 +112,23 @@ describe('ByteDanceVideoModel', () => {
         },
       },
   });
+
+  it.each([
+    { taskId: 'abc/../../internal', encodedTaskId: 'abc%2F..%2F..%2Finternal' },
+    { taskId: '.', encodedTaskId: '%252E' },
+    { taskId: '..', encodedTaskId: '%252E%252E' },
+  ])(
+    'encodes $taskId in the polling URL',
+    async ({ taskId, encodedTaskId }) => {
+      server.urls[
+        'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks'
+      ].response = { type: 'json-value', body: { id: taskId } };
+      await createBasicModel().doGenerate({ ...defaultOptions });
+      expect(server.calls[1].requestUrl).toBe(
+        `https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/${encodedTaskId}`,
+      );
+    },
+  );
 
   describe('constructor', () => {
     it('should expose correct provider and model information', () => {

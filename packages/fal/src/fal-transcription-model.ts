@@ -9,6 +9,7 @@ import {
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   delay,
+  encodePathSegment,
   getFromApi,
   parseProviderOptions,
   postJsonToApi,
@@ -167,7 +168,7 @@ export class FalTranscriptionModel implements TranscriptionModelV3 {
           rawValue: statusRawResponse,
         } = await getFromApi({
           url: this.config.url({
-            path: `https://queue.fal.run/fal-ai/${this.modelId}/requests/${queueResponse.request_id}`,
+            path: `https://queue.fal.run/fal-ai/${this.modelId}/requests/${encodePathSegment(queueResponse.request_id ?? '')}`,
             modelId: this.modelId,
           }),
           headers: combineHeaders(this.config.headers(), options.headers),

@@ -141,6 +141,15 @@ function createBasicModel({
 
 describe('KlingAIVideoModel', () => {
   const server = createTestServer({
+    [`${TEST_BASE_URL}/v1/videos/text2video/abc%2F..%2F..%2Finternal`]: {
+      response: { type: 'json-value', body: successfulTaskResponse },
+    },
+    [`${TEST_BASE_URL}/v1/videos/text2video/%252E`]: {
+      response: { type: 'json-value', body: successfulTaskResponse },
+    },
+    [`${TEST_BASE_URL}/v1/videos/text2video/%252E%252E`]: {
+      response: { type: 'json-value', body: successfulTaskResponse },
+    },
     // Motion control endpoints
     [`${TEST_BASE_URL}/v1/videos/motion-control`]: {
       response: {
@@ -194,6 +203,29 @@ describe('KlingAIVideoModel', () => {
       },
     },
   });
+
+  it.each([
+    { taskId: 'abc/../../internal', encodedTaskId: 'abc%2F..%2F..%2Finternal' },
+    { taskId: '.', encodedTaskId: '%252E' },
+    { taskId: '..', encodedTaskId: '%252E%252E' },
+  ])(
+    'encodes $taskId in the polling URL',
+    async ({ taskId, encodedTaskId }) => {
+      server.urls[`${TEST_BASE_URL}/v1/videos/text2video`].response = {
+        type: 'json-value',
+        body: {
+          ...createTaskResponse,
+          data: { ...createTaskResponse.data, task_id: taskId },
+        },
+      };
+      await createBasicModel({ modelId: 'kling-v2.6-t2v' }).doGenerate({
+        ...t2vDefaultOptions,
+      });
+      expect(server.calls[1].requestUrl).toBe(
+        `${TEST_BASE_URL}/v1/videos/text2video/${encodedTaskId}`,
+      );
+    },
+  );
 
   describe('constructor', () => {
     it('should expose correct provider and model information', () => {

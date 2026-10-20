@@ -10,6 +10,7 @@ import {
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   delay,
+  encodePathSegment,
   getFromApi,
   lazySchema,
   parseProviderOptions,
@@ -397,7 +398,7 @@ export class ByteDanceVideoModel implements Experimental_VideoModelV3 {
     let responseHeaders: Record<string, string> | undefined;
 
     while (true) {
-      const statusUrl = `${this.config.baseURL}/contents/generations/tasks/${taskId}`;
+      const statusUrl = `${this.config.baseURL}/contents/generations/tasks/${encodePathSegment(taskId)}`;
 
       const { value: statusResponse, responseHeaders: statusHeaders } =
         await getFromApi({

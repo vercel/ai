@@ -11,6 +11,7 @@ import {
   createJsonResponseHandler,
   delay,
   type FetchFunction,
+  encodePathSegment,
   getFromApi,
   lazySchema,
   parseProviderOptions,
@@ -619,7 +620,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
 
       const { value: statusResponse, responseHeaders: pollHeaders } =
         await getFromApi({
-          url: `${this.config.baseURL}${endpointPath}/${taskId}`,
+          url: `${this.config.baseURL}${endpointPath}/${encodePathSegment(taskId)}`,
           headers: combineHeaders(
             await resolve(this.config.headers),
             options.headers,
