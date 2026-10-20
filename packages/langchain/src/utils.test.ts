@@ -1606,6 +1606,54 @@ describe('processLangGraphEvent', () => {
     });
   });
 
+  it.each([
+    '{"__proto__":{"polluted":true}}',
+    '{"constructor":{"prototype":{"polluted":true}}}',
+    'invalid JSON',
+  ])(
+    'should fall back to empty arguments for unsafe or invalid tool JSON: %s',
+    argumentsJson => {
+      const state = createMockState();
+      const chunks: unknown[] = [];
+      const controller = createMockController(chunks);
+
+      processLangGraphEvent(
+        [
+          'values',
+          {
+            messages: [
+              {
+                id: 'msg-1',
+                type: 'ai',
+                additional_kwargs: {
+                  tool_calls: [
+                    {
+                      id: 'call-1',
+                      function: {
+                        name: 'get_weather',
+                        arguments: argumentsJson,
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        state,
+        controller,
+      );
+
+      expect(chunks).toContainEqual({
+        type: 'tool-input-available',
+        toolCallId: 'call-1',
+        toolName: 'get_weather',
+        input: {},
+        dynamic: true,
+      });
+    },
+  );
+
   it('should handle image generation outputs', () => {
     const state = createMockState();
     const chunks: unknown[] = [];
