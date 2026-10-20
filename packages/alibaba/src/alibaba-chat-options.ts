@@ -1,3 +1,8 @@
+import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 // https://www.alibabacloud.com/help/en/model-studio/models
@@ -29,38 +34,42 @@ export type AlibabaChatModelId =
   | 'qwen3-coder-flash'
   | (string & {});
 
-export const alibabaLanguageModelOptions = z.object({
-  /**
-   * Enable thinking/reasoning mode for supported models.
-   * When enabled, the model generates reasoning content before the response.
-   *
-   * @default false
-   */
-  enableThinking: z.boolean().optional(),
+export const alibabaLanguageModelOptions = lazySchema(() =>
+  zodSchema(
+    z.object({
+      /**
+       * Enable thinking/reasoning mode for supported models.
+       * When enabled, the model generates reasoning content before the response.
+       *
+       * @default false
+       */
+      enableThinking: z.boolean().optional(),
 
-  /**
-   * Maximum number of reasoning tokens to generate.
-   */
-  thinkingBudget: z.number().positive().optional(),
+      /**
+       * Maximum number of reasoning tokens to generate.
+       */
+      thinkingBudget: z.number().positive().optional(),
 
-  /**
-   * Whether to preserve reasoning from previous assistant messages.
-   *
-   * When enabled, historical reasoning is sent separately as
-   * `reasoning_content` and Alibaba receives `preserve_thinking: true`.
-   * Defaults to `true` for models that support preserved thinking; set to
-   * `false` to opt out.
-   */
-  preserveThinking: z.boolean().optional(),
+      /**
+       * Whether to preserve reasoning from previous assistant messages.
+       *
+       * When enabled, historical reasoning is sent separately as
+       * `reasoning_content` and Alibaba receives `preserve_thinking: true`.
+       * Defaults to `true` for models that support preserved thinking; set to
+       * `false` to opt out.
+       */
+      preserveThinking: z.boolean().optional(),
 
-  /**
-   * Whether to enable parallel function calling during tool use.
-   *
-   * @default true
-   */
-  parallelToolCalls: z.boolean().optional(),
-});
+      /**
+       * Whether to enable parallel function calling during tool use.
+       *
+       * @default true
+       */
+      parallelToolCalls: z.boolean().optional(),
+    }),
+  ),
+);
 
-export type AlibabaLanguageModelOptions = z.infer<
+export type AlibabaLanguageModelOptions = InferSchema<
   typeof alibabaLanguageModelOptions
 >;
