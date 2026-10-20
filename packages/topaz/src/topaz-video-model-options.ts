@@ -52,119 +52,125 @@ export const topazOutputContainers = [
  * media files, so the values come from the caller. Setting any of them
  * requires all four.
  */
-export const topazVideoSourceSchema = z.object({
-  /**
-   * Width of the input video in pixels.
-   */
-  width: z.number().int().positive().optional(),
+export const topazVideoSourceSchema = () =>
+  z.object({
+    /**
+     * Width of the input video in pixels.
+     */
+    width: z.number().int().positive().optional(),
 
-  /**
-   * Height of the input video in pixels.
-   */
-  height: z.number().int().positive().optional(),
+    /**
+     * Height of the input video in pixels.
+     */
+    height: z.number().int().positive().optional(),
 
-  /**
-   * Duration of the input video in seconds.
-   */
-  duration: z.number().positive().optional(),
+    /**
+     * Duration of the input video in seconds.
+     */
+    duration: z.number().positive().optional(),
 
-  /**
-   * Frame rate of the input video.
-   */
-  frameRate: z.number().positive().optional(),
+    /**
+     * Frame rate of the input video.
+     */
+    frameRate: z.number().positive().optional(),
 
-  /**
-   * Total number of frames in the input video. Derived from
-   * `duration * frameRate` when omitted, which is only correct for
-   * constant-frame-rate input, so set it explicitly for variable-frame-rate
-   * sources.
-   */
-  frameCount: z.number().int().positive().optional(),
+    /**
+     * Total number of frames in the input video. Derived from
+     * `duration * frameRate` when omitted, which is only correct for
+     * constant-frame-rate input, so set it explicitly for variable-frame-rate
+     * sources.
+     */
+    frameCount: z.number().int().positive().optional(),
 
-  /**
-   * Container of the input video. Detected from the input file's media type
-   * or URL extension when omitted.
-   */
-  container: z.enum(topazSourceContainers).optional(),
-});
+    /**
+     * Container of the input video. Detected from the input file's media type
+     * or URL extension when omitted.
+     */
+    container: z.enum(topazSourceContainers).optional(),
+  });
 
-export type TopazVideoSource = z.infer<typeof topazVideoSourceSchema>;
+export type TopazVideoSource = z.infer<
+  ReturnType<typeof topazVideoSourceSchema>
+>;
 
 /**
  * Output settings for the enhanced video.
  */
-export const topazVideoOutputSchema = z.object({
-  /**
-   * Width of the output video in pixels. Takes precedence over the
-   * `resolution` call option.
-   */
-  width: z.number().int().positive().optional(),
+export const topazVideoOutputSchema = () =>
+  z.object({
+    /**
+     * Width of the output video in pixels. Takes precedence over the
+     * `resolution` call option.
+     */
+    width: z.number().int().positive().optional(),
 
-  /**
-   * Height of the output video in pixels. Takes precedence over the
-   * `resolution` call option.
-   */
-  height: z.number().int().positive().optional(),
+    /**
+     * Height of the output video in pixels. Takes precedence over the
+     * `resolution` call option.
+     */
+    height: z.number().int().positive().optional(),
 
-  /**
-   * Frame rate of the output video. Takes precedence over the `fps` call
-   * option. Topaz only changes the frame rate when a frame-interpolation
-   * filter is present.
-   */
-  frameRate: z.number().positive().optional(),
+    /**
+     * Frame rate of the output video. Takes precedence over the `fps` call
+     * option. Topaz only changes the frame rate when a frame-interpolation
+     * filter is present.
+     */
+    frameRate: z.number().positive().optional(),
 
-  /**
-   * Audio codec of the output video. Defaults to `AAC`.
-   */
-  audioCodec: z.enum(['AAC', 'AC3', 'PCM']).optional(),
+    /**
+     * Audio codec of the output video. Defaults to `AAC`.
+     */
+    audioCodec: z.enum(['AAC', 'AC3', 'PCM']).optional(),
 
-  /**
-   * Audio bitrate, e.g. `192k`. Topaz uses the codec default when omitted.
-   */
-  audioBitrate: z.string().optional(),
+    /**
+     * Audio bitrate, e.g. `192k`. Topaz uses the codec default when omitted.
+     */
+    audioBitrate: z.string().optional(),
 
-  /**
-   * How to handle the input audio track. Defaults to `Copy`.
-   */
-  audioTransfer: z.enum(['Copy', 'Convert', 'None']).optional(),
+    /**
+     * How to handle the input audio track. Defaults to `Copy`.
+     */
+    audioTransfer: z.enum(['Copy', 'Convert', 'None']).optional(),
 
-  /**
-   * Video encoder. Topaz defaults to `H265`. `ProRes` forces a `mov`
-   * container, `AV1` and `VP9` force `mp4`.
-   */
-  videoEncoder: z.enum(['AV1', 'H264', 'H265', 'ProRes', 'VP9']).optional(),
+    /**
+     * Video encoder. Topaz defaults to `H265`. `ProRes` forces a `mov`
+     * container, `AV1` and `VP9` force `mp4`.
+     */
+    videoEncoder: z.enum(['AV1', 'H264', 'H265', 'ProRes', 'VP9']).optional(),
 
-  /**
-   * Encoder profile, e.g. `Main10` for H265 or `422 HQ` for ProRes. Topaz uses
-   * the encoder's default profile when omitted.
-   */
-  videoProfile: z.string().optional(),
+    /**
+     * Encoder profile, e.g. `Main10` for H265 or `422 HQ` for ProRes. Topaz uses
+     * the encoder's default profile when omitted.
+     */
+    videoProfile: z.string().optional(),
 
-  /**
-   * Constant bitrate, e.g. `20m`. Required for `VP9`. Mutually exclusive with
-   * `dynamicCompressionLevel`.
-   */
-  videoBitrate: z.string().optional(),
+    /**
+     * Constant bitrate, e.g. `20m`. Required for `VP9`. Mutually exclusive with
+     * `dynamicCompressionLevel`.
+     */
+    videoBitrate: z.string().optional(),
 
-  /**
-   * Automatic constant-quality compression level. Topaz defaults to `High`
-   * unless `videoBitrate` is set.
-   */
-  dynamicCompressionLevel: z.enum(['Low', 'Mid', 'High']).optional(),
+    /**
+     * Automatic constant-quality compression level. Topaz defaults to `High`
+     * unless `videoBitrate` is set.
+     */
+    dynamicCompressionLevel: z.enum(['Low', 'Mid', 'High']).optional(),
 
-  /**
-   * Center-crop to fit the output dimensions.
-   */
-  cropToFit: z.boolean().optional(),
+    /**
+     * Center-crop to fit the output dimensions.
+     */
+    cropToFit: z.boolean().optional(),
 
-  /**
-   * Container of the output video. Defaults to the input container when Topaz
-   * can produce it, otherwise `mp4`.
-   */
-  container: z.enum(topazOutputContainers).optional(),
-});
+    /**
+     * Container of the output video. Defaults to the input container when Topaz
+     * can produce it, otherwise `mp4`.
+     */
+    container: z.enum(topazOutputContainers).optional(),
+  });
 
-export type TopazVideoOutput = z.infer<typeof topazVideoOutputSchema>;
+export type TopazVideoOutput = z.infer<
+  ReturnType<typeof topazVideoOutputSchema>
+>;
 
 /**
  * Provider options for Topaz video models.
@@ -179,8 +185,8 @@ export const topazVideoModelOptionsSchema = lazySchema(() =>
       pollIntervalMillis: z.number().positive().optional(),
       /** Maximum time to poll, in milliseconds. Defaults to 3600000 (1 hour). */
       pollTimeoutMillis: z.number().positive().optional(),
-      source: topazVideoSourceSchema.optional(),
-      output: topazVideoOutputSchema.optional(),
+      source: topazVideoSourceSchema().optional(),
+      output: topazVideoOutputSchema().optional(),
 
       /**
        * Extra `filters[]` entries to send alongside the model's own filter, e.g. a
