@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readdirSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 import {
   isScopedProviderModel,
@@ -7,7 +8,11 @@ import {
   providerCodeConfigs,
   resolveGatewayOptions,
 } from '../lib/provider-code-config.ts';
-import { renderGatewayCode, hasCodeTemplate } from '../lib/code-template.mjs';
+import {
+  renderGatewayCode,
+  hasCodeTemplate,
+  parseCodeTemplateOptions,
+} from '../lib/code-template.mjs';
 import { resolveModelPlaceholders } from '../lib/geistdocs/model-placeholders.ts';
 
 test('hosted-provider dropdowns include mapped models from other creators and reject unmapped models', () => {
@@ -63,7 +68,7 @@ test('native-provider selectors exclude Gateway routing variants and models requ
 
 
 test('hosted Gateway examples prefer the endpoint provider and keep fallback enabled', () => {
-  const code = "import { generateText } from 'ai';\n__PROVIDER_IMPORT__;\nconst result = await generateText({\n  model: __MODEL__,\n  __GATEWAY_OPTIONS__\n});";
+  const code = "import { generateText } from 'ai';\n__PROVIDER_IMPORT__;\nconst result = await generateText({\n  model: __MODEL__,\n  __GATEWAY_OPTIONS__,\n});";
   for (const [provider, slug] of [
     ['groq', 'groq'], ['deepinfra', 'deepinfra'], ['togetherai', 'togetherai'],
     ['fireworks', 'fireworks'], ['cerebras', 'cerebras'], ['baseten', 'baseten'],
@@ -84,6 +89,43 @@ test('hosted Gateway examples prefer the endpoint provider and keep fallback ena
   for (const provider of ['fal', 'replicate', 'huggingface']) {
     assert.equal(providerCodeConfigs[provider].gatewayProvider, undefined);
   }
+});
+
+test('Gateway options resolve with commas, semicolons, or no punctuation in every tab', () => {
+  for (const punctuation of [',', ';', '']) {
+    for (const ending of ['\n', '\r\n', '']) {
+      const code = `\t__GATEWAY_OPTIONS__${punctuation}  ${ending}`;
+      assert.equal(
+        resolveGatewayOptions(code, 'google-vertex'),
+        "\tproviderOptions: {\n\t  gateway: {\n\t    order: ['vertex'],\n\t  },\n\t},\n",
+      );
+      assert.equal(resolveGatewayOptions(code), '');
+      assert.equal(resolveGatewayOptions(code, 'google'), '');
+    }
+  }
+});
+
+test('published provider-page templates resolve Gateway options from their actual code fences', () => {
+  const directory = new URL(
+    '../../../content/providers/01-ai-sdk-providers/',
+    import.meta.url,
+  );
+  let checked = 0;
+  for (const file of readdirSync(directory).filter(file => file.endsWith('.mdx'))) {
+    const source = readFileSync(new URL(file, directory), 'utf8');
+    const fences = source.matchAll(/^```\w+([^\n]*)\n([\s\S]*?)^```/gm);
+    for (const [, meta, code] of fences) {
+      if (!code.includes('__GATEWAY_OPTIONS__')) continue;
+      const options = parseCodeTemplateOptions(meta);
+      const rendered = renderGatewayCode(code, options);
+      assert.doesNotMatch(rendered, /__\w+__/, file);
+      const slug = providerCodeConfigs[options.provider]?.gatewayProvider;
+      if (slug) assert.ok(rendered.includes(`order: ['${slug}']`), file);
+      assert.doesNotMatch(resolveGatewayOptions(code), /__GATEWAY_OPTIONS__/, file);
+      checked += 1;
+    }
+  }
+  assert.ok(checked > 0, 'expected published templates with Gateway options');
 });
 
 test('hosted selectors reject models absent from that Gateway provider', () => {
