@@ -15,7 +15,7 @@ run(async () => {
         { product: 'Pears', revenue: 80 },
       ]),
     });
-    const bash = await createBashTool({ sandbox });
+    const bash = await createBashTool({ sandbox, timeout: 10_000 });
 
     const agent = new ToolLoopAgent({
       model: 'openai/gpt-6-astra',
