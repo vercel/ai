@@ -13,6 +13,8 @@ import type {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createProviderStreamError,
   createJsonErrorResponseHandler,
@@ -79,10 +81,16 @@ type AmazonBedrockChatConfig = {
   modelFamily?: AmazonBedrockChatModelSettings['modelFamily'];
 };
 
-const anthropicProviderOptions = z.object({
-  disableParallelToolUse: z.boolean().optional(),
-  structuredOutputMode: z.enum(['outputFormat', 'jsonTool', 'auto']).optional(),
-});
+const anthropicProviderOptions = lazySchema(() =>
+  zodSchema(
+    z.object({
+      disableParallelToolUse: z.boolean().optional(),
+      structuredOutputMode: z
+        .enum(['outputFormat', 'jsonTool', 'auto'])
+        .optional(),
+    }),
+  ),
+);
 
 function createAmazonBedrockStreamError({
   type,
@@ -1454,14 +1462,16 @@ const AmazonBedrockToolUseSchema = z.object({
   input: z.unknown().optional(),
 });
 
-const AmazonBedrockReasoningTextSchema = z.object({
-  signature: z.string().nullish(),
-  text: z.string(),
-});
+const AmazonBedrockReasoningTextSchema = () =>
+  z.object({
+    signature: z.string().nullish(),
+    text: z.string(),
+  });
 
-const AmazonBedrockRedactedReasoningSchema = z.object({
-  data: z.string(),
-});
+const AmazonBedrockRedactedReasoningSchema = () =>
+  z.object({
+    data: z.string(),
+  });
 
 const AmazonBedrockCacheDetailSchema = z
   .object({
@@ -1472,68 +1482,72 @@ const AmazonBedrockCacheDetailSchema = z
 
 // limited version of the schema, focused on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const AmazonBedrockResponseSchema = z.object({
-  metrics: z
-    .object({
-      latencyMs: z.number(),
-    })
-    .nullish(),
-  output: z.object({
-    message: z.object({
-      content: z.array(
-        z.object({
-          text: z.string().nullish(),
-          citationsContent: z
-            .object({
-              content: z
-                .array(
-                  z.object({
-                    text: z.string().nullish(),
-                  }),
-                )
+const AmazonBedrockResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      metrics: z
+        .object({
+          latencyMs: z.number(),
+        })
+        .nullish(),
+      output: z.object({
+        message: z.object({
+          content: z.array(
+            z.object({
+              text: z.string().nullish(),
+              citationsContent: z
+                .object({
+                  content: z
+                    .array(
+                      z.object({
+                        text: z.string().nullish(),
+                      }),
+                    )
+                    .nullish(),
+                })
                 .nullish(),
-            })
-            .nullish(),
-          toolUse: AmazonBedrockToolUseSchema.nullish(),
-          reasoningContent: z
-            .union([
-              z.object({
-                reasoningText: AmazonBedrockReasoningTextSchema,
-              }),
-              z.object({
-                redactedReasoning: AmazonBedrockRedactedReasoningSchema,
-              }),
-              // `redactedContent` is a member of the documented
-              // ReasoningContentBlock union. OpenAI models on Bedrock
-              // (e.g. `us.openai.gpt-5.6-luna`) return their encrypted
-              // reasoning in this shape.
-              z.object({
-                redactedContent: z.string(),
-              }),
-            ])
-            .nullish(),
+              toolUse: AmazonBedrockToolUseSchema.nullish(),
+              reasoningContent: z
+                .union([
+                  z.object({
+                    reasoningText: AmazonBedrockReasoningTextSchema(),
+                  }),
+                  z.object({
+                    redactedReasoning: AmazonBedrockRedactedReasoningSchema(),
+                  }),
+                  // `redactedContent` is a member of the documented
+                  // ReasoningContentBlock union. OpenAI models on Bedrock
+                  // (e.g. `us.openai.gpt-5.6-luna`) return their encrypted
+                  // reasoning in this shape.
+                  z.object({
+                    redactedContent: z.string(),
+                  }),
+                ])
+                .nullish(),
+            }),
+          ),
+          role: z.string(),
         }),
-      ),
-      role: z.string(),
+      }),
+      stopReason: AmazonBedrockStopReasonSchema,
+      additionalModelResponseFields:
+        AmazonBedrockAdditionalModelResponseFieldsSchema.nullish(),
+      trace: z.unknown().nullish(),
+      performanceConfig: z.object({ latency: z.string() }).nullish(),
+      serviceTier: z.object({ type: z.string() }).nullish(),
+      usage: z
+        .object({
+          inputTokens: z.number(),
+          outputTokens: z.number(),
+          totalTokens: z.number(),
+          cacheReadInputTokens: z.number().nullish(),
+          cacheWriteInputTokens: z.number().nullish(),
+          cacheDetails: z.array(AmazonBedrockCacheDetailSchema).nullish(),
+        })
+        .catchall(z.json()),
     }),
-  }),
-  stopReason: AmazonBedrockStopReasonSchema,
-  additionalModelResponseFields:
-    AmazonBedrockAdditionalModelResponseFieldsSchema.nullish(),
-  trace: z.unknown().nullish(),
-  performanceConfig: z.object({ latency: z.string() }).nullish(),
-  serviceTier: z.object({ type: z.string() }).nullish(),
-  usage: z
-    .object({
-      inputTokens: z.number(),
-      outputTokens: z.number(),
-      totalTokens: z.number(),
-      cacheReadInputTokens: z.number().nullish(),
-      cacheWriteInputTokens: z.number().nullish(),
-      cacheDetails: z.array(AmazonBedrockCacheDetailSchema).nullish(),
-    })
-    .catchall(z.json()),
-});
+  ),
+);
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
