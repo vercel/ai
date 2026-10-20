@@ -784,13 +784,17 @@ private handleError(error: unknown): never {
 
 To make your provider compatible with [Workflow DevKit](https://useworkflow.dev), model instances need to be serializable when they cross workflow step boundaries. The AI SDK provides helpers that make this straightforward.
 
-First, make `headers` optional in your config type so deserialized models work without pre-configured auth:
+First, make `headers` optional and accept an already-resolved value, so a deserialized model can carry the header map serialization restored:
 
 ```ts filename="custom-chat-language-model.ts"
+import type { Resolvable } from '@ai-sdk/provider-utils';
+
 type CustomChatConfig = {
   provider: string;
   baseURL: string;
-  headers?: () => Record<string, string | undefined>; // must be optional
+  // Optional, and either a function or a plain object: serialization replaces
+  // the function with the object it returns.
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   generateId?: () => string;
 };
@@ -826,22 +830,65 @@ class CustomChatLanguageModel implements LanguageModelV4 {
 }
 ```
 
-`serializeModelOptions()` automatically extracts only serializable config properties (strings, numbers, booleans), filtering out functions like `headers`, `fetch`, and `generateId`.
+`serializeModelOptions()` keeps the config properties that are JSON-serializable and drops the rest, so `fetch` and `generateId` do not survive a step boundary. `headers` is the one special case: a function-valued `headers` is called during serialization and the object it returns is kept. A deserialized model therefore still has its header map, but `headers` is a plain object on that model rather than the function you constructed it with.
 
-Since headers are not serialized, update any call sites to use optional chaining:
+The function has to be synchronous — an async `headers` throws `SerializationError` — and the object it returns is only kept when it is JSON-serializable.
+
+Resolve `headers` at every call site instead of calling it: the model you created has a function there, the model a workflow restored has a plain object.
 
 ```ts
+import { combineHeaders, resolve } from '@ai-sdk/provider-utils';
+
 // Before
 headers: combineHeaders(this.config.headers(), options.headers),
 
-// After
-headers: combineHeaders(this.config.headers?.(), options.headers),
+// After — `resolve()` calls a function and passes a plain object through.
+// The guard stays because `headers` is optional and `resolve()` does not
+// accept `undefined`.
+headers: combineHeaders(
+  this.config.headers ? await resolve(this.config.headers) : undefined,
+  options.headers,
+),
+```
+
+Two call sites need it — the `postJsonToApi` call inside `doGenerate` and the `fetch` call inside `doStream`, both shown in Step 2:
+
+```ts
+// doGenerate
+const response = await postJsonToApi({
+  url: `${this.config.baseURL}/chat/completions`,
+  headers: combineHeaders(
+    this.config.headers ? await resolve(this.config.headers) : undefined,
+    options.headers,
+  ),
+  body: args,
+  abortSignal: options.abortSignal,
+});
+
+// doStream
+const response = await fetch(`${this.config.baseURL}/chat/completions`, {
+  method: 'POST',
+  headers: combineHeaders(
+    this.config.headers ? await resolve(this.config.headers) : undefined,
+    {
+      'Content-Type': 'application/json',
+    },
+  ),
+  body: JSON.stringify({ ...args, stream: true }),
+  signal: options.abortSignal,
+});
 ```
 
 <Note>
-  The deserialized model will not have auth headers. In a workflow context,
-  authentication is typically handled through environment variables or
-  request-level options available in the step execution environment.
+  `this.config.headers?.()` is not a safe substitute: optional chaining skips
+  `null` and `undefined`, not a call on a plain object, so it throws `TypeError`
+  exactly on the model a workflow deserialized.
+
+  Because resolved headers travel with the serialized model, a step can still
+  authenticate with the credentials the model was created with — which also
+  means the header map, including any API key, is part of the workflow payload.
+  If that is not acceptable, leave the key out of the config and pass it per
+  call through `options.headers`.
 </Note>
 
 ## Next Steps
