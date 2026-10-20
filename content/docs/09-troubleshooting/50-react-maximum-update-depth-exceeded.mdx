@@ -23,17 +23,17 @@ Use the `throttle` option to throttle the UI updates:
 ### `useChat`
 
 ```tsx filename="page.tsx" highlight="2-3"
-const { messages, ... } = useChat({
+const { messages } = useChat({
   // Throttle the messages and data updates to 50ms:
-  throttle: 50
-})
+  throttle: 50,
+});
 ```
 
 ### `useCompletion`
 
 ```tsx filename="page.tsx" highlight="2-3"
-const { completion, ... } = useCompletion({
+const { completion } = useCompletion({
   // Throttle the completion and data updates to 50ms:
-  throttle: 50
-})
+  throttle: 50,
+});
 ```

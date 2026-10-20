@@ -216,6 +216,46 @@ describe('createClineSession instructions', () => {
     }
   });
 
+  it('passes inline image prompts to the Cline runtime as ordered message content', async () => {
+    const session = await createSession();
+
+    try {
+      const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'before' },
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: 'iVBORw0KGgo=',
+            },
+            { type: 'text', text: 'after' },
+          ],
+        },
+        emit: vi.fn(),
+      });
+      await control.done;
+
+      expect(clineMock.runInputs).toEqual([
+        {
+          id: expect.any(String),
+          role: 'user',
+          content: [
+            { type: 'text', text: 'before' },
+            { type: 'image', image: 'iVBORw0KGgo=', mediaType: 'image/png' },
+            { type: 'text', text: 'after' },
+          ],
+          createdAt: expect.any(Number),
+        },
+      ]);
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
   it('reuses the configured prompt across turns and tool-driven rebuilds', async () => {
     const session = await createSession();
 
@@ -659,7 +699,6 @@ describe('createClineSession model configuration', () => {
       settings: {
         authEnv: { CLINE_API_KEY: 'cline-key' },
         providerId: 'anthropic',
-        modelId: 'claude-opus-5',
         apiKey: 'anthropic-key',
         baseUrl: 'https://anthropic.example',
         headers: { 'x-custom': 'custom' },
@@ -668,7 +707,25 @@ describe('createClineSession model configuration', () => {
     });
 
     try {
+      const control = await session.doPromptTurn({
+        model: 'claude-opus-5',
+        skills: [],
+        tools: [],
+        prompt: 'Hello',
+        emit: vi.fn(),
+      });
+      await control.done;
+
       expect(clineMock.providerConfigs).toEqual([
+        {
+          providerId: 'anthropic',
+          apiKey: 'anthropic-key',
+          baseUrl: 'https://anthropic.example',
+          headers: {
+            'x-custom': 'custom',
+            'x-agent': 'agent',
+          },
+        },
         {
           providerId: 'anthropic',
           apiKey: 'anthropic-key',
@@ -680,6 +737,7 @@ describe('createClineSession model configuration', () => {
         },
       ]);
       expect(clineMock.modelSelections).toEqual([
+        { providerId: 'anthropic' },
         { providerId: 'anthropic', modelId: 'claude-opus-5' },
       ]);
     } finally {
@@ -695,7 +753,6 @@ describe('createClineSession model configuration', () => {
           AI_GATEWAY_BASE_URL: 'https://gateway.example/',
         },
         providerId: 'anthropic',
-        modelId: 'anthropic/claude-opus-5',
         apiKey: 'anthropic-key',
         baseUrl: 'https://anthropic.example',
         headers: { 'x-custom': 'custom' },
@@ -704,6 +761,15 @@ describe('createClineSession model configuration', () => {
     });
 
     try {
+      const control = await session.doPromptTurn({
+        model: 'anthropic/claude-opus-5',
+        skills: [],
+        tools: [],
+        prompt: 'Hello',
+        emit: vi.fn(),
+      });
+      await control.done;
+
       expect(clineMock.providerConfigs).toEqual([
         {
           providerId: 'cline',
@@ -713,12 +779,25 @@ describe('createClineSession model configuration', () => {
           headers: {
             'x-custom': 'custom',
             'x-agent': 'agent',
-            'User-Agent': 'ai-sdk/harness-cline/0.0.0-test',
-            'x-client-app': 'ai-sdk/harness-cline/0.0.0-test',
+            'User-Agent': 'ai-sdk-harness-cline/0.0.0-test',
+            'x-client-app': 'ai-sdk-harness-cline/0.0.0-test',
+          },
+        },
+        {
+          providerId: 'cline',
+          apiKey: 'gateway-key',
+          apiKeyEnv: [],
+          baseUrl: 'https://gateway.example/v1',
+          headers: {
+            'x-custom': 'custom',
+            'x-agent': 'agent',
+            'User-Agent': 'ai-sdk-harness-cline/0.0.0-test',
+            'x-client-app': 'ai-sdk-harness-cline/0.0.0-test',
           },
         },
       ]);
       expect(clineMock.modelSelections).toEqual([
+        { providerId: 'cline' },
         { providerId: 'cline', modelId: 'anthropic/claude-opus-5' },
       ]);
     } finally {
@@ -743,8 +822,8 @@ describe('createClineSession model configuration', () => {
           apiKeyEnv: [],
           baseUrl: 'https://ai-gateway.vercel.sh/v1',
           headers: {
-            'User-Agent': 'ai-sdk/harness-cline/0.0.0-test',
-            'x-client-app': 'ai-sdk/harness-cline/0.0.0-test',
+            'User-Agent': 'ai-sdk-harness-cline/0.0.0-test',
+            'x-client-app': 'ai-sdk-harness-cline/0.0.0-test',
           },
         },
       ]);
@@ -831,6 +910,62 @@ describe('createClineSession tool results', () => {
       }
     },
   );
+
+  it('submits model-facing text and inline images while keeping the raw output', async () => {
+    const session = await createSession();
+
+    try {
+      const control = await session.doPromptTurn({
+        skills: [],
+        prompt: 'use the lookup tool',
+        tools: [
+          { name: 'lookup', inputSchema: { type: 'object', properties: {} } },
+        ],
+        emit: vi.fn(),
+      });
+      await control.done;
+
+      const config = clineMock.configs.at(-1);
+      if (config == null) throw new Error('expected agent config');
+      const tool = findTool({ config, name: 'lookup' });
+      const resultPromise = Promise.resolve(
+        tool.execute({}, createToolContext({ toolCallId: 'call-1' })),
+      );
+
+      await control.submitToolResult({
+        toolCallId: 'call-1',
+        output: { status: 'ready' },
+        toolResult: {
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName: 'lookup',
+          output: {
+            type: 'content',
+            value: [
+              { type: 'text', text: 'marker' },
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: { type: 'data', data: 'iVBORw==' },
+              },
+            ],
+          },
+        },
+      });
+      const result = await runAfterToolHook({
+        config,
+        tool,
+        output: await resultPromise,
+      });
+
+      expect(result?.result?.output).toEqual([
+        { type: 'text', text: 'marker' },
+        { type: 'image', data: 'iVBORw==', mediaType: 'image/png' },
+      ]);
+    } finally {
+      await session.doDestroy();
+    }
+  });
 
   it('marks a pending host tool result as an error when the session is destroyed', async () => {
     const session = await createSession();
@@ -1116,7 +1251,7 @@ async function createSession(
       isAuthenticationEnvironmentOverride: false,
       ...input.settings,
     },
-    clientApp: 'ai-sdk/harness-cline/0.0.0-test',
+    clientApp: 'ai-sdk-harness-cline/0.0.0-test',
     isResume: input.isResume ?? false,
     ...(input.builtinToolFiltering
       ? { builtinToolFiltering: input.builtinToolFiltering }

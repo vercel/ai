@@ -1,7 +1,9 @@
 import {
   getErrorMessage,
+  type LanguageModelV4Content,
   type LanguageModelV4Prompt,
   type LanguageModelV4StreamPart,
+  type LanguageModelV4ToolChoice,
   type SharedV4Headers,
 } from '@ai-sdk/provider';
 import {
@@ -40,6 +42,7 @@ import {
 import type { DownloadFunction } from '../util/download/download-function';
 import { notify } from '../util/notify';
 import { now as originalNow } from '../util/now';
+import { ToolChoiceViolationError } from '../error';
 import { calculateTokensPerSecond } from './calculate-tokens-per-second';
 import type { ContentPart } from './content-part';
 import { DefaultGeneratedFileWithType } from './generated-file';
@@ -50,6 +53,7 @@ import type {
 } from './language-model-events';
 import type { Output } from './output';
 import { parseToolCall } from './parse-tool-call';
+import { resolveGeneratedFileData } from './resolve-generated-file-data';
 import type {
   TextStreamFilePart,
   TextStreamPart,
@@ -221,6 +225,7 @@ export async function streamLanguageModelCall<
     generateId = originalGenerateId,
     generateCallId = originalGenerateCallId,
     now = originalNow,
+    collectContent = true,
   } = {},
   onStart,
   onLanguageModelCallStart,
@@ -254,6 +259,8 @@ export async function streamLanguageModelCall<
     generateId?: IdGenerator;
     generateCallId?: IdGenerator;
     now?: () => number;
+    /** Internal: content is only needed by collectors and full-content callbacks. */
+    collectContent?: boolean;
   };
   onLanguageModelCallStart?: Arrayable<OnLanguageModelCallStartCallback>;
   onLanguageModelCallEnd?: Arrayable<OnLanguageModelCallEndCallback<TOOLS>>;
@@ -303,6 +310,7 @@ export async function streamLanguageModelCall<
     },
     supportedUrls: await resolvedModel.supportedUrls,
     download,
+    abortSignal,
     provider: resolvedModel.provider.split('.')[0],
   });
 
@@ -369,13 +377,16 @@ export async function streamLanguageModelCall<
       messages: standardizedPrompt.messages,
       repairToolCall,
       refineToolInput,
+      abortSignal,
       callId: effectiveCallId,
       provider: resolvedModel.provider,
       modelId: resolvedModel.modelId,
+      toolChoice: stepToolChoice,
       generateId,
       now,
       callStartTimestampMs,
       onLanguageModelCallEnd,
+      collectContent,
     }),
   );
 
@@ -395,33 +406,42 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   messages,
   repairToolCall,
   refineToolInput,
+  abortSignal,
   callId,
   provider,
   modelId,
+  toolChoice,
   generateId,
   now,
   callStartTimestampMs,
   onLanguageModelCallEnd,
+  collectContent,
 }: {
   tools: TOOLS | undefined;
   instructions: Instructions | undefined;
   messages: ModelMessage[];
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
   refineToolInput: ToolInputRefinement<TOOLS> | undefined;
+  abortSignal: AbortSignal | undefined;
   callId: string;
   provider: string;
   modelId: string;
+  toolChoice: LanguageModelV4ToolChoice;
   generateId: IdGenerator;
   now: () => number;
   callStartTimestampMs: number;
   onLanguageModelCallEnd?: Arrayable<OnLanguageModelCallEndCallback<TOOLS>>;
+  collectContent: boolean;
 }) {
   // keep track of parsed tool calls so provider-emitted approval requests can reference them
   // keep track of tool inputs for provider-side tool results
   const toolCallsByToolCallId = new Map<string, TypedToolCall<TOOLS>>();
   const modelCallContent: Array<ContentPart<TOOLS>> = [];
+  const rawModelCallContent: Array<LanguageModelV4Content> = [];
   const textPartIndexes = new Map<string, number>();
   const reasoningPartIndexes = new Map<string, number>();
+  const rawTextPartIndexes = new Map<string, number>();
+  const rawReasoningPartIndexes = new Map<string, number>();
   let responseId = generateId();
   let responseModelId = modelId;
   let timeToFirstOutputMs: number | undefined;
@@ -457,8 +477,11 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
 
         case 'text-start':
           upsertTextContentPart({
+            enabled: collectContent,
             content: modelCallContent,
+            rawContent: rawModelCallContent,
             partIndexes: textPartIndexes,
+            rawPartIndexes: rawTextPartIndexes,
             id: chunk.id,
             type: 'text',
             providerMetadata: chunk.providerMetadata,
@@ -468,8 +491,11 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
 
         case 'text-delta':
           upsertTextContentPart({
+            enabled: collectContent,
             content: modelCallContent,
+            rawContent: rawModelCallContent,
             partIndexes: textPartIndexes,
+            rawPartIndexes: rawTextPartIndexes,
             id: chunk.id,
             type: 'text',
             textDelta: chunk.delta,
@@ -485,20 +511,27 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
 
         case 'text-end':
           upsertTextContentPart({
+            enabled: collectContent,
             content: modelCallContent,
+            rawContent: rawModelCallContent,
             partIndexes: textPartIndexes,
+            rawPartIndexes: rawTextPartIndexes,
             id: chunk.id,
             type: 'text',
             providerMetadata: chunk.providerMetadata,
           });
           textPartIndexes.delete(chunk.id);
+          rawTextPartIndexes.delete(chunk.id);
           controller.enqueue(chunk);
           break;
 
         case 'reasoning-start':
           upsertTextContentPart({
+            enabled: collectContent,
             content: modelCallContent,
+            rawContent: rawModelCallContent,
             partIndexes: reasoningPartIndexes,
+            rawPartIndexes: rawReasoningPartIndexes,
             id: chunk.id,
             type: 'reasoning',
             providerMetadata: chunk.providerMetadata,
@@ -508,8 +541,11 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
 
         case 'reasoning-delta':
           upsertTextContentPart({
+            enabled: collectContent,
             content: modelCallContent,
+            rawContent: rawModelCallContent,
             partIndexes: reasoningPartIndexes,
+            rawPartIndexes: rawReasoningPartIndexes,
             id: chunk.id,
             type: 'reasoning',
             textDelta: chunk.delta,
@@ -525,33 +561,39 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
 
         case 'reasoning-end':
           upsertTextContentPart({
+            enabled: collectContent,
             content: modelCallContent,
+            rawContent: rawModelCallContent,
             partIndexes: reasoningPartIndexes,
+            rawPartIndexes: rawReasoningPartIndexes,
             id: chunk.id,
             type: 'reasoning',
             providerMetadata: chunk.providerMetadata,
           });
           reasoningPartIndexes.delete(chunk.id);
+          rawReasoningPartIndexes.delete(chunk.id);
           controller.enqueue(chunk);
           break;
 
         case 'file':
         case 'reasoning-file': {
           const file = new DefaultGeneratedFileWithType({
-            data:
-              chunk.data.type === 'data'
-                ? chunk.data.data
-                : chunk.data.url.toString(),
+            data: await resolveGeneratedFileData({
+              data: chunk.data,
+              abortSignal,
+            }),
             mediaType: chunk.mediaType,
           });
 
-          modelCallContent.push({
-            type: chunk.type,
-            file,
-            ...(chunk.providerMetadata != null
-              ? { providerMetadata: chunk.providerMetadata }
-              : {}),
-          });
+          if (collectContent)
+            modelCallContent.push({
+              type: chunk.type,
+              file,
+              ...(chunk.providerMetadata != null
+                ? { providerMetadata: chunk.providerMetadata }
+                : {}),
+            });
+          if (collectContent) rawModelCallContent.push(chunk);
 
           controller.enqueue({
             type: chunk.type,
@@ -612,18 +654,56 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
             callbacks: onLanguageModelCallEnd,
           });
 
+          const enforcedToolChoice =
+            toolChoice.type === 'required' || toolChoice.type === 'tool'
+              ? toolChoice
+              : undefined;
+
+          const toolChoiceViolationError =
+            enforcedToolChoice != null &&
+            ![...toolCallsByToolCallId.values()].some(
+              toolCall =>
+                enforcedToolChoice.type === 'required' ||
+                toolCall.toolName === enforcedToolChoice.toolName,
+            )
+              ? new ToolChoiceViolationError({
+                  toolChoice: enforcedToolChoice,
+                  finishReason: chunk.finishReason.unified,
+                  provider,
+                  modelId,
+                  content: rawModelCallContent,
+                })
+              : undefined;
+
+          // Preserve the completed model call's usage, metadata, and
+          // performance even when response validation below surfaces a
+          // semantic error. Prevent invalid tool calls from being executed
+          // when the model-call-end event reaches the tool executor.
           controller.enqueue({
             type: 'model-call-end',
-            finishReason: chunk.finishReason.unified,
+            finishReason:
+              toolChoiceViolationError == null
+                ? chunk.finishReason.unified
+                : 'error',
             rawFinishReason: chunk.finishReason.raw,
             usage,
             providerMetadata: chunk.providerMetadata,
             performance,
           });
+
+          if (toolChoiceViolationError != null) {
+            controller.enqueue({
+              type: 'error',
+              error: toolChoiceViolationError,
+            });
+            break;
+          }
           break;
         }
 
         case 'tool-call': {
+          if (collectContent) rawModelCallContent.push(chunk);
+
           try {
             const toolCall = await parseToolCall({
               toolCall: chunk,
@@ -632,11 +712,12 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
               refineToolInput,
               instructions,
               messages,
+              abortSignal,
             });
 
             toolCallsByToolCallId.set(toolCall.toolCallId, toolCall);
             controller.enqueue(toolCall);
-            modelCallContent.push(toolCall);
+            if (collectContent) modelCallContent.push(toolCall);
 
             if (toolCall.invalid) {
               if (!toolCall.providerExecuted) {
@@ -663,6 +744,8 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
         }
 
         case 'tool-approval-request': {
+          if (collectContent) rawModelCallContent.push(chunk);
+
           const toolCall = toolCallsByToolCallId.get(chunk.toolCallId);
 
           if (toolCall == null) {
@@ -683,11 +766,13 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
           } as const;
 
           controller.enqueue(toolApprovalRequest);
-          modelCallContent.push(toolApprovalRequest);
+          if (collectContent) modelCallContent.push(toolApprovalRequest);
           break;
         }
 
         case 'tool-result': {
+          if (collectContent) rawModelCallContent.push(chunk);
+
           const toolName = chunk.toolName as keyof TOOLS & string;
           const toolCall = toolCallsByToolCallId.get(chunk.toolCallId);
 
@@ -724,7 +809,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
               } as TypedToolResult<TOOLS>);
 
           controller.enqueue(toolResultPart);
-          modelCallContent.push(toolResultPart);
+          if (collectContent) modelCallContent.push(toolResultPart);
 
           break;
         }
@@ -764,7 +849,8 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
 
         default:
           if (chunk.type === 'custom' || chunk.type === 'source') {
-            modelCallContent.push(chunk);
+            if (collectContent) modelCallContent.push(chunk);
+            if (collectContent) rawModelCallContent.push(chunk);
           }
 
           controller.enqueue(chunk);
@@ -817,20 +903,27 @@ function calculateNearestRankPercentile(
  * Appends a text or reasoning content part into the content array and updates the part indexes.
  */
 function upsertTextContentPart<TOOLS extends ToolSet>({
+  enabled,
   content,
+  rawContent,
   partIndexes,
+  rawPartIndexes,
   id,
   type,
   textDelta,
   providerMetadata,
 }: {
+  enabled: boolean;
   content: Array<ContentPart<TOOLS>>;
+  rawContent: Array<LanguageModelV4Content>;
   partIndexes: Map<string, number>;
+  rawPartIndexes: Map<string, number>;
   id: string;
   type: 'text' | 'reasoning';
   textDelta?: string;
   providerMetadata?: ProviderMetadata;
 }) {
+  if (!enabled) return;
   let partIndex = partIndexes.get(id);
 
   if (partIndex == null) {
@@ -843,16 +936,34 @@ function upsertTextContentPart<TOOLS extends ToolSet>({
     partIndexes.set(id, partIndex);
   }
 
+  let rawPartIndex = rawPartIndexes.get(id);
+
+  if (rawPartIndex == null) {
+    rawPartIndex =
+      rawContent.push({
+        type,
+        text: '',
+        ...(providerMetadata != null ? { providerMetadata } : {}),
+      }) - 1;
+    rawPartIndexes.set(id, rawPartIndex);
+  }
+
   const part = content[partIndex] as {
+    text: string;
+    providerMetadata?: ProviderMetadata;
+  };
+  const rawPart = rawContent[rawPartIndex] as {
     text: string;
     providerMetadata?: ProviderMetadata;
   };
 
   if (textDelta != null) {
     part.text += textDelta;
+    rawPart.text += textDelta;
   }
 
   if (providerMetadata != null) {
     part.providerMetadata = providerMetadata;
+    rawPart.providerMetadata = providerMetadata;
   }
 }

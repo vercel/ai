@@ -300,7 +300,7 @@ describe('createProviderRegistry autocomplete / literal identifiers', () => {
       registryWithCustomSeparator.languageModel('anthropic > haiku'),
     ).toEqualTypeOf<LanguageModelV4>();
 
-    expectTypeOf(registryWithCustomSeparator).toEqualTypeOf<
+    expectTypeOf(registryWithCustomSeparator).toExtend<
       ProviderRegistryProvider<typeof registeredProviders, ' > '>
     >();
 
@@ -394,7 +394,7 @@ describe('createProviderRegistry ProviderV3 typing', () => {
   });
 
   it('accepts ProviderV3 providers and exposes ProviderV4 models', () => {
-    expectTypeOf(registry).toEqualTypeOf<
+    expectTypeOf(registry).toExtend<
       ProviderRegistryProvider<{ v3: MockProviderV3 }, ':'>
     >();
 

@@ -2,6 +2,7 @@ import {
   InvalidResponseDataError,
   type EmbeddingModelV4,
 } from '@ai-sdk/provider';
+import { EXPERIMENTAL_EMBEDDING_MODEL_PROVIDER_OPTIONS_TRANSFORMER } from '@ai-sdk/provider-utils';
 import assert from 'node:assert';
 import {
   afterEach,
@@ -12,6 +13,7 @@ import {
   vi,
   vitest,
 } from 'vitest';
+import { InvalidArgumentError } from '../error/invalid-argument-error';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
 import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
@@ -228,6 +230,34 @@ describe('model.supportsParallelCalls', () => {
 
     expect(embeddings).toStrictEqual(dummyEmbeddings);
   });
+
+  it.each([0, -1])(
+    'should throw InvalidArgumentError when maxParallelCalls is %s',
+    async maxParallelCalls => {
+      let error: unknown;
+
+      try {
+        await embedMany({
+          maxParallelCalls,
+          model: new MockEmbeddingModelV4({
+            supportsParallelCalls: true,
+            maxEmbeddingsPerCall: 1,
+          }),
+          values: testValues,
+        });
+      } catch (caughtError) {
+        error = caughtError;
+      }
+
+      expect(InvalidArgumentError.isInstance(error)).toBe(true);
+      expect(error).toMatchObject({
+        parameter: 'chunkSize',
+        value: maxParallelCalls,
+        message:
+          'Invalid argument for parameter chunkSize: chunkSize must be greater than 0',
+      });
+    },
+  );
 });
 
 describe('result.embedding', () => {
@@ -521,9 +551,129 @@ describe('options.providerOptions', () => {
       values: ['test-input'],
     });
   });
+
+  it.each([
+    { maxParallelCalls: 1 },
+    { maxParallelCalls: 2 },
+    { maxParallelCalls: Infinity },
+    { maxParallelCalls: 2, maxInputBytesPerCall: 3 },
+  ])(
+    'should align provider options across batches with limits %j',
+    async ({ maxParallelCalls, maxInputBytesPerCall }) => {
+      const values = ['aaa', 'b', 'b', 'dd', 'e'];
+      const content = ['content-0', null, 'content-2', 'content-3', null];
+      const providerOptions = { aProvider: { content } };
+      const ranges = maxInputBytesPerCall
+        ? [
+            [0, 1],
+            [1, 3],
+            [3, 5],
+          ]
+        : [
+            [0, 2],
+            [2, 4],
+            [4, 5],
+          ];
+      const providerOptionsTransformer = vi.fn(
+        async ({ providerOptions, startIndex, endIndex }) => {
+          // Yield so concurrent batches cannot share a mutable offset.
+          await Promise.resolve();
+          return {
+            ...providerOptions,
+            aProvider: {
+              ...providerOptions.aProvider,
+              content: providerOptions.aProvider.content.slice(
+                startIndex,
+                endIndex,
+              ),
+            },
+          };
+        },
+      );
+      const model = Object.assign(
+        new MockEmbeddingModelV4({
+          maxEmbeddingsPerCall: 2,
+          maxInputBytesPerCall,
+          supportsParallelCalls: true,
+          doEmbed: async ({ values }) => ({
+            embeddings: values.map(value => [value.length]),
+            warnings: [],
+          }),
+        }),
+        {
+          [EXPERIMENTAL_EMBEDDING_MODEL_PROVIDER_OPTIONS_TRANSFORMER]:
+            providerOptionsTransformer,
+        },
+      );
+
+      const result = await embedMany({
+        model,
+        values,
+        providerOptions,
+        maxParallelCalls,
+      });
+
+      expect(providerOptionsTransformer.mock.calls).toStrictEqual(
+        ranges.map(([startIndex, endIndex]) => [
+          {
+            providerOptions,
+            values,
+            startIndex,
+            endIndex,
+          },
+        ]),
+      );
+      expect(
+        model.doEmbedCalls.map(call => call.providerOptions),
+      ).toStrictEqual(
+        ranges.map(([startIndex, endIndex]) => ({
+          aProvider: { content: content.slice(startIndex, endIndex) },
+        })),
+      );
+      expect(result.embeddings).toStrictEqual([[3], [1], [1], [2], [1]]);
+    },
+  );
 });
 
 describe('result.providerMetadata', () => {
+  it.each(['__proto__', 'constructor', 'toString'])(
+    'merges metadata for provider %s as an own property',
+    async providerName => {
+      const result = await embedMany({
+        model: new MockEmbeddingModelV4({
+          maxEmbeddingsPerCall: 1,
+          doEmbed: [
+            {
+              embeddings: [[1]],
+              warnings: [],
+              providerMetadata: { other: {} },
+            },
+            {
+              embeddings: [[2]],
+              warnings: [],
+              providerMetadata: { [providerName]: { first: true } },
+            },
+            {
+              embeddings: [[3]],
+              warnings: [],
+              providerMetadata: { [providerName]: { second: true } },
+            },
+          ],
+        }),
+        values: ['a', 'b', 'c'],
+      });
+
+      expect(Object.getPrototypeOf(result.providerMetadata)).toBe(
+        Object.prototype,
+      );
+      expect(Object.hasOwn(result.providerMetadata!, providerName)).toBe(true);
+      expect(Object.entries(result.providerMetadata!)).toStrictEqual([
+        ['other', {}],
+        [providerName, { first: true, second: true }],
+      ]);
+    },
+  );
+
   it('should include provider metadata when returned by the model', async () => {
     const providerMetadata = {
       gateway: { routing: { resolvedProvider: 'test-provider' } },

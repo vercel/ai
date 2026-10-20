@@ -277,6 +277,10 @@ These guidelines outline typical artifacts for different task types. Use judgmen
 
 ### Bug Fixes
 
+A bug reproduction should be a single runnable script in
+`examples/ai-functions` (usually `src/reproduction/`), using the issue's own
+snippet where possible. Do not add assertions or a test runner unless requested.
+
 A complete bug fix typically includes:
 
 1. **Reproduction example**: Create/update an example in `examples/` that demonstrates the bug before fixing

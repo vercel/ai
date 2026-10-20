@@ -228,7 +228,7 @@ describe('doGenerate', () => {
       'custom-request-header': 'request-header-value',
     });
     expect(server.calls[0].requestUserAgent).toContain(
-      `ai-sdk/mistral/0.0.0-test`,
+      `ai-sdk-mistral/0.0.0-test`,
     );
   });
 
@@ -502,6 +502,48 @@ describe('doGenerate', () => {
         },
       }
     `);
+  });
+
+  it('should inject JSON schema when structured outputs are disabled', async () => {
+    prepareJsonFixtureResponse('mistral-text');
+
+    const schema = {
+      type: 'object' as const,
+      properties: {
+        name: { type: 'string' as const },
+      },
+    };
+
+    const { request } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema,
+      },
+      providerOptions: {
+        mistral: {
+          structuredOutputs: false,
+        },
+      },
+    });
+
+    expect(request).toMatchObject({
+      body: {
+        messages: [
+          {
+            role: 'system',
+            content:
+              'JSON schema:\n' +
+              JSON.stringify(schema) +
+              '\nYou MUST answer with a JSON object that matches the JSON schema above.',
+          },
+          ...TEST_PROMPT,
+        ],
+        response_format: {
+          type: 'json_object',
+        },
+      },
+    });
   });
 
   it('should pass parallelToolCalls option', async () => {
@@ -858,6 +900,31 @@ describe('doGenerate', () => {
         }),
       );
     });
+
+    it.each([
+      'mistral-large-4',
+      'mistral-large-4-0',
+      'mistral-medium-3-5',
+      'mistral-medium-latest',
+      'mistral-vibe-cli-fast',
+      'zai-glm-5-2',
+      'glm-5-2',
+      'labs-leanstral-1-5',
+    ] as const)('should not warn about reasoning for %s', async modelId => {
+      const reasoningModel = provider.chat(modelId);
+
+      const result = await reasoningModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+      });
+
+      expect(result.warnings).not.toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'reasoning',
+        }),
+      );
+    });
   });
 
   describe('reasoning_effort', () => {
@@ -898,6 +965,23 @@ describe('doGenerate', () => {
       });
     });
 
+    it('should send reasoning_effort high with a warning for reasoning max', async () => {
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'max',
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        reasoning_effort: 'high',
+      });
+      expect(result.warnings).toContainEqual({
+        type: 'compatibility',
+        feature: 'reasoning',
+        details:
+          'reasoning "max" is not directly supported by this model. mapped to effort "high".',
+      });
+    });
+
     it('should send reasoning_effort none for reasoning none', async () => {
       await model.doGenerate({
         prompt: TEST_PROMPT,
@@ -923,6 +1007,35 @@ describe('doGenerate', () => {
       });
     });
 
+    it.each([
+      'magistral-large-latest',
+      'mistral-large-5',
+      'future-reasoning-model',
+    ])(
+      'forwards reasoning and provider overrides for future model %s',
+      async modelId => {
+        const model = provider.chat(modelId);
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'high',
+        });
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          reasoning_effort: 'high',
+        });
+        expect(result.warnings).not.toContainEqual(
+          expect.objectContaining({ feature: 'reasoning' }),
+        );
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'high',
+          providerOptions: { mistral: { reasoningEffort: 'none' } },
+        });
+        expect(await server.calls[1].requestBodyJson).toMatchObject({
+          reasoning_effort: 'none',
+        });
+      },
+    );
+
     it('should not send reasoning_effort for non-supporting models', async () => {
       const unsupportedModel = provider.chat('mistral-large-latest');
       await unsupportedModel.doGenerate({
@@ -933,6 +1046,46 @@ describe('doGenerate', () => {
       const body = await server.calls[0].requestBodyJson;
       expect(body).not.toHaveProperty('reasoning_effort');
     });
+
+    it.each([
+      'mistral-large-4',
+      'mistral-large-4-0',
+      'mistral-medium-3-5',
+      'mistral-medium-latest',
+      'mistral-vibe-cli-fast',
+      'zai-glm-5-2',
+      'glm-5-2',
+      'labs-leanstral-1-5',
+    ] as const)('should send reasoning_effort for %s', async modelId => {
+      const reasoningModel = provider.chat(modelId);
+
+      await reasoningModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        reasoning_effort: 'high',
+      });
+    });
+
+    it.each(['mistral-large-4', 'mistral-large-4-0'] as const)(
+      'should send provider reasoning_effort for %s',
+      async modelId => {
+        const reasoningModel = provider.chat(modelId);
+
+        await reasoningModel.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            mistral: { reasoningEffort: 'high' },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          reasoning_effort: 'high',
+        });
+      },
+    );
   });
 });
 
@@ -1094,7 +1247,7 @@ describe('doStream', () => {
       'custom-request-header': 'request-header-value',
     });
     expect(server.calls[0].requestUserAgent).toContain(
-      `ai-sdk/mistral/0.0.0-test`,
+      `ai-sdk-mistral/0.0.0-test`,
     );
   });
 

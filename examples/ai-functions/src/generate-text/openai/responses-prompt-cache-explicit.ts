@@ -13,11 +13,11 @@ const stablePrefix =
   );
 // A fresh key ensures the first request demonstrates a cache write. Applications
 // should reuse a stable key for requests that share the same prefix.
-const promptCacheKey = `ai-sdk:gpt-5.6:responses-explicit-cache:${randomUUID()}`;
+const promptCacheKey = `ai-sdk:gpt-6-sol:responses-explicit-cache:${randomUUID()}`;
 
 async function generateWithCachedPrefix(question: string) {
   return generateText({
-    model: openai.responses('gpt-5.6'),
+    model: openai.responses('gpt-6-sol'),
     reasoning: 'none',
     maxOutputTokens: 80,
     allowSystemInMessages: true,

@@ -136,6 +136,12 @@ const languageMap = {
   welsh: 'cy',
 };
 
+function isLanguageCode(
+  language: string | null | undefined,
+): language is string {
+  return language != null && /^[a-z]{2}$/.test(language);
+}
+
 export class OpenAITranscriptionModel implements TranscriptionModelV4 {
   readonly specificationVersion = 'v4';
 
@@ -180,7 +186,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
     const formData = new FormData();
     const blob =
       audio instanceof Uint8Array
-        ? new Blob([audio])
+        ? new Blob([audio as Uint8Array<ArrayBuffer>])
         : new Blob([convertBase64ToUint8Array(audio)]);
 
     formData.append('model', this.modelId);
@@ -299,9 +305,16 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
     });
 
     const language =
-      response.language != null && response.language in languageMap
-        ? languageMap[response.language as keyof typeof languageMap]
-        : undefined;
+      (isLanguageCode(response.language)
+        ? response.language
+        : response.language != null &&
+            Object.prototype.hasOwnProperty.call(languageMap, response.language)
+          ? languageMap[response.language as keyof typeof languageMap]
+          : undefined) ??
+      (response.languages?.length === 1 &&
+      isLanguageCode(response.languages[0].code)
+        ? response.languages[0].code
+        : undefined);
 
     const diarizedSegments = response.segments?.flatMap(segment =>
       'speaker' in segment
@@ -333,20 +346,27 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
       language,
       durationInSeconds: response.duration ?? undefined,
       warnings,
+      ...(response.usage != null && { usage: response.usage }),
       response: {
         timestamp: currentDate,
         modelId: this.modelId,
         headers: responseHeaders,
         body: rawResponse,
       },
-      ...(diarizedSegments != null &&
-        diarizedSegments.length > 0 && {
-          providerMetadata: {
-            openai: {
-              segments: diarizedSegments,
-            },
+      ...(((diarizedSegments != null && diarizedSegments.length > 0) ||
+        response.languages != null) && {
+        providerMetadata: {
+          openai: {
+            ...(diarizedSegments != null &&
+              diarizedSegments.length > 0 && {
+                segments: diarizedSegments,
+              }),
+            ...(response.languages != null && {
+              languages: response.languages,
+            }),
           },
-        }),
+        },
+      }),
     };
   }
 

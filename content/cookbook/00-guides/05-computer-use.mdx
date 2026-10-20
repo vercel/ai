@@ -190,7 +190,7 @@ const bashTool = anthropic.tools.bash_20250124({
   execute: async ({ command, restart }) => execSync(command).toString()
 });
 
-const textEditorTool = anthropic.tools.textEditor_20250124({
+const textEditorTool = anthropic.tools.textEditor_20250728({
   execute: async ({
     command,
     path,

@@ -4,9 +4,11 @@ We deeply appreciate your interest in contributing to our repository! Whether yo
 
 ## How We Value Contributions
 
-AI SDK maintenance is becoming increasingly automated. Maintainers and automated workflows will take on more of the routine work involved in reviewing new issues, triaging reports, reproducing bugs, and preparing bug fix pull requests.
+We use our own specialized agents to work on open issues, including bug fixes and feature implementations. Maintainers and automated workflows also review new issues, triage reports, and reproduce bugs.
 
 Because of this, the most helpful contribution is often a high-quality issue rather than a complete pull request. Clear bug reports, minimal reproductions, failing tests, precise documentation feedback, and thoughtful feature requests help us understand the problem and make better fixes for everyone.
+
+We discourage opening pull requests to fix bug reports or implement feature requests authored by someone else. An exception is a pull request that adds useful context best expressed with code, such as a minimal reproduction, a failing test, or a focused example that clarifies the expected behavior. Please link the issue and explain what new context your code provides.
 
 Pull requests are still welcome, especially when they:
 
@@ -19,6 +21,10 @@ Pull requests are still welcome, especially when they:
 You do not need to send a full implementation for maintainers to value your contribution. When an issue leads to a bug fix pull request, we will credit the issue author with co-authorship where appropriate. Pull request authors will also be credited when their work adds valuable input to resolving a bug report or improves the quality of the fix.
 
 We know this transition may feel different from how open source contribution has traditionally worked. We value our community and all the ways people help AI SDK grow. If this process creates friction or frustration, please open a `feedback` issue and tell us what is not working.
+
+## Becoming a Contributor or Committer
+
+If you're interested in becoming a contributor or committer, we encourage you to use the AI SDK extensively in real projects and report issues you encounter through real-life usage. Sharing concrete use cases, clear bug reports, and feature requests grounded in that experience helps us understand what matters to users and improve the SDK.
 
 ## Reporting Bugs
 
@@ -101,7 +107,7 @@ Please run `pnpm update-references` in workspace root to update the `references`
 
 ### Submitting Pull Requests
 
-We greatly appreciate focused pull requests. Before investing in a full implementation for a bug fix, please consider opening or improving an issue first. Maintainers and automated workflows may prepare the final fix, and we will credit high-quality reports that lead to fixes.
+We greatly appreciate focused pull requests. Before investing in an implementation, please review [how we value contributions](#how-we-value-contributions) and open or improve an issue first. Please avoid submitting fixes or feature implementations for issues you did not author, unless the purpose of the pull request is to add useful context best expressed with code. Our specialized agents work on open issues, and we will credit high-quality reports that lead to fixes.
 
 Pull requests are most helpful when they include documentation fixes, reproduction examples, failing tests, or small focused changes that make the issue clearer.
 

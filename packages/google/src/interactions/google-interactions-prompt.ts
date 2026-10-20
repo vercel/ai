@@ -40,8 +40,8 @@ export type GoogleInteractionsVideoProcessing =
   | 'static'
   | {
       type: 'static';
-      start_offset?: number;
-      end_offset?: number;
+      start_offset?: string;
+      end_offset?: string;
       fps?: number;
     };
 

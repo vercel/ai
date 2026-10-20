@@ -17,7 +17,7 @@ const baseRecipe: HarnessV1Bootstrap = {
   ],
   commands: [{ command: 'echo first' }, { command: 'echo second' }],
 };
-const defaultWorkingDirectory = '/work';
+const stateDirectory = '/work';
 
 describe('hashHarnessBootstrap', () => {
   it('produces a deterministic 16-char hex id for the same recipe', async () => {
@@ -76,6 +76,12 @@ describe('hashHarnessBootstrap', () => {
       await hashHarnessBootstrap(baseRecipe),
     );
   });
+
+  it('includes the harness state directory in the recipe identity', async () => {
+    expect(await hashHarnessBootstrap(baseRecipe)).toMatchInlineSnapshot(
+      '"2b1b95adf78b2953"',
+    );
+  });
 });
 
 describe('bootstrapMarkerPath', () => {
@@ -84,12 +90,12 @@ describe('bootstrapMarkerPath', () => {
       bootstrapMarkerPath({
         recipe: baseRecipe,
         identity: 'abc1234567890def',
-        defaultWorkingDirectory,
+        stateDirectory,
       }),
     ).toBe('/tmp/harness/demo/.bootstrap-abc1234567890def.ok');
   });
 
-  it('resolves a relative bootstrapDir against the default working directory', () => {
+  it('resolves a relative bootstrapDir against the state directory', () => {
     expect(
       bootstrapMarkerPath({
         recipe: {
@@ -97,7 +103,7 @@ describe('bootstrapMarkerPath', () => {
           bootstrapDir: '.harness-bootstrap/demo',
         },
         identity: 'abc1234567890def',
-        defaultWorkingDirectory,
+        stateDirectory,
       }),
     ).toBe('/work/.harness-bootstrap/demo/.bootstrap-abc1234567890def.ok');
   });
@@ -120,7 +126,7 @@ describe('applyBootstrapRecipe', () => {
     const markerPath = bootstrapMarkerPath({
       recipe: baseRecipe,
       identity,
-      defaultWorkingDirectory,
+      stateDirectory,
     });
     const readTextFile = vi.fn(async (args: { path: string }) => {
       if (args.path === markerPath && opts?.markerExists) return '';
@@ -161,7 +167,7 @@ describe('applyBootstrapRecipe', () => {
       session,
       recipe: baseRecipe,
       identity,
-      defaultWorkingDirectory,
+      stateDirectory,
     });
     expect(readTextFile).toHaveBeenCalledTimes(1);
     expect(writeTextFile).not.toHaveBeenCalled();
@@ -174,7 +180,7 @@ describe('applyBootstrapRecipe', () => {
       session,
       recipe: baseRecipe,
       identity,
-      defaultWorkingDirectory,
+      stateDirectory,
     });
     expect(writeTextFile).toHaveBeenCalledTimes(
       baseRecipe.files.length + 1, // recipe files + marker
@@ -182,12 +188,11 @@ describe('applyBootstrapRecipe', () => {
     expect(run).toHaveBeenCalledTimes(baseRecipe.commands.length + 1);
     expect(run).toHaveBeenNthCalledWith(1, {
       command: 'mkdir -p "$BOOTSTRAP_DIR"',
-      workingDirectory: defaultWorkingDirectory,
       env: { BOOTSTRAP_DIR: '/tmp/harness/demo' },
       abortSignal: undefined,
     });
     expect(run.mock.calls.map(([args]) => args.workingDirectory)).toEqual([
-      defaultWorkingDirectory,
+      undefined,
       '/tmp/harness/demo',
       '/tmp/harness/demo',
     ]);
@@ -199,7 +204,7 @@ describe('applyBootstrapRecipe', () => {
       bootstrapMarkerPath({
         recipe: baseRecipe,
         identity,
-        defaultWorkingDirectory,
+        stateDirectory,
       }),
     );
   });
@@ -222,7 +227,7 @@ describe('applyBootstrapRecipe', () => {
       session,
       recipe: relativeRecipe,
       identity,
-      defaultWorkingDirectory,
+      stateDirectory,
     });
 
     expect(readTextFile).toHaveBeenCalledWith({
@@ -234,7 +239,7 @@ describe('applyBootstrapRecipe', () => {
       '/work/.harness-bootstrap/demo/.bootstrap-idtest1234567890.ok',
     ]);
     expect(run.mock.calls.map(([args]) => args.workingDirectory)).toEqual([
-      '/work',
+      undefined,
       '/work/.harness-bootstrap/demo',
       '/work/.harness-bootstrap/demo',
     ]);
@@ -250,7 +255,7 @@ describe('applyBootstrapRecipe', () => {
         session,
         recipe: baseRecipe,
         identity,
-        defaultWorkingDirectory,
+        stateDirectory,
       }),
     ).rejects.toThrow(/Bootstrap command failed.*exit 7.*boom/s);
     expect(run).toHaveBeenCalledTimes(2);
@@ -260,7 +265,7 @@ describe('applyBootstrapRecipe', () => {
         bootstrapMarkerPath({
           recipe: baseRecipe,
           identity,
-          defaultWorkingDirectory,
+          stateDirectory,
         }),
     );
     expect(markerWrites).toHaveLength(0);
@@ -277,7 +282,7 @@ describe('applyBootstrapRecipe', () => {
         session,
         recipe: baseRecipe,
         identity,
-        defaultWorkingDirectory,
+        stateDirectory,
       }),
     ).rejects.toThrow(
       /Failed to create bootstrap directory.*exit 9.*mkdir failed/s,

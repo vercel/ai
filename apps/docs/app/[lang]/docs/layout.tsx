@@ -1,18 +1,13 @@
 import { GeistdocsDocsLayout } from '@vercel/geistdocs/layout';
+import { getRootLang } from '@/lib/geistdocs/root-params';
 import type { ReactNode } from 'react';
 import { VersionSelect } from '@/components/docs/version-select';
 import { config } from '@/lib/geistdocs/config';
 import { v7Source } from '@/lib/geistdocs/source';
-import { missingVersionPaths } from '@/lib/geistdocs/version-paths';
+import { getVersionPaths } from '@/lib/geistdocs/version-paths';
 
-const DocsLayout = async ({
-  children,
-  params,
-}: {
-  children: ReactNode;
-  params: Promise<{ lang: string }>;
-}) => {
-  const { lang } = await params;
+const DocsLayout = async ({ children }: { children: ReactNode }) => {
+  const lang = await getRootLang();
   return (
     <GeistdocsDocsLayout
       config={config}
@@ -24,7 +19,7 @@ const DocsLayout = async ({
           <div className="mb-4">
             <VersionSelect
               current="v7"
-              missingPaths={missingVersionPaths}
+              paths={getVersionPaths(lang)}
               versions={config.versions.items}
             />
           </div>

@@ -16,6 +16,7 @@ import {
 } from '@ai-sdk/harness';
 import {
   getRestrictedSandboxSession,
+  convertHarnessToolModelOutput,
   resolveSandboxHomeDir,
 } from '@ai-sdk/harness/utils';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
@@ -24,6 +25,7 @@ import {
   createTool,
   type AgentMessage,
   type AgentModel,
+  type AgentRunInput,
   type AgentRunResult,
 } from '@cline/agents';
 import { Llms } from '@cline/core';
@@ -58,11 +60,12 @@ import {
   createClineTranslatorState,
   finishClineTranslation,
   toolApprovalParts,
+  takeClineEarlyFinishStep,
   translateClineEvent,
   type ClineTranslatorState,
 } from './cline-translate';
 import {
-  extractUserText,
+  extractUserInput,
   mapRunFinishReason,
   usageFromAgentUsage,
 } from './cline-utils';
@@ -93,7 +96,6 @@ export interface ClineSessionSettings {
   readonly isAuthenticationEnvironmentOverride: boolean;
   readonly mcpServers?: Record<string, unknown>;
   readonly providerId?: string;
-  readonly modelId?: string;
   readonly apiKey?: string;
   readonly baseUrl?: string;
   readonly headers?: Record<string, string>;
@@ -304,7 +306,7 @@ export async function createClineSession(
   const mcpRuntime = await createClineMcpRuntime({
     mcpServers: input.settings.mcpServers,
   });
-  let activeModelId = input.settings.modelId;
+  let activeModelId: string | undefined;
   let agentModel = createClineAgentModel({
     settings: input.settings,
     clientApp: input.clientApp,
@@ -399,7 +401,22 @@ export async function createClineSession(
     }
     return new Promise(resolve => {
       pendingToolApprovals.set(toolCall.toolCallId, { resolve });
+      emitEarlyFinishStepIfReady();
     });
+  }
+
+  function emitEarlyFinishStepIfReady(): void {
+    if (!translatorState || !currentEmit) return;
+    const waitingToolCallIds = new Set([
+      ...pendingToolResults.keys(),
+      ...pendingToolApprovals.keys(),
+      ...pendingQuestions.keys(),
+    ]);
+    for (const part of takeClineEarlyFinishStep(translatorState, {
+      waitingToolCallIds,
+    })) {
+      currentEmit(part);
+    }
   }
 
   function rebuildAgent(rebuildInput: {
@@ -441,6 +458,7 @@ export async function createClineSession(
           activeNames: activeBuiltinNames,
           pendingQuestions,
           pendingQuestionResults,
+          onHostInputPending: emitEarlyFinishStepIfReady,
         }),
         ...(rebuildInput.skillsRuntime.tool &&
         activeBuiltinNames.includes('skills')
@@ -450,6 +468,7 @@ export async function createClineSession(
         ...buildUserAgentTools({
           specs: rebuildInput.userTools,
           pendingToolResults,
+          onHostInputPending: emitEarlyFinishStepIfReady,
         }),
         ...(rebuildInput.responseFormat?.type === 'json' &&
         rebuildInput.responseFormat.schema != null
@@ -574,10 +593,17 @@ export async function createClineSession(
         const pending = pendingToolResults.get(args.toolCallId);
         if (!pending) return;
         pendingToolResults.delete(args.toolCallId);
+        translatorState?.hostToolResults.set(args.toolCallId, args.output);
+        const converted =
+          args.toolResult == null
+            ? undefined
+            : convertHarnessToolModelOutput({
+                output: args.toolResult.output,
+              });
         pending.resolve(
           createClineToolResult({
-            output: args.output,
-            isError: args.isError,
+            output: converted?.content ?? args.output,
+            isError: args.isError === true || converted?.isError === true,
           }),
         );
       },
@@ -610,7 +636,7 @@ export async function createClineSession(
    * (no prompt — the runtime continues its own thread after a rerun resume).
    */
   async function runTurn(turnOpts: {
-    text: string | undefined;
+    input: AgentRunInput | undefined;
     model?: string;
     skills: ReadonlyArray<HarnessV1Skill>;
     tools: ReadonlyArray<HarnessV1ToolSpec>;
@@ -698,18 +724,18 @@ export async function createClineSession(
     const turnPromise = (async () => {
       const runtime = agent!;
       try {
-        let nextText = turnOpts.text;
+        let nextInput = turnOpts.input;
         let result: AgentRunResult;
         for (;;) {
-          // `text` is undefined only on rerun-continue: `continue()` without
+          // `input` is undefined only on rerun-continue: `continue()` without
           // input re-drives the loop from the restored transcript instead of
           // pushing an empty user message.
           result =
-            nextText === undefined
+            nextInput === undefined
               ? await runtime.continue()
               : agentHasRun
-                ? await runtime.continue(nextText)
-                : await runtime.run(nextText);
+                ? await runtime.continue(nextInput)
+                : await runtime.run(nextInput);
           agentHasRun = true;
           currentMessages = result.messages;
 
@@ -722,7 +748,7 @@ export async function createClineSession(
           if (result.status !== 'completed') break;
           const pendingUserMessage = consumePendingUserMessage();
           if (pendingUserMessage == null) break;
-          nextText = pendingUserMessage;
+          nextInput = pendingUserMessage;
         }
 
         if (
@@ -866,7 +892,7 @@ export async function createClineSession(
       promptOpts: HarnessV1PromptTurnOptions,
     ): Promise<HarnessV1PromptControl> => {
       return runTurn({
-        text: extractUserText(promptOpts.prompt),
+        input: extractUserInput(promptOpts.prompt),
         ...(promptOpts.model ? { model: promptOpts.model } : {}),
         skills: promptOpts.skills,
         tools: promptOpts.tools ?? [],
@@ -902,7 +928,7 @@ export async function createClineSession(
        * host-resident runtime cannot do a lossless attach.
        */
       return runTurn({
-        text: undefined,
+        input: undefined,
         ...(continueOpts.model ? { model: continueOpts.model } : {}),
         skills: continueOpts.skills,
         tools: continueOpts.tools ?? [],

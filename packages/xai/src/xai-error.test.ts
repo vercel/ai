@@ -11,7 +11,7 @@ function makeResponse(body: object) {
 }
 
 describe('xaiFailedResponseHandler', () => {
-  it('extracts message from chat completions error shape', async () => {
+  it('extracts message from the nested API error shape', async () => {
     const response = makeResponse({
       error: {
         message: 'Invalid value: temperature must be between 0 and 2',
@@ -21,7 +21,7 @@ describe('xaiFailedResponseHandler', () => {
     });
 
     const { value } = await xaiFailedResponseHandler({
-      url: 'https://api.x.ai/v1/chat/completions',
+      url: 'https://api.x.ai/v1/images/generations',
       requestBodyValues: {},
       response,
     });

@@ -11,6 +11,9 @@ export const azureOpenaiTools: {
   fileSearch: typeof fileSearch;
   imageGeneration: typeof imageGeneration;
   webSearch: typeof webSearch;
+  /**
+   * @deprecated Use `webSearch` instead.
+   */
   webSearchPreview: typeof webSearchPreview;
 } = {
   codeInterpreter,

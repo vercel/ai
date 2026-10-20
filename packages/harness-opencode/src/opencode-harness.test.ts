@@ -1,9 +1,13 @@
 import {
   HarnessCapabilityUnsupportedError,
   type HarnessV1NetworkSandboxSession,
+  type HarnessV1PromptControl,
 } from '@ai-sdk/harness';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
+import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import type * as NodeFsPromises from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createOpenCode } from './opencode-harness';
 
@@ -81,27 +85,56 @@ const harnessUtilsMocks = vi.hoisted(() => {
   const channels: Array<{
     sent: unknown[];
     closed: boolean;
-    connect: () => Promise<unknown>;
+    connect: (options: { abortSignal: AbortSignal }) => Promise<unknown>;
+    reconnect:
+      | {
+          readonly maxElapsedMs?: number;
+          readonly initialDelayMs?: number;
+          readonly maxDelayMs?: number;
+        }
+      | undefined;
     emit(type: string, event: ChannelEvent): void;
   }> = [];
 
   class MockSandboxChannel {
     sent: unknown[] = [];
     closed = false;
+    readonly reconnect:
+      | {
+          readonly maxElapsedMs?: number;
+          readonly initialDelayMs?: number;
+          readonly maxDelayMs?: number;
+        }
+      | undefined;
     private readonly listeners = new Map<
       string,
       Set<(event: ChannelEvent) => void>
     >();
 
-    constructor({ connect }: { connect: () => Promise<unknown> }) {
+    constructor({
+      connect,
+      reconnect,
+    }: {
+      connect: (options: { abortSignal: AbortSignal }) => Promise<unknown>;
+      reconnect?: {
+        readonly maxElapsedMs?: number;
+        readonly initialDelayMs?: number;
+        readonly maxDelayMs?: number;
+      };
+    }) {
       this.connect = connect;
+      this.reconnect = reconnect;
       channels.push(this);
     }
 
-    readonly connect: () => Promise<unknown>;
+    readonly connect: (options: {
+      abortSignal: AbortSignal;
+    }) => Promise<unknown>;
 
     async open() {
-      if (harnessUtilsMocks.connectOnOpen) await this.connect();
+      if (harnessUtilsMocks.connectOnOpen) {
+        await this.connect({ abortSignal: new AbortController().signal });
+      }
     }
 
     send(message: unknown) {
@@ -185,8 +218,55 @@ function getBuiltinToolMetadata(tool: unknown): {
   return tool as { nativeName?: string; commonName?: string };
 }
 
+async function startOpenCodeSession({ resumed = false } = {}) {
+  harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
+  const sandbox = {
+    async run({ command }: { command: string }) {
+      return command === 'printf "%s" "$HOME"'
+        ? { exitCode: 0, stdout: '/home/vercel-sandbox', stderr: '' }
+        : { exitCode: 0, stdout: '', stderr: '' };
+    },
+    async readTextFile() {
+      return null;
+    },
+    async writeTextFile() {},
+    async spawn() {
+      return { async wait() {}, async kill() {} } as never;
+    },
+  };
+  const session = await createOpenCode().doStart({
+    sessionId: 's1',
+    sandboxSession: {
+      id: 'test-sandbox',
+      defaultWorkingDirectory: '/workspace',
+      restricted: () => sandbox,
+      ports: [4000] as ReadonlyArray<number>,
+      async getPortEndpoint() {
+        return { url: 'ws://sandbox.example' };
+      },
+      async getPortUrl() {
+        return 'ws://sandbox.example';
+      },
+      async stop() {},
+    } as unknown as HarnessV1NetworkSandboxSession,
+    sessionWorkDir: '/workspace/project',
+    ...(resumed
+      ? {
+          resumeFrom: {
+            type: 'resume-session' as const,
+            harnessId: 'opencode',
+            specificationVersion: 'harness-v1' as const,
+            data: { openCodeSessionId: 'oc-1' },
+          },
+        }
+      : {}),
+  });
+  return { session, channel: harnessUtilsMocks.channels.at(-1)! };
+}
+
 describe('createOpenCode adapter', () => {
   beforeEach(() => {
+    harnessUtilsMocks.channels.length = 0;
     harnessUtilsMocks.connectOnOpen = false;
     webSocketMocks.supportsUserMessageResponses = true;
     webSocketMocks.calls.length = 0;
@@ -197,7 +277,7 @@ describe('createOpenCode adapter', () => {
     expect(harness.harnessId).toBe('opencode');
     expect(harness.specificationVersion).toBe('harness-v1');
     expect(harness.supportsBuiltinToolApprovals).toBe(true);
-    expect(harness.supportsBuiltinToolFiltering).toBeUndefined();
+    expect(harness.supportsBuiltinToolFiltering).toBe(true);
     expect(Object.keys(harness.builtinTools)).toEqual([
       'askUserQuestions',
       'read',
@@ -256,7 +336,31 @@ describe('createOpenCode adapter', () => {
     ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
   });
 
-  it('reuses a caller-minted token and passes endpoint headers when attaching', async () => {
+  it.each([
+    { mode: 'allow' as const, toolNames: ['write'] },
+    { mode: 'deny' as const, toolNames: ['write'] },
+  ])(
+    'throws HarnessCapabilityUnsupportedError when write and edit have different filtering states',
+    async builtinToolFiltering => {
+      const harness = createOpenCode();
+      const start = harness.doStart({
+        sessionId: 's1',
+        sandboxSession: {} as HarnessV1NetworkSandboxSession,
+        sessionWorkDir: '/tmp/opencode-s1',
+        builtinToolFiltering,
+      });
+
+      await expect(start).rejects.toBeInstanceOf(
+        HarnessCapabilityUnsupportedError,
+      );
+      await expect(start).rejects.toMatchObject({
+        message:
+          "OpenCode built-in filtering requires 'write' and 'edit' to either both be active or both be inactive.",
+      });
+    },
+  );
+
+  it('passes connection settings to spawned and attached bridge channels', async () => {
     harnessUtilsMocks.connectOnOpen = true;
     harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
@@ -305,7 +409,16 @@ describe('createOpenCode adapter', () => {
       url: 'wss://sandbox.example/bridge?existing=value',
       headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
     };
-    const harness = createOpenCode({ mintBridgeToken, portEndpoint });
+    const reconnect = {
+      maxElapsedMs: 120_000,
+      initialDelayMs: 100,
+      maxDelayMs: 5_000,
+    };
+    const harness = createOpenCode({
+      mintBridgeToken,
+      portEndpoint,
+      reconnect,
+    });
     const session = await harness.doStart({
       sessionId: 's1',
       sandboxSession,
@@ -339,6 +452,9 @@ describe('createOpenCode adapter', () => {
         headers: portEndpoint.headers,
       },
     ]);
+    expect(
+      harnessUtilsMocks.channels.map(channel => channel.reconnect),
+    ).toEqual([reconnect, reconnect]);
     await attachedSession.doDetach();
   });
 
@@ -433,7 +549,205 @@ describe('createOpenCode adapter', () => {
     expect(spawnEnvs.at(0)?.OPENAI_API_KEY).toBe('ephemeral-OPENAI_API_KEY');
     expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('openai-secret');
 
-    await session.doDetach();
+    const resumeFrom = await session.doDetach();
+    const savedEnvironment = (
+      resumeFrom.data as {
+        sandboxCredentialEnvironment?: Record<string, string>;
+      }
+    ).sandboxCredentialEnvironment;
+    expect(savedEnvironment?.OPENAI_API_KEY).toBe('ephemeral-OPENAI_API_KEY');
+
+    harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
+    const resumedSession = await createOpenCode({
+      provider: 'anthropic',
+      auth: { ANTHROPIC_API_KEY: 'new-anthropic-secret' },
+    }).doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/workspace/project',
+      resumeFrom: {
+        ...resumeFrom,
+        data: { sandboxCredentialEnvironment: savedEnvironment },
+      },
+    });
+    const resumedCredential = spawnEnvs[1]?.ANTHROPIC_API_KEY;
+    expect(resumedCredential).toMatch(/^aisdkhc_[A-Za-z0-9_-]{43}$/);
+    expect(spawnEnvs[1]?.OPENAI_API_KEY).toBeUndefined();
+    expect(JSON.stringify(spawnEnvs[1])).not.toContain('new-anthropic-secret');
+    expect(addRequestTransformations).toHaveBeenNthCalledWith(2, [
+      {
+        match: {
+          host: 'api.anthropic.com',
+          headers: [
+            {
+              key: { exact: 'x-api-key' },
+              value: { exact: resumedCredential },
+            },
+          ],
+        },
+        transform: { headers: { 'x-api-key': 'new-anthropic-secret' } },
+      },
+    ]);
+    const nextState = await resumedSession.doDetach();
+    expect(
+      (
+        nextState.data as {
+          sandboxCredentialEnvironment: Record<string, string>;
+        }
+      ).sandboxCredentialEnvironment,
+    ).toEqual({ ANTHROPIC_API_KEY: resumedCredential });
+
+    harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
+    const olderSession = await createOpenCode({
+      provider: 'anthropic',
+      auth: { ANTHROPIC_API_KEY: 'older-state-secret' },
+    }).doStart({
+      sessionId: 'older-state',
+      sandboxSession,
+      sessionWorkDir: '/workspace/older-state',
+      resumeFrom: {
+        type: 'resume-session',
+        harnessId: 'opencode',
+        specificationVersion: 'harness-v1',
+        data: {},
+      },
+    });
+    expect(spawnEnvs[2]?.ANTHROPIC_API_KEY).toMatch(
+      /^aisdkhc_[A-Za-z0-9_-]{43}$/,
+    );
+    expect(JSON.stringify(spawnEnvs[2])).not.toContain('older-state-secret');
+    await olderSession.doDetach();
+  });
+
+  it('keeps GitLab OAuth and AI access tokens outside a brokered sandbox', async () => {
+    harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
+    const dataDirectory = await mkdtemp(join(tmpdir(), 'opencode-data-'));
+    const authDirectory = join(dataDirectory, 'opencode');
+    await mkdir(authDirectory, { recursive: true });
+    await writeFile(
+      join(authDirectory, 'auth.json'),
+      JSON.stringify({
+        gitlab: {
+          type: 'oauth',
+          access: 'gitlab-oauth-access-token',
+          refresh: 'gitlab-oauth-refresh-token',
+          expires: Date.now() + 60 * 60 * 1000,
+        },
+      }),
+    );
+    const environmentNames = [
+      'AI_GATEWAY_API_KEY',
+      'VERCEL_OIDC_TOKEN',
+      'GITLAB_TOKEN',
+      'XDG_DATA_HOME',
+    ] as const;
+    const originalEnvironment = Object.fromEntries(
+      environmentNames.map(name => [name, process.env[name]]),
+    );
+    delete process.env.AI_GATEWAY_API_KEY;
+    delete process.env.VERCEL_OIDC_TOKEN;
+    delete process.env.GITLAB_TOKEN;
+    process.env.XDG_DATA_HOME = dataDirectory;
+    const originalFetch = globalThis.fetch;
+    const fetch = vi.fn(async () =>
+      Response.json({
+        token: 'gitlab-ai-access-token',
+        headers: { 'x-gitlab-routing-token': 'routing-token' },
+      }),
+    );
+    globalThis.fetch = fetch;
+
+    const spawnEnvironments: Array<Record<string, string | undefined>> = [];
+    const addRequestTransformations = vi.fn(async () => {});
+    const emptyStream = () =>
+      new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.close();
+        },
+      });
+    const sandbox = {
+      async run({ command }: { command: string }) {
+        return command === 'printf "%s" "$HOME"'
+          ? { exitCode: 0, stdout: '/home/vercel-sandbox', stderr: '' }
+          : { exitCode: 0, stdout: '', stderr: '' };
+      },
+      async readTextFile() {
+        return null;
+      },
+      async writeTextFile() {},
+      async spawn({ env }: { env: Record<string, string | undefined> }) {
+        spawnEnvironments.push(env);
+        return {
+          stdout: emptyStream(),
+          stderr: emptyStream(),
+          async wait() {},
+          async kill() {},
+        };
+      },
+    };
+    const sandboxSession = {
+      id: 'test-sandbox',
+      defaultWorkingDirectory: '/workspace',
+      restricted: () => sandbox,
+      ports: [4000] as ReadonlyArray<number>,
+      addRequestTransformations,
+      async getPortEndpoint() {
+        return { url: 'ws://sandbox.example' };
+      },
+      async getPortUrl() {
+        return 'ws://sandbox.example';
+      },
+      async stop() {},
+    } as unknown as HarnessV1NetworkSandboxSession;
+
+    try {
+      const session = await createOpenCode({ provider: 'gitlab' }).doStart({
+        sessionId: 's1',
+        sandboxSession,
+        sessionWorkDir: '/workspace/project',
+      });
+      const control = await session.doPromptTurn({
+        model: 'gitlab/duo-chat-sonnet-4-5',
+        skills: [],
+        tools: [],
+        prompt: 'Hello',
+        emit: () => {},
+      });
+      const channel = harnessUtilsMocks.channels.at(-1)!;
+      const start = channel.sent.at(-1) as Record<string, unknown>;
+      const serializedStart = JSON.stringify(start);
+      const serializedEnvironment = JSON.stringify(spawnEnvironments.at(0));
+
+      expect(fetch).toHaveBeenCalledExactlyOnceWith(
+        'https://gitlab.com/api/v4/ai/third_party_agents/direct_access',
+        expect.objectContaining({
+          headers: {
+            Authorization: 'Bearer gitlab-oauth-access-token',
+            'Content-Type': 'application/json',
+          },
+        }),
+      );
+      expect(addRequestTransformations).toHaveBeenCalledTimes(1);
+      expect(start.model).toBe('ai-sdk-gitlab-anthropic/duo-chat-sonnet-4-5');
+      expect(serializedStart).not.toContain('gitlab-oauth-access-token');
+      expect(serializedStart).not.toContain('gitlab-oauth-refresh-token');
+      expect(serializedStart).not.toContain('gitlab-ai-access-token');
+      expect(serializedEnvironment).not.toContain('gitlab-oauth-access-token');
+      expect(serializedEnvironment).not.toContain('gitlab-oauth-refresh-token');
+      expect(serializedEnvironment).not.toContain('gitlab-ai-access-token');
+      expect(spawnEnvironments.at(0)?.OPENCODE_AUTH_CONTENT).toBeUndefined();
+
+      channel.emit('finish', { type: 'finish' });
+      await control.done;
+      await session.doDetach();
+    } finally {
+      globalThis.fetch = originalFetch;
+      for (const name of environmentNames) {
+        const value = originalEnvironment[name];
+        if (value == null) delete process.env[name];
+        else process.env[name] = value;
+      }
+    }
   });
 
   it('customizes real credentials when request transformations are unavailable', async () => {
@@ -640,14 +954,14 @@ describe('createOpenCode adapter', () => {
     expect(spawns.at(-1)?.env).not.toHaveProperty('XDG_DATA_HOME');
     expect(spawns.at(-1)?.env).not.toHaveProperty('XDG_STATE_HOME');
     expect(spawns.at(-1)?.env.AI_SDK_HARNESS_CLIENT_APP).toBe(
-      'ai-sdk/harness-opencode/0.0.0-test',
+      'ai-sdk-harness-opencode/0.0.0-test',
     );
     expect(spawns.at(-1)?.env.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
     expect(spawns.at(-1)?.command).toContain(
-      "node '/workspace/.harness-bootstrap/opencode/bridge.mjs'",
+      "node '/home/vercel-sandbox/.ai-sdk-harness/.harness-bootstrap/opencode/bridge.mjs'",
     );
     expect(spawns.at(-1)?.command).toContain(
-      "--bootstrap-dir '/workspace/.harness-bootstrap/opencode'",
+      "--bootstrap-dir '/home/vercel-sandbox/.ai-sdk-harness/.harness-bootstrap/opencode'",
     );
     expect(spawns.at(-1)?.command).toContain(
       "--skills-dir '/home/vercel-sandbox/.agents/skills'",
@@ -711,9 +1025,12 @@ describe('createOpenCode adapter', () => {
     const openCodeConfig = {
       agent: { general: { model: 'openai/gpt-5.4-mini' } },
     };
+    const builtinToolFiltering = {
+      mode: 'deny' as const,
+      toolNames: ['read'],
+    };
     const harness = createOpenCode({
       auth: { AI_GATEWAY_API_KEY: 'gateway-key' },
-      model: 'legacy-model',
       openCodeConfig,
       reasoningVariant: 'high',
       mcpServers,
@@ -723,6 +1040,7 @@ describe('createOpenCode adapter', () => {
       headers: { 'x-tenant': 'acme' },
       sandboxSession,
       sessionWorkDir: '/workspace/project',
+      builtinToolFiltering,
     });
     const channel = harnessUtilsMocks.channels.at(-1)!;
     channel.emit('bridge-thread', {
@@ -735,10 +1053,12 @@ describe('createOpenCode adapter', () => {
       type: 'start',
       operation: 'compact',
       openCodeConfig,
+      inactiveBuiltinToolNames: ['read'],
       mcpServers,
       headers: { 'x-tenant': 'acme' },
       resumeSessionId: 'opencode-session',
     });
+    expect(channel.sent.at(-1)).not.toHaveProperty('builtinToolFiltering');
     channel.emit('finish', { type: 'finish' });
     await compaction;
 
@@ -759,10 +1079,12 @@ describe('createOpenCode adapter', () => {
       model: 'anthropic/agent-model',
       variant: 'high',
       openCodeConfig,
+      inactiveBuiltinToolNames: ['read'],
       mcpServers,
       headers: { 'x-tenant': 'acme' },
       resumeSessionId: 'opencode-session',
     });
+    expect(channel.sent.at(-1)).not.toHaveProperty('builtinToolFiltering');
     channel.emit('finish', { type: 'finish' });
     await firstTurn.done;
 
@@ -773,6 +1095,7 @@ describe('createOpenCode adapter', () => {
       sandboxSession,
       sessionWorkDir: '/workspace/project',
       resumeFrom,
+      builtinToolFiltering,
     });
     const resumedTurn = await resumedSession.doPromptTurn({
       skills: [],
@@ -790,10 +1113,14 @@ describe('createOpenCode adapter', () => {
       instructions: 'be concise',
       variant: 'high',
       openCodeConfig,
+      inactiveBuiltinToolNames: ['read'],
       mcpServers,
       headers: { 'x-tenant': 'acme' },
       resumeSessionId: 'opencode-session',
     });
+    expect(resumedChannel.sent.at(-1)).not.toHaveProperty(
+      'builtinToolFiltering',
+    );
     resumedChannel.emit('finish', { type: 'finish' });
     await resumedTurn.done;
 
@@ -882,6 +1209,250 @@ describe('createOpenCode adapter', () => {
     await session.doDestroy();
   });
 
+  it('drains an aborted turn through error and finish before attaching the next turn', async () => {
+    harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
+    const sandbox = {
+      async run({ command }: { command: string }) {
+        return command === 'printf "%s" "$HOME"'
+          ? {
+              exitCode: 0,
+              stdout: '/home/vercel-sandbox',
+              stderr: '',
+            }
+          : { exitCode: 0, stdout: '', stderr: '' };
+      },
+      async readTextFile() {
+        return null;
+      },
+      async writeTextFile() {},
+      async spawn() {
+        return {
+          async wait() {},
+          async kill() {},
+        } as never;
+      },
+    };
+    const sandboxSession = {
+      id: 'test-sandbox',
+      defaultWorkingDirectory: '/workspace',
+      restricted: () => sandbox,
+      ports: [4000] as ReadonlyArray<number>,
+      async getPortEndpoint() {
+        return { url: 'ws://sandbox.example' };
+      },
+      async getPortUrl() {
+        return 'ws://sandbox.example';
+      },
+      async stop() {},
+    } as unknown as HarnessV1NetworkSandboxSession;
+    const session = await createOpenCode().doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/workspace/project',
+    });
+    const channel = harnessUtilsMocks.channels.at(-1)!;
+    const abort = new AbortController();
+    const firstEvents: unknown[] = [];
+    const firstTurn = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Write a long response.',
+      abortSignal: abort.signal,
+      emit: event => firstEvents.push(event),
+    });
+    const firstDone = expect(firstTurn.done).rejects.toMatchObject({
+      name: 'AbortError',
+    });
+
+    channel.emit('text-delta', {
+      type: 'text-delta',
+      id: 'first',
+      delta: 'first',
+    });
+    abort.abort();
+    await firstDone;
+
+    channel.emit('text-delta', {
+      type: 'text-delta',
+      id: 'first',
+      delta: ' stale',
+    });
+    const secondEvents: unknown[] = [];
+    let secondTurnResolved = false;
+    const secondTurnPromise = session
+      .doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: 'Reply with banana.',
+        emit: event => secondEvents.push(event),
+      })
+      .then(control => {
+        secondTurnResolved = true;
+        return control;
+      });
+    await Promise.resolve();
+
+    expect(secondTurnResolved).toBe(false);
+    expect(channel.sent.at(-1)).toEqual({ type: 'abort' });
+
+    channel.emit('error', {
+      type: 'error',
+      error: new Error('OpenCode session abort failed'),
+    });
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    expect(secondTurnResolved).toBe(false);
+
+    channel.emit('finish', { type: 'finish' });
+    const secondTurn = await secondTurnPromise;
+    channel.emit('text-delta', {
+      type: 'text-delta',
+      id: 'second',
+      delta: 'banana',
+    });
+    channel.emit('finish', { type: 'finish' });
+    await secondTurn.done;
+
+    expect(firstEvents).toEqual([
+      { type: 'text-delta', id: 'first', delta: 'first' },
+    ]);
+    expect(secondEvents).toEqual([
+      { type: 'text-delta', id: 'second', delta: 'banana' },
+      { type: 'finish' },
+    ]);
+  });
+
+  it.each([
+    { pause: 'approval', resumed: false, firstTurn: 'prompt' },
+    { pause: 'tool-result', resumed: false, firstTurn: 'prompt' },
+    { pause: 'approval', resumed: true, firstTurn: 'prompt' },
+    { pause: 'approval', resumed: true, firstTurn: 'continue' },
+  ] as const)(
+    'continues a turn paused for host input without waiting for it to drain (pause: $pause, resumed: $resumed, first turn: $firstTurn)',
+    async ({ pause, resumed, firstTurn }) => {
+      const { session, channel } = await startOpenCodeSession({ resumed });
+      if (firstTurn === 'prompt') {
+        await session.doPromptTurn({
+          skills: [],
+          tools: [],
+          prompt: 'Write the working directory to marker.txt.',
+          emit: () => {},
+        });
+      } else {
+        await session.doContinueTurn({ skills: [], tools: [], emit: () => {} });
+      }
+      if (pause === 'approval') {
+        channel.emit('tool-approval-request', {
+          type: 'tool-approval-request',
+          approvalId: 'per-1',
+          toolCallId: 'call-1',
+        });
+      } else {
+        channel.emit('tool-call', {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'lookup',
+          input: '{}',
+          providerExecuted: false,
+        });
+      }
+
+      const continuedEvents: unknown[] = [];
+      let control: HarnessV1PromptControl | undefined;
+      void session
+        .doContinueTurn({
+          skills: [],
+          tools: [],
+          emit: event => continuedEvents.push(event),
+        })
+        .then(continued => {
+          control = continued;
+        });
+      await vi.waitFor(() => expect(control).toBeDefined());
+      if (pause === 'approval') {
+        await control!.submitToolApproval!({
+          approvalId: 'per-1',
+          approved: true,
+        });
+      } else {
+        await control!.submitToolResult({
+          toolCallId: 'call-1',
+          output: { found: true },
+        });
+      }
+      channel.emit('finish', { type: 'finish' });
+      await control!.done;
+
+      expect(channel.sent.at(-1)).toEqual(
+        pause === 'approval'
+          ? {
+              type: 'tool-approval-response',
+              approvalId: 'per-1',
+              approved: true,
+            }
+          : {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              output: { found: true },
+            },
+      );
+      expect(
+        channel.sent.filter(
+          message => (message as { type: string }).type === 'start',
+        ),
+      ).toHaveLength(1);
+      expect(continuedEvents).toEqual([{ type: 'finish' }]);
+      await session.doDestroy();
+    },
+  );
+
+  it('continues a turn aborted during an approval pause only after it drains', async () => {
+    const { session, channel } = await startOpenCodeSession();
+    const abort = new AbortController();
+    const pausedTurn = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Write the working directory to marker.txt.',
+      abortSignal: abort.signal,
+      emit: () => {},
+    });
+    channel.emit('tool-approval-request', {
+      type: 'tool-approval-request',
+      approvalId: 'per-1',
+      toolCallId: 'call-1',
+    });
+    abort.abort();
+    await expect(pausedTurn.done).rejects.toMatchObject({
+      name: 'AbortError',
+    });
+
+    const continuedEvents: unknown[] = [];
+    let continued = false;
+    const continuation = session
+      .doContinueTurn({
+        skills: [],
+        tools: [],
+        emit: event => continuedEvents.push(event),
+      })
+      .then(control => {
+        continued = true;
+        return control;
+      });
+    channel.emit('error', {
+      type: 'error',
+      error: new Error('OpenCode session abort failed'),
+    });
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    expect(continued).toBe(false);
+
+    channel.emit('finish', { type: 'finish' });
+    await continuation;
+
+    expect(continuedEvents).toEqual([]);
+    await session.doDestroy();
+  });
+
   describe('getBootstrap', () => {
     it('returns a recipe with the expected harnessId and bootstrapDir', async () => {
       const harness = createOpenCode();
@@ -905,37 +1476,30 @@ describe('createOpenCode adapter', () => {
       for (const file of recipe.files) {
         expect(file.content.length).toBeGreaterThan(0);
       }
-      const packageJson = recipe.files.find(file =>
-        file.path.endsWith('/package.json'),
-      );
-      const workspace = recipe.files.find(file =>
-        file.path.endsWith('/pnpm-workspace.yaml'),
-      );
-      if (packageJson == null || workspace == null) {
-        throw new Error('OpenCode bootstrap package assets are missing.');
-      }
-      const bridgeManifest = JSON.parse(packageJson.content) as {
-        dependencies: { 'opencode-ai': string };
-      };
-      expect(workspace.content).toBe(
-        `allowBuilds:\n  'opencode-ai@${bridgeManifest.dependencies['opencode-ai']}': true\n`,
-      );
     });
 
     it('allows the pinned OpenCode build and verifies the installed CLI', async () => {
       const harness = createOpenCode();
       const recipe = await harness.getBootstrap!();
-      expect(recipe.commands[0]).toEqual({
-        command: 'pnpm install --frozen-lockfile --store-dir .pnpm-store',
-      });
-      expect(recipe.commands).toContainEqual({
-        command: './node_modules/.bin/opencode --version',
-      });
+      const commands = recipe.commands.map(command => command.command);
+      const workspace = recipe.files.find(file =>
+        file.path.endsWith('/pnpm-workspace.yaml'),
+      );
+      const packageManifest = recipe.files.find(file =>
+        file.path.endsWith('/package.json'),
+      );
+      expect(packageManifest?.content).toContain('"@vscode/ripgrep": "1.18.0"');
+      expect(commands).toHaveLength(2);
+      expect(commands[0]).toBe(
+        'pnpm install --frozen-lockfile --store-dir .pnpm-store',
+      );
+      expect(commands[1]).toBe('./node_modules/.bin/opencode --version');
+      expect(workspace?.content).toContain('opencode-ai: true');
     });
 
     it('shares the getter across configured harness instances', () => {
-      const first = createOpenCode({ model: 'first-model' });
-      const second = createOpenCode({ model: 'second-model' });
+      const first = createOpenCode({ reasoningVariant: 'low' });
+      const second = createOpenCode({ reasoningVariant: 'high' });
 
       expect(first.getBootstrap).toBe(second.getBootstrap);
     });

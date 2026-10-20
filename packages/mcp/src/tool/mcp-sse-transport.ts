@@ -12,6 +12,7 @@ import {
   extractWWWAuthenticateParams,
   UnauthorizedError,
   auth,
+  type AuthResult,
   type OAuthClientProvider,
 } from './oauth';
 import { LATEST_LEGACY_PROTOCOL_VERSION } from './types';
@@ -33,6 +34,7 @@ export class SseMCPTransport implements MCPTransport {
   private resourceMetadataUrl?: URL;
   private redirectMode: RequestRedirect;
   private fetchFn: FetchFunction;
+  private authPromise?: Promise<AuthResult>;
 
   onclose?: () => void;
   onerror?: (error: unknown) => void;
@@ -87,6 +89,40 @@ export class SseMCPTransport implements MCPTransport {
     );
   }
 
+  /**
+   * Runs a single OAuth recovery flow for concurrent 401 responses.
+   */
+  private authorizeOnce(
+    resourceMetadataUrl?: URL,
+    scope?: string,
+  ): Promise<AuthResult> {
+    if (!this.authProvider) {
+      return Promise.resolve('REDIRECT');
+    }
+
+    if (!this.authPromise) {
+      this.authPromise = auth(this.authProvider, {
+        serverUrl: this.url,
+        resourceMetadataUrl,
+        scope,
+        fetchFn: this.fetchFn,
+      }).finally(() => {
+        this.authPromise = undefined;
+      });
+    }
+
+    return this.authPromise;
+  }
+
+  private async accessTokenChanged(
+    requestAuthorization: string | undefined,
+  ): Promise<boolean> {
+    const accessToken = (await this.authProvider?.tokens())?.access_token;
+    return (
+      accessToken != null && requestAuthorization !== `Bearer ${accessToken}`
+    );
+  }
+
   async start(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       if (this.connected) {
@@ -111,12 +147,10 @@ export class SseMCPTransport implements MCPTransport {
               extractWWWAuthenticateParams(response);
             this.resourceMetadataUrl = resourceMetadataUrl;
             try {
-              const result = await auth(this.authProvider, {
-                serverUrl: this.url,
-                resourceMetadataUrl: this.resourceMetadataUrl,
+              const result = await this.authorizeOnce(
+                this.resourceMetadataUrl,
                 scope,
-                fetchFn: this.fetchFn,
-              });
+              );
               if (result !== 'AUTHORIZED') {
                 const error = new UnauthorizedError();
                 this.onerror?.(error);
@@ -130,7 +164,8 @@ export class SseMCPTransport implements MCPTransport {
           }
 
           if (!response.ok || !response.body) {
-            let errorMessage = `MCP SSE Transport Error: ${response.status} ${response.statusText}`;
+            const text = await response.text().catch(() => null);
+            let errorMessage = `MCP SSE Transport Error: ${response.status} ${response.statusText}${text ? `: ${text}` : ''}`;
 
             if (response.status === 405) {
               errorMessage +=
@@ -139,6 +174,9 @@ export class SseMCPTransport implements MCPTransport {
 
             const error = new MCPClientError({
               message: errorMessage,
+              statusCode: response.status,
+              url: this.url.href,
+              responseBody: text ?? undefined,
             });
             this.onerror?.(error);
             return reject(error);
@@ -156,6 +194,10 @@ export class SseMCPTransport implements MCPTransport {
                 const { done, value } = await reader.read();
 
                 if (done) {
+                  if (this.abortController?.signal.aborted) {
+                    return;
+                  }
+
                   if (this.connected) {
                     this.connected = false;
                     throw new MCPClientError({
@@ -163,7 +205,11 @@ export class SseMCPTransport implements MCPTransport {
                         'MCP SSE Transport Error: Connection closed unexpectedly',
                     });
                   }
-                  return;
+
+                  throw new MCPClientError({
+                    message:
+                      'MCP SSE Transport Error: Connection closed before endpoint event was received',
+                  });
                 }
 
                 const { event, data } = value;
@@ -277,15 +323,21 @@ export class SseMCPTransport implements MCPTransport {
         const response = await this.fetchFn(endpoint.href, init);
 
         if (response.status === 401 && this.authProvider && !triedAuth) {
+          if (
+            await this.accessTokenChanged(
+              new Headers(headers).get('authorization') ?? undefined,
+            )
+          ) {
+            return attempt(true);
+          }
+
           const { resourceMetadataUrl, scope } =
             extractWWWAuthenticateParams(response);
           this.resourceMetadataUrl = resourceMetadataUrl;
-          const result = await auth(this.authProvider, {
-            serverUrl: this.url,
-            resourceMetadataUrl: this.resourceMetadataUrl,
+          const result = await this.authorizeOnce(
+            this.resourceMetadataUrl,
             scope,
-            fetchFn: this.fetchFn,
-          });
+          );
           if (result !== 'AUTHORIZED') {
             throw new UnauthorizedError();
           }

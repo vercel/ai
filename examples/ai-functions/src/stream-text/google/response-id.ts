@@ -19,7 +19,7 @@ import { run } from '../../lib/run';
  */
 run(async () => {
   const result = streamText({
-    model: google('gemini-2.5-flash'),
+    model: google('gemini-3.8-flash'),
     prompt: 'Reply with only the word: ok',
     include: { rawChunks: true },
   });

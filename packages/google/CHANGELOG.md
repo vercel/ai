@@ -1,5 +1,385 @@
 # @ai-sdk/google
 
+## 4.0.101
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+
+## 4.0.100
+
+### Patch Changes
+
+- d08bb66: Preserve grounding metadata from each automatically continued Google response in `groundingMetadataPerRequest`. Previously, a later response without grounding could leave earlier Search queries absent from the final provider metadata even though their sources were returned. The new array preserves request order and includes `null` for requests without grounding.
+- Updated dependencies [60cc252]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/provider-utils@5.0.63
+
+## 4.0.99
+
+### Patch Changes
+
+- ae42699: fix(google): surface in-stream errors
+- Updated dependencies [0957554]
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+
+## 4.0.98
+
+### Patch Changes
+
+- 4cb3dec: feat(provider/google): allow AUDIO response modalities for Google language models
+
+## 4.0.97
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+  - @ai-sdk/provider-utils@5.0.61
+
+## 4.0.96
+
+### Patch Changes
+
+- Updated dependencies [2e89fa4]
+  - @ai-sdk/provider-utils@5.0.60
+
+## 4.0.95
+
+### Patch Changes
+
+- bdbeba3: feat(google): add `gemini-4-argon` model id and long decode support for `generateContent`: requests that reach the per-request cap (`CONTINUATION`) are continued automatically with usage summed across requests and the first request's prompt token count exposed as `providerMetadata.google.initialPromptTokenCount`, and the `continuationToken` provider option / provider metadata resume responses that used up their `maxOutputTokens` budget. `generateText` with the Interactions API now polls `background: true` model calls until they finish.
+
+## 4.0.94
+
+### Patch Changes
+
+- 2060ab9: fix(google): handle regional Gemini model IDs and valid thinking configurations
+- Updated dependencies [9667bf2]
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/provider@4.0.27
+
+## 4.0.93
+
+### Patch Changes
+
+- 5cf13d2: feat: map the top level embedding dimensions to provider settings
+- Updated dependencies [4dbc902]
+  - @ai-sdk/provider@4.0.26
+  - @ai-sdk/provider-utils@5.0.58
+
+## 4.0.92
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider@4.0.25
+  - @ai-sdk/provider-utils@5.0.57
+
+## 4.0.91
+
+### Patch Changes
+
+- 32ff7ad: Preserve tool errors in OpenAI Chat Completions and Responses by wrapping their payloads in an `error` object. Send Google tool errors and denied executions under `functionResponse.response.error`.
+
+## 4.0.90
+
+### Patch Changes
+
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/provider-utils@5.0.56
+
+## 4.0.89
+
+### Patch Changes
+
+- fc1e19e: fix: limit jsonl rows to 64mb during batch result downloads
+- 8c0e699: feat(google): preserve file search custom metadata in retrieved context grounding chunks
+- 753f2e1: feat(google): add the 'gemini-nano-banana-2.1' model ID
+- 268225c: feat(provider): add a portable `max` reasoning level with native provider mappings, compatibility coercions, and budget-based fallback support.
+
+  Compatibility notes:
+
+  - **TypeScript source compatibility:** Adding `max` widens `LanguageModelV4CallOptions['reasoning']` and the derived `ReasoningLevel` type. Third-party providers and consumers with exhaustive switches or `Record<ReasoningLevel, ...>` mappings must handle `max` before upgrading. Ordinary calls using existing reasoning levels remain accepted.
+  - **Amazon Bedrock:** Existing Nova 2 calls using portable `reasoning: 'xhigh'` now send `maxReasoningEffort: 'high'` instead of the unsupported `'max'`, and return a compatibility warning. Anthropic and OpenAI Bedrock effort mappings retain their existing `xhigh` behavior. Partial Bedrock reasoning configurations continue to preserve explicit values and derive missing fields; explicit effort/budget overrides and disabled thinking no longer emit warnings for portable mappings that are not sent.
+  - **Fireworks:** Existing portable `minimal` and `xhigh` calls keep their request mappings to `low` and `high`, respectively, and now return compatibility warnings in generation and streaming results. Portable `max` maps to `high` with the same warning behavior.
+
+  **Release classification:** This remains a patch changeset under the repository's explicit release policy, which uses patch releases for both fixes and features. The TypeScript source-compatibility caveat for exhaustive consumers is disclosed above. Maintainers can override this classification with a `major` label if they decide to align the provider-spec addition with a future AI SDK major release.
+
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/provider@4.0.23
+
+## 4.0.88
+
+### Patch Changes
+
+- 2959d35: feat: rename `evaluate` to `decide`
+- 59116e6: fix(groq,google): use JSON response tool for structured outputs with tool calling
+- Updated dependencies [2959d35]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+
+## 4.0.87
+
+### Patch Changes
+
+- 8c65988: feat(ai): add telemetry to speech generation and transcription, including
+  provider usage propagation and experimental streaming lifecycle callbacks
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+
+## 4.0.86
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [ede5b89]
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
+## 4.0.85
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/provider-utils@5.0.51
+
+## 4.0.84
+
+### Patch Changes
+
+- d0290cf: fix(google): preserve realtime user utterances with independent IDs and cumulative transcripts, honor text-free transcription completion markers, and advance response IDs after interruption
+
+## 4.0.83
+
+### Patch Changes
+
+- 32cf2f6: fix(google): send the default Gemini Live `thinkingLevel` when `thinkingConfig` sets neither `thinkingLevel` nor `thinkingBudget`, and stop overwriting a raw `generationConfig.thinkingConfig`
+- 525efc5: feat(provider): advertise image model file and mask input support
+
+  Use confirmed model IDs for capability declarations so unrecognized model names
+  remain unknown. Include Together AI FLUX.2 Pro and Flex single-image editing, and
+  allow asynchronous capability lookups and middleware overrides to resolve to
+  unknown.
+
+  Advertise QuiverAI Arrow 2 and Arrow 2 Telos file-input support, and mark Together
+  AI Gemini image inputs unsupported by the current single-image request mapping.
+
+- Updated dependencies [e3605f6]
+- Updated dependencies [525efc5]
+  - @ai-sdk/provider-utils@5.0.50
+  - @ai-sdk/provider@4.0.19
+
+## 4.0.82
+
+### Patch Changes
+
+- bc49f78: fix(google): forward supported Vertex tool result URLs as function response file data
+- Updated dependencies [af9597b]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/provider-utils@5.0.49
+
+## 4.0.81
+
+### Patch Changes
+
+- b126c4b: fix(google): serialize Interactions video offsets as Google duration strings
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+
+## 4.0.80
+
+### Patch Changes
+
+- 8beac3e: fix(google): serialize JSON Schema references in function responses
+
+## 4.0.79
+
+### Patch Changes
+
+- fe07867: Fix Google `embedMany` calls with more than 100 values by keeping per-value multimodal content aligned across automatic batches, including text-only entries. Validate content length before sending requests and validate each batch's provider options after middleware transforms them.
+- 2db5621: fix(google): preserve code execution parts when replaying messages
+- 2693319: Add Gemini 3.8 TTS support with structured speech metadata and per-turn speaker and style controls for prebuilt voices. Preserve native WAV responses without adding a second header, support explicit raw PCM, mu-law, and A-law output, and identify headerless audio formats correctly. Add the Gemini 3.8 speech model IDs to Google and Gateway types.
+
+  Share transcript and custom-voice inspection through the Google provider internal export, and reject empty speech transcripts before sending a request. Default newer and custom model IDs to structured speech while preserving the legacy format for Gemini 2.5 and 3.1.
+
+- 771e74b: chore: enable dead code lint rules
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [771e74b]
+  - @ai-sdk/provider-utils@5.0.47
+
+## 4.0.78
+
+### Patch Changes
+
+- ffb0e76: fix(provider): preserve opaque file URI strings for provider serialization
+- Updated dependencies [ffb0e76]
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/provider-utils@5.0.46
+
+## 4.0.77
+
+### Patch Changes
+
+- 8dbe0be: fix(google): preserve image candidate finish reasons in provider metadata
+
+## 4.0.76
+
+### Patch Changes
+
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+
+## 4.0.75
+
+### Patch Changes
+
+- e369c4d: fix(google): advertise the supported Gemini image per-call limit
+- 2b391f8: fix(google): ignore default prompt block reasons in non-streaming responses
+- 1284569: fix(google): include tool-use prompt tokens in input usage
+- Updated dependencies [0455398]
+  - @ai-sdk/provider-utils@5.0.44
+
+## 4.0.74
+
+### Patch Changes
+
+- d4d96bf: Add `google.evaluationModel()` for experimental Choice, Score, and Boolean evaluations through Gemini structured output, preserving provider thinking options and validating exact labels and score bounds. Boolean answers contain prompted P(true) estimates validated to be in [0, 1]. Boolean estimates are not guaranteed to be calibrated; application code chooses thresholds.
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [a7dd893]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/provider@4.0.17
+
+## 4.0.73
+
+### Patch Changes
+
+- a22b5b2: fix(google): preserve prompt feedback and metadata across streaming chunks
+- 2cd80b3: Keep default Node.js downloads protected by DNS validation and connection pinning when frameworks or instrumentation wrap global fetch before or after the SDK loads.
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/provider@4.0.16
+
+## 4.0.72
+
+### Patch Changes
+
+- 4a994ad: feat(google): realtime session options for Gemini 3.8 Live
+
+  Add `thinkingConfig` (`thinkingLevel`, `thinkingBudget`, `includeThoughts`) and
+  `defaultToolBehavior` to `GoogleRealtimeModelOptions`. `thinkingConfig` is merged
+  into the Live `setup.generationConfig`. Background-reasoning Live models such as
+  `gemini-3.8-live-extended-thinking` require exactly one of `thinkingLevel` or
+  `thinkingBudget`, so the provider sends `thinkingLevel: 'low'` on those models
+  when neither is set. `defaultToolBehavior` stamps `behavior` on every function
+  declaration in the setup.
+
+  Forward the Live `interactionStatus` and `waitingForInput` server messages as
+  custom events so applications can tell when a background-reasoning model is idle,
+  since `turnComplete` alone no longer means that.
+
+## 4.0.71
+
+### Patch Changes
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+  - @ai-sdk/provider-utils@5.0.41
+
+## 4.0.70
+
+### Patch Changes
+
+- 2a32459: fix(google): preserve JSON Schema instead of converting to OpenAPI schema
+- d93e295: fix(google): keep a realtime `functionResponse.response` an object
+
+  Gemini types that field as a `google.protobuf.Struct`, which accepts an object and
+  nothing else. `onToolCall` returns `unknown` and `addToolOutput` takes `unknown`, so a
+  string, number, array or `null` tool result reached the wire unwrapped, Gemini closed
+  the socket with `1007`, and the close code was dropped on the way back so the
+  application saw a plain disconnect. A non-object result is now wrapped under the
+  `output` key the field's own docstring prescribes; an object is passed through
+  unchanged, as before.
+
+  An `output` that is not valid JSON no longer becomes `{}`. That branch told the model
+  the tool had returned an empty object, with nothing thrown and the socket still up, so
+  the answer was wrong with nothing to notice. The text is kept instead.
+
+## 4.0.69
+
+### Patch Changes
+
+- f88c7dc: fix(vertex): download tool result file URLs
+
+## 4.0.68
+
+### Patch Changes
+
+- 5ec21a6: fix: reject unsupported batch request types
+- 7469a3b: feat: support image generation requests in batches
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/provider@4.0.14
+  - @ai-sdk/provider-utils@5.0.40
+
+## 4.0.67
+
+### Patch Changes
+
+- ab6e9f9: feat(google): add batch cancellation and listing
+- Updated dependencies [9942196]
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/provider-utils@5.0.39
+
+## 4.0.66
+
+### Patch Changes
+
+- Updated dependencies [912fb01]
+  - @ai-sdk/provider@4.0.12
+  - @ai-sdk/provider-utils@5.0.38
+
+## 4.0.65
+
+### Patch Changes
+
+- a4ba394: feat: support per-request models in batch
+- 45099da: Retry unclassified empty image results, preserve retry-attempt accounting, add provider-independent result retryability classification, and mark Google and Google Vertex prompt blocks as terminal.
+- Updated dependencies [a4ba394]
+- Updated dependencies [45099da]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/provider-utils@5.0.37
+
 ## 4.0.64
 
 ### Patch Changes

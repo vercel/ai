@@ -199,8 +199,8 @@ const result = await generateText({
 
 Mistral offers reasoning models that provide step-by-step thinking capabilities:
 
-- **magistral-small-2507**: Smaller reasoning model for efficient step-by-step thinking
-- **magistral-medium-2507**: More powerful reasoning model balancing performance and cost
+- **magistral-small-latest**: Smaller reasoning model for efficient step-by-step thinking
+- **magistral-medium-latest**: More powerful reasoning model balancing performance and cost
 
 These models return structured reasoning content that the AI SDK extracts automatically. The reasoning is available via the `reasoningText` property in the result:
 
@@ -209,7 +209,7 @@ import { mistral } from '@ai-sdk/mistral';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: mistral('magistral-small-2507'),
+  model: mistral('magistral-small-latest'),
   prompt: 'What is 15 * 24?',
 });
 
@@ -321,34 +321,128 @@ const result = await generateText({
   the standard structured-output APIs.
 </Note>
 
+### Conversations API
+
+Use `mistral.conversation(modelId)` to create a model that calls Mistral's
+Conversations API (`/v1/conversations`). It supports `generateText` and
+`streamText`, including Mistral's built-in web search tools.
+
+#### Web Search
+
+The provider offers two tools:
+
+- `mistral.tools.webSearch()`: searches the web.
+- `mistral.tools.webSearchPremium()`: searches the web and accesses news articles
+  through Mistral's integrated news providers.
+
+Mistral executes these tools on the server. No `execute` function is needed.
+Search calls and results are available in `result.toolCalls` and
+`result.toolResults`, and URL citations are available in `result.sources`.
+
+```ts
+import { mistral } from '@ai-sdk/mistral';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: mistral.conversation('mistral-medium-latest'),
+  tools: {
+    web_search: mistral.tools.webSearch(),
+  },
+  prompt:
+    "Use web search to find Mistral AI's official website. Cite your source.",
+});
+
+console.log(result.text);
+console.log(result.sources);
+```
+
+Replace `mistral.tools.webSearch()` with `mistral.tools.webSearchPremium()` to use
+premium search.
+
+<Note>
+  Web search requires `mistral.conversation()`. The default `mistral()` factory
+  and `mistral.chat()` use the Chat Completions API, which does not support
+  these tools. See [Mistral's web search
+  documentation](https://docs.mistral.ai/studio/agents/agent-tools/websearch).
+</Note>
+
+You can also stream the answer and access citations after the stream completes:
+
+```ts
+import { mistral } from '@ai-sdk/mistral';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: mistral.conversation('mistral-medium-latest'),
+  tools: {
+    web_search: mistral.tools.webSearch(),
+  },
+  prompt:
+    "Use web search to find Mistral AI's official website. Cite your source.",
+});
+
+for await (const text of result.textStream) {
+  process.stdout.write(text);
+}
+
+console.log(await result.sources);
+```
+
+#### Multi-Turn Conversations
+
+Pass the previous user messages and `responseMessages` into the next call.
+Keep the complete response history, including search calls and results, so
+follow-up questions can use the retrieved information. The model does not
+retain conversation history between calls.
+
+```ts
+import { mistral } from '@ai-sdk/mistral';
+import { generateText, type ModelMessage } from 'ai';
+
+const model = mistral.conversation('mistral-medium-latest');
+const tools = { web_search: mistral.tools.webSearch() };
+const messages: ModelMessage[] = [
+  {
+    role: 'user',
+    content: "Use web search to find Mistral AI's official website.",
+  },
+];
+
+const first = await generateText({ model, tools, messages });
+messages.push(...first.responseMessages);
+messages.push({
+  role: 'user',
+  content:
+    'Where is that company headquartered? Use web search and cite your source.',
+});
+
+const second = await generateText({ model, tools, messages });
+console.log(second.text);
+console.log(second.sources);
+```
+
+For `streamText`, consume the stream before appending
+`await result.responseMessages` to your message history.
+
 ### Model Capabilities
 
-| Model                   | Image Input | Object Generation | Tool Usage | Tool Streaming |
-| ----------------------- | ----------- | ----------------- | ---------- | -------------- |
-| `pixtral-large-latest`  | <Check />   | <Check />         | <Check />  | <Check />      |
-| `mistral-large-latest`  | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `mistral-medium-latest` | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `mistral-medium-3`      | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `mistral-medium-2508`   | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `mistral-medium-2505`   | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `mistral-medium-3.5`    | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `mistral-small-latest`  | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `magistral-small-2507`  | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `magistral-medium-2507` | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `magistral-small-2506`  | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `magistral-medium-2506` | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `ministral-3b-latest`   | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `ministral-8b-latest`   | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `pixtral-12b-2409`      | <Check />   | <Check />         | <Check />  | <Check />      |
-| `open-mistral-7b`       | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `open-mixtral-8x7b`     | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `open-mixtral-8x22b`    | <Cross />   | <Check />         | <Check />  | <Check />      |
+| Model                     | Image Input | Tool Usage |
+| ------------------------- | ----------- | ---------- |
+| `labs-leanstral-1-5`      | <Check />   | <Check />  |
+| `magistral-medium-latest` | <Check />   | <Check />  |
+| `magistral-small-latest`  | <Check />   | <Check />  |
+| `ministral-14b-latest`    | <Check />   | <Check />  |
+| `ministral-8b-latest`     | <Check />   | <Check />  |
+| `mistral-large-latest`    | <Check />   | <Check />  |
+| `mistral-medium-latest`   | <Check />   | <Check />  |
+| `mistral-small-latest`    | <Check />   | <Check />  |
+| `voxtral-small-latest`    | <Cross />   | <Check />  |
+| `zai-glm-5-2`             | <Cross />   | <Check />  |
 
 <Note>
   The table above lists popular models. Please see the [Mistral
-  docs](https://docs.mistral.ai/getting-started/models/models_overview/) for a
-  full list of available models. The table above lists popular models. You can
-  also pass any available provider model ID as a string if needed.
+  docs](https://docs.mistral.ai/models) for a full list of available models. You
+  can also pass any available provider model ID as a string if needed.
 </Note>
 
 ## Transcription Models

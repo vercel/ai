@@ -12,7 +12,8 @@ import {
   type InferUIMessageData,
   type UIMessage,
 } from './ui-messages';
-import { beforeEach, describe, it, expect, vi } from 'vitest';
+import { validateUIMessages } from './validate-ui-messages';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import { UIMessageStreamError } from '../error/ui-message-stream-error';
 
 function createUIMessageStream(parts: UIMessageChunk[]) {
@@ -41,6 +42,11 @@ describe('processUIMessageStream', () => {
   beforeEach(() => {
     writeCalls = [];
     state = undefined;
+    globalThis.AI_SDK_LOG_WARNINGS = false;
+  });
+
+  afterEach(() => {
+    delete globalThis.AI_SDK_LOG_WARNINGS;
   });
 
   const runUpdateMessageJob = async (
@@ -56,6 +62,76 @@ describe('processUIMessageStream', () => {
       },
     });
   };
+
+  describe('replay start', () => {
+    it.each(['msg-123', undefined])(
+      'resets existing state only on the first start with message ID %s',
+      async messageId => {
+        state = createStreamingUIMessageState({
+          messageId: 'msg-123',
+          lastMessage: {
+            id: 'msg-123',
+            role: 'assistant',
+            metadata: { stale: true },
+            parts: [{ type: 'text', text: 'old text', state: 'streaming' }],
+          },
+        });
+        state.activeTextParts.old = { type: 'text', text: 'old text' };
+        state.activeReasoningParts.old = {
+          type: 'reasoning',
+          text: 'old reasoning',
+        };
+        state.partialToolCalls.old = { text: '{', index: 0, toolName: 'old' };
+        state.finishReason = 'length';
+
+        await consumeStream({
+          stream: processUIMessageStream({
+            stream: createUIMessageStream([
+              { type: 'start', messageId },
+              { type: 'start-step' },
+              { type: 'text-start', id: 'text-1' },
+              { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+              // Merged streams can emit another start for the same message.
+              { type: 'start', messageId, messageMetadata: { fresh: true } },
+              { type: 'text-delta', id: 'text-1', delta: ' world!' },
+              { type: 'text-end', id: 'text-1' },
+            ]),
+            resetStateOnFirstMessageStart: true,
+            resetStateOnMessageIdChange: true,
+            runUpdateMessageJob,
+            onError: error => {
+              throw error;
+            },
+          }),
+        });
+
+        expect(writeCalls[0].message).toEqual({
+          id: 'msg-123',
+          role: 'assistant',
+          metadata: undefined,
+          parts: [],
+        });
+        expect(state.message).toEqual({
+          id: 'msg-123',
+          role: 'assistant',
+          metadata: { fresh: true },
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'text',
+              text: 'Hello world!',
+              state: 'done',
+              providerMetadata: undefined,
+            },
+          ],
+        });
+        expect(state.activeTextParts).toEqual({});
+        expect(state.activeReasoningParts).toEqual({});
+        expect(state.partialToolCalls).toEqual({});
+        expect(state.finishReason).toBeUndefined();
+      },
+    );
+  });
 
   describe('finish-step', () => {
     it('preserves active text and reasoning parts across interleaved step boundaries', async () => {
@@ -3344,7 +3420,7 @@ describe('processUIMessageStream', () => {
                   "output": undefined,
                   "preliminary": undefined,
                   "providerExecuted": undefined,
-                  "rawInput": undefined,
+                  "rawInput": "{"testArg":"t",
                   "state": "input-streaming",
                   "title": undefined,
                   "toolCallId": "tool-call-0",
@@ -3370,7 +3446,7 @@ describe('processUIMessageStream', () => {
                   "output": undefined,
                   "preliminary": undefined,
                   "providerExecuted": undefined,
-                  "rawInput": undefined,
+                  "rawInput": "{"testArg":"test-value"}}",
                   "state": "input-streaming",
                   "title": undefined,
                   "toolCallId": "tool-call-0",
@@ -3463,6 +3539,58 @@ describe('processUIMessageStream', () => {
           "role": "assistant",
         }
       `);
+    });
+  });
+
+  describe('static tool name changes', () => {
+    it('uses the completed input tool name for an existing streamed part', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start-step' },
+        {
+          type: 'tool-input-start',
+          toolCallId: 'tool-call-0',
+          toolName: 'originalTool',
+        },
+        {
+          type: 'tool-input-delta',
+          toolCallId: 'tool-call-0',
+          inputTextDelta: '{"value":"test"}',
+        },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-0',
+          toolName: 'renamedTool',
+          input: { value: 'test' },
+        },
+        {
+          type: 'tool-approval-request',
+          toolCallId: 'tool-call-0',
+          approvalId: 'approval-0',
+        },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      expect(state.message.parts[1]).toMatchObject({
+        type: 'tool-renamedTool',
+        toolCallId: 'tool-call-0',
+        state: 'approval-requested',
+        input: { value: 'test' },
+        approval: { id: 'approval-0' },
+      });
     });
   });
 
@@ -5409,7 +5537,7 @@ describe('processUIMessageStream', () => {
                   "output": undefined,
                   "preliminary": undefined,
                   "providerExecuted": true,
-                  "rawInput": undefined,
+                  "rawInput": "{ "query": "test" }",
                   "state": "input-streaming",
                   "title": undefined,
                   "toolCallId": "tool-call-1",
@@ -5781,7 +5909,7 @@ describe('processUIMessageStream', () => {
                   "output": undefined,
                   "preliminary": undefined,
                   "providerExecuted": true,
-                  "rawInput": undefined,
+                  "rawInput": "{ "query": "test" }",
                   "state": "input-streaming",
                   "title": undefined,
                   "toolCallId": "tool-call-1",
@@ -6099,6 +6227,113 @@ describe('processUIMessageStream', () => {
     });
   });
 
+  it('should apply output chunk tool metadata to static and dynamic tool parts', async () => {
+    const stream = createUIMessageStream([
+      { type: 'start', messageId: 'msg-123' },
+      { type: 'start-step' },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'dynamic-success',
+        toolName: 'tool-name',
+        input: { query: 'test' },
+        dynamic: true,
+      },
+      {
+        type: 'tool-output-available',
+        toolCallId: 'dynamic-success',
+        output: { result: 'provider-result' },
+        dynamic: true,
+        toolMetadata: { phase: 'dynamic-output-available' },
+      },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'dynamic-error',
+        toolName: 'tool-name',
+        input: { query: 'test' },
+        dynamic: true,
+        toolMetadata: { phase: 'dynamic-input' },
+      },
+      {
+        type: 'tool-output-error',
+        toolCallId: 'dynamic-error',
+        errorText: 'error-text',
+        dynamic: true,
+        toolMetadata: { phase: 'dynamic-output-error' },
+      },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'static-success',
+        toolName: 'tool-name',
+        input: { query: 'test' },
+      },
+      {
+        type: 'tool-output-available',
+        toolCallId: 'static-success',
+        output: { result: 'provider-result' },
+        toolMetadata: { phase: 'static-output-available' },
+      },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'static-error',
+        toolName: 'tool-name',
+        input: { query: 'test' },
+        toolMetadata: { phase: 'static-input' },
+      },
+      {
+        type: 'tool-output-error',
+        toolCallId: 'static-error',
+        errorText: 'error-text',
+        toolMetadata: { phase: 'static-output-error' },
+      },
+      { type: 'finish-step' },
+      { type: 'finish' },
+    ]);
+
+    state = createStreamingUIMessageState({
+      messageId: 'msg-123',
+      lastMessage: undefined,
+    });
+
+    await consumeStream({
+      stream: processUIMessageStream({
+        stream,
+        runUpdateMessageJob,
+        onError: error => {
+          throw error;
+        },
+      }),
+    });
+
+    expect(
+      state.message.parts.filter(isToolUIPart).map(part => ({
+        toolCallId: part.toolCallId,
+        state: part.state,
+        toolMetadata: part.toolMetadata,
+      })),
+    ).toEqual([
+      {
+        toolCallId: 'dynamic-success',
+        state: 'output-available',
+        toolMetadata: { phase: 'dynamic-output-available' },
+      },
+      {
+        toolCallId: 'dynamic-error',
+        state: 'output-error',
+        toolMetadata: { phase: 'dynamic-output-error' },
+      },
+      {
+        toolCallId: 'static-success',
+        state: 'output-available',
+        toolMetadata: { phase: 'static-output-available' },
+      },
+      {
+        toolCallId: 'static-error',
+        state: 'output-error',
+        toolMetadata: { phase: 'static-output-error' },
+      },
+    ]);
+  });
+
   it('should call onToolCall for client-executed tools', async () => {
     let onToolCallInvoked = false;
 
@@ -6282,7 +6517,7 @@ describe('processUIMessageStream', () => {
                   "output": undefined,
                   "preliminary": undefined,
                   "providerExecuted": undefined,
-                  "rawInput": undefined,
+                  "rawInput": "{ "query": "test" }",
                   "state": "input-streaming",
                   "title": undefined,
                   "toolCallId": "tool-call-1",
@@ -6837,7 +7072,12 @@ describe('processUIMessageStream', () => {
   });
 
   describe('tool input error', () => {
+    const warningLogger = vi.fn();
+
     beforeEach(async () => {
+      warningLogger.mockClear();
+      globalThis.AI_SDK_LOG_WARNINGS = warningLogger;
+
       const stream = createUIMessageStream([
         {
           type: 'start',
@@ -6891,6 +7131,10 @@ describe('processUIMessageStream', () => {
       });
     });
 
+    it('should not warn when creating a static output-error part', () => {
+      expect(warningLogger).not.toHaveBeenCalled();
+    });
+
     it('should call the update function with the correct arguments', async () => {
       expect(writeCalls).toMatchInlineSnapshot(`
         [
@@ -6934,7 +7178,7 @@ describe('processUIMessageStream', () => {
                   "output": undefined,
                   "preliminary": undefined,
                   "providerExecuted": undefined,
-                  "rawInput": undefined,
+                  "rawInput": "{ "cities": "San Francisco" }",
                   "state": "input-streaming",
                   "title": undefined,
                   "toolCallId": "call-1",
@@ -6954,11 +7198,11 @@ describe('processUIMessageStream', () => {
                 },
                 {
                   "errorText": "Invalid input for tool cityAttractions",
-                  "input": undefined,
+                  "input": "{ "cities": "San Francisco" }",
                   "output": undefined,
                   "preliminary": undefined,
                   "providerExecuted": undefined,
-                  "rawInput": "{ "cities": "San Francisco" }",
+                  "rawInput": undefined,
                   "state": "output-error",
                   "title": undefined,
                   "toolCallId": "call-1",
@@ -6978,11 +7222,11 @@ describe('processUIMessageStream', () => {
                 },
                 {
                   "errorText": "Invalid input for tool cityAttractions",
-                  "input": undefined,
+                  "input": "{ "cities": "San Francisco" }",
                   "output": undefined,
                   "preliminary": undefined,
                   "providerExecuted": undefined,
-                  "rawInput": "{ "cities": "San Francisco" }",
+                  "rawInput": undefined,
                   "state": "output-error",
                   "title": undefined,
                   "toolCallId": "call-1",
@@ -7004,11 +7248,11 @@ describe('processUIMessageStream', () => {
           },
           {
             "errorText": "Invalid input for tool cityAttractions",
-            "input": undefined,
+            "input": "{ "cities": "San Francisco" }",
             "output": undefined,
             "preliminary": undefined,
             "providerExecuted": undefined,
-            "rawInput": "{ "cities": "San Francisco" }",
+            "rawInput": undefined,
             "state": "output-error",
             "title": undefined,
             "toolCallId": "call-1",
@@ -7017,6 +7261,90 @@ describe('processUIMessageStream', () => {
         ]
       `);
     });
+  });
+
+  describe('dynamic tool errors after input streaming', () => {
+    const terminalChunks: Array<{
+      name: string;
+      chunk: UIMessageChunk;
+    }> = [
+      {
+        name: 'tool input error',
+        chunk: {
+          type: 'tool-input-error',
+          toolCallId: 'call-1',
+          toolName: 'cityAttractions',
+          input: { cities: ['San Francisco'] },
+          errorText: 'Invalid input for tool cityAttractions',
+          dynamic: true,
+        },
+      },
+      {
+        name: 'tool output error',
+        chunk: {
+          type: 'tool-output-error',
+          toolCallId: 'call-1',
+          errorText: 'Tool execution failed',
+          dynamic: true,
+        },
+      },
+    ];
+
+    it.each(terminalChunks)(
+      'clears raw input on $name',
+      async ({ chunk: terminalChunk }) => {
+        const warningLogger = vi.fn();
+        globalThis.AI_SDK_LOG_WARNINGS = warningLogger;
+
+        const stream = createUIMessageStream([
+          { type: 'start' },
+          { type: 'start-step' },
+          {
+            type: 'tool-input-start',
+            toolCallId: 'call-1',
+            toolName: 'cityAttractions',
+            dynamic: true,
+          },
+          {
+            type: 'tool-input-delta',
+            toolCallId: 'call-1',
+            inputTextDelta: '{ "cities": ["San Francisco"] }',
+          },
+          terminalChunk,
+          { type: 'finish-step' },
+          { type: 'finish' },
+        ]);
+
+        state = createStreamingUIMessageState({
+          messageId: 'msg-123',
+          lastMessage: undefined,
+        });
+
+        await consumeStream({
+          stream: processUIMessageStream({
+            stream,
+            runUpdateMessageJob,
+            onError: error => {
+              throw error;
+            },
+          }),
+        });
+
+        const toolPart = state.message.parts.find(
+          (part: any) => part.toolCallId === 'call-1',
+        );
+
+        expect(toolPart).toMatchObject({
+          type: 'dynamic-tool',
+          state: 'output-error',
+        });
+        expect((toolPart as any).rawInput).toBeUndefined();
+
+        await validateUIMessages({ messages: [state.message] });
+
+        expect(warningLogger).not.toHaveBeenCalled();
+      },
+    );
   });
 
   describe('tool input error with dynamic flag mismatch', () => {
@@ -7106,11 +7434,11 @@ describe('processUIMessageStream', () => {
           },
           {
             "errorText": "Model tried to call unavailable tool 'nonExistentTool'.",
-            "input": undefined,
+            "input": "{ "foo": "bar" }",
             "output": undefined,
             "preliminary": undefined,
             "providerExecuted": undefined,
-            "rawInput": "{ "foo": "bar" }",
+            "rawInput": undefined,
             "state": "output-error",
             "title": undefined,
             "toolCallId": "call-1",

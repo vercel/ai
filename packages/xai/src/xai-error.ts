@@ -1,7 +1,7 @@
 import { createJsonErrorResponseHandler } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-const chatCompletionsErrorSchema = z.object({
+const apiErrorSchema = z.object({
   error: z.object({
     message: z.string(),
     type: z.string().nullish(),
@@ -21,7 +21,7 @@ const speechErrorSchema = z.object({
 });
 
 export const xaiErrorDataSchema = z.union([
-  chatCompletionsErrorSchema,
+  apiErrorSchema,
   responsesErrorSchema,
   speechErrorSchema,
 ]);

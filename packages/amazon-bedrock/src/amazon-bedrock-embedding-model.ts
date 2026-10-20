@@ -4,7 +4,6 @@ import {
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
-  createJsonErrorResponseHandler,
   createJsonResponseHandler,
   parseProviderOptions,
   postJsonToApi,
@@ -20,7 +19,7 @@ import {
   type AmazonBedrockEmbeddingModelId,
   type AmazonBedrockEmbeddingModelSettings,
 } from './amazon-bedrock-embedding-model-options';
-import { AmazonBedrockErrorSchema } from './amazon-bedrock-error';
+import { amazonBedrockFailedResponseHandler } from './amazon-bedrock-error';
 import { z } from 'zod/v4';
 
 type AmazonBedrockEmbeddingConfig = {
@@ -71,6 +70,7 @@ export class AmazonBedrockEmbeddingModel implements EmbeddingModelV4 {
 
   async doEmbed({
     values,
+    dimensions,
     headers,
     abortSignal,
     providerOptions,
@@ -114,7 +114,7 @@ export class AmazonBedrockEmbeddingModel implements EmbeddingModelV4 {
               embeddingPurpose:
                 amazonBedrockOptions.embeddingPurpose ?? 'GENERIC_INDEX',
               embeddingDimension:
-                amazonBedrockOptions.embeddingDimension ?? 1024,
+                amazonBedrockOptions.embeddingDimension ?? dimensions ?? 1024,
               text: {
                 truncationMode: amazonBedrockOptions.truncate ?? 'END',
                 value: values[0],
@@ -128,11 +128,12 @@ export class AmazonBedrockEmbeddingModel implements EmbeddingModelV4 {
               input_type: amazonBedrockOptions.inputType ?? 'search_query',
               texts: values,
               truncate: amazonBedrockOptions.truncate,
-              output_dimension: amazonBedrockOptions.outputDimension,
+              output_dimension:
+                amazonBedrockOptions.outputDimension ?? dimensions,
             }
           : {
               inputText: values[0],
-              dimensions: amazonBedrockOptions.dimensions,
+              dimensions: amazonBedrockOptions.dimensions ?? dimensions,
               normalize: amazonBedrockOptions.normalize,
             };
 
@@ -146,10 +147,7 @@ export class AmazonBedrockEmbeddingModel implements EmbeddingModelV4 {
         ),
       ),
       body: args,
-      failedResponseHandler: createJsonErrorResponseHandler({
-        errorSchema: AmazonBedrockErrorSchema,
-        errorToMessage: error => `${error.type}: ${error.message}`,
-      }),
+      failedResponseHandler: amazonBedrockFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         AmazonBedrockEmbeddingResponseSchema,
       ),

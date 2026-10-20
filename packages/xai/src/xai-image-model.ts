@@ -28,9 +28,23 @@ interface XaiImageModelConfig {
   };
 }
 
+const fileInputModelIds: ReadonlySet<string> = new Set<XaiImageModelId>([
+  'grok-imagine-image',
+  'grok-imagine-image-2.0',
+  'grok-imagine-image-pro',
+]);
+
 export class XaiImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 3;
+
+  get supportsFileInputs(): boolean | undefined {
+    return fileInputModelIds.has(this.modelId) ? true : undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    return this.supportsFileInputs === true ? false : undefined;
+  }
 
   get provider(): string {
     return this.config.provider;

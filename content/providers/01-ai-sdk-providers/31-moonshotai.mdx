@@ -90,14 +90,12 @@ unchanged.
 
 #### Structured Outputs
 
-Native structured outputs are enabled for Kimi K models and the official
-Moonshot V1 text, auto, and vision models.
+Native structured outputs are enabled for all model IDs, including Kimi K
+models, the official Moonshot V1 text, auto, and vision models, and custom or
+future model IDs.
 
 The provider normalizes schemas to Moonshot's supported JSON Schema subset and
 enables strict schema validation by default.
-
-For unknown custom model IDs, object generation falls back to JSON mode instead
-of schema-constrained decoding.
 
 For best reliability, it is strongly recommended to include your schema requirements in your prompt in addition to passing the schema through `Output`.
 
@@ -518,7 +516,8 @@ The following optional provider options are available for Moonshot AI language m
 - **reasoningEffort** _'low' | 'high' | 'max'_
 
   Reasoning effort for Kimi K3. Defaults to `'max'`. You can also use the
-  generic `reasoning` setting.
+  generic `reasoning` setting. Portable `reasoning: 'max'` is sent directly;
+  `minimal` maps to `low`, while `medium` and `high` map to `high`.
 
 - **prediction** _&#123; type: 'content'; content: string | Array&lt;&#123; type: 'text'; text: string &#125;&gt; &#125;_
 
