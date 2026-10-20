@@ -48,6 +48,8 @@ export class GatewayDecisionModel implements DecisionModelV4 {
   async doDecide({
     state,
     questions,
+    maxOutputTokens,
+    reasoning,
     headers,
     abortSignal,
     providerOptions,
@@ -83,6 +85,8 @@ export class GatewayDecisionModel implements DecisionModelV4 {
         body: {
           stateParts,
           questions,
+          maxOutputTokens,
+          reasoning,
           ...(validatedProviderOptions
             ? { providerOptions: validatedProviderOptions }
             : {}),
