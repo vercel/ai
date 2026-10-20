@@ -1,5 +1,7 @@
 import type { RerankingModelV3, SharedV3Warning } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createJsonResponseHandler,
   parseProviderOptions,
@@ -101,14 +103,18 @@ export class VoyageRerankingModel implements RerankingModelV3 {
   }
 }
 
-const voyageRerankingResponseSchema = z.object({
-  data: z.array(
+const voyageRerankingResponseSchema = lazySchema(() =>
+  zodSchema(
     z.object({
-      index: z.number(),
-      relevance_score: z.number(),
+      data: z.array(
+        z.object({
+          index: z.number(),
+          relevance_score: z.number(),
+        }),
+      ),
+      usage: z.object({
+        total_tokens: z.number(),
+      }),
     }),
   ),
-  usage: z.object({
-    total_tokens: z.number(),
-  }),
-});
+);
