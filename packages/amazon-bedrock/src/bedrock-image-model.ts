@@ -1,5 +1,7 @@
 import type { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   type FetchFunction,
   type Resolvable,
   combineHeaders,
@@ -122,6 +124,10 @@ export class BedrockImageModel implements ImageModelV2 {
 
 // minimal version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const bedrockImageResponseSchema = z.object({
-  images: z.array(z.string()),
-});
+const bedrockImageResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      images: z.array(z.string()),
+    }),
+  ),
+);

@@ -3,6 +3,8 @@ import {
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   type FetchFunction,
   type Resolvable,
   combineHeaders,
@@ -95,7 +97,11 @@ export class BedrockEmbeddingModel implements EmbeddingModelV2<string> {
   }
 }
 
-const BedrockEmbeddingResponseSchema = z.object({
-  embedding: z.array(z.number()),
-  inputTextTokenCount: z.number(),
-});
+const BedrockEmbeddingResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      embedding: z.array(z.number()),
+      inputTextTokenCount: z.number(),
+    }),
+  ),
+);
