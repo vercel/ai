@@ -10,15 +10,16 @@ export type GoogleGenerativeAIEmbeddingModelId =
   | 'gemini-embedding-2-preview'
   | (string & {});
 
-const googleEmbeddingContentPartSchema = z.union([
-  z.object({ text: z.string() }),
-  z.object({
-    inlineData: z.object({
-      mimeType: z.string(),
-      data: z.string(),
+const googleEmbeddingContentPartSchema = () =>
+  z.union([
+    z.object({ text: z.string() }),
+    z.object({
+      inlineData: z.object({
+        mimeType: z.string(),
+        data: z.string(),
+      }),
     }),
-  }),
-]);
+  ]);
 
 export const googleGenerativeAIEmbeddingProviderOptions = lazySchema(() =>
   zodSchema(
@@ -64,7 +65,7 @@ export const googleGenerativeAIEmbeddingProviderOptions = lazySchema(() =>
        * the case of a single embedding, the array length must be 1.
        */
       content: z
-        .array(z.array(googleEmbeddingContentPartSchema).min(1).nullable())
+        .array(z.array(googleEmbeddingContentPartSchema()).min(1).nullable())
         .optional(),
     }),
   ),
