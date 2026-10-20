@@ -560,6 +560,20 @@ async function legacySessionPrompt({
 }): Promise<{ error?: unknown; data?: unknown }> {
   const session = (client as any).session;
   const submitPrompt = session.promptAsync ?? session.prompt;
+  const parts =
+    promptText != null
+      ? [{ type: 'text' as const, text: promptText }]
+      : typeof start.prompt === 'string'
+        ? [{ type: 'text' as const, text: start.prompt }]
+        : start.prompt.map(part =>
+            part.type === 'text'
+              ? { type: 'text' as const, text: part.text }
+              : {
+                  type: 'file' as const,
+                  mime: part.mediaType,
+                  url: `data:${part.mediaType};base64,${part.data}`,
+                },
+          );
   return submitPrompt.call(session, {
     sessionID: sessionId,
     ...(start.instructions ? { system: start.instructions } : {}),
@@ -573,7 +587,7 @@ async function legacySessionPrompt({
           },
         }
       : {}),
-    parts: [{ type: 'text', text: promptText ?? start.prompt }],
+    parts,
   });
 }
 
