@@ -12,6 +12,7 @@ import {
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   delay,
+  encodePathSegment,
   getFromApi,
   getTopLevelMediaType,
   parseProviderOptions,
@@ -638,7 +639,7 @@ export class MiniMaxVideoModel implements VideoModelV4 {
       options.operation as MiniMaxVideoOperation;
     const baseURL = this.config.baseURL;
     const { value: statusResponse, responseHeaders } = await getFromApi({
-      url: `${baseURL}/v2/query/video_generation/${encodeURIComponent(taskId)}`,
+      url: `${baseURL}/v2/query/video_generation/${encodePathSegment(taskId)}`,
       validateUrl: true,
       trustedOrigin: baseURL,
       headers: combineHeaders(
