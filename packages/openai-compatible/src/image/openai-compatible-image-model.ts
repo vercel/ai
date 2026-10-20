@@ -1,5 +1,7 @@
 import type { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   type FetchFunction,
   combineHeaders,
   createJsonErrorResponseHandler,
@@ -110,6 +112,10 @@ export class OpenAICompatibleImageModel implements ImageModelV2 {
 
 // minimal version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const openaiCompatibleImageResponseSchema = z.object({
-  data: z.array(z.object({ b64_json: z.string() })),
-});
+const openaiCompatibleImageResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      data: z.array(z.object({ b64_json: z.string() })),
+    }),
+  ),
+);

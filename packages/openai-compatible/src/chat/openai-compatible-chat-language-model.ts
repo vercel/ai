@@ -10,6 +10,8 @@ import {
   InvalidResponseDataError,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   type FetchFunction,
   StreamingToolCallTracker,
   type ParseResult,
@@ -69,7 +71,7 @@ export type OpenAICompatibleChatConfig = {
    * token accounting semantics.
    */
   convertUsage?: (
-    usage: z.infer<typeof openaiCompatibleTokenUsageSchema>,
+    usage: z.infer<ReturnType<typeof openaiCompatibleTokenUsageSchema>>,
   ) => LanguageModelV2Usage;
 };
 
@@ -118,7 +120,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
   }
 
   private convertUsage(
-    usage: z.infer<typeof openaiCompatibleTokenUsageSchema>,
+    usage: z.infer<ReturnType<typeof openaiCompatibleTokenUsageSchema>>,
   ): LanguageModelV2Usage {
     return (
       this.config.convertUsage?.(usage) ??
@@ -396,19 +398,23 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
       },
       totalTokens: undefined,
     };
-    let topLevelUsage: z.infer<typeof openaiCompatibleTokenUsageSchema> =
-      undefined;
-    let choiceUsage: z.infer<typeof openaiCompatibleTokenUsageSchema> =
-      undefined;
+    let topLevelUsage: z.infer<
+      ReturnType<typeof openaiCompatibleTokenUsageSchema>
+    > = undefined;
+    let choiceUsage: z.infer<
+      ReturnType<typeof openaiCompatibleTokenUsageSchema>
+    > = undefined;
     let isFirstChunk = true;
     const providerOptionsName = this.providerOptionsName;
     let isActiveReasoning = false;
     let isActiveText = false;
     const convertUsage = (
-      usage: z.infer<typeof openaiCompatibleTokenUsageSchema>,
+      usage: z.infer<ReturnType<typeof openaiCompatibleTokenUsageSchema>>,
     ) => this.convertUsage(usage);
     const setUsage = (
-      tokenUsage: NonNullable<z.infer<typeof openaiCompatibleTokenUsageSchema>>,
+      tokenUsage: NonNullable<
+        z.infer<ReturnType<typeof openaiCompatibleTokenUsageSchema>>
+      >,
     ) => {
       usage.promptTokens = tokenUsage.prompt_tokens ?? undefined;
       usage.completionTokens = tokenUsage.completion_tokens ?? undefined;
@@ -586,28 +592,29 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
   }
 }
 
-const openaiCompatibleTokenUsageSchema = z
-  .object({
-    prompt_tokens: z.number().nullish(),
-    completion_tokens: z.number().nullish(),
-    total_tokens: z.number().nullish(),
-    prompt_tokens_details: z
-      .object({
-        cached_tokens: z.number().nullish(),
-      })
-      .nullish(),
-    completion_tokens_details: z
-      .object({
-        reasoning_tokens: z.number().nullish(),
-        accepted_prediction_tokens: z.number().nullish(),
-        rejected_prediction_tokens: z.number().nullish(),
-      })
-      .nullish(),
-  })
-  .nullish();
+const openaiCompatibleTokenUsageSchema = () =>
+  z
+    .object({
+      prompt_tokens: z.number().nullish(),
+      completion_tokens: z.number().nullish(),
+      total_tokens: z.number().nullish(),
+      prompt_tokens_details: z
+        .object({
+          cached_tokens: z.number().nullish(),
+        })
+        .nullish(),
+      completion_tokens_details: z
+        .object({
+          reasoning_tokens: z.number().nullish(),
+          accepted_prediction_tokens: z.number().nullish(),
+          rejected_prediction_tokens: z.number().nullish(),
+        })
+        .nullish(),
+    })
+    .nullish();
 
 function convertOpenAICompatibleChatUsage(
-  usage: z.infer<typeof openaiCompatibleTokenUsageSchema>,
+  usage: z.infer<ReturnType<typeof openaiCompatibleTokenUsageSchema>>,
 ): LanguageModelV2Usage {
   return {
     inputTokens: usage?.prompt_tokens ?? undefined,
@@ -621,34 +628,38 @@ function convertOpenAICompatibleChatUsage(
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const OpenAICompatibleChatResponseSchema = z.object({
-  id: z.string().nullish(),
-  created: z.number().nullish(),
-  model: z.string().nullish(),
-  choices: z.array(
+const OpenAICompatibleChatResponseSchema = lazySchema(() =>
+  zodSchema(
     z.object({
-      message: z.object({
-        role: z.literal('assistant').nullish(),
-        content: z.string().nullish(),
-        reasoning_content: z.string().nullish(),
-        reasoning: z.string().nullish(),
-        tool_calls: z
-          .array(
-            z.object({
-              id: z.string().nullish(),
-              function: z.object({
-                name: z.string(),
-                arguments: z.string(),
-              }),
-            }),
-          )
-          .nullish(),
-      }),
-      finish_reason: z.string().nullish(),
+      id: z.string().nullish(),
+      created: z.number().nullish(),
+      model: z.string().nullish(),
+      choices: z.array(
+        z.object({
+          message: z.object({
+            role: z.literal('assistant').nullish(),
+            content: z.string().nullish(),
+            reasoning_content: z.string().nullish(),
+            reasoning: z.string().nullish(),
+            tool_calls: z
+              .array(
+                z.object({
+                  id: z.string().nullish(),
+                  function: z.object({
+                    name: z.string(),
+                    arguments: z.string(),
+                  }),
+                }),
+              )
+              .nullish(),
+          }),
+          finish_reason: z.string().nullish(),
+        }),
+      ),
+      usage: openaiCompatibleTokenUsageSchema(),
     }),
   ),
-  usage: openaiCompatibleTokenUsageSchema,
-});
+);
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
@@ -687,10 +698,10 @@ const createOpenAICompatibleChatChunkSchema = <
             })
             .nullish(),
           finish_reason: z.string().nullish(),
-          usage: openaiCompatibleTokenUsageSchema,
+          usage: openaiCompatibleTokenUsageSchema(),
         }),
       ),
-      usage: openaiCompatibleTokenUsageSchema,
+      usage: openaiCompatibleTokenUsageSchema(),
     }),
     errorSchema,
   ]);
