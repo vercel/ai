@@ -180,6 +180,12 @@ The following provider options are available:
   Supports numerous ISO-639-1 and ISO-639-3 language codes.
   Optional.
 
+- **languageCodes** _array of strings_
+
+  An array of language codes to constrain transcription or code switching to.
+  Mutually exclusive with `languageCode` and `languageDetection`.
+  Optional.
+
 - **languageConfidenceThreshold** _number_
 
   Confidence threshold for language detection.
@@ -348,7 +354,7 @@ places:
 - **`providerMetadata.assemblyai`** — structured results for the features you
   enabled: `utterances` (speaker-diarized segments, when `speakerLabels` is set),
   `entities`, `sentimentAnalysisResults`, `contentSafetyLabels`,
-  `iabCategoriesResult`, and `autoHighlightsResult`.
+  `iabCategoriesResult`, `autoHighlightsResult`, and `languageCodes`.
 - **`response.body`** — the complete, raw AssemblyAI transcript response, so any
   field not surfaced above (e.g. `chapters`, word-level `speaker` labels) is
   still available.

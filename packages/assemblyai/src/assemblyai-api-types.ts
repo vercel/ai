@@ -197,6 +197,11 @@ export type AssemblyAITranscriptionAPITypes = {
     | 'yo';
 
   /**
+   * An array of language codes to constrain transcription or code switching to.
+   */
+  language_codes?: string[];
+
+  /**
    * The confidence threshold for the automatically detected language. An error will be returned if the language confidence is below this threshold.
    * @default 0
    */

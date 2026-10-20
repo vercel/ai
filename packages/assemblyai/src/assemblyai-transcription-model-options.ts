@@ -83,6 +83,11 @@ export const assemblyaiTranscriptionModelOptionsSchema = z.object({
    */
   languageCode: z.union([z.literal('en'), z.string()]).nullish(),
   /**
+   * An array of language codes to constrain transcription or code switching to.
+   * Mutually exclusive with `languageCode` and `languageDetection`.
+   */
+  languageCodes: z.array(z.string()).nullish(),
+  /**
    * Confidence threshold for language detection.
    */
   languageConfidenceThreshold: z.number().nullish(),
