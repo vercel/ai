@@ -3771,6 +3771,128 @@ describe('generateText', () => {
     });
   });
 
+  describe('options.onStepError', () => {
+    it('should be called when the provider call fails', async () => {
+      const onStepStart = vi.fn();
+      const onStepError = vi.fn();
+      const onStepEnd = vi.fn();
+      const providerError = new Error('provider failure');
+
+      await expect(
+        generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => {
+              throw providerError;
+            },
+          }),
+          prompt: 'test-input',
+          maxRetries: 0,
+          onStepStart,
+          onStepError,
+          onStepEnd,
+        }),
+      ).rejects.toBe(providerError);
+
+      expect(onStepEnd).not.toHaveBeenCalled();
+      expect(onStepError).toHaveBeenCalledTimes(1);
+      expect(onStepError).toHaveBeenCalledWith({
+        callId: onStepStart.mock.calls[0][0].callId,
+        provider: 'mock-provider',
+        modelId: 'mock-model-id',
+        stepNumber: 0,
+        error: providerError,
+      });
+    });
+
+    it('should report the step that failed in a multi-step run', async () => {
+      const onStepError = vi.fn();
+      const onStepEnd = vi.fn();
+      const providerError = new Error('provider failure');
+      let responseCount = 0;
+
+      await expect(
+        generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => {
+              if (responseCount++ > 0) {
+                throw providerError;
+              }
+              return {
+                ...dummyResponseValues,
+                content: [
+                  {
+                    type: 'tool-call',
+                    toolCallType: 'function',
+                    toolCallId: 'call-1',
+                    toolName: 'tool1',
+                    input: '{ "value": "value" }',
+                  },
+                ],
+                finishReason: { unified: 'tool-calls', raw: undefined },
+              };
+            },
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async () => 'result1',
+            }),
+          },
+          prompt: 'test-input',
+          maxRetries: 0,
+          stopWhen: isStepCount(3),
+          onStepError,
+          onStepEnd,
+        }),
+      ).rejects.toBe(providerError);
+
+      expect(onStepEnd).toHaveBeenCalledTimes(1);
+      expect(onStepError).toHaveBeenCalledTimes(1);
+      expect(onStepError).toHaveBeenCalledWith(
+        expect.objectContaining({ stepNumber: 1, error: providerError }),
+      );
+    });
+
+    it('should not be called when the step completes', async () => {
+      const onStepError = vi.fn();
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello!' }],
+          }),
+        }),
+        prompt: 'test-input',
+        onStepError,
+      });
+
+      expect(onStepError).not.toHaveBeenCalled();
+    });
+
+    it('should not be called when the call is aborted', async () => {
+      const onStepError = vi.fn();
+      const abortController = new AbortController();
+
+      await expect(
+        generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => {
+              abortController.abort();
+              throw new DOMException('aborted', 'AbortError');
+            },
+          }),
+          prompt: 'test-input',
+          maxRetries: 0,
+          abortSignal: abortController.signal,
+          onStepError,
+        }),
+      ).rejects.toThrow();
+
+      expect(onStepError).not.toHaveBeenCalled();
+    });
+  });
+
   describe('options.onStepEnd stepNumber', () => {
     it('should call onStepEnd with step result', async () => {
       let stepEndEvent!: Parameters<GenerateTextOnStepEndCallback<any, any>>[0];

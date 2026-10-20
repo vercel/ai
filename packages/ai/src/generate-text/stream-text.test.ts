@@ -4211,6 +4211,176 @@ describe('streamText', () => {
       expect(onStepFinish).not.toHaveBeenCalled();
     });
 
+    it('should call onStepError when provider stream closes before finish chunk', async () => {
+      const onStepStart = vi.fn();
+      const onStepError = vi.fn();
+      const onStepEnd = vi.fn();
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'stream-start', warnings: [] },
+          ]),
+        }),
+        prompt: 'test-input',
+        onError: () => {},
+        onStepStart,
+        onStepError,
+        onStepEnd,
+      });
+
+      await result.consumeStream();
+      await expect(result.text).rejects.toThrow();
+
+      expect(onStepStart).toHaveBeenCalledTimes(1);
+      expect(onStepEnd).not.toHaveBeenCalled();
+      expect(onStepError).toHaveBeenCalledTimes(1);
+      expect(onStepError).toHaveBeenCalledWith({
+        callId: onStepStart.mock.calls[0][0].callId,
+        provider: 'mock-provider',
+        modelId: 'mock-model-id',
+        stepNumber: 0,
+        error: expect.objectContaining({
+          message:
+            'No output generated. The model stream ended without a finish chunk.',
+        }),
+      });
+    });
+
+    it('should call onStepError when the provider call throws', async () => {
+      const onStepError = vi.fn();
+      const providerError = new Error('provider failure');
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            throw providerError;
+          },
+        }),
+        prompt: 'test-input',
+        maxRetries: 0,
+        onError: () => {},
+        onStepError,
+      });
+
+      await result.consumeStream();
+      await expect(result.text).rejects.toThrow();
+
+      expect(onStepError).toHaveBeenCalledTimes(1);
+      expect(onStepError).toHaveBeenCalledWith(
+        expect.objectContaining({ stepNumber: 0, error: providerError }),
+      );
+    });
+
+    it('should not call onStepError when the step completes', async () => {
+      const onStepError = vi.fn();
+
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        onStepError,
+      });
+
+      await result.consumeStream();
+
+      expect(await result.text).toBe('Hello, world!');
+      expect(onStepError).not.toHaveBeenCalled();
+    });
+
+    it('should report a provider failure on a continuation step to onStepError and telemetry onError', async () => {
+      const onStepError = vi.fn();
+      const telemetryOnError = vi.fn();
+      const providerError = new Error('provider failure');
+      let responseCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            if (responseCount++ > 0) {
+              throw providerError;
+            }
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  input: '{ "value": "value" }',
+                },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'result1',
+          }),
+        },
+        prompt: 'test-input',
+        maxRetries: 0,
+        stopWhen: isStepCount(3),
+        onError: () => {},
+        onStepError,
+        telemetry: { integrations: [{ onError: telemetryOnError }] },
+      });
+
+      await result.consumeStream();
+
+      expect(onStepError).toHaveBeenCalledTimes(1);
+      expect(onStepError).toHaveBeenCalledWith(
+        expect.objectContaining({ stepNumber: 1, error: providerError }),
+      );
+      expect(telemetryOnError).toHaveBeenCalledTimes(1);
+      expect(telemetryOnError).toHaveBeenCalledWith(
+        expect.objectContaining({
+          callId: expect.any(String),
+          error: providerError,
+        }),
+      );
+    });
+
+    it('should report a stream that closes before finish chunk to telemetry onError', async () => {
+      const telemetryOnError = vi.fn();
+      const telemetryOnStepEnd = vi.fn();
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'stream-start', warnings: [] },
+          ]),
+        }),
+        prompt: 'test-input',
+        onError: () => {},
+        telemetry: {
+          integrations: [
+            { onError: telemetryOnError, onStepEnd: telemetryOnStepEnd },
+          ],
+        },
+      });
+
+      await result.consumeStream();
+      await expect(result.text).rejects.toThrow();
+
+      expect(telemetryOnStepEnd).not.toHaveBeenCalled();
+      expect(telemetryOnError).toHaveBeenCalledTimes(1);
+      expect(telemetryOnError).toHaveBeenCalledWith(
+        expect.objectContaining({
+          callId: expect.any(String),
+          error: expect.objectContaining({
+            message:
+              'No output generated. The model stream ended without a finish chunk.',
+          }),
+        }),
+      );
+    });
+
     it('should resolve with partial output when provider stream closes before finish chunk after producing output', async () => {
       const onError = vi.fn();
 
