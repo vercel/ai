@@ -1,5 +1,53 @@
 # @ai-sdk/mcp
 
+## 2.0.80
+
+### Patch Changes
+
+- 2b8185e: fix(mcp): bind OAuth client credentials to their authorization server, including when the selected server is approved by `validateAuthorizationServerURL`
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+
+## 2.0.79
+
+### Patch Changes
+
+- fce9210: fix(mcp): support shell option in stdio transport and extract response body in SSE transport errors
+- Updated dependencies [60cc252]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/provider-utils@5.0.63
+
+## 2.0.78
+
+### Patch Changes
+
+- Updated dependencies [0957554]
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+
+## 2.0.77
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+  - @ai-sdk/provider-utils@5.0.61
+
+## 2.0.76
+
+### Patch Changes
+
+- 5111e98: BREAKING (experimental): managed event subscriptions now require `ttlMs: number | null` instead of accepting an `expiresAt` creation input. Use a duration in milliseconds or `null` to watch until stopped. Subscription responses retain `expiresAt` as the backend-calculated deadline. Update managed event adapters together with callers.
+
+## 2.0.75
+
+### Patch Changes
+
+- Updated dependencies [2e89fa4]
+  - @ai-sdk/provider-utils@5.0.60
+
 ## 2.0.74
 
 ### Patch Changes

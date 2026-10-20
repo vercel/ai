@@ -96,6 +96,16 @@ describe('createChildProcess', () => {
     childProcessWithStderr.kill();
   });
 
+  it('should spawn a child process with custom shell option', async () => {
+    const childProcessWithShell = createChildProcess(
+      { command: process.execPath, shell: true },
+      new AbortController().signal,
+    );
+
+    expect(childProcessWithShell.pid).toBeDefined();
+    childProcessWithShell.kill();
+  });
+
   it.runIf(process.platform === 'win32')(
     'should spawn npx on Windows',
     async () => {

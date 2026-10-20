@@ -1,5 +1,29 @@
 # @ai-sdk/provider
 
+## 4.0.31
+
+### Patch Changes
+
+- 0c2a9de: Add `maxOutputTokens` and `reasoning` to experimental decision calls and forward them to language-model-backed decisions. Language-model adapters keep reasoning disabled when omitted. Native decision providers warn when either setting is unsupported.
+
+## 4.0.30
+
+### Patch Changes
+
+- 60cc252: feat(perplexity): add decisions api support
+
+## 4.0.29
+
+### Patch Changes
+
+- 0957554: Add `box` decision question type with image bounds for TypeSafe AI.
+
+## 4.0.28
+
+### Patch Changes
+
+- 130e871: Restore raw OpenAI custom-tool input deltas for consumers that forward them to Responses API clients. Mark streamed input with `inputEncoding: 'text'` so UI clients can display it progressively without JSON parsing. Preserve the encoding when partial UI messages are saved and resumed. Final provider tool-call inputs remain JSON-encoded.
+
 ## 4.0.27
 
 ### Patch Changes

@@ -52,7 +52,9 @@ export ANTHROPIC_API_KEY=your_api_key_here
 AI Gateway does not expose every API in `@ai-sdk/anthropic`. Use the direct provider for provider-specific APIs or custom connection settings.
 
 <Note>
-  The following sections document the direct `@ai-sdk/anthropic` provider, including its model factories and settings. Gateway model and feature availability can differ.
+  The following sections document the direct `@ai-sdk/anthropic` provider,
+  including its model factories and settings. Gateway model and feature
+  availability can differ.
 </Note>
 
 ## Provider Instance
@@ -783,6 +785,13 @@ Anthropic's `max_tokens` limit includes both thinking and final text. To reserve
 room for both, the provider adds `budgetTokens` to `maxOutputTokens` when
 setting `max_tokens`. For known models, the combined value is capped at the
 model's maximum output token limit.
+
+With manual thinking (`thinking.type: 'enabled'`), a `required` or named
+`toolChoice` falls back to `auto` with a warning. For a named tool choice, only
+the selected tool is sent. This also applies when the top-level `reasoning`
+option enables manual thinking, including when structured output uses the
+internal JSON response tool. Tool use is no longer guaranteed: instruct the
+model to use the tool in your prompt and verify that a tool call was made.
 
 See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details
 on how to integrate reasoning into your chatbot.

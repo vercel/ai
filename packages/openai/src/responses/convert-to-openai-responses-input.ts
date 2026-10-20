@@ -20,7 +20,10 @@ import {
   type ToolNameMapping,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { openaiResponsesSystemMessageOptionsSchema } from './openai-responses-language-model-options';
+import {
+  openaiResponsesSystemMessageOptionsSchema,
+  openaiResponsesToolResultOptionsSchema,
+} from './openai-responses-language-model-options';
 import {
   applyPatchInputSchema,
   applyPatchOutputSchema,
@@ -1221,6 +1224,9 @@ export async function convertToOpenAIResponsesInput({
                   input.push({
                     type: 'shell_call_output',
                     call_id: part.toolCallId,
+                    ...(parsedOutput.maxOutputLength != null && {
+                      max_output_length: parsedOutput.maxOutputLength,
+                    }),
                     output: parsedOutput.output.map(item => ({
                       stdout: item.stdout,
                       stderr: item.stderr,
@@ -1562,6 +1568,9 @@ export async function convertToOpenAIResponsesInput({
             input.push({
               type: 'shell_call_output',
               call_id: part.toolCallId,
+              ...(parsedOutput.maxOutputLength != null && {
+                max_output_length: parsedOutput.maxOutputLength,
+              }),
               output: parsedOutput.output.map(item => ({
                 stdout: item.stdout,
                 stderr: item.stderr,
@@ -1794,6 +1803,19 @@ export async function convertToOpenAIResponsesInput({
             output: contentValue,
             ...(caller != null && { caller }),
           });
+
+          const options = await parseProviderOptions({
+            provider: providerOptionsName,
+            providerOptions: part.providerOptions,
+            schema: openaiResponsesToolResultOptionsSchema,
+          });
+          if (options?.additionalTools?.length) {
+            input.push({
+              type: 'additional_tools',
+              role: 'developer',
+              tools: options.additionalTools,
+            });
+          }
         }
 
         break;

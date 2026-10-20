@@ -15,7 +15,7 @@ __PROVIDER_IMPORT__;
 const { text } = await generateText({
   model: __MODEL__,
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
-  __GATEWAY_OPTIONS__
+  __GATEWAY_OPTIONS__,
 });
 
 console.log(text);
@@ -56,7 +56,9 @@ export AWS_REGION=us-east-1
 Use the direct provider for AWS authentication, account-specific inference profiles, or Bedrock-specific APIs. Gateway and Bedrock use different model IDs.
 
 <Note>
-  The following sections document the direct `@ai-sdk/amazon-bedrock` provider, including its model factories and settings. Gateway model and feature availability can differ.
+  The following sections document the direct `@ai-sdk/amazon-bedrock` provider,
+  including its model factories and settings. Gateway model and feature
+  availability can differ.
 </Note>
 
 ### Prerequisites

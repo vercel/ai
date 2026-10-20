@@ -29,7 +29,7 @@ run(async () => {
   console.log('\n=== Other Outputs ===');
   console.dir(basicResult.toolCalls, { depth: Infinity });
   console.dir(basicResult.toolResults, { depth: Infinity });
-  console.log('\n=== Web Search Preview Annotations ===');
+  console.log('\n=== Web Search Annotations ===');
   for (const part of basicResult.content) {
     if (part.type === 'text') {
       const annotations = part.providerMetadata?.azure?.annotations;

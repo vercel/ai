@@ -15,7 +15,7 @@ __PROVIDER_IMPORT__;
 const { text } = await generateText({
   model: __MODEL__,
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
-  __GATEWAY_OPTIONS__
+  __GATEWAY_OPTIONS__,
 });
 
 console.log(text);
@@ -55,7 +55,9 @@ export DEEPINFRA_API_KEY=your_api_key_here
 AI Gateway does not expose every API in `@ai-sdk/deepinfra`. Use the direct provider for provider-specific APIs or custom connection settings.
 
 <Note>
-  The following sections document the direct `@ai-sdk/deepinfra` provider, including its model factories and settings. Gateway model and feature availability can differ.
+  The following sections document the direct `@ai-sdk/deepinfra` provider,
+  including its model factories and settings. Gateway model and feature
+  availability can differ.
 </Note>
 
 ## Provider Instance

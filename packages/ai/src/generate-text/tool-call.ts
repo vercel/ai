@@ -18,7 +18,7 @@ type BaseToolCall = {
  * with an `input` type inferred from that tool's input schema.
  */
 export type StaticToolCall<TOOLS extends ToolSet> = ValueOf<{
-  [NAME in keyof TOOLS]: BaseToolCall & {
+  [NAME in keyof TOOLS]-?: BaseToolCall & {
     toolName: NAME & string;
     input: InferToolInput<TOOLS[NAME]>;
     dynamic?: false | undefined;

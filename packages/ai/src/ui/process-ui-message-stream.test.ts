@@ -3542,6 +3542,58 @@ describe('processUIMessageStream', () => {
     });
   });
 
+  describe('static tool name changes', () => {
+    it('uses the completed input tool name for an existing streamed part', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start-step' },
+        {
+          type: 'tool-input-start',
+          toolCallId: 'tool-call-0',
+          toolName: 'originalTool',
+        },
+        {
+          type: 'tool-input-delta',
+          toolCallId: 'tool-call-0',
+          inputTextDelta: '{"value":"test"}',
+        },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-0',
+          toolName: 'renamedTool',
+          input: { value: 'test' },
+        },
+        {
+          type: 'tool-approval-request',
+          toolCallId: 'tool-call-0',
+          approvalId: 'approval-0',
+        },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      expect(state.message.parts[1]).toMatchObject({
+        type: 'tool-renamedTool',
+        toolCallId: 'tool-call-0',
+        state: 'approval-requested',
+        input: { value: 'test' },
+        approval: { id: 'approval-0' },
+      });
+    });
+  });
+
   describe('start with message id', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([

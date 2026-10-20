@@ -598,7 +598,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     }
 
     const baseArgs = {
-      model: modelId,
+      model: config.requestModelId ?? modelId,
       input,
       temperature,
       top_p: topP,
@@ -854,7 +854,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     } = await this.getArgs(options);
     const url = this.config.url({
       path: '/responses',
-      modelId: this.modelId,
+      modelId: this.config.requestModelId ?? this.modelId,
     });
 
     const approvalRequestIdToDummyToolCallIdFromPrompt =
@@ -1045,6 +1045,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             input: JSON.stringify({
               action: {
                 commands: part.action.commands,
+                timeoutMs: part.action.timeout_ms ?? undefined,
+                maxOutputLength: part.action.max_output_length ?? undefined,
               },
             } satisfies InferSchema<typeof shellInputSchema>),
             ...(isShellProviderExecuted && { providerExecuted: true }),
@@ -1064,6 +1066,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             toolCallId: part.call_id,
             toolName: toolNameMapping.toCustomToolName('shell'),
             result: {
+              ...(part.max_output_length != null && {
+                maxOutputLength: part.max_output_length,
+              }),
               output: part.output.map(item => ({
                 stdout: item.stdout,
                 stderr: item.stderr,
@@ -1547,7 +1552,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
     const url = this.config.url({
       path: '/responses',
-      modelId: this.modelId,
+      modelId: this.config.requestModelId ?? this.modelId,
     });
 
     const { responseHeaders, value: response } = await postJsonToApi({
@@ -1739,14 +1744,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   type: 'tool-input-start',
                   id: value.item.call_id,
                   toolName,
-                });
-
-                // Custom tool input is a string, so stream its JSON encoding
-                // consistently with the final tool call input.
-                controller.enqueue({
-                  type: 'tool-input-delta',
-                  id: value.item.call_id,
-                  delta: '"',
+                  inputEncoding: 'text',
                 });
               } else if (value.item.type === 'web_search_call') {
                 ongoingToolCalls[value.output_index] = {
@@ -2147,12 +2145,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 );
 
                 controller.enqueue({
-                  type: 'tool-input-delta',
-                  id: value.item.call_id,
-                  delta: '"',
-                });
-
-                controller.enqueue({
                   type: 'tool-input-end',
                   id: value.item.call_id,
                 });
@@ -2543,6 +2535,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   input: JSON.stringify({
                     action: {
                       commands: value.item.action.commands,
+                      timeoutMs: value.item.action.timeout_ms ?? undefined,
+                      maxOutputLength:
+                        value.item.action.max_output_length ?? undefined,
                     },
                   } satisfies InferSchema<typeof shellInputSchema>),
                   ...(isShellProviderExecuted && {
@@ -2558,6 +2553,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   toolCallId: value.item.call_id,
                   toolName: toolNameMapping.toCustomToolName('shell'),
                   result: {
+                    ...(value.item.max_output_length != null && {
+                      maxOutputLength: value.item.max_output_length,
+                    }),
                     output: value.item.output.map(
                       (item: {
                         stdout: string;
@@ -2649,7 +2647,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 controller.enqueue({
                   type: 'tool-input-delta',
                   id: toolCall.toolCallId,
-                  delta: escapeJSONDelta(value.delta),
+                  delta: value.delta,
                 });
               }
             } else if (isResponseApplyPatchCallOperationDiffDeltaChunk(value)) {

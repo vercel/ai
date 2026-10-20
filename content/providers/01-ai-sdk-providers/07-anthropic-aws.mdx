@@ -15,7 +15,7 @@ __PROVIDER_IMPORT__;
 const { text } = await generateText({
   model: __MODEL__,
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
-  __GATEWAY_OPTIONS__
+  __GATEWAY_OPTIONS__,
 });
 
 console.log(text);
@@ -59,7 +59,9 @@ export ANTHROPIC_AWS_WORKSPACE_ID=your_workspace_id
 Use the direct provider when you need AWS-native authentication, AWS Marketplace billing, or access to your Claude Platform workspace. Gateway requests do not use your workspace configuration.
 
 <Note>
-  The following sections document the direct `@ai-sdk/anthropic-aws` provider, including its model factories and settings. Gateway model and feature availability can differ.
+  The following sections document the direct `@ai-sdk/anthropic-aws` provider,
+  including its model factories and settings. Gateway model and feature
+  availability can differ.
 </Note>
 
 This differs from [Amazon Bedrock](/providers/ai-sdk-providers/amazon-bedrock) in two important ways: Claude Platform on AWS uses Anthropic's Messages API directly (not Bedrock's `Converse`/`InvokeModel`), and new features are available the same day they launch on the first-party Claude API (no AWS integration delay).

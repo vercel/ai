@@ -36,6 +36,23 @@ describe('serializeToolSet', () => {
     });
   });
 
+  it('records when a tool input schema has its own validator', () => {
+    const serialized = serializeToolSet({
+      validated: tool({
+        inputSchema: z.object({ value: z.coerce.number() }),
+      }),
+      jsonOnly: tool({
+        inputSchema: jsonSchema({
+          type: 'object',
+          properties: { value: { type: 'number' } },
+        }),
+      }),
+    });
+
+    expect(serialized.validated.hasOwnValidator).toBe(true);
+    expect(serialized.jsonOnly.hasOwnValidator).toBeUndefined();
+  });
+
   it('preserves provider tool type, id, and args', () => {
     // Provider tools (like anthropic.tools.webSearch) have type: 'provider',
     // an id, and args. These must survive serialization so the Gateway can
@@ -180,6 +197,23 @@ describe('resolveSerializableTools', () => {
 
     expect(tools.getWeather).toBeDefined();
     expect(tools.getWeather.description).toBe('Get weather for a city');
+  });
+
+  it('defers validation to the original schema when it has its own validator', async () => {
+    const tools = resolveSerializableTools(
+      serializeToolSet({
+        normalize: tool({
+          inputSchema: z.object({ value: z.coerce.number() }),
+        }),
+      }),
+    );
+
+    expect(
+      asSchema(tools.normalize.inputSchema).validate?.({
+        value: '42',
+        extra: true,
+      }),
+    ).toBeUndefined();
   });
 
   it('reports actionable details for every validation error', async () => {

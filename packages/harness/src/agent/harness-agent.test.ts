@@ -16,7 +16,12 @@ import {
   tool,
   type Experimental_SandboxSession as SandboxSession,
 } from '@ai-sdk/provider-utils';
-import { isStepCount, NoSuchToolError, Output } from 'ai';
+import {
+  convertToModelMessages,
+  isStepCount,
+  NoSuchToolError,
+  Output,
+} from 'ai';
 import { describe, expect, expectTypeOf, test, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { HarnessAgent } from './harness-agent';
@@ -3166,6 +3171,90 @@ describe('HarnessAgent', () => {
     ]);
     expect(session.hasUnfinishedTurn()).toBe(false);
 
+    await session.destroy();
+  });
+
+  test('continues a restored parallel approval batch with mixed UI decisions', async () => {
+    const execute = vi.fn(async ({ city }: { city: string }) => ({ city }));
+    const { harness, toolResults } = mockHarness({
+      script: () => [],
+      continueScript: () => finishEvents(),
+    });
+    const agent = new HarnessAgent({
+      harness,
+      tools: {
+        weather: tool({ inputSchema: z.object({ city: z.string() }), execute }),
+      },
+    });
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+      continueFrom: {
+        type: 'continue-turn',
+        harnessId: 'mock',
+        specificationVersion: 'harness-v1',
+        data: {},
+        pendingToolApprovals: ['Paris', 'Tokyo'].map((city, index) => ({
+          approvalId: `approval-${index}`,
+          toolCallId: `call-${index}`,
+          toolName: 'weather',
+          input: JSON.stringify({ city }),
+          kind: 'custom',
+          providerExecuted: false,
+        })),
+      },
+    });
+
+    const result = await agent.stream({
+      session,
+      messages: await convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: ['Paris', 'Tokyo'].map((city, index) => ({
+            type: 'tool-weather' as const,
+            toolCallId: `call-${index}`,
+            state: 'approval-responded' as const,
+            input: { city },
+            approval: {
+              id: `approval-${index}`,
+              approved: index === 0,
+              reason: index === 1 ? 'User denied the lookup.' : undefined,
+            },
+          })),
+        },
+      ]),
+    });
+    const decisions: boolean[] = [];
+    for await (const part of result.fullStream) {
+      if (part.type === 'tool-approval-response') {
+        decisions.push(part.approved);
+      }
+    }
+
+    expect(decisions).toMatchInlineSnapshot(`
+      [
+        true,
+        false,
+      ]
+    `);
+    expect(execute).toHaveBeenCalledOnce();
+    expect(toolResults).toMatchInlineSnapshot(`
+      [
+        {
+          "output": {
+            "city": "Paris",
+          },
+          "toolCallId": "call-0",
+        },
+        {
+          "output": {
+            "reason": "User denied the lookup.",
+            "type": "execution-denied",
+          },
+          "toolCallId": "call-1",
+        },
+      ]
+    `);
+    expect(session.hasUnfinishedTurn()).toBe(false);
     await session.destroy();
   });
 

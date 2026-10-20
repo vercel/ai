@@ -1,5 +1,49 @@
 # @ai-sdk/anthropic
 
+## 4.0.84
+
+### Patch Changes
+
+- 9d13c4d: Add the MiniMax M3.1 Flash model ID to the MiniMax and AI Gateway providers.
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+
+## 4.0.83
+
+### Patch Changes
+
+- Updated dependencies [60cc252]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/provider-utils@5.0.63
+
+## 4.0.82
+
+### Patch Changes
+
+- Updated dependencies [0957554]
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+
+## 4.0.81
+
+### Patch Changes
+
+- e254e96: fix(anthropic): support provider-referenced files in tool results
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+  - @ai-sdk/provider-utils@5.0.61
+
+## 4.0.80
+
+### Patch Changes
+
+- 40d0aec: feat(vertex-anthropic): forward 'providerOptions.vertex.labels' as a header
+- 40a4ce1: Fall back to automatic tool choice with a warning when manual thinking is enabled with a required or named tool choice, avoiding an Anthropic API 400 error. Named tool choices send only the selected tool.
+- Updated dependencies [2e89fa4]
+  - @ai-sdk/provider-utils@5.0.60
+
 ## 4.0.79
 
 ### Patch Changes

@@ -20,6 +20,7 @@ import type { ACPGatewayValues } from './profile-values';
 import {
   assertACPAuthenticationMethod,
   createACPInitializeRequest,
+  isACPImagePromptSupported,
   resolveACPLaunchEnvironment,
   validateACPProtocolVersion,
   type ACPInitializeResult,
@@ -94,6 +95,7 @@ let recoveredSessionUpdates:
   | ReturnType<typeof createACPRecoveredSessionUpdates>
   | undefined;
 let recoveredSessionId: string | undefined;
+let sessionSupportsImagePrompts = false;
 let sessionConfigurationFingerprint: string | undefined;
 let streamCapture: ACPStreamCapture | undefined;
 let initializationDiagnostic: Record<string, unknown> | undefined;
@@ -148,6 +150,15 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       start,
       turn,
     }));
+    if (
+      !sessionSupportsImagePrompts &&
+      start.prompt.some(part => part.type === 'image')
+    ) {
+      throw new HarnessBridgeCapabilityUnsupportedError({
+        harnessId: bridgeType,
+        message: 'The ACP agent does not advertise support for image prompts.',
+      });
+    }
   } catch (error) {
     if (HarnessBridgeCapabilityUnsupportedError.isInstance(error)) throw error;
     throw createACPBridgeError({
@@ -310,6 +321,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       hostToolAuthorization.waitForToolCallAuthorization,
     emitToolCall: emitStreamEvent.hostToolCall,
     emitToolResult: emitStreamEvent.hostToolResult,
+    emitWarning: turn.emitWarning,
     requestToolResult: toolCallId => turn.requestToolResult(toolCallId),
     registerCorrelationInvocation:
       emitStreamEvent.registerHostToolCorrelationInvocation,
@@ -554,6 +566,12 @@ async function ensureSession({
         active.emitStreamEvent.suppressToolCall({
           toolCallId: nativeToolCallId ?? classification.toolCallId,
         });
+        active.turn.emit({
+          type: 'finish-step',
+          finishReason: { unified: 'tool-calls', raw: 'host-input' },
+          usage: unknownUsage(),
+          harnessMetadata: { acp: { inferredStep: true } },
+        });
         try {
           const nativeResult = await active.turn.requestToolResult(
             classification.toolCallId,
@@ -591,6 +609,10 @@ async function ensureSession({
     requested: acp.PROTOCOL_VERSION,
     initialization,
   });
+  sessionSupportsImagePrompts = isACPImagePromptSupported({
+    initialization,
+    nonTextContentTypes: bridgeConfiguration.nonTextContentTypes,
+  });
 
   if (authentication != null) {
     await authenticate({
@@ -613,6 +635,7 @@ async function ensureSession({
     tools,
     serverName: HOST_TOOL_MCP_SERVER_NAME,
     mcpTransport,
+    nonTextContentTypes: bridgeConfiguration.nonTextContentTypes,
   });
 
   const mcpServers: acp.McpServer[] = [

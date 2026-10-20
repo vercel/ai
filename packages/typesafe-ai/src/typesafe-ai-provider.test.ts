@@ -46,6 +46,7 @@ describe('TypeSafe provider', () => {
       'choice',
       'score',
       'boolean',
+      'box',
     ]);
   });
 

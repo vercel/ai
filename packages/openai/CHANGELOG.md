@@ -1,5 +1,56 @@
 # @ai-sdk/openai
 
+## 4.0.98
+
+### Patch Changes
+
+- 0c2a9de: Add `maxOutputTokens` and `reasoning` to experimental decision calls and forward them to language-model-backed decisions. Language-model adapters keep reasoning disabled when omitted. Native decision providers warn when either setting is unsupported.
+- 8b728ec: fix(openai): preserve detected language codes in transcription responses
+- 3cb1dae: fix(openai): forward shell_call timeout_ms and max_output_length to the shell tool and round-trip max_output_length
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+
+## 4.0.97
+
+### Patch Changes
+
+- acbc819: Add an optional `modelId` setting to Azure OpenAI language-model factories for
+  accurate telemetry and capability detection with custom deployment names. Keep
+  the deployment ID for API routing and preserve existing behavior when the model
+  ID is omitted.
+- 60cc252: feat(perplexity): add decisions api support
+- Updated dependencies [60cc252]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/provider-utils@5.0.63
+
+## 4.0.96
+
+### Patch Changes
+
+- 2be133e: chore(openai): deprecate 'webSearchPreview()' tool
+- fa98094: feat(openai): support ordered 'additional_tools' from tool results
+- Updated dependencies [0957554]
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+
+## 4.0.95
+
+### Patch Changes
+
+- 130e871: Restore raw OpenAI custom-tool input deltas for consumers that forward them to Responses API clients. Mark streamed input with `inputEncoding: 'text'` so UI clients can display it progressively without JSON parsing. Preserve the encoding when partial UI messages are saved and resumed. Final provider tool-call inputs remain JSON-encoded.
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+  - @ai-sdk/provider-utils@5.0.61
+
+## 4.0.94
+
+### Patch Changes
+
+- Updated dependencies [2e89fa4]
+  - @ai-sdk/provider-utils@5.0.60
+
 ## 4.0.93
 
 ### Patch Changes
