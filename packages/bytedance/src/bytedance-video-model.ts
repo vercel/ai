@@ -5,6 +5,7 @@ import {
   type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
+  type InferSchema,
   combineHeaders,
   convertImageModelFileToDataUri,
   createJsonErrorResponseHandler,
@@ -473,38 +474,50 @@ export class ByteDanceVideoModel implements Experimental_VideoModelV3 {
   }
 }
 
-const byteDanceTaskResponseSchema = z.object({
-  id: z.string().nullish(),
-});
+const byteDanceTaskResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      id: z.string().nullish(),
+    }),
+  ),
+);
 
-type ByteDanceResponse = z.infer<typeof byteDanceStatusResponseSchema>;
+type ByteDanceResponse = InferSchema<typeof byteDanceStatusResponseSchema>;
 
-const byteDanceStatusResponseSchema = z.object({
-  id: z.string().nullish(),
-  model: z.string().nullish(),
-  status: z.string(),
-  content: z
-    .object({
-      video_url: z.string().nullish(),
-      last_frame_url: z.string().nullish(),
-    })
-    .nullish(),
-  usage: z
-    .object({
-      completion_tokens: z.number().nullish(),
-    })
-    .nullish(),
-});
+const byteDanceStatusResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      id: z.string().nullish(),
+      model: z.string().nullish(),
+      status: z.string(),
+      content: z
+        .object({
+          video_url: z.string().nullish(),
+          last_frame_url: z.string().nullish(),
+        })
+        .nullish(),
+      usage: z
+        .object({
+          completion_tokens: z.number().nullish(),
+        })
+        .nullish(),
+    }),
+  ),
+);
 
-const byteDanceErrorSchema = z.object({
-  error: z
-    .object({
-      message: z.string(),
-      code: z.string().nullish(),
-    })
-    .nullish(),
-  message: z.string().nullish(),
-});
+const byteDanceErrorSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      error: z
+        .object({
+          message: z.string(),
+          code: z.string().nullish(),
+        })
+        .nullish(),
+      message: z.string().nullish(),
+    }),
+  ),
+);
 
 const byteDanceFailedResponseHandler = createJsonErrorResponseHandler({
   errorSchema: byteDanceErrorSchema,
