@@ -59,6 +59,7 @@ import {
   toOpenCodeQuestionResponse,
   type OpenCodeQuestionRequest,
 } from './question-tool';
+import { toOpenCodePromptParts } from './opencode-prompt';
 
 type Emit = (msg: Record<string, unknown>) => void;
 
@@ -551,29 +552,15 @@ async function legacySessionPrompt({
   client,
   sessionId,
   start,
-  prompt: promptText,
+  prompt,
 }: {
   client: OpenCodeClient;
   sessionId: string;
   start: StartMessage;
-  prompt?: string;
+  prompt: StartMessage['prompt'];
 }): Promise<{ error?: unknown; data?: unknown }> {
   const session = (client as any).session;
   const submitPrompt = session.promptAsync ?? session.prompt;
-  const parts =
-    promptText != null
-      ? [{ type: 'text' as const, text: promptText }]
-      : typeof start.prompt === 'string'
-        ? [{ type: 'text' as const, text: start.prompt }]
-        : start.prompt.map(part =>
-            part.type === 'text'
-              ? { type: 'text' as const, text: part.text }
-              : {
-                  type: 'file' as const,
-                  mime: part.mediaType,
-                  url: `data:${part.mediaType};base64,${part.data}`,
-                },
-          );
   return submitPrompt.call(session, {
     sessionID: sessionId,
     ...(start.instructions ? { system: start.instructions } : {}),
@@ -587,7 +574,7 @@ async function legacySessionPrompt({
           },
         }
       : {}),
-    parts,
+    parts: toOpenCodePromptParts(prompt),
   });
 }
 
@@ -899,6 +886,7 @@ async function runPrompt({
         client,
         sessionId,
         start,
+        prompt: start.prompt,
       });
     } catch (error) {
       promptRequestSettled.resolve(undefined);
