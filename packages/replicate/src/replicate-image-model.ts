@@ -203,9 +203,13 @@ export class ReplicateImageModel implements ImageModelV3 {
   }
 }
 
-const replicateImageResponseSchema = z.object({
-  output: z.union([z.array(z.string()), z.string()]),
-});
+const replicateImageResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      output: z.union([z.array(z.string()), z.string()]),
+    }),
+  ),
+);
 
 /**
  * Provider options schema for Replicate image generation.
