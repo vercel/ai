@@ -81,7 +81,7 @@ import {
   type ACPLifecycleData,
 } from './acp-v1-lifecycle';
 import {
-  convertHarnessPromptToACPTextBlocks,
+  convertHarnessPromptToACPContentBlocks,
   prependACPInstructionGuidance,
 } from './acp-v1-prompt';
 import type {
@@ -1756,7 +1756,7 @@ function createSession({
           new DOMException('Aborted', 'AbortError')
         );
       }
-      const prompt = convertHarnessPromptToACPTextBlocks({
+      const prompt = convertHarnessPromptToACPContentBlocks({
         prompt: options.prompt,
         harnessId,
       });
