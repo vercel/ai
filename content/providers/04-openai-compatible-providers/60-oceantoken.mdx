@@ -1,0 +1,123 @@
+---
+title: OceanToken
+description: Use the OceanToken OpenAI compatible API with the AI SDK.
+---
+
+# OceanToken Provider
+
+[OceanToken](https://docs.oceantoken.ai/) provides a pay-as-you-go API for models from multiple labs (OpenAI, Anthropic, Google, DeepSeek, and others) including chat, embedding, and image models with prepaid access. You can use its OpenAI-compatible endpoint with the AI SDK through the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+Install the OpenAI Compatible provider:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+Create an OceanToken API key and set it as an environment variable:
+
+```bash
+export OCEANTOKEN_API_KEY=your-api-key
+```
+
+See the [OceanToken documentation](https://docs.oceantoken.ai/get-started/create-api-key) for instructions on creating an API key.
+
+## Provider Instance
+
+Create an OceanToken provider instance with `createOpenAICompatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const oceantoken = createOpenAICompatible({
+  name: 'oceantoken',
+  apiKey: process.env.OCEANTOKEN_API_KEY,
+  baseURL: 'https://api.oceantoken.ai/v1',
+  includeUsage: true,
+  supportsStructuredOutputs: true,
+});
+```
+
+## Language Models
+
+Create a chat model with the `.chatModel()` factory method (or by calling the provider function directly) and an OceanToken model ID (formatted as `publisher/model`):
+
+```ts
+const model = oceantoken.chatModel('openai/gpt-5.5');
+```
+
+Common model IDs available on OceanToken include:
+- `openai/gpt-5.5`
+- `anthropic/claude-sonnet-5.5`
+- `deepseek/deepseek-v4.1-flash`
+- `google/gemini-3.5-flash`
+
+### Example: Text Generation
+
+Use `generateText` with the model:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const oceantoken = createOpenAICompatible({
+  name: 'oceantoken',
+  apiKey: process.env.OCEANTOKEN_API_KEY,
+  baseURL: 'https://api.oceantoken.ai/v1',
+  includeUsage: true,
+  supportsStructuredOutputs: true,
+});
+
+const { text, usage } = await generateText({
+  model: oceantoken('openai/gpt-5.5'),
+  prompt: 'Explain what an API gateway does in one sentence.',
+});
+
+console.log(text);
+console.log(`Tokens used: ${usage.inputTokens} prompt, ${usage.outputTokens} completion`);
+```
+
+### Example: Streaming Text
+
+Use `streamText` to stream responses:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const oceantoken = createOpenAICompatible({
+  name: 'oceantoken',
+  apiKey: process.env.OCEANTOKEN_API_KEY,
+  baseURL: 'https://api.oceantoken.ai/v1',
+  includeUsage: true,
+  supportsStructuredOutputs: true,
+});
+
+const result = streamText({
+  model: oceantoken('deepseek/deepseek-v4.1-flash'),
+  prompt: 'Write a four-line poem about a lighthouse.',
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+## Embedding Models
+
+You can use OceanToken embedding models with `.embeddingModel()`:
+
+```ts
+const embeddingModel = oceantoken.embeddingModel('openai/text-embedding-3-small');
+```
+
+Common embedding model IDs include:
+- `openai/text-embedding-3-small` (1536 dimensions)
+- `baai/bge-m3` (1024 dimensions)
+
+## Image Models
+
+You can use OceanToken image models with `.imageModel()`:
+
+```ts
+const imageModel = oceantoken.imageModel('openai/gpt-image-2');
+```
