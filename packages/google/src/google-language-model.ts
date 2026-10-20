@@ -1889,14 +1889,15 @@ export const getGroundingMetadataSchema = () =>
       .nullish(),
   });
 
-const partialArgSchema = z.object({
-  jsonPath: z.string(),
-  stringValue: z.string().nullish(),
-  numberValue: z.number().nullish(),
-  boolValue: z.boolean().nullish(),
-  nullValue: z.unknown().nullish(),
-  willContinue: z.boolean().nullish(),
-});
+const partialArgSchema = () =>
+  z.object({
+    jsonPath: z.string(),
+    stringValue: z.string().nullish(),
+    numberValue: z.number().nullish(),
+    boolValue: z.boolean().nullish(),
+    nullValue: z.unknown().nullish(),
+    willContinue: z.boolean().nullish(),
+  });
 
 const getContentSchema = () =>
   z.object({
@@ -1909,7 +1910,7 @@ const getContentSchema = () =>
               id: z.string().nullish(),
               name: z.string().nullish(),
               args: z.unknown().nullish(),
-              partialArgs: z.array(partialArgSchema).nullish(),
+              partialArgs: z.array(partialArgSchema()).nullish(),
               willContinue: z.boolean().nullish(),
             }),
             thoughtSignature: z.string().nullish(),
@@ -1971,35 +1972,37 @@ const getSafetyRatingSchema = () =>
     blocked: z.boolean().nullish(),
   });
 
-const tokenDetailsSchema = z
-  .array(
-    z
-      .object({
-        modality: z.string(),
-        tokenCount: z.number(),
-      })
-      .loose(),
-  )
-  .nullish();
+const tokenDetailsSchema = () =>
+  z
+    .array(
+      z
+        .object({
+          modality: z.string(),
+          tokenCount: z.number(),
+        })
+        .loose(),
+    )
+    .nullish();
 
-const usageSchema = z
-  .object({
-    cachedContentTokenCount: z.number().nullish(),
-    thoughtsTokenCount: z.number().nullish(),
-    promptTokenCount: z.number().nullish(),
-    candidatesTokenCount: z.number().nullish(),
-    toolUsePromptTokenCount: z.number().nullish(),
-    totalTokenCount: z.number().nullish(),
-    // https://cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1/GenerateContentResponse#TrafficType
-    trafficType: z.string().nullish(),
-    serviceTier: z.string().nullish(),
-    // https://ai.google.dev/api/generate-content#Modality
-    promptTokensDetails: tokenDetailsSchema,
-    cacheTokensDetails: tokenDetailsSchema,
-    candidatesTokensDetails: tokenDetailsSchema,
-    toolUsePromptTokensDetails: tokenDetailsSchema,
-  })
-  .loose();
+const usageSchema = () =>
+  z
+    .object({
+      cachedContentTokenCount: z.number().nullish(),
+      thoughtsTokenCount: z.number().nullish(),
+      promptTokenCount: z.number().nullish(),
+      candidatesTokenCount: z.number().nullish(),
+      toolUsePromptTokenCount: z.number().nullish(),
+      totalTokenCount: z.number().nullish(),
+      // https://cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1/GenerateContentResponse#TrafficType
+      trafficType: z.string().nullish(),
+      serviceTier: z.string().nullish(),
+      // https://ai.google.dev/api/generate-content#Modality
+      promptTokensDetails: tokenDetailsSchema(),
+      cacheTokensDetails: tokenDetailsSchema(),
+      candidatesTokensDetails: tokenDetailsSchema(),
+      toolUsePromptTokensDetails: tokenDetailsSchema(),
+    })
+    .loose();
 
 // https://ai.google.dev/api/generate-content#UrlRetrievalMetadata
 export const getUrlContextMetadataSchema = () =>
@@ -2031,7 +2034,7 @@ export const responseSchema = lazySchema(() =>
           }),
         )
         .nullish(),
-      usageMetadata: usageSchema.nullish(),
+      usageMetadata: usageSchema().nullish(),
       promptFeedback: z
         .object({
           blockReason: z.string().nullish(),
@@ -2086,7 +2089,7 @@ const chunkSchema = lazySchema(() =>
           }),
         )
         .nullish(),
-      usageMetadata: usageSchema.nullish(),
+      usageMetadata: usageSchema().nullish(),
       promptFeedback: z
         .object({
           blockReason: z.string().nullish(),
