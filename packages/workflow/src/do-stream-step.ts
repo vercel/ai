@@ -356,6 +356,9 @@ async function streamModelStep(
         case 'source':
           content.push(part);
           break;
+        case 'custom':
+          content.push(part);
+          break;
         case 'tool-approval-request':
           content.push({
             type: 'tool-approval-request',

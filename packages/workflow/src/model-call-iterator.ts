@@ -1023,9 +1023,14 @@ function getAssistantMessageContent(
         break;
       }
       case 'custom':
-        if (mode === 'generate') {
+        {
           const { providerMetadata, ...messagePart } = part;
-          content.push({ ...messagePart, providerOptions: providerMetadata });
+          content.push({
+            ...messagePart,
+            ...(providerMetadata != null
+              ? { providerOptions: providerMetadata }
+              : {}),
+          });
           contentIndex++;
         }
         break;
