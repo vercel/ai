@@ -9,6 +9,9 @@ import type {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
@@ -36,7 +39,7 @@ import { convertToMistralChatMessages } from './convert-to-mistral-chat-messages
 import { getResponseMetadata } from './get-response-metadata';
 import { mapMistralFinishReason } from './map-mistral-finish-reason';
 import {
-  mistralLanguageModelChatOptions,
+  mistralLanguageModelChatOptionsValidator,
   type MistralChatModelId,
 } from './mistral-chat-language-model-options';
 import { mistralFailedResponseHandler } from './mistral-error';
@@ -127,7 +130,7 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
       (await parseProviderOptions({
         provider: 'mistral',
         providerOptions,
-        schema: mistralLanguageModelChatOptions,
+        schema: mistralLanguageModelChatOptionsValidator,
       })) ?? {};
 
     if (topK != null) {
@@ -365,7 +368,7 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
     return {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<z.infer<typeof mistralChatChunkSchema>>,
+          ParseResult<InferSchema<typeof mistralChatChunkSchema>>,
           LanguageModelV4StreamPart
         >({
           start(controller) {
@@ -505,7 +508,9 @@ function extractReasoningContent(
     .join('');
 }
 
-function extractTextContent(content: z.infer<typeof mistralContentSchema>) {
+function extractTextContent(
+  content: z.infer<ReturnType<typeof mistralContentSchema>>,
+) {
   if (typeof content === 'string') {
     return content;
   }
@@ -538,98 +543,110 @@ function extractTextContent(content: z.infer<typeof mistralContentSchema>) {
   return textContent.length ? textContent.join('') : undefined;
 }
 
-const mistralContentSchema = z
-  .union([
-    z.string(),
-    z.array(
-      z.discriminatedUnion('type', [
-        z.object({
-          type: z.literal('text'),
-          text: z.string(),
-        }),
-        z.object({
-          type: z.literal('image_url'),
-          image_url: z.union([
-            z.string(),
-            z.object({
-              url: z.string(),
-              detail: z.string().nullable(),
-            }),
-          ]),
-        }),
-        z.object({
-          type: z.literal('reference'),
-          reference_ids: z.array(z.union([z.string(), z.number()])),
-        }),
-        z.object({
-          type: z.literal('thinking'),
-          thinking: z.array(
-            z.object({
-              type: z.literal('text'),
-              text: z.string(),
-            }),
-          ),
-        }),
-      ]),
-    ),
-  ])
-  .nullish();
-
-// limited version of the schema, focussed on what is needed for the implementation
-// this approach limits breakages when the API changes and increases efficiency
-const mistralChatResponseSchema = z.object({
-  id: z.string().nullish(),
-  created: z.number().nullish(),
-  model: z.string().nullish(),
-  choices: z.array(
-    z.object({
-      message: z.object({
-        role: z.literal('assistant'),
-        content: mistralContentSchema,
-        tool_calls: z
-          .array(
-            z.object({
-              id: z.string(),
-              function: z.object({ name: z.string(), arguments: z.string() }),
-            }),
-          )
-          .nullish(),
-      }),
-      index: z.number(),
-      finish_reason: z.string().nullish(),
-    }),
-  ),
-  object: z.literal('chat.completion'),
-  usage: mistralUsageSchema,
-});
-
-// limited version of the schema, focussed on what is needed for the implementation
-// this approach limits breakages when the API changes and increases efficiency
-const mistralChatChunkSchema = z.object({
-  id: z.string().nullish(),
-  created: z.number().nullish(),
-  model: z.string().nullish(),
-  choices: z.array(
-    z.object({
-      delta: z.object({
-        role: z.enum(['assistant']).optional(),
-        content: mistralContentSchema,
-        tool_calls: z
-          .array(
-            z.object({
-              index: z.number().nullish(),
-              id: z.string().nullish(),
-              function: z.object({
-                name: z.string().nullish(),
-                arguments: z.string().nullish(),
+const mistralContentSchema = () =>
+  z
+    .union([
+      z.string(),
+      z.array(
+        z.discriminatedUnion('type', [
+          z.object({
+            type: z.literal('text'),
+            text: z.string(),
+          }),
+          z.object({
+            type: z.literal('image_url'),
+            image_url: z.union([
+              z.string(),
+              z.object({
+                url: z.string(),
+                detail: z.string().nullable(),
               }),
-            }),
-          )
-          .nullish(),
-      }),
-      finish_reason: z.string().nullish(),
-      index: z.number(),
+            ]),
+          }),
+          z.object({
+            type: z.literal('reference'),
+            reference_ids: z.array(z.union([z.string(), z.number()])),
+          }),
+          z.object({
+            type: z.literal('thinking'),
+            thinking: z.array(
+              z.object({
+                type: z.literal('text'),
+                text: z.string(),
+              }),
+            ),
+          }),
+        ]),
+      ),
+    ])
+    .nullish();
+
+// limited version of the schema, focussed on what is needed for the implementation
+// this approach limits breakages when the API changes and increases efficiency
+const mistralChatResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      id: z.string().nullish(),
+      created: z.number().nullish(),
+      model: z.string().nullish(),
+      choices: z.array(
+        z.object({
+          message: z.object({
+            role: z.literal('assistant'),
+            content: mistralContentSchema(),
+            tool_calls: z
+              .array(
+                z.object({
+                  id: z.string(),
+                  function: z.object({
+                    name: z.string(),
+                    arguments: z.string(),
+                  }),
+                }),
+              )
+              .nullish(),
+          }),
+          index: z.number(),
+          finish_reason: z.string().nullish(),
+        }),
+      ),
+      object: z.literal('chat.completion'),
+      usage: mistralUsageSchema,
     }),
   ),
-  usage: mistralUsageSchema.nullish(),
-});
+);
+
+// limited version of the schema, focussed on what is needed for the implementation
+// this approach limits breakages when the API changes and increases efficiency
+const mistralChatChunkSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      id: z.string().nullish(),
+      created: z.number().nullish(),
+      model: z.string().nullish(),
+      choices: z.array(
+        z.object({
+          delta: z.object({
+            role: z.enum(['assistant']).optional(),
+            content: mistralContentSchema(),
+            tool_calls: z
+              .array(
+                z.object({
+                  index: z.number().nullish(),
+                  id: z.string().nullish(),
+                  function: z.object({
+                    name: z.string().nullish(),
+                    arguments: z.string().nullish(),
+                  }),
+                }),
+              )
+              .nullish(),
+          }),
+          finish_reason: z.string().nullish(),
+          index: z.number(),
+        }),
+      ),
+      usage: mistralUsageSchema.nullish(),
+    }),
+  ),
+);
