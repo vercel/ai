@@ -1,5 +1,8 @@
 import type { SharedV4Warning, SpeechModelV4 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
   combineHeaders,
   convertBase64ToUint8Array,
   createBinaryResponseHandler,
@@ -218,18 +221,22 @@ export class XaiSpeechModel implements SpeechModelV4 {
 // Minimal schema for the `with_timestamps` JSON envelope: only the fields
 // the implementation reads, with `.nullish()` so provider API changes don't
 // break parsing.
-const xaiSpeechTimestampsResponseSchema = z.object({
-  audio: z.string().nullish(),
-  content_type: z.string().nullish(),
-  duration: z.number().nullish(),
-  audio_timestamps: z
-    .object({
-      graph_chars: z.array(z.string()),
-      graph_times: z.array(z.tuple([z.number(), z.number()])),
-    })
-    .nullish(),
-});
+const xaiSpeechTimestampsResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      audio: z.string().nullish(),
+      content_type: z.string().nullish(),
+      duration: z.number().nullish(),
+      audio_timestamps: z
+        .object({
+          graph_chars: z.array(z.string()),
+          graph_times: z.array(z.tuple([z.number(), z.number()])),
+        })
+        .nullish(),
+    }),
+  ),
+);
 
-type XaiSpeechTimestampsResponse = z.infer<
+type XaiSpeechTimestampsResponse = InferSchema<
   typeof xaiSpeechTimestampsResponseSchema
 >;

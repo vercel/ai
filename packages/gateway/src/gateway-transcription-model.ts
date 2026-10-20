@@ -8,6 +8,8 @@ import {
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertBase64ToUint8Array,
   convertUint8ArrayToBase64,
@@ -443,49 +445,54 @@ function createGatewayTranscriptionStream({
   });
 }
 
-const providerMetadataEntrySchema = z.object({}).catchall(z.unknown());
+const providerMetadataEntrySchema = () => z.object({}).catchall(z.unknown());
 
-const gatewayTranscriptionWarningSchema = z.discriminatedUnion('type', [
-  z.object({
-    type: z.literal('unsupported'),
-    feature: z.string(),
-    details: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal('compatibility'),
-    feature: z.string(),
-    details: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal('deprecated'),
-    setting: z.string(),
-    message: z.string(),
-  }),
-  z.object({
-    type: z.literal('other'),
-    message: z.string(),
-  }),
-]);
+const gatewayTranscriptionWarningSchema = () =>
+  z.discriminatedUnion('type', [
+    z.object({
+      type: z.literal('unsupported'),
+      feature: z.string(),
+      details: z.string().optional(),
+    }),
+    z.object({
+      type: z.literal('compatibility'),
+      feature: z.string(),
+      details: z.string().optional(),
+    }),
+    z.object({
+      type: z.literal('deprecated'),
+      setting: z.string(),
+      message: z.string(),
+    }),
+    z.object({
+      type: z.literal('other'),
+      message: z.string(),
+    }),
+  ]);
 
-const gatewayTranscriptionResponseSchema = z.object({
-  text: z.string(),
-  segments: z
-    .array(
-      z.object({
-        text: z.string(),
-        startSecond: z.number(),
-        endSecond: z.number(),
-      }),
-    )
-    .optional(),
-  language: z.string().nullish(),
-  durationInSeconds: z.number().nullish(),
-  warnings: z.array(gatewayTranscriptionWarningSchema).optional(),
-  usage: z.record(z.string(), z.json()).optional(),
-  providerMetadata: z
-    .record(z.string(), providerMetadataEntrySchema)
-    .optional(),
-});
+const gatewayTranscriptionResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      text: z.string(),
+      segments: z
+        .array(
+          z.object({
+            text: z.string(),
+            startSecond: z.number(),
+            endSecond: z.number(),
+          }),
+        )
+        .optional(),
+      language: z.string().nullish(),
+      durationInSeconds: z.number().nullish(),
+      warnings: z.array(gatewayTranscriptionWarningSchema()).optional(),
+      usage: z.record(z.string(), z.json()).optional(),
+      providerMetadata: z
+        .record(z.string(), providerMetadataEntrySchema())
+        .optional(),
+    }),
+  ),
+);
 
 /**
  * `asGatewayError` is async while the WebSocket event handlers are

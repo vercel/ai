@@ -9,13 +9,14 @@ import {
   type BaseMessageChunk,
   type ToolCallChunk,
 } from '@langchain/core/messages';
-import type {
-  UIMessageChunk,
-  ToolResultPart,
-  AssistantContent,
-  UserContent,
-  ProviderMetadata,
-  JSONValue,
+import {
+  convertDataContentToBase64String,
+  type UIMessageChunk,
+  type ToolResultPart,
+  type AssistantContent,
+  type UserContent,
+  type ProviderMetadata,
+  type JSONValue,
 } from 'ai';
 import { secureJsonParse } from '@ai-sdk/provider-utils';
 
@@ -247,10 +248,9 @@ function convertImageToContentBlock(
     return { type: 'image', data, mimeType: mediaType };
   }
 
-  const bytes = data instanceof ArrayBuffer ? new Uint8Array(data) : data;
   return {
     type: 'image',
-    data: btoa(String.fromCharCode(...bytes)),
+    data: convertDataContentToBase64String(data),
     mimeType: mediaType,
   };
 }
@@ -393,11 +393,7 @@ export function convertUserContent(content: UserContent): HumanMessage {
           filePart.data instanceof Uint8Array ||
           filePart.data instanceof ArrayBuffer
         ) {
-          const bytes =
-            filePart.data instanceof ArrayBuffer
-              ? new Uint8Array(filePart.data)
-              : filePart.data;
-          const base64 = btoa(String.fromCharCode(...bytes));
+          const base64 = convertDataContentToBase64String(filePart.data);
           contentBlocks.push({
             type: 'file',
             data: base64,

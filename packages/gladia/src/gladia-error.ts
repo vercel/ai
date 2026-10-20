@@ -1,14 +1,23 @@
 import { z } from 'zod/v4';
-import { createJsonErrorResponseHandler } from '@ai-sdk/provider-utils';
+import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
+  createJsonErrorResponseHandler,
+} from '@ai-sdk/provider-utils';
 
-export const gladiaErrorDataSchema = z.object({
-  error: z.object({
-    message: z.string(),
-    code: z.number(),
-  }),
-});
+export const gladiaErrorDataSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      error: z.object({
+        message: z.string(),
+        code: z.number(),
+      }),
+    }),
+  ),
+);
 
-export type GladiaErrorData = z.infer<typeof gladiaErrorDataSchema>;
+export type GladiaErrorData = InferSchema<typeof gladiaErrorDataSchema>;
 
 export const gladiaFailedResponseHandler = createJsonErrorResponseHandler({
   errorSchema: gladiaErrorDataSchema,

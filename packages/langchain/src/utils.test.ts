@@ -395,6 +395,48 @@ describe('convertUserContent', () => {
       },
     ]);
   });
+
+  describe('large binary data', () => {
+    // larger than the argument limit of String.fromCharCode(...bytes)
+    const bytes = Uint8Array.from({ length: 300_000 }, (_, i) => i % 256);
+    const base64 = Buffer.from(bytes).toString('base64');
+
+    it.each([
+      { name: 'Uint8Array', data: bytes },
+      { name: 'ArrayBuffer', data: bytes.buffer },
+    ])('should convert large $name image parts', ({ data }) => {
+      const result = convertUserContent([
+        { type: 'image', image: data, mediaType: 'image/png' },
+      ]);
+
+      expect(result.content).toEqual([
+        { type: 'image', data: base64, mimeType: 'image/png' },
+      ]);
+    });
+
+    it.each([
+      { name: 'Uint8Array', data: bytes },
+      { name: 'ArrayBuffer', data: bytes.buffer },
+    ])('should convert large $name file parts', ({ data }) => {
+      const result = convertUserContent([
+        {
+          type: 'file',
+          data,
+          mediaType: 'application/pdf',
+          filename: 'large.pdf',
+        },
+      ]);
+
+      expect(result.content).toEqual([
+        {
+          type: 'file',
+          data: base64,
+          mimeType: 'application/pdf',
+          filename: 'large.pdf',
+        },
+      ]);
+    });
+  });
 });
 
 describe('isToolResultPart', () => {
