@@ -37,10 +37,11 @@ export function convertHarnessPromptToACPContentBlocks({
   }
 
   try {
-    const content = extractHarnessPromptContent({ prompt });
-    if (typeof content === 'string') {
-      return [{ type: 'text', text: content }];
-    }
+    const extractedContent = extractHarnessPromptContent({ prompt });
+    const content = extractedContent as Exclude<
+      typeof extractedContent,
+      string
+    >;
     return content.map(part =>
       part.type === 'text'
         ? { type: 'text', text: part.text }
