@@ -1032,6 +1032,18 @@ class DefaultStreamTextResult<
       },
     });
 
+    // Drop source chunks that were buffered before a transform called stopStream.
+    let isRunning = true;
+    stream = stream.pipeThrough(
+      new TransformStream({
+        async transform(chunk, controller) {
+          if (isRunning) {
+            controller.enqueue(chunk);
+          }
+        },
+      }),
+    );
+
     // transform the stream before output parsing
     // to enable replacement of stream segments:
     for (const transform of transforms) {
@@ -1040,6 +1052,7 @@ class DefaultStreamTextResult<
           tools: tools as TOOLS,
           stopStream() {
             stitchableStream.terminate();
+            isRunning = false;
           },
         }),
       );
