@@ -15,37 +15,38 @@ export interface ProdiaModelConfig {
   };
 }
 
-export const prodiaJobResultSchema = z.object({
-  id: z.string(),
-  created_at: z.string().optional(),
-  updated_at: z.string().optional(),
-  expires_at: z.string().optional(),
-  state: z
-    .object({
-      current: z.string(),
-    })
-    .optional(),
-  config: z
-    .object({
-      seed: z.number().optional(),
-    })
-    .passthrough()
-    .optional(),
-  metrics: z
-    .object({
-      elapsed: z.number().optional(),
-      ips: z.number().optional(),
-    })
-    .optional(),
-  price: z
-    .object({
-      product: z.string(),
-      dollars: z.number(),
-    })
-    .nullish(),
-});
+export const prodiaJobResultSchema = () =>
+  z.object({
+    id: z.string(),
+    created_at: z.string().optional(),
+    updated_at: z.string().optional(),
+    expires_at: z.string().optional(),
+    state: z
+      .object({
+        current: z.string(),
+      })
+      .optional(),
+    config: z
+      .object({
+        seed: z.number().optional(),
+      })
+      .passthrough()
+      .optional(),
+    metrics: z
+      .object({
+        elapsed: z.number().optional(),
+        ips: z.number().optional(),
+      })
+      .optional(),
+    price: z
+      .object({
+        product: z.string(),
+        dollars: z.number(),
+      })
+      .nullish(),
+  });
 
-export type ProdiaJobResult = z.infer<typeof prodiaJobResultSchema>;
+export type ProdiaJobResult = z.infer<ReturnType<typeof prodiaJobResultSchema>>;
 
 export function buildProdiaProviderMetadata(jobResult: ProdiaJobResult) {
   return {
