@@ -96,6 +96,7 @@ export class ToolLoopAgent<
       | 'onToolExecutionEnd'
       | 'onStepEnd'
       | 'onStepFinish'
+      | 'onError'
       | 'onEnd'
       | 'onFinish'
     > &
@@ -122,6 +123,7 @@ export class ToolLoopAgent<
       onToolExecutionEnd: _settingsOnToolExecutionEnd,
       onStepEnd: _settingsOnStepEnd,
       onStepFinish: _settingsOnStepFinish,
+      onError: _settingsOnError,
       onFinish: _settingsOnFinish,
       onEnd: _settingsOnEnd,
       ...settingsWithoutCallbacks
@@ -248,11 +250,17 @@ export class ToolLoopAgent<
       onEnd: mergeCallbacks(this.settings.onEnd, onEnd),
     };
 
-    return await generate({
-      ...preparedCall,
-      ...callbackArgs,
-      headers: this.agentHeaders(preparedCall),
-    } as unknown as Parameters<typeof generate>[0]);
+    try {
+      return await generate({
+        ...preparedCall,
+        ...callbackArgs,
+        headers: this.agentHeaders(preparedCall),
+      } as unknown as Parameters<typeof generate>[0]);
+    } catch (error) {
+      // generateText has no onError option, so report the error before it is thrown:
+      await this.settings.onError?.({ error });
+      throw error;
+    }
   }
 
   /**
@@ -315,6 +323,10 @@ export class ToolLoopAgent<
     };
 
     return await stream({
+      // only pass onError when it is set to keep the default error logging:
+      ...(this.settings.onError != null
+        ? { onError: this.settings.onError }
+        : {}),
       ...({
         ...preparedCall,
         ...callbackArgs,

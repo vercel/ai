@@ -13,6 +13,7 @@ import type {
   GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
   GenerateTextOnStepEndCallback,
+  GenerateTextOnStepErrorCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
 } from '../generate-text/generate-text-events';
@@ -24,7 +25,10 @@ import type {
 import type { Output } from '../generate-text/output';
 import type { PrepareStepFunction } from '../generate-text/prepare-step';
 import type { StopCondition } from '../generate-text/stop-condition';
-import type { StreamTextInclude } from '../generate-text/stream-text';
+import type {
+  StreamTextInclude,
+  StreamTextOnErrorCallback,
+} from '../generate-text/stream-text';
 import type { ToolApprovalConfiguration } from '../generate-text/tool-approval-configuration';
 import type { Experimental_ToolCallers } from '../generate-text/tool-caller-configuration';
 import type { ToolCallRepairFunction } from '../generate-text/tool-call-repair-function';
@@ -252,6 +256,19 @@ export type ToolLoopAgentSettings<
       NoInfer<TOOLS>,
       NoInfer<RUNTIME_CONTEXT>
     >;
+
+    /**
+     * Callback that is called when a step that started fails before it
+     * produces a step result. `onStepEnd` is not called for such a step.
+     */
+    onStepError?: GenerateTextOnStepErrorCallback;
+
+    /**
+     * Callback that is called when an error occurs. For `stream()` it receives
+     * the errors of the stream, for `generate()` it receives the error before
+     * it is thrown.
+     */
+    onError?: StreamTextOnErrorCallback;
 
     /**
      * Callback that is called when each step (LLM call) ends, including intermediate steps.
