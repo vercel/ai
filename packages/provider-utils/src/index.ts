@@ -16,6 +16,7 @@ export {
 } from './read-response-with-size-limit';
 export * from './fetch-function';
 export { createIdGenerator, generateId, type IdGenerator } from './generate-id';
+export { encodePathSegment } from './encode-path-segment';
 export * from './get-error-message';
 export * from './get-from-api';
 export { getRuntimeEnvironmentUserAgent } from './get-runtime-environment-user-agent';
