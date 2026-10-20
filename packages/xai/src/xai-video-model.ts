@@ -13,6 +13,7 @@ import {
   convertUint8ArrayToBase64,
   createJsonResponseHandler,
   extractResponseHeaders,
+  encodePathSegment,
   getFromApi,
   getTopLevelMediaType,
   parseProviderOptions,
@@ -37,17 +38,6 @@ interface XaiVideoModelConfig {
   _internal?: {
     currentDate?: () => Date;
   };
-}
-
-function encodePathSegment(value: string): string {
-  const encodedValue = encodeURIComponent(value);
-
-  // URL parsing normalizes both literal and percent-encoded dot segments.
-  return encodedValue === '.'
-    ? '%252E'
-    : encodedValue === '..'
-      ? '%252E%252E'
-      : encodedValue;
 }
 
 const RESOLUTION_MAP: Record<string, string> = {

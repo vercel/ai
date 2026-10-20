@@ -12,6 +12,7 @@ import {
   convertImageModelFileToDataUri,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  encodePathSegment,
   getFromApi,
   getTopLevelMediaType,
   parseProviderOptions,
@@ -401,7 +402,7 @@ export class ByteDanceVideoModel implements VideoModelV4 {
     const { taskId } = options.operation as { taskId: string };
 
     const { value: statusResponse, responseHeaders } = await getFromApi({
-      url: `${this.config.baseURL}/contents/generations/tasks/${taskId}`,
+      url: `${this.config.baseURL}/contents/generations/tasks/${encodePathSegment(taskId)}`,
       validateUrl: true,
       trustedOrigin: this.config.baseURL,
       headers: combineHeaders(

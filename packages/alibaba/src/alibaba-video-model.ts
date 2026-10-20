@@ -14,6 +14,7 @@ import {
   convertUint8ArrayToBase64,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  encodePathSegment,
   getFromApi,
   parseProviderOptions,
   postJsonToApi,
@@ -662,7 +663,7 @@ export class AlibabaVideoModel implements VideoModelV4 {
     const { taskId } = options.operation as { taskId: string };
 
     const { value: statusResponse, responseHeaders } = await getFromApi({
-      url: `${this.config.baseURL}/api/v1/tasks/${taskId}`,
+      url: `${this.config.baseURL}/api/v1/tasks/${encodePathSegment(taskId)}`,
       validateUrl: false,
       headers: combineHeaders(
         await resolve(this.config.headers),

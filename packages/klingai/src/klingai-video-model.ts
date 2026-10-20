@@ -13,6 +13,7 @@ import {
   convertUint8ArrayToBase64,
   createJsonResponseHandler,
   type FetchFunction,
+  encodePathSegment,
   getFromApi,
   getTopLevelMediaType,
   parseProviderOptions,
@@ -314,7 +315,7 @@ export class KlingAIVideoModel implements VideoModelV4 {
     };
 
     const { value: statusResponse, responseHeaders } = await getFromApi({
-      url: `${this.config.baseURL}${endpointPath}/${taskId}`,
+      url: `${this.config.baseURL}${endpointPath}/${encodePathSegment(taskId)}`,
       validateUrl: true,
       trustedOrigin: this.config.baseURL,
       headers: combineHeaders(
