@@ -393,6 +393,41 @@ export type GenerateTextOnStepFinishCallback<
 > = GenerateTextOnStepEndCallback<TOOLS, RUNTIME_CONTEXT>;
 
 /**
+ * Event passed to the `onStepError` callback.
+ *
+ * Identifies the step that started but failed before it produced a step result.
+ */
+export type GenerateTextStepErrorEvent = {
+  /** Unique identifier for this generation call, used to correlate events. */
+  readonly callId: string;
+
+  /** The provider identifier (e.g., 'openai', 'anthropic'). */
+  readonly provider: string;
+
+  /** The specific model identifier (e.g., 'gpt-4o'). */
+  readonly modelId: string;
+
+  /** Zero-based index of the step that failed. */
+  readonly stepNumber: number;
+
+  /** The error that ended the step. */
+  readonly error: unknown;
+};
+
+/**
+ * Callback that is set using the `onStepError` option.
+ *
+ * Called when a step that started fails before it produces a step result,
+ * for example when the provider call throws or the model stream ends without
+ * output. `onStepEnd` is not called for such a step. Not called when the call
+ * is aborted or times out.
+ *
+ * @param event - The step that failed and the error.
+ */
+export type GenerateTextOnStepErrorCallback =
+  Callback<GenerateTextStepErrorEvent>;
+
+/**
  * Callback that is set using the `onEnd` option.
  *
  * Called when the entire generation completes (all steps finished).

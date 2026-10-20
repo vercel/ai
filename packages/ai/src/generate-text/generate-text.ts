@@ -73,6 +73,7 @@ import type {
   GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
   GenerateTextOnStepEndCallback,
+  GenerateTextOnStepErrorCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
 } from './generate-text-events';
@@ -226,6 +227,7 @@ export type GenerateTextInclude = {
  * Uses a discriminated union: check `success` to determine if `output` or `error` is present.
  * @param experimental_onToolCallFinish - Deprecated alias for `onToolExecutionEnd`.
  * @param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
+ * @param onStepError - Callback that is called when a step that started fails before it produces a step result. Not called when the call is aborted or times out.
  * @param onEnd - Callback that is called when all steps are finished and the response is complete.
  * @param onFinish - Deprecated alias for `onEnd`.
  *
@@ -288,6 +290,7 @@ export async function generateText<
   experimental_onToolCallStart,
   experimental_onToolCallFinish,
   onStepEnd,
+  onStepError,
   onStepFinish,
   onFinish,
   onEnd = onFinish,
@@ -528,6 +531,12 @@ export async function generateText<
     >;
 
     /**
+     * Callback that is called when a step that started fails before it
+     * produces a step result. `onStepEnd` is not called for such a step.
+     */
+    onStepError?: GenerateTextOnStepErrorCallback;
+
+    /**
      * Callback that is called when each step (LLM call) ends, including intermediate steps.
      *
      * @deprecated Use `onStepEnd` instead.
@@ -717,6 +726,12 @@ export async function generateText<
       event: generateTextStartEvent,
       callbacks: [resolvedOnStart, telemetryDispatcher.onStart],
     });
+
+    // the step that has started but not ended, reported to onStepError when
+    // the call fails before the step produces a result:
+    let openStep:
+      | { provider: string; modelId: string; stepNumber: number }
+      | undefined;
 
     try {
       const initialMessages = initialPrompt.messages;
@@ -1022,6 +1037,12 @@ export async function generateText<
                   telemetryDispatcher.onStepStart,
                 ],
               });
+
+              openStep = {
+                provider: stepModel.provider,
+                modelId: stepModel.modelId,
+                stepNumber,
+              };
 
               const languageModelCallContext = {
                 provider: stepModel.provider,
@@ -1517,6 +1538,8 @@ export async function generateText<
               instructionsForNextStep = stepInstructions;
               messagesForNextStep = [...stepMessages, ...stepResponseMessages];
 
+              openStep = undefined;
+
               await notify({
                 event: currentStepResult,
                 callbacks: [resolvedOnStepEnd, telemetryDispatcher.onStepEnd],
@@ -1636,6 +1659,12 @@ export async function generateText<
         output: resolvedOutput,
       });
     } catch (error) {
+      if (openStep != null && !mergedAbortSignal?.aborted) {
+        await notify({
+          event: { callId, ...openStep, error: wrapGatewayError(error) },
+          callbacks: onStepError,
+        });
+      }
       await telemetryDispatcher.onError?.({ callId, error });
       throw wrapGatewayError(error);
     }
