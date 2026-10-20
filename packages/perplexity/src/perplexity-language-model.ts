@@ -9,6 +9,7 @@ import {
   type SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
+  type InferSchema,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
@@ -24,6 +25,7 @@ import { convertToPerplexityInput } from './convert-to-perplexity-input';
 import { mapPerplexityFinishReason } from './map-perplexity-finish-reason';
 import {
   perplexityAgentChunkSchema,
+  perplexityAgentResponseSchemaValidator,
   perplexityAgentResponseSchema,
   perplexityErrorSchema,
   perplexityErrorToMessage,
@@ -46,9 +48,13 @@ type PerplexityAgentConfig = {
   fetch?: FetchFunction;
 };
 
-type PerplexityOutputItem = z.infer<typeof perplexityOutputItemSchema>;
-type PerplexitySearchResult = z.infer<typeof perplexitySearchResultSchema>;
-type PerplexityUsage = z.infer<typeof perplexityUsageSchema>;
+type PerplexityOutputItem = z.infer<
+  ReturnType<typeof perplexityOutputItemSchema>
+>;
+type PerplexitySearchResult = z.infer<
+  ReturnType<typeof perplexitySearchResultSchema>
+>;
+type PerplexityUsage = z.infer<ReturnType<typeof perplexityUsageSchema>>;
 type PerplexityUrlSource = Extract<
   LanguageModelV2Content,
   { type: 'source'; sourceType: 'url' }
@@ -301,7 +307,7 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
         errorToMessage: perplexityErrorToMessage,
       }),
       successfulResponseHandler: createJsonResponseHandler(
-        perplexityAgentResponseSchema,
+        perplexityAgentResponseSchemaValidator,
       ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
@@ -449,7 +455,7 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
     return {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<z.infer<typeof perplexityAgentChunkSchema>>,
+          ParseResult<InferSchema<typeof perplexityAgentChunkSchema>>,
           LanguageModelV2StreamPart
         >({
           start(controller) {
