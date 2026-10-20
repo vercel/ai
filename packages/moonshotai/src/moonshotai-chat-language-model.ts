@@ -9,7 +9,11 @@ import {
   type LanguageModelV2Prompt,
   type LanguageModelV2StreamPart,
 } from '@ai-sdk/provider';
-import { parseProviderOptions } from '@ai-sdk/provider-utils';
+import {
+  lazySchema,
+  zodSchema,
+  parseProviderOptions,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { convertMoonshotAIChatUsage } from './convert-moonshotai-chat-usage';
 import { moonshotAIChatMetadataExtractor } from './moonshotai-chat-metadata-extractor';
@@ -91,11 +95,15 @@ function transformMoonshotRequestBody(
   };
 }
 
-const moonshotAIValidatedOptionsSchema = moonshotaiProviderOptions.pick({
-  logprobs: true,
-  topLogprobs: true,
-  prediction: true,
-});
+const moonshotAIValidatedOptionsSchema = lazySchema(() =>
+  zodSchema(
+    moonshotaiProviderOptions().pick({
+      logprobs: true,
+      topLogprobs: true,
+      prediction: true,
+    }),
+  ),
+);
 
 async function validateProviderOptions(
   options: LanguageModelV2CallOptions,
