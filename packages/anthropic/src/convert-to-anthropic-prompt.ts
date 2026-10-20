@@ -2,6 +2,7 @@ import {
   UnsupportedFunctionalityError,
   type JSONObject,
   type JSONValue,
+  type LanguageModelV4FilePart,
   type SharedV4Warning,
   type LanguageModelV4Message,
   type LanguageModelV4Prompt,
@@ -15,13 +16,16 @@ import {
   parseProviderOptions,
   resolveFullMediaType,
   resolveProviderReference,
+  safeValidateTypes,
   secureJsonParse,
   validateTypes,
   type ToolNameMapping,
 } from '@ai-sdk/provider-utils';
 import {
+  anthropicFallbackContentSchema,
   anthropicReasoningMetadataSchema,
   type AnthropicAssistantMessage,
+  type AnthropicImageContent,
   type AnthropicPrompt,
   type AnthropicSystemMessage,
   type AnthropicTextContent,
@@ -29,6 +33,7 @@ import {
   type AnthropicToolCallCaller,
   type AnthropicToolResultContent,
   type AnthropicUserMessage,
+  type AnthropicVideoContent,
   type AnthropicWebFetchToolResultContent,
   type Citation,
 } from './anthropic-api';
@@ -75,6 +80,14 @@ function extractErrorValue(value: unknown): { errorCode?: string } {
   return {};
 }
 
+/** Return undefined to use the default file conversion. */
+export type AnthropicMediaPartConverter = (
+  part: LanguageModelV4FilePart,
+) => PromiseLike<
+  | Omit<AnthropicImageContent | AnthropicVideoContent, 'cache_control'>
+  | undefined
+>;
+
 export async function convertToAnthropicPrompt({
   prompt,
   sendReasoning,
@@ -82,12 +95,14 @@ export async function convertToAnthropicPrompt({
   cacheControlValidator,
   toolNameMapping,
   toolsetNames = {},
+  convertMediaPart,
 }: {
   prompt: LanguageModelV4Prompt;
   sendReasoning: boolean;
   warnings: SharedV4Warning[];
   cacheControlValidator?: CacheControlValidator;
   toolNameMapping: ToolNameMapping;
+  convertMediaPart?: AnthropicMediaPartConverter;
 
   /**
    * Maps custom tool names of toolset tools (e.g. the computer toolset) to
@@ -105,6 +120,7 @@ export async function convertToAnthropicPrompt({
 
   let system: AnthropicPrompt['system'] = undefined;
   const messages: AnthropicPrompt['messages'] = [];
+  let lastUserMessageIndex = -1;
 
   async function shouldEnableCitations(
     providerMetadata: SharedV4ProviderMetadata | undefined,
@@ -291,6 +307,10 @@ export async function convertToAnthropicPrompt({
           const { role, content } = message;
           switch (role) {
             case 'user': {
+              if (content.length > 0) {
+                lastUserMessageIndex = messages.length;
+              }
+
               for (let j = 0; j < content.length; j++) {
                 const part = content[j];
 
@@ -322,6 +342,15 @@ export async function convertToAnthropicPrompt({
                   }
 
                   case 'file': {
+                    const convertedPart = await convertMediaPart?.(part);
+                    if (convertedPart != null) {
+                      anthropicContent.push({
+                        ...convertedPart,
+                        cache_control: cacheControl,
+                      });
+                      break;
+                    }
+
                     switch (part.data.type) {
                       case 'reference': {
                         const fileId = resolveProviderReference({
@@ -542,6 +571,31 @@ export async function convertToAnthropicPrompt({
                             const topLevel = getTopLevelMediaType(
                               contentPart.mediaType,
                             );
+
+                            if (contentPart.data.type === 'reference') {
+                              const fileId = resolveProviderReference({
+                                reference: contentPart.data.reference,
+                                provider: 'anthropic',
+                              });
+                              betas.add('files-api-2025-04-14');
+
+                              if (topLevel === 'image') {
+                                return {
+                                  type: 'image' as const,
+                                  source: {
+                                    type: 'file' as const,
+                                    file_id: fileId,
+                                  },
+                                };
+                              }
+                              return {
+                                type: 'document' as const,
+                                source: {
+                                  type: 'file' as const,
+                                  file_id: fileId,
+                                },
+                              };
+                            }
 
                             if (contentPart.data.type === 'url') {
                               if (topLevel === 'image') {
@@ -819,6 +873,34 @@ export async function convertToAnthropicPrompt({
                 break;
               }
 
+              case 'custom': {
+                if (part.kind !== 'anthropic.fallback') {
+                  break;
+                }
+
+                const fallbackMetadata = await safeValidateTypes({
+                  value: part.providerOptions?.anthropic,
+                  schema: anthropicFallbackContentSchema,
+                });
+
+                if (!fallbackMetadata.success) {
+                  warnings.push({
+                    type: 'other',
+                    message:
+                      'anthropic fallback metadata must include from.model and to.model',
+                  });
+                  break;
+                }
+
+                betas.add('server-side-fallback-2026-06-01');
+                anthropicContent.push({
+                  type: 'fallback',
+                  from: fallbackMetadata.value.from,
+                  to: fallbackMetadata.value.to,
+                });
+                break;
+              }
+
               case 'tool-call': {
                 const caller = getAnthropicCaller(part.providerOptions);
 
@@ -949,24 +1031,23 @@ export async function convertToAnthropicPrompt({
 
                 if (toolsetName != null) {
                   // toolset member call: the `action` is the member tool name
-                  const { action, ...memberInput } = toAnthropicToolInput(
-                    part.input,
-                  );
+                  const rawInput = toAnthropicToolInput(part.input);
+                  const { action } = rawInput;
+                  const hasAction = typeof action === 'string';
 
-                  if (typeof action !== 'string') {
+                  if (!hasAction) {
                     warnings.push({
                       type: 'other',
                       message: `toolset tool call for tool ${part.toolName} is missing the action`,
                     });
-                    break;
                   }
 
                   anthropicContent.push({
                     type: 'tool_use',
                     id: part.toolCallId,
-                    name: action,
+                    name: hasAction ? action : toolsetName,
                     toolset_name: toolsetName,
-                    input: memberInput,
+                    input: rawInput,
                     ...(caller && { caller }),
                     cache_control: cacheControl,
                   });
@@ -1308,6 +1389,30 @@ export async function convertToAnthropicPrompt({
                 ) {
                   const output = part.output;
 
+                  if (
+                    output.type === 'error-json' ||
+                    (output.type === 'json' &&
+                      output.value != null &&
+                      typeof output.value === 'object' &&
+                      !Array.isArray(output.value) &&
+                      'type' in output.value &&
+                      output.value.type === 'tool_search_tool_result_error')
+                  ) {
+                    anthropicContent.push({
+                      type: 'tool_search_tool_result',
+                      tool_use_id: part.toolCallId,
+                      content: {
+                        type: 'tool_search_tool_result_error',
+                        error_code:
+                          extractErrorValue(output.value).errorCode ??
+                          'unavailable',
+                      },
+                      cache_control: cacheControl,
+                    });
+
+                    break;
+                  }
+
                   if (output.type !== 'json') {
                     warnings.push({
                       type: 'other',
@@ -1427,6 +1532,55 @@ export async function convertToAnthropicPrompt({
     }
   }
 
+  // Pruning can remove a code execution call while retaining tool calls that
+  // reference it. Check the converted blocks, since unsupported source calls
+  // may also have been omitted during conversion.
+  const codeExecutionToolCallIds = new Set<string>();
+  for (const message of messages) {
+    if (message.role !== 'assistant') {
+      continue;
+    }
+    for (const part of message.content) {
+      if (part.type === 'server_tool_use' && part.name === 'code_execution') {
+        codeExecutionToolCallIds.add(part.id);
+      }
+    }
+  }
+
+  // Only normalize history before a subsequent user message. Tool-result
+  // messages do not end a turn: their caller metadata must remain intact so
+  // Anthropic can resume an active code execution.
+  const warnedToolCallIds = new Set<string>();
+  for (let i = 0; i < lastUserMessageIndex; i++) {
+    const message = messages[i];
+    if (message.role !== 'assistant') {
+      continue;
+    }
+    for (const part of message.content) {
+      if (!('caller' in part)) {
+        continue;
+      }
+      const caller = part.caller;
+      if (
+        caller == null ||
+        caller.type === 'direct' ||
+        codeExecutionToolCallIds.has(caller.tool_id)
+      ) {
+        continue;
+      }
+
+      const toolCallId = 'id' in part ? part.id : part.tool_use_id;
+      delete part.caller;
+      if (!warnedToolCallIds.has(toolCallId)) {
+        warnedToolCallIds.add(toolCallId);
+        warnings.push({
+          type: 'other',
+          message: `Omitted caller metadata for tool ${toolCallId} because source code execution tool ${caller.tool_id} is missing from the conversation history.`,
+        });
+      }
+    }
+  }
+
   return {
     prompt: { system, messages },
     betas,
@@ -1517,7 +1671,11 @@ function moveToolUseBlocksToEnd(
   }
 
   for (const part of content) {
-    if (part.type === 'thinking' || part.type === 'redacted_thinking') {
+    if (
+      part.type === 'thinking' ||
+      part.type === 'redacted_thinking' ||
+      part.type === 'fallback'
+    ) {
       flushSegment();
       result.push(part);
     } else {

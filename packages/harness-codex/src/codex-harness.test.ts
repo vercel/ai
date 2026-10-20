@@ -1,7 +1,9 @@
 import {
   HarnessCapabilityUnsupportedError,
   type HarnessV1NetworkSandboxSession,
+  type HarnessV1Prompt,
 } from '@ai-sdk/harness';
+import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
 import type * as NodeFsPromises from 'node:fs/promises';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -448,7 +450,7 @@ describe('createCodex adapter', () => {
       `node '/home/vercel-sandbox/.ai-sdk-harness/.harness-bootstrap/codex/bridge.mjs' --workdir '/vercel/sandbox/codex-s1; env > /tmp/workdir-leak #' --bridge-state-dir '${sessionStateDir}/bridge'`,
     ]);
     expect(spawnEnvs.at(0)?.AI_SDK_HARNESS_CLIENT_APP).toBe(
-      'ai-sdk/harness-codex/0.0.0-test',
+      'ai-sdk-harness-codex/0.0.0-test',
     );
     expect(spawnEnvs.at(0)?.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
     await session.doDestroy();
@@ -493,6 +495,51 @@ describe('createCodex adapter', () => {
       expect(sentMessages.at(-1)).toMatchObject({
         type: 'start',
         model: 'agent-model',
+      });
+    });
+    await session.doDestroy();
+  });
+
+  it('forwards inline image content to the bridge', async () => {
+    const png =
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+    const session = await createCodex().doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        runs: [],
+        spawns: [],
+        writes: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/codex-s1',
+    });
+    const prompt: HarnessV1Prompt = {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'What is in this image?' },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: convertBase64ToUint8Array(png),
+        },
+      ],
+    };
+
+    const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt,
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    await vi.waitFor(() => {
+      expect(sentMessages.at(-1)).toMatchObject({
+        type: 'start',
+        prompt: [
+          { type: 'text', text: 'What is in this image?' },
+          { type: 'image', mediaType: 'image/png', data: png },
+        ],
       });
     });
     await session.doDestroy();
@@ -718,6 +765,62 @@ describe('createCodex adapter', () => {
 
     await identitySession.doDestroy();
     warn.mockRestore();
+  });
+
+  it('adds a Gateway placeholder when resuming direct authentication', async () => {
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const addRequestTransformations = vi.fn(async () => {});
+    const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'ws://127.0.0.1:1',
+      runs: [],
+      spawns: [],
+      spawnEnvs,
+      writes: [],
+      addRequestTransformations,
+    });
+    const session = await createCodex({
+      auth: { AI_GATEWAY_API_KEY: 'current-gateway-secret' },
+    }).doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/codex-s1',
+      resumeFrom: {
+        type: 'resume-session',
+        harnessId: 'codex',
+        specificationVersion: 'harness-v1',
+        data: {
+          sandboxCredentialEnvironment: {
+            CODEX_API_KEY: 'saved-codex-placeholder',
+          },
+        },
+      },
+    });
+
+    expect(spawnEnvs[0]?.CODEX_API_KEY).toBe('saved-codex-placeholder');
+    expect(spawnEnvs[0]?.AI_GATEWAY_API_KEY).toMatch(
+      /^aisdkhc_[A-Za-z0-9_-]{43}$/,
+    );
+    expect(JSON.stringify(spawnEnvs[0])).not.toContain(
+      'current-gateway-secret',
+    );
+    expect(addRequestTransformations).toHaveBeenCalledWith([
+      {
+        match: {
+          host: 'ai-gateway.vercel.sh',
+          path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer saved-codex-placeholder' },
+            },
+          ],
+        },
+        transform: {
+          headers: { Authorization: 'Bearer current-gateway-secret' },
+        },
+      },
+    ]);
+    await session.doDestroy();
   });
 
   it('configures the standard OpenAI URL for brokered direct auth', async () => {

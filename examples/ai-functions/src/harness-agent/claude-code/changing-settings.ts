@@ -70,6 +70,7 @@ run(async () => {
         ...call,
         model: options.useCheaperModel ? cheaperModel : undefined,
         instructions: `Include ${profile.instructionCode} in the answer.`,
+        runtimeContext: { profile: options.profile },
         skills: [
           {
             name: `${options.profile}-workflow`,
@@ -108,6 +109,10 @@ run(async () => {
           text += part.text;
         },
       });
+
+      if ((await result.finalStep).runtimeContext.profile !== turn.profile) {
+        throw new Error(`${turn.label} turn did not use its prepared context.`);
+      }
 
       for (const code of Object.values(profiles[turn.profile])) {
         if (!text.includes(code)) {

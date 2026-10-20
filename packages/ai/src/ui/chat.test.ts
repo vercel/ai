@@ -1,4 +1,5 @@
 import { APICallError } from '@ai-sdk/provider';
+import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { mockId } from '@ai-sdk/provider-utils/test';
 import {
   createTestServer,
@@ -17,16 +18,19 @@ import {
 import { DefaultChatTransport } from './default-chat-transport';
 import { lastAssistantMessageIsCompleteWithApprovalResponses } from './last-assistant-message-is-complete-with-approval-responses';
 import { lastAssistantMessageIsCompleteWithToolCalls } from './last-assistant-message-is-complete-with-tool-calls';
+import type { ChatTransport } from './chat-transport';
 import type { UIMessage } from './ui-messages';
+import { validateUIMessages } from './validate-ui-messages';
 
 class TestChatState<
   UI_MESSAGE extends UIMessage,
 > implements ChatState<UI_MESSAGE> {
   history: UI_MESSAGE[][] = [];
+  errorHistory: Array<Error | undefined> = [];
 
   status: ChatStatus = 'ready';
   messages: UI_MESSAGE[];
-  error: Error | undefined = undefined;
+  private currentError: Error | undefined = undefined;
 
   constructor(initialMessages: UI_MESSAGE[] = []) {
     this.messages = initialMessages;
@@ -53,6 +57,15 @@ class TestChatState<
   };
 
   snapshot = <T>(value: T): T => value;
+
+  get error() {
+    return this.currentError;
+  }
+
+  set error(error: Error | undefined) {
+    this.currentError = error;
+    this.errorHistory.push(error);
+  }
 }
 
 class TestChat extends AbstractChat<UIMessage> {
@@ -70,8 +83,30 @@ class TestChat extends AbstractChat<UIMessage> {
 
 class TestChatWithState extends AbstractChat<UIMessage> {}
 
+class SnapshottingTestChatState extends TestChatState<UIMessage> {
+  replaceMessage = (index: number, message: UIMessage) => {
+    this.messages = [
+      ...this.messages.slice(0, index),
+      this.snapshot(message),
+      ...this.messages.slice(index + 1),
+    ];
+    this.history.push(structuredClone(this.messages));
+  };
+
+  snapshot = <T>(value: T): T => structuredClone(value);
+}
+
 function formatChunk(part: UIMessageChunk) {
   return `data: ${JSON.stringify(part)}\n\n`;
+}
+
+function getMessageText(message: UIMessage | undefined) {
+  return (
+    message?.parts
+      .filter(part => part.type === 'text')
+      .map(part => part.text)
+      .join('') ?? ''
+  );
 }
 
 const server = createTestServer({
@@ -79,12 +114,76 @@ const server = createTestServer({
 });
 
 describe('Chat', () => {
+  describe('id generation', () => {
+    it('generates the default id only on first access and keeps it stable', () => {
+      const generateId = vi.fn(mockId());
+      const chat = new TestChat({ generateId });
+
+      expect(generateId).not.toHaveBeenCalled();
+      const id = chat.id;
+      expect(id).toBe('id-0');
+      expect(chat.id).toBe(id);
+      expect(generateId).toHaveBeenCalledOnce();
+    });
+
+    it.each(['existing-chat', ''])('preserves the explicit id %j', id => {
+      const generateId = vi.fn(mockId());
+      const chat = new TestChat({ id, generateId });
+
+      expect(chat.id).toBe(id);
+      expect(generateId).not.toHaveBeenCalled();
+    });
+
+    it('uses the same lazily generated id for sending and resuming', async () => {
+      const sendMessages = vi.fn(
+        async () =>
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              controller.close();
+            },
+          }),
+      );
+      const reconnectToStream = vi.fn(async () => null);
+      const generateId = vi.fn(mockId());
+      const chat = new TestChat({
+        generateId,
+        transport: { sendMessages, reconnectToStream },
+      });
+
+      expect(generateId).not.toHaveBeenCalled();
+      await chat.resumeStream();
+      expect(reconnectToStream).toHaveBeenCalledWith(
+        expect.objectContaining({ chatId: 'id-0' }),
+      );
+
+      await chat.sendMessage({ text: 'Hello' });
+      expect(sendMessages).toHaveBeenCalledWith(
+        expect.objectContaining({ chatId: 'id-0' }),
+      );
+      expect(chat.id).toBe('id-0');
+    });
+  });
+
   beforeEach(() => {
     vi.useFakeTimers();
   });
 
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it('disposes the configured transport', async () => {
+    const close = vi.fn();
+    const transport = {
+      close,
+      sendMessages: async () => new ReadableStream<UIMessageChunk>(),
+      reconnectToStream: async () => null,
+    } satisfies ChatTransport<UIMessage>;
+    const chat = new TestChat({ transport });
+
+    await chat.dispose();
+
+    expect(close).toHaveBeenCalledOnce();
   });
 
   describe('send a simple message', () => {
@@ -822,10 +921,309 @@ describe('Chat', () => {
     });
   });
 
+  describe('DefaultChatTransport resume after disconnect', () => {
+    const prefix: UIMessageChunk[] = [
+      { type: 'start', messageId: 'answer-1' },
+      { type: 'start-step' },
+      { type: 'reasoning-start', id: 'reasoning-1' },
+      { type: 'reasoning-delta', id: 'reasoning-1', delta: 'Thinking' },
+      { type: 'text-start', id: 'text-1' },
+      { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+    ];
+    const suffix: UIMessageChunk[] = [
+      { type: 'reasoning-delta', id: 'reasoning-1', delta: ' done.' },
+      { type: 'reasoning-end', id: 'reasoning-1' },
+      { type: 'text-delta', id: 'text-1', delta: ' world!' },
+      { type: 'text-end', id: 'text-1' },
+      { type: 'finish-step' },
+      { type: 'finish' },
+    ];
+
+    async function disconnectAndResume(
+      resumedChunks: UIMessageChunk[],
+      resumeStreamIsReplay?: boolean,
+    ) {
+      const received = createResolvablePromise<void>();
+      const onFinish = vi.fn();
+      const fetch = vi.fn<FetchFunction>(async (_url, init) => {
+        if (init?.method !== 'POST') {
+          return new Response(resumedChunks.map(formatChunk).join(''));
+        }
+
+        return new Response(
+          new ReadableStream<Uint8Array>({
+            start(controller) {
+              controller.enqueue(
+                new TextEncoder().encode(
+                  [
+                    ...prefix,
+                    {
+                      type: 'data-checkpoint',
+                      data: null,
+                      transient: true,
+                    } satisfies UIMessageChunk,
+                  ]
+                    .map(formatChunk)
+                    .join(''),
+                ),
+              );
+              void received.promise.then(() => {
+                controller.error(new TypeError('network connection lost'));
+              });
+            },
+          }),
+        );
+      });
+      const chat = new TestChat({
+        transport: new DefaultChatTransport({ fetch, resumeStreamIsReplay }),
+        onData: () => received.resolve(),
+        onFinish,
+      });
+
+      await chat.sendMessage({ text: 'Hello' });
+      expect(chat.status).toBe('error');
+      expect(onFinish).toHaveBeenCalledWith(
+        expect.objectContaining({ isDisconnect: true }),
+      );
+      expect(chat.lastMessage?.parts).toHaveLength(3);
+
+      await chat.resumeStream();
+
+      expect(fetch.mock.calls.map(([, init]) => init?.method)).toEqual([
+        'POST',
+        'GET',
+      ]);
+      expect(chat.error).toBeUndefined();
+      expect(chat.status).toBe('ready');
+      expect(chat.messages).toHaveLength(2);
+      expect(chat.lastMessage).toEqual({
+        id: 'answer-1',
+        role: 'assistant',
+        metadata: undefined,
+        parts: [
+          { type: 'step-start' },
+          {
+            type: 'reasoning',
+            id: 'reasoning-1',
+            text: 'Thinking done.',
+            state: 'done',
+            providerMetadata: undefined,
+          },
+          {
+            type: 'text',
+            text: 'Hello world!',
+            state: 'done',
+            providerMetadata: undefined,
+          },
+        ],
+      });
+    }
+
+    it.each(['answer-1', undefined])(
+      'rebuilds replayed parts with start message ID %s',
+      async messageId => {
+        await disconnectAndResume([
+          { type: 'start', messageId },
+          ...prefix.slice(1),
+          ...suffix,
+        ]);
+      },
+    );
+
+    it('preserves active parts when resuming with only remaining chunks', async () => {
+      await disconnectAndResume(suffix);
+    });
+
+    it('allows a continuation endpoint to send a start without resetting parts', async () => {
+      await disconnectAndResume(
+        [{ type: 'start', messageId: 'answer-1' }, ...suffix],
+        false,
+      );
+    });
+  });
+
+  it.each([
+    'network connection lost',
+    'Failed to fetch',
+    'network error',
+    'NetworkError when attempting to fetch resource.',
+    'fetch failed',
+    'Load failed',
+  ])(
+    'should continue an active text part after a disconnect with "%s"',
+    async errorMessage => {
+      const onFinish = vi.fn();
+      const chat = new TestChat({
+        id: '123',
+        generateId: mockId(),
+        onFinish,
+        transport: {
+          sendMessages: async () => {
+            const chunks: UIMessageChunk[] = [
+              { type: 'start', messageId: 'assistant-1' },
+              { type: 'start-step' },
+              { type: 'text-start', id: 'text-1' },
+              { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+            ];
+            let index = 0;
+
+            return new ReadableStream<UIMessageChunk>({
+              pull(controller) {
+                if (index < chunks.length) {
+                  controller.enqueue(chunks[index++]);
+                } else {
+                  controller.error(new TypeError(errorMessage));
+                }
+              },
+            });
+          },
+          reconnectToStream: async () =>
+            new ReadableStream<UIMessageChunk>({
+              start(controller) {
+                controller.enqueue({
+                  type: 'text-delta',
+                  id: 'text-1',
+                  delta: ' and loved well',
+                });
+                controller.enqueue({ type: 'text-end', id: 'text-1' });
+                controller.enqueue({ type: 'finish-step' });
+                controller.enqueue({ type: 'finish', finishReason: 'stop' });
+                controller.close();
+              },
+            }),
+        },
+      });
+
+      await chat.sendMessage({ text: 'Continue the response.' });
+
+      expect(chat.status).toBe('error');
+      expect(onFinish).toHaveBeenCalledWith(
+        expect.objectContaining({ isDisconnect: true, isError: true }),
+      );
+      expect(chat.messages.at(-1)?.parts).toEqual([
+        { type: 'step-start' },
+        {
+          type: 'text',
+          text: 'Hello',
+          state: 'streaming',
+          providerMetadata: undefined,
+        },
+      ]);
+
+      chat.clearError();
+      await chat.resumeStream();
+
+      expect(chat.status).toBe('ready');
+      expect(chat.messages.at(-1)?.parts).toEqual([
+        { type: 'step-start' },
+        {
+          type: 'text',
+          text: 'Hello and loved well',
+          state: 'done',
+          providerMetadata: undefined,
+        },
+      ]);
+    },
+  );
+
+  it('should wait for an active response to disconnect before resuming', async () => {
+    let responseController!: ReadableStreamDefaultController<UIMessageChunk>;
+    const reconnectToStream = vi.fn(
+      async () =>
+        new ReadableStream<UIMessageChunk>({
+          start(controller) {
+            controller.enqueue({
+              type: 'text-delta',
+              id: 'text-1',
+              delta: ', world.',
+            });
+            controller.enqueue({ type: 'text-end', id: 'text-1' });
+            controller.enqueue({ type: 'finish' });
+            controller.close();
+          },
+        }),
+    );
+    const chat = new TestChat({
+      id: '123',
+      generateId: mockId(),
+      transport: {
+        sendMessages: async () =>
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              responseController = controller;
+            },
+          }),
+        reconnectToStream,
+      },
+    });
+
+    const sendPromise = chat.sendMessage({ text: 'hi' });
+    await vi.waitUntil(() => responseController != null);
+    responseController.enqueue({
+      type: 'start',
+      messageId: 'assistant-1',
+    });
+    responseController.enqueue({ type: 'text-start', id: 'text-1' });
+    responseController.enqueue({
+      type: 'text-delta',
+      id: 'text-1',
+      delta: 'Hello',
+    });
+    await vi.waitUntil(() => chat.status === 'streaming');
+
+    const resumePromise = chat['~resumeStreamIfDisconnected']();
+    expect(reconnectToStream).not.toHaveBeenCalled();
+
+    responseController.error(new TypeError('network connection lost'));
+    await Promise.all([sendPromise, resumePromise]);
+
+    expect(reconnectToStream).toHaveBeenCalledOnce();
+    expect(chat.status).toBe('ready');
+    expect(chat.messages.at(-1)?.parts).toEqual([
+      {
+        type: 'text',
+        text: 'Hello, world.',
+        state: 'done',
+        providerMetadata: undefined,
+      },
+    ]);
+  });
+
+  it('should not resume an active response after a non-network error', async () => {
+    let responseController!: ReadableStreamDefaultController<UIMessageChunk>;
+    const reconnectToStream = vi.fn(async () => null);
+    const applicationError = new Error('application failed');
+    const chat = new TestChat({
+      id: '123',
+      transport: {
+        sendMessages: async () =>
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              responseController = controller;
+            },
+          }),
+        reconnectToStream,
+      },
+    });
+
+    const sendPromise = chat.sendMessage({ text: 'hi' });
+    await vi.waitUntil(() => responseController != null);
+    const resumePromise = chat['~resumeStreamIfDisconnected']();
+
+    responseController.error(applicationError);
+    await Promise.all([sendPromise, resumePromise]);
+
+    expect(reconnectToStream).not.toHaveBeenCalled();
+    expect(chat.status).toBe('error');
+    expect(chat.error).toBe(applicationError);
+  });
+
   describe('send handle a stop and an aborted response stream', () => {
     let chat: TestChat;
     let letOnFinishArgs: any[] = [];
     let isAborted = false;
+    let statusAfterStop: ChatStatus;
+    let onFinishCalledAfterStop = false;
 
     beforeEach(async () => {
       let controller: ReadableStreamDefaultController<UIMessageChunk>;
@@ -878,12 +1276,19 @@ describe('Chat', () => {
       }
 
       await chat.stop();
+      statusAfterStop = chat.status;
+      onFinishCalledAfterStop = letOnFinishArgs.length > 0;
 
       await finishPromise.promise;
     });
 
     it('should have been aborted', async () => {
       expect(isAborted).toBe(true);
+    });
+
+    it('should finish the request pipeline before stop resolves', async () => {
+      expect(statusAfterStop).toBe('ready');
+      expect(onFinishCalledAfterStop).toBe(true);
     });
 
     it('should call onFinish with message and messages', async () => {
@@ -1058,6 +1463,215 @@ describe('Chat', () => {
     });
   });
 
+  it('should not send automatically after a response is stopped', async () => {
+    let sendCount = 0;
+    const responseStream = new ReadableStream<UIMessageChunk>({
+      start(controller) {
+        controller.enqueue({ type: 'start' });
+        controller.enqueue({ type: 'start-step' });
+        controller.enqueue({ type: 'text-start', id: 'text-1' });
+        controller.enqueue({
+          type: 'text-delta',
+          id: 'text-1',
+          delta: 'Hello',
+        });
+      },
+    });
+
+    const chat = new TestChat({
+      id: '123',
+      generateId: mockId(),
+      transport: {
+        sendMessages: async () => {
+          sendCount++;
+          return responseStream;
+        },
+        reconnectToStream: () => {
+          throw new Error('not implemented');
+        },
+      },
+      sendAutomaticallyWhen: () => true,
+    });
+
+    const sendPromise = chat.sendMessage({ text: 'Hello, world!' });
+
+    while ((chat.messages[1]?.parts[1] as any)?.text !== 'Hello') {
+      await vi.advanceTimersByTimeAsync(0);
+    }
+
+    await chat.stop();
+    await sendPromise;
+
+    expect(sendCount).toBe(1);
+    expect(chat.status).toBe('ready');
+  });
+
+  it('should wait for a pending tool callback and its message update before stop resolves', async () => {
+    const callbackStarted = createResolvablePromise<void>();
+    const callbackCanFinish = createResolvablePromise<void>();
+    const toolOutputFinished = createResolvablePromise<void>();
+    const events: string[] = [];
+    let toolOutputError: unknown;
+    let chat: TestChat;
+
+    const responseStream = new ReadableStream<UIMessageChunk>({
+      start(controller) {
+        controller.enqueue({ type: 'start' });
+        controller.enqueue({ type: 'start-step' });
+        controller.enqueue({
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          input: { testArg: 'test-value' },
+        });
+      },
+    });
+
+    chat = new TestChat({
+      id: '123',
+      generateId: mockId(),
+      transport: {
+        sendMessages: async () => responseStream,
+        reconnectToStream: () => {
+          throw new Error('not implemented');
+        },
+      },
+      onToolCall: async () => {
+        events.push('tool-callback-started');
+        callbackStarted.resolve();
+        await callbackCanFinish.promise;
+
+        void Promise.resolve(
+          chat.addToolOutput({
+            tool: 'test-tool',
+            toolCallId: 'tool-call-0',
+            output: 'test-output',
+          }),
+        ).then(
+          () => {
+            events.push('tool-output-finished');
+            toolOutputFinished.resolve();
+          },
+          (error: unknown) => {
+            toolOutputError = error;
+            toolOutputFinished.resolve();
+          },
+        );
+      },
+    });
+
+    const sendPromise = chat.sendMessage({ text: 'Hello, world!' });
+    await callbackStarted.promise;
+
+    let stopSettled = false;
+    const stopPromise = chat.stop().then(() => {
+      stopSettled = true;
+      events.push('stop-finished');
+    });
+
+    await vi.advanceTimersByTimeAsync(0);
+    expect(stopSettled).toBe(false);
+
+    callbackCanFinish.resolve();
+    await stopPromise;
+
+    chat.messages = [];
+    await Promise.all([sendPromise, toolOutputFinished.promise]);
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(toolOutputError).toBeUndefined();
+    expect(events).toEqual([
+      'tool-callback-started',
+      'tool-output-finished',
+      'stop-finished',
+    ]);
+    expect(chat.messages).toEqual([]);
+  });
+
+  it('should not restart the chat from a tool output queued while stopping', async () => {
+    const callbackStarted = createResolvablePromise<void>();
+    const callbackCanFinish = createResolvablePromise<void>();
+    let sendCount = 0;
+    let secondResponseController:
+      | ReadableStreamDefaultController<UIMessageChunk>
+      | undefined;
+    let chat: TestChat;
+
+    const responseStream = new ReadableStream<UIMessageChunk>({
+      start(controller) {
+        controller.enqueue({ type: 'start' });
+        controller.enqueue({ type: 'start-step' });
+        controller.enqueue({
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          input: { testArg: 'test-value' },
+        });
+      },
+    });
+
+    chat = new TestChat({
+      id: '123',
+      generateId: mockId(),
+      transport: {
+        sendMessages: async () => {
+          sendCount++;
+
+          if (sendCount === 1) {
+            return responseStream;
+          }
+
+          return new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              secondResponseController = controller;
+            },
+          });
+        },
+        reconnectToStream: () => {
+          throw new Error('not implemented');
+        },
+      },
+      onToolCall: async () => {
+        callbackStarted.resolve();
+        await callbackCanFinish.promise;
+
+        void chat.addToolOutput({
+          tool: 'test-tool',
+          toolCallId: 'tool-call-0',
+          output: 'test-output',
+        });
+      },
+      sendAutomaticallyWhen: () => true,
+    });
+
+    const sendPromise = chat.sendMessage({ text: 'Hello, world!' });
+    await callbackStarted.promise;
+
+    const stopPromise = chat.stop();
+    callbackCanFinish.resolve();
+    await stopPromise;
+
+    chat.messages = [];
+
+    secondResponseController?.enqueue({ type: 'start' });
+    secondResponseController?.enqueue({ type: 'start-step' });
+    secondResponseController?.enqueue({ type: 'text-start', id: 'text-1' });
+    secondResponseController?.enqueue({
+      type: 'text-delta',
+      id: 'text-1',
+      delta: 'after stop',
+    });
+    secondResponseController?.close();
+
+    await sendPromise;
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(sendCount).toBe(1);
+    expect((chat as any).activeResponse).toBeUndefined();
+    expect(chat.status).toBe('ready');
+    expect(chat.messages).toEqual([]);
+  });
+
   it('should not send a message when stopped during message preparation', async () => {
     const sendMessages = vi.fn(async () => new ReadableStream());
     const chat = new TestChat({
@@ -1165,7 +1779,7 @@ describe('Chat', () => {
     const resumePromise = chat.resumeStream();
 
     expect(chat.status).toBe('ready');
-    await chat.stop();
+    const stopPromise = chat.stop();
     expect(reconnectAbortSignal?.aborted).toBe(true);
 
     reconnectResult.resolve(
@@ -1186,6 +1800,7 @@ describe('Chat', () => {
       }),
     );
 
+    await stopPromise;
     await resumePromise;
 
     expect(isCancelled).toBe(true);
@@ -1263,6 +1878,41 @@ describe('Chat', () => {
     expect(chat.messages).toHaveLength(1);
     expect((chat.messages[0].parts[1] as any).text).toBe('latest');
     expect(chat.status).toBe('ready');
+  });
+
+  it('should publish the latest error after repeated failed resume attempts', async () => {
+    const reconnectErrors = [
+      new Error('first reconnect failure'),
+      new Error('second reconnect failure'),
+    ];
+    const state = new TestChatState<UIMessage>();
+    const onError = vi.fn();
+    let reconnectCount = 0;
+
+    const chat = new TestChatWithState({
+      id: '123',
+      state,
+      transport: {
+        sendMessages: async () => {
+          throw new Error('not implemented');
+        },
+        reconnectToStream: async () => {
+          throw reconnectErrors[reconnectCount++];
+        },
+      },
+      onError,
+    });
+
+    await chat.resumeStream();
+    await chat.resumeStream();
+
+    expect(chat.status).toBe('error');
+    expect(chat.error).toBe(reconnectErrors[1]);
+    expect(state.errorHistory).toEqual(reconnectErrors);
+    expect(onError.mock.calls).toEqual([
+      [reconnectErrors[0]],
+      [reconnectErrors[1]],
+    ]);
   });
 
   it('should include the metadata of text message', async () => {
@@ -1950,6 +2600,222 @@ describe('Chat', () => {
     },
   );
 
+  it('should update a streaming response in place after a later message is appended', async () => {
+    let controller!: ReadableStreamDefaultController<UIMessageChunk>;
+    const stream = new ReadableStream<UIMessageChunk>({
+      start(streamController) {
+        controller = streamController;
+      },
+    });
+    const chat = new TestChatWithState({
+      state: new SnapshottingTestChatState(),
+      generateId: mockId(),
+      transport: {
+        sendMessages: async () => stream,
+        reconnectToStream: async () => null,
+      },
+    });
+
+    const sendPromise = chat.sendMessage({ text: 'first question' });
+    controller.enqueue({ type: 'start', messageId: 'reply-1' });
+    controller.enqueue({ type: 'text-start', id: 'text-1' });
+    controller.enqueue({
+      type: 'text-delta',
+      id: 'text-1',
+      delta: 'Hel',
+    });
+
+    await vi.waitFor(() => {
+      expect(
+        getMessageText(chat.messages.find(message => message.id === 'reply-1')),
+      ).toBe('Hel');
+    });
+
+    chat.messages = [
+      ...chat.messages,
+      {
+        id: 'user-2',
+        role: 'user',
+        parts: [{ type: 'text', text: 'follow-up' }],
+      },
+    ];
+
+    controller.enqueue({
+      type: 'text-delta',
+      id: 'text-1',
+      delta: 'lo',
+    });
+    controller.enqueue({ type: 'text-end', id: 'text-1' });
+    controller.enqueue({ type: 'finish' });
+    controller.close();
+    await sendPromise;
+
+    expect(chat.messages.map(message => message.id)).toEqual([
+      expect.any(String),
+      'reply-1',
+      'user-2',
+    ]);
+    expect(chat.messages[0].role).toBe('user');
+    expect(getMessageText(chat.messages[0])).toBe('first question');
+    expect(getMessageText(chat.messages[1])).toBe('Hello');
+  });
+
+  it('should update an earlier streaming response after preceding messages are removed', async () => {
+    let controller!: ReadableStreamDefaultController<UIMessageChunk>;
+    const stream = new ReadableStream<UIMessageChunk>({
+      start(streamController) {
+        controller = streamController;
+      },
+    });
+    const chat = new TestChatWithState({
+      state: new SnapshottingTestChatState([
+        {
+          id: 'user-before',
+          role: 'user',
+          parts: [{ type: 'text', text: 'Run the approved tool.' }],
+        },
+        {
+          id: 'assistant-1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-weather',
+              toolCallId: 'call-1',
+              state: 'approval-responded',
+              input: { city: 'Tokyo' },
+              approval: { id: 'approval-1', approved: true },
+            },
+          ],
+        },
+        {
+          id: 'user-later',
+          role: 'user',
+          parts: [{ type: 'text', text: 'Keep this message.' }],
+        },
+        {
+          id: 'assistant-later',
+          role: 'assistant',
+          parts: [{ type: 'text', text: 'This is a later response.' }],
+        },
+      ]),
+      generateId: mockId(),
+      transport: {
+        sendMessages: async () => stream,
+        reconnectToStream: async () => null,
+      },
+    });
+
+    const sendPromise = chat.sendMessage();
+    controller.enqueue({ type: 'text-start', id: 'text-1' });
+    controller.enqueue({
+      type: 'text-delta',
+      id: 'text-1',
+      delta: 'Hel',
+    });
+
+    await vi.waitFor(() => {
+      expect(
+        getMessageText(
+          chat.messages.find(message => message.id === 'assistant-1'),
+        ),
+      ).toBe('Hel');
+    });
+
+    chat.messages = chat.messages.filter(
+      message => message.id !== 'user-before',
+    );
+
+    controller.enqueue({
+      type: 'text-delta',
+      id: 'text-1',
+      delta: 'lo',
+    });
+    controller.enqueue({ type: 'text-end', id: 'text-1' });
+    controller.enqueue({ type: 'finish' });
+    controller.close();
+    await sendPromise;
+
+    expect(chat.messages.map(message => message.id)).toEqual([
+      'assistant-1',
+      'user-later',
+      'assistant-later',
+    ]);
+    expect(getMessageText(chat.messages[0])).toBe('Hello');
+    expect(getMessageText(chat.messages[1])).toBe('Keep this message.');
+  });
+
+  it('should update a renamed earlier response after preceding messages are removed before streaming starts', async () => {
+    let controller!: ReadableStreamDefaultController<UIMessageChunk>;
+    const stream = new ReadableStream<UIMessageChunk>({
+      start(streamController) {
+        controller = streamController;
+      },
+    });
+    const chat = new TestChatWithState({
+      state: new SnapshottingTestChatState([
+        {
+          id: 'user-before',
+          role: 'user',
+          parts: [{ type: 'text', text: 'Run the approved tool.' }],
+        },
+        {
+          id: 'assistant-1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-weather',
+              toolCallId: 'call-1',
+              state: 'approval-responded',
+              input: { city: 'Tokyo' },
+              approval: { id: 'approval-1', approved: true },
+            },
+          ],
+        },
+        {
+          id: 'user-later',
+          role: 'user',
+          parts: [{ type: 'text', text: 'Keep this message.' }],
+        },
+        {
+          id: 'assistant-later',
+          role: 'assistant',
+          parts: [{ type: 'text', text: 'This is a later response.' }],
+        },
+      ]),
+      generateId: mockId(),
+      transport: {
+        sendMessages: async () => stream,
+        reconnectToStream: async () => null,
+      },
+    });
+
+    const sendPromise = chat.sendMessage();
+
+    chat.messages = chat.messages.filter(
+      message => message.id !== 'user-before',
+    );
+
+    controller.enqueue({ type: 'start', messageId: 'renamed-assistant' });
+    controller.enqueue({ type: 'text-start', id: 'text-1' });
+    controller.enqueue({
+      type: 'text-delta',
+      id: 'text-1',
+      delta: 'Hello',
+    });
+    controller.enqueue({ type: 'text-end', id: 'text-1' });
+    controller.enqueue({ type: 'finish' });
+    controller.close();
+    await sendPromise;
+
+    expect(chat.messages.map(message => message.id)).toEqual([
+      'renamed-assistant',
+      'user-later',
+      'assistant-later',
+    ]);
+    expect(getMessageText(chat.messages[0])).toBe('Hello');
+    expect(getMessageText(chat.messages[1])).toBe('Keep this message.');
+  });
+
   it('should handle error parts', async () => {
     server.urls['http://localhost:3000/api/chat'].response = {
       type: 'stream-chunks',
@@ -2065,6 +2931,324 @@ describe('Chat', () => {
     `);
   });
 
+  it('should start a separate resumed message after an answered approval', async () => {
+    const previousMessage: UIMessage = {
+      id: 'assistant-1',
+      role: 'assistant',
+      metadata: { label: 'previous response' },
+      parts: [
+        { type: 'text', text: 'Please approve.' },
+        {
+          type: 'tool-updateProduct',
+          toolCallId: 'call-1',
+          state: 'approval-responded',
+          input: { price: 12 },
+          approval: { id: 'approval-1', approved: true },
+        },
+      ],
+    };
+    const state = new TestChatState<UIMessage>([previousMessage]);
+    state.snapshot = <T>(value: T): T => structuredClone(value);
+
+    const chat = new TestChatWithState({
+      id: '123',
+      state,
+      generateId: mockId(),
+      transport: {
+        sendMessages: async () => {
+          throw new Error('not implemented');
+        },
+        reconnectToStream: async () =>
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              controller.enqueue({ type: 'start', messageId: 'assistant-2' });
+              controller.enqueue({ type: 'text-start', id: 'text-1' });
+              controller.enqueue({
+                type: 'text-delta',
+                id: 'text-1',
+                delta: 'Updated.',
+              });
+              controller.enqueue({ type: 'text-end', id: 'text-1' });
+              controller.enqueue({ type: 'finish' });
+              controller.close();
+            },
+          }),
+      },
+    });
+
+    await chat.resumeStream();
+
+    expect(chat.error).toBeUndefined();
+    expect(chat.status).toBe('ready');
+    expect(chat.messages).toHaveLength(2);
+    expect(chat.messages[0]).toEqual(previousMessage);
+    expect(chat.messages[1]).toEqual({
+      id: 'assistant-2',
+      role: 'assistant',
+      metadata: undefined,
+      parts: [
+        expect.objectContaining({
+          type: 'text',
+          state: 'done',
+          text: 'Updated.',
+        }),
+      ],
+    });
+  });
+
+  it.each([undefined, 'assistant-1'])(
+    'should resume an approved tool result in the existing assistant message with start ID %s',
+    async messageId => {
+      const state = new TestChatState<UIMessage>([
+        {
+          id: 'user-1',
+          role: 'user',
+          parts: [{ type: 'text', text: 'Set the price to 12' }],
+        },
+        {
+          id: 'assistant-1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-updateProduct',
+              toolCallId: 'call-1',
+              state: 'approval-requested',
+              input: { price: 12 },
+              approval: { id: 'approval-1' },
+            },
+          ],
+        },
+      ]);
+      state.snapshot = <T>(value: T): T => structuredClone(value);
+
+      const chat = new TestChatWithState({
+        id: '123',
+        state,
+        generateId: mockId(),
+        transport: {
+          sendMessages: async () => {
+            throw new Error('not implemented');
+          },
+          reconnectToStream: async () =>
+            new ReadableStream<UIMessageChunk>({
+              start(controller) {
+                if (messageId != null) {
+                  controller.enqueue({ type: 'start', messageId });
+                }
+                controller.enqueue({
+                  type: 'tool-output-available',
+                  toolCallId: 'call-1',
+                  output: { price: 12 },
+                });
+                controller.enqueue({ type: 'text-start', id: 'text-1' });
+                controller.enqueue({
+                  type: 'text-delta',
+                  id: 'text-1',
+                  delta: 'Updated.',
+                });
+                controller.enqueue({ type: 'text-end', id: 'text-1' });
+                controller.enqueue({ type: 'finish' });
+                controller.close();
+              },
+            }),
+        },
+      });
+
+      await chat.addToolApprovalResponse({ id: 'approval-1', approved: true });
+      expect(chat.messages[1].parts[0]).toMatchObject({
+        state: 'approval-responded',
+      });
+
+      await chat.resumeStream();
+
+      expect(chat.error).toBeUndefined();
+      expect(chat.status).toBe('ready');
+      expect(chat.messages).toHaveLength(2);
+      expect(chat.messages[1].id).toBe('assistant-1');
+      expect(chat.messages[1].parts).toEqual([
+        expect.objectContaining({
+          type: 'tool-updateProduct',
+          toolCallId: 'call-1',
+          state: 'output-available',
+          input: { price: 12 },
+          output: { price: 12 },
+          approval: expect.objectContaining({
+            id: 'approval-1',
+            approved: true,
+          }),
+        }),
+        expect.objectContaining({
+          type: 'text',
+          state: 'done',
+          text: 'Updated.',
+        }),
+      ]);
+    },
+  );
+
+  it.each([undefined, 'assistant-1'])(
+    'should resume a provider-executed tool result in the existing assistant message with start ID %s',
+    async messageId => {
+      const state = new TestChatState<UIMessage>([
+        {
+          id: 'user-1',
+          role: 'user',
+          parts: [{ type: 'text', text: 'Set the price to 12' }],
+        },
+        {
+          id: 'assistant-1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-updateProduct',
+              toolCallId: 'call-1',
+              state: 'input-available',
+              input: { price: 12 },
+              providerExecuted: true,
+            },
+          ],
+        },
+      ]);
+      state.snapshot = <T>(value: T): T => structuredClone(value);
+
+      const chat = new TestChatWithState({
+        id: '123',
+        state,
+        generateId: mockId(),
+        transport: {
+          sendMessages: async () => {
+            throw new Error('not implemented');
+          },
+          reconnectToStream: async () =>
+            new ReadableStream<UIMessageChunk>({
+              start(controller) {
+                if (messageId != null) {
+                  controller.enqueue({ type: 'start', messageId });
+                }
+                controller.enqueue({
+                  type: 'tool-output-available',
+                  toolCallId: 'call-1',
+                  output: { price: 12 },
+                  providerExecuted: true,
+                });
+                controller.enqueue({ type: 'finish' });
+                controller.close();
+              },
+            }),
+        },
+      });
+
+      await chat.resumeStream();
+
+      expect(chat.error).toBeUndefined();
+      expect(chat.status).toBe('ready');
+      expect(chat.messages).toHaveLength(2);
+      expect(chat.messages[1]).toEqual({
+        id: 'assistant-1',
+        role: 'assistant',
+        parts: [
+          {
+            type: 'tool-updateProduct',
+            toolCallId: 'call-1',
+            state: 'output-available',
+            input: { price: 12 },
+            output: { price: 12 },
+            providerExecuted: true,
+            preliminary: undefined,
+            callProviderMetadata: undefined,
+            resultProviderMetadata: undefined,
+            title: undefined,
+            toolMetadata: undefined,
+          },
+        ],
+      });
+    },
+  );
+
+  it('should continue a hydrated partial static tool call across repeated stream interruptions', async () => {
+    const state = new TestChatState<UIMessage>([
+      {
+        id: 'assistant-1',
+        role: 'assistant',
+        parts: [
+          {
+            type: 'tool-createDocument',
+            toolCallId: 'tool-1',
+            state: 'input-streaming',
+            input: { title: 'Hel' },
+            rawInput: '{"title":"Hel',
+          },
+        ],
+      },
+    ]);
+    state.snapshot = <T>(value: T): T => structuredClone(value);
+    let reconnectCount = 0;
+
+    const chat = new TestChatWithState({
+      id: '123',
+      state,
+      generateId: mockId(),
+      transport: {
+        sendMessages: async () => {
+          throw new Error('not implemented');
+        },
+        reconnectToStream: async () =>
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              reconnectCount++;
+              if (reconnectCount === 1) {
+                controller.enqueue({
+                  type: 'tool-input-delta',
+                  toolCallId: 'tool-1',
+                  inputTextDelta: 'lo',
+                });
+              } else {
+                controller.enqueue({
+                  type: 'tool-input-delta',
+                  toolCallId: 'tool-1',
+                  inputTextDelta: '"}',
+                });
+                controller.enqueue({
+                  type: 'tool-input-available',
+                  toolCallId: 'tool-1',
+                  toolName: 'createDocument',
+                  input: { title: 'Hello' },
+                });
+              }
+              controller.close();
+            },
+          }),
+      },
+    });
+
+    await chat.resumeStream();
+
+    expect(chat.error).toBeUndefined();
+    expect(chat.messages[0].parts).toMatchObject([
+      {
+        type: 'tool-createDocument',
+        toolCallId: 'tool-1',
+        state: 'input-streaming',
+        input: { title: 'Hello' },
+        rawInput: '{"title":"Hello',
+      },
+    ]);
+
+    await chat.resumeStream();
+
+    expect(chat.error).toBeUndefined();
+    expect(chat.messages).toHaveLength(1);
+    expect(chat.messages[0].parts).toMatchObject([
+      {
+        type: 'tool-createDocument',
+        toolCallId: 'tool-1',
+        state: 'input-available',
+        input: { title: 'Hello' },
+      },
+    ]);
+    expect(reconnectCount).toBe(2);
+  });
+
   it('should not throw to console when an overlapped request clears activeResponse before resume-stream finishes', async () => {
     let resumeController!: ReadableStreamDefaultController<UIMessageChunk>;
     const resumeStream = new ReadableStream<UIMessageChunk>({
@@ -2141,6 +3325,158 @@ describe('Chat', () => {
   });
 
   describe('sendAutomaticallyWhen', () => {
+    it('should reject addToolOutput when the async predicate rejects', async () => {
+      const chat = new TestChat({
+        id: '123',
+        messages: [
+          {
+            id: 'id-0',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-test-tool',
+                toolCallId: 'tool-call-0',
+                state: 'input-available',
+                input: { testArg: 'test-value' },
+              },
+            ],
+          },
+        ],
+        sendAutomaticallyWhen: () =>
+          Promise.reject(new Error('predicate failed')),
+      });
+
+      await expect(
+        chat.addToolOutput({
+          tool: 'test-tool',
+          toolCallId: 'tool-call-0',
+          output: 'test-output',
+        }),
+      ).rejects.toThrow('predicate failed');
+    });
+
+    it('should reject addToolApprovalResponse when the async predicate rejects', async () => {
+      const chat = new TestChat({
+        id: '123',
+        messages: [
+          {
+            id: 'id-0',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-test-tool',
+                toolCallId: 'tool-call-0',
+                state: 'approval-requested',
+                input: { testArg: 'test-value' },
+                approval: { id: 'approval-0' },
+              },
+            ],
+          },
+        ],
+        sendAutomaticallyWhen: () =>
+          Promise.reject(new Error('predicate failed')),
+      });
+
+      await expect(
+        chat.addToolApprovalResponse({
+          id: 'approval-0',
+          approved: true,
+        }),
+      ).rejects.toThrow('predicate failed');
+    });
+
+    it('should submit a client tool output when completed text follows the tool call', async () => {
+      server.urls['http://localhost:3000/api/chat'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          formatChunk({ type: 'start' }),
+          formatChunk({ type: 'start-step' }),
+          formatChunk({ type: 'finish-step' }),
+          formatChunk({ type: 'finish' }),
+        ],
+      };
+
+      const onFinishPromise = createResolvablePromise<void>();
+
+      const chat = new TestChat({
+        id: '123',
+        generateId: mockId(),
+        messages: [
+          {
+            id: 'id-0',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-test-tool',
+                toolCallId: 'tool-call-0',
+                state: 'input-available',
+                input: { testArg: 'test-value' },
+              },
+              {
+                type: 'text',
+                text: 'I can help with anything else.',
+                state: 'done',
+              },
+            ],
+          },
+        ],
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+        sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+        onFinish: () => onFinishPromise.resolve(),
+      });
+
+      await chat.addToolOutput({
+        tool: 'test-tool',
+        toolCallId: 'tool-call-0',
+        output: 'test-output',
+      });
+      await onFinishPromise.promise;
+
+      expect(server.calls.length).toBe(1);
+    });
+
+    it('should not submit a client tool output when terminal text has no completed stream state', async () => {
+      const chat = new TestChat({
+        id: '123',
+        generateId: mockId(),
+        messages: [
+          {
+            id: 'id-0',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-test-tool',
+                toolCallId: 'tool-call-0',
+                state: 'input-available',
+                input: { testArg: 'test-value' },
+              },
+              {
+                type: 'text',
+                text: 'Prompt is too long',
+              },
+            ],
+          },
+        ],
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+        sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+      });
+
+      await chat.addToolOutput({
+        tool: 'test-tool',
+        toolCallId: 'tool-call-0',
+        output: 'test-output',
+      });
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(server.calls.length).toBe(0);
+    });
+
     it('should delay tool output submission until the stream is finished', async () => {
       const controller1 = new TestResponseController();
 
@@ -3109,6 +4445,166 @@ describe('Chat', () => {
     });
   });
 
+  describe('addToolOutput', () => {
+    it('should update a tool call in an earlier message', async () => {
+      const laterMessages: UIMessage[] = [
+        {
+          id: 'id-2',
+          role: 'user',
+          parts: [{ type: 'text', text: 'Continue while the tool runs.' }],
+        },
+      ];
+      const chat = new TestChat({
+        id: '123',
+        messages: [
+          {
+            id: 'id-1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'dynamic-tool',
+                toolName: 'test-tool',
+                toolCallId: 'tool-call-0',
+                state: 'input-available',
+                input: { testArg: 'test-value' },
+              },
+            ],
+          },
+          ...laterMessages,
+        ],
+      });
+
+      await chat.addToolOutput({
+        tool: 'test-tool',
+        toolCallId: 'tool-call-0',
+        output: { ok: true },
+      });
+
+      expect(chat.messages[0].parts[0]).toMatchObject({
+        state: 'output-available',
+        output: { ok: true },
+      });
+      expect(chat.messages.slice(1)).toEqual(laterMessages);
+    });
+  });
+
+  describe('addToolOutput approval metadata', () => {
+    it.each(['output-available', 'output-error'] as const)(
+      'should keep the active response valid after adding %s while approval is pending',
+      async state => {
+        const controller = new TestResponseController();
+        server.urls['http://localhost:3000/api/chat'].response = {
+          type: 'controlled-stream',
+          controller,
+        };
+        const chat = new TestChat({
+          transport: new DefaultChatTransport({
+            api: 'http://localhost:3000/api/chat',
+          }),
+        });
+        const response = chat.sendMessage({ text: 'Rename note' });
+        controller.write(formatChunk({ type: 'start' }));
+        controller.write(formatChunk({ type: 'start-step' }));
+        controller.write(
+          formatChunk({
+            type: 'tool-input-available',
+            toolName: 'test-tool',
+            toolCallId: 'tool-call-0',
+            input: { testArg: 'test-value' },
+          }),
+        );
+        controller.write(
+          formatChunk({
+            type: 'tool-approval-request',
+            toolCallId: 'tool-call-0',
+            approvalId: 'approval-1',
+          }),
+        );
+        await vi.waitFor(() => {
+          expect(chat.messages.at(-1)?.parts.at(-1)).toMatchObject({
+            state: 'approval-requested',
+          });
+        });
+
+        await chat.addToolOutput({
+          tool: 'test-tool',
+          toolCallId: 'tool-call-0',
+          ...(state === 'output-error'
+            ? { state, errorText: 'client-side error' }
+            : { output: 'test-output' }),
+        });
+        controller.write(formatChunk({ type: 'finish-step' }));
+        controller.write(formatChunk({ type: 'finish' }));
+        controller.close();
+        await response;
+
+        expect(chat.messages.at(-1)?.parts.at(-1)).toMatchObject({ state });
+        await expect(
+          validateUIMessages({ messages: chat.messages }),
+        ).resolves.toEqual(chat.messages);
+      },
+    );
+
+    for (const dynamic of [false, true]) {
+      for (const state of ['output-available', 'output-error'] as const) {
+        it.each(['pending', 'approved', 'denied'] as const)(
+          `should keep only granted approval metadata for ${dynamic ? 'dynamic' : 'static'} ${state} with %s approval`,
+          async approvalState => {
+            const approval = {
+              id: 'approval-1',
+              descriptor: { label: 'Rename note' },
+              requestReason: 'Requires confirmation',
+              signature: 'signed-approval-envelope',
+            };
+            const part: UIMessage['parts'][number] = {
+              ...(dynamic
+                ? { type: 'dynamic-tool', toolName: 'test-tool' }
+                : { type: 'tool-test-tool' }),
+              toolCallId: 'tool-call-0',
+              input: { testArg: 'test-value' },
+              ...(approvalState === 'pending'
+                ? { state: 'approval-requested', approval }
+                : {
+                    state: 'approval-responded',
+                    approval: {
+                      ...approval,
+                      approved: approvalState === 'approved',
+                      reason: 'User decision',
+                    },
+                  }),
+            };
+            const chat = new TestChat({
+              messages: [{ id: 'message-1', role: 'assistant', parts: [part] }],
+            });
+
+            await chat.addToolOutput({
+              tool: 'test-tool',
+              toolCallId: 'tool-call-0',
+              ...(state === 'output-error'
+                ? { state, errorText: 'client-side error' }
+                : { output: 'test-output' }),
+            });
+
+            expect(chat.messages[0].parts[0]).toEqual({
+              ...part,
+              state,
+              output: state === 'output-available' ? 'test-output' : undefined,
+              errorText:
+                state === 'output-error' ? 'client-side error' : undefined,
+              approval:
+                approvalState === 'approved'
+                  ? { ...approval, approved: true, reason: 'User decision' }
+                  : undefined,
+            });
+            await expect(
+              validateUIMessages({ messages: chat.messages }),
+            ).resolves.toEqual(chat.messages);
+          },
+        );
+      }
+    }
+  });
+
   describe('addToolOutput options forwarding', () => {
     it('should forward options to makeRequest when auto-sending', async () => {
       server.urls['http://localhost:3000/api/chat'].response = [
@@ -3319,6 +4815,66 @@ describe('Chat', () => {
         expect(chat.messages.slice(2)).toEqual(laterMessages);
       },
     );
+
+    it('should ignore a duplicate response while automatic sending is pending', async () => {
+      const sendMessages = vi.fn(
+        async () =>
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              controller.enqueue({
+                type: 'tool-output-available',
+                toolCallId: 'call-1',
+                output: { temperature: 72, weather: 'sunny' },
+              });
+              controller.enqueue({ type: 'finish', finishReason: 'stop' });
+              controller.close();
+            },
+          }),
+      );
+      const sendAutomaticallyWhen = vi.fn(
+        ({ messages }: { messages: UIMessage[] }) =>
+          Promise.resolve().then(() =>
+            lastAssistantMessageIsCompleteWithApprovalResponses({ messages }),
+          ),
+      );
+      const chat = new TestChat({
+        id: '123',
+        messages: [
+          {
+            id: 'id-1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-weather',
+                toolCallId: 'call-1',
+                state: 'approval-requested',
+                input: { city: 'Tokyo' },
+                approval: { id: 'approval-1' },
+              },
+            ],
+          },
+        ],
+        sendAutomaticallyWhen,
+        transport: {
+          sendMessages,
+          reconnectToStream: async () => null,
+        },
+      });
+
+      await Promise.all([
+        chat.addToolApprovalResponse({
+          id: 'approval-1',
+          approved: true,
+        }),
+        chat.addToolApprovalResponse({
+          id: 'approval-1',
+          approved: true,
+        }),
+      ]);
+      await vi.runAllTimersAsync();
+
+      expect(sendMessages).toHaveBeenCalledTimes(1);
+    });
 
     it('should process results for an approved invocation in an earlier message', async () => {
       server.urls['http://localhost:3000/api/chat'].response = {

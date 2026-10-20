@@ -277,6 +277,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
                   medium: 'high',
                   high: 'high',
                   xhigh: 'max',
+                  max: 'max',
                 },
                 warnings: allWarnings,
               })
@@ -380,6 +381,7 @@ export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
                   medium: 'high',
                   high: 'high',
                   xhigh: 'max',
+                  max: 'max',
                 },
                 warnings: allWarnings,
               })

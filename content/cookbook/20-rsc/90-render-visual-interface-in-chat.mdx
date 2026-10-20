@@ -71,9 +71,10 @@ export default function Home() {
 
 ```tsx filename='components/stock.tsx'
 export async function Stock({ symbol, numOfMonths }) {
-  const data = await fetch(
+  const response = await fetch(
     `https://api.example.com/stock/${symbol}/${numOfMonths}`,
   );
+  const data = await response.json();
 
   return (
     <div>
@@ -94,7 +95,10 @@ export async function Stock({ symbol, numOfMonths }) {
 
 ```tsx filename='components/flight.tsx'
 export async function Flight({ flightNumber }) {
-  const data = await fetch(`https://api.example.com/flight/${flightNumber}`);
+  const response = await fetch(
+    `https://api.example.com/flight/${flightNumber}`,
+  );
+  const data = await response.json();
 
   return (
     <div>

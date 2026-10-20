@@ -19,8 +19,8 @@ import 'dotenv/config';
 const myAnthropic = customProvider({
   languageModels: {
     opus: anthropic('claude-opus-5-5'),
-    sonnet: anthropic('claude-sonnet-5'),
-    haiku: anthropic('claude-haiku-4-5'),
+    sonnet: anthropic('claude-sonnet-5-5'),
+    haiku: anthropic('claude-haiku-5-5'),
   },
   fallbackProvider: anthropic,
 });

@@ -15,7 +15,7 @@ registerTelemetry(new OpenTelemetry());
 
 run(async () => {
   const result = await generateText({
-    model: anthropic('claude-sonnet-5'),
+    model: anthropic('claude-sonnet-5-5'),
     prompt: 'what is the weather in Tokyo?',
     tools: {
       getWeather: {

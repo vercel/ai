@@ -50,12 +50,15 @@ export function collectToolApprovals<TOOLS extends ToolSet>({
     string,
     TypedToolCall<TOOLS>
   > = Object.create(null);
+  const toolCallOrder: Record<string, number> = Object.create(null);
+  let nextToolCallIndex = 0;
   for (const message of messages) {
     if (message.role === 'assistant' && typeof message.content !== 'string') {
       const content = message.content;
       for (const part of content) {
         if (part.type === 'tool-call') {
           toolCallsByToolCallId[part.toolCallId] = part as TypedToolCall<TOOLS>;
+          toolCallOrder[part.toolCallId] = nextToolCallIndex++;
         }
       }
     }
@@ -129,6 +132,14 @@ export function collectToolApprovals<TOOLS extends ToolSet>({
       deniedToolApprovals.push(approval);
     }
   }
+
+  // Approval responses can arrive in a different order than the model's calls.
+  // Restore model order before either generation API schedules their execution.
+  approvedToolApprovals.sort(
+    (a, b) =>
+      toolCallOrder[a.toolCall.toolCallId] -
+      toolCallOrder[b.toolCall.toolCallId],
+  );
 
   return { approvedToolApprovals, deniedToolApprovals };
 }

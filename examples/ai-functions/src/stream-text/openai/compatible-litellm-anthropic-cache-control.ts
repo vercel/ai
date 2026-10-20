@@ -9,7 +9,7 @@ run(async () => {
     baseURL: 'http://0.0.0.0:4000',
     name: 'litellm-anthropic',
   });
-  const model = litellmAnthropic.chatModel('claude-sonnet-5');
+  const model = litellmAnthropic.chatModel('claude-sonnet-5-5');
   const result = streamText({
     model,
     messages: [

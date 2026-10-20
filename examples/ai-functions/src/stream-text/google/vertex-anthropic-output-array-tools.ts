@@ -6,7 +6,7 @@ import { weatherTool } from '../../tools/weather-tool';
 
 run(async () => {
   const { partialOutputStream } = streamText({
-    model: vertexAnthropic('claude-sonnet-5'),
+    model: vertexAnthropic('claude-sonnet-5-5'),
     stopWhen: isStepCount(20),
     output: Output.array({
       element: z.object({

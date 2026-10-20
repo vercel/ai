@@ -16,7 +16,7 @@ If you are unfamiliar with the concepts of [Prompt Engineering](/docs/advanced/p
 To follow this quickstart, you'll need:
 
 - Node.js 22+ and pnpm installed on your local development machine.
-- A [ Vercel AI Gateway ](https://vercel.com/ai-gateway) API key.
+- A [Vercel AI Gateway](https://vercel.com/ai-gateway) API key.
 
 If you haven't obtained your Vercel AI Gateway API key, you can do so by [signing up](https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai&title=Go+to+AI+Gateway) on the Vercel website.
 
@@ -38,7 +38,7 @@ Navigate to the newly created directory:
 
 ### Install dependencies
 
-Install `ai` and `@ai-sdk/react`, the AI package and AI SDK's React hooks. The AI SDK's [ Vercel AI Gateway provider ](/providers/ai-sdk-providers/ai-gateway) ships with the `ai` package. You'll also install `zod`, a schema validation library used for defining tool inputs.
+Install `ai` and `@ai-sdk/react`, the AI package and AI SDK's React hooks. The AI SDK's [Vercel AI Gateway provider](/providers/ai-sdk-providers/ai-gateway) ships with the `ai` package. You'll also install `zod`, a schema validation library used for defining tool inputs.
 
 <Note>
   This guide uses the Vercel AI Gateway provider so you can access hundreds of
@@ -113,7 +113,7 @@ This Route Handler creates a POST request endpoint at `/api/chat`.
 
 ## Choosing a Provider
 
-The AI SDK supports dozens of model providers through [first-party](/providers/ai-sdk-providers), [OpenAI-compatible](/providers/openai-compatible-providers), and [ community ](/providers/community-providers) packages.
+The AI SDK supports dozens of model providers through [first-party](/providers/ai-sdk-providers), [OpenAI-compatible](/providers/openai-compatible-providers), and [community](/providers/community-providers) packages.
 
 This quickstart uses the [Vercel AI Gateway](https://vercel.com/ai-gateway) provider, which is the default [global provider](/docs/ai-sdk-core/provider-management#global-provider-configuration). This means you can access models using a simple string in the model configuration:
 
@@ -126,11 +126,11 @@ You can also explicitly import and use the gateway provider in two other equival
 ```ts
 // Option 1: Import from 'ai' package (included by default)
 import { gateway } from 'ai';
-model: gateway('anthropic/claude-sonnet-5');
+model: gateway('anthropic/claude-sonnet-5.5');
 
 // Option 2: Install and import from '@ai-sdk/gateway' package
 import { gateway } from '@ai-sdk/gateway';
-model: gateway('anthropic/claude-sonnet-5');
+model: gateway('anthropic/claude-sonnet-5.5');
 ```
 
 ### Using other providers
@@ -153,7 +153,7 @@ Pick the approach that best matches how you want to manage providers across your
 
 ## Wire up the UI
 
-Now that you have an API route that can query an LLM, it's time to set up your frontend. The AI SDK's [ UI ](/docs/ai-sdk-ui) package abstracts the complexity of a chat interface into one hook, [`useChat`](/docs/reference/ai-sdk-ui/use-chat).
+Now that you have an API route that can query an LLM, it's time to set up your frontend. The AI SDK's [UI](/docs/ai-sdk-ui) package abstracts the complexity of a chat interface into one hook, [`useChat`](/docs/reference/ai-sdk-ui/use-chat).
 
 Update your root page (`pages/index.tsx`) with the following code to show a list of chat messages and provide a user message input:
 
@@ -396,7 +396,7 @@ export async function POST(req: Request) {
 
 Head back to the browser and ask about the weather in a location. You should now see the model using the weather tool results to answer your question.
 
-By setting `stopWhen: isStepCount(5)`, you're allowing the model to use up to 5 "steps" for any given generation. This enables more complex interactions and allows the model to gather and process information over several steps if needed. You can see this in action by adding another tool to convert the temperature from Celsius to Fahrenheit.
+By setting `stopWhen: isStepCount(5)`, you're allowing the model to use up to 5 "steps" for any given generation. This enables more complex interactions and allows the model to gather and process information over several steps if needed. You can see this in action by adding another tool to convert the temperature from Fahrenheit to Celsius.
 
 ### Add another tool
 

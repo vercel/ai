@@ -29,6 +29,12 @@ Context](/docs/ai-sdk-core/runtime-and-tool-context).
 
 To see `streamText` in action, check out [these examples](#examples).
 
+For outputs that you only need to consume once, consider
+[low-memory streaming](/docs/reference/ai-sdk-core/stream-text-low-memory) with `streamText`.
+It uses the same execution engine with one stream consumer and no replay buffer.
+Plain streaming avoids text accumulation; tools, structured output, and callbacks
+retain the content their contracts require.
+
 ## Import
 
 <Snippet text={`import { streamText } from "ai"`} prompt={false} />
@@ -279,7 +285,7 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'role',
               type: "'tool'",
-              description: 'The role for the assistant message.',
+              description: 'The role for the tool message.',
             },
             {
               name: 'content',
@@ -456,10 +462,10 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'reasoning',
-      type: "'provider-default' | 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh'",
+      type: "'provider-default' | 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max'",
       isOptional: true,
       description:
-        "Controls how much reasoning the model performs before generating a response. When omitted, the provider's default behavior is used. `'provider-default'` explicitly requests the provider's default. Providers that do not support reasoning will emit a warning. If reasoning-related `providerOptions` are also set, they take precedence and this parameter is ignored. See the [reasoning guide](/docs/ai-sdk-core/reasoning) for provider-specific mapping details.",
+        "Controls how much reasoning the model performs before generating a response. When omitted, the provider's default behavior is used. `'provider-default'` explicitly requests the provider's default. Providers that do not support reasoning will emit a warning. Provider-specific settings take precedence over corresponding mapped fields. Partial configurations may still use portable reasoning to fill missing fields; summary and display settings can be combined with it. See the [reasoning guide](/docs/ai-sdk-core/reasoning) for provider-specific mapping details.",
     },
     {
       name: 'maxRetries',
@@ -480,14 +486,14 @@ To see `streamText` in action, check out [these examples](#examples).
       type: 'AbortSignal',
       isOptional: true,
       description:
-        'An optional abort signal that can be used to cancel the call.',
+        'An optional abort signal that can be used to cancel the call. When it fires during streaming, pending result promises such as text and steps reject with the abort reason without waiting for onAbort or provider cancellation. Completed steps are available through onAbort.',
     },
     {
       name: 'timeout',
-      type: 'number | { totalMs?: number; stepMs?: number; firstChunkMs?: number; chunkMs?: number; toolMs?: number; tools?: { [toolName]Ms?: number } }',
+      type: 'number | { totalMs?: number; stepMs?: number; firstChunkMs?: number; chunkMs?: number; toolMs?: number; tools?: Partial<Record<`${toolName}Ms`, number>> }',
       isOptional: true,
       description:
-        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, firstChunkMs, chunkMs, toolMs, and/or tools properties. totalMs sets the total timeout for the entire call. stepMs sets the timeout for each individual step (LLM call). firstChunkMs sets the timeout until the first content-bearing output in each step; metadata, stream starts, empty deltas, raw chunks, and transport activity do not satisfy it. chunkMs sets the timeout between content-bearing output chunks after output has started; non-content chunks do not reset it. toolMs sets the default timeout for all tool executions. tools sets per-tool timeout overrides using the pattern {toolName}Ms (e.g. weatherMs, slowApiMs) that take precedence over toolMs - tool names are type-checked for autocomplete. If a tool takes longer than its timeout, it aborts and returns a tool-error so the model can respond or retry. Can be used alongside abortSignal.',
+        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, firstChunkMs, chunkMs, toolMs, and/or tools properties. totalMs sets the total timeout for the entire call. stepMs sets the timeout for each complete step, including model generation, retries, and local tool execution. firstChunkMs sets the timeout until the first content-bearing output in each step; metadata, stream starts, empty deltas, raw chunks, and transport activity do not satisfy it. chunkMs starts with the first meaningful model output and limits gaps between subsequent meaningful model output chunks. Both output timers stop when the model response finishes and start fresh for each retry or later model call. Local tool results, including preliminary results, do not reset them; local tool execution is outside their scope. Provider-executed tools remain within the model response. toolMs sets the default timeout for all tool executions. tools sets per-tool timeout overrides using the pattern {toolName}Ms (e.g. weatherMs, slowApiMs) that take precedence over toolMs - tool names are type-checked for autocomplete. If a tool takes longer than its timeout, it aborts and returns a tool-error so the model can respond or retry. Can be used alongside abortSignal.',
     },
     {
       name: 'headers',
@@ -621,6 +627,13 @@ To see `streamText` in action, check out [these examples](#examples).
       isOptional: true,
       description:
         'Controls the order in which tools are sent to the provider. The list can be partial. Tools not listed in `toolOrder` are sent after the listed tools, sorted alphabetically. Tool names are restricted to the string keys of the tool set.',
+    },
+    {
+      name: 'toolCallConcurrency',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Maximum number of tool calls that the SDK executes concurrently within a step. Set to `1` to execute calls sequentially in model-generated order. Must be a positive integer. By default, all tool calls execute concurrently.',
     },
     {
       name: 'toolApproval',
@@ -1114,6 +1127,13 @@ To see `streamText` in action, check out [these examples](#examples).
                       type: "'tool-input-start'",
                       description:
                         'Indicates the start of streamed tool input.',
+                    },
+                    {
+                      name: 'inputEncoding',
+                      type: "'json' | 'text'",
+                      isOptional: true,
+                      description:
+                        'Encoding of subsequent tool-input-delta events. Defaults to json when omitted. Text deltas contain raw string input, such as OpenAI custom-tool code or HTML.',
                     },
                     {
                       name: 'id',
@@ -2213,9 +2233,9 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'timeout',
-              type: 'number | { totalMs?: number; stepMs?: number; chunkMs?: number } | undefined',
+              type: 'number | { totalMs?: number; stepMs?: number; firstChunkMs?: number; chunkMs?: number; toolMs?: number; tools?: Partial<Record<`${toolName}Ms`, number>> } | undefined',
               description:
-                'Timeout configuration for the generation. Can be a number (milliseconds) or an object with totalMs, stepMs, chunkMs.',
+                'Timeout configuration for the generation. Can be a number (milliseconds) or an object with totalMs, stepMs, firstChunkMs (streaming only), chunkMs, toolMs, and per-tool overrides via tools.',
             },
             {
               name: 'headers',
@@ -2265,7 +2285,7 @@ To see `streamText` in action, check out [these examples](#examples).
       type: '(event: GenerateTextStepStartEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
-        'Callback that is called when a step (LLM call) begins, before the provider is called. Errors thrown in this callback are silently caught and do not break the generation flow.',
+        'Callback that is called when a step begins, before the provider is called. Errors thrown in this callback are silently caught and do not break the generation flow.',
       properties: [
         {
           type: 'GenerateTextStepStartEvent',
@@ -2650,7 +2670,7 @@ To see `streamText` in action, check out [these examples](#examples).
       name: 'content',
       type: 'Promise<Array<ContentPart<TOOLS>>>',
       description:
-        'The content that was generated in all steps. Automatically consumes the stream.',
+        'The content that was generated in all steps. Text parts can include an optional citations array of references supporting that text. Automatically consumes the stream.',
     },
     {
       name: 'finishReason',
@@ -3352,6 +3372,16 @@ To see `streamText` in action, check out [these examples](#examples).
       description:
         'A stream with all events, including text deltas, tool calls, tool results, and errors. Well-formed mid-stream provider failures are emitted in error parts as StreamProviderError instances. You can use it as either an AsyncIterable or a ReadableStream. Only errors that stop the stream, such as network errors, are thrown.',
       properties: [
+        {
+          type: 'TextStreamTextEndPart',
+          description: 'End of a text block, including optional citations supporting that block.',
+          parameters: [
+            { name: 'type', type: "'text-end'", description: 'The event type.' },
+            { name: 'id', type: 'string', description: 'The text block ID.' },
+            { name: 'citations', type: 'Array<Citation>', isOptional: true, description: 'References supporting this text block. Each citation contains a URL or document source, optional startIndex/endIndex offsets in this block, and an optional citedText passage from the source.' },
+            { name: 'providerMetadata', type: 'ProviderMetadata', isOptional: true, description: 'Additional provider metadata, including raw annotations.' },
+          ],
+        },
         {
           type: 'TextStreamPart',
           description: 'Text content part from ContentPart<TOOLS>',
@@ -4083,6 +4113,19 @@ To see `streamText` in action, check out [these examples](#examples).
               description: 'The original messages.',
             },
             {
+              name: 'onStepEnd',
+              type: '(event: { messages: UIMessage[]; isContinuation: boolean; responseMessage: UIMessage; }) => PromiseLike<void> | void',
+              isOptional: true,
+              description:
+                'Called after each step is converted to UI message parts. Receives the accumulated response message, including step metadata, for inspection or persistence. This UI conversion callback is separate from the generation callback passed to streamText.',
+            },
+            {
+              name: 'onStepFinish',
+              type: '(event: { messages: UIMessage[]; isContinuation: boolean; responseMessage: UIMessage; }) => PromiseLike<void> | void',
+              isOptional: true,
+              description: 'Deprecated alias for onStepEnd.',
+            },
+            {
               name: 'onEnd',
               type: '(options: { messages: UIMessage[]; isContinuation: boolean; responseMessage: UIMessage; isAborted: boolean; isCancelled?: true; outcome: UIMessageStreamOutcome; finishReason?: FinishReason; }) => PromiseLike<void> | void',
               isOptional: true,
@@ -4133,7 +4176,7 @@ To see `streamText` in action, check out [these examples](#examples).
               type: '(error: unknown) => string',
               isOptional: true,
               description:
-                'Process an error, e.g. to log it. Returns error message to include in the data stream. Defaults to () => "An error occurred."',
+                'Process an error, e.g. to log it. Returns the error message to include in the data stream. Defaults to () => "An error occurred." Tool execution errors marked providerExecuted: true bypass this callback: strings pass through unchanged and other values are JSON-stringified to preserve provider error data for model-message round trips and harness runtime error messages. Stream errors and invalid tool calls still use this callback.',
             },
             {
               name: 'consumeSseStream',

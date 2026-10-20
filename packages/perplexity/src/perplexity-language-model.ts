@@ -17,6 +17,7 @@ import {
   createJsonResponseHandler,
   createLanguageModelResponseMetadata,
   isCustomReasoning,
+  mapReasoningToProviderEffort,
   parseProviderOptions,
   postJsonToApi,
   serializeModelOptions,
@@ -270,7 +271,19 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
           feature: 'reasoning "none"',
         });
       } else {
-        reasoningConfig = { effort: reasoning };
+        const effort = mapReasoningToProviderEffort({
+          reasoning,
+          effortMap: {
+            minimal: 'minimal',
+            low: 'low',
+            medium: 'medium',
+            high: 'high',
+            xhigh: 'xhigh',
+            max: 'xhigh',
+          },
+          warnings,
+        });
+        reasoningConfig = effort == null ? undefined : { effort };
       }
     }
 

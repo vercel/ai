@@ -23,6 +23,8 @@ describe('asImageModelV4', () => {
         provider: 'test-provider-v4',
         modelId: 'test-model-v4',
         maxImagesPerCall: 5,
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
       });
 
       const result = asImageModelV4(originalModel);
@@ -30,6 +32,8 @@ describe('asImageModelV4', () => {
       expect(result.provider).toBe('test-provider-v4');
       expect(result.modelId).toBe('test-model-v4');
       expect(result.maxImagesPerCall).toBe(5);
+      expect(result.supportsFileInputs).toBe(true);
+      expect(result.supportsMaskInputs).toBe(false);
     });
   });
 
@@ -66,6 +70,13 @@ describe('asImageModelV4', () => {
       const result = asImageModelV4(v3Model);
 
       expect(result.modelId).toBe('test-model-v3');
+    });
+
+    it('should leave image editing capabilities unknown', () => {
+      const result = asImageModelV4(new MockImageModelV3());
+
+      expect(result.supportsFileInputs).toBeUndefined();
+      expect(result.supportsMaskInputs).toBeUndefined();
     });
 
     it('should make doGenerate method callable', async () => {

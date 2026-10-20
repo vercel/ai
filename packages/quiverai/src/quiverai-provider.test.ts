@@ -109,7 +109,7 @@ describe('createQuiverAI', () => {
       authorization: 'Bearer test-api-key',
       'content-type': 'application/json',
     });
-    expect(server.calls[0].requestUserAgent).toContain('ai-sdk/quiverai/');
+    expect(server.calls[0].requestUserAgent).toContain('ai-sdk-quiverai/');
   });
 
   it('reads the base URL and API key from the environment', async () => {

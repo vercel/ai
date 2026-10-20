@@ -8,7 +8,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: anthropic('claude-sonnet-5'),
+    model: anthropic('claude-sonnet-5-5'),
     messages: [
       {
         role: 'user',

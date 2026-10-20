@@ -52,44 +52,10 @@ try {
 }
 ```
 
-Pi has no in-sandbox bridge, so the supplied sandbox session does not need
-exposed ports. Vercel and just-bash sessions both work.
+Pi has no in-sandbox bridge, so the supplied session does not need exposed ports. Its built-in tools operate on the sandbox from the host process.
 
-## Stateless session configuration
+## Authentication
 
-By default, a suspended turn can reuse its live Pi session in the same process.
-For stateless or multi-replica applications, set `reattachInProcess: false` so
-continuations restore persisted state using the current request's settings.
-Application-managed credentials can be supplied through a `PiCredentialStore`;
-this replaces Pi's file-backed `auth.json` storage.
+The default `auto` authentication mode uses `AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN` when available and otherwise falls back to provider credentials such as `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`. Use `createPi({ auth: 'ai-gateway' })` or `createPi({ auth: 'anthropic' })` to select a mode explicitly, or pass an isolated authentication environment with `createPi({ auth: { ANTHROPIC_API_KEY: token } })`.
 
-```ts
-import { createPi, type PiCredentialStore } from '@ai-sdk/harness-pi';
-
-declare const credentials: PiCredentialStore;
-
-const harness = createPi({
-  credentials,
-  reattachInProcess: false,
-});
-```
-
-## Inline extensions
-
-Use `extensionFactories` to load trusted inline Pi extensions for each harness session:
-
-```ts
-import { createPi } from '@ai-sdk/harness-pi';
-
-const harness = createPi({
-  extensionFactories: [
-    pi => {
-      pi.on('agent_start', () => {
-        console.log('Pi agent started');
-      });
-    },
-  ],
-});
-```
-
-Routine resource refreshes between turns do not reinitialize extension factories. If the underlying Pi session is rebuilt, factories initialize for the new Pi runtime. Extension factories execute in the host Node.js process, so only pass factories you trust. This option does not enable filesystem extension discovery: user, project, personal, and settings-based Pi extensions remain disabled. Themes and prompt templates also remain disabled.
+See the [Pi harness documentation](https://ai-sdk.dev/providers/ai-sdk-harnesses/pi) for authentication options, model configuration, tools, skills, MCP, and session lifecycle details.

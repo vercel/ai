@@ -97,6 +97,38 @@ describe('createHarnessSandboxTemplate', () => {
     expect(run.mock.calls.map(([args]) => args.command)).toContain('last');
   });
 
+  it('uses the sandbox default working directory for dot and includes it in the template identity', async () => {
+    const alpha = harness('alpha');
+    const onBootstrap = vi.fn(async () => {});
+    const template = await createHarnessSandboxTemplate({
+      harnesses: [alpha],
+      sandboxConfig: {
+        workDir: '.',
+        bootstrapHash: 'tools-v1',
+        onBootstrap,
+      },
+    });
+    const subdirectoryTemplate = await createHarnessSandboxTemplate({
+      harnesses: [alpha],
+      sandboxConfig: {
+        workDir: 'repo',
+        bootstrapHash: 'tools-v1',
+        onBootstrap,
+      },
+    });
+    const { session } = sandbox();
+
+    await template?.prepare({ session });
+
+    expect(template?.identity).toBeDefined();
+    expect(template?.identity).not.toBe(subdirectoryTemplate?.identity);
+    expect(onBootstrap).toHaveBeenCalledWith({
+      session,
+      workDir: '/work',
+      abortSignal: undefined,
+    });
+  });
+
   it('rejects empty lists and unpaired hashes, and returns undefined without work', async () => {
     await expect(
       createHarnessSandboxTemplate({ harnesses: [] }),

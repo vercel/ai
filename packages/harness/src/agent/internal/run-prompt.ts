@@ -24,6 +24,7 @@ import {
   type Experimental_SandboxSession as SandboxSession,
   type ToolApprovalResponse,
   type ToolResultPart,
+  type ToolResultOutput,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import {
@@ -33,7 +34,10 @@ import {
   type LanguageModelV4Usage,
 } from '@ai-sdk/provider';
 import {
+  addLanguageModelUsage,
   asLanguageModelUsage,
+  createNullLanguageModelUsage,
+  createToolModelOutput,
   parseToolCall,
   validateToolContext,
 } from 'ai/internal';
@@ -66,6 +70,8 @@ import {
 import { resolveCustomToolApproval } from './permission-mode';
 import { logBridgeError } from '../../utils/bridge-diagnostics';
 import { pinSandboxChannelEventCheckpoint } from '../../utils/sandbox-channel';
+import { normalizeHarnessToolModelOutput } from '../../utils/normalize-harness-tool-model-output';
+import { HarnessCapabilityUnsupportedError } from '../../errors/harness-capability-unsupported-error';
 
 const invalidToolInputMessage = 'Tool input validation failed.';
 
@@ -234,6 +240,14 @@ export function runPrompt<
     result.fail(err);
   };
 
+  const settleLifecycle = async (err: unknown): Promise<void> => {
+    if (input.abortSignal?.aborted) {
+      await lifecycle.abort(input.abortSignal.reason);
+    } else {
+      await lifecycle.error(err);
+    }
+  };
+
   const done = (async () => {
     let bridge: Awaited<ReturnType<typeof toHarnessStream>>;
     try {
@@ -269,7 +283,7 @@ export function runPrompt<
               },
       });
     } catch (err) {
-      await lifecycle.error(err);
+      await settleLifecycle(err);
       logBridgeError({
         harnessId: input.harness.harnessId,
         sessionId: input.session.sessionId,
@@ -293,12 +307,15 @@ export function runPrompt<
     >();
     /*
      * Host results are echoed back as `tool-result` events too, so the event
-     * alone cannot say who ran the tool — classify by the originating
-     * `tool-call`. Only an explicit `true` counts: `LanguageModelV4ToolCall`
-     * defines an omitted flag as client-executed. A call missing from the map
-     * arrived in an earlier slice, where nothing here can classify it.
+     * alone cannot provide the parsed input or say who ran the tool — restore
+     * both from the originating `tool-call`. Only an explicit `true` counts:
+     * `LanguageModelV4ToolCall` defines an omitted flag as client-executed. A
+     * call missing from the map arrived in an earlier slice, where nothing
+     * here can classify it.
      */
     const translateOptions = {
+      getToolCall: (toolCallId: string) =>
+        toolCallsByToolCallId.get(toolCallId),
       isProviderExecuted: (toolCallId: string): boolean => {
         const rawToolCall = rawToolCallsByToolCallId.get(toolCallId);
         return rawToolCall == null || rawToolCall.providerExecuted === true;
@@ -334,7 +351,6 @@ export function runPrompt<
     let pendingStopBoundary:
       | {
           finishReason: LanguageModelV4FinishReason;
-          usage: LanguageModelV4Usage;
           releaseCheckpoint: (() => void) | undefined;
         }
       | undefined;
@@ -366,42 +382,70 @@ export function runPrompt<
       pendingStopBoundary = undefined;
     };
 
-    // Accumulate the model response until its step boundary. Harness runtimes
-    // may execute tools before emitting `finish-step`, so tool lifecycle
-    // notifications and consumer-visible tool outcomes are held until then.
+    // Accumulate the model response until its step boundary. Tool lifecycle
+    // notifications and consumer-visible tool outcomes are published as each
+    // tool runs; `finish-step` remains the boundary for step accounting.
     let stepText = '';
     let stepReasoning = '';
     let stepToolCalls: ContentPart<TOOLS>[] = [];
     let stepProviderToolResults: ContentPart<TOOLS>[] = [];
     let stepApprovalRequests: ContentPart<TOOLS>[] = [];
     let bufferedToolOutcomes: Array<() => void> = [];
-    const toolExecutions = new Map<
-      string,
-      {
-        toolCall: TypedToolCall<TOOLS>;
-        toolOutput?: TypedToolResult<TOOLS> | TypedToolError<TOOLS>;
-        toolExecutionMs?: number;
-      }
-    >();
+    type ToolExecutionState = {
+      toolCall: TypedToolCall<TOOLS>;
+      toolOutput?: TypedToolResult<TOOLS> | TypedToolError<TOOLS>;
+      toolExecutionMs?: number;
+      executionStartedAt?: number;
+      startNotification?: Promise<void>;
+      endNotification?: Promise<void>;
+    };
+    const toolExecutions = new Map<string, ToolExecutionState>();
+    const publishToolExecutionStart = async (
+      execution: ToolExecutionState,
+    ): Promise<void> => {
+      execution.startNotification ??= lifecycle.toolExecutionStart({
+        toolCall: execution.toolCall,
+      });
+      await execution.startNotification;
+    };
+    const publishToolExecutionEnd = async (
+      execution: ToolExecutionState,
+    ): Promise<void> => {
+      if (execution.toolOutput == null) return;
+      await publishToolExecutionStart(execution);
+      execution.endNotification ??= lifecycle.toolExecutionEnd({
+        toolCall: execution.toolCall,
+        toolOutput: execution.toolOutput,
+        toolExecutionMs: execution.toolExecutionMs ?? 0,
+      });
+      await execution.endNotification;
+    };
     const publishToolExecutions = async (): Promise<void> => {
       for (const execution of toolExecutions.values()) {
-        if (execution.toolOutput == null) continue;
-        await lifecycle.toolExecutionStart({
-          toolCall: execution.toolCall,
-        });
-        await lifecycle.toolExecutionEnd({
-          toolCall: execution.toolCall,
-          toolOutput: execution.toolOutput,
-          toolExecutionMs: execution.toolExecutionMs ?? 0,
-        });
+        await publishToolExecutionEnd(execution);
       }
       for (const publish of bufferedToolOutcomes) publish();
       toolExecutions.clear();
       bufferedToolOutcomes = [];
     };
-    let expectedStepToolCallCount: number | undefined;
-    let observedStepToolCallCount = 0;
-    let pauseAfterStepToolCalls = false;
+    type FinishStepPart = Extract<HarnessV1StreamPart, { type: 'finish-step' }>;
+    /*
+     * An approval request or a pending client tool result does not end the
+     * response right away: the rest of the step (other tool calls, native
+     * results, host tool executions) still has to be surfaced. The pause
+     * happens at the next `finish-step`, once every host tool started in
+     * this response has been echoed back by the runtime.
+     */
+    let hostInputPauseRequested = false;
+    let deferredPauseFinishStep: FinishStepPart | undefined;
+    /*
+     * A `finish-step` that arrives while host tools started in this step have
+     * not been echoed back is the adapter signalling that the runtime waits on
+     * host input, not the end of the step. It is remembered so the step can
+     * still be closed if the turn finishes without another `finish-step`.
+     */
+    let ignoredFinishStep: FinishStepPart | undefined;
+    const hostToolCallIdsAwaitingEcho = new Set<string>();
     const buildModelCallContent = (): ContentPart<TOOLS>[] => {
       const parts: ContentPart<TOOLS>[] = [];
       if (stepText) parts.push({ type: 'text', text: stepText });
@@ -419,9 +463,7 @@ export function runPrompt<
       stepApprovalRequests = [];
       bufferedToolOutcomes = [];
       toolExecutions.clear();
-      expectedStepToolCallCount = undefined;
-      observedStepToolCallCount = 0;
-      pauseAfterStepToolCalls = false;
+      ignoredFinishStep = undefined;
     };
     const zeroUsage: LanguageModelV4Usage = {
       inputTokens: {
@@ -456,31 +498,32 @@ export function runPrompt<
         finishReason: input.finishReason,
         usage: input.usage,
         providerMetadata: input.providerMetadata,
-        warnings: [],
       });
       completedSteps.push(step);
       await lifecycle.stepEnd(step);
       resetStepContent();
       return step;
     };
-    const finishForHostInputPause = async (options: {
-      completeCurrentStep: boolean;
-    }): Promise<void> => {
+    const finishForHostInputPause = async (): Promise<void> => {
       await waitForOutstandingHostToolExecutions();
-      if (options.completeCurrentStep) {
-        await completeStep({
-          finishReason: toolCallsFinishReason,
-          usage: zeroUsage,
-          providerMetadata: undefined,
-        });
-      } else {
-        await publishToolExecutions();
-      }
+      await publishToolExecutions();
       await lifecycle.end({
         steps: completedSteps,
         usage: asLanguageModelUsage(zeroUsage),
       });
       await result.finish();
+    };
+    const pauseForHostInput = async (
+      finishStep: FinishStepPart | undefined,
+    ): Promise<void> => {
+      await waitForOutstandingHostToolExecutions();
+      closingResumedStep = false;
+      await completeStep({
+        finishReason: toolCallsFinishReason,
+        usage: finishStep?.usage ?? zeroUsage,
+        providerMetadata: finishStep?.harnessMetadata,
+      });
+      await finishForHostInputPause();
     };
     const enqueueApprovalRequest = (approval: {
       approvalId: string;
@@ -588,7 +631,37 @@ export function runPrompt<
     };
     const submitToolResult: HarnessV1PromptControl['submitToolResult'] =
       async submission => {
+        if (submission.toolResult != null) {
+          let output: ToolResultOutput;
+          try {
+            output = normalizeHarnessToolModelOutput({
+              output: submission.toolResult.output,
+            });
+          } catch (error) {
+            if (
+              !continuationsByToolCallId.has(submission.toolCallId) ||
+              !HarnessCapabilityUnsupportedError.isInstance(error)
+            ) {
+              throw error;
+            }
+            output = {
+              type: 'text',
+              value: JSON.stringify(submission.output) ?? 'null',
+            };
+          }
+          submission = {
+            ...submission,
+            toolResult: { ...submission.toolResult, output },
+          };
+          result.setToolModelOutput({
+            toolCallId: submission.toolCallId,
+            output,
+          });
+        }
         if (!input.isTurnSuspending?.()) {
+          if (!settledHostToolCallIds.has(submission.toolCallId)) {
+            hostToolCallIdsAwaitingEcho.add(submission.toolCallId);
+          }
           return control.submitToolResult(submission);
         }
         const toolCall =
@@ -749,6 +822,9 @@ export function runPrompt<
       toolExecutions.set(rawToolCall.toolCallId, {
         toolCall: toolCall as TypedToolCall<TOOLS>,
       });
+      await publishToolExecutionStart(
+        toolExecutions.get(rawToolCall.toolCallId)!,
+      );
       const executionStartedAt = Date.now();
       const execution = await maybeExecuteHostTool({
         event: rawToolCall,
@@ -772,21 +848,19 @@ export function runPrompt<
             },
             input.sessionWorkDir,
           ) as Extract<HarnessV1StreamPart, { type: 'tool-result' }>;
-          bufferedToolOutcomes.push(() => {
-            result.enqueue({
-              type: 'tool-result',
-              toolCallId: rawToolCall.toolCallId,
-              toolName: rawToolCall.toolName,
-              input: undefined,
-              output: stripped.result,
-              preliminary: true,
-            } as TextStreamPart<TOOLS>);
-          });
+          result.enqueue({
+            type: 'tool-result',
+            toolCallId: rawToolCall.toolCallId,
+            toolName: rawToolCall.toolName,
+            input: undefined,
+            output: stripped.result,
+            preliminary: true,
+          } as TextStreamPart<TOOLS>);
         },
       });
       if (!execution.executed) {
         recordPendingToolResult({ toolCall: rawToolCall });
-        await finishForHostInputPause({ completeCurrentStep: false });
+        await finishForHostInputPause();
         return 'awaiting-tool-result';
       }
       const toolExecution = toolExecutions.get(rawToolCall.toolCallId)!;
@@ -795,13 +869,11 @@ export function runPrompt<
         outcome: execution.outcome,
       });
       toolExecution.toolExecutionMs = Date.now() - executionStartedAt;
-      bufferedToolOutcomes.push(() => {
-        enqueueHostToolOutcome({
-          toolCall,
-          outcome: execution.outcome,
-        });
+      await publishToolExecutionEnd(toolExecution);
+      enqueueHostToolOutcome({
+        toolCall,
+        outcome: execution.outcome,
       });
-      await publishToolExecutions();
       return 'continued';
     };
 
@@ -832,11 +904,10 @@ export function runPrompt<
 
       while (true) {
         if (
-          pauseAfterStepToolCalls &&
-          expectedStepToolCallCount != null &&
-          observedStepToolCallCount >= expectedStepToolCallCount
+          deferredPauseFinishStep != null &&
+          hostToolCallIdsAwaitingEcho.size === 0
         ) {
-          await finishForHostInputPause({ completeCurrentStep: true });
+          await pauseForHostInput(deferredPauseFinishStep);
           return;
         }
 
@@ -846,6 +917,17 @@ export function runPrompt<
           break;
         }
         if (value == null) continue;
+
+        // `raw` is out-of-band adapter data: it must not open a step (span),
+        // become part of one, or trigger a pending stop-condition check, so
+        // pass it straight through.
+        if (value.type === 'raw') {
+          result.enqueueRaw(value.rawValue);
+          continue;
+        }
+        if (value.type === 'tool-result') {
+          hostToolCallIdsAwaitingEcho.delete(value.toolCallId);
+        }
 
         if (pendingStopBoundary != null) {
           if (value.type === 'finish') {
@@ -860,11 +942,13 @@ export function runPrompt<
             ).some(Boolean)
           ) {
             await input.onStopConditionMet?.();
-            const { usage } = pendingStopBoundary;
             releasePendingStopBoundary();
             await lifecycle.end({
               steps: completedSteps,
-              usage: asLanguageModelUsage(usage),
+              usage: completedSteps.reduce(
+                (total, step) => addLanguageModelUsage(total, step.usage),
+                createNullLanguageModelUsage(),
+              ),
             });
             await result.finish();
             return;
@@ -878,6 +962,7 @@ export function runPrompt<
         if (value.type === 'stream-start') {
           const modelId = value.modelId ?? input.model;
           if (modelId != null) result.setModelId(modelId);
+          result.addWarnings(value.warnings ?? []);
           await lifecycle.start(modelId);
         }
 
@@ -933,6 +1018,45 @@ export function runPrompt<
         if (settledHostInputReplay || settledBuiltinApprovalReplay) {
           continue;
         }
+        if (value.type === 'finish-step') {
+          if (hostInputPauseRequested) {
+            await waitForOutstandingHostToolExecutions();
+            if (hostToolCallIdsAwaitingEcho.size === 0) {
+              await pauseForHostInput(value);
+              return;
+            }
+            deferredPauseFinishStep = value;
+            continue;
+          }
+          if (hostToolCallIdsAwaitingEcho.size > 0) {
+            ignoredFinishStep = value;
+            continue;
+          }
+          ignoredFinishStep = undefined;
+        }
+        if (value.type === 'finish') {
+          if (hostInputPauseRequested) {
+            await pauseForHostInput(deferredPauseFinishStep);
+            return;
+          }
+          if (ignoredFinishStep != null) {
+            const finishStep = ignoredFinishStep;
+            ignoredFinishStep = undefined;
+            await waitForOutstandingHostToolExecutions();
+            if (closingResumedStep) {
+              closingResumedStep = false;
+              await publishToolExecutions();
+              resetStepContent();
+              result.discardCurrentStepContent();
+            } else {
+              await completeStep({
+                finishReason: finishStep.finishReason,
+                usage: finishStep.usage,
+                providerMetadata: finishStep.harnessMetadata,
+              });
+            }
+          }
+        }
         if (displayValue.type === 'finish-step' && closingResumedStep) {
           closingResumedStep = false;
           await publishToolExecutions();
@@ -963,6 +1087,12 @@ export function runPrompt<
                 `Harness '${input.harness.harnessId}' emitted a built-in tool approval request but does not support approval responses.`,
               );
             }
+            /*
+             * The runtime may report a step boundary while it waits for this
+             * decision. The decision is answered here, so that boundary must
+             * not end the step before the denied call's result arrives.
+             */
+            hostToolCallIdsAwaitingEcho.add(displayValue.toolCallId);
             await control.submitToolApproval({
               approvalId: displayValue.approvalId,
               approved: false,
@@ -986,7 +1116,7 @@ export function runPrompt<
           // Telemetry and stderr diagnostics keep the raw error (absolute
           // paths help debugging); the consumer-facing settle uses the
           // workDir-stripped one, like every other forwarded part.
-          await lifecycle.error(value.error);
+          await settleLifecycle(value.error);
           // A turn the caller itself aborted ends with an error-shaped part by
           // construction; diagnosing the caller's own signal to stderr reads
           // as a malfunction. `settleFailure` below still reports it as an
@@ -1007,11 +1137,7 @@ export function runPrompt<
           displayValue,
           translateOptions,
         );
-        if (value.type === 'tool-result') {
-          bufferedToolOutcomes.push(() => {
-            for (const part of translatedParts) result.enqueue(part);
-          });
-        } else {
+        if (value.type !== 'tool-result') {
           for (const part of translatedParts) result.enqueue(part);
         }
 
@@ -1030,9 +1156,28 @@ export function runPrompt<
                 toolName: value.toolName,
               })
             );
+          /*
+           * An MCP tool named `read` can take different input from a builtin
+           * `read` that is disabled for this session. The builtin's schema
+           * remains in input.tools, so validating a provider-executed dynamic
+           * MCP call against it would reject valid MCP input. Skip that schema
+           * only when no active host tool owns the same name.
+           */
+          const isFilteredBuiltinDynamicCall =
+            displayValue.providerExecuted === true &&
+            displayValue.dynamic === true &&
+            hasTool({
+              tools: input.harness.builtinTools,
+              toolName: displayValue.toolName,
+            }) &&
+            !isHarnessV1BuiltinToolIncluded({
+              toolName: displayValue.toolName,
+              toolFiltering: input.builtinToolFiltering,
+            }) &&
+            !hasTool({ tools: activeTools, toolName: displayValue.toolName });
           const parsed = await validateToolCall<TOOLS>({
             event: isHostTool ? value : displayValue,
-            tools: input.tools,
+            tools: isFilteredBuiltinDynamicCall ? undefined : input.tools,
           });
           const parsedToolCall = asToolCallTextStreamPart({ part: parsed });
           validatedHostToolCall = isHostTool ? parsedToolCall : undefined;
@@ -1054,14 +1199,16 @@ export function runPrompt<
         }
 
         if (value.type === 'tool-call') {
-          observedStepToolCallCount += 1;
-          expectedStepToolCallCount ??= value.stepToolCallCount;
           const toolCall = toolCallsByToolCallId.get(value.toolCallId);
           if (toolCall != null) {
             stepToolCalls.push(toolCall as ContentPart<TOOLS>);
-            toolExecutions.set(value.toolCallId, {
+            const execution: ToolExecutionState = {
               toolCall: toolCall as TypedToolCall<TOOLS>,
-            });
+            };
+            toolExecutions.set(value.toolCallId, execution);
+            if (value.providerExecuted === true) {
+              await publishToolExecutionStart(execution);
+            }
           }
         }
 
@@ -1081,6 +1228,13 @@ export function runPrompt<
                 } as TypedToolResult<TOOLS>);
           }
           if (
+            execution?.toolExecutionMs == null &&
+            execution?.executionStartedAt != null
+          ) {
+            execution.toolExecutionMs =
+              Date.now() - execution.executionStartedAt;
+          }
+          if (
             rawToolCallsByToolCallId.get(value.toolCallId)?.providerExecuted ===
               true &&
             execution?.toolOutput != null
@@ -1089,6 +1243,10 @@ export function runPrompt<
               execution.toolOutput as ContentPart<TOOLS>,
             );
           }
+          if (execution != null) {
+            await publishToolExecutionEnd(execution);
+          }
+          for (const part of translatedParts) result.enqueue(part);
         }
 
         if (value.type === 'tool-approval-request') {
@@ -1140,8 +1298,8 @@ export function runPrompt<
             approvalId: pendingApproval.approvalId,
             toolCall,
           });
-          await finishForHostInputPause({ completeCurrentStep: true });
-          return;
+          hostInputPauseRequested = true;
+          continue;
         }
 
         // Drive step boundaries.
@@ -1155,7 +1313,6 @@ export function runPrompt<
           if (input.stopConditions != null && input.stopConditions.length > 0) {
             pendingStopBoundary = {
               finishReason: value.finishReason,
-              usage: value.usage,
               releaseCheckpoint: pinSandboxChannelEventCheckpoint(value),
             };
           }
@@ -1210,15 +1367,8 @@ export function runPrompt<
           }
           if (isClientExecutedBuiltin) {
             recordPendingToolResult({ toolCall });
-            if (
-              expectedStepToolCallCount != null &&
-              observedStepToolCallCount < expectedStepToolCallCount
-            ) {
-              pauseAfterStepToolCalls = true;
-              continue;
-            }
-            await finishForHostInputPause({ completeCurrentStep: true });
-            return;
+            hostInputPauseRequested = true;
+            continue;
           }
           if (validatedHostToolCall == null) {
             throw new Error(
@@ -1267,16 +1417,20 @@ export function runPrompt<
               type: 'execution-denied',
               reason: customToolApprovalDecision.reason,
             };
+            const execution = toolExecutions.get(toolCall.toolCallId);
+            if (execution != null) {
+              await publishToolExecutionStart(execution);
+            }
             await submitToolResult({
               toolCallId: toolCall.toolCallId,
               output,
             });
-            const execution = toolExecutions.get(toolCall.toolCallId);
             if (execution != null) {
               execution.toolOutput = toToolOutput({
                 toolCall: parsedToolCall,
                 outcome: { ok: true, output },
               });
+              await publishToolExecutionEnd(execution);
             }
             continue;
           }
@@ -1329,31 +1483,26 @@ export function runPrompt<
               approvalId: pendingApproval.approvalId,
               toolCall: pendingParsedToolCall,
             });
-            if (
-              expectedStepToolCallCount != null &&
-              observedStepToolCallCount < expectedStepToolCallCount
-            ) {
-              pauseAfterStepToolCalls = true;
-              continue;
-            }
-            await finishForHostInputPause({ completeCurrentStep: true });
-            return;
+            hostInputPauseRequested = true;
+            continue;
           }
           if (!isExecutableTool(activeTools[toolCall.toolName])) {
             recordPendingToolResult({ toolCall });
-            if (
-              expectedStepToolCallCount != null &&
-              observedStepToolCallCount < expectedStepToolCallCount
-            ) {
-              pauseAfterStepToolCalls = true;
-              continue;
-            }
-            await finishForHostInputPause({ completeCurrentStep: true });
-            return;
+            hostInputPauseRequested = true;
+            continue;
           }
+          hostToolCallIdsAwaitingEcho.add(toolCall.toolCallId);
           startHostToolExecution(
             (async () => {
+              const toolExecution = toolExecutions.get(toolCall.toolCallId);
+              if (toolExecution == null) {
+                throw new Error(
+                  `Harness '${input.harness.harnessId}' could not track host tool '${toolCall.toolName}'.`,
+                );
+              }
+              await publishToolExecutionStart(toolExecution);
               const executionStartedAt = Date.now();
+              toolExecution.executionStartedAt = executionStartedAt;
               const execution = await maybeExecuteHostTool({
                 event: toolCall,
                 parsedToolCall: validatedHostToolCall,
@@ -1384,16 +1533,14 @@ export function runPrompt<
                     },
                     input.sessionWorkDir,
                   ) as Extract<HarnessV1StreamPart, { type: 'tool-result' }>;
-                  bufferedToolOutcomes.push(() => {
-                    result.enqueue({
-                      type: 'tool-result',
-                      toolCallId: toolCall.toolCallId,
-                      toolName: toolCall.toolName,
-                      input: undefined,
-                      output: stripped.result,
-                      preliminary: true,
-                    } as TextStreamPart<TOOLS>);
-                  });
+                  result.enqueue({
+                    type: 'tool-result',
+                    toolCallId: toolCall.toolCallId,
+                    toolName: toolCall.toolName,
+                    input: undefined,
+                    output: stripped.result,
+                    preliminary: true,
+                  } as TextStreamPart<TOOLS>);
                 },
               });
               if (!execution.executed) {
@@ -1401,17 +1548,19 @@ export function runPrompt<
                   `Harness '${input.harness.harnessId}' could not execute host tool '${toolCall.toolName}'.`,
                 );
               }
-              const toolExecution = toolExecutions.get(toolCall.toolCallId);
-              if (toolExecution != null) {
-                toolExecution.toolOutput = toToolOutput({
-                  toolCall: parsedToolCall,
-                  outcome: execution.outcome,
-                });
-                toolExecution.toolExecutionMs = Date.now() - executionStartedAt;
-              }
+              toolExecution.toolOutput = toToolOutput({
+                toolCall: parsedToolCall,
+                outcome: execution.outcome,
+              });
+              toolExecution.toolExecutionMs = Date.now() - executionStartedAt;
+              await publishToolExecutionEnd(toolExecution);
             })(),
           );
         }
+      }
+      if (hostInputPauseRequested && input.isTurnSuspending?.() !== true) {
+        await pauseForHostInput(deferredPauseFinishStep);
+        return;
       }
       await waitForOutstandingHostToolExecutions();
       const isTurnSuspending = input.isTurnSuspending?.() === true;
@@ -1446,7 +1595,7 @@ export function runPrompt<
       } catch {
         // Preserve the error that stopped the reader loop.
       }
-      await lifecycle.error(err);
+      await settleLifecycle(err);
       logBridgeError({
         harnessId: input.harness.harnessId,
         sessionId: input.session.sessionId,
@@ -1627,6 +1776,22 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
     await input.submitToolResult({
       toolCallId: input.event.toolCallId,
       output,
+      ...(tool.toModelOutput == null
+        ? {}
+        : {
+            toolResult: {
+              type: 'tool-result' as const,
+              toolCallId: input.event.toolCallId,
+              toolName: input.event.toolName,
+              output: await createToolModelOutput({
+                toolCallId: input.event.toolCallId,
+                input: input.parsedToolCall.input,
+                output,
+                tool,
+                errorMode: 'none',
+              }),
+            },
+          }),
     });
     return { executed: true, outcome: { ok: true, output } };
   } catch (err) {
@@ -1653,7 +1818,7 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
  */
 export async function validateToolCall<TOOLS extends ToolSet>(args: {
   event: Extract<HarnessV1StreamPart, { type: 'tool-call' }>;
-  tools: TOOLS;
+  tools: TOOLS | undefined;
 }): Promise<TextStreamPart<TOOLS>> {
   const { event, tools } = args;
   const toolCall: LanguageModelV4ToolCall = {

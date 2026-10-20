@@ -5,6 +5,7 @@ export type AnthropicModelId =
   | 'claude-3-haiku-20240307'
   | 'claude-haiku-4-5-20251001'
   | 'claude-haiku-4-5'
+  | 'claude-haiku-5-5'
   | 'claude-opus-4-0'
   | 'claude-opus-4-20250514'
   | 'claude-opus-4-1-20250805'
@@ -24,6 +25,7 @@ export type AnthropicModelId =
   | 'claude-fable-5'
   | 'claude-fable-5-1'
   | 'claude-sonnet-5'
+  | 'claude-sonnet-5-5'
   | (string & {});
 
 /**
@@ -150,6 +152,9 @@ export const anthropicLanguageModelOptions = z.object({
    * `claude-fable-5-1`) reject `enabled` and `disabled`. For those models the
    * provider drops the unsupported setting, emits a warning, and sends an
    * adaptive thinking request. Use `effort` to control how much they think.
+   *
+   * `claude-sonnet-5-5` supports `between_tools`, its lowest thinking setting,
+   * and the provider uses it in place of `disabled` for that model.
    */
   thinking: z
     .union([
@@ -181,6 +186,14 @@ export const anthropicLanguageModelOptions = z.object({
         }),
         z.object({
           type: z.literal('disabled'),
+        }),
+        z.object({
+          /**
+           * for `claude-sonnet-5-5`: no upfront thinking, but progress notes
+           * between tool calls are returned as summarized thinking blocks.
+           * Only supported at `low`, `medium`, and `high` effort.
+           */
+          type: z.literal('between_tools'),
         }),
       ]),
       z.object({

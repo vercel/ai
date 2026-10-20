@@ -82,7 +82,8 @@ export default function Page() {
       {messages.map(message => message)}
 
       <form
-        onSubmit={async () => {
+        onSubmit={async event => {
+          event.preventDefault();
           const response: ReactNode = await sendMessage(input);
           setMessages(msgs => [...msgs, response]);
         }}
@@ -165,7 +166,7 @@ export default function Page() {
 
 In AI SDK RSC, `streamUI` does not support parallel tool calls. You will have to use a combination of `streamText`, `createStreamableUI` and `createStreamableValue`.
 
-With AI SDK UI, `useChat` comes with built-in support for parallel tool calls. You can define multiple tools in the `streamText` and have them called them in parallel. The `useChat` hook will then handle the parallel tool calls for you automatically.
+With AI SDK UI, `useChat` comes with built-in support for parallel tool calls. You can define multiple tools in the `streamText` and have them called in parallel. The `useChat` hook will then handle the parallel tool calls for you automatically.
 
 ### Multi-Step Tool Calls
 
@@ -642,9 +643,9 @@ export async function generateSampleNotifications() {
     for await (const partialObject of partialOutputStream) {
       stream.update(partialObject);
     }
-  })();
 
-  stream.done();
+    stream.done();
+  })();
 
   return { partialNotificationsStream: stream.value };
 }

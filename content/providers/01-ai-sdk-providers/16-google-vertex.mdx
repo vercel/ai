@@ -488,7 +488,7 @@ The response will contain `tool-call` and `tool-result` parts for the executed c
 
 #### URL Context
 
-URL Context allows Gemini models to retrieve and analyze content from URLs. Supported models: Gemini 2.5 Flash-Lite, 2.5 Pro, 2.5 Flash, 2.0 Flash.
+URL Context allows Gemini models to retrieve and analyze content from URLs. Supported models: Gemini 2.0 and newer.
 
 ```ts
 import { googleVertex } from '@ai-sdk/google-vertex';
@@ -503,7 +503,7 @@ const result = await generateText({
 
 #### Google Search
 
-Google Search enables Gemini models to access real-time web information. Supported models: Gemini 2.5 Flash-Lite, 2.5 Flash, 2.0 Flash, 2.5 Pro.
+Google Search enables Gemini models to access real-time web information. Supported models: Gemini 2.0 and newer.
 
 ```ts
 import { googleVertex } from '@ai-sdk/google-vertex';
@@ -535,7 +535,7 @@ const result = await generateText({
 
 #### Google Maps
 
-Google Maps grounding enables Gemini models to access Google Maps data for location-aware responses. Supported models: Gemini 2.5 Flash-Lite, 2.5 Flash, 2.0 Flash, 2.5 Pro, 3.0 Pro.
+Google Maps grounding enables Gemini models to access Google Maps data for location-aware responses. Supported models: Gemini 2.0 and newer.
 
 ```ts
 import { googleVertex } from '@ai-sdk/google-vertex';
@@ -712,6 +712,16 @@ const { text } = await generateText({
 </Note>
 
 See [File Parts](/docs/foundations/prompts#file-parts) for details on how to use files in prompts.
+
+### Long decode
+
+Gemini 4 models such as `gemini-4-argon` support long decode on Vertex AI the
+same way as on the Gemini API: set `maxOutputTokens` above the per-request cap
+(up to 1M minus input) and the provider continues the response automatically.
+See [Long decode](/providers/ai-sdk-providers/google#long-decode) for details
+on budgets, usage across requests, and resuming with a continuation token.
+
+The Vertex AI Interactions API (preview) does not support long decode.
 
 ### Tool Result Files
 
@@ -950,17 +960,19 @@ The following Zod features are known to not work with Google Vertex:
 
 ### Model Capabilities
 
-| Model                   | Image Input | Object Generation | Tool Usage | Tool Streaming |
-| ----------------------- | ----------- | ----------------- | ---------- | -------------- |
-| `gemini-3.8-flash`      | <Check />   | <Check />         | <Check />  | <Check />      |
-| `gemini-3.7-flash`      | <Check />   | <Check />         | <Check />  | <Check />      |
-| `gemini-3.6-flash`      | <Check />   | <Check />         | <Check />  | <Check />      |
-| `gemini-3.5-flash`      | <Check />   | <Check />         | <Check />  | <Check />      |
-| `gemini-3.5-flash-lite` | <Check />   | <Check />         | <Check />  | <Check />      |
-| `gemini-3-pro-preview`  | <Check />   | <Check />         | <Check />  | <Check />      |
-| `gemini-2.5-pro`        | <Check />   | <Check />         | <Check />  | <Check />      |
-| `gemini-2.5-flash`      | <Check />   | <Check />         | <Check />  | <Check />      |
-| `gemini-2.0-flash-001`  | <Check />   | <Check />         | <Check />  | <Check />      |
+| Model                    | Image Input | Object Generation | Tool Usage | Tool Streaming |
+| ------------------------ | ----------- | ----------------- | ---------- | -------------- |
+| `gemini-nano-banana-2.1` | <Check />   | <Cross />         | <Cross />  | <Cross />      |
+| `gemini-4-argon`         | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-3.8-flash`       | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-3.7-flash`       | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-3.6-flash`       | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-3.5-flash`       | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-3.5-flash-lite`  | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-3-pro-preview`   | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-2.5-pro`         | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-2.5-flash`       | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-2.0-flash-001`   | <Check />   | <Check />         | <Check />  | <Check />      |
 
 <Note>
   The table above lists popular models. Please see the [Google Vertex AI
@@ -1100,11 +1112,12 @@ const { image } = await generateImage({
 
 ##### Gemini Image Model Capabilities
 
-| Model                            | Image Generation | Image Editing | Aspect Ratios                                       |
-| -------------------------------- | ---------------- | ------------- | --------------------------------------------------- |
-| `gemini-3.1-flash-image-preview` | <Check />        | <Check />     | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
-| `gemini-3-pro-image-preview`     | <Check />        | <Check />     | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
-| `gemini-2.5-flash-image`         | <Check />        | <Check />     | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
+| Model                            | Image Generation | Image Editing | Aspect Ratios                                                           |
+| -------------------------------- | ---------------- | ------------- | ----------------------------------------------------------------------- |
+| `gemini-nano-banana-2.1`         | <Check />        | <Check />     | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9, 1:8, 8:1, 1:4, 4:1 |
+| `gemini-3.1-flash-image-preview` | <Check />        | <Check />     | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9                     |
+| `gemini-3-pro-image-preview`     | <Check />        | <Check />     | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9                     |
+| `gemini-2.5-flash-image`         | <Check />        | <Check />     | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9                     |
 
 <Note>
   `gemini-3-pro-image-preview` supports additional features including up to 14
@@ -1549,11 +1562,11 @@ You can use the following optional settings to customize the provider instance:
 ### Language Models
 
 You can create models that call the [Anthropic Messages API](https://docs.anthropic.com/claude/reference/messages_post) using the provider instance.
-The first argument is the model id, e.g. `claude-sonnet-5`.
+The first argument is the model id, e.g. `claude-sonnet-5-5`.
 Some models have multi-modal capabilities.
 
 ```ts
-const model = vertexAnthropic('claude-sonnet-5');
+const model = vertexAnthropic('claude-sonnet-5-5');
 ```
 
 You can use Anthropic language models to generate text with the `generateText` function:
@@ -1563,7 +1576,7 @@ import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: vertexAnthropic('claude-sonnet-5'),
+  model: vertexAnthropic('claude-sonnet-5-5'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -1595,6 +1608,34 @@ The following optional provider options are available for Anthropic models:
 
   Optional. Metadata to include with the request. See the [Anthropic API documentation](https://platform.claude.com/docs/en/api/messages/create) for details.
   - `userId` _string_ - An external identifier for the end-user.
+
+### Billing Labels
+
+Pass billing labels for Claude requests using `providerOptions.vertex.labels`.
+Labels are a map of string keys to string values and work with both
+`generateText` and `streamText`:
+
+```ts
+import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: vertexAnthropic('claude-sonnet-4-6@default'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  providerOptions: {
+    vertex: {
+      labels: { team: 'data-platform', feature: 'my-app' },
+    },
+  },
+});
+```
+
+The provider sends the labels as base64-encoded UTF-8 JSON in the
+`X-Vertex-AI-Labels` header. An explicitly supplied labels header takes
+precedence over `providerOptions.vertex.labels`.
+
+See [Google's billing labels documentation](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/multimodal/add-labels-to-api-calls#add_a_label_to_a_partner_model_api_call)
+for label requirements and supported billing options.
 
 ### Reasoning
 
@@ -1648,7 +1689,7 @@ import { generateText } from 'ai';
 const errorMessage = '... long error message ...';
 
 const result = await generateText({
-  model: vertexAnthropic('claude-sonnet-5'),
+  model: vertexAnthropic('claude-sonnet-5-5'),
   messages: [
     {
       role: 'user',
@@ -1682,7 +1723,7 @@ You can also use cache control on system messages by providing multiple system m
 
 ```ts highlight="3,7-9"
 const result = await generateText({
-  model: vertexAnthropic('claude-sonnet-5'),
+  model: vertexAnthropic('claude-sonnet-5-5'),
   messages: [
     {
       role: 'system',

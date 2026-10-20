@@ -6,6 +6,7 @@
 
 import {
   runBridge,
+  convertHarnessToolModelOutput,
   type BridgeEvent,
   type BridgeTurn,
   type Experimental_BridgeUserMessage,
@@ -19,7 +20,7 @@ import { argv, env as procEnv, stdout } from 'node:process';
 /*
  * CONSTRAINT — the third-party imports below are NEVER bundled into the
  * compiled `bridge/index.mjs`. They are declared `external` in
- * tsup.config.ts and resolved at runtime from the node_modules that this
+ * tsdown.config.ts and resolved at runtime from the node_modules that this
  * bridge installs *inside the sandbox* from `src/bridge/package.json` (and
  * its pinned `pnpm-lock.yaml`). That bridge package.json — NOT this host
  * package — is the single source of truth for these packages and their
@@ -30,7 +31,7 @@ import { argv, env as procEnv, stdout } from 'node:process';
  * in sync, or the bridge will either get the dependency bundled in or fail
  * to resolve it in the sandbox:
  *   1. the import statement below,
- *   2. the `external` array in tsup.config.ts, and
+ *   2. the `external` array in tsdown.config.ts, and
  *   3. the dependency entry in `src/bridge/package.json`.
  */
 import * as claudeAgentSdk from '@anthropic-ai/claude-agent-sdk';
@@ -46,7 +47,9 @@ import {
   createEmitStreamEvent,
   defaultUsage,
   emitFinishStep,
-  finishApprovalStep,
+  markWaitingOnHostInput,
+  clearWaitingOnHostInput,
+  resolveMcpHandlerToolUseId,
   isExternalMcpTool,
   mapUsage,
   type ClaudeMessage,
@@ -99,6 +102,7 @@ const NATIVE_TOOL_KINDS: Readonly<
   TaskGet: 'readonly',
   TaskList: 'readonly',
   TaskOutput: 'readonly',
+  ListAgents: 'readonly',
   ListMcpResources: 'readonly',
   ReadMcpResource: 'readonly',
   Write: 'edit',
@@ -163,9 +167,11 @@ function createPermissionOptions(input: {
   inactiveNativeTools: readonly string[];
   turn: BridgeTurn;
   emit: Emit;
-  finishApprovalStep: (approvalId: string) => void;
+  markWaitingOnHostInput: (toolUseId: string) => void;
+  clearWaitingOnHostInput: (toolUseId: string) => void;
   nativeToolCallNames: Map<string, string>;
   approvalRequestedToolUseIds: Set<string>;
+  emittedToolCallIds: Set<string>;
 }): Record<string, unknown> {
   const permissionMode = input.start.permissionMode ?? 'allow-all';
   const inactiveNativeTools = new Set(input.inactiveNativeTools);
@@ -221,23 +227,29 @@ function createPermissionOptions(input: {
       const approvalId = options.toolUseID;
       input.approvalRequestedToolUseIds.add(approvalId);
       input.nativeToolCallNames.set(approvalId, toolName);
-      input.emit({
-        type: 'tool-call',
-        toolCallId: approvalId,
-        toolName: toCommonName(toolName),
-        nativeName: toolName,
-        input: JSON.stringify(toolInput ?? {}),
-        providerExecuted: true,
-        ...(isExternalMcpTool(toolName) ? { dynamic: true } : {}),
-      });
+      if (!input.emittedToolCallIds.has(approvalId)) {
+        input.emittedToolCallIds.add(approvalId);
+        input.emit({
+          type: 'tool-call',
+          toolCallId: approvalId,
+          toolName: toCommonName(toolName),
+          nativeName: toolName,
+          input: JSON.stringify(toolInput ?? {}),
+          providerExecuted: true,
+          ...(isExternalMcpTool(toolName) ? { dynamic: true } : {}),
+        });
+      }
+      const decisionPromise = input.turn.requestToolApproval(approvalId);
       input.emit({
         type: 'tool-approval-request',
         approvalId,
         toolCallId: approvalId,
       });
-      input.finishApprovalStep(approvalId);
+      input.markWaitingOnHostInput(approvalId);
 
-      const decision = await input.turn.requestToolApproval(approvalId);
+      const decision = await decisionPromise.finally(() =>
+        input.clearWaitingOnHostInput(approvalId),
+      );
       return decision.approved
         ? { behavior: 'allow', updatedInput: toolInput, toolUseID: approvalId }
         : {
@@ -253,6 +265,8 @@ function createQuestionPreToolUseHook(input: {
   turn: BridgeTurn;
   emit: Emit;
   nativeToolCallNames: Map<string, string>;
+  markWaitingOnHostInput: (toolUseId: string) => void;
+  clearWaitingOnHostInput: (toolUseId: string) => void;
 }): HookCallback {
   return async (hookInput, toolUseID): Promise<HookJSONOutput> => {
     if (
@@ -283,20 +297,23 @@ function createQuestionPreToolUseHook(input: {
     });
 
     const questionKey = claudeCodeQuestionKey(nativeInput);
-    const result = await input.turn.requestToolResult({
-      toolCallId,
-      matches: candidate => {
-        const nativeRequest = candidate.toolResult?.providerOptions?.[
-          'claude-code'
-        ]?.nativeRequest as
-          | Parameters<typeof claudeCodeQuestionKey>[0]
-          | undefined;
-        return (
-          nativeRequest != null &&
-          claudeCodeQuestionKey(nativeRequest) === questionKey
-        );
-      },
-    });
+    input.markWaitingOnHostInput(toolCallId);
+    const result = await input.turn
+      .requestToolResult({
+        toolCallId,
+        matches: candidate => {
+          const nativeRequest = candidate.toolResult?.providerOptions?.[
+            'claude-code'
+          ]?.nativeRequest as
+            | Parameters<typeof claudeCodeQuestionKey>[0]
+            | undefined;
+          return (
+            nativeRequest != null &&
+            claudeCodeQuestionKey(nativeRequest) === questionKey
+          );
+        },
+      })
+      .finally(() => input.clearWaitingOnHostInput(toolCallId));
     const nativeResult = toClaudeCodeQuestionResult({
       nativeInput,
       output: result.output as Parameters<
@@ -412,17 +429,50 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
           const [input, extra] = handlerArgs;
           const metadataToolCallId = extra._meta?.['claudecode/toolUseId'];
           const toolCallId =
-            typeof metadataToolCallId === 'string'
-              ? metadataToolCallId
-              : randomUUID();
-          emit({
-            type: 'tool-call',
-            toolCallId,
+            resolveMcpHandlerToolUseId({
+              state: streamEventState,
+              metadataToolUseId:
+                typeof metadataToolCallId === 'string'
+                  ? metadataToolCallId
+                  : undefined,
+              toolName: tool.name,
+              input,
+            }) ?? randomUUID();
+          streamEventState.mcpHandlerCalls.set(toolCallId, {
             toolName: tool.name,
-            input: JSON.stringify(input),
-            providerExecuted: false,
+            input,
           });
-          const { output, isError } = await turn.requestToolResult(toolCallId);
+          if (!streamEventState.emittedToolCallIds.has(toolCallId)) {
+            streamEventState.emittedToolCallIds.add(toolCallId);
+            emit({
+              type: 'tool-call',
+              toolCallId,
+              toolName: tool.name,
+              input: JSON.stringify(input),
+              providerExecuted: false,
+            });
+            markWaitingOnHostInput({
+              state: streamEventState,
+              emit,
+              toolUseId: toolCallId,
+            });
+          }
+          const { output, isError, toolResult } = await turn
+            .requestToolResult(toolCallId)
+            .finally(() => {
+              clearWaitingOnHostInput({
+                state: streamEventState,
+                toolUseId: toolCallId,
+              });
+              /*
+               * A handler call that could not be matched to a reported
+               * `tool_use` block never receives a native tool result, so it
+               * must not keep the step open once the host has answered.
+               */
+              if (!streamEventState.mcpToolCalls.has(toolCallId)) {
+                streamEventState.pendingStepToolUseIds.delete(toolCallId);
+              }
+            });
           emit({
             type: 'tool-result',
             toolCallId,
@@ -430,6 +480,23 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
             result: output ?? null,
             isError: !!isError,
           });
+          if (toolResult != null) {
+            const converted = convertHarnessToolModelOutput({
+              output: toolResult.output,
+            });
+            return {
+              content: converted.content.map(part =>
+                part.type === 'text'
+                  ? part
+                  : {
+                      type: 'image' as const,
+                      data: part.data,
+                      mimeType: part.mediaType,
+                    },
+              ),
+              isError: isError === true || converted.isError,
+            };
+          }
           return {
             content: [{ type: 'text', text: JSON.stringify(output ?? null) }],
             isError,
@@ -447,7 +514,20 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   // Compaction observation: merge Claude's `compact_boundary` message and
   // `PostCompact` hook (which arrive in either order) into one `compaction`
   // event. See `createCompactionLatch`.
-  const compaction = createCompactionLatch(event => emit(event));
+  const compaction = createCompactionLatch(event => {
+    const hasOpenStep = streamEventState.stepOpen;
+    emit(event);
+    // The harness translates compaction into synthetic step content. When
+    // Claude reports it outside a model step, close that synthetic step here;
+    // otherwise the existing model step will close it with its own usage.
+    if (!hasOpenStep) {
+      emitFinishStep({
+        state: streamEventState,
+        emit,
+        usage: undefined,
+      });
+    }
+  });
 
   // `stream-start` is emitted lazily on the first SDK message (below) so it can
   // carry the model the CLI resolved to, reported on the `system`/`init` message.
@@ -467,16 +547,22 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     inactiveNativeTools,
     turn,
     emit,
-    finishApprovalStep: approvalId => {
-      finishApprovalStep({ state: streamEventState, emit, approvalId });
-    },
+    markWaitingOnHostInput: toolUseId =>
+      markWaitingOnHostInput({ state: streamEventState, emit, toolUseId }),
+    clearWaitingOnHostInput: toolUseId =>
+      clearWaitingOnHostInput({ state: streamEventState, toolUseId }),
     nativeToolCallNames: streamEventState.nativeToolCallNames,
     approvalRequestedToolUseIds: streamEventState.approvalRequestedToolUseIds,
+    emittedToolCallIds: streamEventState.emittedToolCallIds,
   });
   const questionPreToolUseHook = createQuestionPreToolUseHook({
     turn,
     emit,
     nativeToolCallNames: streamEventState.nativeToolCallNames,
+    markWaitingOnHostInput: toolUseId =>
+      markWaitingOnHostInput({ state: streamEventState, emit, toolUseId }),
+    clearWaitingOnHostInput: toolUseId =>
+      clearWaitingOnHostInput({ state: streamEventState, toolUseId }),
   });
 
   const q = claudeSdk.query({
@@ -484,6 +570,12 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     options: {
       ...(start.model ? { model: start.model } : {}),
       ...(start.maxTurns !== undefined ? { maxTurns: start.maxTurns } : {}),
+      ...(start.agentProgressSummaries !== undefined
+        ? { agentProgressSummaries: start.agentProgressSummaries }
+        : {}),
+      ...(start.forwardSubagentText !== undefined
+        ? { forwardSubagentText: start.forwardSubagentText }
+        : {}),
       ...(start.env !== undefined ? { env: { ...procEnv, ...start.env } } : {}),
       ...(skillsOption ? { skills: skillsOption } : {}),
       ...(nativeTools !== undefined ? { tools: nativeTools } : {}),
@@ -641,7 +733,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
           const harnessUsage = mapUsage(usage);
           if (harnessUsage) turnUsage = addUsage(turnUsage, harnessUsage);
           if (typeof msg.total_cost_usd === 'number') {
-            totalCostUsd = (totalCostUsd ?? 0) + msg.total_cost_usd;
+            totalCostUsd = msg.total_cost_usd;
           }
           if (
             start.responseFormat?.type === 'json' &&
@@ -664,6 +756,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
               usage: streamEventState.pendingStepUsage ?? harnessUsage,
             });
           }
+          if (!queryInput.answersSentMessage(msg)) continue;
           queryInput.observeResult();
           if (!queryInput.hasActiveUserMessages()) {
             queryInput.close();
@@ -750,7 +843,7 @@ function createQueryInput({
   userMessages,
   abortSignal,
 }: {
-  initialUserMessage: string;
+  initialUserMessage: StartMessage['prompt'];
   userMessages: Experimental_BridgeUserMessageQueue;
   abortSignal: AbortSignal;
 }): {
@@ -758,12 +851,23 @@ function createQueryInput({
   close(error?: unknown): void;
   handleLifecycle(message: ClaudeMessage): void;
   hasActiveUserMessages(): boolean;
+  answersSentMessage(result: ClaudeMessage): boolean;
   observeResult(): void;
   readonly hasObservedResult: boolean;
 } {
   let closed = false;
   let observedResult = false;
   const submittedMessages = new Map<string, Experimental_BridgeUserMessage>();
+  const initialMessageId = randomUUID();
+  const sentMessageIds = new Set<string>([initialMessageId]);
+  let cliEchoesMessageIds = false;
+  const noteEcho = (ids: readonly unknown[]): boolean => {
+    const echoed = ids.some(
+      id => typeof id === 'string' && sentMessageIds.has(id),
+    );
+    if (echoed) cliEchoesMessageIds = true;
+    return echoed;
+  };
   const close = (error?: unknown): void => {
     if (closed) return;
     closed = true;
@@ -778,14 +882,28 @@ function createQueryInput({
   }
 
   const toUserMessage = (options: {
-    text: string;
+    content: StartMessage['prompt'];
     messageId: string;
     priority?: 'next';
   }): unknown => ({
     type: 'user',
     message: {
       role: 'user',
-      content: [{ type: 'text', text: options.text }],
+      content:
+        typeof options.content === 'string'
+          ? [{ type: 'text', text: options.content }]
+          : options.content.map(part =>
+              part.type === 'text'
+                ? part
+                : {
+                    type: 'image',
+                    source: {
+                      type: 'base64',
+                      media_type: part.mediaType,
+                      data: part.data,
+                    },
+                  },
+            ),
     },
     parent_tool_use_id: null,
     uuid: options.messageId,
@@ -802,6 +920,13 @@ function createQueryInput({
         state?: 'queued' | 'started' | 'completed' | 'cancelled' | 'discarded';
       };
       if (lifecycle.command_uuid == null || lifecycle.state == null) return;
+      noteEcho([lifecycle.command_uuid]);
+      if (
+        lifecycle.command_uuid === initialMessageId &&
+        (lifecycle.state === 'cancelled' || lifecycle.state === 'discarded')
+      ) {
+        observedResult = true;
+      }
       const submitted = submittedMessages.get(lifecycle.command_uuid);
       if (submitted == null) return;
       if (lifecycle.state === 'queued' || lifecycle.state === 'started') {
@@ -817,6 +942,20 @@ function createQueryInput({
     },
     hasActiveUserMessages: () =>
       submittedMessages.size > 0 || userMessages.pendingCount > 0,
+    answersSentMessage: result => {
+      const { user_message_uuid, user_message_uuids, origin } = result as {
+        user_message_uuid?: unknown;
+        user_message_uuids?: unknown;
+        origin?: { kind?: string };
+      };
+      const echoed = noteEcho([
+        user_message_uuid,
+        ...(Array.isArray(user_message_uuids) ? user_message_uuids : []),
+      ]);
+      return (
+        echoed || (!cliEchoesMessageIds && origin?.kind !== 'task-notification')
+      );
+    },
     observeResult: () => {
       observedResult = true;
     },
@@ -838,8 +977,8 @@ function createQueryInput({
               sentInitial = true;
               return {
                 value: toUserMessage({
-                  text: initialUserMessage,
-                  messageId: randomUUID(),
+                  content: initialUserMessage,
+                  messageId: initialMessageId,
                 }),
                 done: false,
               };
@@ -855,9 +994,10 @@ function createQueryInput({
               nextMessage.value.messageId,
               nextMessage.value,
             );
+            sentMessageIds.add(nextMessage.value.messageId);
             return {
               value: toUserMessage({
-                text: nextMessage.value.text,
+                content: nextMessage.value.text,
                 messageId: nextMessage.value.messageId,
                 priority: 'next',
               }),

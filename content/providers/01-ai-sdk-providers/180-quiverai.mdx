@@ -206,6 +206,12 @@ QuiverAI supports the following Arrow models:
 | `arrow-1.1`     | Improved text-to-SVG model. Accepts up to 4 reference images.                                                                     |
 | `arrow-1.1-max` | Higher quality variant with extended context. Accepts up to 16 reference images.                                                  |
 
+All models in this table advertise `supportsFileInputs: true` and
+`supportsMaskInputs: false`. Other model IDs leave both capabilities unknown.
+File-input support includes reference images for generation; SVG editing and
+animation still require the corresponding `providerOptions.quiverai.operation`,
+supported input formats, and access to that operation for your API key.
+
 ### Provider Options
 
 You can fine-tune the request using `providerOptions.quiverai`:

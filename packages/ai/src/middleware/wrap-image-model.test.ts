@@ -118,6 +118,99 @@ describe('wrapImageModel', () => {
     });
   });
 
+  describe('image editing capabilities', () => {
+    it('should preserve asynchronously resolved unknown capabilities', async () => {
+      const wrappedModel = wrapImageModel({
+        model: new MockImageModelV4({
+          supportsFileInputs: Promise.resolve(undefined),
+          supportsMaskInputs: Promise.resolve(undefined),
+        }),
+        middleware: { specificationVersion: 'v4' },
+      });
+
+      await expect(wrappedModel.supportsFileInputs).resolves.toBeUndefined();
+      await expect(wrappedModel.supportsMaskInputs).resolves.toBeUndefined();
+    });
+
+    it('should allow asynchronous overrides to mark support as unknown', async () => {
+      const wrappedModel = wrapImageModel({
+        model: new MockImageModelV4({
+          supportsFileInputs: true,
+          supportsMaskInputs: false,
+        }),
+        middleware: {
+          specificationVersion: 'v4',
+          overrideSupportsFileInputs: async () => undefined,
+          overrideSupportsMaskInputs: async () => undefined,
+        },
+      });
+
+      await expect(wrappedModel.supportsFileInputs).resolves.toBeUndefined();
+      await expect(wrappedModel.supportsMaskInputs).resolves.toBeUndefined();
+    });
+
+    it('should pass through capabilities by default', async () => {
+      const wrappedModel = wrapImageModel({
+        model: new MockImageModelV4({
+          supportsFileInputs: Promise.resolve(true),
+          supportsMaskInputs: false,
+        }),
+        middleware: {
+          specificationVersion: 'v4',
+        },
+      });
+
+      await expect(wrappedModel.supportsFileInputs).resolves.toBe(true);
+      expect(wrappedModel.supportsMaskInputs).toBe(false);
+    });
+
+    it('should use middleware capability overrides', async () => {
+      const wrappedModel = wrapImageModel({
+        model: new MockImageModelV4({
+          supportsFileInputs: false,
+          supportsMaskInputs: false,
+        }),
+        middleware: {
+          specificationVersion: 'v4',
+          overrideSupportsFileInputs: () => true,
+          overrideSupportsMaskInputs: () => Promise.resolve(true),
+        },
+      });
+
+      expect(wrappedModel.supportsFileInputs).toBe(true);
+      await expect(wrappedModel.supportsMaskInputs).resolves.toBe(true);
+    });
+
+    it('should allow middleware to override known capabilities to unknown', () => {
+      const wrappedModel = wrapImageModel({
+        model: new MockImageModelV4({
+          supportsFileInputs: true,
+          supportsMaskInputs: false,
+        }),
+        middleware: {
+          specificationVersion: 'v4',
+          overrideSupportsFileInputs: () => undefined,
+          overrideSupportsMaskInputs: () => undefined,
+        },
+      });
+
+      expect(wrappedModel.supportsFileInputs).toBeUndefined();
+      expect(wrappedModel.supportsMaskInputs).toBeUndefined();
+    });
+
+    it('should preserve unknown capabilities', () => {
+      const wrappedModel = wrapImageModel({
+        model: new MockImageModelV4(),
+        middleware: {
+          specificationVersion: 'v4',
+        },
+      });
+
+      expect(wrappedModel.supportsFileInputs).toBeUndefined();
+      expect(wrappedModel.supportsMaskInputs).toBeUndefined();
+    });
+  });
+
   it('should call transformParams middleware for doGenerate', async () => {
     let capturedArgs!: Parameters<MockImageModelV4['doGenerate']>[0];
 

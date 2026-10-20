@@ -1,7 +1,53 @@
+import type { ModelMessage } from '@ai-sdk/provider-utils';
 import { describe, expect, it } from 'vitest';
 import { collectToolApprovals } from './collect-tool-approvals';
 
 describe('collectToolApprovals', () => {
+  it.each([false, true])(
+    'should return approved calls in model order with split assistant messages: %s',
+    splitMessages => {
+      // Numeric IDs must follow model order, not object-key or response order.
+      const ids = ['10', '2', '1'];
+      const calls = ids.map(toolCallId => ({
+        type: 'tool-call' as const,
+        toolCallId,
+        toolName: 'tool1',
+        input: {},
+      }));
+      const requests = [...ids].reverse().map(toolCallId => ({
+        type: 'tool-approval-request' as const,
+        approvalId: `approval-${toolCallId}`,
+        toolCallId,
+      }));
+      const assistantMessages: ModelMessage[] = splitMessages
+        ? [
+            { role: 'assistant', content: [calls[0]] },
+            { role: 'assistant', content: [...calls.slice(1), ...requests] },
+          ]
+        : [{ role: 'assistant', content: [...calls, ...requests] }];
+
+      const result = collectToolApprovals({
+        messages: [
+          ...assistantMessages,
+          {
+            role: 'tool',
+            content: [...ids].reverse().map(toolCallId => ({
+              type: 'tool-approval-response' as const,
+              approvalId: `approval-${toolCallId}`,
+              approved: true,
+            })),
+          },
+        ],
+      });
+
+      expect(
+        result.approvedToolApprovals.map(
+          approval => approval.toolCall.toolCallId,
+        ),
+      ).toEqual(ids);
+    },
+  );
+
   it('should not return any tool approvals when the last message is not a tool message', () => {
     const result = collectToolApprovals({
       messages: [{ role: 'user', content: 'Hello, world!' }],

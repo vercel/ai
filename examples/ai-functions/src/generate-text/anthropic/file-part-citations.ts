@@ -9,7 +9,7 @@ run(async () => {
   const pdfBase64 = readFileSync(pdfPath).toString('base64');
 
   const result = await generateText({
-    model: anthropic('claude-sonnet-5'),
+    model: anthropic('claude-sonnet-5-5'),
     messages: [
       {
         role: 'user',

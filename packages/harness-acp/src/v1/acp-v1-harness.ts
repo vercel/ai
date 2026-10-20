@@ -20,7 +20,7 @@ import {
   createBridgeToken,
   createBridgeErrorHandler,
   createBridgeStartupError,
-  createSandboxCredentialEnvironment,
+  resolveSandboxCredentialEnvironment,
   classifyDiskLog,
   drainBridgeProcessStream,
   forwardBridgeProcessStream,
@@ -225,6 +225,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         modelMapping: settings.modelMapping,
         providerAuthentication: providerAuthenticationCompatibility,
         permissionModeMapping: settings.permissionModeMapping,
+        nonTextContentTypes: settings.nonTextContentTypes,
       });
       const authenticationProfile = createACPAuthenticationProfileIdentity({
         authentication: settings.authentication,
@@ -318,13 +319,14 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           ...providerEnvironment,
         };
         sandboxCredentialEnvironment =
-          lifecycleData?.sandboxCredentialEnvironment ??
-          (await createSandboxCredentialEnvironment({
+          await resolveSandboxCredentialEnvironment({
             environment: brokeringEnvironment,
             credentialEnvironmentVariables:
               credentialForwardingEnvironmentVariables,
             credentialForwarding: settings.credentialForwarding,
-          }));
+            previousSandboxCredentialEnvironment:
+              lifecycleData?.sandboxCredentialEnvironment,
+          });
         sandboxImplementationEnvironment = {
           ...brokeringEnvironment,
           ...sandboxCredentialEnvironment,
@@ -648,6 +650,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
             askUserQuestionsRequestMethod:
               settings.askUserQuestions?.requestMethod,
             hostToolMcpTransport: settings.hostToolMcpTransport,
+            nonTextContentTypes: settings.nonTextContentTypes,
           }),
           ...sandboxProviderAuthenticationEnvironment,
           BRIDGE_CHANNEL_TOKEN: token,

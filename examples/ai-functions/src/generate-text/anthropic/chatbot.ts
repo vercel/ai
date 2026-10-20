@@ -22,7 +22,7 @@ run(async () => {
 
     const { text, toolCalls, toolResults, responseMessages } =
       await generateText({
-        model: anthropic('claude-sonnet-5'),
+        model: anthropic('claude-sonnet-5-5'),
         tools: { weatherTool },
         instructions: `You are a helpful, respectful and honest assistant.`,
         messages,

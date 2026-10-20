@@ -7,9 +7,9 @@ import { useRef, useState } from 'react';
 
 const MODELS = [
   {
-    id: 'claude-sonnet-5',
+    id: 'claude-sonnet-5-5',
     provider: 'anthropic',
-    label: 'Claude Sonnet 5 (Anthropic)',
+    label: 'Claude Sonnet 5.5 (Anthropic)',
   },
   {
     id: 'gemini-3.1-pro-preview',

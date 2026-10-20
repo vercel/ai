@@ -6,7 +6,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: bedrockAnthropic('us.anthropic.claude-sonnet-5'),
+    model: bedrockAnthropic('us.anthropic.claude-sonnet-5-5'),
     prompt: 'What is the weather in San Francisco?',
     stopWhen: isStepCount(10),
     onStepFinish: step => {

@@ -62,7 +62,7 @@ run(async () => {
 
   console.log('\n--- Anthropic Follow-up ---');
   const anthropicResult = await generateText({
-    model: anthropic('claude-sonnet-5'),
+    model: anthropic('claude-sonnet-5-5'),
     messages: [
       ...messages,
       { role: 'assistant' as const, content: openaiResult.text },

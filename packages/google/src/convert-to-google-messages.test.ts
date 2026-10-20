@@ -1,3 +1,4 @@
+import type { LanguageModelV4ToolResultOutput } from '@ai-sdk/provider';
 import { describe, expect, it, vi } from 'vitest';
 import {
   convertToGoogleMessages,
@@ -693,6 +694,72 @@ describe('tool messages', () => {
       ],
     });
   });
+
+  it.each([
+    {
+      output: { type: 'text', value: 'deployed' },
+      response: { content: 'deployed' },
+    },
+    {
+      output: { type: 'json', value: { version: '1.0' } },
+      response: { content: { version: '1.0' } },
+    },
+    {
+      output: { type: 'error-text', value: 'migration failed' },
+      response: { error: 'migration failed' },
+    },
+    {
+      output: { type: 'error-json', value: { code: 'E_MIGRATION' } },
+      response: { error: { code: 'E_MIGRATION' } },
+    },
+    {
+      output: { type: 'error-json', value: { $ref: '#/$defs/Error' } },
+      response: { error: '{"$ref":"#/$defs/Error"}' },
+    },
+    {
+      output: { type: 'execution-denied', reason: 'User declined.' },
+      response: { error: 'User declined.' },
+    },
+    {
+      output: { type: 'execution-denied' },
+      response: { error: 'Tool call execution denied.' },
+    },
+  ] satisfies Array<{
+    output: LanguageModelV4ToolResultOutput;
+    response: unknown;
+  }>)(
+    'should preserve the status of tool output $output',
+    ({ output, response }) => {
+      const result = convertToGoogleMessages([
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'deploy',
+              toolCallId: 'call-deploy',
+              output,
+            },
+          ],
+        },
+      ]);
+
+      expect(result.contents).toEqual([
+        {
+          role: 'user',
+          parts: [
+            {
+              functionResponse: {
+                id: 'call-deploy',
+                name: 'deploy',
+                response: { name: 'deploy', ...response },
+              },
+            },
+          ],
+        },
+      ]);
+    },
+  );
 
   it('should serialize JSON Schema references in function response content', async () => {
     const toolResult = {
@@ -1777,7 +1844,7 @@ describe('tool results with thought signatures', () => {
         id: 'call1',
         name: 'readdata',
         response: {
-          content: 'file not found',
+          error: 'file not found',
           name: 'readdata',
         },
       },

@@ -48,6 +48,7 @@ export interface AnthropicUserMessage {
   content: Array<
     | AnthropicTextContent
     | AnthropicImageContent
+    | AnthropicVideoContent
     | AnthropicDocumentContent
     | AnthropicContainerUploadContent
     | AnthropicToolResultContent
@@ -60,6 +61,7 @@ export interface AnthropicAssistantMessage {
     | AnthropicTextContent
     | AnthropicThinkingContent
     | AnthropicRedactedThinkingContent
+    | AnthropicFallbackContent
     | AnthropicToolCallContent
     | AnthropicServerToolUseContent
     | AnthropicCodeExecutionToolResultContent
@@ -74,6 +76,18 @@ export interface AnthropicAssistantMessage {
     | AnthropicCompactionContent
   >;
 }
+
+export const anthropicFallbackContentSchema = z.object({
+  type: z.literal('fallback'),
+  from: z.object({ model: z.string() }),
+  to: z.object({ model: z.string() }),
+});
+
+export type AnthropicFallbackContent = InferSchema<
+  typeof anthropicFallbackContentSchema
+> & {
+  cache_control?: never;
+};
 
 export interface AnthropicCompactionContent {
   type: 'compaction';
@@ -128,6 +142,13 @@ type AnthropicContentSource =
 
 export interface AnthropicImageContent {
   type: 'image';
+  source: AnthropicContentSource;
+  cache_control: AnthropicCacheControl | undefined;
+}
+
+/** Video blocks supplied by compatible providers through custom media conversion. */
+export interface AnthropicVideoContent {
+  type: 'video';
   source: AnthropicContentSource;
   cache_control: AnthropicCacheControl | undefined;
 }
@@ -581,6 +602,7 @@ export type AnthropicSpeed = 'fast' | 'standard';
 
 export type AnthropicToolChoice =
   | { type: 'auto' | 'any'; disable_parallel_tool_use?: boolean }
+  | { type: 'none' }
   | { type: 'tool'; name: string; disable_parallel_tool_use?: boolean };
 
 export type AnthropicContainer = {
@@ -1033,12 +1055,7 @@ export const anthropicResponseSchema = lazySchema(() =>
               }),
             ]),
           }),
-          // Server-side fallback marker. Parsed so the response validates, but
-          // dropped from the content output (the AI SDK has no model-hop
-          // primitive). The hop remains observable via usage.iterations.
-          z.object({
-            type: z.literal('fallback'),
-          }),
+          anthropicFallbackContentSchema,
         ]),
       ),
       stop_reason: z.string().nullish(),
@@ -1402,11 +1419,7 @@ export const anthropicChunkSchema = lazySchema(() =>
               }),
             ]),
           }),
-          // Server-side fallback marker; dropped from content output (see the
-          // response schema). The hop remains observable via usage.iterations.
-          z.object({
-            type: z.literal('fallback'),
-          }),
+          anthropicFallbackContentSchema,
         ]),
       }),
       z.object({

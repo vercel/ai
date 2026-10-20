@@ -1,3 +1,4 @@
+import type { Citation } from '../types/citation';
 import type { JSONObject } from '@ai-sdk/provider';
 import type {
   InferToolInput,
@@ -95,6 +96,9 @@ export type UIMessagePart<
  */
 export type TextUIPart = {
   type: 'text';
+
+  /** References supporting this text, separate from retrieved sources. */
+  citations?: Array<Citation>;
 
   /**
    * The text content.
@@ -297,6 +301,15 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
   | {
       state: 'input-streaming';
       input?: DeepPartial<asUITool<TOOL>['input']> | undefined;
+      /**
+       * The raw tool input text received so far.
+       *
+       * This is used to continue input streaming when a message is persisted
+       * and later resumed.
+       */
+      rawInput?: string;
+      /** Encoding of `rawInput`. Defaults to JSON when omitted. */
+      inputEncoding?: 'json' | 'text';
       output?: never;
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
@@ -415,6 +428,14 @@ export type DynamicToolUIPart = {
   type: 'dynamic-tool';
 
   /**
+   * `false` when a static tool part was normalized to a dynamic tool part
+   * because its current tool schema was unavailable or incompatible.
+   *
+   * This preserves its static origin across persistence boundaries.
+   */
+  dynamic?: false;
+
+  /**
    * Name of the tool that is being called.
    */
   toolName: string;
@@ -434,6 +455,15 @@ export type DynamicToolUIPart = {
   | {
       state: 'input-streaming';
       input?: unknown;
+      /**
+       * The raw tool input text received so far.
+       *
+       * This is used to continue input streaming when a message is persisted
+       * and later resumed.
+       */
+      rawInput?: string;
+      /** Encoding of `rawInput`. Defaults to JSON when omitted. */
+      inputEncoding?: 'json' | 'text';
       output?: never;
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;

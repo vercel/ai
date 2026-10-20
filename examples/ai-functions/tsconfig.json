@@ -142,6 +142,9 @@
       "path": "../../packages/harness-pi"
     },
     {
+      "path": "../../packages/heygen"
+    },
+    {
       "path": "../../packages/huggingface"
     },
     {
@@ -206,6 +209,12 @@
     },
     {
       "path": "../../packages/togetherai"
+    },
+    {
+      "path": "../../packages/tool-bash"
+    },
+    {
+      "path": "../../packages/topaz"
     },
     {
       "path": "../../packages/tui"

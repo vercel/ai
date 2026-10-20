@@ -105,7 +105,7 @@ export function createQuiverAI(
   });
 
   const getImageHeaders = () =>
-    withUserAgentSuffix(getHeaders(), `ai-sdk/quiverai/${VERSION}`);
+    withUserAgentSuffix(getHeaders(), `ai-sdk-quiverai/${VERSION}`);
 
   const responsesConfig: OpenResponsesProviderSettings = {
     name: 'quiverai',
@@ -117,7 +117,7 @@ export function createQuiverAI(
     strictResponseInput: true,
     customToolId: 'quiverai.custom',
     structuredOutputs: false,
-    userAgentSuffix: `ai-sdk/quiverai/${VERSION}`,
+    userAgentSuffix: `ai-sdk-quiverai/${VERSION}`,
   };
   const responsesProvider = createOpenResponses(responsesConfig);
 

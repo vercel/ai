@@ -11,7 +11,6 @@ import {
   type HarnessV1ContinueTurnState,
   type HarnessV1CredentialForwarding,
   type HarnessV1MintBridgeTokenCallback,
-  type HarnessV1Prompt,
   type HarnessV1PromptControl,
   type HarnessV1PortEndpoint,
   type HarnessV1ResumeSessionState,
@@ -27,11 +26,12 @@ import {
   applyCredentialForwarding,
   classifyDiskLog,
   createBridgeToken,
-  createSandboxCredentialEnvironment,
+  resolveSandboxCredentialEnvironment,
   createBridgeErrorHandler,
   createBridgeStartupError,
   experimental_createBridgeUserMessageSubmitter,
   drainBridgeProcessStream,
+  extractHarnessPromptContent,
   forwardBridgeProcessStream,
   getRestrictedSandboxSession,
   markBridgeStarting,
@@ -90,7 +90,7 @@ const DEFAULT_CODEX_MODEL = 'gpt-5.5';
 /**
  * Value to use in User-Agent and `x-client-app` headers.
  */
-const CODEX_CLIENT_APP = `ai-sdk/harness-codex/${VERSION}`;
+const CODEX_CLIENT_APP = `ai-sdk-harness-codex/${VERSION}`;
 
 export type CodexHarnessSettings = {
   readonly auth?: CodexAuthenticationMode;
@@ -295,13 +295,14 @@ export function createCodex(
         sandboxSession.addRequestTransformations != null
       ) {
         sandboxCredentialEnvironment =
-          resumeData?.sandboxCredentialEnvironment ??
-          (await createSandboxCredentialEnvironment({
+          await resolveSandboxCredentialEnvironment({
             environment: resolvedAuthEnvironment,
             credentialEnvironmentVariables:
               CODEX_CREDENTIAL_ENVIRONMENT_VARIABLES,
             credentialForwarding: settings.credentialForwarding,
-          }));
+            previousSandboxCredentialEnvironment:
+              resumeData?.sandboxCredentialEnvironment,
+          });
         sandboxAuthEnvironment = {
           ...resolvedAuthEnvironment,
           ...sandboxCredentialEnvironment,
@@ -816,10 +817,12 @@ function createSession({
       instructions,
       tools,
     });
+    // Legacy fingerprints used order-sensitive JSON, so replace them once
+    // instead of restarting a thread during the fingerprint format upgrade.
     const restartThread =
       latestThreadId != null &&
       (skillsResult.changed ||
-        (latestTurnConfigurationFingerprint != null &&
+        (latestTurnConfigurationFingerprint?.startsWith('v2:') === true &&
           latestTurnConfigurationFingerprint !== nextFingerprint));
     latestTurnConfigurationFingerprint = nextFingerprint;
     if (restartThread) {
@@ -955,6 +958,7 @@ function createSession({
           toolCallId: input.toolCallId,
           output: input.output,
           isError: input.isError,
+          ...(input.toolResult != null ? { toolResult: input.toolResult } : {}),
         });
       },
       submitToolApproval: async input => {
@@ -1024,7 +1028,9 @@ function createSession({
 
       const startMessage = {
         type: 'start' as const,
-        prompt: extractUserText(promptOpts.prompt),
+        prompt: extractHarnessPromptContent({
+          prompt: promptOpts.prompt,
+        }),
         tools,
         ...(promptOpts.responseFormat == null
           ? {}
@@ -1047,6 +1053,8 @@ function createSession({
         ...(debug ? { debug } : {}),
       };
       pendingResumeThreadId = undefined;
+      // Recovery starts a native turn once. Later continuations attach to it.
+      rerunContinue = false;
       turn.sendStart(() => channel.send(startMessage));
 
       return turn.control;
@@ -1091,6 +1099,7 @@ function createSession({
        * fallback; the common slice path is `attach`.
        */
       if (rerunContinue) {
+        rerunContinue = false;
         const threadId = pendingResumeThreadId ?? latestThreadId;
         pendingResumeThreadId = undefined;
         turn.sendStart(() =>
@@ -1350,30 +1359,18 @@ function fingerprintCodexTurnConfiguration({
     inputSchema: unknown;
   }>;
 }): string {
-  return createHash('sha256')
-    .update(JSON.stringify({ instructions: instructions ?? null, tools }))
-    .digest('hex');
-}
-
-/*
- * Reduce a `HarnessV1Prompt` to the plain user text the bridge forwards to
- * Codex. The adapter does not yet map file and image parts into app-server
- * turn input, so throw rather than silently dropping them and producing a
- * truncated prompt.
- */
-function extractUserText(prompt: HarnessV1Prompt): string {
-  if (typeof prompt === 'string') return prompt;
-  const { content } = prompt;
-  if (typeof content === 'string') return content;
-  const parts: string[] = [];
-  for (const part of content) {
-    if (part.type !== 'text') {
-      throw new HarnessCapabilityUnsupportedError({
-        harnessId: 'codex',
-        message: `The codex harness does not yet support user message parts of type '${part.type}'. Pass a string or a user message whose content contains only text parts.`,
-      });
-    }
-    parts.push(part.text);
-  }
-  return parts.join('\n\n');
+  const canonical = JSON.stringify(
+    { instructions: instructions ?? null, tools },
+    (_key, value) => {
+      if (value == null || typeof value !== 'object' || Array.isArray(value)) {
+        return value;
+      }
+      return Object.fromEntries(
+        Object.entries(value).sort(([left], [right]) =>
+          left < right ? -1 : left > right ? 1 : 0,
+        ),
+      );
+    },
+  );
+  return `v2:${createHash('sha256').update(canonical).digest('hex')}`;
 }
