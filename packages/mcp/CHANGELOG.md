@@ -1,5 +1,15 @@
 # @ai-sdk/mcp
 
+## 2.0.80
+
+### Patch Changes
+
+- 2b8185e: fix(mcp): bind OAuth client credentials to their authorization server, including when the selected server is approved by `validateAuthorizationServerURL`
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+
 ## 2.0.79
 
 ### Patch Changes

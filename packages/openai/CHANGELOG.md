@@ -1,5 +1,17 @@
 # @ai-sdk/openai
 
+## 4.0.98
+
+### Patch Changes
+
+- 0c2a9de: Add `maxOutputTokens` and `reasoning` to experimental decision calls and forward them to language-model-backed decisions. Language-model adapters keep reasoning disabled when omitted. Native decision providers warn when either setting is unsupported.
+- 8b728ec: fix(openai): preserve detected language codes in transcription responses
+- 3cb1dae: fix(openai): forward shell_call timeout_ms and max_output_length to the shell tool and round-trip max_output_length
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+
 ## 4.0.97
 
 ### Patch Changes
