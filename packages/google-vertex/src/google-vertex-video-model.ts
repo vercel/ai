@@ -399,31 +399,35 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
   }
 }
 
-const vertexOperationSchema = z.object({
-  name: z.string().nullish(),
-  done: z.boolean().nullish(),
-  error: z
-    .object({
-      code: z.number().nullish(),
-      message: z.string(),
-      status: z.string().nullish(),
-    })
-    .nullish(),
-  response: z
-    .object({
-      videos: z
-        .array(
-          z.object({
-            bytesBase64Encoded: z.string().nullish(),
-            gcsUri: z.string().nullish(),
-            mimeType: z.string().nullish(),
-          }),
-        )
+const vertexOperationSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      name: z.string().nullish(),
+      done: z.boolean().nullish(),
+      error: z
+        .object({
+          code: z.number().nullish(),
+          message: z.string(),
+          status: z.string().nullish(),
+        })
         .nullish(),
-      raiMediaFilteredCount: z.number().nullish(),
-    })
-    .nullish(),
-});
+      response: z
+        .object({
+          videos: z
+            .array(
+              z.object({
+                bytesBase64Encoded: z.string().nullish(),
+                gcsUri: z.string().nullish(),
+                mimeType: z.string().nullish(),
+              }),
+            )
+            .nullish(),
+          raiMediaFilteredCount: z.number().nullish(),
+        })
+        .nullish(),
+    }),
+  ),
+);
 
 const googleVertexVideoModelOptionsSchema = lazySchema(() =>
   zodSchema(
