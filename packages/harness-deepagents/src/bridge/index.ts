@@ -43,6 +43,7 @@ import {
 import { createMcpToolErrorMiddleware } from './mcp-tool-errors';
 import {
   loadMemorySaver,
+  pruneMemorySaver,
   removeMemorySaverSnapshot,
   saveMemorySaver,
 } from './persistent-memory-saver';
@@ -533,7 +534,13 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
 await runBridge<StartMessage>({
   bridgeType: 'deepagents',
   bridgeStateDir: bridgeStateDir!,
-  onStart: runTurn,
+  onStart: async (start, turn) => {
+    try {
+      await runTurn(start, turn);
+    } finally {
+      pruneMemorySaver({ saver: checkpointer });
+    }
+  },
   onStop: async () => {
     await closeMcpClient();
     await saveMemorySaver({

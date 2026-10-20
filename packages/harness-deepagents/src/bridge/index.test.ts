@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { rgPath } from '@vscode/ripgrep';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { pruneMemorySaver } from './persistent-memory-saver';
 import { SANDBOX_PATH_FALLBACK } from './local-shell-backend';
 
 const originalPath = process.env.PATH;
@@ -36,6 +37,7 @@ type ChatAnthropicOptions = {
 const state = vi.hoisted(() => ({
   createDeepAgentOptions: [] as DeepAgentOptions[],
   originalArgv: [] as string[],
+  prunedAfterEventTypes: [] as Array<string | undefined>,
   responseFormat: undefined as
     | { type: 'json'; schema: Record<string, unknown> }
     | undefined,
@@ -125,6 +127,21 @@ vi.mock('@ai-sdk/harness/bridge', async importOriginal => ({
   },
 }));
 
+vi.mock('./persistent-memory-saver', async importOriginal => {
+  const actual = (await importOriginal()) as Record<string, unknown> & {
+    pruneMemorySaver: typeof pruneMemorySaver;
+  };
+  return {
+    ...actual,
+    pruneMemorySaver: (args: Parameters<typeof pruneMemorySaver>[0]) => {
+      state.prunedAfterEventTypes.push(
+        state.emitted.at(-1)?.type as string | undefined,
+      );
+      actual.pruneMemorySaver(args);
+    },
+  };
+});
+
 vi.mock('@langchain/anthropic', () => ({
   ChatAnthropic: class {
     model?: string;
@@ -160,7 +177,10 @@ vi.mock('@langchain/core/tools', () => ({
 
 vi.mock('@langchain/langgraph', () => ({
   Command: class {},
-  MemorySaver: class {},
+  MemorySaver: class {
+    storage = Object.create(null);
+    writes = Object.create(null);
+  },
 }));
 
 vi.mock('@langchain/mcp-adapters', () => ({
@@ -182,6 +202,7 @@ describe('Deep Agents bridge instructions', () => {
   beforeEach(() => {
     restorePath();
     state.createDeepAgentOptions = [];
+    state.prunedAfterEventTypes = [];
     state.responseFormat = undefined;
     state.headers = undefined;
     state.prompt = 'What is the capital of France?';
@@ -229,6 +250,13 @@ describe('Deep Agents bridge instructions', () => {
     expect(process.env.PATH).toBe(
       [SANDBOX_PATH_FALLBACK, path.dirname(rgPath)].join(path.delimiter),
     );
+  });
+
+  it('prunes checkpoint history after the turn has emitted its finish event', async () => {
+    await import('./index');
+
+    expect(state.emitted.at(-1)?.type).toBe('finish');
+    expect(state.prunedAfterEventTypes).toEqual(['finish']);
   });
 
   it('appends instructions to the native system prompt', async () => {
