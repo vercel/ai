@@ -3,6 +3,8 @@ import {
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   type FetchFunction,
   combineHeaders,
   createJsonResponseHandler,
@@ -99,13 +101,17 @@ export class CohereEmbeddingModel implements EmbeddingModelV2<string> {
 
 // minimal version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const cohereTextEmbeddingResponseSchema = z.object({
-  embeddings: z.object({
-    float: z.array(z.array(z.number())),
-  }),
-  meta: z.object({
-    billed_units: z.object({
-      input_tokens: z.number(),
+const cohereTextEmbeddingResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      embeddings: z.object({
+        float: z.array(z.array(z.number())),
+      }),
+      meta: z.object({
+        billed_units: z.object({
+          input_tokens: z.number(),
+        }),
+      }),
     }),
-  }),
-});
+  ),
+);
