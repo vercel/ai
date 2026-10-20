@@ -7,6 +7,9 @@ import {
   type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
   combineHeaders,
   convertBase64ToUint8Array,
   createBinaryResponseHandler,
@@ -428,22 +431,36 @@ function appendIfDefined(
   }
 }
 
-const topazImageSubmitResponseSchema = z.object({
-  process_id: z.string().nullish(),
-});
+const topazImageSubmitResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      process_id: z.string().nullish(),
+    }),
+  ),
+);
 
-const topazImageStatusResponseSchema = z.object({
-  // Documented values are Pending, Processing, Completed, Cancelled and Failed.
-  // Unknown values keep polling rather than failing the parse.
-  status: z.string().nullish(),
-  credits: z.number().nullish(),
-  output_width: z.number().nullish(),
-  output_height: z.number().nullish(),
-  output_format: z.string().nullish(),
-});
+const topazImageStatusResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      // Documented values are Pending, Processing, Completed, Cancelled and Failed.
+      // Unknown values keep polling rather than failing the parse.
+      status: z.string().nullish(),
+      credits: z.number().nullish(),
+      output_width: z.number().nullish(),
+      output_height: z.number().nullish(),
+      output_format: z.string().nullish(),
+    }),
+  ),
+);
 
-type TopazImageStatusResponse = z.infer<typeof topazImageStatusResponseSchema>;
+type TopazImageStatusResponse = InferSchema<
+  typeof topazImageStatusResponseSchema
+>;
 
-const topazImageDownloadResponseSchema = z.object({
-  download_url: z.string().nullish(),
-});
+const topazImageDownloadResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      download_url: z.string().nullish(),
+    }),
+  ),
+);
