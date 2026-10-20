@@ -1,255 +1,381 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import { describe, expect, it } from 'vitest';
 import { GoogleVertexImageModel } from './google-vertex-image-model';
-import { createVertex } from './google-vertex-provider';
-import { describe, it, expect, vi } from 'vitest';
+import type { GoogleVertexImageModelOptions } from './google-vertex-image-model-options';
 
-vi.mock('./version', () => ({
-  VERSION: '0.0.0-test',
-}));
+const TEST_URL =
+  'https://api.example.com/models/gemini-2.5-flash-image:generateContent';
 
-const prompt = 'A cute baby sea otter';
+const server = createTestServer({
+  [TEST_URL]: {},
+});
 
-const model = new GoogleVertexImageModel('imagen-3.0-generate-002', {
-  provider: 'google-vertex',
+const model = new GoogleVertexImageModel('gemini-2.5-flash-image', {
+  provider: 'google.vertex.image',
   baseURL: 'https://api.example.com',
   headers: { 'api-key': 'test-key' },
 });
 
-const server = createTestServer({
-  'https://api.example.com/models/imagen-3.0-generate-002:predict': {},
-  'https://api.example.com/models/imagen-4.0-generate-preview-06-06:predict':
-    {},
-  'https://api.example.com/models/imagen-4.0-fast-generate-preview-06-06:predict':
-    {},
-  'https://api.example.com/models/imagen-4.0-ultra-generate-preview-06-06:predict':
-    {},
-});
+function prepareJsonResponse({
+  images = [{ mimeType: 'image/png', data: 'base64-generated-image' }],
+  usage = {
+    promptTokenCount: 10,
+    candidatesTokenCount: 100,
+    totalTokenCount: 110,
+  },
+  headers,
+}: {
+  images?: Array<{ mimeType: string; data: string }>;
+  usage?: {
+    promptTokenCount: number;
+    candidatesTokenCount: number;
+    totalTokenCount: number;
+  };
+  headers?: Record<string, string>;
+} = {}) {
+  server.urls[TEST_URL].response = {
+    type: 'json-value',
+    headers,
+    body: {
+      candidates: [
+        {
+          content: {
+            parts: images.map(image => ({
+              inlineData: {
+                mimeType: image.mimeType,
+                data: image.data,
+              },
+            })),
+            role: 'model',
+          },
+          finishReason: 'STOP',
+        },
+      ],
+      usageMetadata: usage,
+    },
+  };
+}
 
 describe('GoogleVertexImageModel', () => {
+  describe('capabilities', () => {
+    it.each([
+      {
+        modelId: 'gemini-2.5-flash-image',
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      },
+      {
+        modelId: 'gemini-3-pro-image-preview',
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      },
+      {
+        modelId: 'gemini-3.1-flash-image-preview',
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      },
+      {
+        modelId: 'gemini-nano-banana-2.1',
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      },
+      {
+        modelId: 'gemini-2.5-pro',
+        supportsFileInputs: undefined,
+        supportsMaskInputs: undefined,
+      },
+      {
+        modelId: 'gemini-3-pro-preview',
+        supportsFileInputs: undefined,
+        supportsMaskInputs: undefined,
+      },
+      {
+        modelId: 'gemini-custom',
+        supportsFileInputs: undefined,
+        supportsMaskInputs: undefined,
+      },
+      {
+        modelId: 'legacy-image-model',
+        supportsFileInputs: undefined,
+        supportsMaskInputs: undefined,
+      },
+    ] as const)(
+      'advertises file=$supportsFileInputs and mask=$supportsMaskInputs for $modelId',
+      ({ modelId, supportsFileInputs, supportsMaskInputs }) => {
+        const capabilityModel = new GoogleVertexImageModel(modelId, {
+          provider: 'google.vertex.image',
+          baseURL: 'https://api.example.com',
+        });
+
+        expect(capabilityModel.supportsFileInputs).toBe(supportsFileInputs);
+        expect(capabilityModel.supportsMaskInputs).toBe(supportsMaskInputs);
+      },
+    );
+  });
+
+  it('should return 1 for maxImagesPerCall', () => {
+    expect(model.maxImagesPerCall).toBe(1);
+  });
+
   describe('doGenerate', () => {
-    function prepareJsonResponse({
-      headers,
-    }: {
-      headers?: Record<string, string>;
-    } = {}) {
-      server.urls[
-        'https://api.example.com/models/imagen-3.0-generate-002:predict'
-      ].response = {
-        type: 'json-value',
-        headers,
-        body: {
-          predictions: [
-            {
-              mimeType: 'image/png',
-              prompt: 'revised prompt 1',
-              bytesBase64Encoded: 'base64-image-1',
-            },
-            {
-              mimeType: 'image/png',
-              prompt: 'revised prompt 2',
-              bytesBase64Encoded: 'base64-image-2',
-              someFutureField: 'some future value',
-            },
-          ],
-        },
-      };
-    }
-
-    // changed test to go through the provider `createVertex`
-    it('should pass headers', async () => {
-      prepareJsonResponse();
-
-      const provider = createVertex({
-        project: 'test-project',
-        location: 'us-central1',
+    it('should reject non-Gemini model IDs before sending a request', async () => {
+      const nonGeminiModel = new GoogleVertexImageModel('legacy-image-model', {
+        provider: 'google.vertex.image',
         baseURL: 'https://api.example.com',
-        headers: { 'Custom-Provider-Header': 'provider-header-value' },
+        headers: { 'api-key': 'test-key' },
       });
 
-      await provider.imageModel('imagen-3.0-generate-002').doGenerate({
-        prompt,
-        n: 2,
+      await expect(
+        nonGeminiModel.doGenerate({
+          prompt: 'A beautiful sunset',
+          files: undefined,
+          mask: undefined,
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        }),
+      ).rejects.toThrow(
+        'Google image models other than Gemini are no longer supported. Use a model ID that starts with `gemini-`.',
+      );
+
+      expect(server.calls).toHaveLength(0);
+    });
+
+    it('should use the language model endpoint and extract generated images', async () => {
+      prepareJsonResponse({});
+
+      const result = await model.doGenerate({
+        prompt: 'A beautiful sunset',
+        files: undefined,
+        mask: undefined,
+        n: 1,
         size: undefined,
         aspectRatio: undefined,
         seed: undefined,
         providerOptions: {},
-        headers: { 'Custom-Request-Header': 'request-header-value' },
       });
 
-      expect(server.calls[0].requestHeaders).toStrictEqual({
-        'content-type': 'application/json',
+      expect(server.calls[0].requestUrl).toBe(TEST_URL);
+      expect(result.images).toStrictEqual(['base64-generated-image']);
+      expect(result.providerMetadata).toStrictEqual({
+        googleVertex: { images: [{}] },
+        vertex: { images: [{}] },
+      });
+    });
+
+    it('should classify prompt blocks as terminal', async () => {
+      server.urls[TEST_URL].response = {
+        type: 'json-value',
+        body: {
+          promptFeedback: {
+            blockReason: 'PROHIBITED_CONTENT',
+          },
+          usageMetadata: {
+            promptTokenCount: 9,
+            totalTokenCount: 9,
+          },
+        },
+      };
+
+      const result = await model.doGenerate({
+        prompt: 'A blocked image prompt',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.images).toEqual([]);
+      expect(result.isRetryable).toBe(false);
+      expect(server.calls).toHaveLength(1);
+    });
+
+    it('should send response modalities, aspect ratio, seed, and headers', async () => {
+      prepareJsonResponse({});
+      const modelWithHeaders = new GoogleVertexImageModel(
+        'gemini-2.5-flash-image',
+        {
+          provider: 'google.vertex.image',
+          baseURL: 'https://api.example.com',
+          headers: {
+            'Custom-Provider-Header': 'provider-header-value',
+          },
+        },
+      );
+
+      await modelWithHeaders.doGenerate({
+        prompt: 'A beautiful sunset',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: '21:9',
+        seed: 12345,
+        providerOptions: {},
+        headers: {
+          'Custom-Request-Header': 'request-header-value',
+        },
+      });
+
+      expect(server.calls[0].requestHeaders).toMatchObject({
         'custom-provider-header': 'provider-header-value',
         'custom-request-header': 'request-header-value',
       });
-      expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/google-vertex/0.0.0-test`,
-      );
-    });
-
-    it('should use default maxImagesPerCall when not specified', () => {
-      const defaultModel = new GoogleVertexImageModel(
-        'imagen-3.0-generate-002',
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
         {
-          provider: 'google-vertex',
-          baseURL: 'https://api.example.com',
-          headers: { 'api-key': 'test-key' },
-        },
-      );
-
-      expect(defaultModel.maxImagesPerCall).toBe(4);
+          "contents": [
+            {
+              "parts": [
+                {
+                  "text": "A beautiful sunset",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "generationConfig": {
+            "imageConfig": {
+              "aspectRatio": "21:9",
+            },
+            "responseModalities": [
+              "IMAGE",
+            ],
+            "seed": 12345,
+          },
+        }
+      `);
     });
 
-    it('should extract the generated images', async () => {
-      prepareJsonResponse();
-
-      const result = await model.doGenerate({
-        prompt,
-        n: 2,
-        size: undefined,
-        aspectRatio: undefined,
-        seed: undefined,
-        providerOptions: {},
-      });
-
-      expect(result.images).toStrictEqual(['base64-image-1', 'base64-image-2']);
-    });
-
-    it('sends aspect ratio in the request', async () => {
-      prepareJsonResponse();
+    it('should accept the legacy vertex options key and prefer googleVertex', async () => {
+      prepareJsonResponse({});
 
       await model.doGenerate({
-        prompt: 'test prompt',
+        prompt: 'A beautiful sunset',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: '16:9',
         seed: undefined,
-        providerOptions: {},
-      });
-
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        instances: [{ prompt: 'test prompt' }],
-        parameters: {
-          sampleCount: 1,
-          aspectRatio: '16:9',
+        providerOptions: {
+          googleVertex: {
+            imageConfig: { imageSize: '4K' },
+          } satisfies GoogleVertexImageModelOptions,
+          vertex: {
+            imageConfig: { imageSize: '2K' },
+          } satisfies GoogleVertexImageModelOptions,
         },
       });
-    });
 
-    it('should pass aspect ratio directly when specified', async () => {
-      prepareJsonResponse();
+      expect(
+        (await server.calls[0].requestBodyJson).generationConfig.imageConfig,
+      ).toStrictEqual({ aspectRatio: '16:9', imageSize: '4K' });
 
+      prepareJsonResponse({});
       await model.doGenerate({
-        prompt: 'test prompt',
-        n: 1,
-        size: undefined,
-        aspectRatio: '16:9',
-        seed: undefined,
-        providerOptions: {},
-      });
-
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        instances: [{ prompt: 'test prompt' }],
-        parameters: {
-          sampleCount: 1,
-          aspectRatio: '16:9',
-        },
-      });
-    });
-
-    it('should pass seed directly when specified', async () => {
-      prepareJsonResponse();
-
-      await model.doGenerate({
-        prompt: 'test prompt',
+        prompt: 'A beautiful sunset',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
-        seed: 42,
-        providerOptions: {},
-      });
-
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        instances: [{ prompt: 'test prompt' }],
-        parameters: {
-          sampleCount: 1,
-          seed: 42,
-        },
-      });
-    });
-
-    it('should combine aspectRatio, seed and provider options', async () => {
-      prepareJsonResponse();
-
-      await model.doGenerate({
-        prompt: 'test prompt',
-        n: 1,
-        size: undefined,
-        aspectRatio: '1:1',
-        seed: 42,
+        seed: undefined,
         providerOptions: {
           vertex: {
-            addWatermark: false,
-          },
+            imageConfig: { imageSize: '2K' },
+          } satisfies GoogleVertexImageModelOptions,
         },
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        instances: [{ prompt: 'test prompt' }],
-        parameters: {
-          sampleCount: 1,
-          aspectRatio: '1:1',
-          seed: 42,
-          addWatermark: false,
+      expect(
+        (await server.calls[1].requestBodyJson).generationConfig.imageConfig,
+      ).toStrictEqual({ imageSize: '2K' });
+    });
+
+    it('should include usage and response metadata', async () => {
+      prepareJsonResponse({
+        usage: {
+          promptTokenCount: 20,
+          candidatesTokenCount: 200,
+          totalTokenCount: 220,
         },
+        headers: { 'request-id': 'test-request-id' },
+      });
+      const testDate = new Date('2024-03-15T12:00:00Z');
+      const customModel = new GoogleVertexImageModel('gemini-2.5-flash-image', {
+        provider: 'google.vertex.image',
+        baseURL: 'https://api.example.com',
+        headers: { 'api-key': 'test-key' },
+        _internal: { currentDate: () => testDate },
+      });
+
+      const result = await customModel.doGenerate({
+        prompt: 'A beautiful sunset',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.usage).toStrictEqual({
+        inputTokens: 20,
+        outputTokens: 200,
+        totalTokens: 220,
+      });
+      expect(result.response).toStrictEqual({
+        timestamp: testDate,
+        modelId: 'gemini-2.5-flash-image',
+        headers: expect.objectContaining({
+          'request-id': 'test-request-id',
+        }),
       });
     });
 
-    it('should return warnings for unsupported settings', async () => {
-      prepareJsonResponse();
+    it('should return a warning for the unsupported size option', async () => {
+      prepareJsonResponse({});
 
       const result = await model.doGenerate({
-        prompt,
+        prompt: 'A beautiful sunset',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: '1024x1024',
-        aspectRatio: '1:1',
-        seed: 123,
+        aspectRatio: undefined,
+        seed: undefined,
         providerOptions: {},
       });
 
       expect(result.warnings).toStrictEqual([
         {
-          type: 'unsupported-setting',
-          setting: 'size',
+          type: 'unsupported',
+          feature: 'size',
           details:
             'This model does not support the `size` option. Use `aspectRatio` instead.',
         },
       ]);
     });
 
-    it('should include response data with timestamp, modelId and headers', async () => {
-      prepareJsonResponse({
-        headers: {
-          'request-id': 'test-request-id',
-          'x-goog-quota-remaining': '123',
-        },
-      });
+    it('should include input images for editing', async () => {
+      prepareJsonResponse({});
 
-      const testDate = new Date('2024-03-15T12:00:00Z');
-
-      const customModel = new GoogleVertexImageModel(
-        'imagen-3.0-generate-002',
-        {
-          provider: 'google-vertex',
-          baseURL: 'https://api.example.com',
-          headers: { 'api-key': 'test-key' },
-          _internal: {
-            currentDate: () => testDate,
+      await model.doGenerate({
+        prompt: 'Add a hat to this cat',
+        files: [
+          {
+            type: 'file',
+            data: 'base64-source-image',
+            mediaType: 'image/png',
           },
-        },
-      );
-
-      const result = await customModel.doGenerate({
-        prompt,
+        ],
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -257,318 +383,56 @@ describe('GoogleVertexImageModel', () => {
         providerOptions: {},
       });
 
-      expect(result.response).toStrictEqual({
-        timestamp: testDate,
-        modelId: 'imagen-3.0-generate-002',
-        headers: {
-          'content-length': '237',
-          'content-type': 'application/json',
-          'request-id': 'test-request-id',
-          'x-goog-quota-remaining': '123',
-        },
-      });
-    });
-
-    it('should use real date when no custom date provider is specified', async () => {
-      prepareJsonResponse();
-      const beforeDate = new Date();
-
-      const result = await model.doGenerate({
-        prompt,
-        n: 2,
-        size: undefined,
-        aspectRatio: undefined,
-        seed: undefined,
-        providerOptions: {},
-      });
-
-      const afterDate = new Date();
-
-      expect(result.response.timestamp.getTime()).toBeGreaterThanOrEqual(
-        beforeDate.getTime(),
-      );
-      expect(result.response.timestamp.getTime()).toBeLessThanOrEqual(
-        afterDate.getTime(),
-      );
-      expect(result.response.modelId).toBe('imagen-3.0-generate-002');
-    });
-
-    it('should only pass valid provider options', async () => {
-      prepareJsonResponse();
-
-      await model.doGenerate({
-        prompt,
-        n: 2,
-        size: undefined,
-        aspectRatio: '16:9',
-        seed: undefined,
-        providerOptions: {
-          vertex: {
-            addWatermark: false,
-            negativePrompt: 'negative prompt',
-            personGeneration: 'allow_all',
-            foo: 'bar',
-          },
-        },
-      });
-
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        instances: [{ prompt }],
-        parameters: {
-          sampleCount: 2,
-          addWatermark: false,
-          negativePrompt: 'negative prompt',
-          personGeneration: 'allow_all',
-          aspectRatio: '16:9',
-        },
-      });
-    });
-
-    it('should return image meta data', async () => {
-      prepareJsonResponse();
-
-      const result = await model.doGenerate({
-        prompt,
-        n: 2,
-        size: undefined,
-        aspectRatio: undefined,
-        seed: undefined,
-        providerOptions: {},
-      });
-
-      expect(result.providerMetadata?.vertex).toStrictEqual({
-        images: [
-          {
-            revisedPrompt: 'revised prompt 1',
-          },
-          {
-            revisedPrompt: 'revised prompt 2',
-          },
-        ],
-      });
-    });
-  });
-
-  describe('Imagen 4 Models', () => {
-    describe('imagen-4.0-generate-preview-06-06', () => {
-      const imagen4Model = new GoogleVertexImageModel(
-        'imagen-4.0-generate-preview-06-06',
+      expect((await server.calls[0].requestBodyJson).contents).toStrictEqual([
         {
-          provider: 'google-vertex',
-          baseURL: 'https://api.example.com',
-          headers: { 'api-key': 'test-key' },
-        },
-      );
-
-      function prepareImagen4Response() {
-        server.urls[
-          'https://api.example.com/models/imagen-4.0-generate-preview-06-06:predict'
-        ].response = {
-          type: 'json-value',
-          body: {
-            predictions: [
-              {
-                mimeType: 'image/png',
-                prompt: 'revised imagen 4 prompt',
-                bytesBase64Encoded: 'base64-imagen4-image',
-              },
-            ],
-          },
-        };
-      }
-
-      it('should generate images with Imagen 4', async () => {
-        prepareImagen4Response();
-
-        const result = await imagen4Model.doGenerate({
-          prompt: 'A beautiful sunset over mountains',
-          n: 1,
-          size: undefined,
-          aspectRatio: '16:9',
-          seed: 42,
-          providerOptions: {
-            vertex: {
-              addWatermark: false,
-            },
-          },
-        });
-
-        expect(result.images).toStrictEqual(['base64-imagen4-image']);
-        expect(result.providerMetadata?.vertex).toStrictEqual({
-          images: [
+          role: 'user',
+          parts: [
+            { text: 'Add a hat to this cat' },
             {
-              revisedPrompt: 'revised imagen 4 prompt',
+              inlineData: {
+                mimeType: 'image/png',
+                data: 'base64-source-image',
+              },
             },
           ],
-        });
-      });
-
-      it('should send correct request parameters for Imagen 4', async () => {
-        prepareImagen4Response();
-
-        await imagen4Model.doGenerate({
-          prompt: 'test imagen 4 prompt',
-          n: 2,
-          size: undefined,
-          aspectRatio: '1:1',
-          seed: 123,
-          providerOptions: {
-            vertex: {
-              personGeneration: 'allow_adult',
-              safetySetting: 'block_medium_and_above',
-            },
-          },
-        });
-
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          instances: [{ prompt: 'test imagen 4 prompt' }],
-          parameters: {
-            sampleCount: 2,
-            aspectRatio: '1:1',
-            seed: 123,
-            personGeneration: 'allow_adult',
-            safetySetting: 'block_medium_and_above',
-          },
-        });
-      });
+        },
+      ]);
     });
 
-    describe('imagen-4.0-fast-generate-preview-06-06', () => {
-      const imagen4FastModel = new GoogleVertexImageModel(
-        'imagen-4.0-fast-generate-preview-06-06',
-        {
-          provider: 'google-vertex',
-          baseURL: 'https://api.example.com',
-          headers: { 'api-key': 'test-key' },
-        },
-      );
+    it('should reject unsupported URL editing input and masks', async () => {
+      prepareJsonResponse({});
 
-      function prepareImagen4FastResponse() {
-        server.urls[
-          'https://api.example.com/models/imagen-4.0-fast-generate-preview-06-06:predict'
-        ].response = {
-          type: 'json-value',
-          body: {
-            predictions: [
-              {
-                mimeType: 'image/png',
-                prompt: 'revised imagen 4 fast prompt',
-                bytesBase64Encoded: 'base64-imagen4-fast-image',
-              },
-            ],
-          },
-        };
-      }
-
-      it('should generate images with Imagen 4 Fast', async () => {
-        prepareImagen4FastResponse();
-
-        const result = await imagen4FastModel.doGenerate({
-          prompt: 'A quick sketch of a cat',
-          n: 1,
-          size: undefined,
-          aspectRatio: '3:4',
-          seed: undefined,
-          providerOptions: {},
-        });
-
-        expect(result.images).toStrictEqual(['base64-imagen4-fast-image']);
-        expect(result.providerMetadata?.vertex).toStrictEqual({
-          images: [
-            {
-              revisedPrompt: 'revised imagen 4 fast prompt',
-            },
-          ],
-        });
-      });
-    });
-
-    describe('imagen-4.0-ultra-generate-preview-06-06', () => {
-      const imagen4UltraModel = new GoogleVertexImageModel(
-        'imagen-4.0-ultra-generate-preview-06-06',
-        {
-          provider: 'google-vertex',
-          baseURL: 'https://api.example.com',
-          headers: { 'api-key': 'test-key' },
-        },
-      );
-
-      function prepareImagen4UltraResponse() {
-        server.urls[
-          'https://api.example.com/models/imagen-4.0-ultra-generate-preview-06-06:predict'
-        ].response = {
-          type: 'json-value',
-          body: {
-            predictions: [
-              {
-                mimeType: 'image/png',
-                prompt: 'revised imagen 4 ultra prompt',
-                bytesBase64Encoded: 'base64-imagen4-ultra-image',
-              },
-            ],
-          },
-        };
-      }
-
-      it('should generate images with Imagen 4 Ultra', async () => {
-        prepareImagen4UltraResponse();
-
-        const result = await imagen4UltraModel.doGenerate({
-          prompt: 'A highly detailed photorealistic portrait',
-          n: 1,
-          size: undefined,
-          aspectRatio: '4:3',
-          seed: 999,
-          providerOptions: {
-            vertex: {
-              negativePrompt: 'blurry, low quality',
-              addWatermark: true,
-            },
-          },
-        });
-
-        expect(result.images).toStrictEqual(['base64-imagen4-ultra-image']);
-        expect(result.providerMetadata?.vertex).toStrictEqual({
-          images: [
-            {
-              revisedPrompt: 'revised imagen 4 ultra prompt',
-            },
-          ],
-        });
-      });
-
-      it('should handle all provider options with Imagen 4 Ultra', async () => {
-        prepareImagen4UltraResponse();
-
-        await imagen4UltraModel.doGenerate({
-          prompt: 'comprehensive test prompt',
+      await expect(
+        model.doGenerate({
+          prompt: 'Add a hat to this cat',
+          files: [{ type: 'url', url: 'https://example.com/cat.png' }],
+          mask: undefined,
           n: 1,
           size: undefined,
           aspectRatio: undefined,
           seed: undefined,
-          providerOptions: {
-            vertex: {
-              negativePrompt: 'avoid this content',
-              personGeneration: 'dont_allow',
-              safetySetting: 'block_only_high',
-              addWatermark: true,
-              storageUri: 'gs://my-bucket/images/',
-            },
-          },
-        });
+          providerOptions: {},
+        }),
+      ).rejects.toThrow(/media type "image\/\*".*not passed as inline bytes/);
 
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          instances: [{ prompt: 'comprehensive test prompt' }],
-          parameters: {
-            sampleCount: 1,
-            negativePrompt: 'avoid this content',
-            personGeneration: 'dont_allow',
-            safetySetting: 'block_only_high',
-            addWatermark: true,
-            storageUri: 'gs://my-bucket/images/',
+      await expect(
+        model.doGenerate({
+          prompt: 'Edit this image',
+          files: undefined,
+          mask: {
+            type: 'file',
+            data: 'base64-mask-image',
+            mediaType: 'image/png',
           },
-        });
-      });
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        }),
+      ).rejects.toThrow(
+        'Gemini image models do not support mask-based image editing.',
+      );
     });
   });
 });

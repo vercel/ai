@@ -17,12 +17,14 @@ export class GatewayAuthenticationError extends GatewayError {
     message = 'Authentication failed',
     statusCode = 401,
     cause,
+    generationId,
   }: {
     message?: string;
     statusCode?: number;
     cause?: unknown;
+    generationId?: string;
   } = {}) {
-    super({ message, statusCode, cause });
+    super({ message, statusCode, cause, generationId });
   }
 
   static isInstance(error: unknown): error is GatewayAuthenticationError {
@@ -35,54 +37,51 @@ export class GatewayAuthenticationError extends GatewayError {
   static createContextualError({
     apiKeyProvided,
     oidcTokenProvided,
-    message = 'Authentication failed',
     statusCode = 401,
     cause,
+    generationId,
   }: {
     apiKeyProvided: boolean;
     oidcTokenProvided: boolean;
     message?: string;
     statusCode?: number;
     cause?: unknown;
+    generationId?: string;
   }): GatewayAuthenticationError {
     let contextualMessage: string;
 
     if (apiKeyProvided) {
-      contextualMessage = `AI Gateway authentication failed: Invalid API key provided.
+      contextualMessage = `AI Gateway authentication failed: Invalid API key or token.
 
-The token is expected to be provided via the 'apiKey' option or 'AI_GATEWAY_API_KEY' environment variable.`;
+Create a new API key: https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai%2Fapi-keys
+
+Provide an API key or Vercel access token via 'apiKey' option or 'AI_GATEWAY_API_KEY' environment variable.`;
     } else if (oidcTokenProvided) {
-      contextualMessage = `AI Gateway authentication failed: Invalid OIDC token provided.
+      contextualMessage = `AI Gateway authentication failed: Invalid OIDC token.
 
-The token is expected to be provided via the 'VERCEL_OIDC_TOKEN' environment variable. It expires every 12 hours.
-- make sure your Vercel project settings have OIDC enabled
-- if running locally with 'vercel dev', the token is automatically obtained and refreshed
-- if running locally with your own dev server, run 'vercel env pull' to fetch the token
-- in production/preview, the token is automatically obtained and refreshed
+Run 'npx vercel link' to link your project, then 'vc env pull' to fetch the token.
 
-Alternative: Provide an API key via 'apiKey' option or 'AI_GATEWAY_API_KEY' environment variable.`;
+Alternatively, use an API key: https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai%2Fapi-keys
+or pass a Vercel access token via the 'apiKey' option.`;
     } else {
       contextualMessage = `AI Gateway authentication failed: No authentication provided.
 
-Provide either an API key or OIDC token.
+Option 1 - API key:
+Create an API key: https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai%2Fapi-keys
+Provide via 'apiKey' option or 'AI_GATEWAY_API_KEY' environment variable.
 
-API key instructions:
+Option 2 - Vercel access token:
+Pass a Vercel personal access token or Vercel app access token via the 'apiKey' option.
 
-The token is expected to be provided via the 'apiKey' option or 'AI_GATEWAY_API_KEY' environment variable.
-
-OIDC token instructions:
-
-The token is expected to be provided via the 'VERCEL_OIDC_TOKEN' environment variable. It expires every 12 hours.
-- make sure your Vercel project settings have OIDC enabled
-- if running locally with 'vercel dev', the token is automatically obtained and refreshed
-- if running locally with your own dev server, run 'vercel env pull' to fetch the token
-- in production/preview, the token is automatically obtained and refreshed`;
+Option 3 - OIDC token:
+Run 'npx vercel link' to link your project, then 'vc env pull' to fetch the token.`;
     }
 
     return new GatewayAuthenticationError({
       message: contextualMessage,
       statusCode,
       cause,
+      generationId,
     });
   }
 }

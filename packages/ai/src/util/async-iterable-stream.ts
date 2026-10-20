@@ -16,13 +16,34 @@ export function createAsyncIterableStream<T>(
   source: ReadableStream<T>,
 ): AsyncIterableStream<T> {
   // Pipe through a TransformStream to ensure a fresh, unlocked stream.
-  const stream = source.pipeThrough(new TransformStream<T, T>());
+  return asAsyncIterableStream(source.pipeThrough(new TransformStream<T, T>()));
+}
 
+/**
+ * Attaches the async iterator protocol to an existing ReadableStream in place,
+ * turning it into an AsyncIterableStream without piping through an additional
+ * TransformStream.
+ *
+ * Use this when the stream is already known to be fresh and exclusively owned
+ * (e.g. the readable side of a TransformStream created for this consumer).
+ * Adding an extra `pipeThrough` in that situation creates a chain of two
+ * transforms fed by an active upstream pipe, which can surface a spurious
+ * unhandled `undefined` rejection when the consumer cancels early (observed on
+ * Node.js 26). {@link createAsyncIterableStream} wraps this after adding a
+ * fresh transform for callers that may pass shared or locked streams.
+ *
+ * @template T The type of the stream's chunks.
+ * @param stream The ReadableStream to augment. It must be fresh and unlocked.
+ * @returns The same stream, augmented with the async iterator protocol.
+ */
+export function asAsyncIterableStream<T>(
+  stream: ReadableStream<T>,
+): AsyncIterableStream<T> {
   /**
    * Implements the async iterator protocol for the stream.
    * Ensures proper cleanup (cancelling and releasing the reader) on completion, early exit, or error.
    */
-  (stream as AsyncIterableStream<T>)[Symbol.asyncIterator] = function (
+  (stream as unknown as AsyncIterable<T>)[Symbol.asyncIterator] = function (
     this: ReadableStream<T>,
   ): AsyncIterator<T> {
     const reader = this.getReader();
@@ -33,6 +54,8 @@ export function createAsyncIterableStream<T>(
      * Cleans up the reader by cancelling and releasing the lock.
      */
     async function cleanup(cancelStream: boolean) {
+      if (finished) return;
+
       finished = true;
       try {
         if (cancelStream) {
@@ -55,7 +78,15 @@ export function createAsyncIterableStream<T>(
           return { done: true, value: undefined };
         }
 
-        const { done, value } = await reader.read();
+        let result: ReadableStreamReadResult<T>;
+        try {
+          result = await reader.read();
+        } catch (error) {
+          await cleanup(false);
+          throw error;
+        }
+
+        const { done, value } = result;
 
         if (done) {
           await cleanup(true);
@@ -66,7 +97,7 @@ export function createAsyncIterableStream<T>(
       },
 
       /**
-       * Called on early exit (e.g., break from for-await).
+       * May be called on early exit (e.g., break from for-await) or after completion.
        * Ensures the stream is cancelled and resources are released.
        * @returns A promise resolving to a completed IteratorResult.
        */

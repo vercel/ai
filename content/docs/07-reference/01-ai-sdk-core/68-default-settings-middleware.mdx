@@ -7,6 +7,9 @@ description: Middleware that applies default settings for language models
 
 `defaultSettingsMiddleware` is a middleware function that applies default settings to language model calls. This is useful when you want to establish consistent default parameters across multiple model invocations.
 
+To apply default system instructions, use
+[`defaultInstructionsMiddleware`](/docs/reference/ai-sdk-core/default-instructions-middleware).
+
 ```ts
 import { defaultSettingsMiddleware } from 'ai';
 
@@ -32,7 +35,7 @@ const middleware = defaultSettingsMiddleware({
 
 The middleware accepts a configuration object with the following properties:
 
-- `settings`: An object containing default parameter values to apply to language model calls. These can include any valid `LanguageModelV3CallOptions` properties and optional provider metadata.
+- `settings`: An object containing default parameter values to apply to language model calls. These can include any valid `LanguageModelV4CallOptions` properties and optional provider metadata.
 
 ### Returns
 
@@ -45,21 +48,16 @@ Returns a middleware object that:
 ### Usage Example
 
 ```ts
-import { streamText } from 'ai';
-import { wrapLanguageModel } from 'ai';
-import { defaultSettingsMiddleware } from 'ai';
-import { openai } from 'ai';
+import { streamText, wrapLanguageModel, defaultSettingsMiddleware } from 'ai';
 
 // Create a model with default settings
 const modelWithDefaults = wrapLanguageModel({
-  model: openai.ChatTextGenerator({ model: 'gpt-4' }),
+  model: gateway('anthropic/claude-sonnet-4.5'),
   middleware: defaultSettingsMiddleware({
     settings: {
-      temperature: 0.5,
-      maxOutputTokens: 800,
-      providerMetadata: {
+      providerOptions: {
         openai: {
-          tags: ['production'],
+          reasoningEffort: 'high',
         },
       },
     },

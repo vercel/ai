@@ -1,88 +1,17 @@
-import { SpeechModelV2, SpeechModelV2CallWarning } from '@ai-sdk/provider';
+import type { SpeechModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
   parseProviderOptions,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
-import { HumeConfig } from './hume-config';
+import type { HumeConfig } from './hume-config';
 import { humeFailedResponseHandler } from './hume-error';
-import { HumeSpeechAPITypes } from './hume-api-types';
-
-// https://dev.hume.ai/reference/text-to-speech-tts/synthesize-file
-const humeSpeechCallOptionsSchema = z.object({
-  /**
-   * Context for the speech synthesis request.
-   * Can be either a generationId for retrieving a previous generation,
-   * or a list of utterances to synthesize.
-   */
-  context: z
-    .object({
-      /**
-       * ID of a previously generated speech synthesis to retrieve.
-       */
-      generationId: z.string(),
-    })
-    .or(
-      z.object({
-        /**
-         * List of utterances to synthesize into speech.
-         */
-        utterances: z.array(
-          z.object({
-            /**
-             * The text content to convert to speech.
-             */
-            text: z.string(),
-            /**
-             * Optional description or instructions for how the text should be spoken.
-             */
-            description: z.string().optional(),
-            /**
-             * Optional speech rate multiplier.
-             */
-            speed: z.number().optional(),
-            /**
-             * Optional duration of silence to add after the utterance in seconds.
-             */
-            trailingSilence: z.number().optional(),
-            /**
-             * Voice configuration for the utterance.
-             * Can be specified by ID or name.
-             */
-            voice: z
-              .object({
-                /**
-                 * ID of the voice to use.
-                 */
-                id: z.string(),
-                /**
-                 * Provider of the voice, either Hume's built-in voices or a custom voice.
-                 */
-                provider: z.enum(['HUME_AI', 'CUSTOM_VOICE']).optional(),
-              })
-              .or(
-                z.object({
-                  /**
-                   * Name of the voice to use.
-                   */
-                  name: z.string(),
-                  /**
-                   * Provider of the voice, either Hume's built-in voices or a custom voice.
-                   */
-                  provider: z.enum(['HUME_AI', 'CUSTOM_VOICE']).optional(),
-                }),
-              )
-              .optional(),
-          }),
-        ),
-      }),
-    )
-    .nullish(),
-});
-
-export type HumeSpeechCallOptions = z.infer<typeof humeSpeechCallOptionsSchema>;
+import { humeSpeechModelOptionsSchema } from './hume-speech-model-options';
+import type { HumeSpeechAPITypes } from './hume-api-types';
 
 interface HumeSpeechModelConfig extends HumeConfig {
   _internal?: {
@@ -90,11 +19,25 @@ interface HumeSpeechModelConfig extends HumeConfig {
   };
 }
 
-export class HumeSpeechModel implements SpeechModelV2 {
-  readonly specificationVersion = 'v2';
+export class HumeSpeechModel implements SpeechModelV4 {
+  readonly specificationVersion = 'v4';
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: HumeSpeechModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: '';
+    config: HumeSpeechModelConfig;
+  }) {
+    return new HumeSpeechModel(options.modelId as '', options.config);
   }
 
   constructor(
@@ -110,14 +53,14 @@ export class HumeSpeechModel implements SpeechModelV2 {
     instructions,
     language,
     providerOptions,
-  }: Parameters<SpeechModelV2['doGenerate']>[0]) {
-    const warnings: SpeechModelV2CallWarning[] = [];
+  }: Parameters<SpeechModelV4['doGenerate']>[0]) {
+    const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
     const humeOptions = await parseProviderOptions({
       provider: 'hume',
       providerOptions,
-      schema: humeSpeechCallOptionsSchema,
+      schema: humeSpeechModelOptionsSchema,
     });
 
     // Create request body
@@ -141,8 +84,8 @@ export class HumeSpeechModel implements SpeechModelV2 {
         requestBody.format = { type: outputFormat as 'mp3' | 'pcm' | 'wav' };
       } else {
         warnings.push({
-          type: 'unsupported-setting',
-          setting: 'outputFormat',
+          type: 'unsupported',
+          feature: 'outputFormat',
           details: `Unsupported output format: ${outputFormat}. Using mp3 instead.`,
         });
       }
@@ -186,8 +129,8 @@ export class HumeSpeechModel implements SpeechModelV2 {
 
     if (language) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'language',
+        type: 'unsupported',
+        feature: 'language',
         details: `Hume speech models do not support language selection. Language parameter "${language}" was ignored.`,
       });
     }
@@ -199,8 +142,8 @@ export class HumeSpeechModel implements SpeechModelV2 {
   }
 
   async doGenerate(
-    options: Parameters<SpeechModelV2['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<SpeechModelV2['doGenerate']>>> {
+    options: Parameters<SpeechModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<SpeechModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { requestBody, warnings } = await this.getArgs(options);
 
@@ -213,7 +156,7 @@ export class HumeSpeechModel implements SpeechModelV2 {
         path: '/v0/tts/file',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: requestBody,
       failedResponseHandler: humeFailedResponseHandler,
       successfulResponseHandler: createBinaryResponseHandler(),

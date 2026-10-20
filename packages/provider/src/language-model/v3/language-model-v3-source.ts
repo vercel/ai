@@ -1,7 +1,7 @@
-import { SharedV2ProviderMetadata } from '../../shared/v2/shared-v2-provider-metadata';
+import type { SharedV3ProviderMetadata } from '../../shared/v3/shared-v3-provider-metadata';
 
 /**
-A source that has been used as input to generate the response.
+ * A source that has been used as input to generate the response.
  */
 export type LanguageModelV3Source =
   | {
@@ -30,7 +30,7 @@ export type LanguageModelV3Source =
       /**
        * Additional provider metadata for the source.
        */
-      providerMetadata?: SharedV2ProviderMetadata;
+      providerMetadata?: SharedV3ProviderMetadata;
     }
   | {
       type: 'source';
@@ -63,5 +63,5 @@ export type LanguageModelV3Source =
       /**
        * Additional provider metadata for the source.
        */
-      providerMetadata?: SharedV2ProviderMetadata;
+      providerMetadata?: SharedV3ProviderMetadata;
     };

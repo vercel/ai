@@ -1,48 +1,49 @@
-import { SharedV2ProviderMetadata } from '../../shared/v2/shared-v2-provider-metadata';
-import { LanguageModelV3CallWarning } from './language-model-v3-call-warning';
-import { LanguageModelV3File } from './language-model-v3-file';
-import { LanguageModelV3FinishReason } from './language-model-v3-finish-reason';
-import { LanguageModelV3ResponseMetadata } from './language-model-v3-response-metadata';
-import { LanguageModelV3Source } from './language-model-v3-source';
-import { LanguageModelV3ToolCall } from './language-model-v3-tool-call';
-import { LanguageModelV3ToolResult } from './language-model-v3-tool-result';
-import { LanguageModelV3Usage } from './language-model-v3-usage';
+import type { SharedV3ProviderMetadata } from '../../shared/v3/shared-v3-provider-metadata';
+import type { SharedV3Warning } from '../../shared/v3/shared-v3-warning';
+import type { LanguageModelV3File } from './language-model-v3-file';
+import type { LanguageModelV3FinishReason } from './language-model-v3-finish-reason';
+import type { LanguageModelV3ResponseMetadata } from './language-model-v3-response-metadata';
+import type { LanguageModelV3Source } from './language-model-v3-source';
+import type { LanguageModelV3ToolApprovalRequest } from './language-model-v3-tool-approval-request';
+import type { LanguageModelV3ToolCall } from './language-model-v3-tool-call';
+import type { LanguageModelV3ToolResult } from './language-model-v3-tool-result';
+import type { LanguageModelV3Usage } from './language-model-v3-usage';
 
 export type LanguageModelV3StreamPart =
   // Text blocks:
   | {
       type: 'text-start';
-      providerMetadata?: SharedV2ProviderMetadata;
+      providerMetadata?: SharedV3ProviderMetadata;
       id: string;
     }
   | {
       type: 'text-delta';
       id: string;
-      providerMetadata?: SharedV2ProviderMetadata;
+      providerMetadata?: SharedV3ProviderMetadata;
       delta: string;
     }
   | {
       type: 'text-end';
-      providerMetadata?: SharedV2ProviderMetadata;
+      providerMetadata?: SharedV3ProviderMetadata;
       id: string;
     }
 
   // Reasoning blocks:
   | {
       type: 'reasoning-start';
-      providerMetadata?: SharedV2ProviderMetadata;
+      providerMetadata?: SharedV3ProviderMetadata;
       id: string;
     }
   | {
       type: 'reasoning-delta';
       id: string;
-      providerMetadata?: SharedV2ProviderMetadata;
+      providerMetadata?: SharedV3ProviderMetadata;
       delta: string;
     }
   | {
       type: 'reasoning-end';
       id: string;
-      providerMetadata?: SharedV2ProviderMetadata;
+      providerMetadata?: SharedV3ProviderMetadata;
     }
 
   // Tool calls and results:
@@ -50,20 +51,23 @@ export type LanguageModelV3StreamPart =
       type: 'tool-input-start';
       id: string;
       toolName: string;
-      providerMetadata?: SharedV2ProviderMetadata;
+      providerMetadata?: SharedV3ProviderMetadata;
       providerExecuted?: boolean;
+      dynamic?: boolean;
+      title?: string;
     }
   | {
       type: 'tool-input-delta';
       id: string;
       delta: string;
-      providerMetadata?: SharedV2ProviderMetadata;
+      providerMetadata?: SharedV3ProviderMetadata;
     }
   | {
       type: 'tool-input-end';
       id: string;
-      providerMetadata?: SharedV2ProviderMetadata;
+      providerMetadata?: SharedV3ProviderMetadata;
     }
+  | LanguageModelV3ToolApprovalRequest
   | LanguageModelV3ToolCall
   | LanguageModelV3ToolResult
 
@@ -74,7 +78,7 @@ export type LanguageModelV3StreamPart =
   // stream start event with warnings for the call, e.g. unsupported settings:
   | {
       type: 'stream-start';
-      warnings: Array<LanguageModelV3CallWarning>;
+      warnings: Array<SharedV3Warning>;
     }
 
   // metadata for the response.
@@ -86,7 +90,7 @@ export type LanguageModelV3StreamPart =
       type: 'finish';
       usage: LanguageModelV3Usage;
       finishReason: LanguageModelV3FinishReason;
-      providerMetadata?: SharedV2ProviderMetadata;
+      providerMetadata?: SharedV3ProviderMetadata;
     }
 
   // raw chunks if enabled

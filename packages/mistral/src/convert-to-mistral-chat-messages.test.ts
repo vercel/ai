@@ -10,7 +10,7 @@ describe('user messages', () => {
           { type: 'text', text: 'Hello' },
           {
             type: 'file',
-            data: 'AAECAw==',
+            data: { type: 'data' as const, data: 'AAECAw==' },
             mediaType: 'image/png',
           },
         ],
@@ -28,7 +28,7 @@ describe('user messages', () => {
           { type: 'text', text: 'Hi' },
           {
             type: 'file',
-            data: new Uint8Array([0, 1, 2, 3]),
+            data: { type: 'data' as const, data: new Uint8Array([0, 1, 2, 3]) },
             mediaType: 'image/png',
           },
         ],
@@ -62,7 +62,10 @@ describe('user messages', () => {
           { type: 'text', text: 'Please analyze this document' },
           {
             type: 'file',
-            data: new URL('https://example.com/document.pdf'),
+            data: {
+              type: 'url' as const,
+              url: new URL('https://example.com/document.pdf'),
+            },
             mediaType: 'application/pdf',
           },
         ],
@@ -70,6 +73,40 @@ describe('user messages', () => {
     ]);
 
     expect(result).toMatchSnapshot();
+  });
+
+  it('should convert messages with PDF file parts from Uint8Array', () => {
+    const result = convertToMistralChatMessages([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Analyze this PDF' },
+          {
+            type: 'file',
+            data: { type: 'data' as const, data: new Uint8Array([0, 1, 2, 3]) },
+            mediaType: 'application/pdf',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "text": "Analyze this PDF",
+              "type": "text",
+            },
+            {
+              "document_url": "data:application/pdf;base64,AAECAw==",
+              "type": "document_url",
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
   });
 
   it('should convert messages with reasoning content', () => {
@@ -86,13 +123,66 @@ describe('user messages', () => {
     expect(result).toMatchInlineSnapshot(`
       [
         {
-          "content": "Let me think about this...The answer is 42.",
+          "content": [
+            {
+              "closed": true,
+              "thinking": [
+                {
+                  "text": "Let me think about this...",
+                  "type": "text",
+                },
+              ],
+              "type": "thinking",
+            },
+            {
+              "text": "The answer is 42.",
+              "type": "text",
+            },
+          ],
           "prefix": true,
           "role": "assistant",
           "tool_calls": undefined,
         },
       ]
     `);
+  });
+
+  it('should preserve the ordering of interleaved reasoning and text content', () => {
+    const result = convertToMistralChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          { type: 'reasoning', text: 'First thought.' },
+          { type: 'text', text: 'Partial answer.' },
+          { type: 'reasoning', text: 'Second thought.' },
+          { type: 'text', text: 'Final answer.' },
+        ],
+      },
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Continue.' }],
+      },
+    ]);
+
+    expect(result[0]).toEqual({
+      role: 'assistant',
+      content: [
+        {
+          type: 'thinking',
+          thinking: [{ type: 'text', text: 'First thought.' }],
+          closed: true,
+        },
+        { type: 'text', text: 'Partial answer.' },
+        {
+          type: 'thinking',
+          thinking: [{ type: 'text', text: 'Second thought.' }],
+          closed: true,
+        },
+        { type: 'text', text: 'Final answer.' },
+      ],
+      prefix: undefined,
+      tool_calls: undefined,
+    });
   });
 });
 
@@ -227,7 +317,11 @@ describe('tool calls', () => {
               type: 'content',
               value: [
                 { type: 'text', text: 'Here is the result:' },
-                { type: 'media', data: 'base64data', mediaType: 'image/png' },
+                {
+                  type: 'file',
+                  data: { type: 'data', data: 'base64data' },
+                  mediaType: 'image/png',
+                },
               ],
             },
           },
@@ -253,7 +347,7 @@ describe('tool calls', () => {
           ],
         },
         {
-          "content": "[{"type":"text","text":"Here is the result:"},{"type":"media","data":"base64data","mediaType":"image/png"}]",
+          "content": "[{"type":"text","text":"Here is the result:"},{"type":"file","data":{"type":"data","data":"base64data"},"mediaType":"image/png"}]",
           "name": "image-tool",
           "role": "tool",
           "tool_call_id": "tool-call-id-3",
@@ -330,5 +424,89 @@ describe('assistant messages', () => {
     ]);
 
     expect(result).toMatchSnapshot();
+  });
+});
+
+describe('top-level-only media type resolution', () => {
+  const pngBase64 = 'iVBORw0KGgo=';
+
+  it('passes full image/png through unchanged for inline data', () => {
+    const result = convertToMistralChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: { type: 'data', data: pngBase64 },
+          },
+        ],
+      },
+    ]);
+
+    expect((result[0].content as unknown[])[0]).toEqual({
+      type: 'image_url',
+      image_url: `data:image/png;base64,${pngBase64}`,
+    });
+  });
+
+  it('detects image subtype from inline bytes for top-level "image"', () => {
+    const result = convertToMistralChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            mediaType: 'image',
+            data: { type: 'data', data: pngBase64 },
+          },
+        ],
+      },
+    ]);
+
+    expect((result[0].content as unknown[])[0]).toEqual({
+      type: 'image_url',
+      image_url: `data:image/png;base64,${pngBase64}`,
+    });
+  });
+
+  it('throws for top-level-only application with URL source', () => {
+    expect(() =>
+      convertToMistralChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'application',
+              data: {
+                type: 'url',
+                url: new URL('https://example.com/x.pdf'),
+              },
+            },
+          ],
+        },
+      ]),
+    ).toThrow('Only images and PDF file parts are supported');
+  });
+
+  it('normalizes image/* wildcard via detection', () => {
+    const result = convertToMistralChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            mediaType: 'image/*',
+            data: { type: 'data', data: pngBase64 },
+          },
+        ],
+      },
+    ]);
+
+    expect((result[0].content as unknown[])[0]).toEqual({
+      type: 'image_url',
+      image_url: `data:image/png;base64,${pngBase64}`,
+    });
   });
 });

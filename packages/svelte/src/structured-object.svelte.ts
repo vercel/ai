@@ -1,28 +1,26 @@
 import {
   generateId,
   isAbortError,
+  normalizeHeaders,
   safeValidateTypes,
   type FetchFunction,
-  type InferSchema,
 } from '@ai-sdk/provider-utils';
 import {
   asSchema,
   isDeepEqualData,
   parsePartialJson,
   type DeepPartial,
-  type Schema,
+  type FlexibleSchema,
+  type InferSchema,
 } from 'ai';
-import type * as z3 from 'zod/v3';
-import type * as z4 from 'zod/v4';
 import {
   getStructuredObjectContext,
   hasStructuredObjectContext,
   KeyedStructuredObjectStore,
   type StructuredObjectStore,
 } from './structured-object-context.svelte.js';
-
-export type Experimental_StructuredObjectOptions<
-  SCHEMA extends z3.Schema | z4.core.$ZodType | Schema,
+export type StructuredObjectOptions<
+  SCHEMA extends FlexibleSchema,
   RESULT = InferSchema<SCHEMA>,
 > = {
   /**
@@ -31,7 +29,7 @@ export type Experimental_StructuredObjectOptions<
   api: string;
 
   /**
-   * A Zod schema that defines the shape of the complete object.
+   * A schema that defines the shape of the complete object.
    */
   schema: SCHEMA;
 
@@ -88,12 +86,12 @@ export type Experimental_StructuredObjectOptions<
 };
 
 export class StructuredObject<
-  SCHEMA extends z3.Schema | z4.core.$ZodType | Schema,
+  SCHEMA extends FlexibleSchema,
   RESULT = InferSchema<SCHEMA>,
   INPUT = unknown,
 > {
-  #options: Experimental_StructuredObjectOptions<SCHEMA, RESULT> =
-    {} as Experimental_StructuredObjectOptions<SCHEMA, RESULT>;
+  #options: StructuredObjectOptions<SCHEMA, RESULT> =
+    {} as StructuredObjectOptions<SCHEMA, RESULT>;
   readonly #id = $derived(this.#options.id ?? generateId());
   readonly #keyedStore = $state<KeyedStructuredObjectStore>()!;
   readonly #store = $derived(
@@ -123,7 +121,7 @@ export class StructuredObject<
     return this.#store.loading;
   }
 
-  constructor(options: Experimental_StructuredObjectOptions<SCHEMA, RESULT>) {
+  constructor(options: StructuredObjectOptions<SCHEMA, RESULT>) {
     if (hasStructuredObjectContext()) {
       this.#keyedStore = getStructuredObjectContext();
     } else {
@@ -164,7 +162,7 @@ export class StructuredObject<
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...this.#options.headers,
+          ...normalizeHeaders(this.#options.headers),
         },
         credentials: this.#options.credentials,
         signal: abortController.signal,
@@ -173,7 +171,7 @@ export class StructuredObject<
 
       if (!response.ok) {
         throw new Error(
-          (await response.text()) ?? 'Failed to fetch the response.',
+          (await response.text()) || 'Failed to fetch the response.',
         );
       }
 

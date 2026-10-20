@@ -1,7 +1,7 @@
-import { SharedV2ProviderMetadata } from '../../shared';
+import type { SharedV3ProviderMetadata } from '../../shared';
 
 /**
-Reasoning that the model has generated.
+ * Reasoning that the model has generated.
  */
 export type LanguageModelV3Reasoning = {
   type: 'reasoning';
@@ -10,5 +10,5 @@ export type LanguageModelV3Reasoning = {
   /**
    * Optional provider-specific metadata for the reasoning part.
    */
-  providerMetadata?: SharedV2ProviderMetadata;
+  providerMetadata?: SharedV3ProviderMetadata;
 };

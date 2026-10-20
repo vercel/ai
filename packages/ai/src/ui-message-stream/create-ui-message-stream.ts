@@ -1,23 +1,43 @@
 import {
   generateId as generateIdFunc,
-  getErrorMessage,
-  IdGenerator,
+  type IdGenerator,
 } from '@ai-sdk/provider-utils';
-import { UIMessage } from '../ui/ui-messages';
+import type { UIMessage } from '../ui/ui-messages';
 import { handleUIMessageStreamFinish } from './handle-ui-message-stream-finish';
-import { InferUIMessageChunk } from './ui-message-chunks';
-import { UIMessageStreamOnFinishCallback } from './ui-message-stream-on-finish-callback';
-import { UIMessageStreamWriter } from './ui-message-stream-writer';
+import type { InferUIMessageChunk } from './ui-message-chunks';
+import type { UIMessageStreamOnEndCallback } from './ui-message-stream-on-end-callback';
+import type { UIMessageStreamOutcome } from './ui-message-stream-outcome';
+import type { UIMessageStreamOnStepEndCallback } from './ui-message-stream-on-step-end-callback';
+import type { UIMessageStreamOnStepFinishCallback } from './ui-message-stream-on-step-finish-callback';
+import type { UIMessageStreamWriterWithOutcome } from './ui-message-stream-writer';
 
+/**
+ * Creates a UI message stream that can be used to send messages to the client.
+ *
+ * @param options.execute - A function that is called with a writer to write UI message chunks to the stream.
+ * @param options.onError - A function that extracts an error message from an error. Defaults to `() => 'An error occurred.'` so server-side error details are not leaked to the client; supply your own to surface richer messages.
+ * @param options.originalMessages - The original messages. If provided, persistence mode is assumed
+ *   and a message ID is provided for the response message.
+ * @param options.onStepEnd - A callback that is called when each step ends. Useful for persisting intermediate messages.
+ * @param options.onStepFinish - Deprecated alias for `onStepEnd`.
+ * @param options.onEnd - A callback that is called when the stream ends.
+ * @param options.onFinish - Deprecated alias for `onEnd`.
+ * @param options.generateId - A function that generates a unique ID. Defaults to the built-in ID generator.
+ *
+ * @returns A `ReadableStream` of UI message chunks.
+ */
 export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
   execute,
-  onError = getErrorMessage,
+  onError = () => 'An error occurred.', // prevent leaking server error details to the client by default
   originalMessages,
+  onStepEnd,
+  onStepFinish,
+  onEnd,
   onFinish,
   generateId = generateIdFunc,
 }: {
   execute: (options: {
-    writer: UIMessageStreamWriter<UI_MESSAGE>;
+    writer: UIMessageStreamWriterWithOutcome<UI_MESSAGE>;
   }) => Promise<void> | void;
   onError?: (error: unknown) => string;
 
@@ -27,7 +47,24 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
    */
   originalMessages?: UI_MESSAGE[];
 
-  onFinish?: UIMessageStreamOnFinishCallback<UI_MESSAGE>;
+  /**
+   * Callback that is called when each step ends during multi-step agent runs.
+   */
+  onStepEnd?: UIMessageStreamOnStepEndCallback<UI_MESSAGE>;
+
+  /**
+   * Callback that is called when each step ends during multi-step agent runs.
+   *
+   * @deprecated Use `onStepEnd` instead.
+   */
+  onStepFinish?: UIMessageStreamOnStepFinishCallback<UI_MESSAGE>;
+
+  onEnd?: UIMessageStreamOnEndCallback<UI_MESSAGE>;
+
+  /**
+   * @deprecated Use `onEnd` instead.
+   */
+  onFinish?: UIMessageStreamOnEndCallback<UI_MESSAGE>;
 
   generateId?: IdGenerator;
 }): ReadableStream<InferUIMessageChunk<UI_MESSAGE>> {
@@ -36,19 +73,69 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
   >;
 
   const ongoingStreamPromises: Promise<void>[] = [];
+  const activeReaders = new Set<
+    ReadableStreamDefaultReader<InferUIMessageChunk<UI_MESSAGE>>
+  >();
+  let isCancelled = false;
+  let cancelReason: unknown;
+  let outcome: UIMessageStreamOutcome = { status: 'unknown' };
 
   const stream = new ReadableStream({
     start(controllerArg) {
       controller = controllerArg;
+    },
+    async cancel(reason) {
+      isCancelled = true;
+      cancelReason = reason;
+
+      await Promise.all(
+        Array.from(activeReaders, reader => reader.cancel(reason)),
+      );
     },
   });
 
   function safeEnqueue(data: InferUIMessageChunk<UI_MESSAGE>) {
     try {
       controller.enqueue(data);
-    } catch (error) {
+    } catch {
       // suppress errors when the stream has been closed
     }
+  }
+
+  function setOutcome(newOutcome: UIMessageStreamOutcome) {
+    if (outcome.status === 'unknown' && newOutcome.status !== 'unknown') {
+      outcome = newOutcome;
+    }
+  }
+
+  function failOutcome(error: unknown) {
+    outcome = { status: 'failed', error };
+  }
+
+  function safeError(error: unknown) {
+    try {
+      controller.error(error);
+    } catch {
+      // suppress errors when the stream has been closed
+    }
+  }
+
+  function handleError(error: unknown) {
+    failOutcome(error);
+
+    let errorText: string;
+    try {
+      errorText = onError(error);
+    } catch (onErrorError) {
+      failOutcome(onErrorError);
+      safeError(onErrorError);
+      return;
+    }
+
+    safeEnqueue({
+      type: 'error',
+      errorText,
+    } as InferUIMessageChunk<UI_MESSAGE>);
   }
 
   try {
@@ -58,22 +145,32 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
           safeEnqueue(part);
         },
         merge(streamArg) {
+          if (isCancelled) {
+            void streamArg.cancel(cancelReason).catch(() => {});
+            return;
+          }
+
           ongoingStreamPromises.push(
             (async () => {
               const reader = streamArg.getReader();
-              while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                safeEnqueue(value);
+              activeReaders.add(reader);
+
+              try {
+                while (true) {
+                  const { done, value } = await reader.read();
+                  if (done) break;
+                  safeEnqueue(value);
+                }
+              } finally {
+                activeReaders.delete(reader);
+                reader.releaseLock();
               }
             })().catch(error => {
-              safeEnqueue({
-                type: 'error',
-                errorText: onError(error),
-              } as InferUIMessageChunk<UI_MESSAGE>);
+              handleError(error);
             }),
           );
         },
+        setOutcome,
         onError,
       },
     });
@@ -81,35 +178,28 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
     if (result) {
       ongoingStreamPromises.push(
         result.catch(error => {
-          safeEnqueue({
-            type: 'error',
-            errorText: onError(error),
-          } as InferUIMessageChunk<UI_MESSAGE>);
+          handleError(error);
         }),
       );
     }
   } catch (error) {
-    safeEnqueue({
-      type: 'error',
-      errorText: onError(error),
-    } as InferUIMessageChunk<UI_MESSAGE>);
+    handleError(error);
   }
 
   // Wait until all ongoing streams are done. This approach enables merging
   // streams even after execute has returned, as long as there is still an
   // open merged stream. This is important to e.g. forward new streams and
   // from callbacks.
-  const waitForStreams: Promise<void> = new Promise(async resolve => {
+  const waitForStreams: Promise<void> = (async () => {
     while (ongoingStreamPromises.length > 0) {
       await ongoingStreamPromises.shift();
     }
-    resolve();
-  });
+  })();
 
   waitForStreams.finally(() => {
     try {
       controller.close();
-    } catch (error) {
+    } catch {
       // suppress errors when the stream has been closed
     }
   });
@@ -118,7 +208,9 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
     stream,
     messageId: generateId(),
     originalMessages,
-    onFinish,
+    onStepEnd: onStepEnd ?? onStepFinish,
+    onEnd: onEnd ?? onFinish,
     onError,
+    getOutcome: () => outcome,
   });
 }

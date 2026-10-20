@@ -1,188 +1,219 @@
-import { IdGenerator, ProviderOptions } from '@ai-sdk/provider-utils';
-import {
-  generateText,
+import type {
+  Arrayable,
+  Context,
+  Experimental_SandboxSession as SandboxSession,
+  ModelMessage,
+  ToolSet,
+} from '@ai-sdk/provider-utils';
+import type {
+  GenerateTextOnEndCallback,
+  GenerateTextOnStartCallback,
+  GenerateTextOnStepEndCallback,
   GenerateTextOnStepFinishCallback,
-} from '../generate-text/generate-text';
-import { GenerateTextResult } from '../generate-text/generate-text-result';
-import { Output } from '../generate-text/output';
-import { PrepareStepFunction } from '../generate-text/prepare-step';
-import { StopCondition } from '../generate-text/stop-condition';
-import { streamText } from '../generate-text/stream-text';
-import { StreamTextResult } from '../generate-text/stream-text-result';
-import { ToolCallRepairFunction } from '../generate-text/tool-call-repair-function';
-import { ToolSet } from '../generate-text/tool-set';
-import { CallSettings } from '../prompt/call-settings';
-import { Prompt } from '../prompt/prompt';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { LanguageModel, ToolChoice } from '../types/language-model';
-import { ProviderMetadata } from '../types/provider-metadata';
-import { convertToModelMessages } from '../ui/convert-to-model-messages';
-import { InferUITools, UIMessage } from '../ui/ui-messages';
-
-export type AgentSettings<
-  TOOLS extends ToolSet,
-  OUTPUT = never,
-  OUTPUT_PARTIAL = never,
-> = CallSettings & {
-  /**
-   * The system prompt to use.
-   */
-  system?: string;
-
-  /**
-The language model to use.
-   */
-  model: LanguageModel;
-
-  /**
-The tools that the model can call. The model needs to support calling tools.
-*/
-  tools?: TOOLS;
-
-  /**
-The tool choice strategy. Default: 'auto'.
-   */
-  toolChoice?: ToolChoice<NoInfer<TOOLS>>;
-
-  /**
-Condition for stopping the generation when there are tool results in the last step.
-When the condition is an array, any of the conditions can be met to stop the generation.
-
-@default stepCountIs(1)
-   */
-  stopWhen?:
-    | StopCondition<NoInfer<TOOLS>>
-    | Array<StopCondition<NoInfer<TOOLS>>>;
-
-  /**
-Optional telemetry configuration (experimental).
-   */
-  experimental_telemetry?: TelemetrySettings;
-
-  /**
-Limits the tools that are available for the model to call without
-changing the tool call and result types in the result.
-   */
-  activeTools?: Array<keyof NoInfer<TOOLS>>;
-
-  /**
-Optional specification for parsing structured outputs from the LLM response.
-   */
-  experimental_output?: Output<OUTPUT, OUTPUT_PARTIAL>;
-
-  /**
-   * @deprecated Use `prepareStep` instead.
-   */
-  experimental_prepareStep?: PrepareStepFunction<NoInfer<TOOLS>>;
-
-  /**
-Optional function that you can use to provide different settings for a step.
-  */
-  prepareStep?: PrepareStepFunction<NoInfer<TOOLS>>;
-
-  /**
-A function that attempts to repair a tool call that failed to parse.
-   */
-  experimental_repairToolCall?: ToolCallRepairFunction<NoInfer<TOOLS>>;
-
-  /**
-  Callback that is called when each step (LLM call) is finished, including intermediate steps.
-  */
-  onStepFinish?: GenerateTextOnStepFinishCallback<NoInfer<TOOLS>>;
-
-  /**
-   * Context that is passed into tool calls.
-   *
-   * Experimental (can break in patch releases).
-   *
-   * @default undefined
-   */
-  experimental_context?: unknown;
-
-  /**
-   * Internal. For test use only. May change without notice.
-   */
-  _internal?: {
-    generateId?: IdGenerator;
-    currentDate?: () => Date;
-  };
-};
-
-export class Agent<
-  TOOLS extends ToolSet,
-  OUTPUT = never,
-  OUTPUT_PARTIAL = never,
-> {
-  private readonly settings: AgentSettings<TOOLS, OUTPUT, OUTPUT_PARTIAL>;
-
-  constructor(settings: AgentSettings<TOOLS, OUTPUT, OUTPUT_PARTIAL>) {
-    this.settings = settings;
-  }
-
-  get tools(): TOOLS {
-    return this.settings.tools as TOOLS;
-  }
-
-  async generate(
-    options: Prompt & {
-      /**
-Additional provider-specific metadata. They are passed through
-from the provider to the AI SDK and enable provider-specific
-results that can be fully encapsulated in the provider.
-   */
-      providerMetadata?: ProviderMetadata;
-      /**
-Additional provider-specific metadata. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
-         */
-      providerOptions?: ProviderOptions;
-    },
-  ): Promise<GenerateTextResult<TOOLS, OUTPUT>> {
-    return generateText({ ...this.settings, ...options });
-  }
-
-  stream(
-    options: Prompt & {
-      /**
-Additional provider-specific metadata. They are passed through
-from the provider to the AI SDK and enable provider-specific
-results that can be fully encapsulated in the provider.
-   */
-      providerMetadata?: ProviderMetadata;
-      /**
-Additional provider-specific metadata. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
-         */
-      providerOptions?: ProviderOptions;
-    },
-  ): StreamTextResult<TOOLS, OUTPUT_PARTIAL> {
-    return streamText({ ...this.settings, ...options });
-  }
-
-  /**
-   * Creates a response object that streams UI messages to the client.
-   */
-  respond(options: {
-    messages: UIMessage<never, never, InferUITools<TOOLS>>[];
-  }): Response {
-    return this.stream({
-      prompt: convertToModelMessages(options.messages),
-    }).toUIMessageStreamResponse<
-      UIMessage<never, never, InferUITools<TOOLS>>
-    >();
-  }
-}
-
-type InferAgentTools<AGENT> =
-  AGENT extends Agent<infer TOOLS, any, any> ? TOOLS : never;
+  GenerateTextOnStepStartCallback,
+} from '../generate-text/generate-text-events';
+import type { GenerateTextResult } from '../generate-text/generate-text-result';
+import type { Output } from '../generate-text/output';
+import type { StreamTextTransform } from '../generate-text/stream-text';
+import type { StreamTextResult } from '../generate-text/stream-text-result';
+import type {
+  OnToolExecutionEndCallback,
+  OnToolExecutionStartCallback,
+} from '../generate-text/tool-execution-events';
+import type { TimeoutConfiguration } from '../prompt/request-options';
 
 /**
- * Infer the UI message type of an agent.
+ * Parameters for calling an agent.
  */
-export type InferAgentUIMessage<AGENT> = UIMessage<
-  never,
-  never,
-  InferUITools<InferAgentTools<AGENT>>
->;
+export type AgentCallParameters<
+  CALL_OPTIONS,
+  TOOLS extends ToolSet = {},
+  RUNTIME_CONTEXT extends Context = Context,
+> = ([CALL_OPTIONS] extends [never]
+  ? { options?: never }
+  : { options: CALL_OPTIONS }) &
+  (
+    | {
+        /**
+         * A prompt. It can be either a text prompt or a list of messages.
+         *
+         * You can either use `prompt` or `messages` but not both.
+         */
+        prompt: string | Array<ModelMessage>;
+
+        /**
+         * A list of messages.
+         *
+         * You can either use `prompt` or `messages` but not both.
+         */
+        messages?: never;
+      }
+    | {
+        /**
+         * A list of messages.
+         *
+         * You can either use `prompt` or `messages` but not both.
+         */
+        messages: Array<ModelMessage>;
+
+        /**
+         * A prompt. It can be either a text prompt or a list of messages.
+         *
+         * You can either use `prompt` or `messages` but not both.
+         */
+        prompt?: never;
+      }
+  ) & {
+    /**
+     * Abort signal.
+     */
+    abortSignal?: AbortSignal;
+
+    /**
+     * Timeout in milliseconds. Can be specified as a number or as an object
+     * with total, per-step, first-content, inter-content, and tool timeouts.
+     * First-content and inter-content timeouts are only enforced by streaming
+     * calls.
+     */
+    timeout?: TimeoutConfiguration<TOOLS>;
+
+    /**
+     * Callback that is called when the agent operation begins, before any LLM calls.
+     */
+    onStart?: GenerateTextOnStartCallback<TOOLS, RUNTIME_CONTEXT>;
+
+    /**
+     * Callback that is called when the agent operation begins, before any LLM calls.
+     *
+     * @deprecated Use `onStart` instead.
+     */
+    experimental_onStart?: GenerateTextOnStartCallback<TOOLS, RUNTIME_CONTEXT>;
+
+    /**
+     * Callback that is called when a step (LLM call) begins, before the provider is called.
+     */
+    onStepStart?: GenerateTextOnStepStartCallback<TOOLS, RUNTIME_CONTEXT>;
+
+    /**
+     * Callback that is called when a step (LLM call) begins, before the provider is called.
+     *
+     * @deprecated Use `onStepStart` instead.
+     */
+    experimental_onStepStart?: GenerateTextOnStepStartCallback<
+      TOOLS,
+      RUNTIME_CONTEXT
+    >;
+
+    /**
+     * Callback that is called before each tool execution begins.
+     */
+    onToolExecutionStart?: OnToolExecutionStartCallback<TOOLS>;
+
+    /**
+     * Callback that is called before each tool execution begins.
+     *
+     * @deprecated Use `onToolExecutionStart` instead.
+     */
+    experimental_onToolCallStart?: OnToolExecutionStartCallback<TOOLS>;
+
+    /**
+     * Callback that is called after each tool execution completes.
+     */
+    onToolExecutionEnd?: OnToolExecutionEndCallback<TOOLS>;
+
+    /**
+     * Callback that is called after each tool execution completes.
+     *
+     * @deprecated Use `onToolExecutionEnd` instead.
+     */
+    experimental_onToolCallFinish?: OnToolExecutionEndCallback<TOOLS>;
+
+    /**
+     * Callback that is called when each step (LLM call) ends, including intermediate steps.
+     */
+    onStepEnd?: GenerateTextOnStepEndCallback<TOOLS, RUNTIME_CONTEXT>;
+
+    /**
+     * Callback that is called when each step (LLM call) ends, including intermediate steps.
+     *
+     * @deprecated Use `onStepEnd` instead.
+     */
+    onStepFinish?: GenerateTextOnStepFinishCallback<TOOLS, RUNTIME_CONTEXT>;
+
+    /**
+     * Callback that is called when all steps are finished and the response is complete.
+     */
+    onEnd?: GenerateTextOnEndCallback<TOOLS, RUNTIME_CONTEXT>;
+
+    /**
+     * Callback that is called when all steps are finished and the response is complete.
+     *
+     * @deprecated Use `onEnd` instead.
+     */
+    onFinish?: GenerateTextOnEndCallback<TOOLS, RUNTIME_CONTEXT>;
+
+    /**
+     * The sandbox environment that is passed through to tool execution.
+     */
+    experimental_sandbox?: SandboxSession;
+  };
+
+/**
+ * Parameters for streaming an output from an agent.
+ */
+export type AgentStreamParameters<
+  CALL_OPTIONS,
+  TOOLS extends ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+> = AgentCallParameters<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT> & {
+  /**
+   * Optional stream transformations.
+   * They are applied in the order they are provided.
+   * The stream transformations must maintain the stream structure for streamText to work correctly.
+   */
+  experimental_transform?: Arrayable<StreamTextTransform<TOOLS>>;
+};
+
+/**
+ * An Agent receives a prompt (text or messages) and generates or streams an output
+ * that consists of steps, tool calls, data parts, etc.
+ *
+ * You can implement your own Agent by implementing the `Agent` interface,
+ * or use the `ToolLoopAgent` class.
+ */
+export interface Agent<
+  CALL_OPTIONS = never,
+  TOOLS extends ToolSet = {},
+  RUNTIME_CONTEXT extends Context = Context,
+  OUTPUT extends Output = never,
+> {
+  /**
+   * The specification version of the agent interface. This will enable
+   * us to evolve the agent interface and retain backwards compatibility.
+   */
+  readonly version: 'agent-v1';
+
+  /**
+   * The id of the agent.
+   */
+  readonly id: string | undefined;
+
+  /**
+   * The tools that the agent can use.
+   */
+  readonly tools: TOOLS;
+
+  /**
+   * Generates an output from the agent (non-streaming).
+   */
+  generate(
+    options: AgentCallParameters<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT>,
+  ): PromiseLike<GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>>;
+
+  /**
+   * Streams an output from the agent (streaming).
+   */
+  stream(
+    options: AgentStreamParameters<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT>,
+  ): PromiseLike<StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>>;
+}

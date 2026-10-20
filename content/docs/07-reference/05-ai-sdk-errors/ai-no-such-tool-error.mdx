@@ -10,8 +10,8 @@ This error occurs when a model tries to call an unavailable tool.
 ## Properties
 
 - `toolName`: The name of the tool that was not found
-- `availableTools`: Array of available tool names
-- `message`: The error message
+- `availableTools`: Array of available tool names (optional)
+- `message`: The error message (optional, auto-generated from `toolName` and `availableTools`)
 
 ## Checking for this Error
 

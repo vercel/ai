@@ -1,4 +1,4 @@
-import { UIDataTypes, UIMessage } from 'ai';
+import type { UIDataTypes, UIMessage } from 'ai';
 import { z } from 'zod';
 
 export const myMessageMetadataSchema = z.object({
@@ -14,4 +14,5 @@ export type ChatData = {
   messages: MyUIMessage[];
   createdAt: number;
   activeStreamId: string | null;
+  canceledAt: number | null;
 };

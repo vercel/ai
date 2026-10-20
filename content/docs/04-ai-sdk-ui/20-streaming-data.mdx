@@ -49,11 +49,13 @@ In your server-side route handler, you can create a `UIMessageStream` and then p
 ```tsx filename="route.ts"
 import { openai } from '@ai-sdk/openai';
 import {
+  convertToModelMessages,
   createUIMessageStream,
   createUIMessageStreamResponse,
   streamText,
-  convertToModelMessages,
+  toUIMessageStream,
 } from 'ai';
+__PROVIDER_IMPORT__;
 import type { MyUIMessage } from '@/ai/types';
 
 export async function POST(req: Request) {
@@ -61,14 +63,17 @@ export async function POST(req: Request) {
 
   const stream = createUIMessageStream<MyUIMessage>({
     execute: ({ writer }) => {
-      // 1. Send initial status (transient - won't be added to message history)
+      // 1. Start the assistant message before writing any message parts.
+      writer.write({ type: 'start' });
+
+      // 2. Send initial status (transient - won't be added to message history)
       writer.write({
         type: 'data-notification',
         data: { message: 'Processing your request...', level: 'info' },
         transient: true, // This part won't be added to message history
       });
 
-      // 2. Send sources (useful for RAG use cases)
+      // 3. Send sources (useful for RAG use cases)
       writer.write({
         type: 'source',
         value: {
@@ -80,7 +85,7 @@ export async function POST(req: Request) {
         },
       });
 
-      // 3. Send data parts with loading state
+      // 4. Send data parts with loading state
       writer.write({
         type: 'data-weather',
         id: 'weather-1',
@@ -88,10 +93,10 @@ export async function POST(req: Request) {
       });
 
       const result = streamText({
-        model: openai('gpt-4.1'),
-        messages: convertToModelMessages(messages),
-        onFinish() {
-          // 4. Update the same data part (reconciliation)
+        model: __MODEL__,
+        messages: await convertToModelMessages(messages),
+        onEnd() {
+          // 5. Update the same data part (reconciliation)
           writer.write({
             type: 'data-weather',
             id: 'weather-1', // Same ID = update existing part
@@ -102,7 +107,7 @@ export async function POST(req: Request) {
             },
           });
 
-          // 5. Send completion notification (transient)
+          // 6. Send completion notification (transient)
           writer.write({
             type: 'data-notification',
             data: { message: 'Request completed', level: 'info' },
@@ -111,7 +116,9 @@ export async function POST(req: Request) {
         },
       });
 
-      writer.merge(result.toUIMessageStream());
+      writer.merge(
+        toUIMessageStream({ stream: result.stream, sendStart: false }),
+      );
     },
   });
 
@@ -122,7 +129,7 @@ export async function POST(req: Request) {
 <Note>
   You can also send stream data from custom backends, e.g. Python / FastAPI,
   using the [UI Message Stream
-  Protocol](/docs/ai-sdk-ui/stream-protocol#ui-message-stream-protocol).
+  Protocol](/docs/ai-sdk-ui/stream-protocol#data-stream-protocol).
 </Note>
 
 ## Types of Streamable Data
@@ -355,22 +362,25 @@ Both [message metadata](/docs/ai-sdk-ui/message-metadata) and data parts allow y
 Message metadata is best for **message-level information** that describes the message as a whole:
 
 - Attached at the message level via `message.metadata`
-- Sent using the `messageMetadata` callback in `toUIMessageStreamResponse`
+- Sent using the `messageMetadata` callback in `toUIMessageStream`
 - Ideal for: timestamps, model info, token usage, user context
 - Type-safe with custom metadata types
 
 ```ts
 // Server: Send metadata about the message
-return result.toUIMessageStreamResponse({
-  messageMetadata: ({ part }) => {
-    if (part.type === 'finish') {
-      return {
-        model: part.response.modelId,
-        totalTokens: part.totalUsage.totalTokens,
-        createdAt: Date.now(),
-      };
-    }
-  },
+return createUIMessageStreamResponse({
+  stream: toUIMessageStream({
+    stream: result.stream,
+    messageMetadata: ({ part }) => {
+      if (part.type === 'finish') {
+        return {
+          model: part.response.modelId,
+          totalTokens: part.totalUsage.totalTokens,
+          createdAt: Date.now(),
+        };
+      }
+    },
+  }),
 });
 ```
 

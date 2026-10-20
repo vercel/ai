@@ -1,8 +1,16 @@
-import { APICallError, EmptyResponseBodyError } from '@ai-sdk/provider';
-import { ZodType } from 'zod/v4';
+import {
+  APICallError,
+  EmptyResponseBodyError,
+  InvalidArgumentError,
+} from '@ai-sdk/provider';
+import { DownloadError } from './download-error';
 import { extractResponseHeaders } from './extract-response-headers';
-import { parseJSON, ParseResult, safeParseJSON } from './parse-json';
+import { handleFetchError } from './handle-fetch-error';
+import { isAbortError } from './is-abort-error';
+import { parseJSON, safeParseJSON, type ParseResult } from './parse-json';
 import { parseJsonEventStream } from './parse-json-event-stream';
+import { readResponseWithSizeLimit } from './read-response-with-size-limit';
+import type { FlexibleSchema } from './schema';
 
 export type ResponseHandler<RETURN_TYPE> = (options: {
   url: string;
@@ -14,18 +22,105 @@ export type ResponseHandler<RETURN_TYPE> = (options: {
   responseHeaders?: Record<string, string>;
 }>;
 
+const textDecoder = new TextDecoder();
+
+const DEFAULT_MAX_JSON_LINE_BYTES = 64 * 1024 * 1024;
+
+function wrapResponseBodyStream({
+  stream,
+  url,
+  requestBodyValues,
+  statusCode,
+  responseHeaders,
+}: {
+  stream: ReadableStream<Uint8Array>;
+  url: string;
+  requestBodyValues: unknown;
+  statusCode: number;
+  responseHeaders: Record<string, string>;
+}): ReadableStream<Uint8Array> {
+  const reader = stream.getReader();
+  let readerReleased = false;
+
+  const releaseReader = () => {
+    if (!readerReleased) {
+      reader.releaseLock();
+      readerReleased = true;
+    }
+  };
+
+  return new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      try {
+        const { done, value } = await reader.read();
+
+        if (done) {
+          releaseReader();
+          controller.close();
+        } else {
+          controller.enqueue(value);
+        }
+      } catch (error) {
+        releaseReader();
+
+        if (isAbortError(error)) {
+          controller.error(error);
+          return;
+        }
+
+        controller.error(
+          handleFetchError({
+            error: new APICallError({
+              message: 'Failed to process successful response',
+              cause: error,
+              statusCode,
+              url,
+              responseHeaders,
+              requestBodyValues,
+            }),
+            url,
+            requestBodyValues,
+          }),
+        );
+      }
+    },
+    async cancel(reason) {
+      try {
+        await reader.cancel(reason);
+      } finally {
+        releaseReader();
+      }
+    },
+  });
+}
+
+async function readResponseBodyAsText({
+  response,
+  url,
+}: {
+  response: Response;
+  url: string;
+}) {
+  return textDecoder.decode(
+    await readResponseWithSizeLimit({
+      response,
+      url,
+    }),
+  );
+}
+
 export const createJsonErrorResponseHandler =
   <T>({
     errorSchema,
     errorToMessage,
     isRetryable,
   }: {
-    errorSchema: ZodType<T>;
+    errorSchema: FlexibleSchema<T>;
     errorToMessage: (error: T) => string;
     isRetryable?: (response: Response, error?: T) => boolean;
   }): ResponseHandler<APICallError> =>
   async ({ response, url, requestBodyValues }) => {
-    const responseBody = await response.text();
+    const responseBody = await readResponseBodyAsText({ response, url });
     const responseHeaders = extractResponseHeaders(response);
 
     // Some providers return an empty response body for some errors:
@@ -64,7 +159,7 @@ export const createJsonErrorResponseHandler =
           isRetryable: isRetryable?.(response, parsedError),
         }),
       };
-    } catch (parseError) {
+    } catch {
       return {
         responseHeaders,
         value: new APICallError({
@@ -82,9 +177,9 @@ export const createJsonErrorResponseHandler =
 
 export const createEventSourceResponseHandler =
   <T>(
-    chunkSchema: ZodType<T>,
+    chunkSchema: FlexibleSchema<T>,
   ): ResponseHandler<ReadableStream<ParseResult<T>>> =>
-  async ({ response }: { response: Response }) => {
+  async ({ response, url, requestBodyValues }) => {
     const responseHeaders = extractResponseHeaders(response);
 
     if (response.body == null) {
@@ -94,51 +189,22 @@ export const createEventSourceResponseHandler =
     return {
       responseHeaders,
       value: parseJsonEventStream({
-        stream: response.body,
+        stream: wrapResponseBodyStream({
+          stream: response.body,
+          url,
+          requestBodyValues,
+          statusCode: response.status,
+          responseHeaders,
+        }),
         schema: chunkSchema,
       }),
     };
   };
 
-export const createJsonStreamResponseHandler =
-  <T>(
-    chunkSchema: ZodType<T>,
-  ): ResponseHandler<ReadableStream<ParseResult<T>>> =>
-  async ({ response }: { response: Response }) => {
-    const responseHeaders = extractResponseHeaders(response);
-
-    if (response.body == null) {
-      throw new EmptyResponseBodyError({});
-    }
-
-    let buffer = '';
-
-    return {
-      responseHeaders,
-      value: response.body.pipeThrough(new TextDecoderStream()).pipeThrough(
-        new TransformStream<string, ParseResult<T>>({
-          async transform(chunkText, controller) {
-            if (chunkText.endsWith('\n')) {
-              controller.enqueue(
-                await safeParseJSON({
-                  text: buffer + chunkText,
-                  schema: chunkSchema,
-                }),
-              );
-              buffer = '';
-            } else {
-              buffer += chunkText;
-            }
-          },
-        }),
-      ),
-    };
-  };
-
 export const createJsonResponseHandler =
-  <T>(responseSchema: ZodType<T>): ResponseHandler<T> =>
+  <T>(responseSchema: FlexibleSchema<T>): ResponseHandler<T> =>
   async ({ response, url, requestBodyValues }) => {
-    const responseBody = await response.text();
+    const responseBody = await readResponseBodyAsText({ response, url });
 
     const parsedResult = await safeParseJSON({
       text: responseBody,
@@ -165,6 +231,111 @@ export const createJsonResponseHandler =
       rawValue: parsedResult.rawValue,
     };
   };
+
+export const createJsonLinesResponseHandler = <T>(
+  responseSchema: FlexibleSchema<T>,
+  {
+    maxLineBytes = DEFAULT_MAX_JSON_LINE_BYTES,
+  }: { maxLineBytes?: number } = {},
+): ResponseHandler<AsyncGenerator<T>> => {
+  if (!Number.isSafeInteger(maxLineBytes) || maxLineBytes <= 0) {
+    throw new InvalidArgumentError({
+      argument: 'maxLineBytes',
+      message: 'maxLineBytes must be a positive safe integer.',
+    });
+  }
+
+  return async ({ response, url }) => {
+    const responseHeaders = extractResponseHeaders(response);
+
+    if (response.body == null) {
+      throw new EmptyResponseBodyError({});
+    }
+
+    return {
+      responseHeaders,
+      value: parseJsonLines({
+        stream: response.body,
+        schema: responseSchema,
+        url,
+        maxLineBytes,
+      }),
+    };
+  };
+};
+
+async function* parseJsonLines<T>({
+  stream,
+  schema,
+  url,
+  maxLineBytes,
+}: {
+  stream: ReadableStream<Uint8Array>;
+  schema: FlexibleSchema<T>;
+  url: string;
+  maxLineBytes: number;
+}): AsyncGenerator<T> {
+  const reader = stream.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let lineBytes = 0;
+  let finished = false;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+
+      if (done) {
+        finished = true;
+        buffer += decoder.decode();
+        break;
+      }
+
+      let offset = 0;
+      while (offset < value.length) {
+        const lineEnd = value.indexOf(10, offset);
+        const segmentEnd = lineEnd === -1 ? value.length : lineEnd;
+
+        // Bound each line before decoding it, excluding the newline byte.
+        lineBytes += segmentEnd - offset;
+        if (lineBytes > maxLineBytes) {
+          throw new DownloadError({
+            message: `JSON Lines response exceeded maximum line size of ${maxLineBytes} bytes.`,
+            url,
+          });
+        }
+
+        const decodeEnd = lineEnd === -1 ? segmentEnd : lineEnd + 1;
+        buffer += decoder.decode(value.subarray(offset, decodeEnd), {
+          stream: true,
+        });
+
+        if (lineEnd === -1) {
+          break;
+        }
+
+        const line = buffer.slice(0, -1).replace(/\r$/, '');
+        buffer = '';
+        lineBytes = 0;
+        offset = decodeEnd;
+
+        if (line.trim().length > 0) {
+          yield await parseJSON({ text: line, schema });
+        }
+      }
+    }
+
+    const finalLine = buffer.replace(/\r$/, '');
+    if (finalLine.trim().length > 0) {
+      yield await parseJSON({ text: finalLine, schema });
+    }
+  } finally {
+    if (!finished) {
+      await reader.cancel().catch(() => {});
+    }
+    reader.releaseLock();
+  }
+}
 
 export const createBinaryResponseHandler =
   (): ResponseHandler<Uint8Array> =>
@@ -201,11 +372,37 @@ export const createBinaryResponseHandler =
     }
   };
 
+/**
+ * Passes the response body through as a `ReadableStream<Uint8Array>` without
+ * buffering it (unlike `createBinaryResponseHandler`). The consumer is
+ * responsible for draining or cancelling the stream.
+ */
+export const createBinaryStreamResponseHandler =
+  (): ResponseHandler<ReadableStream<Uint8Array>> =>
+  async ({ response, url, requestBodyValues }) => {
+    const responseHeaders = extractResponseHeaders(response);
+
+    if (response.body == null) {
+      throw new EmptyResponseBodyError({});
+    }
+
+    return {
+      responseHeaders,
+      value: wrapResponseBodyStream({
+        stream: response.body,
+        url,
+        requestBodyValues,
+        statusCode: response.status,
+        responseHeaders,
+      }),
+    };
+  };
+
 export const createStatusCodeErrorResponseHandler =
   (): ResponseHandler<APICallError> =>
   async ({ response, url, requestBodyValues }) => {
     const responseHeaders = extractResponseHeaders(response);
-    const responseBody = await response.text();
+    const responseBody = await readResponseBodyAsText({ response, url });
 
     return {
       responseHeaders,

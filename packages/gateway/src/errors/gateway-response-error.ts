@@ -1,5 +1,5 @@
+import type { TypeValidationError } from '@ai-sdk/provider';
 import { GatewayError } from './gateway-error';
-import type { ZodError } from 'zod/v4';
 
 const name = 'GatewayResponseError';
 const marker = `vercel.ai.gateway.error.${name}`;
@@ -14,7 +14,7 @@ export class GatewayResponseError extends GatewayError {
   readonly name = name;
   readonly type = 'response_error';
   readonly response?: unknown;
-  readonly validationError?: ZodError;
+  readonly validationError?: TypeValidationError;
 
   constructor({
     message = 'Invalid response from Gateway',
@@ -22,14 +22,18 @@ export class GatewayResponseError extends GatewayError {
     response,
     validationError,
     cause,
+    generationId,
+    isRetryable,
   }: {
     message?: string;
     statusCode?: number;
     response?: unknown;
-    validationError?: ZodError;
+    validationError?: TypeValidationError;
     cause?: unknown;
+    generationId?: string;
+    isRetryable?: boolean;
   } = {}) {
-    super({ message, statusCode, cause });
+    super({ message, statusCode, cause, generationId, isRetryable });
     this.response = response;
     this.validationError = validationError;
   }

@@ -1,33 +1,57 @@
 import { openai } from '@ai-sdk/openai';
 import { serve } from '@hono/node-server';
 import {
+  createAgentUIStreamResponse,
+  createTextStreamResponse,
   createUIMessageStream,
   createUIMessageStreamResponse,
   streamText,
+  toTextStream,
+  toUIMessageStream,
 } from 'ai';
 import 'dotenv/config';
 import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+import { openaiWebSearchAgent } from './openai-web-search-agent';
 
 const app = new Hono();
+
+// CORS setup to allow calls from localhost:3000
+app.use(
+  '/chat/*',
+  cors({
+    origin: 'http://localhost:3000',
+    allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Authorization'],
+    maxAge: 86400,
+  }),
+);
 
 app.post('/', async c => {
   console.log('POST /');
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 });
 
 app.post('/text', async c => {
+  console.log('POST /text');
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     prompt: 'Write a short poem about coding.',
   });
-  return result.toTextStreamResponse();
+  return createTextStreamResponse({
+    stream: toTextStream({ stream: result.stream }),
+  });
 });
 
 app.post('/stream-data', async c => {
+  console.log('POST /stream-data');
+
   // immediately start streaming the response
   const stream = createUIMessageStream({
     execute: ({ writer }) => {
@@ -41,12 +65,13 @@ app.post('/stream-data', async c => {
       });
 
       const result = streamText({
-        model: openai('gpt-4o'),
+        model: openai('gpt-6-astra'),
         prompt: 'Invent a new holiday and describe its traditions.',
       });
 
       writer.merge(
-        result.toUIMessageStream({
+        toUIMessageStream({
+          stream: result.stream,
           sendStart: false,
           onError: error => {
             // Error messages are masked by default for security reasons.
@@ -60,4 +85,19 @@ app.post('/stream-data', async c => {
   return createUIMessageStreamResponse({ stream });
 });
 
+// useChat example using Agent
+app.post('/chat', async c => {
+  console.log('POST /chat');
+
+  const { messages } = await c.req.json();
+
+  return createAgentUIStreamResponse({
+    agent: openaiWebSearchAgent,
+    uiMessages: messages,
+  });
+});
+
+app.get('/health', c => c.text('Hono AI SDK example server is running!'));
+
+console.log('Server starting on http://localhost:8080');
 serve({ fetch: app.fetch, port: 8080 });

@@ -1,11 +1,20 @@
-import { EmbeddingModelV3, EmbeddingModelV3Embedding } from '@ai-sdk/provider';
+import type {
+  EmbeddingModelV2,
+  EmbeddingModelV3,
+  EmbeddingModelV4,
+  EmbeddingModelV4Embedding,
+} from '@ai-sdk/provider';
 
 /**
-Embedding model that is used by the AI SDK Core functions.
-*/
-export type EmbeddingModel<VALUE = string> = string | EmbeddingModelV3<VALUE>;
-
-/**
-Embedding.
+ * Embedding model that is used by the AI SDK.
  */
-export type Embedding = EmbeddingModelV3Embedding;
+export type EmbeddingModel =
+  | string
+  | EmbeddingModelV4
+  | EmbeddingModelV3
+  | EmbeddingModelV2<string>;
+
+/**
+ * Embedding.
+ */
+export type Embedding = EmbeddingModelV4Embedding;

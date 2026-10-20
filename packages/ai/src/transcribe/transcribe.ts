@@ -1,33 +1,50 @@
-import { JSONValue, TranscriptionModelV2 } from '@ai-sdk/provider';
-import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
-import { NoTranscriptGeneratedError } from '../error/no-transcript-generated-error';
-import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
-import { logWarnings } from '../logger/log-warnings';
-import { DataContent } from '../prompt';
-import { convertDataContentToUint8Array } from '../prompt/data-content';
-import { TranscriptionWarning } from '../types/transcription-model';
-import { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
+import type { JSONObject } from '@ai-sdk/provider';
 import {
-  audioMediaTypeSignatures,
+  createIdGenerator,
   detectMediaType,
-} from '../util/detect-media-type';
-import { download } from '../util/download/download';
+  withUserAgentSuffix,
+  type ProviderOptions,
+} from '@ai-sdk/provider-utils';
+import { NoTranscriptGeneratedError } from '../error/no-transcript-generated-error';
+import { logWarnings } from '../logger/log-warnings';
+import { resolveTranscriptionModel } from '../model/resolve-model';
+import type { DataContent } from '../prompt';
+import { convertDataContentToUint8Array } from '../prompt/data-content';
+import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
+import type { TelemetryOptions } from '../telemetry/telemetry-options';
+import type { TranscriptionModel } from '../types/transcription-model';
+import type { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
+import { createDownload } from '../util/download/create-download';
+import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
-import { TranscriptionResult } from './transcribe-result';
+import type { TranscriptionResult } from './transcribe-result';
 import { VERSION } from '../version';
+import type { Warning } from '../types';
+import type {
+  TranscriptionEndEvent,
+  TranscriptionStartEvent,
+} from './transcription-events';
+
+const originalGenerateCallId = createIdGenerator({
+  prefix: 'call',
+  size: 24,
+});
 /**
-Generates transcripts using a transcription model.
-
-@param model - The transcription model to use.
-@param audio - The audio data to transcribe as DataContent (string | Uint8Array | ArrayBuffer | Buffer) or a URL.
-@param providerOptions - Additional provider-specific options that are passed through to the provider
-as body parameters.
-@param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
-@param abortSignal - An optional abort signal that can be used to cancel the call.
-@param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
-
-@returns A result object that contains the generated transcript.
+ * Generates transcripts using a transcription model.
+ *
+ * @param model - The transcription model to use.
+ * @param audio - The audio data to transcribe as DataContent (string | Uint8Array | ArrayBuffer | Buffer) or a URL.
+ * @param providerOptions - Additional provider-specific options that are passed through to the provider
+ * as body parameters.
+ * @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
+ * @param abortSignal - An optional abort signal that can be used to cancel the call.
+ * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
+ * @param telemetry - Optional telemetry configuration.
+ *
+ * @returns A result object that contains the generated transcript.
  */
+const defaultDownload = createDownload();
+
 export async function transcribe({
   model,
   audio,
@@ -35,60 +52,83 @@ export async function transcribe({
   maxRetries: maxRetriesArg,
   abortSignal,
   headers,
+  telemetry,
+  download: downloadFn = defaultDownload,
+  _internal: { generateCallId = originalGenerateCallId } = {},
 }: {
   /**
-The transcription model to use.
-     */
-  model: TranscriptionModelV2;
+   * The transcription model to use.
+   */
+  model: TranscriptionModel;
 
   /**
-The audio data to transcribe.
+   * The audio data to transcribe.
    */
   audio: DataContent | URL;
 
   /**
-Additional provider-specific options that are passed through to the provider
-as body parameters.
-
-The outer record is keyed by the provider name, and the inner
-record is keyed by the provider-specific metadata key.
-```ts
-{
-  "openai": {
-    "temperature": 0
-  }
-}
-```
-     */
+   * Additional provider-specific options that are passed through to the provider
+   * as body parameters.
+   *
+   * The outer record is keyed by the provider name, and the inner
+   * record is keyed by the provider-specific metadata key.
+   * ```ts
+   * {
+   *   "openai": {
+   *     "temperature": 0
+   *   }
+   * }
+   * ```
+   */
   providerOptions?: ProviderOptions;
 
   /**
-Maximum number of retries per transcript model call. Set to 0 to disable retries.
-
-@default 2
+   * Maximum number of retries per transcript model call. Set to 0 to disable retries.
+   *
+   * @default 2
    */
   maxRetries?: number;
 
   /**
-Abort signal.
- */
+   * Abort signal.
+   */
   abortSignal?: AbortSignal;
 
   /**
-Additional headers to include in the request.
-Only applicable for HTTP-based providers.
- */
+   * Additional headers to include in the request.
+   * Only applicable for HTTP-based providers.
+   */
   headers?: Record<string, string>;
+
+  /**
+   * Optional telemetry configuration.
+   */
+  telemetry?: TelemetryOptions;
+
+  /**
+   * Custom download function for fetching audio from URLs.
+   * Use `createDownload()` from `ai` to create a download function with custom size limits.
+   *
+   * @default createDownload() (2 GiB limit)
+   */
+  download?: (options: {
+    url: URL;
+    abortSignal?: AbortSignal;
+  }) => Promise<{ data: Uint8Array; mediaType: string | undefined }>;
+
+  /**
+   * Internal. For test use only. May change without notice.
+   */
+  _internal?: {
+    generateCallId?: () => string;
+  };
 }): Promise<TranscriptionResult> {
-  if (model.specificationVersion !== 'v2') {
-    throw new UnsupportedModelVersionError({
-      version: model.specificationVersion,
-      provider: model.provider,
-      modelId: model.modelId,
-    });
+  const resolvedModel = resolveTranscriptionModel(model);
+  if (!resolvedModel) {
+    throw new Error('Model could not be resolved');
   }
 
-  const { retry } = prepareRetries({
+  const { maxRetries, retry } = prepareRetries({
     maxRetries: maxRetriesArg,
     abortSignal,
   });
@@ -98,40 +138,169 @@ Only applicable for HTTP-based providers.
     `ai/${VERSION}`,
   );
 
-  const audioData =
-    audio instanceof URL
-      ? (await download({ url: audio })).data
-      : convertDataContentToUint8Array(audio);
+  const callId = generateCallId();
+  const telemetryDispatcher = createTelemetryDispatcher({ telemetry });
+  const runInTracingChannelSpan =
+    telemetryDispatcher.runInTracingChannelSpan ??
+    (async <T>({ execute }: { execute: () => PromiseLike<T> }) =>
+      await execute());
 
-  const result = await retry(() =>
-    model.doGenerate({
-      audio: audioData,
-      abortSignal,
-      headers: headersWithUserAgent,
-      providerOptions,
-      mediaType:
-        detectMediaType({
-          data: audioData,
-          signatures: audioMediaTypeSignatures,
-        }) ?? 'audio/wav',
-    }),
-  );
+  const createStartEvent = ({
+    byteLength,
+    mediaType,
+  }: {
+    byteLength: number | undefined;
+    mediaType: string | undefined;
+  }): TranscriptionStartEvent => ({
+    callId,
+    operationId: 'ai.transcribe',
+    provider: resolvedModel.provider,
+    modelId: resolvedModel.modelId,
+    audio: {
+      byteLength,
+      mediaType,
+    },
+    inputAudioFormat: undefined,
+    maxRetries,
+    headers,
+    providerOptions,
+  });
 
-  logWarnings(result.warnings);
+  const executeWithStartEvent = async <T>({
+    startEvent,
+    execute,
+  }: {
+    startEvent: TranscriptionStartEvent;
+    execute: () => PromiseLike<T>;
+  }) =>
+    await runInTracingChannelSpan({
+      type: 'transcribe',
+      event: startEvent,
+      execute: async () => {
+        await notify({
+          event: startEvent,
+          callbacks: [telemetryDispatcher.onStart],
+        });
 
-  if (!result.text) {
-    throw new NoTranscriptGeneratedError({ responses: [result.response] });
+        return await execute();
+      },
+    });
+
+  let preparationError: unknown;
+  let preparationFailed = false;
+  let audioData: Uint8Array;
+  let downloadedMediaType: string | undefined;
+
+  try {
+    if (audio instanceof URL) {
+      const downloadResult = await downloadFn({ url: audio, abortSignal });
+      audioData = downloadResult.data;
+      downloadedMediaType = downloadResult.mediaType;
+    } else {
+      audioData = convertDataContentToUint8Array(audio);
+    }
+  } catch (error) {
+    preparationFailed = true;
+    preparationError = error;
+    audioData = new Uint8Array();
   }
 
-  return new DefaultTranscriptionResult({
-    text: result.text,
-    segments: result.segments,
-    language: result.language,
-    durationInSeconds: result.durationInSeconds,
-    warnings: result.warnings,
-    responses: [result.response],
-    providerMetadata: result.providerMetadata,
+  if (preparationFailed) {
+    const startEvent = createStartEvent({
+      byteLength: undefined,
+      mediaType: undefined,
+    });
+
+    try {
+      return await executeWithStartEvent({
+        startEvent,
+        execute: () => {
+          throw preparationError;
+        },
+      });
+    } catch (error) {
+      await telemetryDispatcher.onError?.({ callId, error });
+      throw error;
+    }
+  }
+
+  const mediaType =
+    downloadedMediaType ??
+    detectMediaType({
+      data: audioData,
+      topLevelType: 'audio',
+    }) ??
+    'audio/wav';
+  const startEvent = createStartEvent({
+    byteLength: audioData.byteLength,
+    mediaType,
   });
+
+  try {
+    return await executeWithStartEvent({
+      startEvent,
+      execute: async () => {
+        const result = await retry(() =>
+          resolvedModel.doGenerate({
+            audio: audioData,
+            abortSignal,
+            headers: headersWithUserAgent,
+            providerOptions,
+            mediaType,
+          }),
+        );
+
+        logWarnings({
+          warnings: result.warnings,
+          provider: resolvedModel.provider,
+          model: resolvedModel.modelId,
+        });
+
+        if (result.text == null) {
+          throw new NoTranscriptGeneratedError({
+            responses: [result.response],
+          });
+        }
+
+        const endEvent: TranscriptionEndEvent = {
+          callId,
+          operationId: 'ai.transcribe',
+          provider: resolvedModel.provider,
+          modelId: resolvedModel.modelId,
+          audio: {
+            byteLength: audioData.byteLength,
+            mediaType,
+          },
+          text: result.text,
+          segments: result.segments,
+          language: result.language,
+          durationInSeconds: result.durationInSeconds,
+          usage: result.usage,
+          warnings: result.warnings,
+          providerMetadata: result.providerMetadata,
+          response: result.response,
+        };
+
+        await notify({
+          event: endEvent,
+          callbacks: [telemetryDispatcher.onEnd],
+        });
+
+        return new DefaultTranscriptionResult({
+          text: result.text,
+          segments: result.segments,
+          language: result.language,
+          durationInSeconds: result.durationInSeconds,
+          warnings: result.warnings,
+          responses: [result.response],
+          providerMetadata: result.providerMetadata,
+        });
+      },
+    });
+  } catch (error) {
+    await telemetryDispatcher.onError?.({ callId, error });
+    throw error;
+  }
 }
 
 class DefaultTranscriptionResult implements TranscriptionResult {
@@ -143,9 +312,9 @@ class DefaultTranscriptionResult implements TranscriptionResult {
   }>;
   readonly language: string | undefined;
   readonly durationInSeconds: number | undefined;
-  readonly warnings: Array<TranscriptionWarning>;
+  readonly warnings: Array<Warning>;
   readonly responses: Array<TranscriptionModelResponseMetadata>;
-  readonly providerMetadata: Record<string, Record<string, JSONValue>>;
+  readonly providerMetadata: Record<string, JSONObject>;
 
   constructor(options: {
     text: string;
@@ -156,9 +325,9 @@ class DefaultTranscriptionResult implements TranscriptionResult {
     }>;
     language: string | undefined;
     durationInSeconds: number | undefined;
-    warnings: Array<TranscriptionWarning>;
+    warnings: Array<Warning>;
     responses: Array<TranscriptionModelResponseMetadata>;
-    providerMetadata: Record<string, Record<string, JSONValue>> | undefined;
+    providerMetadata: Record<string, JSONObject> | undefined;
   }) {
     this.text = options.text;
     this.segments = options.segments;

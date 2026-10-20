@@ -12,10 +12,9 @@ Some language models that support vision capabilities accept images as part of t
 
 ```ts file='index.ts'
 import { generateText } from 'ai';
-import { openai } from '@ai-sdk/openai';
 
 const result = await generateText({
-  model: openai('gpt-4.1'),
+  model: 'openai/gpt-4.1',
   maxOutputTokens: 512,
   messages: [
     {
@@ -26,8 +25,9 @@ const result = await generateText({
           text: 'what are the red things in this image?',
         },
         {
-          type: 'image',
-          image: new URL(
+          type: 'file',
+          mediaType: 'image',
+          data: new URL(
             'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/2024_Solar_Eclipse_Prominences.jpg/720px-2024_Solar_Eclipse_Prominences.jpg',
           ),
         },
@@ -43,11 +43,10 @@ console.log(result);
 
 ```ts file='index.ts'
 import { generateText } from 'ai';
-import { openai } from '@ai-sdk/openai';
 import fs from 'fs';
 
 const result = await generateText({
-  model: openai('gpt-4.1'),
+  model: 'openai/gpt-4.1',
   maxOutputTokens: 512,
   messages: [
     {
@@ -58,8 +57,9 @@ const result = await generateText({
           text: 'what are the red things in this image?',
         },
         {
-          type: 'image',
-          image: fs.readFileSync('./node/attachments/eclipse.jpg', {
+          type: 'file',
+          mediaType: 'image',
+          data: fs.readFileSync('./node/attachments/eclipse.jpg', {
             encoding: 'base64',
           }),
         },

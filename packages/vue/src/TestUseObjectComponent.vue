@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { experimental_useObject } from './use-object';
+import { useObject } from './use-object';
 import { z } from 'zod/v4';
 import { ref, reactive } from 'vue';
 
@@ -10,7 +10,7 @@ const onFinishCalls: Array<{
 
 const onErrorResult: Error | undefined = ref(undefined);
 
-const { object, error, submit, isLoading, stop, clear } = experimental_useObject({
+const { object, error, submit, isLoading, stop, clear } = useObject({
   api: '/api/use-object',
   schema: z.object({ content: z.string() }),
   onError(error) {
@@ -27,18 +27,11 @@ const { object, error, submit, isLoading, stop, clear } = experimental_useObject
     <div data-testid="loading">{{ isLoading.toString() }}</div>
     <div data-testid="object">{{ JSON.stringify(object) }}</div>
     <div data-testid="error">{{ error?.toString() }}</div>
-    <button
-      data-testid="submit-button"
-      @click="submit('test-input')"
-    >
+    <button data-testid="submit-button" @click="submit('test-input')">
       Generate
     </button>
-    <button data-testid="stop-button" @click="stop">
-      Stop
-    </button>
-    <button data-testid="clear-button" @click="clear">
-      Clear
-    </button>
+    <button data-testid="stop-button" @click="stop">Stop</button>
+    <button data-testid="clear-button" @click="clear">Clear</button>
     <div data-testid="on-error-result">{{ onErrorResult?.toString() }}</div>
     <div data-testid="on-finish-calls">{{ JSON.stringify(onFinishCalls) }}</div>
   </div>

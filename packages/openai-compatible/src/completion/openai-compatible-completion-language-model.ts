@@ -1,40 +1,49 @@
-import {
+import type {
   APICallError,
-  LanguageModelV3,
-  LanguageModelV3CallWarning,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3StreamPart,
-  LanguageModelV3Usage,
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4Content,
+  LanguageModelV4FinishReason,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4StreamPart,
+  LanguageModelV4StreamResult,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
-  FetchFunction,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
-  ResponseHandler,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  type FetchFunction,
+  type ParseResult,
+  type ResponseHandler,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
+  toCamelCase,
+  warnIfDeprecatedProviderOptionsKey,
+} from '../utils/to-camel-case';
+import {
   defaultOpenAICompatibleErrorStructure,
-  ProviderErrorStructure,
+  type ProviderErrorStructure,
 } from '../openai-compatible-error';
+import { convertOpenAICompatibleCompletionUsage } from './convert-openai-compatible-completion-usage';
 import { convertToOpenAICompatibleCompletionPrompt } from './convert-to-openai-compatible-completion-prompt';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAICompatibleFinishReason } from './map-openai-compatible-finish-reason';
 import {
-  OpenAICompatibleCompletionModelId,
-  openaiCompatibleCompletionProviderOptions,
-} from './openai-compatible-completion-options';
-
+  openaiCompatibleLanguageModelCompletionOptions,
+  type OpenAICompatibleCompletionModelId,
+} from './openai-compatible-completion-language-model-options';
 type OpenAICompatibleCompletionConfig = {
   provider: string;
   includeUsage?: boolean;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
   errorStructure?: ProviderErrorStructure<any>;
@@ -42,18 +51,33 @@ type OpenAICompatibleCompletionConfig = {
   /**
    * The supported URLs for the model.
    */
-  supportedUrls?: () => LanguageModelV3['supportedUrls'];
+  supportedUrls?: () => LanguageModelV4['supportedUrls'];
 };
 
-export class OpenAICompatibleCompletionLanguageModel
-  implements LanguageModelV3
-{
-  readonly specificationVersion = 'v3';
+export class OpenAICompatibleCompletionLanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4';
 
   readonly modelId: OpenAICompatibleCompletionModelId;
   private readonly config: OpenAICompatibleCompletionConfig;
   private readonly failedResponseHandler: ResponseHandler<APICallError>;
   private readonly chunkSchema; // type inferred via constructor
+
+  static [WORKFLOW_SERIALIZE](model: OpenAICompatibleCompletionLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: OpenAICompatibleCompletionConfig;
+  }) {
+    return new OpenAICompatibleCompletionLanguageModel(
+      options.modelId,
+      options.config,
+    );
+  }
 
   constructor(
     modelId: OpenAICompatibleCompletionModelId,
@@ -97,33 +121,46 @@ export class OpenAICompatibleCompletionLanguageModel
     providerOptions,
     tools,
     toolChoice,
-  }: Parameters<LanguageModelV3['doGenerate']>[0]) {
-    const warnings: LanguageModelV3CallWarning[] = [];
+  }: LanguageModelV4CallOptions) {
+    const warnings: SharedV4Warning[] = [];
 
-    // Parse provider options
-    const completionOptions =
+    // Warn when the raw (non-camelCase) provider name is used
+    warnIfDeprecatedProviderOptionsKey({
+      rawName: this.providerOptionsName,
+      providerOptions,
+      warnings,
+    });
+
+    // Parse provider options (support both raw and camelCase keys)
+    const completionOptions = Object.assign(
       (await parseProviderOptions({
         provider: this.providerOptionsName,
         providerOptions,
-        schema: openaiCompatibleCompletionProviderOptions,
-      })) ?? {};
+        schema: openaiCompatibleLanguageModelCompletionOptions,
+      })) ?? {},
+      (await parseProviderOptions({
+        provider: toCamelCase(this.providerOptionsName),
+        providerOptions,
+        schema: openaiCompatibleLanguageModelCompletionOptions,
+      })) ?? {},
+    );
 
     if (topK != null) {
-      warnings.push({ type: 'unsupported-setting', setting: 'topK' });
+      warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
     if (tools?.length) {
-      warnings.push({ type: 'unsupported-setting', setting: 'tools' });
+      warnings.push({ type: 'unsupported', feature: 'tools' });
     }
 
     if (toolChoice != null) {
-      warnings.push({ type: 'unsupported-setting', setting: 'toolChoice' });
+      warnings.push({ type: 'unsupported', feature: 'toolChoice' });
     }
 
     if (responseFormat != null && responseFormat.type !== 'text') {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'responseFormat',
+        type: 'unsupported',
+        feature: 'responseFormat',
         details: 'JSON response format is not supported.',
       });
     }
@@ -152,6 +189,7 @@ export class OpenAICompatibleCompletionLanguageModel
         presence_penalty: presencePenalty,
         seed,
         ...providerOptions?.[this.providerOptionsName],
+        ...providerOptions?.[toCamelCase(this.providerOptionsName)],
 
         // prompt:
         prompt: completionPrompt,
@@ -164,8 +202,8 @@ export class OpenAICompatibleCompletionLanguageModel
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
     const { args, warnings } = await this.getArgs(options);
 
     const {
@@ -177,7 +215,7 @@ export class OpenAICompatibleCompletionLanguageModel
         path: '/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: args,
       failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -188,7 +226,7 @@ export class OpenAICompatibleCompletionLanguageModel
     });
 
     const choice = response.choices[0];
-    const content: Array<LanguageModelV3Content> = [];
+    const content: Array<LanguageModelV4Content> = [];
 
     // text content:
     if (choice.text != null && choice.text.length > 0) {
@@ -197,12 +235,11 @@ export class OpenAICompatibleCompletionLanguageModel
 
     return {
       content,
-      usage: {
-        inputTokens: response.usage?.prompt_tokens ?? undefined,
-        outputTokens: response.usage?.completion_tokens ?? undefined,
-        totalTokens: response.usage?.total_tokens ?? undefined,
+      usage: convertOpenAICompatibleCompletionUsage(response.usage),
+      finishReason: {
+        unified: mapOpenAICompatibleFinishReason(choice.finish_reason),
+        raw: choice.finish_reason,
       },
-      finishReason: mapOpenAICompatibleFinishReason(choice.finish_reason),
       request: { body: args },
       response: {
         ...getResponseMetadata(response),
@@ -214,8 +251,8 @@ export class OpenAICompatibleCompletionLanguageModel
   }
 
   async doStream(
-    options: Parameters<LanguageModelV3['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4StreamResult> {
     const { args, warnings } = await this.getArgs(options);
 
     const body = {
@@ -233,7 +270,7 @@ export class OpenAICompatibleCompletionLanguageModel
         path: '/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
@@ -243,19 +280,24 @@ export class OpenAICompatibleCompletionLanguageModel
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = 'unknown';
-    const usage: LanguageModelV3Usage = {
-      inputTokens: undefined,
-      outputTokens: undefined,
-      totalTokens: undefined,
+    let finishReason: LanguageModelV4FinishReason = {
+      unified: 'other',
+      raw: undefined,
     };
+    let usage:
+      | {
+          prompt_tokens: number | undefined;
+          completion_tokens: number | undefined;
+          total_tokens: number | undefined;
+        }
+      | undefined = undefined;
     let isFirstChunk = true;
 
     return {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof this.chunkSchema>>,
-          LanguageModelV3StreamPart
+          LanguageModelV4StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });
@@ -268,7 +310,7 @@ export class OpenAICompatibleCompletionLanguageModel
 
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
-              finishReason = 'error';
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
@@ -277,7 +319,7 @@ export class OpenAICompatibleCompletionLanguageModel
 
             // handle error chunks:
             if ('error' in value) {
-              finishReason = 'error';
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: value.error });
               return;
             }
@@ -297,17 +339,16 @@ export class OpenAICompatibleCompletionLanguageModel
             }
 
             if (value.usage != null) {
-              usage.inputTokens = value.usage.prompt_tokens ?? undefined;
-              usage.outputTokens = value.usage.completion_tokens ?? undefined;
-              usage.totalTokens = value.usage.total_tokens ?? undefined;
+              usage = value.usage;
             }
 
             const choice = value.choices[0];
 
             if (choice?.finish_reason != null) {
-              finishReason = mapOpenAICompatibleFinishReason(
-                choice.finish_reason,
-              );
+              finishReason = {
+                unified: mapOpenAICompatibleFinishReason(choice.finish_reason),
+                raw: choice.finish_reason ?? undefined,
+              };
             }
 
             if (choice?.text != null) {
@@ -327,7 +368,7 @@ export class OpenAICompatibleCompletionLanguageModel
             controller.enqueue({
               type: 'finish',
               finishReason,
-              usage,
+              usage: convertOpenAICompatibleCompletionUsage(usage),
             });
           },
         }),
@@ -338,7 +379,8 @@ export class OpenAICompatibleCompletionLanguageModel
   }
 }
 
-const usageSchema = z.object({
+// Loose: the parsed value is returned as `usage.raw`.
+const usageSchema = z.looseObject({
   prompt_tokens: z.number(),
   completion_tokens: z.number(),
   total_tokens: z.number(),

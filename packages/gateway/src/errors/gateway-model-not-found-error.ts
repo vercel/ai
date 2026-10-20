@@ -1,13 +1,18 @@
-import { z } from 'zod/v4';
+import { z } from '../zod';
 import { GatewayError } from './gateway-error';
+import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 
 const name = 'GatewayModelNotFoundError';
 const marker = `vercel.ai.gateway.error.${name}`;
 const symbol = Symbol.for(marker);
 
-export const modelNotFoundParamSchema = z.object({
-  modelId: z.string(),
-});
+export const modelNotFoundParamSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      modelId: z.string(),
+    }),
+  ),
+);
 
 /**
  * Model not found or not available
@@ -24,13 +29,15 @@ export class GatewayModelNotFoundError extends GatewayError {
     statusCode = 404,
     modelId,
     cause,
+    generationId,
   }: {
     message?: string;
     statusCode?: number;
     modelId?: string;
     cause?: unknown;
+    generationId?: string;
   } = {}) {
-    super({ message, statusCode, cause });
+    super({ message, statusCode, cause, generationId });
     this.modelId = modelId;
   }
 

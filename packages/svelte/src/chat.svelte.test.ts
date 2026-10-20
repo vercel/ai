@@ -5,7 +5,7 @@ import {
 import { mockId } from '@ai-sdk/provider-utils/test';
 import {
   DefaultChatTransport,
-  isToolUIPart,
+  isStaticToolUIPart,
   TextStreamChatTransport,
   type UIMessageChunk,
 } from 'ai';
@@ -61,14 +61,14 @@ describe('data protocol stream', () => {
     await chat.sendMessage({
       parts: [{ text: 'hi', type: 'text' }],
     });
-    expect(chat.messages.at(0)).toStrictEqual(
+    expect(chat.messages.at(0)).toEqual(
       expect.objectContaining({
         role: 'user',
         parts: [{ text: 'hi', type: 'text' }],
       }),
     );
 
-    expect(chat.messages.at(1)).toStrictEqual(
+    expect(chat.messages.at(1)).toEqual(
       expect.objectContaining({
         role: 'assistant',
         parts: [{ type: 'text', text: 'Hello, world.', state: 'done' }],
@@ -182,7 +182,7 @@ describe('data protocol stream', () => {
       isDisconnect: false,
       isError: false,
       message: {
-        id: 'id-2',
+        id: 'id-1',
         metadata: {
           example: 'metadata',
         },
@@ -197,7 +197,7 @@ describe('data protocol stream', () => {
       },
       messages: [
         {
-          id: 'id-1',
+          id: 'id-0',
           metadata: undefined,
           parts: [
             {
@@ -208,7 +208,7 @@ describe('data protocol stream', () => {
           role: 'user',
         },
         {
-          id: 'id-2',
+          id: 'id-1',
           metadata: {
             example: 'metadata',
           },
@@ -239,10 +239,10 @@ describe('data protocol stream', () => {
 
       expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
         {
-          "id": "id-0",
+          "id": "id-2",
           "messages": [
             {
-              "id": "id-1",
+              "id": "id-0",
               "parts": [
                 {
                   "text": "hi",
@@ -287,7 +287,7 @@ describe('text stream', () => {
     expect(chat.messages).toMatchInlineSnapshot(`
       [
         {
-          "id": "id-1",
+          "id": "id-0",
           "metadata": undefined,
           "parts": [
             {
@@ -298,7 +298,7 @@ describe('text stream', () => {
           "role": "user",
         },
         {
-          "id": "id-2",
+          "id": "id-1",
           "metadata": undefined,
           "parts": [
             {
@@ -331,7 +331,7 @@ describe('text stream', () => {
     controller.write('He');
 
     await vi.waitFor(() =>
-      expect(chat.messages.at(1)).toStrictEqual(
+      expect(chat.messages.at(1)).toEqual(
         expect.objectContaining({
           id: expect.any(String),
           role: 'assistant',
@@ -350,7 +350,7 @@ describe('text stream', () => {
     await appendOperation;
 
     expect(id).toBeDefined();
-    expect(chat.messages.at(1)).toStrictEqual(
+    expect(chat.messages.at(1)).toEqual(
       expect.objectContaining({
         id,
         role: 'assistant',
@@ -422,7 +422,7 @@ describe('onToolCall', () => {
       async onToolCall({ toolCall }) {
         await toolCallPromise;
 
-        chat.addToolResult({
+        chat.addToolOutput({
           tool: 'test-tool',
           toolCallId: toolCall.toolCallId,
           output: `test-tool-response: ${toolCall.toolName} ${
@@ -449,7 +449,9 @@ describe('onToolCall', () => {
     const appendOperation = chat.sendMessage({ text: 'hi' });
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
+      expect(
+        chat.messages.at(1)?.parts.filter(isStaticToolUIPart),
+      ).toStrictEqual([
         {
           state: 'input-available',
           errorText: undefined,
@@ -460,6 +462,7 @@ describe('onToolCall', () => {
           output: undefined,
           providerExecuted: undefined,
           preliminary: undefined,
+          title: undefined,
         },
       ]);
     });
@@ -467,20 +470,23 @@ describe('onToolCall', () => {
     resolve();
     await appendOperation;
 
-    expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
-      {
-        state: 'output-available',
-        errorText: undefined,
-        rawInput: undefined,
-        toolCallId: 'tool-call-0',
-        type: 'tool-test-tool',
-        input: { testArg: 'test-value' },
-        output:
-          'test-tool-response: test-tool tool-call-0 {"testArg":"test-value"}',
-        providerExecuted: undefined,
-        preliminary: undefined,
-      },
-    ]);
+    expect(chat.messages.at(1)?.parts.filter(isStaticToolUIPart)).toStrictEqual(
+      [
+        {
+          state: 'output-available',
+          errorText: undefined,
+          rawInput: undefined,
+          toolCallId: 'tool-call-0',
+          type: 'tool-test-tool',
+          input: { testArg: 'test-value' },
+          output:
+            'test-tool-response: test-tool tool-call-0 {"testArg":"test-value"}',
+          providerExecuted: undefined,
+          preliminary: undefined,
+          title: undefined,
+        },
+      ],
+    );
   });
 });
 
@@ -518,7 +524,9 @@ describe('tool invocations', () => {
     );
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
+      expect(
+        chat.messages.at(1)?.parts.filter(isStaticToolUIPart),
+      ).toStrictEqual([
         {
           state: 'input-streaming',
           errorText: undefined,
@@ -529,6 +537,7 @@ describe('tool invocations', () => {
           output: undefined,
           providerExecuted: undefined,
           preliminary: undefined,
+          title: undefined,
         },
       ]);
     });
@@ -542,17 +551,20 @@ describe('tool invocations', () => {
     );
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
+      expect(
+        chat.messages.at(1)?.parts.filter(isStaticToolUIPart),
+      ).toStrictEqual([
         {
           state: 'input-streaming',
           errorText: undefined,
-          rawInput: undefined,
+          rawInput: '{"testArg":"t',
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 't' },
           output: undefined,
           providerExecuted: undefined,
           preliminary: undefined,
+          title: undefined,
         },
       ]);
     });
@@ -566,17 +578,20 @@ describe('tool invocations', () => {
     );
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
+      expect(
+        chat.messages.at(1)?.parts.filter(isStaticToolUIPart),
+      ).toStrictEqual([
         {
           state: 'input-streaming',
           errorText: undefined,
-          rawInput: undefined,
+          rawInput: '{"testArg":"test-value"}}',
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
           output: undefined,
           providerExecuted: undefined,
           preliminary: undefined,
+          title: undefined,
         },
       ]);
     });
@@ -591,7 +606,9 @@ describe('tool invocations', () => {
     );
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
+      expect(
+        chat.messages.at(1)?.parts.filter(isStaticToolUIPart),
+      ).toStrictEqual([
         {
           state: 'input-available',
           errorText: undefined,
@@ -602,6 +619,7 @@ describe('tool invocations', () => {
           output: undefined,
           providerExecuted: undefined,
           preliminary: undefined,
+          title: undefined,
         },
       ]);
     });
@@ -616,19 +634,22 @@ describe('tool invocations', () => {
     controller.close();
     await appendOperation;
 
-    expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
-      {
-        state: 'output-available',
-        errorText: undefined,
-        rawInput: undefined,
-        toolCallId: 'tool-call-0',
-        type: 'tool-test-tool',
-        input: { testArg: 'test-value' },
-        output: 'test-result',
-        providerExecuted: undefined,
-        preliminary: undefined,
-      },
-    ]);
+    expect(chat.messages.at(1)?.parts.filter(isStaticToolUIPart)).toStrictEqual(
+      [
+        {
+          state: 'output-available',
+          errorText: undefined,
+          rawInput: undefined,
+          toolCallId: 'tool-call-0',
+          type: 'tool-test-tool',
+          input: { testArg: 'test-value' },
+          output: 'test-result',
+          providerExecuted: undefined,
+          preliminary: undefined,
+          title: undefined,
+        },
+      ],
+    );
   });
 
   it('should display partial tool call and tool result (when there is no tool call streaming)', async () => {
@@ -650,7 +671,9 @@ describe('tool invocations', () => {
     );
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
+      expect(
+        chat.messages.at(1)?.parts.filter(isStaticToolUIPart),
+      ).toStrictEqual([
         {
           state: 'input-available',
           errorText: undefined,
@@ -661,6 +684,7 @@ describe('tool invocations', () => {
           output: undefined,
           providerExecuted: undefined,
           preliminary: undefined,
+          title: undefined,
         },
       ]);
     });
@@ -676,22 +700,25 @@ describe('tool invocations', () => {
 
     await appendOperation;
 
-    expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
-      {
-        state: 'output-available',
-        errorText: undefined,
-        rawInput: undefined,
-        toolCallId: 'tool-call-0',
-        type: 'tool-test-tool',
-        input: { testArg: 'test-value' },
-        output: 'test-result',
-        providerExecuted: undefined,
-        preliminary: undefined,
-      },
-    ]);
+    expect(chat.messages.at(1)?.parts.filter(isStaticToolUIPart)).toStrictEqual(
+      [
+        {
+          state: 'output-available',
+          errorText: undefined,
+          rawInput: undefined,
+          toolCallId: 'tool-call-0',
+          type: 'tool-test-tool',
+          input: { testArg: 'test-value' },
+          output: 'test-result',
+          providerExecuted: undefined,
+          preliminary: undefined,
+          title: undefined,
+        },
+      ],
+    );
   });
 
-  it('should update tool call to result when addToolResult is called', async () => {
+  it('should update tool call to result when addToolOutput is called', async () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
@@ -709,7 +736,9 @@ describe('tool invocations', () => {
     });
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
+      expect(
+        chat.messages.at(1)?.parts.filter(isStaticToolUIPart),
+      ).toStrictEqual([
         {
           state: 'input-available',
           errorText: undefined,
@@ -720,18 +749,21 @@ describe('tool invocations', () => {
           output: undefined,
           providerExecuted: undefined,
           preliminary: undefined,
+          title: undefined,
         },
       ]);
     });
 
-    chat.addToolResult({
+    chat.addToolOutput({
       tool: 'test-tool',
       toolCallId: 'tool-call-0',
       output: 'test-result',
     });
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
+      expect(
+        chat.messages.at(1)?.parts.filter(isStaticToolUIPart),
+      ).toStrictEqual([
         {
           state: 'output-available',
           errorText: undefined,
@@ -742,6 +774,7 @@ describe('tool invocations', () => {
           output: 'test-result',
           providerExecuted: undefined,
           preliminary: undefined,
+          title: undefined,
         },
       ]);
     });
@@ -789,7 +822,7 @@ describe('file attachments with data url', () => {
     expect(chat.messages).toMatchInlineSnapshot(`
       [
         {
-          "id": "id-1",
+          "id": "id-0",
           "metadata": undefined,
           "parts": [
             {
@@ -806,7 +839,7 @@ describe('file attachments with data url', () => {
           "role": "user",
         },
         {
-          "id": "id-2",
+          "id": "id-1",
           "metadata": undefined,
           "parts": [
             {
@@ -823,10 +856,10 @@ describe('file attachments with data url', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "id": "id-0",
+        "id": "id-2",
         "messages": [
           {
-            "id": "id-1",
+            "id": "id-0",
             "parts": [
               {
                 "filename": "test.txt",
@@ -879,7 +912,7 @@ describe('file attachments with data url', () => {
     expect(chat.messages).toMatchInlineSnapshot(`
       [
         {
-          "id": "id-1",
+          "id": "id-0",
           "metadata": undefined,
           "parts": [
             {
@@ -896,7 +929,7 @@ describe('file attachments with data url', () => {
           "role": "user",
         },
         {
-          "id": "id-2",
+          "id": "id-1",
           "metadata": undefined,
           "parts": [
             {
@@ -913,10 +946,10 @@ describe('file attachments with data url', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "id": "id-0",
+        "id": "id-2",
         "messages": [
           {
-            "id": "id-1",
+            "id": "id-0",
             "parts": [
               {
                 "filename": "test.png",
@@ -979,7 +1012,7 @@ describe('file attachments with url', () => {
     expect(chat.messages).toMatchInlineSnapshot(`
       [
         {
-          "id": "id-1",
+          "id": "id-0",
           "metadata": undefined,
           "parts": [
             {
@@ -996,7 +1029,7 @@ describe('file attachments with url', () => {
           "role": "user",
         },
         {
-          "id": "id-2",
+          "id": "id-1",
           "metadata": undefined,
           "parts": [
             {
@@ -1013,10 +1046,10 @@ describe('file attachments with url', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "id": "id-0",
+        "id": "id-2",
         "messages": [
           {
-            "id": "id-1",
+            "id": "id-0",
             "parts": [
               {
                 "filename": "test.png",
@@ -1080,7 +1113,7 @@ describe('file attachments with empty text content', () => {
     expect(chat.messages).toMatchInlineSnapshot(`
       [
         {
-          "id": "id-1",
+          "id": "id-0",
           "metadata": undefined,
           "parts": [
             {
@@ -1093,7 +1126,7 @@ describe('file attachments with empty text content', () => {
           "role": "user",
         },
         {
-          "id": "id-2",
+          "id": "id-1",
           "metadata": undefined,
           "parts": [
             {
@@ -1110,10 +1143,10 @@ describe('file attachments with empty text content', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "id": "id-0",
+        "id": "id-2",
         "messages": [
           {
-            "id": "id-1",
+            "id": "id-0",
             "parts": [
               {
                 "filename": "test.png",
@@ -1173,13 +1206,13 @@ describe('reload', () => {
       parts: [{ text: 'hi', type: 'text' }],
     });
 
-    expect(chat.messages.at(0)).toStrictEqual(
+    expect(chat.messages.at(0)).toEqual(
       expect.objectContaining({
         role: 'user',
       }),
     );
 
-    expect(chat.messages.at(1)).toStrictEqual(
+    expect(chat.messages.at(1)).toEqual(
       expect.objectContaining({
         role: 'assistant',
         parts: [{ text: 'first response', type: 'text', state: 'done' }],
@@ -1194,10 +1227,10 @@ describe('reload', () => {
 
     expect(await server.calls[1].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "id": "id-0",
+        "id": "id-2",
         "messages": [
           {
-            "id": "id-1",
+            "id": "id-0",
             "parts": [
               {
                 "text": "hi",
@@ -1217,7 +1250,7 @@ describe('reload', () => {
       'header-key': 'header-value',
     });
 
-    expect(chat.messages.at(1)).toStrictEqual(
+    expect(chat.messages.at(1)).toEqual(
       expect.objectContaining({
         role: 'assistant',
         parts: [{ text: 'second response', type: 'text', state: 'done' }],
@@ -1247,7 +1280,7 @@ describe('test sending additional fields during message submission', () => {
       parts: [{ text: 'hi', type: 'text' }],
     });
 
-    expect(chat.messages.at(0)).toStrictEqual(
+    expect(chat.messages.at(0)).toEqual(
       expect.objectContaining({
         role: 'user',
       }),
@@ -1255,10 +1288,10 @@ describe('test sending additional fields during message submission', () => {
 
     expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
-        "id": "id-0",
+        "id": "id-2",
         "messages": [
           {
-            "id": "id-1",
+            "id": "id-0",
             "metadata": {
               "test": "example",
             },
@@ -1304,7 +1337,7 @@ describe('generateId function', () => {
     expect(chatWithCustomId.messages).toMatchInlineSnapshot(`
       [
         {
-          "id": "testid-1",
+          "id": "testid-0",
           "metadata": undefined,
           "parts": [
             {

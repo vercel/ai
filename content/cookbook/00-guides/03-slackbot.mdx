@@ -156,7 +156,7 @@ Here's the code for the `handleNewAppMention` function:
 ```typescript filename="lib/handle-app-mention.ts"
 import { AppMentionEvent } from '@slack/web-api';
 import { client, getThread } from './slack-utils';
-import { generateResponse } from './ai';
+import { generateResponse } from './generate-response';
 
 const updateStatusUtil = async (
   initialStatus: string,
@@ -268,7 +268,7 @@ Here's the code for the `handleNewAssistantMessage` function:
 ```typescript filename="lib/handle-messages.ts"
 import type { GenericMessageEvent } from '@slack/web-api';
 import { client, getThread } from './slack-utils';
-import { generateResponse } from './ai';
+import { generateResponse } from './generate-response';
 
 export async function handleNewAssistantMessage(
   event: GenericMessageEvent,
@@ -318,16 +318,16 @@ The core of our application is the `generateResponse` function in `lib/generate-
 Here's how to implement it:
 
 ```typescript filename="lib/generate-response.ts"
-import { openai } from '@ai-sdk/openai';
 import { generateText, ModelMessage } from 'ai';
+__PROVIDER_IMPORT__;
 
 export const generateResponse = async (
   messages: ModelMessage[],
   updateStatus?: (status: string) => void,
 ) => {
   const { text } = await generateText({
-    model: openai('gpt-4o-mini'),
-    system: `You are a Slack bot assistant. Keep your responses concise and to the point.
+    model: __MODEL__,
+    instructions: `You are a Slack bot assistant. Keep your responses concise and to the point.
     - Do not tag users.
     - Current date is: ${new Date().toISOString().split('T')[0]}`,
     messages,
@@ -340,7 +340,7 @@ export const generateResponse = async (
 
 This basic implementation:
 
-1. Uses the AI SDK's `generateText` function to call OpenAI's `gpt-4o` model
+1. Uses the AI SDK's `generateText` function to call the configured model
 2. Provides a system prompt to guide the model's behavior
 3. Formats the response for Slack's markdown format
 
@@ -349,8 +349,8 @@ This basic implementation:
 The real power of the AI SDK comes from tools that enable your bot to perform actions. Let's add two useful tools:
 
 ```typescript filename="lib/generate-response.ts"
-import { openai } from '@ai-sdk/openai';
-import { generateText, tool, ModelMessage, stepCountIs } from 'ai';
+import { generateText, tool, ModelMessage, isStepCount } from 'ai';
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 import { exa } from './utils';
 
@@ -359,13 +359,13 @@ export const generateResponse = async (
   updateStatus?: (status: string) => void,
 ) => {
   const { text } = await generateText({
-    model: openai('gpt-4o'),
-    system: `You are a Slack bot assistant. Keep your responses concise and to the point.
+    model: __MODEL__,
+    instructions: `You are a Slack bot assistant. Keep your responses concise and to the point.
     - Do not tag users.
     - Current date is: ${new Date().toISOString().split('T')[0]}
     - Always include sources in your final response if you use web search.`,
     messages,
-    stopWhen: stepCountIs(10),
+    stopWhen: isStepCount(10),
     tools: {
       getWeather: tool({
         description: 'Get the current weather at a location',
@@ -429,11 +429,10 @@ export const generateResponse = async (
 In this updated implementation:
 
 1. You added two tools:
-
    - `getWeather`: Fetches weather data for a specified location
    - `searchWeb`: Searches the web for information using the Exa API
 
-2. You set `stopWhen: stepCountIs(10)` to enable multi-step conversations. This defines the stopping conditions of your agent, when the model generates a tool call. This will automatically send any tool results back to the LLM to trigger additional tool calls or responses as the LLM deems necessary. This turns your LLM call from a one-off operation into a multi-step agentic flow.
+2. You set `stopWhen: isStepCount(10)` to enable multi-step conversations. This defines the stopping conditions of your agent, when the model generates a tool call. This will automatically send any tool results back to the LLM to trigger additional tool calls or responses as the LLM deems necessary. This turns your LLM call from a one-off operation into a multi-step agentic flow.
 
 ## How It Works
 
@@ -501,3 +500,5 @@ You've built a Slack chatbot powered by the AI SDK! Here are some ways you could
   In a production environment, it is recommended to implement a robust queueing
   system to ensure messages are properly handled.
 </Note>
+
+For a framework-managed alternative with durable threaded sessions, typing indicators, approval buttons, and multichannel support, see [eve's Slack channel](https://eve.dev/docs/channels/slack).

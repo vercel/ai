@@ -1,7 +1,8 @@
-import { TypeValidationError } from '@ai-sdk/provider';
-import type { StandardSchemaV1 } from '@standard-schema/spec';
-import { Validator, asValidator } from './validator';
-
+import {
+  TypeValidationError,
+  type TypeValidationContext,
+} from '@ai-sdk/provider';
+import { asSchema, type FlexibleSchema } from './schema';
 /**
  * Validates the types of an unknown object using a schema and
  * return a strongly-typed object.
@@ -9,19 +10,22 @@ import { Validator, asValidator } from './validator';
  * @template T - The type of the object to validate.
  * @param {string} options.value - The object to validate.
  * @param {Validator<T>} options.schema - The schema to use for validating the JSON.
+ * @param {TypeValidationContext} options.context - Optional context about what is being validated.
  * @returns {Promise<T>} - The typed object.
  */
 export async function validateTypes<OBJECT>({
   value,
   schema,
+  context,
 }: {
   value: unknown;
-  schema: StandardSchemaV1<unknown, OBJECT> | Validator<OBJECT>;
+  schema: FlexibleSchema<OBJECT>;
+  context?: TypeValidationContext;
 }): Promise<OBJECT> {
-  const result = await safeValidateTypes({ value, schema });
+  const result = await safeValidateTypes({ value, schema, context });
 
   if (!result.success) {
-    throw TypeValidationError.wrap({ value, cause: result.error });
+    throw TypeValidationError.wrap({ value, cause: result.error, context });
   }
 
   return result.value;
@@ -34,14 +38,17 @@ export async function validateTypes<OBJECT>({
  * @template T - The type of the object to validate.
  * @param {string} options.value - The JSON object to validate.
  * @param {Validator<T>} options.schema - The schema to use for validating the JSON.
+ * @param {TypeValidationContext} options.context - Optional context about what is being validated.
  * @returns An object with either a `success` flag and the parsed and typed data, or a `success` flag and an error object.
  */
 export async function safeValidateTypes<OBJECT>({
   value,
   schema,
+  context,
 }: {
   value: unknown;
-  schema: StandardSchemaV1<unknown, OBJECT> | Validator<OBJECT>;
+  schema: FlexibleSchema<OBJECT>;
+  context?: TypeValidationContext;
 }): Promise<
   | {
       success: true;
@@ -54,14 +61,14 @@ export async function safeValidateTypes<OBJECT>({
       rawValue: unknown;
     }
 > {
-  const validator = asValidator(schema);
+  const actualSchema = asSchema(schema);
 
   try {
-    if (validator.validate == null) {
+    if (actualSchema.validate == null) {
       return { success: true, value: value as OBJECT, rawValue: value };
     }
 
-    const result = await validator.validate(value);
+    const result = await actualSchema.validate(value);
 
     if (result.success) {
       return { success: true, value: result.value, rawValue: value };
@@ -69,13 +76,13 @@ export async function safeValidateTypes<OBJECT>({
 
     return {
       success: false,
-      error: TypeValidationError.wrap({ value, cause: result.error }),
+      error: TypeValidationError.wrap({ value, cause: result.error, context }),
       rawValue: value,
     };
   } catch (error) {
     return {
       success: false,
-      error: TypeValidationError.wrap({ value, cause: error }),
+      error: TypeValidationError.wrap({ value, cause: error, context }),
       rawValue: value,
     };
   }

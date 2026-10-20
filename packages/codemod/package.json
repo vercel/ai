@@ -1,19 +1,26 @@
 {
   "name": "@ai-sdk/codemod",
-  "version": "2.1.0-beta.1",
+  "version": "4.0.3",
   "license": "Apache-2.0",
   "sideEffects": false,
   "files": [
     "dist/**/*",
-    "CHANGELOG.md"
+    "src",
+    "!src/**/*.test.ts",
+    "!src/**/*.test.tsx",
+    "!src/**/*.test-d.ts",
+    "!src/**/__snapshots__",
+    "!src/**/__fixtures__",
+    "!src/**/__testfixtures__",
+    "!src/**/test",
+    "CHANGELOG.md",
+    "README.md"
   ],
   "scripts": {
-    "build": "pnpm generate-readme && prettier --write \"README.md\" && pnpm clean && tsup --tsconfig tsconfig.build.json",
-    "clean": "rm -rf dist *.tsbuildinfo",
-    "dev": "tsup --watch",
-    "lint": "eslint \"./**/*.ts*\"",
+    "build": "pnpm clean && tsdown",
+    "clean": "del-cli *.tsbuildinfo",
+    "dev": "tsdown --watch",
     "type-check": "tsc --build",
-    "prettier-check": "prettier --check \"./**/*.ts*\"",
     "test": "vitest --config vitest.config.ts --run",
     "test:watch": "vitest",
     "test:update": "UPDATE_SNAPSHOT=true vitest -u --run",
@@ -21,32 +28,35 @@
     "generate-readme": "tsx scripts/generate-readme.ts"
   },
   "devDependencies": {
-    "ai": "workspace:*",
     "@types/cli-progress": "^3.11.6",
-    "@types/debug": "^4.1.12",
+    "@types/debug": "^4.1.13",
     "@types/jscodeshift": "^0.12.0",
-    "@types/node": "20.17.24",
-    "@types/semver": "^7.5.8",
+    "@types/node": "22.19.19",
+    "@types/semver": "^7.7.1",
     "@vercel/ai-tsconfig": "workspace:*",
+    "@vercel/ai-tsdown-config": "workspace:*",
+    "ai": "workspace:*",
     "msw": "2.6.4",
-    "tsup": "^8",
-    "tsx": "4.19.2",
-    "typescript": "5.8.3",
-    "vitest": "2.1.4"
+    "tsdown": "^0.23.0",
+    "tsx": "4.23.12",
+    "typescript": "6.0.3",
+    "vitest": "^4.1.11"
   },
   "bin": {
     "codemod": "./dist/bin/codemod.js"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "homepage": "https://ai-sdk.dev/docs",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vercel/ai.git"
+    "url": "https://github.com/vercel/ai",
+    "directory": "packages/codemod"
   },
   "bugs": {
     "url": "https://github.com/vercel/ai/issues"
@@ -57,7 +67,7 @@
   "dependencies": {
     "cli-progress": "^3.12.0",
     "commander": "^12.1.0",
-    "debug": "^4.3.7",
-    "jscodeshift": "^17.1.1"
+    "debug": "^4.4.3",
+    "jscodeshift": "^17.3.0"
   }
 }

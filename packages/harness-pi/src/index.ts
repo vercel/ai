@@ -1,0 +1,19 @@
+import { createPi } from './pi-harness';
+
+/**
+ * Default `pi` harness instance with no overrides — suitable for the common
+ * case where Pi's defaults are fine. Equivalent to `createPi()`.
+ */
+export const pi = createPi();
+
+export { createPi } from './pi-harness';
+export { VERSION } from './version';
+export type { PiHarnessSettings } from './pi-harness';
+export type {
+  PiHarnessExtensionFactory,
+  PiHarnessExtensionSession,
+  PiMcpExposure,
+  PiMcpServerConfig,
+} from './pi-session';
+export type { PiAuthenticationMode, PiCredentialStore } from './pi-auth';
+export type { PiFileToolPathPolicy } from './pi-paths';

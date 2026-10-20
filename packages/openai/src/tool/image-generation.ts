@@ -1,30 +1,54 @@
-import { createProviderDefinedToolFactoryWithOutputSchema } from '@ai-sdk/provider-utils';
+import {
+  createProviderExecutedToolFactory,
+  lazySchema,
+  zodSchema,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-export const imageGenerationArgsSchema = z
-  .object({
-    background: z.enum(['auto', 'opaque', 'transparent']).optional(),
-    inputFidelity: z.enum(['low', 'high']).optional(),
-    inputImageMask: z
+export const imageGenerationArgsSchema = lazySchema(() =>
+  zodSchema(
+    z
       .object({
-        fileId: z.string().optional(),
-        imageUrl: z.string().optional(),
+        action: z.enum(['generate', 'edit', 'auto']).optional(),
+        background: z.enum(['auto', 'opaque', 'transparent']).optional(),
+        inputFidelity: z.enum(['low', 'high']).optional(),
+        inputImageMask: z
+          .object({
+            fileId: z.string().optional(),
+            imageUrl: z.string().optional(),
+          })
+          .optional(),
+        model: z.string().optional(),
+        moderation: z.enum(['auto', 'low']).optional(),
+        outputCompression: z.number().int().min(0).max(100).optional(),
+        outputFormat: z.enum(['png', 'jpeg', 'webp']).optional(),
+        partialImages: z.number().int().min(0).max(3).optional(),
+        quality: z
+          .enum(['auto', 'low', 'medium', 'high', 'xhigh', 'max'])
+          .optional(),
+        size: z
+          .union([
+            z.enum(['1024x1024', '1024x1536', '1536x1024', 'auto']),
+            z.string().regex(/^\d+x\d+$/),
+          ])
+          .optional(),
       })
-      .optional(),
-    model: z.string().optional(),
-    moderation: z.enum(['auto']).optional(),
-    outputCompression: z.number().int().min(0).max(100).optional(),
-    outputFormat: z.enum(['png', 'jpeg', 'webp']).optional(),
-    quality: z.enum(['auto', 'low', 'medium', 'high']).optional(),
-    size: z.enum(['1024x1024', '1024x1536', '1536x1024', 'auto']).optional(),
-  })
-  .strict();
+      .strict(),
+  ),
+);
 
-export const imageGenerationOutputSchema = z.object({
-  result: z.string(),
-});
+const imageGenerationInputSchema = lazySchema(() => zodSchema(z.object({})));
+
+export const imageGenerationOutputSchema = lazySchema(() =>
+  zodSchema(z.object({ result: z.string() })),
+);
 
 type ImageGenerationArgs = {
+  /**
+   * Whether to generate a new image or edit an existing image. Default: auto.
+   */
+  action?: 'generate' | 'edit' | 'auto';
+
   /**
    * Background type for the generated image. Default is 'auto'.
    */
@@ -57,9 +81,9 @@ type ImageGenerationArgs = {
   model?: string;
 
   /**
-   * Moderation level for the generated image. Default: auto.
+   * Moderation level for the generated image. One of auto or low. Default: auto.
    */
-  moderation?: 'auto';
+  moderation?: 'auto' | 'low';
 
   /**
    * Compression level for the output image. Default: 100.
@@ -73,35 +97,41 @@ type ImageGenerationArgs = {
   outputFormat?: 'png' | 'jpeg' | 'webp';
 
   /**
-   * The quality of the generated image.
-   * One of low, medium, high, or auto. Default: auto.
+   * Number of partial images to generate in streaming mode, from 0 (default value) to 3.
    */
-  quality?: 'auto' | 'low' | 'medium' | 'high';
+  partialImages?: number;
+
+  /**
+   * The quality of the generated image.
+   * One of low, medium, high, xhigh, max, or auto. Default: auto.
+   * xhigh and max are supported by GPT Image 2.5 models.
+   */
+  quality?: 'auto' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';
 
   /**
    * The size of the generated image.
-   * One of 1024x1024, 1024x1536, 1536x1024, or auto.
+   * One of 1024x1024, 1024x1536, 1536x1024, or auto. GPT Image 2 and 2.5
+   * models also accept arbitrary WIDTHxHEIGHT sizes where both are divisible
+   * by 16, e.g. 1536x864.
    * Default: auto.
    */
-  size?: 'auto' | '1024x1024' | '1024x1536' | '1536x1024';
+  size?: 'auto' | '1024x1024' | '1024x1536' | '1536x1024' | (string & {});
 };
 
-const imageGenerationToolFactory =
-  createProviderDefinedToolFactoryWithOutputSchema<
-    {},
-    {
-      /**
-       * The generated image encoded in base64.
-       */
-      result: string;
-    },
-    ImageGenerationArgs
-  >({
-    id: 'openai.image_generation',
-    name: 'image_generation',
-    inputSchema: z.object({}),
-    outputSchema: imageGenerationOutputSchema,
-  });
+const imageGenerationToolFactory = createProviderExecutedToolFactory<
+  {},
+  {
+    /**
+     * The generated image encoded in base64.
+     */
+    result: string;
+  },
+  ImageGenerationArgs
+>({
+  id: 'openai.image_generation',
+  inputSchema: imageGenerationInputSchema,
+  outputSchema: imageGenerationOutputSchema,
+});
 
 export const imageGeneration = (
   args: ImageGenerationArgs = {}, // default

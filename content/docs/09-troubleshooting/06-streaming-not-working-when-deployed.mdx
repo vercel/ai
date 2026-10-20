@@ -22,7 +22,8 @@ You can try the following:
 - add `'Transfer-Encoding': 'chunked'` and/or `Connection: 'keep-alive'` headers
 
   ```tsx
-  return result.toUIMessageStreamResponse({
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
     headers: {
       'Transfer-Encoding': 'chunked',
       Connection: 'keep-alive',

@@ -10,19 +10,19 @@ Some language models that support vision capabilities accept images as part of t
 
 ```ts
 import { generateText, tool } from 'ai';
-import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 
 const result = await generateText({
-  model: openai('gpt-4.1'),
+  model: 'openai/gpt-6-astra',
   messages: [
     {
       role: 'user',
       content: [
         { type: 'text', text: 'can you log this meal for me?' },
         {
-          type: 'image',
-          image: new URL(
+          type: 'file',
+          mediaType: 'image',
+          data: new URL(
             'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Cheeseburger_%2817237580619%29.jpg/640px-Cheeseburger_%2817237580619%29.jpg',
           ),
         },

@@ -14,7 +14,7 @@ To summarize, the `useChat` hook provides the following features:
 - **Seamless Integration**: Easily integrate your chat AI into any design or layout with minimal effort.
 
 In this guide, you will learn how to use the `useChat` hook to create a chatbot application with real-time message streaming.
-Check out our [chatbot with tools guide](/docs/ai-sdk-ui/chatbot-with-tool-calling) to learn how to use tools in your chatbot.
+Check out our [chatbot with tools guide](/docs/ai-sdk-ui/chatbot-tool-usage) to learn how to use tools in your chatbot.
 Let's start with the following example first.
 
 ## Example
@@ -70,8 +70,14 @@ export default function Page() {
 ```
 
 ```ts filename='app/api/chat/route.ts'
-import { openai } from '@ai-sdk/openai';
-import { convertToModelMessages, streamText, UIMessage } from 'ai';
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+  UIMessage,
+} from 'ai';
+__PROVIDER_IMPORT__;
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -80,12 +86,14 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4.1'),
-    system: 'You are a helpful assistant.',
-    messages: convertToModelMessages(messages),
+    model: __MODEL__,
+    instructions: 'You are a helpful assistant.',
+    messages: await convertToModelMessages(messages),
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 
@@ -122,7 +130,7 @@ You can use `status` for e.g. the following purposes:
 - To show a "Stop" button to abort the current message.
 - To disable the submit button.
 
-```tsx filename='app/page.tsx' highlight="6,22-29,36"
+```tsx filename='app/page.tsx' highlight="8,26-33,47,50"
 'use client';
 
 import { useChat } from '@ai-sdk/react';
@@ -192,7 +200,7 @@ It can be used to display an error message, disable the submit button, or show a
   server.
 </Note>
 
-```tsx file="app/page.tsx" highlight="6,20-27,33"
+```tsx file="app/page.tsx" highlight="8,26-33,47"
 'use client';
 
 import { useChat } from '@ai-sdk/react';
@@ -200,7 +208,7 @@ import { DefaultChatTransport } from 'ai';
 import { useState } from 'react';
 
 export default function Chat() {
-  const { messages, sendMessage, error, reload } = useChat({
+  const { messages, sendMessage, error, regenerate } = useChat({
     transport: new DefaultChatTransport({
       api: '/api/chat',
     }),
@@ -221,7 +229,7 @@ export default function Chat() {
       {error && (
         <>
           <div>An error occurred.</div>
-          <button type="button" onClick={() => reload()}>
+          <button type="button" onClick={() => regenerate()}>
             Retry
           </button>
         </>
@@ -315,17 +323,33 @@ When the user clicks the "Regenerate" button, the AI provider will regenerate th
 
 ### Throttling UI Updates
 
-<Note>This feature is currently only available for React.</Note>
+By default, `useChat` publishes message updates as each chunk is processed.
+React may batch multiple updates into a single render.
+React and Vue applications can throttle reactive message updates with the `throttle` option.
+Stream processing and event callbacks remain immediate, and the latest messages are published before the chat enters a terminal `ready` or `error` status.
 
-By default, the `useChat` hook will trigger a render every time a new chunk is received.
-You can throttle the UI updates with the `experimental_throttle` option.
+<Tabs items={['React', 'Vue']}>
+  <Tab>
+    ```tsx filename="page.tsx" highlight="2-3"
+    const { messages, ... } = useChat({
+      // Throttle reactive message updates to 50ms:
+      throttle: 50,
+    });
+    ```
+  </Tab>
+  <Tab>
+    ```vue filename="pages/index.vue" highlight="4-6"
+    <script setup lang="ts">
+    import { useChat } from '@ai-sdk/vue';
 
-```tsx filename="page.tsx" highlight="2-3"
-const { messages, ... } = useChat({
-  // Throttle the messages and data updates to 50ms:
-  experimental_throttle: 50
-})
-```
+    const { messages } = useChat({
+      throttle: 50,
+    });
+    </script>
+    ```
+
+  </Tab>
+</Tabs>
 
 ## Event Callbacks
 
@@ -361,7 +385,7 @@ It's worth noting that you can abort the processing by throwing an error in the 
 
 ### Custom headers, body, and credentials
 
-By default, the `useChat` hook sends a HTTP POST request to the `/api/chat` endpoint with the message list as the request body. You can customize the request in two ways:
+By default, the `useChat` hook sends an HTTP POST request to the `/api/chat` endpoint with the message list as the request body. You can customize the request in two ways:
 
 #### Hook-Level Configuration (Applied to all requests)
 
@@ -452,7 +476,7 @@ The request-level options are merged with hook-level options, with request-level
 You can configure custom `body` fields on a per-request basis using the second parameter of the `sendMessage` function.
 This is useful if you want to pass in additional information to your backend that is not part of the message list.
 
-```tsx filename="app/page.tsx" highlight="20-25"
+```tsx filename="app/page.tsx" highlight="25-32"
 'use client';
 
 import { useChat } from '@ai-sdk/react';
@@ -513,21 +537,24 @@ You can attach custom metadata to messages for tracking information like timesta
 
 ```ts
 // Server: Send metadata about the message
-return result.toUIMessageStreamResponse({
-  messageMetadata: ({ part }) => {
-    if (part.type === 'start') {
-      return {
-        createdAt: Date.now(),
-        model: 'gpt-4o',
-      };
-    }
+return createUIMessageStreamResponse({
+  stream: toUIMessageStream({
+    stream: result.stream,
+    messageMetadata: ({ part }) => {
+      if (part.type === 'start') {
+        return {
+          createdAt: Date.now(),
+          model: 'gpt-6-astra',
+        };
+      }
 
-    if (part.type === 'finish') {
-      return {
-        totalTokens: part.totalUsage.totalTokens,
-      };
-    }
-  },
+      if (part.type === 'finish') {
+        return {
+          totalTokens: part.totalUsage.totalTokens,
+        };
+      }
+    },
+  }),
 });
 ```
 
@@ -592,11 +619,13 @@ export async function POST(req: Request) {
   messages.push(message);
 
   const result = streamText({
-    model: openai('gpt-4.1'),
-    messages: convertToModelMessages(messages),
+    model: __MODEL__,
+    messages: await convertToModelMessages(messages),
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 
@@ -661,15 +690,66 @@ export async function POST(req: Request) {
   }
 
   const result = streamText({
-    model: openai('gpt-4.1'),
-    messages: convertToModelMessages(messages),
+    model: __MODEL__,
+    messages: await convertToModelMessages(messages),
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 
 To learn more about building custom transports, refer to the [Transport API documentation](/docs/ai-sdk-ui/transport).
+
+### Direct Agent Transport
+
+For scenarios where you want to communicate directly with an Agent without going through HTTP, you can use `DirectChatTransport`. This is useful for:
+
+- Server-side rendering scenarios
+- Testing without network
+- Single-process applications
+
+```tsx filename="app/page.tsx"
+import { useChat } from '@ai-sdk/react';
+import { DirectChatTransport, ToolLoopAgent } from 'ai';
+__PROVIDER_IMPORT__;
+
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
+  instructions: 'You are a helpful assistant.',
+});
+
+export default function Chat() {
+  const { messages, sendMessage, status } = useChat({
+    transport: new DirectChatTransport({ agent }),
+  });
+
+  return (
+    <>
+      {messages.map(message => (
+        <div key={message.id}>
+          {message.role === 'user' ? 'User: ' : 'AI: '}
+          {message.parts.map((part, index) =>
+            part.type === 'text' ? <span key={index}>{part.text}</span> : null,
+          )}
+        </div>
+      ))}
+
+      <button
+        onClick={() => sendMessage({ text: 'Hello!' })}
+        disabled={status !== 'ready'}
+      >
+        Send
+      </button>
+    </>
+  );
+}
+```
+
+The `DirectChatTransport` invokes the agent's `stream()` method directly, converting UI messages to model messages and streaming the response back as UI message chunks.
+
+For more details, see the [DirectChatTransport reference](/docs/reference/ai-sdk-ui/direct-chat-transport).
 
 ## Controlling the response stream
 
@@ -679,36 +759,54 @@ With `streamText`, you can control how error messages and usage information are 
 
 By default, the error message is masked for security reasons.
 The default error message is "An error occurred."
-You can forward error messages or send your own error message by providing a `getErrorMessage` function:
 
-```ts filename="app/api/chat/route.ts" highlight="13-27"
-import { openai } from '@ai-sdk/openai';
-import { convertToModelMessages, streamText, UIMessage } from 'ai';
+Tool execution errors marked `providerExecuted: true` are an exception. They
+bypass the UI stream's `onError` callback: strings are forwarded unchanged, and
+other error values are serialized with `JSON.stringify`. This preserves provider
+error codes when chat history is converted back into model messages, as well as
+error messages from harness runtimes. Stream errors and invalid tool calls still
+use `onError`, even for provider-executed tools. Do not rely on this callback to
+redact provider-executed tool execution errors before they reach the client.
+
+You can forward error messages or send your own error message by providing an `onError` function:
+
+```ts filename="app/api/chat/route.ts" highlight="21-35"
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+  UIMessage,
+} from 'ai';
+__PROVIDER_IMPORT__;
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4.1'),
-    messages: convertToModelMessages(messages),
+    model: __MODEL__,
+    messages: await convertToModelMessages(messages),
   });
 
-  return result.toUIMessageStreamResponse({
-    onError: error => {
-      if (error == null) {
-        return 'unknown error';
-      }
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({
+      stream: result.stream,
+      onError: error => {
+        if (error == null) {
+          return 'unknown error';
+        }
 
-      if (typeof error === 'string') {
-        return error;
-      }
+        if (typeof error === 'string') {
+          return error;
+        }
 
-      if (error instanceof Error) {
-        return error.message;
-      }
+        if (error instanceof Error) {
+          return error.message;
+        }
 
-      return JSON.stringify(error);
-    },
+        return JSON.stringify(error);
+      },
+    }),
   });
 }
 ```
@@ -727,10 +825,13 @@ Usage data is attached as metadata to messages and becomes available once the mo
 import { openai } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
+  createUIMessageStreamResponse,
   streamText,
+  toUIMessageStream,
   UIMessage,
   type LanguageModelUsage,
 } from 'ai';
+__PROVIDER_IMPORT__;
 
 // Create a new metadata type (optional for type-safety)
 type MyMetadata = {
@@ -744,18 +845,21 @@ export async function POST(req: Request) {
   const { messages }: { messages: MyUIMessage[] } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
-    messages: convertToModelMessages(messages),
+    model: __MODEL__,
+    messages: await convertToModelMessages(messages),
   });
 
-  return result.toUIMessageStreamResponse({
-    originalMessages: messages,
-    messageMetadata: ({ part }) => {
-      // Send total usage when generation is finished
-      if (part.type === 'finish') {
-        return { totalUsage: part.totalUsage };
-      }
-    },
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({
+      stream: result.stream,
+      originalMessages: messages,
+      messageMetadata: ({ part }) => {
+        // Send total usage when generation is finished
+        if (part.type === 'finish') {
+          return { totalUsage: part.totalUsage };
+        }
+      },
+    }),
   });
 }
 ```
@@ -852,25 +956,33 @@ Check out the [stream protocol guide](/docs/ai-sdk-ui/stream-protocol) for more 
 
 ## Reasoning
 
-Some models such as as DeepSeek `deepseek-reasoner`
-and Anthropic `claude-3-7-sonnet-20250219` support reasoning tokens.
+Some models such as DeepSeek `deepseek-r1`
+and Anthropic `claude-sonnet-5-5` support reasoning tokens.
 These tokens are typically sent before the message content.
 You can forward them to the client with the `sendReasoning` option:
 
-```ts filename="app/api/chat/route.ts" highlight="13"
-import { deepseek } from '@ai-sdk/deepseek';
-import { convertToModelMessages, streamText, UIMessage } from 'ai';
+```ts filename="app/api/chat/route.ts" highlight="20"
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+  UIMessage,
+} from 'ai';
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: deepseek('deepseek-reasoner'),
-    messages: convertToModelMessages(messages),
+    model: 'deepseek/deepseek-r1',
+    messages: await convertToModelMessages(messages),
   });
 
-  return result.toUIMessageStreamResponse({
-    sendReasoning: true,
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({
+      stream: result.stream,
+      sendReasoning: true,
+    }),
   });
 }
 ```
@@ -898,28 +1010,42 @@ messages.map(message => (
 ));
 ```
 
+Some models may also produce files as part of reasoning (e.g. images).
+These are available as `reasoning-file` parts (`ReasoningFileUIPart`) with
+`mediaType` and `url` properties, similar to regular file parts.
+
 ## Sources
 
 Some providers such as [Perplexity](/providers/ai-sdk-providers/perplexity#sources) and
-[Google Generative AI](/providers/ai-sdk-providers/google-generative-ai#sources) include sources in the response.
+[Google](/providers/ai-sdk-providers/google#sources) include sources in the response.
 
-Currently sources are limited to web pages that ground the response.
-You can forward them to the client with the `sendSources` option:
+You can forward sources to the client with the `sendSources` option. This example uses the Perplexity Agent API's `fast` preset to search the web. Install `@ai-sdk/perplexity` and set `PERPLEXITY_API_KEY` in your environment:
 
-```ts filename="app/api/chat/route.ts" highlight="13"
+<InstallPackages packages="@ai-sdk/perplexity" />
+
+```ts filename="app/api/chat/route.ts" highlight="21"
 import { perplexity } from '@ai-sdk/perplexity';
-import { convertToModelMessages, streamText, UIMessage } from 'ai';
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+  UIMessage,
+} from 'ai';
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: perplexity('sonar-pro'),
-    messages: convertToModelMessages(messages),
+    model: perplexity('fast'),
+    messages: await convertToModelMessages(messages),
   });
 
-  return result.toUIMessageStreamResponse({
-    sendSources: true,
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({
+      stream: result.stream,
+      sendSources: true,
+    }),
   });
 }
 ```
@@ -937,7 +1063,7 @@ messages.map(message => (
     {message.parts
       .filter(part => part.type === 'source-url')
       .map(part => (
-        <span key={`source-${part.id}`}>
+        <span key={`source-${part.sourceId}`}>
           [
           <a href={part.url} target="_blank">
             {part.title ?? new URL(part.url).hostname}
@@ -950,8 +1076,8 @@ messages.map(message => (
     {message.parts
       .filter(part => part.type === 'source-document')
       .map(part => (
-        <span key={`source-${part.id}`}>
-          [<span>{part.title ?? `Document ${part.id}`}</span>]
+        <span key={`source-${part.sourceId}`}>
+          [<span>{part.title ?? `Document ${part.sourceId}`}</span>]
         </span>
       ))}
   </div>
@@ -960,7 +1086,7 @@ messages.map(message => (
 
 ## Image Generation
 
-Some models such as Google `gemini-2.5-flash-image-preview` support image generation.
+Some models such as Google `gemini-3.1-flash-image-preview` support image generation.
 When images are generated, they are exposed as files to the client.
 On the client side, you can access file parts of the message object
 and render them as images.
@@ -993,8 +1119,8 @@ By using `FileList`, you can send multiple files as attachments along with a mes
 <Note>
   Currently, only `image/*` and `text/*` content types get automatically
   converted into [multi-modal content
-  parts](/docs/foundations/prompts#multi-modal-messages). You will need to
-  handle other content types manually.
+  parts](/docs/foundations/prompts#file-parts). You will need to handle other
+  content types manually.
 </Note>
 
 ```tsx filename="app/page.tsx"
@@ -1156,6 +1282,9 @@ export default function Page() {
   );
 }
 ```
+
+Files generated as part of model reasoning are available as `reasoning-file`
+parts (`ReasoningFileUIPart`) with the same `mediaType` and `url` properties.
 
 ## Type Inference for Tools
 

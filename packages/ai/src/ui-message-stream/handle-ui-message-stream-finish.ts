@@ -1,19 +1,27 @@
 import {
   createStreamingUIMessageState,
   processUIMessageStream,
-  StreamingUIMessageState,
+  type StreamingUIMessageState,
+  type UIMessageStreamWriteOptions,
 } from '../ui/process-ui-message-stream';
-import { UIMessage } from '../ui/ui-messages';
-import { ErrorHandler } from '../util/error-handler';
-import { InferUIMessageChunk, UIMessageChunk } from './ui-message-chunks';
-import { UIMessageStreamOnFinishCallback } from './ui-message-stream-on-finish-callback';
+import type { UIMessage } from '../ui/ui-messages';
+import type { ErrorHandler } from '../util/error-handler';
+import type { InferUIMessageChunk, UIMessageChunk } from './ui-message-chunks';
+import type { UIMessageStreamOnEndCallback } from './ui-message-stream-on-end-callback';
+import type { UIMessageStreamOutcome } from './ui-message-stream-outcome';
+import type { UIMessageStreamOnStepEndCallback } from './ui-message-stream-on-step-end-callback';
+import type { UIMessageStreamOnStepFinishCallback } from './ui-message-stream-on-step-finish-callback';
 
 export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
   messageId,
   originalMessages = [],
+  onStepEnd,
+  onStepFinish,
+  onEnd,
   onFinish,
   onError,
   stream,
+  getOutcome,
 }: {
   stream: ReadableStream<InferUIMessageChunk<UI_MESSAGE>>;
 
@@ -30,7 +38,29 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
 
   onError: ErrorHandler;
 
-  onFinish?: UIMessageStreamOnFinishCallback<UI_MESSAGE>;
+  /**
+   * Callback that is called when each step ends during multi-step agent runs.
+   */
+  onStepEnd?: UIMessageStreamOnStepEndCallback<UI_MESSAGE>;
+
+  /**
+   * Callback that is called when each step ends during multi-step agent runs.
+   *
+   * @deprecated Use `onStepEnd` instead.
+   */
+  onStepFinish?: UIMessageStreamOnStepFinishCallback<UI_MESSAGE>;
+
+  onEnd?: UIMessageStreamOnEndCallback<UI_MESSAGE>;
+
+  /**
+   * @deprecated Use `onEnd` instead.
+   */
+  onFinish?: UIMessageStreamOnEndCallback<UI_MESSAGE>;
+
+  /**
+   * Returns the operation-level outcome declared by the stream owner.
+   */
+  getOutcome?: () => UIMessageStreamOutcome;
 }): ReadableStream<InferUIMessageChunk<UI_MESSAGE>> {
   // last message is only relevant for assistant messages
   let lastMessage: UI_MESSAGE | undefined =
@@ -43,6 +73,13 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
   }
 
   let isAborted = false;
+  let hasProcessingFailure = false;
+  let processingError: unknown;
+
+  const recordProcessingFailure = (error: unknown) => {
+    hasProcessingFailure = true;
+    processingError = error;
+  };
 
   const idInjectedStream = stream.pipeThrough(
     new TransformStream<
@@ -50,26 +87,40 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
       InferUIMessageChunk<UI_MESSAGE>
     >({
       transform(chunk, controller) {
-        // when there is no messageId in the start chunk,
-        // but the user checked for persistence,
-        // inject the messageId into the chunk
-        if (chunk.type === 'start') {
-          const startChunk = chunk as UIMessageChunk & { type: 'start' };
-          if (startChunk.messageId == null && messageId != null) {
-            startChunk.messageId = messageId;
+        try {
+          let outputChunk = chunk;
+
+          // when there is no messageId in the start chunk,
+          // but the user checked for persistence,
+          // inject the messageId into the chunk
+          if (chunk.type === 'start') {
+            const startChunk = chunk as UIMessageChunk & { type: 'start' };
+            if (startChunk.messageId == null && messageId != null) {
+              outputChunk = {
+                ...startChunk,
+                messageId,
+              } as InferUIMessageChunk<UI_MESSAGE>;
+            }
           }
-        }
 
-        if (chunk.type === 'abort') {
-          isAborted = true;
-        }
+          if (chunk.type === 'abort') {
+            isAborted = true;
+          }
 
-        controller.enqueue(chunk);
+          controller.enqueue(outputChunk);
+        } catch (error) {
+          recordProcessingFailure(error);
+          throw error;
+        }
       },
     }),
   );
 
-  if (onFinish == null) {
+  // Only process the stream if we need to track state for callbacks
+  const resolvedOnStepEnd = onStepEnd ?? onStepFinish;
+  const resolvedOnEnd = onEnd ?? onFinish;
+
+  if (resolvedOnEnd == null && resolvedOnStepEnd == null) {
     return idInjectedStream;
   }
 
@@ -83,30 +134,69 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
   const runUpdateMessageJob = async (
     job: (options: {
       state: StreamingUIMessageState<UI_MESSAGE>;
-      write: () => void;
+      write: (options?: UIMessageStreamWriteOptions) => void;
     }) => Promise<void>,
   ) => {
-    await job({ state, write: () => {} });
+    try {
+      await job({ state, write: () => {} });
+    } catch (error) {
+      recordProcessingFailure(error);
+      throw error;
+    }
   };
 
   let finishCalled = false;
 
-  const callOnFinish = async () => {
-    if (finishCalled || !onFinish) {
+  const callOnEnd = async ({ isCancelled }: { isCancelled: boolean }) => {
+    if (finishCalled || !resolvedOnEnd) {
       return;
     }
     finishCalled = true;
 
     const isContinuation = state.message.id === lastMessage?.id;
-    await onFinish({
-      isAborted,
+    const declaredOutcome = getOutcome?.() ?? { status: 'unknown' };
+    const outcome: UIMessageStreamOutcome = hasProcessingFailure
+      ? { status: 'failed', error: processingError }
+      : declaredOutcome.status === 'unknown' && isAborted
+        ? { status: 'aborted' }
+        : declaredOutcome;
+    const isConsumerCancellation = isCancelled && outcome.status === 'unknown';
+
+    await resolvedOnEnd({
+      isAborted: isAborted || outcome.status === 'aborted',
+      ...(isConsumerCancellation ? { isCancelled: true as const } : {}),
       isContinuation,
+      outcome,
       responseMessage: state.message as UI_MESSAGE,
       messages: [
         ...(isContinuation ? originalMessages.slice(0, -1) : originalMessages),
         state.message,
       ] as UI_MESSAGE[],
+      finishReason: state.finishReason,
     });
+  };
+
+  const callOnStepFinish = async () => {
+    if (!resolvedOnStepEnd) {
+      return;
+    }
+
+    const isContinuation = state.message.id === lastMessage?.id;
+
+    try {
+      await resolvedOnStepEnd({
+        isContinuation,
+        responseMessage: structuredClone(state.message) as UI_MESSAGE,
+        messages: [
+          ...(isContinuation
+            ? originalMessages.slice(0, -1)
+            : originalMessages),
+          structuredClone(state.message),
+        ] as UI_MESSAGE[],
+      });
+    } catch (error) {
+      onError(error);
+    }
   };
 
   return processUIMessageStream<UI_MESSAGE>({
@@ -118,16 +208,20 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
       InferUIMessageChunk<UI_MESSAGE>,
       InferUIMessageChunk<UI_MESSAGE>
     >({
-      transform(chunk, controller) {
+      async transform(chunk, controller) {
+        if (chunk.type === 'finish-step') {
+          await callOnStepFinish();
+        }
+
         controller.enqueue(chunk);
       },
       // @ts-expect-error cancel is still new and missing from types https://developer.mozilla.org/en-US/docs/Web/API/TransformStream#browser_compatibility
       async cancel() {
-        await callOnFinish();
+        await callOnEnd({ isCancelled: true });
       },
 
       async flush() {
-        await callOnFinish();
+        await callOnEnd({ isCancelled: false });
       },
     }),
   );

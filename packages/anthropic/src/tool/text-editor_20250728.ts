@@ -1,9 +1,32 @@
-import { createProviderDefinedToolFactory } from '@ai-sdk/provider-utils';
+import {
+  createProviderDefinedToolFactory,
+  lazySchema,
+  zodSchema,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-export const textEditor_20250728ArgsSchema = z.object({
-  maxCharacters: z.number().optional(),
-});
+export const textEditor_20250728ArgsSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      maxCharacters: z.number().optional(),
+    }),
+  ),
+);
+
+const textEditor_20250728InputSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      command: z.enum(['view', 'create', 'str_replace', 'insert']),
+      path: z.string(),
+      file_text: z.string().optional(),
+      insert_line: z.number().int().optional(),
+      new_str: z.string().optional(),
+      insert_text: z.string().optional(),
+      old_str: z.string().optional(),
+      view_range: z.array(z.number().int()).optional(),
+    }),
+  ),
+);
 
 const factory = createProviderDefinedToolFactory<
   {
@@ -29,9 +52,14 @@ const factory = createProviderDefinedToolFactory<
     insert_line?: number;
 
     /**
-     * Optional parameter of `str_replace` command containing the new string (if not given, no string will be added). Required parameter of `insert` command containing the string to insert.
+     * Optional parameter of `str_replace` command containing the new string (if not given, no string will be added).
      */
     new_str?: string;
+
+    /**
+     * Required parameter of `insert` command containing the text to insert.
+     */
+    insert_text?: string;
 
     /**
      * Required parameter of `str_replace` command containing the string in `path` to replace.
@@ -51,16 +79,7 @@ const factory = createProviderDefinedToolFactory<
   }
 >({
   id: 'anthropic.text_editor_20250728',
-  name: 'str_replace_based_edit_tool',
-  inputSchema: z.object({
-    command: z.enum(['view', 'create', 'str_replace', 'insert']),
-    path: z.string(),
-    file_text: z.string().optional(),
-    insert_line: z.number().int().optional(),
-    new_str: z.string().optional(),
-    old_str: z.string().optional(),
-    view_range: z.array(z.number().int()).optional(),
-  }),
+  inputSchema: textEditor_20250728InputSchema,
 });
 
 export const textEditor_20250728 = (

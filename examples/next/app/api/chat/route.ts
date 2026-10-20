@@ -1,8 +1,15 @@
 import type { MyUIMessage } from '@/util/chat-schema';
 import { readChat, saveChat } from '@util/chat-store';
-import { convertToModelMessages, generateId, streamText } from 'ai';
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  generateId,
+  streamText,
+  toUIMessageStream,
+} from 'ai';
 import { after } from 'next/server';
 import { createResumableStreamContext } from 'resumable-stream';
+import throttle from 'throttleit';
 
 export async function POST(req: Request) {
   const {
@@ -55,23 +62,38 @@ export async function POST(req: Request) {
   // save the user message
   saveChat({ id, messages, activeStreamId: null });
 
+  const userStopSignal = new AbortController();
+
   const result = streamText({
-    model: 'openai/gpt-5-mini',
-    messages: convertToModelMessages(messages),
-    abortSignal: req.signal,
+    model: 'openai/gpt-6-luna',
+    messages: await convertToModelMessages(messages),
+    abortSignal: userStopSignal.signal,
+    // throttle reading from chat store to max once per second
+    onChunk: throttle(async () => {
+      const { canceledAt } = await readChat(id);
+      if (canceledAt) {
+        userStopSignal.abort();
+      }
+    }, 1000),
+    onAbort: () => {
+      console.log('aborted');
+    },
   });
 
-  return result.toUIMessageStreamResponse({
-    originalMessages: messages,
-    generateMessageId: generateId,
-    messageMetadata: ({ part }) => {
-      if (part.type === 'start') {
-        return { createdAt: Date.now() };
-      }
-    },
-    onFinish: ({ messages }) => {
-      saveChat({ id, messages, activeStreamId: null });
-    },
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({
+      stream: result.stream,
+      originalMessages: messages,
+      generateMessageId: generateId,
+      messageMetadata: ({ part }) => {
+        if (part.type === 'start') {
+          return { createdAt: Date.now() };
+        }
+      },
+      onFinish: ({ messages }) => {
+        saveChat({ id, messages, activeStreamId: null });
+      },
+    }),
     async consumeSseStream({ stream }) {
       const streamId = generateId();
 

@@ -1,28 +1,47 @@
 import {
-  EmbeddingModelV3,
   TooManyEmbeddingValuesForCallError,
+  type EmbeddingModelV4,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
+  EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL,
   parseProviderOptions,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
-import { OpenAIConfig } from '../openai-config';
+import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
 import {
-  OpenAIEmbeddingModelId,
-  openaiEmbeddingProviderOptions,
-} from './openai-embedding-options';
+  openaiEmbeddingModelOptions,
+  type OpenAIEmbeddingModelId,
+} from './openai-embedding-model-options';
+import { openaiTextEmbeddingResponseSchema } from './openai-embedding-api';
 
-export class OpenAIEmbeddingModel implements EmbeddingModelV3<string> {
-  readonly specificationVersion = 'v3';
+export class OpenAIEmbeddingModel implements EmbeddingModelV4 {
+  readonly specificationVersion = 'v4';
   readonly modelId: OpenAIEmbeddingModelId;
   readonly maxEmbeddingsPerCall = 2048;
+  readonly [EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL] = 300_000;
   readonly supportsParallelCalls = true;
 
   private readonly config: OpenAIConfig;
+
+  static [WORKFLOW_SERIALIZE](model: OpenAIEmbeddingModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: OpenAIEmbeddingModelId;
+    config: OpenAIConfig;
+  }) {
+    return new OpenAIEmbeddingModel(options.modelId, options.config);
+  }
 
   get provider(): string {
     return this.config.provider;
@@ -35,11 +54,12 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV3<string> {
 
   async doEmbed({
     values,
+    dimensions,
     headers,
     abortSignal,
     providerOptions,
-  }: Parameters<EmbeddingModelV3<string>['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV3<string>['doEmbed']>>
+  }: Parameters<EmbeddingModelV4['doEmbed']>[0]): Promise<
+    Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>
   > {
     if (values.length > this.maxEmbeddingsPerCall) {
       throw new TooManyEmbeddingValuesForCallError({
@@ -55,7 +75,7 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV3<string> {
       (await parseProviderOptions({
         provider: 'openai',
         providerOptions,
-        schema: openaiEmbeddingProviderOptions,
+        schema: openaiEmbeddingModelOptions,
       })) ?? {};
 
     const {
@@ -67,12 +87,12 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV3<string> {
         path: '/embeddings',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), headers),
+      headers: combineHeaders(this.config.headers?.(), headers),
       body: {
         model: this.modelId,
         input: values,
         encoding_format: 'float',
-        dimensions: openaiOptions.dimensions,
+        dimensions: openaiOptions.dimensions ?? dimensions,
         user: openaiOptions.user,
       },
       failedResponseHandler: openaiFailedResponseHandler,
@@ -84,6 +104,7 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV3<string> {
     });
 
     return {
+      warnings: [],
       embeddings: response.data.map(item => item.embedding),
       usage: response.usage
         ? { tokens: response.usage.prompt_tokens }
@@ -92,10 +113,3 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV3<string> {
     };
   }
 }
-
-// minimal version of the schema, focussed on what is needed for the implementation
-// this approach limits breakages when the API changes and increases efficiency
-const openaiTextEmbeddingResponseSchema = z.object({
-  data: z.array(z.object({ embedding: z.array(z.number()) })),
-  usage: z.object({ prompt_tokens: z.number() }).nullish(),
-});

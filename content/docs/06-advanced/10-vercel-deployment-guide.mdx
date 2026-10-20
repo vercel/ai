@@ -40,7 +40,7 @@ You can create a GitHub repository from within your terminal, or on [github.com]
 
 To create your GitHub repository:
 
-1. Navigate to [github.com](http://github.com/)
+1. Navigate to [github.com](https://github.com/)
 2. In the top right corner, click the "plus" icon and select "New repository"
 3. Pick a name for your repository (this can be anything)
 4. Click "Create repository"
@@ -69,7 +69,7 @@ Once you have signed in, you should see your newly created repository from the p
 
 ### Add Environment Variables
 
-Your application stores uses environment secrets to store your OpenAI API key using a `.env.local` file locally in development. To add this API key to your production deployment, expand the "Environment Variables" section and paste in your `.env.local` file. Vercel will automatically parse your variables and enter them in the appropriate `key:value` format.
+Your application uses environment secrets to store your OpenAI API key using a `.env.local` file locally in development. To add this API key to your production deployment, expand the "Environment Variables" section and paste in your `.env.local` file. Vercel will automatically parse your variables and enter them in the appropriate `key:value` format.
 
 ### Deploy
 
@@ -94,6 +94,47 @@ export const maxDuration = 30;
 ```
 
 You can increase the max duration to 60 seconds on the Hobby Tier. For other tiers, [see the documentation](https://vercel.com/docs/functions/runtimes#max-duration) for limits.
+
+### Request Cancellation
+
+AI SDK UI helpers such as `useChat` and `useCompletion` abort the client request when you call `stop()`. To propagate that cancellation to a Vercel Function and its model request, you must:
+
+1. Use the Node.js runtime, which is the default for Next.js route handlers.
+2. Enable [`supportsCancellation`](https://vercel.com/docs/functions/functions-api-reference#cancel-requests) for the route in `vercel.json`.
+3. Forward the route's `req.signal` to `streamText` or `generateText` as `abortSignal`.
+
+For example, enable cancellation for your chat route:
+
+```json filename="vercel.json"
+{
+  "functions": {
+    "app/api/chat/route.ts": {
+      "supportsCancellation": true
+    }
+  }
+}
+```
+
+Then forward the request signal to the AI SDK:
+
+```ts filename="app/api/chat/route.ts" highlight="10"
+import { convertToModelMessages, streamText, type UIMessage } from 'ai';
+__PROVIDER_IMPORT__;
+
+export async function POST(req: Request) {
+  const { messages }: { messages: UIMessage[] } = await req.json();
+
+  const result = streamText({
+    model: __MODEL__,
+    messages: convertToModelMessages(messages),
+    abortSignal: req.signal,
+  });
+
+  return result.toUIMessageStreamResponse();
+}
+```
+
+Without `supportsCancellation`, calling `stop()` closes the client-side stream but does not cancel the Vercel Function or model request. See [Stopping Streams](/docs/advanced/stopping-streams) for the complete client and server setup.
 
 ## Security Considerations
 

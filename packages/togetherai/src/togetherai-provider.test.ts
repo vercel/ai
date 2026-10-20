@@ -3,11 +3,27 @@ import {
   OpenAICompatibleCompletionLanguageModel,
   OpenAICompatibleEmbeddingModel,
 } from '@ai-sdk/openai-compatible';
-import { LanguageModelV3, EmbeddingModelV3 } from '@ai-sdk/provider';
-import { loadApiKey, withUserAgentSuffix } from '@ai-sdk/provider-utils';
+import type {
+  EmbeddingModelV4,
+  LanguageModelV4,
+  RerankingModelV4,
+} from '@ai-sdk/provider';
+import { loadApiKey } from '@ai-sdk/provider-utils';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  type Mock,
+} from 'vitest';
+import { TogetherAIRerankingModel } from './reranking/togetherai-reranking-model';
 import { TogetherAIImageModel } from './togetherai-image-model';
-import { createTogetherAI } from './togetherai-provider';
-import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+import {
+  createTogetherAI,
+  getModelStructuredOutputSupport,
+} from './togetherai-provider';
 
 // Add type assertion for the mocked class
 const OpenAICompatibleChatLanguageModelMock =
@@ -32,22 +48,36 @@ vi.mock('./togetherai-image-model', () => ({
   TogetherAIImageModel: vi.fn(),
 }));
 
+vi.mock('./reranking/togetherai-reranking-model', () => ({
+  TogetherAIRerankingModel: vi.fn(),
+}));
+
 describe('TogetherAIProvider', () => {
-  let mockLanguageModel: LanguageModelV3;
-  let mockEmbeddingModel: EmbeddingModelV3<string>;
-  let createOpenAICompatibleMock: Mock;
+  const originalEnv = { ...process.env };
+
+  let mockLanguageModel: LanguageModelV4;
+  let mockEmbeddingModel: EmbeddingModelV4;
+  let mockRerankingModel: RerankingModelV4;
 
   beforeEach(() => {
     // Mock implementations of models
     mockLanguageModel = {
-      // Add any required methods for LanguageModelV3
-    } as LanguageModelV3;
+      // Add any required methods for LanguageModelV4
+    } as LanguageModelV4;
     mockEmbeddingModel = {
-      // Add any required methods for EmbeddingModelV3
-    } as EmbeddingModelV3<string>;
+      // Add any required methods for EmbeddingModelV4
+    } as EmbeddingModelV4;
+    mockRerankingModel = {
+      // Add any required methods for RerankingModelV4
+    } as RerankingModelV4;
 
-    // Reset mocks
     vi.clearAllMocks();
+    delete process.env.TOGETHER_API_KEY;
+    delete process.env.TOGETHER_AI_API_KEY;
+  });
+
+  afterEach(() => {
+    process.env = { ...originalEnv };
   });
 
   describe('createTogetherAI', () => {
@@ -55,7 +85,6 @@ describe('TogetherAIProvider', () => {
       const provider = createTogetherAI();
       const model = provider('model-id');
 
-      // Use the mocked version
       const constructorCall =
         OpenAICompatibleChatLanguageModelMock.mock.calls[0];
       const config = constructorCall[1];
@@ -63,7 +92,7 @@ describe('TogetherAIProvider', () => {
 
       expect(loadApiKey).toHaveBeenCalledWith({
         apiKey: undefined,
-        environmentVariableName: 'TOGETHER_AI_API_KEY',
+        environmentVariableName: 'TOGETHER_API_KEY',
         description: 'TogetherAI',
       });
     });
@@ -84,9 +113,72 @@ describe('TogetherAIProvider', () => {
 
       expect(loadApiKey).toHaveBeenCalledWith({
         apiKey: 'custom-key',
-        environmentVariableName: 'TOGETHER_AI_API_KEY',
+        environmentVariableName: 'TOGETHER_API_KEY',
         description: 'TogetherAI',
       });
+    });
+
+    it('should fall back to TOGETHER_AI_API_KEY with deprecation warning', () => {
+      process.env.TOGETHER_AI_API_KEY = 'old-key';
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const provider = createTogetherAI();
+      const model = provider('model-id');
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const config = constructorCall[1];
+      config.headers();
+
+      expect(loadApiKey).toHaveBeenCalledWith({
+        apiKey: 'old-key',
+        environmentVariableName: 'TOGETHER_API_KEY',
+        description: 'TogetherAI',
+      });
+      expect(warnSpy).toHaveBeenCalledWith(
+        'TOGETHER_AI_API_KEY is deprecated and will be removed in a future release. Please use TOGETHER_API_KEY instead.',
+      );
+    });
+
+    it('should prefer TOGETHER_API_KEY over TOGETHER_AI_API_KEY', () => {
+      process.env.TOGETHER_API_KEY = 'new-key';
+      process.env.TOGETHER_AI_API_KEY = 'old-key';
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const provider = createTogetherAI();
+      const model = provider('model-id');
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const config = constructorCall[1];
+      config.headers();
+
+      expect(loadApiKey).toHaveBeenCalledWith({
+        apiKey: undefined,
+        environmentVariableName: 'TOGETHER_API_KEY',
+        description: 'TogetherAI',
+      });
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    it('should prefer explicit apiKey over TOGETHER_AI_API_KEY', () => {
+      process.env.TOGETHER_AI_API_KEY = 'old-key';
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const provider = createTogetherAI({ apiKey: 'explicit-key' });
+      const model = provider('model-id');
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const config = constructorCall[1];
+      config.headers();
+
+      expect(loadApiKey).toHaveBeenCalledWith({
+        apiKey: 'explicit-key',
+        environmentVariableName: 'TOGETHER_API_KEY',
+        description: 'TogetherAI',
+      });
+      expect(warnSpy).not.toHaveBeenCalled();
     });
 
     it('should return a chat model when called as a function', () => {
@@ -107,6 +199,28 @@ describe('TogetherAIProvider', () => {
 
       expect(model).toBeInstanceOf(OpenAICompatibleChatLanguageModel);
     });
+
+    it('should set includeUsage so streaming responses report token usage', () => {
+      const provider = createTogetherAI();
+      provider.chatModel('together-chat-model');
+
+      const config = OpenAICompatibleChatLanguageModelMock.mock.calls[0][1];
+      expect(config.includeUsage).toBe(true);
+    });
+
+    it.each([
+      ['deepseek-ai/DeepSeek-V4-Flash-0731', true],
+      ['custom-model-id', false],
+    ] as const)(
+      'should set supportsStructuredOutputs for %s to %s',
+      (modelId, expected) => {
+        const provider = createTogetherAI();
+        provider.chatModel(modelId);
+
+        const config = OpenAICompatibleChatLanguageModelMock.mock.calls[0][1];
+        expect(config.supportsStructuredOutputs).toBe(expected);
+      },
+    );
   });
 
   describe('completionModel', () => {
@@ -118,14 +232,24 @@ describe('TogetherAIProvider', () => {
 
       expect(model).toBeInstanceOf(OpenAICompatibleCompletionLanguageModel);
     });
+
+    it('should set includeUsage so streaming responses report token usage', () => {
+      const provider = createTogetherAI();
+      provider.completionModel('together-completion-model');
+
+      const config = (
+        OpenAICompatibleCompletionLanguageModel as unknown as Mock
+      ).mock.calls[0][1];
+      expect(config.includeUsage).toBe(true);
+    });
   });
 
-  describe('textEmbeddingModel', () => {
+  describe('embeddingModel', () => {
     it('should construct a text embedding model with correct configuration', () => {
       const provider = createTogetherAI();
       const modelId = 'together-embedding-model';
 
-      const model = provider.textEmbeddingModel(modelId);
+      const model = provider.embeddingModel(modelId);
 
       expect(model).toBeInstanceOf(OpenAICompatibleEmbeddingModel);
     });
@@ -164,4 +288,33 @@ describe('TogetherAIProvider', () => {
       );
     });
   });
+
+  describe('rerankingModel', () => {
+    it('should construct a reranking model with correct configuration', () => {
+      const provider = createTogetherAI();
+      const modelId = 'Salesforce/Llama-Rank-v1';
+      0;
+      const model = provider.rerankingModel(modelId);
+
+      expect(TogetherAIRerankingModel).toHaveBeenCalledWith(
+        modelId,
+        expect.objectContaining({
+          baseURL: 'https://api.together.xyz/v1/',
+        }),
+      );
+      expect(model).toBeInstanceOf(TogetherAIRerankingModel);
+    });
+  });
+});
+
+describe('getModelStructuredOutputSupport', () => {
+  it.each([
+    ['deepseek-ai/DeepSeek-V4-Flash-0731', true],
+    ['custom-model-id', false],
+  ] as const)(
+    'returns structured output support for %s as %s',
+    (modelId, expected) => {
+      expect(getModelStructuredOutputSupport(modelId)).toBe(expected);
+    },
+  );
 });

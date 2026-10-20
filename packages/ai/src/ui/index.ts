@@ -1,6 +1,8 @@
 export { callCompletionApi } from './call-completion-api';
 export {
   AbstractChat,
+  type ChatAddToolApproveResponseFunction,
+  type ChatAddToolOutputFunction,
   type ChatInit,
   type ChatOnDataCallback,
   type ChatOnErrorCallback,
@@ -15,34 +17,61 @@ export {
 } from './chat';
 export { type ChatTransport } from './chat-transport';
 export { convertFileListToFileUIParts } from './convert-file-list-to-file-ui-parts';
-export {
-  convertToCoreMessages,
-  convertToModelMessages,
-} from './convert-to-model-messages';
+export { convertToModelMessages } from './convert-to-model-messages';
 export { DefaultChatTransport } from './default-chat-transport';
+export {
+  DirectChatTransport,
+  type DirectChatTransportOptions,
+} from './direct-chat-transport';
 export {
   HttpChatTransport,
   type HttpChatTransportInitOptions,
   type PrepareReconnectToStreamRequest,
   type PrepareSendMessagesRequest,
 } from './http-chat-transport';
+export { lastAssistantMessageIsCompleteWithApprovalResponses } from './last-assistant-message-is-complete-with-approval-responses';
 export { lastAssistantMessageIsCompleteWithToolCalls } from './last-assistant-message-is-complete-with-tool-calls';
 export { TextStreamChatTransport } from './text-stream-chat-transport';
 export {
+  safeValidateWebSocketChatTransportRequest,
+  WebSocketChatTransport,
+  type PrepareWebSocketChatTransportReconnectToStreamRequest,
+  type PrepareWebSocketChatTransportSendMessagesRequest,
+  type SafeValidateWebSocketChatTransportRequestResult,
+  type WebSocketChatTransportAbortRequest,
+  type WebSocketChatTransportInitOptions,
+  type WebSocketChatTransportRequest,
+  type WebSocketChatTransportResponse,
+  type WebSocketChatTransportResumeRequest,
+  type WebSocketChatTransportSendRequest,
+} from './websocket-chat-transport';
+export {
+  getStaticToolName,
   getToolName,
   getToolOrDynamicToolName,
-  isToolOrDynamicToolUIPart,
+  isCustomContentUIPart,
+  isDataUIPart,
+  isDynamicToolUIPart,
+  isFileUIPart,
+  isReasoningFileUIPart,
+  isReasoningUIPart,
+  isStaticToolUIPart,
+  isTextUIPart,
+  isToolOutputErrorUIPart,
   isToolUIPart,
+  type CustomContentUIPart,
   type DataUIPart,
   type DynamicToolUIPart,
   type FileUIPart,
   type InferUITool,
   type InferUITools,
+  type ReasoningFileUIPart,
   type ReasoningUIPart,
   type SourceDocumentUIPart,
   type SourceUrlUIPart,
   type StepStartUIPart,
   type TextUIPart,
+  type ToolOutputErrorUIPart,
   type ToolUIPart,
   type UIDataTypes,
   type UIMessage,
@@ -56,7 +85,7 @@ export {
   type UseCompletionOptions,
 } from './use-completion';
 export {
-  validateUIMessages,
   safeValidateUIMessages,
+  validateUIMessages,
   type SafeValidateUIMessagesResult,
 } from './validate-ui-messages';

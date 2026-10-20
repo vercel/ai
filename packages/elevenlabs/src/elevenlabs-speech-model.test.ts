@@ -119,11 +119,15 @@ describe('ElevenLabsSpeechModel', () => {
         instructions: 'Speak slowly',
       });
 
-      expect(result.warnings).toContainEqual({
-        type: 'unsupported-setting',
-        setting: 'instructions',
-        details: expect.stringContaining('instructions'),
-      });
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "ElevenLabs speech models do not support instructions. Instructions parameter was ignored.",
+            "feature": "instructions",
+            "type": "unsupported",
+          },
+        ]
+      `);
     });
 
     it('should pass provider-specific options', async () => {
@@ -168,7 +172,7 @@ describe('ElevenLabsSpeechModel', () => {
       });
 
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/elevenlabs/0.0.0-test`,
+        `ai-sdk-elevenlabs/0.0.0-test`,
       );
     });
   });

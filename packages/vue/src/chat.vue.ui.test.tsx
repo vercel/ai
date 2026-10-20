@@ -2,10 +2,9 @@ import {
   createTestServer,
   TestResponseController,
 } from '@ai-sdk/test-server/with-vitest';
-import '@testing-library/jest-dom/vitest';
 import userEvent from '@testing-library/user-event';
 import { screen, waitFor } from '@testing-library/vue';
-import { UIMessageChunk } from 'ai';
+import type { UIMessageChunk } from 'ai';
 import { setupTestComponent } from './setup-test-component';
 import TestChatAppendAttachmentsComponent from './TestChatAppendAttachmentsComponent.vue';
 import TestChatAttachmentsComponent from './TestChatAttachmentsComponent.vue';
@@ -127,7 +126,9 @@ describe('data protocol stream', () => {
     // expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
 
     await screen.findByTestId('error');
-    expect(screen.getByTestId('error')).toHaveTextContent('Error: Not found');
+    expect(screen.getByTestId('error')).toHaveTextContent(
+      'AI_APICallError: Not found',
+    );
   });
 
   describe('status', () => {
@@ -452,7 +453,7 @@ describe('tool invocations', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"input-streaming","input":{"testArg":"t"}}',
+        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"input-streaming","input":{"testArg":"t"},"rawInput":"{\\"testArg\\":\\"t"}',
       );
     });
 
@@ -466,7 +467,7 @@ describe('tool invocations', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"input-streaming","input":{"testArg":"test-value"}}',
+        '{"type":"tool-test-tool","toolCallId":"tool-call-0","state":"input-streaming","input":{"testArg":"test-value"},"rawInput":"{\\"testArg\\":\\"test-value\\"}}"}',
       );
     });
 
@@ -557,7 +558,7 @@ describe('tool invocations', () => {
     });
   });
 
-  it('should update tool call to result when addToolResult is called', async () => {
+  it('should update tool call to result when addToolOutput is called', async () => {
     const controller = new TestResponseController();
     server.urls['/api/chat'].response = [
       {

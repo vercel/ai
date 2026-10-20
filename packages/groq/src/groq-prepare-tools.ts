@@ -1,21 +1,18 @@
 import {
-  LanguageModelV3CallOptions,
-  LanguageModelV3CallWarning,
   UnsupportedFunctionalityError,
+  type LanguageModelV4CallOptions,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
-import {
-  getSupportedModelsString,
-  isBrowserSearchSupportedModel,
-} from './groq-browser-search-models';
-import { GroqChatModelId } from './groq-chat-options';
+import { isBrowserSearchSupportedModel } from './groq-browser-search-models';
+import type { GroqChatModelId } from './groq-chat-language-model-options';
 
 export function prepareTools({
   tools,
   toolChoice,
   modelId,
 }: {
-  tools: LanguageModelV3CallOptions['tools'];
-  toolChoice?: LanguageModelV3CallOptions['toolChoice'];
+  tools: LanguageModelV4CallOptions['tools'];
+  toolChoice?: LanguageModelV4CallOptions['toolChoice'];
   modelId: GroqChatModelId;
 }): {
   tools:
@@ -27,6 +24,7 @@ export function prepareTools({
               name: string;
               description: string | undefined;
               parameters: unknown;
+              strict?: boolean;
             };
           }
         | {
@@ -39,12 +37,12 @@ export function prepareTools({
     | 'none'
     | 'required'
     | undefined;
-  toolWarnings: LanguageModelV3CallWarning[];
+  toolWarnings: SharedV4Warning[];
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
   tools = tools?.length ? tools : undefined;
 
-  const toolWarnings: LanguageModelV3CallWarning[] = [];
+  const toolWarnings: SharedV4Warning[] = [];
 
   if (tools == null) {
     return { tools: undefined, toolChoice: undefined, toolWarnings };
@@ -57,6 +55,7 @@ export function prepareTools({
           name: string;
           description: string | undefined;
           parameters: unknown;
+          strict?: boolean;
         };
       }
     | {
@@ -65,13 +64,13 @@ export function prepareTools({
   > = [];
 
   for (const tool of tools) {
-    if (tool.type === 'provider-defined') {
+    if (tool.type === 'provider') {
       if (tool.id === 'groq.browser_search') {
         if (!isBrowserSearchSupportedModel(modelId)) {
           toolWarnings.push({
-            type: 'unsupported-tool',
-            tool,
-            details: `Browser search is only supported on the following models: ${getSupportedModelsString()}. Current model: ${modelId}`,
+            type: 'unsupported',
+            feature: `provider-defined tool ${tool.id}`,
+            details: `Browser search is not supported on model ${modelId}.`,
           });
         } else {
           groqTools.push({
@@ -79,7 +78,10 @@ export function prepareTools({
           });
         }
       } else {
-        toolWarnings.push({ type: 'unsupported-tool', tool });
+        toolWarnings.push({
+          type: 'unsupported',
+          feature: `provider-defined tool ${tool.id}`,
+        });
       }
     } else {
       groqTools.push({
@@ -88,6 +90,7 @@ export function prepareTools({
           name: tool.name,
           description: tool.description,
           parameters: tool.inputSchema,
+          ...(tool.strict != null ? { strict: tool.strict } : {}),
         },
       });
     }

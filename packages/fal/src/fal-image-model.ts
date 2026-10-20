@@ -1,22 +1,24 @@
-import type {
-  ImageModelV3,
-  ImageModelV3CallWarning,
-  JSONObject,
-} from '@ai-sdk/provider';
-import type { Resolvable } from '@ai-sdk/provider-utils';
+import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
-  FetchFunction,
   combineHeaders,
+  convertImageModelFileToDataUri,
   createBinaryResponseHandler,
-  createJsonResponseHandler,
   createJsonErrorResponseHandler,
+  createJsonResponseHandler,
   createStatusCodeErrorResponseHandler,
   getFromApi,
+  parseProviderOptions,
   postJsonToApi,
   resolve,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  type Resolvable,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { FalImageModelId, FalImageSize } from './fal-image-settings';
+import type { FalImageModelId, FalImageSize } from './fal-image-settings';
+import { falImageModelOptionsSchema } from './fal-image-model-options';
 
 interface FalImageModelConfig {
   provider: string;
@@ -28,12 +30,70 @@ interface FalImageModelConfig {
   };
 }
 
-export class FalImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v3';
+export class FalImageModel implements ImageModelV4 {
+  readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 1;
+
+  get supportsFileInputs(): boolean | undefined {
+    if (
+      [
+        'fal-ai/flux-2/edit',
+        'fal-ai/flux-pro/kontext',
+        'fal-ai/flux-pro/kontext/max',
+        'fal-ai/flux-general/image-to-image',
+        'fal-ai/flux-general/inpainting',
+        'fal-ai/flux-lora/image-to-image',
+        'fal-ai/flux-lora/inpainting',
+        'fal-ai/flux/dev/image-to-image',
+        'fal-ai/flux/krea/image-to-image',
+        'fal-ai/recraft/v3/image-to-image',
+      ].includes(this.modelId)
+    ) {
+      return true;
+    }
+
+    return [
+      'bria/text-to-image/3.2',
+      'fal-ai/bria/text-to-image/base',
+      'fal-ai/bria/text-to-image/fast',
+      'fal-ai/bria/text-to-image/hd',
+      'fal-ai/bytedance/dreamina/v3.1/text-to-image',
+      'fal-ai/flux-kontext-lora/text-to-image',
+      'fal-ai/recraft/v3/text-to-image',
+      'fal-ai/wan/v2.2-5b/text-to-image',
+      'fal-ai/wan/v2.2-a14b/text-to-image',
+    ].includes(this.modelId)
+      ? false
+      : undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    if (
+      this.modelId === 'fal-ai/flux-general/inpainting' ||
+      this.modelId === 'fal-ai/flux-lora/inpainting'
+    ) {
+      return true;
+    }
+
+    return this.supportsFileInputs == null ? undefined : false;
+  }
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: FalImageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: FalImageModelId;
+    config: FalImageModelConfig;
+  }) {
+    return new FalImageModel(options.modelId, options.config);
   }
 
   constructor(
@@ -41,19 +101,17 @@ export class FalImageModel implements ImageModelV3 {
     private readonly config: FalImageModelConfig,
   ) {}
 
-  async doGenerate({
+  private async getArgs({
     prompt,
     n,
     size,
     aspectRatio,
     seed,
     providerOptions,
-    headers,
-    abortSignal,
-  }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV3['doGenerate']>>
-  > {
-    const warnings: Array<ImageModelV3CallWarning> = [];
+    files,
+    mask,
+  }: Parameters<ImageModelV4['doGenerate']>[0]) {
+    const warnings: Array<SharedV4Warning> = [];
 
     let imageSize: FalImageSize | undefined;
     if (size) {
@@ -63,22 +121,112 @@ export class FalImageModel implements ImageModelV3 {
       imageSize = convertAspectRatioToSize(aspectRatio);
     }
 
+    const falOptions = await parseProviderOptions({
+      provider: 'fal',
+      providerOptions,
+      schema: falImageModelOptionsSchema,
+    });
+
+    const requestBody: Record<string, unknown> = {
+      prompt,
+      seed,
+      image_size: imageSize,
+      num_images: n,
+    };
+
+    // Handle image editing: convert files to image_url or image_urls
+    if (files != null && files.length > 0) {
+      const useMultipleImages = falOptions?.useMultipleImages === true;
+
+      if (useMultipleImages) {
+        // Use image_urls array for models that support multiple images (e.g., flux-2/edit)
+        requestBody.image_urls = files.map(file =>
+          convertImageModelFileToDataUri(file),
+        );
+      } else {
+        // Use single image_url for standard image editing models
+        requestBody.image_url = convertImageModelFileToDataUri(files[0]);
+
+        if (files.length > 1) {
+          warnings.push({
+            type: 'other',
+            message:
+              'Multiple input images provided but useMultipleImages is not enabled. ' +
+              'Only the first image will be used. Set providerOptions.fal.useMultipleImages ' +
+              'to true for models that support multiple images (e.g., fal-ai/flux-2/edit).',
+          });
+        }
+      }
+    }
+
+    // Handle mask for inpainting
+    if (mask != null) {
+      requestBody.mask_url = convertImageModelFileToDataUri(mask);
+    }
+
+    if (falOptions) {
+      const deprecatedKeys =
+        '__deprecatedKeys' in falOptions
+          ? (falOptions.__deprecatedKeys as string[])
+          : undefined;
+
+      if (deprecatedKeys && deprecatedKeys.length > 0) {
+        warnings.push({
+          type: 'other',
+          message: `The following provider options use deprecated snake_case and will be removed in @ai-sdk/fal v2.0. Please use camelCase instead: ${deprecatedKeys
+            .map(key => {
+              const camelCase = key.replace(/_([a-z])/g, (_, letter) =>
+                letter.toUpperCase(),
+              );
+              return `'${key}' (use '${camelCase}')`;
+            })
+            .join(', ')}`,
+        });
+      }
+
+      const fieldMapping: Record<string, string> = {
+        imageUrl: 'image_url',
+        maskUrl: 'mask_url',
+        guidanceScale: 'guidance_scale',
+        numInferenceSteps: 'num_inference_steps',
+        enableSafetyChecker: 'enable_safety_checker',
+        outputFormat: 'output_format',
+        syncMode: 'sync_mode',
+        safetyTolerance: 'safety_tolerance',
+      };
+
+      for (const [key, value] of Object.entries(falOptions)) {
+        if (key === '__deprecatedKeys') continue;
+        if (key === 'useMultipleImages') continue; // Don't send to API
+        const apiKey = fieldMapping[key] ?? key;
+
+        if (value !== undefined) {
+          requestBody[apiKey] = value;
+        }
+      }
+    }
+
+    return { requestBody, warnings } as const;
+  }
+
+  async doGenerate(
+    options: Parameters<ImageModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<ImageModelV4['doGenerate']>>> {
+    const { requestBody, warnings } = await this.getArgs(options);
+
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { value, responseHeaders } = await postJsonToApi({
       url: `${this.config.baseURL}/${this.modelId}`,
-      headers: combineHeaders(await resolve(this.config.headers), headers),
-      body: {
-        prompt,
-        seed,
-        image_size: imageSize,
-        num_images: n,
-        ...(providerOptions.fal ?? {}),
-      },
+      headers: combineHeaders(
+        this.config.headers ? await resolve(this.config.headers) : undefined,
+        options.headers,
+      ),
+      body: requestBody,
       failedResponseHandler: falFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         falImageResponseSchema,
       ),
-      abortSignal,
+      abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
 
@@ -95,7 +243,9 @@ export class FalImageModel implements ImageModelV3 {
 
     // download the images:
     const downloadedImages = await Promise.all(
-      targetImages.map(image => this.downloadImage(image.url, abortSignal)),
+      targetImages.map(image =>
+        this.downloadImage(image.url, options.abortSignal),
+      ),
     );
 
     return {
@@ -110,7 +260,7 @@ export class FalImageModel implements ImageModelV3 {
         fal: {
           images: targetImages.map((image, index) => {
             const {
-              url,
+              url: _url,
               content_type: contentType,
               file_name: fileName,
               file_data: fileData,
@@ -144,6 +294,9 @@ export class FalImageModel implements ImageModelV3 {
   ): Promise<Uint8Array> {
     const { value: response } = await getFromApi({
       url,
+      // url is a generated-image URL from the provider response; validate it.
+      validateUrl: true,
+      trustedOrigin: this.config.baseURL,
       // No specific headers should be needed for this request as it's a
       // generated image provided by fal.ai.
       abortSignal,
@@ -162,9 +315,9 @@ function removeOnlyUndefined<T extends Record<string, unknown>>(obj: T) {
 }
 
 /**
-Converts an aspect ratio to an image size compatible with fal.ai APIs.
-@param aspectRatio - The aspect ratio to convert.
-@returns The image size.
+ * Converts an aspect ratio to an image size compatible with fal.ai APIs.
+ * @param aspectRatio - The aspect ratio to convert.
+ * @returns The image size.
  */
 function convertAspectRatioToSize(
   aspectRatio: `${number}:${number}`,
@@ -189,7 +342,6 @@ function convertAspectRatioToSize(
     case '9:21':
       return { width: 1080, height: 2560 };
   }
-  return undefined;
 }
 
 // Validation error has a particular payload to inform the exact property that is invalid

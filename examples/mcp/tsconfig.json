@@ -4,9 +4,14 @@
     "declaration": true,
     "sourceMap": true,
     "target": "es2022",
-    "lib": ["es2022", "dom"],
+    "lib": [
+      "es2022",
+      "dom"
+    ],
     "module": "esnext",
-    "types": ["node"],
+    "types": [
+      "node"
+    ],
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "moduleResolution": "Bundler",
@@ -20,6 +25,9 @@
   "references": [
     {
       "path": "../../packages/ai"
+    },
+    {
+      "path": "../../packages/mcp"
     },
     {
       "path": "../../packages/openai"

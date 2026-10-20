@@ -7,6 +7,7 @@ import {
   GatewayModelNotFoundError,
   GatewayInternalServerError,
   GatewayResponseError,
+  GatewayTimeoutError,
 } from './index';
 
 describe('GatewayAuthenticationError', () => {
@@ -51,7 +52,8 @@ describe('GatewayAuthenticationError', () => {
         oidcTokenProvided: false,
       });
 
-      expect(error.message).toContain('Invalid API key provided');
+      expect(error.message).toContain('Invalid API key');
+      expect(error.message).toContain('vercel.com/d?to=');
       expect(error.statusCode).toBe(401);
     });
 
@@ -61,7 +63,8 @@ describe('GatewayAuthenticationError', () => {
         oidcTokenProvided: true,
       });
 
-      expect(error.message).toContain('Invalid OIDC token provided');
+      expect(error.message).toContain('Invalid OIDC token');
+      expect(error.message).toContain('npx vercel link');
       expect(error.statusCode).toBe(401);
     });
 
@@ -72,7 +75,8 @@ describe('GatewayAuthenticationError', () => {
       });
 
       expect(error.message).toContain('No authentication provided');
-      expect(error.message).toContain('VERCEL_OIDC_TOKEN');
+      expect(error.message).toContain('Option 1');
+      expect(error.message).toContain('Option 2');
       expect(error.statusCode).toBe(401);
     });
 
@@ -82,7 +86,8 @@ describe('GatewayAuthenticationError', () => {
         oidcTokenProvided: true,
       });
 
-      expect(error.message).toContain('Invalid API key provided');
+      expect(error.message).toContain('Invalid API key');
+      expect(error.message).toContain('vercel.com/d?to=');
       expect(error.statusCode).toBe(401);
     });
 
@@ -93,7 +98,8 @@ describe('GatewayAuthenticationError', () => {
       });
 
       expect(error.message).toContain('No authentication provided');
-      expect(error.message).toContain('VERCEL_OIDC_TOKEN');
+      expect(error.message).toContain('Option 1');
+      expect(error.message).toContain('Option 2');
       expect(error.statusCode).toBe(401);
     });
   });
@@ -190,6 +196,48 @@ describe('GatewayInternalServerError', () => {
 
     expect(GatewayInternalServerError.isInstance(error)).toBe(true);
     expect(GatewayError.isInstance(error)).toBe(true);
+  });
+});
+
+describe('isRetryable', () => {
+  it('should be true for GatewayInternalServerError (500)', () => {
+    const error = new GatewayInternalServerError();
+    expect(error.isRetryable).toBe(true);
+  });
+
+  it('should be true for GatewayRateLimitError (429)', () => {
+    const error = new GatewayRateLimitError();
+    expect(error.isRetryable).toBe(true);
+  });
+
+  it('should be true for GatewayTimeoutError (408)', () => {
+    const error = new GatewayTimeoutError();
+    expect(error.isRetryable).toBe(true);
+  });
+
+  it('should be true for status codes >= 500', () => {
+    const error = new GatewayInternalServerError({ statusCode: 503 });
+    expect(error.isRetryable).toBe(true);
+  });
+
+  it('should be false for GatewayAuthenticationError (401)', () => {
+    const error = new GatewayAuthenticationError();
+    expect(error.isRetryable).toBe(false);
+  });
+
+  it('should be false for GatewayInvalidRequestError (400)', () => {
+    const error = new GatewayInvalidRequestError();
+    expect(error.isRetryable).toBe(false);
+  });
+
+  it('should be false for GatewayModelNotFoundError (404)', () => {
+    const error = new GatewayModelNotFoundError();
+    expect(error.isRetryable).toBe(false);
+  });
+
+  it('should be true for GatewayResponseError (502)', () => {
+    const error = new GatewayResponseError();
+    expect(error.isRetryable).toBe(true);
   });
 });
 

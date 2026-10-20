@@ -1,4 +1,8 @@
-import { createProviderDefinedToolFactory } from '@ai-sdk/provider-utils';
+import {
+  createProviderExecutedToolFactory,
+  lazySchema,
+  zodSchema,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 /**
@@ -13,10 +17,13 @@ import { z } from 'zod/v4';
  *
  * @see https://console.groq.com/docs/browser-search
  */
-export const browserSearch = createProviderDefinedToolFactory<
+export const browserSearch = createProviderExecutedToolFactory<
   {
     // Browser search doesn't take input parameters - it's controlled by the prompt
     // The tool is activated automatically when included in the tools array
+  },
+  {
+    // Browser search doesn't have any output parameters
   },
   {
     // No configuration options needed - the tool works automatically
@@ -24,6 +31,6 @@ export const browserSearch = createProviderDefinedToolFactory<
   }
 >({
   id: 'groq.browser_search',
-  name: 'browser_search',
-  inputSchema: z.object({}),
+  inputSchema: lazySchema(() => zodSchema(z.object({}))),
+  outputSchema: lazySchema(() => zodSchema(z.object({}))),
 });

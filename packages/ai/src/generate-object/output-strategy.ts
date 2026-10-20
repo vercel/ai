@@ -1,36 +1,36 @@
 import {
   isJSONArray,
   isJSONObject,
-  JSONObject,
-  JSONSchema7,
-  JSONValue,
   TypeValidationError,
   UnsupportedFunctionalityError,
+  type JSONObject,
+  type JSONSchema7,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   asSchema,
   safeValidateTypes,
-  Schema,
-  ValidationResult,
+  type FlexibleSchema,
+  type Schema,
+  type ValidationResult,
 } from '@ai-sdk/provider-utils';
-import * as z3 from 'zod/v3';
-import * as z4 from 'zod/v4';
 import { NoObjectGeneratedError } from '../error/no-object-generated-error';
-import {
-  AsyncIterableStream,
-  createAsyncIterableStream,
-} from '../util/async-iterable-stream';
-import { DeepPartial } from '../util/deep-partial';
-import {
+import type {
   FinishReason,
   LanguageModelResponseMetadata,
   LanguageModelUsage,
 } from '../types';
-import { ObjectStreamPart } from './stream-object-result';
+import {
+  createAsyncIterableStream,
+  type AsyncIterableStream,
+} from '../util/async-iterable-stream';
+import type { DeepPartial } from '../util/deep-partial';
+import type { ObjectStreamPart } from './stream-object-result';
 
 export interface OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM> {
   readonly type: 'object' | 'array' | 'enum' | 'no-schema';
-  readonly jsonSchema: JSONSchema7 | undefined;
+
+  jsonSchema(): Promise<JSONSchema7 | undefined>;
 
   validatePartialResult({
     value,
@@ -52,7 +52,7 @@ export interface OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM> {
     value: JSONValue | undefined,
     context: {
       text: string;
-      response: LanguageModelResponseMetadata;
+      response: Omit<LanguageModelResponseMetadata, 'messages'>;
       usage: LanguageModelUsage;
     },
   ): Promise<ValidationResult<RESULT>>;
@@ -64,7 +64,7 @@ export interface OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM> {
 
 const noSchemaOutputStrategy: OutputStrategy<JSONValue, JSONValue, never> = {
   type: 'no-schema',
-  jsonSchema: undefined,
+  jsonSchema: async () => undefined,
 
   async validatePartialResult({ value, textDelta }) {
     return { success: true, value: { partial: value, textDelta } };
@@ -104,7 +104,7 @@ const objectOutputStrategy = <OBJECT>(
   schema: Schema<OBJECT>,
 ): OutputStrategy<DeepPartial<OBJECT>, OBJECT, never> => ({
   type: 'object',
-  jsonSchema: schema.jsonSchema,
+  jsonSchema: async () => await schema.jsonSchema,
 
   async validatePartialResult({ value, textDelta }) {
     return {
@@ -133,23 +133,34 @@ const objectOutputStrategy = <OBJECT>(
 const arrayOutputStrategy = <ELEMENT>(
   schema: Schema<ELEMENT>,
 ): OutputStrategy<ELEMENT[], ELEMENT[], AsyncIterableStream<ELEMENT>> => {
-  // remove $schema from schema.jsonSchema:
-  const { $schema, ...itemSchema } = schema.jsonSchema;
-
   return {
-    type: 'enum',
+    type: 'array',
 
     // wrap in object that contains array of elements, since most LLMs will not
     // be able to generate an array directly:
     // possible future optimization: use arrays directly when model supports grammar-guided generation
-    jsonSchema: {
-      $schema: 'http://json-schema.org/draft-07/schema#',
-      type: 'object',
-      properties: {
-        elements: { type: 'array', items: itemSchema },
-      },
-      required: ['elements'],
-      additionalProperties: false,
+    jsonSchema: async () => {
+      // keep root-level definitions available to root-relative references:
+      const {
+        $schema: _$schema,
+        definitions,
+        $defs,
+        ...itemSchema
+      } = (await schema.jsonSchema) as JSONSchema7 & {
+        $defs?: JSONSchema7['definitions'];
+      };
+
+      return {
+        $schema: 'http://json-schema.org/draft-07/schema#',
+        ...(definitions != null && { definitions }),
+        ...($defs != null && { $defs }),
+        type: 'object',
+        properties: {
+          elements: { type: 'array', items: itemSchema },
+        },
+        required: ['elements'],
+        additionalProperties: false,
+      };
     },
 
     async validatePartialResult({
@@ -237,6 +248,7 @@ const arrayOutputStrategy = <ELEMENT>(
       }
 
       const inputArray = value.elements as Array<JSONObject>;
+      const resultArray: Array<ELEMENT> = [];
 
       // check that each element in the array is of the correct type:
       for (const element of inputArray) {
@@ -244,9 +256,10 @@ const arrayOutputStrategy = <ELEMENT>(
         if (!result.success) {
           return result;
         }
+        resultArray.push(result.value);
       }
 
-      return { success: true, value: inputArray as Array<ELEMENT> };
+      return { success: true, value: resultArray };
     },
 
     createElementStream(
@@ -303,7 +316,7 @@ const enumOutputStrategy = <ENUM extends string>(
     // wrap in object that contains result, since most LLMs will not
     // be able to generate an enum value directly:
     // possible future optimization: use enums directly when model supports top-level enums
-    jsonSchema: {
+    jsonSchema: async () => ({
       $schema: 'http://json-schema.org/draft-07/schema#',
       type: 'object',
       properties: {
@@ -311,7 +324,7 @@ const enumOutputStrategy = <ENUM extends string>(
       },
       required: ['result'],
       additionalProperties: false,
-    },
+    }),
 
     async validateFinalResult(
       value: JSONValue | undefined,
@@ -393,10 +406,7 @@ export function getOutputStrategy<SCHEMA>({
   enumValues,
 }: {
   output: 'object' | 'array' | 'enum' | 'no-schema';
-  schema?:
-    | z4.core.$ZodType<SCHEMA, any>
-    | z3.Schema<SCHEMA, z3.ZodTypeDef, any>
-    | Schema<SCHEMA>;
+  schema?: FlexibleSchema<SCHEMA>;
   enumValues?: Array<SCHEMA>;
 }): OutputStrategy<any, any, any> {
   switch (output) {

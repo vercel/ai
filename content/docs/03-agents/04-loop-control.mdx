@@ -5,52 +5,99 @@ description: Control agent execution with built-in loop management using stopWhe
 
 # Loop Control
 
-When building agents with the AI SDK, you can control both the execution flow and the settings at each step of the agent loop. The AI SDK provides built-in loop control through two parameters: `stopWhen` for defining stopping conditions and `prepareStep` for modifying settings (model, tools, messages, and more) between steps.
+You can control both the execution flow and the settings at each step of the agent loop. The loop continues until:
 
-Both parameters work with:
+- A finish reasoning other than tool-calls is returned, or
+- A tool that is invoked does not have an execute function, or
+- A tool call needs approval, or
+- A stop condition is met
 
-- `generateText` and `streamText` functions from AI SDK Core
-- The `Agent` class for object-oriented agent implementations
+The AI SDK provides built-in loop control through two parameters: `stopWhen` for defining stopping conditions and `prepareStep` for modifying settings (model, tools, messages, and more) between steps.
 
 ## Stop Conditions
 
-The `stopWhen` parameter controls when to stop the generation when there are tool results in the last step. By default, the stopping condition is `stepCountIs(1)`, which allows only a single step.
+The `stopWhen` parameter controls when to stop execution when there are tool results in the last step. By default, `ToolLoopAgent` stops after 20 steps using `isStepCount(20)`. This default is a safety measure to prevent runaway loops that could result in excessive API calls and costs.
 
-When you provide `stopWhen`, the AI SDK continues generating responses after tool calls until a stopping condition is met. When the condition is an array, the generation stops when any of the conditions are met.
+If this default limit stops a tool loop that could otherwise continue, the SDK logs a warning with guidance on configuring `stopWhen`. Set `stopWhen` explicitly to choose a limit, even if you want to keep `isStepCount(20)`. Explicit stop conditions do not produce this warning.
+
+`WorkflowAgent` does not apply a default step limit. It continues until the model stops calling tools or another natural termination condition is met. Configure an explicit condition such as `isStepCount(20)` when you need to bound its model calls. See [WorkflowAgent Loop Control](/docs/agents/workflow-agent#loop-control) for details.
+
+When you provide `stopWhen`, the agent continues executing after tool calls until a stopping condition is met. When the condition is an array, execution stops when any of the conditions are met.
 
 ### Use Built-in Conditions
 
 The AI SDK provides several built-in stopping conditions:
 
-```ts
-import { generateText, stepCountIs } from 'ai';
+- `isStepCount(count)` — stops after a specified number of steps
+- `hasToolCall(...toolNames)` — stops when any of the specified tools is called
+- `isLoopFinished()` — never triggers, letting the loop run until the agent is naturally finished
 
-const result = await generateText({
-  model: 'openai/gpt-4o',
+### Run Up to a Maximum Number of Steps
+
+```ts
+import { ToolLoopAgent, isStepCount } from 'ai';
+__PROVIDER_IMPORT__;
+
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
   tools: {
     // your tools
   },
-  stopWhen: stepCountIs(10), // Stop after 10 steps maximum
+  stopWhen: isStepCount(50), // Increase ToolLoopAgent's default from 20 to 50.
+});
+
+const result = await agent.generate({
   prompt: 'Analyze this dataset and create a summary report',
 });
 ```
+
+### Run Until Finished
+
+If you want a `ToolLoopAgent` to run until the model naturally stops making tool calls, use `isLoopFinished()`. This removes its default step limit:
+
+```ts
+import { ToolLoopAgent, isLoopFinished } from 'ai';
+__PROVIDER_IMPORT__;
+
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
+  tools: {
+    // your tools
+  },
+  stopWhen: isLoopFinished(), // No maximum step limit.
+});
+
+const result = await agent.generate({
+  prompt: 'Analyze this dataset and create a summary report',
+});
+```
+
+<Note>
+  Use `isLoopFinished()` with caution. Without a step limit, the agent could
+  potentially run indefinitely or incur significant costs if the model keeps
+  making tool calls.
+</Note>
 
 ### Combine Multiple Conditions
 
 Combine multiple stopping conditions. The loop stops when it meets any condition:
 
 ```ts
-import { generateText, stepCountIs, hasToolCall } from 'ai';
+import { ToolLoopAgent, isStepCount, hasToolCall } from 'ai';
+__PROVIDER_IMPORT__;
 
-const result = await generateText({
-  model: 'openai/gpt-4o',
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
   tools: {
     // your tools
   },
   stopWhen: [
-    stepCountIs(10), // Maximum 10 steps
-    hasToolCall('someTool'), // Stop after calling 'someTool'
+    isStepCount(20), // Maximum 20 steps
+    hasToolCall('someTool', 'done'), // Stop after calling either tool
   ],
+});
+
+const result = await agent.generate({
   prompt: 'Research and analyze the topic',
 });
 ```
@@ -60,7 +107,8 @@ const result = await generateText({
 Build custom stopping conditions for specific requirements:
 
 ```ts
-import { generateText, StopCondition, ToolSet } from 'ai';
+import { ToolLoopAgent, StopCondition, ToolSet } from 'ai';
+__PROVIDER_IMPORT__;
 
 const tools = {
   // your tools
@@ -71,10 +119,13 @@ const hasAnswer: StopCondition<typeof tools> = ({ steps }) => {
   return steps.some(step => step.text?.includes('ANSWER:')) ?? false;
 };
 
-const result = await generateText({
-  model: 'openai/gpt-4o',
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
   tools,
   stopWhen: hasAnswer,
+});
+
+const result = await agent.generate({
   prompt: 'Find the answer and respond with "ANSWER: [your answer]"',
 });
 ```
@@ -101,15 +152,18 @@ const budgetExceeded: StopCondition<typeof tools> = ({ steps }) => {
 
 The `prepareStep` callback runs before each step in the loop and defaults to the initial settings if you don't return any changes. Use it to modify settings, manage context, or implement dynamic behavior based on execution history.
 
+It receives `messages` for the current step, plus `initialMessages` and `responseMessages` when you need to distinguish the original input from assistant/tool messages accumulated in earlier steps. Treat `messages` as the loop's current message state: if you return a `messages` override, that override persists as the base for later steps, together with the response messages from each completed step.
+
 ### Dynamic Model Selection
 
 Switch models based on step requirements:
 
 ```ts
-import { generateText } from 'ai';
+import { ToolLoopAgent } from 'ai';
+__PROVIDER_IMPORT__;
 
-const result = await generateText({
-  model: 'openai/gpt-4o-mini', // Default model
+const agent = new ToolLoopAgent({
+  model: 'openai/gpt-6-luna', // Default model
   tools: {
     // your tools
   },
@@ -117,47 +171,113 @@ const result = await generateText({
     // Use a stronger model for complex reasoning after initial steps
     if (stepNumber > 2 && messages.length > 10) {
       return {
-        model: 'openai/gpt-4o',
+        model: __MODEL__,
       };
     }
     // Continue with default settings
     return {};
   },
 });
+
+const result = await agent.generate({
+  prompt: '...',
+});
 ```
+
+### Model Call Settings
+
+Override provider-agnostic model call settings for an individual step. This can
+be useful when tool-calling steps need more deterministic sampling than the
+final response:
+
+```ts
+import { ToolLoopAgent } from 'ai';
+__PROVIDER_IMPORT__;
+
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
+  temperature: 0.7,
+  tools: {
+    // your tools
+  },
+  prepareStep: async ({ stepNumber }) => {
+    if (stepNumber === 0) {
+      return {
+        temperature: 0,
+        maxOutputTokens: 300,
+      };
+    }
+
+    return {};
+  },
+});
+
+const result = await agent.generate({
+  prompt: '...',
+});
+```
+
+`prepareStep` can override `maxOutputTokens`, `temperature`, `topP`, `topK`,
+`presencePenalty`, `frequencyPenalty`, `stopSequences`, `seed`, and
+`reasoning`. These overrides apply only to the current step. When a setting is
+omitted or `undefined`, the top-level value is used for that step. Defined
+falsy values such as `temperature: 0`, `seed: 0`, and an empty
+`stopSequences` array are preserved.
 
 ### Context Management
 
-Manage growing conversation history in long-running loops:
+Long-running agents can accumulate large tool results, reasoning parts, and assistant messages. Use `prepareStep` to mutate the message state that will be used by later steps. This is useful for compaction, and you decide when compaction should happen.
+
+The `messages` value contains the messages that will be sent for the current step. When you return a `messages` override from `prepareStep`, that changed list becomes the base for later steps. New assistant and tool response messages are appended to it as the loop continues. If you need to rebuild a step from the discrete pieces instead of the persisted message state, use `initialMessages` for the original input and `responseMessages` for the model/tool response messages accumulated so far.
+
+The `pruneMessages` helper provides a built-in way to remove selected messages. You can use it inside `prepareStep` when you want a simple compaction strategy.
 
 ```ts
-const result = await generateText({
-  model: 'openai/gpt-4o',
+import { ToolLoopAgent, pruneMessages, type ModelMessage } from 'ai';
+__PROVIDER_IMPORT__;
+
+const COMPACTION_THRESHOLD = 100_000;
+
+const estimateTokens = (messages: ModelMessage[]) => {
+  return JSON.stringify(messages).length / 4;
+};
+
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
   tools: {
     // your tools
   },
   prepareStep: async ({ messages }) => {
-    // Keep only recent messages to stay within context limits
-    if (messages.length > 20) {
+    if (estimateTokens(messages) > COMPACTION_THRESHOLD) {
       return {
-        messages: [
-          messages[0], // Keep system message
-          ...messages.slice(-10), // Keep last 10 messages
-        ],
+        messages: pruneMessages({
+          messages,
+          reasoning: 'all',
+          toolCalls: 'before-last-3-messages',
+          emptyMessages: 'remove',
+        }),
       };
     }
-    return {};
   },
 });
+
+const result = await agent.generate({
+  prompt: '...',
+});
 ```
+
+The token estimator above is intentionally simple and only demonstrates one way to decide when to compact. The main point is that `prepareStep` can return a new `messages` array, and that array becomes the message state for following steps. The same pattern also works with `generateText` and `streamText`.
 
 ### Tool Selection
 
 Control which tools are available at each step:
 
 ```ts
-const result = await generateText({
-  model: 'openai/gpt-4o',
+import { ToolLoopAgent } from 'ai';
+__PROVIDER_IMPORT__;
+
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
   tools: {
     search: searchTool,
     analyze: analyzeTool,
@@ -186,6 +306,10 @@ const result = await generateText({
     };
   },
 });
+
+const result = await agent.generate({
+  prompt: '...',
+});
 ```
 
 You can also force a specific tool to be used:
@@ -212,12 +336,14 @@ prepareStep: async ({ stepNumber }) => {
 
 ### Message Modification
 
-Transform messages before sending them to the model:
+Transform messages before sending them to the model. Returned messages carry forward to later steps, so later `messages` values include your transformed messages plus the assistant/tool response messages from completed steps:
 
 ```ts
-const result = await generateText({
-  model: 'openai/gpt-4o',
-  messages,
+import { ToolLoopAgent } from 'ai';
+__PROVIDER_IMPORT__;
+
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
   tools: {
     // your tools
   },
@@ -236,7 +362,45 @@ const result = await generateText({
     return { messages: processedMessages };
   },
 });
+
+const result = await agent.generate({
+  prompt: '...',
+});
 ```
+
+### Experimental Sandbox Selection
+
+Switch the experimental sandbox used for tool execution in a single step:
+
+```ts
+import { ToolLoopAgent } from 'ai';
+__PROVIDER_IMPORT__;
+
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
+  tools: {
+    runCommand,
+  },
+  experimental_sandbox: defaultSandbox,
+  prepareStep: async ({ stepNumber }) => {
+    if (stepNumber === 0) {
+      return {
+        experimental_sandbox: setupSandbox,
+      };
+    }
+
+    return {};
+  },
+});
+
+const result = await agent.generate({
+  prompt: '...',
+});
+```
+
+Unlike `runtimeContext` and `toolsContext`, an experimental sandbox returned from `prepareStep`
+only applies to tool execution in that step. Later steps use the top-level
+`experimental_sandbox` unless they return their own experimental sandbox override.
 
 ## Access Step Information
 
@@ -264,8 +428,92 @@ prepareStep: async ({
 },
 ```
 
+## Forced Tool Calling
+
+You can force the agent to always use tools by combining `toolChoice: 'required'` with a `done` tool that has no `execute` function. This pattern ensures the agent uses tools for every step and stops only when it explicitly signals completion.
+
+```ts
+import { ToolLoopAgent, tool } from 'ai';
+import { z } from 'zod';
+__PROVIDER_IMPORT__;
+
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
+  tools: {
+    search: searchTool,
+    analyze: analyzeTool,
+    done: tool({
+      description: 'Signal that you have finished your work',
+      inputSchema: z.object({
+        answer: z.string().describe('The final answer'),
+      }),
+      // No execute function - stops the agent when called
+    }),
+  },
+  toolChoice: 'required', // Force tool calls at every step
+});
+
+const result = await agent.generate({
+  prompt: 'Research and analyze this topic, then provide your answer.',
+});
+
+// extract answer from done tool call
+const toolCall = result.staticToolCalls[0]; // tool call from final step
+if (toolCall?.toolName === 'done') {
+  console.log(toolCall.input.answer);
+}
+```
+
+Key aspects of this pattern:
+
+- **`toolChoice: 'required'`**: Forces the model to call a tool at every step instead of generating text directly. This ensures the agent follows a structured workflow.
+- **`done` tool without `execute`**: A tool that has no `execute` function acts as a termination signal. When the agent calls this tool, the loop stops because there's no function to execute.
+- **Accessing results**: The final answer is available in `result.staticToolCalls`, which contains tool calls that weren't executed.
+
+This pattern is useful when you want the agent to always use specific tools for operations (like code execution or data retrieval) rather than attempting to answer directly.
+
 ## Manual Loop Control
 
-For scenarios requiring complete control over the agent loop, implement your own loop management instead of using `stopWhen` and `prepareStep`. This approach provides maximum flexibility for complex workflows.
+For scenarios requiring complete control over the agent loop, you can use AI SDK Core functions (`generateText` and `streamText`) to implement your own loop management instead of using `stopWhen` and `prepareStep`. This approach provides maximum flexibility for complex workflows.
+
+### Implementing a Manual Loop
+
+Build your own agent loop when you need full control over execution:
+
+```ts
+import { generateText, ModelMessage } from 'ai';
+__PROVIDER_IMPORT__;
+
+const messages: ModelMessage[] = [{ role: 'user', content: '...' }];
+
+let step = 0;
+const maxSteps = 10;
+
+while (step < maxSteps) {
+  const result = await generateText({
+    model: __MODEL__,
+    messages,
+    tools: {
+      // your tools here
+    },
+  });
+
+  messages.push(...result.responseMessages);
+
+  if (result.text) {
+    break; // Stop when model generates text
+  }
+
+  step++;
+}
+```
+
+This manual approach gives you complete control over:
+
+- Message history management
+- Step-by-step decision making
+- Custom stopping conditions
+- Dynamic tool and model selection
+- Error handling and recovery
 
 [Learn more about manual agent loops in the cookbook](/cookbook/node/manual-agent-loop).

@@ -76,20 +76,29 @@ export default function Page() {
 To handle the chat requests and model responses, set up an API route:
 
 ```ts filename="app/api/chat/route.ts"
-import { openai } from '@ai-sdk/openai';
-import { streamText, convertToModelMessages, UIMessage, stepCountIs } from 'ai';
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  isStepCount,
+  streamText,
+  toUIMessageStream,
+  UIMessage,
+} from 'ai';
+__PROVIDER_IMPORT__;
 
 export async function POST(request: Request) {
   const { messages }: { messages: UIMessage[] } = await request.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
-    system: 'You are a friendly assistant!',
-    messages: convertToModelMessages(messages),
-    stopWhen: stepCountIs(5),
+    model: __MODEL__,
+    instructions: 'You are a friendly assistant!',
+    messages: await convertToModelMessages(messages),
+    stopWhen: isStepCount(5),
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 
@@ -127,23 +136,32 @@ In this file, you've created a tool called `weatherTool`. This tool simulates fe
 
 Update the API route to include the tool you've defined:
 
-```ts filename="app/api/chat/route.ts" highlight="3,8,14"
-import { openai } from '@ai-sdk/openai';
-import { streamText, convertToModelMessages, UIMessage, stepCountIs } from 'ai';
+```ts filename="app/api/chat/route.ts" highlight="10,15,20"
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  isStepCount,
+  streamText,
+  toUIMessageStream,
+  UIMessage,
+} from 'ai';
+__PROVIDER_IMPORT__;
 import { tools } from '@/ai/tools';
 
 export async function POST(request: Request) {
   const { messages }: { messages: UIMessage[] } = await request.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
-    system: 'You are a friendly assistant!',
-    messages: convertToModelMessages(messages),
-    stopWhen: stepCountIs(5),
+    model: __MODEL__,
+    instructions: 'You are a friendly assistant!',
+    messages: await convertToModelMessages(messages),
+    stopWhen: isStepCount(5),
     tools,
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 

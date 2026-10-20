@@ -26,5 +26,5 @@ pnpm dev
 4. Test the endpoint with Curl:
 
 ```sh
-curl -i -X POST http://localhost:8080
+curl -i -X POST http://localhost:8080/text
 ```

@@ -43,7 +43,7 @@ describe('HuggingFaceProvider', () => {
       const provider = createHuggingFace();
 
       expect(() =>
-        provider.textEmbeddingModel('any-model'),
+        provider.embeddingModel('any-model'),
       ).toThrowErrorMatchingInlineSnapshot(
         `[AI_NoSuchModelError: Hugging Face Responses API does not support text embeddings. Use the Hugging Face Inference API directly for embeddings.]`,
       );

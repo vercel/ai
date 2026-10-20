@@ -1,27 +1,30 @@
-import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
+import type { SharedV4Warning } from '@ai-sdk/provider';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Warning } from '../types/warning';
 import {
-  logWarnings,
-  resetLogWarningsState,
   FIRST_WARNING_INFO_MESSAGE,
-  type Warning,
+  logWarnings,
+  type LogWarningsFunction,
+  resetLogWarningsState,
 } from './log-warnings';
-import type {
-  LanguageModelV3CallWarning,
-  ImageModelV3CallWarning,
-  SpeechModelV2CallWarning,
-  TranscriptionModelV2CallWarning,
-} from '@ai-sdk/provider';
 
 // Mock console.warn and console.info
 const mockConsoleWarn = vi.fn();
 const mockConsoleInfo = vi.fn();
 vi.stubGlobal('console', { warn: mockConsoleWarn, info: mockConsoleInfo });
 
+// Mock process.emitWarning
+const mockProcessEmitWarning = vi
+  .spyOn(process, 'emitWarning')
+  .mockImplementation(() => {});
+
 describe('logWarnings', () => {
   beforeEach(() => {
     mockConsoleWarn.mockClear();
     mockConsoleInfo.mockClear();
+    mockProcessEmitWarning.mockClear();
     resetLogWarningsState();
+    delete globalThis.AI_SDK_LOG_WARNINGS;
   });
 
   afterEach(() => {
@@ -33,39 +36,57 @@ describe('logWarnings', () => {
       globalThis.AI_SDK_LOG_WARNINGS = false;
     });
 
-    it('should not log any warnings', () => {
+    it('should not log any warnings (single)', () => {
       const warnings: Warning[] = [
         {
           type: 'other',
           message: 'Test warning',
-        } as LanguageModelV3CallWarning,
+        } as SharedV4Warning,
       ];
 
-      logWarnings(warnings);
+      logWarnings({ warnings, provider: 'providerX', model: 'modelY' });
 
       expect(mockConsoleWarn).not.toHaveBeenCalled();
+      expect(mockConsoleInfo).not.toHaveBeenCalled();
     });
 
-    it('should not log multiple warnings', () => {
+    it('should not log any warnings (multiple)', () => {
       const warnings: Warning[] = [
         {
           type: 'other',
           message: 'Test warning 1',
-        } as LanguageModelV3CallWarning,
+        },
         {
           type: 'other',
           message: 'Test warning 2',
-        } as ImageModelV3CallWarning,
+        },
       ];
 
-      logWarnings(warnings);
+      logWarnings({ warnings, provider: 'provider', model: 'model' });
 
       expect(mockConsoleWarn).not.toHaveBeenCalled();
+      expect(mockConsoleInfo).not.toHaveBeenCalled();
+    });
+
+    it('should not count empty arrays as first call', () => {
+      logWarnings({ warnings: [], provider: 'prov', model: 'mod' });
+
+      expect(mockConsoleWarn).not.toHaveBeenCalled();
+      expect(mockConsoleInfo).not.toHaveBeenCalled();
+
+      logWarnings({
+        warnings: [{ type: 'other', message: 'foo' } as SharedV4Warning],
+        provider: 'p1',
+        model: 'm1',
+      });
+
+      expect(mockConsoleWarn).not.toHaveBeenCalled();
+      expect(mockConsoleInfo).not.toHaveBeenCalled();
     });
   });
 
   describe('when AI_SDK_LOG_WARNINGS is a custom function', () => {
-    it('should call the custom function with warnings', () => {
+    it('should call the custom function with warning options', () => {
       const customLogger = vi.fn();
       globalThis.AI_SDK_LOG_WARNINGS = customLogger;
 
@@ -73,14 +94,16 @@ describe('logWarnings', () => {
         {
           type: 'other',
           message: 'Test warning',
-        } as LanguageModelV3CallWarning,
+        } as SharedV4Warning,
       ];
 
-      logWarnings(warnings);
+      const options = { warnings, provider: 'pp', model: 'mm' };
+      logWarnings(options);
 
       expect(customLogger).toHaveBeenCalledOnce();
-      expect(customLogger).toHaveBeenCalledWith(warnings);
+      expect(customLogger).toHaveBeenCalledWith(options);
       expect(mockConsoleWarn).not.toHaveBeenCalled();
+      expect(mockConsoleInfo).not.toHaveBeenCalled();
     });
 
     it('should call the custom function with multiple warnings', () => {
@@ -89,21 +112,23 @@ describe('logWarnings', () => {
 
       const warnings: Warning[] = [
         {
-          type: 'unsupported-setting',
-          setting: 'temperature',
+          type: 'unsupported',
+          feature: 'temperature',
           details: 'Temperature not supported',
-        } as LanguageModelV3CallWarning,
+        },
         {
           type: 'other',
           message: 'Another warning',
-        } as ImageModelV3CallWarning,
+        },
       ];
 
-      logWarnings(warnings);
+      const opts = { warnings, provider: 'provider', model: 'model' };
+      logWarnings(opts);
 
       expect(customLogger).toHaveBeenCalledOnce();
-      expect(customLogger).toHaveBeenCalledWith(warnings);
+      expect(customLogger).toHaveBeenCalledWith(opts);
       expect(mockConsoleWarn).not.toHaveBeenCalled();
+      expect(mockConsoleInfo).not.toHaveBeenCalled();
     });
 
     it('should not call the custom function with empty warnings array', () => {
@@ -112,201 +137,199 @@ describe('logWarnings', () => {
 
       const warnings: Warning[] = [];
 
-      logWarnings(warnings);
+      logWarnings({ warnings, provider: 'x', model: 'y' });
 
       expect(customLogger).not.toHaveBeenCalled();
       expect(mockConsoleWarn).not.toHaveBeenCalled();
+      expect(mockConsoleInfo).not.toHaveBeenCalled();
     });
   });
 
-  describe('when AI_SDK_LOG_WARNINGS is not set (default behavior)', () => {
-    it('should log a single warning to console.warn', () => {
-      const warning: LanguageModelV3CallWarning = {
+  describe('when AI_SDK_LOG_WARNINGS is unset/undefined (default behavior)', () => {
+    it('should emit the information note and warning via process.emitWarning without logging to stdout', () => {
+      const warning: SharedV4Warning = {
         type: 'other',
         message: 'Test warning message',
       };
       const warnings: Warning[] = [warning];
 
-      logWarnings(warnings);
+      logWarnings({ warnings, provider: 'myProvider', model: 'myModel' });
 
-      expect(mockConsoleInfo).toHaveBeenCalledOnce(); // Information note on first call
-      expect(mockConsoleWarn).toHaveBeenCalledOnce();
-      expect(mockConsoleWarn).toHaveBeenCalledWith(
-        'AI SDK Warning: Test warning message',
+      expect(mockConsoleInfo).not.toHaveBeenCalled();
+      expect(mockConsoleWarn).not.toHaveBeenCalled();
+      expect(mockProcessEmitWarning).toHaveBeenCalledTimes(2);
+      expect(mockProcessEmitWarning).toHaveBeenNthCalledWith(
+        1,
+        FIRST_WARNING_INFO_MESSAGE,
+        { type: 'Warning' },
+      );
+      expect(mockProcessEmitWarning).toHaveBeenNthCalledWith(
+        2,
+        'AI SDK Warning (myProvider / myModel): Test warning message',
+        { type: 'Warning' },
       );
     });
 
-    it('should log multiple warnings to console.warn', () => {
-      const warning1: LanguageModelV3CallWarning = {
-        type: 'other',
-        message: 'First warning',
-      };
-      const warning2: ImageModelV3CallWarning = {
-        type: 'unsupported-setting',
-        setting: 'size',
-        details: 'Size parameter not supported',
-      };
-      const warnings: Warning[] = [warning1, warning2];
+    it('should only emit the information note on the first non-empty call', () => {
+      const first: Warning[] = [
+        { type: 'other', message: '1' } as SharedV4Warning,
+      ];
+      const second: Warning[] = [
+        { type: 'other', message: '2' } as SharedV4Warning,
+      ];
 
-      logWarnings(warnings);
+      logWarnings({ warnings: first, provider: 'a', model: 'b' });
+      logWarnings({ warnings: second, provider: 'a', model: 'b' });
 
-      expect(mockConsoleInfo).toHaveBeenCalledOnce(); // Information note on first call
+      expect(mockConsoleInfo).not.toHaveBeenCalled();
+      expect(mockConsoleWarn).not.toHaveBeenCalled();
+      expect(mockProcessEmitWarning).toHaveBeenCalledTimes(3);
+      expect(mockProcessEmitWarning).toHaveBeenNthCalledWith(
+        1,
+        FIRST_WARNING_INFO_MESSAGE,
+        { type: 'Warning' },
+      );
+      expect(mockProcessEmitWarning).toHaveBeenNthCalledWith(
+        2,
+        'AI SDK Warning (a / b): 1',
+        { type: 'Warning' },
+      );
+      expect(mockProcessEmitWarning).toHaveBeenNthCalledWith(
+        3,
+        'AI SDK Warning (a / b): 2',
+        { type: 'Warning' },
+      );
+    });
+
+    it('should log the information note and warnings with console.warn when process.emitWarning is unavailable', () => {
+      const originalProcess = globalThis.process;
+      vi.stubGlobal('process', undefined);
+
+      try {
+        logWarnings({
+          warnings: [
+            { type: 'other', message: 'Test warning' } as SharedV4Warning,
+          ],
+          provider: 'provider',
+          model: 'model',
+        });
+      } finally {
+        vi.stubGlobal('process', originalProcess);
+      }
+
+      expect(mockConsoleInfo).not.toHaveBeenCalled();
       expect(mockConsoleWarn).toHaveBeenCalledTimes(2);
       expect(mockConsoleWarn).toHaveBeenNthCalledWith(
         1,
-        'AI SDK Warning: First warning',
+        FIRST_WARNING_INFO_MESSAGE,
       );
       expect(mockConsoleWarn).toHaveBeenNthCalledWith(
         2,
-        'AI SDK Warning: The "size" setting is not supported by this model - Size parameter not supported',
+        'AI SDK Warning (provider / model): Test warning',
+      );
+      expect(mockProcessEmitWarning).not.toHaveBeenCalled();
+    });
+
+    it('should only log for non-empty warnings', () => {
+      logWarnings({ warnings: [], provider: 'err', model: 'm' });
+
+      expect(mockProcessEmitWarning).not.toHaveBeenCalled();
+      expect(mockConsoleInfo).not.toHaveBeenCalled();
+
+      logWarnings({
+        warnings: [{ type: 'other', message: 't1' } as SharedV4Warning],
+        provider: 'prov',
+        model: 'mod',
+      });
+      expect(mockConsoleInfo).not.toHaveBeenCalled();
+      expect(mockProcessEmitWarning).toHaveBeenCalledTimes(2);
+
+      logWarnings({ warnings: [], provider: 'prov', model: 'mod' });
+      expect(mockConsoleInfo).not.toHaveBeenCalled();
+      expect(mockProcessEmitWarning).toHaveBeenCalledTimes(2);
+
+      logWarnings({
+        warnings: [{ type: 'other', message: 't2' } as SharedV4Warning],
+        provider: 'prov',
+        model: 'mod',
+      });
+      expect(mockConsoleInfo).not.toHaveBeenCalled();
+      expect(mockProcessEmitWarning).toHaveBeenCalledTimes(3);
+    });
+
+    it('should handle various warning types per formatWarning', () => {
+      const warnings: Warning[] = [
+        {
+          type: 'unsupported',
+          feature: 'mediaType',
+          details: 'detail',
+        },
+        {
+          type: 'unsupported',
+          feature: 'voice',
+          details: 'detail2',
+        },
+        {
+          type: 'deprecated',
+          setting: "providerOptions key 'old-key'",
+          message: "Use 'oldKey' instead.",
+        },
+        {
+          type: 'other',
+          message: 'other msg',
+        },
+      ];
+
+      logWarnings({ warnings, provider: 'zzz', model: 'MMM' });
+
+      expect(mockConsoleInfo).not.toHaveBeenCalled();
+      expect(mockConsoleWarn).not.toHaveBeenCalled();
+      expect(mockProcessEmitWarning).toHaveBeenCalledTimes(5);
+      expect(mockProcessEmitWarning).toHaveBeenNthCalledWith(
+        1,
+        FIRST_WARNING_INFO_MESSAGE,
+        { type: 'Warning' },
+      );
+      expect(mockProcessEmitWarning).toHaveBeenNthCalledWith(
+        2,
+        'AI SDK Warning (zzz / MMM): ' +
+          'The feature "mediaType" is not supported. detail',
+        { type: 'Warning' },
+      );
+      expect(mockProcessEmitWarning).toHaveBeenNthCalledWith(
+        3,
+        'AI SDK Warning (zzz / MMM): ' +
+          'The feature "voice" is not supported. detail2',
+        { type: 'Warning' },
+      );
+      expect(mockProcessEmitWarning).toHaveBeenNthCalledWith(
+        4,
+        `AI SDK Warning (zzz / MMM): Deprecated: "providerOptions key 'old-key'". Use 'oldKey' instead.`,
+        {
+          type: 'DeprecationWarning',
+          code: 'AISDK_DEP_PROVIDER_zzz__providerOptions_0020key_0020_0027old_002Dkey_0027',
+        },
+      );
+      expect(mockProcessEmitWarning).toHaveBeenNthCalledWith(
+        5,
+        'AI SDK Warning (zzz / MMM): other msg',
+        { type: 'Warning' },
       );
     });
 
-    it('should not log anything when warnings array is empty', () => {
-      const warnings: Warning[] = [];
+    it('should include warning even with "unknown provider" and "unknown model"', () => {
+      logWarnings({
+        warnings: [{ type: 'other', message: 'messx' } as SharedV4Warning],
+        provider: 'unknown provider',
+        model: 'unknown model',
+      });
 
-      logWarnings(warnings);
-
-      expect(mockConsoleInfo).not.toHaveBeenCalled(); // No information note with empty array
+      expect(mockConsoleInfo).not.toHaveBeenCalled();
       expect(mockConsoleWarn).not.toHaveBeenCalled();
-    });
-
-    describe('with different warning types', () => {
-      it('should log LanguageModelV3CallWarning with unsupported-setting type', () => {
-        const warning: LanguageModelV3CallWarning = {
-          type: 'unsupported-setting',
-          setting: 'temperature',
-          details: 'Temperature setting is not supported by this model',
-        };
-        const warnings: Warning[] = [warning];
-
-        logWarnings(warnings);
-
-        expect(mockConsoleInfo).toHaveBeenCalledOnce(); // Information note on first call
-        expect(mockConsoleWarn).toHaveBeenCalledOnce();
-        expect(mockConsoleWarn).toHaveBeenCalledWith(
-          'AI SDK Warning: The "temperature" setting is not supported by this model - Temperature setting is not supported by this model',
-        );
-      });
-
-      it('should log LanguageModelV3CallWarning with unsupported-tool type', () => {
-        const warning: LanguageModelV3CallWarning = {
-          type: 'unsupported-tool',
-          tool: {
-            type: 'function',
-            name: 'testTool',
-            inputSchema: { type: 'object', properties: {} },
-          },
-          details: 'Tool not supported',
-        };
-        const warnings: Warning[] = [warning];
-
-        logWarnings(warnings);
-
-        expect(mockConsoleInfo).toHaveBeenCalledOnce(); // Information note on first call
-        expect(mockConsoleWarn).toHaveBeenCalledOnce();
-        expect(mockConsoleWarn).toHaveBeenCalledWith(
-          'AI SDK Warning: The tool "testTool" is not supported by this model - Tool not supported',
-        );
-      });
-
-      it('should log image model call warning', () => {
-        const warning: ImageModelV3CallWarning = {
-          type: 'unsupported-setting',
-          setting: 'size',
-          details: 'Image size setting not supported',
-        };
-        const warnings: Warning[] = [warning];
-
-        logWarnings(warnings);
-
-        expect(mockConsoleInfo).toHaveBeenCalledOnce(); // Information note on first call
-        expect(mockConsoleWarn).toHaveBeenCalledOnce();
-        expect(mockConsoleWarn).toHaveBeenCalledWith(
-          'AI SDK Warning: The "size" setting is not supported by this model - Image size setting not supported',
-        );
-      });
-
-      it('should log SpeechModelV2CallWarning', () => {
-        const warning: SpeechModelV2CallWarning = {
-          type: 'unsupported-setting',
-          setting: 'voice',
-          details: 'Voice setting not supported',
-        };
-        const warnings: Warning[] = [warning];
-
-        logWarnings(warnings);
-
-        expect(mockConsoleInfo).toHaveBeenCalledOnce(); // Information note on first call
-        expect(mockConsoleWarn).toHaveBeenCalledOnce();
-        expect(mockConsoleWarn).toHaveBeenCalledWith(
-          'AI SDK Warning: The "voice" setting is not supported by this model - Voice setting not supported',
-        );
-      });
-
-      it('should log TranscriptionModelV2CallWarning', () => {
-        const warning: TranscriptionModelV2CallWarning = {
-          type: 'unsupported-setting',
-          setting: 'mediaType',
-          details: 'MediaType setting not supported',
-        };
-        const warnings: Warning[] = [warning];
-
-        logWarnings(warnings);
-
-        expect(mockConsoleInfo).toHaveBeenCalledOnce(); // Information note on first call
-        expect(mockConsoleWarn).toHaveBeenCalledOnce();
-        expect(mockConsoleWarn).toHaveBeenCalledWith(
-          'AI SDK Warning: The "mediaType" setting is not supported by this model - MediaType setting not supported',
-        );
-      });
-
-      it('should log mixed warning types', () => {
-        const languageWarning: LanguageModelV3CallWarning = {
-          type: 'other',
-          message: 'Language model warning',
-        };
-        const imageWarning: ImageModelV3CallWarning = {
-          type: 'other',
-          message: 'Image model warning',
-        };
-        const speechWarning: SpeechModelV2CallWarning = {
-          type: 'other',
-          message: 'Speech model warning',
-        };
-        const transcriptionWarning: TranscriptionModelV2CallWarning = {
-          type: 'other',
-          message: 'Transcription model warning',
-        };
-
-        const warnings: Warning[] = [
-          languageWarning,
-          imageWarning,
-          speechWarning,
-          transcriptionWarning,
-        ];
-
-        logWarnings(warnings);
-
-        expect(mockConsoleInfo).toHaveBeenCalledOnce(); // Information note on first call
-        expect(mockConsoleWarn).toHaveBeenCalledTimes(4);
-        expect(mockConsoleWarn).toHaveBeenNthCalledWith(
-          1,
-          'AI SDK Warning: Language model warning',
-        );
-        expect(mockConsoleWarn).toHaveBeenNthCalledWith(
-          2,
-          'AI SDK Warning: Image model warning',
-        );
-        expect(mockConsoleWarn).toHaveBeenNthCalledWith(
-          3,
-          'AI SDK Warning: Speech model warning',
-        );
-        expect(mockConsoleWarn).toHaveBeenNthCalledWith(
-          4,
-          'AI SDK Warning: Transcription model warning',
-        );
-      });
+      expect(mockProcessEmitWarning).toHaveBeenCalledWith(
+        'AI SDK Warning (unknown provider / unknown model): messx',
+        { type: 'Warning' },
+      );
     });
   });
 
@@ -315,150 +338,201 @@ describe('logWarnings', () => {
       globalThis.AI_SDK_LOG_WARNINGS = undefined;
     });
 
-    it('should use default behavior and log to console.warn', () => {
-      const warning: LanguageModelV3CallWarning = {
+    it('should use default behavior and emit via process.emitWarning', () => {
+      const warning: SharedV4Warning = {
         type: 'other',
         message: 'Test warning with undefined logger',
       };
       const warnings: Warning[] = [warning];
 
-      logWarnings(warnings);
+      logWarnings({ warnings, provider: 'p1', model: 'm1' });
 
-      expect(mockConsoleInfo).toHaveBeenCalledOnce(); // Information note on first call
-      expect(mockConsoleWarn).toHaveBeenCalledOnce();
-      expect(mockConsoleWarn).toHaveBeenCalledWith(
-        'AI SDK Warning: Test warning with undefined logger',
+      expect(mockConsoleInfo).not.toHaveBeenCalled();
+      expect(mockConsoleWarn).not.toHaveBeenCalled();
+      expect(mockProcessEmitWarning).toHaveBeenCalledTimes(2);
+      expect(mockProcessEmitWarning).toHaveBeenNthCalledWith(
+        1,
+        FIRST_WARNING_INFO_MESSAGE,
+        { type: 'Warning' },
+      );
+      expect(mockProcessEmitWarning).toHaveBeenNthCalledWith(
+        2,
+        'AI SDK Warning (p1 / m1): Test warning with undefined logger',
+        { type: 'Warning' },
       );
     });
   });
 
-  describe('first-time information note', () => {
-    describe('when using default console behavior', () => {
-      it('should display information note on first call', () => {
-        const warning: LanguageModelV3CallWarning = {
-          type: 'other',
-          message: 'First warning',
-        };
-        const warnings: Warning[] = [warning];
+  describe('deprecation warnings', () => {
+    const warning: Warning = {
+      type: 'deprecated',
+      setting: 'generateObject',
+      message: 'Use generateText with an output setting instead.',
+    };
 
-        logWarnings(warnings);
+    it('emits each code once across batches, calls, and message changes', () => {
+      logWarnings({ warnings: [warning, warning] });
+      logWarnings({ warnings: [{ ...warning, message: 'Updated wording.' }] });
+      logWarnings({ warnings: [{ ...warning, setting: 'streamObject' }] });
 
-        expect(mockConsoleInfo).toHaveBeenCalledOnce();
-        expect(mockConsoleInfo).toHaveBeenCalledWith(
-          FIRST_WARNING_INFO_MESSAGE,
-        );
-        expect(mockConsoleWarn).toHaveBeenCalledOnce();
-        expect(mockConsoleWarn).toHaveBeenCalledWith(
-          'AI SDK Warning: First warning',
-        );
-      });
+      expect(mockProcessEmitWarning).toHaveBeenCalledTimes(3);
+      expect(mockProcessEmitWarning).toHaveBeenNthCalledWith(
+        2,
+        'AI SDK Warning: Deprecated: "generateObject". Use generateText with an output setting instead.',
+        { type: 'DeprecationWarning', code: 'AISDK_DEP_GENERATE_OBJECT' },
+      );
+      expect(mockProcessEmitWarning).toHaveBeenNthCalledWith(
+        3,
+        expect.any(String),
+        { type: 'DeprecationWarning', code: 'AISDK_DEP_STREAM_OBJECT' },
+      );
+    });
 
-      it('should not display information note on subsequent calls', () => {
-        const warning1: LanguageModelV3CallWarning = {
-          type: 'other',
-          message: 'First warning',
-        };
-        const warning2: LanguageModelV3CallWarning = {
-          type: 'other',
-          message: 'Second warning',
-        };
+    it('deduplicates across models while keeping providers separate', () => {
+      logWarnings({ warnings: [warning], provider: 'a', model: 'first' });
+      logWarnings({ warnings: [warning], provider: 'a', model: 'second' });
+      logWarnings({ warnings: [warning], provider: 'b', model: 'first' });
+      expect(mockProcessEmitWarning).toHaveBeenCalledTimes(3);
+      expect(mockProcessEmitWarning).toHaveBeenLastCalledWith(
+        expect.any(String),
+        {
+          type: 'DeprecationWarning',
+          code: 'AISDK_DEP_PROVIDER_b__generateObject',
+        },
+      );
+    });
 
-        // First call
-        logWarnings([warning1]);
+    it('continues emitting ordinary warnings on every call', () => {
+      const other: Warning = { type: 'other', message: 'Repeated warning.' };
+      logWarnings({ warnings: [warning, other] });
+      logWarnings({ warnings: [warning, other] });
+      expect(mockProcessEmitWarning).toHaveBeenCalledTimes(4);
+      expect(mockProcessEmitWarning).toHaveBeenLastCalledWith(
+        'AI SDK Warning: Repeated warning.',
+        { type: 'Warning' },
+      );
+    });
 
-        // Second call
-        logWarnings([warning2]);
+    it('does not consume codes while warnings are disabled', () => {
+      globalThis.AI_SDK_LOG_WARNINGS = false;
+      logWarnings({ warnings: [warning] });
+      expect(mockProcessEmitWarning).not.toHaveBeenCalled();
+      delete globalThis.AI_SDK_LOG_WARNINGS;
+      logWarnings({ warnings: [warning] });
+      expect(mockProcessEmitWarning).toHaveBeenCalledTimes(2);
+    });
 
-        // Info should only be called once (on first call)
-        expect(mockConsoleInfo).toHaveBeenCalledOnce();
-        expect(mockConsoleInfo).toHaveBeenCalledWith(
-          FIRST_WARNING_INFO_MESSAGE,
-        );
+    it('passes every original warning to custom loggers, including after default emission', () => {
+      const options = { warnings: [warning, warning] };
+      logWarnings(options);
+      const logger = vi.fn();
+      globalThis.AI_SDK_LOG_WARNINGS = logger;
+      logWarnings(options);
+      logWarnings(options);
+      expect(logger).toHaveBeenCalledTimes(2);
+      expect(logger).toHaveBeenCalledWith(options);
+      expect(mockProcessEmitWarning).toHaveBeenCalledTimes(2);
+    });
 
-        // Warnings should be called twice
+    it('does not consume codes while using a custom logger', () => {
+      globalThis.AI_SDK_LOG_WARNINGS = vi.fn<LogWarningsFunction>();
+      logWarnings({ warnings: [warning] });
+      expect(mockProcessEmitWarning).not.toHaveBeenCalled();
+      delete globalThis.AI_SDK_LOG_WARNINGS;
+      logWarnings({ warnings: [warning] });
+      expect(mockProcessEmitWarning).toHaveBeenCalledTimes(2);
+    });
+
+    it.each([undefined, {}])(
+      'deduplicates and includes codes when process is %s',
+      processValue => {
+        const originalProcess = globalThis.process;
+        vi.stubGlobal('process', processValue);
+        try {
+          logWarnings({ warnings: [warning, warning] });
+          logWarnings({ warnings: [warning] });
+        } finally {
+          vi.stubGlobal('process', originalProcess);
+        }
+        expect(mockProcessEmitWarning).not.toHaveBeenCalled();
         expect(mockConsoleWarn).toHaveBeenCalledTimes(2);
-        expect(mockConsoleWarn).toHaveBeenNthCalledWith(
-          1,
-          'AI SDK Warning: First warning',
+        expect(mockConsoleWarn).toHaveBeenLastCalledWith(
+          '[AISDK_DEP_GENERATE_OBJECT] AI SDK Warning: Deprecated: "generateObject". Use generateText with an output setting instead.',
         );
-        expect(mockConsoleWarn).toHaveBeenNthCalledWith(
-          2,
-          'AI SDK Warning: Second warning',
-        );
-      });
+      },
+    );
 
-      it('should not display information note with empty warnings array', () => {
-        const warnings: Warning[] = [];
+    it('clears deduplication state when resetting the logger for tests', () => {
+      logWarnings({ warnings: [warning] });
+      resetLogWarningsState();
+      logWarnings({ warnings: [warning] });
+      expect(mockProcessEmitWarning).toHaveBeenCalledTimes(4);
+    });
+  });
 
-        logWarnings(warnings);
-
-        expect(mockConsoleInfo).not.toHaveBeenCalled();
-        expect(mockConsoleWarn).not.toHaveBeenCalled();
-      });
-
-      it('should not count empty arrays towards first call', () => {
-        // First call with empty array should not trigger info message
-        const emptyWarnings: Warning[] = [];
-        logWarnings(emptyWarnings);
-
-        expect(mockConsoleInfo).not.toHaveBeenCalled();
-        expect(mockConsoleWarn).not.toHaveBeenCalled();
-
-        // Second call with actual warning should trigger info message (as it's the "first" real call)
-        const warning: LanguageModelV3CallWarning = {
-          type: 'other',
-          message: 'Test warning',
-        };
-        const warnings: Warning[] = [warning];
-        logWarnings(warnings);
-
-        expect(mockConsoleInfo).toHaveBeenCalledOnce();
-        expect(mockConsoleInfo).toHaveBeenCalledWith(
-          FIRST_WARNING_INFO_MESSAGE,
-        );
-        expect(mockConsoleWarn).toHaveBeenCalledOnce();
-        expect(mockConsoleWarn).toHaveBeenCalledWith(
-          'AI SDK Warning: Test warning',
-        );
-      });
+  describe('first-time information note', () => {
+    it('should not display the info message for empty warnings', () => {
+      logWarnings({ warnings: [], provider: 'a', model: 'b' });
+      expect(mockConsoleInfo).not.toHaveBeenCalled();
+      expect(mockConsoleWarn).not.toHaveBeenCalled();
     });
 
-    describe('when using custom logger function', () => {
-      it('should not display information note with custom logger', () => {
-        const customLogger = vi.fn();
-        globalThis.AI_SDK_LOG_WARNINGS = customLogger;
+    it('should display informational note only on first real call', () => {
+      logWarnings({ warnings: [], provider: 'a', model: 'b' });
+      expect(mockConsoleInfo).not.toHaveBeenCalled();
+      expect(mockProcessEmitWarning).not.toHaveBeenCalled();
 
-        const warning: LanguageModelV3CallWarning = {
-          type: 'other',
-          message: 'Test warning',
-        };
-        const warnings: Warning[] = [warning];
+      logWarnings({ warnings: [], provider: 'a', model: 'b' });
+      expect(mockConsoleInfo).not.toHaveBeenCalled();
+      expect(mockProcessEmitWarning).not.toHaveBeenCalled();
 
-        logWarnings(warnings);
-
-        expect(mockConsoleInfo).not.toHaveBeenCalled();
-        expect(customLogger).toHaveBeenCalledOnce();
-        expect(customLogger).toHaveBeenCalledWith(warnings);
+      logWarnings({
+        warnings: [{ type: 'other', message: 'foo' } as SharedV4Warning],
+        provider: 'abc',
+        model: 'bbb',
       });
+      expect(mockConsoleInfo).not.toHaveBeenCalled();
+      expect(mockProcessEmitWarning).toHaveBeenCalledTimes(2);
+
+      logWarnings({
+        warnings: [{ type: 'other', message: 'bar' } as SharedV4Warning],
+        provider: 'abc',
+        model: 'bbb',
+      });
+      expect(mockConsoleInfo).not.toHaveBeenCalled();
+      expect(mockProcessEmitWarning).toHaveBeenCalledTimes(3);
     });
 
-    describe('when AI_SDK_LOG_WARNINGS is false', () => {
-      beforeEach(() => {
-        globalThis.AI_SDK_LOG_WARNINGS = false;
+    it('should not display information note when using custom logger', () => {
+      const customLogger = vi.fn();
+      globalThis.AI_SDK_LOG_WARNINGS = customLogger;
+
+      logWarnings({
+        warnings: [{ type: 'other', message: 'Message' } as SharedV4Warning],
+        provider: 'provV',
+        model: 'modZ',
       });
 
-      it('should not display information note when logging is disabled', () => {
-        const warning: LanguageModelV3CallWarning = {
-          type: 'other',
-          message: 'Test warning',
-        };
-        const warnings: Warning[] = [warning];
+      expect(mockConsoleInfo).not.toHaveBeenCalled();
+      expect(customLogger).toHaveBeenCalledOnce();
+    });
 
-        logWarnings(warnings);
+    it('should not display information note when AI_SDK_LOG_WARNINGS is false', () => {
+      globalThis.AI_SDK_LOG_WARNINGS = false;
 
-        expect(mockConsoleInfo).not.toHaveBeenCalled();
-        expect(mockConsoleWarn).not.toHaveBeenCalled();
+      logWarnings({
+        warnings: [
+          {
+            type: 'other',
+            message: 'Suppressed',
+          } as SharedV4Warning,
+        ],
+        provider: 'notProv',
+        model: 'notModel',
       });
+
+      expect(mockConsoleInfo).not.toHaveBeenCalled();
+      expect(mockConsoleWarn).not.toHaveBeenCalled();
     });
   });
 });

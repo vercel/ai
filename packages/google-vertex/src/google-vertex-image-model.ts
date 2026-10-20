@@ -1,31 +1,66 @@
-import { ImageModelV3, ImageModelV3CallWarning } from '@ai-sdk/provider';
+import type { GoogleLanguageModelOptions } from '@ai-sdk/google';
+import { GoogleLanguageModel } from '@ai-sdk/google/internal';
+import type {
+  ImageModelV4,
+  LanguageModelV4Prompt,
+  SharedV4Warning,
+} from '@ai-sdk/provider';
 import {
-  Resolvable,
-  combineHeaders,
-  createJsonResponseHandler,
-  parseProviderOptions,
-  postJsonToApi,
-  resolve,
+  convertToBase64,
+  generateId as defaultGenerateId,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
-import { googleVertexFailedResponseHandler } from './google-vertex-error';
-import { GoogleVertexImageModelId } from './google-vertex-image-settings';
+import type { GoogleVertexImageModelId } from './google-vertex-image-settings';
 
 interface GoogleVertexImageModelConfig {
   provider: string;
   baseURL: string;
   headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: typeof fetch;
+  generateId?: () => string;
   _internal?: {
     currentDate?: () => Date;
   };
 }
 
-// https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images
-export class GoogleVertexImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v3';
-  // https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/imagen-api#parameter_list
-  readonly maxImagesPerCall = 4;
+const googleVertexImageModelsWithFileInputSupport = new Set<string>([
+  'gemini-2.5-flash-image',
+  'gemini-3-pro-image-preview',
+  'gemini-3.1-flash-image-preview',
+  'gemini-nano-banana-2.1',
+]);
+
+export class GoogleVertexImageModel implements ImageModelV4 {
+  readonly specificationVersion = 'v4';
+
+  static [WORKFLOW_SERIALIZE](model: GoogleVertexImageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: GoogleVertexImageModelConfig;
+  }) {
+    return new GoogleVertexImageModel(options.modelId, options.config);
+  }
+
+  readonly maxImagesPerCall = 1;
+
+  get supportsFileInputs(): boolean | undefined {
+    return googleVertexImageModelsWithFileInputSupport.has(this.modelId)
+      ? true
+      : undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    return this.supportsFileInputs === true ? false : undefined;
+  }
 
   get provider(): string {
     return this.config.provider;
@@ -36,116 +71,172 @@ export class GoogleVertexImageModel implements ImageModelV3 {
     private config: GoogleVertexImageModelConfig,
   ) {}
 
-  async doGenerate({
-    prompt,
-    n,
-    size,
-    aspectRatio,
-    seed,
-    providerOptions,
-    headers,
-    abortSignal,
-  }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV3['doGenerate']>>
-  > {
-    const warnings: Array<ImageModelV3CallWarning> = [];
+  async doGenerate(
+    options: Parameters<ImageModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<ImageModelV4['doGenerate']>>> {
+    if (!this.modelId.startsWith('gemini-')) {
+      throw new Error(
+        'Google image models other than Gemini are no longer supported. Use a model ID that starts with `gemini-`.',
+      );
+    }
+
+    const {
+      prompt,
+      size,
+      aspectRatio,
+      seed,
+      providerOptions,
+      headers,
+      abortSignal,
+      files,
+      mask,
+    } = options;
+    const warnings: Array<SharedV4Warning> = [];
+
+    if (mask != null) {
+      throw new Error(
+        'Gemini image models do not support mask-based image editing.',
+      );
+    }
 
     if (size != null) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'size',
+        type: 'unsupported',
+        feature: 'size',
         details:
           'This model does not support the `size` option. Use `aspectRatio` instead.',
       });
     }
 
-    const vertexImageOptions = await parseProviderOptions({
-      provider: 'vertex',
-      providerOptions,
-      schema: vertexImageProviderOptionsSchema,
+    const userContent: Array<
+      | { type: 'text'; text: string }
+      | {
+          type: 'file';
+          data:
+            | { type: 'data'; data: string | Uint8Array }
+            | { type: 'url'; url: URL };
+          mediaType: string;
+        }
+    > = [];
+
+    if (prompt != null) {
+      userContent.push({ type: 'text', text: prompt });
+    }
+
+    if (files != null && files.length > 0) {
+      for (const file of files) {
+        if (file.type === 'url') {
+          userContent.push({
+            type: 'file',
+            data: { type: 'url', url: new URL(file.url) },
+            mediaType: 'image/*',
+          });
+        } else {
+          userContent.push({
+            type: 'file',
+            data: {
+              type: 'data',
+              data:
+                typeof file.data === 'string'
+                  ? file.data
+                  : new Uint8Array(file.data),
+            },
+            mediaType: file.mediaType,
+          });
+        }
+      }
+    }
+
+    const languageModelPrompt: LanguageModelV4Prompt = [
+      { role: 'user', content: userContent },
+    ];
+
+    const languageModel = new GoogleLanguageModel(this.modelId, {
+      provider: this.config.provider,
+      baseURL: this.config.baseURL,
+      headers: this.config.headers ?? {},
+      fetch: this.config.fetch,
+      generateId: this.config.generateId ?? defaultGenerateId,
+      supportedUrls: () => ({
+        '*': [/^https?:\/\/.*$/, /^gs:\/\/.*$/],
+      }),
     });
 
-    const body = {
-      instances: [{ prompt }],
-      parameters: {
-        sampleCount: n,
-        ...(aspectRatio != null ? { aspectRatio } : {}),
-        ...(seed != null ? { seed } : {}),
-        ...(vertexImageOptions ?? {}),
-      },
+    const {
+      responseModalities: _strippedResponseModalities,
+      imageConfig: userImageConfig,
+      ...userVertexOptions
+    } = ((providerOptions?.googleVertex ?? providerOptions?.vertex) as
+      | GoogleLanguageModelOptions
+      | undefined) ?? {};
+    const innerVertexOptions: GoogleLanguageModelOptions = {
+      ...userVertexOptions,
+      responseModalities: ['IMAGE'],
+      imageConfig:
+        aspectRatio != null || userImageConfig != null
+          ? {
+              ...userImageConfig,
+              ...(aspectRatio != null
+                ? {
+                    aspectRatio: aspectRatio as NonNullable<
+                      GoogleLanguageModelOptions['imageConfig']
+                    >['aspectRatio'],
+                  }
+                : {}),
+            }
+          : undefined,
     };
+    const result = await languageModel.doGenerate({
+      prompt: languageModelPrompt,
+      seed,
+      providerOptions: {
+        googleVertex: innerVertexOptions,
+        vertex: innerVertexOptions,
+      },
+      headers,
+      abortSignal,
+    });
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { value: response, responseHeaders } = await postJsonToApi({
-      url: `${this.config.baseURL}/models/${this.modelId}:predict`,
-      headers: combineHeaders(await resolve(this.config.headers), headers),
-      body,
-      failedResponseHandler: googleVertexFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(
-        vertexImageResponseSchema,
-      ),
-      abortSignal,
-      fetch: this.config.fetch,
-    });
 
+    const images: string[] = [];
+    for (const part of result.content) {
+      if (
+        part.type === 'file' &&
+        part.mediaType.startsWith('image/') &&
+        part.data.type === 'data'
+      ) {
+        images.push(convertToBase64(part.data.data));
+      }
+    }
+
+    const geminiPayload = {
+      images: images.map(() => ({})),
+    };
     return {
-      images:
-        response.predictions?.map(
-          ({ bytesBase64Encoded }) => bytesBase64Encoded,
-        ) ?? [],
+      images,
+      ...(result.finishReason.unified === 'content-filter'
+        ? { isRetryable: false }
+        : {}),
       warnings,
+      providerMetadata: {
+        googleVertex: geminiPayload,
+        vertex: geminiPayload,
+      },
       response: {
         timestamp: currentDate,
         modelId: this.modelId,
-        headers: responseHeaders,
+        headers: result.response?.headers,
       },
-      providerMetadata: {
-        vertex: {
-          images:
-            response.predictions?.map(prediction => {
-              const {
-                // normalize revised prompt property
-                prompt: revisedPrompt,
-              } = prediction;
-
-              return { ...(revisedPrompt != null && { revisedPrompt }) };
-            }) ?? [],
-        },
-      },
+      usage: result.usage
+        ? {
+            inputTokens: result.usage.inputTokens.total,
+            outputTokens: result.usage.outputTokens.total,
+            totalTokens:
+              (result.usage.inputTokens.total ?? 0) +
+              (result.usage.outputTokens.total ?? 0),
+          }
+        : undefined,
     };
   }
 }
-
-// minimal version of the schema, focussed on what is needed for the implementation
-// this approach limits breakages when the API changes and increases efficiency
-const vertexImageResponseSchema = z.object({
-  predictions: z
-    .array(
-      z.object({
-        bytesBase64Encoded: z.string(),
-        mimeType: z.string(),
-        prompt: z.string().nullish(),
-      }),
-    )
-    .nullish(),
-});
-
-const vertexImageProviderOptionsSchema = z.object({
-  negativePrompt: z.string().nullish(),
-  personGeneration: z
-    .enum(['dont_allow', 'allow_adult', 'allow_all'])
-    .nullish(),
-  safetySetting: z
-    .enum([
-      'block_low_and_above',
-      'block_medium_and_above',
-      'block_only_high',
-      'block_none',
-    ])
-    .nullish(),
-  addWatermark: z.boolean().nullish(),
-  storageUri: z.string().nullish(),
-});
-export type GoogleVertexImageProviderOptions = z.infer<
-  typeof vertexImageProviderOptionsSchema
->;

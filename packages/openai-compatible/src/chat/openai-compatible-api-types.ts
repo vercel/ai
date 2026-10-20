@@ -1,4 +1,4 @@
-import { JSONValue } from '@ai-sdk/provider';
+import type { JSONValue } from '@ai-sdk/provider';
 
 export type OpenAICompatibleChatPrompt = Array<OpenAICompatibleMessage>;
 
@@ -20,30 +20,49 @@ export interface OpenAICompatibleSystemMessage extends JsonRecord {
   content: string;
 }
 
-export interface OpenAICompatibleUserMessage
-  extends JsonRecord<OpenAICompatibleContentPart> {
+export interface OpenAICompatibleUserMessage extends JsonRecord<OpenAICompatibleContentPart> {
   role: 'user';
   content: string | Array<OpenAICompatibleContentPart>;
 }
 
 export type OpenAICompatibleContentPart =
   | OpenAICompatibleContentPartText
-  | OpenAICompatibleContentPartImage;
-
-export interface OpenAICompatibleContentPartImage extends JsonRecord {
-  type: 'image_url';
-  image_url: { url: string };
-}
+  | OpenAICompatibleContentPartImage
+  | OpenAICompatibleContentPartVideo
+  | OpenAICompatibleContentPartInputAudio
+  | OpenAICompatibleContentPartFile;
 
 export interface OpenAICompatibleContentPartText extends JsonRecord {
   type: 'text';
   text: string;
 }
 
-export interface OpenAICompatibleAssistantMessage
-  extends JsonRecord<OpenAICompatibleMessageToolCall> {
+export interface OpenAICompatibleContentPartImage extends JsonRecord {
+  type: 'image_url';
+  image_url: { url: string };
+}
+
+// Video parts are an OpenAI-compatible provider extension.
+export interface OpenAICompatibleContentPartVideo extends JsonRecord {
+  type: 'video_url';
+  video_url: { url: string };
+}
+
+// Audio parts for Google API
+export interface OpenAICompatibleContentPartInputAudio extends JsonRecord {
+  type: 'input_audio';
+  input_audio: { data: string; format: 'wav' | 'mp3' };
+}
+
+export interface OpenAICompatibleContentPartFile extends JsonRecord {
+  type: 'file';
+  file: { filename: string; file_data: string } | { file_id: string };
+}
+
+export interface OpenAICompatibleAssistantMessage extends JsonRecord<OpenAICompatibleMessageToolCall> {
   role: 'assistant';
   content?: string | null;
+  reasoning_content?: string;
   tool_calls?: Array<OpenAICompatibleMessageToolCall>;
 }
 
@@ -54,10 +73,19 @@ export interface OpenAICompatibleMessageToolCall extends JsonRecord {
     arguments: string;
     name: string;
   };
+  /**
+   * Additional content for provider-specific features.
+   * Used by Google Gemini for thought signatures via OpenAI compatibility.
+   */
+  extra_content?: {
+    google?: {
+      thought_signature?: string;
+    };
+  };
 }
 
 export interface OpenAICompatibleToolMessage extends JsonRecord {
   role: 'tool';
-  content: string;
+  content: string | Array<OpenAICompatibleContentPart>;
   tool_call_id: string;
 }

@@ -1,48 +1,32 @@
-import {
+import type {
   AssistantModelMessage,
   ModelMessage,
   SystemModelMessage,
   ToolModelMessage,
   UserModelMessage,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
 import { providerMetadataSchema } from '../types/provider-metadata';
+import { z, type ZodType } from '../util/zod';
 import {
+  customPartSchema,
   filePartSchema,
   imagePartSchema,
+  reasoningFilePartSchema,
   reasoningPartSchema,
   textPartSchema,
+  toolApprovalRequestSchema,
   toolCallPartSchema,
+  toolApprovalResponseSchema,
   toolResultPartSchema,
 } from './content-part';
 
-/**
-@deprecated Use `SystemModelMessage` instead.
- */
-// TODO remove in AI SDK 6
-export type CoreSystemMessage = SystemModelMessage;
+export const systemModelMessageSchema: ZodType<SystemModelMessage> = z.object({
+  role: z.literal('system'),
+  content: z.string(),
+  providerOptions: providerMetadataSchema.optional(),
+});
 
-export const systemModelMessageSchema: z.ZodType<SystemModelMessage> = z.object(
-  {
-    role: z.literal('system'),
-    content: z.string(),
-    providerOptions: providerMetadataSchema.optional(),
-  },
-);
-
-/**
-@deprecated Use `systemModelMessageSchema` instead.
- */
-// TODO remove in AI SDK 6
-export const coreSystemMessageSchema = systemModelMessageSchema;
-
-/**
-@deprecated Use `UserModelMessage` instead.
- */
-// TODO remove in AI SDK 6
-export type CoreUserMessage = UserModelMessage;
-
-export const userModelMessageSchema: z.ZodType<UserModelMessage> = z.object({
+export const userModelMessageSchema: ZodType<UserModelMessage> = z.object({
   role: z.literal('user'),
   content: z.union([
     z.string(),
@@ -51,19 +35,7 @@ export const userModelMessageSchema: z.ZodType<UserModelMessage> = z.object({
   providerOptions: providerMetadataSchema.optional(),
 });
 
-/**
-@deprecated Use `userModelMessageSchema` instead.
- */
-// TODO remove in AI SDK 6
-export const coreUserMessageSchema = userModelMessageSchema;
-
-/**
-@deprecated Use `AssistantModelMessage` instead.
- */
-// TODO remove in AI SDK 6
-export type CoreAssistantMessage = AssistantModelMessage;
-
-export const assistantModelMessageSchema: z.ZodType<AssistantModelMessage> =
+export const assistantModelMessageSchema: ZodType<AssistantModelMessage> =
   z.object({
     role: z.literal('assistant'),
     content: z.union([
@@ -71,55 +43,28 @@ export const assistantModelMessageSchema: z.ZodType<AssistantModelMessage> =
       z.array(
         z.union([
           textPartSchema,
+          customPartSchema,
           filePartSchema,
           reasoningPartSchema,
+          reasoningFilePartSchema,
           toolCallPartSchema,
           toolResultPartSchema,
+          toolApprovalRequestSchema,
         ]),
       ),
     ]),
     providerOptions: providerMetadataSchema.optional(),
   });
 
-/**
-@deprecated Use `assistantModelMessageSchema` instead.
- */
-// TODO remove in AI SDK 6
-export const coreAssistantMessageSchema = assistantModelMessageSchema;
-
-/**
-@deprecated Use `ToolModelMessage` instead.
- */
-// TODO remove in AI SDK 6
-export type CoreToolMessage = ToolModelMessage;
-
-export const toolModelMessageSchema: z.ZodType<ToolModelMessage> = z.object({
+export const toolModelMessageSchema: ZodType<ToolModelMessage> = z.object({
   role: z.literal('tool'),
-  content: z.array(toolResultPartSchema),
+  content: z.array(z.union([toolResultPartSchema, toolApprovalResponseSchema])),
   providerOptions: providerMetadataSchema.optional(),
 });
 
-/**
-@deprecated Use `toolModelMessageSchema` instead.
- */
-// TODO remove in AI SDK 6
-export const coreToolMessageSchema = toolModelMessageSchema;
-
-/**
-@deprecated Use `ModelMessage` instead.
-   */
-// TODO remove in AI SDK 6
-export type CoreMessage = ModelMessage;
-
-export const modelMessageSchema: z.ZodType<ModelMessage> = z.union([
+export const modelMessageSchema: ZodType<ModelMessage> = z.union([
   systemModelMessageSchema,
   userModelMessageSchema,
   assistantModelMessageSchema,
   toolModelMessageSchema,
 ]);
-
-/**
-@deprecated Use `modelMessageSchema` instead.
- */
-// TODO remove in AI SDK 6
-export const coreMessageSchema: z.ZodType<CoreMessage> = modelMessageSchema;

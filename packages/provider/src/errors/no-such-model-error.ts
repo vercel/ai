@@ -10,10 +10,15 @@ export class NoSuchModelError extends AISDKError {
   readonly modelId: string;
   readonly modelType:
     | 'languageModel'
-    | 'textEmbeddingModel'
+    | 'embeddingModel'
     | 'imageModel'
     | 'transcriptionModel'
-    | 'speechModel';
+    | 'speechModel'
+    | 'rerankingModel'
+    | 'videoModel'
+    | 'decisionModel'
+    /** @deprecated Use `decisionModel` instead. */
+    | 'evaluationModel';
 
   constructor({
     errorName = name,
@@ -25,10 +30,15 @@ export class NoSuchModelError extends AISDKError {
     modelId: string;
     modelType:
       | 'languageModel'
-      | 'textEmbeddingModel'
+      | 'embeddingModel'
       | 'imageModel'
       | 'transcriptionModel'
-      | 'speechModel';
+      | 'speechModel'
+      | 'rerankingModel'
+      | 'videoModel'
+      | 'decisionModel'
+      /** @deprecated Use `decisionModel` instead. */
+      | 'evaluationModel';
     message?: string;
   }) {
     super({ name: errorName, message });

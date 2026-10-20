@@ -1,48 +1,66 @@
 import {
   InvalidResponseDataError,
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3CallWarning,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3StreamPart,
-  LanguageModelV3Usage,
-  SharedV2ProviderMetadata,
+  type LanguageModelV4,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4Content,
+  type LanguageModelV4FinishReason,
+  type LanguageModelV4GenerateResult,
+  type LanguageModelV4StreamPart,
+  type LanguageModelV4StreamResult,
+  type SharedV4ProviderMetadata,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
-  ParseResult,
+  StreamingToolCallTracker,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
-  isParsableJson,
+  isCustomReasoning,
   parseProviderOptions,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
+  type FetchFunction,
+  type ParseResult,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import { openaiFailedResponseHandler } from '../openai-error';
+import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
 import {
-  openaiErrorDataSchema,
-  openaiFailedResponseHandler,
-} from '../openai-error';
+  createOpenAIProviderStreamError,
+  throwIfOpenAIStreamErrorBeforeOutput,
+} from '../openai-stream-error';
+import {
+  convertOpenAIChatUsage,
+  type OpenAIChatUsage,
+} from './convert-openai-chat-usage';
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 import {
-  OpenAIChatModelId,
-  openaiChatLanguageModelOptions,
-} from './openai-chat-options';
+  openaiChatChunkSchema,
+  openaiChatResponseSchema,
+  type OpenAIChatChunk,
+} from './openai-chat-api';
+import {
+  openaiLanguageModelChatOptions,
+  type OpenAIChatModelId,
+} from './openai-chat-language-model-options';
 import { prepareChatTools } from './openai-chat-prepare-tools';
+import { normalizeOpenAIJsonSchema } from '../normalize-openai-json-schema';
 
 type OpenAIChatConfig = {
   provider: string;
-  headers: () => Record<string, string | undefined>;
+  /** Model ID sent to the API. Defaults to the model's reported ID. */
+  requestModelId?: string;
+  headers?: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
 };
 
-export class OpenAIChatLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3';
+export class OpenAIChatLanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4';
 
   readonly modelId: OpenAIChatModelId;
 
@@ -51,6 +69,20 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
   };
 
   private readonly config: OpenAIChatConfig;
+
+  static [WORKFLOW_SERIALIZE](model: OpenAIChatLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: OpenAIChatModelId;
+    config: OpenAIChatConfig;
+  }) {
+    return new OpenAIChatLanguageModel(options.modelId, options.config);
+  }
 
   constructor(modelId: OpenAIChatModelId, config: OpenAIChatConfig) {
     this.modelId = modelId;
@@ -74,54 +106,85 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     seed,
     tools,
     toolChoice,
+    reasoning,
     providerOptions,
-  }: LanguageModelV3CallOptions) {
-    const warnings: LanguageModelV3CallWarning[] = [];
+  }: LanguageModelV4CallOptions) {
+    const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
     const openaiOptions =
       (await parseProviderOptions({
         provider: 'openai',
         providerOptions,
-        schema: openaiChatLanguageModelOptions,
+        schema: openaiLanguageModelChatOptions,
       })) ?? {};
 
-    const structuredOutputs = openaiOptions.structuredOutputs ?? true;
+    const modelCapabilities = getOpenAILanguageModelCapabilities(this.modelId);
 
-    if (topK != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'topK',
-      });
-    }
+    // AI SDK reasoning values map directly to the OpenAI reasoning values.
+    let resolvedReasoningEffort =
+      openaiOptions.reasoningEffort ??
+      (isCustomReasoning(reasoning) ? reasoning : undefined);
 
     if (
-      responseFormat?.type === 'json' &&
-      responseFormat.schema != null &&
-      !structuredOutputs
+      resolvedReasoningEffort != null &&
+      modelCapabilities.supportedReasoningEfforts != null &&
+      !modelCapabilities.supportedReasoningEfforts.includes(
+        resolvedReasoningEffort,
+      )
     ) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'responseFormat',
+        type: 'unsupported',
+        feature: 'reasoningEffort',
+        details: `${this.modelId} only supports the following reasoning efforts: ${modelCapabilities.supportedReasoningEfforts.join(', ')}`,
+      });
+      resolvedReasoningEffort = undefined;
+    }
+
+    const isReasoningModel =
+      openaiOptions.forceReasoning ?? modelCapabilities.isReasoningModel;
+
+    if (topK != null) {
+      warnings.push({ type: 'unsupported', feature: 'topK' });
+    }
+
+    // reasoningSummary is a Responses API option that the chat options schema strips,
+    // so check the raw provider options to avoid silently ignoring it:
+    if (providerOptions?.openai?.reasoningSummary != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'reasoningSummary',
         details:
-          'JSON response format schema is only supported with structuredOutputs',
+          'reasoningSummary is only supported by the Responses API, not the Chat Completions API',
       });
     }
 
     const { messages, warnings: messageWarnings } = convertToOpenAIChatMessages(
       {
         prompt,
-        systemMessageMode: getSystemMessageMode(this.modelId),
+        systemMessageMode:
+          openaiOptions.systemMessageMode ??
+          (isReasoningModel
+            ? 'developer'
+            : modelCapabilities.systemMessageMode),
       },
     );
 
     warnings.push(...messageWarnings);
 
-    const strictJsonSchema = openaiOptions.strictJsonSchema ?? false;
+    const strictJsonSchema = openaiOptions.strictJsonSchema ?? true;
+    const normalizedResponseFormatSchema =
+      responseFormat?.type === 'json' && responseFormat.schema != null
+        ? normalizeOpenAIJsonSchema(responseFormat.schema)
+        : undefined;
+
+    if (normalizedResponseFormatSchema != null) {
+      warnings.push(...normalizedResponseFormatSchema.warnings);
+    }
 
     const baseArgs = {
       // model id:
-      model: this.modelId,
+      model: this.config.requestModelId ?? this.modelId,
 
       // model specific settings:
       logit_bias: openaiOptions.logitBias,
@@ -149,11 +212,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
       presence_penalty: presencePenalty,
       response_format:
         responseFormat?.type === 'json'
-          ? structuredOutputs && responseFormat.schema != null
+          ? normalizedResponseFormatSchema != null
             ? {
                 type: 'json_schema',
                 json_schema: {
-                  schema: responseFormat.schema,
+                  schema: normalizedResponseFormatSchema.schema,
                   strict: strictJsonSchema,
                   name: responseFormat.name ?? 'response',
                   description: responseFormat.description,
@@ -171,47 +234,77 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
       store: openaiOptions.store,
       metadata: openaiOptions.metadata,
       prediction: openaiOptions.prediction,
-      reasoning_effort: openaiOptions.reasoningEffort,
+      reasoning_effort: resolvedReasoningEffort,
       service_tier: openaiOptions.serviceTier,
       prompt_cache_key: openaiOptions.promptCacheKey,
+      prompt_cache_options: openaiOptions.promptCacheOptions,
+      prompt_cache_retention: openaiOptions.promptCacheRetention,
       safety_identifier: openaiOptions.safetyIdentifier,
 
       // messages:
       messages,
     };
 
-    if (isReasoningModel(this.modelId)) {
-      // remove unsupported settings for reasoning models
-      // see https://platform.openai.com/docs/guides/reasoning#limitations
-      if (baseArgs.temperature != null) {
-        baseArgs.temperature = undefined;
-        warnings.push({
-          type: 'unsupported-setting',
-          setting: 'temperature',
-          details: 'temperature is not supported for reasoning models',
-        });
+    if (
+      modelCapabilities.supportedReasoningEfforts != null &&
+      baseArgs.prompt_cache_retention != null
+    ) {
+      baseArgs.prompt_cache_retention = undefined;
+      warnings.push({
+        type: 'unsupported',
+        feature: 'promptCacheRetention',
+        details:
+          'promptCacheRetention is not supported by GPT-6 and later models; use promptCacheOptions instead',
+      });
+    }
+
+    // remove unsupported settings for reasoning models
+    // see https://platform.openai.com/docs/guides/reasoning#limitations
+    if (isReasoningModel) {
+      // supported models allow temperature, topP, and logprobs when reasoning effort is none
+      //  https://platform.openai.com/docs/guides/latest-model#gpt-5-1-parameter-compatibility
+      if (
+        resolvedReasoningEffort !== 'none' ||
+        !modelCapabilities.supportsNonReasoningParameters
+      ) {
+        if (baseArgs.temperature != null) {
+          baseArgs.temperature = undefined;
+          warnings.push({
+            type: 'unsupported',
+            feature: 'temperature',
+            details: 'temperature is not supported for reasoning models',
+          });
+        }
+        if (baseArgs.top_p != null) {
+          baseArgs.top_p = undefined;
+          warnings.push({
+            type: 'unsupported',
+            feature: 'topP',
+            details: 'topP is not supported for reasoning models',
+          });
+        }
+        if (baseArgs.logprobs != null) {
+          baseArgs.logprobs = undefined;
+          warnings.push({
+            type: 'other',
+            message: 'logprobs is not supported for reasoning models',
+          });
+        }
       }
-      if (baseArgs.top_p != null) {
-        baseArgs.top_p = undefined;
-        warnings.push({
-          type: 'unsupported-setting',
-          setting: 'topP',
-          details: 'topP is not supported for reasoning models',
-        });
-      }
+
       if (baseArgs.frequency_penalty != null) {
         baseArgs.frequency_penalty = undefined;
         warnings.push({
-          type: 'unsupported-setting',
-          setting: 'frequencyPenalty',
+          type: 'unsupported',
+          feature: 'frequencyPenalty',
           details: 'frequencyPenalty is not supported for reasoning models',
         });
       }
       if (baseArgs.presence_penalty != null) {
         baseArgs.presence_penalty = undefined;
         warnings.push({
-          type: 'unsupported-setting',
-          setting: 'presencePenalty',
+          type: 'unsupported',
+          feature: 'presencePenalty',
           details: 'presencePenalty is not supported for reasoning models',
         });
       }
@@ -222,13 +315,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
           message: 'logitBias is not supported for reasoning models',
         });
       }
-      if (baseArgs.logprobs != null) {
-        baseArgs.logprobs = undefined;
-        warnings.push({
-          type: 'other',
-          message: 'logprobs is not supported for reasoning models',
-        });
-      }
+
       if (baseArgs.top_logprobs != null) {
         baseArgs.top_logprobs = undefined;
         warnings.push({
@@ -251,8 +338,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
       if (baseArgs.temperature != null) {
         baseArgs.temperature = undefined;
         warnings.push({
-          type: 'unsupported-setting',
-          setting: 'temperature',
+          type: 'unsupported',
+          feature: 'temperature',
           details:
             'temperature is not supported for the search preview models and has been removed.',
         });
@@ -262,11 +349,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     // Validate flex processing support
     if (
       openaiOptions.serviceTier === 'flex' &&
-      !supportsFlexProcessing(this.modelId)
+      !modelCapabilities.supportsFlexProcessing
     ) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'serviceTier',
+        type: 'unsupported',
+        feature: 'serviceTier',
         details:
           'flex processing is only available for o3, o4-mini, and gpt-5 models',
       });
@@ -275,12 +362,13 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
 
     // Validate priority processing support
     if (
-      openaiOptions.serviceTier === 'priority' &&
-      !supportsPriorityProcessing(this.modelId)
+      (openaiOptions.serviceTier === 'priority' ||
+        openaiOptions.serviceTier === 'fast') &&
+      !modelCapabilities.supportsPriorityProcessing
     ) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'serviceTier',
+        type: 'unsupported',
+        feature: 'serviceTier',
         details:
           'priority processing is only available for supported models (gpt-4, gpt-5, gpt-5-mini, o3, o4-mini) and requires Enterprise access. gpt-5-nano is not supported',
       });
@@ -294,8 +382,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     } = prepareChatTools({
       tools,
       toolChoice,
-      structuredOutputs,
-      strictJsonSchema,
     });
 
     return {
@@ -309,8 +395,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
     const { args: body, warnings } = await this.getArgs(options);
 
     const {
@@ -320,9 +406,9 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     } = await postJsonToApi({
       url: this.config.url({
         path: '/chat/completions',
-        modelId: this.modelId,
+        modelId: this.config.requestModelId ?? this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -333,10 +419,20 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     });
 
     const choice = response.choices[0];
-    const content: Array<LanguageModelV3Content> = [];
+    if (choice == null) {
+      throw new InvalidResponseDataError({
+        data: rawResponse,
+        message: 'Response did not contain any choices.',
+      });
+    }
+
+    const content: Array<LanguageModelV4Content> = [];
 
     // text content:
-    const text = choice.message.content;
+    const text =
+      choice.message.content != null && choice.message.content.length > 0
+        ? choice.message.content
+        : choice.message.audio?.transcript;
     if (text != null && text.length > 0) {
       content.push({ type: 'text', text });
     }
@@ -345,7 +441,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     for (const toolCall of choice.message.tool_calls ?? []) {
       content.push({
         type: 'tool-call' as const,
-        toolCallId: toolCall.id ?? generateId(),
+        toolCallId: toolCall.id || generateId(),
         toolName: toolCall.function.name,
         input: toolCall.function.arguments!,
       });
@@ -357,15 +453,14 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
         type: 'source',
         sourceType: 'url',
         id: generateId(),
-        url: annotation.url,
-        title: annotation.title,
+        url: annotation.url_citation.url,
+        title: annotation.url_citation.title,
       });
     }
 
     // provider metadata:
     const completionTokenDetails = response.usage?.completion_tokens_details;
-    const promptTokenDetails = response.usage?.prompt_tokens_details;
-    const providerMetadata: SharedV2ProviderMetadata = { openai: {} };
+    const providerMetadata: SharedV4ProviderMetadata = { openai: {} };
     if (completionTokenDetails?.accepted_prediction_tokens != null) {
       providerMetadata.openai.acceptedPredictionTokens =
         completionTokenDetails?.accepted_prediction_tokens;
@@ -380,14 +475,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
 
     return {
       content,
-      finishReason: mapOpenAIFinishReason(choice.finish_reason),
-      usage: {
-        inputTokens: response.usage?.prompt_tokens ?? undefined,
-        outputTokens: response.usage?.completion_tokens ?? undefined,
-        totalTokens: response.usage?.total_tokens ?? undefined,
-        reasoningTokens: completionTokenDetails?.reasoning_tokens ?? undefined,
-        cachedInputTokens: promptTokenDetails?.cached_tokens ?? undefined,
+      finishReason: {
+        unified: mapOpenAIFinishReason(choice.finish_reason),
+        raw: choice.finish_reason ?? undefined,
       },
+      usage: convertOpenAIChatUsage(response.usage),
       request: { body },
       response: {
         ...getResponseMetadata(response),
@@ -400,8 +492,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV3['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4StreamResult> {
     const { args, warnings } = await this.getArgs(options);
 
     const body = {
@@ -412,12 +504,14 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
       },
     };
 
+    const url = this.config.url({
+      path: '/chat/completions',
+      modelId: this.config.requestModelId ?? this.modelId,
+    });
+
     const { responseHeaders, value: response } = await postJsonToApi({
-      url: this.config.url({
-        path: '/chat/completions',
-        modelId: this.modelId,
-      }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      url,
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
@@ -427,34 +521,38 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    const toolCalls: Array<{
-      id: string;
-      type: 'function';
-      function: {
-        name: string;
-        arguments: string;
-      };
-      hasFinished: boolean;
-    }> = [];
+    const checkedResponse = await throwIfOpenAIStreamErrorBeforeOutput({
+      stream: response,
+      getError: chunk => ('error' in chunk ? chunk.error : undefined),
+      isOutputChunk: isOpenAIChatOutputChunk,
+      url,
+      requestBodyValues: body,
+      responseHeaders,
+    });
 
-    let finishReason: LanguageModelV3FinishReason = 'unknown';
-    const usage: LanguageModelV3Usage = {
-      inputTokens: undefined,
-      outputTokens: undefined,
-      totalTokens: undefined,
+    let toolCallTracker: StreamingToolCallTracker;
+
+    let finishReason: LanguageModelV4FinishReason = {
+      unified: 'other',
+      raw: undefined,
     };
-    let isFirstChunk = true;
+    let usage: OpenAIChatUsage | undefined = undefined;
+    let metadataExtracted = false;
     let isActiveText = false;
 
-    const providerMetadata: SharedV2ProviderMetadata = { openai: {} };
+    const providerMetadata: SharedV4ProviderMetadata = { openai: {} };
 
-    return {
-      stream: response.pipeThrough(
+    const result = {
+      stream: checkedResponse.pipeThrough(
         new TransformStream<
-          ParseResult<z.infer<typeof openaiChatChunkSchema>>,
-          LanguageModelV3StreamPart
+          ParseResult<OpenAIChatChunk>,
+          LanguageModelV4StreamPart
         >({
           start(controller) {
+            toolCallTracker = new StreamingToolCallTracker(controller, {
+              generateId,
+              typeValidation: 'if-present',
+            });
             controller.enqueue({ type: 'stream-start', warnings });
           },
 
@@ -465,7 +563,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
 
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
-              finishReason = 'error';
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
@@ -474,29 +572,31 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
 
             // handle error chunks:
             if ('error' in value) {
-              finishReason = 'error';
-              controller.enqueue({ type: 'error', error: value.error });
+              finishReason = { unified: 'error', raw: undefined };
+              controller.enqueue({
+                type: 'error',
+                error:
+                  createOpenAIProviderStreamError(value.error) ?? value.error,
+              });
               return;
             }
 
-            if (isFirstChunk) {
-              isFirstChunk = false;
-
-              controller.enqueue({
-                type: 'response-metadata',
-                ...getResponseMetadata(value),
-              });
+            // extract and emit response metadata once. Usually it comes in the first chunk.
+            // Azure may prepend a chunk with a `"prompt_filter_results"` key which does not contain other metadata,
+            // https://learn.microsoft.com/en-us/azure/ai-foundry/openai/concepts/content-filter-annotations?tabs=powershell
+            if (!metadataExtracted) {
+              const metadata = getResponseMetadata(value);
+              if (Object.values(metadata).some(Boolean)) {
+                metadataExtracted = true;
+                controller.enqueue({
+                  type: 'response-metadata',
+                  ...getResponseMetadata(value),
+                });
+              }
             }
 
             if (value.usage != null) {
-              usage.inputTokens = value.usage.prompt_tokens ?? undefined;
-              usage.outputTokens = value.usage.completion_tokens ?? undefined;
-              usage.totalTokens = value.usage.total_tokens ?? undefined;
-              usage.reasoningTokens =
-                value.usage.completion_tokens_details?.reasoning_tokens ??
-                undefined;
-              usage.cachedInputTokens =
-                value.usage.prompt_tokens_details?.cached_tokens ?? undefined;
+              usage = value.usage;
 
               if (
                 value.usage.completion_tokens_details
@@ -517,7 +617,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
             const choice = value.choices[0];
 
             if (choice?.finish_reason != null) {
-              finishReason = mapOpenAIFinishReason(choice.finish_reason);
+              finishReason = {
+                unified: mapOpenAIFinishReason(choice.finish_reason),
+                raw: choice.finish_reason,
+              };
             }
 
             if (choice?.logprobs?.content != null) {
@@ -545,121 +648,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
 
             if (delta.tool_calls != null) {
               for (const toolCallDelta of delta.tool_calls) {
-                const index = toolCallDelta.index;
-
-                // Tool call start. OpenAI returns all information except the arguments in the first chunk.
-                if (toolCalls[index] == null) {
-                  if (toolCallDelta.type !== 'function') {
-                    throw new InvalidResponseDataError({
-                      data: toolCallDelta,
-                      message: `Expected 'function' type.`,
-                    });
-                  }
-
-                  if (toolCallDelta.id == null) {
-                    throw new InvalidResponseDataError({
-                      data: toolCallDelta,
-                      message: `Expected 'id' to be a string.`,
-                    });
-                  }
-
-                  if (toolCallDelta.function?.name == null) {
-                    throw new InvalidResponseDataError({
-                      data: toolCallDelta,
-                      message: `Expected 'function.name' to be a string.`,
-                    });
-                  }
-
-                  controller.enqueue({
-                    type: 'tool-input-start',
-                    id: toolCallDelta.id,
-                    toolName: toolCallDelta.function.name,
-                  });
-
-                  toolCalls[index] = {
-                    id: toolCallDelta.id,
-                    type: 'function',
-                    function: {
-                      name: toolCallDelta.function.name,
-                      arguments: toolCallDelta.function.arguments ?? '',
-                    },
-                    hasFinished: false,
-                  };
-
-                  const toolCall = toolCalls[index];
-
-                  if (
-                    toolCall.function?.name != null &&
-                    toolCall.function?.arguments != null
-                  ) {
-                    // send delta if the argument text has already started:
-                    if (toolCall.function.arguments.length > 0) {
-                      controller.enqueue({
-                        type: 'tool-input-delta',
-                        id: toolCall.id,
-                        delta: toolCall.function.arguments,
-                      });
-                    }
-
-                    // check if tool call is complete
-                    // (some providers send the full tool call in one chunk):
-                    if (isParsableJson(toolCall.function.arguments)) {
-                      controller.enqueue({
-                        type: 'tool-input-end',
-                        id: toolCall.id,
-                      });
-
-                      controller.enqueue({
-                        type: 'tool-call',
-                        toolCallId: toolCall.id ?? generateId(),
-                        toolName: toolCall.function.name,
-                        input: toolCall.function.arguments,
-                      });
-                      toolCall.hasFinished = true;
-                    }
-                  }
-
-                  continue;
-                }
-
-                // existing tool call, merge if not finished
-                const toolCall = toolCalls[index];
-
-                if (toolCall.hasFinished) {
-                  continue;
-                }
-
-                if (toolCallDelta.function?.arguments != null) {
-                  toolCall.function!.arguments +=
-                    toolCallDelta.function?.arguments ?? '';
-                }
-
-                // send delta
-                controller.enqueue({
-                  type: 'tool-input-delta',
-                  id: toolCall.id,
-                  delta: toolCallDelta.function.arguments ?? '',
-                });
-
-                // check if tool call is complete
-                if (
-                  toolCall.function?.name != null &&
-                  toolCall.function?.arguments != null &&
-                  isParsableJson(toolCall.function.arguments)
-                ) {
-                  controller.enqueue({
-                    type: 'tool-input-end',
-                    id: toolCall.id,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-call',
-                    toolCallId: toolCall.id ?? generateId(),
-                    toolName: toolCall.function.name,
-                    input: toolCall.function.arguments,
-                  });
-                  toolCall.hasFinished = true;
-                }
+                toolCallTracker.processDelta(toolCallDelta);
               }
             }
 
@@ -670,8 +659,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
                   type: 'source',
                   sourceType: 'url',
                   id: generateId(),
-                  url: annotation.url,
-                  title: annotation.title,
+                  url: annotation.url_citation.url,
+                  title: annotation.url_citation.title,
                 });
               }
             }
@@ -682,10 +671,12 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
               controller.enqueue({ type: 'text-end', id: '0' });
             }
 
+            toolCallTracker.flush();
+
             controller.enqueue({
               type: 'finish',
               finishReason,
-              usage,
+              usage: convertOpenAIChatUsage(usage),
               ...(providerMetadata != null ? { providerMetadata } : {}),
             });
           },
@@ -694,222 +685,23 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
       request: { body },
       response: { headers: responseHeaders },
     };
+
+    return result;
   }
 }
 
-const openaiTokenUsageSchema = z
-  .object({
-    prompt_tokens: z.number().nullish(),
-    completion_tokens: z.number().nullish(),
-    total_tokens: z.number().nullish(),
-    prompt_tokens_details: z
-      .object({
-        cached_tokens: z.number().nullish(),
-      })
-      .nullish(),
-    completion_tokens_details: z
-      .object({
-        reasoning_tokens: z.number().nullish(),
-        accepted_prediction_tokens: z.number().nullish(),
-        rejected_prediction_tokens: z.number().nullish(),
-      })
-      .nullish(),
-  })
-  .nullish();
-
-// limited version of the schema, focussed on what is needed for the implementation
-// this approach limits breakages when the API changes and increases efficiency
-const openaiChatResponseSchema = z.object({
-  id: z.string().nullish(),
-  created: z.number().nullish(),
-  model: z.string().nullish(),
-  choices: z.array(
-    z.object({
-      message: z.object({
-        role: z.literal('assistant').nullish(),
-        content: z.string().nullish(),
-        tool_calls: z
-          .array(
-            z.object({
-              id: z.string().nullish(),
-              type: z.literal('function'),
-              function: z.object({
-                name: z.string(),
-                arguments: z.string(),
-              }),
-            }),
-          )
-          .nullish(),
-        annotations: z
-          .array(
-            z.object({
-              type: z.literal('url_citation'),
-              start_index: z.number(),
-              end_index: z.number(),
-              url: z.string(),
-              title: z.string(),
-            }),
-          )
-          .nullish(),
-      }),
-      index: z.number(),
-      logprobs: z
-        .object({
-          content: z
-            .array(
-              z.object({
-                token: z.string(),
-                logprob: z.number(),
-                top_logprobs: z.array(
-                  z.object({
-                    token: z.string(),
-                    logprob: z.number(),
-                  }),
-                ),
-              }),
-            )
-            .nullish(),
-        })
-        .nullish(),
-      finish_reason: z.string().nullish(),
-    }),
-  ),
-  usage: openaiTokenUsageSchema,
-});
-
-// limited version of the schema, focussed on what is needed for the implementation
-// this approach limits breakages when the API changes and increases efficiency
-const openaiChatChunkSchema = z.union([
-  z.object({
-    id: z.string().nullish(),
-    created: z.number().nullish(),
-    model: z.string().nullish(),
-    choices: z.array(
-      z.object({
-        delta: z
-          .object({
-            role: z.enum(['assistant']).nullish(),
-            content: z.string().nullish(),
-            tool_calls: z
-              .array(
-                z.object({
-                  index: z.number(),
-                  id: z.string().nullish(),
-                  type: z.literal('function').nullish(),
-                  function: z.object({
-                    name: z.string().nullish(),
-                    arguments: z.string().nullish(),
-                  }),
-                }),
-              )
-              .nullish(),
-            annotations: z
-              .array(
-                z.object({
-                  type: z.literal('url_citation'),
-                  start_index: z.number(),
-                  end_index: z.number(),
-                  url: z.string(),
-                  title: z.string(),
-                }),
-              )
-              .nullish(),
-          })
-          .nullish(),
-        logprobs: z
-          .object({
-            content: z
-              .array(
-                z.object({
-                  token: z.string(),
-                  logprob: z.number(),
-                  top_logprobs: z.array(
-                    z.object({
-                      token: z.string(),
-                      logprob: z.number(),
-                    }),
-                  ),
-                }),
-              )
-              .nullish(),
-          })
-          .nullish(),
-        finish_reason: z.string().nullish(),
-        index: z.number(),
-      }),
-    ),
-    usage: openaiTokenUsageSchema,
-  }),
-  openaiErrorDataSchema,
-]);
-
-function isReasoningModel(modelId: string) {
-  return (
-    (modelId.startsWith('o') || modelId.startsWith('gpt-5')) &&
-    !modelId.startsWith('gpt-5-chat')
-  );
-}
-
-function supportsFlexProcessing(modelId: string) {
-  return (
-    modelId.startsWith('o3') ||
-    modelId.startsWith('o4-mini') ||
-    (modelId.startsWith('gpt-5') && !modelId.startsWith('gpt-5-chat'))
-  );
-}
-
-function supportsPriorityProcessing(modelId: string) {
-  return (
-    modelId.startsWith('gpt-4') ||
-    modelId.startsWith('gpt-5-mini') ||
-    (modelId.startsWith('gpt-5') &&
-      !modelId.startsWith('gpt-5-nano') &&
-      !modelId.startsWith('gpt-5-chat')) ||
-    modelId.startsWith('o3') ||
-    modelId.startsWith('o4-mini')
-  );
-}
-
-function getSystemMessageMode(modelId: string) {
-  if (!isReasoningModel(modelId)) {
-    return 'system';
+function isOpenAIChatOutputChunk(chunk: OpenAIChatChunk): boolean {
+  if ('error' in chunk) {
+    return false;
   }
 
-  return (
-    reasoningModels[modelId as keyof typeof reasoningModels]
-      ?.systemMessageMode ?? 'developer'
-  );
-}
+  return chunk.choices.some(choice => {
+    const delta = choice.delta;
 
-const reasoningModels = {
-  'o1-mini': {
-    systemMessageMode: 'remove',
-  },
-  'o1-mini-2024-09-12': {
-    systemMessageMode: 'remove',
-  },
-  'o1-preview': {
-    systemMessageMode: 'remove',
-  },
-  'o1-preview-2024-09-12': {
-    systemMessageMode: 'remove',
-  },
-  o3: {
-    systemMessageMode: 'developer',
-  },
-  'o3-2025-04-16': {
-    systemMessageMode: 'developer',
-  },
-  'o3-mini': {
-    systemMessageMode: 'developer',
-  },
-  'o3-mini-2025-01-31': {
-    systemMessageMode: 'developer',
-  },
-  'o4-mini': {
-    systemMessageMode: 'developer',
-  },
-  'o4-mini-2025-04-16': {
-    systemMessageMode: 'developer',
-  },
-} as const;
+    return (
+      (delta?.content != null && delta.content.length > 0) ||
+      (delta?.tool_calls != null && delta.tool_calls.length > 0) ||
+      (delta?.annotations != null && delta.annotations.length > 0)
+    );
+  });
+}

@@ -1,6 +1,4 @@
-// https://inference-docs.cerebras.ai/introduction
+// https://inference-docs.cerebras.ai/models/overview
 export type CerebrasChatModelId =
-  | 'llama3.1-8b'
-  | 'llama3.1-70b'
-  | 'llama-3.3-70b'
-  | (string & {});
+  // production
+  'gpt-oss-120b' | 'gemma-4-31b' | (string & {});

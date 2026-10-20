@@ -1,30 +1,42 @@
-import { Tool } from '@ai-sdk/provider-utils';
-import { ProviderMetadata } from '../types';
-import { ValueOf } from '../util/value-of';
-import { ToolSet } from './tool-set';
+import type { JSONObject } from '@ai-sdk/provider';
+import type { InferToolInput, ToolSet } from '@ai-sdk/provider-utils';
+import type { ProviderMetadata } from '../types';
+import type { ValueOf } from '../util/value-of';
 
+const inputSchemaInputSymbol = Symbol('ai-sdk-tool-call-input-schema-input');
+
+type BaseToolCall = {
+  type: 'tool-call';
+  toolCallId: string;
+  providerExecuted?: boolean;
+  providerMetadata?: ProviderMetadata;
+  toolMetadata?: JSONObject;
+};
+
+/**
+ * A tool call whose `toolName` maps to a tool in the declared tool set,
+ * with an `input` type inferred from that tool's input schema.
+ */
 export type StaticToolCall<TOOLS extends ToolSet> = ValueOf<{
-  [NAME in keyof TOOLS]: {
-    type: 'tool-call';
-    toolCallId: string;
+  [NAME in keyof TOOLS]-?: BaseToolCall & {
     toolName: NAME & string;
-    input: TOOLS[NAME] extends Tool<infer PARAMETERS> ? PARAMETERS : never;
-    providerExecuted?: boolean;
+    input: InferToolInput<TOOLS[NAME]>;
     dynamic?: false | undefined;
     invalid?: false | undefined;
     error?: never;
-    providerMetadata?: ProviderMetadata;
+    title?: string;
   };
 }>;
 
-export type DynamicToolCall = {
-  type: 'tool-call';
-  toolCallId: string;
+/**
+ * A tool call whose `toolName` is only known at runtime, such as an invalid
+ * or otherwise untyped call that cannot be matched to the declared tool set.
+ */
+export type DynamicToolCall = BaseToolCall & {
   toolName: string;
   input: unknown;
-  providerExecuted?: boolean;
   dynamic: true;
-  providerMetadata?: ProviderMetadata;
+  title?: string;
 
   /**
    * True if this is caused by an unparsable tool call or
@@ -41,6 +53,34 @@ export type DynamicToolCall = {
   error?: unknown;
 };
 
+/**
+ * A tool call returned by text generation, either statically typed from the
+ * declared tool set or dynamically typed when the tool cannot be inferred.
+ */
 export type TypedToolCall<TOOLS extends ToolSet> =
   | StaticToolCall<TOOLS>
   | DynamicToolCall;
+
+export function setToolCallInputSchemaInput<TOOLS extends ToolSet>(
+  toolCall: TypedToolCall<TOOLS>,
+  inputSchemaInput: unknown,
+): TypedToolCall<TOOLS> {
+  Object.defineProperty(toolCall, inputSchemaInputSymbol, {
+    value: inputSchemaInput,
+  });
+  return toolCall;
+}
+
+export function getToolCallInputSchemaInput<TOOLS extends ToolSet>(
+  toolCall: TypedToolCall<TOOLS>,
+): { value: unknown } | undefined {
+  return inputSchemaInputSymbol in toolCall
+    ? {
+        value: (
+          toolCall as TypedToolCall<TOOLS> & {
+            [inputSchemaInputSymbol]: unknown;
+          }
+        )[inputSchemaInputSymbol],
+      }
+    : undefined;
+}

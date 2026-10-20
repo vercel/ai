@@ -10,9 +10,14 @@ With the [release of OpenAI's GPT-5 model](https://openai.com/index/introducing-
 
 The [AI SDK](/) is a powerful TypeScript toolkit for building AI applications with large language models (LLMs) like OpenAI GPT-5 alongside popular frameworks like React, Next.js, Vue, Svelte, Node.js, and more.
 
+<Note>
+  This guide covers GPT-5-specific behavior. For current models and examples,
+  see the [OpenAI provider documentation](/providers/ai-sdk-providers/openai).
+</Note>
+
 ## OpenAI GPT-5
 
-OpenAI's GPT-5 represents their latest advancement in language models, offering powerful new features including verbosity control for tailored response lengths, integrated web search capabilities, reasoning summaries for transparency, and native support for text, images, audio, and PDFs. The model is available in three variants: `gpt-5`, `gpt-5-mini` for faster, more cost-effective processing, and `gpt-5-nano` for ultra-efficient operations.
+OpenAI's GPT-5 introduced powerful new features including verbosity control for tailored response lengths, integrated web search capabilities, reasoning summaries for transparency, and native support for text, images, audio, and PDFs. The model is available in three variants: `gpt-5`, `gpt-5-mini` for faster, more cost-effective processing, and `gpt-5-nano` for ultra-efficient operations.
 
 ### Prompt Engineering for GPT-5
 
@@ -28,7 +33,7 @@ Here are the key strategies for effective prompting:
 
 **1. Agentic Workflow Control**
 
-- Adjust the `reasoning_effort` parameter to calibrate model autonomy
+- Adjust the `reasoningEffort` parameter to calibrate model autonomy
 - Set clear stop conditions and define explicit tool call budgets
 - Provide guidance on exploration depth and persistence
 
@@ -39,7 +44,7 @@ const result = await generateText({
   prompt: 'Analyze this complex dataset and provide insights.',
   providerOptions: {
     openai: {
-      reasoning_effort: 'high', // Increases autonomous exploration
+      reasoningEffort: 'high', // Increases autonomous exploration
     },
   },
 });
@@ -100,20 +105,24 @@ const { text } = await generateText({
 
 ### Generating Structured Data
 
-While text generation can be useful, you might want to generate structured JSON data. For example, you might want to extract information from text, classify data, or generate synthetic data. AI SDK Core provides two functions ([`generateObject`](/docs/reference/ai-sdk-core/generate-object) and [`streamObject`](/docs/reference/ai-sdk-core/stream-object)) to generate structured data, allowing you to constrain model outputs to a specific schema.
+While text generation can be useful, you might want to generate structured JSON data. For example, you might want to extract information from text, classify data, or generate synthetic data. AI SDK Core provides [`generateText`](/docs/reference/ai-sdk-core/generate-text) and [`streamText`](/docs/reference/ai-sdk-core/stream-text) with `Output` to generate structured data, allowing you to constrain model outputs to a specific schema.
 
 ```ts
-import { generateObject } from 'ai';
+import { generateText, Output } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 
-const { object } = await generateObject({
+const { output } = await generateText({
   model: openai('gpt-5'),
-  schema: z.object({
-    recipe: z.object({
-      name: z.string(),
-      ingredients: z.array(z.object({ name: z.string(), amount: z.string() })),
-      steps: z.array(z.string()),
+  output: Output.object({
+    schema: z.object({
+      recipe: z.object({
+        name: z.string(),
+        ingredients: z.array(
+          z.object({ name: z.string(), amount: z.string() }),
+        ),
+        steps: z.array(z.string()),
+      }),
     }),
   }),
   prompt: 'Generate a lasagna recipe.',
@@ -184,7 +193,7 @@ import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 
 const result = streamText({
-  model: openai.responses('gpt-5'),
+  model: openai('gpt-5'),
   prompt:
     'Solve this logic puzzle: If all roses are flowers and some flowers fade quickly, do all roses fade quickly?',
   providerOptions: {
@@ -195,7 +204,7 @@ const result = streamText({
 });
 
 // Stream reasoning and text separately
-for await (const part of result.fullStream) {
+for await (const part of result.stream) {
   if (part.type === 'reasoning') {
     console.log(part.textDelta);
   } else if (part.type === 'text-delta') {
@@ -237,7 +246,7 @@ AI SDK Core can be paired with [AI SDK UI](/docs/ai-sdk-ui/overview), another po
 
 AI SDK UI provides robust abstractions that simplify the complex tasks of managing chat streams and UI updates on the frontend, enabling you to develop dynamic AI-driven interfaces more efficiently.
 
-With four main hooks — [`useChat`](/docs/reference/ai-sdk-ui/use-chat), [`useCompletion`](/docs/reference/ai-sdk-ui/use-completion), and [`useObject`](/docs/reference/ai-sdk-ui/use-object) — you can incorporate real-time chat capabilities, text completions, streamed JSON, and interactive assistant features into your app.
+With three main hooks — [`useChat`](/docs/reference/ai-sdk-ui/use-chat), [`useCompletion`](/docs/reference/ai-sdk-ui/use-completion), and [`useObject`](/docs/reference/ai-sdk-ui/use-object) — you can incorporate real-time chat capabilities, text completions, streamed JSON, and interactive assistant features into your app.
 
 Let's explore building a chatbot with [Next.js](https://nextjs.org), the AI SDK, and OpenAI GPT-5:
 
@@ -249,7 +258,13 @@ Then, create a route handler for the chat endpoint:
 
 ```tsx filename="app/api/chat/route.ts"
 import { openai } from '@ai-sdk/openai';
-import { convertToModelMessages, streamText, UIMessage } from 'ai';
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+  UIMessage,
+} from 'ai';
 
 // Allow responses up to 30 seconds
 export const maxDuration = 30;
@@ -259,10 +274,12 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: openai('gpt-5'),
-    messages: convertToModelMessages(messages),
+    messages: await convertToModelMessages(messages),
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 
