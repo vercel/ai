@@ -4,6 +4,7 @@ import {
   type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
+  type InferSchema,
   combineHeaders,
   convertImageModelFileToDataUri,
   createJsonErrorResponseHandler,
@@ -302,30 +303,38 @@ export class FalVideoModel implements Experimental_VideoModelV3 {
   }
 }
 
-const falJobResponseSchema = z.object({
-  request_id: z.string().nullish(),
-  response_url: z.string().nullish(),
-});
+const falJobResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      request_id: z.string().nullish(),
+      response_url: z.string().nullish(),
+    }),
+  ),
+);
 
-const falVideoResponseSchema = z.object({
-  video: z
-    .object({
-      url: z.string(),
-      width: z.number().nullish(),
-      height: z.number().nullish(),
-      duration: z.number().nullish(),
-      fps: z.number().nullish(),
-      content_type: z.string().nullish(),
-    })
-    .nullish(),
-  seed: z.number().nullish(),
-  timings: z
-    .object({
-      inference: z.number().nullish(),
-    })
-    .nullish(),
-  has_nsfw_concepts: z.array(z.boolean()).nullish(),
-  prompt: z.string().nullish(),
-});
+const falVideoResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      video: z
+        .object({
+          url: z.string(),
+          width: z.number().nullish(),
+          height: z.number().nullish(),
+          duration: z.number().nullish(),
+          fps: z.number().nullish(),
+          content_type: z.string().nullish(),
+        })
+        .nullish(),
+      seed: z.number().nullish(),
+      timings: z
+        .object({
+          inference: z.number().nullish(),
+        })
+        .nullish(),
+      has_nsfw_concepts: z.array(z.boolean()).nullish(),
+      prompt: z.string().nullish(),
+    }),
+  ),
+);
 
-type FalVideoResponse = z.infer<typeof falVideoResponseSchema>;
+type FalVideoResponse = InferSchema<typeof falVideoResponseSchema>;
