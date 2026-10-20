@@ -1,3 +1,8 @@
+import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 export type XaiResponsesModelId =
@@ -19,25 +24,29 @@ export type XaiResponsesModelId =
 /**
  * @see https://docs.x.ai/docs/api-reference#create-new-response
  */
-export const xaiResponsesProviderOptions = z.object({
-  /**
-   * Constrains how hard a reasoning model thinks before responding.
-   * Possible values are `low` (uses fewer reasoning tokens), `medium`, `high`
-   * (uses more reasoning tokens), and `xhigh` (supported by `grok-4.6`).
-   * Defaults to `high` for models that support reasoning effort.
-   */
-  reasoningEffort: z.enum(['low', 'medium', 'high', 'xhigh']).optional(),
-  /**
-   * Whether to store the input message(s) and model response for later retrieval.
-   * @default true
-   */
-  store: z.boolean().optional(),
-  /**
-   * The ID of the previous response from the model.
-   */
-  previousResponseId: z.string().optional(),
-});
+export const xaiResponsesProviderOptions = lazySchema(() =>
+  zodSchema(
+    z.object({
+      /**
+       * Constrains how hard a reasoning model thinks before responding.
+       * Possible values are `low` (uses fewer reasoning tokens), `medium`, `high`
+       * (uses more reasoning tokens), and `xhigh` (supported by `grok-4.6`).
+       * Defaults to `high` for models that support reasoning effort.
+       */
+      reasoningEffort: z.enum(['low', 'medium', 'high', 'xhigh']).optional(),
+      /**
+       * Whether to store the input message(s) and model response for later retrieval.
+       * @default true
+       */
+      store: z.boolean().optional(),
+      /**
+       * The ID of the previous response from the model.
+       */
+      previousResponseId: z.string().optional(),
+    }),
+  ),
+);
 
-export type XaiResponsesProviderOptions = z.infer<
+export type XaiResponsesProviderOptions = InferSchema<
   typeof xaiResponsesProviderOptions
 >;

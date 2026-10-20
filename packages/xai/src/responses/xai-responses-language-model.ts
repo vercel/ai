@@ -7,6 +7,7 @@ import type {
   LanguageModelV2Usage,
 } from '@ai-sdk/provider';
 import {
+  type InferSchema,
   type FetchFunction,
   type InferValidator,
   type ParseResult,
@@ -24,6 +25,7 @@ import {
   webSearchWireActionSchema,
   webSearchWireSourceSchema,
   xaiResponsesChunkSchema,
+  xaiResponsesResponseSchemaValidator,
   xaiResponsesResponseSchema,
 } from './xai-responses-api';
 import { mapXaiResponsesFinishReason } from './map-xai-responses-finish-reason';
@@ -217,7 +219,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
       body,
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
-        xaiResponsesResponseSchema,
+        xaiResponsesResponseSchemaValidator,
       ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
@@ -439,7 +441,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
     return {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<z.infer<typeof xaiResponsesChunkSchema>>,
+          ParseResult<InferSchema<typeof xaiResponsesChunkSchema>>,
           LanguageModelV2StreamPart
         >({
           start(controller) {
