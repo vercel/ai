@@ -4,6 +4,8 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonResponseHandler,
@@ -315,27 +317,35 @@ export class RevaiTranscriptionModel implements TranscriptionModelV4 {
   }
 }
 
-const revaiTranscriptionJobResponseSchema = z.object({
-  id: z.string().nullish(),
-  status: z.string().nullish(),
-  language: z.string().nullish(),
-});
+const revaiTranscriptionJobResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      id: z.string().nullish(),
+      status: z.string().nullish(),
+      language: z.string().nullish(),
+    }),
+  ),
+);
 
-const revaiTranscriptionResponseSchema = z.object({
-  monologues: z
-    .array(
-      z.object({
-        elements: z
-          .array(
-            z.object({
-              type: z.string().nullish(),
-              value: z.string().nullish(),
-              ts: z.number().nullish(),
-              end_ts: z.number().nullish(),
-            }),
-          )
-          .nullish(),
-      }),
-    )
-    .nullish(),
-});
+const revaiTranscriptionResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      monologues: z
+        .array(
+          z.object({
+            elements: z
+              .array(
+                z.object({
+                  type: z.string().nullish(),
+                  value: z.string().nullish(),
+                  ts: z.number().nullish(),
+                  end_ts: z.number().nullish(),
+                }),
+              )
+              .nullish(),
+          }),
+        )
+        .nullish(),
+    }),
+  ),
+);
