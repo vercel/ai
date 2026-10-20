@@ -791,3 +791,42 @@ describe('doStreamStep', () => {
     expect(forTool('call-2')).toEqual(['tool-call', 'tool-error']);
   });
 });
+
+describe('doStreamStep custom parts', () => {
+  it('preserves custom parts (e.g. openai.compaction) in the raw step result', async () => {
+    const providerMetadata = {
+      openai: { type: 'compaction', itemId: 'cmp_synthetic', encryptedContent: 'enc-payload' },
+    };
+    const model = new MockLanguageModelV4({
+      doStream: async () => ({
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start' as const, warnings: [] },
+          { type: 'custom' as const, kind: 'openai.compaction', providerMetadata },
+          {
+            type: 'finish' as const,
+            finishReason: { unified: 'stop' as const, raw: 'stop' },
+            usage: {
+              inputTokens: {
+                total: 1,
+                noCache: 1,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 0,
+                text: 0,
+                reasoning: undefined,
+              },
+            },
+          },
+        ]),
+      }),
+    });
+
+    const result = await doStreamStep(prompt, model, new WritableStream());
+
+    expect(result.raw.content).toEqual([
+      { type: 'custom', kind: 'openai.compaction', providerMetadata },
+    ]);
+  });
+});
