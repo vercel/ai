@@ -4,6 +4,9 @@ import {
   InvalidResponseDataError,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
   type FetchFunction,
   combineHeaders,
   createBinaryResponseHandler,
@@ -199,31 +202,39 @@ export class LumaImageModel implements ImageModelV2 {
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const lumaGenerationResponseSchema = z.object({
-  id: z.string(),
-  state: z.enum(['queued', 'dreaming', 'completed', 'failed']),
-  failure_reason: z.string().nullish(),
-  assets: z
-    .object({
-      image: z.string(), // URL of the generated image
-    })
-    .nullish(),
-});
-
-const lumaErrorSchema = z.object({
-  detail: z.array(
+const lumaGenerationResponseSchema = lazySchema(() =>
+  zodSchema(
     z.object({
-      type: z.string(),
-      loc: z.array(z.string()),
-      msg: z.string(),
-      input: z.string(),
-      ctx: z
+      id: z.string(),
+      state: z.enum(['queued', 'dreaming', 'completed', 'failed']),
+      failure_reason: z.string().nullish(),
+      assets: z
         .object({
-          expected: z.string(),
+          image: z.string(), // URL of the generated image
         })
         .nullish(),
     }),
   ),
-});
+);
 
-export type LumaErrorData = z.infer<typeof lumaErrorSchema>;
+const lumaErrorSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      detail: z.array(
+        z.object({
+          type: z.string(),
+          loc: z.array(z.string()),
+          msg: z.string(),
+          input: z.string(),
+          ctx: z
+            .object({
+              expected: z.string(),
+            })
+            .nullish(),
+        }),
+      ),
+    }),
+  ),
+);
+
+export type LumaErrorData = InferSchema<typeof lumaErrorSchema>;
