@@ -1,6 +1,6 @@
-import type { HarnessPromptContent } from '@ai-sdk/harness/utils';
+import type { StartMessage } from '../opencode-bridge-protocol';
 
-export function toOpenCodePromptParts(prompt: HarnessPromptContent) {
+export function toOpenCodePromptParts(prompt: StartMessage['prompt']) {
   if (typeof prompt === 'string') {
     return [{ type: 'text' as const, text: prompt }];
   }
