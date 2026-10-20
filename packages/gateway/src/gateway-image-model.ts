@@ -4,6 +4,8 @@ import type {
   ImageModelV3ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertUint8ArrayToBase64,
   createJsonErrorResponseHandler,
@@ -135,46 +137,53 @@ function maybeEncodeImageFile(file: ImageModelV3File) {
   return file;
 }
 
-const providerMetadataEntrySchema = z
-  .object({
-    images: z.array(z.unknown()).optional(),
-  })
-  .catchall(z.unknown());
+const providerMetadataEntrySchema = () =>
+  z
+    .object({
+      images: z.array(z.unknown()).optional(),
+    })
+    .catchall(z.unknown());
 
-const gatewayImageWarningSchema = z.discriminatedUnion('type', [
-  z.object({
-    type: z.literal('unsupported'),
-    feature: z.string(),
-    details: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal('compatibility'),
-    feature: z.string(),
-    details: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal('deprecated'),
-    setting: z.string(),
-    message: z.string(),
-  }),
-  z.object({
-    type: z.literal('other'),
-    message: z.string(),
-  }),
-]);
+const gatewayImageWarningSchema = () =>
+  z.discriminatedUnion('type', [
+    z.object({
+      type: z.literal('unsupported'),
+      feature: z.string(),
+      details: z.string().optional(),
+    }),
+    z.object({
+      type: z.literal('compatibility'),
+      feature: z.string(),
+      details: z.string().optional(),
+    }),
+    z.object({
+      type: z.literal('deprecated'),
+      setting: z.string(),
+      message: z.string(),
+    }),
+    z.object({
+      type: z.literal('other'),
+      message: z.string(),
+    }),
+  ]);
 
-const gatewayImageUsageSchema = z.object({
-  inputTokens: z.number().nullish(),
-  outputTokens: z.number().nullish(),
-  totalTokens: z.number().nullish(),
-});
+const gatewayImageUsageSchema = () =>
+  z.object({
+    inputTokens: z.number().nullish(),
+    outputTokens: z.number().nullish(),
+    totalTokens: z.number().nullish(),
+  });
 
-const gatewayImageResponseSchema = z.object({
-  images: z.array(z.string()), // Always base64 strings over the wire
-  isRetryable: z.boolean().optional(),
-  warnings: z.array(gatewayImageWarningSchema).optional(),
-  providerMetadata: z
-    .record(z.string(), providerMetadataEntrySchema)
-    .optional(),
-  usage: gatewayImageUsageSchema.optional(),
-});
+const gatewayImageResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      images: z.array(z.string()), // Always base64 strings over the wire
+      isRetryable: z.boolean().optional(),
+      warnings: z.array(gatewayImageWarningSchema()).optional(),
+      providerMetadata: z
+        .record(z.string(), providerMetadataEntrySchema())
+        .optional(),
+      usage: gatewayImageUsageSchema().optional(),
+    }),
+  ),
+);
