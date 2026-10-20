@@ -1,3 +1,4 @@
+import { posix } from 'node:path';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 
 /**
@@ -10,8 +11,31 @@ export type HarnessV1PortEndpoint = {
 };
 
 /**
- * Network sandbox session returned by `HarnessV1SandboxProvider.createSession()`. The
- * harness keeps this for the lifetime of a session. It is itself a
+ * Fixed directory, relative to the sandbox's own HOME, that holds every
+ * piece of state the harness machinery generates.
+ */
+const HARNESS_V1_STATE_DIRECTORY_NAME = '.ai-sdk-harness';
+
+/**
+ * Fixed, non-configurable path for harness-generated state (bootstrap files,
+ * markers, and `.agent-runs`) under the sandbox's own HOME, never under
+ * {@link HarnessV1NetworkSandboxSession.defaultWorkingDirectory}. Resolve HOME
+ * with `resolveSandboxHomeDir` when it is not already known. This works from
+ * provider creation hooks that only have a plain sandbox session. The
+ * framework also calls this with a symbolic `$HOME` when hashing bootstrap
+ * recipes, so changes to the state path invalidate existing templates.
+ */
+export function harnessStateDirectoryPath({
+  sandboxHomeDir,
+}: {
+  sandboxHomeDir: string;
+}): string {
+  return posix.join(sandboxHomeDir, HARNESS_V1_STATE_DIRECTORY_NAME);
+}
+
+/**
+ * Network sandbox session returned by sandbox adapter creation and resume
+ * functions. The harness keeps this for the lifetime of a session. It is itself a
  * {@link SandboxSession} (file I/O, exec, spawn) and adds the infra surface on
  * top: port resolution, lifecycle, and network-policy mutation.
  *
@@ -22,22 +46,15 @@ export type HarnessV1PortEndpoint = {
  */
 export interface HarnessV1NetworkSandboxSession extends SandboxSession {
   /**
-   * Stable identifier for the underlying sandbox resource. Used by the
-   * harness session manager as the durable lookup key for cross-process
-   * resume — the framework persists this on lifecycle state so a future
-   * process can call `HarnessV1SandboxProvider.resume?({ sessionId })` and
-   * reach the same resource. Providers populate it from their native
-   * identifier (Vercel: the sandbox name; just-bash: a UUID minted at
-   * create time).
+   * Identifier for the sandbox session. Persist this separately from the
+   * harness session ID and resume state when reattaching across processes.
    */
   readonly id: string;
 
   /**
    * The sandbox's default working directory — the absolute path that
    * `run`/`spawn` resolve relative commands against when no `workingDirectory`
-   * is given. Read from the live sandbox (it is provider-specific and
-   * configurable at create time: Vercel defaults to `/vercel/sandbox`,
-   * just-bash to `/home/user`), never hardcoded.
+   * is given. Read from the live sandbox, never hardcoded.
    *
    * The framework composes each session's working directory underneath this
    * path (`<defaultWorkingDirectory>/<harnessId>-<sessionId>`) so adapters do
@@ -81,7 +98,7 @@ export interface HarnessV1NetworkSandboxSession extends SandboxSession {
 
   /**
    * Update the sandbox's outbound network policy. Optional — implementations
-   * without a local enforcement primitive (e.g. just-bash) omit this. Callers
+   * without a local enforcement primitive omit this. Callers
    * use optional-call (`sandboxSession.setNetworkPolicy?.(policy)`); a
    * missing implementation is a no-op.
    */
@@ -115,7 +132,7 @@ export interface HarnessV1NetworkSandboxSession extends SandboxSession {
   /**
    * Replace the set of ports exposed by the sandbox. Full-replacement
    * semantics: ports omitted from the array are deregistered. Optional —
-   * implementations that cannot expose ports (e.g. just-bash) omit this.
+   * implementations that cannot expose ports omit this.
    */
   readonly setPorts?: (
     ports: ReadonlyArray<number>,

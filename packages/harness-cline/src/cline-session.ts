@@ -7,6 +7,7 @@ import {
   type HarnessV1PermissionMode,
   type HarnessV1PromptControl,
   type HarnessV1PromptTurnOptions,
+  type HarnessV1QuestionsToolOutput,
   type HarnessV1ResumeSessionState,
   type HarnessV1Session,
   type HarnessV1Skill,
@@ -15,6 +16,7 @@ import {
 } from '@ai-sdk/harness';
 import {
   getRestrictedSandboxSession,
+  convertHarnessToolModelOutput,
   resolveSandboxHomeDir,
 } from '@ai-sdk/harness/utils';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
@@ -23,6 +25,7 @@ import {
   createTool,
   type AgentMessage,
   type AgentModel,
+  type AgentRunInput,
   type AgentRunResult,
 } from '@cline/agents';
 import { Llms } from '@cline/core';
@@ -45,19 +48,24 @@ import {
   CLINE_NATIVE_TOOL_KINDS,
   createClineToolResult,
   isClineBuiltinToolName,
+  clineQuestionKey,
   resolveActiveClineBuiltinNames,
   type PendingToolResult,
+  type PendingClineQuestion,
+  type PendingClineQuestionResult,
+  toClineQuestionResult,
   unwrapClineToolResult,
 } from './cline-tools';
 import {
   createClineTranslatorState,
   finishClineTranslation,
   toolApprovalParts,
+  takeClineEarlyFinishStep,
   translateClineEvent,
   type ClineTranslatorState,
 } from './cline-translate';
 import {
-  extractUserText,
+  extractUserInput,
   mapRunFinishReason,
   usageFromAgentUsage,
 } from './cline-utils';
@@ -88,10 +96,10 @@ export interface ClineSessionSettings {
   readonly isAuthenticationEnvironmentOverride: boolean;
   readonly mcpServers?: Record<string, unknown>;
   readonly providerId?: string;
-  readonly modelId?: string;
   readonly apiKey?: string;
   readonly baseUrl?: string;
   readonly headers?: Record<string, string>;
+  readonly agentHeaders?: Readonly<Record<string, string>>;
   readonly reasoningEffort?: ClineReasoningEffort;
   readonly maxIterations?: number;
 }
@@ -198,10 +206,16 @@ function createClineAgentModel({
   const headers = isAiGateway
     ? {
         ...settings.headers,
+        ...settings.agentHeaders,
         'User-Agent': clientApp,
         'x-client-app': clientApp,
       }
-    : settings.headers;
+    : settings.headers != null || settings.agentHeaders != null
+      ? {
+          ...settings.headers,
+          ...settings.agentHeaders,
+        }
+      : undefined;
   const gateway = Llms.createGateway({
     providerConfigs: [
       {
@@ -292,7 +306,7 @@ export async function createClineSession(
   const mcpRuntime = await createClineMcpRuntime({
     mcpServers: input.settings.mcpServers,
   });
-  let activeModelId = input.settings.modelId;
+  let activeModelId: string | undefined;
   let agentModel = createClineAgentModel({
     settings: input.settings,
     clientApp: input.clientApp,
@@ -320,6 +334,8 @@ export async function createClineSession(
   // Emit channel set at the start of every turn and cleared on end.
   let currentEmit: ((part: HarnessV1StreamPart) => void) | undefined;
   let translatorState: ClineTranslatorState | undefined;
+  const pendingQuestions = new Map<string, PendingClineQuestion>();
+  const pendingQuestionResults = new Map<string, PendingClineQuestionResult>();
   let activeTurn: ActiveClineTurn | undefined;
 
   function settlePendingToolResults(reason: string): void {
@@ -355,6 +371,14 @@ export async function createClineSession(
     pendingUserMessages.length = 0;
   }
 
+  function settlePendingQuestions(reason: string): void {
+    for (const pending of pendingQuestions.values()) {
+      pending.resolve(reason);
+    }
+    pendingQuestions.clear();
+    pendingQuestionResults.clear();
+  }
+
   async function persistHistory(): Promise<void> {
     const messages = agent?.snapshot().messages ?? currentMessages;
     await persistHistoryToSandbox({
@@ -377,7 +401,22 @@ export async function createClineSession(
     }
     return new Promise(resolve => {
       pendingToolApprovals.set(toolCall.toolCallId, { resolve });
+      emitEarlyFinishStepIfReady();
     });
+  }
+
+  function emitEarlyFinishStepIfReady(): void {
+    if (!translatorState || !currentEmit) return;
+    const waitingToolCallIds = new Set([
+      ...pendingToolResults.keys(),
+      ...pendingToolApprovals.keys(),
+      ...pendingQuestions.keys(),
+    ]);
+    for (const part of takeClineEarlyFinishStep(translatorState, {
+      waitingToolCallIds,
+    })) {
+      currentEmit(part);
+    }
   }
 
   function rebuildAgent(rebuildInput: {
@@ -414,7 +453,13 @@ export async function createClineSession(
         ? { maxIterations: input.settings.maxIterations }
         : {}),
       tools: [
-        ...buildBuiltinAgentTools({ ops, activeNames: activeBuiltinNames }),
+        ...buildBuiltinAgentTools({
+          ops,
+          activeNames: activeBuiltinNames,
+          pendingQuestions,
+          pendingQuestionResults,
+          onHostInputPending: emitEarlyFinishStepIfReady,
+        }),
         ...(rebuildInput.skillsRuntime.tool &&
         activeBuiltinNames.includes('skills')
           ? [rebuildInput.skillsRuntime.tool]
@@ -423,6 +468,7 @@ export async function createClineSession(
         ...buildUserAgentTools({
           specs: rebuildInput.userTools,
           pendingToolResults,
+          onHostInputPending: emitEarlyFinishStepIfReady,
         }),
         ...(rebuildInput.responseFormat?.type === 'json' &&
         rebuildInput.responseFormat.schema != null
@@ -505,6 +551,7 @@ export async function createClineSession(
       // executions do not dangle, then abort the loop itself.
       settlePendingToolResults('Turn aborted');
       settlePendingToolApprovals('Turn aborted');
+      settlePendingQuestions('The question was cancelled.');
       agent?.abort('Turn aborted by caller');
     };
     if (controlInput.abortSignal) {
@@ -523,13 +570,40 @@ export async function createClineSession(
 
     return {
       async submitToolResult(args) {
+        const pendingQuestion = pendingQuestions.get(args.toolCallId);
+        if (pendingQuestion != null) {
+          pendingQuestions.delete(args.toolCallId);
+          pendingQuestion.resolve(
+            toClineQuestionResult({
+              nativeInput: pendingQuestion.input,
+              output: args.output as HarnessV1QuestionsToolOutput,
+            }),
+          );
+          return;
+        }
+        if (args.toolResult?.toolName === 'askUserQuestions') {
+          const nativeRequest = args.toolResult.providerOptions?.cline
+            ?.nativeRequest as PendingClineQuestion['input'] | undefined;
+          if (nativeRequest == null) return;
+          pendingQuestionResults.set(clineQuestionKey(nativeRequest), {
+            output: args.output as HarnessV1QuestionsToolOutput,
+          });
+          return;
+        }
         const pending = pendingToolResults.get(args.toolCallId);
         if (!pending) return;
         pendingToolResults.delete(args.toolCallId);
+        translatorState?.hostToolResults.set(args.toolCallId, args.output);
+        const converted =
+          args.toolResult == null
+            ? undefined
+            : convertHarnessToolModelOutput({
+                output: args.toolResult.output,
+              });
         pending.resolve(
           createClineToolResult({
-            output: args.output,
-            isError: args.isError,
+            output: converted?.content ?? args.output,
+            isError: args.isError === true || converted?.isError === true,
           }),
         );
       },
@@ -562,7 +636,7 @@ export async function createClineSession(
    * (no prompt — the runtime continues its own thread after a rerun resume).
    */
   async function runTurn(turnOpts: {
-    text: string | undefined;
+    input: AgentRunInput | undefined;
     model?: string;
     skills: ReadonlyArray<HarnessV1Skill>;
     tools: ReadonlyArray<HarnessV1ToolSpec>;
@@ -650,18 +724,18 @@ export async function createClineSession(
     const turnPromise = (async () => {
       const runtime = agent!;
       try {
-        let nextText = turnOpts.text;
+        let nextInput = turnOpts.input;
         let result: AgentRunResult;
         for (;;) {
-          // `text` is undefined only on rerun-continue: `continue()` without
+          // `input` is undefined only on rerun-continue: `continue()` without
           // input re-drives the loop from the restored transcript instead of
           // pushing an empty user message.
           result =
-            nextText === undefined
+            nextInput === undefined
               ? await runtime.continue()
               : agentHasRun
-                ? await runtime.continue(nextText)
-                : await runtime.run(nextText);
+                ? await runtime.continue(nextInput)
+                : await runtime.run(nextInput);
           agentHasRun = true;
           currentMessages = result.messages;
 
@@ -674,7 +748,7 @@ export async function createClineSession(
           if (result.status !== 'completed') break;
           const pendingUserMessage = consumePendingUserMessage();
           if (pendingUserMessage == null) break;
-          nextText = pendingUserMessage;
+          nextInput = pendingUserMessage;
         }
 
         if (
@@ -784,6 +858,7 @@ export async function createClineSession(
     parkedClineSessions.delete(input.sessionId);
     settlePendingToolResults('Cline session stopped');
     settlePendingToolApprovals('Cline session stopped');
+    settlePendingQuestions('The question was cancelled.');
 
     // Persist the conversation into the sandbox so a future process can pick
     // it up after the sandbox provider reattaches.
@@ -817,7 +892,7 @@ export async function createClineSession(
       promptOpts: HarnessV1PromptTurnOptions,
     ): Promise<HarnessV1PromptControl> => {
       return runTurn({
-        text: extractUserText(promptOpts.prompt),
+        input: extractUserInput(promptOpts.prompt),
         ...(promptOpts.model ? { model: promptOpts.model } : {}),
         skills: promptOpts.skills,
         tools: promptOpts.tools ?? [],
@@ -853,7 +928,7 @@ export async function createClineSession(
        * host-resident runtime cannot do a lossless attach.
        */
       return runTurn({
-        text: undefined,
+        input: undefined,
         ...(continueOpts.model ? { model: continueOpts.model } : {}),
         skills: continueOpts.skills,
         tools: continueOpts.tools ?? [],
@@ -889,7 +964,11 @@ export async function createClineSession(
     doStop,
 
     doDetach: async (): Promise<HarnessV1ResumeSessionState> => {
-      if (activeTurn != null || pendingToolResults.size > 0) {
+      if (
+        activeTurn != null ||
+        pendingToolResults.size > 0 ||
+        pendingQuestions.size > 0
+      ) {
         parkedClineSessions.set(input.sessionId, sessionImpl);
         try {
           await persistHistory();
@@ -916,7 +995,9 @@ export async function createClineSession(
       }
       if (
         activeTurn != null &&
-        (pendingToolResults.size > 0 || pendingToolApprovals.size > 0)
+        (pendingToolResults.size > 0 ||
+          pendingToolApprovals.size > 0 ||
+          pendingQuestions.size > 0)
       ) {
         parkedClineSessions.set(input.sessionId, sessionImpl);
         try {

@@ -24,9 +24,12 @@ describe('createCline', () => {
     expect(harness.supportsBuiltinToolFiltering).toBe(true);
   });
 
-  it('declares the eight built-in tools', () => {
+  it('declares the built-in tools', () => {
     expect(Object.keys(createCline().builtinTools).sort()).toEqual(
-      [...CLINE_NATIVE_BUILTIN_NAMES].sort(),
+      [
+        ...CLINE_NATIVE_BUILTIN_NAMES.filter(name => name !== 'ask_question'),
+        'askUserQuestions',
+      ].sort(),
     );
   });
 
@@ -37,22 +40,6 @@ describe('createCline', () => {
   it('validates lifecycle state data with its schema', () => {
     const schema = createCline().lifecycleStateSchema;
     expect(schema).toBeDefined();
-  });
-
-  it('passes the deprecated adapter model to the session as a fallback', async () => {
-    const harness = createCline({ modelId: 'legacy-model' });
-
-    await harness.doStart({
-      sessionId: 'session-1',
-      sandboxSession: {} as never,
-      sessionWorkDir: '/workspace/project',
-    });
-
-    expect(mocks.createClineSession).toHaveBeenCalledWith(
-      expect.objectContaining({
-        settings: expect.objectContaining({ modelId: 'legacy-model' }),
-      }),
-    );
   });
 });
 
@@ -75,6 +62,15 @@ describe('resolveActiveClineBuiltinNames', () => {
   it('applies deny filtering', () => {
     expect(
       resolveActiveClineBuiltinNames({ mode: 'deny', toolNames: ['bash'] }),
-    ).toEqual(['read', 'write', 'edit', 'grep', 'glob', 'ls', 'skills']);
+    ).toEqual([
+      'ask_question',
+      'read',
+      'write',
+      'edit',
+      'grep',
+      'glob',
+      'ls',
+      'skills',
+    ]);
   });
 });

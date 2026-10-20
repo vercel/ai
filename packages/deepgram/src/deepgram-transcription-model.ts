@@ -132,6 +132,7 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
+    const durationInSeconds = response.metadata?.duration ?? undefined;
 
     return {
       text:
@@ -144,7 +145,10 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
         })) ?? [],
       language:
         response.results?.channels.at(0)?.detected_language ?? undefined,
-      durationInSeconds: response.metadata?.duration ?? undefined,
+      durationInSeconds,
+      ...(durationInSeconds != null
+        ? { usage: { seconds: durationInSeconds } }
+        : {}),
       warnings,
       response: {
         timestamp: currentDate,

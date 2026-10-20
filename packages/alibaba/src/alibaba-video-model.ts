@@ -114,9 +114,17 @@ function detectMode(modelId: string): 't2v' | 'i2v' | 'r2v' {
 type AlibabaVideoProtocol = 'legacy' | 'wan27' | 'wan3';
 
 function detectProtocol(modelId: string): AlibabaVideoProtocol {
-  if (modelId.startsWith('wan3')) return 'wan3';
-  if (modelId.startsWith('wan2.7')) return 'wan27';
-  return 'legacy';
+  // `wanx` is the older id prefix (e.g. `wanx2.1-t2v-turbo`).
+  const version = /^wanx?(\d+)(?:\.(\d+))?(?=[.-]|$)/.exec(modelId);
+  if (version != null) {
+    const major = Number(version[1]);
+    const minor = Number(version[2] ?? 0);
+    if (major < 2 || (major === 2 && minor < 7)) return 'legacy';
+    if (major === 2) return 'wan27';
+  }
+
+  // Unrecognized IDs inherit the latest all-in-one media protocol.
+  return 'wan3';
 }
 
 // Maps SDK "WIDTHxHEIGHT" resolutions to Alibaba resolution tiers.

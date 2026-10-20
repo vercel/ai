@@ -15,17 +15,18 @@ Create a Cursor user API key and set `CURSOR_API_KEY`, or pass it directly with 
 ```ts
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { cursor } from '@ai-sdk/harness-cursor';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 
 const agent = new HarnessAgent({
   harness: cursor,
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-  }),
 });
 
-const session = await agent.createSession();
+const sandboxSession = await createVercelNetworkSandboxSession({
+  runtime: 'node24',
+  ports: [4000],
+  template: await agent.getSandboxTemplate(),
+});
+const session = await agent.createSession({ sandboxSession });
 
 try {
   const result = await agent.generate({
@@ -35,6 +36,7 @@ try {
   console.log(result.text);
 } finally {
   await session.destroy();
+  await sandboxSession.destroy();
 }
 ```
 

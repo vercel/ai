@@ -1,8 +1,305 @@
 import { NoSuchProviderReferenceError } from '@ai-sdk/provider';
+import { openai } from '../openai-provider';
+import { imageGeneration } from '../tool/image-generation';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { describe, it, expect } from 'vitest';
 
 describe('prepareResponsesTools', () => {
+  describe('omitFromRequestTools', () => {
+    const tools = [
+      {
+        type: 'function' as const,
+        name: 'search',
+        inputSchema: { type: 'object' as const },
+      },
+      {
+        type: 'function' as const,
+        name: 'list_issues',
+        inputSchema: { type: 'object' as const },
+        providerOptions: { openai: { omitFromRequestTools: true } },
+      },
+    ];
+
+    it('omits only the marked function from the top-level tools', async () => {
+      const result = await prepareResponsesTools({
+        tools,
+        toolChoice: { type: 'auto' },
+      });
+      expect(
+        result.tools?.map(tool => ('name' in tool ? tool.name : tool.type)),
+      ).toEqual(['search']);
+      expect(result.toolChoice).toBe('auto');
+      expect(result.toolWarnings).toEqual([]);
+      expect(tools).toHaveLength(2);
+    });
+
+    it('supports having only history-loaded functions', async () => {
+      const result = await prepareResponsesTools({
+        tools: [tools[1]],
+        toolChoice: undefined,
+      });
+      expect(result.tools).toEqual([]);
+    });
+
+    it('rejects forcing a function absent from the top-level tools', async () => {
+      await expect(
+        prepareResponsesTools({
+          tools,
+          toolChoice: { type: 'tool', toolName: 'list_issues' },
+        }),
+      ).rejects.toThrow('forcing tool "list_issues"');
+    });
+
+    it('does not put history-loaded functions in allowed_tools', async () => {
+      const result = await prepareResponsesTools({
+        tools,
+        toolChoice: undefined,
+        allowedTools: { toolNames: ['search', 'list_issues'] },
+      });
+      expect(result.toolChoice).toEqual({
+        type: 'allowed_tools',
+        mode: 'auto',
+        tools: [{ type: 'function', name: 'search' }],
+      });
+      expect(result.toolWarnings).toEqual([
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'allowedTools entry "list_issues"',
+        }),
+      ]);
+    });
+  });
+  it('should remove string propertyNames from function tools and warn', async () => {
+    const result = await prepareResponsesTools({
+      tools: [
+        {
+          type: 'function',
+          name: 'get_weather',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              values: {
+                type: 'object',
+                propertyNames: { type: 'string', format: 'uuid' },
+              },
+            },
+          },
+        },
+      ],
+      toolChoice: undefined,
+    });
+
+    expect(result).toEqual({
+      tools: [
+        {
+          type: 'function',
+          name: 'get_weather',
+          description: undefined,
+          parameters: {
+            type: 'object',
+            properties: {
+              values: {
+                type: 'object',
+              },
+            },
+          },
+          strict: false,
+        },
+      ],
+      toolChoice: undefined,
+      toolWarnings: [
+        {
+          type: 'compatibility',
+          feature: 'JSON Schema propertyNames',
+          details:
+            'OpenAI does not support JSON Schema propertyNames. It was removed before sending the schema, so OpenAI will not enforce property-name constraints.',
+        },
+      ],
+    });
+  });
+
+  it('should remove regex lookaround patterns from function tools and warn', async () => {
+    const result = await prepareResponsesTools({
+      tools: [
+        {
+          type: 'function',
+          name: 'create_contact',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              email: {
+                type: 'string',
+                format: 'email',
+                pattern: '^(?!\\.).+@.+$',
+              },
+              username: {
+                type: 'string',
+                pattern: '^@[a-zA-Z0-9_]+$',
+              },
+            },
+          },
+        },
+      ],
+      toolChoice: undefined,
+    });
+
+    expect(result).toEqual({
+      tools: [
+        {
+          type: 'function',
+          name: 'create_contact',
+          description: undefined,
+          parameters: {
+            type: 'object',
+            properties: {
+              email: {
+                type: 'string',
+                format: 'email',
+              },
+              username: {
+                type: 'string',
+                pattern: '^@[a-zA-Z0-9_]+$',
+              },
+            },
+          },
+          strict: false,
+        },
+      ],
+      toolChoice: undefined,
+      toolWarnings: [
+        {
+          type: 'compatibility',
+          feature: 'JSON Schema pattern with regex lookaround',
+          details:
+            'OpenAI does not support regex lookaround in JSON Schema patterns. The pattern was removed before sending the schema, so OpenAI will not enforce that constraint.',
+        },
+      ],
+    });
+  });
+
+  describe('async tools', () => {
+    it('should pass through async mode for function tools', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get the weather',
+            inputSchema: {
+              type: 'object',
+              properties: { city: { type: 'string' } },
+              required: ['city'],
+              additionalProperties: false,
+            },
+            providerOptions: {
+              openai: { async: true },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result.tools).toEqual([
+        {
+          type: 'function',
+          name: 'get_weather',
+          description: 'Get the weather',
+          parameters: {
+            type: 'object',
+            properties: { city: { type: 'string' } },
+            required: ['city'],
+            additionalProperties: false,
+          },
+          async: true,
+          strict: false,
+        },
+      ]);
+    });
+
+    it('should pass through async mode for custom tools', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.custom',
+            name: 'write_sql',
+            args: {
+              description: 'Write a SQL query',
+              async: true,
+              format: { type: 'text' },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result.tools).toEqual([
+        {
+          type: 'custom',
+          name: 'write_sql',
+          description: 'Write a SQL query',
+          async: true,
+          format: { type: 'text' },
+        },
+      ]);
+    });
+
+    it('should omit async mode and warn for unsupported models', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'get_weather',
+            inputSchema: { type: 'object', properties: {} },
+            providerOptions: {
+              openai: { async: true },
+            },
+          },
+          {
+            type: 'provider',
+            id: 'openai.custom',
+            name: 'write_sql',
+            args: {
+              async: true,
+            },
+          },
+        ],
+        toolChoice: undefined,
+        supportsAsyncToolCalling: false,
+      });
+
+      expect(result.tools).toEqual([
+        {
+          type: 'function',
+          name: 'get_weather',
+          description: undefined,
+          parameters: { type: 'object', properties: {} },
+          strict: false,
+        },
+        {
+          type: 'custom',
+          name: 'write_sql',
+          description: undefined,
+          format: undefined,
+        },
+      ]);
+      expect(result.toolWarnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'async tool calling for "get_weather"',
+          details:
+            'Async tool calling is only supported by GPT-6 and later models.',
+        },
+        {
+          type: 'unsupported',
+          feature: 'async tool calling for "write_sql"',
+          details:
+            'Async tool calling is only supported by GPT-6 and later models.',
+        },
+      ]);
+    });
+  });
+
   describe('function tools strict mode', () => {
     it('should pass through strict mode when strict is true', async () => {
       const result = await prepareResponsesTools({
@@ -72,7 +369,7 @@ describe('prepareResponsesTools', () => {
       `);
     });
 
-    it('should not include strict mode when strict is undefined', async () => {
+    it('should default strict mode to false when strict is undefined', async () => {
       const result = await prepareResponsesTools({
         tools: [
           {
@@ -97,6 +394,7 @@ describe('prepareResponsesTools', () => {
                 "properties": {},
                 "type": "object",
               },
+              "strict": false,
               "type": "function",
             },
           ],
@@ -163,6 +461,7 @@ describe('prepareResponsesTools', () => {
                 "properties": {},
                 "type": "object",
               },
+              "strict": false,
               "type": "function",
             },
           ],
@@ -414,6 +713,7 @@ describe('prepareResponsesTools', () => {
                 },
                 "type": "object",
               },
+              "strict": false,
               "type": "function",
             },
             {
@@ -427,6 +727,34 @@ describe('prepareResponsesTools', () => {
   });
 
   describe('image generation', () => {
+    describe.each(['gpt-image-2.5-flare', 'gpt-image-2.5-sunburst'])(
+      '%s quality',
+      model => {
+        it.each(['xhigh', 'max'] as const)(
+          'should pass %s quality',
+          async quality => {
+            const tool = imageGeneration({ model, quality });
+            const result = await prepareResponsesTools({
+              tools: [
+                {
+                  type: 'provider',
+                  id: 'openai.image_generation',
+                  name: 'image_generation',
+                  args: tool.args,
+                },
+              ],
+              toolChoice: undefined,
+            });
+
+            expect(result.toolWarnings).toEqual([]);
+            expect(result.tools).toMatchObject([
+              { type: 'image_generation', model, quality },
+            ]);
+          },
+        );
+      },
+    );
+
     it('should prepare image_generation tool with all options', async () => {
       const result = await prepareResponsesTools({
         tools: [
@@ -453,6 +781,7 @@ describe('prepareResponsesTools', () => {
           "toolWarnings": [],
           "tools": [
             {
+              "action": undefined,
               "background": "opaque",
               "input_fidelity": undefined,
               "input_image_mask": undefined,
@@ -468,6 +797,61 @@ describe('prepareResponsesTools', () => {
           ],
         }
       `);
+    });
+
+    it('should pass action, low moderation and a gpt-image-2 size', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.image_generation',
+            name: 'image_generation',
+            args: {
+              action: 'edit',
+              model: 'gpt-image-2',
+              moderation: 'low',
+              size: '1536x864',
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result.toolWarnings).toEqual([]);
+      expect(result.tools).toMatchInlineSnapshot(`
+        [
+          {
+            "action": "edit",
+            "background": undefined,
+            "input_fidelity": undefined,
+            "input_image_mask": undefined,
+            "model": "gpt-image-2",
+            "moderation": "low",
+            "output_compression": undefined,
+            "output_format": undefined,
+            "partial_images": undefined,
+            "quality": undefined,
+            "size": "1536x864",
+            "type": "image_generation",
+          },
+        ]
+      `);
+    });
+
+    it('should reject a size that is not WIDTHxHEIGHT', async () => {
+      await expect(
+        prepareResponsesTools({
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.image_generation',
+              name: 'image_generation',
+              args: { size: 'large' },
+            },
+          ],
+          toolChoice: undefined,
+        }),
+      ).rejects.toThrow();
     });
 
     it('should support tool choice selection for image_generation', async () => {
@@ -486,6 +870,7 @@ describe('prepareResponsesTools', () => {
       expect(result.tools).toMatchInlineSnapshot(`
         [
           {
+            "action": undefined,
             "background": undefined,
             "input_fidelity": undefined,
             "input_image_mask": undefined,
@@ -532,6 +917,66 @@ describe('prepareResponsesTools', () => {
   });
 
   describe('web search', () => {
+    describe.each([
+      {
+        name: 'webSearch',
+        createTool: openai.tools.webSearch,
+        type: 'web_search',
+      },
+      {
+        name: 'webSearchPreview',
+        createTool: openai.tools.webSearchPreview,
+        type: 'web_search_preview',
+      },
+    ])('$name', ({ createTool, type }) => {
+      it('should prepare the tool without options', async () => {
+        const tool = createTool({});
+
+        const result = await prepareResponsesTools({
+          tools: [{ ...tool, name: type }],
+          toolChoice: undefined,
+        });
+
+        expect(tool.id).toBe(`openai.${type}`);
+        expect(result).toEqual({
+          tools: [{ type }],
+          toolChoice: undefined,
+          toolWarnings: [],
+        });
+      });
+
+      it('should preserve search options and support tool choice', async () => {
+        const userLocation = {
+          type: 'approximate' as const,
+          country: 'US',
+          city: 'San Francisco',
+          region: 'California',
+          timezone: 'America/Los_Angeles',
+        };
+        const tool = createTool({
+          searchContextSize: 'high',
+          userLocation,
+        });
+
+        const result = await prepareResponsesTools({
+          tools: [{ ...tool, name: type }],
+          toolChoice: { type: 'tool', toolName: type },
+        });
+
+        expect(result).toEqual({
+          tools: [
+            {
+              type,
+              search_context_size: 'high',
+              user_location: userLocation,
+            },
+          ],
+          toolChoice: { type },
+          toolWarnings: [],
+        });
+      });
+    });
+
     it('should prepare web_search tool with no options', async () => {
       const result = await prepareResponsesTools({
         tools: [
@@ -804,6 +1249,7 @@ describe('prepareResponsesTools', () => {
                 },
                 "type": "object",
               },
+              "strict": false,
               "type": "function",
             },
             {
@@ -1510,6 +1956,7 @@ describe('prepareResponsesTools', () => {
                 },
                 "type": "object",
               },
+              "strict": false,
               "type": "function",
             },
             {
@@ -1683,6 +2130,7 @@ describe('prepareResponsesTools', () => {
                 },
                 "type": "object",
               },
+              "strict": false,
               "type": "function",
             },
             {
@@ -1772,6 +2220,7 @@ describe('prepareResponsesTools', () => {
                 ],
                 "type": "object",
               },
+              "strict": false,
               "type": "function",
             },
           ],
@@ -1872,6 +2321,7 @@ describe('prepareResponsesTools', () => {
                     ],
                     "type": "object",
                   },
+                  "strict": false,
                   "type": "function",
                 },
                 {
@@ -1911,6 +2361,7 @@ describe('prepareResponsesTools', () => {
                 ],
                 "type": "object",
               },
+              "strict": false,
               "type": "function",
             },
           ],
@@ -2537,6 +2988,7 @@ describe('prepareResponsesTools', () => {
             required: ['sku'],
             additionalProperties: false,
           },
+          strict: false,
           allowed_callers: ['programmatic'],
           output_schema: {
             type: 'object',

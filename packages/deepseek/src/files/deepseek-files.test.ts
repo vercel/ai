@@ -2,6 +2,7 @@ import {
   APICallError,
   InvalidArgumentError,
   TypeValidationError,
+  UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it, vi } from 'vitest';
@@ -113,6 +114,50 @@ describe('DeepSeek Files - uploadFile', () => {
       size: 3,
       type: 'image/png',
     });
+  });
+
+  it('should reject stream data at runtime and cancel the stream', async () => {
+    const cancelSpy = vi.fn();
+    const stream = new ReadableStream<Uint8Array>({ cancel: cancelSpy });
+
+    const files = createDeepSeek({ apiKey: 'test-api-key' }).files();
+
+    await expect(
+      files.uploadFile({
+        data: { type: 'stream', stream },
+        mediaType: 'image/png',
+        filename: 'comic-cat.png',
+      }),
+    ).rejects.toThrow(UnsupportedFunctionalityError);
+
+    await vi.waitFor(() => expect(cancelSpy).toHaveBeenCalled());
+    expect(server.calls.length).toBe(0);
+  });
+
+  it('should thread per-call headers and abortSignal', async () => {
+    prepareFileResponse();
+
+    const files = createDeepSeek({ apiKey: 'test-api-key' }).files();
+
+    await files.uploadFile({
+      data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
+      mediaType: 'image/png',
+      filename: 'comic-cat.png',
+      headers: { 'x-request-id': 'req-1' },
+    });
+
+    expect(server.calls[0].requestHeaders['x-request-id']).toBe('req-1');
+
+    const controller = new AbortController();
+    controller.abort();
+    await expect(
+      files.uploadFile({
+        data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
+        mediaType: 'image/png',
+        filename: 'comic-cat.png',
+        abortSignal: controller.signal,
+      }),
+    ).rejects.toThrow();
   });
 
   it('should return a DeepSeek provider reference and response metadata', async () => {

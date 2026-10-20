@@ -1,3 +1,4 @@
+import { execFileSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
@@ -32,6 +33,10 @@ const MODALITY_CONFIG: Record<
   embedding: {
     outputFile: 'gateway-embedding-model-settings.ts',
     typeName: 'GatewayEmbeddingModelId',
+  },
+  decision: {
+    outputFile: 'gateway-decision-model-settings.ts',
+    typeName: 'GatewayDecisionModelId',
   },
   image: {
     outputFile: 'gateway-image-model-settings.ts',
@@ -110,11 +115,16 @@ async function main() {
   const modelsByType: Record<string, string[]> = {};
 
   for (const model of response.data) {
-    if (!modelsByType[model.type]) {
-      modelsByType[model.type] = [];
+    // Gateway's catalog migrates evaluation models to decision one at a time.
+    // so treat evaluation as decision for now.
+    const type = model.type === 'evaluation' ? 'decision' : model.type;
+    if (!modelsByType[type]) {
+      modelsByType[type] = [];
     }
-    modelsByType[model.type].push(model.id);
+    modelsByType[type].push(model.id);
   }
+
+  const writtenPaths: string[] = [];
 
   for (const [type, modelIds] of Object.entries(modelsByType)) {
     const config = getModalityConfig(type);
@@ -128,9 +138,16 @@ async function main() {
 
     const content = generateTypeFile(modelIds, config.typeName);
     fs.writeFileSync(outputPath, content, 'utf-8');
+    writtenPaths.push(outputPath);
     console.log(
       `Generated ${config.outputFile} with ${modelIds.length} models`,
     );
+  }
+
+  // A union short enough to fit on one line is emitted multi-line here, so the
+  // repo formatter decides the final shape rather than this script guessing it.
+  if (writtenPaths.length > 0) {
+    execFileSync('oxfmt', writtenPaths, { stdio: 'inherit' });
   }
 
   console.log('Model settings updated successfully');

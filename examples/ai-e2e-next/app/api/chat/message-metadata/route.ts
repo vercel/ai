@@ -14,7 +14,7 @@ export async function POST(req: Request) {
       if (part.type === 'start') {
         return {
           createdAt: Date.now(),
-          model: 'gpt-4o', // initial model id
+          model: 'gpt-6-astra', // initial model id
         };
       }
 

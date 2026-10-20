@@ -1,5 +1,11 @@
-import { describe, it } from 'vitest';
-import type { DynamicToolUIPart, ToolUIPart } from './ui-messages';
+import { describe, expectTypeOf, it } from 'vitest';
+import {
+  isToolOutputErrorUIPart,
+  type DynamicToolUIPart,
+  type ToolOutputErrorUIPart,
+  type ToolUIPart,
+  type UIMessagePart,
+} from './ui-messages';
 
 type TestTools = {
   weather: {
@@ -41,12 +47,50 @@ describe('UIMessagePart', () => {
     type _ = AssertAssignable<ToolUIPart<TestTools>, Part>;
   });
 
+  it('allows resumable input-streaming tool parts with raw input text', () => {
+    type StaticPart = {
+      type: 'tool-weather';
+      state: 'input-streaming';
+      toolCallId: 'static-call';
+      input: {
+        city: 'San';
+      };
+      rawInput: '{"city":"San';
+    };
+    type _Static = AssertAssignable<ToolUIPart<TestTools>, StaticPart>;
+
+    type DynamicPart = {
+      type: 'dynamic-tool';
+      state: 'input-streaming';
+      toolCallId: 'dynamic-call';
+      toolName: 'weather';
+      input: {
+        city: 'San';
+      };
+      rawInput: '{"city":"San';
+    };
+    type _Dynamic = AssertAssignable<DynamicToolUIPart, DynamicPart>;
+  });
+
   it('allows static input-streaming tool parts with explicit undefined input', () => {
     type Part = {
       type: 'tool-weather';
       state: 'input-streaming';
       toolCallId: 'call-1';
       input: undefined;
+    };
+
+    type _ = AssertAssignable<ToolUIPart<TestTools>, Part>;
+  });
+
+  it('keeps deprecated rawInput assignable on static output-error tool parts', () => {
+    type Part = {
+      type: 'tool-weather';
+      state: 'output-error';
+      toolCallId: 'call-1';
+      input: undefined;
+      rawInput: '{"city":';
+      errorText: 'Invalid tool input';
     };
 
     type _ = AssertAssignable<ToolUIPart<TestTools>, Part>;
@@ -60,6 +104,9 @@ describe('UIMessagePart', () => {
       input: { city: 'Tokyo' };
       approval: {
         id: 'approval-1';
+        descriptor: {
+          action: 'getWeather';
+        };
         requestReason: 'requires operator review';
       };
     };
@@ -73,10 +120,60 @@ describe('UIMessagePart', () => {
       approval: {
         id: 'approval-1';
         approved: true;
+        descriptor: {
+          action: 'getWeather';
+        };
         requestReason: 'requires operator review';
         reason: 'approved by operator';
       };
     };
     type _Responded = AssertAssignable<ToolUIPart<TestTools>, RespondedPart>;
+  });
+});
+
+describe('ToolOutputErrorUIPart', () => {
+  it('represents static and dynamic tool output errors', () => {
+    type StaticPart = {
+      type: 'tool-weather';
+      state: 'output-error';
+      toolCallId: 'call-1';
+      input: { city: 'Tokyo' };
+      errorText: 'Weather service unavailable';
+    };
+    type _Static = AssertAssignable<
+      ToolOutputErrorUIPart<TestTools>,
+      StaticPart
+    >;
+
+    type DynamicPart = {
+      type: 'dynamic-tool';
+      toolName: 'weather';
+      state: 'output-error';
+      toolCallId: 'call-2';
+      input: { city: 'Tokyo' };
+      errorText: 'Weather service unavailable';
+    };
+    type _Dynamic = AssertAssignable<
+      ToolOutputErrorUIPart<TestTools>,
+      DynamicPart
+    >;
+  });
+
+  it('narrows tool output errors while preserving static tool input types', () => {
+    const part = null as unknown as UIMessagePart<
+      Record<string, never>,
+      TestTools
+    >;
+
+    if (isToolOutputErrorUIPart(part)) {
+      expectTypeOf(part).toEqualTypeOf<ToolOutputErrorUIPart<TestTools>>();
+      expectTypeOf(part.errorText).toEqualTypeOf<string>();
+
+      if (part.type === 'tool-weather') {
+        expectTypeOf(part.input).toEqualTypeOf<
+          TestTools['weather']['input'] | undefined
+        >();
+      }
+    }
   });
 });

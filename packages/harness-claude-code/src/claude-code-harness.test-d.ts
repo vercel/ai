@@ -1,10 +1,17 @@
-import type {
-  HarnessAgentAdapter,
-  HarnessAgentSettings,
+import {
+  HarnessAgent,
+  type HarnessAgentAdapter,
+  type HarnessAgentSettings,
 } from '@ai-sdk/harness/agent';
-import type { InferToolInput } from '@ai-sdk/provider-utils';
+import type { HarnessV1QuestionsToolOutput } from '@ai-sdk/harness';
+import type { SandboxChannelReconnectOptions } from '@ai-sdk/harness/utils';
+import type { InferToolInput, InferToolOutput } from '@ai-sdk/provider-utils';
 import { assertType, describe, expectTypeOf, test } from 'vitest';
-import { claudeCode, createClaudeCode } from './index';
+import {
+  claudeCode,
+  createClaudeCode,
+  type ClaudeCodeHarnessSettings,
+} from './index';
 
 /*
  * Regression guard for the harness Zod compatibility contract: a concrete
@@ -35,6 +42,13 @@ describe('claudeCode ↔ HarnessAgent harness setting', () => {
   });
 
   test('new built-in tool inputs retain their schema types', () => {
+    assertType<InferToolInput<typeof claudeCode.builtinTools.ListAgents>>({
+      channel: 'reviewers',
+      q: 'available',
+    });
+    assertType<InferToolOutput<typeof claudeCode.builtinTools.ListAgents>>({
+      listing: 'reviewer',
+    });
     assertType<InferToolInput<typeof claudeCode.builtinTools.CronCreate>>({
       cron: '0 9 * * *',
       prompt: 'Prepare the daily summary.',
@@ -49,6 +63,19 @@ describe('claudeCode ↔ HarnessAgent harness setting', () => {
         feedback: 'Add a regression test.',
       },
     });
+  });
+
+  test('ListAgents can be disabled without a type cast', () => {
+    new HarnessAgent({
+      harness: claudeCode,
+      inactiveTools: ['ListAgents'],
+    });
+  });
+
+  test('the question tool retains its output type', () => {
+    expectTypeOf<
+      InferToolOutput<typeof claudeCode.builtinTools.askUserQuestions>
+    >().toEqualTypeOf<HarnessV1QuestionsToolOutput>();
   });
 
   test('canonical and legacy MCP names remain available', () => {
@@ -72,5 +99,19 @@ describe('claudeCode ↔ HarnessAgent harness setting', () => {
         credentialForwarding: async ({ credential }) => credential,
       }),
     ).toExtend<HarnessAgentAdapter<any>>();
+  });
+
+  test('createClaudeCode accepts sandbox bridge reconnect settings', () => {
+    const settings: ClaudeCodeHarnessSettings = {
+      reconnect: {
+        maxElapsedMs: 120_000,
+        initialDelayMs: 100,
+        maxDelayMs: 5_000,
+      },
+    };
+    createClaudeCode(settings);
+    expectTypeOf(settings.reconnect).toEqualTypeOf<
+      SandboxChannelReconnectOptions | undefined
+    >();
   });
 });

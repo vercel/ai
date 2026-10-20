@@ -5,7 +5,7 @@ WorkflowAgent is a class for building durable AI agents that can maintain state 
 ## Installation
 
 ```bash
-npm install @ai-sdk/workflow ai workflow@beta
+npm install @ai-sdk/workflow ai workflow@5
 ```
 
 ## Usage
@@ -15,7 +15,7 @@ import { WorkflowAgent } from '@ai-sdk/workflow';
 import { z } from 'zod';
 
 const agent = new WorkflowAgent({
-  model: 'anthropic/claude-opus',
+  model: 'anthropic/claude-opus-5.5',
   tools: {
     getWeather: {
       description: 'Get weather for a location',

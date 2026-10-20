@@ -1,4 +1,5 @@
 import { commonTool } from '@ai-sdk/harness';
+import type { SandboxChannelReconnectOptions } from '@ai-sdk/harness/utils';
 import type { ToolCall } from '@agentclientprotocol/sdk';
 import { describe, expectTypeOf, test } from 'vitest';
 import { z } from 'zod/v4';
@@ -12,6 +13,15 @@ const modelMapping: ACPV1Settings['modelMapping'] = {
 };
 
 describe('createACP built-in tool inference', () => {
+  test('accepts only image as a non-text content type', () => {
+    expectTypeOf<ACPV1Settings['nonTextContentTypes']>().toEqualTypeOf<
+      ReadonlyArray<'image'> | undefined
+    >();
+    expectTypeOf<ReadonlyArray<'text' | 'audio'>>().not.toExtend<
+      NonNullable<ACPV1Settings['nonTextContentTypes']>
+    >();
+  });
+
   test('keeps the local ACP tool-call type aligned with the protocol SDK', () => {
     expectTypeOf<ACPToolCall>().toExtend<ToolCall>();
     expectTypeOf<ToolCall>().toExtend<ACPToolCall>();
@@ -25,6 +35,7 @@ describe('createACP built-in tool inference', () => {
         | 'port'
         | 'portEndpoint'
         | 'startupTimeoutMs'
+        | 'reconnect'
         | 'clientApp'
       >
     >().toEqualTypeOf<never>();
@@ -35,6 +46,7 @@ describe('createACP built-in tool inference', () => {
         | 'port'
         | 'portEndpoint'
         | 'startupTimeoutMs'
+        | 'reconnect'
         | 'clientApp'
       >
     >().toEqualTypeOf<ACPV1Settings>();
@@ -50,6 +62,20 @@ describe('createACP built-in tool inference', () => {
       },
       executable: 'acp-agent',
     });
+  });
+
+  test('accepts sandbox bridge reconnect settings', () => {
+    const settings: Pick<ACPHarnessSettings, 'reconnect'> = {
+      reconnect: {
+        maxElapsedMs: 120_000,
+        initialDelayMs: 100,
+        maxDelayMs: 5_000,
+      },
+    };
+
+    expectTypeOf(settings.reconnect).toEqualTypeOf<
+      SandboxChannelReconnectOptions | undefined
+    >();
   });
 
   test('preserves the supplied tool set type', () => {
@@ -71,6 +97,39 @@ describe('createACP built-in tool inference', () => {
     });
 
     expectTypeOf(harness.builtinTools).toEqualTypeOf<{ bash: typeof bash }>();
+  });
+
+  test('adds askUserQuestions only when configured', () => {
+    const withoutQuestions = createACP({
+      harnessId: 'without-questions',
+      source: {
+        type: 'npm-simple',
+        packageName: '@example/acp-agent',
+      },
+      executable: 'acp-agent',
+      modelMapping,
+    });
+    expectTypeOf<
+      keyof typeof withoutQuestions.builtinTools
+    >().toEqualTypeOf<never>();
+
+    const withQuestions = createACP({
+      harnessId: 'with-questions',
+      source: {
+        type: 'npm-simple',
+        packageName: '@example/acp-agent',
+      },
+      executable: 'acp-agent',
+      modelMapping,
+      askUserQuestions: {
+        requestMethod: 'example/ask',
+        fromNativeRequest: () => null,
+        toNativeResponse: () => null,
+      },
+    });
+    expectTypeOf<
+      keyof typeof withQuestions.builtinTools
+    >().toEqualTypeOf<'askUserQuestions'>();
   });
 
   test('accepts discriminated npm and install command sources', () => {
@@ -141,6 +200,19 @@ describe('createACP built-in tool inference', () => {
         type: 'launch-env-json',
         variable: 'CODEX_CONFIG',
         path: ['developer_instructions'],
+      },
+    });
+    createACP({
+      harnessId: 'cursor-acp',
+      source: {
+        type: 'install-command',
+        command: 'curl https://example.com/install -fsS | bash',
+      },
+      executable: 'acp-agent',
+      modelMapping,
+      instructionMapping: {
+        type: 'filesystem',
+        path: '.cursor/rules/AGENTS.md',
       },
     });
   });

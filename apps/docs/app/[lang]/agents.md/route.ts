@@ -5,4 +5,3 @@ const agentsRoute = createAgentsRoute({ config });
 
 export const GET = agentsRoute.GET;
 export const generateStaticParams = agentsRoute.generateStaticParams;
-export const revalidate = false;

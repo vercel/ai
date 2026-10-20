@@ -1,4 +1,8 @@
-import type { JSONSchema7, LanguageModelV4Prompt } from '@ai-sdk/provider';
+import {
+  InvalidResponseDataError,
+  type JSONSchema7,
+  type LanguageModelV4Prompt,
+} from '@ai-sdk/provider';
 import { isProviderStreamError } from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
@@ -80,8 +84,35 @@ describe('DeepSeekChatLanguageModel', () => {
           fs.readFileSync(`src/chat/__fixtures__/${filename}.json`, 'utf8'),
         ),
       };
-      return;
     }
+
+    it('should reject a response without choices', async () => {
+      server.urls['https://api.deepseek.com/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          id: 'chatcmpl-empty',
+          object: 'chat.completion',
+          created: 0,
+          model: 'deepseek-chat',
+          choices: [],
+          usage: {
+            prompt_tokens: 1,
+            completion_tokens: 0,
+            total_tokens: 1,
+          },
+        },
+      };
+
+      await expect(
+        provider.chat('deepseek-chat').doGenerate({
+          prompt: TEST_PROMPT,
+        }),
+      ).rejects.toSatisfy(
+        error =>
+          InvalidResponseDataError.isInstance(error) &&
+          error.message === 'Response did not contain any choices.',
+      );
+    });
 
     describe('text', () => {
       beforeEach(() => {
@@ -643,6 +674,23 @@ describe('DeepSeekChatLanguageModel', () => {
           details:
             'reasoning "xhigh" is not directly supported by this model. mapped to effort "max".',
         });
+      });
+
+      it('should map top-level reasoning max directly to reasoning_effort max', async () => {
+        const result = await provider.chat('deepseek-reasoner').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'max',
+        });
+
+        expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+          'max',
+        );
+        expect(result.warnings).not.toContainEqual(
+          expect.objectContaining({
+            type: 'compatibility',
+            feature: 'reasoning',
+          }),
+        );
       });
 
       it('should map top-level reasoning low to reasoning_effort low without a compatibility warning', async () => {
@@ -1679,6 +1727,36 @@ describe('DeepSeekChatLanguageModel', () => {
     describe('reasoning', () => {
       beforeEach(() => {
         prepareChunksFixtureResponse('deepseek-reasoning');
+      });
+
+      it('should keep reasoning active when deltas include empty tool calls', async () => {
+        server.urls['https://api.deepseek.com/chat/completions'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1,"model":"test-model",` +
+              `"choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"Think ","tool_calls":[]},"finish_reason":null}]}\n\n`,
+            `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1,"model":"test-model",` +
+              `"choices":[{"index":0,"delta":{"content":"","reasoning_content":"more...","tool_calls":[]},"finish_reason":null}]}\n\n`,
+            `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1,"model":"test-model",` +
+              `"choices":[{"index":0,"delta":{"content":"Hello","reasoning_content":"","tool_calls":[]},"finish_reason":"stop"}]}\n\n`,
+            'data: [DONE]\n\n',
+          ],
+        };
+
+        const { stream } = await provider.chat('deepseek-reasoner').doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const events = await convertReadableStreamToArray(stream);
+
+        expect(
+          events.filter(({ type }) => type.startsWith('reasoning-')),
+        ).toStrictEqual([
+          { type: 'reasoning-start', id: 'reasoning-0' },
+          { type: 'reasoning-delta', id: 'reasoning-0', delta: 'Think ' },
+          { type: 'reasoning-delta', id: 'reasoning-0', delta: 'more...' },
+          { type: 'reasoning-end', id: 'reasoning-0' },
+        ]);
       });
 
       it('should map legacy thinking and generic reasoning to canonical request values', async () => {

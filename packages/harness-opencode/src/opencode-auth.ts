@@ -9,11 +9,34 @@ import {
   isHarnessAuthenticationEnvironment,
 } from '@ai-sdk/harness/utils';
 
+export const OPENCODE_SUBSCRIPTION_ACCESS_TOKEN_ENVIRONMENT_VARIABLE =
+  'AI_SDK_OPENCODE_NATIVE_ACCESS_TOKEN';
+
 export const OPENCODE_CREDENTIAL_ENVIRONMENT_VARIABLES = [
   'AI_GATEWAY_API_KEY',
   'OPENAI_API_KEY',
   'ANTHROPIC_API_KEY',
   'ANTHROPIC_AUTH_TOKEN',
+  'GOOGLE_GENERATIVE_AI_API_KEY',
+  'XAI_API_KEY',
+  'GITHUB_TOKEN',
+  'GITHUB_COPILOT_TOKEN',
+  'POE_API_KEY',
+  'OPENCODE_API_KEY',
+  'GITLAB_TOKEN',
+  OPENCODE_SUBSCRIPTION_ACCESS_TOKEN_ENVIRONMENT_VARIABLE,
+] as const;
+
+const NON_GOOGLE_DIRECT_CREDENTIAL_ENVIRONMENT_VARIABLES = [
+  'OPENAI_API_KEY',
+  'ANTHROPIC_API_KEY',
+  'ANTHROPIC_AUTH_TOKEN',
+  'XAI_API_KEY',
+  'GITHUB_TOKEN',
+  'GITHUB_COPILOT_TOKEN',
+  'POE_API_KEY',
+  'OPENCODE_API_KEY',
+  'GITLAB_TOKEN',
 ] as const;
 
 export function createOpenCodeRequestTransformations({
@@ -102,12 +125,72 @@ export function createOpenCodeRequestTransformations({
 
       return transformations;
     }
+    case 'google':
+      return environment.GOOGLE_GENERATIVE_AI_API_KEY &&
+        sandboxEnvironment.GOOGLE_GENERATIVE_AI_API_KEY
+        ? [
+            createCredentialRequestTransformation({
+              matchUrl: 'https://generativelanguage.googleapis.com',
+              matchHeaders: {
+                'x-goog-api-key':
+                  sandboxEnvironment.GOOGLE_GENERATIVE_AI_API_KEY,
+              },
+              transformHeaders: {
+                'x-goog-api-key': environment.GOOGLE_GENERATIVE_AI_API_KEY,
+              },
+            }),
+          ]
+        : [];
+    case 'xai':
+      return createBearerTransformation({
+        environment,
+        sandboxEnvironment,
+        environmentVariableName: 'XAI_API_KEY',
+        matchUrl: environment.XAI_BASE_URL ?? 'https://api.x.ai/v1',
+      });
+    case 'github-copilot':
+      return createBearerTransformation({
+        environment,
+        sandboxEnvironment,
+        environmentVariableName:
+          environment.GITHUB_COPILOT_TOKEN != null
+            ? 'GITHUB_COPILOT_TOKEN'
+            : 'GITHUB_TOKEN',
+        matchUrl: 'https://api.githubcopilot.com',
+      });
+    case 'poe':
+      return createBearerTransformation({
+        environment,
+        sandboxEnvironment,
+        environmentVariableName: 'POE_API_KEY',
+        matchUrl: 'https://api.poe.com',
+      });
+    case 'opencode-go':
+      return createBearerTransformation({
+        environment,
+        sandboxEnvironment,
+        environmentVariableName: 'OPENCODE_API_KEY',
+        matchUrl: 'https://opencode.ai/zen/go/v1',
+      });
+    case 'gitlab':
+      return createBearerTransformation({
+        environment,
+        sandboxEnvironment,
+        environmentVariableName: 'GITLAB_TOKEN',
+        matchUrl: environment.GITLAB_INSTANCE_URL ?? 'https://gitlab.com',
+      });
   }
 }
 
 export type OpenCodeResolvedAuthenticationMode =
   | 'anthropic'
   | 'openai'
+  | 'google'
+  | 'xai'
+  | 'github-copilot'
+  | 'poe'
+  | 'opencode-go'
+  | 'gitlab'
   | 'ai-gateway';
 
 export type OpenCodeAuthenticationMode = HarnessV1Authentication<
@@ -120,13 +203,13 @@ export function resolveOpenCodeProvider({
 }: {
   model?: string;
   provider?: string;
-}): 'anthropic' | 'openai' {
-  if (provider === 'anthropic' || provider === 'openai') {
+}): Exclude<OpenCodeResolvedAuthenticationMode, 'ai-gateway'> {
+  if (isDirectProvider(provider)) {
     return provider;
   }
   if (model?.includes('/')) {
     const [modelProvider] = model.split('/');
-    if (modelProvider === 'anthropic' || modelProvider === 'openai') {
+    if (isDirectProvider(modelProvider)) {
       return modelProvider;
     }
   }
@@ -166,12 +249,20 @@ export function resolveOpenCodeEnv({
 }): Record<string, string> {
   const suppliedEnvironment = isHarnessAuthenticationEnvironment(auth);
   const authenticationEnvironment = suppliedEnvironment ? auth : processEnv;
-  const selectedProvider = resolveOpenCodeProvider({ model, provider });
-  if (selectedProvider === 'openai' && auth === 'openai') {
-    return pickOpenAI({ processEnv: authenticationEnvironment });
-  }
-  if (selectedProvider === 'anthropic' && auth === 'anthropic') {
-    return pickAnthropic({ processEnv: authenticationEnvironment });
+  const selectedProvider = resolveOpenCodeAuthenticationProvider({
+    auth,
+    model,
+    provider,
+    environment: authenticationEnvironment,
+  });
+  if (
+    (selectedProvider === 'openai' && auth === 'openai') ||
+    (selectedProvider === 'anthropic' && auth === 'anthropic')
+  ) {
+    return pickDirectProvider({
+      provider: selectedProvider,
+      processEnv: authenticationEnvironment,
+    });
   }
 
   const gatewayAuthFromEnv = getAiGatewayAuthFromEnv({
@@ -180,9 +271,10 @@ export function resolveOpenCodeEnv({
   if (auth === 'ai-gateway' || gatewayAuthFromEnv.apiKey) {
     return pickGateway({ gatewayAuthFromEnv });
   }
-  return selectedProvider === 'openai'
-    ? pickOpenAI({ processEnv: authenticationEnvironment })
-    : pickAnthropic({ processEnv: authenticationEnvironment });
+  return pickDirectProvider({
+    provider: selectedProvider,
+    processEnv: authenticationEnvironment,
+  });
 }
 
 export function resolveOpenCodeAuthenticationMode({
@@ -199,9 +291,19 @@ export function resolveOpenCodeAuthenticationMode({
   if (isHarnessAuthenticationEnvironment(auth)) {
     return getAiGatewayAuthFromEnv({ env: auth }).apiKey
       ? 'ai-gateway'
-      : resolveOpenCodeProvider({ model, provider });
+      : resolveOpenCodeAuthenticationProvider({
+          auth,
+          model,
+          provider,
+          environment: auth,
+        });
   }
-  const selectedProvider = resolveOpenCodeProvider({ model, provider });
+  const selectedProvider = resolveOpenCodeAuthenticationProvider({
+    auth,
+    model,
+    provider,
+    environment: processEnv,
+  });
   if (selectedProvider === 'openai' && auth === 'openai') {
     return 'openai';
   }
@@ -215,6 +317,35 @@ export function resolveOpenCodeAuthenticationMode({
     return 'ai-gateway';
   }
   return selectedProvider;
+}
+
+function resolveOpenCodeAuthenticationProvider({
+  auth,
+  model,
+  provider,
+  environment,
+}: {
+  auth: OpenCodeAuthenticationMode | undefined;
+  model?: string;
+  provider?: string;
+  environment: Record<string, string | undefined>;
+}): Exclude<OpenCodeResolvedAuthenticationMode, 'ai-gateway'> {
+  const selectedProvider = resolveOpenCodeProvider({ model, provider });
+  if (
+    model == null &&
+    provider == null &&
+    (auth === 'anthropic' || auth === 'openai')
+  ) {
+    return auth;
+  }
+  return model == null &&
+    provider == null &&
+    (environment.GOOGLE_GENERATIVE_AI_API_KEY?.length ?? 0) > 0 &&
+    !NON_GOOGLE_DIRECT_CREDENTIAL_ENVIRONMENT_VARIABLES.some(
+      name => (environment[name]?.length ?? 0) > 0,
+    )
+    ? 'google'
+    : selectedProvider;
 }
 
 function pickOpenAI({
@@ -247,6 +378,93 @@ function pickAnthropic({
   const baseUrl = processEnv.ANTHROPIC_BASE_URL;
   if (baseUrl) env.ANTHROPIC_BASE_URL = baseUrl;
   return env;
+}
+
+function pickDirectProvider({
+  provider,
+  processEnv,
+}: {
+  provider: Exclude<OpenCodeResolvedAuthenticationMode, 'ai-gateway'>;
+  processEnv: Record<string, string | undefined>;
+}): Record<string, string> {
+  if (provider === 'openai') return pickOpenAI({ processEnv });
+  if (provider === 'anthropic') return pickAnthropic({ processEnv });
+  const names =
+    provider === 'google'
+      ? ['GOOGLE_GENERATIVE_AI_API_KEY']
+      : provider === 'xai'
+        ? ['XAI_API_KEY', 'XAI_BASE_URL']
+        : provider === 'github-copilot'
+          ? ['GITHUB_COPILOT_TOKEN', 'GITHUB_TOKEN']
+          : provider === 'poe'
+            ? ['POE_API_KEY']
+            : provider === 'opencode-go'
+              ? ['OPENCODE_API_KEY']
+              : ['GITLAB_TOKEN', 'GITLAB_INSTANCE_URL'];
+  return Object.fromEntries(
+    names.flatMap(name =>
+      processEnv[name] == null ? [] : [[name, processEnv[name]!]],
+    ),
+  );
+}
+
+export function hasOpenCodeCredential({
+  environment,
+  authenticationMode,
+}: {
+  environment: Record<string, string>;
+  authenticationMode: OpenCodeResolvedAuthenticationMode;
+}): boolean {
+  if (authenticationMode === 'ai-gateway') {
+    return environment.AI_GATEWAY_API_KEY != null;
+  }
+  return Object.keys(environment).some(
+    name =>
+      name.endsWith('_API_KEY') ||
+      name.endsWith('_TOKEN') ||
+      name === 'ANTHROPIC_AUTH_TOKEN',
+  );
+}
+
+function createBearerTransformation({
+  environment,
+  sandboxEnvironment,
+  environmentVariableName,
+  matchUrl,
+}: {
+  environment: Readonly<Record<string, string>>;
+  sandboxEnvironment: Readonly<Record<string, string>>;
+  environmentVariableName: string;
+  matchUrl: string;
+}): HarnessV1RequestTransformation[] {
+  const credential = environment[environmentVariableName];
+  const sandboxCredential = sandboxEnvironment[environmentVariableName];
+  return credential == null || sandboxCredential == null
+    ? []
+    : [
+        createCredentialRequestTransformation({
+          matchUrl,
+          matchHeaders: {
+            Authorization: `Bearer ${sandboxCredential}`,
+          },
+          transformHeaders: { Authorization: `Bearer ${credential}` },
+        }),
+      ];
+}
+
+function isDirectProvider(
+  value: string | undefined,
+): value is Exclude<OpenCodeResolvedAuthenticationMode, 'ai-gateway'> {
+  return (
+    value === 'anthropic' ||
+    value === 'openai' ||
+    value === 'google' ||
+    value === 'xai' ||
+    value === 'github-copilot' ||
+    value === 'poe' ||
+    value === 'opencode-go' ||
+    value === 'gitlab'
+  );
 }
 
 function pickGateway({

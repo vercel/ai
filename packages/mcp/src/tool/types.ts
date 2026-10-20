@@ -1,6 +1,10 @@
 import { z } from 'zod/v4';
 import type { JSONObject } from '@ai-sdk/provider';
-import type { FlexibleSchema, Tool } from '@ai-sdk/provider-utils';
+import type {
+  FlexibleSchema,
+  Tool,
+  ToolExecutionOptions,
+} from '@ai-sdk/provider-utils';
 
 export const LATEST_PROTOCOL_VERSION = '2026-07-28';
 export const LATEST_LEGACY_PROTOCOL_VERSION = '2025-11-25';
@@ -16,7 +20,23 @@ export type McpProviderMetadata = {
   clientName?: string;
   title?: string;
   toolName?: string;
+  annotations?: McpToolAnnotations;
   app?: JSONObject;
+};
+
+/**
+ * Behavioral hints reported by an MCP server for a tool.
+ *
+ * These annotations are untrusted unless the server itself is trusted.
+ *
+ * @see https://modelcontextprotocol.io/specification/2026-07-28/schema#toolannotations
+ */
+export type McpToolAnnotations = {
+  title?: string;
+  readOnlyHint?: boolean;
+  destructiveHint?: boolean;
+  idempotentHint?: boolean;
+  openWorldHint?: boolean;
 };
 
 /** MCP tool metadata - keys should follow MCP _meta key format specification */
@@ -38,10 +58,13 @@ export type ToolSchemas =
 type McpToolBase<INPUT = unknown, OUTPUT = CallToolResult> = Tool<
   INPUT,
   OUTPUT
-> &
-  Required<Pick<Tool<INPUT, OUTPUT>, 'execute'>> & {
-    _meta?: ToolMeta;
-  };
+> & {
+  execute: (
+    input: INPUT,
+    options?: ToolExecutionOptions<{}>,
+  ) => ReturnType<NonNullable<Tool<INPUT, OUTPUT>['execute']>>;
+  _meta?: ToolMeta;
+};
 
 export type McpToolSet<TOOL_SCHEMAS extends ToolSchemas = 'automatic'> =
   TOOL_SCHEMAS extends Record<
@@ -100,6 +123,7 @@ const ElicitationCapabilitySchema = z
   .loose();
 
 const ServerCapabilitiesSchema = z.looseObject({
+  events: z.looseObject({ listChanged: z.boolean().nullish() }).nullish(),
   experimental: z.optional(z.object({}).loose()),
   logging: z.optional(z.object({}).loose()),
   completions: z.optional(z.object({}).loose()),
@@ -179,6 +203,10 @@ const ToolSchema = z
       z
         .object({
           title: z.optional(z.string()),
+          readOnlyHint: z.optional(z.boolean()),
+          destructiveHint: z.optional(z.boolean()),
+          idempotentHint: z.optional(z.boolean()),
+          openWorldHint: z.optional(z.boolean()),
         })
         .loose(),
     ),
@@ -262,24 +290,55 @@ const ResourceLinkContentSchema = z
     mimeType: z.optional(z.string()),
   })
   .loose();
+const UnknownContentSchema = z
+  .object({ type: z.string() })
+  .loose()
+  .refine(
+    content =>
+      !['text', 'image', 'resource', 'resource_link'].includes(content.type),
+    { message: 'Known content types must match their schema' },
+  );
 
-export const CallToolResultSchema = ResultSchema.extend({
+const CallToolResultWithContentSchema = ResultSchema.extend({
   content: z.array(
     z.union([
       TextContentSchema,
       ImageContentSchema,
       EmbeddedResourceSchema,
       ResourceLinkContentSchema,
+      UnknownContentSchema,
     ]),
   ),
   /**
-   * @see https://modelcontextprotocol.io/specification/2025-06-18/server/tools#structured-content
+   * @see https://modelcontextprotocol.io/specification/2026-07-28/server/tools#structured-content
    */
   structuredContent: z.optional(z.unknown()),
   isError: z.boolean().default(false).optional(),
-}).or(
+});
+
+const CallToolResultWithStructuredContentSchema = ResultSchema.extend({
+  content: z.never().optional(),
+  structuredContent: z.json(),
+  isError: z.boolean().default(false).optional(),
+})
+  .transform(
+    (result): z.infer<typeof CallToolResultWithContentSchema> => ({
+      ...result,
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(result.structuredContent),
+        },
+      ],
+    }),
+  )
+  .pipe(CallToolResultWithContentSchema);
+
+export const CallToolResultSchema = CallToolResultWithContentSchema.or(
+  CallToolResultWithStructuredContentSchema,
+).or(
   ResultSchema.extend({
-    toolResult: z.unknown(),
+    toolResult: z.unknown().nonoptional(),
   }),
 );
 export type CallToolResult = z.infer<typeof CallToolResultSchema>;

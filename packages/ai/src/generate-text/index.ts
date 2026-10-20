@@ -65,11 +65,14 @@ export {
 } from './stream-language-model-call';
 export {
   streamText,
+  streamTextLowMemory as experimental_streamTextLowMemory,
   type StreamTextEndEvent,
   type StreamTextInclude,
   type StreamTextOnChunkCallback,
   type StreamTextOnEndCallback,
   type StreamTextOnErrorCallback,
+  type StreamTextOnErrorRetryCallback,
+  type StreamTextOnErrorResult,
   type StreamTextTransform,
 } from './stream-text';
 export type {

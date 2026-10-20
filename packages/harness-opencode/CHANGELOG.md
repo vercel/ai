@@ -1,5 +1,549 @@
 # @ai-sdk/harness-opencode
 
+## 1.0.159
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+- Updated dependencies [ca2a9f7]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+  - @ai-sdk/harness@1.0.157
+
+## 1.0.158
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.156
+
+## 1.0.157
+
+### Patch Changes
+
+- Updated dependencies [60cc252]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/harness@1.0.155
+  - @ai-sdk/provider-utils@5.0.63
+
+## 1.0.156
+
+### Patch Changes
+
+- Updated dependencies [0957554]
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+  - @ai-sdk/harness@1.0.154
+
+## 1.0.155
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+  - @ai-sdk/harness@1.0.153
+  - @ai-sdk/provider-utils@5.0.61
+
+## 1.0.154
+
+### Patch Changes
+
+- 4131de3: feat(harness-opencode): support native built-in tool filtering
+- 3f0c878: fix(harness-opencode): continue turns paused for a tool approval or tool result instead of hanging
+- 25ec1b2: fix(harness-opencode): install `ripgrep` universally via NPM
+- Updated dependencies [2e89fa4]
+  - @ai-sdk/provider-utils@5.0.60
+  - @ai-sdk/harness@1.0.152
+
+## 1.0.153
+
+### Patch Changes
+
+- 6c65131: feat(harness): consistently support parallel and sequential tool approvals
+- 1bebfcf: feat(harness): add support for tools with `toModelOutput()` transformation
+- Updated dependencies [6c65131]
+- Updated dependencies [1bebfcf]
+  - @ai-sdk/harness@1.0.151
+
+## 1.0.152
+
+### Patch Changes
+
+- Updated dependencies [6617f11]
+- Updated dependencies [aae69cb]
+- Updated dependencies [a7a66f5]
+- Updated dependencies [52e3f53]
+- Updated dependencies [6c0295c]
+  - @ai-sdk/harness@1.0.150
+
+## 1.0.151
+
+### Patch Changes
+
+- 4affc19: fix(harness-opencode): pass host tool schemas by file to avoid OpenCode spawn failures
+- 409da36: fix(harness-opencode): keep observation metadata out of native tool arguments
+- Updated dependencies [9667bf2]
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/provider@4.0.27
+  - @ai-sdk/harness@1.0.149
+
+## 1.0.150
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.148
+
+## 1.0.149
+
+### Patch Changes
+
+- c357e52: chore(harness): update primary harness SDKs to their latest versions
+  - @ai-sdk/harness@1.0.147
+
+## 1.0.148
+
+### Patch Changes
+
+- Updated dependencies [4dbc902]
+  - @ai-sdk/provider@4.0.26
+  - @ai-sdk/harness@1.0.146
+  - @ai-sdk/provider-utils@5.0.58
+
+## 1.0.147
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.145
+
+## 1.0.146
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider@4.0.25
+  - @ai-sdk/provider-utils@5.0.57
+  - @ai-sdk/harness@1.0.144
+
+## 1.0.145
+
+### Patch Changes
+
+- 9d84fad: chore(harness): ensure ACP and MCP dependencies use the latest version and are aligned across adapters
+- Updated dependencies [c4a5c8d]
+- Updated dependencies [50ac48b]
+- Updated dependencies [e8af189]
+  - @ai-sdk/harness@1.0.143
+
+## 1.0.144
+
+### Patch Changes
+
+- 214d52c: fix(harness): update from vulnerable `proxy-addr` 2.0.7 dependency
+  - @ai-sdk/harness@1.0.142
+
+## 1.0.143
+
+### Patch Changes
+
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/harness@1.0.141
+  - @ai-sdk/provider-utils@5.0.56
+
+## 1.0.142
+
+### Patch Changes
+
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+- Updated dependencies [4c6979c]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/provider@4.0.23
+  - @ai-sdk/harness@1.0.140
+
+## 1.0.141
+
+### Patch Changes
+
+- Updated dependencies [2959d35]
+- Updated dependencies [e7da240]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+  - @ai-sdk/harness@1.0.139
+
+## 1.0.140
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.138
+
+## 1.0.139
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.137
+
+## 1.0.138
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.136
+
+## 1.0.137
+
+### Patch Changes
+
+- 82b6142: fix(harness-opencode): stop aborted OpenCode turns before starting the next turn
+- Updated dependencies [8c65988]
+- Updated dependencies [8182916]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+  - @ai-sdk/harness@1.0.135
+
+## 1.0.136
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [ede5b89]
+  - @ai-sdk/harness@1.0.134
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
+## 1.0.135
+
+### Patch Changes
+
+- b2049fa: fix(harness): expose `resolveSandboxCredentialEnvironment()` helper in favor of `createSandboxCredentialEnvironment()` and use it across bridge backed adapters
+- Updated dependencies [b2049fa]
+- Updated dependencies [11f0e71]
+- Updated dependencies [2b9195b]
+- Updated dependencies [446725d]
+  - @ai-sdk/harness@1.0.133
+
+## 1.0.134
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.132
+
+## 1.0.133
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/provider-utils@5.0.51
+  - @ai-sdk/harness@1.0.131
+
+## 1.0.132
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.130
+
+## 1.0.131
+
+### Patch Changes
+
+- 8c195c0: fix(harness-opencode): resolve and broker Google API keys for OpenCode
+- Updated dependencies [e3605f6]
+- Updated dependencies [e5aeb11]
+- Updated dependencies [d99d6dc]
+  - @ai-sdk/provider-utils@5.0.50
+  - @ai-sdk/harness@1.0.129
+
+## 1.0.130
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.128
+
+## 1.0.129
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.127
+
+## 1.0.128
+
+### Patch Changes
+
+- af9597b: Compile packages for ES2022 runtime target
+- Updated dependencies [af9597b]
+- Updated dependencies [31742b9]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/harness@1.0.126
+  - @ai-sdk/provider-utils@5.0.49
+
+## 1.0.127
+
+### Patch Changes
+
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+  - @ai-sdk/harness@1.0.125
+
+## 1.0.126
+
+### Patch Changes
+
+- Updated dependencies [40231b6]
+  - @ai-sdk/harness@1.0.124
+
+## 1.0.125
+
+### Patch Changes
+
+- 9c8c0c1: feat (harness): keep harness-generated state out of the sandbox workspace. The framework and every bridge adapter now resolve their generated state — bootstrap recipes and their dependencies (`.harness-bootstrap/…`) and per-session run state (`.agent-runs/…`) — through the new `harnessV1StateDirectory()` helper, which always resolves to a fixed directory (`~/.ai-sdk-harness`) under the sandbox's own HOME, never the sandbox's working directory. This is not configurable: every sandbox provider gets the same layout, so harness infrastructure never lands in a user-owned workspace. This changes the on-disk layout for every provider (a breaking change, acceptable given the experimental nature of this API) — sandboxes bootstrapped under the previous layout re-bootstrap once under the new path.
+- 771e74b: chore: enable dead code lint rules
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [9c8c0c1]
+- Updated dependencies [771e74b]
+- Updated dependencies [7115a3f]
+  - @ai-sdk/provider-utils@5.0.47
+  - @ai-sdk/harness@1.0.123
+
+## 1.0.124
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.122
+- @ai-sdk/provider-utils@5.0.46
+
+## 1.0.123
+
+### Patch Changes
+
+- 3ea56bc: fix(harness): make bridge asset resolution compatible with Turbopack (and thus Next.js 16)
+- Updated dependencies [3ea56bc]
+  - @ai-sdk/harness@1.0.121
+
+## 1.0.122
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.120
+
+## 1.0.121
+
+### Patch Changes
+
+- 2adbb77: feat(harness): update underlying harness SDKs to their latest versions
+- Updated dependencies [125f493]
+  - @ai-sdk/harness@1.0.119
+
+## 1.0.120
+
+### Patch Changes
+
+- d975097: feat(harness): add `AbortSignal` to `SandboxChannel.connect`, plus a `sleep()` helper function
+- 01a671a: fix(harness-opencode): allow external directory access with `permissionMode: "allow-all"`
+- 80b969d: feat(harness-opencode): allow consumers to configure bridge reconnect timing
+- Updated dependencies [d975097]
+- Updated dependencies [b2baeba]
+  - @ai-sdk/harness@1.0.118
+
+## 1.0.119
+
+### Patch Changes
+
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+  - @ai-sdk/harness@1.0.117
+
+## 1.0.118
+
+### Patch Changes
+
+- Updated dependencies [0455398]
+  - @ai-sdk/provider-utils@5.0.44
+  - @ai-sdk/harness@1.0.116
+
+## 1.0.117
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.115
+
+## 1.0.116
+
+### Patch Changes
+
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/harness@1.0.114
+
+## 1.0.115
+
+### Patch Changes
+
+- 0185c4d: fix(harness-opencode): refresh warm runtimes when native configuration changes
+- b3c82fd: fix(harness-opencode): preserve native compaction events without leaking internal summary text
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/harness@1.0.113
+
+## 1.0.114
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.112
+- @ai-sdk/provider-utils@5.0.41
+
+## 1.0.113
+
+### Patch Changes
+
+- 92c3974: fix(harness-opencode): preserve host tool enum constraints and default metadata
+  - @ai-sdk/harness@1.0.111
+
+## 1.0.112
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.110
+
+## 1.0.111
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.109
+
+## 1.0.110
+
+### Patch Changes
+
+- cdc12a1: feat(harness): add support for using adapter-native subscriptions where available
+- Updated dependencies [4d1bf28]
+- Updated dependencies [cdc12a1]
+- Updated dependencies [d70a334]
+- Updated dependencies [81ba84c]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/harness@1.0.108
+  - @ai-sdk/provider-utils@5.0.40
+
+## 1.0.109
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.107
+- @ai-sdk/provider-utils@5.0.39
+
+## 1.0.108
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.106
+- @ai-sdk/provider-utils@5.0.38
+
+## 1.0.107
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.105
+
+## 1.0.106
+
+### Patch Changes
+
+- c04ded8: chore(harness): remove formerly deprecated `model` and `modelId` config on harness adapter settings
+- Updated dependencies [c04ded8]
+  - @ai-sdk/harness@1.0.104
+
+## 1.0.105
+
+### Patch Changes
+
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider-utils@5.0.37
+  - @ai-sdk/harness@1.0.103
+
+## 1.0.104
+
+### Patch Changes
+
+- eeed977: feat(harness): allow passing arbitrary headers with inference requests via `headers` property in `HarnessAgentSettings`
+- a39c8bf: chore(harness): clarify `writeSkills` helper intent to require materializing skills in HOME directory
+- Updated dependencies [fe86f8f]
+- Updated dependencies [255cccf]
+- Updated dependencies [eeed977]
+- Updated dependencies [a39c8bf]
+  - @ai-sdk/harness@1.0.102
+
+## 1.0.103
+
+### Patch Changes
+
+- 951c54d: feat(harness): support `askUserQuestions` tool including support for normalization across harness adapters
+- Updated dependencies [951c54d]
+  - @ai-sdk/harness@1.0.101
+
+## 1.0.102
+
+### Patch Changes
+
+- 0c37bf0: fix(harness): avoid warning about lack of credential brokering support when `credentialForwarding` callback is used to replace all credentials with ephemeral fake secrets
+- Updated dependencies [0c37bf0]
+  - @ai-sdk/harness@1.0.100
+
+## 1.0.101
+
+### Patch Changes
+
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+  - @ai-sdk/harness@1.0.99
+
+## 1.0.100
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider-utils@5.0.35
+  - @ai-sdk/harness@1.0.98
+
+## 1.0.99
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.97
+
+## 1.0.98
+
+### Patch Changes
+
+- c0c7fac: feat(harness): add reusable `createReadBridgeAsset()` helper function
+- Updated dependencies [c0c7fac]
+  - @ai-sdk/harness@1.0.96
+
+## 1.0.97
+
+### Patch Changes
+
+- c1941f0: fix(harness-opencode): emit per-step token usage and cost for task-linked OpenCode subagent sessions as raw stream events
+- 371e954: feat(harness): add `createBridgeToken()` and `withBridgeToken()` helpers for bridge backed harness adapters
+- 62f481f: fix(harness): fix bridge resolution to no longer look for an alternative path which could cause Turbopack errors
+- Updated dependencies [371e954]
+- Updated dependencies [87b4858]
+  - @ai-sdk/harness@1.0.95
+
 ## 1.0.96
 
 ### Patch Changes

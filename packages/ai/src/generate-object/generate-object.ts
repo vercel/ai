@@ -263,6 +263,16 @@ export async function generateObject<
       };
     },
 ): Promise<GenerateObjectResult<RESULT>> {
+  logWarnings({
+    warnings: [
+      {
+        type: 'deprecated',
+        setting: 'generateObject',
+        message: 'Use generateText with an output setting instead.',
+      },
+    ],
+  });
+
   const {
     model: modelArg,
     output = 'object',
@@ -379,6 +389,7 @@ export async function generateObject<
       prompt: standardizedPrompt,
       supportedUrls: await model.supportedUrls,
       download,
+      abortSignal,
       provider: model.provider.split('.')[0],
     });
 

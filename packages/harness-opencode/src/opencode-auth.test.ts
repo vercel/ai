@@ -1,12 +1,15 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { resolveSandboxCredentialEnvironment } from '@ai-sdk/harness/utils';
 import {
   createOpenCodeRequestTransformations,
+  OPENCODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
   resolveOpenCodeAuthenticationMode,
   resolveOpenCodeEnv,
   resolveOpenCodeProvider,
   splitOpenCodeModel,
   toOpenCodeGatewayBaseUrl,
 } from './opencode-auth';
+import { resolveOpenCodeAuthentication } from './opencode-subscription';
 
 describe('OpenCode auth', () => {
   it('resolves provider from explicit provider or model prefix', () => {
@@ -18,6 +21,10 @@ describe('OpenCode auth', () => {
     expect(resolveOpenCodeProvider({ model: 'custom/model' })).toBe(
       'anthropic',
     );
+    expect(resolveOpenCodeProvider({ model: 'google/gemini-3.8-flash' })).toBe(
+      'google',
+    );
+    expect(resolveOpenCodeProvider({ model: 'xai/grok-4' })).toBe('xai');
   });
 
   it('splits provider-prefixed models', () => {
@@ -83,6 +90,92 @@ describe('OpenCode auth', () => {
     ).toBe('openai');
   });
 
+  it('resolves Google credentials from a supplied authentication environment', () => {
+    const auth = {
+      GOOGLE_GENERATIVE_AI_API_KEY: 'programmatic-google-key',
+    };
+
+    expect(
+      resolveOpenCodeEnv({
+        auth,
+      }),
+    ).toEqual({
+      GOOGLE_GENERATIVE_AI_API_KEY: 'programmatic-google-key',
+    });
+    expect(
+      resolveOpenCodeAuthenticationMode({
+        auth,
+      }),
+    ).toBe('google');
+  });
+
+  it('ignores an empty ambient Google credential when selecting the fallback provider', () => {
+    const processEnv = {
+      GOOGLE_GENERATIVE_AI_API_KEY: '',
+    };
+
+    expect(resolveOpenCodeEnv({ auth: 'auto', processEnv })).toEqual({});
+    expect(
+      resolveOpenCodeAuthenticationMode({ auth: 'auto', processEnv }),
+    ).toBe('anthropic');
+  });
+
+  it('selects a valid Google credential when unrelated provider credentials are empty', () => {
+    const processEnv = {
+      GOOGLE_GENERATIVE_AI_API_KEY: 'google-key',
+      OPENAI_API_KEY: '',
+      ANTHROPIC_API_KEY: '',
+      ANTHROPIC_AUTH_TOKEN: '',
+      XAI_API_KEY: '',
+      GITHUB_TOKEN: '',
+      GITHUB_COPILOT_TOKEN: '',
+      POE_API_KEY: '',
+      OPENCODE_API_KEY: '',
+      GITLAB_TOKEN: '',
+    };
+
+    expect(resolveOpenCodeEnv({ auth: 'auto', processEnv })).toEqual({
+      GOOGLE_GENERATIVE_AI_API_KEY: 'google-key',
+    });
+    expect(
+      resolveOpenCodeAuthenticationMode({ auth: 'auto', processEnv }),
+    ).toBe('google');
+  });
+
+  it.each(['anthropic', 'openai'] as const)(
+    'keeps explicit %s authentication authoritative over ambient Google credentials',
+    auth => {
+      const processEnv = {
+        ANTHROPIC_API_KEY: 'anthropic-key',
+        OPENAI_API_KEY: 'openai-key',
+        GOOGLE_GENERATIVE_AI_API_KEY: 'google-key',
+      };
+
+      expect(resolveOpenCodeEnv({ auth, processEnv })).toEqual(
+        auth === 'anthropic'
+          ? { ANTHROPIC_API_KEY: 'anthropic-key' }
+          : { OPENAI_API_KEY: 'openai-key' },
+      );
+      expect(resolveOpenCodeAuthenticationMode({ auth, processEnv })).toBe(
+        auth,
+      );
+    },
+  );
+
+  it('preserves the Anthropic fallback for mixed direct-provider credentials', () => {
+    const processEnv = {
+      ANTHROPIC_API_KEY: 'anthropic-key',
+      GOOGLE_GENERATIVE_AI_API_KEY: 'google-key',
+    };
+
+    expect(resolveOpenCodeEnv({ auth: 'auto', processEnv })).toEqual({
+      ANTHROPIC_API_KEY: 'anthropic-key',
+    });
+    expect(
+      resolveOpenCodeAuthenticationMode({ auth: 'auto', processEnv }),
+    ).toBe('anthropic');
+  });
+
   it('rejects nested authentication objects before reading ambient credentials', () => {
     const auth = { openai: { apiKey: 'legacy-key' } } as never;
 
@@ -139,6 +232,37 @@ describe('OpenCode auth', () => {
       AI_GATEWAY_API_KEY: 'gw-mode',
       AI_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh/v1',
     });
+  });
+});
+
+describe('resolveOpenCodeAuthentication', () => {
+  it('never reads native subscriptions for Gateway auth', async () => {
+    const readSubscription = vi.fn();
+    await expect(
+      resolveOpenCodeAuthentication({
+        auth: 'ai-gateway',
+        provider: 'openai',
+        processEnv: { AI_GATEWAY_API_KEY: 'gateway-key' },
+        readSubscription,
+      }),
+    ).resolves.toMatchObject({ authenticationMode: 'ai-gateway' });
+    expect(readSubscription).not.toHaveBeenCalled();
+  });
+
+  it('prefers a provider API key before native subscriptions', async () => {
+    const readSubscription = vi.fn();
+    await expect(
+      resolveOpenCodeAuthentication({
+        auth: 'auto',
+        provider: 'xai',
+        processEnv: { XAI_API_KEY: 'environment-key' },
+        readSubscription,
+      }),
+    ).resolves.toEqual({
+      authenticationMode: 'xai',
+      environment: { XAI_API_KEY: 'environment-key' },
+    });
+    expect(readSubscription).not.toHaveBeenCalled();
   });
 });
 
@@ -283,6 +407,43 @@ describe('createOpenCodeRequestTransformations', () => {
         },
         transform: {
           headers: { Authorization: 'Bearer token-secret' },
+        },
+      },
+    ]);
+  });
+
+  it('brokers the Google API key header', async () => {
+    const environment = {
+      GOOGLE_GENERATIVE_AI_API_KEY: 'google-secret',
+    };
+    const sandboxEnvironment = await resolveSandboxCredentialEnvironment({
+      environment,
+      credentialEnvironmentVariables: OPENCODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
+      credentialForwarding: () => 'sandbox-google-secret',
+    });
+
+    expect(sandboxEnvironment).toEqual({
+      GOOGLE_GENERATIVE_AI_API_KEY: 'sandbox-google-secret',
+    });
+    expect(
+      createOpenCodeRequestTransformations({
+        env: environment,
+        sandboxEnv: sandboxEnvironment,
+        auth: 'google',
+      }),
+    ).toEqual([
+      {
+        match: {
+          host: 'generativelanguage.googleapis.com',
+          headers: [
+            {
+              key: { exact: 'x-goog-api-key' },
+              value: { exact: 'sandbox-google-secret' },
+            },
+          ],
+        },
+        transform: {
+          headers: { 'x-goog-api-key': 'google-secret' },
         },
       },
     ]);

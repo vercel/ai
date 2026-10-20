@@ -1,5 +1,381 @@
 # @ai-sdk/minimax
 
+## 3.0.61
+
+### Patch Changes
+
+- 9d13c4d: Add the MiniMax M3.1 Flash model ID to the MiniMax and AI Gateway providers.
+- Updated dependencies [9d13c4d]
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+  - @ai-sdk/anthropic@4.0.84
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+
+## 3.0.60
+
+### Patch Changes
+
+- Updated dependencies [60cc252]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/anthropic@4.0.83
+  - @ai-sdk/provider-utils@5.0.63
+
+## 3.0.59
+
+### Patch Changes
+
+- Updated dependencies [0957554]
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+  - @ai-sdk/anthropic@4.0.82
+
+## 3.0.58
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+- Updated dependencies [e254e96]
+  - @ai-sdk/provider@4.0.28
+  - @ai-sdk/anthropic@4.0.81
+  - @ai-sdk/provider-utils@5.0.61
+
+## 3.0.57
+
+### Patch Changes
+
+- Updated dependencies [2e89fa4]
+- Updated dependencies [40d0aec]
+- Updated dependencies [40a4ce1]
+  - @ai-sdk/provider-utils@5.0.60
+  - @ai-sdk/anthropic@4.0.80
+
+## 3.0.56
+
+### Patch Changes
+
+- Updated dependencies [1ccc7fb]
+- Updated dependencies [9667bf2]
+- Updated dependencies [c91c857]
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+- Updated dependencies [e57803c]
+  - @ai-sdk/anthropic@4.0.79
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/provider@4.0.27
+
+## 3.0.55
+
+### Patch Changes
+
+- Updated dependencies [4dbc902]
+  - @ai-sdk/provider@4.0.26
+  - @ai-sdk/anthropic@4.0.78
+  - @ai-sdk/provider-utils@5.0.58
+
+## 3.0.54
+
+### Patch Changes
+
+- Updated dependencies [c01cbb8]
+  - @ai-sdk/anthropic@4.0.77
+
+## 3.0.53
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider@4.0.25
+  - @ai-sdk/provider-utils@5.0.57
+  - @ai-sdk/anthropic@4.0.76
+
+## 3.0.52
+
+### Patch Changes
+
+- Updated dependencies [866e884]
+  - @ai-sdk/anthropic@4.0.75
+
+## 3.0.51
+
+### Patch Changes
+
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/anthropic@4.0.74
+  - @ai-sdk/provider-utils@5.0.56
+
+## 3.0.50
+
+### Patch Changes
+
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/anthropic@4.0.73
+  - @ai-sdk/provider@4.0.23
+
+## 3.0.49
+
+### Patch Changes
+
+- Updated dependencies [2959d35]
+- Updated dependencies [b5dfea1]
+- Updated dependencies [686cca9]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+  - @ai-sdk/anthropic@4.0.72
+
+## 3.0.48
+
+### Patch Changes
+
+- Updated dependencies [c35458e]
+  - @ai-sdk/anthropic@4.0.71
+
+## 3.0.47
+
+### Patch Changes
+
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+  - @ai-sdk/anthropic@4.0.70
+
+## 3.0.46
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [ede5b89]
+- Updated dependencies [a587f55]
+  - @ai-sdk/anthropic@4.0.69
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
+## 3.0.45
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/anthropic@4.0.68
+  - @ai-sdk/provider-utils@5.0.51
+
+## 3.0.44
+
+### Patch Changes
+
+- Updated dependencies [e361d39]
+- Updated dependencies [8373a22]
+  - @ai-sdk/anthropic@4.0.67
+
+## 3.0.43
+
+### Patch Changes
+
+- Updated dependencies [e3605f6]
+- Updated dependencies [525efc5]
+  - @ai-sdk/provider-utils@5.0.50
+  - @ai-sdk/provider@4.0.19
+  - @ai-sdk/anthropic@4.0.66
+
+## 3.0.42
+
+### Patch Changes
+
+- Updated dependencies [af9597b]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/provider-utils@5.0.49
+  - @ai-sdk/anthropic@4.0.65
+
+## 3.0.41
+
+### Patch Changes
+
+- Updated dependencies [67f8000]
+- Updated dependencies [be877ff]
+  - @ai-sdk/anthropic@4.0.64
+  - @ai-sdk/provider-utils@5.0.48
+
+## 3.0.40
+
+### Patch Changes
+
+- Updated dependencies [154221f]
+  - @ai-sdk/anthropic@4.0.63
+
+## 3.0.39
+
+### Patch Changes
+
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [771e74b]
+  - @ai-sdk/provider-utils@5.0.47
+  - @ai-sdk/anthropic@4.0.62
+
+## 3.0.38
+
+### Patch Changes
+
+- Updated dependencies [ffb0e76]
+- Updated dependencies [3733d6e]
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/anthropic@4.0.61
+  - @ai-sdk/provider-utils@5.0.46
+
+## 3.0.37
+
+### Patch Changes
+
+- Updated dependencies [49295bb]
+  - @ai-sdk/anthropic@4.0.60
+
+## 3.0.36
+
+### Patch Changes
+
+- Updated dependencies [f7b7b2a]
+  - @ai-sdk/anthropic@4.0.59
+
+## 3.0.35
+
+### Patch Changes
+
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+  - @ai-sdk/anthropic@4.0.58
+
+## 3.0.34
+
+### Patch Changes
+
+- Updated dependencies [0455398]
+  - @ai-sdk/provider-utils@5.0.44
+  - @ai-sdk/anthropic@4.0.57
+
+## 3.0.33
+
+### Patch Changes
+
+- Updated dependencies [d4d96bf]
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [a7dd893]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/anthropic@4.0.56
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/provider@4.0.17
+
+## 3.0.32
+
+### Patch Changes
+
+- Updated dependencies [132bdae]
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/anthropic@4.0.55
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/provider@4.0.16
+
+## 3.0.31
+
+### Patch Changes
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+  - @ai-sdk/anthropic@4.0.54
+  - @ai-sdk/provider-utils@5.0.41
+
+## 3.0.30
+
+### Patch Changes
+
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+- Updated dependencies [e4292e7]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/anthropic@4.0.53
+  - @ai-sdk/provider@4.0.14
+  - @ai-sdk/provider-utils@5.0.40
+
+## 3.0.29
+
+### Patch Changes
+
+- ef3bac4: Forward `webhookUrl` as `callback_url` in `doStart` for application-owned receivers. Document challenge verification and terminal-status handling requirements. `generateVideo({ webhook })` continues to fall back to SDK polling without invoking the webhook factory.
+- Updated dependencies [9942196]
+- Updated dependencies [5a7e647]
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/anthropic@4.0.52
+  - @ai-sdk/provider-utils@5.0.39
+
+## 3.0.28
+
+### Patch Changes
+
+- Updated dependencies [912fb01]
+  - @ai-sdk/provider@4.0.12
+  - @ai-sdk/anthropic@4.0.51
+  - @ai-sdk/provider-utils@5.0.38
+
+## 3.0.27
+
+### Patch Changes
+
+- 46cea63: Add asynchronous start/status support for MiniMax video generation while preserving existing polling behavior.
+
+## 3.0.26
+
+### Patch Changes
+
+- Updated dependencies [a4ba394]
+- Updated dependencies [45099da]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/anthropic@4.0.50
+  - @ai-sdk/provider-utils@5.0.37
+
+## 3.0.25
+
+### Patch Changes
+
+- Updated dependencies [65397d7]
+  - @ai-sdk/anthropic@4.0.49
+
+## 3.0.24
+
+### Patch Changes
+
+- a580ec8: feat(minimax): validate video status polling redirects for MiniMax, Kling AI, and ByteDance
+- Updated dependencies [4d25a08]
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/anthropic@4.0.48
+  - @ai-sdk/provider-utils@5.0.36
+
+## 3.0.23
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+  - @ai-sdk/anthropic@4.0.47
+
 ## 3.0.22
 
 ### Patch Changes

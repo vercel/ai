@@ -1,5 +1,559 @@
 # @ai-sdk/harness-pi
 
+## 1.0.159
+
+### Patch Changes
+
+- 62b54a5: feat(harness-pi): add support for image input
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+- Updated dependencies [ca2a9f7]
+  - @ai-sdk/provider-utils@5.0.64
+  - @ai-sdk/harness@1.0.157
+
+## 1.0.158
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.156
+
+## 1.0.157
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.155
+- @ai-sdk/provider-utils@5.0.63
+
+## 1.0.156
+
+### Patch Changes
+
+- Updated dependencies [0957554]
+  - @ai-sdk/provider-utils@5.0.62
+  - @ai-sdk/harness@1.0.154
+
+## 1.0.155
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.153
+- @ai-sdk/provider-utils@5.0.61
+
+## 1.0.154
+
+### Patch Changes
+
+- 90983d7: feat(harness-pi): add configurable writable sandbox roots for Pi's native file tools
+- d10fa3e: feat(harness-pi): pass the harness session to extension factories
+
+  Each `extensionFactories` entry now receives a second argument, a `PiHarnessExtensionSession` with the restricted `sandboxSession`, the `sessionWorkDir` and an `instructions()` getter for the current turn's instructions. An extension can now run work against the session's sandbox with the session's instructions, such as a tool that delegates to a child Pi session. Existing `(pi) => void` factories keep working unchanged.
+
+- 9323fdb: feat(harness-pi): serve mcpServers with Pi's native MCP and tool_search
+
+  `mcpServers` is now served by Pi's built-in MCP extension and its `tool_search` tool instead of `pi-mcp-adapter`, which is no longer a dependency. Each entry is Pi's `McpServerConfig`: stdio `{ command, args, env, cwd }` or streamable HTTP `{ url, headers, timeout }`, plus `exposure`, `toolExposure`, `enabled` and `description`. The setting stays typed as `Record<string, unknown>` like the other harnesses; type entries with the exported `PiMcpServerConfig`. Fields that only the adapter understood, such as `lifecycle`, are no longer supported.
+
+  Tool names are always `mcp__<server>__<tool>`, with `-` in either name replaced by `_`, so a server named `brand-ai` now yields `mcp__brand_ai__<tool>`. `exposure` defaults to `direct`, which declares a server's tools to the model. `deferred` tools stay undeclared until the model loads them through `tool_search` and then calls them by name. Pi's own default, `codemode`, is not supported because the harness does not load Pi's codemode extension; an entry that asks for it fails session start, as does an entry Pi rejects.
+
+  `mcpSettings.toolPrefix` and `mcpSettings.outputGuard` are deprecated. A `toolPrefix` other than `'mcp'` or `outputGuard: false` now fails session start, since native MCP cannot honor either. Pi truncates text results over 20 KB and writes the full text to a file in the host temp directory.
+
+  The harness has no sign-in flow, so an HTTP server that requires authentication must carry an `Authorization` header or `auth.provider`; with the header, OAuth never runs. The harness reads no `mcp.json` and neither reads nor writes `mcp.log` or `mcp-auth.json`, so a sign-in stored by the Pi CLI is never sent. `@earendil-works/pi-ai` is no longer a direct dependency.
+
+- 286e0c7: fix(harness-pi): return images from the read tool as image blocks
+
+  The `read` tool decoded every file as UTF-8, so the model received an image as unreadable text. The tool now runs Pi's own `createReadToolDefinition` over the sandbox: PNG, JPEG, GIF, WebP and BMP files come back as image blocks that Pi resizes, and text reads keep Pi's truncation and paging notices. The tool still takes `file_path`, and path mapping and `fileToolPathPolicy` apply as before.
+
+- 8ae0804: fix(harness-pi): judge a turn by its last attempt and keep suspend errors out of the stream
+
+  A turn that Pi recovered by retrying a failed request (rate limit, overload, context overflow after compaction) ended with an `error` part, because the first terminal error seen was kept for the whole turn. The last assistant message now decides the outcome, so a recovered turn ends with `finish`.
+
+  Once `doSuspendTurn` has begun, every terminal or thrown error of the turn being cut belongs to the suspend and no longer emits an `error` part. Before, only errors that looked like an abort were kept silent, and a request Pi started on an already-aborted signal reports `stopReason: 'error'` ("This operation was aborted") while a provider can also fail during the cut. Reporting such an error ended the slice as failed with the unfinished turn nested in its resume state, and a session built from that state refused every later prompt.
+
+- Updated dependencies [2e89fa4]
+  - @ai-sdk/provider-utils@5.0.60
+  - @ai-sdk/harness@1.0.152
+
+## 1.0.153
+
+### Patch Changes
+
+- 6c65131: feat(harness): consistently support parallel and sequential tool approvals
+- 1bebfcf: feat(harness): add support for tools with `toModelOutput()` transformation
+- Updated dependencies [6c65131]
+- Updated dependencies [1bebfcf]
+  - @ai-sdk/harness@1.0.151
+
+## 1.0.152
+
+### Patch Changes
+
+- Updated dependencies [6617f11]
+- Updated dependencies [aae69cb]
+- Updated dependencies [a7a66f5]
+- Updated dependencies [52e3f53]
+- Updated dependencies [6c0295c]
+  - @ai-sdk/harness@1.0.150
+
+## 1.0.151
+
+### Patch Changes
+
+- 1da6adb: fix(harness-pi): preserve meaningful tool result envelopes and emit JSON-safe empty text results
+- Updated dependencies [9667bf2]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/harness@1.0.149
+
+## 1.0.150
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.148
+
+## 1.0.149
+
+### Patch Changes
+
+- c357e52: chore(harness): update primary harness SDKs to their latest versions
+  - @ai-sdk/harness@1.0.147
+
+## 1.0.148
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.146
+- @ai-sdk/provider-utils@5.0.58
+
+## 1.0.147
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.145
+
+## 1.0.146
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider-utils@5.0.57
+  - @ai-sdk/harness@1.0.144
+
+## 1.0.145
+
+### Patch Changes
+
+- c371c00: feat(harness-pi): add a `cacheRetention` setting that is passed to every Pi model request, so Anthropic models can use the 1-hour prompt cache
+- 5901911: fix(harness-pi): stream extension-registered tools as provider-executed dynamic tools, and close a compaction that arrives after the turn's last step in its own step
+- d7dedf2: fix(harness-pi): shut down MCP servers on dispose without reloading the Pi session
+- 10bc612: fix(harness-pi): report real step and turn usage
+
+  `finish-step` usage was always zero, and `finish.totalUsage` was the running total of the whole Pi session, not the usage of the current turn. Each step now reports the usage of its assistant message. The turn reports the change in Pi's session stats across the prompt. `inputTokens.total` now includes cached input. `noCache` is set, and `outputTokens.text` and `reasoning` are set when the provider reports reasoning tokens.
+
+- cadd7c1: fix(harness-pi): fail the turn when the requested model is not in Pi's model catalog instead of silently running on the previous model
+- 21148df: feat(harness-pi): add `mcpSettings` to configure the MCP adapter's tool prefix and output guard
+- d45e044: feat(harness-pi): add `fileToolPathPolicy` setting with readable and denied roots for native file tools
+- Updated dependencies [c4a5c8d]
+- Updated dependencies [50ac48b]
+- Updated dependencies [e8af189]
+  - @ai-sdk/harness@1.0.143
+
+## 1.0.144
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.142
+
+## 1.0.143
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.141
+- @ai-sdk/provider-utils@5.0.56
+
+## 1.0.142
+
+### Patch Changes
+
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+- Updated dependencies [4c6979c]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/harness@1.0.140
+
+## 1.0.141
+
+### Patch Changes
+
+- Updated dependencies [2959d35]
+- Updated dependencies [e7da240]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider-utils@5.0.54
+  - @ai-sdk/harness@1.0.139
+
+## 1.0.140
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.138
+
+## 1.0.139
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.137
+
+## 1.0.138
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.136
+
+## 1.0.137
+
+### Patch Changes
+
+- Updated dependencies [8c65988]
+- Updated dependencies [8182916]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider-utils@5.0.53
+  - @ai-sdk/harness@1.0.135
+
+## 1.0.136
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [ede5b89]
+  - @ai-sdk/harness@1.0.134
+  - @ai-sdk/provider-utils@5.0.52
+
+## 1.0.135
+
+### Patch Changes
+
+- Updated dependencies [b2049fa]
+- Updated dependencies [11f0e71]
+- Updated dependencies [2b9195b]
+- Updated dependencies [446725d]
+  - @ai-sdk/harness@1.0.133
+
+## 1.0.134
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.132
+
+## 1.0.133
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/provider-utils@5.0.51
+  - @ai-sdk/harness@1.0.131
+
+## 1.0.132
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.130
+
+## 1.0.131
+
+### Patch Changes
+
+- Updated dependencies [e3605f6]
+- Updated dependencies [e5aeb11]
+- Updated dependencies [d99d6dc]
+  - @ai-sdk/provider-utils@5.0.50
+  - @ai-sdk/harness@1.0.129
+
+## 1.0.130
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.128
+
+## 1.0.129
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.127
+
+## 1.0.128
+
+### Patch Changes
+
+- af9597b: Compile packages for ES2022 runtime target
+- Updated dependencies [af9597b]
+- Updated dependencies [31742b9]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/harness@1.0.126
+  - @ai-sdk/provider-utils@5.0.49
+
+## 1.0.127
+
+### Patch Changes
+
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+  - @ai-sdk/harness@1.0.125
+
+## 1.0.126
+
+### Patch Changes
+
+- e9c5e0f: fix(harness-pi): release suspended sessions when in-process reattachment is disabled
+- 85f3ff6: fix(harness-pi): bound model-facing tool results and support paged file reads
+- Updated dependencies [40231b6]
+  - @ai-sdk/harness@1.0.124
+
+## 1.0.125
+
+### Patch Changes
+
+- 771e74b: chore: enable dead code lint rules
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [9c8c0c1]
+- Updated dependencies [771e74b]
+- Updated dependencies [7115a3f]
+  - @ai-sdk/provider-utils@5.0.47
+  - @ai-sdk/harness@1.0.123
+
+## 1.0.124
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.122
+- @ai-sdk/provider-utils@5.0.46
+
+## 1.0.123
+
+### Patch Changes
+
+- Updated dependencies [3ea56bc]
+  - @ai-sdk/harness@1.0.121
+
+## 1.0.122
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.120
+
+## 1.0.121
+
+### Patch Changes
+
+- 9e9f18f: fix(harness-pi): support stateless session restoration and injected credentials
+- 2adbb77: feat(harness): update underlying harness SDKs to their latest versions
+- Updated dependencies [125f493]
+  - @ai-sdk/harness@1.0.119
+
+## 1.0.120
+
+### Patch Changes
+
+- f39733b: fix(sandbox-just-bash): seed `realpath` binary via `readlink` so that it is available to consumers that require it, such as the Pi harness
+- a0f7700: fix(harness-pi): make grep compatible with just-bash sandboxes while preserving matches alongside bounded traversal diagnostics
+- Updated dependencies [d975097]
+- Updated dependencies [b2baeba]
+  - @ai-sdk/harness@1.0.118
+
+## 1.0.119
+
+### Patch Changes
+
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+  - @ai-sdk/harness@1.0.117
+
+## 1.0.118
+
+### Patch Changes
+
+- e93dce0: fix(harness-pi): use compatible flags when listing sandbox directories
+- Updated dependencies [0455398]
+  - @ai-sdk/provider-utils@5.0.44
+  - @ai-sdk/harness@1.0.116
+
+## 1.0.117
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.115
+
+## 1.0.116
+
+### Patch Changes
+
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/harness@1.0.114
+
+## 1.0.115
+
+### Patch Changes
+
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/harness@1.0.113
+
+## 1.0.114
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.112
+- @ai-sdk/provider-utils@5.0.41
+
+## 1.0.113
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.111
+
+## 1.0.112
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.110
+
+## 1.0.111
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.109
+
+## 1.0.110
+
+### Patch Changes
+
+- 3df6dc6: fix(harness-pi): initialize cold resumed sessions before compaction
+- 3cd6dd8: fix(harness-pi): surface terminal provider errors before successful step boundaries
+- cdc12a1: feat(harness): add support for using adapter-native subscriptions where available
+- c550630: fix(harness-pi): register explicit custom provider models and prefer authenticated providers during model resolution
+- Updated dependencies [4d1bf28]
+- Updated dependencies [cdc12a1]
+- Updated dependencies [d70a334]
+- Updated dependencies [81ba84c]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/harness@1.0.108
+  - @ai-sdk/provider-utils@5.0.40
+
+## 1.0.109
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.107
+- @ai-sdk/provider-utils@5.0.39
+
+## 1.0.108
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.106
+- @ai-sdk/provider-utils@5.0.38
+
+## 1.0.107
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.105
+
+## 1.0.106
+
+### Patch Changes
+
+- c04ded8: chore(harness): remove formerly deprecated `model` and `modelId` config on harness adapter settings
+- Updated dependencies [c04ded8]
+  - @ai-sdk/harness@1.0.104
+
+## 1.0.105
+
+### Patch Changes
+
+- a514695: fix(harness-pi): let extensions read host-backed session workspaces
+- c359fc0: fix(harness-pi): expose tools registered by inline extensions to models
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider-utils@5.0.37
+  - @ai-sdk/harness@1.0.103
+
+## 1.0.104
+
+### Patch Changes
+
+- eeed977: feat(harness): allow passing arbitrary headers with inference requests via `headers` property in `HarnessAgentSettings`
+- a39c8bf: chore(harness): clarify `writeSkills` helper intent to require materializing skills in HOME directory
+- Updated dependencies [fe86f8f]
+- Updated dependencies [255cccf]
+- Updated dependencies [eeed977]
+- Updated dependencies [a39c8bf]
+  - @ai-sdk/harness@1.0.102
+
+## 1.0.103
+
+### Patch Changes
+
+- 951c54d: feat(harness): support `askUserQuestions` tool including support for normalization across harness adapters
+- Updated dependencies [951c54d]
+  - @ai-sdk/harness@1.0.101
+
+## 1.0.102
+
+### Patch Changes
+
+- 7c3211d: fix (harness-pi): transfer the workspace mirror as batched archives instead of one request per file
+- Updated dependencies [0c37bf0]
+  - @ai-sdk/harness@1.0.100
+
+## 1.0.101
+
+### Patch Changes
+
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+  - @ai-sdk/harness@1.0.99
+
+## 1.0.100
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider-utils@5.0.35
+  - @ai-sdk/harness@1.0.98
+
+## 1.0.99
+
+### Patch Changes
+
+- e115d16: fix(harness-pi): stream Pi tool input while it is generated
+  - @ai-sdk/harness@1.0.97
+
+## 1.0.98
+
+### Patch Changes
+
+- Updated dependencies [c0c7fac]
+  - @ai-sdk/harness@1.0.96
+
+## 1.0.97
+
+### Patch Changes
+
+- Updated dependencies [371e954]
+- Updated dependencies [87b4858]
+  - @ai-sdk/harness@1.0.95
+
 ## 1.0.96
 
 ### Patch Changes

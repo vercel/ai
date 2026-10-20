@@ -67,6 +67,11 @@ export type TranscriptionModelV4StreamPart =
       }>;
       language?: string;
       durationInSeconds?: number;
+      /**
+       * Usage information reported by the provider, in the provider's native
+       * JSON-compatible shape.
+       */
+      usage?: JSONObject;
       providerMetadata?: Record<string, JSONObject>;
     }
   | {

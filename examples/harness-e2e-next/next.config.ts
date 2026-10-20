@@ -10,8 +10,11 @@ const nextConfig: NextConfig = {
   env: {
     WS_NO_BUFFER_UTIL: '1',
   },
+  transpilePackages: ['pi-mcp-adapter'],
   serverExternalPackages: [
+    'libfx',
     '@cline/agents',
+    '@cline/core',
     '@earendil-works/pi-coding-agent',
     '@vercel/oidc',
   ],
@@ -22,7 +25,9 @@ const nextConfig: NextConfig = {
     ) => {
       if (
         request &&
-        (request.startsWith('@cline/') ||
+        (request === 'libfx' ||
+          request.startsWith('libfx/') ||
+          request.startsWith('@cline/') ||
           request.startsWith('@earendil-works/'))
       ) {
         return callback(null, `import ${request}`);
