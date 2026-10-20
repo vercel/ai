@@ -520,6 +520,20 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
         'Callback invoked after each agent step (LLM/tool call) completes. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first).',
     },
     {
+      name: 'onStepError',
+      type: '(event: GenerateTextStepErrorEvent) => Promise<void> | void',
+      isOptional: true,
+      description:
+        'Callback invoked when an agent step that started fails before it produces a step result, for example when the provider call fails or the model stream ends without output. `onStepEnd` is not called for such a step. The event has `callId`, `provider`, `modelId`, `stepNumber`, and `error`. Not called when the call is aborted or times out. Only available in the constructor.',
+    },
+    {
+      name: 'onError',
+      type: '(event: { error: unknown }) => Promise<void> | void',
+      isOptional: true,
+      description:
+        'Callback invoked when an error occurs. For `stream()` it receives the errors of the stream, for `generate()` it receives the error before it is thrown. When not set, `stream()` logs errors to the console. Only available in the constructor.',
+    },
+    {
       name: 'onStepFinish',
       type: 'GenerateTextOnStepFinishCallback',
       isOptional: true,

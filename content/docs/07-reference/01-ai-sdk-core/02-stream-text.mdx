@@ -1728,6 +1728,46 @@ retain the content their contracts require.
       ],
     },
     {
+      name: 'onStepError',
+      type: '(event: GenerateTextStepErrorEvent) => Promise<void> | void',
+      isOptional: true,
+      description:
+        'Callback that is called when a step that started fails before it produces a step result, for example when the provider call fails or the model stream ends without output. `onStepEnd` is not called for such a step. Not called when the stream is aborted or times out.',
+      properties: [
+        {
+          type: 'GenerateTextStepErrorEvent',
+          parameters: [
+            {
+              name: 'callId',
+              type: 'string',
+              description:
+                'Unique identifier for this generation call, used to correlate events.',
+            },
+            {
+              name: 'provider',
+              type: 'string',
+              description: 'The provider identifier.',
+            },
+            {
+              name: 'modelId',
+              type: 'string',
+              description: 'The model identifier.',
+            },
+            {
+              name: 'stepNumber',
+              type: 'number',
+              description: 'Zero-based index of the step that failed.',
+            },
+            {
+              name: 'error',
+              type: 'unknown',
+              description: 'The error that ended the step.',
+            },
+          ],
+        },
+      ],
+    },
+    {
       name: 'onStepFinish',
       type: 'GenerateTextOnStepFinishCallback<TOOLS>',
       isOptional: true,
