@@ -253,6 +253,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
             if (part != null) {
               part.state = options.state;
+              anyPart.type = `tool-${options.toolName}`;
               anyPart.input = anyOptions.input;
               anyPart.output = anyOptions.output;
               anyPart.errorText = anyOptions.errorText;
