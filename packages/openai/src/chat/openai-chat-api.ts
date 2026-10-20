@@ -199,7 +199,7 @@ export const openaiChatChunkSchema = lazyValidator(() =>
           })
           .nullish(),
       }),
-      openaiErrorDataSchema,
+      openaiErrorDataSchema(),
     ]),
   ),
 );

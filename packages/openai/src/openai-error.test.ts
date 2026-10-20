@@ -1,5 +1,8 @@
 import { safeParseJSON } from '@ai-sdk/provider-utils';
-import { openaiErrorDataSchema } from './openai-error';
+import {
+  openaiErrorDataSchemaValidator,
+  openaiErrorDataSchema,
+} from './openai-error';
 import { describe, it, expect } from 'vitest';
 
 describe('openaiErrorDataSchema', () => {
@@ -10,7 +13,7 @@ describe('openaiErrorDataSchema', () => {
 
     const result = await safeParseJSON({
       text: error,
-      schema: openaiErrorDataSchema,
+      schema: openaiErrorDataSchemaValidator,
     });
 
     expect(result).toStrictEqual({
