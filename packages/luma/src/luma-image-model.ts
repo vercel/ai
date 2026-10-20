@@ -11,6 +11,7 @@ import {
   createJsonErrorResponseHandler,
   createStatusCodeErrorResponseHandler,
   delay,
+  encodePathSegment,
   getFromApi,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
@@ -175,9 +176,7 @@ export class LumaImageModel implements ImageModelV2 {
   }
 
   private getLumaGenerationsUrl(generationId?: string) {
-    return `${this.config.baseURL}/dream-machine/v1/generations/${
-      generationId ?? 'image'
-    }`;
+    return `${this.config.baseURL}/dream-machine/v1/generations/${encodePathSegment(generationId ?? 'image')}`;
   }
 
   private async downloadImage(
