@@ -6,6 +6,9 @@ import {
   type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
   combineHeaders,
   convertUint8ArrayToBase64,
   createJsonResponseHandler,
@@ -607,33 +610,41 @@ export class XaiVideoModel implements Experimental_VideoModelV3 {
   }
 }
 
-const xaiCreateVideoResponseSchema = z.object({
-  request_id: z.string().nullish(),
-});
+const xaiCreateVideoResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      request_id: z.string().nullish(),
+    }),
+  ),
+);
 
-const xaiVideoStatusResponseSchema = z.object({
-  status: z.string().nullish(),
-  video: z
-    .object({
-      url: z.string(),
-      duration: z.number().nullish(),
-      respect_moderation: z.boolean().nullish(),
-    })
-    .nullish(),
-  model: z.string().nullish(),
-  usage: z
-    .object({
-      cost_in_usd_ticks: z.number().nullish(),
-    })
-    .nullish(),
-  progress: z.number().nullish(),
-  error: z
-    .object({
-      code: z.string().nullish(),
-      message: z.string().nullish(),
-    })
-    .nullish(),
-});
+const xaiVideoStatusResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      status: z.string().nullish(),
+      video: z
+        .object({
+          url: z.string(),
+          duration: z.number().nullish(),
+          respect_moderation: z.boolean().nullish(),
+        })
+        .nullish(),
+      model: z.string().nullish(),
+      usage: z
+        .object({
+          cost_in_usd_ticks: z.number().nullish(),
+        })
+        .nullish(),
+      progress: z.number().nullish(),
+      error: z
+        .object({
+          code: z.string().nullish(),
+          message: z.string().nullish(),
+        })
+        .nullish(),
+    }),
+  ),
+);
 
 const xaiVideoStatusJsonResponseHandler = createJsonResponseHandler(
   xaiVideoStatusResponseSchema,
@@ -692,7 +703,7 @@ async function readPendingBody({
 }
 
 const xaiVideoStatusResponseHandler: ResponseHandler<
-  z.infer<typeof xaiVideoStatusResponseSchema>
+  InferSchema<typeof xaiVideoStatusResponseSchema>
 > = async options => {
   // xAI answers 202 while a generation is still running, sometimes with an
   // empty body. Read it rather than cancelling: `body.cancel()` never settles

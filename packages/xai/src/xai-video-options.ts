@@ -1,12 +1,13 @@
 import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-const nonEmptyStringSchema = z.string().min(1);
-const resolutionSchema = z.enum(['480p', '720p', '1080p']);
-const modeSchema = z.enum(['edit-video', 'extend-video', 'reference-to-video']);
+const nonEmptyStringSchema = () => z.string().min(1);
+const resolutionSchema = () => z.enum(['480p', '720p', '1080p']);
+const modeSchema = () =>
+  z.enum(['edit-video', 'extend-video', 'reference-to-video']);
 
-export type XaiVideoMode = z.infer<typeof modeSchema>;
-type XaiVideoResolution = z.infer<typeof resolutionSchema>;
+export type XaiVideoMode = z.infer<ReturnType<typeof modeSchema>>;
+type XaiVideoResolution = z.infer<ReturnType<typeof resolutionSchema>>;
 
 interface XaiVideoSharedOptions {
   pollIntervalMs?: number | null;
@@ -111,75 +112,94 @@ export type XaiVideoModelOptions =
   | XaiLegacyReferenceToVideoOptions;
 
 // ── Runtime schemas ───────────────────────────────────────────────────
-const baseFields = {
+const baseFields = () => ({
   pollIntervalMs: z.number().positive().nullish(),
   pollTimeoutMs: z.number().positive().nullish(),
-  resolution: resolutionSchema.nullish(),
-};
+  resolution: resolutionSchema().nullish(),
+});
 
-const userField = {
+const userField = () => ({
   user: z.string().optional(),
-};
-
-const referenceVoiceIdsField = {
-  referenceVoiceIds: z.array(nonEmptyStringSchema).max(3).optional(),
-};
-
-const editVideoSchema = z.object({
-  ...baseFields,
-  ...userField,
-  mode: z.literal('edit-video'),
-  videoUrl: nonEmptyStringSchema,
-  referenceImageUrls: z.undefined().optional(),
-  referenceVoiceIds: z.undefined().optional(),
 });
 
-const extendVideoSchema = z.object({
-  ...baseFields,
-  mode: z.literal('extend-video'),
-  videoUrl: nonEmptyStringSchema,
-  referenceImageUrls: z.undefined().optional(),
-  referenceVoiceIds: z.undefined().optional(),
+const referenceVoiceIdsField = () => ({
+  referenceVoiceIds: z.array(nonEmptyStringSchema()).max(3).optional(),
 });
 
-const referenceToVideoSchema = z.object({
-  ...baseFields,
-  ...userField,
-  ...referenceVoiceIdsField,
-  mode: z.literal('reference-to-video'),
-  referenceImageUrls: z.array(nonEmptyStringSchema).min(1).max(7),
-  videoUrl: z.undefined().optional(),
-});
+const editVideoSchema = () =>
+  z.object({
+    ...baseFields(),
+    ...userField(),
+    mode: z.literal('edit-video'),
+    videoUrl: nonEmptyStringSchema(),
+    referenceImageUrls: z.undefined().optional(),
+    referenceVoiceIds: z.undefined().optional(),
+  });
 
-const autoDetectSchema = z.object({
-  ...baseFields,
-  ...userField,
-  ...referenceVoiceIdsField,
-  mode: z.undefined().optional(),
-  videoUrl: nonEmptyStringSchema.optional(),
-  referenceImageUrls: z.array(nonEmptyStringSchema).min(1).max(7).optional(),
-});
+const extendVideoSchema = () =>
+  z.object({
+    ...baseFields(),
+    mode: z.literal('extend-video'),
+    videoUrl: nonEmptyStringSchema(),
+    referenceImageUrls: z.undefined().optional(),
+    referenceVoiceIds: z.undefined().optional(),
+  });
 
-export const xaiVideoModelOptions = z.union([
-  editVideoSchema,
-  extendVideoSchema,
-  referenceToVideoSchema,
-  autoDetectSchema,
-]);
+const referenceToVideoSchema = () =>
+  z.object({
+    ...baseFields(),
+    ...userField(),
+    ...referenceVoiceIdsField(),
+    mode: z.literal('reference-to-video'),
+    referenceImageUrls: z.array(nonEmptyStringSchema()).min(1).max(7),
+    videoUrl: z.undefined().optional(),
+  });
 
-const runtimeSchema = z
-  .object({
-    mode: modeSchema.optional(),
-    videoUrl: nonEmptyStringSchema.optional(),
-    referenceImageUrls: z.array(nonEmptyStringSchema).min(1).max(7).optional(),
-    referenceVoiceIds: z.array(nonEmptyStringSchema).max(3).optional(),
-    user: z.string().optional(),
-    ...baseFields,
-  })
-  .passthrough();
+const autoDetectSchema = () =>
+  z.object({
+    ...baseFields(),
+    ...userField(),
+    ...referenceVoiceIdsField(),
+    mode: z.undefined().optional(),
+    videoUrl: nonEmptyStringSchema().optional(),
+    referenceImageUrls: z
+      .array(nonEmptyStringSchema())
+      .min(1)
+      .max(7)
+      .optional(),
+  });
 
-export type XaiParsedVideoModelOptions = z.infer<typeof runtimeSchema>;
+export const xaiVideoModelOptions = lazySchema(() =>
+  zodSchema(
+    z.union([
+      editVideoSchema(),
+      extendVideoSchema(),
+      referenceToVideoSchema(),
+      autoDetectSchema(),
+    ]),
+  ),
+);
+
+const runtimeSchema = () =>
+  z
+    .object({
+      mode: modeSchema().optional(),
+      videoUrl: nonEmptyStringSchema().optional(),
+      referenceImageUrls: z
+        .array(nonEmptyStringSchema())
+        .min(1)
+        .max(7)
+        .optional(),
+      referenceVoiceIds: z.array(nonEmptyStringSchema()).max(3).optional(),
+      user: z.string().optional(),
+      ...baseFields(),
+    })
+    .passthrough();
+
+export type XaiParsedVideoModelOptions = z.infer<
+  ReturnType<typeof runtimeSchema>
+>;
 
 export const xaiVideoModelOptionsSchema = lazySchema(() =>
-  zodSchema(runtimeSchema),
+  zodSchema(runtimeSchema()),
 );
