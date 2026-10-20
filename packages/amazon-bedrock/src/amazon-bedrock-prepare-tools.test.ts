@@ -821,12 +821,38 @@ describe('prepareTools', () => {
     });
 
     it.each([
+      'anthropic.claude-sonnet-5',
+      'us.anthropic.claude-opus-5',
+      'global.anthropic.claude-sonnet-5-5',
+      'global.anthropic.claude-haiku-5-5',
+    ])('should pass strict: true for Claude 5 model %s', async modelId => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'strictTool',
+            description: 'A strict tool',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+              additionalProperties: false,
+            },
+            strict: true,
+          },
+        ],
+        modelId,
+      });
+
+      const tools = result.toolConfig.tools!;
+      expect((tools[0] as any).toolSpec.strict).toBe(true);
+      expect(result.toolWarnings).toEqual([]);
+    });
+
+    it.each([
       'us.anthropic.claude-opus-6-v1:0',
       'global.anthropic.claude-future-v1:0',
       'us.anthropic.claude-opus-4-7',
       'anthropic.claude-opus-4-8',
-      'us.anthropic.claude-opus-5',
-      'anthropic.claude-sonnet-5',
       'eu.anthropic.claude-fable-5',
       'anthropic.claude-fable-5-1',
       'us.anthropic.claude-fable-5-1',
