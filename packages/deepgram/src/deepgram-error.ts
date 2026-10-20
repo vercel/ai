@@ -1,14 +1,23 @@
 import { z } from 'zod/v4';
-import { createJsonErrorResponseHandler } from '@ai-sdk/provider-utils';
+import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
+  createJsonErrorResponseHandler,
+} from '@ai-sdk/provider-utils';
 
-export const deepgramErrorDataSchema = z.object({
-  error: z.object({
-    message: z.string(),
-    code: z.number(),
-  }),
-});
+export const deepgramErrorDataSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      error: z.object({
+        message: z.string(),
+        code: z.number(),
+      }),
+    }),
+  ),
+);
 
-export type DeepgramErrorData = z.infer<typeof deepgramErrorDataSchema>;
+export type DeepgramErrorData = InferSchema<typeof deepgramErrorDataSchema>;
 
 export const deepgramFailedResponseHandler = createJsonErrorResponseHandler({
   errorSchema: deepgramErrorDataSchema,
