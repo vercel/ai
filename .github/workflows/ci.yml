@@ -64,24 +64,15 @@ jobs:
       fail-fast: false
       matrix:
         node: [22, 24, 26]
-        shard: [unsharded, 1/4, 2/4, 3/4, 4/4]
+        shard: [1/4, 2/4, 3/4, 4/4]
     env:
-      VITEST_SHARD: ${{ matrix.shard != 'unsharded' && matrix.shard || '' }}
+      VITEST_SHARD: ${{ matrix.shard }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup-ci
         with:
           node-version: ${{ matrix.node }}
-      - name: Record benchmark runner
-        run: node -e "console.log({node:process.version,cpus:require('node:os').availableParallelism(),memoryGB:require('node:os').totalmem()/2**30})"
-      - name: Build AI prerequisites
-        run: pnpm exec turbo run build --filter=ai
-      # Run the real test commands directly so every benchmark executes tests,
-      # while prerequisite builds can still use the shared Turbo cache.
-      - name: Benchmark Node tests
-        run: pnpm --filter ai test:node
-      - name: Benchmark Edge tests
-        run: pnpm --filter ai test:edge
+      - run: pnpm exec turbo run test:node test:edge --filter=ai --concurrency=1 --continue=dependencies-successful
 
   examples:
     name: Examples
