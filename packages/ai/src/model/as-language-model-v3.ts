@@ -99,5 +99,9 @@ function convertV2UsageToV3(usage: LanguageModelV2Usage): LanguageModelV3Usage {
       text: undefined,
       reasoning: usage.reasoningTokens,
     },
+    raw:
+      usage.totalTokens == null
+        ? undefined
+        : { totalTokens: usage.totalTokens },
   };
 }

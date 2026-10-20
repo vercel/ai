@@ -292,6 +292,13 @@ export function createGitHubCopilot(
      * so host tools must be exposed over the bridge's HTTP MCP endpoint.
      */
     hostToolMcpTransport: 'http',
+    /*
+     * Images from tool outputs are only processed with direct GitHub Copilot
+     * authentication. For third parties like AI Gateway, GitHub Copilot does
+     * not fetch the model catalog and therefore its check for image support
+     * from a tool output leads to it passing only the text.
+     */
+    nonTextContentTypes: ['image'],
     forwardEnv: ['COPILOT_GH_HOST', 'GH_HOST'],
     credentialEnv: ['COPILOT_GITHUB_TOKEN', 'GH_TOKEN', 'GITHUB_TOKEN'],
     credentialBrokering: ({ env, sandboxEnv, headers }) => {

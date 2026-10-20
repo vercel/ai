@@ -412,6 +412,25 @@ describe('doGenerate', () => {
     });
   });
 
+  it('coerces top-level max reasoning to xhigh with a warning', async () => {
+    prepareJsonResponse();
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      reasoning: 'max',
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      reasoning: { effort: 'xhigh' },
+    });
+    expect(result.warnings).toContainEqual({
+      type: 'compatibility',
+      feature: 'reasoning',
+      details:
+        'reasoning "max" is not directly supported by this model. mapped to effort "xhigh".',
+    });
+  });
+
   it('rejects invalid provider options', async () => {
     await expect(
       model.doGenerate({

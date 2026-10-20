@@ -1,0 +1,105 @@
+---
+title: experimental_decide
+description: Decide answers to typed questions against shared state with a decision model.
+---
+
+# `experimental_decide()`
+
+```ts
+import { experimental_decide } from 'ai';
+```
+
+Decides answers to a nonempty map of `choice`, `score`, `boolean`, and `box` questions against one
+state. See [Decisions](/docs/ai-sdk-core/decisions) for examples and semantics.
+
+## Parameters
+
+| Parameter         | Type                                                                                           | Description                                                                                                                               |
+| ----------------- | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `model`           | `Experimental_DecisionModel`                                                                   | Required experimental v4 model instance or a string ID resolved by Gateway or an explicitly configured decision-capable default provider. |
+| `state`           | `Experimental_DecisionState`                                                                   | Required string, JSON object, or ordered array of text, file, and JSON parts.                                                             |
+| `questions`       | `Record<string, Experimental_DecisionQuestion>`                                                | Required nonempty question map.                                                                                                           |
+| `maxOutputTokens` | `number`                                                                                       | Optional maximum output tokens, an integer >= 1.                                                                                          |
+| `reasoning`       | `'provider-default' \| 'none' \| 'minimal' \| 'low' \| 'medium' \| 'high' \| 'xhigh' \| 'max'` | Optional reasoning effort. Language-model adapters default to `'none'`. Native decision providers return an unsupported-setting warning.  |
+| `maxRetries`      | `number`                                                                                       | Nonnegative integer; defaults to 2.                                                                                                       |
+| `abortSignal`     | `AbortSignal`                                                                                  | Cancels the decisions request.                                                                                                            |
+| `headers`         | `Record<string, string>`                                                                       | Additional HTTP headers.                                                                                                                  |
+| `providerOptions` | `ProviderOptions`                                                                              | Provider-specific options.                                                                                                                |
+| `telemetry`       | `TelemetryOptions`                                                                             | Telemetry configuration, including per-call integrations, input/output recording, and a function ID.                                      |
+| `runtimeContext`  | `Record<string, unknown>`                                                                      | Context available to lifecycle callbacks and selectively included in telemetry with `telemetry.includeRuntimeContext`.                    |
+| `onStart`         | `(event: Experimental_DecideStartEvent) => void`                                               | Called when the decision operation begins.                                                                                                |
+| `onEnd`           | `(event: Experimental_DecideEndEvent) => void`                                                 | Called when the decision operation completes successfully.                                                                                |
+
+Set `reasoning: 'provider-default'` to use the underlying language model's default
+reasoning effort instead of the adapter's `'none'` default.
+
+See [Lifecycle Callbacks](/docs/ai-sdk-core/lifecycle-callbacks#experimental_decide)
+for the complete `onStart` and `onEnd` event fields.
+
+## Questions
+
+Each question has a `type` and can include `instructions` and `criteria` as
+described below.
+Instructions and criterion descriptions accept strings, JSON objects, or JSON
+arrays.
+
+| Type      | Instructions            | Criteria                                                                                                            |
+| --------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `choice`  | Optional; may be `null` | Required nonempty map of option names to descriptions                                                               |
+| `score`   | Optional; may be `null` | Required nonempty array of levels, indexed from zero                                                                |
+| `boolean` | Optional; may be `null` | Optional object with `true` and/or `false` descriptions; at least one must be non-null when instructions are absent |
+| `box`     | Required and non-null   | None                                                                                                                |
+
+Criterion descriptions may be `null` in the shared type, but providers can impose
+stricter limits. Perplexity requires non-null Score levels and accepts 1–10 levels;
+a single level yields score `0` and probability `1`. Other providers may require
+at least two levels. Optional instructions also remain subject to the provider's
+API contract.
+
+See [question semantics](/docs/ai-sdk-core/decisions#question-types) and
+[Perplexity decision examples](/providers/ai-sdk-providers/perplexity#decision-models).
+
+## Result
+
+Returns `Promise<Experimental_DecisionResult<QUESTIONS>>`:
+
+- `answers`: One typed answer per question ID, with literal Choice option inference.
+- `usage`: `inputTokens`, `outputTokens`, and `totalTokens`, each possibly undefined.
+- `warnings`: Provider warnings, also passed to the SDK warning logger.
+- `rounding`: Optional provider-declared decimal precision for probabilities and scores.
+- `providerMetadata`: Optional provider-specific metadata.
+- `response`: Timestamp, model ID, and optional response ID, headers, and body.
+
+## Provider specification
+
+`Experimental_DecisionModelV4` is exported from `@ai-sdk/provider` and declares
+`specificationVersion: 'v4'`, `provider`, `modelId`, `supportedQuestionTypes`, and
+`doDecide(options)`. Decision models are isolated from stable `ProviderV4`.
+
+The public core types are `Experimental_DecisionModel`,
+`Experimental_DecisionState`, `Experimental_DecisionStatePart`,
+`Experimental_DecisionQuestion`,
+`Experimental_DecisionAnswer`, and
+`Experimental_DecisionResult`. All decision-specific classes use the
+`Decision` prefix, with `Experimental_` aliases at package boundaries.
+
+## Errors
+
+Unsupported types throw `Experimental_DecisionUnsupportedQuestionTypeError`
+before provider I/O. Invalid inputs throw `InvalidArgumentError`; malformed
+answers throw `InvalidResponseDataError`. Questions the model refuses throw
+`Experimental_DecisionRefusalError`. Invalid answers and refusals are not retried.
+Neither partial results nor missing probability synthesis are supported.
+
+## Model resolution
+
+Use `registry.decisionModel('provider:model')` or
+`customProvider({ decisionModels: { alias: model } }).decisionModel('alias')`
+to resolve models. Strings passed directly to `experimental_decide` use
+`globalThis.AI_SDK_DEFAULT_PROVIDER.decisionModel(id)` when a default provider is
+configured, or Gateway when no default provider is configured.
+
+Resolution errors use the existing `NoSuchModelError` and `NoSuchProviderError`
+classes with `modelType: 'decisionModel'`. Model instances and resolved models
+must implement v4; other versions throw `UnsupportedModelVersionError`.
+See [model resolution examples](/docs/ai-sdk-core/decisions#model-aliases-and-registries).

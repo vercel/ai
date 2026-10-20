@@ -10,6 +10,7 @@ import { createAgentUIStream } from './create-agent-ui-stream';
 import { ToolLoopAgent } from './tool-loop-agent';
 import { createAgentUIStreamResponse } from './create-agent-ui-stream-response';
 import type { UIMessage } from '../ui/ui-messages';
+import type { UIMessageStreamOnStepEndCallback } from '../ui-message-stream/ui-message-stream-on-step-end-callback';
 
 const currentTool = tool({
   inputSchema: z.object({ current: z.string() }),
@@ -53,6 +54,241 @@ function createMockModel() {
 }
 
 describe('createAgentUIStream', () => {
+  it.each([false, true])(
+    'preserves generation callbacks and UI continuations (continuation: %s)',
+    async isContinuation => {
+      const events: string[] = [];
+      const onStepFinish = vi.fn();
+      const onUIMessageStepEnd = vi.fn<
+        UIMessageStreamOnStepEndCallback<UIMessage>
+      >(() => {
+        events.push('ui');
+      });
+      const originalMessage: UIMessage = isContinuation
+        ? {
+            id: 'assistant-1',
+            role: 'assistant',
+            parts: [{ type: 'text', text: 'Previous' }],
+          }
+        : {
+            id: 'user-1',
+            role: 'user',
+            parts: [{ type: 'text', text: 'Hello' }],
+          };
+      const stream = await createAgentUIStream({
+        agent: new ToolLoopAgent({
+          model: createMockModel(),
+          onStepEnd: () => {
+            events.push('agent');
+          },
+        }),
+        uiMessages: [originalMessage],
+        generateMessageId: () => 'assistant-new',
+        onStepEnd: () => {
+          events.push('generation');
+        },
+        onStepFinish,
+        onUIMessageStepEnd,
+        onEnd: () => {
+          events.push('end');
+        },
+      });
+      await convertReadableStreamToArray(stream);
+
+      // Generation and UI callbacks can run in either order as the chunk
+      // flows through the stream, but all must run before the stream ends.
+      expect(events.slice(0, -1).sort()).toEqual(['agent', 'generation', 'ui']);
+      expect(events.at(-1)).toBe('end');
+      expect(onUIMessageStepEnd).toHaveBeenCalledTimes(1);
+      const {
+        responseMessage,
+        messages,
+        isContinuation: continuation,
+      } = onUIMessageStepEnd.mock.calls[0][0];
+      expect(continuation).toBe(isContinuation);
+      expect(responseMessage.id).toBe(
+        isContinuation ? 'assistant-1' : 'assistant-new',
+      );
+      expect(messages).toHaveLength(isContinuation ? 1 : 2);
+      expect(responseMessage.parts).toEqual([
+        ...(isContinuation ? [{ type: 'text', text: 'Previous' }] : []),
+        { type: 'step-start' },
+        { type: 'text', text: 'response', state: 'done' },
+      ]);
+      expect(onStepFinish).not.toHaveBeenCalled();
+      expect(originalMessage.parts).toHaveLength(1);
+    },
+  );
+
+  it('provides accumulated UI messages after every agent step', async () => {
+    let modelCallCount = 0;
+    const onStepEnd = vi.fn();
+    const onUIMessageStepEnd = vi.fn();
+
+    const agent = new ToolLoopAgent({
+      model: new MockLanguageModelV4({
+        doStream: async () => {
+          modelCallCount++;
+
+          if (modelCallCount === 1) {
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                {
+                  type: 'response-metadata',
+                  id: 'response-1',
+                  modelId: 'mock-model-id',
+                  timestamp: new Date(0),
+                },
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'weather',
+                  input: '{"location":"San Francisco"}',
+                },
+                {
+                  type: 'finish',
+                  finishReason: {
+                    unified: 'tool-calls' as const,
+                    raw: 'tool-calls',
+                  },
+                  usage: {
+                    inputTokens: {
+                      total: 3,
+                      noCache: 3,
+                      cacheRead: undefined,
+                      cacheWrite: undefined,
+                    },
+                    outputTokens: {
+                      total: 4,
+                      text: 4,
+                      reasoning: undefined,
+                    },
+                  },
+                  providerMetadata: {},
+                },
+              ]),
+            };
+          }
+
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              {
+                type: 'response-metadata',
+                id: 'response-2',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              { type: 'reasoning-start', id: 'reasoning-1' },
+              {
+                type: 'reasoning-delta',
+                id: 'reasoning-1',
+                delta: 'The tool returned 72°F.',
+              },
+              { type: 'reasoning-end', id: 'reasoning-1' },
+              { type: 'text-start', id: 'text-1' },
+              {
+                type: 'text-delta',
+                id: 'text-1',
+                delta: 'It is 72°F in San Francisco.',
+              },
+              { type: 'text-end', id: 'text-1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop' as const, raw: 'stop' },
+                usage: {
+                  inputTokens: {
+                    total: 5,
+                    noCache: 5,
+                    cacheRead: undefined,
+                    cacheWrite: undefined,
+                  },
+                  outputTokens: {
+                    total: 8,
+                    text: 6,
+                    reasoning: 2,
+                  },
+                },
+                providerMetadata: {},
+              },
+            ]),
+          };
+        },
+      }),
+      tools: {
+        weather: tool({
+          inputSchema: z.object({ location: z.string() }),
+          execute: async ({ location }) => ({
+            location,
+            temperature: 72,
+          }),
+        }),
+      },
+    });
+
+    const uiMessages: UIMessage[] = [
+      {
+        id: 'user-1',
+        role: 'user',
+        parts: [
+          { type: 'text', text: 'What is the weather in San Francisco?' },
+        ],
+      },
+    ];
+
+    const stream = await createAgentUIStream({
+      agent,
+      uiMessages,
+      generateMessageId: () => 'assistant-1',
+      messageMetadata: ({ part }) => ({ partType: part.type }),
+      onStepEnd,
+      onUIMessageStepEnd,
+    });
+
+    await convertReadableStreamToArray(stream);
+
+    expect(onStepEnd).toHaveBeenCalledTimes(2);
+    expect(onStepEnd.mock.calls[0][0]).not.toHaveProperty('responseMessage');
+
+    expect(onUIMessageStepEnd).toHaveBeenCalledTimes(2);
+    expect(onUIMessageStepEnd.mock.calls[0][0]).toMatchObject({
+      isContinuation: false,
+      messages: [uiMessages[0], expect.any(Object)],
+      responseMessage: {
+        id: 'assistant-1',
+        role: 'assistant',
+        metadata: { partType: 'finish-step' },
+        parts: [
+          { type: 'step-start' },
+          {
+            type: 'tool-weather',
+            toolCallId: 'call-1',
+            state: 'output-available',
+            input: { location: 'San Francisco' },
+            output: {
+              location: 'San Francisco',
+              temperature: 72,
+            },
+          },
+        ],
+      },
+    });
+
+    expect(onUIMessageStepEnd.mock.calls[1][0].responseMessage).toMatchObject({
+      id: 'assistant-1',
+      role: 'assistant',
+      metadata: { partType: 'finish-step' },
+      parts: [
+        { type: 'step-start' },
+        { type: 'tool-weather' },
+        { type: 'step-start' },
+        { type: 'reasoning', text: 'The tool returned 72°F.' },
+        { type: 'text', text: 'It is 72°F in San Francisco.' },
+      ],
+    });
+  });
+
   it.each(['stream', 'response'] as const)(
     'should convert custom data parts through the %s helper',
     async helper => {
@@ -207,6 +443,7 @@ describe('createAgentUIStream', () => {
     expect(onEnd).toHaveBeenCalledOnce();
     expect(onEnd.mock.calls[0][0].messages[0].parts[0]).toEqual({
       type: 'dynamic-tool',
+      dynamic: false,
       toolName: 'removed',
       toolCallId: 'call-1',
       state: 'output-available',
@@ -251,6 +488,7 @@ describe('createAgentUIStream', () => {
     expect(onEnd).toHaveBeenCalledOnce();
     expect(onEnd.mock.calls[0][0].messages[0].parts[0]).toEqual({
       type: 'dynamic-tool',
+      dynamic: false,
       toolName: 'removed',
       toolCallId: 'call-1',
       state: 'output-available',

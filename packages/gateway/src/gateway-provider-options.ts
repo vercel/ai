@@ -3,15 +3,15 @@ import type { ZodType } from 'zod/v4';
 import { z } from './zod';
 
 // https://vercel.com/docs/ai-gateway/provider-options
-export const EVALUATION_FALLBACK_MAX_CONDITION_DEPTH = 5;
-export const EVALUATION_FALLBACK_MAX_CONDITIONS_PER_LIST = 20;
-export const EVALUATION_FALLBACK_MAX_QUESTION_LENGTH = 256;
+export const DECISION_FALLBACK_MAX_CONDITION_DEPTH = 5;
+export const DECISION_FALLBACK_MAX_CONDITIONS_PER_LIST = 20;
+export const DECISION_FALLBACK_MAX_QUESTION_LENGTH = 256;
 
-export const gatewayEvaluationProviderOptionsSchema = lazySchema(() =>
+export const gatewayDecisionProviderOptionsSchema = lazySchema(() =>
   zodSchema(
     z
       .object({
-        models: gatewayModelFallbacksSchema.optional(),
+        models: gatewayModelFallbacksSchema().optional(),
       })
       .catchall(z.unknown()),
   ),
@@ -24,18 +24,18 @@ export const gatewayEvaluationProviderOptionsSchema = lazySchema(() =>
  * Boolean question. Groups nest at most five levels deep, which the SDK
  * checks at runtime.
  */
-export type EvaluationFallbackCondition<QUESTION_ID extends string = string> =
+export type DecisionFallbackCondition<QUESTION_ID extends string = string> =
   | ExclusiveCondition<{ question?: QUESTION_ID; confidenceBelow: number }>
   | ExclusiveCondition<{
       question?: QUESTION_ID;
       probabilityBetween: [number, number];
     }>
-  | ExclusiveCondition<{ any: EvaluationFallbackConditionList<QUESTION_ID> }>
-  | ExclusiveCondition<{ all: EvaluationFallbackConditionList<QUESTION_ID> }>
+  | ExclusiveCondition<{ any: DecisionFallbackConditionList<QUESTION_ID> }>
+  | ExclusiveCondition<{ all: DecisionFallbackConditionList<QUESTION_ID> }>
   | ExclusiveCondition<{
       atLeast: {
         count: number;
-        conditions: EvaluationFallbackConditionList<QUESTION_ID>;
+        conditions: DecisionFallbackConditionList<QUESTION_ID>;
       };
     }>;
 
@@ -43,7 +43,7 @@ export type GatewayModelFallback<QUESTION_ID extends string = string> =
   | string
   | {
       model: string;
-      when: EvaluationFallbackCondition<QUESTION_ID>;
+      when: DecisionFallbackCondition<QUESTION_ID>;
     };
 
 export type GatewayProviderOptions<QUESTION_ID extends string = string> = {
@@ -91,8 +91,8 @@ export type GatewayProviderOptions<QUESTION_ID extends string = string> = {
   idempotencyKey?: string;
 
   /**
-   * Fallback models to try in order. On evaluation requests, the first entry
-   * can be a conditional `{ model, when }` fallback that reruns the evaluation
+   * Fallback models to try in order. On decision requests, the first entry
+   * can be a conditional `{ model, when }` fallback that reruns the decision
    * when `when` matches the primary answers. Other request types reject a
    * conditional entry. Pass your question IDs as `QUESTION_ID` to check the
    * `question` names in `when`.
@@ -129,9 +129,9 @@ export type GatewayProviderOptions<QUESTION_ID extends string = string> = {
   zeroDataRetention?: boolean;
 };
 
-type EvaluationFallbackConditionList<QUESTION_ID extends string> = [
-  EvaluationFallbackCondition<QUESTION_ID>,
-  ...EvaluationFallbackCondition<QUESTION_ID>[],
+type DecisionFallbackConditionList<QUESTION_ID extends string> = [
+  DecisionFallbackCondition<QUESTION_ID>,
+  ...DecisionFallbackCondition<QUESTION_ID>[],
 ];
 
 type ConditionKey =
@@ -156,90 +156,92 @@ type GatewayModelFallbackList<QUESTION_ID extends string> =
   | string[]
   | [ConditionalGatewayModelFallback<QUESTION_ID>, ...string[]];
 
-const probabilitySchema = z.number().finite().min(0).max(1);
-const questionSchema = z
-  .string()
-  .min(1)
-  .max(EVALUATION_FALLBACK_MAX_QUESTION_LENGTH);
-const directConditionSchema = z.union([
-  z
-    .object({
-      question: questionSchema.optional(),
-      confidenceBelow: probabilitySchema,
-    })
-    .strict(),
-  z
-    .object({
-      question: questionSchema.optional(),
-      probabilityBetween: z
-        .array(probabilitySchema)
-        .length(2)
-        .refine(([minimum, maximum]) => minimum <= maximum, {
-          message:
-            'probabilityBetween minimum must be less than or equal to maximum',
-        }),
-    })
-    .strict(),
-]) as ZodType<EvaluationFallbackCondition>;
+const probabilitySchema = () => z.number().finite().min(0).max(1);
+const questionSchema = () =>
+  z.string().min(1).max(DECISION_FALLBACK_MAX_QUESTION_LENGTH);
+const directConditionSchema = () =>
+  z.union([
+    z
+      .object({
+        question: questionSchema().optional(),
+        confidenceBelow: probabilitySchema(),
+      })
+      .strict(),
+    z
+      .object({
+        question: questionSchema().optional(),
+        probabilityBetween: z
+          .array(probabilitySchema())
+          .length(2)
+          .refine(([minimum, maximum]) => minimum <= maximum, {
+            message:
+              'probabilityBetween minimum must be less than or equal to maximum',
+          }),
+      })
+      .strict(),
+  ]) as ZodType<DecisionFallbackCondition>;
 
-const groupBeyondMaxDepthSchema = z
-  .union([
-    z.object({ any: z.unknown() }),
-    z.object({ all: z.unknown() }),
-    z.object({ atLeast: z.unknown() }),
-  ])
-  .superRefine((_, context) => {
-    context.addIssue({
-      code: 'custom',
-      message: `conditions can be nested at most ${EVALUATION_FALLBACK_MAX_CONDITION_DEPTH} levels deep`,
+const groupBeyondMaxDepthSchema = () =>
+  z
+    .union([
+      z.object({ any: z.unknown() }),
+      z.object({ all: z.unknown() }),
+      z.object({ atLeast: z.unknown() }),
+    ])
+    .superRefine((_, context) => {
+      context.addIssue({
+        code: 'custom',
+        message: `conditions can be nested at most ${DECISION_FALLBACK_MAX_CONDITION_DEPTH} levels deep`,
+      });
     });
-  });
 
-const conditionalModelFallbackSchema = z
-  .object({
-    model: z.string().min(1),
-    when: conditionSchema(1),
-  })
-  .strict();
+const conditionalModelFallbackSchema = () =>
+  z
+    .object({
+      model: z.string().min(1),
+      when: conditionSchema(1),
+    })
+    .strict();
 
-const gatewayModelFallbacksSchema = z
-  .array(z.union([z.string(), conditionalModelFallbackSchema]))
-  .superRefine((entries, context) => {
-    const conditionalIndexes = entries.flatMap((entry, index) =>
-      typeof entry === 'string' ? [] : [index],
-    );
-    if (conditionalIndexes.length > 1) {
-      context.addIssue({
-        code: 'custom',
-        message: 'models supports at most one conditional evaluation fallback',
-      });
-    }
-    if (conditionalIndexes[0] !== undefined && conditionalIndexes[0] !== 0) {
-      context.addIssue({
-        code: 'custom',
-        message:
-          'a conditional evaluation fallback must be the first models entry',
-        path: [conditionalIndexes[0]],
-      });
-    }
-  });
+const gatewayModelFallbacksSchema = () =>
+  z
+    .array(z.union([z.string(), conditionalModelFallbackSchema()]))
+    .superRefine((entries, context) => {
+      const conditionalIndexes = entries.flatMap((entry, index) =>
+        typeof entry === 'string' ? [] : [index],
+      );
+      if (conditionalIndexes.length > 1) {
+        context.addIssue({
+          code: 'custom',
+          message: 'models supports at most one conditional decision fallback',
+        });
+      }
+      if (conditionalIndexes[0] !== undefined && conditionalIndexes[0] !== 0) {
+        context.addIssue({
+          code: 'custom',
+          message:
+            'a conditional decision fallback must be the first models entry',
+          path: [conditionalIndexes[0]],
+        });
+      }
+    });
 
-function conditionSchema(depth: number): ZodType<EvaluationFallbackCondition> {
-  if (depth === EVALUATION_FALLBACK_MAX_CONDITION_DEPTH) {
+function conditionSchema(depth: number): ZodType<DecisionFallbackCondition> {
+  if (depth === DECISION_FALLBACK_MAX_CONDITION_DEPTH) {
     return z.union([
-      directConditionSchema,
-      groupBeyondMaxDepthSchema,
-    ]) as ZodType<EvaluationFallbackCondition>;
+      directConditionSchema(),
+      groupBeyondMaxDepthSchema(),
+    ]) as ZodType<DecisionFallbackCondition>;
   }
 
   const childConditionSchema = conditionSchema(depth + 1);
   const conditionListSchema = z
     .array(childConditionSchema)
     .min(1)
-    .max(EVALUATION_FALLBACK_MAX_CONDITIONS_PER_LIST);
+    .max(DECISION_FALLBACK_MAX_CONDITIONS_PER_LIST);
 
   return z.union([
-    directConditionSchema,
+    directConditionSchema(),
     z.object({ any: conditionListSchema }).strict(),
     z.object({ all: conditionListSchema }).strict(),
     z
@@ -256,5 +258,5 @@ function conditionSchema(depth: number): ZodType<EvaluationFallbackCondition> {
           }),
       })
       .strict(),
-  ]) as ZodType<EvaluationFallbackCondition>;
+  ]) as ZodType<DecisionFallbackCondition>;
 }

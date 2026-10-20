@@ -25,7 +25,6 @@ import {
   type InferSchema,
   type ParseResult,
 } from '@ai-sdk/provider-utils';
-import type { z } from 'zod/v4';
 import { getResponseMetadata } from '../get-response-metadata';
 import { supportsReasoningEffort } from '../supports-reasoning-effort';
 import type { webSearchOutputSchema } from '../tool/web-search';
@@ -37,7 +36,7 @@ import {
   webSearchWireActionSchema,
   webSearchWireSourceSchema,
   xaiResponsesChunkSchema,
-  xaiResponsesResponseSchema,
+  xaiResponsesResponseSchemaValidator,
   type XaiResponsesIncludeOptions,
 } from './xai-responses-api';
 import {
@@ -297,6 +296,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
             medium: 'medium',
             high: 'high',
             xhigh: modelId === 'grok-4.6' ? 'xhigh' : 'high',
+            max: modelId === 'grok-4.6' ? 'xhigh' : 'high',
           },
           warnings,
         });
@@ -416,7 +416,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       body,
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
-        xaiResponsesResponseSchema,
+        xaiResponsesResponseSchemaValidator,
       ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
@@ -742,7 +742,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
     return {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<z.infer<typeof xaiResponsesChunkSchema>>,
+          ParseResult<InferSchema<typeof xaiResponsesChunkSchema>>,
           LanguageModelV4StreamPart
         >({
           start(controller) {

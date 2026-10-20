@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { PiSessionEvent } from './pi-events';
 import {
   createPiTranslatorState,
-  finishPiApprovalStep,
+  takePiEarlyFinishStep,
   translatePiEvent,
   type PiTranslatorState,
 } from './pi-translate';
@@ -12,6 +12,181 @@ function emit(events: PiSessionEvent[], state: PiTranslatorState) {
 }
 
 describe('translatePiEvent', () => {
+  it.each(['', 'native output'])(
+    'projects text %j without an undefined details member',
+    text => {
+      const state = createPiTranslatorState();
+      translatePiEvent({ type: 'turn_start' }, state);
+      translatePiEvent(
+        {
+          type: 'tool_execution_start',
+          toolCallId: 'file-call',
+          toolName: 'ls',
+          args: {},
+        },
+        state,
+      );
+      const result = { content: [{ type: 'text', text }], details: undefined };
+      const events = translatePiEvent(
+        {
+          type: 'tool_execution_end',
+          toolCallId: 'file-call',
+          toolName: 'ls',
+          result,
+        },
+        state,
+      );
+
+      expect(events[0]).toMatchObject({
+        type: 'tool-result',
+        toolCallId: 'file-call',
+        result: text,
+      });
+      expect(JSON.parse(JSON.stringify(events[0]))).toEqual(events[0]);
+      expect(Object.prototype.hasOwnProperty.call(result, 'details')).toBe(
+        true,
+      );
+    },
+  );
+
+  it.each([false, true])(
+    'retains native result details and error semantics (error=%s)',
+    isError => {
+      const state = createPiTranslatorState();
+      translatePiEvent({ type: 'turn_start' }, state);
+      translatePiEvent(
+        {
+          type: 'tool_execution_start',
+          toolCallId: 'file-call',
+          toolName: 'grep',
+          args: {},
+        },
+        state,
+      );
+      const result = {
+        content: [{ type: 'text', text: 'partial output' }],
+        details: { truncated: true, nextOffset: 20 },
+      };
+      const events = translatePiEvent(
+        {
+          type: 'tool_execution_end',
+          toolCallId: 'file-call',
+          toolName: 'grep',
+          result,
+          isError,
+        },
+        state,
+      );
+
+      expect(events[0]).toMatchObject({ type: 'tool-result', result });
+      expect('isError' in events[0] ? events[0].isError : false).toBe(isError);
+    },
+  );
+
+  it.each([
+    {
+      name: 'image content',
+      result: {
+        content: [{ type: 'image', data: 'AA==', mimeType: 'image/png' }],
+        details: undefined,
+      },
+      expected: {
+        content: [{ type: 'image', data: 'AA==', mimeType: 'image/png' }],
+      },
+    },
+    {
+      name: 'mixed text and image content',
+      result: {
+        content: [
+          { type: 'text', text: 'caption' },
+          { type: 'image', data: 'AA==', mimeType: 'image/png' },
+        ],
+        details: undefined,
+      },
+      expected: {
+        content: [
+          { type: 'text', text: 'caption' },
+          { type: 'image', data: 'AA==', mimeType: 'image/png' },
+        ],
+      },
+    },
+    {
+      name: 'an empty content array',
+      result: { content: [], details: undefined },
+      expected: { content: [] },
+    },
+    {
+      name: 'additional envelope fields',
+      result: {
+        content: [{ type: 'text', text: 'done' }],
+        details: undefined,
+        terminate: true,
+      },
+      expected: {
+        content: [{ type: 'text', text: 'done' }],
+        terminate: true,
+      },
+    },
+  ])('retains $name in a JSON-safe envelope', ({ result, expected }) => {
+    const state = createPiTranslatorState();
+    translatePiEvent({ type: 'turn_start' }, state);
+    translatePiEvent(
+      {
+        type: 'tool_execution_start',
+        toolCallId: 'file-call',
+        toolName: 'read',
+        args: {},
+      },
+      state,
+    );
+    const events = translatePiEvent(
+      {
+        type: 'tool_execution_end',
+        toolCallId: 'file-call',
+        toolName: 'read',
+        result,
+      },
+      state,
+    );
+
+    expect(events[0]).toMatchObject({
+      type: 'tool-result',
+      result: expected,
+    });
+    expect(JSON.parse(JSON.stringify(events[0]))).toEqual(events[0]);
+    expect(Object.prototype.hasOwnProperty.call(result, 'details')).toBe(true);
+  });
+
+  it('projects empty text from flat tool results', () => {
+    const state = createPiTranslatorState();
+    translatePiEvent({ type: 'turn_start' }, state);
+    translatePiEvent(
+      {
+        type: 'tool_execution_start',
+        toolCallId: 'file-call',
+        toolName: 'ls',
+        args: {},
+      },
+      state,
+    );
+    const events = translatePiEvent(
+      {
+        type: 'tool_result',
+        toolCallId: 'file-call',
+        toolName: 'ls',
+        content: [{ type: 'text', text: '' }],
+        details: undefined,
+      },
+      state,
+    );
+
+    expect(events[0]).toMatchObject({
+      type: 'tool-result',
+      result: '',
+    });
+    expect(JSON.parse(JSON.stringify(events[0]))).toEqual(events[0]);
+  });
+
   it('drops events before turn_start', () => {
     const state = createPiTranslatorState();
     const out = translatePiEvent(
@@ -209,14 +384,33 @@ describe('translatePiEvent', () => {
             partial: { content },
           },
         } as PiSessionEvent,
+        {
+          type: 'tool_execution_start',
+          toolCallId: 'call-2',
+          toolName: 'read',
+          args: {},
+        } as PiSessionEvent,
       ],
       state,
     );
 
-    expect(out.slice(2)).toEqual([
-      { type: 'tool-input-delta', id: 'call-2', delta: 'b' },
-      { type: 'tool-input-delta', id: 'call-1', delta: 'a' },
+    expect(
+      out.map(p => [
+        p.type,
+        'id' in p ? p.id : 'toolCallId' in p ? p.toolCallId : undefined,
+      ]),
+    ).toEqual([
+      ['tool-input-start', 'call-1'],
+      ['tool-input-delta', 'call-1'],
+      ['tool-input-start', 'call-2'],
+      ['tool-input-delta', 'call-2'],
+      ['tool-call', 'call-2'],
     ]);
+    expect(out[3]).toEqual({
+      type: 'tool-input-delta',
+      id: 'call-2',
+      delta: 'b',
+    });
   });
 
   it('drops tool input deltas that arrive without a start', () => {
@@ -430,6 +624,45 @@ describe('translatePiEvent', () => {
     expect(closing.map(part => part.type)).toEqual(['text-end']);
   });
 
+  it('takes the turn error from the last assistant message so a retried request recovers', () => {
+    const state = createPiTranslatorState();
+    const failed = {
+      role: 'assistant',
+      content: [{ type: 'text', text: 'Coffee beans grow' }],
+      stopReason: 'error',
+      errorMessage: '529 overloaded_error',
+    };
+    emit(
+      [
+        { type: 'turn_start' } as PiSessionEvent,
+        { type: 'message_start', message: failed } as PiSessionEvent,
+        { type: 'message_end', message: failed } as PiSessionEvent,
+        { type: 'turn_end', message: failed } as PiSessionEvent,
+        { type: 'agent_end', messages: [], willRetry: true } as PiSessionEvent,
+      ],
+      state,
+    );
+    expect(state.lastAssistantError).toBe('529 overloaded_error');
+
+    const answer = {
+      role: 'assistant',
+      content: [{ type: 'text', text: 'Coffee beans come from cherries.' }],
+      stopReason: 'stop',
+    };
+    const parts = emit(
+      [
+        { type: 'auto_retry_start', attempt: 1 } as PiSessionEvent,
+        { type: 'turn_start' } as PiSessionEvent,
+        { type: 'message_start', message: answer } as PiSessionEvent,
+        { type: 'message_end', message: answer } as PiSessionEvent,
+        { type: 'turn_end', message: answer } as PiSessionEvent,
+      ],
+      state,
+    );
+    expect(state.lastAssistantError).toBeUndefined();
+    expect(parts.map(part => part.type)).toEqual(['finish-step']);
+  });
+
   it('waits for requested tool executions before emitting finish-step', () => {
     const state = createPiTranslatorState({ builtinToolNames: ['bash'] });
     emit(
@@ -469,68 +702,72 @@ describe('translatePiEvent', () => {
     );
 
     expect(start.map(p => p.type)).toEqual(['tool-call']);
-    expect(start[0]).toMatchObject({ stepToolCallCount: 1 });
     expect(end.map(p => p.type)).toEqual(['tool-result', 'finish-step']);
   });
 
-  it('reports the same step tool-call count on parallel tool calls', () => {
+  it('buffers tool input of later calls until Pi starts them', () => {
     const state = createPiTranslatorState({ hostToolNames: ['deploy'] });
-    emit(
+    const content = [
+      { type: 'toolCall', id: 'call-1', name: 'deploy' },
+      { type: 'toolCall', id: 'call-2', name: 'deploy' },
+    ];
+    const streamed = emit(
       [
         { type: 'turn_start' } as PiSessionEvent,
         {
           type: 'message_start',
           message: { role: 'assistant', content: [] },
         } as PiSessionEvent,
+        ...[0, 1].flatMap(contentIndex => [
+          {
+            type: 'message_update',
+            assistantMessageEvent: {
+              type: 'toolcall_start',
+              contentIndex,
+              partial: { content },
+            },
+          } as PiSessionEvent,
+          {
+            type: 'message_update',
+            assistantMessageEvent: {
+              type: 'toolcall_end',
+              contentIndex,
+              partial: { content },
+            },
+          } as PiSessionEvent,
+        ]),
         {
           type: 'message_end',
-          message: {
-            role: 'assistant',
-            content: [
-              { type: 'toolCall', id: 'call-1', name: 'deploy' },
-              { type: 'toolCall', id: 'call-2', name: 'deploy' },
-            ],
-          },
+          message: { role: 'assistant', content },
         } as PiSessionEvent,
       ],
       state,
     );
-
-    const calls = emit(
-      [
-        {
-          type: 'tool_execution_start',
-          toolCallId: 'call-1',
-          toolName: 'deploy',
-          args: { target: 'one' },
-        } as PiSessionEvent,
-        {
-          type: 'tool_execution_start',
-          toolCallId: 'call-2',
-          toolName: 'deploy',
-          args: { target: 'two' },
-        } as PiSessionEvent,
-      ],
-      state,
-    );
-
-    expect(calls).toEqual([
-      expect.objectContaining({
-        type: 'tool-call',
-        toolCallId: 'call-1',
-        stepToolCallCount: 2,
-      }),
-      expect.objectContaining({
-        type: 'tool-call',
-        toolCallId: 'call-2',
-        stepToolCallCount: 2,
-      }),
+    expect(streamed.map(p => [p.type, 'id' in p ? p.id : undefined])).toEqual([
+      ['tool-input-start', 'call-1'],
+      ['tool-input-end', 'call-1'],
     ]);
+
+    const second = translatePiEvent(
+      {
+        type: 'tool_execution_start',
+        toolCallId: 'call-2',
+        toolName: 'deploy',
+        args: { target: 'two' },
+      } as PiSessionEvent,
+      state,
+    );
+    expect(second.map(p => p.type)).toEqual([
+      'tool-input-start',
+      'tool-input-end',
+      'tool-call',
+    ]);
+    expect(second[2]).not.toHaveProperty('stepToolCallCount');
   });
 
-  it('emits finish-step after a built-in approval request pauses the step', () => {
-    const state = createPiTranslatorState();
-    emit(
+  it("reports each step's usage from its assistant message", () => {
+    const state = createPiTranslatorState({ builtinToolNames: ['bash'] });
+    const toolStep = emit(
       [
         { type: 'turn_start' } as PiSessionEvent,
         {
@@ -541,16 +778,175 @@ describe('translatePiEvent', () => {
           type: 'message_end',
           message: {
             role: 'assistant',
-            content: [{ type: 'toolCall', id: 'approval-1', name: 'write' }],
+            content: [{ type: 'toolCall', id: 'c-usage', name: 'bash' }],
+            usage: {
+              input: 4,
+              output: 137,
+              cacheRead: 0,
+              cacheWrite: 13343,
+              totalTokens: 13484,
+            },
           },
+        } as PiSessionEvent,
+        {
+          type: 'tool_execution_start',
+          toolCallId: 'c-usage',
+          toolName: 'bash',
+          args: { command: 'pwd' },
+        } as PiSessionEvent,
+        {
+          type: 'tool_execution_end',
+          toolCallId: 'c-usage',
+          result: 'ok',
         } as PiSessionEvent,
       ],
       state,
     );
+    const textStep = emit(
+      [
+        {
+          type: 'message_start',
+          message: { role: 'assistant', content: [] },
+        } as PiSessionEvent,
+        {
+          type: 'message_end',
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'done' }],
+            usage: {
+              input: 2,
+              output: 137,
+              cacheRead: 13403,
+              cacheWrite: 0,
+              reasoning: 40,
+              totalTokens: 13542,
+            },
+          },
+        } as PiSessionEvent,
+        { type: 'turn_end' } as PiSessionEvent,
+      ],
+      state,
+    );
 
-    expect(finishPiApprovalStep(state, 'approval-1').map(p => p.type)).toEqual([
-      'finish-step',
-    ]);
+    expect(toolStep.find(p => p.type === 'finish-step')).toMatchObject({
+      usage: {
+        inputTokens: {
+          total: 13347,
+          noCache: 4,
+          cacheRead: 0,
+          cacheWrite: 13343,
+        },
+        outputTokens: { total: 137, text: undefined, reasoning: undefined },
+      },
+    });
+    expect(textStep.find(p => p.type === 'finish-step')).toMatchObject({
+      usage: {
+        inputTokens: {
+          total: 13405,
+          noCache: 2,
+          cacheRead: 13403,
+          cacheWrite: 0,
+        },
+        outputTokens: { total: 137, text: 97, reasoning: 40 },
+      },
+    });
+  });
+
+  describe('takePiEarlyFinishStep', () => {
+    function stateWithBatch(ids: string[]) {
+      const state = createPiTranslatorState({ hostToolNames: ['weather'] });
+      emit(
+        [
+          { type: 'turn_start' } as PiSessionEvent,
+          {
+            type: 'message_start',
+            message: { role: 'assistant', content: [] },
+          } as PiSessionEvent,
+          {
+            type: 'message_end',
+            message: {
+              role: 'assistant',
+              content: ids.map(id => ({
+                type: 'toolCall',
+                id,
+                name: 'weather',
+              })),
+            },
+          } as PiSessionEvent,
+        ],
+        state,
+      );
+      return state;
+    }
+
+    it('waits until every call of a parallel batch waits on host input', () => {
+      const state = stateWithBatch(['a', 'b']);
+      expect(
+        takePiEarlyFinishStep(state, {
+          waitingToolCallIds: new Set(['a']),
+          sequential: false,
+        }),
+      ).toEqual([]);
+      expect(
+        takePiEarlyFinishStep(state, {
+          waitingToolCallIds: new Set(['a', 'b']),
+          sequential: false,
+        }),
+      ).toEqual([
+        expect.objectContaining({
+          type: 'finish-step',
+          finishReason: { unified: 'tool-calls', raw: 'host-input' },
+        }),
+      ]);
+    });
+
+    it('does not repeat for calls that were already covered', () => {
+      const state = stateWithBatch(['a', 'b']);
+      const waiting = new Set(['a', 'b']);
+      expect(
+        takePiEarlyFinishStep(state, {
+          waitingToolCallIds: waiting,
+          sequential: false,
+        }),
+      ).toHaveLength(1);
+      expect(
+        takePiEarlyFinishStep(state, {
+          waitingToolCallIds: new Set(['b']),
+          sequential: false,
+        }),
+      ).toEqual([]);
+    });
+
+    it('only needs the first unsettled call of a sequential batch', () => {
+      const state = stateWithBatch(['a', 'b']);
+      expect(
+        takePiEarlyFinishStep(state, {
+          waitingToolCallIds: new Set(['b']),
+          sequential: true,
+        }),
+      ).toEqual([]);
+      expect(
+        takePiEarlyFinishStep(state, {
+          waitingToolCallIds: new Set(['a']),
+          sequential: true,
+        }),
+      ).toHaveLength(1);
+      translatePiEvent(
+        {
+          type: 'tool_execution_end',
+          toolCallId: 'a',
+          toolName: 'weather',
+          result: 'ok',
+        } as PiSessionEvent,
+        state,
+      );
+      expect(
+        takePiEarlyFinishStep(state, {
+          waitingToolCallIds: new Set(['b']),
+          sequential: true,
+        }),
+      ).toHaveLength(1);
+    });
   });
 
   it('emits reasoning-start lazily on first thinking_delta', () => {
@@ -644,7 +1040,10 @@ describe('translatePiEvent', () => {
   });
 
   it('emits tool-call with providerExecuted unset for user-registered tools', () => {
-    const state = createPiTranslatorState({ builtinToolNames: ['bash'] });
+    const state = createPiTranslatorState({
+      builtinToolNames: ['bash'],
+      hostToolNames: ['deploy'],
+    });
     emit([{ type: 'turn_start' } as PiSessionEvent], state);
     const out = translatePiEvent(
       {
@@ -712,6 +1111,40 @@ describe('translatePiEvent', () => {
         },
       ]
     `);
+  });
+
+  it('parses a JSON MCP result that carries native MCP details', () => {
+    const state = createPiTranslatorState();
+    emit([{ type: 'turn_start' } as PiSessionEvent], state);
+    emit(
+      [
+        {
+          type: 'tool_execution_start',
+          toolCallId: 'mcp-call',
+          toolName: 'mcp__brand_ai__brand_check',
+          args: {},
+        } as PiSessionEvent,
+      ],
+      state,
+    );
+
+    const result = translatePiEvent(
+      {
+        type: 'tool_execution_end',
+        toolCallId: 'mcp-call',
+        result: {
+          content: [{ type: 'text', text: '{"ok":true,"issues":[]}' }],
+          details: { server: 'brand_ai', tool: 'brand_check' },
+        },
+      } as PiSessionEvent,
+      state,
+    );
+
+    expect(result[0]).toMatchObject({
+      type: 'tool-result',
+      toolName: 'mcp__brand_ai__brand_check',
+      result: { ok: true, issues: [] },
+    });
   });
 
   it('keeps non-JSON MCP results and JSON native results as text', () => {
@@ -795,6 +1228,67 @@ describe('translatePiEvent', () => {
         "toolName": "mcp__custom_tool",
         "type": "tool-call",
       }
+    `);
+  });
+
+  it('marks tools registered by an extension as dynamic and provider-executed', () => {
+    const state = createPiTranslatorState({
+      builtinToolNames: ['read'],
+      hostToolNames: ['deploy'],
+    });
+    const out = emit(
+      [
+        { type: 'turn_start' } as PiSessionEvent,
+        {
+          type: 'message_update',
+          assistantMessageEvent: {
+            type: 'toolcall_start',
+            contentIndex: 0,
+            partial: {
+              content: [{ type: 'toolCall', id: 'task-call', name: 'Task' }],
+            },
+          },
+        } as PiSessionEvent,
+        {
+          type: 'tool_execution_start',
+          toolCallId: 'task-call',
+          toolName: 'Task',
+          args: { prompt: 'Summarize the repo' },
+        } as PiSessionEvent,
+        {
+          type: 'tool_execution_end',
+          toolCallId: 'task-call',
+          result: { content: [{ type: 'text', text: '{"not":"mcp"}' }] },
+        } as PiSessionEvent,
+      ],
+      state,
+    );
+
+    expect(out).toMatchInlineSnapshot(`
+      [
+        {
+          "dynamic": true,
+          "id": "task-call",
+          "providerExecuted": true,
+          "toolName": "Task",
+          "type": "tool-input-start",
+        },
+        {
+          "dynamic": true,
+          "input": "{"prompt":"Summarize the repo"}",
+          "providerExecuted": true,
+          "toolCallId": "task-call",
+          "toolName": "Task",
+          "type": "tool-call",
+        },
+        {
+          "dynamic": true,
+          "result": "{"not":"mcp"}",
+          "toolCallId": "task-call",
+          "toolName": "Task",
+          "type": "tool-result",
+        },
+      ]
     `);
   });
 
@@ -923,7 +1417,69 @@ describe('translatePiEvent', () => {
         summary: 'Condensed history.',
         tokensBefore: 90000,
       },
+      expect.objectContaining({ type: 'finish-step' }),
     ]);
+  });
+
+  it('closes a compaction that arrives after the step finished in its own step', () => {
+    const state = createPiTranslatorState();
+    emit(
+      [
+        { type: 'turn_start' } as PiSessionEvent,
+        {
+          type: 'message_start',
+          message: { role: 'assistant', content: [] },
+        } as PiSessionEvent,
+        {
+          type: 'turn_end',
+          message: { role: 'assistant', content: [] },
+        } as PiSessionEvent,
+      ],
+      state,
+    );
+
+    const out = translatePiEvent(
+      {
+        type: 'compaction_end',
+        reason: 'threshold',
+        aborted: false,
+        result: { summary: 'Condensed history.', tokensBefore: 90000 },
+      } as PiSessionEvent,
+      state,
+    );
+
+    expect(out.map(part => part.type)).toEqual(['compaction', 'finish-step']);
+    expect(out[1]).toMatchObject({
+      harnessMetadata: { pi: { inferredStep: true } },
+    });
+    expect(state.stepOpen).toBe(false);
+  });
+
+  it('leaves a compaction inside an open step for that step to close', () => {
+    const state = createPiTranslatorState();
+    emit(
+      [
+        { type: 'turn_start' } as PiSessionEvent,
+        {
+          type: 'message_start',
+          message: { role: 'assistant', content: [] },
+        } as PiSessionEvent,
+      ],
+      state,
+    );
+
+    const out = translatePiEvent(
+      {
+        type: 'compaction_end',
+        reason: 'threshold',
+        aborted: false,
+        result: { summary: 'Condensed history.' },
+      } as PiSessionEvent,
+      state,
+    );
+
+    expect(out.map(part => part.type)).toEqual(['compaction']);
+    expect(state.stepOpen).toBe(true);
   });
 
   it('maps reason "manual" to trigger "manual"', () => {
@@ -987,6 +1543,7 @@ describe('translatePiEvent', () => {
         summary: '(no summary provided)',
         tokensBefore: 50000,
       },
+      expect.objectContaining({ type: 'finish-step' }),
     ]);
   });
 });

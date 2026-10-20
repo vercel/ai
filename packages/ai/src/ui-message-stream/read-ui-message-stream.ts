@@ -95,6 +95,7 @@ export function readUIMessageStream<UI_MESSAGE extends UIMessage>({
   consumeStream({
     stream: processUIMessageStream({
       stream,
+      resetStateOnMessageIdChange: true,
       runUpdateMessageJob(
         job: (options: {
           state: StreamingUIMessageState<UI_MESSAGE>;

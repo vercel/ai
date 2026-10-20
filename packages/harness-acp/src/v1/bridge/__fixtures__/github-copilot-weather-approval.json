@@ -1,0 +1,47 @@
+[
+  {
+    "type": "update",
+    "value": {
+      "toolCallId": "call_Hiiu3DojfZiulcj6OujlcpEq",
+      "title": "ai-sdk-harness-tools-get_weather",
+      "kind": "read",
+      "status": "pending",
+      "rawInput": {
+        "city": "Austin"
+      },
+      "sessionUpdate": "tool_call"
+    }
+  },
+  {
+    "type": "permission",
+    "value": {
+      "sessionId": "f241c98e-3f81-44bb-821c-9f06693616a5",
+      "toolCall": {
+        "toolCallId": "call_Hiiu3DojfZiulcj6OujlcpEq",
+        "kind": "other",
+        "status": "pending",
+        "title": "get_weather",
+        "rawInput": {
+          "city": "Austin"
+        }
+      },
+      "options": [
+        {
+          "optionId": "allow_once",
+          "name": "Allow once",
+          "kind": "allow_once"
+        },
+        {
+          "optionId": "allow_always",
+          "name": "Always allow",
+          "kind": "allow_always"
+        },
+        {
+          "optionId": "reject_once",
+          "name": "Deny",
+          "kind": "reject_once"
+        }
+      ]
+    }
+  }
+]

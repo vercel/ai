@@ -96,6 +96,14 @@ try {
   `agentCapabilities.mcpCapabilities.http`.
 - `authentication`: advertised ACP authentication method, metadata, and client
   capabilities.
+- `nonTextContentTypes`: non-text image content supported across ACP prompts
+  and tool model output. Currently accepts `['image']`. Image prompts are
+  supported when the agent advertises
+  `agentCapabilities.promptCapabilities.image` or this setting includes
+  `'image'`; the setting can opt in when that capability flag is absent or
+  incorrect. Image content from tool `toModelOutput()` callbacks is delivered
+  only when this setting includes `'image'`; otherwise it is omitted with a
+  warning. Defaults to an empty list.
 - `auth`: downstream provider authentication mode:
   - `auto` (default): use AI Gateway when Gateway credentials and a
     `providerAuthentication` configuration are available; otherwise use direct
@@ -456,6 +464,7 @@ import { secureJsonParse } from '@ai-sdk/provider-utils';
 
 export const codexACPHarness = createACP({
   harnessId: 'acp-codex',
+  nonTextContentTypes: ['image'],
   // Define the runtime's built-in tool names and input schemas to expose
   // provider-executed calls as typed HarnessAgent tools.
   // builtinTools: { ... },
@@ -565,6 +574,7 @@ import { createACP } from '@ai-sdk/harness-acp';
 
 export const cursorACPHarness = createACP({
   harnessId: 'cursor-acp',
+  nonTextContentTypes: ['image'],
   source: {
     type: 'install-command',
     command: 'curl https://cursor.com/install -fsS | bash',

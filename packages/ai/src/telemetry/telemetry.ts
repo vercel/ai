@@ -6,11 +6,11 @@ import type {
   EmbeddingModelCallStartEvent,
 } from '../embed/embed-events';
 import type {
-  EvaluateEndEvent,
-  EvaluateStartEvent,
-  EvaluationModelCallEndEvent,
-  EvaluationModelCallStartEvent,
-} from '../evaluate/evaluate-events';
+  DecideEndEvent,
+  DecideStartEvent,
+  DecisionModelCallEndEvent,
+  DecisionModelCallStartEvent,
+} from '../decide/decide-events';
 import type {
   GenerateObjectEndEvent,
   GenerateObjectStartEvent,
@@ -116,10 +116,10 @@ export interface TelemetryDispatcher {
   onEmbedEnd?: Callback<EmbeddingModelCallEndEvent>;
   onRerankStart?: Callback<RerankingModelCallStartEvent>;
   onRerankEnd?: Callback<RerankingModelCallEndEvent>;
-  experimental_onEvaluateStart?: Callback<EvaluateStartEvent>;
-  experimental_onEvaluationModelCallStart?: Callback<EvaluationModelCallStartEvent>;
-  experimental_onEvaluationModelCallEnd?: Callback<EvaluationModelCallEndEvent>;
-  experimental_onEvaluateEnd?: Callback<EvaluateEndEvent>;
+  experimental_onDecideStart?: Callback<DecideStartEvent>;
+  experimental_onDecisionModelCallStart?: Callback<DecisionModelCallStartEvent>;
+  experimental_onDecisionModelCallEnd?: Callback<DecisionModelCallEndEvent>;
+  experimental_onDecideEnd?: Callback<DecideEndEvent>;
   experimental_onStreamTranscriptionStart?: Callback<StreamTranscriptionStartEvent>;
   experimental_onStreamTranscriptionEnd?: Callback<StreamTranscriptionEndEvent>;
   onEnd?: Callback<OperationEndEvent>;
@@ -245,29 +245,45 @@ export interface Telemetry {
    */
   onRerankEnd?: Callback<InferTelemetryEvent<RerankingModelCallEndEvent>>;
 
-  /** Called when an experimental evaluation operation begins. */
+  /** @deprecated Use `experimental_onDecideStart` instead. */
   experimental_onEvaluateStart?: Callback<
-    InferTelemetryEvent<EvaluateStartEvent>
+    InferTelemetryEvent<DecideStartEvent>
   >;
 
-  /**
-   * Called immediately before an experimental evaluation model call begins.
-   * The logical model call includes any provider retries.
-   */
+  /** @deprecated Use `experimental_onDecisionModelCallStart` instead. */
   experimental_onEvaluationModelCallStart?: Callback<
-    InferTelemetryEvent<EvaluationModelCallStartEvent>
+    InferTelemetryEvent<DecisionModelCallStartEvent>
+  >;
+
+  /** @deprecated Use `experimental_onDecisionModelCallEnd` instead. */
+  experimental_onEvaluationModelCallEnd?: Callback<
+    InferTelemetryEvent<DecisionModelCallEndEvent>
+  >;
+
+  /** @deprecated Use `experimental_onDecideEnd` instead. */
+  experimental_onEvaluateEnd?: Callback<InferTelemetryEvent<DecideEndEvent>>;
+
+  /** Called when an experimental decision operation begins. */
+  experimental_onDecideStart?: Callback<InferTelemetryEvent<DecideStartEvent>>;
+
+  /**
+   * Called immediately before an experimental decision model call begins.
+   * The logical model call includes any provider retries.
+   */
+  experimental_onDecisionModelCallStart?: Callback<
+    InferTelemetryEvent<DecisionModelCallStartEvent>
   >;
 
   /**
-   * Called after an experimental evaluation model response has been validated.
+   * Called after an experimental decision model response has been validated.
    * The logical model call includes any provider retries.
    */
-  experimental_onEvaluationModelCallEnd?: Callback<
-    InferTelemetryEvent<EvaluationModelCallEndEvent>
+  experimental_onDecisionModelCallEnd?: Callback<
+    InferTelemetryEvent<DecisionModelCallEndEvent>
   >;
 
-  /** Called when an experimental evaluation operation completes. */
-  experimental_onEvaluateEnd?: Callback<InferTelemetryEvent<EvaluateEndEvent>>;
+  /** Called when an experimental decision operation completes. */
+  experimental_onDecideEnd?: Callback<InferTelemetryEvent<DecideEndEvent>>;
 
   /** Called when an experimental streaming transcription operation begins. */
   experimental_onStreamTranscriptionStart?: Callback<

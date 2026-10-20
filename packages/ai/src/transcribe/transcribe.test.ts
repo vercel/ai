@@ -332,6 +332,24 @@ describe('transcribe', () => {
     });
   });
 
+  it('should return an empty transcript', async () => {
+    const result = await transcribe({
+      model: new MockTranscriptionModelV4({
+        doGenerate: async () =>
+          createMockResponse({
+            text: '',
+            segments: [],
+            language: 'en',
+            durationInSeconds: 0,
+          }),
+      }),
+      audio: audioData,
+    });
+
+    expect(result.text).toBe('');
+    expect(result.segments).toEqual([]);
+  });
+
   describe('error handling', () => {
     it('should emit a correlated start and error when downloading URL audio fails', async () => {
       const error = new Error('download failed');
@@ -437,7 +455,7 @@ describe('transcribe', () => {
           model: new MockTranscriptionModelV4({
             doGenerate: async () =>
               createMockResponse({
-                text: '',
+                text: undefined as unknown as string,
                 segments: [],
                 language: 'en',
                 durationInSeconds: 0,
@@ -464,7 +482,7 @@ describe('transcribe', () => {
           model: new MockTranscriptionModelV4({
             doGenerate: async () =>
               createMockResponse({
-                text: '',
+                text: undefined as unknown as string,
                 segments: [],
                 language: 'en',
                 durationInSeconds: 0,

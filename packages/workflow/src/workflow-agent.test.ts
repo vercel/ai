@@ -217,6 +217,76 @@ describe('WorkflowAgent', () => {
         }),
       );
     });
+
+    it('passes URL-backed image and file parts to model steps without downloading them', async () => {
+      const { modelCallIterator } = await import('./model-call-iterator.js');
+      vi.mocked(modelCallIterator).mockReturnValue({
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      } as unknown as MockIterator);
+      const download = vi.fn(async requests => requests.map(() => null));
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(() => {
+        throw new Error('fetch is unavailable in workflow functions');
+      });
+      const imageUrl = new URL('https://example.com/image.png');
+      const fileUrl = new URL('https://example.com/file.pdf');
+
+      try {
+        const agent = new WorkflowAgent({
+          model: createMockModel(),
+          experimental_download: download,
+        });
+        await agent.stream({
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'image',
+                  image: imageUrl,
+                  mediaType: 'image/png',
+                },
+                {
+                  type: 'file',
+                  data: fileUrl,
+                  mediaType: 'application/pdf',
+                },
+              ],
+            },
+          ],
+        });
+
+        const prompt = vi
+          .mocked(modelCallIterator)
+          .mock.calls.at(-1)?.[0].prompt;
+        expect(prompt).toEqual([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: { type: 'url', url: imageUrl },
+                mediaType: 'image/png',
+                providerOptions: undefined,
+              },
+              {
+                type: 'file',
+                data: { type: 'url', url: fileUrl },
+                mediaType: 'application/pdf',
+                filename: undefined,
+                providerOptions: undefined,
+              },
+            ],
+          },
+        ]);
+        expect(download).not.toHaveBeenCalled();
+        expect(modelCallIterator).toHaveBeenLastCalledWith(
+          expect.objectContaining({ download }),
+        );
+        expect(fetchSpy).not.toHaveBeenCalled();
+      } finally {
+        fetchSpy.mockRestore();
+      }
+    });
   });
 
   describe('tool execution error handling', () => {
@@ -4637,6 +4707,88 @@ describe('WorkflowAgent', () => {
 
       // The modelCallIterator should have been called (the agent continues with denial result)
       expect(mockIterator.next).toHaveBeenCalled();
+    });
+
+    it('should reuse an existing denial result while streaming the denial event', async () => {
+      const executeFn = vi.fn();
+      const tools: ToolSet = {
+        deleteFile: {
+          description: 'Delete a file',
+          inputSchema: z.object({ path: z.string() }),
+          execute: executeFn,
+          needsApproval: true as const,
+        },
+      };
+      const write = vi.fn();
+      const { modelCallIterator } = await import('./model-call-iterator.js');
+      vi.mocked(modelCallIterator).mockReturnValue({
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      } as unknown as MockIterator);
+
+      await new WorkflowAgent({
+        model: createMockModel(),
+        tools,
+      }).stream({
+        messages: [
+          { role: 'user', content: 'Delete /etc/passwd' },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'deleteFile',
+                input: { path: '/etc/passwd' },
+              },
+              {
+                type: 'tool-approval-request',
+                approvalId: 'approval-call-1',
+                toolCallId: 'call-1',
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'approval-call-1',
+                approved: false,
+                reason: 'Too dangerous',
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'deleteFile',
+                output: {
+                  type: 'execution-denied',
+                  reason: 'Too dangerous',
+                },
+              },
+            ],
+          },
+        ] as any,
+        writable: new WritableStream({ write, close: vi.fn() }),
+      });
+
+      expect(executeFn).not.toHaveBeenCalled();
+      const initialMessages = vi
+        .mocked(modelCallIterator)
+        .mock.calls.at(-1)?.[0].initialMessages;
+      expect(
+        initialMessages?.flatMap(message =>
+          message.role === 'tool'
+            ? message.content.filter(
+                part =>
+                  part.type === 'tool-result' && part.toolCallId === 'call-1',
+              )
+            : [],
+        ),
+      ).toHaveLength(1);
+      expect(write.mock.calls.map(([chunk]) => chunk)).toContainEqual({
+        type: 'tool-output-denied',
+        toolCallId: 'call-1',
+      });
     });
 
     it('should pass through messages without approval responses unchanged', async () => {

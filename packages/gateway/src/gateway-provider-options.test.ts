@@ -1,10 +1,10 @@
 import { safeValidateTypes } from '@ai-sdk/provider-utils';
 import { describe, expect, it } from 'vitest';
 import {
-  EVALUATION_FALLBACK_MAX_CONDITION_DEPTH,
-  EVALUATION_FALLBACK_MAX_CONDITIONS_PER_LIST,
-  EVALUATION_FALLBACK_MAX_QUESTION_LENGTH,
-  gatewayEvaluationProviderOptionsSchema,
+  DECISION_FALLBACK_MAX_CONDITION_DEPTH,
+  DECISION_FALLBACK_MAX_CONDITIONS_PER_LIST,
+  DECISION_FALLBACK_MAX_QUESTION_LENGTH,
+  gatewayDecisionProviderOptionsSchema,
 } from './gateway-provider-options';
 
 const conditionalFallback = {
@@ -12,7 +12,7 @@ const conditionalFallback = {
   when: { question: 'intent', confidenceBelow: 0.6 },
 };
 
-describe('gatewayEvaluationProviderOptionsSchema', () => {
+describe('gatewayDecisionProviderOptionsSchema', () => {
   it.each([
     { question: 'intent', confidenceBelow: 0.6 },
     { question: 'refunded', probabilityBetween: [0.4, 0.6] },
@@ -52,7 +52,7 @@ describe('gatewayEvaluationProviderOptionsSchema', () => {
       value: {
         models: [{ model: 'openai/gpt-5.6-sol', when }],
       },
-      schema: gatewayEvaluationProviderOptionsSchema,
+      schema: gatewayDecisionProviderOptionsSchema,
     });
 
     expect(result.success).toBe(true);
@@ -65,7 +65,7 @@ describe('gatewayEvaluationProviderOptionsSchema', () => {
     };
     const result = await safeValidateTypes({
       value,
-      schema: gatewayEvaluationProviderOptionsSchema,
+      schema: gatewayDecisionProviderOptionsSchema,
     });
 
     expect(result).toMatchObject({ success: true, value });
@@ -76,7 +76,7 @@ describe('gatewayEvaluationProviderOptionsSchema', () => {
       value: {
         models: [conditionalFallback, 'anthropic/claude-sonnet-5'],
       },
-      schema: gatewayEvaluationProviderOptionsSchema,
+      schema: gatewayDecisionProviderOptionsSchema,
     });
 
     expect(result.success).toBe(true);
@@ -130,7 +130,7 @@ describe('gatewayEvaluationProviderOptionsSchema', () => {
       value: {
         models: [{ model: 'openai/gpt-5.6-sol', when }],
       },
-      schema: gatewayEvaluationProviderOptionsSchema,
+      schema: gatewayDecisionProviderOptionsSchema,
     });
 
     expect(result.success).toBe(false);
@@ -140,7 +140,7 @@ describe('gatewayEvaluationProviderOptionsSchema', () => {
     let condition: unknown = { question: 'intent', confidenceBelow: 0.5 };
     for (
       let depth = 1;
-      depth < EVALUATION_FALLBACK_MAX_CONDITION_DEPTH;
+      depth < DECISION_FALLBACK_MAX_CONDITION_DEPTH;
       depth++
     ) {
       condition = { any: [condition] };
@@ -150,13 +150,13 @@ describe('gatewayEvaluationProviderOptionsSchema', () => {
       value: {
         models: [{ model: 'openai/gpt-5.6-sol', when: condition }],
       },
-      schema: gatewayEvaluationProviderOptionsSchema,
+      schema: gatewayDecisionProviderOptionsSchema,
     });
     const invalidResult = await safeValidateTypes({
       value: {
         models: [{ model: 'openai/gpt-5.6-sol', when: { any: [condition] } }],
       },
-      schema: gatewayEvaluationProviderOptionsSchema,
+      schema: gatewayDecisionProviderOptionsSchema,
     });
 
     expect(validResult.success).toBe(true);
@@ -185,13 +185,13 @@ describe('gatewayEvaluationProviderOptionsSchema', () => {
       value: {
         models: [{ model: 'openai/gpt-5.6-sol', when: fiveLevels }],
       },
-      schema: gatewayEvaluationProviderOptionsSchema,
+      schema: gatewayDecisionProviderOptionsSchema,
     });
     const invalidResult = await safeValidateTypes({
       value: {
         models: [{ model: 'openai/gpt-5.6-sol', when: sixLevels }],
       },
-      schema: gatewayEvaluationProviderOptionsSchema,
+      schema: gatewayDecisionProviderOptionsSchema,
     });
 
     expect(validResult.success).toBe(true);
@@ -199,7 +199,7 @@ describe('gatewayEvaluationProviderOptionsSchema', () => {
     expect(
       invalidResult.success ? undefined : invalidResult.error.message,
     ).toContain(
-      `conditions can be nested at most ${EVALUATION_FALLBACK_MAX_CONDITION_DEPTH} levels deep`,
+      `conditions can be nested at most ${DECISION_FALLBACK_MAX_CONDITION_DEPTH} levels deep`,
     );
   });
 
@@ -214,7 +214,7 @@ describe('gatewayEvaluationProviderOptionsSchema', () => {
   ])('rejects invalid models list %#', async ({ models }) => {
     const result = await safeValidateTypes({
       value: { models },
-      schema: gatewayEvaluationProviderOptionsSchema,
+      schema: gatewayDecisionProviderOptionsSchema,
     });
 
     expect(result.success).toBe(false);
@@ -222,9 +222,9 @@ describe('gatewayEvaluationProviderOptionsSchema', () => {
 
   it('applies the shared condition bounds', () => {
     expect({
-      depth: EVALUATION_FALLBACK_MAX_CONDITION_DEPTH,
-      conditionsPerList: EVALUATION_FALLBACK_MAX_CONDITIONS_PER_LIST,
-      questionLength: EVALUATION_FALLBACK_MAX_QUESTION_LENGTH,
+      depth: DECISION_FALLBACK_MAX_CONDITION_DEPTH,
+      conditionsPerList: DECISION_FALLBACK_MAX_CONDITIONS_PER_LIST,
+      questionLength: DECISION_FALLBACK_MAX_QUESTION_LENGTH,
     }).toEqual({
       depth: 5,
       conditionsPerList: 20,
@@ -233,8 +233,8 @@ describe('gatewayEvaluationProviderOptionsSchema', () => {
   });
 
   it.each([
-    { length: EVALUATION_FALLBACK_MAX_QUESTION_LENGTH, success: true },
-    { length: EVALUATION_FALLBACK_MAX_QUESTION_LENGTH + 1, success: false },
+    { length: DECISION_FALLBACK_MAX_QUESTION_LENGTH, success: true },
+    { length: DECISION_FALLBACK_MAX_QUESTION_LENGTH + 1, success: false },
   ])('bounds question length at $length', async ({ length, success }) => {
     const result = await safeValidateTypes({
       value: {
@@ -245,7 +245,7 @@ describe('gatewayEvaluationProviderOptionsSchema', () => {
           },
         ],
       },
-      schema: gatewayEvaluationProviderOptionsSchema,
+      schema: gatewayDecisionProviderOptionsSchema,
     });
 
     expect(result.success).toBe(success);
@@ -261,7 +261,7 @@ describe('gatewayEvaluationProviderOptionsSchema', () => {
         value: {
           models: [{ ...conditionalFallback, model: 'm'.repeat(length) }],
         },
-        schema: gatewayEvaluationProviderOptionsSchema,
+        schema: gatewayDecisionProviderOptionsSchema,
       });
 
       expect(result.success).toBe(success);
@@ -296,14 +296,14 @@ describe('gatewayEvaluationProviderOptionsSchema', () => {
             { model: 'openai/gpt-5.6-sol', when: when(conditions(count)) },
           ],
         },
-        schema: gatewayEvaluationProviderOptionsSchema,
+        schema: gatewayDecisionProviderOptionsSchema,
       });
 
     expect(
-      (await validate(EVALUATION_FALLBACK_MAX_CONDITIONS_PER_LIST)).success,
+      (await validate(DECISION_FALLBACK_MAX_CONDITIONS_PER_LIST)).success,
     ).toBe(true);
     expect(
-      (await validate(EVALUATION_FALLBACK_MAX_CONDITIONS_PER_LIST + 1)).success,
+      (await validate(DECISION_FALLBACK_MAX_CONDITIONS_PER_LIST + 1)).success,
     ).toBe(false);
   });
 });

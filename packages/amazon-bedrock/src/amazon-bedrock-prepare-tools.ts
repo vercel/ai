@@ -193,7 +193,7 @@ export async function prepareTools({
       supportsStrictOnTools &&
       (tool.strict !== true || isStrictToolSchemaCompatible(tool.inputSchema));
 
-    if (!supportsStrictOnTools && tool.strict != null) {
+    if (!supportsStrictOnTools && tool.strict === true) {
       toolWarnings.push({
         type: 'unsupported',
         feature: 'strict',

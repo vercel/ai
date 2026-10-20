@@ -5,6 +5,8 @@ import {
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonResponseHandler,
@@ -87,7 +89,7 @@ export class MistralTranscriptionModel implements TranscriptionModelV4 {
     const formData = new FormData();
     const blob =
       audio instanceof Uint8Array
-        ? new Blob([audio])
+        ? new Blob([audio as Uint8Array<ArrayBuffer>])
         : new Blob([convertBase64ToUint8Array(audio)]);
 
     formData.append('model', this.modelId);
@@ -229,29 +231,33 @@ function appendFormValue(
   formData.append(key, String(value));
 }
 
-const mistralTranscriptionResponseSchema = z.object({
-  model: z.string(),
-  text: z.string(),
-  language: z.string().nullish(),
-  segments: z
-    .array(
-      z.object({
-        type: z.literal('transcription_segment').nullish(),
-        text: z.string(),
-        start: z.number(),
-        end: z.number(),
-        score: z.number().nullish(),
-        speaker_id: z.string().nullish(),
-      }),
-    )
-    .nullish(),
-  usage: z
-    .object({
-      prompt_tokens: z.number().nullish(),
-      completion_tokens: z.number().nullish(),
-      total_tokens: z.number().nullish(),
-      prompt_audio_seconds: z.number().nullish(),
-      request_count: z.number().nullish(),
-    })
-    .nullish(),
-});
+const mistralTranscriptionResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      model: z.string(),
+      text: z.string(),
+      language: z.string().nullish(),
+      segments: z
+        .array(
+          z.object({
+            type: z.literal('transcription_segment').nullish(),
+            text: z.string(),
+            start: z.number(),
+            end: z.number(),
+            score: z.number().nullish(),
+            speaker_id: z.string().nullish(),
+          }),
+        )
+        .nullish(),
+      usage: z
+        .object({
+          prompt_tokens: z.number().nullish(),
+          completion_tokens: z.number().nullish(),
+          total_tokens: z.number().nullish(),
+          prompt_audio_seconds: z.number().nullish(),
+          request_count: z.number().nullish(),
+        })
+        .nullish(),
+    }),
+  ),
+);

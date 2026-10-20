@@ -1,17 +1,61 @@
 ---
 title: Cohere
-description: Learn how to use the Cohere provider for the AI SDK.
+description: Learn how to use Cohere with AI Gateway and the direct provider.
 ---
 
 # Cohere Provider
 
 The [Cohere](https://cohere.com/) provider contains language and embedding model support for the Cohere chat API.
+You can use Cohere models through [AI Gateway](/providers/ai-sdk-providers/ai-gateway) (recommended) or connect directly with `@ai-sdk/cohere`.
 
-## Setup
+```ts provider="cohere" model="cohere/command-a"
+import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
 
-The Cohere provider is available in the `@ai-sdk/cohere` module. You can install it with
+const { text } = await generateText({
+  model: __MODEL__,
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
 
-<InstallPackages packages="@ai-sdk/cohere" />
+console.log(text);
+```
+
+## Using AI Gateway
+
+The AI SDK uses AI Gateway by default for model strings. Gateway provides access to models across providers through a single API key, with usage and cost tracking. Install `ai`:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
+
+Gateway feature and provider-option support depends on the model and the provider serving the request. See [Gateway provider options](https://vercel.com/docs/ai-gateway/models-and-providers/provider-options).
+
+## Using `@ai-sdk/cohere`
+
+For direct access to Cohere, install `ai` and `@ai-sdk/cohere`:
+
+<InstallPackages packages="ai @ai-sdk/cohere" />
+
+Set your Cohere API credential in the `COHERE_API_KEY` environment variable:
+
+```bash
+export COHERE_API_KEY=your_api_key_here
+```
+
+AI Gateway does not expose every API in `@ai-sdk/cohere`. Use the direct provider for provider-specific APIs or custom connection settings.
+
+<Note>
+  The following sections document the direct `@ai-sdk/cohere` provider,
+  including its model factories and settings. Gateway model and feature
+  availability can differ.
+</Note>
 
 ## Provider Instance
 
@@ -279,6 +323,13 @@ The following provider options are available:
   - `classification`: Used for embeddings passed through a text classifier.
   - `clustering`: Used for embeddings run through a clustering algorithm.
 
+- **outputDimension** _256 | 512 | 768 | 1024 | 1536 | 2048_
+
+  The number of dimensions of the output embedding. Available for Embed v4.0
+  and newer models. Embed v4.0 supports `256`, `512`, `1024`, and `1536`
+  (default). Embed v5.0 Pro and Fast also support `768` and `2048` (default).
+  When omitted, the API uses the model's default dimension.
+
 - **truncate** _'NONE' | 'START' | 'END'_
 
   Specifies how the API will handle inputs longer than the maximum token length.
@@ -289,15 +340,18 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model                           | Embedding Dimensions |
-| ------------------------------- | -------------------- |
-| `embed-english-v3.0`            | 1024                 |
-| `embed-multilingual-v3.0`       | 1024                 |
-| `embed-english-light-v3.0`      | 384                  |
-| `embed-multilingual-light-v3.0` | 384                  |
-| `embed-english-v2.0`            | 4096                 |
-| `embed-english-light-v2.0`      | 1024                 |
-| `embed-multilingual-v2.0`       | 768                  |
+| Model                           | Embedding Dimensions                      |
+| ------------------------------- | ----------------------------------------- |
+| `embed-v5.0-pro`                | 256, 512, 768, 1024, 1536, 2048 (default) |
+| `embed-v5.0-fast`               | 256, 512, 768, 1024, 1536, 2048 (default) |
+| `embed-v4.0`                    | 256, 512, 1024, 1536 (default)            |
+| `embed-english-v3.0`            | 1024                                      |
+| `embed-multilingual-v3.0`       | 1024                                      |
+| `embed-english-light-v3.0`      | 384                                       |
+| `embed-multilingual-light-v3.0` | 384                                       |
+| `embed-english-v2.0`            | 4096                                      |
+| `embed-english-light-v2.0`      | 1024                                      |
+| `embed-multilingual-v2.0`       | 768                                       |
 
 ## Reranking Models
 

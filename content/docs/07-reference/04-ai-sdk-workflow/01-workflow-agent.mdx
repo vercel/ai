@@ -102,6 +102,13 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
         'Default stop condition for the agent loop. When omitted, generate defaults to 20 steps, while stream has no maximum step count. Use `isStepCount()` to bound execution. Per-call values override this default.',
     },
     {
+      name: 'toolCallConcurrency',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Maximum number of local tool calls executing concurrently within a step, including approved calls. Must be a positive integer. Set to 1 for sequential execution in model order. Defaults to unlimited concurrency. Can be changed by prepareCall; explicit generate/stream call options take precedence. Provider-executed tools are unaffected.',
+    },
+    {
       name: 'activeTools',
       type: 'ActiveTools<TTools>',
       isOptional: true,
@@ -127,7 +134,7 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
       type: 'DownloadFunction',
       isOptional: true,
       description:
-        'Default custom download function for URLs. Per-stream values override this default.',
+        "Default custom download function for URLs. Mark the function with 'use step' when used in a workflow. Per-stream values override this default.",
     },
     {
       name: 'experimental_sandbox',
@@ -502,16 +509,18 @@ Returns `Promise<WorkflowAgentGenerateResult>` with the core [`GenerateTextResul
 - `responseMessages` includes generated messages, even when `prepareStep` replaces the input history.
 - `output` defaults to text, or follows the constructor/per-call output specification. Reading it throws `NoOutputGeneratedError` when output is unavailable, such as a final `tool-calls` response.
 
+Inside a workflow, `timeout` bounds model calls, including retries and dispatch after suspension. It does not cancel a hook that a tool is waiting on. Use the Workflow runtime’s `run.cancel()` to stop a suspended run. See [deadlines, cancellation, and replay](/docs/agents/workflow-agent#deadlines-cancellation-and-replay).
+
 Generation failures reject. The end callback runs before complete-output parsing; a parsing failure can therefore reject after `onEnd` has run. Existing Workflow callback shapes and preparation precedence apply; they are not all identical to core's callback APIs.
 
 <Note>
   Use the result API inside workflow code and return selected serializable
   fields (for example, `text` and `usage`) through `run.returnValue`. Returning
-  the whole result class is not supported. Transport-independent approval
-  request creation is separate follow-up work; use `stream()` for approval round
-  trips until that support is available. Performance data currently measures the
-  model response; complete tool/step timing is not yet reported.
+  the whole result class is not supported. Performance data currently measures
+  the model response; complete tool/step timing is not yet reported.
 </Note>
+
+Approval requests appear in `content` and `responseMessages` without requiring a writable. To continue, append `responseMessages` to the original history and add a tool message containing the user's `tool-approval-response`. Preserve the request signature and tool-call input; use the same `experimental_toolApprovalSecret` environment-variable reference on continuation. Local approvals are validated before execution, and provider-executed approval responses are forwarded to the provider. See [approval round trips](/docs/agents/workflow-agent#approval-round-trips-without-streaming).
 
 ### `stream()`
 
@@ -568,6 +577,13 @@ const result = await agent.stream({
       description: "Override the tool choice strategy for this call. Default: 'auto'.",
     },
     {
+      name: 'toolCallConcurrency',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Override the local tool call concurrency limit for this call. Must be a positive integer. Set to 1 for sequential execution in model order, including approved calls. Takes precedence over the constructor and prepareCall.',
+    },
+    {
       name: 'activeTools',
       type: 'ActiveTools<TTools>',
       isOptional: true,
@@ -584,7 +600,7 @@ const result = await agent.stream({
       name: 'timeout',
       type: 'number',
       isOptional: true,
-      description: 'Timeout in milliseconds. Creates an AbortSignal that aborts the operation after the given time.',
+      description: 'Model-call deadline in milliseconds. Inside a workflow, the absolute deadline is checked at dispatch and retry and remains in effect across suspension. It does not cancel a tool waiting on a Workflow hook; use run.cancel() to stop the suspended run.',
     },
     {
       name: 'sendFinish',
@@ -620,7 +636,8 @@ const result = await agent.stream({
       name: 'experimental_download',
       type: 'DownloadFunction',
       isOptional: true,
-      description: 'Custom download function for fetching files/URLs.',
+      description:
+        "Custom download function for fetching files/URLs. Mark the function with 'use step' when used in a workflow.",
     },
     {
       name: 'experimental_sandbox',

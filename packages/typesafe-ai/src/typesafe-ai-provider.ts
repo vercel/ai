@@ -1,29 +1,37 @@
 import {
   NoSuchModelError,
-  type Experimental_EvaluationModelV4 as EvaluationModelV4,
+  type Experimental_DecisionModelV4 as DecisionModelV4,
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
+  loadOptionalSetting,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import {
-  EvaluationTypeSafeAiModel,
-  type TypeSafeAiEvaluationModelId,
-} from './typesafe-ai-evaluation-model';
+  DecisionTypeSafeAiModel,
+  type TypeSafeAiDecisionModelId,
+} from './typesafe-ai-decision-model';
 import { VERSION } from './version';
 
-/** TypeSafe's experimental evaluation capability, isolated from ProviderV4. */
+/** TypeSafe's experimental decision capability, isolated from ProviderV4. */
 export interface TypeSafeAiProvider extends ProviderV4 {
-  evaluationModel(modelId: TypeSafeAiEvaluationModelId): EvaluationModelV4;
+  decisionModel(modelId: TypeSafeAiDecisionModelId): DecisionModelV4;
+  /** @deprecated Use `decisionModel` instead. */
+  evaluationModel(modelId: TypeSafeAiDecisionModelId): DecisionModelV4 & {
+    doEvaluate: DecisionModelV4['doDecide'];
+  };
 }
 
 export interface TypeSafeAiProviderSettings {
   /** API key. Defaults to the TYPESAFE_AI_API_KEY environment variable. */
   apiKey?: string;
-  /** API base URL. Defaults to https://api.typesafe.ai/v1. */
+  /**
+   * API base URL. Defaults to the TYPESAFE_AI_BASE_URL environment variable,
+   * then https://api.typesafe.ai/v1.
+   */
   baseURL?: string;
   headers?: Record<string, string>;
   fetch?: FetchFunction;
@@ -33,7 +41,12 @@ export function createTypeSafeAi(
   options: TypeSafeAiProviderSettings = {},
 ): TypeSafeAiProvider {
   const baseURL =
-    withoutTrailingSlash(options.baseURL) ?? 'https://api.typesafe.ai/v1';
+    withoutTrailingSlash(
+      loadOptionalSetting({
+        settingValue: options.baseURL,
+        environmentVariableName: 'TYPESAFE_AI_BASE_URL',
+      }),
+    ) ?? 'https://api.typesafe.ai/v1';
   const headers = () =>
     withUserAgentSuffix(
       {
@@ -43,15 +56,18 @@ export function createTypeSafeAi(
       `ai-sdk-typesafe-ai/${VERSION}`,
     );
 
+  const decisionModel = (modelId: TypeSafeAiDecisionModelId) =>
+    new DecisionTypeSafeAiModel(modelId, {
+      provider: 'typesafe.decision',
+      baseURL,
+      headers,
+      fetch: options.fetch,
+    });
+
   return {
     specificationVersion: 'v4',
-    evaluationModel: modelId =>
-      new EvaluationTypeSafeAiModel(modelId, {
-        provider: 'typesafe.evaluation',
-        baseURL,
-        headers,
-        fetch: options.fetch,
-      }),
+    decisionModel,
+    evaluationModel: decisionModel,
     languageModel: modelId => {
       throw new NoSuchModelError({ modelId, modelType: 'languageModel' });
     },

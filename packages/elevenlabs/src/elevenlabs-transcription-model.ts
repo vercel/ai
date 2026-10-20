@@ -6,6 +6,8 @@ import {
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertBase64ToUint8Array,
   convertToBase64,
@@ -134,7 +136,7 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
     const formData = new FormData();
     const blob =
       audio instanceof Uint8Array
-        ? new Blob([audio])
+        ? new Blob([audio as Uint8Array<ArrayBuffer>])
         : new Blob([convertBase64ToUint8Array(audio)]);
 
     formData.append('model_id', this.modelId);
@@ -144,7 +146,7 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
       new File([blob], 'audio', { type: mediaType }),
       `audio.${fileExtension}`,
     );
-    formData.append('diarize', 'true');
+    formData.append('diarize', String(elevenlabsOptions?.diarize ?? true));
 
     // Add provider-specific options
     if (elevenlabsOptions) {
@@ -156,10 +158,6 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
           elevenlabsOptions.timestampsGranularity ?? undefined,
         file_format: elevenlabsOptions.fileFormat ?? undefined,
       };
-
-      if (typeof elevenlabsOptions.diarize === 'boolean') {
-        formData.append('diarize', String(elevenlabsOptions.diarize));
-      }
 
       for (const key in transcriptionModelOptions) {
         const value =
@@ -226,6 +224,13 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
         headers: responseHeaders,
         body: rawResponse,
       },
+      ...(response.words != null && {
+        providerMetadata: {
+          elevenlabs: {
+            words: response.words,
+          },
+        },
+      }),
     };
   }
 
@@ -717,28 +722,32 @@ function createElevenLabsRealtimeTranscriptionStream({
   });
 }
 
-const elevenlabsTranscriptionResponseSchema = z.object({
-  language_code: z.string(),
-  language_probability: z.number(),
-  text: z.string(),
-  words: z
-    .array(
-      z.object({
-        text: z.string(),
-        type: z.enum(['word', 'spacing', 'audio_event']),
-        start: z.number().nullish(),
-        end: z.number().nullish(),
-        speaker_id: z.string().nullish(),
-        characters: z
-          .array(
-            z.object({
-              text: z.string(),
-              start: z.number().nullish(),
-              end: z.number().nullish(),
-            }),
-          )
-          .nullish(),
-      }),
-    )
-    .nullish(),
-});
+const elevenlabsTranscriptionResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      language_code: z.string(),
+      language_probability: z.number(),
+      text: z.string(),
+      words: z
+        .array(
+          z.object({
+            text: z.string(),
+            type: z.enum(['word', 'spacing', 'audio_event']),
+            start: z.number().nullish(),
+            end: z.number().nullish(),
+            speaker_id: z.string().nullish(),
+            characters: z
+              .array(
+                z.object({
+                  text: z.string(),
+                  start: z.number().nullish(),
+                  end: z.number().nullish(),
+                }),
+              )
+              .nullish(),
+          }),
+        )
+        .nullish(),
+    }),
+  ),
+);
