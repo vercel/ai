@@ -9,30 +9,31 @@ import { z } from 'zod/v4';
 // https://ai.google.dev/api/generate-content#GroundingSupport
 // https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/grounding-with-google-search
 
-export const googleSearchToolArgsBaseSchema = z
-  .object({
-    searchTypes: z
-      .object({
-        webSearch: z.object({}).optional(),
-        imageSearch: z.object({}).optional(),
-      })
-      .optional(),
+export const googleSearchToolArgsBaseSchema = () =>
+  z
+    .object({
+      searchTypes: z
+        .object({
+          webSearch: z.object({}).optional(),
+          imageSearch: z.object({}).optional(),
+        })
+        .optional(),
 
-    timeRangeFilter: z
-      .object({
-        startTime: z.string(),
-        endTime: z.string(),
-      })
-      .optional(),
-  })
-  .passthrough();
+      timeRangeFilter: z
+        .object({
+          startTime: z.string(),
+          endTime: z.string(),
+        })
+        .optional(),
+    })
+    .passthrough();
 
 export type GoogleSearchToolArgs = z.infer<
-  typeof googleSearchToolArgsBaseSchema
+  ReturnType<typeof googleSearchToolArgsBaseSchema>
 >;
 
 const googleSearchToolArgsSchema = lazySchema(() =>
-  zodSchema(googleSearchToolArgsBaseSchema),
+  zodSchema(googleSearchToolArgsBaseSchema()),
 );
 
 export const googleSearch = createProviderToolFactory<{}, GoogleSearchToolArgs>(
