@@ -3,6 +3,8 @@ import type {
   TranscriptionModelV3,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertUint8ArrayToBase64,
   createJsonErrorResponseHandler,
@@ -110,45 +112,50 @@ export class GatewayTranscriptionModel implements TranscriptionModelV3 {
   }
 }
 
-const providerMetadataEntrySchema = z.object({}).catchall(z.unknown());
+const providerMetadataEntrySchema = () => z.object({}).catchall(z.unknown());
 
-const gatewayTranscriptionWarningSchema = z.discriminatedUnion('type', [
-  z.object({
-    type: z.literal('unsupported'),
-    feature: z.string(),
-    details: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal('compatibility'),
-    feature: z.string(),
-    details: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal('deprecated'),
-    setting: z.string(),
-    message: z.string(),
-  }),
-  z.object({
-    type: z.literal('other'),
-    message: z.string(),
-  }),
-]);
+const gatewayTranscriptionWarningSchema = () =>
+  z.discriminatedUnion('type', [
+    z.object({
+      type: z.literal('unsupported'),
+      feature: z.string(),
+      details: z.string().optional(),
+    }),
+    z.object({
+      type: z.literal('compatibility'),
+      feature: z.string(),
+      details: z.string().optional(),
+    }),
+    z.object({
+      type: z.literal('deprecated'),
+      setting: z.string(),
+      message: z.string(),
+    }),
+    z.object({
+      type: z.literal('other'),
+      message: z.string(),
+    }),
+  ]);
 
-const gatewayTranscriptionResponseSchema = z.object({
-  text: z.string(),
-  segments: z
-    .array(
-      z.object({
-        text: z.string(),
-        startSecond: z.number(),
-        endSecond: z.number(),
-      }),
-    )
-    .optional(),
-  language: z.string().nullish(),
-  durationInSeconds: z.number().nullish(),
-  warnings: z.array(gatewayTranscriptionWarningSchema).optional(),
-  providerMetadata: z
-    .record(z.string(), providerMetadataEntrySchema)
-    .optional(),
-});
+const gatewayTranscriptionResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      text: z.string(),
+      segments: z
+        .array(
+          z.object({
+            text: z.string(),
+            startSecond: z.number(),
+            endSecond: z.number(),
+          }),
+        )
+        .optional(),
+      language: z.string().nullish(),
+      durationInSeconds: z.number().nullish(),
+      warnings: z.array(gatewayTranscriptionWarningSchema()).optional(),
+      providerMetadata: z
+        .record(z.string(), providerMetadataEntrySchema())
+        .optional(),
+    }),
+  ),
+);
