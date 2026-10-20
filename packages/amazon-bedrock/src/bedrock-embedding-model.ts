@@ -3,6 +3,8 @@ import {
   type EmbeddingModelV3,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createJsonResponseHandler,
   parseProviderOptions,
@@ -187,30 +189,34 @@ function detectEmbeddingModelFamily(
       : 'titan';
 }
 
-const BedrockEmbeddingResponseSchema = z.union([
-  // Titan-style response
-  z.object({
-    embedding: z.array(z.number()),
-    inputTextTokenCount: z.number(),
-  }),
-  // Nova-style response
-  z.object({
-    embeddings: z.array(
+const BedrockEmbeddingResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.union([
+      // Titan-style response
       z.object({
-        embeddingType: z.string(),
         embedding: z.array(z.number()),
+        inputTextTokenCount: z.number(),
       }),
-    ),
-    inputTokenCount: z.number().optional(),
-  }),
-  // Cohere v3-style response
-  z.object({
-    embeddings: z.array(z.array(z.number())),
-  }),
-  // Cohere v4-style response
-  z.object({
-    embeddings: z.object({
-      float: z.array(z.array(z.number())),
-    }),
-  }),
-]);
+      // Nova-style response
+      z.object({
+        embeddings: z.array(
+          z.object({
+            embeddingType: z.string(),
+            embedding: z.array(z.number()),
+          }),
+        ),
+        inputTokenCount: z.number().optional(),
+      }),
+      // Cohere v3-style response
+      z.object({
+        embeddings: z.array(z.array(z.number())),
+      }),
+      // Cohere v4-style response
+      z.object({
+        embeddings: z.object({
+          float: z.array(z.array(z.number())),
+        }),
+      }),
+    ]),
+  ),
+);

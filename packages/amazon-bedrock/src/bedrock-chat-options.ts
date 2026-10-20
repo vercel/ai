@@ -1,3 +1,8 @@
+import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 // https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html
@@ -105,22 +110,26 @@ export type AmazonBedrockChatModelSettings = {
  * Bedrock file part provider options for document-specific features.
  * These options apply to individual file parts (documents).
  */
-export const bedrockFilePartProviderOptions = z.object({
-  /**
-   * Citation configuration for this document.
-   * When enabled, this document will generate citations in the response.
-   */
-  citations: z
-    .object({
+export const bedrockFilePartProviderOptions = lazySchema(() =>
+  zodSchema(
+    z.object({
       /**
-       * Enable citations for this document
+       * Citation configuration for this document.
+       * When enabled, this document will generate citations in the response.
        */
-      enabled: z.boolean(),
-    })
-    .optional(),
-});
+      citations: z
+        .object({
+          /**
+           * Enable citations for this document
+           */
+          enabled: z.boolean(),
+        })
+        .optional(),
+    }),
+  ),
+);
 
-export type BedrockFilePartProviderOptions = z.infer<
+export type BedrockFilePartProviderOptions = InferSchema<
   typeof bedrockFilePartProviderOptions
 >;
 
