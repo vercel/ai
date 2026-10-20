@@ -408,36 +408,40 @@ export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV3 {
   }
 }
 
-const googleOperationSchema = z.object({
-  name: z.string().nullish(),
-  done: z.boolean().nullish(),
-  error: z
-    .object({
-      code: z.number().nullish(),
-      message: z.string(),
-      status: z.string().nullish(),
-    })
-    .nullish(),
-  response: z
-    .object({
-      generateVideoResponse: z
+const googleOperationSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      name: z.string().nullish(),
+      done: z.boolean().nullish(),
+      error: z
         .object({
-          generatedSamples: z
-            .array(
-              z.object({
-                video: z
-                  .object({
-                    uri: z.string().nullish(),
-                  })
-                  .nullish(),
-              }),
-            )
+          code: z.number().nullish(),
+          message: z.string(),
+          status: z.string().nullish(),
+        })
+        .nullish(),
+      response: z
+        .object({
+          generateVideoResponse: z
+            .object({
+              generatedSamples: z
+                .array(
+                  z.object({
+                    video: z
+                      .object({
+                        uri: z.string().nullish(),
+                      })
+                      .nullish(),
+                  }),
+                )
+                .nullish(),
+            })
             .nullish(),
         })
         .nullish(),
-    })
-    .nullish(),
-});
+    }),
+  ),
+);
 
 const googleVideoModelOptionsSchema = lazySchema(() =>
   zodSchema(
