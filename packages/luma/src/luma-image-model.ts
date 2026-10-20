@@ -360,23 +360,27 @@ const lumaGenerationResponseSchema = lazySchema(() =>
   ),
 );
 
-const lumaErrorSchema = z.object({
-  detail: z.array(
+const lumaErrorSchema = lazySchema(() =>
+  zodSchema(
     z.object({
-      type: z.string(),
-      loc: z.array(z.string()),
-      msg: z.string(),
-      input: z.string(),
-      ctx: z
-        .object({
-          expected: z.string(),
-        })
-        .nullish(),
+      detail: z.array(
+        z.object({
+          type: z.string(),
+          loc: z.array(z.string()),
+          msg: z.string(),
+          input: z.string(),
+          ctx: z
+            .object({
+              expected: z.string(),
+            })
+            .nullish(),
+        }),
+      ),
     }),
   ),
-});
+);
 
-export type LumaErrorData = z.infer<typeof lumaErrorSchema>;
+export type LumaErrorData = InferSchema<typeof lumaErrorSchema>;
 
 /**
  * Provider options schema for Luma image generation.
