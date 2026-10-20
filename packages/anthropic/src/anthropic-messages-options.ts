@@ -1,3 +1,8 @@
+import {
+  lazySchema,
+  zodSchema,
+  type InferValidator,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 // https://docs.claude.com/en/docs/about-claude/models/overview
@@ -36,374 +41,390 @@ export type AnthropicMessagesModelId =
  * Anthropic file part provider options for document-specific features.
  * These options apply to individual file parts (documents).
  */
-export const anthropicFilePartProviderOptions = z.object({
-  /**
-   * Citation configuration for this document.
-   * When enabled, this document will generate citations in the response.
-   */
-  citations: z
-    .object({
+export const anthropicFilePartProviderOptions = lazySchema(() =>
+  zodSchema(
+    z.object({
       /**
-       * Enable citations for this document
+       * Citation configuration for this document.
+       * When enabled, this document will generate citations in the response.
        */
-      enabled: z.boolean(),
-    })
-    .optional(),
+      citations: z
+        .object({
+          /**
+           * Enable citations for this document
+           */
+          enabled: z.boolean(),
+        })
+        .optional(),
 
-  /**
-   * Custom title for the document.
-   * If not provided, the filename will be used.
-   */
-  title: z.string().optional(),
+      /**
+       * Custom title for the document.
+       * If not provided, the filename will be used.
+       */
+      title: z.string().optional(),
 
-  /**
-   * Context about the document that will be passed to the model
-   * but not used towards cited content.
-   * Useful for storing document metadata as text or stringified JSON.
-   */
-  context: z.string().optional(),
-});
+      /**
+       * Context about the document that will be passed to the model
+       * but not used towards cited content.
+       * Useful for storing document metadata as text or stringified JSON.
+       */
+      context: z.string().optional(),
+    }),
+  ),
+);
 
-export type AnthropicFilePartProviderOptions = z.infer<
+export type AnthropicFilePartProviderOptions = InferValidator<
   typeof anthropicFilePartProviderOptions
 >;
 
 /**
  * Anthropic provider options for system messages.
  */
-export const anthropicSystemMessageProviderOptions = z.object({
-  /**
-   * Controls when a mid-conversation system message is cleared.
-   *
-   * The value is forwarded to Anthropic as `clear_at`. The required
-   * `mid-conversation-system-clear-at-2026-08-21` beta is added automatically.
-   */
-  clearAt: z.literal('next_user_message').optional(),
+export const anthropicSystemMessageProviderOptions = lazySchema(() =>
+  zodSchema(
+    z.object({
+      /**
+       * Controls when a mid-conversation system message is cleared.
+       *
+       * The value is forwarded to Anthropic as `clear_at`. The required
+       * `mid-conversation-system-clear-at-2026-08-21` beta is added automatically.
+       */
+      clearAt: z.literal('next_user_message').optional(),
 
-  /**
-   * Sets the model effort from the next user turn until a later message
-   * changes it. An effort-only system message with empty content can appear
-   * first. The required `mid-conversation-output-config-2026-07-01` beta is
-   * added automatically.
-   */
-  effort: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).optional(),
+      /**
+       * Sets the model effort from the next user turn until a later message
+       * changes it. An effort-only system message with empty content can appear
+       * first. The required `mid-conversation-output-config-2026-07-01` beta is
+       * added automatically.
+       */
+      effort: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).optional(),
 
-  /**
-   * Mid-conversation tool changes. Adds or removes tools from the
-   * conversation's tool set between turns without invalidating the prompt
-   * cache.
-   *
-   * Only supported on system messages that appear mid-conversation (not the
-   * initial system prompt). A system message carrying tool changes must come
-   * right before an assistant message or at the end of the messages.
-   *
-   * Tools referenced by a `tool_addition` must be declared in the `tools`
-   * option (typically with `deferLoading: true` so they are not loaded until
-   * the addition surfaces them). The required
-   * `mid-conversation-tool-changes-2026-07-01` beta is added automatically.
-   */
-  toolChanges: z
-    .array(
-      z.discriminatedUnion('type', [
-        z.object({
-          type: z.literal('tool_addition'),
-          toolName: z.string(),
-        }),
-        z.object({
-          type: z.literal('tool_removal'),
-          toolName: z.string(),
-        }),
-      ]),
-    )
-    .optional(),
-});
+      /**
+       * Mid-conversation tool changes. Adds or removes tools from the
+       * conversation's tool set between turns without invalidating the prompt
+       * cache.
+       *
+       * Only supported on system messages that appear mid-conversation (not the
+       * initial system prompt). A system message carrying tool changes must come
+       * right before an assistant message or at the end of the messages.
+       *
+       * Tools referenced by a `tool_addition` must be declared in the `tools`
+       * option (typically with `deferLoading: true` so they are not loaded until
+       * the addition surfaces them). The required
+       * `mid-conversation-tool-changes-2026-07-01` beta is added automatically.
+       */
+      toolChanges: z
+        .array(
+          z.discriminatedUnion('type', [
+            z.object({
+              type: z.literal('tool_addition'),
+              toolName: z.string(),
+            }),
+            z.object({
+              type: z.literal('tool_removal'),
+              toolName: z.string(),
+            }),
+          ]),
+        )
+        .optional(),
+    }),
+  ),
+);
 
-export type AnthropicSystemMessageProviderOptions = z.infer<
+export type AnthropicSystemMessageProviderOptions = InferValidator<
   typeof anthropicSystemMessageProviderOptions
 >;
 
-const anthropicThinkingBlockBinding = z.object({
-  /**
-   * Controls behavior when a replayed thinking block does not match its
-   * conversation prefix. The `drop_block` behavior drops the mismatched block
-   * instead of returning an invalid signature error.
-   */
-  prefixMismatchBehavior: z.literal('drop_block'),
-});
+export const anthropicProviderOptions = lazySchema(() => {
+  const anthropicThinkingBlockBinding = z.object({
+    /**
+     * Controls behavior when a replayed thinking block does not match its
+     * conversation prefix. The `drop_block` behavior drops the mismatched block
+     * instead of returning an invalid signature error.
+     */
+    prefixMismatchBehavior: z.literal('drop_block'),
+  });
 
-export const anthropicProviderOptions = z.object({
-  /**
-   * Whether to send reasoning to the model.
-   *
-   * This allows you to deactivate reasoning inputs for models that do not support them.
-   */
-  sendReasoning: z.boolean().optional(),
-
-  /**
-   * Determines how structured outputs are generated.
-   *
-   * - `outputFormat`: Use the `output_format` parameter to specify the structured output format.
-   * - `jsonTool`: Use a special JSON response tool to specify the structured output format (default for most models).
-   * - `auto`: Use 'outputFormat' when supported, otherwise use 'jsonTool' (default for Sonnet 5.5, Opus 5.5, and Fable 5.1).
-   */
-  structuredOutputMode: z.enum(['outputFormat', 'jsonTool', 'auto']).optional(),
-
-  /**
-   * Configuration for enabling Claude's extended thinking.
-   *
-   * When enabled, responses include thinking content blocks showing Claude's thinking process before the final answer.
-   * Requires a minimum budget of 1,024 tokens and counts towards the `max_tokens` limit.
-   *
-   * Models that always use adaptive thinking (e.g. `claude-opus-5-5`,
-   * `claude-fable-5-1`) reject `enabled` and `disabled`. For those models the
-   * provider drops the unsupported setting, emits a warning, and sends an
-   * adaptive thinking request. Use `effort` to control how much they think.
-   *
-   * `claude-sonnet-5-5` supports `between_tools`, its lowest thinking setting,
-   * and the provider uses it in place of `disabled` for that model.
-   */
-  thinking: z
-    .union([
-      z.object({
-        /** for Sonnet 4.6, Opus 4.6, and newer models */
-        type: z.literal('adaptive'),
-        /**
-         * Controls whether thinking content is included in the response.
-         * - `"omitted"`: Thinking blocks are present but text is empty (default for Opus 4.7+).
-         * - `"summarized"`: Thinking content is returned. Required to see reasoning output.
-         * - `"updates"`: Thinking summaries are emitted between tool calls.
-         */
-        display: z.enum(['omitted', 'summarized', 'updates']).optional(),
-        /**
-         * Controls handling for thinking blocks whose conversation prefix no
-         * longer matches. Forwarded as `block_binding`.
-         */
-        blockBinding: anthropicThinkingBlockBinding.optional(),
-      }),
-      z.object({
-        /** for models before Opus 4.6, except Sonnet 4.6 still supports it */
-        type: z.literal('enabled'),
-        budgetTokens: z.number().optional(),
-        /**
-         * Controls handling for thinking blocks whose conversation prefix no
-         * longer matches. Forwarded as `block_binding`.
-         */
-        blockBinding: anthropicThinkingBlockBinding.optional(),
-      }),
-      z.object({
-        type: z.literal('disabled'),
-      }),
-      z.object({
-        /**
-         * for `claude-sonnet-5-5`: no upfront thinking, but progress notes
-         * between tool calls are returned as summarized thinking blocks.
-         * Only supported at `low`, `medium`, and `high` effort.
-         */
-        type: z.literal('between_tools'),
-      }),
-      z.object({
-        /**
-         * Configure prefix mismatch handling without changing the model's
-         * default thinking mode.
-         */
-        blockBinding: anthropicThinkingBlockBinding,
-      }),
-    ])
-    .optional(),
-
-  /**
-   * Whether to disable parallel function calling during tool use. Default is false.
-   * When set to true, Claude will use at most one tool per response.
-   */
-  disableParallelToolUse: z.boolean().optional(),
-
-  /**
-   * Cache control settings for this message.
-   * See https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching
-   */
-  cacheControl: z
-    .object({
-      type: z.literal('ephemeral'),
-      ttl: z.union([z.literal('5m'), z.literal('1h')]).optional(),
-    })
-    .optional(),
-
-  /**
-   * Metadata to include with the request.
-   *
-   * See https://platform.claude.com/docs/en/api/messages/create for details.
-   */
-  metadata: z
-    .object({
+  return zodSchema(
+    z.object({
       /**
-       * An external identifier for the user associated with the request.
+       * Whether to send reasoning to the model.
        *
-       * Should be a UUID, hash value, or other opaque identifier.
-       * Must not contain PII (name, email, phone number, etc.).
+       * This allows you to deactivate reasoning inputs for models that do not support them.
        */
-      userId: z.string().optional(),
-    })
-    .optional(),
+      sendReasoning: z.boolean().optional(),
 
-  /**
-   * Agent Skills configuration. Skills enable Claude to perform specialized tasks
-   * like document processing (PPTX, DOCX, PDF, XLSX) and data analysis.
-   * Requires code execution tool to be enabled.
-   */
-  container: z
-    .object({
-      id: z.string().optional(),
-      skills: z
-        .array(
-          z.object({
-            type: z.union([z.literal('anthropic'), z.literal('custom')]),
-            skillId: z.string(),
-            version: z.string().optional(),
-          }),
-        )
+      /**
+       * Determines how structured outputs are generated.
+       *
+       * - `outputFormat`: Use the `output_format` parameter to specify the structured output format.
+       * - `jsonTool`: Use a special JSON response tool to specify the structured output format (default for most models).
+       * - `auto`: Use 'outputFormat' when supported, otherwise use 'jsonTool' (default for Sonnet 5.5, Opus 5.5, and Fable 5.1).
+       */
+      structuredOutputMode: z
+        .enum(['outputFormat', 'jsonTool', 'auto'])
         .optional(),
-    })
-    .optional(),
 
-  /**
-   * @default 'high'
-   */
-  effort: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).optional(),
-
-  /**
-   * Task budget for agentic turns. Informs the model of the total token budget
-   * available for the current task, allowing it to prioritize work and wind down
-   * gracefully as the budget is consumed.
-   *
-   * Advisory only — does not enforce a hard token limit.
-   */
-  taskBudget: z
-    .object({
-      type: z.literal('tokens'),
-      total: z.number().int().min(20000),
-      remaining: z.number().int().min(0).optional(),
-    })
-    .optional(),
-
-  /**
-   * Enable fast mode for faster inference (2.5x faster output token speeds).
-   * Only supported with claude-opus-4-6.
-   */
-  speed: z.enum(['fast', 'standard']).optional(),
-
-  /**
-   * Controls where model inference runs for this request.
-   *
-   * - `"global"`: Inference may run in any available geography (default).
-   * - `"us"`: Inference runs only in US-based infrastructure.
-   *
-   * See https://platform.claude.com/docs/en/build-with-claude/data-residency
-   */
-  inferenceGeo: z.enum(['us', 'global']).optional(),
-
-  /**
-   * Server-side fallback configuration.
-   *
-   * When the primary model's safety classifiers block a turn, the API
-   * automatically retries it server-side on a fallback model. A
-   * `content-filter` finish reason means the fallback(s) refused as well.
-   *
-   * - `'default'` (recommended): the API routes the retry to Anthropic's
-   *   recommended fallback model based on the refusal category. Requires the
-   *   `server-side-fallback-2026-07-01` beta, which is added automatically.
-   * - Array form: an explicit fallback chain. Each entry is merged into the
-   *   request as a direct request to that entry's model, so it must be
-   *   formatted accordingly: `model` is required, and an entry may
-   *   additionally override `max_tokens`, `thinking`, `output_config`, and
-   *   `speed` for that attempt only (`speed` additionally requires the speed
-   *   beta). The value is passed through to the API as-is, and the
-   *   `server-side-fallback-2026-06-01` beta is added automatically.
-   */
-  fallbacks: z
-    .union([
-      z.literal('default'),
-      z.array(
-        z.object({
-          model: z.string(),
-          max_tokens: z.number().int().optional(),
-          thinking: z.record(z.string(), z.unknown()).optional(),
-          output_config: z.record(z.string(), z.unknown()).optional(),
-          speed: z.enum(['fast', 'standard']).optional(),
-        }),
-      ),
-    ])
-    .optional(),
-
-  /**
-   * Context management configuration for automatic context window management.
-   * Enables features like automatic compaction and clearing of tool uses/thinking blocks.
-   */
-  contextManagement: z
-    .object({
-      edits: z.array(
-        z.discriminatedUnion('type', [
+      /**
+       * Configuration for enabling Claude's extended thinking.
+       *
+       * When enabled, responses include thinking content blocks showing Claude's thinking process before the final answer.
+       * Requires a minimum budget of 1,024 tokens and counts towards the `max_tokens` limit.
+       *
+       * Models that always use adaptive thinking (e.g. `claude-opus-5-5`,
+       * `claude-fable-5-1`) reject `enabled` and `disabled`. For those models the
+       * provider drops the unsupported setting, emits a warning, and sends an
+       * adaptive thinking request. Use `effort` to control how much they think.
+       *
+       * `claude-sonnet-5-5` supports `between_tools`, its lowest thinking setting,
+       * and the provider uses it in place of `disabled` for that model.
+       */
+      thinking: z
+        .union([
           z.object({
-            type: z.literal('clear_tool_uses_20250919'),
-            trigger: z
-              .discriminatedUnion('type', [
-                z.object({
-                  type: z.literal('input_tokens'),
-                  value: z.number(),
-                }),
-                z.object({
-                  type: z.literal('tool_uses'),
-                  value: z.number(),
-                }),
-              ])
-              .optional(),
-            keep: z
-              .object({
-                type: z.literal('tool_uses'),
-                value: z.number(),
-              })
-              .optional(),
-            clearAtLeast: z
-              .object({
-                type: z.literal('input_tokens'),
-                value: z.number(),
-              })
-              .optional(),
-            clearToolInputs: z.boolean().optional(),
-            excludeTools: z.array(z.string()).optional(),
+            /** for Sonnet 4.6, Opus 4.6, and newer models */
+            type: z.literal('adaptive'),
+            /**
+             * Controls whether thinking content is included in the response.
+             * - `"omitted"`: Thinking blocks are present but text is empty (default for Opus 4.7+).
+             * - `"summarized"`: Thinking content is returned. Required to see reasoning output.
+             * - `"updates"`: Thinking summaries are emitted between tool calls.
+             */
+            display: z.enum(['omitted', 'summarized', 'updates']).optional(),
+            /**
+             * Controls handling for thinking blocks whose conversation prefix no
+             * longer matches. Forwarded as `block_binding`.
+             */
+            blockBinding: anthropicThinkingBlockBinding.optional(),
           }),
           z.object({
-            type: z.literal('clear_thinking_20251015'),
-            keep: z
-              .union([
-                z.literal('all'),
-                z.object({
-                  type: z.literal('thinking_turns'),
-                  value: z.number(),
-                }),
-              ])
-              .optional(),
+            /** for models before Opus 4.6, except Sonnet 4.6 still supports it */
+            type: z.literal('enabled'),
+            budgetTokens: z.number().optional(),
+            /**
+             * Controls handling for thinking blocks whose conversation prefix no
+             * longer matches. Forwarded as `block_binding`.
+             */
+            blockBinding: anthropicThinkingBlockBinding.optional(),
           }),
           z.object({
-            type: z.literal('compact_20260112'),
-            trigger: z
-              .object({
-                type: z.literal('input_tokens'),
-                value: z.number(),
-              })
-              .optional(),
-            pauseAfterCompaction: z.boolean().optional(),
-            instructions: z.string().optional(),
+            type: z.literal('disabled'),
           }),
-        ]),
-      ),
-    })
-    .optional(),
+          z.object({
+            /**
+             * for `claude-sonnet-5-5`: no upfront thinking, but progress notes
+             * between tool calls are returned as summarized thinking blocks.
+             * Only supported at `low`, `medium`, and `high` effort.
+             */
+            type: z.literal('between_tools'),
+          }),
+          z.object({
+            /**
+             * Configure prefix mismatch handling without changing the model's
+             * default thinking mode.
+             */
+            blockBinding: anthropicThinkingBlockBinding,
+          }),
+        ])
+        .optional(),
 
-  /**
-   * A set of beta features to enable.
-   * Allow a provider to receive the full `betas` set if it needs it.
-   */
-  anthropicBeta: z.array(z.string()).optional(),
+      /**
+       * Whether to disable parallel function calling during tool use. Default is false.
+       * When set to true, Claude will use at most one tool per response.
+       */
+      disableParallelToolUse: z.boolean().optional(),
+
+      /**
+       * Cache control settings for this message.
+       * See https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching
+       */
+      cacheControl: z
+        .object({
+          type: z.literal('ephemeral'),
+          ttl: z.union([z.literal('5m'), z.literal('1h')]).optional(),
+        })
+        .optional(),
+
+      /**
+       * Metadata to include with the request.
+       *
+       * See https://platform.claude.com/docs/en/api/messages/create for details.
+       */
+      metadata: z
+        .object({
+          /**
+           * An external identifier for the user associated with the request.
+           *
+           * Should be a UUID, hash value, or other opaque identifier.
+           * Must not contain PII (name, email, phone number, etc.).
+           */
+          userId: z.string().optional(),
+        })
+        .optional(),
+
+      /**
+       * Agent Skills configuration. Skills enable Claude to perform specialized tasks
+       * like document processing (PPTX, DOCX, PDF, XLSX) and data analysis.
+       * Requires code execution tool to be enabled.
+       */
+      container: z
+        .object({
+          id: z.string().optional(),
+          skills: z
+            .array(
+              z.object({
+                type: z.union([z.literal('anthropic'), z.literal('custom')]),
+                skillId: z.string(),
+                version: z.string().optional(),
+              }),
+            )
+            .optional(),
+        })
+        .optional(),
+
+      /**
+       * @default 'high'
+       */
+      effort: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).optional(),
+
+      /**
+       * Task budget for agentic turns. Informs the model of the total token budget
+       * available for the current task, allowing it to prioritize work and wind down
+       * gracefully as the budget is consumed.
+       *
+       * Advisory only — does not enforce a hard token limit.
+       */
+      taskBudget: z
+        .object({
+          type: z.literal('tokens'),
+          total: z.number().int().min(20000),
+          remaining: z.number().int().min(0).optional(),
+        })
+        .optional(),
+
+      /**
+       * Enable fast mode for faster inference (2.5x faster output token speeds).
+       * Only supported with claude-opus-4-6.
+       */
+      speed: z.enum(['fast', 'standard']).optional(),
+
+      /**
+       * Controls where model inference runs for this request.
+       *
+       * - `"global"`: Inference may run in any available geography (default).
+       * - `"us"`: Inference runs only in US-based infrastructure.
+       *
+       * See https://platform.claude.com/docs/en/build-with-claude/data-residency
+       */
+      inferenceGeo: z.enum(['us', 'global']).optional(),
+
+      /**
+       * Server-side fallback configuration.
+       *
+       * When the primary model's safety classifiers block a turn, the API
+       * automatically retries it server-side on a fallback model. A
+       * `content-filter` finish reason means the fallback(s) refused as well.
+       *
+       * - `'default'` (recommended): the API routes the retry to Anthropic's
+       *   recommended fallback model based on the refusal category. Requires the
+       *   `server-side-fallback-2026-07-01` beta, which is added automatically.
+       * - Array form: an explicit fallback chain. Each entry is merged into the
+       *   request as a direct request to that entry's model, so it must be
+       *   formatted accordingly: `model` is required, and an entry may
+       *   additionally override `max_tokens`, `thinking`, `output_config`, and
+       *   `speed` for that attempt only (`speed` additionally requires the speed
+       *   beta). The value is passed through to the API as-is, and the
+       *   `server-side-fallback-2026-06-01` beta is added automatically.
+       */
+      fallbacks: z
+        .union([
+          z.literal('default'),
+          z.array(
+            z.object({
+              model: z.string(),
+              max_tokens: z.number().int().optional(),
+              thinking: z.record(z.string(), z.unknown()).optional(),
+              output_config: z.record(z.string(), z.unknown()).optional(),
+              speed: z.enum(['fast', 'standard']).optional(),
+            }),
+          ),
+        ])
+        .optional(),
+
+      /**
+       * Context management configuration for automatic context window management.
+       * Enables features like automatic compaction and clearing of tool uses/thinking blocks.
+       */
+      contextManagement: z
+        .object({
+          edits: z.array(
+            z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('clear_tool_uses_20250919'),
+                trigger: z
+                  .discriminatedUnion('type', [
+                    z.object({
+                      type: z.literal('input_tokens'),
+                      value: z.number(),
+                    }),
+                    z.object({
+                      type: z.literal('tool_uses'),
+                      value: z.number(),
+                    }),
+                  ])
+                  .optional(),
+                keep: z
+                  .object({
+                    type: z.literal('tool_uses'),
+                    value: z.number(),
+                  })
+                  .optional(),
+                clearAtLeast: z
+                  .object({
+                    type: z.literal('input_tokens'),
+                    value: z.number(),
+                  })
+                  .optional(),
+                clearToolInputs: z.boolean().optional(),
+                excludeTools: z.array(z.string()).optional(),
+              }),
+              z.object({
+                type: z.literal('clear_thinking_20251015'),
+                keep: z
+                  .union([
+                    z.literal('all'),
+                    z.object({
+                      type: z.literal('thinking_turns'),
+                      value: z.number(),
+                    }),
+                  ])
+                  .optional(),
+              }),
+              z.object({
+                type: z.literal('compact_20260112'),
+                trigger: z
+                  .object({
+                    type: z.literal('input_tokens'),
+                    value: z.number(),
+                  })
+                  .optional(),
+                pauseAfterCompaction: z.boolean().optional(),
+                instructions: z.string().optional(),
+              }),
+            ]),
+          ),
+        })
+        .optional(),
+
+      /**
+       * A set of beta features to enable.
+       * Allow a provider to receive the full `betas` set if it needs it.
+       */
+      anthropicBeta: z.array(z.string()).optional(),
+    }),
+  );
 });
 
-export type AnthropicProviderOptions = z.infer<typeof anthropicProviderOptions>;
+export type AnthropicProviderOptions = InferValidator<
+  typeof anthropicProviderOptions
+>;
