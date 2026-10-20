@@ -420,8 +420,6 @@ describe('pruneMessages', () => {
   });
 
   describe('toolCalls', () => {
-<<<<<<< HEAD
-=======
     describe('consecutive reasoning parts', () => {
       describe.each([
         'all',
@@ -468,7 +466,7 @@ describe('pruneMessages', () => {
       });
 
       it.each(['remove', 'keep'] as const)(
-        'should prune consecutive reasoning text and files with emptyMessages: %s',
+        'should prune consecutive reasoning parts with emptyMessages: %s',
         emptyMessages => {
           const messages: ModelMessage[] = [
             {
@@ -476,9 +474,8 @@ describe('pruneMessages', () => {
               content: [
                 { type: 'reasoning', text: 'Call the tool.' },
                 {
-                  type: 'reasoning-file',
-                  mediaType: 'image/png',
-                  data: 'reasoning-image',
+                  type: 'reasoning',
+                  text: 'Continue with the tool call.',
                 },
                 {
                   type: 'tool-call',
@@ -558,9 +555,8 @@ describe('pruneMessages', () => {
         const reasoning = [
           { type: 'reasoning' as const, text: 'First summary.' },
           {
-            type: 'reasoning-file' as const,
-            mediaType: 'image/png',
-            data: 'reasoning-image',
+            type: 'reasoning' as const,
+            text: 'Second summary.',
           },
         ];
         const text = { type: 'text' as const, text: 'Retained answer.' };
@@ -618,7 +614,6 @@ describe('pruneMessages', () => {
       });
     });
 
->>>>>>> 3785b2e1c2 (fix: pruneMessages leaves orphaned reasoning after pruning associated tool calls (#23128))
     describe('all', () => {
       it('should prune all tool calls, results, errors, and approvals', () => {
         const result = pruneMessages({
@@ -670,9 +665,8 @@ describe('pruneMessages', () => {
                 input: {},
               },
               {
-                type: 'reasoning-file',
-                mediaType: 'image/png',
-                data: 'reasoning-image',
+                type: 'reasoning',
+                text: 'Call the second tool.',
               },
               {
                 type: 'tool-call',

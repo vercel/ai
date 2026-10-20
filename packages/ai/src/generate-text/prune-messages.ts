@@ -80,7 +80,7 @@ export function pruneMessages({
     const keptToolCallIds: Set<string> = new Set();
     const keptApprovalIds: Set<string> = new Set();
 
-    if (keepLastMessagesCount != null) {
+    if (keepLastMessagesCount != null && keepLastMessagesCount !== 0) {
       for (const message of messages.slice(-keepLastMessagesCount)) {
         if (
           (message.role === 'assistant' || message.role === 'tool') &&
@@ -205,17 +205,14 @@ export function pruneMessages({
           reasoningIndex++
         ) {
           const part = message.content[reasoningIndex];
-          if (part.type !== 'reasoning' && part.type !== 'reasoning-file') {
+          if (part.type !== 'reasoning') {
             continue;
           }
 
           let reasoningEndIndex = reasoningIndex + 1;
           while (reasoningEndIndex < message.content.length) {
             const nextPart = message.content[reasoningEndIndex];
-            if (
-              nextPart.type !== 'reasoning' &&
-              nextPart.type !== 'reasoning-file'
-            ) {
+            if (nextPart.type !== 'reasoning') {
               break;
             }
             reasoningEndIndex++;
@@ -227,10 +224,7 @@ export function pruneMessages({
 
           while (followingPartIndex < message.content.length) {
             const followingPart = message.content[followingPartIndex];
-            if (
-              followingPart.type === 'reasoning' ||
-              followingPart.type === 'reasoning-file'
-            ) {
+            if (followingPart.type === 'reasoning') {
               break;
             }
 
