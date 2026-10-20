@@ -751,4 +751,41 @@ console.log(text);`,
     websiteUrl: 'https://agentmail.to',
     npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
   },
+  {
+    slug: 'layrcake',
+    name: 'Layrcake',
+    description:
+      'Go-to-market tools for agents: find B2B leads, find and verify work emails, check and research companies, and draft email campaigns that a person approves before anything sends. Runs inside a credit budget, with a dry-run mode.',
+    packageName: '@layrcake/ai-sdk',
+    tags: ['sales', 'lead-generation', 'email', 'agents'],
+    apiKeyEnvName: 'LAYRCAKE_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @layrcake/ai-sdk',
+      npm: 'npm install @layrcake/ai-sdk',
+      yarn: 'yarn add @layrcake/ai-sdk',
+      bun: 'bun add @layrcake/ai-sdk',
+    },
+    codeExample: `import { anthropic } from '@ai-sdk/anthropic';
+import { generateText, hasToolCall, isStepCount } from 'ai';
+import { createLayrcakeTools } from '@layrcake/ai-sdk';
+
+const { tools, summary } = createLayrcakeTools({ budget: 100 });
+
+await generateText({
+  model: anthropic('claude-sonnet-5-5'),
+  prompt:
+    'Find 10 heads of sales at software companies in London with 20 to 200 staff and draft a short campaign about cutting time spent on lead research.',
+  tools,
+  toolCallConcurrency: 1,
+  stopWhen: [hasToolCall('launch_campaign'), isStepCount(40)],
+});
+
+const run = summary();
+console.log(\`Kept \${run.kept} verified emails, spent \${run.spent} credits.\`);
+if (run.approvalUrl) console.log(\`Approve here: \${run.approvalUrl}\`);`,
+    docsUrl: 'https://docs.layrcake.dev/frameworks.html#typescript',
+    apiKeyUrl: 'https://layrcake.dev/connect',
+    websiteUrl: 'https://layrcake.dev',
+    npmUrl: 'https://www.npmjs.com/package/@layrcake/ai-sdk',
+  },
 ];
