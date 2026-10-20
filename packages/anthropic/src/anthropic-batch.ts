@@ -49,10 +49,7 @@ import {
   AnthropicLanguageModel,
   type AnthropicLanguageModelConfig,
 } from './anthropic-language-model';
-import {
-  anthropicLanguageModelOptions,
-  type AnthropicModelId,
-} from './anthropic-language-model-options';
+import type { AnthropicModelId } from './anthropic-language-model-options';
 import type {
   AnthropicMessageMetadata,
   AnthropicUsageIteration,
@@ -62,9 +59,13 @@ import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 
 const anthropicBatchRequestIdPattern = /^[A-Za-z0-9_-]{1,64}$/;
 
-const anthropicBatchProviderOptionsSchema = anthropicLanguageModelOptions.pick({
-  anthropicBeta: true,
-});
+const anthropicBatchProviderOptionsSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      anthropicBeta: z.array(z.string()).optional(),
+    }),
+  ),
+);
 
 type AnthropicBatchRequest = TextBatchV4Request<AnthropicModelId>;
 
