@@ -1,13 +1,21 @@
-import { createJsonErrorResponseHandler } from '@ai-sdk/provider-utils';
+import {
+  lazySchema,
+  zodSchema,
+  createJsonErrorResponseHandler,
+} from '@ai-sdk/provider-utils';
 import type { OpenResponsesProviderSettings } from '@ai-sdk/open-responses';
 import { z } from 'zod/v4';
 
-const quiveraiErrorSchema = z.object({
-  status: z.number().int(),
-  code: z.string().min(1),
-  message: z.string().min(1),
-  request_id: z.string().min(1),
-});
+const quiveraiErrorSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      status: z.number().int(),
+      code: z.string().min(1),
+      message: z.string().min(1),
+      request_id: z.string().min(1),
+    }),
+  ),
+);
 
 export const quiveraiFailedResponseHandler = createJsonErrorResponseHandler({
   errorSchema: quiveraiErrorSchema,
