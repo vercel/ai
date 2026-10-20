@@ -6,6 +6,7 @@ import {
   type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
+  type InferSchema,
   combineHeaders,
   convertUint8ArrayToBase64,
   createJsonResponseHandler,
@@ -1053,64 +1054,72 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
 }
 
 // Response schema for task creation (POST)
-const klingaiCreateTaskSchema = z.object({
-  code: z.number(),
-  message: z.string(),
-  request_id: z.string().nullish(),
-  data: z
-    .object({
-      task_id: z.string(),
-      task_status: z.string().nullish(),
-      task_info: z
+const klingaiCreateTaskSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      code: z.number(),
+      message: z.string(),
+      request_id: z.string().nullish(),
+      data: z
         .object({
-          external_task_id: z.string().nullish(),
+          task_id: z.string(),
+          task_status: z.string().nullish(),
+          task_info: z
+            .object({
+              external_task_id: z.string().nullish(),
+            })
+            .nullish(),
+          created_at: z.number().nullish(),
+          updated_at: z.number().nullish(),
         })
         .nullish(),
-      created_at: z.number().nullish(),
-      updated_at: z.number().nullish(),
-    })
-    .nullish(),
-});
+    }),
+  ),
+);
 
 // Response schema for task status query (GET)
-const klingaiTaskStatusSchema = z.object({
-  code: z.number(),
-  message: z.string(),
-  request_id: z.string().nullish(),
-  data: z
-    .object({
-      task_id: z.string(),
-      task_status: z.string(),
-      task_status_msg: z.string().nullish(),
-      task_info: z
+const klingaiTaskStatusSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      code: z.number(),
+      message: z.string(),
+      request_id: z.string().nullish(),
+      data: z
         .object({
-          external_task_id: z.string().nullish(),
-        })
-        .nullish(),
-      watermark_info: z
-        .object({
-          enabled: z.boolean().nullish(),
-        })
-        .nullish(),
-      final_unit_deduction: z.string().nullish(),
-      created_at: z.number().nullish(),
-      updated_at: z.number().nullish(),
-      task_result: z
-        .object({
-          videos: z
-            .array(
-              z.object({
-                id: z.string().nullish(),
-                url: z.string().nullish(),
-                watermark_url: z.string().nullish(),
-                duration: z.string().nullish(),
-              }),
-            )
+          task_id: z.string(),
+          task_status: z.string(),
+          task_status_msg: z.string().nullish(),
+          task_info: z
+            .object({
+              external_task_id: z.string().nullish(),
+            })
+            .nullish(),
+          watermark_info: z
+            .object({
+              enabled: z.boolean().nullish(),
+            })
+            .nullish(),
+          final_unit_deduction: z.string().nullish(),
+          created_at: z.number().nullish(),
+          updated_at: z.number().nullish(),
+          task_result: z
+            .object({
+              videos: z
+                .array(
+                  z.object({
+                    id: z.string().nullish(),
+                    url: z.string().nullish(),
+                    watermark_url: z.string().nullish(),
+                    duration: z.string().nullish(),
+                  }),
+                )
+                .nullish(),
+            })
             .nullish(),
         })
         .nullish(),
-    })
-    .nullish(),
-});
+    }),
+  ),
+);
 
-type KlingAITaskResponse = z.infer<typeof klingaiTaskStatusSchema>;
+type KlingAITaskResponse = InferSchema<typeof klingaiTaskStatusSchema>;
