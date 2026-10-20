@@ -500,13 +500,19 @@ while (step < maxSteps) {
 
   messages.push(...result.responseMessages);
 
-  if (result.text) {
-    break; // Stop when model generates text
+  if (result.finishReason !== 'tool-calls') {
+    break; // Stop when the model does not request another tool call
   }
 
   step++;
 }
 ```
+
+Check `finishReason` instead of `text` to decide whether to continue. A model can
+generate text alongside a tool call, such as "I'll look that up for you."
+Stopping on that text would end the loop before the model can use the tool result
+to produce its final answer. A response without tool calls should also stop the
+loop even when its text is empty.
 
 This manual approach gives you complete control over:
 
