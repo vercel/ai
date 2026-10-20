@@ -1,3 +1,8 @@
+import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 // https://console.x.ai and see "View models"
@@ -39,103 +44,112 @@ export type XaiChatModelId =
   | (string & {});
 
 // search source schemas
-const webSourceSchema = z.object({
-  type: z.literal('web'),
-  country: z.string().length(2).optional(),
-  excludedWebsites: z.array(z.string()).max(5).optional(),
-  allowedWebsites: z.array(z.string()).max(5).optional(),
-  safeSearch: z.boolean().optional(),
-});
+const webSourceSchema = () =>
+  z.object({
+    type: z.literal('web'),
+    country: z.string().length(2).optional(),
+    excludedWebsites: z.array(z.string()).max(5).optional(),
+    allowedWebsites: z.array(z.string()).max(5).optional(),
+    safeSearch: z.boolean().optional(),
+  });
 
-const xSourceSchema = z.object({
-  type: z.literal('x'),
-  excludedXHandles: z.array(z.string()).optional(),
-  includedXHandles: z.array(z.string()).optional(),
-  postFavoriteCount: z.number().int().optional(),
-  postViewCount: z.number().int().optional(),
-  /**
-   * @deprecated use `includedXHandles` instead
-   */
-  xHandles: z.array(z.string()).optional(),
-});
+const xSourceSchema = () =>
+  z.object({
+    type: z.literal('x'),
+    excludedXHandles: z.array(z.string()).optional(),
+    includedXHandles: z.array(z.string()).optional(),
+    postFavoriteCount: z.number().int().optional(),
+    postViewCount: z.number().int().optional(),
+    /**
+     * @deprecated use `includedXHandles` instead
+     */
+    xHandles: z.array(z.string()).optional(),
+  });
 
-const newsSourceSchema = z.object({
-  type: z.literal('news'),
-  country: z.string().length(2).optional(),
-  excludedWebsites: z.array(z.string()).max(5).optional(),
-  safeSearch: z.boolean().optional(),
-});
+const newsSourceSchema = () =>
+  z.object({
+    type: z.literal('news'),
+    country: z.string().length(2).optional(),
+    excludedWebsites: z.array(z.string()).max(5).optional(),
+    safeSearch: z.boolean().optional(),
+  });
 
-const rssSourceSchema = z.object({
-  type: z.literal('rss'),
-  links: z.array(z.string().url()).max(1), // currently only supports one RSS link
-});
+const rssSourceSchema = () =>
+  z.object({
+    type: z.literal('rss'),
+    links: z.array(z.string().url()).max(1), // currently only supports one RSS link
+  });
 
-const searchSourceSchema = z.discriminatedUnion('type', [
-  webSourceSchema,
-  xSourceSchema,
-  newsSourceSchema,
-  rssSourceSchema,
-]);
+const searchSourceSchema = () =>
+  z.discriminatedUnion('type', [
+    webSourceSchema(),
+    xSourceSchema(),
+    newsSourceSchema(),
+    rssSourceSchema(),
+  ]);
 
 // xai-specific provider options
-export const xaiProviderOptions = z.object({
-  /**
-   * Reasoning effort for reasoning models.
-   * `xhigh` is supported by `grok-4.6`.
-   */
-  reasoningEffort: z.enum(['low', 'medium', 'high', 'xhigh']).optional(),
-
-  /**
-   * Whether to enable parallel function calling during tool use.
-   * When true, the model can call multiple functions in parallel.
-   * When false, the model will call functions sequentially.
-   * Defaults to true.
-   */
-  parallel_function_calling: z.boolean().optional(),
-
-  searchParameters: z
-    .object({
+export const xaiProviderOptions = lazySchema(() =>
+  zodSchema(
+    z.object({
       /**
-       * search mode preference
-       * - "off": disables search completely
-       * - "auto": model decides whether to search (default)
-       * - "on": always enables search
+       * Reasoning effort for reasoning models.
+       * `xhigh` is supported by `grok-4.6`.
        */
-      mode: z.enum(['off', 'auto', 'on']),
+      reasoningEffort: z.enum(['low', 'medium', 'high', 'xhigh']).optional(),
 
       /**
-       * whether to return citations in the response
-       * defaults to true
+       * Whether to enable parallel function calling during tool use.
+       * When true, the model can call multiple functions in parallel.
+       * When false, the model will call functions sequentially.
+       * Defaults to true.
        */
-      returnCitations: z.boolean().optional(),
+      parallel_function_calling: z.boolean().optional(),
 
-      /**
-       * start date for search data (ISO8601 format: YYYY-MM-DD)
-       */
-      fromDate: z.string().optional(),
+      searchParameters: z
+        .object({
+          /**
+           * search mode preference
+           * - "off": disables search completely
+           * - "auto": model decides whether to search (default)
+           * - "on": always enables search
+           */
+          mode: z.enum(['off', 'auto', 'on']),
 
-      /**
-       * end date for search data (ISO8601 format: YYYY-MM-DD)
-       */
-      toDate: z.string().optional(),
+          /**
+           * whether to return citations in the response
+           * defaults to true
+           */
+          returnCitations: z.boolean().optional(),
 
-      /**
-       * maximum number of search results to consider
-       * defaults to 20
-       */
-      maxSearchResults: z.number().min(1).max(50).optional(),
+          /**
+           * start date for search data (ISO8601 format: YYYY-MM-DD)
+           */
+          fromDate: z.string().optional(),
 
-      /**
-       * data sources to search from.
-       * defaults to [{ type: 'web' }, { type: 'x' }] if not specified.
-       *
-       * @example
-       * sources: [{ type: 'web', country: 'US' }, { type: 'x' }]
-       */
-      sources: z.array(searchSourceSchema).optional(),
-    })
-    .optional(),
-});
+          /**
+           * end date for search data (ISO8601 format: YYYY-MM-DD)
+           */
+          toDate: z.string().optional(),
 
-export type XaiProviderOptions = z.infer<typeof xaiProviderOptions>;
+          /**
+           * maximum number of search results to consider
+           * defaults to 20
+           */
+          maxSearchResults: z.number().min(1).max(50).optional(),
+
+          /**
+           * data sources to search from.
+           * defaults to [{ type: 'web' }, { type: 'x' }] if not specified.
+           *
+           * @example
+           * sources: [{ type: 'web', country: 'US' }, { type: 'x' }]
+           */
+          sources: z.array(searchSourceSchema()).optional(),
+        })
+        .optional(),
+    }),
+  ),
+);
+
+export type XaiProviderOptions = InferSchema<typeof xaiProviderOptions>;

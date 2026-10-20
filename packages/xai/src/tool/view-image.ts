@@ -1,13 +1,21 @@
-import { createProviderDefinedToolFactoryWithOutputSchema } from '@ai-sdk/provider-utils';
+import {
+  lazySchema,
+  zodSchema,
+  createProviderDefinedToolFactoryWithOutputSchema,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-const viewImageOutputSchema = z.object({
-  description: z.string().describe('description of the image'),
-  objects: z
-    .array(z.string())
-    .optional()
-    .describe('objects detected in the image'),
-});
+const viewImageOutputSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      description: z.string().describe('description of the image'),
+      objects: z
+        .array(z.string())
+        .optional()
+        .describe('objects detected in the image'),
+    }),
+  ),
+);
 
 const viewImageToolFactory = createProviderDefinedToolFactoryWithOutputSchema({
   id: 'xai.view_image',
