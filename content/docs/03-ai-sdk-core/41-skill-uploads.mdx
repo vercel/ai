@@ -85,7 +85,7 @@ const { providerReference } = await uploadSkill({
       data: {
         type: 'data',
         data: Buffer.from(JSON.stringify({ foo: 'bar' })).toString('base64'),
-      }
+      },
     },
     {
       path: 'my-skill/README.txt',
@@ -93,7 +93,7 @@ const { providerReference } = await uploadSkill({
         type: 'text',
         text: 'This is a skill for demonstrating skill uploads.',
       },
-    }
+    },
   ],
 });
 ```
