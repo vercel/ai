@@ -1,17 +1,67 @@
 ---
 title: Azure OpenAI
-description: Learn how to use the Azure OpenAI provider for the AI SDK.
+description: Learn how to use Azure OpenAI with AI Gateway and the direct provider.
 ---
 
 # Azure OpenAI Provider
 
 The [Azure OpenAI](https://azure.microsoft.com/en-us/products/ai-services/openai-service) provider contains language model support for the Azure OpenAI chat API.
+Start with [AI Gateway](/providers/ai-sdk-providers/ai-gateway) for models in its catalog (recommended), or use `@ai-sdk/azure` to connect directly to Azure OpenAI.
 
-## Setup
+```ts provider="azure" model="openai/gpt-6-astra"
+import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
 
-The Azure OpenAI provider is available in the `@ai-sdk/azure` module. You can install it with
+const { text } = await generateText({
+  model: __MODEL__,
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  __GATEWAY_OPTIONS__,
+});
 
-<InstallPackages packages="@ai-sdk/azure" />
+console.log(text);
+```
+
+## Using AI Gateway
+
+The AI SDK uses AI Gateway by default for model strings. Gateway provides access to models across providers through a single API key, with usage and cost tracking. Install `ai`:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
+
+The example sets `providerOptions.gateway.order` to `['azure']`. This sends the request to Azure OpenAI first, then falls back to other available providers of the same model if Azure OpenAI is unavailable or the request fails. `order` sets a preference; it does not restrict fallback to Azure OpenAI. See [provider ordering](https://vercel.com/docs/ai-gateway/models-and-providers/provider-filtering-and-ordering).
+
+The dropdown lists models served by Azure OpenAI through Gateway with a corresponding direct-provider example. Provider availability depends on the model and your team's [Provider Allowlist](https://vercel.com/docs/ai-gateway/models-and-providers/provider-filtering-and-ordering).
+
+## Using `@ai-sdk/azure`
+
+For direct access to Azure OpenAI, install `ai` and `@ai-sdk/azure`:
+
+<InstallPackages packages="ai @ai-sdk/azure" />
+
+Set your Azure API key and resource name:
+
+```bash
+export AZURE_API_KEY=your_api_key_here
+export AZURE_RESOURCE_NAME=your_resource_name
+```
+
+The direct example uses an Azure deployment name. Replace it with the deployment name configured in your resource.
+
+Use the direct provider for your Azure deployments, Microsoft Entra ID authentication, or Azure-specific APIs. Replace the deployment name in the Azure example with one from your resource.
+
+<Note>
+  The following sections document the direct `@ai-sdk/azure` provider, including
+  its model factories and settings. Gateway model and feature availability can
+  differ.
+</Note>
 
 ## Provider Instance
 
