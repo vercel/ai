@@ -4,6 +4,8 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
@@ -140,27 +142,32 @@ export class AlibabaEmbeddingModel implements EmbeddingModelV2<string> {
   }
 }
 
-const alibabaTextEmbeddingSparseEmbeddingSchema = z.object({
-  index: z.number(),
-  value: z.number(),
-  token: z.string().nullish(),
-});
+const alibabaTextEmbeddingSparseEmbeddingSchema = () =>
+  z.object({
+    index: z.number(),
+    value: z.number(),
+    token: z.string().nullish(),
+  });
 
-const alibabaTextEmbeddingResponseSchema = z.object({
-  output: z.object({
-    embeddings: z.array(
-      z.object({
-        embedding: z.array(z.number()),
-        text_index: z.number(),
-        sparse_embedding: z
-          .array(alibabaTextEmbeddingSparseEmbeddingSchema)
-          .nullish(),
+const alibabaTextEmbeddingResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      output: z.object({
+        embeddings: z.array(
+          z.object({
+            embedding: z.array(z.number()),
+            text_index: z.number(),
+            sparse_embedding: z
+              .array(alibabaTextEmbeddingSparseEmbeddingSchema())
+              .nullish(),
+          }),
+        ),
       }),
-    ),
-  }),
-  usage: z
-    .object({
-      total_tokens: z.number(),
-    })
-    .nullish(),
-});
+      usage: z
+        .object({
+          total_tokens: z.number(),
+        })
+        .nullish(),
+    }),
+  ),
+);

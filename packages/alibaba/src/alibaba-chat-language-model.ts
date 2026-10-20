@@ -12,6 +12,9 @@ import {
   type LanguageModelV2StreamPart,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
@@ -297,7 +300,8 @@ export class AlibabaLanguageModel implements LanguageModelV2 {
 
     // Track state across chunks
     let finishReason: LanguageModelV2FinishReason = 'other';
-    let usage: z.infer<typeof alibabaUsageSchema> | undefined = undefined;
+    let usage: z.infer<ReturnType<typeof alibabaUsageSchema>> | undefined =
+      undefined;
 
     let isFirstChunk = true;
     let activeText = false;
@@ -314,7 +318,7 @@ export class AlibabaLanguageModel implements LanguageModelV2 {
     return {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<z.infer<typeof alibabaChatChunkSchema>>,
+          ParseResult<InferSchema<typeof alibabaChatChunkSchema>>,
           LanguageModelV2StreamPart
         >({
           start(controller) {
@@ -570,82 +574,91 @@ export class AlibabaLanguageModel implements LanguageModelV2 {
  * Reference for schemas below:
  * https://www.alibabacloud.com/help/en/model-studio/qwen-api-via-openai-chat-completions
  */
-const alibabaUsageSchema = z.object({
-  prompt_tokens: z.number(),
-  completion_tokens: z.number(),
-  total_tokens: z.number(),
-  prompt_tokens_details: z
-    .object({
-      cached_tokens: z.number().nullish(),
-      cache_creation_input_tokens: z.number().nullish(),
-    })
-    .nullish(),
-  completion_tokens_details: z
-    .object({
-      reasoning_tokens: z.number().nullish(),
-    })
-    .nullish(),
-});
+const alibabaUsageSchema = () =>
+  z.object({
+    prompt_tokens: z.number(),
+    completion_tokens: z.number(),
+    total_tokens: z.number(),
+    prompt_tokens_details: z
+      .object({
+        cached_tokens: z.number().nullish(),
+        cache_creation_input_tokens: z.number().nullish(),
+      })
+      .nullish(),
+    completion_tokens_details: z
+      .object({
+        reasoning_tokens: z.number().nullish(),
+      })
+      .nullish(),
+  });
 
-const alibabaChatResponseSchema = z.object({
-  id: z.string().nullish(),
-  created: z.number().nullish(),
-  model: z.string().nullish(),
-  choices: z.array(
+const alibabaChatResponseSchema = lazySchema(() =>
+  zodSchema(
     z.object({
-      message: z.object({
-        role: z.literal('assistant').nullish(),
-        content: z.string().nullish(),
-        reasoning_content: z.string().nullish(), // Alibaba thinking mode
-        tool_calls: z
-          .array(
-            z.object({
-              id: z.string(),
-              type: z.literal('function'),
-              function: z.object({
-                name: z.string(),
-                arguments: z.string(),
-              }),
-            }),
-          )
-          .nullish(),
-      }),
-      finish_reason: z.string().nullish(),
-      index: z.number(),
+      id: z.string().nullish(),
+      created: z.number().nullish(),
+      model: z.string().nullish(),
+      choices: z.array(
+        z.object({
+          message: z.object({
+            role: z.literal('assistant').nullish(),
+            content: z.string().nullish(),
+            reasoning_content: z.string().nullish(), // Alibaba thinking mode
+            tool_calls: z
+              .array(
+                z.object({
+                  id: z.string(),
+                  type: z.literal('function'),
+                  function: z.object({
+                    name: z.string(),
+                    arguments: z.string(),
+                  }),
+                }),
+              )
+              .nullish(),
+          }),
+          finish_reason: z.string().nullish(),
+          index: z.number(),
+        }),
+      ),
+      usage: alibabaUsageSchema().nullish(),
     }),
   ),
-  usage: alibabaUsageSchema.nullish(),
-});
+);
 
-const alibabaChatChunkSchema = z.object({
-  id: z.string().nullish(),
-  created: z.number().nullish(),
-  model: z.string().nullish(),
-  choices: z.array(
+const alibabaChatChunkSchema = lazySchema(() =>
+  zodSchema(
     z.object({
-      delta: z.object({
-        role: z.enum(['assistant']).nullish(),
-        content: z.string().nullish(),
-        reasoning_content: z.string().nullish(), // Alibaba thinking mode delta
-        tool_calls: z
-          .array(
-            z.object({
-              index: z.number().nullish(), // Index for accumulating tool calls
-              id: z.string().nullish(),
-              type: z.literal('function').nullish(),
-              function: z
-                .object({
-                  name: z.string().nullish(),
-                  arguments: z.string().nullish(),
-                })
-                .nullish(),
-            }),
-          )
-          .nullish(),
-      }),
-      finish_reason: z.string().nullish(),
-      index: z.number(),
+      id: z.string().nullish(),
+      created: z.number().nullish(),
+      model: z.string().nullish(),
+      choices: z.array(
+        z.object({
+          delta: z.object({
+            role: z.enum(['assistant']).nullish(),
+            content: z.string().nullish(),
+            reasoning_content: z.string().nullish(), // Alibaba thinking mode delta
+            tool_calls: z
+              .array(
+                z.object({
+                  index: z.number().nullish(), // Index for accumulating tool calls
+                  id: z.string().nullish(),
+                  type: z.literal('function').nullish(),
+                  function: z
+                    .object({
+                      name: z.string().nullish(),
+                      arguments: z.string().nullish(),
+                    })
+                    .nullish(),
+                }),
+              )
+              .nullish(),
+          }),
+          finish_reason: z.string().nullish(),
+          index: z.number(),
+        }),
+      ),
+      usage: alibabaUsageSchema().nullish(), // Usage only appears in final chunk
     }),
   ),
-  usage: alibabaUsageSchema.nullish(), // Usage only appears in final chunk
-});
+);
