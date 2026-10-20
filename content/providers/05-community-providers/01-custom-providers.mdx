@@ -884,11 +884,12 @@ const response = await fetch(`${this.config.baseURL}/chat/completions`, {
   `null` and `undefined`, not a call on a plain object, so it throws `TypeError`
   exactly on the model a workflow deserialized.
 
-  Because resolved headers travel with the serialized model, a step can still
-  authenticate with the credentials the model was created with — which also
-  means the header map, including any API key, is part of the workflow payload.
-  If that is not acceptable, leave the key out of the config and pass it per
-  call through `options.headers`.
+Because resolved headers travel with the serialized model, a step can still
+authenticate with the credentials the model was created with — which also
+means the header map, including any API key, is part of the workflow payload.
+If that is not acceptable, leave the key out of the config and pass it per
+call through `options.headers`.
+
 </Note>
 
 ## Next Steps
