@@ -38,6 +38,17 @@ export const deepgramTranscriptionModelOptionsSchema = z.object({
   uttSplit: z.number().nullish(),
   /** Whether to include filler words (um, uh, etc.) in the transcript. */
   fillerWords: z.boolean().nullish(),
+  /** Options that only apply to streaming transcription. */
+  streaming: z
+    .object({
+      /** Whether to stream interim transcripts before each segment is final. Defaults to `true`. */
+      interimResults: z.boolean().nullish(),
+      /** Milliseconds of silence before Deepgram finalizes a segment, or `false` to turn endpointing off. */
+      endpointing: z
+        .union([z.number().int().nonnegative(), z.literal(false)])
+        .nullish(),
+    })
+    .nullish(),
 });
 
 export type DeepgramTranscriptionModelOptions = z.infer<
