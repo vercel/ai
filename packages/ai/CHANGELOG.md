@@ -1,5 +1,13 @@
 # ai
 
+## 7.0.147
+
+### Patch Changes
+
+- 66e74dc: fix(ai): preserve repaired tool names in streamed UI message parts
+- Updated dependencies [9bec2c3]
+  - @ai-sdk/gateway@4.0.120
+
 ## 7.0.146
 
 ### Patch Changes

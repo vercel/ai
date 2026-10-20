@@ -1,5 +1,12 @@
 # @ai-sdk/harness-acp
 
+## 1.0.97
+
+### Patch Changes
+
+- 6993e42: feat(harness-acp): add support for image input
+  - @ai-sdk/harness@1.0.158
+
 ## 1.0.96
 
 ### Patch Changes

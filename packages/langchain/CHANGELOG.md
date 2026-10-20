@@ -1,5 +1,13 @@
 # @ai-sdk/langchain
 
+## 3.0.147
+
+### Patch Changes
+
+- a9e0b2a: Fix stale `ai/react` import in the README
+- Updated dependencies [66e74dc]
+  - ai@7.0.147
+
 ## 3.0.146
 
 ### Patch Changes

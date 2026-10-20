@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 4.0.120
+
+### Patch Changes
+
+- 9bec2c3: chore(provider/gateway): update gateway model settings files
+
 ## 4.0.119
 
 ### Patch Changes
