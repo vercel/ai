@@ -22,20 +22,14 @@ import {
 } from './github-copilot-subscription';
 import { VERSION } from './version';
 
-declare const __GITHUB_COPILOT_IMPLEMENTATION_PACKAGE_JSON__: string;
-declare const __GITHUB_COPILOT_IMPLEMENTATION_PNPM_LOCK_YAML__: string;
-declare const __GITHUB_COPILOT_IMPLEMENTATION_PNPM_WORKSPACE_YAML__: string;
+declare const __GITHUB_COPILOT_BRIDGE_PACKAGE_JSON__: string;
+declare const __GITHUB_COPILOT_BRIDGE_PNPM_LOCK_YAML__: string;
+declare const __GITHUB_COPILOT_BRIDGE_PNPM_WORKSPACE_YAML__: string;
 
 const GITHUB_COPILOT_CLIENT_APP = {
   name: 'ai-sdk-harness-github-copilot',
   version: VERSION,
 } as const;
-const GITHUB_COPILOT_IMPLEMENTATION_PACKAGE_JSON =
-  __GITHUB_COPILOT_IMPLEMENTATION_PACKAGE_JSON__;
-const GITHUB_COPILOT_IMPLEMENTATION_PNPM_LOCK =
-  __GITHUB_COPILOT_IMPLEMENTATION_PNPM_LOCK_YAML__;
-const GITHUB_COPILOT_IMPLEMENTATION_PNPM_WORKSPACE =
-  __GITHUB_COPILOT_IMPLEMENTATION_PNPM_WORKSPACE_YAML__;
 const GITHUB_COPILOT_TOKEN_ENVIRONMENT_VARIABLES = new Set([
   'COPILOT_GITHUB_TOKEN',
   'GH_TOKEN',
@@ -270,9 +264,9 @@ export function createGitHubCopilot(
     clientApp: GITHUB_COPILOT_CLIENT_APP,
     source: {
       type: 'npm-locked',
-      packageJson: GITHUB_COPILOT_IMPLEMENTATION_PACKAGE_JSON,
-      pnpmLockYaml: GITHUB_COPILOT_IMPLEMENTATION_PNPM_LOCK,
-      pnpmWorkspaceYaml: GITHUB_COPILOT_IMPLEMENTATION_PNPM_WORKSPACE,
+      packageJson: __GITHUB_COPILOT_BRIDGE_PACKAGE_JSON__,
+      pnpmLockYaml: __GITHUB_COPILOT_BRIDGE_PNPM_LOCK_YAML__,
+      pnpmWorkspaceYaml: __GITHUB_COPILOT_BRIDGE_PNPM_WORKSPACE_YAML__,
     },
     executable: 'copilot',
     args: [

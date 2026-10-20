@@ -84,14 +84,14 @@ export type ACPHarnessSettings<
   readonly outputSchemaMapping?: ACPV1Settings['outputSchemaMapping'];
   /**
    * Transport used for the harness-owned MCP server that exposes host tools to
-   * the ACP implementation. Defaults to `stdio`. Set this to `http` for
-   * implementations that only accept HTTP or SSE MCP servers from the client,
-   * which requires the implementation to advertise
+   * the ACP agent. Defaults to `stdio`. Set this to `http` for
+   * agents that only accept HTTP or SSE MCP servers from the client,
+   * which requires the agent to advertise
    * `agentCapabilities.mcpCapabilities.http`.
    */
   readonly hostToolMcpTransport?: ACPV1Settings['hostToolMcpTransport'];
   /**
-   * Non-text tool model output the ACP implementation can deliver to its
+   * Non-text tool model output the ACP agent can deliver to its
    * model. Text is always supported. Undeclared image content is omitted
    * with a warning. Defaults to an empty list.
    */
@@ -113,16 +113,12 @@ const acpBridgeCoordsSchema = z.object({
 });
 
 const acpResumeStateSchema = z.object({
-  implementationIdentity: z.string(),
+  agentIdentity: z.string(),
   authenticationProfile: z
     .object({
       digest: z.string(),
       acpMethodId: z.string().optional(),
-      providerKind: z
-        .enum(['implementation-default', 'direct', 'ai-gateway'])
-        .transform(value =>
-          value === 'implementation-default' ? 'direct' : value,
-        ),
+      providerKind: z.enum(['direct', 'ai-gateway']),
       providerMode: z.enum(['auto', 'direct', 'ai-gateway']).optional(),
       gatewayCredentialSource: z
         .enum(['AI_GATEWAY_API_KEY', 'VERCEL_OIDC_TOKEN'])
@@ -169,25 +165,6 @@ export function createACP<
 >(
   settings: ACPHarnessSettings<TBuiltinTools, TAskUserQuestions>,
 ): HarnessV1<ACPHarnessTools<TBuiltinTools, TAskUserQuestions>> {
-  if (
-    (settings.credentialEnv == null) !==
-    (settings.credentialBrokering == null)
-  ) {
-    throw new Error(
-      'ACP credentialEnv and credentialBrokering must be configured together.',
-    );
-  }
-  if (
-    settings.mcpServers != null &&
-    Object.prototype.hasOwnProperty.call(
-      settings.mcpServers,
-      'ai-sdk-harness-tools',
-    )
-  ) {
-    throw new Error(
-      'ACP MCP server name "ai-sdk-harness-tools" is reserved for HarnessAgent tools.',
-    );
-  }
   const version = (settings as { readonly version?: string }).version ?? 'v1';
   switch (version) {
     case 'v1': {

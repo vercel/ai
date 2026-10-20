@@ -6,7 +6,7 @@ import {
 } from '@ai-sdk/harness/bridge';
 import * as acp from '@agentclientprotocol/sdk';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
-import { readFile, writeFile } from 'node:fs/promises';
+import { writeFile } from 'node:fs/promises';
 import { Readable, Writable } from 'node:stream';
 import { argv, env as processEnv } from 'node:process';
 import {
@@ -58,13 +58,6 @@ import {
   type ACPSessionRestorationMethod,
 } from './session-lifecycle';
 
-type ImplementationDescriptor = {
-  readonly executablePath: string;
-  readonly privateHome: boolean;
-  readonly args: ReadonlyArray<string>;
-  readonly envKeys: ReadonlyArray<string>;
-};
-
 const HOST_TOOL_MCP_SERVER_NAME = 'ai-sdk-harness-tools';
 const CATALOG_REFRESH_TIMEOUT_MS = 10_000;
 
@@ -74,16 +67,9 @@ const bridgeStateDir = requireArg({
   value: args.bridgeStateDir,
   name: '--bridge-state-dir',
 });
-const implementationDir = requireArg({
-  value: args.implementationDir,
-  name: '--implementation-dir',
-});
 const bridgeType = requireArg({
   value: args.bridgeType,
   name: '--bridge-type',
-});
-const implementation = await readImplementationDescriptor({
-  path: `${implementationDir}/implementation.json`,
 });
 const bridgeConfiguration = await readACPBridgeEnvironment({ env: processEnv });
 
@@ -478,14 +464,13 @@ async function ensureSession({
     environment: {
       ...createChildEnvironment({
         launchEnv,
-        implementationDir,
-        privateHome: implementation.privateHome,
+        home: bridgeConfiguration.agent.home,
       }),
     },
   });
   child = spawn(
-    `${implementationDir}/${implementation.executablePath}`,
-    [...implementation.args],
+    bridgeConfiguration.agent.command,
+    [...bridgeConfiguration.agent.args],
     {
       cwd: workDir,
       env: instructionConfiguration.environment,
@@ -849,12 +834,10 @@ function resolveGatewayValues({
 
 function createChildEnvironment({
   launchEnv,
-  implementationDir,
-  privateHome,
+  home,
 }: {
   launchEnv: Readonly<Record<string, string>>;
-  implementationDir: string;
-  privateHome: boolean;
+  home: string | undefined;
 }): NodeJS.ProcessEnv {
   const blocked = new Set([
     'BRIDGE_CHANNEL_TOKEN',
@@ -873,9 +856,8 @@ function createChildEnvironment({
     ),
     ...launchEnv,
   };
-  if (!privateHome) return environment;
+  if (home == null) return environment;
 
-  const home = `${implementationDir}/home`;
   const inheritedPath = environment.PATH;
   return {
     ...environment,
@@ -968,44 +950,14 @@ function promptActiveSession({
   return response;
 }
 
-async function readImplementationDescriptor({
-  path,
-}: {
-  path: string;
-}): Promise<ImplementationDescriptor> {
-  const text = await readFile(path, 'utf8');
-  const value = await new Response(text, {
-    headers: { 'content-type': 'application/json' },
-  }).json();
-  if (
-    !isRecord(value) ||
-    typeof value.executablePath !== 'string' ||
-    typeof value.privateHome !== 'boolean' ||
-    !Array.isArray(value.args) ||
-    !value.args.every(item => typeof item === 'string') ||
-    !Array.isArray(value.envKeys) ||
-    !value.envKeys.every(item => typeof item === 'string')
-  ) {
-    throw new Error('Invalid ACP implementation descriptor.');
-  }
-  return {
-    executablePath: value.executablePath,
-    privateHome: value.privateHome,
-    args: value.args as string[],
-    envKeys: value.envKeys as string[],
-  };
-}
-
 function parseArgs({ args }: { args: ReadonlyArray<string> }): {
   workDir?: string;
   bridgeStateDir?: string;
-  implementationDir?: string;
   bridgeType?: string;
 } {
   const result: {
     workDir?: string;
     bridgeStateDir?: string;
-    implementationDir?: string;
     bridgeType?: string;
   } = {};
   for (let index = 0; index < args.length; index++) {
@@ -1014,8 +966,6 @@ function parseArgs({ args }: { args: ReadonlyArray<string> }): {
     if (args[index] === '--workdir') result.workDir = value;
     else if (args[index] === '--bridge-state-dir')
       result.bridgeStateDir = value;
-    else if (args[index] === '--implementation-dir')
-      result.implementationDir = value;
     else if (args[index] === '--bridge-type') result.bridgeType = value;
   }
   return result;

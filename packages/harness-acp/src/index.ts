@@ -30,7 +30,6 @@ export type {
   ACPInstructionMapping,
   ACPModelMapping,
   ACPNpmLockedSource,
-  ACPNpmSimpleSource,
   ACPOutputSchemaMapping,
   ACPPermissionModeMapping,
   ACPPermissionModeTarget,
