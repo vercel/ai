@@ -1,3 +1,8 @@
+import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 // https://docs.mistral.ai/getting-started/models/models_overview/
@@ -24,40 +29,44 @@ export type MistralChatModelId =
   | 'open-mixtral-8x22b'
   | (string & {});
 
-export const mistralLanguageModelOptions = z.object({
-  /**
+export const mistralLanguageModelOptions = lazySchema(() =>
+  zodSchema(
+    z.object({
+      /**
 Whether to inject a safety prompt before all conversations.
 
 Defaults to `false`.
    */
-  safePrompt: z.boolean().optional(),
+      safePrompt: z.boolean().optional(),
 
-  documentImageLimit: z.number().optional(),
-  documentPageLimit: z.number().optional(),
+      documentImageLimit: z.number().optional(),
+      documentPageLimit: z.number().optional(),
 
-  /**
-   * Whether to use structured outputs.
-   *
-   * @default true
-   */
-  structuredOutputs: z.boolean().optional(),
+      /**
+       * Whether to use structured outputs.
+       *
+       * @default true
+       */
+      structuredOutputs: z.boolean().optional(),
 
-  /**
-   * Whether to use strict JSON schema validation.
-   *
-   * @default false
-   */
-  strictJsonSchema: z.boolean().optional(),
+      /**
+       * Whether to use strict JSON schema validation.
+       *
+       * @default false
+       */
+      strictJsonSchema: z.boolean().optional(),
 
-  /**
-   * Whether to enable parallel function calling during tool use.
-   * When set to false, the model will use at most one tool per response.
-   *
-   * @default true
-   */
-  parallelToolCalls: z.boolean().optional(),
-});
+      /**
+       * Whether to enable parallel function calling during tool use.
+       * When set to false, the model will use at most one tool per response.
+       *
+       * @default true
+       */
+      parallelToolCalls: z.boolean().optional(),
+    }),
+  ),
+);
 
-export type MistralLanguageModelOptions = z.infer<
+export type MistralLanguageModelOptions = InferSchema<
   typeof mistralLanguageModelOptions
 >;
