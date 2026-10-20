@@ -4,6 +4,8 @@ import type {
   ImageModelV2ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
@@ -115,31 +117,37 @@ export class GatewayImageModel implements ImageModelV2 {
   }
 }
 
-const providerMetadataEntrySchema = z
-  .object({
-    images: z.array(z.unknown()).optional(),
-  })
-  .catchall(z.unknown());
+const providerMetadataEntrySchema = () =>
+  z
+    .object({
+      images: z.array(z.unknown()).optional(),
+    })
+    .catchall(z.unknown());
 
-const gatewayImageUsageSchema = z.object({
-  inputTokens: z.number().nullish(),
-  outputTokens: z.number().nullish(),
-  totalTokens: z.number().nullish(),
-});
+const gatewayImageUsageSchema = () =>
+  z.object({
+    inputTokens: z.number().nullish(),
+    outputTokens: z.number().nullish(),
+    totalTokens: z.number().nullish(),
+  });
 
-const gatewayImageResponseSchema = z.object({
-  images: z.array(z.string()), // Always base64 strings over the wire
-  isRetryable: z.boolean().optional(),
-  warnings: z
-    .array(
-      z.object({
-        type: z.literal('other'),
-        message: z.string(),
-      }),
-    )
-    .optional(),
-  providerMetadata: z
-    .record(z.string(), providerMetadataEntrySchema)
-    .optional(),
-  usage: gatewayImageUsageSchema.optional(),
-});
+const gatewayImageResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      images: z.array(z.string()), // Always base64 strings over the wire
+      isRetryable: z.boolean().optional(),
+      warnings: z
+        .array(
+          z.object({
+            type: z.literal('other'),
+            message: z.string(),
+          }),
+        )
+        .optional(),
+      providerMetadata: z
+        .record(z.string(), providerMetadataEntrySchema())
+        .optional(),
+      usage: gatewayImageUsageSchema().optional(),
+    }),
+  ),
+);
