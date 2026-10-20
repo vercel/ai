@@ -2078,6 +2078,145 @@ describe('ToolLoopAgent', () => {
     });
   });
 
+  describe('onStepError', () => {
+    it('should call onStepError when a generate step fails', async () => {
+      const onStepStart = vi.fn();
+      const onStepError = vi.fn();
+      const onStepEnd = vi.fn();
+      const providerError = new Error('provider failure');
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => {
+            throw providerError;
+          },
+        }),
+        maxRetries: 0,
+        onStepStart,
+        onStepError,
+        onStepEnd,
+      });
+
+      await expect(agent.generate({ prompt: 'Hello, world!' })).rejects.toBe(
+        providerError,
+      );
+
+      expect(onStepEnd).not.toHaveBeenCalled();
+      expect(onStepError).toHaveBeenCalledTimes(1);
+      expect(onStepError).toHaveBeenCalledWith({
+        callId: onStepStart.mock.calls[0][0].callId,
+        provider: 'mock-provider',
+        modelId: 'mock-model-id',
+        stepNumber: 0,
+        error: providerError,
+      });
+    });
+
+    it('should call onStepError when a stream step ends without output', async () => {
+      const onStepError = vi.fn();
+      const onStepEnd = vi.fn();
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+            ]),
+          }),
+        }),
+        onError: () => {},
+        onStepError,
+        onStepEnd,
+      });
+
+      const result = await agent.stream({ prompt: 'Hello, world!' });
+      await result.consumeStream();
+      await expect(result.text).rejects.toThrow();
+
+      expect(onStepEnd).not.toHaveBeenCalled();
+      expect(onStepError).toHaveBeenCalledTimes(1);
+      expect(onStepError).toHaveBeenCalledWith(
+        expect.objectContaining({
+          stepNumber: 0,
+          error: expect.objectContaining({
+            name: 'AI_NoOutputGeneratedError',
+          }),
+        }),
+      );
+    });
+  });
+
+  describe('onError', () => {
+    it('should call onError when a stream step fails', async () => {
+      const onError = vi.fn();
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+            ]),
+          }),
+        }),
+        onError,
+      });
+
+      const result = await agent.stream({ prompt: 'Hello, world!' });
+      await result.consumeStream();
+      await expect(result.text).rejects.toThrow();
+
+      expect(onError).toHaveBeenCalledTimes(1);
+      expect(onError).toHaveBeenCalledWith({
+        error: expect.objectContaining({ name: 'AI_NoOutputGeneratedError' }),
+      });
+    });
+
+    it('should call onError and rethrow when generate fails', async () => {
+      const onError = vi.fn();
+      const providerError = new Error('provider failure');
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => {
+            throw providerError;
+          },
+        }),
+        maxRetries: 0,
+        onError,
+      });
+
+      await expect(agent.generate({ prompt: 'Hello, world!' })).rejects.toBe(
+        providerError,
+      );
+
+      expect(onError).toHaveBeenCalledTimes(1);
+      expect(onError).toHaveBeenCalledWith({ error: providerError });
+    });
+
+    it('should keep the default stream error logging when no onError is set', async () => {
+      const consoleError = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      try {
+        const agent = new ToolLoopAgent({
+          model: new MockLanguageModelV4({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+              ]),
+            }),
+          }),
+        });
+
+        const result = await agent.stream({ prompt: 'Hello, world!' });
+        await result.consumeStream();
+        await expect(result.text).rejects.toThrow();
+
+        expect(consoleError).toHaveBeenCalledWith(
+          expect.objectContaining({ name: 'AI_NoOutputGeneratedError' }),
+        );
+      } finally {
+        consoleError.mockRestore();
+      }
+    });
+  });
+
   describe('onStepFinish', () => {
     describe('generate', () => {
       let mockModel: MockLanguageModelV4;
