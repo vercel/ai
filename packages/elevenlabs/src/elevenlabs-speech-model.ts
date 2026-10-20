@@ -1,5 +1,8 @@
 import type { SpeechModelV3, SharedV3Warning } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
   combineHeaders,
   createBinaryResponseHandler,
   parseProviderOptions,
@@ -15,36 +18,40 @@ import type {
 } from './elevenlabs-speech-options';
 
 // Schema for camelCase input from users
-const elevenLabsSpeechModelOptionsSchema = z.object({
-  languageCode: z.string().optional(),
-  voiceSettings: z
-    .object({
-      stability: z.number().min(0).max(1).optional(),
-      similarityBoost: z.number().min(0).max(1).optional(),
-      style: z.number().min(0).max(1).optional(),
-      useSpeakerBoost: z.boolean().optional(),
-    })
-    .optional(),
-  pronunciationDictionaryLocators: z
-    .array(
-      z.object({
-        pronunciationDictionaryId: z.string(),
-        versionId: z.string().optional(),
-      }),
-    )
-    .max(3)
-    .optional(),
-  seed: z.number().min(0).max(4294967295).optional(),
-  previousText: z.string().optional(),
-  nextText: z.string().optional(),
-  previousRequestIds: z.array(z.string()).max(3).optional(),
-  nextRequestIds: z.array(z.string()).max(3).optional(),
-  applyTextNormalization: z.enum(['auto', 'on', 'off']).optional(),
-  applyLanguageTextNormalization: z.boolean().optional(),
-  enableLogging: z.boolean().optional(),
-});
+const elevenLabsSpeechModelOptionsSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      languageCode: z.string().optional(),
+      voiceSettings: z
+        .object({
+          stability: z.number().min(0).max(1).optional(),
+          similarityBoost: z.number().min(0).max(1).optional(),
+          style: z.number().min(0).max(1).optional(),
+          useSpeakerBoost: z.boolean().optional(),
+        })
+        .optional(),
+      pronunciationDictionaryLocators: z
+        .array(
+          z.object({
+            pronunciationDictionaryId: z.string(),
+            versionId: z.string().optional(),
+          }),
+        )
+        .max(3)
+        .optional(),
+      seed: z.number().min(0).max(4294967295).optional(),
+      previousText: z.string().optional(),
+      nextText: z.string().optional(),
+      previousRequestIds: z.array(z.string()).max(3).optional(),
+      nextRequestIds: z.array(z.string()).max(3).optional(),
+      applyTextNormalization: z.enum(['auto', 'on', 'off']).optional(),
+      applyLanguageTextNormalization: z.boolean().optional(),
+      enableLogging: z.boolean().optional(),
+    }),
+  ),
+);
 
-export type ElevenLabsSpeechModelOptions = z.infer<
+export type ElevenLabsSpeechModelOptions = InferSchema<
   typeof elevenLabsSpeechModelOptionsSchema
 >;
 
