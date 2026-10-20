@@ -8,6 +8,8 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertImageModelFileToDataUri,
   createJsonErrorResponseHandler,
@@ -489,43 +491,55 @@ export class ByteDanceVideoModel implements VideoModelV4 {
   }
 }
 
-const byteDanceTaskResponseSchema = z.object({
-  id: z.string().nullish(),
-});
+const byteDanceTaskResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      id: z.string().nullish(),
+    }),
+  ),
+);
 
-const byteDanceStatusResponseSchema = z.object({
-  id: z.string().nullish(),
-  model: z.string().nullish(),
-  status: z.string(),
-  content: z
-    .object({
-      video_url: z.string().nullish(),
-      last_frame_url: z.string().nullish(),
-    })
-    .nullish(),
-  usage: z
-    .object({
-      completion_tokens: z.number().nullish(),
-    })
-    .nullish(),
-  // Present on failed tasks (the HTTP response itself is still 200).
-  error: z
-    .object({
-      code: z.string().nullish(),
+const byteDanceStatusResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      id: z.string().nullish(),
+      model: z.string().nullish(),
+      status: z.string(),
+      content: z
+        .object({
+          video_url: z.string().nullish(),
+          last_frame_url: z.string().nullish(),
+        })
+        .nullish(),
+      usage: z
+        .object({
+          completion_tokens: z.number().nullish(),
+        })
+        .nullish(),
+      // Present on failed tasks (the HTTP response itself is still 200).
+      error: z
+        .object({
+          code: z.string().nullish(),
+          message: z.string().nullish(),
+        })
+        .nullish(),
+    }),
+  ),
+);
+
+const byteDanceErrorSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      error: z
+        .object({
+          message: z.string(),
+          code: z.string().nullish(),
+        })
+        .nullish(),
       message: z.string().nullish(),
-    })
-    .nullish(),
-});
-
-const byteDanceErrorSchema = z.object({
-  error: z
-    .object({
-      message: z.string(),
-      code: z.string().nullish(),
-    })
-    .nullish(),
-  message: z.string().nullish(),
-});
+    }),
+  ),
+);
 
 const byteDanceFailedResponseHandler = createJsonErrorResponseHandler({
   errorSchema: byteDanceErrorSchema,
