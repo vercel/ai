@@ -4,6 +4,8 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonResponseHandler,
@@ -338,45 +340,57 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
   }
 }
 
-const gladiaUploadResponseSchema = z.object({
-  audio_url: z.string(),
-});
+const gladiaUploadResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      audio_url: z.string(),
+    }),
+  ),
+);
 
-const gladiaTranscriptionInitializeResponseSchema = z.object({
-  result_url: z.string(),
-});
+const gladiaTranscriptionInitializeResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      result_url: z.string(),
+    }),
+  ),
+);
 
-const gladiaTranscriptionResultResponseSchema = z.object({
-  status: z.enum(['queued', 'processing', 'done', 'error']),
-  result: z
-    .object({
-      metadata: z.object({
-        audio_duration: z.number(),
-      }),
-      transcription: z.object({
-        full_transcript: z.string(),
-        languages: z.array(z.string()),
-        utterances: z.array(
-          z.object({
-            start: z.number(),
-            end: z.number(),
-            text: z.string(),
-            speaker: z.union([z.string(), z.number()]).nullish(),
-            confidence: z.number().nullish(),
-            language: z.string().nullish(),
-            words: z
-              .array(
-                z.object({
-                  word: z.string(),
-                  start: z.number(),
-                  end: z.number(),
-                  confidence: z.number().nullish(),
-                }),
-              )
-              .nullish(),
+const gladiaTranscriptionResultResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      status: z.enum(['queued', 'processing', 'done', 'error']),
+      result: z
+        .object({
+          metadata: z.object({
+            audio_duration: z.number(),
           }),
-        ),
-      }),
-    })
-    .nullish(),
-});
+          transcription: z.object({
+            full_transcript: z.string(),
+            languages: z.array(z.string()),
+            utterances: z.array(
+              z.object({
+                start: z.number(),
+                end: z.number(),
+                text: z.string(),
+                speaker: z.union([z.string(), z.number()]).nullish(),
+                confidence: z.number().nullish(),
+                language: z.string().nullish(),
+                words: z
+                  .array(
+                    z.object({
+                      word: z.string(),
+                      start: z.number(),
+                      end: z.number(),
+                      confidence: z.number().nullish(),
+                    }),
+                  )
+                  .nullish(),
+              }),
+            ),
+          }),
+        })
+        .nullish(),
+    }),
+  ),
+);
