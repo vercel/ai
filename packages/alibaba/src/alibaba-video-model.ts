@@ -12,6 +12,7 @@ import {
   createJsonResponseHandler,
   delay,
   type FetchFunction,
+  encodePathSegment,
   getFromApi,
   lazySchema,
   parseProviderOptions,
@@ -667,7 +668,7 @@ export class AlibabaVideoModel implements Experimental_VideoModelV3 {
 
       const { value: statusResponse, responseHeaders: pollHeaders } =
         await getFromApi({
-          url: `${this.config.baseURL}/api/v1/tasks/${taskId}`,
+          url: `${this.config.baseURL}/api/v1/tasks/${encodePathSegment(taskId)}`,
           headers: combineHeaders(
             await resolve(this.config.headers),
             options.headers,

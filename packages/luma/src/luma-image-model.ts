@@ -11,6 +11,7 @@ import {
   createJsonErrorResponseHandler,
   createStatusCodeErrorResponseHandler,
   delay,
+  encodePathSegment,
   getFromApi,
   postJsonToApi,
   lazySchema,
@@ -321,9 +322,7 @@ export class LumaImageModel implements ImageModelV3 {
   }
 
   private getLumaGenerationsUrl(generationId?: string) {
-    return `${this.config.baseURL}/dream-machine/v1/generations/${
-      generationId ?? 'image'
-    }`;
+    return `${this.config.baseURL}/dream-machine/v1/generations/${encodePathSegment(generationId ?? 'image')}`;
   }
 
   private async downloadImage(

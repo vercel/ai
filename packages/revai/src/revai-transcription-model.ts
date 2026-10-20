@@ -9,6 +9,7 @@ import {
   createJsonResponseHandler,
   mediaTypeToExtension,
   delay,
+  encodePathSegment,
   getFromApi,
   parseProviderOptions,
   postFormDataToApi,
@@ -361,7 +362,7 @@ export class RevaiTranscriptionModel implements TranscriptionModelV3 {
       // Poll for job status
       const pollingResult = await getFromApi({
         url: this.config.url({
-          path: `/speechtotext/v1/jobs/${jobId}`,
+          path: `/speechtotext/v1/jobs/${encodePathSegment(jobId ?? '')}`,
           modelId: this.modelId,
         }),
         headers: combineHeaders(this.config.headers(), options.headers),
@@ -395,7 +396,7 @@ export class RevaiTranscriptionModel implements TranscriptionModelV3 {
       rawValue: rawResponse,
     } = await getFromApi({
       url: this.config.url({
-        path: `/speechtotext/v1/jobs/${jobId}/transcript`,
+        path: `/speechtotext/v1/jobs/${encodePathSegment(jobId ?? '')}/transcript`,
         modelId: this.modelId,
       }),
       headers: combineHeaders(this.config.headers(), options.headers),
