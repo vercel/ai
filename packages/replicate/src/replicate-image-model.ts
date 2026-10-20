@@ -1,5 +1,7 @@
 import type { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   type Resolvable,
   type FetchFunction,
   combineHeaders,
@@ -116,6 +118,10 @@ export class ReplicateImageModel implements ImageModelV2 {
   }
 }
 
-const replicateImageResponseSchema = z.object({
-  output: z.union([z.array(z.string()), z.string()]),
-});
+const replicateImageResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      output: z.union([z.array(z.string()), z.string()]),
+    }),
+  ),
+);
